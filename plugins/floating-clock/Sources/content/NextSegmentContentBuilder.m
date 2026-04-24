@@ -83,7 +83,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             : [NSColor colorWithWhite:0.55 alpha:1.0];
         NSString *code = [NSString stringWithUTF8String:e.mkt->code];
         NSString *countdown;
-        if (e.secs > 99 * 3600) {
+        if (e.secs > kFCMaxBoundedCountdownSecs) {
             NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
             NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
             openFmt.dateFormat = @"EEE HH:mm";
@@ -149,7 +149,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // single source of truth for thresholds & palette across both
         // sections. Only bounded countdowns (<=99h) get tiered; >99h
         // opens use absolute-date form.
-        NSColor *countdownColor = (e.secs <= 99 * 3600)
+        NSColor *countdownColor = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? FCUrgencyColorForSecs(e.secs, headerColor)
             : headerColor;
         // v4 iter-66: dropped the "until open" / "until lunch ends"
@@ -157,7 +157,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // and the column-header legend. Lunch-resume entries keep the
         // "LUNCH" suffix tag since that's a distinct state signal
         // (purple glyph ◑ alone isn't verbose-accessible).
-        NSString *firstLine = (e.secs <= 99 * 3600)
+        NSString *firstLine = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? [NSString stringWithFormat:@"%@%@", formatCountdownFancy(e.secs), suffix]
             : countdown;  // >99h: use the existing absolute-date form
         [out appendAttributedString:[[NSAttributedString alloc]
@@ -169,7 +169,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // competitor apps (Market 24h Clock, Market Clock Trading Hours,
         // TradingView session indicators) show. Only rendered for
         // bounded countdowns; >99h rows already carry market-TZ info.
-        if (e.secs <= 99 * 3600) {
+        if (e.secs <= kFCMaxBoundedCountdownSecs) {
             NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
             // v4 iter-74: delegate dual-zone formatting to the shared
             // LandingTimeFormatter. Encapsulates the iter-49 cross-day
