@@ -274,7 +274,7 @@ static void test_starter_profiles_count(void) {
     // Sanity: the 5 canonical bundled starters exist. Catches accidental
     // deletion or typo in buildStarterProfiles.
     NSDictionary *profiles = buildStarterProfiles();
-    NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Watch Party"];
+    NSArray *expected = @[@"Default", @"Day Trader", @"Night Owl", @"Minimalist", @"Researcher", @"Watch Party"];
     if (profiles.count != expected.count) {
         fprintf(stderr, "FAIL %s: expected %lu starters got %lu\n",
                 __func__, (unsigned long)expected.count, (unsigned long)profiles.count);
