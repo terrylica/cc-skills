@@ -4,6 +4,7 @@
 #import "../data/MarketSessionCalculator.h"
 #import "SegmentHeaderRenderer.h"
 #import "UrgencyColors.h"
+#import "LandingTimeFormatter.h"
 
 NSAttributedString *FCBuildNextSegmentContent(void) {
     NSDate *now = [NSDate date];
@@ -170,46 +171,12 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // bounded countdowns; >99h rows already carry market-TZ info.
         if (e.secs <= 99 * 3600) {
             NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
-            NSTimeZone *localTz = [NSTimeZone localTimeZone];
-            NSCalendar *cal = [NSCalendar currentCalendar];
-            cal.timeZone = localTz;
-            NSDateComponents *nowC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:[NSDate date]];
-            NSDateComponents *landC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:landsAt];
-            BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
-            // v4 iter-68: show weekday on BOTH sides when user-local and
-            // market-local dates differ. Prior rendering 'Sun 17:00 →
-            // 09:00 JST' invited misreading as 'TSE opens Sunday'.
-            // Now 'Sun 17:00 → Mon 09:00 JST' disambiguates clearly.
-            // When same weekday on both sides (common cross-TZ cases),
-            // show no weekday on either — purely HH:mm.
-            NSTimeZone *mktTz = (strlen(e.mkt->iana) > 0)
-                ? [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]]
-                : nil;
-            NSCalendar *mktCal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-            mktCal.timeZone = mktTz ?: localTz;
-            NSDateComponents *localLandC = [cal components:NSCalendarUnitWeekday fromDate:landsAt];
-            NSDateComponents *mktLandC   = [mktCal components:NSCalendarUnitWeekday fromDate:landsAt];
-            BOOL weekdayDiffers = (localLandC.weekday != mktLandC.weekday);
-
-            NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
-            localFmt.timeZone = localTz;
-            // Weekday prefix only when there's a difference OR the landing
-            // is a non-today calendar day — covers the Sat-evening / TSE
-            // weekend case the user flagged.
-            BOOL showLocalWeekday = weekdayDiffers || !sameDay;
-            localFmt.dateFormat = showLocalWeekday ? @"EEE HH:mm" : @"HH:mm";
-            NSString *localAt = [localFmt stringFromDate:landsAt];
-
-            // Market's own-TZ open time (e.g. "09:30 EDT" or "Mon 09:00 JST")
+            // v4 iter-74: delegate dual-zone formatting to the shared
+            // LandingTimeFormatter. Encapsulates the iter-49 cross-day
+            // rule and the iter-68 weekday-differs rule in one place.
+            NSString *localAt = @"";
             NSString *mktAt = @"";
-            if (mktTz) {
-                NSDateFormatter *mktFmt = [[NSDateFormatter alloc] init];
-                mktFmt.timeZone = mktTz;
-                mktFmt.dateFormat = weekdayDiffers ? @"EEE HH:mm" : @"HH:mm";
-                NSString *mktAbbrev = friendlyAbbrevForIana(e.mkt->iana, landsAt);
-                mktAt = [NSString stringWithFormat:@"%@ %@",
-                    [mktFmt stringFromDate:landsAt], mktAbbrev];
-            }
+            FCFormatLandingTime(landsAt, e.mkt->iana, &localAt, &mktAt);
 
             // Session duration (close - open, same-day). Lunch-resume
             // events share the session — skip dur line for them since
