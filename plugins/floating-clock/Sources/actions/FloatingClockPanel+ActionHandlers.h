@@ -34,6 +34,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleShowFlags:(NSMenuItem *)sender;
 - (void)toggleShowUTCReference:(NSMenuItem *)sender;
 - (void)toggleShowSkyState:(NSMenuItem *)sender;
+- (void)toggleShowProgressPercent:(NSMenuItem *)sender;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
