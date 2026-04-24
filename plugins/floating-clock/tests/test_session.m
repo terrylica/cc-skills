@@ -18,6 +18,7 @@
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "../Sources/rendering/FontResolver.h"
+#import "../Sources/rendering/SegmentOpacityResolver.h"
 
 static int failures = 0;
 
@@ -253,11 +254,17 @@ static void test_flag_empty_for_unknown_iana(void) {
 static void test_starter_profiles_cover_all_keys(void) {
     // Locks in v4 iter-55's fix: each starter must specify every key
     // in profileManagedKeys() so switching profiles fully resets state.
-    // FontName is the one legit exception (power-user override that
-    // defaults to the iTerm2/system cascade).
+    // Exceptions are power-user overrides that fall back cleanly when
+    // unset: FontName (iter-6, iTerm2/system cascade fallback) and
+    // {Local,Active,Next}Opacity (iter-90, CanvasOpacity fallback via
+    // FCResolveSegmentOpacity).
     NSDictionary *profiles = buildStarterProfiles();
     NSArray *keys = profileManagedKeys();
-    NSSet *exempt = [NSSet setWithObject:@"FontName"];
+    NSSet *exempt = [NSSet setWithObjects:@"FontName",
+                                          @"LocalOpacity",
+                                          @"ActiveOpacity",
+                                          @"NextOpacity",
+                                          nil];
 
     for (NSString *profileName in profiles.allKeys) {
         NSDictionary *profile = profiles[profileName];
@@ -468,6 +475,52 @@ static void test_segment_weight_fallback(void) {
     [d removeObjectForKey:@"TestSegWeight"];
 }
 
+static void test_segment_opacity_fallback(void) {
+    // FCResolveSegmentOpacity's lookup order:
+    //   1. NSUserDefaults[segmentKey]  (when set and > 0)
+    //   2. NSUserDefaults[@"CanvasOpacity"] (when set and > 0)
+    //   3. themeFallback (clamped to [0.10, 1.00])
+    // All non-fallback returns are also clamped.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d removeObjectForKey:@"CanvasOpacity"];
+    [d removeObjectForKey:@"TestSegOpacity"];
+
+    // Tier 3: both unset → theme fallback, clamped.
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.55) - 0.55) > 0.001) {
+        fprintf(stderr, "FAIL %s: unset → 0.55\n", __func__); failures++;
+    }
+    // Theme fallback below floor is clamped to 0.10.
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.02) - 0.10) > 0.001) {
+        fprintf(stderr, "FAIL %s: theme 0.02 clamped to 0.10\n", __func__); failures++;
+    }
+    // Theme fallback above ceiling is clamped to 1.00.
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 1.75) - 1.00) > 0.001) {
+        fprintf(stderr, "FAIL %s: theme 1.75 clamped to 1.00\n", __func__); failures++;
+    }
+
+    // Tier 2: only global CanvasOpacity set → wins over theme fallback.
+    [d setDouble:0.80 forKey:@"CanvasOpacity"];
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.80) > 0.001) {
+        fprintf(stderr, "FAIL %s: global 0.80 wins over theme 0.30\n", __func__); failures++;
+    }
+
+    // Tier 1: segment override wins over global.
+    [d setDouble:0.15 forKey:@"TestSegOpacity"];
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.15) > 0.001) {
+        fprintf(stderr, "FAIL %s: segment 0.15 wins over global 0.80\n", __func__); failures++;
+    }
+
+    // Segment key with 0 value is treated as unset → falls through.
+    [d setDouble:0 forKey:@"TestSegOpacity"];
+    if (fabs(FCResolveSegmentOpacity(@"TestSegOpacity", 0.30) - 0.80) > 0.001) {
+        fprintf(stderr, "FAIL %s: segment=0 → global 0.80\n", __func__); failures++;
+    }
+
+    // Cleanup.
+    [d removeObjectForKey:@"CanvasOpacity"];
+    [d removeObjectForKey:@"TestSegOpacity"];
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -502,9 +555,10 @@ int main(void) {
 
         test_font_weight_parser();
         test_segment_weight_fallback();
+        test_segment_opacity_fallback();
 
         if (failures == 0) {
-            fprintf(stderr, "All 26 tests passed.\n");
+            fprintf(stderr, "All 27 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
