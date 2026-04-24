@@ -1,6 +1,8 @@
 #import <Cocoa/Cocoa.h>
 #import "rendering/VerticallyCenteredTextFieldCell.h"
 #import "rendering/AttributedStringLayoutMeasurer.h"
+#import "data/ThemeCatalog.h"
+#import "data/MarketCatalog.h"
 
 // # FILE-SIZE-OK
 
@@ -15,77 +17,8 @@ static uint64_t nsUntilNextSecond(void) {
     return (uint64_t)((1.0 - frac) * NSEC_PER_SEC);
 }
 
-// Color theme definition
-typedef struct {
-    const char *id;              // NSUserDefaults value, e.g. "terminal"
-    const char *display;         // Menu label, e.g. "Terminal"
-    double fg_r, fg_g, fg_b;     // 0.0–1.0
-    double bg_r, bg_g, bg_b;     // 0.0–1.0
-    double alpha;                // 0.0–1.0
-} ClockTheme;
-
-static const ClockTheme kThemes[] = {
-    {"terminal",      "Terminal",       1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 0.32},
-    {"amber_crt",     "Amber CRT",      1.00, 0.75, 0.00,  0.00, 0.00, 0.00, 0.38},
-    {"green_phosphor","Green Phosphor", 0.18, 0.98, 0.36,  0.00, 0.00, 0.00, 0.35},
-    {"solarized_dark","Solarized Dark", 0.71, 0.54, 0.00,  0.00, 0.17, 0.21, 0.40},
-    {"dracula",       "Dracula",        0.74, 0.58, 0.98,  0.16, 0.16, 0.21, 0.45},
-    {"nord",          "Nord",           0.53, 0.75, 0.82,  0.18, 0.20, 0.25, 0.45},
-    {"gruvbox",       "Gruvbox",        0.98, 0.74, 0.18,  0.16, 0.16, 0.16, 0.42},
-    {"rose_pine",     "Rose Pine",      0.92, 0.74, 0.73,  0.10, 0.09, 0.15, 0.42},
-    {"high_contrast", "High Contrast",  1.00, 1.00, 1.00,  0.00, 0.00, 0.00, 1.00},
-    {"soft_glass",    "Soft Glass",     0.96, 0.96, 0.97,  0.00, 0.00, 0.00, 0.18},
-};
-static const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
-
-// Market/exchange definition with IANA timezone
-typedef struct {
-    const char *id;               // NSUserDefaults value, e.g. "nyse"
-    const char *display;          // Menu label, e.g. "NYSE/NASDAQ (New York)"
-    const char *code;             // Short code for status line (iter-9), e.g. "NYSE"
-    const char *iana;             // IANA timezone, e.g. "America/New_York"
-    int open_h, open_m;           // Regular session open in local time
-    int close_h, close_m;         // Regular session close
-    int lunch_start_h, lunch_start_m; // -1, -1 if no lunch break
-    int lunch_end_h, lunch_end_m;     // -1, -1 if no lunch break
-} ClockMarket;
-
-static const ClockMarket kMarkets[] = {
-    {"local",    "Local Time",                    "LOCAL", "",                      0,   0, 0,   0, -1, -1, -1, -1},
-    {"nyse",     "NYSE/NASDAQ (New York)",        "NYSE",  "America/New_York",      9,  30, 16,  0, -1, -1, -1, -1},
-    {"tsx",      "TSX (Toronto)",                 "TSX",   "America/Toronto",       9,  30, 16,  0, -1, -1, -1, -1},
-    {"lse",      "LSE (London)",                  "LSE",   "Europe/London",         8,   0, 16, 30, -1, -1, -1, -1},
-    {"euronext", "Euronext (Paris)",              "EUX",   "Europe/Paris",          9,   0, 17, 30, -1, -1, -1, -1},
-    {"xetra",    "XETRA (Frankfurt)",             "XETR",  "Europe/Berlin",         9,   0, 17, 30, -1, -1, -1, -1},
-    {"six",      "SIX (Zurich)",                  "SIX",   "Europe/Zurich",         9,   0, 17, 20, -1, -1, -1, -1},
-    {"tse",      "TSE (Tokyo)",                   "TSE",   "Asia/Tokyo",            9,   0, 15, 30, 11, 30, 12, 30},
-    {"hkex",     "HKEX (Hong Kong)",              "HKEX",  "Asia/Hong_Kong",        9,  30, 16,  0, 12,  0, 13,  0},
-    {"sse",      "SSE (Shanghai)",                "SSE",   "Asia/Shanghai",         9,  30, 14, 57, 11, 30, 13,  0},
-    {"krx",      "KRX (Seoul)",                   "KRX",   "Asia/Seoul",            9,   0, 15, 30, -1, -1, -1, -1},
-    {"nse",      "NSE (Mumbai)",                  "NSE",   "Asia/Kolkata",          9,  15, 15, 30, -1, -1, -1, -1},
-    {"asx",      "ASX (Sydney)",                  "ASX",   "Australia/Sydney",     10,   0, 16,  0, -1, -1, -1, -1},
-};
-static const size_t kNumMarkets = sizeof(kMarkets) / sizeof(kMarkets[0]);
-
-// Lookup market by id; returns first market (local) if not found
-static const ClockMarket *marketForId(NSString *idStr) {
-    if (!idStr) return &kMarkets[0];  // local
-    const char *c = idStr.UTF8String;
-    for (size_t i = 0; i < kNumMarkets; i++) {
-        if (strcmp(kMarkets[i].id, c) == 0) return &kMarkets[i];
-    }
-    return &kMarkets[0];
-}
-
-// Lookup theme by id; returns first theme if not found
-static const ClockTheme *themeForId(NSString *idStr) {
-    if (!idStr) return &kThemes[0];
-    const char *cstr = idStr.UTF8String;
-    for (size_t i = 0; i < kNumThemes; i++) {
-        if (strcmp(kThemes[i].id, cstr) == 0) return &kThemes[i];
-    }
-    return &kThemes[0];  // fallback to first theme (terminal)
-}
+// ClockTheme + kThemes + themeForId moved to Sources/data/ThemeCatalog.{h,m}
+// ClockMarket + kMarkets + marketForId moved to Sources/data/MarketCatalog.{h,m}
 
 // Session state values
 typedef enum {
@@ -306,34 +239,7 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     return @"EEE MMM d  ";  // default "short": "Thu Apr 23"
 }
 
-// Short 3-letter city codes for the ACTIVE segment headers.
-// IANA zone → city code mapping.
-static const char *cityCodeForIana(const char *iana) {
-    if (!iana || !*iana) return "LOC";
-    if (strcmp(iana, "America/New_York") == 0) return "NYC";
-    if (strcmp(iana, "America/Toronto") == 0)  return "TOR";
-    if (strcmp(iana, "Europe/London") == 0)    return "LON";
-    if (strcmp(iana, "Europe/Paris") == 0)     return "PAR";
-    if (strcmp(iana, "Europe/Berlin") == 0)    return "FRA";
-    if (strcmp(iana, "Europe/Zurich") == 0)    return "ZRH";
-    if (strcmp(iana, "Asia/Tokyo") == 0)       return "TOK";
-    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return "HKG";
-    if (strcmp(iana, "Asia/Shanghai") == 0)    return "SHA";
-    if (strcmp(iana, "Asia/Seoul") == 0)       return "SEO";
-    if (strcmp(iana, "Asia/Kolkata") == 0)     return "MUM";
-    if (strcmp(iana, "Australia/Sydney") == 0) return "SYD";
-    // Fallback: last 3 chars of IANA city portion, uppercased
-    static char fallback[4];
-    const char *slash = strrchr(iana, '/');
-    if (slash && strlen(slash + 1) >= 3) {
-        fallback[0] = toupper(slash[1]);
-        fallback[1] = toupper(slash[2]);
-        fallback[2] = toupper(slash[3]);
-        fallback[3] = 0;
-        return fallback;
-    }
-    return "???";
-}
+// cityCodeForIana moved to Sources/data/MarketCatalog.{h,m}
 
 static NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     switch (s) {
@@ -344,23 +250,7 @@ static NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     return [NSColor whiteColor];
 }
 
-// Generate 14×14 color swatch: bg + fg inner square
-static NSImage *swatchForTheme(const ClockTheme *t) {
-    NSSize sz = NSMakeSize(14, 14);
-    NSImage *img = [[NSImage alloc] initWithSize:sz];
-    [img lockFocus];
-    NSBezierPath *p = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(1, 1, 12, 12)
-                                                       xRadius:3 yRadius:3];
-    [[NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:1.0] setFill];
-    [p fill];
-    NSBezierPath *inner = [NSBezierPath bezierPathWithRoundedRect:NSMakeRect(3, 3, 8, 8)
-                                                           xRadius:2 yRadius:2];
-    [[NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0] setFill];
-    [inner fill];
-    [img unlockFocus];
-    img.template = NO;  // never treat as template — we want actual colors
-    return img;
-}
+// swatchForTheme moved to Sources/data/ThemeCatalog.{h,m}
 
 // Resolve clock font: user override → iTerm2 default profile → SF Mono → Menlo
 static NSFont *resolveClockFont(CGFloat size) {
