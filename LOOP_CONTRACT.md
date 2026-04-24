@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 149
+iteration: 150
 status: ACTIVE
-last_updated: 2026-04-24T16:40:00Z
+last_updated: 2026-04-24T16:50:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -583,3 +583,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 16:20 UTC — iter-147: **weekend invariant + stale-caveat cleanup** (6a37d593). First post-v1.8.0 iter. Two-part cleanup. (1) Dropped the outdated Known-Limitation note claiming stacked-top/bottom layouts "may have minor drift" — Layout.m's else-branch handles both variants uniformly (just a Y-position swap), and stacked-local-top has been the default since iter-28 so the path is heavily exercised. (2) New `test_weekend_always_closed` fixture: iterates Sat 2026-04-25 on NYSE in 30-min steps (48 checkpoints), asserts every tick stays CLOSED. Covers the weekend-guard branch that neither iter-143 (NYSE weekday) nor iter-145 (TSE weekday) sweeps touched. Tests +1 (54 total). 54/54 pass, warning-free. CLAUDE.md Known-Limitations trimmed to holidays + extended-after-hours only.
 - 2026-04-24 16:30 UTC — iter-148: **Auction Watcher actually sets the extended window** (0b68e53a). iter-140's Auction Watcher profile promised "Extended 30-min SessionSignalWindow" in its comment but never wrote the key — it silently fell through to registered default "15min", making the comment false advertising. iter-128's managedKeys wiring (which clears unset keys on profile switch) made this worse: picking Auction Watcher from another profile would actively LEAVE the window at whatever the prior profile had (or 15min default). Fix: explicit `@"SessionSignalWindow": @"30min"`. New `test_auction_watcher_sets_extended_window` locks the identity pref — catches accidental removal immediately at test-run rather than downstream via behavior drift. Tests +1 (55 total). 55/55 pass.
 - 2026-04-24 16:40 UTC — iter-149: **Copy Time utility in LOCAL segment menu** (f234db9c). Pivot to user-facing utility addition after test-heavy cluster. New `copyTime:` action handler writes the LOCAL row's current display string (time + TZ label + optional UTC reference) to the system clipboard via NSPasteboard. Exposed only from LOCAL's right-click menu — ACTIVE/NEXT have multiple simultaneous entries so "the time" is ambiguous there. Users wanting per-market copy can use single-market display mode. No new test (3-line pasteboard write, negligible risk surface, @selector binding checked at build). 55/55 still pass, warning-free.
+- 2026-04-24 16:50 UTC — iter-150: **Copy Time cross-mode fix + Copy for ACTIVE/NEXT** (d23c390c). Caught a fresh-install regression in iter-149: `copyTime:` only read `_label.stringValue`, which is populated only in legacy single-market / local-only DisplayModes. Three-segment (default since iter-11) stores LOCAL's time in `_localSeg.timeLabel.stringValue` — so iter-149's Copy Time silently copied empty string on a fresh install. Fix: prefer the populated source. Also extended: Copy Active Markets + Copy Next Opens submenu items pull `.attributedStringValue.string` from each segment's contentLabel — snapshot the rendered list for pasting into notes/chat. 55/55 still pass, warning-free.
