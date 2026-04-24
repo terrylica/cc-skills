@@ -14,6 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
     NSTextField *_sessionLabel;
     dispatch_source_t _timer;
     NSDateFormatter *_dateFormatter;
+    NSDateFormatter *_utcFormatter;
     id _keyMonitor;
     LocalSegmentView *_localSeg;
     ActiveSegmentView *_activeSeg;
