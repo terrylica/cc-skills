@@ -13,7 +13,7 @@ NSDictionary *buildStarterProfiles(void) {
             @"ShowDate": @YES,
             @"DateFormat": @"short",
             @"TimeFormat": @"24h",
-            @"ActiveBarCells": @7,
+            @"ActiveBarCells": @40,
             @"NextItemCount": @3,
             @"SelectedMarket": @"local",
         },

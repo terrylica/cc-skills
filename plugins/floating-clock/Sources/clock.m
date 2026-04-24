@@ -86,7 +86,7 @@
         @"LocalTheme": @"terminal",
         @"ActiveTheme": @"green_phosphor",
         @"NextTheme": @"soft_glass",
-        @"ActiveBarCells": @7,
+        @"ActiveBarCells": @40,
         @"NextItemCount": @3,
         @"DateFormat": @"short",
         @"CanvasOpacity": @1.0,
