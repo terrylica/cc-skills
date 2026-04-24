@@ -140,6 +140,13 @@
     [self applyDisplaySettings];
 }
 
+- (void)toggleShowUTCReference:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL cur = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+    [d setBool:!cur forKey:@"ShowUTCReference"];
+    [self applyDisplaySettings];
+}
+
 - (void)setDensity:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSString class]]) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"Density"];

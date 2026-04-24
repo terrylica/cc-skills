@@ -66,5 +66,6 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"DateFormat", @"CanvasOpacity", @"ProgressBarStyle", @"LayoutMode", @"SegmentGap", @"CornerStyle", @"ShadowStyle",
         @"ActiveBarCells", @"NextItemCount", @"SelectedMarket",
         @"ActiveFontSize", @"NextFontSize", @"ShowFlags", @"Density",
+        @"ShowUTCReference",
     ];
 }
