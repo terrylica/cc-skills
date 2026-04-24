@@ -581,6 +581,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     NSMenuItem *saveItem = [sub addItemWithTitle:@"Save Current As…" action:@selector(saveCurrentProfileAs:) keyEquivalent:@""];
     saveItem.target = self;
 
+    // v4 iter-84: destructive factory reset. Confirmation-gated in the
+    // action handler, separator above to visually decouple from save ops.
+    [sub addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *resetItem = [sub addItemWithTitle:@"Reset All to Factory Defaults…" action:@selector(resetAllToFactory:) keyEquivalent:@""];
+    resetItem.target = self;
+
     if (customNames.count > 0) {
         NSMenuItem *delRoot = [[NSMenuItem alloc] initWithTitle:@"Delete…" action:nil keyEquivalent:@""];
         NSMenu *delSub = [[NSMenu alloc] init];
