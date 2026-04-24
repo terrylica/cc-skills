@@ -87,7 +87,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // market time → session → countdown.
     FCAppendSectionHeader(out, font,
         @"",
-        @"your time → market time · duration · countdown",
+        @"market time │ your time · duration · countdown",
         headerColor, dimColor, FCDividerRuleColor());
 
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
@@ -166,11 +166,6 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         [out appendAttributedString:[[NSAttributedString alloc]
             initWithString:codeLabel
             attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
-        // v4 iter-45: symmetric urgency tiers with iter-44 (ACTIVE close).
-        // v4 iter-73: routed through shared FCUrgencyColorForSecs.
-        // v4 iter-208: countdown color still computed here but the
-        // glyph used to own the opacity here — now countdown color
-        // carries the urgency signal on its own.
         NSColor *countdownColor = (e.secs <= kFCMaxBoundedCountdownSecs)
             ? FCUrgencyColorForSecs(e.secs, headerColor)
             : headerColor;
@@ -178,30 +173,21 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             ? [NSString stringWithFormat:@"%@%@", formatCountdownFancy(e.secs), suffix]
             : countdown;
 
-        // v4 iter-60: richer second-line layout per market — surfaces the
-        // market's own-TZ open time + session duration, matching what
-        // competitor apps (Market 24h Clock, Market Clock Trading Hours,
-        // TradingView session indicators) show. Only rendered for
-        // bounded countdowns; >99h rows already carry market-TZ info.
+        // v4 iter-60 → v4 iter-210: market-time + tz now appear on
+        // line 1 NEXT TO the flag/code (was on line 2 alongside
+        // localAt). User feedback: tighter coupling of market identity
+        // (flag + code) with market clock time + tz. Line 2 becomes
+        // your-local-time + duration + countdown — narrower than
+        // before, lets the whole NEXT block compress horizontally.
         if (e.secs <= kFCMaxBoundedCountdownSecs) {
             NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
-            // v4 iter-74: delegate dual-zone formatting to the shared
-            // LandingTimeFormatter. Encapsulates the iter-49 cross-day
-            // rule and the iter-68 weekday-differs rule in one place.
             NSString *localAt = @"";
             NSString *mktAt = @"";
             FCFormatLandingTime([NSDate date], landsAt, e.mkt->iana, &localAt, &mktAt);
 
-            // Session duration (close - open, same-day). Lunch-resume
-            // events share the session — skip dur line for them since
-            // the second line would be misleading ("6h30m" isn't the
-            // lunch window).
-            // v4 iter-66 → v4 iter-209: duration was "6h30m" / "6h"
-            // — user reported the asymmetry (6h30m vs 6h misaligned)
-            // and asked for a more concise + clearer format. Now
-            // decimal-hours: "6.5 hr" / "6.0 hr". Always one decimal
-            // place so widths align across rows. Legend column word
-            // changed "session" → "duration" (user-picked).
+            // Session duration (close - open). Lunch-resume rows
+            // share the parent's session so durStr stays empty for
+            // them ("6.5 hr" isn't the lunch window).
             NSString *durStr = @"";
             if (!e.isLunchResume) {
                 int openMins  = e.mkt->open_h * 60 + e.mkt->open_m;
@@ -212,23 +198,21 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
                 }
             }
 
-            // v4 iter-69 → v4 iter-208: iter-208 removed the leading
-            // glyph from line 1, so the indent re-aligns under the
-            // flag+code column (flag ~2 cells + space + 4-char code +
-            // space ≈ 8 cells). Keep └─ anchored via 4-space indent
-            // now that the first line starts at col 0 (no 2-space
-            // indent). Append the countdown at the END — user
-            // directive "chronological sequence: your time → market
-            // time → session → countdown".
-            NSString *secondLinePrefix = [NSString stringWithFormat:@"\n    └─ %@ → %@%@  ",
-                localAt, mktAt, durStr];
+            // v4 iter-210: emit `  Mon 09:00 JST` directly after code
+            // on line 1 — dim color so flag/code remain primary. 2-
+            // space gap separates from code visually.
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:[@"  " stringByAppendingString:mktAt]
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+
+            // Line 2 prefix: `└─ Sun 17:00 · 6.5 hr  ` (your local time
+            // + duration). 4-space indent under flag+code (iter-208).
+            // Countdown appended after, in urgency color.
+            NSString *secondLinePrefix = [NSString stringWithFormat:@"\n    └─ %@%@  ",
+                localAt, durStr];
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:secondLinePrefix
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
-            // Countdown at line-end, in its urgency color — the row's
-            // visual focal point moves from row-leading (old) to row-
-            // trailing (new), matching a left-to-right chronological
-            // scan your-time → market-time → session → countdown.
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:countdownStr
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
