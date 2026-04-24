@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 116
+iteration: 117
 status: ACTIVE
-last_updated: 2026-04-24T11:10:00Z
+last_updated: 2026-04-24T11:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -550,3 +550,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 10:50 UTC — iter-114: **FCSkyGlyphForHour extracted + test** (bbae1237). Runtime.m's inline 5-phase if-else ladder (iter-112) moved to `Sources/core/SkyGlyph.{h,m}`. Tests +1 (35 total): asserts correct glyph for each hour [0, 23] plus out-of-band -1 / 24 → night fallback. 35/35 green.
 - 2026-04-24 11:00 UTC — iter-115: **FCSegmentGapPoints extracted + test** (c48eaa16). Layout.m's 6-line if-else ladder for iter-108's 7 SegmentGap presets (flush/tight/snug/normal/airy/spacious/cavernous) moved to `Sources/core/SegmentGap.{h,m}`. Tests +1 (36 total): locks the full 7-value catalog + nil/empty/unknown → 4pt normal fallback. 36/36 green.
 - 2026-04-24 11:10 UTC — iter-116: **FCDensityPadPoints extracted + test** (1dceed64). Layout.m's 5-line if-else for iter-99's 6 Density presets (ultracompact/compact/default/comfortable/spacious/cavernous) moved to `Sources/core/DensityPad.{h,m}`. Tests +1 (37 total): locks all 6 values + nil/empty/unknown → 24pt default fallback. 37/37 green.
+- 2026-04-24 11:20 UTC — iter-117: **FCCornerRadiusPoints extracted + lean test** (d414bfb4). Layout.m's cornerRadiusFor block for iter-97's 8 CornerStyle presets moved to `Sources/core/CornerRadius.{h,m}`. Unique: `pill` takes (w, h) so radius depends on shorter axis. Tests +1 (38 total) — lean version (8 cases + pill-both-orientations + nil/unknown fallback) because test_session.m hit 994/1000 LoC. **Flag**: iter-118 must split the harness before more tests land. 38/38 green.
