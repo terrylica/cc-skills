@@ -86,6 +86,21 @@ static NSString * const kHKEX2026Holidays[] = {
     @"2026-12-28",  // 1st weekday after Christmas (Boxing Day observed; Dec 26 Sat)
 };
 
+// v4 iter-179: TARGET2-aligned exchanges (XETRA Frankfurt + Euronext
+// Paris/Amsterdam/Brussels/Lisbon/Dublin). Both use the same 5-date
+// TARGET2 settlement-calendar closures in 2026. One shared array,
+// two registry entries below — no data duplication. Dec 26 Boxing
+// Day falls Saturday 2026 so weekend handling covers it (skip here).
+// Half-day sessions (Dec 24 Christmas Eve + Dec 31 NYE shortened
+// trading) render as full days, consistent with other markets.
+static NSString * const kTARGET2_2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    @"2026-04-03",  // Good Friday
+    @"2026-04-06",  // Easter Monday
+    @"2026-05-01",  // Labour Day
+    @"2026-12-25",  // Christmas Day
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -96,10 +111,13 @@ typedef struct {
 } FCHolidayTable;
 
 static const FCHolidayTable kHolidayTables[] = {
-    { "nyse", kNYSE2026Holidays, sizeof(kNYSE2026Holidays) / sizeof(kNYSE2026Holidays[0]) },
-    { "lse",  kLSE2026Holidays,  sizeof(kLSE2026Holidays)  / sizeof(kLSE2026Holidays[0])  },
-    { "tse",  kTSE2026Holidays,  sizeof(kTSE2026Holidays)  / sizeof(kTSE2026Holidays[0])  },
-    { "hkex", kHKEX2026Holidays, sizeof(kHKEX2026Holidays) / sizeof(kHKEX2026Holidays[0]) },
+    { "nyse",     kNYSE2026Holidays,    sizeof(kNYSE2026Holidays)    / sizeof(kNYSE2026Holidays[0])    },
+    { "lse",      kLSE2026Holidays,     sizeof(kLSE2026Holidays)     / sizeof(kLSE2026Holidays[0])     },
+    { "tse",      kTSE2026Holidays,     sizeof(kTSE2026Holidays)     / sizeof(kTSE2026Holidays[0])     },
+    { "hkex",     kHKEX2026Holidays,    sizeof(kHKEX2026Holidays)    / sizeof(kHKEX2026Holidays[0])    },
+    // v4 iter-179: both XETRA + Euronext reference kTARGET2_2026Holidays.
+    { "xetra",    kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
+    { "euronext", kTARGET2_2026Holidays, sizeof(kTARGET2_2026Holidays) / sizeof(kTARGET2_2026Holidays[0]) },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
