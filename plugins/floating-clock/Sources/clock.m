@@ -89,6 +89,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSTextField *_label;
     dispatch_source_t _timer;
     NSDateFormatter *_dateFormatter;
+    id _keyMonitor;
 }
 - (NSMenu *)buildMenu;
 - (void)refreshMenuChecks:(NSMenu *)menu;
@@ -162,9 +163,11 @@ static NSFont *resolveClockFont(CGFloat size) {
     [self applyDisplaySettings];
     [self setupTimer];
 
-    // Install ⌘Q global handler
-    [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
-                                          handler:^NSEvent *(NSEvent *e) {
+    // Install ⌘Q global handler; retain the returned observer so we can
+    // remove it on terminate — otherwise leaks reports a 32-byte root leak
+    // on the _NSLocalEventObserver.
+    _keyMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskKeyDown
+                                                        handler:^NSEvent *(NSEvent *e) {
         if ((e.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask) == NSEventModifierFlagCommand &&
             [e.charactersIgnoringModifiers isEqualToString:@"q"]) {
             [NSApp terminate:nil];
