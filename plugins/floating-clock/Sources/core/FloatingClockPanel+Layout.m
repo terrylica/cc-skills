@@ -141,13 +141,22 @@
     CGFloat activeSegWidth   = ceilf(activeSize.width) + pad + 8;
     CGFloat nextSegWidth     = ceilf(nextSize.width) + pad + 8;
 
-    // v4 iter-29: SegmentGap pref — controls inter-segment breathing room.
+    // v4 iter-29 + iter-108: SegmentGap pref — inter-segment breathing room.
+    //   flush       0pt   (borderless / touching, iter-108)
+    //   tight       2pt
+    //   snug        3pt
+    //   normal      4pt   (default)
+    //   airy        8pt
+    //   spacious   14pt
+    //   cavernous  24pt   (most generous, iter-108)
     NSString *gapId = [d stringForKey:@"SegmentGap"];
     CGFloat gap = 4;  // "normal" default
-    if      ([gapId isEqualToString:@"tight"])    gap = 2;
-    else if ([gapId isEqualToString:@"snug"])     gap = 3;
-    else if ([gapId isEqualToString:@"airy"])     gap = 8;
-    else if ([gapId isEqualToString:@"spacious"]) gap = 14;
+    if      ([gapId isEqualToString:@"flush"])     gap = 0;
+    else if ([gapId isEqualToString:@"tight"])     gap = 2;
+    else if ([gapId isEqualToString:@"snug"])      gap = 3;
+    else if ([gapId isEqualToString:@"airy"])      gap = 8;
+    else if ([gapId isEqualToString:@"spacious"])  gap = 14;
+    else if ([gapId isEqualToString:@"cavernous"]) gap = 24;
 
     CGFloat marketRowInnerWidth = activeSegWidth + gap + nextSegWidth;
 

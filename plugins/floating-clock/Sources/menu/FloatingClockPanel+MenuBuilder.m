@@ -163,14 +163,16 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Cavernous    (64pt)",  @"cavernous"]]
                                      defaultsKey:@"Density"]];
 
-    // v4 iter-29: inter-segment gap / density.
+    // v4 iter-29 + iter-108: 7 inter-segment gap presets.
     [displayItems addObject:[self submenuTitled:@"Segment Gap"
                                           action:@selector(setSegmentGap:)
-                                           pairs:@[@[@"Tight (2pt)",    @"tight"],
-                                                   @[@"Snug (3pt)",     @"snug"],
-                                                   @[@"Normal (4pt)",   @"normal"],
-                                                   @[@"Airy (8pt)",     @"airy"],
-                                                   @[@"Spacious (14pt)", @"spacious"]]
+                                           pairs:@[@[@"Flush      (0pt)",  @"flush"],
+                                                   @[@"Tight      (2pt)",  @"tight"],
+                                                   @[@"Snug       (3pt)",  @"snug"],
+                                                   @[@"Normal     (4pt)",  @"normal"],
+                                                   @[@"Airy       (8pt)",  @"airy"],
+                                                   @[@"Spacious  (14pt)",  @"spacious"],
+                                                   @[@"Cavernous (24pt)",  @"cavernous"]]
                                      defaultsKey:@"SegmentGap"]];
 
     // v4 iter-30 + iter-97: 8 corner-style presets (applies to all segments).
