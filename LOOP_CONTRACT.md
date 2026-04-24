@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 109
+iteration: 110
 status: ACTIVE
-last_updated: 2026-04-24T10:00:00Z
+last_updated: 2026-04-24T10:10:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -543,3 +543,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 09:40 UTC — iter-107: **retroactive TimeSeparator tests** (89afc259). iter-98's helpers (`fcTimeSeparatorPattern`, `fcBuildTimeFormat`) were file-scoped statics in Runtime.m, untestable. Extracted to single public `FCCurrentTimeFormat(is12h, showSec)` in FontResolver.{h,m}. Runtime.m's 3 call sites route through the public API. Tests +1 (33 total) covers 5 separator ids × 2 time-format variants + unknown-id fallback. 33/33 green, 216 KB binary.
 - 2026-04-24 09:50 UTC — iter-108: **SegmentGap 5 → 7** (6397d8a1). Two new presets bracket the existing range: `flush` (0pt — borderless, segments touch) and `cavernous` (24pt — most generous). Gap span now 0pt → 24pt. Pure data — SegmentGap pref already drives inter-segment arithmetic. 33/33 still green.
 - 2026-04-24 10:00 UTC — iter-109: **'Reset Visual Style' utility** (39ff3df8). New Window-category action clears 33 aesthetic pref keys so NSUserDefaults falls back to clock.m's registerDefaults. Leaves workflow-scoped state (SelectedMarket / DisplayMode / ActiveProfile / Profiles / FontName / window frame) intact. Lets users experiment with Quick Styles / levers then return to factory without losing profile catalog or window position. 33/33 still green.
+- 2026-04-24 10:10 UTC — iter-110: **About dialog + Info.plist version sync** (63266d7f). Info.plist's CFBundleShortVersionString had been stale at 1.0.0 since iter-0 despite plugin.json reaching 1.5.0 at iter-100. Synced to 1.5.0; CFBundleVersion set to iteration number (110). About dialog now pulls version + build via NSBundle and lists the major v1.5 surfaces: 25 themes, 8 Quick Styles by name, 12 exchanges, 6 profiles, typography trilogy, idle-CPU + binary-size metrics. 33/33 still green.
