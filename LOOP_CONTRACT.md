@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 204
+iteration: 205
 status: ACTIVE
-last_updated: 2026-04-24T23:15:00Z
+last_updated: 2026-04-24T23:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -643,3 +643,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 **NEW USER DIRECTIVE (iter-204 turn-in, 2026-04-24 23:12 UTC):** "Make the bottom two blocks [ACTIVE + NEXT] self-adjusting, especially the height, extremely dynamically — no hard-coding to the text." Root cause located: `Layout.m:139` does `marketRowHeight = MAX(activeHeight, nextHeight) + pad` forcing both to share the taller height → NEXT over-pads when ACTIVE has more rows and vice versa. Fix plan for iter-204: compute per-segment heights independently (`activeSegHeight = activeHeight + pad`, `nextSegHeight = nextHeight + pad`), align them top (keeps hrule lines horizontally level) or bottom, window height = MAX still since they sit side-by-side. Wrap resize in NSAnimationContext so changes animate smoothly on market-count deltas. No external lib needed — NSLayoutManager pixel-accurate measure is already in use via `FCMeasureAttributedUnwrapped`.
 
 - 2026-04-24 23:15 UTC — iter-204: **per-segment dynamic height for ACTIVE + NEXT (chain-in-turn)** (43d1cbf3). Shipped the iter-203-addendum user directive immediately after the stop hook flagged a defer-to-stale-wake stall. Removed the `marketRowHeight = MAX(activeHeight, nextHeight) + pad` coupling; compute `activeOwnHeight` + `nextOwnHeight` independently. Top-aligned so legend + hrule rows stay horizontally aligned across the two blocks. Wrapped the frame mutation in `NSAnimationContext` (0.15s, `allowsImplicitAnimation=YES`) so window + segment resize animates smoothly on market-count deltas. Skip-animate when size delta < 1pt. Zero external deps, binary delta ~0 LoC. 84 tests still pass. User-facing: ACTIVE-with-6-markets beside NEXT-with-2-markets no longer pads NEXT with empty vertical space.
+- 2026-04-24 23:20 UTC — iter-205: **deterministic top-inset symmetry between ACTIVE and NEXT** (a5afeeba). User followup on iter-204 with a screenshot showing ACTIVE had visibly more top whitespace than NEXT. Two root causes: (1) iter-61's obsolete NEXT-only safety margin (`nextSize.height += 1.2 * lineHeight`) made NEXT's block ~17pt taller than content while ACTIVE was exact; (2) VerticallyCenteredTextFieldCell splits heightDelta half-and-half, asymmetry propagates. Deterministic fix — remove iter-61 margin + size contentLabel frame EXACTLY to measured content height + position at `(8, pad/2, blockW-16, contentHeight)`. Block = content+pad (iter-204), label = content, top inset = pad/2, bottom inset = pad/2. Identical on ACTIVE and NEXT by construction, regardless of content heights. Zero magic numbers; scales with any font size/weight/content/theme. 84 tests still pass.
