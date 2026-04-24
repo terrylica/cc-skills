@@ -555,22 +555,51 @@ static void test_market_roster_lock(void) {
     // count happens to be present — a silent removal wouldn't fail
     // any test. This one explicitly names each market ID so removal
     // triggers a failure immediately.
-    NSArray *expectedIds = @[
-        @"local", @"nyse", @"tsx", @"lse", @"euronext", @"xetra", @"six",
-        @"tse", @"hkex", @"sse", @"krx", @"nse", @"asx", @"jse", @"b3",
-    ];
-    if (kNumMarkets != expectedIds.count) {
+    // v4 iter-164: upgraded from ID-only to (ID, iana, code) triple so
+    // an accidental IANA rename (e.g. "Asia/Tokyo" → "Asia/Tokio") or
+    // code typo (e.g. "NYSE" → "NYS") fails CI immediately instead of
+    // silently changing render output + time-zone behavior.
+    struct { NSString *id; const char *iana; const char *code; } expected[] = {
+        {@"local",    "",                      "LOCAL"},
+        {@"nyse",     "America/New_York",      "NYSE"},
+        {@"tsx",      "America/Toronto",       "TSX"},
+        {@"lse",      "Europe/London",         "LSE"},
+        {@"euronext", "Europe/Paris",          "EUX"},
+        {@"xetra",    "Europe/Berlin",         "XETR"},
+        {@"six",      "Europe/Zurich",         "SIX"},
+        {@"tse",      "Asia/Tokyo",            "TSE"},
+        {@"hkex",     "Asia/Hong_Kong",        "HKEX"},
+        {@"sse",      "Asia/Shanghai",         "SSE"},
+        {@"krx",      "Asia/Seoul",            "KRX"},
+        {@"nse",      "Asia/Kolkata",          "NSE"},
+        {@"asx",      "Australia/Sydney",      "ASX"},
+        {@"jse",      "Africa/Johannesburg",   "JSE"},
+        {@"b3",       "America/Sao_Paulo",     "B3"},
+    };
+    size_t expectedCount = sizeof(expected) / sizeof(expected[0]);
+    if (kNumMarkets != expectedCount) {
         failures++;
-        fprintf(stderr, "FAIL %s: kNumMarkets=%zu, expected %lu\n",
-                __func__, kNumMarkets, (unsigned long)expectedIds.count);
+        fprintf(stderr, "FAIL %s: kNumMarkets=%zu, expected %zu\n",
+                __func__, kNumMarkets, expectedCount);
     }
-    for (NSString *want in expectedIds) {
-        const ClockMarket *m = marketForId(want);
-        NSString *got = [NSString stringWithUTF8String:m->id];
-        if (![got isEqualToString:want]) {
+    for (size_t i = 0; i < expectedCount; i++) {
+        const ClockMarket *m = marketForId(expected[i].id);
+        NSString *gotId = [NSString stringWithUTF8String:m->id];
+        if (![gotId isEqualToString:expected[i].id]) {
             failures++;
-            fprintf(stderr, "FAIL %s: '%s' missing (marketForId returned '%s')\n",
-                    __func__, want.UTF8String, got.UTF8String);
+            fprintf(stderr, "FAIL %s: id '%s' missing (marketForId returned '%s')\n",
+                    __func__, expected[i].id.UTF8String, gotId.UTF8String);
+            continue;
+        }
+        if (strcmp(m->iana, expected[i].iana) != 0) {
+            failures++;
+            fprintf(stderr, "FAIL %s: '%s' iana '%s' (want '%s')\n",
+                    __func__, expected[i].id.UTF8String, m->iana, expected[i].iana);
+        }
+        if (strcmp(m->code, expected[i].code) != 0) {
+            failures++;
+            fprintf(stderr, "FAIL %s: '%s' code '%s' (want '%s')\n",
+                    __func__, expected[i].id.UTF8String, m->code, expected[i].code);
         }
     }
 }
