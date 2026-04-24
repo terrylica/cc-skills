@@ -16,6 +16,8 @@ const ClockMarket kMarkets[] = {
     {"krx",      "KRX (Seoul)",                   "KRX",   "Asia/Seoul",            9,   0, 15, 30, -1, -1, -1, -1},
     {"nse",      "NSE (Mumbai)",                  "NSE",   "Asia/Kolkata",          9,  15, 15, 30, -1, -1, -1, -1},
     {"asx",      "ASX (Sydney)",                  "ASX",   "Australia/Sydney",     10,   0, 16,  0, -1, -1, -1, -1},
+    // v4 iter-155: fills the Africa regional gap.
+    {"jse",      "JSE (Johannesburg)",            "JSE",   "Africa/Johannesburg",   9,   0, 17,  0, -1, -1, -1, -1},
 };
 const size_t kNumMarkets = sizeof(kMarkets) / sizeof(kMarkets[0]);
 
@@ -42,6 +44,7 @@ const char *flagForIana(const char *iana) {
     if (strcmp(iana, "Asia/Seoul") == 0)       return "\xF0\x9F\x87\xB0\xF0\x9F\x87\xB7";  // 🇰🇷
     if (strcmp(iana, "Asia/Kolkata") == 0)     return "\xF0\x9F\x87\xAE\xF0\x9F\x87\xB3";  // 🇮🇳
     if (strcmp(iana, "Australia/Sydney") == 0) return "\xF0\x9F\x87\xA6\xF0\x9F\x87\xBA";  // 🇦🇺
+    if (strcmp(iana, "Africa/Johannesburg") == 0) return "\xF0\x9F\x87\xBF\xF0\x9F\x87\xA6";  // 🇿🇦 (iter-155)
     return "";
 }
 
@@ -69,6 +72,7 @@ NSString *friendlyAbbrevForIana(const char *iana, NSDate *date) {
     if (strcmp(iana, "Asia/Seoul") == 0)       return @"KST";
     if (strcmp(iana, "Asia/Kolkata") == 0)     return @"IST";
     if (strcmp(iana, "Australia/Sydney") == 0) return dst ? @"AEDT" : @"AEST";
+    if (strcmp(iana, "Africa/Johannesburg") == 0) return @"SAST";  // iter-155: no DST
 
     return tz ? ([tz abbreviationForDate:date] ?: @"") : @"";
 }
@@ -122,6 +126,7 @@ const char *cityCodeForIana(const char *iana) {
     if (strcmp(iana, "Asia/Seoul") == 0)       return "SEO";
     if (strcmp(iana, "Asia/Kolkata") == 0)     return "MUM";
     if (strcmp(iana, "Australia/Sydney") == 0) return "SYD";
+    if (strcmp(iana, "Africa/Johannesburg") == 0) return "JHB";  // iter-155
     // Fallback: first 3 chars of the city portion of IANA, uppercased.
     static char fallback[4];
     const char *slash = strrchr(iana, '/');
