@@ -53,6 +53,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setActiveOpacity:(NSMenuItem *)sender;
 - (void)setNextOpacity:(NSMenuItem *)sender;
 - (void)resetPosition:(id)sender;
+- (void)resetVisualStyle:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
 

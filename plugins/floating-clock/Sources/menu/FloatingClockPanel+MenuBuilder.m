@@ -323,6 +323,11 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     [windowItems addObject:[NSMenuItem separatorItem]];
     [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reset Position"
                                                        action:@selector(resetPosition:) keyEquivalent:@""]];
+    // v4 iter-109: restore aesthetic levers to registered defaults
+    // without touching SelectedMarket / DisplayMode / ActiveProfile /
+    // Profiles / FontName / window frame — user's workflow stays put.
+    [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"Reset Visual Style"
+                                                       action:@selector(resetVisualStyle:) keyEquivalent:@""]];
     [windowItems addObject:[NSMenuItem separatorItem]];
     [windowItems addObject:[[NSMenuItem alloc] initWithTitle:@"About Floating Clock"
                                                        action:@selector(showAbout:) keyEquivalent:@""]];
