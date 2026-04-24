@@ -392,8 +392,12 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)setTimeFormat:(NSMenuItem *)sender;
 - (void)setFontSize:(NSMenuItem *)sender;
 - (void)setColorTheme:(NSMenuItem *)sender;
+- (void)setLocalTheme:(NSMenuItem *)sender;
+- (void)setActiveTheme:(NSMenuItem *)sender;
+- (void)setNextTheme:(NSMenuItem *)sender;
 - (void)setMarket:(NSMenuItem *)sender;
 - (void)setDisplayMode:(NSMenuItem *)sender;
+- (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
 - (void)showFullPreferences:(id)sender;
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
@@ -438,6 +442,9 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"FontSize": @24.0,
         @"SelectedMarket": @"local",
         @"DisplayMode": @"three-segment",
+        @"LocalTheme": @"terminal",
+        @"ActiveTheme": @"green_phosphor",
+        @"NextTheme": @"soft_glass",
     }];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
@@ -569,8 +576,10 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSAttributedString *)buildActiveSegmentContent {
     NSDate *now = [NSDate date];
     NSFont *font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
-    NSColor *headerColor = [NSColor colorWithWhite:0.85 alpha:1.0];
-    NSColor *dimColor    = [NSColor colorWithWhite:0.45 alpha:1.0];
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    const ClockTheme *theme = themeForId([d stringForKey:@"ActiveTheme"]);
+    NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
+    NSColor *dimColor    = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.5];
 
     // First pass: find active markets grouped by IANA.
     // Each group entry: @[@(marketIndex), @(state), @(progress), @(secsToNext), ...]
@@ -695,9 +704,11 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSAttributedString *)buildNextSegmentContent {
     NSDate *now = [NSDate date];
     NSFont *font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
-    NSColor *headerColor = [NSColor colorWithWhite:0.85 alpha:1.0];
-    NSColor *dimColor    = [NSColor colorWithWhite:0.45 alpha:1.0];
-    NSColor *codeColor   = [NSColor colorWithWhite:0.75 alpha:1.0];
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    const ClockTheme *theme = themeForId([d stringForKey:@"NextTheme"]);
+    NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
+    NSColor *dimColor    = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.5];
+    NSColor *codeColor   = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.75];
 
     // Candidate entry: market pointer + state + secs-to-next + is-lunch-resume flag
     typedef struct {
@@ -1079,26 +1090,44 @@ static NSFont *resolveClockFont(CGFloat size) {
     displayModeRoot.submenu = displayModeSub;
     [m addItem:displayModeRoot];
 
-    // Build Color Theme submenu with swatches
+    // Build per-segment Color Theme submenus with swatches
     NSMutableArray *themePairs = [NSMutableArray array];
     for (size_t i = 0; i < kNumThemes; i++) {
         NSString *display = [NSString stringWithUTF8String:kThemes[i].display];
         NSString *idStr = [NSString stringWithUTF8String:kThemes[i].id];
         [themePairs addObject:@[display, idStr]];
     }
-    [m addItem:[self submenuTitled:@"Color Theme"
+    [m addItem:[self submenuTitled:@"Color Theme (Local)"
+                         action:@selector(setLocalTheme:)
+                          pairs:themePairs
+                    defaultsKey:@"LocalTheme"]];
+
+    [m addItem:[self submenuTitled:@"Color Theme (Active)"
+                         action:@selector(setActiveTheme:)
+                          pairs:themePairs
+                    defaultsKey:@"ActiveTheme"]];
+
+    [m addItem:[self submenuTitled:@"Color Theme (Next)"
+                         action:@selector(setNextTheme:)
+                          pairs:themePairs
+                    defaultsKey:@"NextTheme"]];
+
+    // Legacy global Color Theme (for non-three-segment modes)
+    [m addItem:[self submenuTitled:@"Color Theme (Legacy)"
                          action:@selector(setColorTheme:)
                           pairs:themePairs
                     defaultsKey:@"ColorTheme"]];
 
-    // Decorate Color Theme items with swatches
+    // Decorate all Color Theme items with swatches
     for (NSMenuItem *rootItem in m.itemArray) {
-        if ([rootItem.title isEqualToString:@"Color Theme"] && rootItem.submenu) {
+        if (([rootItem.title isEqualToString:@"Color Theme (Local)"] ||
+             [rootItem.title isEqualToString:@"Color Theme (Active)"] ||
+             [rootItem.title isEqualToString:@"Color Theme (Next)"] ||
+             [rootItem.title isEqualToString:@"Color Theme (Legacy)"]) && rootItem.submenu) {
             NSArray *subItems = rootItem.submenu.itemArray;
             for (size_t i = 0; i < subItems.count && i < kNumThemes; i++) {
                 [(NSMenuItem *)subItems[i] setImage:swatchForTheme(&kThemes[i])];
             }
-            break;
         }
     }
 
@@ -1194,7 +1223,13 @@ static NSFont *resolveClockFont(CGFloat size) {
                 currentValue = [d objectForKey:@"FontSize"];
             } else if ([subTitle isEqualToString:@"Time Zone"]) {
                 currentValue = [d stringForKey:@"SelectedMarket"];
-            } else if ([subTitle isEqualToString:@"Color Theme"]) {
+            } else if ([subTitle isEqualToString:@"Color Theme (Local)"]) {
+                currentValue = [d stringForKey:@"LocalTheme"];
+            } else if ([subTitle isEqualToString:@"Color Theme (Active)"]) {
+                currentValue = [d stringForKey:@"ActiveTheme"];
+            } else if ([subTitle isEqualToString:@"Color Theme (Next)"]) {
+                currentValue = [d stringForKey:@"NextTheme"];
+            } else if ([subTitle isEqualToString:@"Color Theme (Legacy)"]) {
                 currentValue = [d stringForKey:@"ColorTheme"];
             } else if ([subTitle isEqualToString:@"Display Mode"]) {
                 currentValue = [d stringForKey:@"DisplayMode"];
@@ -1246,6 +1281,15 @@ static NSFont *resolveClockFont(CGFloat size) {
     _localSeg.hidden = NO;
     _activeSeg.hidden = NO;
     _nextSeg.hidden = NO;
+
+    // Apply per-segment themes
+    const ClockTheme *tLocal  = themeForId([d stringForKey:@"LocalTheme"]);
+    const ClockTheme *tActive = themeForId([d stringForKey:@"ActiveTheme"]);
+    const ClockTheme *tNext   = themeForId([d stringForKey:@"NextTheme"]);
+
+    [self applyTheme:tLocal  toSegmentView:_localSeg  textField:_localSeg.timeLabel];
+    [self applyTheme:tActive toSegmentView:_activeSeg textField:_activeSeg.contentLabel];
+    [self applyTheme:tNext   toSegmentView:_nextSeg   textField:_nextSeg.contentLabel];
 
     // Trigger tick to populate content
     [self tick];
@@ -1464,6 +1508,32 @@ static NSFont *resolveClockFont(CGFloat size) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"ColorTheme"];
         [self applyDisplaySettings];
     }
+}
+
+- (void)setLocalTheme:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"LocalTheme"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setActiveTheme:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"ActiveTheme"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setNextTheme:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"NextTheme"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field {
+    seg.layer.backgroundColor = [[NSColor colorWithRed:theme->bg_r green:theme->bg_g blue:theme->bg_b alpha:theme->alpha] CGColor];
+    field.textColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
 }
 
 - (void)setMarket:(NSMenuItem *)sender {
