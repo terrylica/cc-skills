@@ -99,6 +99,7 @@
         @"NextFontSize": @11.0,
         @"FontWeight": @"medium",
         @"LetterSpacing": @"normal",
+        @"LineSpacing": @"normal",
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
