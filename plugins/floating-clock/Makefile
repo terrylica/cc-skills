@@ -25,7 +25,7 @@ ICON_ICNS := $(BUILD)/Icon.icns
 # Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
 # with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
 TEST_BIN := $(BUILD)/test_session
-TEST_SOURCES := tests/test_session.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m
+TEST_SOURCES := tests/test_session.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m Sources/core/CornerRadius.m
 TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
 
 all: sign
