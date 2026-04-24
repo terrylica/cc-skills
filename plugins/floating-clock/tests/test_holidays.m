@@ -497,6 +497,63 @@ void test_holiday_calendar_sse(void) {
     }
 }
 
+void test_holiday_calendar_krx(void) {
+    // v4 iter-184: KRX 2026. Covers Seollal + Chuseok multi-day
+    // clusters, Korean substitute-holiday mechanics (weekend holidays
+    // shift to next weekday), and the triple-market Sep 25 Mid-Autumn
+    // / Chuseok / Mid-Autumn coincidence across KRX, HKEX, SSE.
+    const ClockMarket *krx  = marketForId(@"krx");
+    const ClockMarket *hkex = marketForId(@"hkex");
+    const ClockMarket *sse  = marketForId(@"sse");
+
+    // Seollal cluster.
+    NSDate *seollalEve  = holidayDateAt(@"Asia/Seoul", 2026, 2, 16, 12, 0, 0);
+    NSDate *seollalDay1 = holidayDateAt(@"Asia/Seoul", 2026, 2, 17, 12, 0, 0);
+    NSDate *seollalDay2 = holidayDateAt(@"Asia/Seoul", 2026, 2, 18, 12, 0, 0);
+    if (!FCIsMarketHoliday(krx, seollalEve))  { failures++; fprintf(stderr, "FAIL %s: Seollal Eve not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, seollalDay1)) { failures++; fprintf(stderr, "FAIL %s: Seollal Day 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, seollalDay2)) { failures++; fprintf(stderr, "FAIL %s: Seollal Day 2 not flagged\n", __func__); }
+
+    // Chuseok cluster (Sep 24-28).
+    NSDate *chuseok1 = holidayDateAt(@"Asia/Seoul", 2026, 9, 24, 12, 0, 0);
+    NSDate *chuseok2 = holidayDateAt(@"Asia/Seoul", 2026, 9, 25, 12, 0, 0);
+    NSDate *chuseokSub = holidayDateAt(@"Asia/Seoul", 2026, 9, 28, 12, 0, 0);
+    if (!FCIsMarketHoliday(krx, chuseok1))    { failures++; fprintf(stderr, "FAIL %s: Chuseok Day 1 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, chuseok2))    { failures++; fprintf(stderr, "FAIL %s: Chuseok Day 2 not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, chuseokSub))  { failures++; fprintf(stderr, "FAIL %s: Chuseok Sep 28 substitute not flagged\n", __func__); }
+
+    // Korean-distinctive single-day holidays.
+    NSDate *marMonSub = holidayDateAt(@"Asia/Seoul", 2026,  3,  2, 12, 0, 0);
+    NSDate *childrens = holidayDateAt(@"Asia/Seoul", 2026,  5,  5, 12, 0, 0);
+    NSDate *libSub    = holidayDateAt(@"Asia/Seoul", 2026,  8, 17, 12, 0, 0);
+    NSDate *foundSub  = holidayDateAt(@"Asia/Seoul", 2026, 10,  5, 12, 0, 0);
+    NSDate *hangeul   = holidayDateAt(@"Asia/Seoul", 2026, 10,  9, 12, 0, 0);
+    NSDate *yearEnd   = holidayDateAt(@"Asia/Seoul", 2026, 12, 31, 12, 0, 0);
+    if (!FCIsMarketHoliday(krx, marMonSub)) { failures++; fprintf(stderr, "FAIL %s: Independence Movement Day substitute not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, childrens)) { failures++; fprintf(stderr, "FAIL %s: Children's Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, libSub))    { failures++; fprintf(stderr, "FAIL %s: Liberation Day substitute not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, foundSub))  { failures++; fprintf(stderr, "FAIL %s: National Foundation substitute not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, hangeul))   { failures++; fprintf(stderr, "FAIL %s: Hangeul Day not flagged\n", __func__); }
+    if (!FCIsMarketHoliday(krx, yearEnd))   { failures++; fprintf(stderr, "FAIL %s: Dec 31 year-end not flagged\n", __func__); }
+
+    // Triple-market lunar-date coincidence: Sep 25 2026 = Chuseok Day 2
+    // = HKEX Mid-Autumn = SSE Mid-Autumn. All three must flag.
+    if (!FCIsMarketHoliday(hkex, chuseok2)) { failures++; fprintf(stderr, "FAIL %s: HKEX must flag Sep 25 (Mid-Autumn)\n", __func__); }
+    if (!FCIsMarketHoliday(sse,  chuseok2)) { failures++; fprintf(stderr, "FAIL %s: SSE must flag Sep 25 (Mid-Autumn)\n", __func__); }
+
+    // Cross-market negative: KRX must NOT flag NYSE Thanksgiving.
+    NSDate *thanksgiving = holidayDateAt(@"Asia/Seoul", 2026, 11, 26, 12, 0, 0);
+    if (FCIsMarketHoliday(krx, thanksgiving)) {
+        failures++; fprintf(stderr, "FAIL %s: KRX wrongly flagged Thanksgiving\n", __func__);
+    }
+
+    // Regular KRX trading day should NOT be flagged.
+    NSDate *regularWed = holidayDateAt(@"Asia/Seoul", 2026, 3, 11, 12, 0, 0);
+    if (FCIsMarketHoliday(krx, regularWed)) {
+        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on KRX\n", __func__);
+    }
+}
+
 void test_nyse_holiday_state_closed(void) {
     // v4 iter-174: integration lock. Verifies FCIsMarketHoliday result
     // is actually consumed by computeSessionState — forces CLOSED and
