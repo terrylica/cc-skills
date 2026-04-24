@@ -61,12 +61,16 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         NSString *iana = groupIanas[g];
         NSUInteger marketsInGroup = group.count / 4;
 
-        // Header: "TOK Fri Apr 24 11:15:07" — city + local day/date + time with seconds.
+        // Header: "TOK Fri Apr 24 11:15:07 JST" — city + local day/date + time with seconds.
+        // Abbreviation via NSTimeZone (not formatter `z`) to keep regional
+        // names like BST/CEST instead of falling back to GMT+N.
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
-        hf.dateFormat = @"EEE MMM d HH:mm:ss z";
+        hf.dateFormat = @"EEE MMM d HH:mm:ss";
         if (tz) hf.timeZone = tz;
-        NSString *headerTime = [hf stringFromDate:now];
+        NSString *tzAbbrev = friendlyAbbrevForIana(iana.UTF8String, now);
+        NSString *headerTime = [NSString stringWithFormat:@"%@ %@",
+            [hf stringFromDate:now], tzAbbrev];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
         const char *cityCode = cityCodeForIana(firstM->iana);
         const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(firstM->iana) : "";
