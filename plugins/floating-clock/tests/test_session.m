@@ -266,6 +266,31 @@ static void test_state_invariants_tse_sweep(void) {
     sweep_invariants(tse, @"Asia/Tokyo", "JST");
 }
 
+static void test_weekend_always_closed(void) {
+    // v4 iter-147: lock the weekend invariant. Markets do not open on
+    // Sat or Sun, so every 30-min tick on Sat 2026-04-25 must stay
+    // CLOSED (no promotion to OPEN / LUNCH / PRE-MARKET / AFTER-HOURS).
+    // Complements the sweep helpers by exercising the weekend branch
+    // in computeSessionState that NYSE/TSE weekday sweeps never touch.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    for (int minute = 0; minute < 24 * 60; minute += 30) {
+        int h = minute / 60, m = minute % 60;
+        NSDate *t = dateAt(@"America/New_York", 2026, 4, 25, h, m, 0);  // Saturday
+        SessionState s; double p; long n;
+        computeSessionState(nyse, t, &s, &p, &n);
+        if (s != kSessionClosed) {
+            fprintf(stderr, "FAIL %s: Sat %02d:%02d EDT state %d (want CLOSED)\n",
+                    __func__, h, m, (int)s);
+            failures++;
+        }
+        if (n < 0) {
+            fprintf(stderr, "FAIL %s: Sat %02d:%02d EDT secsToNext %ld negative\n",
+                    __func__, h, m, n);
+            failures++;
+        }
+    }
+}
+
 static void test_signal_window_pref_gates_premarket(void) {
     // v4 iter-127: locks the wiring between iter-126's SessionSignalWindow
     // pref and iter-123's PRE-MARKET promotion gate. iter-126's unit test
@@ -645,6 +670,7 @@ int main(void) {
         test_afterhours_progress_is_one();
         test_state_invariants_24h_sweep();
         test_state_invariants_tse_sweep();
+        test_weekend_always_closed();
         test_signal_window_pref_gates_premarket();
         test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
@@ -695,7 +721,7 @@ int main(void) {
         test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 53 tests passed.\n");
+            fprintf(stderr, "All 54 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
