@@ -107,9 +107,15 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             localFmt.timeZone = localTz;
             localFmt.dateFormat = sameDay ? @"HH:mm" : @"HH:mm 'local' EEE";
             NSString *localAt = [localFmt stringFromDate:landsAt];
+            // v4 iter-59: fanciful rocket-launch style countdown.
+            // "T-HH:MM:SS" conveys "counting down to an event" and ticks
+            // with second precision — critical visible granularity as
+            // T-0 approaches. Lunch-resume entries use the same format
+            // since the user cares about seconds equally for "resumes in".
+            NSString *cd = formatCountdownFancy(e.secs);
             countdown = sameDay
-                ? [NSString stringWithFormat:@"%@ %@ · %@ local", verb, formatCountdown(e.secs), localAt]
-                : [NSString stringWithFormat:@"%@ %@ · %@", verb, formatCountdown(e.secs), localAt];
+                ? [NSString stringWithFormat:@"%@ %@ · %@ local", verb, cd, localAt]
+                : [NSString stringWithFormat:@"%@ %@ · %@", verb, cd, localAt];
         }
         NSString *suffix = e.isLunchResume ? @" LUNCH" : @"";
 
