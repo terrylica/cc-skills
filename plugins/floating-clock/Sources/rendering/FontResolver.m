@@ -124,3 +124,19 @@ void FCApplyLineSpacing(NSMutableAttributedString *out) {
                 value:ps
                 range:NSMakeRange(0, out.length)];
 }
+
+NSString *FCCurrentTimeFormat(BOOL is12h, BOOL showSec) {
+    NSString *sepId = [[NSUserDefaults standardUserDefaults] stringForKey:@"TimeSeparator"];
+    NSString *sep;
+    if ([sepId isEqualToString:@"middot"])      sep = @"'·'";
+    else if ([sepId isEqualToString:@"space"])  sep = @"' '";
+    else if ([sepId isEqualToString:@"slash"])  sep = @"'/'";
+    else if ([sepId isEqualToString:@"dash"])   sep = @"'-'";
+    else                                        sep = @":";  // colon / unknown
+    if (is12h) {
+        return showSec ? [NSString stringWithFormat:@"h%@mm%@ss a", sep, sep]
+                       : [NSString stringWithFormat:@"h%@mm a", sep];
+    }
+    return showSec ? [NSString stringWithFormat:@"HH%@mm%@ss", sep, sep]
+                   : [NSString stringWithFormat:@"HH%@mm", sep];
+}
