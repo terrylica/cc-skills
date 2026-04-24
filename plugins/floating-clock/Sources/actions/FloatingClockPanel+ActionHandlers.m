@@ -358,11 +358,36 @@
 }
 
 // v4 iter-149: copy the LOCAL row's current display (time + TZ label,
-// and UTC reference if enabled) to the system clipboard. Available only
-// from the LOCAL segment's right-click menu — the ACTIVE/NEXT segments
-// don't have a single "the time" to copy since each entry has its own.
+// and UTC reference if enabled) to the system clipboard.
+// v4 iter-150: fix — in three-segment mode (the default DisplayMode
+// since iter-11) the LOCAL time lives in `_localSeg.timeLabel`;
+// `_label` is the legacy single-market / local-only path. Prefer the
+// populated source so Copy Time actually works across all modes.
 - (void)copyTime:(id)sender {
-    NSString *text = _label.stringValue;
+    NSString *threeSeg = _localSeg.timeLabel.stringValue;
+    NSString *legacy   = _label.stringValue;
+    NSString *text = threeSeg.length > 0 ? threeSeg : legacy;
+    if (text.length == 0) return;
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+}
+
+// v4 iter-150: copy ACTIVE segment's multi-line content to clipboard —
+// the full list of currently-open markets with progress/countdown.
+// Useful for pasting a "market snapshot" into notes/chat.
+- (void)copyActiveMarkets:(id)sender {
+    NSString *text = _activeSeg.contentLabel.attributedStringValue.string;
+    if (text.length == 0) return;
+    NSPasteboard *pb = [NSPasteboard generalPasteboard];
+    [pb clearContents];
+    [pb setString:text forType:NSPasteboardTypeString];
+}
+
+// v4 iter-150: copy NEXT segment's multi-line content — upcoming opens
+// with countdowns. Mirror of copyActiveMarkets.
+- (void)copyNextOpens:(id)sender {
+    NSString *text = _nextSeg.contentLabel.attributedStringValue.string;
     if (text.length == 0) return;
     NSPasteboard *pb = [NSPasteboard generalPasteboard];
     [pb clearContents];

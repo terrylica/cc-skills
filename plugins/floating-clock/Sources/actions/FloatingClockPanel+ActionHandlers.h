@@ -58,6 +58,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
 - (void)copyTime:(id)sender;
+- (void)copyActiveMarkets:(id)sender;
+- (void)copyNextOpens:(id)sender;
 
 @end
 
