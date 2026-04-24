@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 99
+iteration: 100
 status: ACTIVE
-last_updated: 2026-04-24T08:20:00Z
+last_updated: 2026-04-24T08:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -529,3 +529,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 08:00 UTC — iter-97: **corner-style catalog 4 → 8** (62010669). Four new CornerStyle presets fill gaps between the original sharp/rounded/squircle/pill: hairline (1pt), micro (3pt), soft (10pt), jumbo (22pt). Full Preferences → Display → Corners submenu grows to 8 entries with inline point annotations. Pure data — CALayer.cornerRadius constants. 31/31 still green, 184 KB binary.
 - 2026-04-24 08:10 UTC — iter-98: **TimeSeparator lever** (bb683a28). New formatter-level axis replacing hardcoded `:` between HH / mm / ss tokens. 5 presets: colon / middot (·) / space / slash / dash. Implementation via two static helpers in Runtime.m — `fcTimeSeparatorPattern` returns UTS#35-quoted literal, `fcBuildTimeFormat` assembles the H:MM[:SS] pattern. Applied at 3 sites (LOCAL tick, UTC reference, legacy single-market/local-only). LOCAL + UTC share same separator for visual consistency. Full Preferences → Display → Time Separator submenu with inline rendered previews. 31/31 still green, 184 KB binary.
 - 2026-04-24 08:20 UTC — iter-99: **Density catalog 4 → 6** (7952e68e). Two new presets bracket the existing range: `ultracompact` (4pt) and `cavernous` (64pt). Pad now spans 4pt → 64pt (16×) vs prior 12pt → 48pt (4×). Pure data — Density pref already drives inner-row-height formula in Layout.m. Full Preferences → Display → Density submenu grows to 6 entries with inline point annotations. 31/31 still green.
+- 2026-04-24 08:30 UTC — **iter-100 milestone** (c2cb3cb4). Plugin bumped 1.4.0 → 1.5.0. Description rewritten to surface v1.5 aesthetic expansion: themes 20→25, progress bars 6→10, corners 4→8, shadows 4→7, density 4→6; new levers FontWeight (global + per-segment), per-segment Transparency, LetterSpacing + LineSpacing, TimeSeparator; plus two proactive category splits (MenuBuilder → SegmentMenus at iter-87, MenuBuilder → MenuHelpers at iter-96). Test suite 23 → 31 fixtures. All validators green. 216 KB signed binary.
