@@ -399,12 +399,13 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     alert.messageText = [NSString stringWithFormat:@"Floating Clock %@", vers];
     alert.informativeText = [NSString stringWithFormat:
         @"Always-on-top floating desktop clock for macOS.\n\n"
-         "• 28 color themes · 13 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight / Featherlight / Industrial / Trading Floor / Scholar / Samba)\n"
-         "• 13 major global exchanges (Americas / Europe / Africa / Asia / Oceania) with 5-state session tracking (OPEN · LUNCH · PRE-MARKET · AFTER-HOURS · CLOSED)\n"
+         "• 29 color themes · 16 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight / Featherlight / Industrial / Trading Floor / Scholar / Samba / Borealis / Cinema / Levitation)\n"
+         "• 14 major global exchanges (Americas / Europe / Africa / Asia / Oceania) with 5-state session tracking (OPEN · LUNCH · PRE-MARKET · AFTER-HOURS · CLOSED)\n"
+         "• Imminence-aware countdown gradient (Weber-Fechner log scale + 1Hz pulse) with user-configurable UrgencyHorizon (5-240 min) + UrgencyFlash intensity (off / subtle / normal / intense)\n"
          "• SessionSignalWindow lever controls PRE/AFTER auction gate (off / 5-60 min)\n"
-         "• Three-segment dashboard · 6 bundled profiles · per-segment Theme / Opacity / Weight\n"
-         "• Typography trilogy: FontWeight (7) · LetterSpacing · LineSpacing · 12 progress-bar glyphs\n"
-         "• Sub-0.1%% idle CPU · ~216 KB signed binary\n\n"
+         "• Three-segment dashboard · 7 bundled profiles · per-segment Theme / Opacity / Weight\n"
+         "• Typography trilogy: FontWeight (7) · LetterSpacing (7) · LineSpacing (7) · 14 progress-bar glyphs · 9 shadow presets\n"
+         "• Sub-0.1%% idle CPU · ~224 KB signed binary\n\n"
          "Objective-C + NSPanel · build %@\n"
          "© 2026 <user>ca", build];
     [alert addButtonWithTitle:@"OK"];
