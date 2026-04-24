@@ -42,13 +42,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
-- (void)activateProfile:(NSString *)name;
-- (void)saveCurrentProfileAs:(id)sender;
-- (void)quickSaveCurrentProfile:(id)sender;
+// Profile management → Sources/preferences/FloatingClockPanel+ProfileManagement.{h,m}
 - (void)setDateFormat:(NSMenuItem *)sender;
-- (void)deleteProfile:(NSMenuItem *)sender;
-- (void)switchToProfile:(NSMenuItem *)sender;
-- (void)recordProfileActivationInCCMemory:(NSString *)profileName;
 @end
 
 NS_ASSUME_NONNULL_END
