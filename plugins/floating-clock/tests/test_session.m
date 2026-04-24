@@ -24,6 +24,7 @@
 #import "../Sources/core/DateFormatPrefix.h"
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/SegmentGap.h"
+#import "../Sources/core/DensityPad.h"
 
 static int failures = 0;
 
@@ -709,6 +710,37 @@ static void test_date_format_prefix(void) {
     }
 }
 
+static void test_density_pad_points(void) {
+    // iter-116: lock iter-99's 6-preset Density catalog.
+    struct { NSString *id; CGFloat pt; } cases[] = {
+        {@"ultracompact",  4},
+        {@"compact",      12},
+        {@"default",      24},
+        {@"comfortable",  36},
+        {@"spacious",     48},
+        {@"cavernous",    64},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        CGFloat got = FCDensityPadPoints(cases[i].id);
+        if (fabs(got - cases[i].pt) > 0.001) {
+            fprintf(stderr, "FAIL %s: '%s' expected %.1fpt got %.1fpt\n",
+                    __func__, cases[i].id.UTF8String,
+                    (double)cases[i].pt, (double)got);
+            failures++;
+        }
+    }
+    // nil / empty / unknown → default (24pt).
+    if (fabs(FCDensityPadPoints(nil) - 24) > 0.001) {
+        fprintf(stderr, "FAIL %s: nil should → 24pt\n", __func__); failures++;
+    }
+    if (fabs(FCDensityPadPoints(@"") - 24) > 0.001) {
+        fprintf(stderr, "FAIL %s: empty should → 24pt\n", __func__); failures++;
+    }
+    if (fabs(FCDensityPadPoints(@"infinite") - 24) > 0.001) {
+        fprintf(stderr, "FAIL %s: unknown should → 24pt\n", __func__); failures++;
+    }
+}
+
 static void test_segment_gap_points(void) {
     // iter-115: lock iter-108's 7-preset SegmentGap catalog. Layout.m
     // calls this at every relayout; any change to these values
@@ -931,11 +963,12 @@ int main(void) {
         test_date_format_prefix();
         test_sky_glyph_phases();
         test_segment_gap_points();
+        test_density_pad_points();
         test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 36 tests passed.\n");
+            fprintf(stderr, "All 37 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
