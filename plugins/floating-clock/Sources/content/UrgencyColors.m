@@ -1,4 +1,5 @@
 #import "UrgencyColors.h"
+#import "UrgencyHorizon.h"  // iter-215: runtime user-pref horizon
 #include <math.h>
 
 // Legacy iter-73 thresholds. Production callers (iter-212+) use the
@@ -34,10 +35,16 @@ NSColor *FCUrgencyColorForSecs(long secs, NSColor *normalColor) {
 }
 
 NSColor *FCUrgencyContinuousColor(long secs, NSColor *normalColor) {
+    // iter-215: horizon is now user-configurable via the
+    // UrgencyHorizon pref. Day-traders pick 5min for a tight
+    // closing-bell glow; macro-watchers pick 240min for slow overnight
+    // build. Falls back to kFCUrgencyHorizonSecs (60 min, iter-212)
+    // when unset, so existing installs keep their current behavior.
+    long horizonSecs = FCUrgencyHorizonSecsCurrent();
+
     // Above horizon: caller's theme color, untouched. The transition
-    // at the horizon boundary is one-time and at "1 hour" — far from
-    // imminent, not visually jarring.
-    if (secs >= kFCUrgencyHorizonSecs) return normalColor;
+    // at the horizon boundary is one-time, not visually jarring.
+    if (secs >= horizonSecs) return normalColor;
 
     // At/below imminent threshold: fully saturated red, no logarithm.
     // Clamps the curve so the visual doesn't get muddy near zero.
@@ -49,10 +56,10 @@ NSColor *FCUrgencyContinuousColor(long secs, NSColor *normalColor) {
     }
 
     // Weber-Fechner log scaling. t in [0, 1].
-    //   secs == kFCUrgencyHorizonSecs  → t = 0  (green endpoint)
-    //   secs == kFCUrgencyImminentSecs → t = 1  (red endpoint)
+    //   secs == horizonSecs              → t = 0  (green endpoint)
+    //   secs == kFCUrgencyImminentSecs   → t = 1  (red endpoint)
     // Equal log-secs intervals produce equal perceptual jumps.
-    double horizon  = (double)kFCUrgencyHorizonSecs;
+    double horizon  = (double)horizonSecs;
     double imminent = (double)kFCUrgencyImminentSecs;
     double s        = (double)secs;
     double t = (log(horizon + 1.0) - log(s + 1.0))

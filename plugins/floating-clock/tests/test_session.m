@@ -653,6 +653,7 @@ static void test_starter_profiles_cover_all_keys(void) {
                                           @"LineSpacing",
                                           @"TimeSeparator",
                                           @"SessionSignalWindow",  // iter-128 — registered default "15min" is fine
+                                          @"UrgencyHorizon",       // iter-215 — registered default "60min" is fine
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
@@ -884,9 +885,10 @@ int main(void) {
         test_clipboard_header_format();
         test_urgency_color_tiers();
         test_urgency_continuous_and_flash();
+        test_urgency_horizon_dispatcher();
 
         if (failures == 0) {
-            fprintf(stderr, "All 85 tests passed.\n");
+            fprintf(stderr, "All 86 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
