@@ -61,13 +61,18 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         NSString *iana = groupIanas[g];
         NSUInteger marketsInGroup = group.count / 4;
 
-        // Header: "TOK Fri Apr 24 11:15:07 JST" — city + local day/date + time with seconds.
+        // v4 iter-70: dropped the "EEE MMM d" date prefix from ACTIVE
+        // headers. All ACTIVE markets are by definition open right now,
+        // so their local date is always the same as their local weekday
+        // and effectively same as user-local today. Repeating "Fri Apr
+        // 24" on every market row was pure noise. LOCAL row already
+        // shows the authoritative full date.
         // Abbreviation via NSTimeZone (not formatter `z`) to keep regional
         // names like BST/CEST instead of falling back to GMT+N.
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:iana];
         NSDateFormatter *hf = [[NSDateFormatter alloc] init];
         BOOL showSec = [d boolForKey:@"ShowSeconds"];
-        hf.dateFormat = showSec ? @"EEE MMM d HH:mm:ss" : @"EEE MMM d HH:mm";
+        hf.dateFormat = showSec ? @"HH:mm:ss" : @"HH:mm";
         if (tz) hf.timeZone = tz;
         NSString *tzLabel = fullTzLabelForIana(iana.UTF8String, now);
         NSString *headerTime = [NSString stringWithFormat:@"%@ %@",
