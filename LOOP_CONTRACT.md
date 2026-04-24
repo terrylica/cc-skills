@@ -1,15 +1,22 @@
 ---
-name: floating-clock-v3-three-segment-dashboard
-version: 3
-iteration: 24
+name: floating-clock-v4-continuous-aesthetic-evolution
+version: 4
+iteration: 25
 status: ACTIVE
-last_updated: 2026-04-24T00:16:00Z
-exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
-max_iterations: 100
+last_updated: 2026-04-24T00:18:00Z
+exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
+max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
+wake_policy:
+  mode: snappy
+  delay_seconds: 60
+  rationale: "User directive 2026-04-24: 'between wake time, it is not acceptable to have long wake time'. No external blockers in this campaign, all work is local file edits + builds + agent dispatch."
 dispatch_policy:
   enabled: true
   require_experimental_teams: false
+  per_iteration_agents_min: 2
+  per_iteration_agents_max: 4
+  alignment_auditor_mandatory: true
 ---
 
 # Floating-Clock v2 Enhancements
@@ -399,6 +406,61 @@ Each audit iter spawns 2-4 agents in parallel (`run_in_background: true`). Agent
 - **Synthesis (iter-43)**: Single Agent call reading all 25 audit directories, producing SYNTHESIS.md. Flip `status: DONE`.
 - **Safety**: if any audit agent reports `severity: critical` with `verdict: reject` on a just-shipped feature iter, the main loop PAUSES the audit campaign and spawns a fix iter BEFORE continuing. User is notified via PushNotification.
 - **User stop-early**: user can `rm LOOP_CONTRACT.md` or edit frontmatter to `status: STOPPED`, and the loop exits cleanly at next firing.
+
+---
+
+## Campaign v4 — Continuous Aesthetic/UX Evolution (Active from iter-25)
+
+**Scope expanded 2026-04-24 via /autonomous-loop:start** — user directive:
+
+> Continuous, limitless, and unbounded iterations to aesthetically and critically find and expand customization. We aim to make aesthetic choices, layout choices, and layout options more unbounded, providing more options to users to perform customizations in a modularized manner. Every round should involve using multimodal models to self-critically assess and dispatch individual layout artists and user experience analysts to make it increasingly sophisticated—round after round, time after time, through every iteration. Also, you have to make consistent adjustments to the UI. The UI and the menu bar must be revamped consistently because you always have to use an alignment auditor to ensure all layouts and functionalities are aligned with the user interface and the menu options.
+
+### Core Directive v4 (preserve verbatim across revisions)
+
+Every firing pushes the floating-clock further along **three orthogonal axes**: (1) _aesthetic options_ — more themes, more fonts, more progress-bar glyphs, more color palettes, more shadow / border / corner styles; (2) _layout options_ — more arrangement modes, more inter-segment spacing choices, more orientation options, more density profiles; (3) _menu surface_ — hierarchical multi-layer menus (MENU → submenu → sub-submenu) that expose every new option discoverably. No wait between iterations — every firing commits atomically and queues the next snappily (≤120s wake).
+
+### v4 Multi-Agent Dispatch Protocol
+
+**Every iteration** spawns (via `Agent` tool, `run_in_background: true` when work is parallel):
+
+1. **Layout Artist** — proposes one new layout option / adjustment. Writes to `.planning/v4-iter-NN/layout-artist.md`.
+2. **UX Analyst** — evaluates current state from a user's cognitive-load perspective. Writes `.planning/v4-iter-NN/ux-analyst.md`.
+3. **Alignment Auditor** (mandatory every iteration) — confirms every newly-shipped user-visible option has a menu path AND every menu item maps to a live option. Writes `.planning/v4-iter-NN/alignment-audit.md`. Flags drift as `severity: high`.
+4. **Optional 4th rotating role** — drawn from the v3 archetype pool (Visual Inspector, Typography Critic, Color Theorist, trader personas, Accessibility Auditor, Adversarial Fuzzer) — rotates each firing.
+
+All four write the Agent Report Schema from v3. Main loop synthesizes in-turn and ships one atomic commit per iteration with prefix `loop(iter-<N>-v4): <summary>`.
+
+### v4 Queue (always append, never shrink)
+
+The queue is **self-generating**: each iteration's agents propose the next iteration's items via their "Recommended fixes (prioritized)" sections. The main loop seeds with the below minimum, then chains what agents recommend.
+
+**Seeded Tier 1 (first pass, iter-25 through iter-40):**
+
+- [ ] **iter-25** — Multi-layer menu revamp scaffold: top menu bar structure `MENU → Aesthetics ▶ | Layout ▶ | Data ▶ | Profile ▶ | Advanced ▶`. Every existing menu item finds a home in this hierarchy. Agents: Layout Artist, UX Analyst, Alignment Auditor, Typography Critic.
+- [ ] **iter-26** — More progress-bar glyph sets: `blocks` (current 1/8-width), `dots` (● ○), `dashes` (━ ╌), `arrows` (▶ ▷), `binary` (█ ░), `braille` (⣿ ⣀). New `ProgressBarStyle` pref. Agents: Layout Artist, UX Analyst, Alignment Auditor, Color Theorist.
+- [ ] **iter-27** — Layout orientation options: `stacked-local-top` (current), `stacked-local-bottom`, `horizontal-triptych` (original), `compact-single-row`, `grid-2x2`. New `LayoutMode` pref. Agents: Layout Artist, UX Analyst, Alignment Auditor, Visual Inspector.
+- [ ] **iter-28** — Inter-segment gap options: tight (2pt), snug (4pt), normal (8pt), airy (12pt), spacious (20pt). New `SegmentGap` pref. Agents: Layout Artist, Typography Critic, Alignment Auditor, UX Analyst.
+- [ ] **iter-29** — Corner radius / border style options per segment (sharp, rounded, pill, squircle). Agents: Layout Artist, Color Theorist, Alignment Auditor, Accessibility Auditor.
+- [ ] **iter-30** — Drop shadow / glow / inset options. Agents: Layout Artist, Color Theorist, Alignment Auditor, Adversarial Fuzzer.
+- [ ] **iter-31** — Typography weight progression: regular / medium / semibold / bold / heavy per segment. Agents: Typography Critic, UX Analyst, Alignment Auditor, Accessibility Auditor.
+- [ ] **iter-32** — 10 more theme presets added (total 20). Agents: Color Theorist, Visual Inspector, Alignment Auditor, UX Analyst.
+- [ ] **iter-33** — Per-segment font override (not just global). Agents: Typography Critic, Power User, Alignment Auditor, UX Analyst.
+- [ ] **iter-34** — Menu-driven preset palette editor. Agents: UX Analyst, Color Theorist, Alignment Auditor, Power User.
+- [ ] **iter-35** — Density profiles: compact / default / comfortable / spacious affecting all spacing at once. Agents: Layout Artist, Typography Critic, Alignment Auditor, UX Analyst.
+- [ ] **iter-36** — Locale-aware date format presets. Agents: UX Analyst, Remote Nomad, Alignment Auditor, Adversarial Fuzzer.
+- [ ] **iter-37** — Country-flag glyphs on ACTIVE/NEXT exchange headers. Agents: Visual Inspector, UX Analyst, Alignment Auditor, Accessibility Auditor.
+- [ ] **iter-38** — Per-profile window position memory (Day Trader on external monitor, Minimalist on primary). Agents: Power User, UX Analyst, Alignment Auditor, Adversarial Fuzzer.
+- [ ] **iter-39** — Animation toggle: fade-in / slide transitions for state changes. Agents: UX Analyst, Visual Inspector, Alignment Auditor, Accessibility Auditor.
+- [ ] **iter-40** — Keyboard-driven menu navigation (⌘, for full prefs). Agents: Power User, Accessibility Auditor, Alignment Auditor, UX Analyst.
+
+_Additional iters seeded dynamically by agent recommendations. No fixed endpoint._
+
+### v4 Snappy-Wake Rules
+
+- **Fallback heartbeat**: 60s (1 minute). Dynamic mode only.
+- **No 1200s+ waits** under any condition. User directive is explicit: "it is not acceptable to have long wake time."
+- Every firing ends with `ScheduleWakeup(delaySeconds: 60, prompt: pointer-trigger)` unless the user stops the loop.
+- Exit only on: explicit user-stop, status: DONE after all queue items done + no agent recommends further, or max_iterations reached.
 
 ## Non-Obvious Learnings (preserve across revisions)
 
