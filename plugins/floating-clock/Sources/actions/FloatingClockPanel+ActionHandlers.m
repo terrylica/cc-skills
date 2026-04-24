@@ -178,6 +178,13 @@
     }
 }
 
+- (void)setSessionSignalWindow:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"SessionSignalWindow"];
+        [self applyDisplaySettings];
+    }
+}
+
 // v4 iter-102: Quick Style application. The menu item's representedObject
 // is a dictionary of pref-key → value pairs. Each k/v is written to
 // NSUserDefaults atomically (writes to standardUserDefaults are
@@ -309,7 +316,7 @@
     NSArray<NSString *> *keys = @[
         @"ShowSeconds", @"ShowDate", @"ShowFlags", @"ShowUTCReference",
         @"ShowSkyState", @"ShowProgressPercent",
-        @"TimeFormat", @"TimeSeparator", @"DateFormat",
+        @"TimeFormat", @"TimeSeparator", @"DateFormat", @"SessionSignalWindow",
         @"FontSize", @"ActiveFontSize", @"NextFontSize",
         @"FontWeight", @"ActiveWeight", @"NextWeight",
         @"LetterSpacing", @"LineSpacing",

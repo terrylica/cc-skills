@@ -11,6 +11,7 @@
 #import "../Sources/core/SegmentGap.h"
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/ShadowSpec.h"
+#import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -444,5 +445,36 @@ void test_shadow_spec_catalog(void) {
     }
     if (FCShadowSpecForId(@"nebula").enabled) {
         failures++; fprintf(stderr, "FAIL %s: unknown should be disabled\n", __func__);
+    }
+}
+
+void test_session_signal_window(void) {
+    // iter-126: SessionSignalWindow pref — controls the minute count
+    // that gates iter-123's PRE-MARKET and iter-125's AFTER-HOURS
+    // state promotions.
+    struct { NSString *id; NSInteger mins; } cases[] = {
+        {@"off", 0}, {@"5min", 5}, {@"15min", 15}, {@"30min", 30}, {@"60min", 60},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSInteger got = FCSessionSignalWindowMinutes(cases[i].id);
+        if (got != cases[i].mins) {
+            fprintf(stderr, "FAIL %s: '%s' expected %ld got %ld\n",
+                    __func__, cases[i].id.UTF8String,
+                    (long)cases[i].mins, (long)got);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty → 15 (the default matches iter-123/125 original).
+    if (FCSessionSignalWindowMinutes(nil) != 15) {
+        failures++; fprintf(stderr, "FAIL %s: nil → %ld (want 15)\n",
+                           __func__, (long)FCSessionSignalWindowMinutes(nil));
+    }
+    if (FCSessionSignalWindowMinutes(@"") != 15) {
+        failures++; fprintf(stderr, "FAIL %s: empty → %ld (want 15)\n",
+                           __func__, (long)FCSessionSignalWindowMinutes(@""));
+    }
+    if (FCSessionSignalWindowMinutes(@"forever") != 15) {
+        failures++; fprintf(stderr, "FAIL %s: unknown → %ld (want 15)\n",
+                           __func__, (long)FCSessionSignalWindowMinutes(@"forever"));
     }
 }

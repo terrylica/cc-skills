@@ -101,6 +101,7 @@
         @"LetterSpacing": @"normal",
         @"LineSpacing": @"normal",
         @"TimeSeparator": @"colon",
+        @"SessionSignalWindow": @"15min",
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
