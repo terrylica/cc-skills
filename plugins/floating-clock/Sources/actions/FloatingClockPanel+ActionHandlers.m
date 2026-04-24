@@ -1,6 +1,7 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
+#import "../rendering/SegmentOpacityResolver.h"
 
 @implementation FloatingClockPanel (ActionHandlers)
 
@@ -218,23 +219,40 @@
     }
 }
 
-- (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field {
-    // CanvasOpacity is the direct backdrop alpha. "Opaque (100%)" means
-    // genuinely opaque — user expectation. Theme's built-in alpha field
-    // is the fallback when no CanvasOpacity is set (fresh install now
-    // defaults to 1.0 so fresh look is opaque; user picks lower from menu
-    // if they want see-through). Text always stays at alpha=1.0.
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    CGFloat bgAlpha;
-    if ([d objectForKey:@"CanvasOpacity"]) {
-        bgAlpha = [d doubleForKey:@"CanvasOpacity"];
-    } else {
-        bgAlpha = theme->alpha;
-    }
-    if (bgAlpha < 0.10) bgAlpha = 0.10;
-    if (bgAlpha > 1.00) bgAlpha = 1.00;
+- (void)applyTheme:(const ClockTheme *)theme
+     toSegmentView:(NSView *)seg
+         textField:(NSTextField *)field
+       opacityKey:(NSString *)opacityKey {
+    // v4 iter-90: opacity resolution goes through the shared 3-tier
+    // resolver (per-segment → global CanvasOpacity → theme->alpha).
+    // Caller passes the per-segment key ("LocalOpacity" / "ActiveOpacity"
+    // / "NextOpacity") so each segment can dim independently. Text
+    // always stays at alpha=1.0 regardless (user needs to keep reading
+    // the clock face even when the canvas fades into the desktop).
+    CGFloat bgAlpha = FCResolveSegmentOpacity(opacityKey, theme->alpha);
     seg.layer.backgroundColor = [[NSColor colorWithRed:theme->bg_r green:theme->bg_g blue:theme->bg_b alpha:bgAlpha] CGColor];
     field.textColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
+}
+
+- (void)setLocalOpacity:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"LocalOpacity"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setActiveOpacity:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"ActiveOpacity"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setNextOpacity:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"NextOpacity"];
+        [self applyDisplaySettings];
+    }
 }
 
 - (void)resetPosition:(id)sender {
