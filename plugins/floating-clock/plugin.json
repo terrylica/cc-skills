@@ -1,7 +1,7 @@
 {
   "name": "floating-clock",
-  "version": "1.4.0",
-  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). 6 bundled profiles (Default / Day Trader / Night Owl / Minimalist / Researcher / Watch Party). 12 major exchanges with live session state, IANA-backed DST, regional TZ abbreviations (PDT/BST/CEST/JST/etc.) + UTC reference. Rocket-launch T-HH:MM:SS countdown (progressive to T-Nd Hh MMm at ≥24h). Urgency-tiered green/amber/red. Tabulated sections with frosted-glass (RMBlurredView). Sub-0.1% idle CPU. Ships with unit-test harness (make test).",
+  "version": "1.5.0",
+  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). 6 bundled profiles (Default / Day Trader / Night Owl / Minimalist / Researcher / Watch Party). 12 major exchanges with live session state, IANA-backed DST, regional TZ abbreviations (PDT/BST/CEST/JST/etc.) + UTC reference. Rocket-launch T-HH:MM:SS countdown (progressive to T-Nd Hh MMm at ≥24h). Urgency-tiered green/amber/red. Tabulated sections with frosted-glass (RMBlurredView). v1.5 aesthetic expansion: 25 color themes, 10 progress-bar glyphs, 8 corner styles, 7 shadow presets, 6 density profiles, global + per-segment FontWeight (5 levels) and Transparency, LetterSpacing + LineSpacing typographic axes, 5 TimeSeparator choices. Sub-0.1% idle CPU. 31-fixture unit-test harness (make test).",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"
