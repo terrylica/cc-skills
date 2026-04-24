@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v2-enhancements
-version: 1
+version: 2
 iteration: 5
-status: DONE
-last_updated: 2026-04-24T00:45:00Z
+status: ACTIVE
+last_updated: 2026-04-24T01:30:00Z
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
@@ -100,9 +100,9 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 
 ---
 
-## Current State — DONE
+## Current State — ACTIVE (campaign v2 reopened)
 
-**All Tier 1 iterations shipped. Loop exited cleanly.**
+**Prior campaign (iter-1 through iter-5) shipped v1.1.0 (v1 clock + context menu + icon + slash commands + touchpoints). Campaign reopened with 5 new items per user confirmation 2026-04-24.**
 
 **Last completed iteration**: iter-5 — final validation gauntlet + leak fix + tick-clip fix.
 
@@ -132,7 +132,13 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 
 **Active monitors**: none.
 
-**Outstanding housekeeping**: none — Tier 1 complete.
+**Outstanding housekeeping**:
+
+- [ ] iter-6 — Expand font sizes (15 options, hierarchical Small/Medium/Large/Huge submenus)
+- [ ] iter-7 — 10 color-theme presets (fg + bg + alpha bundled; swatches in menu)
+- [ ] iter-8 — Market-session Time Zone menu + 2-line clock display (12 exchanges + Local; IANA-TZ-backed)
+- [ ] iter-9 — Session state visualization (● OPEN / ◐ PRE-OPEN / ◑ LUNCH / ○ CLOSED + 1/8-block progress bar + 2h17m countdown)
+- [ ] iter-10 — Final validation gauntlet + v1.2.0 release bump
 
 ---
 
@@ -181,18 +187,82 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
       Run the full Validation Gauntlet. Check: no regressions on leaks, RSS, footprint; binary under 100 KB bundled; all 4 slash commands discoverable; icon visible in Finder/Spotlight. Update the plugin's `plugin.json` version from `1.0.0` → `1.1.0`. Consider triggering `mise run release:full` to cut a new marketplace release (tier completion per Release Decision Rule).
       Commit: `chore(floating-clock): bump to 1.1.0 after iter-1 through iter-4`
 
+### Campaign v2 (reopened 2026-04-24 — user confirmed design after 4-agent research)
+
+**Design reference**: see `## Campaign v2 Design` section below for full data tables and composed-line examples.
+
+- [ ] **iter-6 — Expand font sizes: 15 options in hierarchical submenus**
+      Replace the flat 6-item Font Size submenu with a nested structure:
+      `Font Size ▶
+      Small  ▶  10 / 12 / 14 / 16
+      Medium ▶  18 / 20 / 22 / 24
+      Large  ▶  28 / 32 / 36 / 42
+      Huge   ▶  48 / 56 / 64
+   `
+      Add a generic helper `groupedSubmenu:action:groups:defaultsKey:` so iter-7 (themes) can also use nested groups.
+      NSUserDefaults key `FontSize` still holds a single `double` — no schema change.
+      Validation: gauntlet + pick 10pt and 64pt, confirm window resizes and text renders cleanly at both extremes.
+      Commit: `feat(floating-clock): hierarchical font-size submenu with 15 options from 10 to 64pt`
+
+- [ ] **iter-7 — 10 color-theme presets with menu swatches**
+      Replace `Text Color` submenu with `Color Theme ▶`. Each theme is a bundle of `{fg: hex, bg: hex, alpha: double}`. New NSUserDefaults key `ColorTheme` (NSString, default `"terminal"`). When a theme is picked, `applyDisplaySettings` sets label `textColor`, window `backgroundColor`, and alpha atomically.
+      Themes: `terminal` (white/black/0.32), `amber_crt` (#ffbf00/black/0.38), `green_phosphor` (#2ffa5c/black/0.35), `solarized_dark` (#b58900/#002b36/0.40), `dracula` (#bd93f9/#282a36/0.45), `nord` (#88c0d0/#2e3440/0.45), `gruvbox` (#fabd2f/#282828/0.42), `rose_pine` (#ebbcba/#191724/0.42), `high_contrast` (white/black/1.00), `soft_glass` (#f5f5f7/black/0.18).
+      Each menu item gets a 14×14 color swatch via inline Core Graphics on `NSImage` (the foreground color of the theme) assigned to `item.image`.
+      Preserve backwards compat: if the legacy `TextColor` key is set but `ColorTheme` is not, migrate on first launch (e.g. `"amber"` → `"amber_crt"`, `"green"` → `"green_phosphor"`, others → `"terminal"`).
+      Validation: gauntlet + cycle through all 10 themes and confirm visual change, NSUserDefaults persists theme name, window remains legible in all.
+      Commit: `feat(floating-clock): 10 color-theme presets with inline CG swatches`
+
+- [ ] **iter-8 — Market-session Time Zone menu + clock in remote TZ**
+      Add `Time Zone ▶` submenu with "Local Time" at top, then 4 region sub-submenus (Americas/Europe/Asia/Oceania) containing 12 exchanges. Data table (all IANA-TZ-backed):
+      `Local Time         — system default
+    NYSE/NASDAQ        America/New_York     09:30–16:00  (no lunch)
+    TSX (Toronto)      America/Toronto      09:30–16:00  (no lunch)
+    LSE (London)       Europe/London        08:00–16:30  (no lunch)
+    Euronext (Paris)   Europe/Paris         09:00–17:30  (no lunch)
+    XETRA (Frankfurt)  Europe/Berlin        09:00–17:30  (no lunch)
+    SIX (Zurich)       Europe/Zurich        09:00–17:20  (no lunch)
+    TSE (Tokyo)        Asia/Tokyo           09:00–15:30  (lunch 11:30–12:30)
+    HKEX (Hong Kong)   Asia/Hong_Kong       09:30–16:00  (lunch 12:00–13:00)
+    SSE (Shanghai)     Asia/Shanghai        09:30–14:57  (lunch 11:30–13:00)
+    KRX (Seoul)        Asia/Seoul           09:00–15:30  (no lunch)
+    NSE (Mumbai)       Asia/Kolkata         09:15–15:30  (no lunch)
+    ASX (Sydney)       Australia/Sydney     10:00–16:00  (no lunch)
+   `
+      Store as a static C struct array of 13 entries (Local + 12). Add new NSUserDefaults key `SelectedMarket` (NSString, default `"local"`).
+      When a non-local market is selected, `tick` uses `NSDateFormatter.timeZone = [NSTimeZone timeZoneWithName:iana]`. Foundation handles DST automatically per hemisphere.
+      This iter does NOT add the session-state line yet — that's iter-9. Time-display-only so iter-9 can focus on visuals.
+      Validation: gauntlet + select Tokyo → clock shows JST (~9 hours ahead of PDT), select London → BST, kill+relaunch → selection persists.
+      Commit: `feat(floating-clock): Time Zone menu with 12 major exchanges + IANA-backed conversion`
+
+- [ ] **iter-9 — Session-state 2-line display with progress bar + countdown**
+      When `SelectedMarket != "local"`, the window switches to 2-line mode:
+      `14:37:21                       ← primary line, user font size, exchange local time
+    ● NYSE ████████▊▒▒▒▒ 2h17m      ← secondary line, 11pt monospacedSystemFont
+   `
+      Per R2/R4 research: - Progress bar: 12 characters using 1/8-width blocks `█▉▊▋▌▍▎▏` for filled portion, `░` or space for unfilled. Use NSAttributedString to color the filled portion in the theme's fg color and the unfilled portion in a dimmed gray (0.3 white). - State glyph + color (leading position): - `●` green: OPEN (regular session) - `◐` amber: PRE-OPEN (15 min before session, for exchanges with opening auctions — NYSE, TSE, LSE have them) - `◑` violet: LUNCH BREAK (TSE / HKEX / SSE only, during their lunch windows) - `○` gray: CLOSED (overnight, weekend) - Countdown format: `2h17m` when ≥1h remaining, `47m` when <1h, `5m32s` when <2m for tension. When CLOSED, show `○ NYSE CLOSED · opens in 14h23m` (or date format `opens Mon 09:30` if >99 hours out). - Lunch break counts as a distinct state (not CLOSED) — informative for traders per user confirmation.
+      Add a new secondary `NSTextField *_sessionLabel` subview. `applyDisplaySettings` must measure both lines with `sizeWithAttributes:` and resize the window to `max(widths) + 32px × height_1 + height_2 + 28px`. Anchor resize at center so window doesn't drift.
+      When market is "local", hide `_sessionLabel` (set `hidden = YES`) and use original 1-line sizing path.
+      Session-state computation: new static fn `computeSessionState(const Market *m, NSDate *now)` returning `{state, progress_pct, secs_until_next_transition}`. Uses NSTimeZone + NSCalendar for conversions, runs each `tick` (once/second — cheap).
+      Validation: gauntlet + cycle through NYSE (during or after session hours), TSE (verify lunch break state triggers at JST 11:30), weekend test (simulate via date stub if needed), verify progress bar sub-cell smoothness. All 4 state glyphs must be reachable and visually distinct.
+      Commit: `feat(floating-clock): session-state line with progress bar, countdown, and 4-state glyph`
+
+- [ ] **iter-10 — Final validation + v1.2.0 release bump**
+      Full gauntlet. Bump plugin.json 1.1.0 → 1.2.0. Update CLAUDE.md: - Touchpoints table: add new NSUserDefaults keys (`ColorTheme`, `SelectedMarket`) - Runtime Preferences table: document all new options - Design section: document session-state semantics, lunch-break handling, progress bar encoding - Future Enhancements: holiday awareness (Tier 2), multi-market rotation (Tier 3)
+      Commit: `chore(floating-clock): bump to 1.2.0 after iter-6 through iter-9`
+
 ### Tier 2 (post-MVP — nice-to-have)
 
+- [ ] Holiday awareness for market sessions (bundled annual JSON/iCal, refreshed yearly)
+- [ ] Pre-open auction window as distinct state (currently lumped into CLOSED for exchanges without pre-open)
 - [ ] System appearance (light/dark) auto-adjust background + text color
-- [ ] Timezone label under clock (optional toggle)
 - [ ] Weekday abbreviation (Mon/Tue/…) when Show Date is on
 - [ ] Clickable calendar popup on left double-click
-- [ ] Multi-clock support (e.g. local + UTC side by side)
 
 ### Tier 3 (deferred)
 
+- [ ] Multi-market rotation mode (cycle through 2-3 favorites every 10s)
 - [ ] Settings export/import (JSON)
-- [ ] Theme presets (user-definable color + font + opacity bundles)
+- [ ] User-definable theme bundles (add your own palette)
 
 ---
 
