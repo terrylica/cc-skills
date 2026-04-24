@@ -19,13 +19,10 @@ NS_ASSUME_NONNULL_BEGIN
     ActiveSegmentView *_activeSeg;
     NextSegmentView *_nextSeg;
 }
-// Menu builders + helpers live in Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
-- (void)applyDisplaySettings;
+// Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
+// Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
 - (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
-- (void)applyThreeSegmentLayout;
-- (void)relayoutThreeSegmentIfNeeded;
-- (void)applySingleMarketLayout;
-- (void)applyLocalOnlyLayout;
+- (void)tick;
 - (void)tickThreeSegment;
 - (void)tickLegacy;
 - (void)toggleShowSeconds:(NSMenuItem *)sender;
