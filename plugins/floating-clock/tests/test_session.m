@@ -21,6 +21,7 @@
 #import "../Sources/rendering/SegmentOpacityResolver.h"
 #import "../Sources/data/ThemeCatalog.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
+#import "../Sources/core/DateFormatPrefix.h"
 
 static int failures = 0;
 
@@ -665,6 +666,47 @@ static void test_line_spacing_parser(void) {
     }
 }
 
+static void test_date_format_prefix(void) {
+    // iter-113: locks in the 9-preset catalog (iter-111's new locale
+    // variants included) plus the short-default fallback for unknown
+    // / nil / empty ids. Each pattern ends in the 2-space "  " gap
+    // that separates date from time, so sub-formatters can append
+    // time tokens directly.
+    struct { NSString *id; NSString *pattern; } cases[] = {
+        {@"short",       @"EEE MMM d  "},
+        {@"long",        @"EEEE MMMM d  "},
+        {@"iso",         @"yyyy-MM-dd  "},
+        {@"numeric",     @"M/d  "},
+        {@"weeknum",     @"'Wk' w  "},
+        {@"dayofyr",     @"'Day' D  "},
+        {@"usa",         @"M/d/yyyy  "},
+        {@"european",    @"d.M.yyyy  "},
+        {@"compact_iso", @"MM-dd  "},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSString *got = FCDateFormatPrefix(cases[i].id);
+        if (![got isEqualToString:cases[i].pattern]) {
+            fprintf(stderr, "FAIL %s: '%s' expected '%s' got '%s'\n",
+                    __func__, cases[i].id.UTF8String,
+                    cases[i].pattern.UTF8String, got.UTF8String);
+            failures++;
+        }
+    }
+    // Unknown / nil / empty → short default.
+    if (![FCDateFormatPrefix(nil) isEqualToString:@"EEE MMM d  "]) {
+        fprintf(stderr, "FAIL %s: nil should → short default\n", __func__);
+        failures++;
+    }
+    if (![FCDateFormatPrefix(@"") isEqualToString:@"EEE MMM d  "]) {
+        fprintf(stderr, "FAIL %s: empty should → short default\n", __func__);
+        failures++;
+    }
+    if (![FCDateFormatPrefix(@"julian-1582") isEqualToString:@"EEE MMM d  "]) {
+        fprintf(stderr, "FAIL %s: unknown id should → short default\n", __func__);
+        failures++;
+    }
+}
+
 static void test_current_time_format(void) {
     // iter-107: FCCurrentTimeFormat composes the NSDateFormatter pattern
     // from the user's "TimeSeparator" pref. Colon stays as a literal
@@ -817,11 +859,12 @@ int main(void) {
         test_theme_catalog_invariants();
         test_letter_spacing_parser();
         test_line_spacing_parser();
+        test_date_format_prefix();
         test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 33 tests passed.\n");
+            fprintf(stderr, "All 34 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
