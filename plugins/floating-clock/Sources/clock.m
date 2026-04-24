@@ -1407,20 +1407,26 @@ static NSFont *resolveClockFont(CGFloat size) {
 
     NSSize localSize = [@"HH:MM:SS" sizeWithAttributes:primaryAttrs];
 
-    // Measure actual ACTIVE content (may be multi-line)
+    // Measure actual ACTIVE content (may be multi-line).
+    // -[NSAttributedString size] returns single-line dimensions and ignores
+    // embedded \n — use boundingRectWithSize:options: for multi-line.
     NSSize activeSize;
     NSAttributedString *activeAttr = _activeSeg.contentLabel.attributedStringValue;
     if (activeAttr && activeAttr.string.length > 0) {
-        activeSize = [activeAttr size];
+        NSRect r = [activeAttr boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)
+                                            options:NSStringDrawingUsesLineFragmentOrigin];
+        activeSize = r.size;
     } else {
         activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
     }
 
-    // Measure actual NEXT content (may be multi-line)
+    // Measure actual NEXT content (may be multi-line).
     NSSize nextSize;
     NSAttributedString *nextAttr = _nextSeg.contentLabel.attributedStringValue;
     if (nextAttr && nextAttr.string.length > 0) {
-        nextSize = [nextAttr size];
+        NSRect r = [nextAttr boundingRectWithSize:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)
+                                          options:NSStringDrawingUsesLineFragmentOrigin];
+        nextSize = r.size;
     } else {
         nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
