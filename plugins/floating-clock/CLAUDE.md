@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` — 53 fixtures covering
+Tests live in `tests/test_session.m` + `tests/test_levers.m` — 54 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -242,7 +242,6 @@ Design notes:
 
 - **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week, Good Friday) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness requires bundling annual data per exchange — deferred pending a maintenance plan for yearly tzdata-style refreshes.
 - **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
-- **Stacked-top/bottom layouts under LayoutMode have not been exercised in recent iterations**. The `triptych` mode is the primary code path. Stacked variants may have minor layout drift.
 
 ## Future Enhancements
 
