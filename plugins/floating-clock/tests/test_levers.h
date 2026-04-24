@@ -40,5 +40,6 @@ void test_clipboard_header_format(void);
 void test_urgency_color_tiers(void);
 void test_urgency_continuous_and_flash(void);  // iter-212
 void test_urgency_horizon_dispatcher(void);    // iter-215
+void test_urgency_flash_intensity(void);       // iter-219
 
 NS_ASSUME_NONNULL_END
