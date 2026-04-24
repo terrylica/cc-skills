@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 160
+iteration: 161
 status: ACTIVE
-last_updated: 2026-04-24T18:30:00Z
+last_updated: 2026-04-24T18:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -594,3 +594,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 18:10 UTC — iter-158: **SessionSignalWindow composable into Quick Styles** (bd28d0eb). iter-126 exposed the pref via menu but the test_quick_styles_invariants' allowed-set didn't include it, so Quick Style bundles couldn't set it. Extended allowed-set with the 5 values. Applied to 2 moods where fit is obvious: Hacker → "off" (minimalism, no auction glyphs), Trading Floor → "60min" (macro-trader identity). Other 10 bundles inherit the registered default (15min) via pref fallback — no forced behavior change. 58/58 still pass.
 - 2026-04-24 18:20 UTC — iter-159: **v1.9.0 release consolidation** (744d47b4). 12 iters since v1.8.0 (iter-146 → iter-159, matching the iter-121→iter-133 and iter-133→iter-146 cadences). plugin.json 1.8.0 → 1.9.0; Info.plist synced; CFBundleVersion 146 → 159; About dialog updated. Description rewritten to surface v1.9 scope: 13-exchange roster with Africa region (JSE added iter-155), Copy cluster with self-documenting UTC-stamped headers, SessionSignalWindow Quick-Style-composable, state-invariant sweep family (NYSE + TSE + JSE + weekend), colorForState fixture closes the glyph/label/color triad. 53 → 58 test fixtures. 58/58 green, validator clean. v1.9.0 shipped.
 - 2026-04-24 18:30 UTC — iter-160: **ClipboardHeader extracted + tested** (8e96dabf). First post-v1.9.0 iter. iter-152's fcCopyWithHeader was a static helper inside ActionHandlers.m — functional but untestable. Extracted the pure-function body to new `Sources/core/ClipboardHeader.{h,m}` module: `FCComposeClipboardSnapshot(label, body, now)` returns the formatted string; ActionHandlers only wraps it with NSPasteboard write. nil-safety via `_Nullable` annotations. New `test_clipboard_header_format`: fixed-date composition locks exact format, empty-body returns empty, nil-label graceful. Tests +1 (59 total). 59/59 pass, warning-free.
+- 2026-04-24 18:40 UTC — iter-161: **B3 (São Paulo) fills the Latin America gap** (2316a60f). Parallels iter-155's JSE (Africa) addition. Bovespa/B3: America/Sao_Paulo, 10:00–17:00 BRT year-round (Brazil abolished DST in 2019), no lunch. Flag 🇧🇷 / city SAO / abbreviation BRT. All three test fixtures extended (roster lock, city-code coverage, flag-emoji coverage). iana-prefix grouping from iter-155 auto-filed B3 under Americas — zero menu-code edit. 14-exchange roster covers all populated continents except Antarctica. 59/59 still pass.
