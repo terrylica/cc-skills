@@ -876,12 +876,15 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSDictionary *attrs = @{NSFontAttributeName: _label.font};
     NSSize textSize = [text sizeWithAttributes:attrs];
 
-    // Measure secondary line if market mode
+    // Measure secondary line if market mode. Ask the NSTextField itself how
+    // big it wants to be — sizeToFit accounts for its internal padding,
+    // attributed run widths, and rendering-engine-specific advance widths.
+    // String-level sizeWithAttributes: consistently under-measures and clips
+    // the trailing countdown.
     NSSize size2 = NSZeroSize;
     if (marketMode) {
-        NSString *plainStatus = _sessionLabel.attributedStringValue.string;
-        NSDictionary *attrs2 = @{NSFontAttributeName: _sessionLabel.font};
-        size2 = [plainStatus sizeWithAttributes:attrs2];
+        [_sessionLabel sizeToFit];
+        size2 = _sessionLabel.frame.size;
     }
 
     CGFloat w1 = ceilf(textSize.width),  h1 = ceilf(textSize.height);

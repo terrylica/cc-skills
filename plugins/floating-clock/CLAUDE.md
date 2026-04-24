@@ -1,6 +1,6 @@
 # floating-clock
 
-Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~50KB binary, ~10–12 MB RSS) using NSPanel with persistent positioning and sub-0.1% idle CPU.
+Always-on-top floating desktop clock for macOS. Single-file Objective-C implementation (~80 KB binary, ~13 MB physical footprint) using NSPanel. Right-click for 10 color themes, 15 font sizes (10–64 pt), and live market-session state across 12 major global stock exchanges. Sub-0.1% idle CPU.
 
 **Hub:** [CLAUDE.md](../../CLAUDE.md) | **Sibling:** [plugins/CLAUDE.md](../CLAUDE.md)
 
@@ -37,7 +37,18 @@ Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app
   1. User override via NSUserDefaults key `FontName` (PostScript name)
   2. iTerm2 default profile's `Normal Font` (extracted from `com.googlecode.iterm2.plist`)
   3. System monospaced fallback: SF Mono (macOS 10.15+) or Menlo (older)
-  4. Displays at fixed 24pt size (independent of iTerm2's size preference)
+  4. Size selectable from 15 options (10 / 12 / 14 / 16 / 18 / 20 / 22 / 24 / 28 / 32 / 36 / 42 / 48 / 56 / 64 pt) grouped as Small / Medium / Large / Huge in the context menu
+- **Color themes**: 10 preset bundles (each sets foreground, background, alpha atomically) — Terminal, Amber CRT, Green Phosphor, Solarized Dark, Dracula, Nord, Gruvbox, Rose Pine, High Contrast, Soft Glass. Menu items show 14×14 color swatches drawn inline via Core Graphics.
+- **Market sessions** (when a non-local market is selected):
+  - 12 major exchanges grouped by region (Americas / Europe / Asia / Oceania) — NYSE, TSX, LSE, Euronext, XETRA, SIX, TSE, HKEX, SSE, KRX, NSE, ASX
+  - Time displayed in that exchange's local time via IANA `NSTimeZone` (DST-correct across hemispheres)
+  - Second line shows state glyph + market code + progress bar + countdown:
+    - `●` green: OPEN (regular session)
+    - `◑` violet: LUNCH (TSE / HKEX / SSE only)
+    - `○` gray: CLOSED (overnight, weekend) — shows `opens in Xh Ym` or `opens EEE HH:mm` for gaps >99h
+  - Progress bar uses Unicode 1/8-width blocks (`█▉▊▋▌▍▎▏░`) for sub-cell smoothness
+  - Countdown format: `2h17m` (≥1h), `47m` (<1h), `5m32s` (<2m)
+  - Window auto-resizes to a 2-line layout with center-anchor; falls back to 1-line when Local Time is selected
 - **Default position** (first launch, no saved state): bottom-center of main screen's `visibleFrame` (respects menu bar and Dock)
 - **Multi-monitor position persistence**:
   - Saves both window frame and screen ID on every move (`windowDidMove:`)
@@ -76,21 +87,23 @@ defaults read com.example.floating-clock          # show all
 defaults delete com.example.floating-clock        # reset everything (next launch → defaults)
 ```
 
-| Key                         | Type     | Default   | Source                           |
-| --------------------------- | -------- | --------- | -------------------------------- |
-| `ShowSeconds`               | BOOL     | `YES`     | Context menu                     |
-| `ShowDate`                  | BOOL     | `NO`      | Context menu                     |
-| `TimeFormat`                | NSString | `"24h"`   | Context menu (24h / 12h)         |
-| `FontSize`                  | double   | `24.0`    | Context menu (18–32 pt)          |
-| `BackgroundAlpha`           | double   | `0.32`    | Context menu (10%–100%)          |
-| `TextColor`                 | NSString | `"white"` | Context menu (5 preset colors)   |
-| `FontName`                  | NSString | unset     | Power-user override (PostScript) |
-| `FloatingClockWindowFrame`  | NSString | unset     | Auto-saved on window move        |
-| `FloatingClockScreenNumber` | NSNumber | unset     | Auto-saved on window move        |
+| Key                         | Type     | Default      | Source                                                  |
+| --------------------------- | -------- | ------------ | ------------------------------------------------------- |
+| `ShowSeconds`               | BOOL     | `YES`        | Context menu                                            |
+| `ShowDate`                  | BOOL     | `NO`         | Context menu                                            |
+| `TimeFormat`                | NSString | `"24h"`      | Context menu (24h / 12h)                                |
+| `FontSize`                  | double   | `24.0`       | Context menu (15 options, 10–64 pt)                     |
+| `ColorTheme`                | NSString | `"terminal"` | Context menu (10 preset themes)                         |
+| `SelectedMarket`            | NSString | `"local"`    | Context menu (Local + 12 exchanges)                     |
+| `FontName`                  | NSString | unset        | Power-user override (PostScript name)                   |
+| `FloatingClockWindowFrame`  | NSString | unset        | Auto-saved on window move                               |
+| `FloatingClockScreenNumber` | NSNumber | unset        | Auto-saved on window move                               |
+| `TextColor`                 | NSString | unset        | Legacy (pre-1.2.0). Migrated to `ColorTheme` on upgrade |
+| `BackgroundAlpha`           | double   | unset        | Legacy (pre-1.2.0). Alpha now part of theme             |
 
 ## Implementation
 
-**Main source**: `Sources/clock.m` (521 LoC)
+**Main source**: `Sources/clock.m` (~1000 LoC)
 **Icon helper**: `Sources/gen-icon.m` (~170 LoC, build-time only)
 
 - `@autoreleasepool` for memory hygiene
@@ -101,13 +114,24 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 - `defaultFrame()`: bottom-center of primary display (uses `[NSScreen screens].firstObject`, not `mainScreen`)
 - `screensChanged:`: runtime observer for monitor hot-unplug
 - `buildMenu` / `refreshMenuChecks:` / `applyDisplaySettings`: NSMenu-driven preferences
+- `groupedSubmenuTitled:` + `setChecksInMenu:` — recursive helpers for hierarchical menus (font sizes, regions)
+- `kThemes[]` — static C array of 10 theme structs (id, display, fg_rgb, bg_rgb, alpha)
+- `swatchForTheme()` — inline CoreGraphics drawing of menu item color swatches
+- `kMarkets[]` — static C array of 13 market structs (id, display, code, iana, session hours, lunch times)
+- `computeSessionState()` — state + progress + countdown via `NSCalendar` in the exchange's IANA TZ
+- `buildProgressBar()` — Unicode 1/8-width block bar with color-split filled/unfilled portions via `NSAttributedString`
 - `ClockContentView`: custom `NSView` subclass whose `menuForEvent:` returns the context menu on right-click
+
+## Known limitations
+
+- **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness would require bundling annual data — deferred to a future release.
+- **No pre-open auction window as distinct state**. Exchanges with opening auctions (NYSE, TSE, LSE) currently show CLOSED until regular session begins. Merging the auction window into OPEN or giving it a distinct state is a Tier-2 enhancement.
+- **No multi-market simultaneous display**. One exchange at a time. Rotation mode (cycle through favorites) deferred to Tier-3.
 
 ## Future Enhancements
 
-- System appearance (light/dark) auto-adjust background + text color
-- Timezone label beneath clock (toggle)
-- Weekday abbreviation (Mon/Tue/…) when Show Date is on
-- Clickable calendar popup on left double-click
-- Multi-clock (local + UTC side by side)
-- Launchd login-item for autostart (currently manual launch only — explicit by design)
+- Holiday awareness (bundled annual JSON, refreshed yearly by plugin updates)
+- Pre-open auction as a fourth distinct state
+- Multi-market rotation (show NY + London + Tokyo in sequence)
+- System appearance (light/dark) auto-adjust
+- Launchd login-item for autostart
