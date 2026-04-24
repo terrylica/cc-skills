@@ -266,6 +266,25 @@ static void test_state_invariants_tse_sweep(void) {
     sweep_invariants(tse, @"Asia/Tokyo", "JST");
 }
 
+static void test_auction_watcher_sets_extended_window(void) {
+    // v4 iter-148: Auction Watcher's identity is "extended 30-min
+    // auction window". If the profile doesn't explicitly set the pref,
+    // it falls back to default "15min" and the profile lies about its
+    // behavior. Lock it to catch accidental removal.
+    NSDictionary *profiles = buildStarterProfiles();
+    NSDictionary *aw = profiles[@"Auction Watcher"];
+    if (aw == nil) {
+        failures++; fprintf(stderr, "FAIL %s: Auction Watcher missing\n", __func__);
+        return;
+    }
+    NSString *got = aw[@"SessionSignalWindow"];
+    if (![got isEqualToString:@"30min"]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: SessionSignalWindow='%s' (want '30min')\n",
+                __func__, got ? got.UTF8String : "(unset)");
+    }
+}
+
 static void test_weekend_always_closed(void) {
     // v4 iter-147: lock the weekend invariant. Markets do not open on
     // Sat or Sun, so every 30-min tick on Sat 2026-04-25 must stay
@@ -671,6 +690,7 @@ int main(void) {
         test_state_invariants_24h_sweep();
         test_state_invariants_tse_sweep();
         test_weekend_always_closed();
+        test_auction_watcher_sets_extended_window();
         test_signal_window_pref_gates_premarket();
         test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
@@ -721,7 +741,7 @@ int main(void) {
         test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 54 tests passed.\n");
+            fprintf(stderr, "All 55 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
