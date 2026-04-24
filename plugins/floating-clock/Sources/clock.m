@@ -34,6 +34,45 @@ static const ClockTheme kThemes[] = {
 };
 static const size_t kNumThemes = sizeof(kThemes) / sizeof(kThemes[0]);
 
+// Market/exchange definition with IANA timezone
+typedef struct {
+    const char *id;               // NSUserDefaults value, e.g. "nyse"
+    const char *display;          // Menu label, e.g. "NYSE/NASDAQ (New York)"
+    const char *code;             // Short code for status line (iter-9), e.g. "NYSE"
+    const char *iana;             // IANA timezone, e.g. "America/New_York"
+    int open_h, open_m;           // Regular session open in local time
+    int close_h, close_m;         // Regular session close
+    int lunch_start_h, lunch_start_m; // -1, -1 if no lunch break
+    int lunch_end_h, lunch_end_m;     // -1, -1 if no lunch break
+} ClockMarket;
+
+static const ClockMarket kMarkets[] = {
+    {"local",    "Local Time",                    "LOCAL", "",                      0,   0, 0,   0, -1, -1, -1, -1},
+    {"nyse",     "NYSE/NASDAQ (New York)",        "NYSE",  "America/New_York",      9,  30, 16,  0, -1, -1, -1, -1},
+    {"tsx",      "TSX (Toronto)",                 "TSX",   "America/Toronto",       9,  30, 16,  0, -1, -1, -1, -1},
+    {"lse",      "LSE (London)",                  "LSE",   "Europe/London",         8,   0, 16, 30, -1, -1, -1, -1},
+    {"euronext", "Euronext (Paris)",              "EUX",   "Europe/Paris",          9,   0, 17, 30, -1, -1, -1, -1},
+    {"xetra",    "XETRA (Frankfurt)",             "XETR",  "Europe/Berlin",         9,   0, 17, 30, -1, -1, -1, -1},
+    {"six",      "SIX (Zurich)",                  "SIX",   "Europe/Zurich",         9,   0, 17, 20, -1, -1, -1, -1},
+    {"tse",      "TSE (Tokyo)",                   "TSE",   "Asia/Tokyo",            9,   0, 15, 30, 11, 30, 12, 30},
+    {"hkex",     "HKEX (Hong Kong)",              "HKEX",  "Asia/Hong_Kong",        9,  30, 16,  0, 12,  0, 13,  0},
+    {"sse",      "SSE (Shanghai)",                "SSE",   "Asia/Shanghai",         9,  30, 14, 57, 11, 30, 13,  0},
+    {"krx",      "KRX (Seoul)",                   "KRX",   "Asia/Seoul",            9,   0, 15, 30, -1, -1, -1, -1},
+    {"nse",      "NSE (Mumbai)",                  "NSE",   "Asia/Kolkata",          9,  15, 15, 30, -1, -1, -1, -1},
+    {"asx",      "ASX (Sydney)",                  "ASX",   "Australia/Sydney",     10,   0, 16,  0, -1, -1, -1, -1},
+};
+static const size_t kNumMarkets = sizeof(kMarkets) / sizeof(kMarkets[0]);
+
+// Lookup market by id; returns first market (local) if not found
+static const ClockMarket *marketForId(NSString *idStr) {
+    if (!idStr) return &kMarkets[0];  // local
+    const char *c = idStr.UTF8String;
+    for (size_t i = 0; i < kNumMarkets; i++) {
+        if (strcmp(kMarkets[i].id, c) == 0) return &kMarkets[i];
+    }
+    return &kMarkets[0];
+}
+
 // Lookup theme by id; returns first theme if not found
 static const ClockTheme *themeForId(NSString *idStr) {
     if (!idStr) return &kThemes[0];
@@ -145,6 +184,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)setTimeFormat:(NSMenuItem *)sender;
 - (void)setFontSize:(NSMenuItem *)sender;
 - (void)setColorTheme:(NSMenuItem *)sender;
+- (void)setMarket:(NSMenuItem *)sender;
 - (void)resetPosition:(id)sender;
 - (void)showAbout:(id)sender;
 - (void)quit:(id)sender;
@@ -175,6 +215,7 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"ShowDate": @NO,
         @"TimeFormat": @"24h",
         @"FontSize": @24.0,
+        @"SelectedMarket": @"local",
     }];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
@@ -280,6 +321,21 @@ static NSFont *resolveClockFont(CGFloat size) {
         _dateFormatter = [[NSDateFormatter alloc] init];
     }
     _dateFormatter.dateFormat = fmt;
+
+    // Set timezone based on SelectedMarket
+    NSString *marketId = [d stringForKey:@"SelectedMarket"];
+    const ClockMarket *mkt = marketForId(marketId);
+    if (strlen(mkt->iana) > 0) {
+        NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
+        if (tz) {
+            _dateFormatter.timeZone = tz;
+        } else {
+            _dateFormatter.timeZone = [NSTimeZone localTimeZone];
+        }
+    } else {
+        _dateFormatter.timeZone = [NSTimeZone localTimeZone];
+    }
+
     _label.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
 }
 
@@ -386,6 +442,57 @@ static NSFont *resolveClockFont(CGFloat size) {
     @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
     @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
 ]                          defaultsKey:@"FontSize"]];
+
+    // Build Time Zone submenu with regional groups
+    NSMutableArray *americasItems = [NSMutableArray array];
+    NSMutableArray *europeItems   = [NSMutableArray array];
+    NSMutableArray *asiaItems     = [NSMutableArray array];
+    NSMutableArray *oceaniaItems  = [NSMutableArray array];
+
+    // Skip index 0 (local — handled separately)
+    for (size_t i = 1; i < kNumMarkets; i++) {
+        NSString *display = [NSString stringWithUTF8String:kMarkets[i].display];
+        NSString *idStr = [NSString stringWithUTF8String:kMarkets[i].id];
+        NSArray *pair = @[display, idStr];
+        if (i <= 2) {
+            [americasItems addObject:pair];      // NYSE, TSX
+        } else if (i <= 6) {
+            [europeItems addObject:pair];        // LSE, Euronext, XETRA, SIX
+        } else if (i <= 11) {
+            [asiaItems addObject:pair];          // TSE, HKEX, SSE, KRX, NSE
+        } else {
+            [oceaniaItems addObject:pair];       // ASX
+        }
+    }
+
+    // Build root Time Zone submenu manually
+    NSMenuItem *tzRoot = [[NSMenuItem alloc] initWithTitle:@"Time Zone" action:nil keyEquivalent:@""];
+    NSMenu *tzSub = [[NSMenu alloc] init];
+
+    NSMenuItem *localItem = [tzSub addItemWithTitle:@"Local Time" action:@selector(setMarket:) keyEquivalent:@""];
+    localItem.representedObject = @"local";
+    localItem.target = self;
+    [tzSub addItem:[NSMenuItem separatorItem]];
+
+    // Nested region groups
+    for (NSArray *region in @[
+        @[@"Americas", americasItems],
+        @[@"Europe", europeItems],
+        @[@"Asia", asiaItems],
+        @[@"Oceania", oceaniaItems]]) {
+        NSMenuItem *regionItem = [[NSMenuItem alloc] initWithTitle:region[0] action:nil keyEquivalent:@""];
+        NSMenu *regionSub = [[NSMenu alloc] init];
+        for (NSArray *pair in region[1]) {
+            NSMenuItem *leaf = [regionSub addItemWithTitle:pair[0] action:@selector(setMarket:) keyEquivalent:@""];
+            leaf.representedObject = pair[1];
+            leaf.target = self;
+        }
+        regionItem.submenu = regionSub;
+        [tzSub addItem:regionItem];
+    }
+
+    tzRoot.submenu = tzSub;
+    [m addItem:tzRoot];
 
     // Build Color Theme submenu with swatches
     NSMutableArray *themePairs = [NSMutableArray array];
@@ -500,6 +607,8 @@ static NSFont *resolveClockFont(CGFloat size) {
                 currentValue = [d stringForKey:@"TimeFormat"];
             } else if ([subTitle isEqualToString:@"Font Size"]) {
                 currentValue = [d objectForKey:@"FontSize"];
+            } else if ([subTitle isEqualToString:@"Time Zone"]) {
+                currentValue = [d stringForKey:@"SelectedMarket"];
             } else if ([subTitle isEqualToString:@"Color Theme"]) {
                 currentValue = [d stringForKey:@"ColorTheme"];
             }
@@ -583,6 +692,13 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)setColorTheme:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSString class]]) {
         [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"ColorTheme"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setMarket:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"SelectedMarket"];
         [self applyDisplaySettings];
     }
 }
