@@ -163,6 +163,43 @@ static NSString * const kSIX2026Holidays[] = {
     @"2026-12-31",  // New Year's Eve (FULL closure at SIX)
 };
 
+// v4 iter-183: SSE (Shanghai Stock Exchange) 2026 non-trading days.
+// Source: State Council-announced 2026 holiday schedule. Most complex
+// calendar to date — features two 7-day "Golden Week" clusters that
+// merge adjacent weekends with multi-day statutory holidays. Spring
+// Festival Golden Week spans Feb 17-23 (Feb 21-22 weekend + Feb 17-20
+// + Feb 23 Mon make-up). National Day Golden Week spans Oct 1-7
+// (Oct 3-4 weekend + Oct 1-2 + Oct 5-7). Dragon Boat + Mid-Autumn are
+// single-day closures (when not adjacent to a weekend).
+//
+// Not modelled: China's unique "make-up trading Saturdays"
+// (补班) — working Saturdays are sometimes designated to compensate
+// for extended Golden Week closures. These days SSE trades despite
+// being Saturday; the current weekend branch in computeSessionState
+// will incorrectly show SSE as CLOSED. Documented as a caveat.
+static NSString * const kSSE2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    // Spring Festival Golden Week (Feb 17-23, 7 days incl. weekend)
+    @"2026-02-17",  // Spring Festival Day 1 (春节)
+    @"2026-02-18",  // Spring Festival Day 2
+    @"2026-02-19",  // Spring Festival Day 3
+    @"2026-02-20",  // Spring Festival Day 4
+    @"2026-02-23",  // Spring Festival Day 5 (Mon, make-up for weekend)
+    @"2026-04-06",  // Qingming / Tomb-Sweeping observed (Apr 5 Sun)
+    // Labour Day cluster (Apr 30 working, May 1-5 non-trading)
+    @"2026-05-01",  // Labour Day
+    @"2026-05-04",  // Labour Day observed (post-weekend Mon)
+    @"2026-05-05",  // Labour Day observed
+    @"2026-06-19",  // Dragon Boat Festival (端午节, same day as HKEX)
+    @"2026-09-25",  // Mid-Autumn Festival (中秋节, same day as HKEX)
+    // National Day Golden Week (Oct 1-7, 7 days incl. weekend)
+    @"2026-10-01",  // National Day Day 1 (国庆)
+    @"2026-10-02",  // National Day Day 2
+    @"2026-10-05",  // National Day Day 3
+    @"2026-10-06",  // National Day Day 4
+    @"2026-10-07",  // National Day Day 5
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -183,6 +220,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "asx",      kASX2026Holidays,      sizeof(kASX2026Holidays)      / sizeof(kASX2026Holidays[0])      },
     { "tsx",      kTSX2026Holidays,      sizeof(kTSX2026Holidays)      / sizeof(kTSX2026Holidays[0])      },
     { "six",      kSIX2026Holidays,      sizeof(kSIX2026Holidays)      / sizeof(kSIX2026Holidays[0])      },
+    { "sse",      kSSE2026Holidays,      sizeof(kSSE2026Holidays)      / sizeof(kSSE2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
