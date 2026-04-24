@@ -11,11 +11,17 @@
 - (NSMenu *)buildNextSegmentMenu;
 @end
 
-// v4 iter-199: shared factory for the top-left corner debug label.
-// 8pt monospace caps, semi-transparent white, pinned to top-left
+// v4 iter-199: shared factory for the bottom-left corner debug label.
+// 8pt monospace caps, semi-transparent white, pinned to bottom-left
 // inside an 8pt inset. Hidden by default — `fcRefreshDebugLabel`
 // toggles visibility based on NSUserDefaults "ShowDebugLabels".
 // Accepts the nameID string (e.g. @"LOCAL") as display text.
+//
+// v4 iter-200: moved from top-left to bottom-left per user feedback —
+// top-left was blocking the LOCAL segment's time-label top cap. The
+// bottom-left inset has more dead space across all three segments
+// (ACTIVE + NEXT draw content top-down, LOCAL's time is vertically
+// centered).
 static NSTextField *fcMakeDebugLabel(NSString *nameID) {
     NSTextField *lbl = [[NSTextField alloc] initWithFrame:NSMakeRect(6, 0, 80, 12)];
     lbl.stringValue = [NSString stringWithFormat:@"[%@]", nameID];
@@ -25,19 +31,22 @@ static NSTextField *fcMakeDebugLabel(NSString *nameID) {
     lbl.drawsBackground = NO;
     lbl.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
     lbl.font = [NSFont monospacedSystemFontOfSize:8.5 weight:NSFontWeightMedium];
-    lbl.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;
+    // Bottom-left pin: hug left + bottom edges (hence MaxX + MaxY margins grow).
+    lbl.autoresizingMask = NSViewMaxXMargin | NSViewMaxYMargin;
     lbl.hidden = YES;
     return lbl;
 }
 
-// v4 iter-199: anchor the debug label to the top-left on every layout.
-// Called from `layout` overrides below so the overlay stays pinned
-// when the segment resizes.
-static void fcAnchorDebugLabelTopLeft(NSTextField *lbl, NSRect bounds) {
+// v4 iter-199/200: anchor the debug label to the bottom-left on
+// every layout. 4pt inset from left + bottom. Called from `layout`
+// overrides below so the overlay stays pinned when the segment
+// resizes.
+static void fcAnchorDebugLabelBottomLeft(NSTextField *lbl, NSRect bounds) {
     NSRect r = lbl.frame;
     r.origin.x = 6.0;
-    r.origin.y = bounds.size.height - r.size.height - 4.0;
+    r.origin.y = 4.0;
     lbl.frame = r;
+    (void)bounds;  // not needed once we anchor bottom-relative
 }
 
 // v4 iter-199: shared refresh logic — read ShowDebugLabels pref and
@@ -99,7 +108,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+    fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
 - (NSString *)fcNameID { return @"LOCAL"; }
@@ -156,7 +165,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+    fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
 - (NSString *)fcNameID { return @"ACTIVE"; }
@@ -215,7 +224,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    fcAnchorDebugLabelTopLeft(_debugLabel, self.bounds);
+    fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
 - (NSString *)fcNameID { return @"NEXT"; }
