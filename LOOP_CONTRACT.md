@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 132
+iteration: 133
 status: ACTIVE
-last_updated: 2026-04-24T13:50:00Z
+last_updated: 2026-04-24T14:00:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -566,3 +566,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 13:30 UTC — iter-130: **Quick Styles 8 → 10** (4d3fccf2). Two new moods exercise iter-129's new weight extremes. `Featherlight` (lavender_dream palette / hairline corners / no shadow / spacious density / thin weight / airy letter spacing / loose line spacing / space separator) — delicate/ethereal. `Industrial` (espresso palette / sharp corners / plinth shadow / compact density / black weight / tight spacings / dash separator) — loud/mechanical. Iter-104's `test_quick_styles_invariants` auto-covers both — no new test needed. 48/48 still pass. CLAUDE.md Quick-Style row + architecture-tree Quick-Styles annotation both updated to 10 moods + iter-130 provenance.
 - 2026-04-24 13:40 UTC — iter-131: **Progress Bar glyph catalog 10 → 12** (6a5e5dd9). Two new styles distinct from the existing set: `triangles` (▲ △) — filled vs hollow triangle, directional without duplicating arrows' horizontal motion; `thindots` (• ·) — subdued variant of `dots` for users who want a quieter progress bar. Pure data — fcGlyphsForStyle dispatcher extended. ACTIVE-scoped Progress Bar Style submenu grows to 12 entries with inline glyph previews. MarketSessionCalculator.h comment refreshed with full 12-way grid. Existing `test_progress_bar_glyph_styles` (table-driven) gets 2 new rows. 48/48 still pass. CLAUDE.md Runtime Preferences row updated.
 - 2026-04-24 13:50 UTC — iter-132: **theme catalog 25 → 27** (828d5173). Two new mood palettes fill gaps: `Forest` (mossy green 0.55/0.90/0.60 on pine-needle 0.03/0.10/0.05 — cool/earthy counterpart to Green Phosphor's brighter CRT green) and `Volcanic` (molten crimson 0.98/0.35/0.15 on charred obsidian 0.10/0.02/0.02 — fiercer counterpart to Amber CRT for high-volatility sessions). Pure data in ThemeCatalog.m — menu submenus enumerate kThemes so no menu changes needed. iter-92's `test_theme_catalog_invariants` updated count 25 → 27 — validates round-trip, channel ranges, id/display presence, and unknown-id fallback for the 2 new entries. 48/48 still pass. CLAUDE.md Design theme-provenance line extended.
+- 2026-04-24 14:00 UTC — iter-133: **v1.7.0 release consolidation** (43e54657). 12 iters since v1.6.0 (iter-121 → iter-133, matching the iter-100 → iter-121 cadence). plugin.json bumped 1.6.0 → 1.7.0; Info.plist CFBundleShortVersionString synced + CFBundleVersion 121 → 133. plugin.json description rewritten to surface v1.7 scope: 10 Quick Styles including Featherlight/Industrial, 5-state session tracking (OPEN/LUNCH/PRE-MARKET/AFTER-HOURS/CLOSED) with SessionSignalWindow lever, 27 themes, 12 progress-bar glyphs, 7 font weights. About dialog updated to match. 48/48 green, validator clean. Iter-122 to iter-132 recap: arch-tree refresh + PRE/AFTER state cluster + SessionSignalWindow lever + aesthetic bracket-expansions (FontWeight 5→7, ProgressBar 10→12, Themes 25→27, QuickStyles 8→10).
