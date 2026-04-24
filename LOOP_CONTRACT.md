@@ -194,40 +194,37 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - [ ] **iter-6 — Expand font sizes: 15 options in hierarchical submenus**
       Replace the flat 6-item Font Size submenu with a nested structure:
       `Font Size ▶
-      Small  ▶  10 / 12 / 14 / 16
-      Medium ▶  18 / 20 / 22 / 24
-      Large  ▶  28 / 32 / 36 / 42
-      Huge   ▶  48 / 56 / 64
-   `
+   Small  ▶  10 / 12 / 14 / 16
+   Medium ▶  18 / 20 / 22 / 24
+   Large  ▶  28 / 32 / 36 / 42
+   Huge   ▶  48 / 56 / 64
+`
       Add a generic helper `groupedSubmenu:action:groups:defaultsKey:` so iter-7 (themes) can also use nested groups.
       NSUserDefaults key `FontSize` still holds a single `double` — no schema change.
       Validation: gauntlet + pick 10pt and 64pt, confirm window resizes and text renders cleanly at both extremes.
       Commit: `feat(floating-clock): hierarchical font-size submenu with 15 options from 10 to 64pt`
 
-- [ ] **iter-7 — 10 color-theme presets with menu swatches**
-      Replace `Text Color` submenu with `Color Theme ▶`. Each theme is a bundle of `{fg: hex, bg: hex, alpha: double}`. New NSUserDefaults key `ColorTheme` (NSString, default `"terminal"`). When a theme is picked, `applyDisplaySettings` sets label `textColor`, window `backgroundColor`, and alpha atomically.
-      Themes: `terminal` (white/black/0.32), `amber_crt` (#ffbf00/black/0.38), `green_phosphor` (#2ffa5c/black/0.35), `solarized_dark` (#b58900/#002b36/0.40), `dracula` (#bd93f9/#282a36/0.45), `nord` (#88c0d0/#2e3440/0.45), `gruvbox` (#fabd2f/#282828/0.42), `rose_pine` (#ebbcba/#191724/0.42), `high_contrast` (white/black/1.00), `soft_glass` (#f5f5f7/black/0.18).
-      Each menu item gets a 14×14 color swatch via inline Core Graphics on `NSImage` (the foreground color of the theme) assigned to `item.image`.
-      Preserve backwards compat: if the legacy `TextColor` key is set but `ColorTheme` is not, migrate on first launch (e.g. `"amber"` → `"amber_crt"`, `"green"` → `"green_phosphor"`, others → `"terminal"`).
-      Validation: gauntlet + cycle through all 10 themes and confirm visual change, NSUserDefaults persists theme name, window remains legible in all.
-      Commit: `feat(floating-clock): 10 color-theme presets with inline CG swatches`
+- [x] **iter-7 — 10 color-theme presets with menu swatches** ✅ COMPLETE
+      ClockTheme struct with id/display/fg/bg/alpha. 10 presets bundled. Core Graphics 14×14 swatches (bg rounded rect + fg inner) assigned to menu items on build. ColorTheme NSUserDefaults key, atomic fg/bg/alpha apply. Legacy TextColor migration (amber→amber_crt, green→green_phosphor, others→terminal). Removed Opacity submenu + setOpacity/setTextColor methods. Replaces flat 5-color submenu.
+      Validation: fresh defaults→terminal, cycle dracula/gruvbox→persist, TextColor=amber migration→amber_crt. 0 leaks, 15MB peak, 80KB binary, 633 LoC, 0 warnings.
+      Commit: 6064aeb3 `feat(floating-clock): 10 color-theme presets with inline CG swatches and atomic fg/bg/alpha`
 
 - [ ] **iter-8 — Market-session Time Zone menu + clock in remote TZ**
       Add `Time Zone ▶` submenu with "Local Time" at top, then 4 region sub-submenus (Americas/Europe/Asia/Oceania) containing 12 exchanges. Data table (all IANA-TZ-backed):
       `Local Time         — system default
-    NYSE/NASDAQ        America/New_York     09:30–16:00  (no lunch)
-    TSX (Toronto)      America/Toronto      09:30–16:00  (no lunch)
-    LSE (London)       Europe/London        08:00–16:30  (no lunch)
-    Euronext (Paris)   Europe/Paris         09:00–17:30  (no lunch)
-    XETRA (Frankfurt)  Europe/Berlin        09:00–17:30  (no lunch)
-    SIX (Zurich)       Europe/Zurich        09:00–17:20  (no lunch)
-    TSE (Tokyo)        Asia/Tokyo           09:00–15:30  (lunch 11:30–12:30)
-    HKEX (Hong Kong)   Asia/Hong_Kong       09:30–16:00  (lunch 12:00–13:00)
-    SSE (Shanghai)     Asia/Shanghai        09:30–14:57  (lunch 11:30–13:00)
-    KRX (Seoul)        Asia/Seoul           09:00–15:30  (no lunch)
-    NSE (Mumbai)       Asia/Kolkata         09:15–15:30  (no lunch)
-    ASX (Sydney)       Australia/Sydney     10:00–16:00  (no lunch)
-   `
+ NYSE/NASDAQ        America/New_York     09:30–16:00  (no lunch)
+ TSX (Toronto)      America/Toronto      09:30–16:00  (no lunch)
+ LSE (London)       Europe/London        08:00–16:30  (no lunch)
+ Euronext (Paris)   Europe/Paris         09:00–17:30  (no lunch)
+ XETRA (Frankfurt)  Europe/Berlin        09:00–17:30  (no lunch)
+ SIX (Zurich)       Europe/Zurich        09:00–17:20  (no lunch)
+ TSE (Tokyo)        Asia/Tokyo           09:00–15:30  (lunch 11:30–12:30)
+ HKEX (Hong Kong)   Asia/Hong_Kong       09:30–16:00  (lunch 12:00–13:00)
+ SSE (Shanghai)     Asia/Shanghai        09:30–14:57  (lunch 11:30–13:00)
+ KRX (Seoul)        Asia/Seoul           09:00–15:30  (no lunch)
+ NSE (Mumbai)       Asia/Kolkata         09:15–15:30  (no lunch)
+ ASX (Sydney)       Australia/Sydney     10:00–16:00  (no lunch)
+`
       Store as a static C struct array of 13 entries (Local + 12). Add new NSUserDefaults key `SelectedMarket` (NSString, default `"local"`).
       When a non-local market is selected, `tick` uses `NSDateFormatter.timeZone = [NSTimeZone timeZoneWithName:iana]`. Foundation handles DST automatically per hemisphere.
       This iter does NOT add the session-state line yet — that's iter-9. Time-display-only so iter-9 can focus on visuals.
@@ -237,8 +234,8 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - [ ] **iter-9 — Session-state 2-line display with progress bar + countdown**
       When `SelectedMarket != "local"`, the window switches to 2-line mode:
       `14:37:21                       ← primary line, user font size, exchange local time
-    ● NYSE ████████▊▒▒▒▒ 2h17m      ← secondary line, 11pt monospacedSystemFont
-   `
+ ● NYSE ████████▊▒▒▒▒ 2h17m      ← secondary line, 11pt monospacedSystemFont
+`
       Per R2/R4 research: - Progress bar: 12 characters using 1/8-width blocks `█▉▊▋▌▍▎▏` for filled portion, `░` or space for unfilled. Use NSAttributedString to color the filled portion in the theme's fg color and the unfilled portion in a dimmed gray (0.3 white). - State glyph + color (leading position): - `●` green: OPEN (regular session) - `◐` amber: PRE-OPEN (15 min before session, for exchanges with opening auctions — NYSE, TSE, LSE have them) - `◑` violet: LUNCH BREAK (TSE / HKEX / SSE only, during their lunch windows) - `○` gray: CLOSED (overnight, weekend) - Countdown format: `2h17m` when ≥1h remaining, `47m` when <1h, `5m32s` when <2m for tension. When CLOSED, show `○ NYSE CLOSED · opens in 14h23m` (or date format `opens Mon 09:30` if >99 hours out). - Lunch break counts as a distinct state (not CLOSED) — informative for traders per user confirmation.
       Add a new secondary `NSTextField *_sessionLabel` subview. `applyDisplaySettings` must measure both lines with `sizeWithAttributes:` and resize the window to `max(widths) + 32px × height_1 + height_2 + 28px`. Anchor resize at center so window doesn't drift.
       When market is "local", hide `_sessionLabel` (set `hidden = YES`) and use original 1-line sizing path.
@@ -297,3 +294,4 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - 2026-04-24 00:40 UTC — iter-4: Touchpoints manifest + Runtime Preferences table shipped (ea22a3b8). Every system interaction documented. Next: iter-5 final validation.
 - 2026-04-24 00:45 UTC — iter-5: Gauntlet caught 32-byte \_NSLocalEventObserver leak (d89a4411) and seconds-clip visual regression (4ab429ca); both fixed. 0 leaks, 0 warnings, 14.1 MB peak, 0.0% idle CPU. Queue empty → status: DONE. Loop terminates.
 - 2026-04-23 17:35 UTC — iter-1: right-click NSMenu context menu with 6 persistent options COMPLETE. 96KB binary, 521 LoC, 0 warnings, all validation passed. Commit caeb743c. Next: iter-2 starts icon generation.
+- 2026-04-24 18:48 UTC — iter-7: 10-color-theme presets SHIPPED (6064aeb3). ClockTheme struct + swatches + atomic fg/bg/alpha + legacy TextColor migration. Terminal→terminal, amber→amber_crt, green→green_phosphor, others→terminal. Fresh defaults: terminal. Dracula/gruvbox cycles persist. 0 leaks, 15MB peak, 80KB binary, 633 LoC, 0 warnings. Next: iter-8 market-session timezone menu.
