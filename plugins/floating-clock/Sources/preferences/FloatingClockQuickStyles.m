@@ -38,6 +38,7 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"colon",
         @"SessionSignalWindow": @"off",  // iter-158: minimalism — no auction glyphs
+        @"UrgencyHorizon": @"5min",       // iter-216: terminal-precise alarm — only the final sprint glows red
     };
     // v4 iter-106: two cool-palette moods.
     NSDictionary *glacier = @{
@@ -59,12 +60,14 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"CornerStyle": @"hairline", @"ShadowStyle": @"none", @"Density": @"spacious",
         @"FontWeight": @"thin", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
         @"TimeSeparator": @"space",
+        @"UrgencyHorizon": @"240min",  // iter-216: ethereal slow build — gradient drifts in over 4 hours
     };
     NSDictionary *industrial = @{
         @"LocalTheme": @"espresso", @"ActiveTheme": @"espresso", @"NextTheme": @"espresso",
         @"CornerStyle": @"sharp", @"ShadowStyle": @"plinth", @"Density": @"compact",
         @"FontWeight": @"black", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"dash",
+        @"UrgencyHorizon": @"30min",   // iter-216: mechanical mid-range — half-hour assembly-line warning
     };
     // v4 iter-144: two more moods. Trading Floor leans into the amber-CRT
     // analog trading vibe with a new pipe separator (iter-139). Scholar
@@ -76,12 +79,14 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
         @"TimeSeparator": @"pipe",
         @"SessionSignalWindow": @"60min",  // iter-158: macro-trader wants full pre-open awareness
+        @"UrgencyHorizon": @"15min",       // iter-216: tight closing-bell glow — only the final stretch alarms
     };
     NSDictionary *scholar = @{
         @"LocalTheme": @"paper_white", @"ActiveTheme": @"paper_white", @"NextTheme": @"paper_white",
         @"CornerStyle": @"rounded", @"ShadowStyle": @"subtle", @"Density": @"comfortable",
         @"FontWeight": @"regular", @"LetterSpacing": @"extrawide", @"LineSpacing": @"cavernous",
         @"TimeSeparator": @"middot",
+        @"UrgencyHorizon": @"120min",  // iter-216: deliberate, studious 2-hour buildup
     };
     // v4 iter-170: pairs with iter-169's Carnival theme + iter-161's B3
     // addition. Festive Brazilian-flag feel — bold weight + warm yellow
