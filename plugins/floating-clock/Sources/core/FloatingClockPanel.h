@@ -22,26 +22,10 @@ NS_ASSUME_NONNULL_BEGIN
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
 - (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
+- (NSRect)defaultFrame;
 - (void)tick;
 - (void)tickThreeSegment;
 - (void)tickLegacy;
-- (void)toggleShowSeconds:(NSMenuItem *)sender;
-- (void)toggleShowDate:(NSMenuItem *)sender;
-- (void)setTimeFormat:(NSMenuItem *)sender;
-- (void)setFontSize:(NSMenuItem *)sender;
-- (void)setColorTheme:(NSMenuItem *)sender;
-- (void)setLocalTheme:(NSMenuItem *)sender;
-- (void)setActiveTheme:(NSMenuItem *)sender;
-- (void)setNextTheme:(NSMenuItem *)sender;
-- (void)setMarket:(NSMenuItem *)sender;
-- (void)setDisplayMode:(NSMenuItem *)sender;
-- (void)setActiveBarCells:(NSMenuItem *)sender;
-- (void)setNextItemCount:(NSMenuItem *)sender;
-- (void)setCanvasOpacity:(NSMenuItem *)sender;
-- (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
-- (void)resetPosition:(id)sender;
-- (void)showAbout:(id)sender;
-- (void)quit:(id)sender;
 // Profile management → Sources/preferences/FloatingClockPanel+ProfileManagement.{h,m}
 - (void)setDateFormat:(NSMenuItem *)sender;
 @end
