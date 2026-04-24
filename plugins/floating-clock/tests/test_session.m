@@ -19,6 +19,7 @@
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "../Sources/rendering/FontResolver.h"
 #import "../Sources/rendering/SegmentOpacityResolver.h"
+#import "../Sources/data/ThemeCatalog.h"
 
 static int failures = 0;
 
@@ -561,6 +562,44 @@ static void test_progress_bar_glyph_styles(void) {
     [d removeObjectForKey:@"ProgressBarStyle"];
 }
 
+static void test_theme_catalog_invariants(void) {
+    // Catalog has 25 themes since iter-92. Every entry must: have a
+    // non-empty id + display, have color channels in [0,1], and have
+    // alpha in [0, 1]. themeForId round-trips each id. Unknown id falls
+    // back to kThemes[0] (terminal).
+    if (kNumThemes != 25) {
+        fprintf(stderr, "FAIL %s: expected 25 themes got %zu\n", __func__, kNumThemes);
+        failures++;
+    }
+    for (size_t i = 0; i < kNumThemes; i++) {
+        const ClockTheme *t = &kThemes[i];
+        if (!t->id || t->id[0] == 0 || !t->display || t->display[0] == 0) {
+            fprintf(stderr, "FAIL %s: theme %zu missing id or display\n", __func__, i);
+            failures++;
+            continue;
+        }
+        if (t->fg_r < 0 || t->fg_r > 1 || t->fg_g < 0 || t->fg_g > 1 || t->fg_b < 0 || t->fg_b > 1 ||
+            t->bg_r < 0 || t->bg_r > 1 || t->bg_g < 0 || t->bg_g > 1 || t->bg_b < 0 || t->bg_b > 1 ||
+            t->alpha < 0 || t->alpha > 1) {
+            fprintf(stderr, "FAIL %s: theme '%s' has out-of-range channel\n",
+                    __func__, t->id);
+            failures++;
+        }
+        NSString *idNS = [NSString stringWithUTF8String:t->id];
+        const ClockTheme *roundtrip = themeForId(idNS);
+        if (roundtrip != t) {
+            fprintf(stderr, "FAIL %s: themeForId('%s') did not round-trip\n",
+                    __func__, t->id);
+            failures++;
+        }
+    }
+    // Unknown falls back to kThemes[0] (terminal).
+    if (themeForId(@"this-does-not-exist") != &kThemes[0]) {
+        fprintf(stderr, "FAIL %s: unknown id did not fall back to kThemes[0]\n", __func__);
+        failures++;
+    }
+}
+
 int main(void) {
     @autoreleasepool {
         test_nyse_closed_before_open_today();
@@ -597,9 +636,10 @@ int main(void) {
         test_segment_weight_fallback();
         test_segment_opacity_fallback();
         test_progress_bar_glyph_styles();
+        test_theme_catalog_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 28 tests passed.\n");
+            fprintf(stderr, "All 29 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
