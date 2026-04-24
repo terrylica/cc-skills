@@ -200,6 +200,34 @@ static NSString * const kSSE2026Holidays[] = {
     @"2026-10-07",  // National Day Day 5
 };
 
+// v4 iter-184: KRX (Korea Exchange) 2026 non-trading days. Source:
+// KRX published calendar + Korean substitute-holiday law (if a public
+// holiday falls on Sat/Sun, next working day becomes a substitute
+// for specified holidays: Seollal, Chuseok, Children's Day, National
+// Foundation Day, Independence Movement Day, Liberation Day, Hangeul
+// Day). KRX also closes Dec 31 as a year-end ceremony day (폐장일).
+// Notable lunar-date overlaps: Chuseok Day 2 (Sep 25) shares
+// Gregorian with HKEX Mid-Autumn and SSE Mid-Autumn.
+static NSString * const kKRX2026Holidays[] = {
+    @"2026-01-01",  // New Year's Day
+    // Seollal Lunar New Year 3-day cluster (KRX closes eve + 2 days).
+    @"2026-02-16",  // Seollal Eve (설날 전날)
+    @"2026-02-17",  // Seollal Day 1 (설날)
+    @"2026-02-18",  // Seollal Day 2 (설날 다음 날)
+    @"2026-03-02",  // Independence Movement Day substitute (Mar 1 Sun)
+    @"2026-05-05",  // Children's Day (어린이날)
+    @"2026-05-25",  // Buddha's Birthday observed (lunar 4/8 = Sun May 24)
+    @"2026-08-17",  // Liberation Day substitute (Aug 15 Sat)
+    // Chuseok 3-day cluster (lunar 8/14, 8/15, 8/16 = Sep 24/25/26 2026).
+    @"2026-09-24",  // Chuseok Day 1 (추석 전날)
+    @"2026-09-25",  // Chuseok Day 2 (추석, same day as HKEX/SSE Mid-Autumn)
+    @"2026-09-28",  // Chuseok substitute (Sep 26 Sat — Chuseok Day 3 fell weekend)
+    @"2026-10-05",  // National Foundation Day substitute (Oct 3 Sat)
+    @"2026-10-09",  // Hangeul Day (한글날)
+    @"2026-12-25",  // Christmas Day
+    @"2026-12-31",  // Year-end closure (폐장일)
+};
+
 // v4 iter-175: per-market registry. Adding an exchange's holiday data
 // = append one entry here + one static array above. No function-body
 // changes. The lookup fans out by market_id match.
@@ -221,6 +249,7 @@ static const FCHolidayTable kHolidayTables[] = {
     { "tsx",      kTSX2026Holidays,      sizeof(kTSX2026Holidays)      / sizeof(kTSX2026Holidays[0])      },
     { "six",      kSIX2026Holidays,      sizeof(kSIX2026Holidays)      / sizeof(kSIX2026Holidays[0])      },
     { "sse",      kSSE2026Holidays,      sizeof(kSSE2026Holidays)      / sizeof(kSSE2026Holidays[0])      },
+    { "krx",      kKRX2026Holidays,      sizeof(kKRX2026Holidays)      / sizeof(kKRX2026Holidays[0])      },
 };
 static const size_t kNumHolidayTables = sizeof(kHolidayTables) / sizeof(kHolidayTables[0]);
 
