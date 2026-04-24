@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 165
+iteration: 166
 status: ACTIVE
-last_updated: 2026-04-24T19:20:00Z
+last_updated: 2026-04-24T19:30:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -599,3 +599,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 19:00 UTC — iter-163: **24h sweep extended to LSE (EU-DST)** (f563ea3e). Sweep family gains its 5th distinct structural cell. LSE (Europe/London) uses EU DST rules: BST last-Sun-Mar → last-Sun-Oct, GMT otherwise — transition dates ~1 week off from US (second-Sun-Mar / first-Sun-Nov). A hypothetical hardcoded-US-transition regression would now fail CI via the EU-calendar sweep. 2026-04-24 is post-EU-spring-transition (Mar 29), so LSE sits in BST. Tests +1 (61 total). 61/61 pass. Full coverage: NYSE (US-DST) · TSE (no-DST+lunch) · JSE (no-DST+no-lunch) · ASX (SH-DST) · LSE (EU-DST).
 - 2026-04-24 19:10 UTC — iter-164: **market roster lock upgraded to field-level** (68691a8a). iter-156's original check was ID-only — a silent IANA rename (e.g. "America/New_York" → "America/NewYork") or code typo ("NYSE" → "NYS") would pass the ID-only lock while breaking actual render/TZ behavior. Upgraded to (id, iana, code) triples for all 14 markets. Each row verifies ID round-trip + iana string match + code string match. Silent field drift now fails CI. No test-count change (still one test). 61/61 pass.
 - 2026-04-24 19:20 UTC — iter-165: **/floating-clock:diagnose slash command** (7a9de137). Fifth skill in the skills/ set. Read-only one-page health report: installed-app info (file/arch/size/codesign/version/build), local-build info, pgrep for running process (pid/rss/cpu/etime), active profile from NSUserDefaults, cached test-binary pass line. No writes, no pref changes — safe to invoke anywhere. Useful for "which version am I running" + "why won't it start" + post-upgrade verification. CLAUDE.md Slash Commands table updated. Validator skill count 203 → 204.
+- 2026-04-24 19:30 UTC — iter-166: **FCUrgencyColorForSecs tier-branching fixture** (fc82da45). iter-73's UrgencyColors module had no test for its 3-tier dispatch. New `test_urgency_color_tiers` covers: 3600s → normal (sentinel), exactly-amber-threshold → still normal, just-below-amber → amber, exactly-red-threshold → still amber (boundary-inclusive), just-below-red → red, 0s → red, palette amber != red. Catches future refactors that flip conditionals. Added UrgencyColors.m to TEST_SOURCES. Tests +1 (62 total). 62/62 pass.
