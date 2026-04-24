@@ -55,6 +55,10 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowFlags:) keyEquivalent:@""];
     [displayItems addObject:sf];
 
+    NSMenuItem *su = [[NSMenuItem alloc] initWithTitle:@"Show UTC Reference"
+                                                 action:@selector(toggleShowUTCReference:) keyEquivalent:@""];
+    [displayItems addObject:su];
+
     [displayItems addObject:[NSMenuItem separatorItem]];
 
     [displayItems addObject:[self submenuTitled:@"Time Format" action:@selector(setTimeFormat:)
@@ -317,6 +321,11 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
             item.state = [d boolForKey:@"ShowSeconds"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if ([item.title isEqualToString:@"Show Date"]) {
             item.state = [d boolForKey:@"ShowDate"] ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show Country Flags"]) {
+            item.state = [d boolForKey:@"ShowFlags"] ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show UTC Reference"]) {
+            BOOL on = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+            item.state = on ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
             id currentValue = nil;

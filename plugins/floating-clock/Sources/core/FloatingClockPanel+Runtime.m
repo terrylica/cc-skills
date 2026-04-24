@@ -79,15 +79,24 @@ static NSString *dateFormatPrefix(NSString *presetId) {
     // time must also be considered". UTC is the canonical astronomical
     // origin; showing it alongside local time disambiguates any DST edge
     // case and gives a fixed reference for cross-timezone coordination.
-    if (!_utcFormatter) {
-        _utcFormatter = [[NSDateFormatter alloc] init];
-        _utcFormatter.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+    // Canonical rendering: always 24h (scientific convention — UTC is
+    // written HH:mm:ss in every ISO-8601 context, regardless of the user's
+    // local 12h preference). Hidden when ShowUTCReference pref is NO.
+    BOOL showUTC = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+    NSString *localBase = [_dateFormatter stringFromDate:nowLocal];
+    if (showUTC) {
+        if (!_utcFormatter) {
+            _utcFormatter = [[NSDateFormatter alloc] init];
+            _utcFormatter.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+            _utcFormatter.dateFormat = @"HH:mm:ss";
+        }
+        NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC",
+            localBase, localLabel, utcStr];
+    } else {
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
+            localBase, localLabel];
     }
-    _utcFormatter.dateFormat = ([tf isEqualToString:@"12h"]) ? @"h:mm:ss a" : @"HH:mm:ss";
-    NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-
-    _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC",
-        [_dateFormatter stringFromDate:nowLocal], localLabel, utcStr];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();
 
