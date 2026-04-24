@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 103
+iteration: 104
 status: ACTIVE
-last_updated: 2026-04-24T09:00:00Z
+last_updated: 2026-04-24T09:10:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -537,3 +537,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 08:40 UTC — iter-101: **NextItemCount 4 → 7 presets** (a0a7b33f). Adds 4 / 7 / 10 to the existing 1 / 2 / 3 / 5. With 12 exchanges up to ~11 can be CLOSED at once, so 10 is now a meaningful ceiling. Menu-only change in SegmentMenus.m. 31/31 still green.
 - 2026-04-24 08:50 UTC — iter-102: **Quick Style presets** (866baf21). New top-level menu category parallel to Profile, scoped to aesthetic-only levers (leaves FontSize / SelectedMarket / DisplayMode alone). 4 bundled moods: Brutalist, Zen, Retro CRT, Executive. Each writes a 10-key pref dict atomically. New methods `buildQuickStylesMenu` + `applyQuickStyle:`. MenuBuilder.m 393 → 454 LoC, still under cap. 31/31 still green.
 - 2026-04-24 09:00 UTC — iter-103: **guardrail lesson** — user reported clock "no longer visible" caught live during previous firing. Root cause: iter-100 verification step ran `defaults delete com.terryli.floating-clock` to check binary size, wiping the user's live window-position / active-profile / per-segment theme / quick-style state on an already-running clock. New Non-Obvious Learnings entry (`Never run defaults delete mid-loop`) codifies the rule: destructive state commands (defaults delete, pkill, rm on user's bundle) belong ONLY in the explicit `make leaks` gauntlet the user has opted into. Per-iter validation stays read-only (`file`, `codesign -v`, `ls`, `wc -l`, `pgrep -l`). Zero code change; contract-only commit.
+- 2026-04-24 09:10 UTC — iter-104: **Quick Styles extracted + locked** (325c5a8d). The 4 style bundles (Brutalist / Zen / Retro CRT / Executive) moved from inline MenuBuilder.m into new `Sources/preferences/FloatingClockQuickStyles.{h,m}` (data module, parallels StarterProfiles). Tests +1 (32 total) validates: count > 0, 2-element entries, theme ids round-trip via themeForId, enum-valued keys (CornerStyle / ShadowStyle / Density / FontWeight / LetterSpacing / LineSpacing / TimeSeparator) within allowed sets. Typo-proof bundles. MenuBuilder.m 454 → 405 LoC.
