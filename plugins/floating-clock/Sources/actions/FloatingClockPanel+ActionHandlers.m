@@ -87,7 +87,18 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
 
 - (void)setCanvasOpacity:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
-        [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"CanvasOpacity"];
+        NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+        [d setDouble:[sender.representedObject doubleValue] forKey:@"CanvasOpacity"];
+        // v4 iter-194: clear per-segment overrides so the global Canvas
+        // Opacity setting actually takes visible effect across ALL
+        // segments. Without this, stale LocalOpacity / ActiveOpacity /
+        // NextOpacity keys win the iter-90 three-tier fallback and
+        // pin those segments to the old value — user drags Canvas
+        // Opacity and sees ~2/3 of the clock frozen, correctly
+        // reports "Transparency failed to work".
+        [d removeObjectForKey:@"LocalOpacity"];
+        [d removeObjectForKey:@"ActiveOpacity"];
+        [d removeObjectForKey:@"NextOpacity"];
         [self applyDisplaySettings];
     }
 }
