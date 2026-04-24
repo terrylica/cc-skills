@@ -415,9 +415,11 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSDictionary *attrs = @{NSFontAttributeName: _label.font};
     NSSize textSize = [text sizeWithAttributes:attrs];
 
-    // Add padding (16pt horizontal, 12pt vertical)
-    CGFloat newWidth = textSize.width + 16;
-    CGFloat newHeight = textSize.height + 12;
+    // Add generous padding and ceil to avoid subpixel clipping on the right edge.
+    // Label is NSInsetRect(bounds, 8, 8) so window padding must be > label inset
+    // AND leave slack for font renderer's trailing advance + antialiasing.
+    CGFloat newWidth  = ceilf(textSize.width)  + 32;  // 16pt slack per side
+    CGFloat newHeight = ceilf(textSize.height) + 20;  // 10pt slack per side
 
     NSRect oldFrame = self.frame;
     CGFloat oldWidth = oldFrame.size.width;
