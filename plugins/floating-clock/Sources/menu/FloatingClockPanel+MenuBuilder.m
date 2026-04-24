@@ -326,6 +326,22 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                   @[@"Hour          (60 min)",            @"60min"]]
                                     defaultsKey:@"SessionSignalWindow"]];
 
+    // v4 iter-215: imminence-gradient horizon (iter-212). Day-traders
+    // pick a tight window so only the closing bell glows red; macro
+    // watchers pick a long one so the gradient builds slowly across
+    // an evening. Affects ACTIVE close + NEXT open countdowns +
+    // ACTIVE bar leading edge simultaneously (single SSoT in
+    // FCUrgencyContinuousColor).
+    [marketItems addObject:[self submenuTitled:@"Urgency Horizon"
+                                         action:@selector(setUrgencyHorizon:)
+                                          pairs:@[@[@"Sprint        (5 min)",   @"5min"],
+                                                  @[@"Brief         (15 min)",  @"15min"],
+                                                  @[@"Half Hour     (30 min)",  @"30min"],
+                                                  @[@"Hour          (60 min)",  @"60min"],
+                                                  @[@"Two Hours     (120 min)", @"120min"],
+                                                  @[@"Four Hours    (240 min)", @"240min"]]
+                                    defaultsKey:@"UrgencyHorizon"]];
+
     [marketItems addObject:[NSMenuItem separatorItem]];
 
     // Display Mode submenu (three-segment / single-market / local-only).

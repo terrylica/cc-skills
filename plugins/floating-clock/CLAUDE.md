@@ -130,6 +130,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `TimeFormat`                | NSString     | `"24h"`                  | Menu (24h / 12h) — only affects LOCAL; UTC always 24h canonical                                                                                                                                                                                                                         |
 | `TimeSeparator`             | NSString     | `"colon"`                | Menu (colon / middot / space / slash / dash / pipe / plus — 7 presets, iter-98/139) — character between HH / mm / ss tokens. Applies to LOCAL + UTC time.                                                                                                                               |
 | `SessionSignalWindow`       | NSString     | `"15min"`                | Menu (off / 5min / 15min / 30min / 60min — 5 presets, iter-126) — minute count that gates iter-123's PRE-MARKET (◐ amber) and iter-125's AFTER-HOURS (◒ rose) promotions. `off` disables both.                                                                                          |
+| `UrgencyHorizon`            | NSString     | `"60min"`                | Menu (5min / 15min / 30min / 60min / 120min / 240min — 6 presets, iter-215) — horizon in minutes for iter-212's imminence-gradient. Below this distance from open/close, ACTIVE + NEXT countdowns + ACTIVE bar leading edge run green→red on a Weber-Fechner log scale.                 |
 | `ShowFlags`                 | BOOL         | `YES`                    | Menu — country-flag emoji on ACTIVE/NEXT headers                                                                                                                                                                                                                                        |
 | `ShowUTCReference`          | BOOL         | `YES`                    | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                                                                                                                                                                                                                             |
 | `ShowSkyState`              | BOOL         | `YES`                    | Menu — time-of-day glyph on LOCAL row; 5 phases (iter-112): 🌅 dawn [5,7) · ☀️ day [7,17) · 🌇 dusk [17,19) · 🌙 night [19,5)                                                                                                                                                           |
@@ -197,7 +198,8 @@ Sources/
     ActiveSegmentContentBuilder.{h,m}   live-markets rendering
     NextSegmentContentBuilder.{h,m}     next-to-open rendering
     SegmentHeaderRenderer.{h,m}         shared title/legend/hrule helper (iter-73)
-    UrgencyColors.{h,m}                 shared urgency palette + thresholds (iter-73)
+    UrgencyColors.{h,m}                 shared urgency palette + thresholds (iter-73), continuous gradient + 1Hz pulse (iter-212)
+    UrgencyHorizon.{h,m}                6-preset UrgencyHorizon → seconds, runtime gradient horizon (iter-215)
     LandingTimeFormatter.{h,m}          dual-zone time w/ weekday disambiguation (iter-74)
   data/
     ThemeCatalog.{h,m}                  25 theme presets + CG swatches (iter-92)

@@ -102,6 +102,7 @@
         @"LineSpacing": @"normal",
         @"TimeSeparator": @"colon",
         @"SessionSignalWindow": @"15min",
+        @"UrgencyHorizon": @"60min",  // iter-215: imminence-gradient horizon
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,
