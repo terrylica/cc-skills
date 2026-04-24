@@ -41,7 +41,10 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         // v4 iter-123: PRE-MARKET goes in NEXT alongside CLOSED —
         // they both await the opening bell, just PRE-MARKET is ≤15 min
         // away and gets the amber state glyph.
-        if (state == kSessionClosed || state == kSessionPreMarket) {
+        // v4 iter-125: AFTER-HOURS also lives in NEXT — the countdown still
+        // points at tomorrow's open; the ◒ glyph is what tells the reader
+        // "this market just closed" versus overnight CLOSED.
+        if (state == kSessionClosed || state == kSessionPreMarket || state == kSessionAfterHours) {
             entries[entryCount++] = (NextEntry){m, secsToNext, NO};
         } else if (state == kSessionLunch) {
             entries[entryCount++] = (NextEntry){m, secsToNext, YES};

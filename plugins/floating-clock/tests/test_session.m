@@ -38,10 +38,11 @@ static NSDate *dateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss
 
 static const char *stateName(SessionState s) {
     switch (s) {
-        case kSessionOpen:      return "OPEN";
-        case kSessionLunch:     return "LUNCH";
-        case kSessionClosed:    return "CLOSED";
-        case kSessionPreMarket: return "PRE-MARKET";
+        case kSessionOpen:       return "OPEN";
+        case kSessionLunch:      return "LUNCH";
+        case kSessionClosed:     return "CLOSED";
+        case kSessionPreMarket:  return "PRE-MARKET";
+        case kSessionAfterHours: return "AFTER-HOURS";
     }
     return "?";
 }
@@ -149,6 +150,36 @@ static void test_premarket_not_on_weekend(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
     // Sat 2026-04-25 09:20 EDT — weekday-schedule would say pre-open.
     NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 9, 20, 0);
+    ASSERT_STATE(nyse, d_sat, kSessionClosed);
+}
+
+static void test_nyse_afterhours_first_15min(void) {
+    // v4 iter-125: symmetric to iter-123. [close, close+15min) on a
+    // weekday promotes CLOSED → AFTER-HOURS. NYSE closes 16:00 EDT;
+    // 16:10 is 10 min after close = AFTER-HOURS. 16:30 is 30 min after
+    // = back to CLOSED. 15:59 is still OPEN (mid-session boundary).
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *d_after = dateAt(@"America/New_York", 2026, 4, 24, 16, 10, 0);
+    ASSERT_STATE(nyse, d_after, kSessionAfterHours);
+
+    NSDate *d_closed_later = dateAt(@"America/New_York", 2026, 4, 24, 16, 30, 0);
+    ASSERT_STATE(nyse, d_closed_later, kSessionClosed);
+
+    // Edge: exactly at close should be CLOSED→AFTER-HOURS (nowMins >= closeMins).
+    NSDate *d_close = dateAt(@"America/New_York", 2026, 4, 24, 16, 0, 0);
+    ASSERT_STATE(nyse, d_close, kSessionAfterHours);
+
+    // Edge: 15:59 is still mid-session.
+    NSDate *d_open = dateAt(@"America/New_York", 2026, 4, 24, 15, 59, 0);
+    ASSERT_STATE(nyse, d_open, kSessionOpen);
+}
+
+static void test_afterhours_not_on_weekend(void) {
+    // v4 iter-125: AFTER-HOURS promotion also requires !isWeekend.
+    // Sat 16:10 EDT (within the theoretical 15-min post-close window)
+    // must stay CLOSED — markets don't post-close-auction on Saturdays.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 16, 10, 0);
     ASSERT_STATE(nyse, d_sat, kSessionClosed);
 }
 
@@ -447,6 +478,8 @@ int main(void) {
         test_nyse_premarket_last_15min();
         test_tse_premarket_not_just_nyse();
         test_premarket_not_on_weekend();
+        test_nyse_afterhours_first_15min();
+        test_afterhours_not_on_weekend();
         test_tse_lunch_window();
         test_progress_roughly_correct();
 
@@ -492,7 +525,7 @@ int main(void) {
         test_shadow_spec_catalog();
 
         if (failures == 0) {
-            fprintf(stderr, "All 42 tests passed.\n");
+            fprintf(stderr, "All 44 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

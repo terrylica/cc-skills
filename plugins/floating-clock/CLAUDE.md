@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` + `tests/test_levers.m` — 42 fixtures covering
+Tests live in `tests/test_session.m` + `tests/test_levers.m` — 44 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -76,6 +76,8 @@ local pragma delta from upstream (iter-81).
   - Second line shows state glyph + market code + progress bar + countdown:
     - `●` green: OPEN (regular session)
     - `◑` violet: LUNCH (TSE / HKEX / SSE only)
+    - `◐` amber: PRE-MARKET (iter-123, final 15 min before today's open, weekdays only)
+    - `◒` rose: AFTER-HOURS (iter-125, first 15 min after today's close, weekdays only)
     - `○` gray: CLOSED (overnight, weekend) — shows `opens in Xh Ym` or `opens EEE HH:mm` for gaps >99h
   - Progress bar uses Unicode 1/8-width blocks (`█▉▊▋▌▍▎▏░`) for sub-cell smoothness
   - Countdown format: `2h17m` (≥1h), `47m` (<1h), `5m32s` (<2m)
@@ -237,7 +239,7 @@ Design notes:
 ## Known limitations
 
 - **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week, Good Friday) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness requires bundling annual data per exchange — deferred pending a maintenance plan for yearly tzdata-style refreshes.
-- **No after-hours auction window as a distinct state**. US-equity after-hours sessions (16:00–20:00 ET) still render as CLOSED. Pre-market is handled since iter-123 (`kSessionPreMarket` for the 15-minute window before each exchange's regular open, amber ◐ glyph). Adding `kSessionAfterHours` remains a Tier-2 enhancement.
+- **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
 - **Stacked-top/bottom layouts under LayoutMode have not been exercised in recent iterations**. The `triptych` mode is the primary code path. Stacked variants may have minor layout drift.
 
 ## Future Enhancements
