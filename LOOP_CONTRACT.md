@@ -214,7 +214,7 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
       Validation: TSE (Tokyo JST = UTC+9) matches expected time exactly. LSE (London GMT/BST) correct. ASX (Sydney AEDT/AEST) correct. Persistence test: SelectedMarket = "asx" persists across restarts. Leaks: 0, Memory: 14.4MB peak, Binary: 98KB, LoC: 749, Warnings: 0.
       Commit: 76c988f3 `feat(floating-clock): Time Zone menu with 12 major exchanges + IANA-backed conversion`
 
-- [ ] **iter-9 — Session-state 2-line display with progress bar + countdown**
+- [x] **iter-9 — Session-state 2-line display with progress bar + countdown** ✅ COMPLETE
       When `SelectedMarket != "local"`, the window switches to 2-line mode:
       `14:37:21                       ← primary line, user font size, exchange local time
  ● NYSE ████████▊▒▒▒▒ 2h17m      ← secondary line, 11pt monospacedSystemFont
@@ -279,3 +279,4 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 - 2026-04-23 17:35 UTC — iter-1: right-click NSMenu context menu with 6 persistent options COMPLETE. 96KB binary, 521 LoC, 0 warnings, all validation passed. Commit caeb743c. Next: iter-2 starts icon generation.
 - 2026-04-24 18:48 UTC — iter-7: 10-color-theme presets SHIPPED (6064aeb3). ClockTheme struct + swatches + atomic fg/bg/alpha + legacy TextColor migration. Terminal→terminal, amber→amber_crt, green→green_phosphor, others→terminal. Fresh defaults: terminal. Dracula/gruvbox cycles persist. 0 leaks, 15MB peak, 80KB binary, 633 LoC, 0 warnings. Next: iter-8 market-session timezone menu.
 - 2026-04-24 18:53 UTC — iter-8: Market-session Time Zone menu SHIPPED (76c988f3). ClockMarket struct (13 entries: Local + 12 exchanges IANA-backed). Time Zone submenu with regional grouping (Americas/Europe/Asia/Oceania). tick() applies timezone via NSDateFormatter. setMarket: persists SelectedMarket. Tested: TSE/LSE/ASX timezone conversion pixel-perfect, persistence verified, 0 leaks, 14.4MB peak, 98KB binary, 749 LoC, 0 warnings. Next: iter-9 session-state 2-line display.
+- 2026-04-24 19:05 UTC — iter-9: Session-state 2-line display SHIPPED (3922f36b). SessionState enum (OPEN/LUNCH/CLOSED), computeSessionState() with NSCalendar/IANA TZ, glyphForState() + colorForState(), buildProgressBar() with 1/8-width blocks, formatCountdown(), secondary NSTextField with attributed string (split-color bar). applyDisplaySettings measures both lines, center-anchored resize. Local mode: session label hidden, 1-line layout. Market mode: 2-line layout with state glyph + progress + countdown. Tested: NYSE OPEN, TSE OPEN, Local 1-line, all 0 leaks, 13.5MB peak, 84KB binary, 1000 LoC, 0 warnings. Next: iter-10 final validation + v1.2.0 bump.
