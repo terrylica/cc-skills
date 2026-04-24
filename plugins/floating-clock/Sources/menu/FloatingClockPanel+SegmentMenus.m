@@ -122,19 +122,21 @@
         @[@"Huge",   @[@[@"36 cells", @36], @[@"40 cells", @40]]],
     ]                          defaultsKey:@"ActiveBarCells"]];
 
-    // Progress-bar glyph style — 10 presets (iter-27: 6, iter-91: +4).
+    // Progress-bar glyph style — 12 presets (iter-27: 6, iter-91: +4, iter-131: +2).
     [m addItem:[self submenuTitled:@"Progress Bar Style"
                              action:@selector(setProgressBarStyle:)
-                              pairs:@[@[@"Blocks  (█ ▒)",  @"blocks"],
-                                      @[@"Dots    (● ○)",  @"dots"],
-                                      @[@"Dashes  (━ ╌)",  @"dashes"],
-                                      @[@"Arrows  (▶ ▷)",  @"arrows"],
-                                      @[@"Binary  (█ ░)",  @"binary"],
-                                      @[@"Braille (⣿ ⣀)", @"braille"],
-                                      @[@"Hearts  (♥ ♡)",  @"hearts"],
-                                      @[@"Stars   (★ ☆)",  @"stars"],
-                                      @[@"Ribbon  (▰ ▱)",  @"ribbon"],
-                                      @[@"Diamond (◆ ◇)",  @"diamond"]]
+                              pairs:@[@[@"Blocks    (█ ▒)",  @"blocks"],
+                                      @[@"Dots      (● ○)",  @"dots"],
+                                      @[@"Thin Dots (• ·)",  @"thindots"],
+                                      @[@"Dashes    (━ ╌)",  @"dashes"],
+                                      @[@"Arrows    (▶ ▷)",  @"arrows"],
+                                      @[@"Triangles (▲ △)",  @"triangles"],
+                                      @[@"Binary    (█ ░)",  @"binary"],
+                                      @[@"Braille   (⣿ ⣀)", @"braille"],
+                                      @[@"Hearts    (♥ ♡)",  @"hearts"],
+                                      @[@"Stars     (★ ☆)",  @"stars"],
+                                      @[@"Ribbon    (▰ ▱)",  @"ribbon"],
+                                      @[@"Diamond   (◆ ◇)",  @"diamond"]]
                         defaultsKey:@"ProgressBarStyle"]];
 
     // Per-segment font size (v4 iter-33).
