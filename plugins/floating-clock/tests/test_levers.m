@@ -12,6 +12,7 @@
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/ShadowSpec.h"
 #import "../Sources/core/SessionSignalWindow.h"
+#import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -488,6 +489,42 @@ void test_session_signal_window(void) {
     if (FCSessionSignalWindowMinutes(@"forever") != 15) {
         failures++; fprintf(stderr, "FAIL %s: unknown → %ld (want 15)\n",
                            __func__, (long)FCSessionSignalWindowMinutes(@"forever"));
+    }
+}
+
+void test_clipboard_header_format(void) {
+    // iter-160: lock FCComposeClipboardSnapshot's output format — the
+    // pure-function body of the Copy cluster's header-writing helper.
+    // Empty body → empty string (callers short-circuit without writing
+    // to the pasteboard).
+    if (FCComposeClipboardSnapshot(@"LOCAL", @"", nil).length != 0) {
+        failures++;
+        fprintf(stderr, "FAIL %s: empty body should return empty string\n", __func__);
+    }
+    // Fixed-date composition: use a known NSDate so the UTC stamp is
+    // deterministic. 2026-04-24 12:34:56 UTC.
+    NSDateComponents *c = [[NSDateComponents alloc] init];
+    c.year = 2026; c.month = 4; c.day = 24;
+    c.hour = 12; c.minute = 34; c.second = 56;
+    c.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    cal.timeZone = c.timeZone;
+    NSDate *d = [cal dateFromComponents:c];
+
+    NSString *got = FCComposeClipboardSnapshot(@"LOCAL", @"14:37:21 EDT UTC-4", d);
+    NSString *want = @"# Floating Clock · LOCAL · 2026-04-24 12:34:56 UTC\n14:37:21 EDT UTC-4";
+    if (![got isEqualToString:want]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: got\n'%s'\nwant\n'%s'\n",
+                __func__, got.UTF8String, want.UTF8String);
+    }
+    // Nil label becomes empty — doesn't crash.
+    NSString *gotNil = FCComposeClipboardSnapshot(nil, @"x", d);
+    NSString *wantNil = @"# Floating Clock ·  · 2026-04-24 12:34:56 UTC\nx";
+    if (![gotNil isEqualToString:wantNil]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: nil-label got '%s' want '%s'\n",
+                __func__, gotNil.UTF8String, wantNil.UTF8String);
     }
 }
 
