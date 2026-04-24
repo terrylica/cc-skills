@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 130
+iteration: 131
 status: ACTIVE
-last_updated: 2026-04-24T13:30:00Z
+last_updated: 2026-04-24T13:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -564,3 +564,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 13:10 UTC — iter-128: **profile round-trip fix for SessionSignalWindow** (5fe849b8). iter-126 landed the lever but overlooked adding the key to `profileManagedKeys()`, so profile Save/Load/Switch silently didn't carry the pref — e.g. Hacker profile with "off" would leak "off" into Day Trader afterward. Added `SessionSignalWindow` to the managed-keys array; added to the test-coverage exempt set alongside TimeSeparator / LetterSpacing / LineSpacing (registered default "15min" is a valid fallback so starters don't each need to set it). New test `test_profile_managed_keys_covers_iter126_lever` — direct regression guard so silent removal from the managed-keys list would fail, not just the downstream coverage test. Tests +1 (48 total). 48/48 green, warning-free.
 - 2026-04-24 13:20 UTC — iter-129: **FontWeight catalog 5 → 7** (2b7f1aa2). Pivot away from session-state cluster back to aesthetics per v4 Core Directive. Parallels iter-99's Density bracket-expansion pattern: added `thin` (NSFontWeightThin) and `black` (NSFontWeightBlack) flanking the existing 5 presets. AppKit exposes 9 NSFontWeight constants total — Ultralight + Light stay omitted as near-duplicates of Thin. FCParseFontWeight extended; 3 menu surfaces updated (global + ACTIVE + NEXT per-segment Font Weight submenus); Quick Styles allowed-set widened to permit the 2 new values (none currently in use). Existing table-driven test `test_font_weight_parser` gets 2 new rows. No test-count change (48/48). Warning-free build, CLAUDE.md Runtime Preferences updated.
 - 2026-04-24 13:30 UTC — iter-130: **Quick Styles 8 → 10** (4d3fccf2). Two new moods exercise iter-129's new weight extremes. `Featherlight` (lavender_dream palette / hairline corners / no shadow / spacious density / thin weight / airy letter spacing / loose line spacing / space separator) — delicate/ethereal. `Industrial` (espresso palette / sharp corners / plinth shadow / compact density / black weight / tight spacings / dash separator) — loud/mechanical. Iter-104's `test_quick_styles_invariants` auto-covers both — no new test needed. 48/48 still pass. CLAUDE.md Quick-Style row + architecture-tree Quick-Styles annotation both updated to 10 moods + iter-130 provenance.
+- 2026-04-24 13:40 UTC — iter-131: **Progress Bar glyph catalog 10 → 12** (6a5e5dd9). Two new styles distinct from the existing set: `triangles` (▲ △) — filled vs hollow triangle, directional without duplicating arrows' horizontal motion; `thindots` (• ·) — subdued variant of `dots` for users who want a quieter progress bar. Pure data — fcGlyphsForStyle dispatcher extended. ACTIVE-scoped Progress Bar Style submenu grows to 12 entries with inline glyph previews. MarketSessionCalculator.h comment refreshed with full 12-way grid. Existing `test_progress_bar_glyph_styles` (table-driven) gets 2 new rows. 48/48 still pass. CLAUDE.md Runtime Preferences row updated.
