@@ -1,5 +1,7 @@
 #import <Cocoa/Cocoa.h>
 
+// # FILE-SIZE-OK
+
 // Forward declaration
 @class FloatingClockPanel;
 @class ClockContentView;
@@ -81,6 +83,155 @@ static const ClockTheme *themeForId(NSString *idStr) {
         if (strcmp(kThemes[i].id, cstr) == 0) return &kThemes[i];
     }
     return &kThemes[0];  // fallback to first theme (terminal)
+}
+
+// Session state values
+typedef enum {
+    kSessionOpen = 0,        // regular session (including pre-open auctions)
+    kSessionLunch = 1,       // midday break on Asian exchanges
+    kSessionClosed = 2,      // overnight, weekend
+} SessionState;
+
+// Computes session state + progress + secs to next transition for the given market at `now`.
+// `progress01` is 0.0–1.0 representing how far through the regular session we are.
+// `secs_to_next` is seconds until the next boundary (close if open; open if closed/lunch).
+static void computeSessionState(const ClockMarket *mkt, NSDate *now,
+                                 SessionState *outState, double *outProgress01,
+                                 long *outSecsToNext) {
+    if (strlen(mkt->iana) == 0) {
+        // Local — not applicable. Caller should not call this for local.
+        if (outState) *outState = kSessionClosed;
+        if (outProgress01) *outProgress01 = 0.0;
+        if (outSecsToNext) *outSecsToNext = 0;
+        return;
+    }
+
+    NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
+    if (!tz) tz = [NSTimeZone localTimeZone];
+
+    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    cal.timeZone = tz;
+
+    NSCalendarUnit units = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay
+                         | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond
+                         | NSCalendarUnitWeekday;
+    NSDateComponents *comps = [cal components:units fromDate:now];
+
+    // Weekday: 1=Sunday, 2=Monday, ..., 7=Saturday (Gregorian default)
+    BOOL isWeekend = (comps.weekday == 1 || comps.weekday == 7);
+
+    NSInteger nowMins = comps.hour * 60 + comps.minute;
+    NSInteger openMins = mkt->open_h * 60 + mkt->open_m;
+    NSInteger closeMins = mkt->close_h * 60 + mkt->close_m;
+    BOOL hasLunch = (mkt->lunch_start_h >= 0);
+    NSInteger lunchStartMins = hasLunch ? (mkt->lunch_start_h * 60 + mkt->lunch_start_m) : -1;
+    NSInteger lunchEndMins   = hasLunch ? (mkt->lunch_end_h   * 60 + mkt->lunch_end_m)   : -1;
+
+    SessionState state;
+    if (isWeekend) {
+        state = kSessionClosed;
+    } else if (nowMins < openMins || nowMins >= closeMins) {
+        state = kSessionClosed;
+    } else if (hasLunch && nowMins >= lunchStartMins && nowMins < lunchEndMins) {
+        state = kSessionLunch;
+    } else {
+        state = kSessionOpen;
+    }
+
+    // Progress: 0.0 at open, 1.0 at close (straight-line, ignoring lunch for simplicity).
+    double progress = 0.0;
+    if (state == kSessionOpen || state == kSessionLunch) {
+        double elapsed = (double)(nowMins - openMins);
+        double total = (double)(closeMins - openMins);
+        if (total > 0) progress = MIN(1.0, MAX(0.0, elapsed / total));
+    } else if (nowMins >= closeMins) {
+        progress = 1.0;
+    }
+
+    // Seconds to next boundary.
+    NSInteger nextBoundaryMins;
+    if (state == kSessionClosed) {
+        // Next open — today if pre-session, tomorrow (skipping weekend) if post-session
+        if (!isWeekend && nowMins < openMins) {
+            nextBoundaryMins = openMins;
+        } else {
+            // Next trading day's open. Find days_until_next_trading_day.
+            int addDays = 1;
+            NSInteger nextWeekday = ((comps.weekday) % 7) + 1;  // tomorrow's weekday
+            while (nextWeekday == 1 || nextWeekday == 7) {      // skip Sat(7) and Sun(1)
+                addDays++;
+                nextWeekday = (nextWeekday % 7) + 1;
+            }
+            // Minutes from now to end-of-today + addDays full days + open time
+            nextBoundaryMins = (24 * 60 - nowMins) + (addDays - 1) * 24 * 60 + openMins;
+        }
+    } else if (state == kSessionLunch) {
+        nextBoundaryMins = lunchEndMins - nowMins;
+    } else {
+        // Open — time to close (if there's a lunch between now and close, still count toward close
+        // to match user mental model of "session end")
+        nextBoundaryMins = closeMins - nowMins;
+    }
+    long secsToNext = nextBoundaryMins * 60L - comps.second;
+    if (secsToNext < 0) secsToNext = 0;
+
+    if (outState) *outState = state;
+    if (outProgress01) *outProgress01 = progress;
+    if (outSecsToNext) *outSecsToNext = secsToNext;
+}
+
+// Format countdown in human-readable form: "5s", "47m", "2h17m"
+static NSString *formatCountdown(long secs) {
+    if (secs < 60) return [NSString stringWithFormat:@"%lds", secs];
+    long mins = secs / 60;
+    if (mins < 60) return [NSString stringWithFormat:@"%ldm", mins];
+    long hours = mins / 60;
+    long rmins = mins % 60;
+    if (hours < 100) return [NSString stringWithFormat:@"%ldh%02ldm", hours, rmins];
+    // >99h — return special placeholder; caller will swap in a date format
+    return [NSString stringWithFormat:@"%ldh", hours];
+}
+
+// Returns a fixed-length bar string (totalCells chars) with filled portion
+// proportional to progress01. Uses 1/8-width block increments for smoothness.
+static NSString *buildProgressBar(double progress01, int totalCells) {
+    if (progress01 < 0) progress01 = 0;
+    if (progress01 > 1) progress01 = 1;
+    double totalEighths = progress01 * totalCells * 8.0;
+    int fullCells = (int)(totalEighths / 8);
+    int remainderEighths = ((int)totalEighths) % 8;
+
+    // Partial cell glyphs — ordered from 1/8 to 7/8 width from LEFT
+    // U+258F (1/8), U+258E (2/8), ... U+2589 (7/8), U+2588 (full)
+    NSString *partials[] = {@"", @"▏", @"▎", @"▍", @"▌", @"▋", @"▊", @"▉"};
+
+    NSMutableString *bar = [NSMutableString string];
+    for (int i = 0; i < fullCells && i < totalCells; i++) [bar appendString:@"█"];
+    if (fullCells < totalCells && remainderEighths > 0) {
+        [bar appendString:partials[remainderEighths]];
+        fullCells++;
+    }
+    // Pad remainder with dim fill character
+    for (int i = fullCells; i < totalCells; i++) [bar appendString:@"░"];
+    return bar;
+}
+
+static NSString *glyphForState(SessionState s) {
+    switch (s) {
+        case kSessionOpen:    return @"●";
+        case kSessionLunch:   return @"◑";
+        case kSessionClosed:  return @"○";
+    }
+    return @"○";
+}
+
+static NSColor *colorForState(SessionState s, const ClockTheme *theme) {
+    switch (s) {
+        case kSessionOpen:    return [NSColor colorWithRed:0.20 green:0.95 blue:0.40 alpha:1.0];  // green
+        case kSessionLunch:   return [NSColor colorWithRed:0.80 green:0.55 blue:0.95 alpha:1.0];  // violet
+        case kSessionClosed:  return [NSColor colorWithWhite:0.55 alpha:1.0];                    // dim gray
+    }
+    return [NSColor whiteColor];
 }
 
 // Generate 14×14 color swatch: bg + fg inner square
@@ -168,6 +319,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 
 @interface FloatingClockPanel : NSPanel {
     NSTextField *_label;
+    NSTextField *_sessionLabel;
     dispatch_source_t _timer;
     NSDateFormatter *_dateFormatter;
     id _keyMonitor;
@@ -253,6 +405,19 @@ static NSFont *resolveClockFont(CGFloat size) {
     [cv addSubview:label];
     _label = label;
 
+    // Secondary label for session state (hidden in local mode)
+    NSTextField *sessionLabel = [[NSTextField alloc] initWithFrame:NSMakeRect(8, 8, 200, 16)];
+    sessionLabel.editable = NO;
+    sessionLabel.selectable = NO;
+    sessionLabel.bezeled = NO;
+    sessionLabel.drawsBackground = NO;
+    sessionLabel.alignment = NSTextAlignmentCenter;
+    sessionLabel.font = [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightMedium];
+    sessionLabel.hidden = YES;  // default hidden for local mode
+    sessionLabel.autoresizingMask = NSViewWidthSizable;
+    [cv addSubview:sessionLabel];
+    _sessionLabel = sessionLabel;
+
     // Attach menu to content view
     NSMenu *menu = [self buildMenu];
     cv.menu = menu;
@@ -325,6 +490,7 @@ static NSFont *resolveClockFont(CGFloat size) {
     // Set timezone based on SelectedMarket
     NSString *marketId = [d stringForKey:@"SelectedMarket"];
     const ClockMarket *mkt = marketForId(marketId);
+    NSDate *now = [NSDate date];
     if (strlen(mkt->iana) > 0) {
         NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
         if (tz) {
@@ -336,7 +502,73 @@ static NSFont *resolveClockFont(CGFloat size) {
         _dateFormatter.timeZone = [NSTimeZone localTimeZone];
     }
 
-    _label.stringValue = [_dateFormatter stringFromDate:[NSDate date]];
+    _label.stringValue = [_dateFormatter stringFromDate:now];
+
+    // Secondary session line
+    if (strlen(mkt->iana) == 0) return;  // local mode — no session label
+
+    SessionState state;
+    double progress01;
+    long secsToNext;
+    computeSessionState(mkt, now, &state, &progress01, &secsToNext);
+
+    NSString *glyph = glyphForState(state);
+    NSString *code = [NSString stringWithUTF8String:mkt->code];
+    NSMutableAttributedString *attr = [[NSMutableAttributedString alloc] init];
+
+    // Glyph (colored per state)
+    [attr appendAttributedString:[[NSAttributedString alloc]
+        initWithString:glyph attributes:@{
+            NSFontAttributeName: _sessionLabel.font,
+            NSForegroundColorAttributeName: colorForState(state, NULL)}]];
+
+    NSString *themeId = [d stringForKey:@"ColorTheme"];
+    const ClockTheme *theme = themeForId(themeId);
+    NSColor *themeFg = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
+    NSColor *dim = [NSColor colorWithWhite:0.5 alpha:1.0];
+
+    // " MARKET "
+    [attr appendAttributedString:[[NSAttributedString alloc]
+        initWithString:[NSString stringWithFormat:@" %@ ", code]
+        attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: themeFg}]];
+
+    if (state == kSessionOpen || state == kSessionLunch) {
+        // Progress bar with color split
+        NSString *bar = buildProgressBar(progress01, 12);
+        NSInteger splitIdx = 0;
+        for (NSUInteger i = 0; i < bar.length; i++) {
+            if ([bar characterAtIndex:i] == 0x2591) { splitIdx = i; break; }
+            splitIdx = i + 1;
+        }
+        NSMutableAttributedString *barAttr = [[NSMutableAttributedString alloc]
+            initWithString:bar attributes:@{NSFontAttributeName: _sessionLabel.font}];
+        [barAttr addAttribute:NSForegroundColorAttributeName value:themeFg range:NSMakeRange(0, splitIdx)];
+        [barAttr addAttribute:NSForegroundColorAttributeName value:dim range:NSMakeRange(splitIdx, bar.length - splitIdx)];
+        [attr appendAttributedString:barAttr];
+
+        // Countdown
+        NSString *cd = (state == kSessionLunch)
+            ? [NSString stringWithFormat:@" LUNCH %@", formatCountdown(secsToNext)]
+            : [NSString stringWithFormat:@" %@", formatCountdown(secsToNext)];
+        [attr appendAttributedString:[[NSAttributedString alloc]
+            initWithString:cd attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: themeFg}]];
+    } else {
+        // CLOSED state
+        NSString *countdownText;
+        if (secsToNext > 99 * 3600) {
+            NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:secsToNext];
+            NSDateFormatter *openFmt = [[NSDateFormatter alloc] init];
+            openFmt.dateFormat = @"EEE HH:mm";
+            openFmt.timeZone = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:mkt->iana]];
+            countdownText = [NSString stringWithFormat:@" CLOSED · opens %@", [openFmt stringFromDate:opensAt]];
+        } else {
+            countdownText = [NSString stringWithFormat:@" CLOSED · opens in %@", formatCountdown(secsToNext)];
+        }
+        [attr appendAttributedString:[[NSAttributedString alloc]
+            initWithString:countdownText attributes:@{NSFontAttributeName: _sessionLabel.font, NSForegroundColorAttributeName: dim}]];
+    }
+
+    _sessionLabel.attributedStringValue = attr;
 }
 
 // Primary display = the one at origin (0,0) with the menu bar.
@@ -631,32 +863,51 @@ static NSFont *resolveClockFont(CGFloat size) {
     _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
     self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
 
-    // Measure text to resize window
-    [self tick];  // Update label with new format
+    NSString *marketId = [d stringForKey:@"SelectedMarket"];
+    const ClockMarket *mkt = marketForId(marketId);
+    BOOL marketMode = (strlen(mkt->iana) > 0);
+    _sessionLabel.hidden = !marketMode;
 
+    // Measure text to resize window
+    [self tick];
+
+    // Measure primary line
     NSString *text = _label.stringValue;
     NSDictionary *attrs = @{NSFontAttributeName: _label.font};
     NSSize textSize = [text sizeWithAttributes:attrs];
 
-    // Add generous padding and ceil to avoid subpixel clipping on the right edge.
-    // Label is NSInsetRect(bounds, 8, 8) so window padding must be > label inset
-    // AND leave slack for font renderer's trailing advance + antialiasing.
-    CGFloat newWidth  = ceilf(textSize.width)  + 32;  // 16pt slack per side
-    CGFloat newHeight = ceilf(textSize.height) + 20;  // 10pt slack per side
+    // Measure secondary line if market mode
+    NSSize size2 = NSZeroSize;
+    if (marketMode) {
+        NSString *plainStatus = _sessionLabel.attributedStringValue.string;
+        NSDictionary *attrs2 = @{NSFontAttributeName: _sessionLabel.font};
+        size2 = [plainStatus sizeWithAttributes:attrs2];
+    }
+
+    CGFloat w1 = ceilf(textSize.width),  h1 = ceilf(textSize.height);
+    CGFloat w2 = ceilf(size2.width),     h2 = ceilf(size2.height);
+
+    CGFloat contentWidth  = MAX(w1, w2);
+    CGFloat contentHeight = marketMode ? (h1 + h2 + 4) : h1;
+    CGFloat windowWidth  = contentWidth + 32;
+    CGFloat windowHeight = contentHeight + 20;
 
     NSRect oldFrame = self.frame;
-    CGFloat oldWidth = oldFrame.size.width;
-    CGFloat oldHeight = oldFrame.size.height;
-
-    // Resize anchored at center
-    CGFloat centerX = oldFrame.origin.x + oldWidth / 2.0;
-    CGFloat centerY = oldFrame.origin.y + oldHeight / 2.0;
-
-    NSRect newFrame = NSMakeRect(centerX - newWidth / 2.0, centerY - newHeight / 2.0, newWidth, newHeight);
+    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
+    NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     [self setFrame:newFrame display:YES animate:NO];
 
-    // Resize label to fill content view
-    _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
+    // Lay out labels within contentView
+    if (marketMode) {
+        // Secondary label at bottom (macOS origin is bottom-left)
+        _sessionLabel.frame = NSMakeRect(16, 10, contentWidth, h2);
+        // Primary label above it
+        _label.frame = NSMakeRect(16, 10 + h2 + 4, contentWidth, h1);
+    } else {
+        // 1-line centered
+        _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
+    }
 }
 
 #pragma mark - Menu Actions
