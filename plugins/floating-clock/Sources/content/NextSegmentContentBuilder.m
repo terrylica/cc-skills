@@ -240,9 +240,13 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
                 }
             }
 
-            // v4 iter-63: tree-style └─ prefix visually binds the
-            // second line to its parent entry above.
-            NSString *secondLine = [NSString stringWithFormat:@"\n  └─ %@ → %@%@",
+            // v4 iter-69: align the second line under the market code
+            // column. Prior " 2-space-indent" placed └─ under the state
+            // glyph, making the pair look loose. 8 spaces lands └─
+            // roughly under the code (after "  ○ 🇺🇸 " = 2+1+1+3 ≈ 7-8
+            // mono cells — flag emoji counts as ~2 cells wide). Tighter
+            // visual binding of parent/child row.
+            NSString *secondLine = [NSString stringWithFormat:@"\n        └─ %@ → %@%@",
                 localAt, mktAt, durStr];
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:secondLine
