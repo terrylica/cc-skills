@@ -665,6 +665,51 @@ static void test_line_spacing_parser(void) {
     }
 }
 
+static void test_current_time_format(void) {
+    // iter-107: FCCurrentTimeFormat composes the NSDateFormatter pattern
+    // from the user's "TimeSeparator" pref. Colon stays as a literal
+    // colon; other separators are single-quoted for UTS#35 literal
+    // passthrough so they don't get interpreted as pattern tokens.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+
+    struct { NSString *sepId; NSString *patternSep; } cases[] = {
+        {@"colon",  @":"},
+        {@"middot", @"'·'"},
+        {@"space",  @"' '"},
+        {@"slash",  @"'/'"},
+        {@"dash",   @"'-'"},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        [d setObject:cases[i].sepId forKey:@"TimeSeparator"];
+        // 24h + seconds
+        NSString *expected24 = [NSString stringWithFormat:@"HH%@mm%@ss",
+                                cases[i].patternSep, cases[i].patternSep];
+        NSString *got24 = FCCurrentTimeFormat(NO, YES);
+        if (![got24 isEqualToString:expected24]) {
+            fprintf(stderr, "FAIL %s: 24h+sec '%s' expected '%s' got '%s'\n",
+                    __func__, cases[i].sepId.UTF8String,
+                    expected24.UTF8String, got24.UTF8String);
+            failures++;
+        }
+        // 12h no-seconds
+        NSString *expected12 = [NSString stringWithFormat:@"h%@mm a", cases[i].patternSep];
+        NSString *got12 = FCCurrentTimeFormat(YES, NO);
+        if (![got12 isEqualToString:expected12]) {
+            fprintf(stderr, "FAIL %s: 12h-sec '%s' expected '%s' got '%s'\n",
+                    __func__, cases[i].sepId.UTF8String,
+                    expected12.UTF8String, got12.UTF8String);
+            failures++;
+        }
+    }
+    // Unknown id falls back to colon (classical default).
+    [d setObject:@"unknown-sep" forKey:@"TimeSeparator"];
+    if (![FCCurrentTimeFormat(NO, YES) isEqualToString:@"HH:mm:ss"]) {
+        fprintf(stderr, "FAIL %s: unknown-id should collapse to colon\n", __func__);
+        failures++;
+    }
+    [d removeObjectForKey:@"TimeSeparator"];
+}
+
 static void test_quick_styles_invariants(void) {
     // iter-104: each Quick Style bundle must pass basic sanity checks.
     // Structure: outer array of @[displayName, bundleDict].
@@ -772,10 +817,11 @@ int main(void) {
         test_theme_catalog_invariants();
         test_letter_spacing_parser();
         test_line_spacing_parser();
+        test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 32 tests passed.\n");
+            fprintf(stderr, "All 33 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
