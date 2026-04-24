@@ -9,8 +9,14 @@ CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
 CFLAGS := -framework Cocoa -Os -dead_strip -fobjc-arc -Wall
+ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
-.PHONY: all build bundle sign install run clean
+ICON_SIZES := 16 32 64 128 256 512 1024
+ICONSET := $(BUILD)/icons.iconset
+ICON_PNGS := $(foreach sz,$(ICON_SIZES),$(BUILD)/icon_$(sz).png)
+ICON_ICNS := $(BUILD)/Icon.icns
+
+.PHONY: all build bundle icon sign install run clean
 
 all: sign
 
@@ -21,10 +27,36 @@ $(BUILD)/$(BIN_NAME): Sources/clock.m
 	clang $(CFLAGS) -o $@ $<
 	@echo "Built: $@ ($$(du -h $@ | cut -f1))"
 
-bundle: build
-	@mkdir -p $(MACOS)
+$(BUILD)/gen-icon: Sources/gen-icon.m
+	@mkdir -p $(BUILD)
+	clang $(ICON_CFLAGS) -o $@ $<
+	@echo "Built: $@ ($$(du -h $@ | cut -f1))"
+
+$(BUILD)/icon_%.png: $(BUILD)/gen-icon
+	$(BUILD)/gen-icon $@ $*
+
+$(ICON_ICNS): $(ICON_PNGS)
+	@mkdir -p $(ICONSET)
+	cp $(BUILD)/icon_16.png   $(ICONSET)/icon_16x16.png
+	cp $(BUILD)/icon_32.png   $(ICONSET)/icon_16x16@2x.png
+	cp $(BUILD)/icon_32.png   $(ICONSET)/icon_32x32.png
+	cp $(BUILD)/icon_64.png   $(ICONSET)/icon_32x32@2x.png
+	cp $(BUILD)/icon_128.png  $(ICONSET)/icon_128x128.png
+	cp $(BUILD)/icon_256.png  $(ICONSET)/icon_128x128@2x.png
+	cp $(BUILD)/icon_256.png  $(ICONSET)/icon_256x256.png
+	cp $(BUILD)/icon_512.png  $(ICONSET)/icon_256x256@2x.png
+	cp $(BUILD)/icon_512.png  $(ICONSET)/icon_512x512.png
+	cp $(BUILD)/icon_1024.png $(ICONSET)/icon_512x512@2x.png
+	iconutil -c icns $(ICONSET) -o $@
+	@echo "Icon: $@ ($$(du -h $@ | cut -f1))"
+
+icon: $(ICON_ICNS)
+
+bundle: build icon
+	@mkdir -p $(MACOS) $(CONTENTS)/Resources
 	cp $(BUILD)/$(BIN_NAME) $(MACOS)/$(BIN_NAME)
 	cp Info.plist $(CONTENTS)/Info.plist
+	cp $(ICON_ICNS) $(CONTENTS)/Resources/Icon.icns
 
 sign: bundle
 	codesign --force --deep --sign - $(APP)

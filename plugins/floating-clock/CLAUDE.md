@@ -16,7 +16,7 @@ make install      # install to /Applications
 make clean        # remove build/ artifacts
 ```
 
-Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app`.
+Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app`. App bundle includes `Contents/Resources/Icon.icns` (generated at build time from `Sources/gen-icon.m` via Core Graphics — no external image dependencies). Spotlight/Launchpad/Finder index the app with this icon after first install.
 
 ## Design
 
@@ -36,6 +36,7 @@ Binary at `build/floating-clock` (~50KB), app bundle at `build/FloatingClock.app
   - If saved screen disconnected: falls back to bottom-center of main screen
   - At runtime: monitors `NSApplicationDidChangeScreenParametersNotification`; if clock's screen unplugged, relocates to bottom-center of main screen with animation
 - **Defensive parsing**: All plist dictionary lookups verify `isKindOfClass:` before use — malformed iTerm2 plist cannot crash the clock
+- **Self-generated icon**: `gen-icon` helper draws a 1024×1024 clock glyph (dark rounded square + white face + 10:10 hands) using only Core Graphics. `iconutil` bundles into ICNS at build time. Zero external image assets.
 
 ## Implementation
 
