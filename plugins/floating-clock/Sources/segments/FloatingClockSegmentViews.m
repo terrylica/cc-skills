@@ -91,8 +91,21 @@
     if (!self) return nil;
 
     self.wantsLayer = YES;
-    self.layer.backgroundColor = [NSColor colorWithRed:0.05 green:0.05 blue:0.08 alpha:0.50].CGColor;
     self.layer.cornerRadius = 6.0;
+    self.layer.masksToBounds = YES;
+
+    // v4 iter-64: NSVisualEffectView for native frosted-glass vibrancy.
+    // Blurs desktop/windows behind the segment — macOS's canonical
+    // "fanciful" material system. Zero dependencies, zero binary bloat
+    // (already in AppKit). Material 'popover' matches what Control
+    // Center + menu popovers use — fits an always-on-top clock
+    // panel aesthetically.
+    NSVisualEffectView *veView = [[NSVisualEffectView alloc] initWithFrame:self.bounds];
+    veView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    veView.material = NSVisualEffectMaterialHUDWindow;
+    veView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    veView.state = NSVisualEffectStateActive;
+    [self addSubview:veView];
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
     VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
