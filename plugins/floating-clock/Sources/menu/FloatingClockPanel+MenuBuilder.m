@@ -275,14 +275,18 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     [marketItems addObject:tzRoot];
 
     // Date Format presets (used by LOCAL when ShowDate=YES).
+    // v4 iter-111: 6 → 9 presets with locale-flavored additions.
     [marketItems addObject:[self submenuTitled:@"Date Format"
                                          action:@selector(setDateFormat:)
-                                          pairs:@[@[@"Short (Thu Apr 23)", @"short"],
-                                                  @[@"Long (Thursday April 23)", @"long"],
-                                                  @[@"ISO (2026-04-23)", @"iso"],
-                                                  @[@"Numeric (4/23)", @"numeric"],
-                                                  @[@"Week Number (Wk 17)", @"weeknum"],
-                                                  @[@"Day of Year (Day 114)", @"dayofyr"]]
+                                          pairs:@[@[@"Short         (Thu Apr 23)",         @"short"],
+                                                  @[@"Long          (Thursday April 23)",  @"long"],
+                                                  @[@"ISO           (2026-04-23)",         @"iso"],
+                                                  @[@"Compact ISO   (04-23)",              @"compact_iso"],
+                                                  @[@"Numeric       (4/23)",               @"numeric"],
+                                                  @[@"USA           (4/23/2026)",          @"usa"],
+                                                  @[@"European      (23.4.2026)",          @"european"],
+                                                  @[@"Week Number   (Wk 17)",              @"weeknum"],
+                                                  @[@"Day of Year   (Day 114)",            @"dayofyr"]]
                                     defaultsKey:@"DateFormat"]];
 
     [marketItems addObject:[NSMenuItem separatorItem]];
