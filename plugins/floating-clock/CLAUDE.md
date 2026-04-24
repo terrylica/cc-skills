@@ -156,14 +156,34 @@ defaults delete com.terryli.floating-clock        # reset everything (next launc
 
 ## Known limitations
 
-- **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness would require bundling annual data — deferred to a future release.
-- **No pre-open auction window as distinct state**. Exchanges with opening auctions (NYSE, TSE, LSE) currently show CLOSED until regular session begins. Merging the auction window into OPEN or giving it a distinct state is a Tier-2 enhancement.
-- **No multi-market simultaneous display**. One exchange at a time. Rotation mode (cycle through favorites) deferred to Tier-3.
+- **No holiday awareness**. Session state assumes regular weekday hours. During exchange holidays (e.g. US Thanksgiving, Chinese Golden Week, Good Friday) the clock will show OPEN when the exchange is actually closed. Adding holiday awareness requires bundling annual data per exchange — deferred pending a maintenance plan for yearly tzdata-style refreshes.
+- **No pre-open / after-hours auction window as a distinct state**. Exchanges with opening auctions (NYSE, TSE, LSE) and after-hours sessions (US equities 16:00–20:00 ET) currently show CLOSED outside the regular 09:30–16:00 window. Adding `kSessionPreMarket` / `kSessionAfterHours` is a Tier-2 enhancement.
+- **Stacked-top/bottom layouts under LayoutMode have not been exercised in recent iterations**. The `triptych` mode is the primary code path. Stacked variants may have minor layout drift.
 
 ## Future Enhancements
 
-- Holiday awareness (bundled annual JSON, refreshed yearly by plugin updates)
-- Pre-open auction as a fourth distinct state
-- Multi-market rotation (show NY + London + Tokyo in sequence)
-- System appearance (light/dark) auto-adjust
+### Near-term
+
+- Holiday awareness (bundled annual JSON per exchange, refreshed yearly)
+- Pre-open / after-hours auction as distinct states (with distinct glyphs + urgency tiers)
+- System appearance (light/dark) auto-adjust of themes
+
+### Tier-3
+
+- Multi-market rotation mode (cycle 2–3 favorites every 10 s)
+- User-definable theme bundles (pick fg/bg/alpha via menu)
+- Settings export/import (JSON, for sync across machines)
 - Launchd login-item for autostart
+
+### Already shipped in v4 (moved out of "future")
+
+- ~~Per-segment themes (LocalTheme / ActiveTheme / NextTheme)~~ — iter-14
+- ~~Profile system with bundled starters~~ — iter-17
+- ~~Segment-scoped right-click menus~~ — iter-15
+- ~~Regional TZ abbreviations (PDT / BST / CEST / JST / AEDT) + UTC offset~~ — iter-37/38
+- ~~Inline UTC reference on LOCAL~~ — iter-39
+- ~~Sun/moon day-night glyph~~ — iter-42
+- ~~Progress-bar running head~~ — iter-43
+- ~~Urgency color tiers on ACTIVE + NEXT countdowns~~ — iter-44/45
+- ~~NEXT cross-day weekday disambiguation~~ — iter-49
+- ~~Unit test harness for session-state + TZ helpers~~ — iter-50/51
