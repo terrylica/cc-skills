@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 98
+iteration: 99
 status: ACTIVE
-last_updated: 2026-04-24T08:10:00Z
+last_updated: 2026-04-24T08:20:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -528,3 +528,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 07:50 UTC — iter-96: **proactive MenuBuilder split** (7745611d). MenuBuilder.m had grown to 469 LoC — only 31 LoC of cap headroom before next menu addition would break the contract. Extracted 5 shared NSMenu helpers (submenuTitled / groupedSubmenuTitled / setChecksInMenu / representedObject:matchesValue: / refreshMenuChecks) into `Sources/menu/FloatingClockPanel+MenuHelpers.{h,m}` (112 LoC). MenuBuilder.m now 375 LoC. SegmentMenus.m picks up the new import. No behavior change, no new tests. 31/31 still green.
 - 2026-04-24 08:00 UTC — iter-97: **corner-style catalog 4 → 8** (62010669). Four new CornerStyle presets fill gaps between the original sharp/rounded/squircle/pill: hairline (1pt), micro (3pt), soft (10pt), jumbo (22pt). Full Preferences → Display → Corners submenu grows to 8 entries with inline point annotations. Pure data — CALayer.cornerRadius constants. 31/31 still green, 184 KB binary.
 - 2026-04-24 08:10 UTC — iter-98: **TimeSeparator lever** (bb683a28). New formatter-level axis replacing hardcoded `:` between HH / mm / ss tokens. 5 presets: colon / middot (·) / space / slash / dash. Implementation via two static helpers in Runtime.m — `fcTimeSeparatorPattern` returns UTS#35-quoted literal, `fcBuildTimeFormat` assembles the H:MM[:SS] pattern. Applied at 3 sites (LOCAL tick, UTC reference, legacy single-market/local-only). LOCAL + UTC share same separator for visual consistency. Full Preferences → Display → Time Separator submenu with inline rendered previews. 31/31 still green, 184 KB binary.
+- 2026-04-24 08:20 UTC — iter-99: **Density catalog 4 → 6** (7952e68e). Two new presets bracket the existing range: `ultracompact` (4pt) and `cavernous` (64pt). Pad now spans 4pt → 64pt (16×) vs prior 12pt → 48pt (4×). Pure data — Density pref already drives inner-row-height formula in Layout.m. Full Preferences → Display → Density submenu grows to 6 entries with inline point annotations. 31/31 still green.
