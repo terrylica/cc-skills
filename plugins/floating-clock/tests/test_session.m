@@ -217,6 +217,45 @@ static void test_afterhours_progress_is_one(void) {
     ASSERT_PROGRESS_NEAR(nyse, d, 1.0, 0.001);
 }
 
+static void test_state_invariants_24h_sweep(void) {
+    // v4 iter-143: structural invariants across a full weekday sweep.
+    // For every 30-min tick on Fri 2026-04-24 EDT:
+    //   - state ∈ {OPEN, LUNCH, CLOSED, PRE-MARKET, AFTER-HOURS}
+    //   - progress ∈ [0.0, 1.0]
+    //   - secsToNext ≥ 0
+    // Catches enum drift (e.g. someone adds a 6th state but a caller
+    // still assumes 5), progress overflow (>1.0 or <0.0 from a
+    // miscomputed elapsed/total), and negative-countdown regressions
+    // (the exact bug iter-48 fixed from iter-9 — missing until iter-48
+    // caught it by chance). Now catchable proactively.
+    const ClockMarket *nyse = marketForId(@"nyse");
+    for (int minute = 0; minute < 24 * 60; minute += 30) {
+        int h = minute / 60;
+        int m = minute % 60;
+        NSDate *t = dateAt(@"America/New_York", 2026, 4, 24, h, m, 0);
+        SessionState s; double p; long n;
+        computeSessionState(nyse, t, &s, &p, &n);
+        BOOL stateValid = (s == kSessionOpen || s == kSessionLunch ||
+                           s == kSessionClosed || s == kSessionPreMarket ||
+                           s == kSessionAfterHours);
+        if (!stateValid) {
+            fprintf(stderr, "FAIL %s: invalid state %d at %02d:%02d EDT\n",
+                    __func__, (int)s, h, m);
+            failures++;
+        }
+        if (p < 0.0 || p > 1.0) {
+            fprintf(stderr, "FAIL %s: progress %.3f out of [0,1] at %02d:%02d EDT\n",
+                    __func__, p, h, m);
+            failures++;
+        }
+        if (n < 0) {
+            fprintf(stderr, "FAIL %s: secsToNext %ld negative at %02d:%02d EDT\n",
+                    __func__, n, h, m);
+            failures++;
+        }
+    }
+}
+
 static void test_signal_window_pref_gates_premarket(void) {
     // v4 iter-127: locks the wiring between iter-126's SessionSignalWindow
     // pref and iter-123's PRE-MARKET promotion gate. iter-126's unit test
@@ -594,6 +633,7 @@ int main(void) {
         test_afterhours_not_on_weekend();
         test_premarket_progress_is_zero();
         test_afterhours_progress_is_one();
+        test_state_invariants_24h_sweep();
         test_signal_window_pref_gates_premarket();
         test_signal_window_pref_gates_afterhours();
         test_tse_lunch_window();
@@ -644,7 +684,7 @@ int main(void) {
         test_session_state_label();
 
         if (failures == 0) {
-            fprintf(stderr, "All 51 tests passed.\n");
+            fprintf(stderr, "All 52 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
