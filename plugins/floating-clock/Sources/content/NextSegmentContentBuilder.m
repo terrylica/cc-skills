@@ -216,5 +216,15 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
         }
     }
 
+    // v4 iter-62: terminate the attributed string with a trailing \n.
+    // Without this, NSTextField's cell rendering elides the last line
+    // when no newline follows — a quirk that manifested as the third
+    // NEXT row missing its second line (iter-60/61 debug). ACTIVE
+    // segment doesn't exhibit this because every data line already
+    // ends with \n. The measurer's "ends-in-newline" branch also adds
+    // a line-height, which in turn gives the frame enough room.
+    [out appendAttributedString:[[NSAttributedString alloc]
+        initWithString:@"\n" attributes:@{NSFontAttributeName: font}]];
+
     return out;
 }
