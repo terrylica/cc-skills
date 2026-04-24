@@ -370,6 +370,11 @@ void test_quick_styles_invariants(void) {
         @"LetterSpacing":  [NSSet setWithArray:@[@"condensed", @"compact", @"tight", @"normal", @"airy", @"wide", @"extrawide"]],
         @"LineSpacing":    [NSSet setWithArray:@[@"tight", @"snug", @"normal", @"loose", @"airy", @"spacious", @"cavernous"]],
         @"TimeSeparator":  [NSSet setWithArray:@[@"colon", @"middot", @"space", @"slash", @"dash", @"pipe", @"plus"]],
+        // v4 iter-158: SessionSignalWindow becomes Quick-Style-composable.
+        // Lets future bundles tune the auction-window feel per mood
+        // (e.g. Hacker=off for minimalism, Trading Floor=60min for
+        // macro-trader awareness).
+        @"SessionSignalWindow": [NSSet setWithArray:@[@"off", @"5min", @"15min", @"30min", @"60min"]],
     };
     for (NSArray *style in styles) {
         if (style.count != 2) { failures++; fprintf(stderr, "FAIL %s: malformed entry\n", __func__); continue; }
