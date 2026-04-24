@@ -107,6 +107,14 @@
         @"ShowUTCReference": @YES,
         @"ShowSkyState": @YES,
         @"ShowProgressPercent": @NO,
+        // v4 iter-202: default ON. iter-199 introduced these as
+        // opt-in debug affordances, but iter-201 elevated them to
+        // primary section identifiers (removed "ACTIVE MARKETS" /
+        // "NEXT TO OPEN" titles). Fresh installs should see the
+        // canonical [LOCAL] / [ACTIVE] / [NEXT] labels out of the
+        // box; the menu toggle stays for users who want to hide
+        // them once they've memorized the layout.
+        @"ShowDebugLabels": @YES,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
