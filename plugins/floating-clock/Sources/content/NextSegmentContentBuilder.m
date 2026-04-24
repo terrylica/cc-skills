@@ -89,14 +89,27 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // day" without mental arithmetic. Market's own-TZ opening is
             // already implicit (each market has fixed local open hours);
             // what's uniquely useful here is "HH:mm MY time".
+            // v4 iter-49: include weekday abbrev when landing is not
+            // today in local tz. Prevents ambiguity on bounded opens
+            // that cross midnight — e.g. Sat 23:00 local → "opens in
+            // 80h · 06:30 local" used to look like it meant "today
+            // 06:30". Now reads "06:30 local Tue" for clarity.
             NSString *verb = e.isLunchResume ? @"resumes in" : @"opens in";
+            NSDate *now = [NSDate date];
             NSDate *landsAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
+            NSTimeZone *localTz = [NSTimeZone localTimeZone];
+            NSCalendar *cal = [NSCalendar currentCalendar];
+            cal.timeZone = localTz;
+            NSDateComponents *nowC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:now];
+            NSDateComponents *landC = [cal components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:landsAt];
+            BOOL sameDay = (nowC.year == landC.year && nowC.month == landC.month && nowC.day == landC.day);
             NSDateFormatter *localFmt = [[NSDateFormatter alloc] init];
-            localFmt.dateFormat = @"HH:mm";
-            localFmt.timeZone = [NSTimeZone localTimeZone];
+            localFmt.timeZone = localTz;
+            localFmt.dateFormat = sameDay ? @"HH:mm" : @"HH:mm 'local' EEE";
             NSString *localAt = [localFmt stringFromDate:landsAt];
-            countdown = [NSString stringWithFormat:@"%@ %@ · %@ local",
-                verb, formatCountdown(e.secs), localAt];
+            countdown = sameDay
+                ? [NSString stringWithFormat:@"%@ %@ · %@ local", verb, formatCountdown(e.secs), localAt]
+                : [NSString stringWithFormat:@"%@ %@ · %@", verb, formatCountdown(e.secs), localAt];
         }
         NSString *suffix = e.isLunchResume ? @" LUNCH" : @"";
 
