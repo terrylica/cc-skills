@@ -271,17 +271,23 @@ static void test_starter_profiles_cover_all_keys(void) {
 }
 
 static void test_countdown_fancy_format(void) {
-    // v4 iter-59: T-HH:MM:SS rocket-launch convention, fixed-width.
+    // v4 iter-59: T-HH:MM:SS rocket-launch convention, sub-day.
     ASSERT_EQ_STR(formatCountdownFancy(0),      @"T-00:00:00");
     ASSERT_EQ_STR(formatCountdownFancy(7),      @"T-00:00:07");
     ASSERT_EQ_STR(formatCountdownFancy(105),    @"T-00:01:45");  // 1m 45s
     ASSERT_EQ_STR(formatCountdownFancy(9257),   @"T-02:34:17");  // 2h 34m 17s
     ASSERT_EQ_STR(formatCountdownFancy(35940),  @"T-09:59:00");  // almost 10h
-    // Negative guards: clamp to T-00:00:00.
-    ASSERT_EQ_STR(formatCountdownFancy(-5),     @"T-00:00:00");
-    // Overflow (>=100h) falls back to compact form.
-    // 100h in seconds = 360000. Compact form = "100h".
-    ASSERT_EQ_STR(formatCountdownFancy(360000), @"100h");
+    ASSERT_EQ_STR(formatCountdownFancy(-5),     @"T-00:00:00");  // negative clamp
+
+    // v4 iter-75: progressive human-readable at >=1 day.
+    // 24h exactly = 1d 0h 0m.
+    ASSERT_EQ_STR(formatCountdownFancy(86400),  @"T-1d 0h 00m");
+    // 2d 11h 27m = 2*86400 + 11*3600 + 27*60 = 172800 + 39600 + 1620 = 214020
+    ASSERT_EQ_STR(formatCountdownFancy(214020), @"T-2d 11h 27m");
+    // 1d 0h 05m — minute zero-padding
+    ASSERT_EQ_STR(formatCountdownFancy(86400 + 5*60), @"T-1d 0h 05m");
+    // Just-under-day stays in HH:MM:SS form (23:59:59).
+    ASSERT_EQ_STR(formatCountdownFancy(86399), @"T-23:59:59");
 }
 
 static void test_lunch_markets_identified(void) {
