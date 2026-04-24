@@ -87,7 +87,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     // market time → session → countdown.
     FCAppendSectionHeader(out, font,
         @"",
-        @"your time → market time · session · countdown",
+        @"your time → market time · duration · countdown",
         headerColor, dimColor, FCDividerRuleColor());
 
     int maxItems = entryCount < maxN ? entryCount : (int)maxN;
@@ -196,19 +196,19 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // events share the session — skip dur line for them since
             // the second line would be misleading ("6h30m" isn't the
             // lunch window).
-            // v4 iter-66: duration now just "6h30m" (no " session"
-            // suffix — the column legend says 'session').
+            // v4 iter-66 → v4 iter-209: duration was "6h30m" / "6h"
+            // — user reported the asymmetry (6h30m vs 6h misaligned)
+            // and asked for a more concise + clearer format. Now
+            // decimal-hours: "6.5 hr" / "6.0 hr". Always one decimal
+            // place so widths align across rows. Legend column word
+            // changed "session" → "duration" (user-picked).
             NSString *durStr = @"";
             if (!e.isLunchResume) {
                 int openMins  = e.mkt->open_h * 60 + e.mkt->open_m;
                 int closeMins = e.mkt->close_h * 60 + e.mkt->close_m;
                 int durMins   = closeMins - openMins;
                 if (durMins > 0) {
-                    int dh = durMins / 60;
-                    int dm = durMins % 60;
-                    durStr = (dm == 0)
-                        ? [NSString stringWithFormat:@" · %dh", dh]
-                        : [NSString stringWithFormat:@" · %dh%02dm", dh, dm];
+                    durStr = [NSString stringWithFormat:@" · %.1f hr", durMins / 60.0];
                 }
             }
 
