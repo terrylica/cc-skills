@@ -20,7 +20,13 @@ ICONSET := $(BUILD)/icons.iconset
 ICON_PNGS := $(foreach sz,$(ICON_SIZES),$(BUILD)/icon_$(sz).png)
 ICON_ICNS := $(BUILD)/Icon.icns
 
-.PHONY: all build bundle icon sign install run clean
+.PHONY: all build bundle icon sign install run clean test
+
+# Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
+# with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
+TEST_BIN := $(BUILD)/test_session
+TEST_SOURCES := tests/test_session.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m
+TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
 
 all: sign
 
@@ -72,6 +78,13 @@ install: sign
 
 run: sign
 	open $(APP)
+
+test: $(TEST_BIN)
+	@$(TEST_BIN)
+
+$(TEST_BIN): $(TEST_SOURCES)
+	@mkdir -p $(BUILD)
+	clang $(TEST_CFLAGS) -o $@ $(TEST_SOURCES)
 
 clean:
 	rm -rf $(BUILD)
