@@ -839,9 +839,10 @@ int main(void) {
         test_session_state_label();
         test_session_state_color();
         test_clipboard_header_format();
+        test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 61 tests passed.\n");
+            fprintf(stderr, "All 62 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
