@@ -25,6 +25,7 @@
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/SegmentGap.h"
 #import "../Sources/core/DensityPad.h"
+#import "../Sources/core/CornerRadius.h"
 
 static int failures = 0;
 
@@ -710,6 +711,21 @@ static void test_date_format_prefix(void) {
     }
 }
 
+static void test_corner_radius_points(void) {
+    // iter-117: lock iter-97's 8-preset CornerStyle catalog (lean:
+    // one representative per bucket; full ladder would exceed the
+    // 1000-line test-file cap — rest is covered by the data-module
+    // declaration).
+    if (fabs(FCCornerRadiusPoints(@"sharp",    100, 40) -  0.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: sharp\n",    __func__); }
+    if (fabs(FCCornerRadiusPoints(@"hairline", 100, 40) -  1.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: hairline\n", __func__); }
+    if (fabs(FCCornerRadiusPoints(@"rounded",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: rounded\n",  __func__); }
+    if (fabs(FCCornerRadiusPoints(@"squircle", 100, 40) - 14.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: squircle\n", __func__); }
+    if (fabs(FCCornerRadiusPoints(@"pill",     100, 40) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill w>h\n", __func__); }
+    if (fabs(FCCornerRadiusPoints(@"pill",      40, 80) - 20.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: pill h>w\n", __func__); }
+    if (fabs(FCCornerRadiusPoints(nil,         100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: nil→rounded\n", __func__); }
+    if (fabs(FCCornerRadiusPoints(@"made-up",  100, 40) -  6.0) > 0.001) { failures++; fprintf(stderr, "FAIL %s: unknown→rounded\n", __func__); }
+}
+
 static void test_density_pad_points(void) {
     // iter-116: lock iter-99's 6-preset Density catalog.
     struct { NSString *id; CGFloat pt; } cases[] = {
@@ -964,11 +980,12 @@ int main(void) {
         test_sky_glyph_phases();
         test_segment_gap_points();
         test_density_pad_points();
+        test_corner_radius_points();
         test_current_time_format();
         test_quick_styles_invariants();
 
         if (failures == 0) {
-            fprintf(stderr, "All 37 tests passed.\n");
+            fprintf(stderr, "All 38 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);

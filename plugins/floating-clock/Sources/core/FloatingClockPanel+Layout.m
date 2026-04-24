@@ -8,6 +8,7 @@
 #import "../actions/FloatingClockPanel+ActionHandlers.h"  // applyTheme:
 #import "SegmentGap.h"                                      // FCSegmentGapPoints
 #import "DensityPad.h"                                      // FCDensityPadPoints
+#import "CornerRadius.h"                                    // FCCornerRadiusPoints
 
 @implementation FloatingClockPanel (Layout)
 
@@ -190,25 +191,12 @@
     _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
     _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
 
-    // v4 iter-30 / iter-97: CornerStyle — radius presets applied to
-    // all three segment layers uniformly.
-    //   sharp     0pt     hairline  1pt     micro     3pt
-    //   rounded   6pt     soft      10pt    squircle  14pt
-    //   jumbo     22pt    pill      min(w,h)/2 (fully rounded ends)
+    // v4 iter-30 / iter-97 / iter-117: 8 CornerStyle presets. Dispatcher
+    // lives in Sources/core/CornerRadius.{h,m}; test locks the catalog.
     NSString *cornerId = [d stringForKey:@"CornerStyle"];
-    CGFloat (^cornerRadiusFor)(CGFloat, CGFloat) = ^CGFloat(CGFloat w, CGFloat h) {
-        if ([cornerId isEqualToString:@"sharp"])    return 0.0;
-        if ([cornerId isEqualToString:@"hairline"]) return 1.0;
-        if ([cornerId isEqualToString:@"micro"])    return 3.0;
-        if ([cornerId isEqualToString:@"soft"])     return 10.0;
-        if ([cornerId isEqualToString:@"squircle"]) return 14.0;
-        if ([cornerId isEqualToString:@"jumbo"])    return 22.0;
-        if ([cornerId isEqualToString:@"pill"])     return MIN(w, h) / 2.0;
-        return 6.0;  // "rounded" default
-    };
-    _localSeg.layer.cornerRadius  = cornerRadiusFor(localW, localH);
-    _activeSeg.layer.cornerRadius = cornerRadiusFor(activeW, activeH);
-    _nextSeg.layer.cornerRadius   = cornerRadiusFor(nextW, nextH);
+    _localSeg.layer.cornerRadius  = FCCornerRadiusPoints(cornerId, localW,  localH);
+    _activeSeg.layer.cornerRadius = FCCornerRadiusPoints(cornerId, activeW, activeH);
+    _nextSeg.layer.cornerRadius   = FCCornerRadiusPoints(cornerId, nextW,   nextH);
 
     // v4 iter-31 / iter-93: ShadowStyle — adds depth / glow around each segment.
     //   none       (default) — flat, no shadow
