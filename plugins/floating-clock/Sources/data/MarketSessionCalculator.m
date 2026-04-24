@@ -210,6 +210,21 @@ NSString *glyphForState(SessionState s) {
     return @"○";
 }
 
+// v4 iter-135: extracted from Runtime.m's inline switch (iter-134).
+// Kept next to glyphForState so the full (glyph, label, color) triad
+// lives in one file and adding a future SessionState value is a
+// compiler-enforced 3-switch edit.
+NSString *labelForState(SessionState s) {
+    switch (s) {
+        case kSessionOpen:       return @"OPEN";
+        case kSessionLunch:      return @"LUNCH";
+        case kSessionClosed:     return @"CLOSED";
+        case kSessionPreMarket:  return @"PRE-MARKET";
+        case kSessionAfterHours: return @"AFTER-HOURS";
+    }
+    return @"CLOSED";
+}
+
 NSColor *colorForState(SessionState s, const ClockTheme *theme) {
     (void)theme;  // reserved for future per-theme override
     switch (s) {

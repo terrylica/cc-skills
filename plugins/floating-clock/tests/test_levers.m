@@ -481,3 +481,30 @@ void test_session_signal_window(void) {
                            __func__, (long)FCSessionSignalWindowMinutes(@"forever"));
     }
 }
+
+void test_session_state_label(void) {
+    // iter-135: lock labelForState's 5-case word mapping (OPEN / LUNCH
+    // / CLOSED / PRE-MARKET / AFTER-HOURS). Used by iter-134's legacy
+    // single-market label fix; extracted here for testability.
+    struct { SessionState s; NSString *word; } cases[] = {
+        {kSessionOpen,       @"OPEN"},
+        {kSessionLunch,      @"LUNCH"},
+        {kSessionClosed,     @"CLOSED"},
+        {kSessionPreMarket,  @"PRE-MARKET"},
+        {kSessionAfterHours, @"AFTER-HOURS"},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSString *got = labelForState(cases[i].s);
+        if (![got isEqualToString:cases[i].word]) {
+            fprintf(stderr, "FAIL %s: state %d → '%s' (want '%s')\n",
+                    __func__, (int)cases[i].s,
+                    got.UTF8String, cases[i].word.UTF8String);
+            failures++;
+        }
+    }
+    // Out-of-range (unlikely but covered) → CLOSED safe default.
+    if (![labelForState((SessionState)99) isEqualToString:@"CLOSED"]) {
+        failures++;
+        fprintf(stderr, "FAIL %s: out-of-range should return CLOSED\n", __func__);
+    }
+}
