@@ -1,4 +1,5 @@
 #import "FloatingClockSegmentViews.h"
+#import "../vendor/RMBlurredView/RMBlurredView.h"
 #import "../rendering/VerticallyCenteredTextFieldCell.h"
 
 // Informal protocol the panel implements. Declared here so the segment
@@ -94,18 +95,18 @@
     self.layer.cornerRadius = 6.0;
     self.layer.masksToBounds = YES;
 
-    // v4 iter-64: NSVisualEffectView for native frosted-glass vibrancy.
-    // Blurs desktop/windows behind the segment — macOS's canonical
-    // "fanciful" material system. Zero dependencies, zero binary bloat
-    // (already in AppKit). Material 'popover' matches what Control
-    // Center + menu popovers use — fits an always-on-top clock
-    // panel aesthetically.
-    NSVisualEffectView *veView = [[NSVisualEffectView alloc] initWithFrame:self.bounds];
-    veView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    veView.material = NSVisualEffectMaterialHUDWindow;
-    veView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-    veView.state = NSVisualEffectStateActive;
-    [self addSubview:veView];
+    // v4 iter-65: RMBlurredView (CIFilter + CALayer.backgroundFilters).
+    // Stronger Gaussian blur than NSVisualEffectView's material system,
+    // with saturation boost — closer to the user's request for a
+    // "fanciful frosted-glass library". ~115 LoC vendored under
+    // Sources/vendor/RMBlurredView/ per the plugin's no-external-deps
+    // stance; MIT-licensed from github.com/raffael/RMBlurredView.
+    RMBlurredView *blurView = [[RMBlurredView alloc] initWithFrame:self.bounds];
+    blurView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    blurView.blurRadius = 18.0;
+    blurView.saturationFactor = 2.2;
+    blurView.tintColor = [NSColor colorWithCalibratedWhite:0.10 alpha:0.35];
+    [self addSubview:blurView];
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
     VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];

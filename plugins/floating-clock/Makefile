@@ -8,7 +8,7 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
