@@ -397,6 +397,11 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (void)setNextTheme:(NSMenuItem *)sender;
 - (void)setMarket:(NSMenuItem *)sender;
 - (void)setDisplayMode:(NSMenuItem *)sender;
+- (void)setActiveBarCells:(NSMenuItem *)sender;
+- (void)setNextItemCount:(NSMenuItem *)sender;
+- (NSMenu *)buildLocalSegmentMenu;
+- (NSMenu *)buildActiveSegmentMenu;
+- (NSMenu *)buildNextSegmentMenu;
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field;
 - (void)showFullPreferences:(id)sender;
 - (void)resetPosition:(id)sender;
@@ -445,6 +450,8 @@ static NSFont *resolveClockFont(CGFloat size) {
         @"LocalTheme": @"terminal",
         @"ActiveTheme": @"green_phosphor",
         @"NextTheme": @"soft_glass",
+        @"ActiveBarCells": @7,
+        @"NextItemCount": @3,
     }];
 
     NSRect defaultFrame = NSMakeRect(0, 0, 140, 50);
@@ -581,6 +588,10 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSColor *headerColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
     NSColor *dimColor    = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.5];
 
+    // Read configurable bar cells preference
+    NSInteger barCells = [d integerForKey:@"ActiveBarCells"];
+    if (barCells <= 0) barCells = 7;
+
     // First pass: find active markets grouped by IANA.
     // Each group entry: @[@(marketIndex), @(state), @(progress), @(secsToNext), ...]
     NSMutableArray<NSMutableArray *> *groups = [NSMutableArray array];
@@ -654,7 +665,7 @@ static NSFont *resolveClockFont(CGFloat size) {
             NSString *glyph = glyphForState(state);
             NSColor *glyphColor = colorForState(state, NULL);
             NSString *code = [NSString stringWithUTF8String:m->code];
-            NSString *bar = buildProgressBar(progress, 7);
+            NSString *bar = buildProgressBar(progress, (int)barCells);
             NSString *cd = formatCountdown(secsToNext);
             NSString *suffix = (state == kSessionLunch) ? @" LUNCH" : @"";
 
@@ -710,6 +721,10 @@ static NSFont *resolveClockFont(CGFloat size) {
     NSColor *dimColor    = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.5];
     NSColor *codeColor   = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:0.75];
 
+    // Read configurable item count preference
+    NSInteger maxN = [d integerForKey:@"NextItemCount"];
+    if (maxN <= 0) maxN = 3;
+
     // Candidate entry: market pointer + state + secs-to-next + is-lunch-resume flag
     typedef struct {
         const ClockMarket *mkt;
@@ -763,8 +778,8 @@ static NSFont *resolveClockFont(CGFloat size) {
         initWithString:@"NEXT TO OPEN\n"
         attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: headerColor}]];
 
-    // Top 3
-    int maxItems = entryCount < 3 ? entryCount : 3;
+    // Top N
+    int maxItems = entryCount < maxN ? entryCount : (int)maxN;
     for (int i = 0; i < maxItems; i++) {
         NextEntry e = entries[i];
         NSString *glyph = e.isLunchResume ? @"◑" : @"○";
@@ -1550,6 +1565,145 @@ static NSFont *resolveClockFont(CGFloat size) {
     }
 }
 
+- (void)setActiveBarCells:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"ActiveBarCells"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (void)setNextItemCount:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
+        [[NSUserDefaults standardUserDefaults] setInteger:[sender.representedObject integerValue] forKey:@"NextItemCount"];
+        [self applyDisplaySettings];
+    }
+}
+
+- (NSMenu *)buildLocalSegmentMenu {
+    NSMenu *m = [[NSMenu alloc] init];
+    m.delegate = (ClockContentView *)self.contentView;
+
+    // Theme submenu (10 themes, sets LocalTheme)
+    NSMutableArray *themePairs = [NSMutableArray array];
+    for (size_t i = 0; i < kNumThemes; i++) {
+        [themePairs addObject:@[[NSString stringWithUTF8String:kThemes[i].display],
+                                [NSString stringWithUTF8String:kThemes[i].id]]];
+    }
+    NSMenuItem *themeItem = [self submenuTitled:@"Theme"
+                                          action:@selector(setLocalTheme:)
+                                           pairs:themePairs
+                                     defaultsKey:@"LocalTheme"];
+    // Decorate with swatches
+    NSArray *sub = themeItem.submenu.itemArray;
+    for (size_t i = 0; i < sub.count && i < kNumThemes; i++) {
+        [(NSMenuItem *)sub[i] setImage:swatchForTheme(&kThemes[i])];
+    }
+    [m addItem:themeItem];
+
+    [m addItem:[NSMenuItem separatorItem]];
+
+    // Show Seconds, Show Date toggles
+    NSMenuItem *ss = [m addItemWithTitle:@"Show Seconds" action:@selector(toggleShowSeconds:) keyEquivalent:@""];
+    ss.target = self;
+    NSMenuItem *sd = [m addItemWithTitle:@"Show Date" action:@selector(toggleShowDate:) keyEquivalent:@""];
+    sd.target = self;
+
+    // Time Format submenu
+    [m addItem:[self submenuTitled:@"Time Format"
+                             action:@selector(setTimeFormat:)
+                              pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
+                        defaultsKey:@"TimeFormat"]];
+
+    // Font Size hierarchical
+    [m addItem:[self groupedSubmenuTitled:@"Font Size"
+                                    action:@selector(setFontSize:)
+                                    groups:@[
+        @[@"Small",  @[@[@"10", @10.0], @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0]]],
+        @[@"Medium", @[@[@"18", @18.0], @[@"20", @20.0], @[@"22", @22.0], @[@"24", @24.0]]],
+        @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
+        @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
+    ]                           defaultsKey:@"FontSize"]];
+
+    [m addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
+    fp.target = self;
+
+    return m;
+}
+
+- (NSMenu *)buildActiveSegmentMenu {
+    NSMenu *m = [[NSMenu alloc] init];
+    m.delegate = (ClockContentView *)self.contentView;
+
+    // Theme submenu (10 themes, sets ActiveTheme)
+    NSMutableArray *themePairs = [NSMutableArray array];
+    for (size_t i = 0; i < kNumThemes; i++) {
+        [themePairs addObject:@[[NSString stringWithUTF8String:kThemes[i].display],
+                                [NSString stringWithUTF8String:kThemes[i].id]]];
+    }
+    NSMenuItem *themeItem = [self submenuTitled:@"Theme"
+                                          action:@selector(setActiveTheme:)
+                                           pairs:themePairs
+                                     defaultsKey:@"ActiveTheme"];
+    // Decorate with swatches
+    NSArray *sub = themeItem.submenu.itemArray;
+    for (size_t i = 0; i < sub.count && i < kNumThemes; i++) {
+        [(NSMenuItem *)sub[i] setImage:swatchForTheme(&kThemes[i])];
+    }
+    [m addItem:themeItem];
+
+    [m addItem:[NSMenuItem separatorItem]];
+
+    // Progress Bar Width submenu
+    [m addItem:[self submenuTitled:@"Progress Bar Width"
+                             action:@selector(setActiveBarCells:)
+                              pairs:@[@[@"6 cells", @6], @[@"7 cells", @7], @[@"8 cells", @8],
+                                      @[@"10 cells", @10], @[@"12 cells", @12]]
+                        defaultsKey:@"ActiveBarCells"]];
+
+    [m addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
+    fp.target = self;
+
+    return m;
+}
+
+- (NSMenu *)buildNextSegmentMenu {
+    NSMenu *m = [[NSMenu alloc] init];
+    m.delegate = (ClockContentView *)self.contentView;
+
+    // Theme submenu (10 themes, sets NextTheme)
+    NSMutableArray *themePairs = [NSMutableArray array];
+    for (size_t i = 0; i < kNumThemes; i++) {
+        [themePairs addObject:@[[NSString stringWithUTF8String:kThemes[i].display],
+                                [NSString stringWithUTF8String:kThemes[i].id]]];
+    }
+    NSMenuItem *themeItem = [self submenuTitled:@"Theme"
+                                          action:@selector(setNextTheme:)
+                                           pairs:themePairs
+                                     defaultsKey:@"NextTheme"];
+    // Decorate with swatches
+    NSArray *sub = themeItem.submenu.itemArray;
+    for (size_t i = 0; i < sub.count && i < kNumThemes; i++) {
+        [(NSMenuItem *)sub[i] setImage:swatchForTheme(&kThemes[i])];
+    }
+    [m addItem:themeItem];
+
+    [m addItem:[NSMenuItem separatorItem]];
+
+    // Show Count submenu
+    [m addItem:[self submenuTitled:@"Show Count"
+                             action:@selector(setNextItemCount:)
+                              pairs:@[@[@"1", @1], @[@"2", @2], @[@"3", @3], @[@"5", @5]]
+                        defaultsKey:@"NextItemCount"]];
+
+    [m addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *fp = [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""];
+    fp.target = self;
+
+    return m;
+}
+
 - (void)showFullPreferences:(id)sender {
     // Show the existing full menu as a popup at current mouse location
     NSMenu *full = [self buildMenu];
@@ -1601,9 +1755,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
-    NSMenu *m = [[NSMenu alloc] init];
-    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
-    return m;
+    return [self.panel buildLocalSegmentMenu];
 }
 
 @end
@@ -1635,9 +1787,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
-    NSMenu *m = [[NSMenu alloc] init];
-    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
-    return m;
+    return [self.panel buildActiveSegmentMenu];
 }
 
 @end
@@ -1668,9 +1818,7 @@ static NSFont *resolveClockFont(CGFloat size) {
 }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
-    NSMenu *m = [[NSMenu alloc] init];
-    [m addItemWithTitle:@"Full Preferences…" action:@selector(showFullPreferences:) keyEquivalent:@""].target = self.panel;
-    return m;
+    return [self.panel buildNextSegmentMenu];
 }
 
 @end
