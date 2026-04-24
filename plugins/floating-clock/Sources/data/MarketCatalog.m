@@ -28,6 +28,23 @@ const ClockMarket *marketForId(NSString *idStr) {
     return &kMarkets[0];
 }
 
+const char *flagForIana(const char *iana) {
+    if (!iana || !*iana) return "";
+    if (strcmp(iana, "America/New_York") == 0) return "\xF0\x9F\x87\xBA\xF0\x9F\x87\xB8";  // 🇺🇸
+    if (strcmp(iana, "America/Toronto") == 0)  return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xA6";  // 🇨🇦
+    if (strcmp(iana, "Europe/London") == 0)    return "\xF0\x9F\x87\xAC\xF0\x9F\x87\xA7";  // 🇬🇧
+    if (strcmp(iana, "Europe/Paris") == 0)     return "\xF0\x9F\x87\xAB\xF0\x9F\x87\xB7";  // 🇫🇷
+    if (strcmp(iana, "Europe/Berlin") == 0)    return "\xF0\x9F\x87\xA9\xF0\x9F\x87\xAA";  // 🇩🇪
+    if (strcmp(iana, "Europe/Zurich") == 0)    return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xAD";  // 🇨🇭
+    if (strcmp(iana, "Asia/Tokyo") == 0)       return "\xF0\x9F\x87\xAF\xF0\x9F\x87\xB5";  // 🇯🇵
+    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return "\xF0\x9F\x87\xAD\xF0\x9F\x87\xB0";  // 🇭🇰
+    if (strcmp(iana, "Asia/Shanghai") == 0)    return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xB3";  // 🇨🇳
+    if (strcmp(iana, "Asia/Seoul") == 0)       return "\xF0\x9F\x87\xB0\xF0\x9F\x87\xB7";  // 🇰🇷
+    if (strcmp(iana, "Asia/Kolkata") == 0)     return "\xF0\x9F\x87\xAE\xF0\x9F\x87\xB3";  // 🇮🇳
+    if (strcmp(iana, "Australia/Sydney") == 0) return "\xF0\x9F\x87\xA6\xF0\x9F\x87\xBA";  // 🇦🇺
+    return "";
+}
+
 const char *cityCodeForIana(const char *iana) {
     if (!iana || !*iana) return "LOC";
     if (strcmp(iana, "America/New_York") == 0) return "NYC";
