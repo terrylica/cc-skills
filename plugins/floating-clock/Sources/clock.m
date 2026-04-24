@@ -94,6 +94,9 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSMenu *)buildMenu;
 - (void)refreshMenuChecks:(NSMenu *)menu;
 - (NSMenuItem *)submenuTitled:(NSString *)title action:(SEL)action pairs:(NSArray *)pairs defaultsKey:(NSString *)key;
+- (NSMenuItem *)groupedSubmenuTitled:(NSString *)title action:(SEL)action groups:(NSArray *)groups defaultsKey:(NSString *)key;
+- (BOOL)setChecksInMenu:(NSMenu *)menu forKey:(NSString *)key currentValue:(id)current;
+- (BOOL)representedObject:(id)ro matchesValue:(id)v;
 - (void)applyDisplaySettings;
 - (void)toggleShowSeconds:(NSMenuItem *)sender;
 - (void)toggleShowDate:(NSMenuItem *)sender;
@@ -320,9 +323,14 @@ static NSFont *resolveClockFont(CGFloat size) {
                               pairs:@[@[@"24-hour", @"24h"], @[@"12-hour", @"12h"]]
                         defaultsKey:@"TimeFormat"]];
 
-    [m addItem:[self submenuTitled:@"Font Size" action:@selector(setFontSize:)
-                              pairs:@[@[@"18", @18], @[@"20", @20], @[@"22", @22], @[@"24", @24], @[@"28", @28], @[@"32", @32]]
-                        defaultsKey:@"FontSize"]];
+    [m addItem:[self groupedSubmenuTitled:@"Font Size"
+                                action:@selector(setFontSize:)
+                                groups:@[
+    @[@"Small",  @[@[@"10", @10.0], @[@"12", @12.0], @[@"14", @14.0], @[@"16", @16.0]]],
+    @[@"Medium", @[@[@"18", @18.0], @[@"20", @20.0], @[@"22", @22.0], @[@"24", @24.0]]],
+    @[@"Large",  @[@[@"28", @28.0], @[@"32", @32.0], @[@"36", @36.0], @[@"42", @42.0]]],
+    @[@"Huge",   @[@[@"48", @48.0], @[@"56", @56.0], @[@"64", @64.0]]],
+]                          defaultsKey:@"FontSize"]];
 
     [m addItem:[self submenuTitled:@"Opacity" action:@selector(setOpacity:)
                               pairs:@[@[@"10%", @0.10], @[@"20%", @0.20], @[@"32%", @0.32], @[@"50%", @0.50], @[@"70%", @0.70], @[@"Opaque", @1.00]]
@@ -355,6 +363,55 @@ static NSFont *resolveClockFont(CGFloat size) {
     return item;
 }
 
+- (NSMenuItem *)groupedSubmenuTitled:(NSString *)title action:(SEL)action groups:(NSArray *)groups defaultsKey:(NSString *)key {
+    NSMenuItem *root = [[NSMenuItem alloc] initWithTitle:title action:nil keyEquivalent:@""];
+    NSMenu *rootSub = [[NSMenu alloc] init];
+
+    for (NSArray *group in groups) {
+        NSString *groupTitle = group[0];
+        NSArray *items = group[1];  // array of [label, value] pairs
+
+        NSMenuItem *groupItem = [[NSMenuItem alloc] initWithTitle:groupTitle action:nil keyEquivalent:@""];
+        NSMenu *groupSub = [[NSMenu alloc] init];
+
+        for (NSArray *pair in items) {
+            NSMenuItem *leaf = [groupSub addItemWithTitle:pair[0] action:action keyEquivalent:@""];
+            leaf.representedObject = pair[1];
+            leaf.target = self;
+        }
+
+        groupItem.submenu = groupSub;
+        [rootSub addItem:groupItem];
+    }
+
+    root.submenu = rootSub;
+    return root;
+}
+
+- (BOOL)setChecksInMenu:(NSMenu *)menu forKey:(NSString *)key currentValue:(id)current {
+    BOOL anyChecked = NO;
+    for (NSMenuItem *item in menu.itemArray) {
+        if (item.submenu) {
+            BOOL childChecked = [self setChecksInMenu:item.submenu forKey:key currentValue:current];
+            // Optionally check the group item itself when one of its children is checked
+            item.state = childChecked ? NSControlStateValueMixed : NSControlStateValueOff;
+            if (childChecked) anyChecked = YES;
+        } else if (item.representedObject) {
+            BOOL match = [self representedObject:item.representedObject matchesValue:current];
+            item.state = match ? NSControlStateValueOn : NSControlStateValueOff;
+            if (match) anyChecked = YES;
+        }
+    }
+    return anyChecked;
+}
+
+- (BOOL)representedObject:(id)ro matchesValue:(id)v {
+    if ([ro isKindOfClass:[NSNumber class]] && [v isKindOfClass:[NSNumber class]]) {
+        return [ro doubleValue] == [v doubleValue];
+    }
+    return [ro isEqual:v];
+}
+
 - (void)refreshMenuChecks:(NSMenu *)menu {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
 
@@ -365,7 +422,7 @@ static NSFont *resolveClockFont(CGFloat size) {
         } else if ([item.title isEqualToString:@"Show Date"]) {
             item.state = [d boolForKey:@"ShowDate"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
-            // Update submenu items
+            // Update submenu items using recursive helper
             NSString *subTitle = item.title;
             id currentValue = nil;
 
@@ -379,17 +436,7 @@ static NSFont *resolveClockFont(CGFloat size) {
                 currentValue = [d stringForKey:@"TextColor"];
             }
 
-            for (NSMenuItem *subItem in item.submenu.itemArray) {
-                if (subItem.representedObject) {
-                    BOOL matches = NO;
-                    if ([currentValue isKindOfClass:[NSString class]]) {
-                        matches = [subItem.representedObject isEqualToString:currentValue];
-                    } else if ([currentValue isKindOfClass:[NSNumber class]]) {
-                        matches = [subItem.representedObject isEqual:currentValue];
-                    }
-                    subItem.state = matches ? NSControlStateValueOn : NSControlStateValueOff;
-                }
-            }
+            [self setChecksInMenu:item.submenu forKey:subTitle currentValue:currentValue];
         }
     }
 }
