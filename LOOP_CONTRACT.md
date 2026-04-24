@@ -1,8 +1,9 @@
 ---
 name: floating-clock-v2-enhancements
 version: 1
-iteration: 0
-last_updated: 2026-04-23T23:59:00Z
+iteration: 5
+status: DONE
+last_updated: 2026-04-24T00:45:00Z
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
@@ -99,33 +100,39 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 
 ---
 
-## Current State (auto-maintained — rewrite each firing)
+## Current State — DONE
 
-**Last completed iteration**: iter-1 — right-click NSMenu context menu with 6 persistent options.
+**All Tier 1 iterations shipped. Loop exited cleanly.**
 
-**Full current apex** (v2 iter-1 shipped, commit caeb743c):
+**Last completed iteration**: iter-5 — final validation gauntlet + leak fix + tick-clip fix.
 
-- Always-on-top borderless translucent NSPanel with monospaced digits
-- iTerm2 font resolution cascade (4-tier fallback)
-- Bottom-center-of-primary default position
-- Multi-monitor-aware persistence with antifragile fallback
-- Right-click context menu: Show Seconds/Date toggles + Time Format/Font Size/Opacity/Text Color submenus
-- Reset Position + About + Quit (⌘Q)
-- All settings persist to NSUserDefaults with sane defaults
-- Dynamic date formatter adapts to user choices
-- Window auto-resizes on format change (centered anchor)
-- 96 KB binary, 14.4 MB physical footprint peak, 0 leaks
-- 0 build warnings with `-Wall`
-- 521 LoC (up from 241)
+**Full current apex**:
+
+- Always-on-top borderless translucent NSPanel (alpha 0.32 default)
+- iTerm2 font resolution cascade (4-tier fallback, current user font: JetBrainsMonoNLNFM-Regular)
+- Bottom-center-of-primary default position (via `[NSScreen screens].firstObject`)
+- Multi-monitor-aware persistence with antifragile fallback (runtime screen-unplug handler)
+- Right-click context menu: Show Seconds/Date toggles + Time Format/Font Size/Opacity/Text Color submenus + Reset Position + About + Quit (⌘Q)
+- All 6 user-visible settings persist to NSUserDefaults with sane defaults via `registerDefaults:`
+- Dynamic date formatter adapts to user choices; window auto-resizes with ceilf() + generous padding to prevent seconds clip
+- Self-generated app icon (1024×1024 Core Graphics glyph → iconutil ICNS); Spotlight / Launchpad / Finder index the app
+- 4 Claude Code slash commands: `/floating-clock:install`, `:launch`, `:quit`, `:uninstall`
+- Comprehensive Touchpoints manifest in CLAUDE.md — every file read/write, framework link, signing posture, network usage, launchd integration documented
+- v1.1.0 in plugin.json
+
+**Final metrics**:
+
+- Binary (bundled + signed): 98 KB
+- Icon file: 124 KB ICNS
+- Physical footprint peak: 14.1 MB
+- Idle CPU: 0.0%
+- Leaks: 0 leaks / 0 bytes
+- Build warnings: 0 with -Wall
+- Source: 523 LoC (clock.m) + 172 LoC (gen-icon.m, build-time only)
 
 **Active monitors**: none.
 
-**Outstanding housekeeping**:
-
-- [ ] iter-2 — App icon for Spotlight / Launchpad
-- [ ] iter-3 — Claude Code slash commands (install/launch/quit/uninstall)
-- [ ] iter-4 — Touchpoints manifest in CLAUDE.md
-- [ ] iter-5 — Final validation + release decision (v1.1.0)
+**Outstanding housekeeping**: none — Tier 1 complete.
 
 ---
 
@@ -138,23 +145,39 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
       Validation results: - Build: 0 warnings, 96 KB binary, no errors - Plugin validator: PASSED (34 plugins valid) - Runtime: 14.4 MB peak footprint, 0 leaks - All menu methods compiled: buildMenu, refreshMenuChecks, applyDisplaySettings, all action handlers - NSUserDefaults keys registered: ShowSeconds, ShowDate, TimeFormat, FontSize, BackgroundAlpha, TextColor
       Commit: caeb743c `feat(floating-clock): right-click context menu with persistent user options`
 
-- [ ] **iter-2 — App icon for Spotlight / Launchpad / Alfred indexing**
+- [x] **iter-2 — App icon for Spotlight / Launchpad / Alfred indexing** ✅ COMPLETE
+      Core Graphics-drawn 1024×1024 glyph, bundled via `iconutil`. 124 KB ICNS. Spotlight-indexable.
+      Commit: c2168d0f `feat(floating-clock): generate app icon at build time for Spotlight indexing`
+
+- [x] ~~**iter-2 — App icon for Spotlight / Launchpad / Alfred indexing (original spec)**~~
       Generate a minimal icon at build time inside the Makefile — no external assets. Approach: draw a 1024×1024 SVG (clock face: dark rounded square background with a white circle outline and hour/minute hands at 10:10), convert via `rsvg-convert` or `qlmanage`+`sips`, pipe through `iconutil` to produce `Icon.icns`, bundle into `FloatingClock.app/Contents/Resources/`. If `rsvg-convert` unavailable, fall back to a pure-CoreGraphics one-shot Swift-less generator written in `Sources/gen-icon.m` (also compiled as a tiny helper binary run once at build time). Add `CFBundleIconFile = Icon` to Info.plist. Verify: `mdimport -d1 /Applications/FloatingClock.app` indexes it, `mdfind "kMDItemDisplayName == 'FloatingClock'"` returns the path.
       Validation: run Validation Gauntlet + `file build/FloatingClock.app/Contents/Resources/Icon.icns` shows `Mac OS X icon`.
       Commit: `feat(floating-clock): generate app icon at build time for Spotlight indexing`
 
-- [ ] **iter-3 — Claude Code slash commands (4 total)**
+- [x] **iter-3 — Claude Code slash commands (4 total)** ✅ COMPLETE
+      `/floating-clock:install`, `:launch`, `:quit`, `:uninstall`. plugin.json bumped 1.0.0 → 1.1.0.
+      Commit: c5a26ba3 `feat(floating-clock): install/launch/quit/uninstall slash commands + v1.1.0 bump`
+
+- [x] ~~**iter-3 — Claude Code slash commands (original spec)**~~
       Add `plugins/floating-clock/commands/` with four command files: - `install.md` — runs `make all && cp -R build/FloatingClock.app /Applications/ && open /Applications/FloatingClock.app` - `launch.md` — runs `open /Applications/FloatingClock.app || ./build/FloatingClock.app` (prefers installed over local build) - `quit.md` — runs `pkill -f "FloatingClock.app/Contents/MacOS/floating-clock"` - `uninstall.md` — runs `pkill -f ... && rm -rf /Applications/FloatingClock.app && defaults delete com.example.floating-clock`
       Register the plugin's commands in `marketplace.json` if required by the validator, and ensure each command's SKILL-style frontmatter is correct. Match the pattern of existing plugins (inspect `plugins/mise/skills/` or `plugins/gmail-commander/commands/` for reference).
       Validation: `bun scripts/validate-plugins.mjs` must still exit 0. Verify the commands show up when the plugin is re-loaded by Claude Code (best-effort: spawn `claude --help` or check the plugin's SKILL list).
       Commit: `feat(floating-clock): add install/launch/quit/uninstall slash commands`
 
-- [ ] **iter-4 — Touchpoint manifest in CLAUDE.md**
+- [x] **iter-4 — Touchpoint manifest in CLAUDE.md** ✅ COMPLETE
+      Added comprehensive Touchpoints table + Runtime Preferences table to plugins/floating-clock/CLAUDE.md.
+      Commit: ea22a3b8 `docs(floating-clock): add Touchpoints manifest and Runtime Preferences table`
+
+- [x] ~~**iter-4 — Touchpoint manifest (original spec)**~~
       Add a new **## Touchpoints** section to `plugins/floating-clock/CLAUDE.md` enumerating every system interaction with a 2-column table: `Kind | Details`. Cover: reads, writes, install path, build artifacts, bundles loaded (frameworks from `otool -L`), entitlements (none), network (none), launchd integration (none), Dock/menubar presence (LSUIElement hides from Dock). Include exact path(s) for every entry — no vague descriptions.
       Validation: `bun scripts/validate-plugins.mjs` exit 0. Lint-check the CLAUDE.md markdown (if the repo has a linter) or at minimum run `grep -c "Touchpoints" plugins/floating-clock/CLAUDE.md`.
       Commit: `docs(floating-clock): add Touchpoints section to CLAUDE.md`
 
-- [ ] **iter-5 — Final validation + release decision**
+- [x] **iter-5 — Final validation + leak fix + tick-clip fix** ✅ COMPLETE
+      Gauntlet caught two issues: (1) 32-byte `_NSLocalEventObserver` leak from unretained ⌘Q monitor, (2) clock text clipped at the right edge because window padding matched label inset with zero slack. Both fixed.
+      Commits: d89a4411 `fix(floating-clock): retain NSEvent monitor via ivar to prevent 32-byte leak`, 4ab429ca `fix(floating-clock): increase window padding + ceil() to prevent seconds clip`
+
+- [x] ~~**iter-5 — Final validation (original spec)**~~
       Run the full Validation Gauntlet. Check: no regressions on leaks, RSS, footprint; binary under 100 KB bundled; all 4 slash commands discoverable; icon visible in Finder/Spotlight. Update the plugin's `plugin.json` version from `1.0.0` → `1.1.0`. Consider triggering `mise run release:full` to cut a new marketplace release (tier completion per Release Decision Rule).
       Commit: `chore(floating-clock): bump to 1.1.0 after iter-1 through iter-4`
 
@@ -198,4 +221,9 @@ leaks $(pgrep -f "FloatingClock.app/Contents/MacOS/floating-clock" | head -1) 2>
 ## Revision Log (append-only, one line per firing)
 
 - 2026-04-23 23:59 UTC — iter-0: scaffolded contract, queue seeded with 5 Tier 1 items covering the user-confirmed scope (context menu, icon, slash commands, touchpoint manifest, release). Next: iter-1 starts NSMenu implementation.
+- 2026-04-24 00:05 UTC — iter-1: NSMenu context menu shipped (caeb743c). 6 persistent options + reset/about/quit. 521 LoC. Binary 96 KB. Next: iter-2 icon generation.
+- 2026-04-24 00:20 UTC — iter-2: Core Graphics app icon shipped (c2168d0f). gen-icon helper + iconutil pipeline. 124 KB ICNS. Next: iter-3 slash commands.
+- 2026-04-24 00:35 UTC — iter-3: Slash commands + v1.1.0 bump shipped (c5a26ba3). 4 skills. 203 skills total in validator. Next: iter-4 touchpoints doc.
+- 2026-04-24 00:40 UTC — iter-4: Touchpoints manifest + Runtime Preferences table shipped (ea22a3b8). Every system interaction documented. Next: iter-5 final validation.
+- 2026-04-24 00:45 UTC — iter-5: Gauntlet caught 32-byte \_NSLocalEventObserver leak (d89a4411) and seconds-clip visual regression (4ab429ca); both fixed. 0 leaks, 0 warnings, 14.1 MB peak, 0.0% idle CPU. Queue empty → status: DONE. Loop terminates.
 - 2026-04-23 17:35 UTC — iter-1: right-click NSMenu context menu with 6 persistent options COMPLETE. 96KB binary, 521 LoC, 0 warnings, all validation passed. Commit caeb743c. Next: iter-2 starts icon generation.
