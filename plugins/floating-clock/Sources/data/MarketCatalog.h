@@ -30,4 +30,10 @@ const char *cityCodeForIana(const char * _Nullable iana);
 // Returns empty string for IANA zones without a mapping (never crashes).
 const char *flagForIana(const char * _Nullable iana);
 
+// Friendly timezone abbreviation (e.g. BST, CEST, JST, EDT) for a given
+// IANA zone and date — bypasses NSTimeZone's GMT+N fallback behavior on
+// macOS and returns real regional forms. DST-aware for zones that observe
+// it. Falls back to NSTimeZone's abbreviation when the zone is unknown.
+NSString *friendlyAbbrevForIana(const char * _Nullable iana, NSDate *date);
+
 NS_ASSUME_NONNULL_END
