@@ -16,10 +16,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSMenuItem *)groupedSubmenuTitled:(NSString *)title action:(SEL)action groups:(NSArray *)groups defaultsKey:(NSString *)key;
 - (BOOL)setChecksInMenu:(NSMenu *)menu forKey:(NSString *)key currentValue:(id)current;
 - (BOOL)representedObject:(id)ro matchesValue:(id)v;
-- (NSMenu *)buildLocalSegmentMenu;
-- (NSMenu *)buildActiveSegmentMenu;
-- (NSMenu *)buildNextSegmentMenu;
-- (void)showFullPreferences:(id)sender;
 - (NSMenuItem *)buildProfileMenu;
 
 @end
