@@ -304,6 +304,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     NSMenuItem *profileItem = [self buildProfileMenu];
     [m addItem:profileItem];
 
+    // === QUICK STYLE === (v4 iter-102)
+    // Like Profile but scoped to aesthetic levers only — doesn't touch
+    // FontSize, SelectedMarket, DisplayMode, Profiles catalog, etc.
+    // Picking a Quick Style sets 6-8 prefs atomically to evoke a mood.
+    [m addItem:[self buildQuickStylesMenu]];
+
     // === WINDOW ===
     NSMutableArray *windowItems = [NSMutableArray array];
     // v4 iter-85: clipboard snapshot — quick share of current state.
@@ -384,6 +390,61 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
         }
         delRoot.submenu = delSub;
         [sub addItem:delRoot];
+    }
+
+    root.submenu = sub;
+    return root;
+}
+
+// v4 iter-102: Quick Style presets. Each entry is a dictionary of
+// NSUserDefaults keys → values. applyQuickStyle: writes them all at
+// once. Scoped to aesthetic levers only: Theme (3 segments), Corner/
+// Shadow, Density/LineSpacing/LetterSpacing, FontWeight, TimeSeparator.
+// Deliberately omits: FontSize, SelectedMarket, DisplayMode — those
+// are user-chosen scale/content prefs, not aesthetic mood.
+- (NSMenuItem *)buildQuickStylesMenu {
+    NSMenuItem *root = [[NSMenuItem alloc] initWithTitle:@"Quick Style"
+                                                   action:nil
+                                            keyEquivalent:@""];
+    NSMenu *sub = [[NSMenu alloc] init];
+
+    NSDictionary *brutalist = @{
+        @"LocalTheme": @"high_contrast", @"ActiveTheme": @"high_contrast", @"NextTheme": @"high_contrast",
+        @"CornerStyle": @"sharp", @"ShadowStyle": @"crisp", @"Density": @"compact",
+        @"FontWeight": @"heavy", @"LetterSpacing": @"wide", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"dash",
+    };
+    NSDictionary *zen = @{
+        @"LocalTheme": @"soft_glass", @"ActiveTheme": @"soft_glass", @"NextTheme": @"soft_glass",
+        @"CornerStyle": @"soft", @"ShadowStyle": @"halo", @"Density": @"comfortable",
+        @"FontWeight": @"regular", @"LetterSpacing": @"airy", @"LineSpacing": @"loose",
+        @"TimeSeparator": @"space",
+    };
+    NSDictionary *retro = @{
+        @"LocalTheme": @"amber_crt", @"ActiveTheme": @"amber_crt", @"NextTheme": @"amber_crt",
+        @"CornerStyle": @"sharp", @"ShadowStyle": @"none", @"Density": @"compact",
+        @"FontWeight": @"medium", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"colon",
+    };
+    NSDictionary *executive = @{
+        @"LocalTheme": @"paper_white", @"ActiveTheme": @"paper_white", @"NextTheme": @"paper_white",
+        @"CornerStyle": @"rounded", @"ShadowStyle": @"subtle", @"Density": @"default",
+        @"FontWeight": @"semibold", @"LetterSpacing": @"tight", @"LineSpacing": @"normal",
+        @"TimeSeparator": @"colon",
+    };
+
+    NSArray *styles = @[
+        @[@"Brutalist",  brutalist],
+        @[@"Zen",        zen],
+        @[@"Retro CRT",  retro],
+        @[@"Executive",  executive],
+    ];
+    for (NSArray *style in styles) {
+        NSMenuItem *it = [sub addItemWithTitle:style[0]
+                                         action:@selector(applyQuickStyle:)
+                                  keyEquivalent:@""];
+        it.representedObject = style[1];
+        it.target = self;
     }
 
     root.submenu = sub;
