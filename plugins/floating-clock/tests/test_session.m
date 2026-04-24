@@ -23,6 +23,7 @@
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "test_levers.h"
+#import "test_holidays.h"  // iter-176 extraction
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -560,122 +561,11 @@ static void test_flag_emoji_present_for_all_markets(void) {
     }
 }
 
-static void test_holiday_calendar_nyse(void) {
-    // v4 iter-173: pure-data lookup test for FCIsMarketHoliday.
-    // Does NOT yet test session-state integration — wiring into
-    // computeSessionState is a separate iter.
-    const ClockMarket *nyse = marketForId(@"nyse");
-    const ClockMarket *tse  = marketForId(@"tse");
-
-    // Sample NYSE 2026 holidays (fixture-locked).
-    NSDate *thanksgiving = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
-    NSDate *christmas    = dateAt(@"America/New_York", 2026, 12, 25, 12, 0, 0);
-    NSDate *newYears     = dateAt(@"America/New_York", 2026,  1,  1, 12, 0, 0);
-    if (!FCIsMarketHoliday(nyse, thanksgiving)) {
-        failures++; fprintf(stderr, "FAIL %s: Thanksgiving not flagged\n", __func__);
-    }
-    if (!FCIsMarketHoliday(nyse, christmas)) {
-        failures++; fprintf(stderr, "FAIL %s: Christmas not flagged\n", __func__);
-    }
-    if (!FCIsMarketHoliday(nyse, newYears)) {
-        failures++; fprintf(stderr, "FAIL %s: New Year's Day not flagged\n", __func__);
-    }
-
-    // Regular trading day should NOT be flagged.
-    NSDate *regularFriday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
-    if (FCIsMarketHoliday(nyse, regularFriday)) {
-        failures++; fprintf(stderr, "FAIL %s: Fri 2026-04-24 wrongly flagged\n", __func__);
-    }
-
-    // TSE has no hardcoded data yet — must return NO even on a real
-    // Japanese holiday (don't silently claim to know).
-    NSDate *japaneseShogatsu = dateAt(@"Asia/Tokyo", 2026, 1, 1, 12, 0, 0);
-    if (FCIsMarketHoliday(tse, japaneseShogatsu)) {
-        failures++; fprintf(stderr, "FAIL %s: TSE should have no holiday data yet\n", __func__);
-    }
-
-    // Defensive: nil mkt + nil date return NO.
-    if (FCIsMarketHoliday(NULL, thanksgiving)) {
-        failures++; fprintf(stderr, "FAIL %s: nil mkt should return NO\n", __func__);
-    }
-    if (FCIsMarketHoliday(nyse, nil)) {
-        failures++; fprintf(stderr, "FAIL %s: nil date should return NO\n", __func__);
-    }
-}
-
-static void test_holiday_calendar_lse(void) {
-    // v4 iter-175: LSE 2026 bank-holiday lookup. Covers the distinct
-    // UK calendar — Easter Monday (not observed US-side), Spring bank
-    // holiday (last Monday of May), Boxing Day observed Dec 28 because
-    // Dec 26 2026 is Saturday. Mirrors the NYSE test's coverage shape.
-    const ClockMarket *lse  = marketForId(@"lse");
-    const ClockMarket *nyse = marketForId(@"nyse");
-
-    // LSE-distinctive holidays.
-    NSDate *easterMonday = dateAt(@"Europe/London", 2026, 4, 6, 12, 0, 0);
-    NSDate *springBank   = dateAt(@"Europe/London", 2026, 5, 25, 12, 0, 0);
-    NSDate *summerBank   = dateAt(@"Europe/London", 2026, 8, 31, 12, 0, 0);
-    NSDate *boxingObs    = dateAt(@"Europe/London", 2026, 12, 28, 12, 0, 0);
-    if (!FCIsMarketHoliday(lse, easterMonday)) {
-        failures++; fprintf(stderr, "FAIL %s: Easter Monday not flagged\n", __func__);
-    }
-    if (!FCIsMarketHoliday(lse, springBank)) {
-        failures++; fprintf(stderr, "FAIL %s: Spring bank holiday not flagged\n", __func__);
-    }
-    if (!FCIsMarketHoliday(lse, summerBank)) {
-        failures++; fprintf(stderr, "FAIL %s: Summer bank holiday not flagged\n", __func__);
-    }
-    if (!FCIsMarketHoliday(lse, boxingObs)) {
-        failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed Dec 28) not flagged\n", __func__);
-    }
-
-    // LSE does NOT observe NYSE's Thanksgiving — fixture that was a
-    // "holiday" for NYSE must come back as non-holiday for LSE.
-    NSDate *thanksgiving = dateAt(@"Europe/London", 2026, 11, 26, 12, 0, 0);
-    if (FCIsMarketHoliday(lse, thanksgiving)) {
-        failures++; fprintf(stderr, "FAIL %s: LSE wrongly flagged Thanksgiving\n", __func__);
-    }
-
-    // Symmetric: NYSE should not flag LSE-distinct Easter Monday (US
-    // markets trade Easter Monday regular session).
-    if (FCIsMarketHoliday(nyse, easterMonday)) {
-        failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Easter Monday\n", __func__);
-    }
-
-    // Regular LSE trading day should NOT be flagged.
-    NSDate *regularWed = dateAt(@"Europe/London", 2026, 3, 11, 12, 0, 0);
-    if (FCIsMarketHoliday(lse, regularWed)) {
-        failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on LSE\n", __func__);
-    }
-}
-
-static void test_nyse_holiday_state_closed(void) {
-    // v4 iter-174: integration lock. iter-173 tested FCIsMarketHoliday
-    // as a pure function; this test verifies the result is actually
-    // consumed by computeSessionState — specifically, that NYSE on
-    // Thanksgiving 2026 returns kSessionClosed even at 12:00 ET
-    // (normally mid-session). Also locks down that the PRE-MARKET and
-    // AFTER-HOURS promotions are blocked on holidays: without the
-    // guard, 09:15 (15 min pre-open) and 16:15 (15 min post-close)
-    // would promote to PRE/AFTER respectively.
-    const ClockMarket *nyse = marketForId(@"nyse");
-
-    // Mid-session on Thanksgiving → CLOSED (not OPEN).
-    NSDate *thanksgivingMidday = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
-    ASSERT_STATE(nyse, thanksgivingMidday, kSessionClosed);
-
-    // Pre-open window on Thanksgiving → CLOSED (not PRE-MARKET).
-    NSDate *thanksgivingPreOpen = dateAt(@"America/New_York", 2026, 11, 26, 9, 25, 0);
-    ASSERT_STATE(nyse, thanksgivingPreOpen, kSessionClosed);
-
-    // Post-close window on Thanksgiving → CLOSED (not AFTER-HOURS).
-    NSDate *thanksgivingPostClose = dateAt(@"America/New_York", 2026, 11, 26, 16, 5, 0);
-    ASSERT_STATE(nyse, thanksgivingPostClose, kSessionClosed);
-
-    // Sanity: a regular Friday (2026-04-24) mid-session still OPEN.
-    NSDate *regularFridayMidday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
-    ASSERT_STATE(nyse, regularFridayMidday, kSessionOpen);
-}
+// v4 iter-176: holiday-calendar tests moved to tests/test_holidays.m
+// when this file hit the 1000-LoC file-size-guard. Function bodies
+// for test_holiday_calendar_{nyse,lse,tse} + test_nyse_holiday_state_closed
+// now live there; they're declared in test_holidays.h and called from
+// main() below as if still local.
 
 static void test_market_roster_lock(void) {
     // v4 iter-156: lock the 13-exchange roster (post-iter-155 JSE).
@@ -935,6 +825,7 @@ int main(void) {
         test_market_roster_lock();
         test_holiday_calendar_nyse();
         test_holiday_calendar_lse();
+        test_holiday_calendar_tse();
         test_nyse_holiday_state_closed();
         test_flag_empty_for_unknown_iana();
 
@@ -975,7 +866,7 @@ int main(void) {
         test_urgency_color_tiers();
 
         if (failures == 0) {
-            fprintf(stderr, "All 67 tests passed.\n");
+            fprintf(stderr, "All 68 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
