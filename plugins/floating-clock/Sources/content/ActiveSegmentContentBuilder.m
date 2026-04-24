@@ -31,7 +31,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         double progress;
         long secsToNext;
         computeSessionState(m, now, &state, &progress, &secsToNext);
-        if (state == kSessionOpen || state == kSessionLunch) {
+        if (FCStateIsTrading(state)) {  // iter-168
             NSString *iana = [NSString stringWithUTF8String:m->iana];
             NSInteger idx = [groupIanas indexOfObject:iana];
             if (idx == NSNotFound) {

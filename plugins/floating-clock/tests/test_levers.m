@@ -572,6 +572,30 @@ void test_clipboard_header_format(void) {
     }
 }
 
+void test_state_is_trading(void) {
+    // iter-168: lock FCStateIsTrading's 5-state mapping. OPEN/LUNCH
+    // → YES (caller should draw progress bar + countdown).
+    // CLOSED/PRE-MARKET/AFTER-HOURS → NO (caller should draw the
+    // "opens in Xh" path). The whole point of the extraction is to
+    // prevent drift across 3 inline callsites; this test locks the
+    // canonical mapping so a silent flip would fail CI.
+    struct { SessionState s; BOOL trading; } cases[] = {
+        {kSessionOpen,       YES},
+        {kSessionLunch,      YES},
+        {kSessionClosed,     NO},
+        {kSessionPreMarket,  NO},
+        {kSessionAfterHours, NO},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        BOOL got = FCStateIsTrading(cases[i].s);
+        if (got != cases[i].trading) {
+            failures++;
+            fprintf(stderr, "FAIL %s: state %d → %d (want %d)\n",
+                    __func__, (int)cases[i].s, got, cases[i].trading);
+        }
+    }
+}
+
 void test_session_state_color(void) {
     // iter-154: completes the (glyph, label, color) triad's test
     // coverage alongside existing glyphForState + labelForState

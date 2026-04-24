@@ -35,6 +35,7 @@ void test_shadow_spec_catalog(void);
 void test_session_signal_window(void);
 void test_session_state_label(void);
 void test_session_state_color(void);
+void test_state_is_trading(void);
 void test_clipboard_header_format(void);
 void test_urgency_color_tiers(void);
 
