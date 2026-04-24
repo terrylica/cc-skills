@@ -91,13 +91,13 @@ NSString *formatCountdown(long secs) {
 // the (filled, empty) pair. Default = "blocks" (current 1/8-width heavy
 // block + medium shade). Adding a new style = one extra if-branch here.
 static void fcGlyphsForStyle(NSString *styleId, NSString **filled, NSString **empty) {
-    if ([styleId isEqualToString:@"dots"])    { *filled = @"●"; *empty = @"○"; return; }
+    if ([styleId isEqualToString:@"blocks"])  { *filled = @"█"; *empty = @"▒"; return; }
     if ([styleId isEqualToString:@"dashes"])  { *filled = @"━"; *empty = @"╌"; return; }
     if ([styleId isEqualToString:@"arrows"])  { *filled = @"▶"; *empty = @"▷"; return; }
     if ([styleId isEqualToString:@"binary"])  { *filled = @"█"; *empty = @"░"; return; }
     if ([styleId isEqualToString:@"braille"]) { *filled = @"⣿"; *empty = @"⣀"; return; }
-    // Default "blocks".
-    *filled = @"█"; *empty = @"▒";
+    // Default "dots" (v4 iter-35 user directive).
+    *filled = @"●"; *empty = @"○";
 }
 
 NSString *buildProgressBar(double progress01, int totalCells) {
