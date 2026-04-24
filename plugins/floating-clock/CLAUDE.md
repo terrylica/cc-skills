@@ -56,6 +56,7 @@ local pragma delta from upstream (iter-81).
 | `/floating-clock:install`   | Build + copy to `/Applications/` + launch                                        |
 | `/floating-clock:launch`    | Open the installed (or local) app                                                |
 | `/floating-clock:quit`      | Terminate the running clock                                                      |
+| `/floating-clock:diagnose`  | One-page health report (binary info, signing, process, active profile, tests)    |
 | `/floating-clock:uninstall` | Quit, remove from `/Applications/`, clear NSUserDefaults (confirmation required) |
 
 ## Design
