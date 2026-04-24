@@ -107,13 +107,20 @@
 }
 
 - (void)applyTheme:(const ClockTheme *)theme toSegmentView:(NSView *)seg textField:(NSTextField *)field {
-    // Canvas-only transparency: multiply the theme bg alpha by CanvasOpacity
-    // so ONLY the backgrounds dim. Text always renders at alpha=1.0.
+    // CanvasOpacity is the direct backdrop alpha. "Opaque (100%)" means
+    // genuinely opaque — user expectation. Theme's built-in alpha field
+    // is the fallback when no CanvasOpacity is set (fresh install now
+    // defaults to 1.0 so fresh look is opaque; user picks lower from menu
+    // if they want see-through). Text always stays at alpha=1.0.
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    double op = [d objectForKey:@"CanvasOpacity"] ? [d doubleForKey:@"CanvasOpacity"] : 1.0;
-    if (op < 0.10) op = 0.10;
-    if (op > 1.00) op = 1.00;
-    CGFloat bgAlpha = theme->alpha * op;
+    CGFloat bgAlpha;
+    if ([d objectForKey:@"CanvasOpacity"]) {
+        bgAlpha = [d doubleForKey:@"CanvasOpacity"];
+    } else {
+        bgAlpha = theme->alpha;
+    }
+    if (bgAlpha < 0.10) bgAlpha = 0.10;
+    if (bgAlpha > 1.00) bgAlpha = 1.00;
     seg.layer.backgroundColor = [[NSColor colorWithRed:theme->bg_r green:theme->bg_g blue:theme->bg_b alpha:bgAlpha] CGColor];
     field.textColor = [NSColor colorWithRed:theme->fg_r green:theme->fg_g blue:theme->fg_b alpha:1.0];
 }

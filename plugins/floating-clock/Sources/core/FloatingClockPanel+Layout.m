@@ -158,15 +158,12 @@
     _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
 
     // LOCAL label centered inside its row (ascender + |descender| + 25% slack).
-    // Use boundingRectForFont for the true glyph bounding box — NSFont.ascender
-    // clips cap-height extensions for many fonts (F, A, uppercase digits),
-    // causing top-shave at small-to-mid sizes. boundingRectForFont.height
-    // gives the full outline box; pad 6pt more for extra safety margin.
-    CGFloat boundingH = primaryFont.boundingRectForFont.size.height;
-    CGFloat ascDesc   = primaryFont.ascender + fabs(primaryFont.descender);
-    CGFloat localLabelH = ceilf(MAX(boundingH, ascDesc) + 6);
-    CGFloat localLabelY = floorf((localH - localLabelH) / 2.0);
-    _localSeg.timeLabel.frame     = NSMakeRect(8, localLabelY, localW - 16, localLabelH);
+    // LOCAL label frame = full segment height. NSTextFieldCell draws text
+    // within with built-in vertical metrics; clipping only happens when
+    // the label frame is too tight vs the cell's internal layout box.
+    // Full-height frame gives the cell enough room for ascent + descent +
+    // line leading + its own ~2pt internal padding.
+    _localSeg.timeLabel.frame     = NSMakeRect(8, 0, localW - 16, localH);
     _activeSeg.contentLabel.frame = NSMakeRect(8, 0, activeW - 16, activeH);
     _nextSeg.contentLabel.frame   = NSMakeRect(8, 0, nextW - 16, nextH);
 
