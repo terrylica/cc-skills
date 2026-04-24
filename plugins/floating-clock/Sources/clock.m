@@ -1,4 +1,6 @@
 #import <Cocoa/Cocoa.h>
+#import "rendering/VerticallyCenteredTextFieldCell.h"
+#import "rendering/AttributedStringLayoutMeasurer.h"
 
 // # FILE-SIZE-OK
 
@@ -425,90 +427,9 @@ static NSFont *resolveClockFont(CGFloat size) {
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
-// Vertically-centering text cell for multi-line attributed strings.
-// NSTextFieldCell has no built-in vertical centering — multi-line text anchors
-// to the cell top, and any extra frame height manifests as bottom whitespace.
-//
-// The SOTA measurement uses NSLayoutManager + NSTextStorage + NSTextContainer
-// after forced layout. NSAttributedString.size / boundingRectWithSize and
-// NSCell.cellSizeForBounds all MISMEASURE multi-line attributed content with
-// per-range color/font attributes. usedRectForTextContainer queries actual
-// laid-out glyph bounds — the authoritative answer.
-//
-// Critical gotchas:
-//  1) lineFragmentPadding defaults to 5.0 — must be 0 for pixel-accurate height
-//  2) Layout is lazy — force with [layoutManager glyphRangeForTextContainer:]
-//  3) Attach order: addTextContainer: to LM FIRST, then addLayoutManager: to storage
-@interface VCenteredCell : NSTextFieldCell
-@end
-
-// Authoritative unwrapped multi-line measurement (width + height).
-// Per VCenteredCell's notes: NSAttributedString.size / boundingRectWithSize /
-// cellSizeForBounds all mismeasure mixed-attribute multi-line content.
-// Only NSLayoutManager.usedRectForTextContainer (after forced layout) is correct.
-//
-// AppKit quirk: usedRectForTextContainer does NOT include the trailing line
-// fragment when the string ends with "\n". Every market row in the active
-// segment ends with \n, so the final row gets clipped. Pad one line-height
-// when the last char is a newline.
-static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
-    if (attr.length == 0) return NSZeroSize;
-    NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:attr];
-    NSTextContainer *container = [[NSTextContainer alloc]
-        initWithContainerSize:NSMakeSize(FLT_MAX, FLT_MAX)];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    [lm addTextContainer:container];
-    [storage addLayoutManager:lm];
-    container.lineFragmentPadding = 0.0;
-    (void)[lm glyphRangeForTextContainer:container];
-    NSSize s = [lm usedRectForTextContainer:container].size;
-    NSString *str = attr.string;
-    if (str.length > 0 && [str characterAtIndex:str.length - 1] == '\n') {
-        NSFont *f = [attr attribute:NSFontAttributeName atIndex:str.length - 1 effectiveRange:NULL];
-        if (!f) f = [NSFont systemFontOfSize:[NSFont systemFontSize]];
-        s.height += [lm defaultLineHeightForFont:f];
-    }
-    return s;
-}
-
-@implementation VCenteredCell
-
-- (CGFloat)measuredHeightForWidth:(CGFloat)width {
-    NSAttributedString *attr = self.attributedStringValue;
-    if (attr.length == 0) return 0;
-    NSTextStorage *storage = [[NSTextStorage alloc] initWithAttributedString:attr];
-    NSTextContainer *container = [[NSTextContainer alloc]
-        initWithContainerSize:NSMakeSize(width > 0 ? width : FLT_MAX, FLT_MAX)];
-    NSLayoutManager *lm = [[NSLayoutManager alloc] init];
-    [lm addTextContainer:container];
-    [storage addLayoutManager:lm];
-    container.lineFragmentPadding = 0.0;
-    (void)[lm glyphRangeForTextContainer:container];
-    CGFloat h = [lm usedRectForTextContainer:container].size.height;
-    // usedRect omits the trailing line fragment when the string ends with
-    // "\n" — every active-segment row ends with \n. Pad one line-height so
-    // the final row isn't clipped inside VCenteredCell's drawing rect.
-    NSString *str = attr.string;
-    if (str.length > 0 && [str characterAtIndex:str.length - 1] == '\n') {
-        NSFont *f = [attr attribute:NSFontAttributeName atIndex:str.length - 1 effectiveRange:NULL];
-        if (!f) f = [NSFont systemFontOfSize:[NSFont systemFontSize]];
-        h += [lm defaultLineHeightForFont:f];
-    }
-    return h;
-}
-
-- (NSRect)drawingRectForBounds:(NSRect)theRect {
-    NSRect newRect = [super drawingRectForBounds:theRect];
-    CGFloat measured = [self measuredHeightForWidth:newRect.size.width];
-    if (measured <= 0) return newRect;
-    CGFloat heightDelta = newRect.size.height - measured;
-    if (heightDelta > 0) {
-        newRect.origin.y += heightDelta / 2.0;
-        newRect.size.height = measured;
-    }
-    return newRect;
-}
-@end
+// Rendering helpers moved to Sources/rendering/ modules:
+//   VerticallyCenteredTextFieldCell — multi-line vertical centering
+//   AttributedStringLayoutMeasurer — FCMeasureAttributedUnwrapped
 
 // Three-segment NSView subclasses for iter-11 three-segment layout
 @interface LocalSegmentView : NSView
@@ -1561,7 +1482,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     NSDictionary *contentAttrs = @{NSFontAttributeName: contentFont};
 
     _localSeg.timeLabel.font = primaryFont;
-    // Measure LOCAL using the same NSLayoutManager path that VCenteredCell
+    // Measure LOCAL using the same NSLayoutManager path that VerticallyCenteredTextFieldCell
     // uses for rendering — keeps measurement and render in lockstep so the
     // segment height always has enough slack for glyph ascent/descent at
     // any font size. sizeWithAttributes alone under-reports cap-height for
@@ -1570,7 +1491,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
         ? _localSeg.timeLabel.stringValue : @"HH:MM:SS";
     NSAttributedString *localAttr = [[NSAttributedString alloc]
         initWithString:localStr attributes:primaryAttrs];
-    NSSize localSize = measureAttributedUnwrapped(localAttr);
+    NSSize localSize = FCMeasureAttributedUnwrapped(localAttr);
     if (localSize.height < 10) {
         localSize = [localStr sizeWithAttributes:primaryAttrs];
     }
@@ -1582,12 +1503,12 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     _localSeg.timeLabel.cell.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.usesSingleLineMode = YES;
 
-    NSSize activeSize = measureAttributedUnwrapped(_activeSeg.contentLabel.attributedStringValue);
+    NSSize activeSize = FCMeasureAttributedUnwrapped(_activeSeg.contentLabel.attributedStringValue);
     if (activeSize.height < 10) {
         activeSize = [@"ACTIVE (—)" sizeWithAttributes:contentAttrs];
     }
 
-    NSSize nextSize = measureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
+    NSSize nextSize = FCMeasureAttributedUnwrapped(_nextSeg.contentLabel.attributedStringValue);
     if (nextSize.height < 10) {
         nextSize = [@"NEXT TO OPEN" sizeWithAttributes:contentAttrs];
     }
@@ -1638,7 +1559,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     _activeSeg.frame = NSMakeRect(bottomPairX, bottomY, activeSegWidth, bottomRowHeight);
     _nextSeg.frame   = NSMakeRect(bottomPairX + activeSegWidth + 4, bottomY, nextSegWidth, bottomRowHeight);
 
-    // LOCAL: full-segment frame, VCenteredCell does the centering. Adaptive
+    // LOCAL: full-segment frame, VerticallyCenteredTextFieldCell does the centering. Adaptive
     // at any font size. Previous direct-positioning approach sized the
     // frame to sizeWithAttributes height, which is the nominal line height
     // and excludes glyph cap-height extensions above — resulting in the top
@@ -2298,7 +2219,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
     cell.editable = NO;
     cell.selectable = NO;
     cell.bezeled = NO;
@@ -2329,7 +2250,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
     cell.editable = NO;
     cell.selectable = NO;
     cell.bezeled = NO;
@@ -2363,7 +2284,7 @@ static NSSize measureAttributedUnwrapped(NSAttributedString *attr) {
     self.layer.cornerRadius = 6.0;
 
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    VCenteredCell *cell = [[VCenteredCell alloc] initTextCell:@""];
+    VerticallyCenteredTextFieldCell *cell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
     cell.editable = NO;
     cell.selectable = NO;
     cell.bezeled = NO;
