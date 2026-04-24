@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 107
+iteration: 108
 status: ACTIVE
-last_updated: 2026-04-24T09:40:00Z
+last_updated: 2026-04-24T09:50:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -541,3 +541,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 09:20 UTC — iter-105: **Quick Styles 4 → 6** (c40f2d6b). Two new moods: `Neon` (synthwave palette, glow shadow, hairline corner, heavy/wide/dash — retrowave) and `Hacker` (green_phosphor, sharp corners, no shadow, bold/tight/colon — terminal-like). Pure data add in FloatingClockQuickStyles.m; iter-104's invariant test re-runs on all 6 bundles. 32/32 still green.
 - 2026-04-24 09:30 UTC — iter-106: **Quick Styles 6 → 8** (f81be094). Two cool-palette moods: `Glacier` (nord palette, squircle, subtle shadow, regular/normal/middot — calm / wintry) and `Midnight` (midnight_blue, soft corner, halo shadow, medium/normal/colon — observatory vibe). Pure data. 32/32 still green.
 - 2026-04-24 09:40 UTC — iter-107: **retroactive TimeSeparator tests** (89afc259). iter-98's helpers (`fcTimeSeparatorPattern`, `fcBuildTimeFormat`) were file-scoped statics in Runtime.m, untestable. Extracted to single public `FCCurrentTimeFormat(is12h, showSec)` in FontResolver.{h,m}. Runtime.m's 3 call sites route through the public API. Tests +1 (33 total) covers 5 separator ids × 2 time-format variants + unknown-id fallback. 33/33 green, 216 KB binary.
+- 2026-04-24 09:50 UTC — iter-108: **SegmentGap 5 → 7** (6397d8a1). Two new presets bracket the existing range: `flush` (0pt — borderless, segments touch) and `cavernous` (24pt — most generous). Gap span now 0pt → 24pt. Pure data — SegmentGap pref already drives inter-segment arithmetic. 33/33 still green.
