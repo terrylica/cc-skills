@@ -36,4 +36,21 @@ const char *flagForIana(const char * _Nullable iana);
 // it. Falls back to NSTimeZone's abbreviation when the zone is unknown.
 NSString *friendlyAbbrevForIana(const char * _Nullable iana, NSDate *date);
 
+// "UTC±H" or "UTC±H:MM" for the given IANA zone at the given date.
+// Authoritative source: IANA tzdata shipped with macOS (updated via
+// `softwareupdate` when tzdata revisions land). System clock itself is
+// NTP-synced by macOS, so the date we pass in is already canonical.
+// Returns empty string when the zone is unresolvable.
+NSString *utcOffsetForIana(const char * _Nullable iana, NSDate *date);
+
+// Compact label "ABBREV UTC±H" (or "UTC±H" when abbreviation is a bare
+// numeric fallback). Use this as the one-stop renderer in display sites
+// that previously showed only the abbreviation.
+NSString *fullTzLabelForIana(const char * _Nullable iana, NSDate *date);
+
+// Same as fullTzLabelForIana but for a specific NSTimeZone object (used
+// by the local-time path where we have the zone directly, not an IANA
+// c-string).
+NSString *fullTzLabelForZone(NSTimeZone * _Nullable tz, NSDate *date);
+
 NS_ASSUME_NONNULL_END
