@@ -133,6 +133,11 @@ static void fcGlyphsForStyle(NSString *styleId, NSString **filled, NSString **em
     if ([styleId isEqualToString:@"arrows"])  { *filled = @"▶"; *empty = @"▷"; return; }
     if ([styleId isEqualToString:@"binary"])  { *filled = @"█"; *empty = @"░"; return; }
     if ([styleId isEqualToString:@"braille"]) { *filled = @"⣿"; *empty = @"⣀"; return; }
+    // v4 iter-91: expand glyph catalog 6 → 10.
+    if ([styleId isEqualToString:@"hearts"])  { *filled = @"♥"; *empty = @"♡"; return; }
+    if ([styleId isEqualToString:@"stars"])   { *filled = @"★"; *empty = @"☆"; return; }
+    if ([styleId isEqualToString:@"ribbon"])  { *filled = @"▰"; *empty = @"▱"; return; }
+    if ([styleId isEqualToString:@"diamond"]) { *filled = @"◆"; *empty = @"◇"; return; }
     // Default "dots" (v4 iter-35 user directive).
     *filled = @"●"; *empty = @"○";
 }

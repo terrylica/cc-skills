@@ -19,7 +19,7 @@ make clean        # remove build/ artifacts
 make help         # list all targets
 ```
 
-Tests live in `tests/test_session.m` — 27 fixtures covering
+Tests live in `tests/test_session.m` — 28 fixtures covering
 `computeSessionState` (session boundaries, weekend skip, lunch state,
 progress math), the TZ-helper layer (DST branching for
 BST/CEST/EDT/AEDT, UTC-offset formatting including Kolkata's UTC+5:30,
@@ -144,7 +144,7 @@ defaults delete com.example.floating-clock        # reset everything (next launc
 | `NextTheme`                 | NSString     | `"soft_glass"`           | Per-segment theme for NEXT                                                                                                             |
 | `CanvasOpacity`             | double       | `0.75`                   | Menu — segment backdrop alpha (Opaque 1.00 / Solid 0.90 / Glass 0.75 / …)                                                              |
 | `ActiveBarCells`            | int          | `40`                     | Menu — progress-bar cell count                                                                                                         |
-| `ProgressBarStyle`          | NSString     | `"dots"`                 | Menu (dots / blocks / dashes / arrows / binary / braille)                                                                              |
+| `ProgressBarStyle`          | NSString     | `"dots"`                 | Menu (dots / blocks / dashes / arrows / binary / braille / hearts / stars / ribbon / diamond — 10 presets, iter-91)                    |
 | `NextItemCount`             | int          | `3`                      | Menu — max rows in NEXT TO OPEN                                                                                                        |
 | `LayoutMode`                | NSString     | `"stacked-local-top"`    | Menu (stacked-local-top / stacked-local-bottom / triptych)                                                                             |
 | `SegmentGap`                | NSString     | `"normal"`               | Menu (tight / snug / normal / airy / spacious)                                                                                         |
