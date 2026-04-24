@@ -1,7 +1,7 @@
 {
   "name": "floating-clock",
-  "version": "1.3.0",
-  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). Per-segment themes, profiles (Default / Day Trader / Night Owl / Minimalist / Watch Party), 12 major exchanges with live session state + IANA-backed DST, regional TZ abbreviations (PDT/BST/CEST/JST), UTC reference, urgency-tiered countdowns, running-head progress bars. Sub-0.1% idle CPU.",
+  "version": "1.4.0",
+  "description": "Always-on-top floating desktop clock for macOS — multi-file Objective-C NSPanel with three-segment dashboard (LOCAL · ACTIVE MARKETS · NEXT TO OPEN). 6 bundled profiles (Default / Day Trader / Night Owl / Minimalist / Researcher / Watch Party). 12 major exchanges with live session state, IANA-backed DST, regional TZ abbreviations (PDT/BST/CEST/JST/etc.) + UTC reference. Rocket-launch T-HH:MM:SS countdown (progressive to T-Nd Hh MMm at ≥24h). Urgency-tiered green/amber/red. Tabulated sections with frosted-glass (RMBlurredView). Sub-0.1% idle CPU. Ships with unit-test harness (make test).",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"

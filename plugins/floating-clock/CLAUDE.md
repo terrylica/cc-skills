@@ -108,6 +108,7 @@ defaults delete com.terryli.floating-clock        # reset everything (next launc
 | `ShowFlags`                 | BOOL         | `YES`                 | Menu — country-flag emoji on ACTIVE/NEXT headers                                          |
 | `ShowUTCReference`          | BOOL         | `YES`                 | Menu — inline `· HH:mm:ss UTC` on LOCAL row                                               |
 | `ShowSkyState`              | BOOL         | `YES`                 | Menu — sun/moon glyph on LOCAL row (☀ hours 6–18, 🌙 otherwise)                           |
+| `ShowProgressPercent`       | BOOL         | `NO`                  | Menu — inline `N%` next to ACTIVE progress bar (added iter-57)                            |
 | `FontSize`                  | double       | `24.0`                | Menu (15 options, 10–64 pt)                                                               |
 | `ActiveFontSize`            | double       | `11.0`                | Per-segment font size for ACTIVE                                                          |
 | `NextFontSize`              | double       | `11.0`                | Per-segment font size for NEXT                                                            |
