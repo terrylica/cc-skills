@@ -1,9 +1,9 @@
 ---
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
-iteration: 172
+iteration: 173
 status: ACTIVE
-last_updated: 2026-04-24T20:30:00Z
+last_updated: 2026-04-24T20:40:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
 trigger: "/loop — reads this file verbatim each firing"
@@ -606,3 +606,4 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 - 2026-04-24 20:10 UTC — iter-170: **Samba Quick Style (12 → 13)** (936e25cb). Pairs with iter-169's Carnival theme + iter-161's B3 market. Festive Brazilian-flag feel: carnival palette + bold weight + glow shadow + airy letter-spacing + middot separator. Iter-104's invariant test auto-covered. CLAUDE.md Quick Style row + architecture tree + About dialog all updated to 13 moods. 63/63 still pass.
 - 2026-04-24 20:20 UTC — iter-171: **24h sweep extended to B3** (2dfafce9). Completes sweep coverage across 6 TZ-cell structural variants: NYSE (NH-DST), TSE (no-DST+lunch), JSE (no-DST+Africa), ASX (SH-DST), LSE (EU-DST), B3 (no-DST+Americas-south). B3's distinctness vs JSE: same no-DST but negative UTC offset in a different region, exercises a different NSCalendar secondsFromGMTForDate branch. Tests +1 (64 total). 64/64 pass.
 - 2026-04-24 20:30 UTC — iter-172: **v1.10.0 release consolidation** (e3b928af). 12 iters since v1.9.0 (iter-159 → iter-172, matching cadence). plugin.json 1.9.0 → 1.10.0; Info.plist synced; CFBundleVersion 159 → 172. v1.10 scope: 14-exchange roster (B3 iter-161 fills Latin America), Brazilian trio (B3 market + Carnival theme iter-169 + Samba Quick Style iter-170), /floating-clock:diagnose health-report command (iter-165), Reveal App in Finder menu item (iter-167), ClipboardHeader extracted into testable module (iter-160), FCStateIsTrading predicate extracted (iter-168), 6-cell TZ-structural invariant sweep family (NYSE+TSE+JSE+ASX+LSE+B3), market roster lock upgraded to (id, iana, code) triples (iter-164). 58 → 64 test fixtures. 64/64 green, validator clean.
+- 2026-04-24 20:40 UTC — iter-173: **holiday-awareness MVP (data-only, NYSE 2026)** (6c1beed3). First post-v1.10.0 iter. Long-deferred "Holiday awareness" Future-Enhancement gets its MVP: new `Sources/data/HolidayCalendar.{h,m}` with hardcoded NYSE-2026 full-closure dates (10) and `FCIsMarketHoliday(mkt, date)` pure-function lookup — uses NSCalendar in market's IANA so matching survives any user TZ. Deliberately NOT wired into computeSessionState this iter; session state during a real holiday still reads OPEN until the integration iter. Test `test_holiday_calendar_nyse` covers 3 holidays flagged, regular Friday NOT flagged, TSE Shogatsu NOT flagged (no data yet), nil-safety. CLAUDE.md Known-Limitations refreshed to describe "partial holiday awareness" state. Tests +1 (65 total). 65/65 pass.
