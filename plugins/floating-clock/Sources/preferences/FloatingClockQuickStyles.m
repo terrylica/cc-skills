@@ -25,11 +25,26 @@ NSArray<NSArray *> *buildQuickStyles(void) {
         @"FontWeight": @"semibold", @"LetterSpacing": @"tight", @"LineSpacing": @"normal",
         @"TimeSeparator": @"colon",
     };
+    // v4 iter-105: two more moods.
+    NSDictionary *neon = @{
+        @"LocalTheme": @"synthwave", @"ActiveTheme": @"synthwave", @"NextTheme": @"synthwave",
+        @"CornerStyle": @"hairline", @"ShadowStyle": @"glow", @"Density": @"compact",
+        @"FontWeight": @"heavy", @"LetterSpacing": @"wide", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"dash",
+    };
+    NSDictionary *hacker = @{
+        @"LocalTheme": @"green_phosphor", @"ActiveTheme": @"green_phosphor", @"NextTheme": @"green_phosphor",
+        @"CornerStyle": @"sharp", @"ShadowStyle": @"none", @"Density": @"compact",
+        @"FontWeight": @"bold", @"LetterSpacing": @"tight", @"LineSpacing": @"tight",
+        @"TimeSeparator": @"colon",
+    };
 
     return @[
         @[@"Brutalist", brutalist],
         @[@"Zen",       zen],
         @[@"Retro CRT", retro],
         @[@"Executive", executive],
+        @[@"Neon",      neon],
+        @[@"Hacker",    hacker],
     ];
 }
