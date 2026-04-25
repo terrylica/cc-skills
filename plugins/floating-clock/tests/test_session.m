@@ -23,8 +23,9 @@
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "test_levers.h"
-#import "test_holidays.h"  // iter-176 extraction
-#import "test_halfdays.h"  // iter-193 extraction
+#import "test_holidays.h"        // iter-176 extraction
+#import "test_halfdays.h"        // iter-193 extraction
+#import "test_local_features.h"  // iter-244 extraction
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -890,9 +891,10 @@ int main(void) {
         test_urgency_flash_intensity();
         test_week_fraction();
         test_phase_color_for_hour();
+        test_moon_phase();
 
         if (failures == 0) {
-            fprintf(stderr, "All 89 tests passed.\n");
+            fprintf(stderr, "All 90 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
