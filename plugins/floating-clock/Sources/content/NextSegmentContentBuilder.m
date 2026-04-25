@@ -12,7 +12,7 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
     NSDate *now = [NSDate date];
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     CGFloat fontSize = [d doubleForKey:@"NextFontSize"];
-    if (fontSize < 6) fontSize = 11;
+    if (fontSize < 6) fontSize = 14;  // iter-248: NEXT default 11→14
     NSFontWeight fw = FCResolveSegmentWeight(@"NextWeight");
     NSFont *font = FCResolveMonoFont(fontSize, fw);
     const ClockTheme *theme = themeForId([d stringForKey:@"NextTheme"]);

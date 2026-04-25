@@ -11,7 +11,7 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
     NSDate *now = [NSDate date];
     NSUserDefaults *ud = [NSUserDefaults standardUserDefaults];
     CGFloat fontSize = [ud doubleForKey:@"ActiveFontSize"];
-    if (fontSize < 6) fontSize = 11;
+    if (fontSize < 6) fontSize = 14;  // iter-248: ACTIVE default 11→14
     NSFontWeight fw = FCResolveSegmentWeight(@"ActiveWeight");
     NSFont *font = FCResolveMonoFont(fontSize, fw);
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
