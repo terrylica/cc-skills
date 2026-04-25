@@ -46,6 +46,19 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate * _Nullable now,
                                                      NSColor *emptyColor,
                                                      NSFont *font);
 
+// v4 iter-234: day-letter row aligned over the bar's day-groups.
+// Returns "MTWTFSS" with cellsPerDay-wide centered slots and ┊
+// separators — matches FCBuildWeekProgressBar's structure char-for-char
+// (minus the ▕ ▏ brackets) so rendering both centered in equal-width
+// labels lines them up vertically.
+NSString *FCBuildWeekDayLabels(int cellsPerDay);
+
+// v4 iter-234: ISO 8601 week-of-year for `now` in the system locale.
+// Financial-market convention (Reuters / Bloomberg / SWIFT / Basel
+// reporting) — Mon-start week, week 1 = the week containing the
+// year's first Thursday. Returns 1..53. nil → 0.
+NSInteger FCISOWeekOfYear(NSDate * _Nullable now);
+
 // 0.0 (just past Mon midnight) → 1.0 (just before next Mon midnight).
 // Pure function for testability — buildProgressBar wraps this. nil
 // returns 0.0.

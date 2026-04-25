@@ -139,7 +139,9 @@ static uint64_t nsUntilNextSecond(void) {
             NSFont *barFont = _localSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
             CGFloat charW = [@"M" sizeWithAttributes:@{NSFontAttributeName: barFont}].width;
             if (charW < 4) charW = 7.0;  // safety floor
-            NSInteger maxChars = (NSInteger)((segW - 16.0) / charW);  // 8pt margin each side
+            // iter-234: drop margin from 16pt → 4pt (2pt each side)
+            // per user directive — make the most of horizontal space.
+            NSInteger maxChars = (NSInteger)((segW - 4.0) / charW);
             NSInteger usableForCells = maxChars - 2 - 6;  // brackets + separators
             cellsPerDay = usableForCells / 7;
             if (cellsPerDay < 1) cellsPerDay = 1;
@@ -163,8 +165,24 @@ static uint64_t nsUntilNextSecond(void) {
         [full appendAttributedString:body];
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:frameAttrs]];
         _localSeg.weekBarLabel.attributedStringValue = full;
+
+        // v4 iter-234: day-letter row above the bar — pad with one
+        // space on each side so it visually aligns with the bracketed
+        // bar below (` <labels> ` matches `▕<cells>▏`).
+        NSString *plainLabels = FCBuildWeekDayLabels((int)cellsPerDay);
+        NSString *paddedLabels = [NSString stringWithFormat:@" %@ ", plainLabels];
+        NSDictionary *labelAttrs = @{NSFontAttributeName: barFont,
+                                     NSForegroundColorAttributeName: barFilled};
+        _localSeg.weekDayLabelsLabel.attributedStringValue =
+            [[NSAttributedString alloc] initWithString:paddedLabels attributes:labelAttrs];
+
+        // v4 iter-234: ISO 8601 week-of-year top-left.
+        NSInteger isoWeek = FCISOWeekOfYear(nowLocal);
+        _localSeg.weekNumberLabel.stringValue = [NSString stringWithFormat:@"W%02ld", (long)isoWeek];
     } else {
         _localSeg.weekBarLabel.stringValue = @"";
+        _localSeg.weekDayLabelsLabel.stringValue = @"";
+        _localSeg.weekNumberLabel.stringValue = @"";
     }
     [_localSeg setNeedsLayout:YES];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
