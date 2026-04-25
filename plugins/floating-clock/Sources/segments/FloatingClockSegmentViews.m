@@ -174,31 +174,36 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0
                       || _weekBarLabel.attributedStringValue.length > 0;
     if (hasWeekBar) {
-        // v4 iter-234 / iter-235: 5-row LOCAL layout (top-down):
+        // v4 iter-234 / iter-235 / iter-238: 5-row LOCAL layout (top-down):
+        //   topMargin        breathing room between top brim and time
         //   timeLabel        primary timestamp
         //   weekNumberLabel  W## ISO 8601, left-aligned (own thin row)
         //   dayLabelsLabel   M T W T F S S aligned over day-groups
         //   weekBarLabel     7 day-groups of dots
         //   debugLabel       [LOCAL] corner overlay (own bottom strip)
         //
-        // iter-235: W## moved from top-left corner to own row between
-        // timestamp and day-labels per user directive ("below Friday
-        // and on top of M, left-aligned to the local label").
+        // iter-238: shrink timeLabel frame from the top by `topMargin`
+        // so VerticallyCenteredTextFieldCell centers the text within
+        // a smaller box — visually adds space between the LOCAL top
+        // brim and the timestamp row (user reported "squeezed too
+        // close to the top, doesn't look natural").
         CGFloat debugStrip = 16.0;
         CGFloat barH       = 22.0;
         CGFloat daysH      = 14.0;
         CGFloat weekNumH   = 14.0;
+        CGFloat topMargin  = 10.0;  // iter-238
         CGFloat barY       = debugStrip;
         CGFloat daysY      = debugStrip + barH;
         CGFloat weekNumY   = debugStrip + barH + daysH;
         CGFloat timeY      = debugStrip + barH + daysH + weekNumH;
-        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, b.size.height - timeY);
+        CGFloat timeH      = b.size.height - timeY - topMargin;
+        if (timeH < 1) timeH = 1;
+        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, timeH);
         _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
         _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
         _weekBarLabel.hidden = NO;
         _weekDayLabelsLabel.hidden = NO;
         _weekNumberLabel.hidden = NO;
-        // Left-anchored W## in own row, x=6 to match [LOCAL] debug-label inset.
         _weekNumberLabel.frame = NSMakeRect(6, weekNumY, 80, weekNumH);
     } else {
         _timeLabel.frame = b;
