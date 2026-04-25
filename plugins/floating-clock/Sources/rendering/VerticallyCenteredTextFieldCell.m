@@ -23,15 +23,18 @@
     return h;
 }
 
+// v4 iter-253c: small downward visual offset per user — text reads
+// slightly below mathematical center to compensate for cap-height
+// being shorter than the line-height + baseline being below center.
+// Negative Y in NSView coords = visually lower on screen.
+static const CGFloat kFCVCenterDownNudgeY = -3.0;
+
 - (NSRect)drawingRectForBounds:(NSRect)theRect {
-    // v4 iter-252: bypass super to eliminate the default NSCell text-frame
-    // insets that produced asymmetric vertical centering. Use the raw
-    // bounds + measured text height for precise centering.
     CGFloat measured = [self measuredHeightForWidth:theRect.size.width];
     if (measured <= 0) return theRect;
     CGFloat heightDelta = theRect.size.height - measured;
     if (heightDelta > 0) {
-        theRect.origin.y += heightDelta / 2.0;
+        theRect.origin.y += heightDelta / 2.0 + kFCVCenterDownNudgeY;
         theRect.size.height = measured;
     }
     return theRect;
