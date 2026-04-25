@@ -1,5 +1,6 @@
 #import "FloatingClockPanel+Layout.h"
 #import "FloatingClockPanel+Runtime.h"
+#import "../segments/LocalLayoutConstants.h"  // iter-242: SSoT for LOCAL layout
 #import "../rendering/AttributedStringLayoutMeasurer.h"
 #import "../rendering/FontResolver.h"
 #import "../data/ThemeCatalog.h"
@@ -146,19 +147,14 @@
     // lives in Sources/core/DensityPad.{h,m}; test locks the catalog.
     CGFloat pad = FCDensityPadPoints([d stringForKey:@"Density"]);
 
-    // v4 iter-231 / iter-232 / iter-234 / iter-238: LOCAL height when
-    // week-progress is on:
-    //   topMargin (iter-238)    10pt
-    //   week-number row         14pt
-    //   day-letter row          14pt
-    //   week bar                22pt
-    //   debug-label strip       16pt
-    //   = 76pt added to localHeight + pad
-    // Constants must match LocalSegmentView.layout.
+    // v4 iter-231..iter-242: LOCAL height when week-progress is on.
+    // Constants live in Sources/segments/LocalLayoutConstants.{h,m} —
+    // editing any of them updates BOTH this calculation AND
+    // LocalSegmentView.layout's frame placement in lockstep.
     BOOL hasWeekBar = [d boolForKey:@"ShowWeekProgress"]
                       && (_localSeg.weekBarLabel.stringValue.length > 0
                           || _localSeg.weekBarLabel.attributedStringValue.length > 0);
-    CGFloat weekBarRow = hasWeekBar ? 86.0 : 0.0;  // iter-239: +10pt bottomMargin (timestamp ↔ W17 symmetry)
+    CGFloat weekBarRow = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
     CGFloat localRowHeight  = localHeight + pad + weekBarRow;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
