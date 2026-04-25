@@ -408,7 +408,9 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     alert.informativeText = [NSString stringWithFormat:
         @"Always-on-top floating desktop clock for macOS.\n\n"
          "• 30 color themes (+ Concrete) · 17 Quick Style moods (Brutalist / Zen / Retro CRT / Executive / Neon / Hacker / Glacier / Midnight / Featherlight / Industrial / Trading Floor / Scholar / Samba / Borealis / Cinema / Levitation / Studio)\n"
-         "• Weekly progress bar on LOCAL — pure offline, 7 day-groups separated by ┊, auto-fits segment width, weekend cells dimmed\n"
+         "• Weekly progress bar on LOCAL — pure offline, 7 day-groups (separated by ┊) auto-fit segment width; cells color-tint by hour-of-day phase (dawn amber / day theme / dusk rose / night blue); weekend cells dimmed; current-day boundary uses ◐ half-dot fine-grain\n"
+         "• Pure-offline moon phase glyph 🌑→🌘 (synodic-month math, no lat/lon)\n"
+         "• ISO 8601 week-of-year W## (Reuters/Bloomberg/SWIFT financial convention)\n"
          "• 14 major global exchanges (Americas / Europe / Africa / Asia / Oceania) with 5-state session tracking (OPEN · LUNCH · PRE-MARKET · AFTER-HOURS · CLOSED)\n"
          "• Imminence-aware countdown gradient (Weber-Fechner log scale + 1Hz pulse) with UrgencyHorizon (5-240 min) + UrgencyFlash intensity (off / subtle / normal / intense)\n"
          "• SessionSignalWindow lever controls PRE/AFTER auction gate (off / 5-60 min)\n"
