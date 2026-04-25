@@ -48,8 +48,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface LocalSegmentView : NSView <FCNamedSegment>
 @property (weak) FloatingClockPanel *panel;
-@property (strong) NSTextField *timeLabel;
-@property (strong) NSTextField *debugLabel;  // iter-199 corner overlay (now hidden, iter-248)
+@property (strong) NSTextField *timeLabel;          // mono-only timestamp
+@property (strong) NSTextField *skyGlyphLabel;      // iter-252f: emoji-only sun-of-day
+@property (strong) NSTextField *moonGlyphLabel;     // iter-252f: emoji-only moon phase
+@property (strong) NSTextField *debugLabel;
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
