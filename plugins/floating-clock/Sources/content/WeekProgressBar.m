@@ -67,6 +67,42 @@ NSString *FCBuildWeekProgressBar(NSDate *now, int cellsPerDay) {
     return bar;
 }
 
+NSString *FCBuildWeekDayLabels(int cellsPerDay) {
+    if (cellsPerDay < 1) cellsPerDay = 1;
+    static const char *kLetters = "MTWTFSS";
+    NSMutableString *out = [NSMutableString string];
+    for (int d = 0; d < 7; d++) {
+        if (d > 0) [out appendString:@"┊"];
+        // Center the single letter in cellsPerDay slots:
+        //   leftPad  = (cellsPerDay - 1) / 2     (favors left when even)
+        //   rightPad = cellsPerDay - 1 - leftPad
+        int leftPad  = (cellsPerDay - 1) / 2;
+        int rightPad = (cellsPerDay - 1) - leftPad;
+        for (int i = 0; i < leftPad; i++)  [out appendString:@" "];
+        [out appendFormat:@"%c", kLetters[d]];
+        for (int i = 0; i < rightPad; i++) [out appendString:@" "];
+    }
+    return out;
+}
+
+NSInteger FCISOWeekOfYear(NSDate *now) {
+    if (!now) return 0;
+    // Use ISO 8601 calendar settings: Mon first day, min 4 days in
+    // first week. NSCalendar's `weekOfYear` component honors these
+    // settings → returns 1..53 per ISO spec.
+    NSCalendar *iso = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierISO8601];
+    if (!iso) {
+        // Fallback: tweak gregorian. (NSCalendarIdentifierISO8601 was
+        // added in macOS 10.10 — should always be present, but
+        // defensive code never hurts.)
+        iso = [NSCalendar currentCalendar];
+        iso.firstWeekday = 2;             // Mon
+        iso.minimumDaysInFirstWeek = 4;   // ISO 8601
+    }
+    NSDateComponents *c = [iso components:NSCalendarUnitWeekOfYear fromDate:now];
+    return c.weekOfYear;
+}
+
 // v4 iter-233: dim factor for weekend (Sat/Sun) cells. Below 1.0 =
 // muted vs weekday cells. 0.45 = noticeably dimmer but still legible.
 static const CGFloat kWeekendDimAlpha = 0.45;

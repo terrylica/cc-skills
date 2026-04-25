@@ -146,11 +146,14 @@
     // lives in Sources/core/DensityPad.{h,m}; test locks the catalog.
     CGFloat pad = FCDensityPadPoints([d stringForKey:@"Density"]);
 
-    // v4 iter-231 / iter-232: when week-progress is on, LOCAL grows
-    // by 22pt (bar) + 16pt (dedicated debug-label strip below the bar)
-    // for the new 3-row arrangement. Match the constants in
+    // v4 iter-231 / iter-232 / iter-234: when week-progress is on,
+    // LOCAL grows by 14pt (day-letter row) + 22pt (bar) + 16pt
+    // (debug-label strip) = 52pt. Match constants in
     // LocalSegmentView.layout (FloatingClockSegmentViews.m).
-    CGFloat weekBarRow = ([d boolForKey:@"ShowWeekProgress"] && _localSeg.weekBarLabel.stringValue.length > 0) ? 38.0 : 0.0;
+    BOOL hasWeekBar = [d boolForKey:@"ShowWeekProgress"]
+                      && (_localSeg.weekBarLabel.stringValue.length > 0
+                          || _localSeg.weekBarLabel.attributedStringValue.length > 0);
+    CGFloat weekBarRow = hasWeekBar ? 52.0 : 0.0;
     CGFloat localRowHeight  = localHeight + pad + weekBarRow;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
@@ -338,7 +341,11 @@
     // ACTIVE/NEXT scale) so the day-tick separators line up cleanly
     // with the dot/block glyphs and the row stays compact below
     // the larger primary timestamp.
-    _localSeg.weekBarLabel.font   = activeFont;
+    _localSeg.weekBarLabel.font          = activeFont;
+    // v4 iter-234: day-letters use SAME font as bar so the cellsPerDay
+    // slots have identical widths in both rows — letters land directly
+    // above their day-group's center column.
+    _localSeg.weekDayLabelsLabel.font    = activeFont;
     _activeSeg.contentLabel.font  = activeFont;
     _nextSeg.contentLabel.font    = nextFont;
 }
