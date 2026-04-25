@@ -66,3 +66,71 @@ NSString *FCBuildWeekProgressBar(NSDate *now, int cellsPerDay) {
     }
     return bar;
 }
+
+// v4 iter-233: dim factor for weekend (Sat/Sun) cells. Below 1.0 =
+// muted vs weekday cells. 0.45 = noticeably dimmer but still legible.
+static const CGFloat kWeekendDimAlpha = 0.45;
+
+// Helper: returns YES if Mon=0..Sun=6 day index is a weekend.
+static BOOL fcIsWeekendDayIdx(NSInteger d) { return d == 5 || d == 6; }
+
+NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDay,
+                                                     NSColor *filledColor, NSColor *emptyColor,
+                                                     NSFont *font) {
+    NSString *plain = FCBuildWeekProgressBar(now, cellsPerDay);
+    if (cellsPerDay < 1) cellsPerDay = 1;
+
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSInteger currentDayIdx = -1;
+    if (now) {
+        NSInteger gregWeekday = [cal component:NSCalendarUnitWeekday fromDate:now];
+        currentDayIdx = (gregWeekday + 5) % 7;
+    }
+
+    NSColor *filledDim = [filledColor colorWithAlphaComponent:filledColor.alphaComponent * kWeekendDimAlpha];
+    NSColor *emptyDim  = [emptyColor  colorWithAlphaComponent:emptyColor.alphaComponent  * kWeekendDimAlpha];
+
+    NSMutableAttributedString *out = [[NSMutableAttributedString alloc] initWithString:plain];
+    [out addAttribute:NSFontAttributeName value:font range:NSMakeRange(0, plain.length)];
+
+    // Walk: 7 day-groups separated by single-char `┊`. Within each group,
+    // first `fullCells` cells are filled, rest empty. Apply weekend
+    // dimming on Sat/Sun day-groups; separators stay at emptyColor
+    // (always dim) regardless of which day-pair they border.
+    NSUInteger pos = 0;
+    for (NSInteger d = 0; d < 7; d++) {
+        if (d > 0) {
+            // Separator at `pos` is a single character.
+            [out addAttribute:NSForegroundColorAttributeName value:emptyColor
+                        range:NSMakeRange(pos, 1)];
+            pos += 1;
+        }
+        // dayFrac for fill computation
+        double dayFrac = 0.0;
+        if (d < currentDayIdx)       dayFrac = 1.0;
+        else if (d == currentDayIdx) {
+            NSDateComponents *hms = [cal components:(NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond)
+                                           fromDate:now];
+            dayFrac = ((double)hms.hour + (double)hms.minute / 60.0 + (double)hms.second / 3600.0) / 24.0;
+        }
+        int fullCells = (int)(dayFrac * cellsPerDay + 0.5);
+        if (fullCells > cellsPerDay) fullCells = cellsPerDay;
+        if (fullCells < 0) fullCells = 0;
+
+        BOOL weekend = fcIsWeekendDayIdx(d);
+        NSColor *fillC  = weekend ? filledDim : filledColor;
+        NSColor *emptyC = weekend ? emptyDim  : emptyColor;
+
+        if (fullCells > 0) {
+            [out addAttribute:NSForegroundColorAttributeName value:fillC
+                        range:NSMakeRange(pos, (NSUInteger)fullCells)];
+        }
+        if (fullCells < cellsPerDay) {
+            [out addAttribute:NSForegroundColorAttributeName value:emptyC
+                        range:NSMakeRange(pos + (NSUInteger)fullCells,
+                                          (NSUInteger)(cellsPerDay - fullCells))];
+        }
+        pos += (NSUInteger)cellsPerDay;
+    }
+    return out;
+}

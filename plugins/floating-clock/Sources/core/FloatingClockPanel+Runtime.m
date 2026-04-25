@@ -6,6 +6,7 @@
 #import "../content/ActiveSegmentContentBuilder.h"
 #import "../content/NextSegmentContentBuilder.h"
 #import "../content/WeekProgressBar.h"      // iter-229: weekly progress on LOCAL
+#import "../content/UrgencyColors.h"        // iter-233: FCProgressEmptyColor for week bar
 #import "../rendering/FontResolver.h"  // FCCurrentTimeFormat
 #import "DateFormatPrefix.h"              // FCDateFormatPrefix
 #import "SkyGlyph.h"                       // FCSkyGlyphForHour
@@ -144,8 +145,24 @@ static uint64_t nsUntilNextSecond(void) {
             if (cellsPerDay < 1) cellsPerDay = 1;
             if (cellsPerDay > 32) cellsPerDay = 32;  // sanity cap
         }
-        _localSeg.weekBarLabel.stringValue = [NSString stringWithFormat:@"▕%@▏",
-            FCBuildWeekProgressBar(nowLocal, (int)cellsPerDay)];
+        // v4 iter-233: render with weekend-dimming via attributed string.
+        // LocalTheme drives the filled cell color so the bar harmonizes
+        // with the LOCAL segment's foreground; FCProgressEmptyColor stays
+        // for empties + separators (matches ACTIVE bar conventions).
+        const ClockTheme *localTheme = themeForId([d stringForKey:@"LocalTheme"]);
+        NSColor *barFilled = [NSColor colorWithRed:localTheme->fg_r green:localTheme->fg_g blue:localTheme->fg_b alpha:1.0];
+        NSColor *barEmpty  = FCProgressEmptyColor();
+        NSFont *barFont = _localSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+        NSAttributedString *body = FCBuildWeekProgressBarAttributed(nowLocal, (int)cellsPerDay,
+                                                                     barFilled, barEmpty, barFont);
+        // Wrap with `▕…▏` brackets in the empty-color (subtle frame).
+        NSMutableAttributedString *full = [[NSMutableAttributedString alloc] init];
+        NSDictionary *frameAttrs = @{NSFontAttributeName: barFont,
+                                     NSForegroundColorAttributeName: barEmpty};
+        [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▕" attributes:frameAttrs]];
+        [full appendAttributedString:body];
+        [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:frameAttrs]];
+        _localSeg.weekBarLabel.attributedStringValue = full;
     } else {
         _localSeg.weekBarLabel.stringValue = @"";
     }
