@@ -181,6 +181,14 @@ static uint64_t nsUntilNextSecond(void) {
             cellsPerDay = usableForCells / 7;
             if (cellsPerDay < 1) cellsPerDay = 1;
             if (cellsPerDay > 32) cellsPerDay = 32;  // sanity cap
+            // v4 iter-252: force ODD so the day-letter sits at the exact
+            // pixel center of its 7-cell slot. Even widths force the
+            // single 1-char letter into one of two off-center positions
+            // (no half-character offset possible in monospace), making
+            // M/T/W/T/F/S/S visibly drift relative to the bar's
+            // day-group centers below. Odd N → leftPad == rightPad → true center.
+            if (cellsPerDay % 2 == 0) cellsPerDay--;
+            if (cellsPerDay < 1) cellsPerDay = 1;
         }
         // v4 iter-233: render with weekend-dimming via attributed string.
         // LocalTheme drives the filled cell color so the bar harmonizes
@@ -201,15 +209,23 @@ static uint64_t nsUntilNextSecond(void) {
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:frameAttrs]];
         _weekSeg.weekBarLabel.attributedStringValue = full;
 
-        // v4 iter-234: day-letter row above the bar — pad with one
-        // space on each side so it visually aligns with the bracketed
-        // bar below (` <labels> ` matches `▕<cells>▏`).
+        // v4 iter-252: day-letter row uses SAME ▕/▏ brackets as the bar
+        // (rendered transparent) so character-cell counts match exactly.
+        // Prior version padded with regular spaces — but ▕▏ are half-
+        // width unicode and space is full-width, so the labels row drifted
+        // by half a char on each side and the M/T/W/T/F/S/S letters
+        // didn't sit directly above their day-group columns. Centering
+        // both rows via the SAME wrapping char eliminates the drift.
         NSString *plainLabels = FCBuildWeekDayLabels((int)cellsPerDay);
-        NSString *paddedLabels = [NSString stringWithFormat:@" %@ ", plainLabels];
         NSDictionary *labelAttrs = @{NSFontAttributeName: barFont,
                                      NSForegroundColorAttributeName: barFilled};
-        _weekSeg.weekDayLabelsLabel.attributedStringValue =
-            [[NSAttributedString alloc] initWithString:paddedLabels attributes:labelAttrs];
+        NSDictionary *invisibleFrameAttrs = @{NSFontAttributeName: barFont,
+                                              NSForegroundColorAttributeName: [NSColor clearColor]};
+        NSMutableAttributedString *labelsRow = [[NSMutableAttributedString alloc] init];
+        [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:@"▕" attributes:invisibleFrameAttrs]];
+        [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:plainLabels attributes:labelAttrs]];
+        [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:invisibleFrameAttrs]];
+        _weekSeg.weekDayLabelsLabel.attributedStringValue = labelsRow;
 
         // v4 iter-234: ISO 8601 week-of-year top-left.
         NSInteger isoWeek = FCISOWeekOfYear(nowLocal);

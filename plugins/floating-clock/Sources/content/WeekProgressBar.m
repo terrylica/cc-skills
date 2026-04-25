@@ -207,12 +207,22 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDa
                 cellFillColor = [phaseColor colorWithAlphaComponent:phaseColor.alphaComponent * kWeekendDimAlpha];
             }
 
-            if (i < fullCells) { glyph = @"●"; color = cellFillColor; }
+            // v4 iter-252: WEEK bar uses BLOCK glyphs (█ for filled,
+            // ░ for empty) instead of ●○. Block chars are 100% mono in
+            // any monospace font. ●○ aren't in SF Mono natively → fall
+            // back to a wider proportional font → bar's visual width
+            // exceeds the labels row's mono width → labels appear off-
+            // center vs day-group columns. Block chars eliminate the
+            // mismatch entirely. Half-block ▒ (medium shade) substitutes
+            // for the fine-grain boundary glyph.
+            if (i < fullCells) { glyph = @"█"; color = cellFillColor; }
             else if (i == fullCells && fineGrain && d == currentDayIdx && remainder > 0.0) {
-                glyph = fcFineGrainBoundaryGlyph(remainder);
-                color = ([glyph isEqualToString:@"○"]) ? emptyC : cellFillColor;
+                if (remainder <= 0.25)      glyph = @"░";
+                else if (remainder <= 0.75) glyph = @"▒";
+                else                         glyph = @"█";
+                color = ([glyph isEqualToString:@"░"]) ? emptyC : cellFillColor;
             } else {
-                glyph = @"○"; color = emptyC;
+                glyph = @"░"; color = emptyC;
             }
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:glyph

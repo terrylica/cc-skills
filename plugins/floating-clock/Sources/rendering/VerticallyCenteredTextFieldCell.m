@@ -24,15 +24,17 @@
 }
 
 - (NSRect)drawingRectForBounds:(NSRect)theRect {
-    NSRect newRect = [super drawingRectForBounds:theRect];
-    CGFloat measured = [self measuredHeightForWidth:newRect.size.width];
-    if (measured <= 0) return newRect;
-    CGFloat heightDelta = newRect.size.height - measured;
+    // v4 iter-252: bypass super to eliminate the default NSCell text-frame
+    // insets that produced asymmetric vertical centering. Use the raw
+    // bounds + measured text height for precise centering.
+    CGFloat measured = [self measuredHeightForWidth:theRect.size.width];
+    if (measured <= 0) return theRect;
+    CGFloat heightDelta = theRect.size.height - measured;
     if (heightDelta > 0) {
-        newRect.origin.y += heightDelta / 2.0;
-        newRect.size.height = measured;
+        theRect.origin.y += heightDelta / 2.0;
+        theRect.size.height = measured;
     }
-    return newRect;
+    return theRect;
 }
 
 @end
