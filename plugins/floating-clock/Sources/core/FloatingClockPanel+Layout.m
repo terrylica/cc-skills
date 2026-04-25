@@ -168,7 +168,11 @@
                       && (_weekSeg.weekBarLabel.stringValue.length > 0
                           || _weekSeg.weekBarLabel.attributedStringValue.length > 0);
     CGFloat weekRowHeight   = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
-    CGFloat localRowHeight  = localHeight + pad;
+    // v4 iter-252c: tight-fit LOCAL block to text height — no padding.
+    // The mixed-font (mono + emoji) text baseline math made centering
+    // unreliable inside a padded block. Eliminating the pad eliminates
+    // the empty-space asymmetry the user reported.
+    CGFloat localRowHeight  = localHeight;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
     // height (the row the two sit in) still uses MAX because the
