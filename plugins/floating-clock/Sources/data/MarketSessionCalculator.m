@@ -225,6 +225,12 @@ static void fcGlyphsForStyle(NSString *styleId, NSString **filled, NSString **em
     // "arrows" single triangle pair).
     if ([styleId isEqualToString:@"waves"])     { *filled = @"≋"; *empty = @"∼"; return; }
     if ([styleId isEqualToString:@"chevrons"])  { *filled = @"❯"; *empty = @"›"; return; }
+    // v4 iter-228: expand glyph catalog 14 → 16. "pies" = bullseye
+    // vs dotted-circle (strong concentric-fill contrast, distinct
+    // from "dots"). "boxes" = gridded square vs rounded hollow
+    // square (orthogonal complement to "diamond" / "ribbon").
+    if ([styleId isEqualToString:@"pies"])      { *filled = @"◉"; *empty = @"◌"; return; }
+    if ([styleId isEqualToString:@"boxes"])     { *filled = @"▣"; *empty = @"▢"; return; }
     // Default "dots" (v4 iter-35 user directive).
     *filled = @"●"; *empty = @"○";
 }

@@ -112,6 +112,7 @@ void test_progress_bar_glyph_styles(void) {
         {@"ribbon",  @"▰", @"▱"}, {@"diamond", @"◆", @"◇"},
         {@"triangles", @"▲", @"△"}, {@"thindots", @"•", @"·"},  // iter-131
         {@"waves",     @"≋", @"∼"}, {@"chevrons", @"❯", @"›"},  // iter-197
+        {@"pies",      @"◉", @"◌"}, {@"boxes",    @"▣", @"▢"},  // iter-228
     };
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
