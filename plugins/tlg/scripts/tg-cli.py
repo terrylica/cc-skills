@@ -14,6 +14,11 @@ Multi-profile support: use --profile to switch between accounts.
 Sessions persist at ~/.local/share/telethon/<profile>.session.
 """
 
+# FILE-SIZE-OK — single-file PEP 723 CLI; splitting would force PEP 723
+# header duplication or a wrapper script with extra deps. ~900 LoC is
+# acceptable for a self-contained tool with no library import surface.
+# SETPROCTITLE-OK — short-lived CLI invocation, not a daemon.
+
 import argparse
 import asyncio
 import json
@@ -406,14 +411,31 @@ async def cmd_pin(profile: str, chat: str | int, msg_id: int, unpin: bool, silen
 # ── Reading & Search ──────────────────────────────────────
 
 
-async def cmd_read(profile: str, chat_id: str | int, limit: int) -> None:
+def _format_message_body(text: str, preview_chars: int | None) -> str:
+    """Render message body for terminal output.
+
+    - `preview_chars=None` → return full text, with continuation lines
+      indented under the header so the message stays visually grouped.
+    - `preview_chars=N` → flatten newlines to spaces and truncate to N
+      chars (with `…` marker), useful for short scan listings.
+    """
+    if preview_chars is not None:
+        flat = text.replace("\n", " ⏎ ")
+        return (flat[:preview_chars] + "…") if len(flat) > preview_chars else flat
+    if "\n" not in text:
+        return text
+    lines = text.split("\n")
+    return lines[0] + "\n" + "\n".join("    " + ln for ln in lines[1:])
+
+
+async def cmd_read(profile: str, chat_id: str | int, limit: int, preview: int | None) -> None:
     client = await _make_client(profile)
     try:
         async for msg in client.iter_messages(chat_id, limit=limit):
             sender = msg.sender
             name = getattr(sender, "first_name", "") or "" if sender else "Unknown"
             date_str = msg.date.strftime("%Y-%m-%d %H:%M:%S") if msg.date else ""
-            text = (msg.text or "[media/service]")[:200]
+            text = _format_message_body(msg.text or "[media/service]", preview)
             print(f"[{date_str}] (id:{msg.id}) {name}: {text}")
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -424,6 +446,7 @@ async def cmd_read(profile: str, chat_id: str | int, limit: int) -> None:
 
 async def cmd_search(
     profile: str, query: str, chat: str | int | None, limit: int, from_user: str | int | None,
+    preview: int | None,
 ) -> None:
     client = await _make_client(profile)
     kwargs: dict = {"search": query, "limit": limit}
@@ -437,7 +460,7 @@ async def cmd_search(
             sender = msg.sender
             name = getattr(sender, "first_name", "") or "" if sender else "?"
             date_str = msg.date.strftime("%Y-%m-%d %H:%M") if msg.date else ""
-            text = (msg.text or "[media]")[:150]
+            text = _format_message_body(msg.text or "[media]", preview)
             prefix = f"[{chat_name}] " if chat_name else ""
             print(f"[{date_str}] {prefix}(id:{msg.id}) {name}: {text}")
     except ValueError as exc:
@@ -785,12 +808,16 @@ def main() -> None:
     sp = sub.add_parser("read", help="Read recent messages from a chat")
     sp.add_argument("chat", help="Chat ID or username")
     sp.add_argument("-n", "--limit", type=int, default=10, help="Number of messages (default: 10)")
+    sp.add_argument("--preview", type=int, default=None, metavar="CHARS",
+                    help="Truncate each message body to CHARS chars (default: full text, multi-line indented)")
 
     sp = sub.add_parser("search", help="Search messages")
     sp.add_argument("query", help="Search text")
     sp.add_argument("--chat", dest="search_chat", help="Limit to specific chat (omit for global)")
     sp.add_argument("-n", "--limit", type=int, default=20, help="Max results (default: 20)")
     sp.add_argument("--from", dest="from_user", help="Filter by sender")
+    sp.add_argument("--preview", type=int, default=None, metavar="CHARS",
+                    help="Truncate each message body to CHARS chars (default: full text, multi-line indented)")
 
     sp = sub.add_parser("mark-read", help="Mark a chat as read")
     sp.add_argument("chat", help="Chat ID or username")
@@ -867,11 +894,11 @@ def main() -> None:
         case "pin":
             asyncio.run(cmd_pin(profile, parse_entity(args.chat), args.message_id, args.unpin, args.silent))
         case "read":
-            asyncio.run(cmd_read(profile, parse_entity(args.chat), args.limit))
+            asyncio.run(cmd_read(profile, parse_entity(args.chat), args.limit, args.preview))
         case "search":
             chat = parse_entity(args.search_chat) if args.search_chat else None
             from_u = parse_entity(args.from_user) if args.from_user else None
-            asyncio.run(cmd_search(profile, args.query, chat, args.limit, from_u))
+            asyncio.run(cmd_search(profile, args.query, chat, args.limit, from_u, args.preview))
         case "mark-read":
             asyncio.run(cmd_mark_read(profile, parse_entity(args.chat)))
         case "dialogs":
