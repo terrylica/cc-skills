@@ -51,6 +51,9 @@
     // v4 iter-229: optional weekly progress bar appended inline.
     NSMenuItem *swp = [m addItemWithTitle:@"Show Week Progress" action:@selector(toggleShowWeekProgress:) keyEquivalent:@""];
     swp.target = self;
+    // v4 iter-246: completes iter-243 — surface ShowMoonPhase pref via menu.
+    NSMenuItem *smp = [m addItemWithTitle:@"Show Moon Phase" action:@selector(toggleShowMoonPhase:) keyEquivalent:@""];
+    smp.target = self;
 
     [m addItem:[self submenuTitled:@"Time Format"
                              action:@selector(setTimeFormat:)
