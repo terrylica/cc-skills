@@ -146,7 +146,11 @@
     // lives in Sources/core/DensityPad.{h,m}; test locks the catalog.
     CGFloat pad = FCDensityPadPoints([d stringForKey:@"Density"]);
 
-    CGFloat localRowHeight  = localHeight  + pad;
+    // v4 iter-231: when week-progress is on, LOCAL grows by ~22pt for
+    // the new bottom-row block. Match the constant in
+    // LocalSegmentView.layout (FloatingClockSegmentViews.m).
+    CGFloat weekBarRow = ([d boolForKey:@"ShowWeekProgress"] && _localSeg.weekBarLabel.stringValue.length > 0) ? 22.0 : 0.0;
+    CGFloat localRowHeight  = localHeight + pad + weekBarRow;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
     // height (the row the two sit in) still uses MAX because the
@@ -329,6 +333,11 @@
     _nextSeg.contentLabel.frame   = NSMakeRect(8, halfPad, nextW - 16, ceilf(nextSize.height));
 
     _localSeg.timeLabel.font      = primaryFont;
+    // v4 iter-231: week-bar uses the smaller monospace font (matches
+    // ACTIVE/NEXT scale) so the day-tick separators line up cleanly
+    // with the dot/block glyphs and the row stays compact below
+    // the larger primary timestamp.
+    _localSeg.weekBarLabel.font   = activeFont;
     _activeSeg.contentLabel.font  = activeFont;
     _nextSeg.contentLabel.font    = nextFont;
 }

@@ -106,15 +106,6 @@ static uint64_t nsUntilNextSecond(void) {
     // "▕<bar>▏" where <bar> is a fractional fill across 14 cells (2
     // per day × 7 days). Default ON so users see the new feature
     // after rebuild; toggle via Show Week Progress menu item.
-    NSString *weekStr = @"";
-    if ([d boolForKey:@"ShowWeekProgress"]) {
-        // iter-230: pref renamed to WeekProgressCellsPerDay (cells per
-        // day, not total). Default 2 → 14 cells + 6 separators.
-        NSInteger cellsPerDay = [d integerForKey:@"WeekProgressCellsPerDay"];
-        if (cellsPerDay <= 0) cellsPerDay = 2;
-        weekStr = [NSString stringWithFormat:@"  ▕%@▏", FCBuildWeekProgressBar(nowLocal, (int)cellsPerDay)];
-    }
-
     if (showUTC) {
         if (!_utcFormatter) {
             _utcFormatter = [[NSDateFormatter alloc] init];
@@ -124,12 +115,25 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@%@",
-            localBase, localLabel, utcStr, skyGlyph, weekStr];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
+            localBase, localLabel, utcStr, skyGlyph];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@%@",
-            localBase, localLabel, skyGlyph, weekStr];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@",
+            localBase, localLabel, skyGlyph];
     }
+
+    // v4 iter-231: week-progress bar moved to its own NSTextField
+    // (weekBarLabel) anchored below timeLabel — no longer inline with
+    // the timestamp per user directive.
+    if ([d boolForKey:@"ShowWeekProgress"]) {
+        NSInteger cellsPerDay = [d integerForKey:@"WeekProgressCellsPerDay"];
+        if (cellsPerDay <= 0) cellsPerDay = 2;
+        _localSeg.weekBarLabel.stringValue = [NSString stringWithFormat:@"▕%@▏",
+            FCBuildWeekProgressBar(nowLocal, (int)cellsPerDay)];
+    } else {
+        _localSeg.weekBarLabel.stringValue = @"";
+    }
+    [_localSeg setNeedsLayout:YES];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();
 
