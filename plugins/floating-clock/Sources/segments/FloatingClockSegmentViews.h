@@ -49,7 +49,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface LocalSegmentView : NSView <FCNamedSegment>
 @property (weak) FloatingClockPanel *panel;
 @property (strong) NSTextField *timeLabel;
-@property (strong) NSTextField *weekBarLabel;  // iter-231: week-progress block below timeLabel
+@property (strong) NSTextField *weekBarLabel;       // iter-231: week-progress block below timeLabel
+@property (strong) NSTextField *weekDayLabelsLabel; // iter-234: day-letter row above week-bar
+@property (strong) NSTextField *weekNumberLabel;    // iter-234: ISO 8601 W## anchored top-left
 @property (strong) NSTextField *debugLabel;  // iter-199 corner overlay
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
