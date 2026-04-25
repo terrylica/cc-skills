@@ -121,11 +121,18 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-251: LOCAL is now a pure timestamp block — week machinery
-    // moved out into its own WeekSegmentView (sibling block). timeLabel
-    // fills the entire bounds; VerticallyCenteredTextFieldCell +
-    // alignment=center handle both axes.
-    _timeLabel.frame = self.bounds;
+    // v4 iter-252b: explicitly position timeLabel at the vertical midpoint
+    // of the block. The previous approach (frame=self.bounds + rely on
+    // VerticallyCenteredTextFieldCell to center) didn't survive NSTextField's
+    // internal drawing path — text continued landing at the top of the
+    // block. Setting a tight, vertically-centered frame eliminates the
+    // dependency on cell-level vertical centering entirely.
+    NSRect b = self.bounds;
+    CGFloat textH = [(VerticallyCenteredTextFieldCell *)_timeLabel.cell
+                               measuredHeightForWidth:b.size.width];
+    if (textH < 10) textH = 30;
+    CGFloat textY = (b.size.height - textH) / 2.0;
+    _timeLabel.frame = NSMakeRect(0, textY, b.size.width, textH);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
