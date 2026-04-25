@@ -110,6 +110,17 @@ static const CGFloat kWeekendDimAlpha = 0.45;
 // Helper: returns YES if Mon=0..Sun=6 day index is a weekend.
 static BOOL fcIsWeekendDayIdx(NSInteger d) { return d == 5 || d == 6; }
 
+// v4 iter-240: phase color for hour-of-day. Mirrors iter-112's
+// SkyGlyph 5-phase logic (5-7 dawn / 7-17 day / 17-19 dusk / 19-5
+// night). Returns nil for "use the caller's filledColor" (day phase
+// gets theme color so the bar still harmonizes with LocalTheme).
+static NSColor * _Nullable fcPhaseColorForHour(NSInteger hour) {
+    if (hour >= 5 && hour < 7)   return [NSColor colorWithRed:0.98 green:0.78 blue:0.40 alpha:1.0];  // dawn — warm amber
+    if (hour >= 7 && hour < 17)  return nil;                                                          // day  — caller's theme fg
+    if (hour >= 17 && hour < 19) return [NSColor colorWithRed:0.95 green:0.50 blue:0.55 alpha:1.0];  // dusk — warm rose
+    return [NSColor colorWithRed:0.45 green:0.55 blue:0.85 alpha:1.0];                                // night — cool blue
+}
+
 // v4 iter-235 / iter-237: fine-grain boundary glyph selector.
 // Originally 5-level (○ ◔ ◐ ◕ ●) — but user reported quarter ◔
 // and three-quarter ◕ glyphs don't align cleanly with ● / ○ in
@@ -180,14 +191,27 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDa
         for (int i = 0; i < cellsPerDay; i++) {
             NSString *glyph;
             NSColor *color;
-            if (i < fullCells) { glyph = fineGrain ? @"●" : @"●"; color = fillC; }
+            // v4 iter-240: phase-color for filled cells. Each cell
+            // represents (24/cellsPerDay) hours starting at midnight
+            // local time. Use SkyGlyph's 5-phase logic so the bar
+            // visually shows dawn→day→dusk→night transitions across
+            // each day. Day phase falls through to caller's filledColor
+            // (theme foreground) so the bar still harmonizes with
+            // LocalTheme; dawn/dusk/night get distinct tints.
+            NSInteger cellHour = (i * 24) / cellsPerDay;
+            NSColor *phaseColor = fcPhaseColorForHour(cellHour);
+            NSColor *cellFillColor = phaseColor ?: fillC;
+            // Apply weekend dim if applicable.
+            if (weekend && phaseColor) {
+                cellFillColor = [phaseColor colorWithAlphaComponent:phaseColor.alphaComponent * kWeekendDimAlpha];
+            }
+
+            if (i < fullCells) { glyph = @"●"; color = cellFillColor; }
             else if (i == fullCells && fineGrain && d == currentDayIdx && remainder > 0.0) {
-                // Boundary cell: render the fine-grain quarter/half/three-q glyph.
                 glyph = fcFineGrainBoundaryGlyph(remainder);
-                // Use fillC if glyph has any fill, otherwise emptyC.
-                color = ([glyph isEqualToString:@"○"]) ? emptyC : fillC;
+                color = ([glyph isEqualToString:@"○"]) ? emptyC : cellFillColor;
             } else {
-                glyph = fineGrain ? @"○" : @"○"; color = emptyC;
+                glyph = @"○"; color = emptyC;
             }
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:glyph
