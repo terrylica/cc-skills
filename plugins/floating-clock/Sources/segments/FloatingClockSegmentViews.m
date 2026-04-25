@@ -187,15 +187,16 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
         // a smaller box — visually adds space between the LOCAL top
         // brim and the timestamp row (user reported "squeezed too
         // close to the top, doesn't look natural").
-        CGFloat debugStrip = 16.0;
-        CGFloat barH       = 22.0;
-        CGFloat daysH      = 14.0;
-        CGFloat weekNumH   = 14.0;
-        CGFloat topMargin  = 10.0;  // iter-238
+        CGFloat debugStrip   = 16.0;
+        CGFloat barH         = 22.0;
+        CGFloat daysH        = 14.0;
+        CGFloat weekNumH     = 14.0;
+        CGFloat topMargin    = 10.0;  // iter-238: above timestamp (top brim → text)
+        CGFloat bottomMargin = 10.0;  // iter-239: below timestamp (text → W17), matches topMargin for symmetry
         CGFloat barY       = debugStrip;
         CGFloat daysY      = debugStrip + barH;
         CGFloat weekNumY   = debugStrip + barH + daysH;
-        CGFloat timeY      = debugStrip + barH + daysH + weekNumH;
+        CGFloat timeY      = debugStrip + barH + daysH + weekNumH + bottomMargin;
         CGFloat timeH      = b.size.height - timeY - topMargin;
         if (timeH < 1) timeH = 1;
         _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, timeH);
