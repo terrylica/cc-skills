@@ -105,6 +105,23 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     // segment chrome (e.g. "[TIME]'s font size is too small").
     label.toolTip = @"[TIME] — user-local time display inside [LOCAL] (updates every second; formatting controlled by TimeFormat / TimeSeparator / ShowSeconds prefs)";
 
+    // v4 iter-231: dedicated week-progress label, anchored below
+    // timeLabel. Per user directive — week bar must NOT inline-align
+    // on the same horizontal as the timestamp; it gets its own block
+    // below. Hidden when ShowWeekProgress=NO. Sub-element name
+    // [WEEKBAR] so users can call it out distinctly from [TIME].
+    NSTextField *weekLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *wcell = [[NSTextFieldCell alloc] initTextCell:@""];
+    wcell.editable = NO;
+    wcell.selectable = NO;
+    wcell.bezeled = NO;
+    wcell.drawsBackground = NO;
+    wcell.alignment = NSTextAlignmentCenter;
+    weekLabel.cell = wcell;
+    weekLabel.toolTip = @"[WEEKBAR] — weekly progress bar inside [LOCAL] (7 day-groups divided by ┊; controlled by ShowWeekProgress / WeekProgressCellsPerDay / ProgressBarStyle prefs)";
+    [self addSubview:weekLabel];
+    _weekBarLabel = weekLabel;
+
     // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
     _debugLabel = fcMakeDebugLabel([self fcNameID]);
     [self addSubview:_debugLabel];
@@ -115,6 +132,21 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
+    // v4 iter-231: 2-row LOCAL layout when weekBarLabel has content.
+    // timeLabel takes the upper portion; weekBarLabel takes a thin
+    // bottom strip (~22 pt). When weekBarLabel is empty/hidden,
+    // timeLabel uses full bounds (1-row legacy layout).
+    NSRect b = self.bounds;
+    BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0;
+    if (hasWeekBar) {
+        CGFloat barH = 22.0;
+        _timeLabel.frame = NSMakeRect(0, barH, b.size.width, b.size.height - barH);
+        _weekBarLabel.frame = NSMakeRect(0, 4, b.size.width, barH - 6);
+        _weekBarLabel.hidden = NO;
+    } else {
+        _timeLabel.frame = b;
+        _weekBarLabel.hidden = YES;
+    }
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
