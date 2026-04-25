@@ -51,11 +51,12 @@ static void fcAnchorDebugLabelBottomLeft(NSTextField *lbl, NSRect bounds) {
     (void)bounds;  // not needed once we anchor bottom-relative
 }
 
-// v4 iter-199: shared refresh logic — read ShowDebugLabels pref and
-// toggle visibility. Called from panel tick + menu toggle action.
+// v4 iter-248: canonical [LOCAL]/[ACTIVE]/[NEXT] corner overlays
+// removed per user directive. Force-hide unconditionally regardless
+// of the (now-stale) ShowDebugLabels pref. The view subtree stays so
+// the FCNamedSegment protocol contract holds.
 static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
-    BOOL show = [[NSUserDefaults standardUserDefaults] boolForKey:@"ShowDebugLabels"];
-    lbl.hidden = !show;
+    lbl.hidden = YES;
 }
 
 @implementation ClockContentView
@@ -200,10 +201,19 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
         CGFloat barY       = debugStrip;
         CGFloat daysY      = debugStrip + barH;
         CGFloat weekNumY   = debugStrip + barH + daysH;
-        CGFloat timeY      = debugStrip + barH + daysH + weekNumH + bottomMargin;
-        CGFloat timeH      = b.size.height - timeY - topMargin;
-        if (timeH < 1) timeH = 1;
-        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, timeH);
+        // v4 iter-247-fix: top-anchor the timeLabel to the brim so the
+        // visible gap above (top brim → text) is fixed = topMargin,
+        // and the visible gap below (text → W##) = bottomMargin.
+        // Previously frame was sized to b.size.height - timeY - topMargin
+        // and the cell vertical-centering distributed leftover slack
+        // unevenly, producing the asymmetric gap user reported. Tight
+        // frame eliminates the slack.
+        CGFloat textH = [(VerticallyCenteredTextFieldCell *)_timeLabel.cell
+                                   measuredHeightForWidth:b.size.width];
+        if (textH < 10) textH = 30;  // fallback before first measure
+        CGFloat timeY = b.size.height - textH - topMargin;
+        (void)bottomMargin;  // preserved for layout-height calc in Layout.m
+        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, textH);
         _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
         _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
         _weekBarLabel.hidden = NO;

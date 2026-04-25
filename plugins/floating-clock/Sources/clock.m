@@ -95,8 +95,8 @@
         @"SegmentGap": @"normal",
         @"CornerStyle": @"rounded",
         @"ShadowStyle": @"none",
-        @"ActiveFontSize": @11.0,
-        @"NextFontSize": @11.0,
+        @"ActiveFontSize": @14.0,
+        @"NextFontSize": @14.0,
         @"FontWeight": @"medium",
         @"LetterSpacing": @"normal",
         @"LineSpacing": @"normal",
@@ -118,7 +118,10 @@
         // canonical [LOCAL] / [ACTIVE] / [NEXT] labels out of the
         // box; the menu toggle stays for users who want to hide
         // them once they've memorized the layout.
-        @"ShowDebugLabels": @YES,
+        // v4 iter-248: force OFF — canonical [LOCAL]/[ACTIVE]/[NEXT]
+        // corner overlays removed per user directive. Pref kept (legacy)
+        // but the visibility helper is now a no-op (always hidden).
+        @"ShowDebugLabels": @NO,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
