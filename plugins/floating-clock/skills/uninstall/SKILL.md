@@ -8,6 +8,8 @@ allowed-tools: Bash, AskUserQuestion
 
 Remove FloatingClock completely: terminate it, remove it from `/Applications/`, and clear its NSUserDefaults.
 
+> **Self-Evolving Skill**: This skill improves through use. If the uninstall step misses a path (new pref domain, new auxiliary file) — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Steps
 
 1. Confirm with the user first — uninstall is destructive:
@@ -34,3 +36,13 @@ Remove FloatingClock completely: terminate it, remove it from `/Applications/`, 
    defaults delete com.example.floating-clock 2>/dev/null || true
    echo "FloatingClock uninstalled. (The plugin itself remains — remove it separately via 'claude plugin marketplace remove' if desired.)"
    ```
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the pref domain delete succeed?** — If `defaults` returned an error other than "not found", investigate.
+2. **Are there any auxiliary files left behind?** — Check `~/Library/Saved Application State/`, log files, etc., and add to the cleanup if so.
+3. **Did the AskUserQuestion confirmation flow work as expected?** — If the user wanted finer control (e.g., keep prefs), add an option.
+
+Only update if the issue is real and reproducible — not speculative.

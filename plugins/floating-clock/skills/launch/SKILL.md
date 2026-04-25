@@ -8,6 +8,8 @@ allowed-tools: Bash
 
 Open the FloatingClock app.
 
+> **Self-Evolving Skill**: This skill improves through use. If the launch path or fallback logic breaks — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Steps
 
 Prefer the installed app; fall back to the local build if the user hasn't installed yet:
@@ -29,3 +31,13 @@ else
   fi
 fi
 ```
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did `open` succeed silently?** — If macOS surfaced a gatekeeper prompt, document the bypass.
+2. **Did the fallback to local build trigger when expected?** — If the user has the installed app but it's stale, the system path wins; that's intentional.
+3. **Did paths drift?** — `/Applications/FloatingClock.app` or local build path change → update the script.
+
+Only update if the issue is real and reproducible — not speculative.
