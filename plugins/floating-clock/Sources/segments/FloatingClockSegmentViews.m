@@ -174,29 +174,32 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0
                       || _weekBarLabel.attributedStringValue.length > 0;
     if (hasWeekBar) {
-        // v4 iter-234: 4-row LOCAL layout (top-down):
+        // v4 iter-234 / iter-235: 5-row LOCAL layout (top-down):
         //   timeLabel        primary timestamp
+        //   weekNumberLabel  W## ISO 8601, left-aligned (own thin row)
         //   dayLabelsLabel   M T W T F S S aligned over day-groups
         //   weekBarLabel     7 day-groups of dots
         //   debugLabel       [LOCAL] corner overlay (own bottom strip)
-        // Plus weekNumberLabel pinned top-left of LOCAL (W## ISO).
+        //
+        // iter-235: W## moved from top-left corner to own row between
+        // timestamp and day-labels per user directive ("below Friday
+        // and on top of M, left-aligned to the local label").
         CGFloat debugStrip = 16.0;
         CGFloat barH       = 22.0;
         CGFloat daysH      = 14.0;
+        CGFloat weekNumH   = 14.0;
         CGFloat barY       = debugStrip;
         CGFloat daysY      = debugStrip + barH;
-        CGFloat timeY      = debugStrip + barH + daysH;
+        CGFloat weekNumY   = debugStrip + barH + daysH;
+        CGFloat timeY      = debugStrip + barH + daysH + weekNumH;
         _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, b.size.height - timeY);
         _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
         _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
         _weekBarLabel.hidden = NO;
         _weekDayLabelsLabel.hidden = NO;
         _weekNumberLabel.hidden = NO;
-        // Pin week-number top-left (4pt inset).
-        NSRect wn = _weekNumberLabel.frame;
-        wn.origin.x = 8.0;
-        wn.origin.y = b.size.height - wn.size.height - 4.0;
-        _weekNumberLabel.frame = wn;
+        // Left-anchored W## in own row, x=6 to match [LOCAL] debug-label inset.
+        _weekNumberLabel.frame = NSMakeRect(6, weekNumY, 80, weekNumH);
     } else {
         _timeLabel.frame = b;
         _weekBarLabel.hidden = YES;
