@@ -965,16 +965,20 @@ void test_week_fraction(void) {
         failures++;
         fprintf(stderr, "FAIL %s: nil → %.4f (want 0.0)\n", __func__, FCWeekFraction(nil));
     }
-    // Bar builder integration: at Fri 17:18, 14-cell bar should produce
-    // a string of length 14 (UTF-8 char count via NSString.length, which
-    // counts UTF-16 code units — fine for BMP glyphs like ● ○ █ etc).
+    // iter-230: structured 7-day bar — 7 × cellsPerDay + 6 separators.
     NSDateComponents *fri = [[NSDateComponents alloc] init];
     fri.year = 2026; fri.month = 4; fri.day = 24; fri.hour = 17; fri.minute = 18;
     NSDate *friDate = [cal dateFromComponents:fri];
-    NSString *bar = FCBuildWeekProgressBar(friDate, 14);
-    if (bar.length != 14) {
-        failures++;
-        fprintf(stderr, "FAIL %s: 14-cell bar length = %lu (want 14)\n",
-                __func__, (unsigned long)bar.length);
+    struct { int cpd; NSUInteger expectLen; } barCases[] = { {2, 20}, {4, 34} };
+    for (size_t i = 0; i < 2; i++) {
+        NSString *b = FCBuildWeekProgressBar(friDate, barCases[i].cpd);
+        if (b.length != barCases[i].expectLen) {
+            failures++; fprintf(stderr, "FAIL %s: cpd=%d len=%lu want %lu\n",
+                    __func__, barCases[i].cpd, (unsigned long)b.length,
+                    (unsigned long)barCases[i].expectLen);
+        }
     }
+    NSUInteger sepCount = [[FCBuildWeekProgressBar(friDate, 2) componentsSeparatedByString:@"┊"] count] - 1;
+    if (sepCount != 6) { failures++; fprintf(stderr, "FAIL %s: %lu seps (want 6)\n", __func__, (unsigned long)sepCount); }
+    if (FCBuildWeekProgressBar(nil, 2).length != 20) { failures++; fprintf(stderr, "FAIL %s: nil bar length\n", __func__); }
 }

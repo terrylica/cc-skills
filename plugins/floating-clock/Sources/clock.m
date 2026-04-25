@@ -104,8 +104,8 @@
         @"SessionSignalWindow": @"15min",
         @"UrgencyHorizon": @"60min",  // iter-215: imminence-gradient horizon
         @"UrgencyFlash": @"normal",   // iter-219: 1Hz pulse intensity
-        @"ShowWeekProgress": @YES,    // iter-229: weekly progress bar on LOCAL
-        @"WeekProgressCells": @14,    // iter-229: bar width (2 cells × 7 days default)
+        @"ShowWeekProgress": @YES,         // iter-229: weekly progress bar on LOCAL
+        @"WeekProgressCellsPerDay": @2,    // iter-230: 7-day-structured bar (2 × 7 = 14 cells + 6 sep)
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,

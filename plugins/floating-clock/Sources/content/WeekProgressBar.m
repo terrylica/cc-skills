@@ -21,8 +21,48 @@ double FCWeekFraction(NSDate *now) {
     return frac;
 }
 
-NSString *FCBuildWeekProgressBar(NSDate *now, int totalCells) {
-    if (totalCells < 1) totalCells = 1;
-    double frac = FCWeekFraction(now);
-    return buildProgressBar(frac, totalCells);
+// v4 iter-230: structured per-day rendering with day separators.
+// Gives the bar visible weekly rhythm — 7 day-segments delimited by
+// `┊` (light dotted vertical line, U+250A). Total width:
+//   7 × cellsPerDay characters + 6 separators
+//
+// Each day's cells reflect that day's progress relative to `now`:
+//   day < currentDay   → fully filled
+//   day == currentDay  → partially filled by hour-fraction
+//   day > currentDay   → empty
+//
+// Reuses `buildProgressBar` per-day so the user's ProgressBarStyle
+// glyph pair carries through.
+NSString *FCBuildWeekProgressBar(NSDate *now, int cellsPerDay) {
+    if (cellsPerDay < 1) cellsPerDay = 1;
+    if (!now) {
+        // Default-empty rendering: 7 empty day-groups.
+        NSMutableString *empty = [NSMutableString string];
+        for (int d = 0; d < 7; d++) {
+            if (d > 0) [empty appendString:@"┊"];
+            [empty appendString:buildProgressBar(0.0, cellsPerDay)];
+        }
+        return empty;
+    }
+
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    NSInteger gregWeekday = [cal component:NSCalendarUnitWeekday fromDate:now];
+    NSInteger currentDayIdx = (gregWeekday + 5) % 7;  // Mon=0..Sun=6
+
+    NSDateComponents *hms = [cal components:(NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond)
+                                   fromDate:now];
+    double hourFrac = ((double)hms.hour
+                     + (double)hms.minute / 60.0
+                     + (double)hms.second / 3600.0) / 24.0;
+
+    NSMutableString *bar = [NSMutableString string];
+    for (NSInteger d = 0; d < 7; d++) {
+        if (d > 0) [bar appendString:@"┊"];
+        double dayFrac;
+        if (d < currentDayIdx)      dayFrac = 1.0;
+        else if (d == currentDayIdx) dayFrac = hourFrac;
+        else                         dayFrac = 0.0;
+        [bar appendString:buildProgressBar(dayFrac, cellsPerDay)];
+    }
+    return bar;
 }
