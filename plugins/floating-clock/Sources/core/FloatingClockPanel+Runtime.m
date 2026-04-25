@@ -170,8 +170,8 @@ static uint64_t nsUntilNextSecond(void) {
             // in Layout.m to activeFont). Available width = segment
             // width minus side padding (8pt each side) and ▕▏ brackets
             // (~2 chars). Reserve 6 day-separators. Then divide by 7.
-            CGFloat segW = _localSeg.bounds.size.width;
-            NSFont *barFont = _localSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+            CGFloat segW = _weekSeg.bounds.size.width;
+            NSFont *barFont = _weekSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
             CGFloat charW = [@"M" sizeWithAttributes:@{NSFontAttributeName: barFont}].width;
             if (charW < 4) charW = 7.0;  // safety floor
             // iter-234: drop margin from 16pt → 4pt (2pt each side)
@@ -189,7 +189,7 @@ static uint64_t nsUntilNextSecond(void) {
         const ClockTheme *localTheme = themeForId([d stringForKey:@"LocalTheme"]);
         NSColor *barFilled = [NSColor colorWithRed:localTheme->fg_r green:localTheme->fg_g blue:localTheme->fg_b alpha:1.0];
         NSColor *barEmpty  = FCProgressEmptyColor();
-        NSFont *barFont = _localSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+        NSFont *barFont = _weekSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
         NSAttributedString *body = FCBuildWeekProgressBarAttributed(nowLocal, (int)cellsPerDay,
                                                                      barFilled, barEmpty, barFont);
         // Wrap with `▕…▏` brackets in the empty-color (subtle frame).
@@ -199,7 +199,7 @@ static uint64_t nsUntilNextSecond(void) {
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▕" attributes:frameAttrs]];
         [full appendAttributedString:body];
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:frameAttrs]];
-        _localSeg.weekBarLabel.attributedStringValue = full;
+        _weekSeg.weekBarLabel.attributedStringValue = full;
 
         // v4 iter-234: day-letter row above the bar — pad with one
         // space on each side so it visually aligns with the bracketed
@@ -208,18 +208,19 @@ static uint64_t nsUntilNextSecond(void) {
         NSString *paddedLabels = [NSString stringWithFormat:@" %@ ", plainLabels];
         NSDictionary *labelAttrs = @{NSFontAttributeName: barFont,
                                      NSForegroundColorAttributeName: barFilled};
-        _localSeg.weekDayLabelsLabel.attributedStringValue =
+        _weekSeg.weekDayLabelsLabel.attributedStringValue =
             [[NSAttributedString alloc] initWithString:paddedLabels attributes:labelAttrs];
 
         // v4 iter-234: ISO 8601 week-of-year top-left.
         NSInteger isoWeek = FCISOWeekOfYear(nowLocal);
-        _localSeg.weekNumberLabel.stringValue = [NSString stringWithFormat:@"W%02ld", (long)isoWeek];
+        _weekSeg.weekNumberLabel.stringValue = [NSString stringWithFormat:@"W%02ld", (long)isoWeek];
     } else {
-        _localSeg.weekBarLabel.stringValue = @"";
-        _localSeg.weekDayLabelsLabel.stringValue = @"";
-        _localSeg.weekNumberLabel.stringValue = @"";
+        _weekSeg.weekBarLabel.stringValue = @"";
+        _weekSeg.weekDayLabelsLabel.stringValue = @"";
+        _weekSeg.weekNumberLabel.stringValue = @"";
     }
     [_localSeg setNeedsLayout:YES];
+    [_weekSeg setNeedsLayout:YES];
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();
 
