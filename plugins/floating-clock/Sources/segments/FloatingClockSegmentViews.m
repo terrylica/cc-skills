@@ -141,16 +141,29 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252f: 3 sub-views — sky-glyph (left) | time-text (middle) |
-    // moon-glyph (right). Each is a single-font NSTextField so its cell-
-    // level vertical centering works reliably. The previous attempts
-    // (mixed-font timeLabel) failed because emoji + SF Mono baselines
-    // can't be centered together by NSCell.
+    // v4 iter-252g: explicit per-label vertical centering. Each sub-
+    // view's frame is sized to its natural content height (cellSize)
+    // and positioned at (block.height - frameH) / 2 — no reliance on
+    // cell-level vertical centering (which top-aligns by default for
+    // NSTextFieldCell and breaks for the kind of mixed font runs we
+    // were fighting earlier).
     NSRect b = self.bounds;
-    CGFloat glyphSlotW = b.size.height;  // square slots, sized to block height
-    _skyGlyphLabel.frame  = NSMakeRect(0, 0, glyphSlotW, b.size.height);
-    _moonGlyphLabel.frame = NSMakeRect(b.size.width - glyphSlotW, 0, glyphSlotW, b.size.height);
-    _timeLabel.frame      = NSMakeRect(glyphSlotW, 0, b.size.width - 2 * glyphSlotW, b.size.height);
+    CGFloat slotW  = b.size.height;
+    CGFloat skyH   = [_skyGlyphLabel.cell  cellSize].height;
+    CGFloat moonH  = [_moonGlyphLabel.cell cellSize].height;
+    CGFloat timeH  = [_timeLabel.cell      cellSize].height;
+    if (skyH  < 8) skyH  = b.size.height;
+    if (moonH < 8) moonH = b.size.height;
+    if (timeH < 8) timeH = b.size.height;
+    _skyGlyphLabel.frame  = NSMakeRect(0,
+                                       (b.size.height - skyH) / 2.0,
+                                       slotW, skyH);
+    _moonGlyphLabel.frame = NSMakeRect(b.size.width - slotW,
+                                       (b.size.height - moonH) / 2.0,
+                                       slotW, moonH);
+    _timeLabel.frame      = NSMakeRect(slotW,
+                                       (b.size.height - timeH) / 2.0,
+                                       b.size.width - 2 * slotW, timeH);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
