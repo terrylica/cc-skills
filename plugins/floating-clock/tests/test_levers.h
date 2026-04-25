@@ -41,7 +41,8 @@ void test_urgency_color_tiers(void);
 void test_urgency_continuous_and_flash(void);  // iter-212
 void test_urgency_horizon_dispatcher(void);    // iter-215
 void test_urgency_flash_intensity(void);       // iter-219
-void test_week_fraction(void);                 // iter-229
-void test_phase_color_for_hour(void);          // iter-241
+// iter-244: test_week_fraction / test_phase_color_for_hour /
+// test_moon_phase moved to test_local_features.{h,m} after
+// test_levers.m hit the 1000-LoC guard. See test_local_features.h.
 
 NS_ASSUME_NONNULL_END
