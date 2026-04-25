@@ -119,9 +119,18 @@ async function main() {
     return;
   }
 
-  // Soft nudge: warn but allow
-  console.warn(buildNudge(matched.name, command));
-  allow();
+  // Soft nudge: emit additionalContext (surfaces to Claude as system-reminder)
+  // and allow execution. console.warn does NOT propagate to the model when
+  // permission is "allow" — only additionalContext does. Same pattern as
+  // pretooluse-large-file-read-guard.ts.
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        additionalContext: buildNudge(matched.name, command),
+      },
+    }),
+  );
 }
 
 main().catch((err) => {
