@@ -132,16 +132,28 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-231: 2-row LOCAL layout when weekBarLabel has content.
-    // timeLabel takes the upper portion; weekBarLabel takes a thin
-    // bottom strip (~22 pt). When weekBarLabel is empty/hidden,
-    // timeLabel uses full bounds (1-row legacy layout).
+    // v4 iter-231 / iter-232: 3-row LOCAL layout when weekBarLabel
+    // has content. Vertical zones, top-down:
+    //   [timeLabel]       primary timestamp (largest font)
+    //   [weekBarLabel]    week-progress bar (full segment width)
+    //   [debugLabel]      [LOCAL] corner overlay (own bottom strip)
+    //
+    // Per user directive iter-232: the [LOCAL] marker must NOT share
+    // a row with the week-bar / day-of-week / time-of-week symbolic
+    // representations. So we reserve a dedicated 16pt bottom strip
+    // for the debug label and place the week-bar in a 22pt strip
+    // above that. Bar gets full segment width to "take advantage of
+    // horizontality" — width-stretching is satisfied by the dynamic
+    // cellsPerDay computed in Runtime.m.
     NSRect b = self.bounds;
     BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0;
     if (hasWeekBar) {
-        CGFloat barH = 22.0;
-        _timeLabel.frame = NSMakeRect(0, barH, b.size.width, b.size.height - barH);
-        _weekBarLabel.frame = NSMakeRect(0, 4, b.size.width, barH - 6);
+        CGFloat debugStrip = 16.0;     // bottom: own row for [LOCAL]
+        CGFloat barH       = 22.0;     // middle: week bar full width
+        CGFloat barY       = debugStrip;
+        CGFloat timeY      = debugStrip + barH;
+        _timeLabel.frame    = NSMakeRect(0, timeY, b.size.width, b.size.height - timeY);
+        _weekBarLabel.frame = NSMakeRect(0, barY,  b.size.width, barH);
         _weekBarLabel.hidden = NO;
     } else {
         _timeLabel.frame = b;
