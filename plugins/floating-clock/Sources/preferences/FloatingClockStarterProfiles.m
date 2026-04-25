@@ -304,5 +304,8 @@ NSArray<NSString *> *profileManagedKeys(void) {
         @"SessionSignalWindow",
         @"UrgencyHorizon",
         @"UrgencyFlash",
+        @"ShowWeekProgress",          // iter-247: was missing since iter-229
+        @"ShowMoonPhase",              // iter-247: was missing since iter-243
+        @"WeekProgressCellsPerDay",    // iter-247: was missing since iter-230
     ];
 }

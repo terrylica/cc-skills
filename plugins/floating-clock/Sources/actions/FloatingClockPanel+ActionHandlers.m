@@ -391,6 +391,7 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
         @"ShowSkyState", @"ShowProgressPercent",
         @"TimeFormat", @"TimeSeparator", @"DateFormat", @"SessionSignalWindow",
         @"UrgencyHorizon", @"UrgencyFlash",
+        @"ShowWeekProgress", @"ShowMoonPhase", @"WeekProgressCellsPerDay",  // iter-247
         @"FontSize", @"ActiveFontSize", @"NextFontSize",
         @"FontWeight", @"ActiveWeight", @"NextWeight",
         @"LetterSpacing", @"LineSpacing",
