@@ -110,20 +110,19 @@ static const CGFloat kWeekendDimAlpha = 0.45;
 // Helper: returns YES if Mon=0..Sun=6 day index is a weekend.
 static BOOL fcIsWeekendDayIdx(NSInteger d) { return d == 5 || d == 6; }
 
-// v4 iter-235: fine-grain boundary glyph selector. Maps fractional
-// cell remainder (0.0..1.0) to a Unicode pie/circle glyph for
-// 5-level sub-cell rendering when the user's ProgressBarStyle is
-// "dots":
-//   ≤0.125  → empty  ○     (round down)
-//   ≤0.375  → quarter ◔
-//   ≤0.625  → half    ◐
-//   ≤0.875  → three-q ◕
-//   >0.875  → full   ●     (round up)
+// v4 iter-235 / iter-237: fine-grain boundary glyph selector.
+// Originally 5-level (○ ◔ ◐ ◕ ●) — but user reported quarter ◔
+// and three-quarter ◕ glyphs don't align cleanly with ● / ○ in
+// monospace rendering ("only interested in the half a dot that
+// slides right in the middle"). Reduced to 3-level: ○ ◐ ● with
+// the boundary cell using the half-dot when the remainder is in
+// the middle third:
+//   ≤0.25   → empty  ○   (round down)
+//   ≤0.75   → half   ◐
+//   >0.75   → full   ●   (round up)
 static NSString *fcFineGrainBoundaryGlyph(double remainder) {
-    if (remainder <= 0.125) return @"○";
-    if (remainder <= 0.375) return @"◔";
-    if (remainder <= 0.625) return @"◐";
-    if (remainder <= 0.875) return @"◕";
+    if (remainder <= 0.25) return @"○";
+    if (remainder <= 0.75) return @"◐";
     return @"●";
 }
 
