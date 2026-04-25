@@ -888,9 +888,10 @@ int main(void) {
         test_urgency_continuous_and_flash();
         test_urgency_horizon_dispatcher();
         test_urgency_flash_intensity();
+        test_week_fraction();
 
         if (failures == 0) {
-            fprintf(stderr, "All 87 tests passed.\n");
+            fprintf(stderr, "All 88 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
