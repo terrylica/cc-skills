@@ -140,8 +140,16 @@
     // emoji-mixed text). cellSize is what NSTextField itself reports
     // as its intrinsic size, so block-height = cellSize.height yields
     // an exactly-text-tall block with no asymmetry possible.
-    NSSize cellNatural = [_localSeg.timeLabel.cell cellSize];
-    if (cellNatural.height > localSize.height) localSize.height = cellNatural.height;
+    // v4 iter-252h: block height = max of all sub-view cellSizes.
+    // Emoji glyphs (rendered via Apple Color Emoji fallback) are TALLER
+    // than the mono font's line height — using only timeLabel's cellSize
+    // produced a block that clipped the emoji top brim. Take the max
+    // across time + sky + moon so the tallest content fits.
+    NSSize timeNatural = [_localSeg.timeLabel.cell      cellSize];
+    NSSize skyNatural  = [_localSeg.skyGlyphLabel.cell  cellSize];
+    NSSize moonNatural = [_localSeg.moonGlyphLabel.cell cellSize];
+    CGFloat maxNaturalH = MAX(MAX(timeNatural.height, skyNatural.height), moonNatural.height);
+    if (maxNaturalH > localSize.height) localSize.height = maxNaturalH;
     localSize.height = ceilf(localSize.height);
     _localSeg.timeLabel.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.cell.alignment = NSTextAlignmentCenter;
