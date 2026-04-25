@@ -8,6 +8,8 @@ allowed-tools: Bash
 
 Install the FloatingClock macOS app from this plugin's source to `/Applications/` so it's available from Spotlight, Launchpad, and Finder.
 
+> **Self-Evolving Skill**: This skill improves through use. If the build, copy, or launch step breaks (signing change, path drift, macOS gatekeeper update) — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 ## Steps
 
 1. Resolve plugin root:
@@ -40,3 +42,13 @@ Install the FloatingClock macOS app from this plugin's source to `/Applications/
 
 5. Confirm:
    > Installed to `/Applications/FloatingClock.app` and launched. The app is now discoverable via Spotlight (⌘Space → FloatingClock) and Launchpad. Right-click the clock for options.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did `make all` produce the expected `build/FloatingClock.app`?** — If not, fix the Makefile or the build prerequisite.
+2. **Did the copy/launch step succeed silently?** — If macOS prompted (gatekeeper, permission), document the bypass.
+3. **Did paths drift?** — Plugin root, Makefile target, or app bundle name change → update the script.
+
+Only update if the issue is real and reproducible — not speculative.
