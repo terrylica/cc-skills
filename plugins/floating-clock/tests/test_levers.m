@@ -284,7 +284,8 @@ void test_density_pad_points(void) {
 void test_segment_gap_points(void) {
     struct { NSString *id; CGFloat pt; } cases[] = {
         {@"flush", 0}, {@"tight", 2}, {@"snug", 3}, {@"normal", 4},
-        {@"airy", 8}, {@"spacious", 14}, {@"cavernous", 24},
+        {@"cozy", 6}, {@"airy", 8}, {@"open", 11},  // iter-226
+        {@"spacious", 14}, {@"cavernous", 24},
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         if (fabs(FCSegmentGapPoints(cases[i].id) - cases[i].pt) > 0.001) {
