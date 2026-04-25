@@ -15,6 +15,7 @@
 #import "core/FloatingClockPanel+Runtime.h"
 #import "preferences/FloatingClockPanel+ProfileManagement.h"
 #import "actions/FloatingClockPanel+ActionHandlers.h"
+#import "core/LocationProvider.h"
 
 // # FILE-SIZE-OK
 
@@ -264,6 +265,14 @@ int main(int argc, const char * argv[]) {
 
         FloatingClockPanel *panel = [[FloatingClockPanel alloc] init];
         [panel makeKeyAndOrderFront:nil];
+
+        // v4 iter-250: kick off CoreLocation request once the panel is
+        // up. First launch triggers the system permission dialog;
+        // subsequent launches reuse the cached lat/lon (24h TTL). The
+        // Runtime.m sky-glyph dispatcher tolerates missing/denied
+        // permission and falls back to the iter-114 hour-bucket path.
+        [[FCLocationProvider shared] kickoff];
+
         [app run];
     }
     return 0;

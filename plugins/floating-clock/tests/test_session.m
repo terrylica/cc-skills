@@ -895,9 +895,10 @@ int main(void) {
         test_week_fraction();
         test_phase_color_for_hour();
         test_moon_phase();
+        test_solar_events();
 
         if (failures == 0) {
-            fprintf(stderr, "All 90 tests passed.\n");
+            fprintf(stderr, "All 91 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
