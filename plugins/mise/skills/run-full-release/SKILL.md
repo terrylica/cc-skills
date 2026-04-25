@@ -91,6 +91,27 @@ done
 
 **Partial semantic-release failure** (version bumped, no tag): Do NOT re-run semantic-release. Manually create tag + GitHub release, then continue with publish tasks.
 
+**Cargo workspace lockfile cascade** (Rust workspaces with `version.workspace = true`): the perl-based version bump in `prepareCmd` only touches `Cargo.toml`, but the workspace version cascades into every member crate's entry in `Cargo.lock`. The `@semantic-release/git` plugin only stages files listed in `assets`, so without an explicit cargo invocation + `Cargo.lock` in assets, the lockfile stays at the old version. Symptoms: `release:preflight` fails with `M Cargo.lock` after a successful `release:version`, blocking `cargo publish`. Fix in `.releaserc.yml`:
+
+```yaml
+- - "@semantic-release/exec"
+  - prepareCmd: |
+      perl -i -pe 's/^version = ".*"/version = "${nextRelease.version}"/' Cargo.toml
+      cargo update --workspace --offline 2>/dev/null \
+        || cargo metadata --format-version=1 --offline >/dev/null 2>&1 \
+        || true
+
+- - "@semantic-release/git"
+  - assets:
+      - Cargo.toml
+      - Cargo.lock # ← critical: capture the cascading version bump
+    message: "chore(release): ${nextRelease.version} [skip ci]"
+```
+
+`--offline` keeps the sync local (no registry hit). The `|| true` fallback prevents `prepareCmd` from blocking the release if neither cargo command can run; if the lockfile actually needed sync, the next preflight will catch it.
+
+**mise `depends` runs in parallel** (`release:full` deps `[preflight, version]`): preflight and version race. If version dirties the working tree (e.g. lockfile cascade above), preflight may report failure mid-stream while version still completes, leaving an irreversible tag + GitHub release without `release:crates`/`verify`/`postflight` having run. Recovery: fix the dirty state, then run the remaining phases manually (`release:crates` → `release:verify` → `release:postflight`) — do NOT re-run `release:full`, which would attempt another semantic-release pass.
+
 ## Step 3: Execute
 
 ```bash
