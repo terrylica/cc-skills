@@ -101,13 +101,16 @@ static uint64_t nsUntilNextSecond(void) {
     //   [17, 19) 🌇 dusk / sunset
     //   [19, 5)  🌙 night
     // Hidden when ShowSkyState pref is explicitly NO.
+    // v4 iter-249: skyGlyph anchored at FRONT of LOCAL row per user
+    // directive — sun-of-day at start, moon phase at end. Trailing
+    // space (was leading) so it sits flush against the date prefix.
     BOOL showSky = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
     NSString *skyGlyph = @"";
     if (showSky) {
         NSCalendar *cal = [NSCalendar currentCalendar];
         cal.timeZone = localTz;
         NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
-        skyGlyph = [NSString stringWithFormat:@" %@", FCSkyGlyphForHour(hour)];
+        skyGlyph = [NSString stringWithFormat:@"%@ ", FCSkyGlyphForHour(hour)];
     }
 
     // v4 iter-243: pure-offline moon-phase glyph (synodic-month
@@ -132,11 +135,11 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@%@",
-            localBase, localLabel, utcStr, skyGlyph, moonGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@%@ %@ · %@ UTC%@",
+            skyGlyph, localBase, localLabel, utcStr, moonGlyph];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@%@",
-            localBase, localLabel, skyGlyph, moonGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@%@ %@%@",
+            skyGlyph, localBase, localLabel, moonGlyph];
     }
 
     // v4 iter-231 / iter-232: week-progress bar in its own NSTextField
