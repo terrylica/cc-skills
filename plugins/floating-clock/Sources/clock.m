@@ -105,7 +105,7 @@
         @"UrgencyHorizon": @"60min",  // iter-215: imminence-gradient horizon
         @"UrgencyFlash": @"normal",   // iter-219: 1Hz pulse intensity
         @"ShowWeekProgress": @YES,         // iter-229: weekly progress bar on LOCAL
-        @"WeekProgressCellsPerDay": @2,    // iter-230: 7-day-structured bar (2 × 7 = 14 cells + 6 sep)
+        @"WeekProgressCellsPerDay": @0,    // iter-232: 0 = auto-fit width; positive = pin per-day cell count
         @"ShowFlags": @YES,
         @"Density": @"default",
         @"ShowUTCReference": @YES,

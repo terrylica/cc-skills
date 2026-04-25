@@ -146,10 +146,11 @@
     // lives in Sources/core/DensityPad.{h,m}; test locks the catalog.
     CGFloat pad = FCDensityPadPoints([d stringForKey:@"Density"]);
 
-    // v4 iter-231: when week-progress is on, LOCAL grows by ~22pt for
-    // the new bottom-row block. Match the constant in
+    // v4 iter-231 / iter-232: when week-progress is on, LOCAL grows
+    // by 22pt (bar) + 16pt (dedicated debug-label strip below the bar)
+    // for the new 3-row arrangement. Match the constants in
     // LocalSegmentView.layout (FloatingClockSegmentViews.m).
-    CGFloat weekBarRow = ([d boolForKey:@"ShowWeekProgress"] && _localSeg.weekBarLabel.stringValue.length > 0) ? 22.0 : 0.0;
+    CGFloat weekBarRow = ([d boolForKey:@"ShowWeekProgress"] && _localSeg.weekBarLabel.stringValue.length > 0) ? 38.0 : 0.0;
     CGFloat localRowHeight  = localHeight + pad + weekBarRow;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
