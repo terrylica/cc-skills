@@ -30,6 +30,22 @@ NS_ASSUME_NONNULL_BEGIN
 // Default cellsPerDay = 2 → 14 cells + 6 separators = 20 chars.
 NSString *FCBuildWeekProgressBar(NSDate * _Nullable now, int cellsPerDay);
 
+// v4 iter-233: attributed variant with weekend-dimming + theme-color
+// awareness. Same 7-day-group structure as the plain variant but
+// returns an NSAttributedString with per-character color:
+//   weekday filled cells (Mon–Fri):  filledColor
+//   weekday empty cells:             emptyColor
+//   weekend filled cells (Sat–Sun):  filledColor × kWeekendDimAlpha
+//   weekend empty cells:             emptyColor × kWeekendDimAlpha
+//   day separators (┊):              emptyColor (always dim, both weeks)
+// Caller passes the active font (typically the segment's mono font)
+// so per-glyph attributes are consistent with the surrounding text.
+NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate * _Nullable now,
+                                                     int cellsPerDay,
+                                                     NSColor *filledColor,
+                                                     NSColor *emptyColor,
+                                                     NSFont *font);
+
 // 0.0 (just past Mon midnight) → 1.0 (just before next Mon midnight).
 // Pure function for testability — buildProgressBar wraps this. nil
 // returns 0.0.
