@@ -191,9 +191,9 @@ grep "USB Composite Device" /var/log/karabiner/core_service.log | tail -2
 | `Escape`          | `Command+.`       | Dismiss is fast, interrupt is deliberate                                           |
 | `Cmd+C`           | `Cmd+Shift+C`     | Copy is fast, copy-path is deliberate                                              |
 
-**Live example**: Jieli/Free3-P middle button (both USB + BT). See `references/raw/karabiner-rule.json` for the full 8-manipulator config (6 single-action + 2 tap/double-tap for middle).
+**Live examples**: Jieli/Free3-P middle button (Shift+Return / Return) and top button (Fn / Cmd+V), both USB + BT. See `references/raw/karabiner-rule.json` for the full 10-manipulator config (2 single-action for bottom + 4 manipulators per tap/double-tap pair × 2 buttons). **Use a distinct variable name per button** (`jieli_top_tap`, `jieli_middle_tap`) — sharing one variable across buttons would let a tap on one arm the double-tap detector on another.
 
-**Anti-pattern warning**: don't pick this pattern when the latency on single-tap matters. For instance, tap-vs-double-tap on a push-to-talk button adds 200ms before the mic opens — use tap-vs-hold instead (`to_if_alone` + `to_if_held_down`), which discriminates by duration rather than a commit window.
+**Anti-pattern warning**: don't pick this pattern when the latency on single-tap matters. For instance, tap-vs-double-tap on a push-to-talk button adds 200ms before the mic opens — use tap-vs-hold instead (`to_if_alone` + `to_if_held_down`), which discriminates by duration rather than a commit window. **The Jieli/Free3-P top button hits this trap if Typeless is configured for push-to-talk** (hold-to-talk): the 200ms detection window means Fn fires only after release, so PTT doesn't work. The live config assumes Typeless is in tap-to-toggle mode. To restore PTT, collapse the top-button pair into the original single-manipulator immediate-Fn form (see git history of `references/raw/karabiner-rule.json` from before 2026-04-24).
 
 ## Pattern: Atomic commits after verifying each change
 

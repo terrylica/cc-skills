@@ -8,7 +8,7 @@ allowed-tools: Read, Edit, Write, Bash
 
 End-to-end workflow for cheap 3-key USB-C/Bluetooth macro pads (Jieli, Realtek, CH57x, AliExpress-class): identify the device, figure out what each button actually emits, write a Karabiner rule scoped to that device only, and handle USB + Bluetooth in one rule even when the pad's BT firmware emits different keycodes than its USB side.
 
-> **Just want the turnkey recipe?** [`references/09-turnkey-walkthrough.md`](./references/09-turnkey-walkthrough.md) is a copy-paste-ready 30-minute walkthrough that replicates the "MacroKeyBot" setup used as this plugin's worked example — push-to-talk on top, tap/double-tap safe-Return on middle, Command+Delete on bottom, across USB + Bluetooth. Start there if you know what you want; come back here when you need the reusable workflow or deeper pattern references.
+> **Just want the turnkey recipe?** [`references/09-turnkey-walkthrough.md`](./references/09-turnkey-walkthrough.md) is a copy-paste-ready 30-minute walkthrough that replicates the "MacroKeyBot" setup used as this plugin's worked example — tap/double-tap on top (Fn for Typeless toggle / Cmd+V paste), tap/double-tap safe-Return on middle, Command+Delete on bottom, across USB + Bluetooth. Start there if you know what you want; come back here when you need the reusable workflow or deeper pattern references.
 
 > **Self-Evolving Skill**: If a step breaks on a new pad, fix this file immediately. Every dead-end discovered belongs in `references/04-anti-patterns.md`.
 
@@ -130,7 +130,7 @@ cp ~/.config/karabiner/karabiner.json ~/.config/karabiner/karabiner.json.bak.$(d
 }
 ```
 
-_(Repeat the manipulator block for middle, bottom, and the BT-mode variants — **6 manipulators** for a pure 3-key pad × 2 transports; **8 manipulators** if any button uses the tap-vs-double-tap pattern (adds one extra manipulator per transport for that button — see `references/03-patterns.md`). JSON does not support `//` comments, so do not paste comment lines into your config.)_
+_(Repeat the manipulator block for middle, bottom, and the BT-mode variants — **6 manipulators** for a pure 3-key pad × 2 transports; **+2 manipulators per button per transport** for each button that uses the tap-vs-double-tap pattern (see `references/03-patterns.md`). The Jieli/Free3-P live example uses tap-vs-double-tap on both top and middle buttons → 10 manipulators total. JSON does not support `//` comments, so do not paste comment lines into your config.)_
 
 **Five rules to remember**:
 
@@ -140,7 +140,7 @@ _(Repeat the manipulator block for middle, bottom, and the BT-mode variants — 
 4. **Scope every manipulator to the device**. Without `device_if`, you'll remap your MacBook's built-in keyboard and break Apple's native keys.
 5. **`modifiers: {"optional": ["any"]}`** — lets the firmware's modifier report flow through without blocking the rule.
 
-Full live example (Jieli + Free3-P, 8 manipulators with middle-button tap/double-tap pair): `references/raw/karabiner-rule.json`.
+Full live example (Jieli + Free3-P, 10 manipulators with both top- and middle-button tap/double-tap pairs): `references/raw/karabiner-rule.json`.
 
 ### Step 5 — Verify the grab + test
 

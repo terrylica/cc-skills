@@ -10,13 +10,17 @@ A single rule in Karabiner-Elements that scopes three physical buttons on a chea
 
 **The user-facing behavior**:
 
-| Button | Single-tap action                            | Double-tap action (≤200ms) | Real-world use                                                              |
-| ------ | -------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
-| Top    | Trigger Typeless / dictation (real Fn)       | —                          | Push-to-talk for voice input without reaching to F5 or the Globe key        |
-| Middle | Insert newline (`Shift+Return`, after 200ms) | Commit/send (`Return`)     | Chat composers, Claude Code prompt, email compose — safer-than-usual "send" |
-| Bottom | Delete to start of line (`Command+Delete`)   | —                          | Clear the current line without selecting it first                           |
+| Button | Single-tap action                                  | Double-tap action (≤200ms) | Real-world use                                                              |
+| ------ | -------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
+| Top    | Toggle Typeless / dictation (real Fn, after 200ms) | Paste (`Cmd+V`)            | Tap to start/stop dictation; double-tap to paste the system clipboard       |
+| Middle | Insert newline (`Shift+Return`, after 200ms)       | Commit/send (`Return`)     | Chat composers, Claude Code prompt, email compose — safer-than-usual "send" |
+| Bottom | Delete to start of line (`Command+Delete`)         | —                          | Clear the current line without selecting it first                           |
 
 **Why the tap/double-tap on middle**: in most chat apps, a stray `Return` sends a half-typed message. By making the single-tap insert a newline and the double-tap send, accidentally-sent messages become nearly impossible. You pay ~200ms of detection latency on every newline — a fair trade if you've ever misfired a `Return` at work.
+
+**Why the tap/double-tap on top**: dictation is a soft, two-handed action; paste needs a one-handed shortcut you can hit without breaking flow. Tap to toggle Typeless, double-tap when you want the clipboard.
+
+> **Top-button caveat** — the 200ms tap-detection window means Fn fires only after release, not on press-and-hold. That makes this rule **incompatible with Typeless's push-to-talk mode** (hold to dictate). Use Typeless's tap-to-toggle Fn mode, or — if you need PTT — collapse the top-button pair back into the original single-manipulator-per-transport "Fn fires immediately" rule (see git history of `references/raw/karabiner-rule.json` from before the top-button double-tap addition).
 
 ## Shopping List
 
@@ -156,7 +160,7 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
 
 ```json
 {
-  "description": "MacroKeyBot: Top -> Fn (push-to-talk); Middle single-tap -> Shift+Return / double-tap -> Return; Bottom -> Command+Delete",
+  "description": "MacroKeyBot: Top single-tap -> Fn (Typeless toggle) / double-tap -> Cmd+V (paste); Middle single-tap -> Shift+Return / double-tap -> Return; Bottom -> Command+Delete",
   "manipulators": [
     {
       "type": "basic",
@@ -168,7 +172,42 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
           "detect_key_down_uninterruptedly": true
         }
       },
-      "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
+      "to": [
+        { "key_code": "v", "modifiers": ["left_command"] },
+        { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 19530, "product_id": 16725 },
+            { "vendor_id": 1256, "product_id": 28705 }
+          ]
+        },
+        { "type": "variable_if", "name": "macrokeybot_top_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": {
+        "simultaneous": [{ "key_code": "left_control" }, { "key_code": "c" }],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [{ "set_variable": { "name": "macrokeybot_top_tap", "value": 1 } }],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "apple_vendor_top_case_key_code": "keyboard_fn" },
+          { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -240,7 +279,35 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
     {
       "type": "basic",
       "from": { "key_code": "page_up" },
-      "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
+      "to": [
+        { "key_code": "v", "modifiers": ["left_command"] },
+        { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 19530, "product_id": 16725 },
+            { "vendor_id": 1256, "product_id": 28705 }
+          ]
+        },
+        { "type": "variable_if", "name": "macrokeybot_top_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": { "key_code": "page_up" },
+      "to": [{ "set_variable": { "name": "macrokeybot_top_tap", "value": 1 } }],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "apple_vendor_top_case_key_code": "keyboard_fn" },
+          { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "macrokeybot_top_tap", "value": 0 } }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -341,8 +408,9 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
 **Adapt for your pad**:
 
 - If your pad emits something other than `Ctrl+C / Ctrl+V / Ctrl+X` on USB, substitute the matching `key_code` values in each `from.simultaneous[1]`.
-- If your BT mode emits something other than `page_up / page_down / equal_sign`, substitute the matching `from.key_code` values in the four BT-side manipulators.
-- If you don't care about Bluetooth: delete the BT-side manipulators (numbers 4, 5, 6, 8 — the ones with `page_up` / `page_down` / `equal_sign`), and remove the BT identifier from every remaining `device_if`. You'll end up with 4 manipulators instead of 8.
+- If your BT mode emits something other than `page_up / page_down / equal_sign`, substitute the matching `from.key_code` values in the BT-side manipulators (5-10 in the rule).
+- If you don't care about Bluetooth: delete the BT-side manipulators (numbers 5-10 — the ones whose `from` uses `page_up` / `page_down` / `equal_sign`), and remove the BT identifier from every remaining `device_if`. You'll end up with 5 manipulators instead of 10.
+- If you don't want the top-button double-tap (you need Fn-as-push-to-talk, or one binding is enough): delete manipulators 1 and 5 (the `variable_if`-guarded paste detectors), and replace manipulators 2 and 6 with the simpler immediate-Fn form — drop `parameters`, `to_delayed_action`, and `variable_if`; set `to: [{ "apple_vendor_top_case_key_code": "keyboard_fn" }]`. You'll go from 10 → 8 manipulators.
 - If you want different bindings (see "Variations" below): replace the `to` targets accordingly.
 
 **Save the file**. Karabiner auto-reloads within ~1 second. Watch the log to confirm:
@@ -362,17 +430,18 @@ karabiner_cli --list-connected-devices | jq '.[] | select(.vendor_id == 19530 or
 
 # 2. The rule is loaded
 jq '.profiles[0].complex_modifications.rules[] | select(.description | startswith("MacroKeyBot")) | {description, manipulator_count: (.manipulators | length)}' ~/.config/karabiner/karabiner.json
-# Expect: manipulator_count: 8 (or 4 if you dropped the BT side)
+# Expect: manipulator_count: 10 (or 5 if you dropped the BT side; or 8 if you dropped only the top-button double-tap)
 ```
 
 **Functional test** (the only test that matters):
 
-| Action                               | Expected result                                                                                              |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| Hold Top button                      | Dictation UI appears (if Typeless is running) or the macOS dictation overlay                                 |
-| Single-tap Middle (don't press fast) | After ~200ms, a newline is inserted. In Claude Code: text bumps to next line; in Slack: new line in composer |
-| Double-tap Middle (fast, <200ms)     | The message is sent / Return fires immediately on the second press                                           |
-| Press Bottom                         | Everything from the cursor back to the start of the line is deleted                                          |
+| Action                               | Expected result                                                                                               |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Single-tap Top (don't press fast)    | After ~200ms, Fn fires once. Typeless / dictation UI toggles on (or off, on the next single-tap).             |
+| Double-tap Top (fast, <200ms)        | The system clipboard is pasted at the cursor. Same effect as ⌘V.                                              |
+| Single-tap Middle (don't press fast) | After ~200ms, a newline is inserted. In Claude Code: text bumps to next line; in Slack: new line in composer. |
+| Double-tap Middle (fast, <200ms)     | The message is sent / Return fires immediately on the second press.                                           |
+| Press Bottom                         | Everything from the cursor back to the start of the line is deleted.                                          |
 
 If any step misbehaves, see [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md#troubleshooting) or [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md#diagnostic-commands).
 
@@ -388,14 +457,23 @@ The structure above works for any 3-key pad with any binding. Here are common al
 | Copy vs. copy-path in Finder         | `Command+C`                     | `Command+Option+C`                  | Everyday copy is fast, "copy full path" is deliberate                         |
 | Git add vs. commit (via shell alias) | `Command+Shift+A` → `git add .` | `Command+Shift+C` → `git commit -v` | Stage is fast, commit needs two taps of confirmation                          |
 
-For non-Return single-button variations, replace the two middle-button manipulators' targets:
+For non-Return single-button variations, replace the affected button-pair's two manipulators' targets:
 
 - Second-tap detector's `to[0].key_code` (or `to[0].shell_command`) = your double-tap action
 - First-tap handler's `to_delayed_action.to_if_invoked[0].key_code` (or `to[0].shell_command`) = your single-tap action
 
-Keep the `set_variable` + `device_if` + `variable_if` structure unchanged.
+Keep the `set_variable` + `device_if` + `variable_if` structure unchanged. **Use a distinct variable name per button** (the rule above uses `macrokeybot_top_tap` and `macrokeybot_middle_tap`) — sharing a variable across buttons would let a tap on one button arm the double-tap detector on the other.
 
-For top/bottom buttons, the decision-tree table in [`SKILL.md`](../SKILL.md#decision-tree-which-target-keycode) shows common target JSON for Fn, media keys, shell commands, app launchers, etc.
+The same alternates table works for the top button — common pairings:
+
+| Use case                           | Single-tap target         | Double-tap target             | Framing                                                    |
+| ---------------------------------- | ------------------------- | ----------------------------- | ---------------------------------------------------------- |
+| Dictation + paste (our default)    | `Fn` (Typeless toggle)    | `Cmd+V` (paste)               | Dictation is two-handed; paste is the one-handed companion |
+| Mute mic + push-to-talk substitute | `Cmd+Shift+M` (Zoom mute) | `Cmd+Shift+A` (toggle audio)  | Mute is fast, audio toggle is deliberate                   |
+| Copy + copy-path in Finder         | `Cmd+C`                   | `Cmd+Option+C`                | Everyday copy is fast, "copy full path" is deliberate      |
+| App launcher pair                  | `open -a 'Notes'`         | `open -a 'Notes' && new note` | Switch is fast, create-and-switch is deliberate            |
+
+For the bottom button (single-action), the decision-tree table in [`SKILL.md`](../SKILL.md#decision-tree-which-target-keycode) shows common target JSON for Fn, media keys, shell commands, app launchers, etc.
 
 ## Rolling Back
 
@@ -433,4 +511,4 @@ Then System Settings → General → Login Items & Extensions → Driver Extensi
 
 ## Credits & Provenance
 
-This walkthrough distills ~2 days of live exploration on a Jieli/Free3-P 3-key pad, captured in [`01-hardware-identification.md`](01-hardware-identification.md) through [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md). The tap/double-tap pattern was added on 2026-04-23 to give the middle button a safer-than-default Return behavior. All patterns, traps, and adaptation notes here have been field-tested on the development laptop. If a detail doesn't survive contact with your reality, open an issue — this file is meant to evolve.
+This walkthrough distills ~2 days of live exploration on a Jieli/Free3-P 3-key pad, captured in [`01-hardware-identification.md`](01-hardware-identification.md) through [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md). The middle-button tap/double-tap pattern was added on 2026-04-23 to give Return a safer-than-default behavior; the same pattern was extended to the top button on 2026-04-24 (single-tap → Fn for Typeless toggle, double-tap → Cmd+V paste). All patterns, traps, and adaptation notes here have been field-tested on the development laptop. If a detail doesn't survive contact with your reality, open an issue — this file is meant to evolve.
