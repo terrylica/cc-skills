@@ -273,6 +273,14 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     [self applyDisplaySettings];
 }
 
+// v4 iter-246: moon-phase glyph toggle (iter-243 wire-up completion).
+- (void)toggleShowMoonPhase:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL cur = ![d objectForKey:@"ShowMoonPhase"] || [d boolForKey:@"ShowMoonPhase"];
+    [d setBool:!cur forKey:@"ShowMoonPhase"];
+    [self applyDisplaySettings];
+}
+
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
