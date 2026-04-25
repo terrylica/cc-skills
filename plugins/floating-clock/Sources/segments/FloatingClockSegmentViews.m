@@ -68,6 +68,26 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     return [super menuForEvent:event];
 }
 
+// v4 iter-253: panel-level double-click → toggle SegmentsCollapsed.
+// Required for the COLLAPSED → EXPANDED return trip: when collapsed,
+// LocalSegmentView is hidden and the legacy _label NSTextField is the
+// visible LOCAL content. NSTextField doesn't override mouseDown:, so
+// clicks fall through to this content view. Toggling here works in
+// BOTH directions (expanded → collapsed via LocalSegmentView's own
+// handler, collapsed → expanded via this fallback).
+- (void)mouseDown:(NSEvent *)event {
+    if (event.clickCount == 2) {
+        NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+        BOOL cur = [d boolForKey:@"SegmentsCollapsed"];
+        [d setBool:!cur forKey:@"SegmentsCollapsed"];
+        if ([self.window respondsToSelector:@selector(applyDisplaySettings)]) {
+            [(id)self.window applyDisplaySettings];
+        }
+        return;
+    }
+    [super mouseDown:event];
+}
+
 @end
 
 @implementation LocalSegmentView
