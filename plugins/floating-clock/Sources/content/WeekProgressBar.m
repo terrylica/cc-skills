@@ -110,63 +110,91 @@ static const CGFloat kWeekendDimAlpha = 0.45;
 // Helper: returns YES if Mon=0..Sun=6 day index is a weekend.
 static BOOL fcIsWeekendDayIdx(NSInteger d) { return d == 5 || d == 6; }
 
+// v4 iter-235: fine-grain boundary glyph selector. Maps fractional
+// cell remainder (0.0..1.0) to a Unicode pie/circle glyph for
+// 5-level sub-cell rendering when the user's ProgressBarStyle is
+// "dots":
+//   ≤0.125  → empty  ○     (round down)
+//   ≤0.375  → quarter ◔
+//   ≤0.625  → half    ◐
+//   ≤0.875  → three-q ◕
+//   >0.875  → full   ●     (round up)
+static NSString *fcFineGrainBoundaryGlyph(double remainder) {
+    if (remainder <= 0.125) return @"○";
+    if (remainder <= 0.375) return @"◔";
+    if (remainder <= 0.625) return @"◐";
+    if (remainder <= 0.875) return @"◕";
+    return @"●";
+}
+
 NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDay,
                                                      NSColor *filledColor, NSColor *emptyColor,
                                                      NSFont *font) {
-    NSString *plain = FCBuildWeekProgressBar(now, cellsPerDay);
     if (cellsPerDay < 1) cellsPerDay = 1;
 
     NSCalendar *cal = [NSCalendar currentCalendar];
     NSInteger currentDayIdx = -1;
+    double currentHourFrac = 0.0;
     if (now) {
         NSInteger gregWeekday = [cal component:NSCalendarUnitWeekday fromDate:now];
         currentDayIdx = (gregWeekday + 5) % 7;
+        NSDateComponents *hms = [cal components:(NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond)
+                                       fromDate:now];
+        currentHourFrac = ((double)hms.hour + (double)hms.minute / 60.0 + (double)hms.second / 3600.0) / 24.0;
     }
+
+    // iter-235: detect dots style for fine-grain. Other styles still
+    // get integer fill via FCBuildWeekProgressBar (no half-dots
+    // available in those families).
+    NSString *prefStyle = [[NSUserDefaults standardUserDefaults] stringForKey:@"ProgressBarStyle"];
+    BOOL fineGrain = (prefStyle == nil) || [prefStyle isEqualToString:@"dots"];
 
     NSColor *filledDim = [filledColor colorWithAlphaComponent:filledColor.alphaComponent * kWeekendDimAlpha];
     NSColor *emptyDim  = [emptyColor  colorWithAlphaComponent:emptyColor.alphaComponent  * kWeekendDimAlpha];
 
-    NSMutableAttributedString *out = [[NSMutableAttributedString alloc] initWithString:plain];
-    [out addAttribute:NSFontAttributeName value:font range:NSMakeRange(0, plain.length)];
+    // Build string char-by-char so we can substitute the boundary
+    // glyph on the current day. Color attributes go alongside.
+    NSMutableAttributedString *out = [[NSMutableAttributedString alloc] init];
+    NSDictionary *fontOnly = @{NSFontAttributeName: font};
 
-    // Walk: 7 day-groups separated by single-char `┊`. Within each group,
-    // first `fullCells` cells are filled, rest empty. Apply weekend
-    // dimming on Sat/Sun day-groups; separators stay at emptyColor
-    // (always dim) regardless of which day-pair they border.
-    NSUInteger pos = 0;
     for (NSInteger d = 0; d < 7; d++) {
         if (d > 0) {
-            // Separator at `pos` is a single character.
-            [out addAttribute:NSForegroundColorAttributeName value:emptyColor
-                        range:NSMakeRange(pos, 1)];
-            pos += 1;
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:@"┊"
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: emptyColor}]];
         }
-        // dayFrac for fill computation
         double dayFrac = 0.0;
         if (d < currentDayIdx)       dayFrac = 1.0;
-        else if (d == currentDayIdx) {
-            NSDateComponents *hms = [cal components:(NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond)
-                                           fromDate:now];
-            dayFrac = ((double)hms.hour + (double)hms.minute / 60.0 + (double)hms.second / 3600.0) / 24.0;
-        }
-        int fullCells = (int)(dayFrac * cellsPerDay + 0.5);
-        if (fullCells > cellsPerDay) fullCells = cellsPerDay;
-        if (fullCells < 0) fullCells = 0;
+        else if (d == currentDayIdx) dayFrac = currentHourFrac;
 
         BOOL weekend = fcIsWeekendDayIdx(d);
         NSColor *fillC  = weekend ? filledDim : filledColor;
         NSColor *emptyC = weekend ? emptyDim  : emptyColor;
 
-        if (fullCells > 0) {
-            [out addAttribute:NSForegroundColorAttributeName value:fillC
-                        range:NSMakeRange(pos, (NSUInteger)fullCells)];
+        // Filled cell count + fractional remainder for the boundary cell.
+        double cellsExact = dayFrac * (double)cellsPerDay;
+        int fullCells = (int)cellsExact;
+        double remainder = cellsExact - (double)fullCells;
+        if (fullCells > cellsPerDay) { fullCells = cellsPerDay; remainder = 0.0; }
+        if (fullCells < 0) fullCells = 0;
+
+        for (int i = 0; i < cellsPerDay; i++) {
+            NSString *glyph;
+            NSColor *color;
+            if (i < fullCells) { glyph = fineGrain ? @"●" : @"●"; color = fillC; }
+            else if (i == fullCells && fineGrain && d == currentDayIdx && remainder > 0.0) {
+                // Boundary cell: render the fine-grain quarter/half/three-q glyph.
+                glyph = fcFineGrainBoundaryGlyph(remainder);
+                // Use fillC if glyph has any fill, otherwise emptyC.
+                color = ([glyph isEqualToString:@"○"]) ? emptyC : fillC;
+            } else {
+                glyph = fineGrain ? @"○" : @"○"; color = emptyC;
+            }
+            [out appendAttributedString:[[NSAttributedString alloc]
+                initWithString:glyph
+                attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: color}]];
         }
-        if (fullCells < cellsPerDay) {
-            [out addAttribute:NSForegroundColorAttributeName value:emptyC
-                        range:NSMakeRange(pos + (NSUInteger)fullCells,
-                                          (NSUInteger)(cellsPerDay - fullCells))];
-        }
-        pos += (NSUInteger)cellsPerDay;
     }
+    (void)fontOnly;
     return out;
 }
