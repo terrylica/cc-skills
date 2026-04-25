@@ -23,11 +23,11 @@
     return h;
 }
 
-// v4 iter-253c: small downward visual offset per user — text reads
-// slightly below mathematical center to compensate for cap-height
-// being shorter than the line-height + baseline being below center.
-// Negative Y in NSView coords = visually lower on screen.
-static const CGFloat kFCVCenterDownNudgeY = -3.0;
+// v4 iter-253d: small downward visual offset per user. NSCell coords
+// are flipped (Y increases DOWN), so a POSITIVE offset shifts visible
+// content downward. Compensates for cap-height midpoint sitting above
+// the line-height geometric center.
+static const CGFloat kFCVCenterDownNudgeY = +3.0;
 
 - (NSRect)drawingRectForBounds:(NSRect)theRect {
     CGFloat measured = [self measuredHeightForWidth:theRect.size.width];
