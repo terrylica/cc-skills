@@ -17,11 +17,18 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-// Returns a plain NSString suitable for inline concatenation into
-// the LOCAL row's text. Uses the user-selected ProgressBarStyle
-// glyph pair (consistency with ACTIVE bar). totalCells must be >= 1.
+// v4 iter-230: structured per-day rendering with day separators.
+// Returns a plain NSString of 7 day-groups (each `cellsPerDay`
+// cells wide) joined by `┊` (U+250A light dotted vertical line).
+// Each day's cells reflect that day's progress relative to `now`:
+// past days fully filled, current day partial by hour-fraction,
+// future days empty. Uses the user-selected ProgressBarStyle glyph
+// pair (consistency with ACTIVE bar). cellsPerDay must be >= 1.
 // `now` may be nil — function returns an all-empty bar in that case.
-NSString *FCBuildWeekProgressBar(NSDate * _Nullable now, int totalCells);
+//
+// Total displayed width: 7 × cellsPerDay characters + 6 separators.
+// Default cellsPerDay = 2 → 14 cells + 6 separators = 20 chars.
+NSString *FCBuildWeekProgressBar(NSDate * _Nullable now, int cellsPerDay);
 
 // 0.0 (just past Mon midnight) → 1.0 (just before next Mon midnight).
 // Pure function for testability — buildProgressBar wraps this. nil
