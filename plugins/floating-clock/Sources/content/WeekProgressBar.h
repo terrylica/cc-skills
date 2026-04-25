@@ -53,6 +53,16 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate * _Nullable now,
 // labels lines them up vertically.
 NSString *FCBuildWeekDayLabels(int cellsPerDay);
 
+// v4 iter-240/iter-241: phase color for hour-of-day. Mirrors iter-112's
+// SkyGlyph 5-phase logic. Returns nil for "day" phase so callers can
+// fall back to their theme foreground (LocalTheme harmony). Other
+// phases return distinct tints:
+//   hour ∈ [5, 7)   → dawn   warm amber (R 0.98, G 0.78, B 0.40)
+//   hour ∈ [7, 17)  → day    nil       (caller uses theme color)
+//   hour ∈ [17, 19) → dusk   warm rose (R 0.95, G 0.50, B 0.55)
+//   hour ∈ [19, 5)  → night  cool blue (R 0.45, G 0.55, B 0.85)
+NSColor * _Nullable FCPhaseColorForHour(NSInteger hour);
+
 // v4 iter-234: ISO 8601 week-of-year for `now` in the system locale.
 // Financial-market convention (Reuters / Bloomberg / SWIFT / Basel
 // reporting) — Mon-start week, week 1 = the week containing the

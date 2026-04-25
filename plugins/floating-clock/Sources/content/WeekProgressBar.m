@@ -110,11 +110,12 @@ static const CGFloat kWeekendDimAlpha = 0.45;
 // Helper: returns YES if Mon=0..Sun=6 day index is a weekend.
 static BOOL fcIsWeekendDayIdx(NSInteger d) { return d == 5 || d == 6; }
 
-// v4 iter-240: phase color for hour-of-day. Mirrors iter-112's
-// SkyGlyph 5-phase logic (5-7 dawn / 7-17 day / 17-19 dusk / 19-5
-// night). Returns nil for "use the caller's filledColor" (day phase
-// gets theme color so the bar still harmonizes with LocalTheme).
-static NSColor * _Nullable fcPhaseColorForHour(NSInteger hour) {
+// v4 iter-240/iter-241: phase color for hour-of-day. Mirrors
+// iter-112's SkyGlyph 5-phase logic. Public + locked by
+// test_phase_color_for_hour fixture. Returns nil for "day" phase —
+// caller falls back to theme color so the bar harmonizes with
+// LocalTheme.
+NSColor *FCPhaseColorForHour(NSInteger hour) {
     if (hour >= 5 && hour < 7)   return [NSColor colorWithRed:0.98 green:0.78 blue:0.40 alpha:1.0];  // dawn — warm amber
     if (hour >= 7 && hour < 17)  return nil;                                                          // day  — caller's theme fg
     if (hour >= 17 && hour < 19) return [NSColor colorWithRed:0.95 green:0.50 blue:0.55 alpha:1.0];  // dusk — warm rose
@@ -199,7 +200,7 @@ NSAttributedString *FCBuildWeekProgressBarAttributed(NSDate *now, int cellsPerDa
             // (theme foreground) so the bar still harmonizes with
             // LocalTheme; dawn/dusk/night get distinct tints.
             NSInteger cellHour = (i * 24) / cellsPerDay;
-            NSColor *phaseColor = fcPhaseColorForHour(cellHour);
+            NSColor *phaseColor = FCPhaseColorForHour(cellHour);
             NSColor *cellFillColor = phaseColor ?: fillC;
             // Apply weekend dim if applicable.
             if (weekend && phaseColor) {

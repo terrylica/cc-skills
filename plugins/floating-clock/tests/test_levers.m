@@ -982,3 +982,14 @@ void test_week_fraction(void) {
     if (sepCount != 6) { failures++; fprintf(stderr, "FAIL %s: %lu seps (want 6)\n", __func__, (unsigned long)sepCount); }
     if (FCBuildWeekProgressBar(nil, 2).length != 20) { failures++; fprintf(stderr, "FAIL %s: nil bar length\n", __func__); }
 }
+
+void test_phase_color_for_hour(void) {
+    // iter-241: lock iter-240 phase boundaries 5/7/17/19. Day = nil.
+    struct { NSInteger h; BOOL nilOk; } cases[] = {
+        {3, NO}, {5, NO}, {6, NO}, {7, YES}, {12, YES}, {16, YES}, {17, NO}, {18, NO}, {19, NO}, {23, NO},
+    };
+    for (size_t i = 0; i < 10; i++) {
+        BOOL g = (FCPhaseColorForHour(cases[i].h) == nil);
+        if (g != cases[i].nilOk) { failures++; fprintf(stderr, "FAIL %s: h=%ld nil=%d (want %d)\n", __func__, (long)cases[i].h, g, cases[i].nilOk); }
+    }
+}
