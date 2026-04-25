@@ -158,7 +158,7 @@
     BOOL hasWeekBar = [d boolForKey:@"ShowWeekProgress"]
                       && (_localSeg.weekBarLabel.stringValue.length > 0
                           || _localSeg.weekBarLabel.attributedStringValue.length > 0);
-    CGFloat weekBarRow = hasWeekBar ? 76.0 : 0.0;  // iter-238: was 52, +10pt topMargin + 14pt weekNum row
+    CGFloat weekBarRow = hasWeekBar ? 86.0 : 0.0;  // iter-239: +10pt bottomMargin (timestamp ↔ W17 symmetry)
     CGFloat localRowHeight  = localHeight + pad + weekBarRow;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
