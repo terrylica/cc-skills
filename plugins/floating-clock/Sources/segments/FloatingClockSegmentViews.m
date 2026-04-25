@@ -121,24 +121,11 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252c: center on the PRIMARY FONT's cap-height midline,
-    // not on the layout-manager's measured height. The string mixes SF
-    // Mono with emoji (☀️ 🌗); emoji has a much taller line-height,
-    // which inflates measured-height and pushes the visible mono caps
-    // toward the top of the inflated frame. Anchoring directly to the
-    // mono font's cap-center sidesteps that — emoji may render slightly
-    // taller than the frame but visually align with the mono baseline.
-    NSRect b = self.bounds;
-    NSFont *font = _timeLabel.font ?: [NSFont systemFontOfSize:24];
-    CGFloat capH      = font.capHeight;        // visual height of caps
-    CGFloat ascender  = font.ascender;          // top of glyph extent above baseline
-    CGFloat descender = font.descender;         // bottom below baseline (negative)
-    CGFloat lineH     = ascender - descender;   // total line box
-
-    CGFloat capCenterY  = b.size.height / 2.0;          // block geometric V-center
-    CGFloat baselineY   = capCenterY - capH / 2.0;       // baseline below cap-center
-    CGFloat frameY      = baselineY + descender;         // frame bottom = baseline - |descender|
-    _timeLabel.frame    = NSMakeRect(0, frameY, b.size.width, lineH);
+    // v4 iter-252d: timeLabel fills the entire block bounds. With the
+    // block sized to localHeight + pad, the cell's drawingRectForBounds
+    // override centers vertically. Descenders fit within the padded
+    // block, so no clipping.
+    _timeLabel.frame = self.bounds;
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
