@@ -122,12 +122,28 @@ static uint64_t nsUntilNextSecond(void) {
             localBase, localLabel, skyGlyph];
     }
 
-    // v4 iter-231: week-progress bar moved to its own NSTextField
-    // (weekBarLabel) anchored below timeLabel — no longer inline with
-    // the timestamp per user directive.
+    // v4 iter-231 / iter-232: week-progress bar in its own NSTextField
+    // (weekBarLabel). cellsPerDay computed dynamically from the LOCAL
+    // segment width (per user directive iter-232 — "take full advantage
+    // of horizontality"). User can still pin a value via
+    // WeekProgressCellsPerDay > 0; default 0 = auto-fit width.
     if ([d boolForKey:@"ShowWeekProgress"]) {
         NSInteger cellsPerDay = [d integerForKey:@"WeekProgressCellsPerDay"];
-        if (cellsPerDay <= 0) cellsPerDay = 2;
+        if (cellsPerDay <= 0) {
+            // Auto: estimate mono char width from the bar's font (set
+            // in Layout.m to activeFont). Available width = segment
+            // width minus side padding (8pt each side) and ▕▏ brackets
+            // (~2 chars). Reserve 6 day-separators. Then divide by 7.
+            CGFloat segW = _localSeg.bounds.size.width;
+            NSFont *barFont = _localSeg.weekBarLabel.font ?: [NSFont monospacedSystemFontOfSize:11 weight:NSFontWeightRegular];
+            CGFloat charW = [@"M" sizeWithAttributes:@{NSFontAttributeName: barFont}].width;
+            if (charW < 4) charW = 7.0;  // safety floor
+            NSInteger maxChars = (NSInteger)((segW - 16.0) / charW);  // 8pt margin each side
+            NSInteger usableForCells = maxChars - 2 - 6;  // brackets + separators
+            cellsPerDay = usableForCells / 7;
+            if (cellsPerDay < 1) cellsPerDay = 1;
+            if (cellsPerDay > 32) cellsPerDay = 32;  // sanity cap
+        }
         _localSeg.weekBarLabel.stringValue = [NSString stringWithFormat:@"▕%@▏",
             FCBuildWeekProgressBar(nowLocal, (int)cellsPerDay)];
     } else {
