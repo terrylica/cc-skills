@@ -168,13 +168,15 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Triptych (single row)",     @"horizontal-triptych"]]
                                      defaultsKey:@"LayoutMode"]];
 
-    // v4 iter-35 + iter-99: 6 density presets — scales inner-row padding.
+    // v4 iter-35 + iter-99 + iter-225: 8 density presets — scales inner-row padding.
     [displayItems addObject:[self submenuTitled:@"Density"
                                           action:@selector(setDensity:)
                                            pairs:@[@[@"Ultracompact  (4pt)",  @"ultracompact"],
+                                                   @[@"Tight         (8pt)",  @"tight"],
                                                    @[@"Compact      (12pt)",  @"compact"],
                                                    @[@"Default      (24pt)",  @"default"],
                                                    @[@"Comfortable  (36pt)",  @"comfortable"],
+                                                   @[@"Roomy        (42pt)",  @"roomy"],
                                                    @[@"Spacious     (48pt)",  @"spacious"],
                                                    @[@"Cavernous    (64pt)",  @"cavernous"]]
                                      defaultsKey:@"Density"]];
