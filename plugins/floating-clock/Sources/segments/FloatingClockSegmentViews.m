@@ -121,18 +121,24 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252b: explicitly position timeLabel at the vertical midpoint
-    // of the block. The previous approach (frame=self.bounds + rely on
-    // VerticallyCenteredTextFieldCell to center) didn't survive NSTextField's
-    // internal drawing path — text continued landing at the top of the
-    // block. Setting a tight, vertically-centered frame eliminates the
-    // dependency on cell-level vertical centering entirely.
+    // v4 iter-252c: center on the PRIMARY FONT's cap-height midline,
+    // not on the layout-manager's measured height. The string mixes SF
+    // Mono with emoji (☀️ 🌗); emoji has a much taller line-height,
+    // which inflates measured-height and pushes the visible mono caps
+    // toward the top of the inflated frame. Anchoring directly to the
+    // mono font's cap-center sidesteps that — emoji may render slightly
+    // taller than the frame but visually align with the mono baseline.
     NSRect b = self.bounds;
-    CGFloat textH = [(VerticallyCenteredTextFieldCell *)_timeLabel.cell
-                               measuredHeightForWidth:b.size.width];
-    if (textH < 10) textH = 30;
-    CGFloat textY = (b.size.height - textH) / 2.0;
-    _timeLabel.frame = NSMakeRect(0, textY, b.size.width, textH);
+    NSFont *font = _timeLabel.font ?: [NSFont systemFontOfSize:24];
+    CGFloat capH      = font.capHeight;        // visual height of caps
+    CGFloat ascender  = font.ascender;          // top of glyph extent above baseline
+    CGFloat descender = font.descender;         // bottom below baseline (negative)
+    CGFloat lineH     = ascender - descender;   // total line box
+
+    CGFloat capCenterY  = b.size.height / 2.0;          // block geometric V-center
+    CGFloat baselineY   = capCenterY - capH / 2.0;       // baseline below cap-center
+    CGFloat frameY      = baselineY + descender;         // frame bottom = baseline - |descender|
+    _timeLabel.frame    = NSMakeRect(0, frameY, b.size.width, lineH);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
