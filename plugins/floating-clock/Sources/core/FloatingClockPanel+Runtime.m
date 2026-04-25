@@ -7,6 +7,7 @@
 #import "../content/NextSegmentContentBuilder.h"
 #import "../content/WeekProgressBar.h"      // iter-229: weekly progress on LOCAL
 #import "../content/UrgencyColors.h"        // iter-233: FCProgressEmptyColor for week bar
+#import "../data/MoonPhase.h"               // iter-243: offline moon phase
 #import "../rendering/FontResolver.h"  // FCCurrentTimeFormat
 #import "DateFormatPrefix.h"              // FCDateFormatPrefix
 #import "SkyGlyph.h"                       // FCSkyGlyphForHour
@@ -109,6 +110,15 @@ static uint64_t nsUntilNextSecond(void) {
         skyGlyph = [NSString stringWithFormat:@" %@", FCSkyGlyphForHour(hour)];
     }
 
+    // v4 iter-243: pure-offline moon-phase glyph (synodic-month
+    // calculation from a known new-moon epoch — no lat/lon, no
+    // network). Default ON; toggle via Show Moon Phase menu item.
+    NSString *moonGlyph = @"";
+    BOOL showMoon = ![d objectForKey:@"ShowMoonPhase"] || [d boolForKey:@"ShowMoonPhase"];
+    if (showMoon) {
+        moonGlyph = [NSString stringWithFormat:@" %@", FCMoonPhaseGlyph(nowLocal)];
+    }
+
     // v4 iter-229: optional week-progress bar appended inline. Shows
     // "▕<bar>▏" where <bar> is a fractional fill across 14 cells (2
     // per day × 7 days). Default ON so users see the new feature
@@ -122,11 +132,11 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
-            localBase, localLabel, utcStr, skyGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@%@",
+            localBase, localLabel, utcStr, skyGlyph, moonGlyph];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@",
-            localBase, localLabel, skyGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@%@",
+            localBase, localLabel, skyGlyph, moonGlyph];
     }
 
     // v4 iter-231 / iter-232: week-progress bar in its own NSTextField
