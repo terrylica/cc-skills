@@ -656,6 +656,9 @@ static void test_starter_profiles_cover_all_keys(void) {
                                           @"SessionSignalWindow",  // iter-128 — registered default "15min" is fine
                                           @"UrgencyHorizon",       // iter-215 — registered default "60min" is fine
                                           @"UrgencyFlash",         // iter-219 — registered default "normal" is fine
+                                          @"ShowWeekProgress",     // iter-247 — registered default YES is fine
+                                          @"ShowMoonPhase",        // iter-247 — registered default YES is fine
+                                          @"WeekProgressCellsPerDay", // iter-247 — registered default 0 (auto-fit) is fine
                                           nil];
 
     for (NSString *profileName in profiles.allKeys) {
