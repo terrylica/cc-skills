@@ -127,7 +127,15 @@
         initWithString:localStr attributes:primaryAttrs];
     NSSize localSize = FCMeasureAttributedUnwrapped(localAttr);
     if (localSize.height < 10) localSize = [localStr sizeWithAttributes:primaryAttrs];
-    localSize.height = ceilf(localSize.height + primaryFont.ascender * 0.3);
+    // v4 iter-252e: use NSCell.cellSize as the canonical natural-size
+    // (includes ascender + descender + leading + emoji baseline shift).
+    // Was: + ascender * 0.3 (an iter-78-era estimate that didn't fit
+    // emoji-mixed text). cellSize is what NSTextField itself reports
+    // as its intrinsic size, so block-height = cellSize.height yields
+    // an exactly-text-tall block with no asymmetry possible.
+    NSSize cellNatural = [_localSeg.timeLabel.cell cellSize];
+    if (cellNatural.height > localSize.height) localSize.height = cellNatural.height;
+    localSize.height = ceilf(localSize.height);
     _localSeg.timeLabel.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.cell.alignment = NSTextAlignmentCenter;
     _localSeg.timeLabel.usesSingleLineMode = YES;
@@ -168,12 +176,12 @@
                       && (_weekSeg.weekBarLabel.stringValue.length > 0
                           || _weekSeg.weekBarLabel.attributedStringValue.length > 0);
     CGFloat weekRowHeight   = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
-    // v4 iter-252d: descender room. iter-252c's tight-fit clipped the
-    // descender of letters like "y" in "Friday" because measured text
-    // height didn't fully include descender + emoji top-extent. Pad
-    // by half the density-pad on each side — enough breathing room
-    // for descenders + emoji while keeping the centering symmetric.
-    CGFloat localRowHeight  = localHeight + pad;
+    // v4 iter-252e: block height = cellSize-derived localHeight (which
+    // already includes descender + emoji line height) + minimal 4pt
+    // breathing margin. Eliminates the empty-space asymmetry the user
+    // kept reporting — block is now sized so text fills it almost
+    // entirely, leaving only ~2pt above + ~2pt below.
+    CGFloat localRowHeight  = localHeight + 4.0;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
     // height (the row the two sit in) still uses MAX because the
