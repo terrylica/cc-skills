@@ -48,6 +48,9 @@
     ss.target = self;
     NSMenuItem *sd = [m addItemWithTitle:@"Show Date" action:@selector(toggleShowDate:) keyEquivalent:@""];
     sd.target = self;
+    // v4 iter-229: optional weekly progress bar appended inline.
+    NSMenuItem *swp = [m addItemWithTitle:@"Show Week Progress" action:@selector(toggleShowWeekProgress:) keyEquivalent:@""];
+    swp.target = self;
 
     [m addItem:[self submenuTitled:@"Time Format"
                              action:@selector(setTimeFormat:)
