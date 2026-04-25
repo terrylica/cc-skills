@@ -10,7 +10,7 @@ Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Element
 > This plugin was distilled from live work on a Jieli/Free3-P 3-key pad (VID `0x4c4a` USB / `0x04E8` BT). The patterns apply to any cheap HID pad from AliExpress or Amazon — Jieli, Realtek, CH57x — that cannot be flashed with QMK/VIA/Vial.
 
 > [!TIP]
-> **Want the turnkey recipe?** → [`skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md`](./skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md) — copy-paste-ready 30-minute walkthrough for a ~$10 pad with push-to-talk (Fn) on top, tap-vs-double-tap safe-Return on middle, Command+Delete on bottom, across USB + Bluetooth.
+> **Want the turnkey recipe?** → [`skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md`](./skills/configure-macro-keyboard/references/09-turnkey-walkthrough.md) — copy-paste-ready 30-minute walkthrough for a ~$10 pad with tap-vs-double-tap on top (Fn for Typeless toggle / Cmd+V paste), tap-vs-double-tap safe-Return on middle (Shift+Return / Return), Command+Delete on bottom, across USB + Bluetooth.
 
 ## What You Get
 
@@ -76,11 +76,12 @@ ioreg -p IOUSB -l -w 0 | grep -A 20 "USB Composite Device"
 
 # 3. Write the rule
 #    ~/.config/karabiner/karabiner.json → complex_modifications.rules → append
-#    One rule, device_if covering BOTH VID/PIDs, 8 manipulators:
-#    - top (USB + BT) → Fn for dictation push-to-talk
+#    One rule, device_if covering BOTH VID/PIDs, 10 manipulators:
+#    - top tap/double-tap pair (USB + BT) → Fn (Typeless toggle) vs. Cmd+V (paste)
 #    - middle tap/double-tap pair (USB + BT) → Shift+Return vs. Return
 #    - bottom (USB + BT) → Command+Delete
-#    (6 manipulators if you drop the tap/double-tap on middle and bind a single action.)
+#    (8 manipulators if you drop the top double-tap and bind Fn directly;
+#     6 manipulators if you also drop the middle tap/double-tap.)
 
 # 4. Verify the grab
 karabiner_cli --list-connected-devices | jq '.[] | select(.product == "Free3-P")'

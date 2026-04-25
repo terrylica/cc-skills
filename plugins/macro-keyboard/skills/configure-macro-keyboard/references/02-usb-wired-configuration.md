@@ -4,11 +4,11 @@ How the pad is configured right now, when connected via USB-C.
 
 ## Mapping Summary
 
-| Physical Button | Firmware Emits | Remapped To                                                                      | What It Does                                                           |
-| --------------- | -------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **Top**         | `Ctrl+C`       | `Fn` (Apple vendor keyboard Fn)                                                  | Push-to-talk for Typeless dictation                                    |
-| **Middle**      | `Ctrl+V`       | **Single-tap** → `Shift+Return` (after ~200ms); **Double-tap ≤200ms** → `Return` | Single tap inserts a newline in chat/compose; double tap commits/sends |
-| **Bottom**      | `Ctrl+X`       | `Command+Delete`                                                                 | Delete from cursor to start of line                                    |
+| Physical Button | Firmware Emits | Remapped To                                                                      | What It Does                                                                  |
+| --------------- | -------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Top**         | `Ctrl+C`       | **Single-tap** → `Fn` (after ~200ms); **Double-tap ≤200ms** → `Command+V`        | Single tap toggles Typeless dictation; double tap pastes the system clipboard |
+| **Middle**      | `Ctrl+V`       | **Single-tap** → `Shift+Return` (after ~200ms); **Double-tap ≤200ms** → `Return` | Single tap inserts a newline in chat/compose; double tap commits/sends        |
+| **Bottom**      | `Ctrl+X`       | `Command+Delete`                                                                 | Delete from cursor to start of line                                           |
 
 Apple keyboard's built-in Fn key is untouched by this rule. Your coworker using the MacBook Fn for Typeless is unaffected.
 
@@ -36,11 +36,11 @@ Typeless's koffi CGEventTap / Cocoa text field
 
 Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules`. Exported verbatim in [`references/karabiner-rule.json`](references/karabiner-rule.json).
 
-Abridged USB-only view — the full live rule covers USB + Bluetooth in 8 manipulators. See `raw/karabiner-rule.json` for the verbatim dump.
+Abridged USB-only view — the full live rule covers USB + Bluetooth in 10 manipulators (top and middle each have a tap/double-tap pair × 2 transports + bottom × 2 transports). See `raw/karabiner-rule.json` for the verbatim dump.
 
 ```json
 {
-  "description": "Jieli macro pad: Ctrl+C -> Fn (top); Ctrl+V -> single-tap Shift+Return / double-tap Return (middle); Ctrl+X -> Command+Delete (bottom)",
+  "description": "Jieli macro pad: Ctrl+C -> single-tap Fn / double-tap Cmd+V (top); Ctrl+V -> single-tap Shift+Return / double-tap Return (middle); Ctrl+X -> Command+Delete (bottom)",
   "manipulators": [
     {
       "type": "basic",
@@ -52,7 +52,39 @@ Abridged USB-only view — the full live rule covers USB + Bluetooth in 8 manipu
           "detect_key_down_uninterruptedly": true
         }
       },
-      "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
+      "to": [
+        { "key_code": "v", "modifiers": ["left_command"] },
+        { "set_variable": { "name": "jieli_top_tap", "value": 0 } }
+      ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [{ "vendor_id": 19530, "product_id": 16725 }]
+        },
+        { "type": "variable_if", "name": "jieli_top_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": {
+        "simultaneous": [{ "key_code": "left_control" }, { "key_code": "c" }],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [{ "set_variable": { "name": "jieli_top_tap", "value": 1 } }],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "apple_vendor_top_case_key_code": "keyboard_fn" },
+          { "set_variable": { "name": "jieli_top_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "jieli_top_tap", "value": 0 } }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -114,18 +146,22 @@ Abridged USB-only view — the full live rule covers USB + Bluetooth in 8 manipu
 }
 ```
 
-### How the middle-button tap/double-tap works
+### How the tap/double-tap pattern works (top + middle buttons)
 
-Two manipulators share the same `from` trigger (`Ctrl+V`) and coordinate via a runtime variable `jieli_middle_tap`:
+Both the top and middle buttons use the same two-manipulator pattern, each scoped to its own runtime variable (`jieli_top_tap` for the top button, `jieli_middle_tap` for the middle). For the middle button (`Ctrl+V`):
 
 1. **Second-tap detector** (listed first — Karabiner evaluates top-down, first match wins): matches only when `jieli_middle_tap == 1`. Emits `Return` and resets the variable.
 2. **First-tap handler**: matches when the variable is `0` (unset). Sets the variable to `1` and starts a 200ms delayed action:
    - `to_if_invoked` (timer elapsed, no second press arrived) → emit `Shift+Return` + reset variable
    - `to_if_canceled` (second press arrived, canceling the delay before it fired) → just reset the variable (the second-tap detector already handled the commit)
 
-**Design tradeoff**: single-tap has ~200ms discrimination latency (unavoidable in any tap/double-tap scheme) but double-tap is instant. This is the "safety" framing: the more common action (newline) is safer/slower, the decisive action (send) is deliberate and fast. To invert (fast single-tap, delayed double-tap) swap `Shift+Return` and `Return` in the JSON. For zero-latency alternatives, see `03-patterns.md` → "Tap vs. double-tap discrimination" (suggests tap-vs-hold when latency matters).
+The top button (`Ctrl+C`) substitutes its own targets and variable name: single-tap → `Fn` (Apple vendor keyboard Fn for Typeless), double-tap → `Cmd+V` (paste). Otherwise the structure is identical. **Use a distinct variable per button** — sharing a variable across buttons would let a tap on one button arm the double-tap detector on another.
 
-**Tuning**: `basic.to_delayed_action_delay_milliseconds: 200` is the double-tap window. Raise it (250-300) if users miss double-taps, lower it (150) if they accidentally trigger the double-tap target when meaning the single-tap target.
+**Design tradeoff**: single-tap has ~200ms discrimination latency (unavoidable in any tap/double-tap scheme) but double-tap is instant. This is the "safety" framing: the more common action (newline / Typeless) is safer/slower, the decisive action (send / paste) is deliberate and fast. To invert (fast single-tap, delayed double-tap) swap the two targets in the JSON. For zero-latency alternatives, see `03-patterns.md` → "Tap vs. double-tap discrimination" (suggests tap-vs-hold when latency matters).
+
+**Top-button caveat — Fn-as-push-to-talk doesn't work in this scheme.** Because the Fn keystroke fires only after the 200ms detection window expires, holding the top key emits a single delayed Fn keypress, not a sustained Fn-down state. Push-to-talk (hold to dictate) needs the original "no double-tap, fire Fn immediately" rule — collapse the two top-button manipulators back into a single immediate-Fn manipulator (see git history of `raw/karabiner-rule.json` before the top-button double-tap addition). This skill assumes Typeless is configured as **tap-to-toggle Fn**, not push-to-talk.
+
+**Tuning**: `basic.to_delayed_action_delay_milliseconds: 200` is the double-tap window. Raise it (250-300) if users miss double-taps, lower it (150) if they accidentally trigger the double-tap target when meaning the single-tap target. The top and middle button windows are independent — tune each separately.
 
 ## Changing the Mapping
 
@@ -192,16 +228,18 @@ If the daemons ever fail to come up after a reboot (symptom: pad keys emit uncha
 
 ## Troubleshooting
 
-| Symptom                                                               | Likely Cause                   | Check / Fix                                                                                                                                                                                                       |
-| --------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pad emits Ctrl+C/V/X unmodified                                       | Karabiner daemon not running   | `pgrep -l karabiner` — expect `Karabiner-Core-Service`, `karabiner_console_user_server`, `karabiner_session_monitor`, `Karabiner-NotificationWindow`. If missing, check Login Items approval                      |
-| Pad is visible in Karabiner's devices list but rule doesn't fire      | Karabiner not grabbing the pad | `grep "USB Composite Device" /var/log/karabiner/core_service.log \| tail -2` — last line should say `(grabbed)`. If it says `(stopped)`, pad was unplugged or set to `ignore`                                     |
-| Top button triggers something other than Typeless (e.g. emoji picker) | Globe key behavior overriding  | `defaults read com.apple.HIToolbox AppleFnUsageType` — should be `0` (Do Nothing). If not, change in System Settings → Keyboard → "Press 🌐 key to..."                                                            |
-| Fn fires but Typeless silent                                          | Typeless stopped listening     | Restart Typeless.app. If still silent, check Typeless's `app-settings.json` has `"pushToTalk": "Fn"`                                                                                                              |
-| Middle button inserts text instead of newline                         | Rule targeting wrong keycode   | Verify both Ctrl+V manipulators: the second-tap detector's `to` has `return_or_enter`; the first-tap handler's `to_if_invoked` has `return_or_enter` + `modifiers: ["left_shift"]`. Neither target should be `v`. |
-| Middle button fires double-tap target on single press                 | Variable stuck at `1`          | Kickstart Karabiner to clear runtime variables: `launchctl kickstart -k gui/$(id -u)/org.pqrs.karabiner.karabiner_console_user_server`. Or force a config reload by touching the file.                            |
-| Middle button's 200ms single-tap delay feels sluggish                 | Default detection window       | Edit the first-tap manipulator's `parameters.basic.to_delayed_action_delay_milliseconds` to a lower value (e.g. 150). Tradeoff: fewer successful double-tap detections.                                           |
-| Double-tap fails — two single-tap targets fire back-to-back           | Taps were slower than window   | Raise `basic.to_delayed_action_delay_milliseconds` to 250-300. Tradeoff: more single-tap latency.                                                                                                                 |
+| Symptom                                                               | Likely Cause                     | Check / Fix                                                                                                                                                                                                                                  |
+| --------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pad emits Ctrl+C/V/X unmodified                                       | Karabiner daemon not running     | `pgrep -l karabiner` — expect `Karabiner-Core-Service`, `karabiner_console_user_server`, `karabiner_session_monitor`, `Karabiner-NotificationWindow`. If missing, check Login Items approval                                                 |
+| Pad is visible in Karabiner's devices list but rule doesn't fire      | Karabiner not grabbing the pad   | `grep "USB Composite Device" /var/log/karabiner/core_service.log \| tail -2` — last line should say `(grabbed)`. If it says `(stopped)`, pad was unplugged or set to `ignore`                                                                |
+| Top button triggers something other than Typeless (e.g. emoji picker) | Globe key behavior overriding    | `defaults read com.apple.HIToolbox AppleFnUsageType` — should be `0` (Do Nothing). If not, change in System Settings → Keyboard → "Press 🌐 key to..."                                                                                       |
+| Fn fires but Typeless silent                                          | Typeless stopped listening       | Restart Typeless.app. If still silent, check Typeless's `app-settings.json` has `"pushToTalk": "Fn"`                                                                                                                                         |
+| Top button single-tap pastes instead of activating Fn                 | Variable stuck at `1`            | Same fix as the middle button — see "Variable stuck" row below. Apply to `jieli_top_tap` instead of `jieli_middle_tap`.                                                                                                                      |
+| Top button's double-tap pastes nothing                                | Clipboard empty or app blocks ⌘V | Verify with manual ⌘V in the same app. The rule synthesises a real `Cmd+V` so any app accepting clipboard paste will receive it; sandboxed apps that block synthetic events (1Password CLI, some IDEs) will not.                             |
+| Middle button inserts text instead of newline                         | Rule targeting wrong keycode     | Verify both Ctrl+V manipulators: the second-tap detector's `to` has `return_or_enter`; the first-tap handler's `to_if_invoked` has `return_or_enter` + `modifiers: ["left_shift"]`. Neither target should be `v`.                            |
+| Tap-button fires double-tap target on single press                    | Variable stuck at `1`            | Kickstart Karabiner to clear runtime variables: `launchctl kickstart -k gui/$(id -u)/org.pqrs.karabiner.karabiner_console_user_server`. Or force a config reload by touching the file. Affects either `jieli_top_tap` or `jieli_middle_tap`. |
+| 200ms single-tap delay feels sluggish                                 | Default detection window         | Edit the affected first-tap manipulator's `parameters.basic.to_delayed_action_delay_milliseconds` to a lower value (e.g. 150). Tradeoff: fewer successful double-tap detections. Top and middle are tuned independently.                     |
+| Double-tap fails — two single-tap targets fire back-to-back           | Taps were slower than window     | Raise `basic.to_delayed_action_delay_milliseconds` to 250-300. Tradeoff: more single-tap latency.                                                                                                                                            |
 
 ## Diagnostic Commands (non-sudo)
 

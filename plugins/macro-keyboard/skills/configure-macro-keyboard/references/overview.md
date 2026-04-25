@@ -4,8 +4,8 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 ## Current Status
 
-- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP drives Typeless push-to-talk (Fn), MIDDLE is a tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), BOTTOM is Command+Delete (delete-to-start-of-line). See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
-- **Bluetooth mode**: ✅ working on firmware mode 4 (page_up / page_down / equal_sign). Same Karabiner rule extended with parallel BT manipulators — page_up→Fn, page_down→tap/double-tap pair (Shift+Return / Return), equal_sign→Command+Delete. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
+- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP is a tap/double-tap pair (single-tap = Fn for Typeless dictation toggle, double-tap = Cmd+V paste), MIDDLE is a tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), BOTTOM is Command+Delete (delete-to-start-of-line). See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
+- **Bluetooth mode**: ✅ working on firmware mode 4 (page_up / page_down / equal_sign). Same Karabiner rule extended with parallel BT manipulators — page_up→tap/double-tap pair (Fn / Cmd+V), page_down→tap/double-tap pair (Shift+Return / Return), equal_sign→Command+Delete. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
 
 ## Contents
 
@@ -34,7 +34,7 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 | Physical | USB-C emits | BT mode-4 emits | Effect after Karabiner                                                                                          |
 | -------- | ----------- | --------------- | --------------------------------------------------------------------------------------------------------------- |
-| Top      | `Ctrl+C`    | `page_up`       | `Fn` (Typeless push-to-talk)                                                                                    |
+| Top      | `Ctrl+C`    | `page_up`       | **Single-tap** = `Fn` (Typeless toggle, ~200ms after release); **Double-tap ≤200ms** = `Cmd+V` (paste)          |
 | Middle   | `Ctrl+V`    | `page_down`     | **Single-tap** = `Shift+Return` (newline, ~200ms after release); **Double-tap ≤200ms** = `Return` (send/commit) |
 | Bottom   | `Ctrl+X`    | `equal_sign`    | `Command+Delete` (delete to start of line)                                                                      |
 

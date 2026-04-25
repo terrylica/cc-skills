@@ -2,6 +2,38 @@
 
 All notable changes to the `macro-keyboard` plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning tracks the cc-skills marketplace (synchronized major version across all plugins).
 
+## Unreleased — 2026-04-24
+
+### Changed — Top button gains tap/double-tap pair
+
+Extended the tap-vs-double-tap pattern from the middle button to the top button in the live MacroKeyBot rule. The top button now does:
+
+- **Single-tap** (after ~200ms) → `Fn` (Apple vendor keyboard Fn) — toggles Typeless dictation
+- **Double-tap** (≤200ms) → `Cmd+V` (paste)
+
+The 6-manipulator middle-button-only tap/double-tap rule grew to 10 manipulators (top × 2 transports + middle × 2 transports + bottom × 2 transports, with the top and middle each using a 2-manipulator detector/handler pair per transport).
+
+**New runtime variable**: `jieli_top_tap` (parallels `jieli_middle_tap`). Each button needs its own variable to prevent a tap on one from arming the double-tap detector on another.
+
+**Caveat (documented in `02-usb-wired-configuration.md`, `08-bluetooth-configuration.md`, `09-turnkey-walkthrough.md`, `03-patterns.md`)**: because Fn now fires only after the 200ms detection window expires, this rule is **incompatible with Typeless's push-to-talk mode** (hold-to-talk). It assumes Typeless is configured as tap-to-toggle Fn. To restore PTT, collapse the top-button pair back into the original single-manipulator immediate-Fn form (see git history of `references/raw/karabiner-rule.json` from before this change).
+
+### Updated docs
+
+- `references/raw/karabiner-rule.json` — 8 → 10 manipulators with new top-button pair on USB (Ctrl+C) and BT (page_up)
+- `references/02-usb-wired-configuration.md` — mapping table, abridged JSON view, "How the tap/double-tap pattern works" section now covers both top + middle, troubleshooting table gains top-button-specific rows, PTT caveat added
+- `references/08-bluetooth-configuration.md` — mapping table, manipulator structure (numbered list), other-modes and switching-modes references updated to the new manipulator layout, PTT caveat added
+- `references/09-turnkey-walkthrough.md` — full 10-manipulator JSON, behavior table, adapt-for-your-pad notes (collapse-to-PTT recipe), variations table for top button, verification step's expected manipulator count, PTT caveat near the top
+- `references/overview.md` — current-status bullets and quick-reference mapping table
+- `references/03-patterns.md` — live-examples line now lists both top + middle pairs, anti-pattern warning concrete-references the top-button PTT trap with a recipe to collapse back
+- `references/07-bluetooth-toolbox.md` — pairing-day Step 3 reworded for tap-toggle vs PTT
+- `SKILL.md` — manipulator count math, turnkey description
+- `CLAUDE.md` (plugin) — tap-vs-double-tap section names both live examples, file-list descriptions for `02-` / `08-` / `raw/`
+- `README.md` — turnkey TIP, Quick Example bullets, manipulator count
+
+### Live config
+
+Applied to `~/.config/karabiner/karabiner.json` on 2026-04-24 (backup at `~/.config/karabiner/karabiner.json.bak.before-top-tap-20260424-143528`). Karabiner reloaded cleanly; functional verification pending (Typeless toggle on single-tap, paste on double-tap).
+
 ## [15.0.0] — 2026-04-21
 
 ### Added — Initial Release
