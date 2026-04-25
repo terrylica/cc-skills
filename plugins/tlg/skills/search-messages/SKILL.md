@@ -37,18 +37,34 @@ EOF
 
 ## Parameters
 
-| Parameter    | Type       | Description                              |
-| ------------ | ---------- | ---------------------------------------- |
-| query        | string     | Search text (required)                   |
-| `--chat`     | string/int | Limit to specific chat (omit for global) |
-| `--from`     | string/int | Filter by sender                         |
-| `-n/--limit` | int        | Max results (default: 20)                |
+| Parameter    | Type       | Description                                                              |
+| ------------ | ---------- | ------------------------------------------------------------------------ |
+| query        | string     | Search text (required)                                                   |
+| `--chat`     | string/int | Limit to specific chat (omit for global)                                 |
+| `--from`     | string/int | Filter by sender                                                         |
+| `-n/--limit` | int        | Max results (default: 20)                                                |
+| `--preview`  | int        | Truncate each body to N chars (default: full text, multi-line indented). |
 
 ## Output Format
 
+Default (full text, multi-line indented):
+
 ```
-[YYYY-MM-DD HH:MM] [Chat Name] (id:12345) Sender: Message text...
+[YYYY-MM-DD HH:MM] [Chat Name] (id:12345) Sender: First line of body
+    continuation line 1 (indented under header)
+    continuation line 2
 ```
+
+With `--preview 100`:
+
+```
+[YYYY-MM-DD HH:MM] [Chat Name] (id:12345) Sender: First line of body ⏎ continuation collapsed onto…
+```
+
+Use `--preview N` only for high-volume scans where you want one row per
+message. Default = full text — long bodies are no longer silently
+truncated at 150 chars (the prior default forced direct-Telethon escape
+hatches when content actually mattered).
 
 ## Anti-Patterns
 

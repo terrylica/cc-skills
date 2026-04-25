@@ -36,9 +36,22 @@ DIALOGS_EOF
 
 ### Read Messages
 
+`read` returns the **full text** of every message by default. Multi-line
+bodies are indented under the header so the message stays visually
+grouped. No truncation.
+
 ```bash
+# Full text (default — recommended)
 uv run --python 3.13 "$SCRIPT" read <chat_id> -n 10
+
+# Short scan listing — truncate each body to N chars (\n flattened to "⏎")
+uv run --python 3.13 "$SCRIPT" read <chat_id> -n 50 --preview 200
 ```
+
+Use `--preview N` only when you're scanning many messages and want a
+single-line summary per row. For routine reading, omit it — long messages
+deserve to be read in full, not silently cut at 200 chars (the prior default,
+which forced repeated direct-Telethon escape hatches when content mattered).
 
 ### Account Info
 
