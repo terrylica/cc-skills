@@ -18,5 +18,9 @@
 	<true/>
 	<key>NSRequiresIPhoneOS</key>
 	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FloatingClock uses your approximate location to compute accurate sunrise, sunset, and civil-twilight times for the dawn/day/dusk/night glyph. City-level accuracy only — no precise GPS, no network, no data leaves your Mac.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>FloatingClock uses your approximate location to compute accurate sunrise, sunset, and civil-twilight times for the dawn/day/dusk/night glyph. City-level accuracy only — no precise GPS, no network, no data leaves your Mac.</string>
 </dict>
 </plist>

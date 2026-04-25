@@ -1,6 +1,8 @@
 #import "test_local_features.h"
 #import "../Sources/content/WeekProgressBar.h"
 #import "../Sources/data/MoonPhase.h"
+#import "../Sources/data/SolarEvents.h"
+#import <math.h>
 
 void test_week_fraction(void) {
     NSCalendar *cal = [NSCalendar currentCalendar];
@@ -58,4 +60,62 @@ void test_moon_phase(void) {
     if (![FCMoonPhaseGlyph(full) isEqualToString:@"🌕"]) { failures++; fprintf(stderr, "FAIL %s: full glyph %s\n", __func__, FCMoonPhaseGlyph(full).UTF8String); }
     if (![FCMoonPhaseGlyph(nil) isEqualToString:@"🌑"]) { failures++; fprintf(stderr, "FAIL %s: nil should fallback to 🌑\n", __func__); }
     if (FCMoonPhaseFraction(nil) != 0.0) { failures++; fprintf(stderr, "FAIL %s: nil fraction\n", __func__); }
+}
+
+void test_solar_events(void) {
+    // iter-250: NYC 2026-04-25 — published NOAA values: sunrise ~10:08 UTC
+    // (06:08 EDT), sunset ~23:46 UTC (19:46 EDT). Tolerance ±5min.
+    NSCalendar *gc = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
+    gc.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+
+    NSDateComponents *c = [[NSDateComponents alloc] init];
+    c.year = 2026; c.month = 4; c.day = 25; c.hour = 12;
+    NSDate *noon = [gc dateFromComponents:c];
+
+    FCSolarEvents ev = FCSolarEventsForLocation(noon, 40.7128, -74.0060);
+    if (!ev.valid) {
+        failures++;
+        fprintf(stderr, "FAIL %s: NYC 2026-04-25 events invalid\n", __func__);
+        return;
+    }
+
+    double midnightUTC = floor(ev.sunrise / 86400.0) * 86400.0;
+    double srSecs = ev.sunrise - midnightUTC;
+    double ssSecs = ev.sunset  - midnightUTC;
+    double srExpect = 10.0 * 3600 + 8 * 60;   // 10:08 UTC
+    double ssExpect = 23.0 * 3600 + 46 * 60;  // 23:46 UTC
+
+    if (fabs(srSecs - srExpect) > 300) {
+        failures++;
+        fprintf(stderr, "FAIL %s: NYC sunrise off by %.0fs (expected ~10:08 UTC)\n",
+                __func__, srSecs - srExpect);
+    }
+    if (fabs(ssSecs - ssExpect) > 300) {
+        failures++;
+        fprintf(stderr, "FAIL %s: NYC sunset off by %.0fs (expected ~23:46 UTC)\n",
+                __func__, ssSecs - ssExpect);
+    }
+    if (ev.civilDawn >= ev.sunrise) {
+        failures++; fprintf(stderr, "FAIL %s: civilDawn >= sunrise\n", __func__);
+    }
+    if (ev.civilDusk <= ev.sunset) {
+        failures++; fprintf(stderr, "FAIL %s: civilDusk <= sunset\n", __func__);
+    }
+
+    // Polar fallback: 89°N at June solstice → permanent day, invalid struct.
+    NSDateComponents *jun = [[NSDateComponents alloc] init];
+    jun.year = 2026; jun.month = 6; jun.day = 21; jun.hour = 12;
+    NSDate *junNoon = [gc dateFromComponents:jun];
+    FCSolarEvents polar = FCSolarEventsForLocation(junNoon, 89.0, 0.0);
+    if (polar.valid) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 89°N at June solstice should be polar day\n", __func__);
+    }
+
+    // Nil-date safety.
+    FCSolarEvents nilEv = FCSolarEventsForLocation(nil, 40.0, -74.0);
+    if (nilEv.valid) {
+        failures++;
+        fprintf(stderr, "FAIL %s: nil date should be invalid\n", __func__);
+    }
 }

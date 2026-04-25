@@ -104,13 +104,29 @@ static uint64_t nsUntilNextSecond(void) {
     // v4 iter-249: skyGlyph anchored at FRONT of LOCAL row per user
     // directive — sun-of-day at start, moon phase at end. Trailing
     // space (was leading) so it sits flush against the date prefix.
+    // v4 iter-250: solar-event aware glyph dispatcher. When CoreLocation
+    // has yielded coordinates, FCSkyGlyphForDate returns a glyph based
+    // on actual sunrise/sunset/civil-twilight at the user's lat/lon
+    // (NOAA solar formula, ±1min accuracy). Falls back to iter-114's
+    // hour-bucket dispatcher when location is unavailable (denied
+    // permission, never granted, or polar latitudes).
     BOOL showSky = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
     NSString *skyGlyph = @"";
     if (showSky) {
-        NSCalendar *cal = [NSCalendar currentCalendar];
-        cal.timeZone = localTz;
-        NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
-        skyGlyph = [NSString stringWithFormat:@"%@ ", FCSkyGlyphForHour(hour)];
+        BOOL haveLoc = [d objectForKey:@"LocationFetchedAt"] != nil
+                     && ([d doubleForKey:@"Latitude"] != 0.0 || [d doubleForKey:@"Longitude"] != 0.0);
+        NSString *glyph;
+        if (haveLoc) {
+            glyph = FCSkyGlyphForDate(nowLocal,
+                                       [d doubleForKey:@"Latitude"],
+                                       [d doubleForKey:@"Longitude"]);
+        } else {
+            NSCalendar *cal = [NSCalendar currentCalendar];
+            cal.timeZone = localTz;
+            NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
+            glyph = FCSkyGlyphForHour(hour);
+        }
+        skyGlyph = [NSString stringWithFormat:@"%@ ", glyph];
     }
 
     // v4 iter-243: pure-offline moon-phase glyph (synodic-month

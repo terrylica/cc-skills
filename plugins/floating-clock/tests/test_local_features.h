@@ -12,5 +12,6 @@ extern int failures;  // defined in test_session.m
 void test_week_fraction(void);            // iter-229 (moved from test_levers.m iter-244)
 void test_phase_color_for_hour(void);     // iter-241 (moved from test_levers.m iter-244)
 void test_moon_phase(void);               // iter-244
+void test_solar_events(void);             // iter-250
 
 NS_ASSUME_NONNULL_END
