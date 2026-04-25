@@ -121,6 +121,13 @@
     NSDictionary *nextAttrs    = @{NSFontAttributeName: nextFont};
 
     _localSeg.timeLabel.font = primaryFont;
+    // v4 iter-252g: sky + moon emoji labels use the SAME font size as
+    // the time text so the glyphs render at matching visual weight
+    // (instead of falling back to system default ~13pt). Apple Color
+    // Emoji renders at the requested size when applied to an emoji
+    // character regardless of the requested family.
+    _localSeg.skyGlyphLabel.font  = primaryFont;
+    _localSeg.moonGlyphLabel.font = primaryFont;
     NSString *localStr = _localSeg.timeLabel.stringValue.length > 0
         ? _localSeg.timeLabel.stringValue : @"HH:MM:SS";
     NSAttributedString *localAttr = [[NSAttributedString alloc]
