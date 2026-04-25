@@ -64,7 +64,9 @@
                                       @[@"USA           (4/23/2026)",           @"usa"],
                                       @[@"European      (23.4.2026)",           @"european"],
                                       @[@"Week Number   (Wk 17)",               @"weeknum"],
-                                      @[@"Day of Year   (Day 114)",             @"dayofyr"]]
+                                      @[@"Day of Year   (Day 114)",             @"dayofyr"],
+                                      @[@"Weekday Only  (Saturday)",            @"weekday_only"],
+                                      @[@"Month-Day     (Apr 25)",              @"monthday"]]
                         defaultsKey:@"DateFormat"]];
 
     [m addItem:[self groupedSubmenuTitled:@"Font Size"
