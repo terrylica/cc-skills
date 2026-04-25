@@ -5,6 +5,7 @@
 #import "../data/MarketSessionCalculator.h"
 #import "../content/ActiveSegmentContentBuilder.h"
 #import "../content/NextSegmentContentBuilder.h"
+#import "../content/WeekProgressBar.h"      // iter-229: weekly progress on LOCAL
 #import "../rendering/FontResolver.h"  // FCCurrentTimeFormat
 #import "DateFormatPrefix.h"              // FCDateFormatPrefix
 #import "SkyGlyph.h"                       // FCSkyGlyphForHour
@@ -101,6 +102,17 @@ static uint64_t nsUntilNextSecond(void) {
         skyGlyph = [NSString stringWithFormat:@" %@", FCSkyGlyphForHour(hour)];
     }
 
+    // v4 iter-229: optional week-progress bar appended inline. Shows
+    // "▕<bar>▏" where <bar> is a fractional fill across 14 cells (2
+    // per day × 7 days). Default ON so users see the new feature
+    // after rebuild; toggle via Show Week Progress menu item.
+    NSString *weekStr = @"";
+    if ([d boolForKey:@"ShowWeekProgress"]) {
+        NSInteger cells = [d integerForKey:@"WeekProgressCells"];
+        if (cells <= 0) cells = 14;
+        weekStr = [NSString stringWithFormat:@"  ▕%@▏", FCBuildWeekProgressBar(nowLocal, (int)cells)];
+    }
+
     if (showUTC) {
         if (!_utcFormatter) {
             _utcFormatter = [[NSDateFormatter alloc] init];
@@ -110,11 +122,11 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@",
-            localBase, localLabel, utcStr, skyGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC%@%@",
+            localBase, localLabel, utcStr, skyGlyph, weekStr];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@",
-            localBase, localLabel, skyGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@%@%@",
+            localBase, localLabel, skyGlyph, weekStr];
     }
     _activeSeg.contentLabel.attributedStringValue = FCBuildActiveSegmentContent();
     _nextSeg.contentLabel.attributedStringValue = FCBuildNextSegmentContent();

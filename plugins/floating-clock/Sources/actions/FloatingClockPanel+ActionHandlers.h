@@ -44,6 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleShowFlags:(NSMenuItem *)sender;
 - (void)toggleShowUTCReference:(NSMenuItem *)sender;
 - (void)toggleShowSkyState:(NSMenuItem *)sender;
+- (void)toggleShowWeekProgress:(NSMenuItem *)sender;
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender;
 - (void)copyStateToClipboard:(id)sender;
 - (void)setDensity:(NSMenuItem *)sender;

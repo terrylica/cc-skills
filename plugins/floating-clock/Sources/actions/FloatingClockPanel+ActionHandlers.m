@@ -265,6 +265,14 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     [self applyDisplaySettings];
 }
 
+// v4 iter-229: weekly progress bar toggle.
+- (void)toggleShowWeekProgress:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL cur = ![d objectForKey:@"ShowWeekProgress"] || [d boolForKey:@"ShowWeekProgress"];
+    [d setBool:!cur forKey:@"ShowWeekProgress"];
+    [self applyDisplaySettings];
+}
+
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
