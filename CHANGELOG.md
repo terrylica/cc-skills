@@ -1,3 +1,10 @@
+## [16.3.1](https://github.com/terrylica/cc-skills/compare/v16.3.0...v16.3.1) (2026-04-25)
+
+
+### Bug Fixes
+
+* **itp-hooks:** parquet-duckdb-nudge — emit via additionalContext ([4eddb4f](https://github.com/terrylica/cc-skills/commit/4eddb4f56cd512f68705969e1434a4d3811d830b))
+
 # [16.3.0](https://github.com/terrylica/cc-skills/compare/v16.2.0...v16.3.0) (2026-04-25)
 
 
