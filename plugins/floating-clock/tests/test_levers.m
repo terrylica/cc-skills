@@ -16,6 +16,7 @@
 #import "../Sources/content/UrgencyColors.h"
 #import "../Sources/content/UrgencyHorizon.h"
 #import "../Sources/content/UrgencyFlash.h"
+#import "../Sources/content/WeekProgressBar.h"
 #import "../Sources/preferences/FloatingClockQuickStyles.h"
 
 void test_font_weight_parser(void) {
@@ -925,4 +926,55 @@ void test_urgency_flash_intensity(void) {
     // Restore.
     if (saved) [d setObject:saved forKey:@"UrgencyFlash"];
     else       [d removeObjectForKey:@"UrgencyFlash"];
+}
+
+void test_week_fraction(void) {
+    // iter-229: FCWeekFraction maps NSDate → fraction-into-week
+    // (Mon midnight = 0.0, just before next Mon midnight = ~1.0).
+    // Uses NSCalendar's currentCalendar (system locale) — tests
+    // fix the components explicitly so locale-week-start doesn't
+    // surprise us, and verify the Mon=0..Sun=6 zero-indexed math.
+    NSCalendar *cal = [NSCalendar currentCalendar];
+    struct { NSInteger year, mon, day, h, m, s; double expectMin, expectMax; const char *label; } cases[] = {
+        // 2026-04-20 is Monday. Mon midnight = 0.0.
+        {2026, 4, 20, 0, 0, 0,    0.0,        0.001,    "Mon midnight"},
+        // 2026-04-20 12:00 = mid-Monday = 12/168 = 0.0714
+        {2026, 4, 20, 12, 0, 0,   0.0714 - 0.001, 0.0714 + 0.001, "Mon noon"},
+        // 2026-04-24 17:18 = Friday late afternoon
+        // weekHours = 4*24 + 17.3 = 113.3 → 113.3/168 = 0.6744
+        {2026, 4, 24, 17, 18, 0,  0.674 - 0.001, 0.674 + 0.001, "Fri 17:18"},
+        // 2026-04-26 23:59:59 = end of Sunday, just before Mon
+        // weekHours = 6*24 + 23 + 59/60 + 59/3600 = 167.9997 → 0.99998
+        {2026, 4, 26, 23, 59, 59, 0.999, 1.001, "Sun end"},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        NSDateComponents *comp = [[NSDateComponents alloc] init];
+        comp.year = cases[i].year; comp.month = cases[i].mon; comp.day = cases[i].day;
+        comp.hour = cases[i].h;    comp.minute = cases[i].m;  comp.second = cases[i].s;
+        NSDate *d = [cal dateFromComponents:comp];
+        double got = FCWeekFraction(d);
+        if (got < cases[i].expectMin || got > cases[i].expectMax) {
+            failures++;
+            fprintf(stderr, "FAIL %s: %s expected [%.4f, %.4f] got %.4f\n",
+                    __func__, cases[i].label,
+                    cases[i].expectMin, cases[i].expectMax, got);
+        }
+    }
+    // nil safety
+    if (FCWeekFraction(nil) != 0.0) {
+        failures++;
+        fprintf(stderr, "FAIL %s: nil → %.4f (want 0.0)\n", __func__, FCWeekFraction(nil));
+    }
+    // Bar builder integration: at Fri 17:18, 14-cell bar should produce
+    // a string of length 14 (UTF-8 char count via NSString.length, which
+    // counts UTF-16 code units — fine for BMP glyphs like ● ○ █ etc).
+    NSDateComponents *fri = [[NSDateComponents alloc] init];
+    fri.year = 2026; fri.month = 4; fri.day = 24; fri.hour = 17; fri.minute = 18;
+    NSDate *friDate = [cal dateFromComponents:fri];
+    NSString *bar = FCBuildWeekProgressBar(friDate, 14);
+    if (bar.length != 14) {
+        failures++;
+        fprintf(stderr, "FAIL %s: 14-cell bar length = %lu (want 14)\n",
+                __func__, (unsigned long)bar.length);
+    }
 }
