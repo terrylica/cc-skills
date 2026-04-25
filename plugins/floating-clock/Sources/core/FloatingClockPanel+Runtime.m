@@ -43,8 +43,14 @@ static uint64_t nsUntilNextSecond(void) {
 }
 
 - (void)tick {
-    NSString *mode = [[NSUserDefaults standardUserDefaults] stringForKey:@"DisplayMode"];
-    if ([mode isEqualToString:@"three-segment"]) {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *mode = [d stringForKey:@"DisplayMode"];
+    // v4 iter-235 bug fix: when SegmentsCollapsed=YES, applyLocalOnlyLayout
+    // hides _localSeg/_activeSeg/_nextSeg and shows _label. tick() must
+    // route to tickLegacy in that case so _label gets populated — otherwise
+    // the canvas shows a blank gray box (the bug user reported).
+    BOOL collapsed = [d boolForKey:@"SegmentsCollapsed"];
+    if ([mode isEqualToString:@"three-segment"] && !collapsed) {
         [self tickThreeSegment];
     } else {
         [self tickLegacy];
