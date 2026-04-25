@@ -107,47 +107,9 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     // segment chrome (e.g. "[TIME]'s font size is too small").
     label.toolTip = @"[TIME] — user-local time display inside [LOCAL] (updates every second; formatting controlled by TimeFormat / TimeSeparator / ShowSeconds prefs)";
 
-    // v4 iter-231: dedicated week-progress label, anchored below
-    // timeLabel. Per user directive — week bar must NOT inline-align
-    // on the same horizontal as the timestamp; it gets its own block
-    // below. Hidden when ShowWeekProgress=NO. Sub-element name
-    // [WEEKBAR] so users can call it out distinctly from [TIME].
-    NSTextField *weekLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    NSTextFieldCell *wcell = [[NSTextFieldCell alloc] initTextCell:@""];
-    wcell.editable = NO;
-    wcell.selectable = NO;
-    wcell.bezeled = NO;
-    wcell.drawsBackground = NO;
-    wcell.alignment = NSTextAlignmentCenter;
-    weekLabel.cell = wcell;
-    weekLabel.toolTip = @"[WEEKBAR] — weekly progress bar inside [LOCAL] (7 day-groups divided by ┊; controlled by ShowWeekProgress / WeekProgressCellsPerDay / ProgressBarStyle prefs)";
-    [self addSubview:weekLabel];
-    _weekBarLabel = weekLabel;
-
-    // v4 iter-234: day-letter row (M T W T F S S) above the week-bar.
-    // Letters centered within their day-groups so they align over
-    // the dot columns. Sub-element name [WEEKDAYS].
-    NSTextField *daysLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    NSTextFieldCell *dcell = [[NSTextFieldCell alloc] initTextCell:@""];
-    dcell.editable = NO; dcell.selectable = NO; dcell.bezeled = NO; dcell.drawsBackground = NO;
-    dcell.alignment = NSTextAlignmentCenter;
-    daysLabel.cell = dcell;
-    daysLabel.toolTip = @"[WEEKDAYS] — day-of-week letters (M T W T F S S) aligned over each day-group of [WEEKBAR]";
-    [self addSubview:daysLabel];
-    _weekDayLabelsLabel = daysLabel;
-
-    // v4 iter-234: ISO 8601 week-of-year anchored top-left of LOCAL.
-    // ISO 8601 is the dominant financial-market convention (Reuters,
-    // Bloomberg, SWIFT, Basel). Mon-start week, week 1 = week
-    // containing the year's first Thursday. Format "W##" (terse).
-    NSTextField *weekNum = [[NSTextField alloc] initWithFrame:NSMakeRect(8, 0, 60, 14)];
-    weekNum.editable = NO; weekNum.selectable = NO; weekNum.bezeled = NO; weekNum.drawsBackground = NO;
-    weekNum.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
-    weekNum.font = [NSFont monospacedSystemFontOfSize:9.5 weight:NSFontWeightMedium];
-    weekNum.toolTip = @"[WEEKNUM] — ISO 8601 week-of-year (financial-market convention; week 1 contains the year's first Thursday)";
-    weekNum.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;  // top-left anchor
-    [self addSubview:weekNum];
-    _weekNumberLabel = weekNum;
+    // v4 iter-251: week labels moved OUT of LocalSegmentView and into
+    // their own WeekSegmentView (sibling block) per user directive —
+    // LOCAL must be a clean timestamp-only block, both H + V centered.
 
     // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
     _debugLabel = fcMakeDebugLabel([self fcNameID]);
@@ -159,73 +121,11 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-231 / iter-232: 3-row LOCAL layout when weekBarLabel
-    // has content. Vertical zones, top-down:
-    //   [timeLabel]       primary timestamp (largest font)
-    //   [weekBarLabel]    week-progress bar (full segment width)
-    //   [debugLabel]      [LOCAL] corner overlay (own bottom strip)
-    //
-    // Per user directive iter-232: the [LOCAL] marker must NOT share
-    // a row with the week-bar / day-of-week / time-of-week symbolic
-    // representations. So we reserve a dedicated 16pt bottom strip
-    // for the debug label and place the week-bar in a 22pt strip
-    // above that. Bar gets full segment width to "take advantage of
-    // horizontality" — width-stretching is satisfied by the dynamic
-    // cellsPerDay computed in Runtime.m.
-    NSRect b = self.bounds;
-    BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0
-                      || _weekBarLabel.attributedStringValue.length > 0;
-    if (hasWeekBar) {
-        // v4 iter-234 / iter-235 / iter-238: 5-row LOCAL layout (top-down):
-        //   topMargin        breathing room between top brim and time
-        //   timeLabel        primary timestamp
-        //   weekNumberLabel  W## ISO 8601, left-aligned (own thin row)
-        //   dayLabelsLabel   M T W T F S S aligned over day-groups
-        //   weekBarLabel     7 day-groups of dots
-        //   debugLabel       [LOCAL] corner overlay (own bottom strip)
-        //
-        // iter-238: shrink timeLabel frame from the top by `topMargin`
-        // so VerticallyCenteredTextFieldCell centers the text within
-        // a smaller box — visually adds space between the LOCAL top
-        // brim and the timestamp row (user reported "squeezed too
-        // close to the top, doesn't look natural").
-        // v4 iter-242: layout constants moved to LocalLayoutConstants.h
-        // (SSoT). Editing any constant updates BOTH this file and
-        // Layout.m's localRowHeight calculation in lockstep.
-        CGFloat debugStrip   = kFCLocalDebugStripH;
-        CGFloat barH         = kFCLocalWeekBarH;
-        CGFloat daysH        = kFCLocalDayLabelsH;
-        CGFloat weekNumH     = kFCLocalWeekNumH;
-        CGFloat topMargin    = kFCLocalTopMargin;
-        CGFloat bottomMargin = kFCLocalBottomMargin;
-        CGFloat barY       = debugStrip;
-        CGFloat daysY      = debugStrip + barH;
-        CGFloat weekNumY   = debugStrip + barH + daysH;
-        // v4 iter-247-fix: top-anchor the timeLabel to the brim so the
-        // visible gap above (top brim → text) is fixed = topMargin,
-        // and the visible gap below (text → W##) = bottomMargin.
-        // Previously frame was sized to b.size.height - timeY - topMargin
-        // and the cell vertical-centering distributed leftover slack
-        // unevenly, producing the asymmetric gap user reported. Tight
-        // frame eliminates the slack.
-        CGFloat textH = [(VerticallyCenteredTextFieldCell *)_timeLabel.cell
-                                   measuredHeightForWidth:b.size.width];
-        if (textH < 10) textH = 30;  // fallback before first measure
-        CGFloat timeY = b.size.height - textH - topMargin;
-        (void)bottomMargin;  // preserved for layout-height calc in Layout.m
-        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, textH);
-        _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
-        _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
-        _weekBarLabel.hidden = NO;
-        _weekDayLabelsLabel.hidden = NO;
-        _weekNumberLabel.hidden = NO;
-        _weekNumberLabel.frame = NSMakeRect(6, weekNumY, 80, weekNumH);
-    } else {
-        _timeLabel.frame = b;
-        _weekBarLabel.hidden = YES;
-        _weekDayLabelsLabel.hidden = YES;
-        _weekNumberLabel.hidden = YES;
-    }
+    // v4 iter-251: LOCAL is now a pure timestamp block — week machinery
+    // moved out into its own WeekSegmentView (sibling block). timeLabel
+    // fills the entire bounds; VerticallyCenteredTextFieldCell +
+    // alignment=center handle both axes.
+    _timeLabel.frame = self.bounds;
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
@@ -369,6 +269,98 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
     return [(id)self.panel buildNextSegmentMenu];
+}
+
+@end
+
+// v4 iter-251: WEEK segment — splits week-progression machinery out of
+// LOCAL into its own block per user directive. Houses (top→bottom):
+//   weekNumberLabel   "W##" ISO 8601 — financial-market convention
+//   weekDayLabelsLabel "M T W T F S S" centered over day-groups
+//   weekBarLabel       7 day-groups of dots, full block width
+// All labels horizontally centered. Right-click delegates to LOCAL's
+// menu (week prefs live there — no separate WeekSegmentMenu builder).
+@implementation WeekSegmentView
+
+- (instancetype)initWithFrame:(NSRect)frame {
+    self = [super initWithFrame:frame];
+    if (!self) return nil;
+
+    self.wantsLayer = YES;
+    self.layer.cornerRadius = 6.0;
+    self.layer.masksToBounds = YES;
+
+    // Same frosted backdrop tone as LOCAL — visually pairs them as
+    // user-facing-clock content vs ACTIVE/NEXT's market content.
+    RMBlurredView *blurView = [[RMBlurredView alloc] initWithFrame:self.bounds];
+    blurView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    blurView.blurRadius = 16.0;
+    blurView.saturationFactor = 1.8;
+    blurView.tintColor = [NSColor colorWithCalibratedWhite:0.06 alpha:0.40];
+    [self addSubview:blurView];
+
+    NSTextField *bar = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *bcell = [[NSTextFieldCell alloc] initTextCell:@""];
+    bcell.editable = NO; bcell.selectable = NO; bcell.bezeled = NO; bcell.drawsBackground = NO;
+    bcell.alignment = NSTextAlignmentCenter;
+    bar.cell = bcell;
+    bar.toolTip = @"[WEEKBAR] — weekly progress bar (7 day-groups divided by ┊; ProgressBarStyle / WeekProgressCellsPerDay control glyphs + width)";
+    [self addSubview:bar];
+    _weekBarLabel = bar;
+
+    NSTextField *days = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *dcell = [[NSTextFieldCell alloc] initTextCell:@""];
+    dcell.editable = NO; dcell.selectable = NO; dcell.bezeled = NO; dcell.drawsBackground = NO;
+    dcell.alignment = NSTextAlignmentCenter;
+    days.cell = dcell;
+    days.toolTip = @"[WEEKDAYS] — day-of-week letters (M T W T F S S) aligned over each day-group";
+    [self addSubview:days];
+    _weekDayLabelsLabel = days;
+
+    NSTextField *num = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *ncell = [[NSTextFieldCell alloc] initTextCell:@""];
+    ncell.editable = NO; ncell.selectable = NO; ncell.bezeled = NO; ncell.drawsBackground = NO;
+    ncell.alignment = NSTextAlignmentCenter;
+    num.cell = ncell;
+    num.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
+    num.font = [NSFont monospacedSystemFontOfSize:9.5 weight:NSFontWeightMedium];
+    num.toolTip = @"[WEEKNUM] — ISO 8601 week-of-year (financial-market convention)";
+    [self addSubview:num];
+    _weekNumberLabel = num;
+
+    _debugLabel = fcMakeDebugLabel([self fcNameID]);
+    [self addSubview:_debugLabel];
+    self.toolTip = [self fcFullName];
+
+    return self;
+}
+
+- (void)layout {
+    [super layout];
+    NSRect b = self.bounds;
+    CGFloat barH     = kFCLocalWeekBarH;
+    CGFloat daysH    = kFCLocalDayLabelsH;
+    CGFloat weekNumH = kFCLocalWeekNumH;
+    CGFloat content  = barH + daysH + weekNumH;
+    CGFloat slack    = MAX(0.0, b.size.height - content);
+    CGFloat topPad   = slack * 0.5;
+    CGFloat numY     = b.size.height - topPad - weekNumH;
+    CGFloat daysY    = numY - daysH;
+    CGFloat barY     = daysY - barH;
+    _weekNumberLabel.frame    = NSMakeRect(0, numY,  b.size.width, weekNumH);
+    _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
+    _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
+    fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
+}
+
+- (NSString *)fcNameID { return @"WEEK"; }
+- (NSString *)fcFullName { return @"WEEK — week-progression block; ISO week #, day letters, and day-group dot bar"; }
+- (void)fcRefreshDebugLabel { fcApplyDebugLabelVisibility(_debugLabel); }
+
+- (NSMenu *)menuForEvent:(NSEvent *)event {
+    // Week prefs (ShowWeekProgress / WeekProgressCellsPerDay) live in
+    // LOCAL's scoped menu — delegate so users have one place to tweak.
+    return [(id)self.panel buildLocalSegmentMenu];
 }
 
 @end

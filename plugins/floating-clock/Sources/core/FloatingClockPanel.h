@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
     NSDateFormatter *_utcFormatter;
     id _keyMonitor;
     LocalSegmentView *_localSeg;
+    WeekSegmentView *_weekSeg;     // iter-251: 4-block layout — week as own segment
     ActiveSegmentView *_activeSeg;
     NextSegmentView *_nextSeg;
 }

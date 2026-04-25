@@ -57,6 +57,12 @@
         _localSeg.panel = self;
         [self.contentView addSubview:_localSeg];
     }
+    // v4 iter-251: WEEK segment lazily created — own block, sibling to LOCAL.
+    if (!_weekSeg) {
+        _weekSeg = [[WeekSegmentView alloc] initWithFrame:NSZeroRect];
+        _weekSeg.panel = self;
+        [self.contentView addSubview:_weekSeg];
+    }
     if (!_activeSeg) {
         _activeSeg = [[ActiveSegmentView alloc] initWithFrame:NSZeroRect];
         _activeSeg.panel = self;
@@ -71,6 +77,8 @@
     _label.hidden = YES;
     _sessionLabel.hidden = YES;
     _localSeg.hidden = NO;
+    BOOL showWeek = [[NSUserDefaults standardUserDefaults] boolForKey:@"ShowWeekProgress"];
+    _weekSeg.hidden = !showWeek;
     _activeSeg.hidden = NO;
     _nextSeg.hidden = NO;
 
@@ -79,6 +87,8 @@
     const ClockTheme *tNext   = themeForId([d stringForKey:@"NextTheme"]);
 
     [self applyTheme:tLocal  toSegmentView:_localSeg  textField:_localSeg.timeLabel      opacityKey:@"LocalOpacity"];
+    // WEEK shares LOCAL's theme — they're a paired block visually.
+    [self applyTheme:tLocal  toSegmentView:_weekSeg   textField:_weekSeg.weekBarLabel    opacityKey:@"LocalOpacity"];
     [self applyTheme:tActive toSegmentView:_activeSeg textField:_activeSeg.contentLabel  opacityKey:@"ActiveOpacity"];
     [self applyTheme:tNext   toSegmentView:_nextSeg   textField:_nextSeg.contentLabel    opacityKey:@"NextOpacity"];
 
@@ -151,11 +161,14 @@
     // Constants live in Sources/segments/LocalLayoutConstants.{h,m} —
     // editing any of them updates BOTH this calculation AND
     // LocalSegmentView.layout's frame placement in lockstep.
+    // v4 iter-251: LOCAL is now a pure timestamp block. Week machinery
+    // moved to its own WEEK block (sibling, separate row). When
+    // ShowWeekProgress=YES, the WEEK block contributes its own row.
     BOOL hasWeekBar = [d boolForKey:@"ShowWeekProgress"]
-                      && (_localSeg.weekBarLabel.stringValue.length > 0
-                          || _localSeg.weekBarLabel.attributedStringValue.length > 0);
-    CGFloat weekBarRow = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
-    CGFloat localRowHeight  = localHeight + pad + weekBarRow;
+                      && (_weekSeg.weekBarLabel.stringValue.length > 0
+                          || _weekSeg.weekBarLabel.attributedStringValue.length > 0);
+    CGFloat weekRowHeight   = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
+    CGFloat localRowHeight  = localHeight + pad;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
     // height (the row the two sit in) still uses MAX because the
@@ -189,6 +202,7 @@
 
     CGFloat windowWidth = 0, windowHeight = 0;
     CGFloat localX = 0, localY = 0, localW = 0, localH = 0;
+    CGFloat weekX = 0, weekY = 0, weekW = 0, weekH = 0;
     CGFloat activeX = 0, activeY = 0, activeW = 0, activeH = 0;
     CGFloat nextX = 0, nextY = 0, nextW = 0, nextH = 0;
 
@@ -202,12 +216,29 @@
     } else {
         CGFloat rowWidth = MAX(localInnerWidth, marketRowInnerWidth);
         windowWidth  = rowWidth + 24;
-        windowHeight = localRowHeight + gap + marketRowHeight + 24;
+        // v4 iter-251: 4-block stacking when ShowWeekProgress=YES.
+        //   localOnTop:   [LOCAL] / [WEEK] / [ACTIVE+NEXT] (top→bottom)
+        //   localOnBottom: [ACTIVE+NEXT] / [WEEK] / [LOCAL]
+        // weekRowHeight is 0 when the bar is empty / pref off; the
+        // associated gap is also suppressed so the layout collapses
+        // back to the original 2-row arrangement.
+        CGFloat weekGap   = (weekRowHeight > 0) ? gap : 0.0;
+        CGFloat weekTotal = weekRowHeight + weekGap;
+        windowHeight = localRowHeight + gap + marketRowHeight + 24 + weekTotal;
         BOOL localOnTop = ![layoutMode isEqualToString:@"stacked-local-bottom"];
-        CGFloat localRowY  = localOnTop ? (12 + marketRowHeight + gap) : 12;
-        CGFloat marketRowY = localOnTop ? 12 : (12 + localRowHeight + gap);
+        CGFloat localRowY, weekRowY, marketRowY;
+        if (localOnTop) {
+            marketRowY = 12;
+            weekRowY   = 12 + marketRowHeight + gap;
+            localRowY  = weekRowY + weekTotal;
+        } else {
+            localRowY  = 12;
+            weekRowY   = 12 + localRowHeight + gap;
+            marketRowY = weekRowY + weekTotal;
+        }
 
         localX = 12; localY = localRowY; localW = rowWidth; localH = localRowHeight;
+        weekX  = 12; weekY  = weekRowY;  weekW  = rowWidth; weekH  = weekRowHeight;
         CGFloat pairX = 12 + (rowWidth - marketRowInnerWidth) / 2.0;
         // v4 iter-204: per-segment dynamic heights. ACTIVE + NEXT each
         // take their own measured height (activeOwnHeight /
@@ -255,12 +286,14 @@
             ctx.allowsImplicitAnimation = YES;
             [self.animator setFrame:newFrame display:YES];
             self->_localSeg.animator.frame  = NSMakeRect(localX,  localY,  localW,  localH);
+            self->_weekSeg.animator.frame   = NSMakeRect(weekX,   weekY,   weekW,   weekH);
             self->_activeSeg.animator.frame = NSMakeRect(activeX, activeY, activeW, activeH);
             self->_nextSeg.animator.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
         } completionHandler:nil];
     } else {
         [self setFrame:newFrame display:YES animate:NO];
         _localSeg.frame  = NSMakeRect(localX,  localY,  localW,  localH);
+        _weekSeg.frame   = NSMakeRect(weekX,   weekY,   weekW,   weekH);
         _activeSeg.frame = NSMakeRect(activeX, activeY, activeW, activeH);
         _nextSeg.frame   = NSMakeRect(nextX,   nextY,   nextW,   nextH);
     }
@@ -269,6 +302,7 @@
     // lives in Sources/core/CornerRadius.{h,m}; test locks the catalog.
     NSString *cornerId = [d stringForKey:@"CornerStyle"];
     _localSeg.layer.cornerRadius  = FCCornerRadiusPoints(cornerId, localW,  localH);
+    _weekSeg.layer.cornerRadius   = FCCornerRadiusPoints(cornerId, weekW,   weekH);
     _activeSeg.layer.cornerRadius = FCCornerRadiusPoints(cornerId, activeW, activeH);
     _nextSeg.layer.cornerRadius   = FCCornerRadiusPoints(cornerId, nextW,   nextH);
 
@@ -346,11 +380,11 @@
     // ACTIVE/NEXT scale) so the day-tick separators line up cleanly
     // with the dot/block glyphs and the row stays compact below
     // the larger primary timestamp.
-    _localSeg.weekBarLabel.font          = activeFont;
+    _weekSeg.weekBarLabel.font           = activeFont;
     // v4 iter-234: day-letters use SAME font as bar so the cellsPerDay
     // slots have identical widths in both rows — letters land directly
     // above their day-group's center column.
-    _localSeg.weekDayLabelsLabel.font    = activeFont;
+    _weekSeg.weekDayLabelsLabel.font     = activeFont;
     _activeSeg.contentLabel.font  = activeFont;
     _nextSeg.contentLabel.font    = nextFont;
 }
