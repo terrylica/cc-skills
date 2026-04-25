@@ -108,9 +108,11 @@ static uint64_t nsUntilNextSecond(void) {
     // after rebuild; toggle via Show Week Progress menu item.
     NSString *weekStr = @"";
     if ([d boolForKey:@"ShowWeekProgress"]) {
-        NSInteger cells = [d integerForKey:@"WeekProgressCells"];
-        if (cells <= 0) cells = 14;
-        weekStr = [NSString stringWithFormat:@"  ▕%@▏", FCBuildWeekProgressBar(nowLocal, (int)cells)];
+        // iter-230: pref renamed to WeekProgressCellsPerDay (cells per
+        // day, not total). Default 2 → 14 cells + 6 separators.
+        NSInteger cellsPerDay = [d integerForKey:@"WeekProgressCellsPerDay"];
+        if (cellsPerDay <= 0) cellsPerDay = 2;
+        weekStr = [NSString stringWithFormat:@"  ▕%@▏", FCBuildWeekProgressBar(nowLocal, (int)cellsPerDay)];
     }
 
     if (showUTC) {
