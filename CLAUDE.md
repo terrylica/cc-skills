@@ -1,25 +1,30 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **31 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **34 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
 ## Documentation Hierarchy
 
 ```
-CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
+CLAUDE.md (this file)                          ◄── Hub: Navigation + Essentials
     │
-    ├── plugins/CLAUDE.md              ◄── Spoke: Plugin development (all plugins listed)
-    │       └── {plugin}/CLAUDE.md     ◄── Deep: Each plugin has its own SSoT CLAUDE.md
-    │                                        (project/stack/conventions/architecture live here,
-    │                                         NOT duplicated in root)
+    ├── plugins/CLAUDE.md                      ◄── Spoke: Plugin development (all plugins listed)
+    │       └── {plugin}/CLAUDE.md             ◄── Deep: Per-plugin SSoT
+    │                                                (project/stack/conventions/architecture live here,
+    │                                                 NOT duplicated in root)
+    │           └── skills/{skill}/CLAUDE.md   ◄── Deepest: Per-skill SSoT (emerging — opt-in per skill)
+    │                                                (file table, invariants, recent-change log,
+    │                                                 edit conventions; sibling to SKILL.md)
     │
-    └── docs/CLAUDE.md                 ◄── Spoke: Documentation standards
-            ├── HOOKS.md               ◄── Hook development patterns
-            ├── RELEASE.md             ◄── Release workflow
-            ├── PLUGIN-LIFECYCLE.md    ◄── Plugin internals
-            └── LESSONS.md             ◄── Lessons learned (dated entries)
+    └── docs/CLAUDE.md                         ◄── Spoke: Documentation standards
+            ├── HOOKS.md                       ◄── Hook development patterns
+            ├── RELEASE.md                     ◄── Release workflow
+            ├── PLUGIN-LIFECYCLE.md            ◄── Plugin internals
+            └── LESSONS.md                     ◄── Lessons learned (dated entries)
 ```
+
+**Progressive disclosure rule**: each layer must add information the next-shallower layer didn't already cover. Don't restate plugin invariants in the root; don't restate skill invariants in the plugin. When the user asks Claude something specific, Claude follows links downward — so the deepest layer's freshness matters most.
 
 ## Navigation
 
@@ -40,9 +45,11 @@ CLAUDE.md (this file)                  ◄── Hub: Navigation + Essentials
 | ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
 | Resume Context    | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 
-### Plugin CLAUDE.md Files (31/31)
+### Plugin CLAUDE.md Files (34/34)
 
-All 31 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+All 34 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+
+**Emerging deeper layer**: skill-level CLAUDE.mds (one per skill, sibling to `SKILL.md`) are appearing where a skill is large enough that maintainers need a separate compass from the user-invocable instructions. First adopter: [`plugins/macro-keyboard/skills/{configure-macro-keyboard,emit-fn-key-on-macos,diagnose-hid-keycodes}/CLAUDE.md`](./plugins/macro-keyboard/CLAUDE.md). Add one to your skill if SKILL.md is starting to mix "what to do when invoked" with "what to know before editing".
 
 **Active project (SSoT):** [plugins/claude-tts-companion/CLAUDE.md](./plugins/claude-tts-companion/CLAUDE.md) — project/stack/conventions/architecture for the Swift macOS companion binary. Critical invariants (e.g., _do not replace afplay with AVAudioPlayer_) live there, not here.
 
@@ -76,15 +83,16 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT)
-├── plugins/                         ← 30 marketplace plugins (each has CLAUDE.md)
+├── plugins/                         ← 34 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
-│   ├── ru/                          ← RU autonomous loop mode
+│   ├── autonomous-loop/             ← Self-paced loop mode (replaces deprecated ru)
 │   ├── mise/                        ← User-global mise workflow commands
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
-│   └── ...                          ← 23 more plugins
+│   ├── macro-keyboard/              ← Karabiner remap for cheap 3-key pads (skill-level CLAUDE.mds)
+│   └── ...                          ← 26 more plugins
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
 │   ├── design/                      ← Implementation specs (1:1 with ADRs)

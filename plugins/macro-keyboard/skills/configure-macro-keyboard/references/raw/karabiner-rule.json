@@ -1,5 +1,5 @@
 {
-  "description": "Jieli/Free3-P macro pad: Top -> Fn (Typeless), Middle single-tap -> Shift+Return (newline) / double-tap -> Return (send), Bottom -> Command+Delete (delete to start of line). Matches both USB and Bluetooth transports.",
+  "description": "Jieli/Free3-P macro pad: Top single-tap -> Fn (Typeless) / double-tap -> Command+V (paste), Middle single-tap -> Shift+Return (newline) / double-tap -> Return (send), Bottom -> Command+Delete (delete to start of line). Matches both USB and Bluetooth transports.",
   "manipulators": [
     {
       "type": "basic",
@@ -20,9 +20,88 @@
       },
       "to": [
         {
-          "apple_vendor_top_case_key_code": "keyboard_fn"
+          "key_code": "v",
+          "modifiers": [
+            "left_command"
+          ]
+        },
+        {
+          "set_variable": {
+            "name": "jieli_top_tap",
+            "value": 0
+          }
         }
       ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        },
+        {
+          "type": "variable_if",
+          "name": "jieli_top_tap",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": {
+        "basic.to_delayed_action_delay_milliseconds": 200
+      },
+      "from": {
+        "simultaneous": [
+          {
+            "key_code": "left_control"
+          },
+          {
+            "key_code": "c"
+          }
+        ],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [
+        {
+          "set_variable": {
+            "name": "jieli_top_tap",
+            "value": 1
+          }
+        }
+      ],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          {
+            "apple_vendor_top_case_key_code": "keyboard_fn"
+          },
+          {
+            "set_variable": {
+              "name": "jieli_top_tap",
+              "value": 0
+            }
+          }
+        ],
+        "to_if_canceled": [
+          {
+            "set_variable": {
+              "name": "jieli_top_tap",
+              "value": 0
+            }
+          }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -163,9 +242,76 @@
       },
       "to": [
         {
-          "apple_vendor_top_case_key_code": "keyboard_fn"
+          "key_code": "v",
+          "modifiers": [
+            "left_command"
+          ]
+        },
+        {
+          "set_variable": {
+            "name": "jieli_top_tap",
+            "value": 0
+          }
         }
       ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            {
+              "vendor_id": 19530,
+              "product_id": 16725
+            },
+            {
+              "vendor_id": 1256,
+              "product_id": 28705
+            }
+          ]
+        },
+        {
+          "type": "variable_if",
+          "name": "jieli_top_tap",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": {
+        "basic.to_delayed_action_delay_milliseconds": 200
+      },
+      "from": {
+        "key_code": "page_up"
+      },
+      "to": [
+        {
+          "set_variable": {
+            "name": "jieli_top_tap",
+            "value": 1
+          }
+        }
+      ],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          {
+            "apple_vendor_top_case_key_code": "keyboard_fn"
+          },
+          {
+            "set_variable": {
+              "name": "jieli_top_tap",
+              "value": 0
+            }
+          }
+        ],
+        "to_if_canceled": [
+          {
+            "set_variable": {
+              "name": "jieli_top_tap",
+              "value": 0
+            }
+          }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",

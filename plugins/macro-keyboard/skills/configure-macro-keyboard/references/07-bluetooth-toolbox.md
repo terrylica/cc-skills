@@ -216,7 +216,7 @@ After pairing:
 
 1. Test all 3 buttons in TextEdit — do they emit Ctrl+C / Ctrl+V / Ctrl+X as before?
 2. Update Karabiner rule's `device_if.identifiers` with the BT VID/PID (second entry under the existing USB one)
-3. Test push-to-talk in Typeless via the top button over BT
+3. Test the top-button → Typeless trigger over BT (Fn-toggle in the live config; or push-to-talk if you collapsed the top-button pair into a single immediate-Fn manipulator)
 4. Extend `~/.wakeup` with the `blueutil --connect <MAC>` line
 5. Sleep the Mac for 30s, wake, verify pad reconnects within 3-4 seconds
 
