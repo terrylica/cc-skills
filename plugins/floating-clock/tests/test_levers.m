@@ -208,6 +208,7 @@ void test_date_format_prefix(void) {
         {@"weeknum", @"'Wk' w  "}, {@"dayofyr", @"'Day' D  "},
         {@"usa", @"M/d/yyyy  "}, {@"european", @"d.M.yyyy  "},
         {@"compact_iso", @"MM-dd  "},
+        {@"weekday_only", @"EEEE  "}, {@"monthday", @"MMM d  "},  // iter-227
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         NSString *got = FCDateFormatPrefix(cases[i].id);

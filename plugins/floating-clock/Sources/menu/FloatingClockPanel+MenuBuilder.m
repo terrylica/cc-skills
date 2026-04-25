@@ -307,7 +307,7 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     [marketItems addObject:tzRoot];
 
     // Date Format presets (used by LOCAL when ShowDate=YES).
-    // v4 iter-111: 6 → 9 presets with locale-flavored additions.
+    // v4 iter-111 + iter-227: 6 → 9 → 11 presets with locale-flavored + scope-flexible additions.
     [marketItems addObject:[self submenuTitled:@"Date Format"
                                          action:@selector(setDateFormat:)
                                           pairs:@[@[@"Short         (Thu Apr 23)",         @"short"],
@@ -318,7 +318,9 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                   @[@"USA           (4/23/2026)",          @"usa"],
                                                   @[@"European      (23.4.2026)",          @"european"],
                                                   @[@"Week Number   (Wk 17)",              @"weeknum"],
-                                                  @[@"Day of Year   (Day 114)",            @"dayofyr"]]
+                                                  @[@"Day of Year   (Day 114)",            @"dayofyr"],
+                                                  @[@"Weekday Only  (Saturday)",           @"weekday_only"],
+                                                  @[@"Month-Day     (Apr 25)",             @"monthday"]]
                                     defaultsKey:@"DateFormat"]];
 
     // v4 iter-126: symmetric auction-window lever. Gates iter-123's
