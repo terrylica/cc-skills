@@ -1,4 +1,5 @@
 #import "FloatingClockSegmentViews.h"
+#import "LocalLayoutConstants.h"  // iter-242: SSoT for layout constants
 #import "../vendor/RMBlurredView/RMBlurredView.h"
 #import "../rendering/VerticallyCenteredTextFieldCell.h"
 
@@ -187,12 +188,15 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
         // a smaller box — visually adds space between the LOCAL top
         // brim and the timestamp row (user reported "squeezed too
         // close to the top, doesn't look natural").
-        CGFloat debugStrip   = 16.0;
-        CGFloat barH         = 22.0;
-        CGFloat daysH        = 14.0;
-        CGFloat weekNumH     = 14.0;
-        CGFloat topMargin    = 10.0;  // iter-238: above timestamp (top brim → text)
-        CGFloat bottomMargin = 10.0;  // iter-239: below timestamp (text → W17), matches topMargin for symmetry
+        // v4 iter-242: layout constants moved to LocalLayoutConstants.h
+        // (SSoT). Editing any constant updates BOTH this file and
+        // Layout.m's localRowHeight calculation in lockstep.
+        CGFloat debugStrip   = kFCLocalDebugStripH;
+        CGFloat barH         = kFCLocalWeekBarH;
+        CGFloat daysH        = kFCLocalDayLabelsH;
+        CGFloat weekNumH     = kFCLocalWeekNumH;
+        CGFloat topMargin    = kFCLocalTopMargin;
+        CGFloat bottomMargin = kFCLocalBottomMargin;
         CGFloat barY       = debugStrip;
         CGFloat daysY      = debugStrip + barH;
         CGFloat weekNumY   = debugStrip + barH + daysH;
