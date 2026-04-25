@@ -191,12 +191,12 @@
                       && (_weekSeg.weekBarLabel.stringValue.length > 0
                           || _weekSeg.weekBarLabel.attributedStringValue.length > 0);
     CGFloat weekRowHeight   = hasWeekBar ? kFCLocalWeekFeatureRowHeight : 0.0;
-    // v4 iter-252e: block height = cellSize-derived localHeight (which
-    // already includes descender + emoji line height) + minimal 4pt
-    // breathing margin. Eliminates the empty-space asymmetry the user
-    // kept reporting — block is now sized so text fills it almost
-    // entirely, leaving only ~2pt above + ~2pt below.
-    CGFloat localRowHeight  = localHeight + 4.0;
+    // v4 iter-252i: 12pt total padding (6pt above + 6pt below content).
+    // Apple Color Emoji rendered glyphs extend slightly beyond cellSize
+    // on macOS — extra padding prevents brim/descender clipping. The
+    // VerticallyCenteredTextFieldCell on each sub-view distributes the
+    // padding symmetrically.
+    CGFloat localRowHeight  = localHeight + 12.0;
     // v4 iter-204: per-segment heights — ACTIVE and NEXT each size to
     // their own measured content instead of sharing MAX. `marketRow`
     // height (the row the two sit in) still uses MAX because the

@@ -113,8 +113,13 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     // font (Apple Color Emoji), so its cell can vertically center the
     // glyph reliably. Frame width is fixed; layout positions them at
     // the segment's left and right edges with vertical center.
+    // v4 iter-252i: sky/moon labels use VerticallyCenteredTextFieldCell
+    // (was plain NSTextFieldCell). Plain cell top-aligns content; the
+    // centered cell positions glyphs at the vertical midpoint of the
+    // frame. With the frame sized to the FULL block bounds + the cell
+    // doing the centering, the emoji can't clip top or bottom.
     NSTextField *sky = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    NSTextFieldCell *skyCell = [[NSTextFieldCell alloc] initTextCell:@""];
+    VerticallyCenteredTextFieldCell *skyCell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
     skyCell.editable = NO; skyCell.selectable = NO; skyCell.bezeled = NO; skyCell.drawsBackground = NO;
     skyCell.alignment = NSTextAlignmentCenter;
     sky.cell = skyCell;
@@ -123,7 +128,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     _skyGlyphLabel = sky;
 
     NSTextField *moon = [[NSTextField alloc] initWithFrame:NSZeroRect];
-    NSTextFieldCell *moonCell = [[NSTextFieldCell alloc] initTextCell:@""];
+    VerticallyCenteredTextFieldCell *moonCell = [[VerticallyCenteredTextFieldCell alloc] initTextCell:@""];
     moonCell.editable = NO; moonCell.selectable = NO; moonCell.bezeled = NO; moonCell.drawsBackground = NO;
     moonCell.alignment = NSTextAlignmentCenter;
     moon.cell = moonCell;
@@ -141,29 +146,16 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252g: explicit per-label vertical centering. Each sub-
-    // view's frame is sized to its natural content height (cellSize)
-    // and positioned at (block.height - frameH) / 2 — no reliance on
-    // cell-level vertical centering (which top-aligns by default for
-    // NSTextFieldCell and breaks for the kind of mixed font runs we
-    // were fighting earlier).
+    // v4 iter-252i: each sub-label fills its slot's full block height —
+    // VerticallyCenteredTextFieldCell handles the V-centering inside
+    // each frame. No more per-label cellSize math; no more clipping
+    // because the frames are SAME height as the block and content
+    // centers within them.
     NSRect b = self.bounds;
-    CGFloat slotW  = b.size.height;
-    CGFloat skyH   = [_skyGlyphLabel.cell  cellSize].height;
-    CGFloat moonH  = [_moonGlyphLabel.cell cellSize].height;
-    CGFloat timeH  = [_timeLabel.cell      cellSize].height;
-    if (skyH  < 8) skyH  = b.size.height;
-    if (moonH < 8) moonH = b.size.height;
-    if (timeH < 8) timeH = b.size.height;
-    _skyGlyphLabel.frame  = NSMakeRect(0,
-                                       (b.size.height - skyH) / 2.0,
-                                       slotW, skyH);
-    _moonGlyphLabel.frame = NSMakeRect(b.size.width - slotW,
-                                       (b.size.height - moonH) / 2.0,
-                                       slotW, moonH);
-    _timeLabel.frame      = NSMakeRect(slotW,
-                                       (b.size.height - timeH) / 2.0,
-                                       b.size.width - 2 * slotW, timeH);
+    CGFloat slotW = b.size.height;
+    _skyGlyphLabel.frame  = NSMakeRect(0,                       0, slotW,                       b.size.height);
+    _moonGlyphLabel.frame = NSMakeRect(b.size.width - slotW,    0, slotW,                       b.size.height);
+    _timeLabel.frame      = NSMakeRect(slotW,                   0, b.size.width - 2 * slotW,    b.size.height);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
