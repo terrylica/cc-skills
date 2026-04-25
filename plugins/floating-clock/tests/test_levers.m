@@ -265,8 +265,8 @@ void test_corner_radius_points(void) {
 
 void test_density_pad_points(void) {
     struct { NSString *id; CGFloat pt; } cases[] = {
-        {@"ultracompact", 4}, {@"compact", 12}, {@"default", 24},
-        {@"comfortable", 36}, {@"spacious", 48}, {@"cavernous", 64},
+        {@"ultracompact", 4}, {@"tight", 8}, {@"compact", 12}, {@"default", 24},
+        {@"comfortable", 36}, {@"roomy", 42}, {@"spacious", 48}, {@"cavernous", 64},  // iter-225 +tight +roomy
     };
     for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
         if (fabs(FCDensityPadPoints(cases[i].id) - cases[i].pt) > 0.001) {
@@ -372,8 +372,8 @@ void test_quick_styles_invariants(void) {
         @"ShadowStyle":    [NSSet setWithArray:@[@"none", @"subtle", @"lifted", @"glow",
                                                   @"crisp", @"plinth", @"halo",
                                                   @"vignette", @"floating"]],  // iter-217
-        @"Density":        [NSSet setWithArray:@[@"ultracompact", @"compact", @"default",
-                                                  @"comfortable", @"spacious", @"cavernous"]],
+        @"Density":        [NSSet setWithArray:@[@"ultracompact", @"tight", @"compact", @"default",
+                                                  @"comfortable", @"roomy", @"spacious", @"cavernous"]],  // iter-225
         @"FontWeight":     [NSSet setWithArray:@[@"thin", @"regular", @"medium", @"semibold",
                                                   @"bold", @"heavy", @"black"]],
         @"LetterSpacing":  [NSSet setWithArray:@[@"condensed", @"compact", @"tight", @"normal", @"airy", @"wide", @"extrawide"]],
