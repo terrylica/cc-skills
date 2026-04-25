@@ -166,29 +166,16 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252j: each sub-label's frame is exactly its natural cellSize
-    // height, positioned at block vertical center. Content fills frame
-    // exactly (no cell-level centering required) and the frame's center
-    // sits at block center. This is what the user has asked for —
-    // identifiably symmetric whitespace above and below each rendered
-    // glyph row.
+    // v4 iter-253b: fill-block frames + cell V-centering. Natural-sized
+    // frames clipped glyph ascenders (cellSize underestimates the real
+    // glyph extent for some font fallbacks). Filling the block gives
+    // the cell enough drawing room; the VerticallyCenteredTextFieldCell
+    // override + larger block padding handle visible centering.
     NSRect b = self.bounds;
     CGFloat slotW = b.size.height;
-    CGFloat skyH  = [_skyGlyphLabel.cell  cellSize].height;
-    CGFloat moonH = [_moonGlyphLabel.cell cellSize].height;
-    CGFloat timeH = [_timeLabel.cell      cellSize].height;
-    if (skyH  < 8) skyH  = b.size.height * 0.8;
-    if (moonH < 8) moonH = b.size.height * 0.8;
-    if (timeH < 8) timeH = b.size.height * 0.8;
-    _skyGlyphLabel.frame  = NSMakeRect(0,
-                                       (b.size.height - skyH)  / 2.0,
-                                       slotW, skyH);
-    _moonGlyphLabel.frame = NSMakeRect(b.size.width - slotW,
-                                       (b.size.height - moonH) / 2.0,
-                                       slotW, moonH);
-    _timeLabel.frame      = NSMakeRect(slotW,
-                                       (b.size.height - timeH) / 2.0,
-                                       b.size.width - 2 * slotW, timeH);
+    _skyGlyphLabel.frame  = NSMakeRect(0,                    0, slotW,                       b.size.height);
+    _moonGlyphLabel.frame = NSMakeRect(b.size.width - slotW, 0, slotW,                       b.size.height);
+    _timeLabel.frame      = NSMakeRect(slotW,                0, b.size.width - 2 * slotW,    b.size.height);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 

@@ -17,8 +17,8 @@ NSDictionary *buildStarterProfiles(void) {
             @"NextTheme": @"soft_glass",
             @"ColorTheme": @"terminal",
             @"FontSize": @24.0,
-            @"ActiveFontSize": @14.0,  // iter-248: 11→14 default bump
-            @"NextFontSize": @14.0,    // iter-248: 11→14 default bump
+            @"ActiveFontSize": @12.0,  // iter-253: 14→12 (user pref)
+            @"NextFontSize": @12.0,    // iter-253: 14→12 (user pref)
             @"FontWeight": @"medium",
             @"ActiveWeight": @"medium",
             @"NextWeight": @"medium",
