@@ -122,6 +122,31 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     [self addSubview:weekLabel];
     _weekBarLabel = weekLabel;
 
+    // v4 iter-234: day-letter row (M T W T F S S) above the week-bar.
+    // Letters centered within their day-groups so they align over
+    // the dot columns. Sub-element name [WEEKDAYS].
+    NSTextField *daysLabel = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *dcell = [[NSTextFieldCell alloc] initTextCell:@""];
+    dcell.editable = NO; dcell.selectable = NO; dcell.bezeled = NO; dcell.drawsBackground = NO;
+    dcell.alignment = NSTextAlignmentCenter;
+    daysLabel.cell = dcell;
+    daysLabel.toolTip = @"[WEEKDAYS] — day-of-week letters (M T W T F S S) aligned over each day-group of [WEEKBAR]";
+    [self addSubview:daysLabel];
+    _weekDayLabelsLabel = daysLabel;
+
+    // v4 iter-234: ISO 8601 week-of-year anchored top-left of LOCAL.
+    // ISO 8601 is the dominant financial-market convention (Reuters,
+    // Bloomberg, SWIFT, Basel). Mon-start week, week 1 = week
+    // containing the year's first Thursday. Format "W##" (terse).
+    NSTextField *weekNum = [[NSTextField alloc] initWithFrame:NSMakeRect(8, 0, 60, 14)];
+    weekNum.editable = NO; weekNum.selectable = NO; weekNum.bezeled = NO; weekNum.drawsBackground = NO;
+    weekNum.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
+    weekNum.font = [NSFont monospacedSystemFontOfSize:9.5 weight:NSFontWeightMedium];
+    weekNum.toolTip = @"[WEEKNUM] — ISO 8601 week-of-year (financial-market convention; week 1 contains the year's first Thursday)";
+    weekNum.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;  // top-left anchor
+    [self addSubview:weekNum];
+    _weekNumberLabel = weekNum;
+
     // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
     _debugLabel = fcMakeDebugLabel([self fcNameID]);
     [self addSubview:_debugLabel];
@@ -146,18 +171,37 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     // horizontality" — width-stretching is satisfied by the dynamic
     // cellsPerDay computed in Runtime.m.
     NSRect b = self.bounds;
-    BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0;
+    BOOL hasWeekBar = _weekBarLabel.stringValue.length > 0
+                      || _weekBarLabel.attributedStringValue.length > 0;
     if (hasWeekBar) {
-        CGFloat debugStrip = 16.0;     // bottom: own row for [LOCAL]
-        CGFloat barH       = 22.0;     // middle: week bar full width
+        // v4 iter-234: 4-row LOCAL layout (top-down):
+        //   timeLabel        primary timestamp
+        //   dayLabelsLabel   M T W T F S S aligned over day-groups
+        //   weekBarLabel     7 day-groups of dots
+        //   debugLabel       [LOCAL] corner overlay (own bottom strip)
+        // Plus weekNumberLabel pinned top-left of LOCAL (W## ISO).
+        CGFloat debugStrip = 16.0;
+        CGFloat barH       = 22.0;
+        CGFloat daysH      = 14.0;
         CGFloat barY       = debugStrip;
-        CGFloat timeY      = debugStrip + barH;
-        _timeLabel.frame    = NSMakeRect(0, timeY, b.size.width, b.size.height - timeY);
-        _weekBarLabel.frame = NSMakeRect(0, barY,  b.size.width, barH);
+        CGFloat daysY      = debugStrip + barH;
+        CGFloat timeY      = debugStrip + barH + daysH;
+        _timeLabel.frame          = NSMakeRect(0, timeY, b.size.width, b.size.height - timeY);
+        _weekDayLabelsLabel.frame = NSMakeRect(0, daysY, b.size.width, daysH);
+        _weekBarLabel.frame       = NSMakeRect(0, barY,  b.size.width, barH);
         _weekBarLabel.hidden = NO;
+        _weekDayLabelsLabel.hidden = NO;
+        _weekNumberLabel.hidden = NO;
+        // Pin week-number top-left (4pt inset).
+        NSRect wn = _weekNumberLabel.frame;
+        wn.origin.x = 8.0;
+        wn.origin.y = b.size.height - wn.size.height - 4.0;
+        _weekNumberLabel.frame = wn;
     } else {
         _timeLabel.frame = b;
         _weekBarLabel.hidden = YES;
+        _weekDayLabelsLabel.hidden = YES;
+        _weekNumberLabel.hidden = YES;
     }
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
