@@ -49,10 +49,20 @@ NS_ASSUME_NONNULL_BEGIN
 @interface LocalSegmentView : NSView <FCNamedSegment>
 @property (weak) FloatingClockPanel *panel;
 @property (strong) NSTextField *timeLabel;
-@property (strong) NSTextField *weekBarLabel;       // iter-231: week-progress block below timeLabel
-@property (strong) NSTextField *weekDayLabelsLabel; // iter-234: day-letter row above week-bar
-@property (strong) NSTextField *weekNumberLabel;    // iter-234: ISO 8601 W## anchored top-left
-@property (strong) NSTextField *debugLabel;  // iter-199 corner overlay
+@property (strong) NSTextField *debugLabel;  // iter-199 corner overlay (now hidden, iter-248)
+- (NSMenu *)menuForEvent:(NSEvent *)event;
+@end
+
+// v4 iter-251: WEEK block — its own segment, sibling to LOCAL/ACTIVE/NEXT.
+// Houses W## + day-letter row + week-progress dots, all horizontally
+// centered within the block. Per user directive: week progression must
+// be individually segmented in its own block.
+@interface WeekSegmentView : NSView <FCNamedSegment>
+@property (weak) FloatingClockPanel *panel;
+@property (strong) NSTextField *weekBarLabel;
+@property (strong) NSTextField *weekDayLabelsLabel;
+@property (strong) NSTextField *weekNumberLabel;
+@property (strong) NSTextField *debugLabel;
 - (NSMenu *)menuForEvent:(NSEvent *)event;
 @end
 
