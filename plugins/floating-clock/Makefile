@@ -8,7 +8,7 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -framework QuartzCore -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -25,7 +25,7 @@ ICON_ICNS := $(BUILD)/Icon.icns
 # Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
 # with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
 TEST_BIN := $(BUILD)/test_session
-TEST_SOURCES := tests/test_session.m tests/test_levers.m tests/test_holidays.m tests/test_halfdays.m tests/test_local_features.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m Sources/core/CornerRadius.m Sources/core/ShadowSpec.m Sources/core/SessionSignalWindow.m Sources/core/ClipboardHeader.m Sources/content/UrgencyColors.m Sources/content/UrgencyHorizon.m Sources/content/UrgencyFlash.m Sources/content/WeekProgressBar.m Sources/data/HolidayCalendar.m Sources/data/HalfDayCalendar.m Sources/data/MoonPhase.m
+TEST_SOURCES := tests/test_session.m tests/test_levers.m tests/test_holidays.m tests/test_halfdays.m tests/test_local_features.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m Sources/core/CornerRadius.m Sources/core/ShadowSpec.m Sources/core/SessionSignalWindow.m Sources/core/ClipboardHeader.m Sources/content/UrgencyColors.m Sources/content/UrgencyHorizon.m Sources/content/UrgencyFlash.m Sources/content/WeekProgressBar.m Sources/data/HolidayCalendar.m Sources/data/HalfDayCalendar.m Sources/data/MoonPhase.m Sources/data/SolarEvents.m
 TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
 
 all: sign

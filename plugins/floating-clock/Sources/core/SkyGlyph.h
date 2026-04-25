@@ -15,4 +15,14 @@ NS_ASSUME_NONNULL_BEGIN
 
 NSString *FCSkyGlyphForHour(NSInteger hour);
 
+// v4 iter-250: solar-event aware dispatcher. Computes sunrise/sunset
+// + civil twilight at (lat, lon) for `now`'s date and returns:
+//   now < civilDawn  || now >= civilDusk  → 🌙 night
+//   civilDawn <= now < sunrise            → 🌅 dawn
+//   sunrise <= now < sunset               → ☀️ day
+//   sunset <= now < civilDusk             → 🌇 dusk
+// Falls back to FCSkyGlyphForHour at polar latitudes (sun never
+// rises/sets for the date) so the glyph never disappears.
+NSString *FCSkyGlyphForDate(NSDate *now, double latDeg, double lonDeg);
+
 NS_ASSUME_NONNULL_END
