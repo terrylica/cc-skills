@@ -229,7 +229,11 @@
         return;
     }
 
-    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    // v4 iter-249: horizontal recenter on screen on every reflow per
+    // user directive — widget remains L/R center-aligned as canvas
+    // width changes. Vertical position preserved (user Y-drag survives).
+    NSScreen *screen249 = self.screen ?: [NSScreen mainScreen];
+    CGFloat centerX = NSMidX(screen249.visibleFrame);
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     newFrame = [self clampFrameToVisibleScreen:newFrame];
@@ -381,7 +385,11 @@
     CGFloat windowHeight  = contentHeight + 20;
 
     NSRect oldFrame = self.frame;
-    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    // v4 iter-249: horizontal recenter on screen on every reflow per
+    // user directive — widget remains L/R center-aligned as canvas
+    // width changes. Vertical position preserved (user Y-drag survives).
+    NSScreen *screen249 = self.screen ?: [NSScreen mainScreen];
+    CGFloat centerX = NSMidX(screen249.visibleFrame);
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     newFrame = [self clampFrameToVisibleScreen:newFrame];
@@ -431,7 +439,11 @@
     CGFloat windowHeight  = contentHeight + 20;
 
     NSRect oldFrame = self.frame;
-    CGFloat centerX = oldFrame.origin.x + oldFrame.size.width / 2.0;
+    // v4 iter-249: horizontal recenter on screen on every reflow per
+    // user directive — widget remains L/R center-aligned as canvas
+    // width changes. Vertical position preserved (user Y-drag survives).
+    NSScreen *screen249 = self.screen ?: [NSScreen mainScreen];
+    CGFloat centerX = NSMidX(screen249.visibleFrame);
     CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
     NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
     newFrame = [self clampFrameToVisibleScreen:newFrame];
