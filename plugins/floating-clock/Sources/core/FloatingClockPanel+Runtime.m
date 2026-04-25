@@ -110,33 +110,33 @@ static uint64_t nsUntilNextSecond(void) {
     // (NOAA solar formula, ±1min accuracy). Falls back to iter-114's
     // hour-bucket dispatcher when location is unavailable (denied
     // permission, never granted, or polar latitudes).
+    // v4 iter-252f: emojis live in DEDICATED sub-views (skyGlyphLabel,
+    // moonGlyphLabel) so the timeLabel can be PURE mono — eliminating
+    // the mixed-font baseline mismatch that broke vertical centering.
     BOOL showSky = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
     NSString *skyGlyph = @"";
     if (showSky) {
         BOOL haveLoc = [d objectForKey:@"LocationFetchedAt"] != nil
                      && ([d doubleForKey:@"Latitude"] != 0.0 || [d doubleForKey:@"Longitude"] != 0.0);
-        NSString *glyph;
         if (haveLoc) {
-            glyph = FCSkyGlyphForDate(nowLocal,
-                                       [d doubleForKey:@"Latitude"],
-                                       [d doubleForKey:@"Longitude"]);
+            skyGlyph = FCSkyGlyphForDate(nowLocal,
+                                          [d doubleForKey:@"Latitude"],
+                                          [d doubleForKey:@"Longitude"]);
         } else {
             NSCalendar *cal = [NSCalendar currentCalendar];
             cal.timeZone = localTz;
             NSInteger hour = [cal component:NSCalendarUnitHour fromDate:nowLocal];
-            glyph = FCSkyGlyphForHour(hour);
+            skyGlyph = FCSkyGlyphForHour(hour);
         }
-        skyGlyph = [NSString stringWithFormat:@"%@ ", glyph];
     }
+    _localSeg.skyGlyphLabel.stringValue = skyGlyph;
 
-    // v4 iter-243: pure-offline moon-phase glyph (synodic-month
-    // calculation from a known new-moon epoch — no lat/lon, no
-    // network). Default ON; toggle via Show Moon Phase menu item.
     NSString *moonGlyph = @"";
     BOOL showMoon = ![d objectForKey:@"ShowMoonPhase"] || [d boolForKey:@"ShowMoonPhase"];
     if (showMoon) {
-        moonGlyph = [NSString stringWithFormat:@" %@", FCMoonPhaseGlyph(nowLocal)];
+        moonGlyph = FCMoonPhaseGlyph(nowLocal);
     }
+    _localSeg.moonGlyphLabel.stringValue = moonGlyph;
 
     // v4 iter-229: optional week-progress bar appended inline. Shows
     // "▕<bar>▏" where <bar> is a fractional fill across 14 cells (2
@@ -151,11 +151,13 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@%@ %@ · %@ UTC%@",
-            skyGlyph, localBase, localLabel, utcStr, moonGlyph];
+        // iter-252f: timeLabel is now PURE mono — no emojis. Sky/moon
+        // glyphs render in their own sub-views.
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC",
+            localBase, localLabel, utcStr];
     } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@%@ %@%@",
-            skyGlyph, localBase, localLabel, moonGlyph];
+        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
+            localBase, localLabel];
     }
 
     // v4 iter-231 / iter-232: week-progress bar in its own NSTextField

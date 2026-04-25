@@ -107,9 +107,29 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     // segment chrome (e.g. "[TIME]'s font size is too small").
     label.toolTip = @"[TIME] — user-local time display inside [LOCAL] (updates every second; formatting controlled by TimeFormat / TimeSeparator / ShowSeconds prefs)";
 
-    // v4 iter-251: week labels moved OUT of LocalSegmentView and into
-    // their own WeekSegmentView (sibling block) per user directive —
-    // LOCAL must be a clean timestamp-only block, both H + V centered.
+    // v4 iter-252f: emoji sub-labels — sky-of-day on left, moon phase
+    // on right. Separated from timeLabel so the mono+emoji baseline-
+    // mismatch can't break vertical centering. Each label is single-
+    // font (Apple Color Emoji), so its cell can vertically center the
+    // glyph reliably. Frame width is fixed; layout positions them at
+    // the segment's left and right edges with vertical center.
+    NSTextField *sky = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *skyCell = [[NSTextFieldCell alloc] initTextCell:@""];
+    skyCell.editable = NO; skyCell.selectable = NO; skyCell.bezeled = NO; skyCell.drawsBackground = NO;
+    skyCell.alignment = NSTextAlignmentCenter;
+    sky.cell = skyCell;
+    sky.toolTip = @"[SKYGLYPH] — current sun-of-day phase (🌅/☀️/🌇/🌙) computed from real sunrise/sunset at your lat/lon";
+    [self addSubview:sky];
+    _skyGlyphLabel = sky;
+
+    NSTextField *moon = [[NSTextField alloc] initWithFrame:NSZeroRect];
+    NSTextFieldCell *moonCell = [[NSTextFieldCell alloc] initTextCell:@""];
+    moonCell.editable = NO; moonCell.selectable = NO; moonCell.bezeled = NO; moonCell.drawsBackground = NO;
+    moonCell.alignment = NSTextAlignmentCenter;
+    moon.cell = moonCell;
+    moon.toolTip = @"[MOONGLYPH] — current moon phase (🌑→🌕→🌑) computed from synodic-month math, no network";
+    [self addSubview:moon];
+    _moonGlyphLabel = moon;
 
     // v4 iter-199: canonical name overlay. Stable ID "LOCAL".
     _debugLabel = fcMakeDebugLabel([self fcNameID]);
@@ -121,11 +141,16 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
 
 - (void)layout {
     [super layout];
-    // v4 iter-252d: timeLabel fills the entire block bounds. With the
-    // block sized to localHeight + pad, the cell's drawingRectForBounds
-    // override centers vertically. Descenders fit within the padded
-    // block, so no clipping.
-    _timeLabel.frame = self.bounds;
+    // v4 iter-252f: 3 sub-views — sky-glyph (left) | time-text (middle) |
+    // moon-glyph (right). Each is a single-font NSTextField so its cell-
+    // level vertical centering works reliably. The previous attempts
+    // (mixed-font timeLabel) failed because emoji + SF Mono baselines
+    // can't be centered together by NSCell.
+    NSRect b = self.bounds;
+    CGFloat glyphSlotW = b.size.height;  // square slots, sized to block height
+    _skyGlyphLabel.frame  = NSMakeRect(0, 0, glyphSlotW, b.size.height);
+    _moonGlyphLabel.frame = NSMakeRect(b.size.width - glyphSlotW, 0, glyphSlotW, b.size.height);
+    _timeLabel.frame      = NSMakeRect(glyphSlotW, 0, b.size.width - 2 * glyphSlotW, b.size.height);
     fcAnchorDebugLabelBottomLeft(_debugLabel, self.bounds);
 }
 
