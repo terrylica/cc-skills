@@ -1,3 +1,10 @@
+## [16.4.1](https://github.com/terrylica/cc-skills/compare/v16.4.0...v16.4.1) (2026-04-26)
+
+
+### Bug Fixes
+
+* **itp-hooks:** tighten parquet-duckdb-nudge regex (two false positives) ([bde3023](https://github.com/terrylica/cc-skills/commit/bde3023ba72761f97555433ec377d4a4c5d02af1))
+
 # [16.4.0](https://github.com/terrylica/cc-skills/compare/v16.3.1...v16.4.0) (2026-04-26)
 
 
