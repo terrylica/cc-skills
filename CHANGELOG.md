@@ -1,3 +1,10 @@
+# [16.4.0](https://github.com/terrylica/cc-skills/compare/v16.3.1...v16.4.0) (2026-04-26)
+
+
+### Features
+
+* **doc-tools:** add static-page-stack skill (SOTA 2026) ([f0afec0](https://github.com/terrylica/cc-skills/commit/f0afec034aba6cff277cfa3c66b2f8372ad1f2d2))
+
 ## [16.3.1](https://github.com/terrylica/cc-skills/compare/v16.3.0...v16.3.1) (2026-04-25)
 
 
