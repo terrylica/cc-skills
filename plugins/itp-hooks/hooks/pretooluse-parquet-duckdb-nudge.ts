@@ -30,7 +30,11 @@
 
 import { allow, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
-const PARQUET_REF = /\.parquet\b/i;
+// Tight match: `.parquet` must be followed by a path-terminator (whitespace,
+// quote, end of string, common punctuation). Avoids false positives on
+// natural-language tokens like `pyarrow.parquet.read_schema` where `.parquet`
+// is followed by another `.` (it's a Python module path, not a file path).
+const PARQUET_REF = /\.parquet(?=$|[\s'"`,;)\]}>])/i;
 
 /** Patterns that indicate content analysis with non-DuckDB tools */
 const ANTI_PATTERNS: { name: string; rx: RegExp }[] = [
@@ -48,8 +52,12 @@ const DUCKDB_PRESENT = /\bduckdb\b/i;
 /** Explicit opt-out */
 const SKIP_COMMENT = /#\s*DUCKDB-SKIP/i;
 
-/** File-level forensics — legitimate use of binary tools on parquet, don't nudge */
-const FORENSICS_PATTERN = /\b(xxd|od|file|hexdump|stat)\b|\bhead\s+-c\b|\btail\s+-c\b/i;
+/** File-level forensics — legitimate use of binary tools on parquet, don't nudge.
+ *  Scoped to actual command invocations: keyword at start of a shell statement
+ *  (or after `|`/`;`/`&&`) followed by whitespace and an argument.
+ *  Avoids false positives from `file.parquet` matching `\bfile\b`. */
+const FORENSICS_PATTERN =
+  /(?:^|\|\s*|;\s*|&&\s*)(xxd|od|file|hexdump|stat)\s+\S|\bhead\s+-c\b|\btail\s+-c\b/i;
 
 function buildNudge(matchedTool: string, command: string): string {
   // Match path-like substrings only (word chars, /, ., =, *, ?, -).
