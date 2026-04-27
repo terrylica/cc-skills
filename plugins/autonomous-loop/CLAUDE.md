@@ -319,6 +319,7 @@ The classical bug: using a waker as pacing. If iter-N completes and iter-N+1 is 
 - Never rely on pending ScheduleWakeup from a prior firing if THIS firing did new work (Phase 3 Revise is mandatory)
 - Never override loop_id in the contract manually (it's derived deterministically from the path)
 - Never call `acquire_owner_lock` from multiple processes in the same session (only one owner per loop_id)
+- Never write a timestamp labeled UTC computed from local time. Always use `date -u` (or `date -u -v +Ns` / `date -u -d '+N seconds'` for future times). The contract, registry, heartbeat, and statusline are all UTC; a mislabeled local-time entry silently mismatches every clock and can spuriously trigger reclaim via stale-heartbeat detection. Real-world incident: an iter-N revision-log line "Next firing at 01:11 UTC" written from PDT 01:11 (= 08:11 UTC) made the next firing read 7 hours in the past.
 
 ---
 
