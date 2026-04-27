@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Autonomous Loop Registry Schema",
+  "description": "Machine-level registry tracking all active loops on a system. Version 1: baseline schema with all required fields.",
+  "type": "object",
+  "required": ["loops", "schema_version"],
+  "additionalProperties": false,
+  "properties": {
+    "loops": {
+      "type": "array",
+      "description": "List of active loop entries",
+      "items": {
+        "type": "object",
+        "required": [
+          "loop_id",
+          "contract_path",
+          "state_dir",
+          "owner_session_id",
+          "owner_pid",
+          "owner_start_time_us",
+          "launchd_label",
+          "started_at_us",
+          "expected_cadence_seconds",
+          "generation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "loop_id": {
+            "type": "string",
+            "description": "Primary key: 12-character hexadecimal ID derived from sha256(realpath(contract_path))",
+            "pattern": "^[0-9a-f]{12}$"
+          },
+          "contract_path": {
+            "type": "string",
+            "description": "Absolute realpath-resolved path to the LOOP_CONTRACT.md file",
+            "minLength": 1
+          },
+          "state_dir": {
+            "type": "string",
+            "description": "Absolute path to loop state directory (typically <repo>/.loop-state/<loop_id>/)",
+            "minLength": 1
+          },
+          "owner_session_id": {
+            "type": "string",
+            "description": "Claude session ID of the current owner",
+            "minLength": 1
+          },
+          "owner_pid": {
+            "type": "number",
+            "description": "Process ID of the current owner",
+            "minimum": 1
+          },
+          "owner_start_time_us": {
+            "type": "number",
+            "description": "Process start time in microseconds since Unix epoch (PID-reuse defense)",
+            "minimum": 0
+          },
+          "launchd_label": {
+            "type": "string",
+            "description": "macOS launchd job label (format: com.user.claude.loop.<loop_id>)",
+            "pattern": "^com\\.user\\.claude\\.loop\\.[0-9a-f]{12}$"
+          },
+          "started_at_us": {
+            "type": "number",
+            "description": "When the current owner acquired the loop lock (microseconds since Unix epoch)",
+            "minimum": 0
+          },
+          "expected_cadence_seconds": {
+            "type": "number",
+            "description": "Expected interval between heartbeat updates (in seconds)",
+            "minimum": 1,
+            "maximum": 86400
+          },
+          "generation": {
+            "type": "number",
+            "description": "Monotonic counter incremented on each reclaim (TOCTOU defense)",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "schema_version": {
+      "type": "number",
+      "description": "Registry schema version (currently 1; code must reject > 1)",
+      "enum": [1]
+    }
+  }
+}
