@@ -1,0 +1,10 @@
+/tmp/loop-contract-001.md
+/tmp/loop-contract-002.md
+/tmp/loop-contract-003.md
+/tmp/loop-contract-004.md
+/tmp/loop-contract-005.md
+/tmp/loop-contract-006.md
+/tmp/loop-contract-007.md
+/tmp/loop-contract-008.md
+/tmp/loop-contract-009.md
+/tmp/loop-contract-010.md
