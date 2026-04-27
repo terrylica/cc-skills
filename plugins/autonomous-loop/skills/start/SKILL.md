@@ -69,7 +69,39 @@ Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 - `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH`
 - `<CORE DIRECTIVE>` / `<PROJECT OR CAMPAIGN TITLE>` → user-provided `scope`
 
-## Step 4: Emit pointer trigger
+## Step 4: Register loop in machine registry
+
+After deriving the loop ID in Step 2/3, register this loop in the machine-level registry:
+
+```bash
+# Source the registry library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh"
+
+# Derive loop_id from contract path (if not already done)
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+
+# Create entry JSON with all required fields
+entry=$(jq -n \
+  --arg loop_id "$loop_id" \
+  --arg contract_path "$(realpath "$CONTRACT_PATH")" \
+  --arg state_dir "$(dirname "$CONTRACT_PATH")/.loop-state/$loop_id/" \
+  --arg owner_session_id "$(echo "$CLAUDE_SESSION_ID" | cut -c1-28)" \
+  --arg owner_pid "$$" \
+  --arg owner_start_time_us "$(date +%s%N | cut -c1-16)" \
+  --arg launchd_label "com.user.claude.loop.$loop_id" \
+  --arg started_at_us "$(date +%s%N | cut -c1-16)" \
+  --arg expected_cadence_seconds "$cadence_seconds" \
+  --arg generation "0" \
+  '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_session_id: $owner_session_id, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, launchd_label: $launchd_label, started_at_us: $started_at_us, expected_cadence_seconds: $expected_cadence_seconds, generation: $generation}')
+
+# Register in machine registry (atomic, serialized write)
+if ! register_loop "$entry"; then
+  echo "WARNING: Failed to register loop in machine registry (may already exist)" >&2
+fi
+```
+
+## Step 6: Emit pointer trigger
 
 Print the snippet the user can feed to `/loop`:
 
@@ -82,7 +114,7 @@ Read and execute the latest autonomous work contract at:
 Follow its instructions verbatim. That file self-updates; this trigger stays fixed.
 ```
 
-## Step 5: Offer to start the loop immediately
+## Step 7: Offer to start the loop immediately
 
 Use `AskUserQuestion` with two options:
 
@@ -91,7 +123,7 @@ Use `AskUserQuestion` with two options:
 
 If `Start now`, call `Skill(loop)` with the pointer trigger snippet as `args`. Otherwise print "Contract scaffolded at `$CONTRACT_PATH`. Run `/loop` with the pointer trigger above whenever ready."
 
-## Step 6: Suggest commit
+## Step 8: Suggest commit
 
 Print a suggested first commit:
 
