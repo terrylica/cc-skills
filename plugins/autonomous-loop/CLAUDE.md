@@ -311,7 +311,7 @@ The classical bug: using a waker as pacing. If iter-N completes and iter-N+1 is 
 
 ## Anti-Patterns (Don't Do These)
 
-- Never use `ScheduleWakeup` as pacing (use Tier 0 in-turn instead)
+- Never use `ScheduleWakeup` as pacing (use Tier 0 in-turn instead). Recognized in-the-wild failure: a firing wrote "Next wake at 08:29:00Z (~247s, cache-warm)" with 4 actionable queue items still ready — "cache-warm" is not a blocker, it's a side-property of Tier 2. The pre-decision gate in `templates/LOOP_CONTRACT.template.md` (Phase 4) requires you to _name_ the external signal you're waiting for in writing before any `ScheduleWakeup` call. If you can't name one, you're pacing — go Tier 0.
 - Never leave dead air between completed iterations
 - Never re-issue `/loop` with a new prompt each firing (contract is the SSoT)
 - Never store state in memory — contract file is the state
