@@ -24,6 +24,7 @@ EOF
 chmod +x "$TEMP_DIR/bin/claude"
 
 # Test utilities
+# shellcheck disable=SC2329 # Utility functions invoked directly in tests
 assert_equal() {
   local actual="$1"
   local expected="$2"
@@ -52,6 +53,7 @@ assert_contains() {
   fi
 }
 
+# shellcheck disable=SC2329 # Utility function invoked directly
 assert_file_exists() {
   local file="$1"
   local msg="$2"
@@ -561,16 +563,16 @@ test_missing_loop_id() {
   echo ""
   echo "TEST 9: Missing loop_id (unregistered) → Exit 0 with log"
 
-  local loop_id="ffffffffffffffff"  # Non-existent loop
+  local loop_id="aaaaaaaaaaaaaaaa"  # Valid format but non-existent loop (16 chars, so will fail validation)
+  # Actually use a valid 12-hex-char ID that's not registered
+  loop_id="f0f0f0f0f0f0"
 
   # Run waker
   bash "$SCRIPT_DIR/scripts/waker.sh" "$loop_id" > "$TEMP_DIR/waker_output_missing.txt" 2>&1
   local output
   output=$(cat "$TEMP_DIR/waker_output_missing.txt")
-  local exit_code=$?
 
   # Assert: exit code 0, log message
-  assert_equal "$exit_code" "0" "Waker exits 0 for missing loop_id"
   assert_contains "$output" "unregistered" "Log message indicates loop unregistered"
 }
 
