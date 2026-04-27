@@ -68,9 +68,29 @@ Load `PushNotification` via `ToolSearch` if not already available, then send:
 
 Keep under 200 chars.
 
-## Step 5: Unregister loop from machine registry
+## Step 5: Unload launchd plist
 
-After appending the DONE section, clean up the machine registry entry:
+Before unregistering, unload the launchd plist:
+
+```bash
+# Source the launchd library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/launchd-lib.sh"
+source "$PLUGIN_ROOT/scripts/state-lib.sh"
+
+# Derive loop_id and state_dir
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+state_dir=$(state_dir_path "$loop_id" "$CONTRACT_PATH")
+
+# Unload plist (idempotent; no-op on non-macOS)
+if ! unload_plist "$loop_id" "$state_dir" 2>/dev/null; then
+  echo "WARNING: Failed to unload launchd plist" >&2
+fi
+```
+
+## Step 6: Unregister loop from machine registry
+
+After unloading the plist, clean up the machine registry entry:
 
 ```bash
 # Source the registry library
@@ -86,11 +106,11 @@ if ! unregister_loop "$loop_id"; then
 fi
 ```
 
-## Step 6: Update frontmatter
+## Step 7: Update frontmatter
 
 Edit the YAML frontmatter `exit_condition` field to include `DONE` so the next firing detects it immediately without scanning the body.
 
-## Step 7: Suggest final commit
+## Step 8: Suggest final commit
 
 Print a suggested commit:
 

@@ -118,7 +118,42 @@ if ! register_loop "$entry"; then
 fi
 ```
 
-## Step 7: Emit pointer trigger
+## Step 6: Generate and load launchd plist
+
+After registering the loop, generate the launchd plist and load it:
+
+```bash
+# Source the launchd library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/launchd-lib.sh"
+source "$PLUGIN_ROOT/scripts/state-lib.sh"
+
+# Derive loop_id and state_dir
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+state_dir=$(state_dir_path "$loop_id" "$CONTRACT_PATH")
+
+# Stub waker script path (Phase 9 will ship the actual script)
+waker_script="$PLUGIN_ROOT/scripts/waker.sh"
+
+# Calculate polling interval (default 150 seconds = half of typical cadence)
+interval_seconds="${cadence_seconds:-300}"
+interval_seconds=$((interval_seconds / 2))
+if [ "$interval_seconds" -lt 60 ]; then
+  interval_seconds=60
+fi
+
+# Generate plist
+if ! generate_plist "$loop_id" "$state_dir" "$waker_script" "$interval_seconds"; then
+  echo "WARNING: Failed to generate launchd plist" >&2
+fi
+
+# Load plist (bootstraps on macOS; skipped gracefully on non-macOS)
+if ! load_plist "$loop_id" "$state_dir" 2>/dev/null; then
+  echo "WARNING: Failed to load launchd plist" >&2
+fi
+```
+
+## Step 7: Emit pointer trigger (updated from Step 7)
 
 Print the snippet the user can feed to `/loop`:
 
