@@ -1,112 +1,170 @@
 ---
 name: status
-description: "Read LOOP_CONTRACT.md frontmatter and report current iteration, last update, active monitors, and next queue item. TRIGGERS - autonomous-loop status, loop state, contract status, show loop."
+description: "Machine-wide loop status enumeration and health reporting. TRIGGERS - autonomous-loop status, loop state, all loops, show loops, machine status."
 allowed-tools: Bash, Read
-argument-hint: "[path-to-contract]"
+argument-hint: "[--json | --reclaim-candidates | <loop_id>]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Status
+# autonomous-loop: Machine-Wide Status
 
-Read a `LOOP_CONTRACT.md` and report concise state. Works during active firings and when inspecting a paused loop.
+Enumerates all registered loops on the machine and reports health, dead-time ratio, staleness, and reclaim candidacy. Works as a table view for human inspection or JSONL for machine consumers.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## Arguments
 
-- Positional (optional): contract file path. Defaults to `./LOOP_CONTRACT.md`.
+- No arguments: show all loops as an ASCII table (default)
+- `--json`: emit JSONL (one loop per line) for machine consumers
+- `--reclaim-candidates`: filter table to only loops flagged for reclaim
+- `<loop_id>`: show single loop in detail (preserves Phase 8 behavior as fallback)
 
-## Step 1: Locate contract
+## Implementation
 
-```bash
-CONTRACT_PATH="${1:-./LOOP_CONTRACT.md}"
-if [ ! -f "$CONTRACT_PATH" ]; then
-  echo "No contract at $CONTRACT_PATH. Run /autonomous-loop:start first."
-  exit 0
-fi
-```
-
-## Step 2: Parse frontmatter
-
-Read the file and extract YAML frontmatter between the first pair of `---` markers. Report:
-
-| Field            | Meaning                                 |
-| ---------------- | --------------------------------------- |
-| `name`           | Loop identifier                         |
-| `iteration`      | Current firing count                    |
-| `last_updated`   | ISO timestamp of last contract revision |
-| `exit_condition` | Termination rule                        |
-| `max_iterations` | Soft cap                                |
-
-Compute `minutes_since_last_update = now − last_updated` for drift detection.
-
-## Step 3: Scan for DONE marker
-
-Grep the body for `## DONE`, `COMPLETION_PROMISE`, or `exit_condition: done` style markers. If found, print:
-
-```
-LOOP COMPLETE — see DONE section for summary.
-```
-
-and skip remaining steps.
-
-## Step 4: Extract recent revision log entries
-
-Read the last 3 lines of the `## Revision Log` section to surface what the last 3 firings decided.
-
-## Step 5: Report next queue item
-
-Read the `## Implementation Queue` section and find the first unchecked `- [ ]` item across tiers T1 → T4.
-
-## Step 6: Report active monitors
-
-Run a best-effort check for armed monitors. If you have pueue installed and the user runs bigblack-style remote jobs, check typical locations:
+### Step 1: Load libraries
 
 ```bash
-# Local pueue
-pueue status 2>/dev/null | grep -E "Running|Queued" | head -5 || echo "no local pueue jobs"
-# TaskList for in-session Monitors
+PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$PLUGIN_DIR/scripts/status-lib.sh" || {
+  echo "ERROR: Cannot load status-lib.sh" >&2
+  exit 1
+}
 ```
 
-The model should use `TaskList` / `TaskGet` to enumerate any currently-armed Monitors spawned in this session.
+### Step 2: Parse arguments
 
-## Step 7: Print the report
+```bash
+case "${1:-}" in
+  --json)
+    enumerate_loops | cat  # Raw JSONL output
+    exit 0
+    ;;
+  --reclaim-candidates)
+    enumerate_loops | jq -r 'select(.reclaim_candidate == "yes") | @json' | format_status_table
+    exit 0
+    ;;
+  "")
+    # Default: show all loops as table
+    enumerate_loops | format_status_table
+    exit 0
+    ;;
+  *)
+    # Fallback: treat as loop_id (single-loop detail from Phase 8)
+    # This preserves backward compatibility
+    loop_id="$1"
+    enumerate_loops | jq -r "select(.loop_id == \"$loop_id\")" | jq .
+    exit 0
+    ;;
+esac
+```
+
+## Output Formats
+
+### Table (default)
 
 ```
-=== autonomous-loop status ===
-  Contract:       $CONTRACT_PATH
-  Name:           <name>
-  Iteration:      <n> / <max_iterations>
-  Last updated:   <ISO> (<N> minutes ago)
-  Exit condition: <condition>
-
-  Last 3 firings:
-    - <revision log entry>
-    - <revision log entry>
-    - <revision log entry>
-
-  Next queue item: <first unchecked - [ ]>
-
-  Active monitors: <count + one-line summary>
-  Active pueue jobs: <count>
+LOOP_ID      SESSION  STATUS    LAST_WAKE  DEAD STALE  RECLAIM
+———————————— ———————— ————————— —————————— —————— —————— ————
+a1b2c3d4e5f6 session1 ACTIVE    2m ago     0.15 fresh  no
+deadbeef1234 session2 STALE     1h ago     0.78 stale  yes
 ```
 
-## Anti-patterns
+**Columns:**
 
-- Do NOT modify the contract in this skill (read-only)
-- Do NOT reformat or "fix" the frontmatter even if it looks malformed — report the issue instead
+| Column    | Meaning                                                                     |
+| --------- | --------------------------------------------------------------------------- |
+| LOOP_ID   | 12-character hexadecimal loop identifier                                    |
+| SESSION   | First 8 characters of owner_session_id (session context)                    |
+| STATUS    | ACTIVE (owner alive, fresh heartbeat) / STALE / DEAD                        |
+| LAST_WAKE | Relative time of last heartbeat (e.g., "2m ago", "—" if never)              |
+| DEAD      | Dead-time ratio (0.00–1.00): fraction of lifespan the loop was inactive     |
+| STALE     | Staleness flag: "fresh" (within 3× cadence), "stale" (>3×), "—" (no data)   |
+| RECLAIM   | "yes" if loop can be reclaimed (dead owner + old state dir), "no" otherwise |
+
+### JSONL (--json)
+
+One JSON object per line, no top-level array. Fields:
+
+```json
+{
+  "loop_id": "a1b2c3d4e5f6",
+  "session_id": "session1",
+  "status": "ACTIVE",
+  "last_wake_us": "1725000000000000",
+  "last_wake_human": "2m ago",
+  "dead_time_ratio": "0.15",
+  "staleness_flag": "fresh",
+  "reclaim_candidate": "no"
+}
+```
+
+### Reclaim Candidates (--reclaim-candidates)
+
+Filters JSONL to `reclaim_candidate == "yes"` and formats as table. Use with `/autonomous-loop:reclaim <loop_id>` to clean up.
+
+### Single Loop Detail (<loop_id>)
+
+Shows a single loop's entry as formatted JSON (Phase 8 compatibility).
+
+## Status Derivation
+
+- **ACTIVE**: owner_pid is alive AND staleness ≤ 3× expected_cadence
+- **STALE**: owner_pid alive but staleness > 3× expected_cadence (stuck/paused process)
+- **DEAD**: owner_pid dead OR staleness > 4× expected_cadence (no recovery possible)
+- **SATURATED** (Phase 11): contract marked done or stop event in revision-log
+
+## Reclaim Candidacy (Phase 10 STAT-02)
+
+A loop is flagged "reclaim_candidate: yes" if:
+
+1. Owner PID is dead AND state-dir mtime > 7 days, OR
+2. Original Phase 4 predicate (owner dead OR heartbeat >3× cadence stale)
+
+Use `/autonomous-loop:reclaim <loop_id>` to manually clean up stale entries.
+
+## Dead-Time Ratio Formula
+
+```
+dead_time_ratio = 1 - (heartbeat_count × cadence / lifespan)
+```
+
+- Approximates activity by counting heartbeat iterations
+- Clamped to [0.00, 1.00]
+- Helps identify chronically hung or underutilized loops
+
+## Examples
+
+```bash
+# Show all loops
+/autonomous-loop:status
+
+# Export to JSON for external processing
+/autonomous-loop:status --json | jq '.[] | select(.status == "STALE")'
+
+# Find loops ready for cleanup
+/autonomous-loop:status --reclaim-candidates
+
+# Check single loop (backward compat)
+/autonomous-loop:status a1b2c3d4e5f6
+```
 
 ## Troubleshooting
 
-| Symptom                      | Fix                                                        |
-| ---------------------------- | ---------------------------------------------------------- |
-| Frontmatter parsing fails    | Check first few lines begin with `---` and end with `---`  |
-| `last_updated` shows "stale" | Contract may be orphaned — user should `:stop` or `:start` |
-| Empty Revision Log           | First firing hasn't completed yet; normal                  |
+| Symptom              | Fix                                                                    |
+| -------------------- | ---------------------------------------------------------------------- |
+| "No active loops"    | No loops registered; run `/autonomous-loop:start` to create one        |
+| All loops DEAD       | Likely system restart; loops recover on next iteration                 |
+| high dead_time_ratio | Loop may be saturated or paused; check reclaim eligibility             |
+| JSONL parse error    | Heartbeat file corrupted; check state_dir for malformed heartbeat.json |
+
+## Anti-patterns
+
+- Do NOT modify the registry or state-dir while status is running
+- Do NOT use status to trigger cleanup (use explicit `/autonomous-loop:reclaim` command)
 
 ## Post-Execution Reflection
 
 0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
 1. **What failed?** — Fix the instruction that caused it.
-2. **What drifted?** — Update parsing if template frontmatter keys changed.
+2. **What drifted?** — Update status derivation or output format if registry schema changed.
 3. **Log it.** — Evolution-log entry.
