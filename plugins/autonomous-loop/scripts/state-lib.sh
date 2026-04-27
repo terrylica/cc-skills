@@ -314,8 +314,10 @@ write_heartbeat() {
     return 1
   }
 
-  # Setup trap to clean up temp file on error
-  trap 'rm -f "$temp_file"' EXIT
+  # Setup trap to clean up temp file on error.
+  # Use ${temp_file:-} so the trap is safe even when it fires after the function
+  # returns (the local var goes out of scope at script exit).
+  trap 'rm -f "${temp_file:-}"' EXIT
 
   # Build heartbeat JSON
   local heartbeat_json

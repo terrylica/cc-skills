@@ -156,8 +156,10 @@ _with_registry_lock() {
   local registry_file="$loops_dir/registry.json"
   local temp_file=""
 
-  # Clean up temp files on exit (trap early to cover all paths)
-  trap 'rm -f "$temp_file"; exec 9>&- 2>/dev/null || true' EXIT
+  # Clean up temp files on exit (trap early to cover all paths).
+  # Use ${temp_file:-} so the trap is safe even when it fires after the function
+  # returns (the local var goes out of scope at script exit).
+  trap 'rm -f "${temp_file:-}"; exec 9>&- 2>/dev/null || true' EXIT
 
   # Create lock file if it doesn't exist
   touch "$lock_file" || {
