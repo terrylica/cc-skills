@@ -1,3 +1,33 @@
+# [16.5.0](https://github.com/terrylica/cc-skills/compare/v16.4.1...v16.5.0) (2026-04-27)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** add Self-Evolving sandwich to setup skill ([bfe2891](https://github.com/terrylica/cc-skills/commit/bfe2891d28eb72fc2379b496a88e54504bcbd8a5))
+* **autonomous-loop:** coalesce JSONL output + cursor strict-greater for idempotency ([0c24abb](https://github.com/terrylica/cc-skills/commit/0c24abb9d956ee5a9573df16ce350640bc6b7903))
+* **autonomous-loop:** disable trap before test exit to avoid cleanup error ([4ca21cc](https://github.com/terrylica/cc-skills/commit/4ca21cc2c02368d9b4793cc0d9756f6a45c97642))
+* **autonomous-loop:** test-10-loop-stress isolates HOME (was polluting real registry) ([3d83ad6](https://github.com/terrylica/cc-skills/commit/3d83ad61374f77db24584c709a0f7f7886e98c5c))
+* **autonomous-loop:** waker last_spawn_us registry update + test fixes ([a99455e](https://github.com/terrylica/cc-skills/commit/a99455e1146194c035212d4187747492b5eef328))
+
+
+### Features
+
+* **autonomous-loop:** add derive_loop_id helper (01-01) ([d224bab](https://github.com/terrylica/cc-skills/commit/d224bab6b1d5876431adc838dff8505c69c221b1))
+* **autonomous-loop:** add registry read helpers (01-03) ([6570151](https://github.com/terrylica/cc-skills/commit/657015137f0d72a3429a051e0c1cf67f2a8404a0))
+* **autonomous-loop:** back-compat migration + stress tests + reclaim skill + docs (phase 12) ([7d9179f](https://github.com/terrylica/cc-skills/commit/7d9179fe69d08ab3c69cec49fa61c95ccf6255ef))
+* **autonomous-loop:** define registry schema (01-02) ([086bce8](https://github.com/terrylica/cc-skills/commit/086bce87cf2b70b73d1547213aaec77fe6c9cfd1)), closes [#1](https://github.com/terrylica/cc-skills/issues/1) [#2](https://github.com/terrylica/cc-skills/issues/2) [#3](https://github.com/terrylica/cc-skills/issues/3) [#4](https://github.com/terrylica/cc-skills/issues/4)
+* **autonomous-loop:** external waker + decision tree + double-spawn defense (phase 9) ([eb803b8](https://github.com/terrylica/cc-skills/commit/eb803b8dad8a607e42080a722afa9ea52649cf16)), closes [#6](https://github.com/terrylica/cc-skills/issues/6)
+* **autonomous-loop:** heartbeat hook script + cwd lookup (phase 6) ([b74a5af](https://github.com/terrylica/cc-skills/commit/b74a5af2cea056fa0235ffad1b7691e24be96aab))
+* **autonomous-loop:** hook install/uninstall in settings.json (phase 7) ([8617d58](https://github.com/terrylica/cc-skills/commit/8617d58beada569bc98509ec2ad78cf0192ac18f))
+* **autonomous-loop:** machine-wide status + registry enumeration (phase 10) ([32a4e3b](https://github.com/terrylica/cc-skills/commit/32a4e3b5bc191555106bb6cab0526c1fdf7bc169))
+* **autonomous-loop:** notification coalescing (phase 11) ([39b60bf](https://github.com/terrylica/cc-skills/commit/39b60bfeb3fbef0eaa58a204ae538363751ee060))
+* **autonomous-loop:** per-loop launchd plist generation + load (phase 8) ([98513af](https://github.com/terrylica/cc-skills/commit/98513af24a528c1475d84d6f4afb683f659350b2))
+* **autonomous-loop:** per-loop owner.lock + PID-reuse-safe verify (phase 3) ([f66c37b](https://github.com/terrylica/cc-skills/commit/f66c37b471cd9b0892425d0815881d2f62326c4c)), closes [#1](https://github.com/terrylica/cc-skills/issues/1)
+* **autonomous-loop:** registry write API + lock serialization (phase 2) ([17eca9c](https://github.com/terrylica/cc-skills/commit/17eca9ca65fb9c0ce7765bfa066e28baecfa6000))
+* **autonomous-loop:** stale detection + reclaim with generation counter (phase 4) ([43f372f](https://github.com/terrylica/cc-skills/commit/43f372f8044fabf7431641cd52c1d3a24a12326d)), closes [#2](https://github.com/terrylica/cc-skills/issues/2)
+* **autonomous-loop:** state dir + atomic heartbeat (phase 5) ([9e5b43b](https://github.com/terrylica/cc-skills/commit/9e5b43bd793c6b02d9a2231f513de371e12bcaa8)), closes [#3](https://github.com/terrylica/cc-skills/issues/3)
+* **statusline-tools:** add code statistics line via scc ([d84404f](https://github.com/terrylica/cc-skills/commit/d84404f4e340de6f7971922e5089f39677353f40))
+
 ## [16.4.1](https://github.com/terrylica/cc-skills/compare/v16.4.0...v16.4.1) (2026-04-26)
 
 
