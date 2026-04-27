@@ -39,30 +39,22 @@
 
   INSTALL:   make install   (from repo root)
   UNINSTALL: make uninstall (from repo root)
+
+  WHY THE RUNNER (libexec/ssh-tunnel-companion-runner):
+    launchd's Login Items UI displays the basename of Program — invoking
+    /usr/bin/ssh directly surfaces as "ssh" in System Settings, which is
+    indistinguishable from any other ssh login item. The runner exec's ssh
+    so launchd's KeepAlive still operates on the real tunnel PID, and
+    macOS displays "ssh-tunnel-companion-runner" instead. Port forwards
+    live in the runner — single source of truth for the tunnel topology.
 -->
 <plist version="1.0">
 <dict>
 	<key>Label</key>
 	<string>com.example.ssh-tunnel-companion</string>
 
-	<key>ProgramArguments</key>
-	<array>
-		<string>/usr/bin/ssh</string>
-		<string>-N</string>
-		<string>-o</string>
-		<string>ExitOnForwardFailure=yes</string>
-		<string>-o</string>
-		<string>ConnectTimeout=8</string>
-		<string>-L</string>
-		<string>18123:localhost:8123</string>
-		<string>-L</string>
-		<string>18081:localhost:8081</string>
-		<string>-L</string>
-		<string>18095:localhost:8095</string>
-		<string>-L</string>
-		<string>5900:localhost:5900</string>
-		<string>gpu-host</string>
-	</array>
+	<key>Program</key>
+	<string>/Users/<you>/eon/cc-skills/plugins/ssh-tunnel-companion/libexec/ssh-tunnel-companion-runner</string>
 
 	<!-- Start at login -->
 	<key>RunAtLoad</key>
