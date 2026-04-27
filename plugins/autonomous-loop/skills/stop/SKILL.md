@@ -68,11 +68,29 @@ Load `PushNotification` via `ToolSearch` if not already available, then send:
 
 Keep under 200 chars.
 
-## Step 5: Update frontmatter
+## Step 5: Unregister loop from machine registry
+
+After appending the DONE section, clean up the machine registry entry:
+
+```bash
+# Source the registry library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh"
+
+# Derive loop_id from contract path
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+
+# Unregister from machine registry (idempotent; no error if already absent)
+if ! unregister_loop "$loop_id"; then
+  echo "WARNING: Failed to unregister loop from machine registry" >&2
+fi
+```
+
+## Step 6: Update frontmatter
 
 Edit the YAML frontmatter `exit_condition` field to include `DONE` so the next firing detects it immediately without scanning the body.
 
-## Step 6: Suggest final commit
+## Step 7: Suggest final commit
 
 Print a suggested commit:
 
