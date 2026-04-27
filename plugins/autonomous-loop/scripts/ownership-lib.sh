@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
+# FILE-SIZE-OK
 # ownership-lib.sh — Per-loop ownership protocol with PID-reuse defense
 # Provides: acquire_owner_lock, release_owner_lock, verify_owner_alive, capture_process_start_time
+#           staleness_seconds, is_reclaim_candidate, reclaim_loop, append_takeover_event
 #
 # Pitfall #1 (PID reuse): Defense via owner_start_time_us comparison on verification
 # Pitfall #2 (TOCTOU first-half): Defense via atomic flock acquire
+# Pitfall #2 (TOCTOU second-half): Defense via generation counter + atomic reclaim
 
 set -euo pipefail
 
@@ -280,8 +283,340 @@ verify_owner_alive() {
   return 0
 }
 
+# staleness_seconds <loop_id>
+# Returns elapsed seconds since last heartbeat, or -1 if no heartbeat exists.
+# Reads from <state_dir>/heartbeat.json (written by Phase 5, mocked in tests).
+#
+# Arguments:
+#   $1: loop_id (12 hex characters)
+#
+# Output:
+#   Positive integer: seconds elapsed
+#   -1: no heartbeat file found or parse error
+#
+# Exit code:
+#   0 always (output indicates status)
+#
+# Example:
+#   staleness=$(staleness_seconds "a1b2c3d4e5f6")
+#   if [ "$staleness" -gt 100 ]; then echo "Stale"; fi
+staleness_seconds() {
+  local loop_id="$1"
+  local registry_path="${2:-$HOME/.claude/loops/registry.json}"
+
+  # Validate loop_id format
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "-1"
+    return 0
+  fi
+
+  # Read registry entry to get state_dir
+  local entry
+  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+    echo "-1"
+    return 0
+  }
+
+  if [ -z "$entry" ]; then
+    echo "-1"
+    return 0
+  fi
+
+  # Extract state_dir
+  local state_dir
+  state_dir=$(echo "$entry" | jq -r '.state_dir // empty' 2>/dev/null) || {
+    echo "-1"
+    return 0
+  }
+
+  if [ -z "$state_dir" ]; then
+    echo "-1"
+    return 0
+  fi
+
+  # Check if heartbeat.json exists
+  local hb_file="$state_dir/heartbeat.json"
+  if [ ! -f "$hb_file" ]; then
+    echo "-1"
+    return 0
+  fi
+
+  # Read last_wake_us from heartbeat
+  local last_wake_us
+  last_wake_us=$(jq -r '.last_wake_us // empty' "$hb_file" 2>/dev/null) || {
+    echo "-1"
+    return 0
+  }
+
+  if [ -z "$last_wake_us" ]; then
+    echo "-1"
+    return 0
+  fi
+
+  # Compute now in microseconds
+  local now_us
+  if command -v gdate >/dev/null 2>&1; then
+    local gdate_ns
+    gdate_ns=$(gdate +%s%N 2>/dev/null) || {
+      echo "-1"
+      return 0
+    }
+    now_us=$((gdate_ns / 1000))
+  else
+    now_us=$(($(date +%s) * 1000000))
+  fi
+
+  # Compute elapsed seconds
+  local elapsed_us=$((now_us - last_wake_us))
+  if [ "$elapsed_us" -lt 0 ]; then
+    elapsed_us=0
+  fi
+
+  local elapsed_secs=$((elapsed_us / 1000000))
+  echo "$elapsed_secs"
+}
+
+# is_reclaim_candidate <loop_id>
+# Determines if a loop can be reclaimed by checking: (1) entry exists, (2) owner dead OR heartbeat stale.
+# Pure read — no side effects. Returns one of: "yes", "no", "owner_alive".
+#
+# Arguments:
+#   $1: loop_id (12 hex characters)
+#   $2 (optional): Override path to registry file (for testing)
+#
+# Output:
+#   "yes": entry exists and can be reclaimed (owner dead or heartbeat stale)
+#   "no": entry does not exist (nothing to reclaim)
+#   "owner_alive": entry exists but owner is alive and heartbeat fresh
+#
+# Exit code:
+#   0 always (output indicates status)
+#
+# Example:
+#   candidate=$(is_reclaim_candidate "a1b2c3d4e5f6")
+#   if [ "$candidate" = "yes" ]; then reclaim_loop "a1b2c3d4e5f6"; fi
+is_reclaim_candidate() {
+  local loop_id="$1"
+  local registry_path="${2:-$HOME/.claude/loops/registry.json}"
+
+  # Validate loop_id format
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "no"
+    return 0
+  fi
+
+  # Read registry entry
+  local entry
+  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+    echo "no"
+    return 0
+  }
+
+  if [ -z "$entry" ] || [ "$entry" = "{}" ]; then
+    echo "no"
+    return 0
+  fi
+
+  # Extract expected_cadence_seconds
+  local expected_cadence
+  expected_cadence=$(echo "$entry" | jq -r '.expected_cadence_seconds // 1500' 2>/dev/null) || {
+    expected_cadence=1500
+  }
+
+  # Check 1: Is owner dead?
+  local owner_status
+  owner_status=$(verify_owner_alive "$loop_id" "$registry_path")
+  if [ "$owner_status" = "dead" ]; then
+    echo "yes"
+    return 0
+  fi
+
+  # Check 2: Is heartbeat stale? (>3× expected_cadence)
+  local staleness
+  staleness=$(staleness_seconds "$loop_id" "$registry_path")
+  if [ "$staleness" -gt $((3 * expected_cadence)) ]; then
+    echo "yes"
+    return 0
+  fi
+
+  # Owner is alive and heartbeat fresh
+  echo "owner_alive"
+  return 0
+}
+
+# reclaim_loop <loop_id> [--reason owner_dead|heartbeat_stale]
+# Atomically reclaims a loop from a dead or stuck owner.
+# Increments generation counter inside _with_registry_lock (atomic).
+# Appends takeover event to revision-log.
+#
+# Arguments:
+#   $1: loop_id (12 hex characters)
+#   $2 (optional): --reason flag
+#   $3 (optional): reason value (owner_dead | heartbeat_stale | user_request)
+#
+# Output:
+#   Success: prints "Reclaimed loop_id [reason]"
+#   Error: prints error message to stderr
+#
+# Exit code:
+#   0 on success
+#   1 if conditions not met or atomic update fails
+#
+# Example:
+#   reclaim_loop "a1b2c3d4e5f6" --reason "owner_dead"
+reclaim_loop() {
+  local loop_id="$1"
+  local reason="${3:-owner_dead}"
+  local registry_path="${LOOP_REGISTRY_PATH:-$HOME/.claude/loops/registry.json}"
+
+  # Validate loop_id format
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "ERROR: reclaim_loop: invalid loop_id format '$loop_id'" >&2
+    return 1
+  fi
+
+  # Check if reclaim is actually needed
+  local candidate
+  candidate=$(is_reclaim_candidate "$loop_id" "$registry_path")
+  if [ "$candidate" != "yes" ]; then
+    echo "ERROR: reclaim_loop: loop is not a reclaim candidate (status: $candidate)" >&2
+    return 1
+  fi
+
+  # Read current entry to get state_dir and generation
+  local entry
+  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+    echo "ERROR: reclaim_loop: failed to read entry" >&2
+    return 1
+  }
+
+  local old_generation
+  old_generation=$(echo "$entry" | jq -r '.generation // 0' 2>/dev/null) || old_generation=0
+
+  local state_dir
+  state_dir=$(echo "$entry" | jq -r '.state_dir // empty' 2>/dev/null) || {
+    echo "ERROR: reclaim_loop: no state_dir in entry" >&2
+    return 1
+  }
+
+  # Atomically: increment generation, update owner fields
+  local new_generation=$((old_generation + 1))
+  local now_us
+  if command -v gdate >/dev/null 2>&1; then
+    now_us=$(gdate +%s%N | xargs -I '{}' sh -c "echo \$(( {} ))" 2>/dev/null) || {
+      now_us=$(($(date +%s) * 1000000))
+    }
+  else
+    now_us=$(($(date +%s) * 1000000))
+  fi
+
+  local current_pid=$$
+  local current_start_time_us
+  current_start_time_us=$(capture_process_start_time "$current_pid")
+  if [ -z "$current_start_time_us" ]; then
+    echo "ERROR: reclaim_loop: failed to capture process start time" >&2
+    return 1
+  fi
+
+  # Generate new session_id for reclaimer
+  local random_suffix
+  random_suffix=$(tr -dc 'a-f0-9' </dev/urandom | head -c 8)
+  local session_timestamp
+  session_timestamp=$(date +%s)
+  local new_session_id="session_${session_timestamp}_${random_suffix}"
+
+  # Call atomic update via _with_registry_lock
+  if ! update_loop_field "$loop_id" ".generation" "$new_generation"; then
+    echo "ERROR: reclaim_loop: failed to increment generation" >&2
+    return 1
+  fi
+
+  if ! update_loop_field "$loop_id" ".owner_pid" "$current_pid"; then
+    echo "ERROR: reclaim_loop: failed to update owner_pid" >&2
+    return 1
+  fi
+
+  if ! update_loop_field "$loop_id" ".owner_start_time_us" "$current_start_time_us"; then
+    echo "ERROR: reclaim_loop: failed to update owner_start_time_us" >&2
+    return 1
+  fi
+
+  if ! update_loop_field "$loop_id" ".owner_session_id" "\"$new_session_id\""; then
+    echo "ERROR: reclaim_loop: failed to update owner_session_id" >&2
+    return 1
+  fi
+
+  # Append takeover event to revision-log
+  mkdir -p "$state_dir/revision-log" || {
+    echo "ERROR: reclaim_loop: failed to create revision-log directory" >&2
+    return 1
+  }
+
+  # Build takeover event JSON
+  local takeover_event
+  takeover_event=$(jq -n \
+    --arg ts_us "$now_us" \
+    --arg event "takeover" \
+    --arg reason "$reason" \
+    --arg from_owner_pid "$(echo "$entry" | jq -r '.owner_pid // "unknown"')" \
+    --arg from_owner_session_id "$(echo "$entry" | jq -r '.owner_session_id // "unknown"')" \
+    --arg generation "$new_generation" \
+    '{ts_us: $ts_us, event: $event, reason: $reason, from_owner_pid: $from_owner_pid, from_owner_session_id: $from_owner_session_id, generation: $generation}')
+
+  # Append to revision-log (atomic append to JSONL file)
+  echo "$takeover_event" >> "$state_dir/revision-log/${new_session_id}.jsonl" || {
+    echo "ERROR: reclaim_loop: failed to append takeover event" >&2
+    return 1
+  }
+
+  echo "Reclaimed loop $loop_id (generation: $old_generation -> $new_generation, reason: $reason)"
+  return 0
+}
+
+# append_takeover_event <state_dir> <event_json>
+# Appends a takeover event to the revision-log JSONL file.
+# Creates revision-log/ directory if missing.
+#
+# Arguments:
+#   $1: state_dir (full path to loop state directory)
+#   $2: event JSON object
+#
+# Exit code:
+#   0 on success
+#   1 on failure
+#
+# Example:
+#   event=$(jq -n '{event: "takeover", reason: "owner_dead", generation: 1}')
+#   append_takeover_event "/path/to/.loop-state/loop_id/" "$event"
+append_takeover_event() {
+  local state_dir="$1"
+  local event_json="$2"
+
+  # Ensure revision-log directory exists
+  mkdir -p "$state_dir/revision-log" || {
+    echo "ERROR: append_takeover_event: failed to create revision-log directory" >&2
+    return 1
+  }
+
+  # Extract session_id from event (or generate one)
+  local session_id
+  session_id=$(echo "$event_json" | jq -r '.session_id // "default"' 2>/dev/null) || session_id="default"
+
+  # Append event as JSONL line
+  echo "$event_json" >> "$state_dir/revision-log/${session_id}.jsonl" || {
+    echo "ERROR: append_takeover_event: failed to append to revision-log" >&2
+    return 1
+  }
+
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f capture_process_start_time
 export -f acquire_owner_lock
 export -f release_owner_lock
 export -f verify_owner_alive
+export -f staleness_seconds
+export -f is_reclaim_candidate
+export -f reclaim_loop
+export -f append_takeover_event
