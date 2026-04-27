@@ -16,7 +16,24 @@ Scaffold `LOOP_CONTRACT.md` and start a self-revising `/loop` that reads the con
 
 - Positional (optional): contract file path. Defaults to `./LOOP_CONTRACT.md`.
 
-## Step 1: Preflight
+## Step 1: Ensure hook is installed
+
+Install the heartbeat hook into `~/.claude/settings.json` if not already present. This is a one-time per-machine operation (idempotent — subsequent calls are no-ops).
+
+```bash
+# Source the hook install library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
+
+# Install hook (idempotent)
+if ! install_hook 2>/dev/null; then
+  echo "WARNING: Failed to install heartbeat hook; continuing anyway" >&2
+fi
+```
+
+This ensures that all Claude sessions will have the PostToolUse hook wired up to tick the heartbeat on each tool invocation.
+
+## Step 2: Preflight
 
 Check whether a contract already exists at the target path.
 
@@ -29,9 +46,9 @@ else
 fi
 ```
 
-If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autonomous-loop:status` instead of starting fresh) or `overwrite` (proceed with Step 2).
+If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autonomous-loop:status` instead of starting fresh) or `overwrite` (proceed with Step 3).
 
-## Step 2: Collect contract inputs
+## Step 3: Collect contract inputs
 
 Use `AskUserQuestion` to collect:
 
@@ -42,7 +59,7 @@ Use `AskUserQuestion` to collect:
 4. cadence     — typical wake-up cadence hint (continuous | event-driven | hourly | daily)
 ```
 
-## Step 3: Scaffold the contract
+## Step 4: Scaffold the contract
 
 Copy the plugin-shipped template and substitute placeholders. Use
 `$CLAUDE_PLUGIN_ROOT` (set by Claude Code for every plugin skill) to
@@ -69,7 +86,7 @@ Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 - `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH`
 - `<CORE DIRECTIVE>` / `<PROJECT OR CAMPAIGN TITLE>` → user-provided `scope`
 
-## Step 4: Register loop in machine registry
+## Step 5: Register loop in machine registry
 
 After deriving the loop ID in Step 2/3, register this loop in the machine-level registry:
 
@@ -101,7 +118,7 @@ if ! register_loop "$entry"; then
 fi
 ```
 
-## Step 6: Emit pointer trigger
+## Step 7: Emit pointer trigger
 
 Print the snippet the user can feed to `/loop`:
 
@@ -114,7 +131,7 @@ Read and execute the latest autonomous work contract at:
 Follow its instructions verbatim. That file self-updates; this trigger stays fixed.
 ```
 
-## Step 7: Offer to start the loop immediately
+## Step 8: Offer to start the loop immediately
 
 Use `AskUserQuestion` with two options:
 
@@ -123,7 +140,7 @@ Use `AskUserQuestion` with two options:
 
 If `Start now`, call `Skill(loop)` with the pointer trigger snippet as `args`. Otherwise print "Contract scaffolded at `$CONTRACT_PATH`. Run `/loop` with the pointer trigger above whenever ready."
 
-## Step 8: Suggest commit
+## Step 9: Suggest commit
 
 Print a suggested first commit:
 
