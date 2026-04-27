@@ -133,8 +133,8 @@ coalesce_notifications() {
   local window_seconds="${2:-60}"
   local notif_file="${3:-$HOME/.claude/loops/.notifications.jsonl}"
 
-  # Use jq to group and coalesce entirely
-  read_notifications "$since_us" "$notif_file" | jq -s \
+  # Use jq to group and coalesce entirely (compact JSONL output for streaming)
+  read_notifications "$since_us" "$notif_file" | jq -sc \
     --argjson ws "$window_seconds" \
     'if length == 0 then
        empty
