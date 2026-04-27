@@ -82,7 +82,7 @@ cp "$TEMPLATE" "$CONTRACT_PATH"
 Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 
 - `<SHORT_DESCRIPTIVE_NAME>` → user-provided `name`
-- `<ISO_8601_UTC>` → `date -u +"%Y-%m-%dT%H:%M:%SZ"`
+- `<ISO_8601_UTC>` → `date -u +"%Y-%m-%dT%H:%M:%SZ"` (always `-u`; bare `date` returns local time and silently mismatches the contract's UTC fields)
 - `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH`
 - `<CORE DIRECTIVE>` / `<PROJECT OR CAMPAIGN TITLE>` → user-provided `scope`
 
