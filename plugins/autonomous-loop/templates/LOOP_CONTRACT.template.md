@@ -166,6 +166,22 @@ A firing that ends with a text-only summary, no final tool call, and a pending S
 
 **Handling manual interrupts inside an active wake window**: when `/loop`, `/autonomous-loop:start`, or a user prompt triggers this firing while a prior `ScheduleWakeup` is still pending, treat the fresh firing as authoritative and supersede the pending wake with option 1, 2, 3, 4, or 5 above. Phase 3 Revise is mandatory even on interrupt firings — update the contract so the (now-stale) pending wake, if it still fires, reads accurate state.
 
+#### Pre-decision gate (REQUIRED before any `ScheduleWakeup` call)
+
+Before the tier table is even consulted, answer **all three** questions in writing in your firing summary. If any answer is missing or vague, the only legal options are **Tier 0 (chain in-turn)** or **option 5 (DONE / exit honestly)**.
+
+1. **Is the Implementation Queue empty?** (yes/no — name the next ready item if no)
+2. **What specific external thing am I waiting for?** (must name a concrete external signal: a build PID, a CI run URL, a rate-limit window with a known ETA, a file-watch path, a webhook. *Not* a valid answer: "the next iteration", "let cache stay warm", "pacing", "cogitation", "I want to think more", "in-flight task I started" — the last is your own work, not external state.)
+3. **Could this work continue right now in-turn?** (if yes → Tier 0. `ScheduleWakeup` is forbidden.)
+
+> **Anti-pattern recognized in the wild (iter-N example, ~2026-04-27)**:
+> Queue had 4 actionable items; model wrote "Next wake at 08:29:00Z (~247s,
+> cache-warm)" — the *only* justification offered was "cache-warm". That is
+> pacing, not waiting. Dead-time ratio for the firing: ~0.5, double the 0.25
+> smell-check threshold. The legal move was Tier 0: pick item 2.1 and start it.
+
+If you find yourself reaching for "cache-warm" as a reason to schedule a wake, stop. Cache-warmth is a side-property of Tier 2, not its purpose. The purpose is *waiting for an external signal*. Tier 0 is also cache-warm and is strictly cheaper when you have ready work.
+
 | Tier                                                 | Mechanism                                                                                                         | When to use                                                                                          | Cost                              |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------- |
 | **0 — In-turn continuation (default)**               | No waker. Just start the next iteration in the same turn.                                                         | Implementation Queue has a ready item AND tokens remain.                                             | Zero                              |
