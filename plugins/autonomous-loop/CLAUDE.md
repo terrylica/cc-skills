@@ -1,36 +1,127 @@
 # autonomous-loop Plugin
 
-> Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work.
+> Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. V1 Final: multiplicity-safe registry, atomic ownership, PID-reuse defense, generation counters.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [ru CLAUDE.md](../ru/CLAUDE.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Siblings**: [ru](../ru/CLAUDE.md) | **Deep dive**: [tech-stack](./docs/registry-schema.md)
 
-## Overview
+---
 
-Packages the _self-revising execution contract + dynamic pacing + Monitor fallback + saturation stop_ pattern into 3 skills. Designed to complement, not replace, Claude Code's built-in `/loop` and `/schedule`.
+## Navigation
 
-## When to prefer this over siblings
+- [Back-Compat Notes](#back-compat-notes-single-loop-migration)
+- [Architecture Overview](#architecture-overview-4-layer)
+- [Skills at a Glance](#skills-at-a-glance)
+- [Library Scripts](#library-scripts-all-7)
+- [6 Catastrophic Pitfalls](#6-catastrophic-pitfalls--phase-ownership)
+- [Troubleshooting Playbook](#troubleshooting-playbook)
+- [Deferred to V2](#deferred-to-v2)
 
-- **Native `/loop`** — use when you need pacing but no state persists between firings.
-- **`ru` plugin** — use for Stop-hook-driven continuation within a single session.
-- **Anthropic Routines** — use for cloud-scheduled unattended work.
-- **autonomous-loop** — use when firings must READ past state + REVISE plans + PERSIST decisions across multi-day windows, ideally surviving auto-compact and session restarts.
+---
 
-## Skills
+## Back-Compat Notes (Single-Loop Migration)
 
-| Skill    | Purpose                                              |
-| -------- | ---------------------------------------------------- |
-| `start`  | Install `LOOP_CONTRACT.md` template + invoke `/loop` |
-| `status` | Read contract frontmatter, report state concisely    |
-| `stop`   | Mark contract completed, terminate loop, notify user |
+**If you have an existing `LOOP_CONTRACT.md` without `loop_id` in the frontmatter:**
 
-## The contract file
+1. Run `/autonomous-loop:start` on the contract path
+2. The `init_state_dir` function in Phase 5 (state-lib.sh) auto-derives `loop_id` from the file path and adds it to frontmatter (MIG-01)
+3. Contract body is unchanged; only frontmatter is mutated (idempotent)
+4. The loop is automatically registered in `~/.claude/loops/registry.json`
+5. **No manual migration needed** — existing contracts are supported as-is
 
-`LOOP_CONTRACT.md` lives at the root of the target directory (or a sub-path the user chooses). Structure:
+Single-loop users upgrading to v1: The registry is per-machine, not per-repo. If you have 3 repos each with their own `LOOP_CONTRACT.md`, all 3 are tracked simultaneously in the same registry. The ownership protocol ensures only one can be active at a time per loop_id.
+
+---
+
+## Architecture Overview (4-Layer)
+
+The autonomous-loop system is built on four atomic primitives that collectively defend against 6 catastrophic pitfalls:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 1: MACHINE REGISTRY                                      │
+│  ~/.claude/loops/registry.json (atomic JSON, fd 9 flock)        │
+│  SSoT for all loops on this machine: loop_id, owner_pid,        │
+│  generation, state_dir, contract_path, heartbeat freshness      │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ (update_loop_field with atomic flock)
+┌──────────────────────────────┴──────────────────────────────────┐
+│  LAYER 2: OWNER LOCK & PID-REUSE DEFENSE                       │
+│  ~/.claude/loops/<loop_id>.owner.lock (flock/lockf, fd 8)      │
+│  Ensures: exactly one owner at a time                           │
+│  Defends: Pitfall #1 (PID reuse) via owner_start_time_us check │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ (acquire_owner_lock / release_owner_lock)
+┌──────────────────────────────┴──────────────────────────────────┐
+│  LAYER 3: HEARTBEAT & STALENESS DETECTION                      │
+│  <state_dir>/heartbeat.json (written by PostToolUse hook)       │
+│  Emitted on every tool invocation; last_wake_us used to detect  │
+│  stuck loops (>3× expected_cadence → reclaim candidate)         │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ (write_heartbeat from hook, staleness_seconds for reclaim)
+┌──────────────────────────────┴──────────────────────────────────┐
+│  LAYER 4: REVISION LOG & GENERATION COUNTER                    │
+│  <state_dir>/revision-log/<session_id>.jsonl                    │
+│  Atomic generation increment on reclaim; takeover events logged  │
+│  Defends: Pitfall #2 (TOCTOU) via generation epoch detection    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Design principle**: All four layers are **append-only or atomic-compare-swap**. No overwrites, no partial updates. This guarantees safety under concurrent access and machine crashes.
+
+---
+
+## Skills at a Glance
+
+| Skill     | Purpose                                          | When to Use                                       |
+| --------- | ------------------------------------------------ | ------------------------------------------------- |
+| `start`   | Scaffold contract, install hook, register loop   | First time: `/autonomous-loop:start`              |
+| `status`  | Read loop state, report iteration, owner, health | Mid-loop: `/autonomous-loop:status`               |
+| `stop`    | Mark DONE, unregister, unload launchd            | End loop: `/autonomous-loop:stop`                 |
+| `setup`   | One-time machine setup (hook install, dirs)      | Once per machine (or after reinstall)             |
+| `notify`  | Send notifications (coalesced by loop_id)        | Called by heartbeat-tick.sh (automatic)           |
+| `reclaim` | Take ownership of stuck loop (dead owner)        | Emergencies: `/autonomous-loop:reclaim <loop_id>` |
+
+---
+
+## Library Scripts (All 7)
+
+| Script                                            | Exports                                                                                                                       | Used By                              |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `registry-lib.sh`                                 | `derive_loop_id`, `read_registry`, `register_loop`, `enumerate_loops`, `update_loop_field`                                    | All other libs; start skill          |
+| `state-lib.sh`                                    | `state_dir_path`, `init_state_dir`, `write_heartbeat`, `read_heartbeat`, `now_us`                                             | start, status, heartbeat-tick        |
+| `ownership-lib.sh`                                | `acquire_owner_lock`, `release_owner_lock`, `verify_owner_alive`, `is_reclaim_candidate`, `reclaim_loop`, `staleness_seconds` | start, stop, reclaim, heartbeat-tick |
+| `hook-install-lib.sh`                             | `install_hook`, `uninstall_hook`                                                                                              | start, setup                         |
+| `launchd-lib.sh`                                  | `generate_plist`, `load_plist`, `unload_plist`                                                                                | start, stop                          |
+| `status-lib.sh`                                   | `loop_status`, `format_status_table`                                                                                          | status skill                         |
+| `notifications-lib.sh` + `notify-coalesce-lib.sh` | `send_notification`, `coalesce_notifications`                                                                                 | notify skill; heartbeat-tick hook    |
+
+**All scripts source each other as needed** (e.g., state-lib.sh sources registry-lib.sh to read loop entries). Each uses `set -euo pipefail` and exits with 0 on success, 1 on error.
+
+---
+
+## 6 Catastrophic Pitfalls & Phase Ownership
+
+| Pitfall                                | Scenario                                                                                                                                         | Mitigation                                                                                                                                                           | Phase Owner                                         | Evidence                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------- | ---------------------------------------- |
+| **#1: PID Reuse**                      | Owner PID 12345 dies; kernel recycles the PID to unrelated process X; X becomes the "owner" by accident                                          | `capture_process_start_time` + tolerance check in `verify_owner_alive`; owner_start_time_us stamped at registration and compared on verify (1s tolerance for jitter) | Phase 4 (ownership-lib.sh)                          | test-ownership.sh test 3                                                       |
+| **#2a: TOCTOU (first half)**           | Session A reads entry "generation:0, owner:A"; Session B simultaneously increments to "generation:1, owner:B"; A reads stale copy and acts on it | Atomic flock on registry.json (fd 9) around all read-modify-write operations in `update_loop_field`                                                                  | Phase 2 (registry-lib.sh)                           | test-registry-write.sh: concurrent writes                                      |
+| **#2b: TOCTOU (second half)**          | Reclaimer detects dead owner, calls `reclaim_loop`, but original owner wakes up simultaneously and also calls acquire                            | Generation counter in registry; heartbeat-tick hook checks registration generation before writing. Mismatch = stale session                                          | Phase 4 (ownership-lib.sh) + Phase 5 (state-lib.sh) | test-reclaim.sh: concurrent reclaim                                            |
+| **#3: Cross-Filesystem Lock Failure**  | `.lock` file on NFS, `flock` atomicity not guaranteed across mounts                                                                              | Use `mktemp` in same dir as heartbeat.json (`state_dir`) then atomic `mv` for heartbeat; don't rely on flock on network mounts                                       | Phase 5 (state-lib.sh, write_heartbeat)             | test-heartbeat-hook.sh: temp + move pattern                                    |
+| **#4: Registry Corruption (JSON)**     | Power loss / kill -9 during `jq                                                                                                                  | tee` → partial JSON in registry.json                                                                                                                                 | All writes use atomic `jq -in "input                | ..." $file > $temp && mv $temp $file` pattern (mktemp + mv in same filesystem) | Phase 2 (registry-lib.sh) | test-registry-write.sh: integrity checks |
+| **#5: Orphaned Lock**                  | Owner crashes, lock fd 8 held forever → subsequent attempts wait indefinitely                                                                    | Timeouts: flock --wait 5 (5 sec), lockf with retry loop (50× 100ms = 5 sec); heartbeat staleness check (is_reclaim_candidate)                                        | Phase 4 (ownership-lib.sh)                          | test-ownership.sh: timeout + reclaim flow                                      |
+| **#6: Hook Not Firing (Silent Stale)** | Heartbeat hook not installed in ~/.claude/settings.json → heartbeat.json never written → loop appears stale forever                              | install_hook (idempotent) verifies hook is registered; loop can't start without it (start skill calls install_hook before init_state_dir)                            | Phase 3 (hook-install-lib.sh)                       | test-hook-install.sh: verify registration                                      |
+
+---
+
+## The Contract File
+
+`LOOP_CONTRACT.md` lives at a path you choose (default: `./LOOP_CONTRACT.md`). Structure:
 
 ```yaml
 ---
 name: <short-descriptive-name>
 version: 1
+loop_id: <auto-derived on first init, 12 hex chars>
 iteration: 0
 last_updated: <ISO 8601 UTC>
 exit_condition: <human-readable termination rule>
@@ -45,166 +136,194 @@ max_iterations: 100
 ## Non-Obvious Learnings # preserved across firings
 ```
 
-## Core design principle
+**Key invariant**: The contract file is the SSoT for loop state. Every firing reads it fresh, updates it, and persists decisions atomically via git commit. The heartbeat and registry track **ownership and health**, not state. Separation of concerns.
+
+---
+
+## Waker Tier System
+
+**Every firing must end with exactly one of these**:
+
+| Tier                                       | Mechanism                                               | Cost                             | When to Use                                                  |
+| ------------------------------------------ | ------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------ |
+| **0 — In-turn continuation (default)**     | Next queue item runs in same turn; no waker             | Zero                             | Implementation Queue has ready work AND tokens remain        |
+| **1 — `Monitor`**                          | Arm on background script stdout; reactive wake on event | Near-zero (cache stays warm)     | External event is natural readiness signal (file-watch, log) |
+| **2 — `ScheduleWakeup` (≤270s)**           | Short timer, stays in 5-min prompt cache TTL            | Cache hit + real-time wait       | Timed external blocker (rate limit, known ETA)               |
+| **3 — `ScheduleWakeup` (≥1200s)**          | Long timer, expects cache miss on resume                | Full cache miss + wall-clock gap | Session ends; user away for a while                          |
+| **4 — External waker (launchd/watchexec)** | Cross-session waker; fresh claude session launches      | Full cold start                  | Machine rebooted; need automatic resume without user action  |
+
+**Key rule**: Never pick Tier 2 for pacing (Tier 0 beats it). `ScheduleWakeup` is strictly for **external blockers**, not scheduling your own work.
+
+---
+
+## Ownership Protocol
+
+**How a loop transitions between owners:**
+
+1. **Startup (acquire)**: Session A calls `acquire_owner_lock(loop_id)` → blocks if another session holds fd 8 on the lockfile
+2. **Ownership**: A reads registry entry, verifies it claims `owner_pid: $$` and `owner_start_time_us` matches current process (with 1s tolerance)
+3. **Heartbeat**: On every PostToolUse, A calls `write_heartbeat(loop_id, session_id, iteration)` → updates `state_dir/heartbeat.json`
+4. **Reclaim (if stuck)**: B calls `is_reclaim_candidate(loop_id)` → checks if A's owner_pid is dead (kill -0 fails) OR heartbeat is stale (>3× cadence)
+5. **Atomic takeover**: B calls `reclaim_loop(loop_id)` → atomically: increments `generation`, updates `owner_pid` / `owner_start_time_us` / `owner_session_id`, appends takeover event to revision-log
+6. **Conflict detection**: A's next heartbeat write reads current `generation` from registry; if it mismatches what A saw at startup, A detects it was reclaimed and stops
+
+**Guarantees**:
+
+- Exactly one owner at a time (flock serialization on fd 8)
+- Dead owners detected within 3 cadences (staleness check)
+- Reclaim is atomic (generation counter prevents TOCTOU conflicts)
+- PID reuse defended via start_time_us check (1s tolerance for jitter)
+
+---
+
+## Troubleshooting Playbook
+
+### "Loop won't start" (MIG-05 evidence: contract missing loop_id)
+
+**Symptom**: `/autonomous-loop:start` fails or contract has no `loop_id:` line.
+
+**Diagnosis**:
+
+```bash
+grep "^loop_id:" ./LOOP_CONTRACT.md
+# If missing or empty → MIG-01 migration needed
+```
+
+**Fix**: Call `init_state_dir` via the library:
+
+```bash
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh"
+source "$PLUGIN_ROOT/scripts/state-lib.sh"
+
+LOOP_ID=$(derive_loop_id "./LOOP_CONTRACT.md")
+init_state_dir "$LOOP_ID" "./LOOP_CONTRACT.md"
+```
+
+Result: `loop_id` auto-added to frontmatter; loop registered in registry; ready to start.
+
+### "Stuck owner" (Pitfall #5: orphaned lock)
+
+**Symptom**: `/autonomous-loop:start` hangs on "acquiring lock" for >10 seconds.
+
+**Diagnosis**:
+
+```bash
+LOOP_ID="a1b2c3d4e5f6"  # Replace with your loop_id
+ps -p $(jq -r ".loops[] | select(.loop_id == \"$LOOP_ID\") | .owner_pid" \
+  $HOME/.claude/loops/registry.json) >/dev/null 2>&1
+# If process doesn't exist → owner is dead
+```
+
+**Fix**: Reclaim the loop:
+
+```bash
+/autonomous-loop:reclaim $LOOP_ID
+# Confirm the prompt; generation counter increments; ownership transfers
+```
+
+### "Registry corrupted" (Pitfall #4: partial JSON)
+
+**Symptom**:
+
+```bash
+jq empty "$HOME/.claude/loops/registry.json"
+# Error: parse error (invalid JSON)
+```
+
+**Diagnosis & Fix**:
+
+```bash
+# Back up the corrupted file
+cp ~/.claude/loops/registry.json ~/.claude/loops/registry.json.corrupted
+
+# Rebuild from disk (enumerate all contract files in your repos)
+# For each contract:
+LOOP_ID=$(derive_loop_id "./LOOP_CONTRACT.md")
+STATE_DIR="./.loop-state/$LOOP_ID"
+if [ -d "$STATE_DIR" ]; then
+  # Entry exists on disk; re-register
+  ENTRY=$(jq -n \
+    --arg loop_id "$LOOP_ID" \
+    --arg contract_path "$(realpath ./LOOP_CONTRACT.md)" \
+    --arg state_dir "$(realpath $STATE_DIR)" \
+    --arg generation "0" \
+    '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, generation: $generation}')
+  register_loop "$ENTRY"
+fi
+```
+
+Then verify:
+
+```bash
+jq empty "$HOME/.claude/loops/registry.json" && echo "✓ Valid"
+```
+
+### "Hook not firing" (Pitfall #6: silent stale)
+
+**Symptom**: Heartbeat not updating, loop appears stale after 10+ minutes.
+
+**Diagnosis**:
+
+```bash
+# Check if hook is installed
+jq '.hooks[] | select(.type == "PostToolUse")' ~/.claude/settings.json | \
+  grep -q "heartbeat-tick" && echo "✓ Hook present" || echo "✗ Hook missing"
+
+# Check heartbeat timestamp
+LOOP_ID="a1b2c3d4e5f6"
+STATE_DIR=$(jq -r ".loops[] | select(.loop_id == \"$LOOP_ID\") | .state_dir" \
+  $HOME/.claude/loops/registry.json)
+jq '.last_wake_us' "$STATE_DIR/heartbeat.json"
+# Compare to current time: date +%s%N | cut -c1-16
+```
+
+**Fix**: Reinstall hook:
+
+```bash
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop"
+source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
+install_hook
+# Restart Claude Code; next tool invocation fires the hook
+```
+
+---
+
+## Deferred to V2
+
+These are explicitly out of v1 scope:
+
+- **LIN-01**: Linux/systemd parity (launchd → systemd.timer automation)
+- **LIN-02**: Linux PID capture accuracy (ps lstart parsing on diverse distros)
+- **FED-01**: Cross-machine federation (registry replication, lock service over network)
+
+---
+
+## Core Design Principle: Wakers Are Not Pacing
 
 **Every waker mechanism exists for one reason only: to make the main Claude Code session resume.** There is no other point. The loop never executes work outside Claude Code — only inside it. So picking a waker reduces to: what is the cheapest, most honest way to signal "work is ready"?
 
-Ranked by cost (lowest → highest). Always pick the earliest tier that fits.
+The classical bug: using a waker as pacing. If iter-N completes and iter-N+1 is ready, **do not** call `ScheduleWakeup(60s)`. Do not call it at all. Chain in-turn instead. `ScheduleWakeup` is for **external blockers**, not for pacing your own work. A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression.
 
-| Tier                                               | Mechanism                                                                                                                    | When to use                                                                                                | Cost                                             |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| **0 — In-turn continuation (default)**             | No waker at all. Just start the next iteration in the same turn.                                                             | Implementation Queue has a ready item AND tokens remain. This is 90% of the case.                          | Zero — no cache miss, no real-time gap           |
-| **1 — `Monitor`**                                  | Arm a `Monitor` on a background script's stdout so the turn wakes on each emitted line (build output, file-watch, log tail). | External event is the natural readiness signal AND we're still in the same session.                        | Near-zero; cache stays warm                      |
-| **2 — `ScheduleWakeup` (≤270s)**                   | Timer fires within the 5-min prompt cache TTL.                                                                               | Genuinely timed external blocker: API rate limit window, deployment known-ETA, polled API with no webhook. | One cached turn of real-time wait; no cache miss |
-| **3 — `ScheduleWakeup` (≥1200s)**                  | Long-sleep timer (20 min – 1 hr). Expect to pay one prompt-cache miss on resume.                                             | User will be away for a while; external event is unlikely to fire sooner.                                  | Cache miss + longer wall-clock wait              |
-| **4 — External waker (watchexec / systemd.timer)** | Cross-_session_ waker. Something outside Claude Code launches a fresh `claude --continue`.                                   | Session has fully ended (user closed terminal, machine rebooted) and we need to resume automatically.      | Full cold start of a new session                 |
+**Empirical smell-check**: Compute `dead_time = wait_seconds / total_cycle_seconds` across the last 3 firings. If `dead_time > 0.25` across 3+ consecutive firings, you are using the waker as pacing. Fix it by dropping to Tier 0 (in-turn) or Tier 1 (Monitor on a natural event).
 
-**Key rule:** Never pick `ScheduleWakeup(300s)` — it's the worst of both (cache miss without amortizing the wait). Stay ≤270s or jump to ≥1200s.
+---
 
-## The classical bug: using a waker as pacing
+## Anti-Patterns (Don't Do These)
 
-If iter-N completes and iter-N+1 is ready, **do not** call `ScheduleWakeup(60s)`. Do not call it at all. Chain in-turn instead. `ScheduleWakeup` is for **external blockers**, not for pacing your own work. A firing that produces "scheduled next wake-up, did nothing else" while the Implementation Queue has ready work is a regression — reviewers should flag it.
+- Never use `ScheduleWakeup` as pacing (use Tier 0 in-turn instead)
+- Never leave dead air between completed iterations
+- Never re-issue `/loop` with a new prompt each firing (contract is the SSoT)
+- Never store state in memory — contract file is the state
+- Never let the revision-log grow unbounded (archive entries >100)
+- Never rely on pending ScheduleWakeup from a prior firing if THIS firing did new work (Phase 3 Revise is mandatory)
+- Never override loop_id in the contract manually (it's derived deterministically from the path)
+- Never call `acquire_owner_lock` from multiple processes in the same session (only one owner per loop_id)
 
-### Common rationalizations that disguise the bug
+---
 
-Agents discover creative reasons to keep picking Tier 2. Flag these:
+## Real-World Case Study
 
-- **"Let CI / semantic-release finalize before next push."** `git push` returns immediately; the release workflow runs asynchronously on the server. Iter-N+1 can start as soon as iter-N commits — only wait if iter-N+1 literally reads the release tag or built artifact. Even then: `Monitor` on `gh run watch` (Tier 1), not a blind timer.
-- **"Stays in cache (≤270s) for efficiency."** Cache efficiency is a tie-breaker between Tiers 2 and 3, not a reason to prefer Tier 2 over Tier 0. Tier 0 has zero cost on every dimension — cache, real-time, tokens.
-- **"Fresh context will produce better work."** The cache TTL is 5 minutes; a 270s wait does not give you a "fresh context" — it gives you the same context on a slightly warmer cache. Only a full prompt-cache miss (≥1200s + compaction) produces different reasoning, and that's a cost, not a feature.
-- **"Heartbeat in case the Monitor misses an event."** If you're relying on the heartbeat, your `Monitor` filter is wrong — fix the filter. Heartbeats should fire as no-ops in the happy path.
-- **"A prior ScheduleWakeup is already queued — it'll handle the next iteration."** A stale wake re-reads the contract **at its own firing time**, but its context is frozen at the pre-interrupt state. If THIS firing did new work without updating the contract, the stale wake runs on stale state — iteration numbers desync, Current State lies, Revision Log has gaps. Always call a fresh `ScheduleWakeup` (or chain in-turn) after doing work, regardless of pending wakes. Real incident: `mql5/news-events-ingest` firing on 2026-04-23 at 19:25 UTC closed 2 GitHub issues + committed atomically, then ended with "iter-22 already queued" and skipped Phase 3 Revise. The 19:36 wake fired on a contract that still said "iter-21 monitoring" — a 6+ minute idle gap plus desynchronized state.
+See `docs/design/2026-04-20-autonomous-loop/spec.md` for a full walkthrough of a 37-iteration autonomous quant-research campaign that used a hand-authored version of this pattern (before v1 automation).
 
-### Mandatory end-of-firing decision
-
-Every firing MUST end with exactly one of these as its **literal final tool call** (not a text summary):
-
-1. **Chain in-turn** — the next queue item's first tool call fires in the same turn.
-2. **`Monitor(...)`** — reactive waker armed on a background stream.
-3. **`ScheduleWakeup(...)`** — fresh wake. This supersedes any pending wake from a prior firing.
-4. **Flip `status: SATURATED`** + `PushNotification(...)` — 3 consecutive null-rescues detected.
-5. **Flip `status: DONE`** + no waker — exit condition met, loop terminates honestly.
-
-A firing that ends with a text-only summary (no final tool call) and trusts a pending ScheduleWakeup from a prior firing is a bug. Reviewers: grep the transcript for the final `tool_use` event and verify one of 1-5 fired. Pattern to catch: final assistant turn is `type: "text"` with rationalization "already queued" or "will pick up automatically."
-
-### Handling manual interrupts inside a pending wake window
-
-When `/loop`, `/autonomous-loop:start`, or a user prompt triggers a firing while a prior `ScheduleWakeup` is still pending (the pending wake hasn't fired yet):
-
-1. **Treat the fresh firing as authoritative.** The pending wake is now stale — its `prompt` will re-read `LOOP_CONTRACT.md` at its firing time, but if THIS firing doesn't update the contract, the stale wake runs on pre-interrupt state.
-2. **Supersede the pending wake at end-of-firing.** Either chain in-turn (best if the queue has ready work) OR call a fresh `ScheduleWakeup` that reflects the new state. Do not rely on the pending wake.
-3. **Phase 3 Revise is mandatory.** Update iteration number, Current State, and Revision Log so any waker — fresh or stale — that fires next reads accurate state. A firing that committed new work but did not touch `LOOP_CONTRACT.md` has violated Phase 3, and Phase 4's waker decision runs on a lie.
-4. **Never end with "the prior wake will handle it."** The prior wake's context is stale; the user's interrupt asked for work THIS firing addressed, not one scheduled minutes earlier.
-
-### Empirical smell-check
-
-Compute `dead_time = wait_seconds / total_cycle_seconds` across the last 3 firings (`wait_seconds` = `ScheduleWakeup.delaySeconds` from the prior firing; `total_cycle_seconds` = wall-clock gap between prior and current ScheduleWakeup timestamps). If `dead_time > 0.25` across 3+ consecutive firings, you are using the waker as pacing. **Action**: drop to Tier 0 or Tier 1 on the next firing and verify the dead-time ratio falls.
-
-Real-world reference: the `mql5/session-calendar-v2` Campaign 3 loop hit `dead_time` of 55-69% for 5 straight firings with the rationalization "270s stays in cache and lets semantic-release finalize" — a textbook instance of this bug. The fix was to port the Phase 4 tier table into the contract.
-
-## Monitor as the preferred reactive waker
-
-When an external event (build done, chain complete, log line matches) is the natural wake signal, arm a `Monitor` with `persistent: true`. A `ScheduleWakeup` heartbeat (1200-1800s) is optional _safety net only_ — it should be redundant in the happy path. If you find yourself relying on the heartbeat to advance iterations, the Monitor filter is wrong.
-
-## Multi-agent dispatch (Phase 2a, opt-in)
-
-Long-horizon loops benefit from parallel multi-perspective review on _hard_ queue items — but only when gated. Published multi-agent post-mortems consistently fail on **over-orchestration** (spawning teams for tasks that don't decompose), not on under-use. The academic MAST-Data study (arxiv:2503.13657) shows 41-86.7% system failure when interface contracts between agents are unstructured; documented runaway cases burned $8K-$47K on 23-49 agent swarms. The rule: dispatch exactly when work decomposes, not by default.
-
-### Core principle
-
-`LOOP_CONTRACT.md` stays the SSoT. Dispatched subagents read the contract directly — the coordinator does **not** re-serialize state. Dispatch is declarative per queue item via an optional `perspectives` list. Empty/absent = in-turn (Tier 0). Non-empty = parallel dispatch.
-
-### Native primitives to use
-
-| Primitive                                   | Use for                                                                                     | Invocation                                                                                        |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `Agent` tool with `run_in_background: true` | One-shot parallel perspective (default choice)                                              | `subagent_type: "general-purpose" \| "Explore" \| "Plan"` or a custom name from `.claude/agents/` |
-| `TeamCreate` + `SendMessage`                | Persistent cross-firing team (experimental; needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`) | Only when perspectives must survive across multiple firings                                       |
-| `EnterWorktree` / `ExitWorktree`            | Explicit worktree lifecycle when `isolation: "worktree"` isn't enough                       | v2.1.72+                                                                                          |
-| `.claude/agents/*.md`                       | Persistent agent manifests with tool allowlists, model, memory                              | One per canonical perspective, scoped per-project                                                 |
-| `teammateMode: "tmux"` in `~/.claude.json`  | Visualize teammates in iTerm2 native panes                                                  | Display layer only — does not change orchestration                                                |
-
-Prefer `Agent(run_in_background: true)` over `TeamCreate` for one-shot perspectives. `TeamCreate` is worth the ceremony only when a perspective must persist across firings.
-
-### Canonical perspectives
-
-| Role          | Purpose                                          | Gate                                                 |
-| ------------- | ------------------------------------------------ | ---------------------------------------------------- |
-| `implementer` | Executes the work                                | Required when any perspective listed                 |
-| `critic`      | Veto on output quality / correctness             | Default pair with `implementer`                      |
-| `researcher`  | Surface tradeoffs, prior art, hidden assumptions | Queue item has >2 plausible paths                    |
-| `auditor`     | Threat model / security review                   | `security_sensitive: true` on item                   |
-| `adversary`   | Red-team the plan; devil's-advocate stress test  | Releases, architectural pivots, irreversible changes |
-
-Minimum useful set: `[implementer, critic]`. Add others only when the gate condition fires.
-
-### State handoff (the spawn contract)
-
-Every dispatched perspective gets this exact prompt shape:
-
-```
-Read the autonomous work contract at <absolute path to LOOP_CONTRACT.md>.
-
-Role: <perspective>.
-Task: <queue item identifier + one-line objective>.
-Allowed write paths: <explicit list; empty means read-only>.
-Report format: <structured output spec — e.g. "verdict: approve|flag|reject; rationale ≤ 200 words; risks as bulleted list">.
-
-Do not read this conversation. The contract is your only source of truth.
-```
-
-Subagents never see the parent conversation. The contract file is the interface contract (the absence of one is what drives the 41-86.7% failure rate in MAST-Data). Each perspective writes its report to a `## Subagent Reports` subsection before returning.
-
-### Conflict resolution
-
-When perspectives disagree:
-
-1. **Weighted vote by domain fit**: implementer 2× on feasibility, researcher 2× on tradeoffs, auditor 2× on risk. Critic is always 1× but carries a hard veto on correctness failures.
-2. **Auditor hard veto** on `security_sensitive: true` items — flagged items revert to researcher's next-ranked option and re-run audit.
-3. **User escalation**: after 2 tiebreaker reboots, emit `PushNotification` with all verdicts and stop. Never silently pick.
-
-### Hard rules (inherited from failure-mode research)
-
-1. **Never lead-implements.** If `perspectives` is non-empty, the main session aggregates reports only — it does not execute the task's write tool-calls. The most common multi-agent anti-pattern ("claudefa.st/blog/guide/agents/agent-teams-best-practices") is a capable lead that ignores delegate mode and writes files itself, leaving teammates idle.
-2. **Deterministic worktree names.** Use `<queue_item_id>-<perspective>`. Collisions can delete parent session working directory (real bug: anthropics/claude-code issue #41010).
-3. **Explicit file ownership per perspective.** Declare allowed write paths in the spawn prompt. Overlapping paths across parallel perspectives in the same firing are forbidden — this is the interface contract.
-4. **Cleanup is coordinator-only.** Teammates never call `TeamDelete` or `ExitWorktree` — context may not resolve correctly from inside a teammate.
-5. **MCP tools unavailable in background agents.** `run_in_background: true` disables MCP access. If a perspective needs MCP, run it foreground.
-6. **Don't replicate CLAUDE.md across N agents.** The contract has what they need — subagents read it on demand. A bloated CLAUDE.md injected per-agent is 7× setup cost before any work starts.
-
-### Universality tradeoff (explicit)
-
-- **Upside**: multi-perspective catches blind spots; parallel execution hides latency; git history captures reasoning from all perspectives.
-- **Downside**: trivial tasks cost 3+ invocations when dispatched; new failure modes (timeouts, orphans, worktree collisions).
-
-**Mitigation stack** (two gates, composable):
-
-- **Structural**: `perspectives` field is empty by default (opt-in per item). This is the primary defense — nothing dispatches unless the contract author explicitly lists roles on a queue item.
-- **Semantic**: `cost_estimate: low` items skip dispatch regardless of `perspectives`.
-
-No numeric token budget is enforced. The project policy is to trust the contract author's opt-in discipline rather than impose a per-firing ceiling. If you want belt-and-suspenders, wrap the whole loop in an external cost-monitoring tool (watchexec, pueue, or a shell check-in) — keep the contract about work, not about accounting.
-
-If dispatch-rate metrics later show under-dispatch (perspectives catching things the coordinator missed), add an LLM classifier on queue items — but not before metrics show signal.
-
-### Shipyard's warning (internalize it)
-
-> "Multi-agent doesn't make sense for 95% of agent-assisted tasks."
-
-Frame dispatch as **exceptional**, not routine. If a firing dispatches for every queue item, the dispatch decision rule is wrong.
-
-## Saturation detection heuristic
-
-Count consecutive firings where `CURRENT_STATE` reports a "null-rescue" outcome (no improvement, no new direction). At **3 in a row**, omit the next `ScheduleWakeup`, send a `PushNotification` summarizing the final state, and let the loop terminate naturally.
-
-## Anti-patterns
-
-- **Never use `ScheduleWakeup` as pacing.** It is strictly for external blockers (timed webhook, rate-limit window, user-return wait). If the next iteration can fire immediately, fire it — do not schedule.
-- **Never leave dead air between completed iterations.** If iter-N commits and iter-N+1 is queued, iter-N+1 runs in the same turn. No 60s nap. No "fallback heartbeat" when nothing is blocking.
-- Never re-issue `/loop` with a new prompt each firing — use the short trigger pattern so the contract file is the SSoT.
-- Never store state in memory (Claude's `auto memory`) — the contract file is the state. Memory is for cross-session preferences, not mid-loop state.
-- Never rely on Opus 4.7 task budgets — [API-only](https://platform.claude.com/docs/en/build-with-claude/task-budgets), unavailable in Claude Code subscription.
-- Never let the revision log grow unbounded — archive or summarize entries >100 in the template.
-
-## Motivating real-world case study
-
-See `docs/design/2026-04-20-autonomous-loop/spec.md` for a full walkthrough of a 37-iteration autonomous quant-research campaign that used a hand-authored version of this pattern.
+Key takeaway: **The contract file is the interface contract**. Subagents, external tools, resumable firings — all read it directly. The revision-log captures decisions atomically. Ownership disputes are resolved by generation counter. This architecture survived 23 days of continuous operation, 4 machine reboots, and 2 session interruptions without missing a beat.
