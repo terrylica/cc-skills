@@ -8,6 +8,8 @@ disable-model-invocation: false
 
 # autonomous-loop: Setup
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Manage the heartbeat hook installation for autonomous-loop. This skill allows explicit control over when the hook is installed or uninstalled from `~/.claude/settings.json`.
 
 ## Arguments
@@ -103,3 +105,10 @@ Report installation status (already done in Step 2). No further action.
 - Install is idempotent; running twice in a row has no effect
 - Uninstall is idempotent; no error if hook is not present
 - Backup is created on first install to `~/.claude/.settings.backup.<timestamp>.json`
+
+## Post-Execution Reflection
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What drifted?** — Update if the install pattern, settings.json shape, or lock conventions changed.
+3. **Log it.** — Evolution-log entry with trigger, fix, evidence.
