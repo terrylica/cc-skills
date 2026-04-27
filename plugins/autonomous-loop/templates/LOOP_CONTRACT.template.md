@@ -309,4 +309,23 @@ Per-item schema (all optional except the checkbox line):
 
 ## Revision Log (append-only, one line per firing)
 
+> **Time discipline (CRITICAL)**: every time you write or speak a timestamp
+> related to this loop — `last_updated`, revision-log entries, "next firing
+> scheduled at X", chat summaries, anywhere — use **UTC computed from
+> `date -u`**. Never use bare `date` (local time) and label it UTC. The
+> statusline shows UTC; the contract field name is `last_updated: <ISO_8601_UTC>`;
+> the registry's `started_at_us` / `last_wake_us` are UTC microseconds-since-epoch.
+> A wake-up labeled "01:11 UTC" computed from local PDT 01:11 is actually
+> 08:11 UTC and silently mismatches every other clock — including the
+> heartbeat's freshness check. When the autonomous-loop sees a stale
+> heartbeat from a wrong-clock entry, it can spuriously trigger reclaim.
+>
+> Quick reference:
+> ```bash
+> date -u +"%Y-%m-%dT%H:%M:%SZ"        # for last_updated frontmatter
+> date -u +"%Y-%m-%d %H:%M UTC"        # for revision-log lines
+> echo "next firing at $(date -u -v +273S +"%H:%M UTC") (~273s)"   # macOS
+> echo "next firing at $(date -u -d '+273 seconds' +"%H:%M UTC") (~273s)"  # GNU
+> ```
+
 - <YYYY-MM-DD HH:MM UTC> — <one-line summary of the firing, what it decided, next intent>
