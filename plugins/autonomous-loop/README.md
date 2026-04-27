@@ -2,8 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Version: v1](https://img.shields.io/badge/Version-v1-blue.svg)]()
 
-**Self-revising execution contract for long-horizon autonomous work.** Packages the _LOOP_CONTRACT.md + dynamic pacing + Monitor fallback + saturation stop_ pattern as a reusable skill suite.
+**Self-revising execution contract for long-horizon autonomous work.** Multiplicity-safe: manages unlimited simultaneous loops across machines with atomic ownership, PID-reuse defense, generation counters. Packages the _LOOP_CONTRACT.md + dynamic pacing + Monitor fallback + saturation stop_ pattern as a reusable skill suite.
 
 ## When to use this plugin vs alternatives
 
@@ -58,11 +59,14 @@ This plugin was extracted from a 37-iteration autonomous quant-research campaign
 
 ## Skills
 
-| Skill                    | Invocation                | Purpose                                                |
-| ------------------------ | ------------------------- | ------------------------------------------------------ |
-| `autonomous-loop:start`  | `/autonomous-loop:start`  | Install `LOOP_CONTRACT.md` template + kick off `/loop` |
-| `autonomous-loop:status` | `/autonomous-loop:status` | Report current iteration, last update, next wake ETA   |
-| `autonomous-loop:stop`   | `/autonomous-loop:stop`   | Mark contract completed, send `PushNotification`, stop |
+| Skill                     | Invocation                           | Purpose                                                             |
+| ------------------------- | ------------------------------------ | ------------------------------------------------------------------- |
+| `autonomous-loop:start`   | `/autonomous-loop:start [path]`      | Scaffold contract, install hook, register loop, load launchd plist  |
+| `autonomous-loop:status`  | `/autonomous-loop:status [loop_id]`  | Report ownership, iteration, health, staleness across all loops     |
+| `autonomous-loop:stop`    | `/autonomous-loop:stop [path]`       | Unload plist, unregister loop, mark DONE in contract                |
+| `autonomous-loop:setup`   | `/autonomous-loop:setup`             | One-time machine setup: create ~/.claude/loops dir, verify hook env |
+| `autonomous-loop:notify`  | (automatic via heartbeat-tick)       | Send coalesced notifications per loop                               |
+| `autonomous-loop:reclaim` | `/autonomous-loop:reclaim <loop_id>` | Atomically seize stuck loop (dead owner, stale heartbeat)           |
 
 ## Subscription-safe
 

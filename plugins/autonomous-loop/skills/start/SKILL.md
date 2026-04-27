@@ -16,7 +16,24 @@ Scaffold `LOOP_CONTRACT.md` and start a self-revising `/loop` that reads the con
 
 - Positional (optional): contract file path. Defaults to `./LOOP_CONTRACT.md`.
 
-## Step 1: Preflight
+## Step 1: Ensure hook is installed
+
+Install the heartbeat hook into `~/.claude/settings.json` if not already present. This is a one-time per-machine operation (idempotent — subsequent calls are no-ops).
+
+```bash
+# Source the hook install library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
+
+# Install hook (idempotent)
+if ! install_hook 2>/dev/null; then
+  echo "WARNING: Failed to install heartbeat hook; continuing anyway" >&2
+fi
+```
+
+This ensures that all Claude sessions will have the PostToolUse hook wired up to tick the heartbeat on each tool invocation.
+
+## Step 2: Preflight
 
 Check whether a contract already exists at the target path.
 
@@ -29,9 +46,9 @@ else
 fi
 ```
 
-If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autonomous-loop:status` instead of starting fresh) or `overwrite` (proceed with Step 2).
+If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autonomous-loop:status` instead of starting fresh) or `overwrite` (proceed with Step 3).
 
-## Step 2: Collect contract inputs
+## Step 3: Collect contract inputs
 
 Use `AskUserQuestion` to collect:
 
@@ -42,7 +59,7 @@ Use `AskUserQuestion` to collect:
 4. cadence     — typical wake-up cadence hint (continuous | event-driven | hourly | daily)
 ```
 
-## Step 3: Scaffold the contract
+## Step 4: Scaffold the contract
 
 Copy the plugin-shipped template and substitute placeholders. Use
 `$CLAUDE_PLUGIN_ROOT` (set by Claude Code for every plugin skill) to
@@ -69,7 +86,74 @@ Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 - `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH`
 - `<CORE DIRECTIVE>` / `<PROJECT OR CAMPAIGN TITLE>` → user-provided `scope`
 
-## Step 4: Emit pointer trigger
+## Step 5: Register loop in machine registry
+
+After deriving the loop ID in Step 2/3, register this loop in the machine-level registry:
+
+```bash
+# Source the registry library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh"
+
+# Derive loop_id from contract path (if not already done)
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+
+# Create entry JSON with all required fields
+entry=$(jq -n \
+  --arg loop_id "$loop_id" \
+  --arg contract_path "$(realpath "$CONTRACT_PATH")" \
+  --arg state_dir "$(dirname "$CONTRACT_PATH")/.loop-state/$loop_id/" \
+  --arg owner_session_id "$(echo "$CLAUDE_SESSION_ID" | cut -c1-28)" \
+  --arg owner_pid "$$" \
+  --arg owner_start_time_us "$(date +%s%N | cut -c1-16)" \
+  --arg launchd_label "com.user.claude.loop.$loop_id" \
+  --arg started_at_us "$(date +%s%N | cut -c1-16)" \
+  --arg expected_cadence_seconds "$cadence_seconds" \
+  --arg generation "0" \
+  '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_session_id: $owner_session_id, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, launchd_label: $launchd_label, started_at_us: $started_at_us, expected_cadence_seconds: $expected_cadence_seconds, generation: $generation}')
+
+# Register in machine registry (atomic, serialized write)
+if ! register_loop "$entry"; then
+  echo "WARNING: Failed to register loop in machine registry (may already exist)" >&2
+fi
+```
+
+## Step 6: Generate and load launchd plist
+
+After registering the loop, generate the launchd plist and load it:
+
+```bash
+# Source the launchd library
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+source "$PLUGIN_ROOT/scripts/launchd-lib.sh"
+source "$PLUGIN_ROOT/scripts/state-lib.sh"
+
+# Derive loop_id and state_dir
+loop_id=$(derive_loop_id "$CONTRACT_PATH")
+state_dir=$(state_dir_path "$loop_id" "$CONTRACT_PATH")
+
+# Stub waker script path (Phase 9 will ship the actual script)
+waker_script="$PLUGIN_ROOT/scripts/waker.sh"
+
+# Calculate polling interval (default 150 seconds = half of typical cadence)
+interval_seconds="${cadence_seconds:-300}"
+interval_seconds=$((interval_seconds / 2))
+if [ "$interval_seconds" -lt 60 ]; then
+  interval_seconds=60
+fi
+
+# Generate plist
+if ! generate_plist "$loop_id" "$state_dir" "$waker_script" "$interval_seconds"; then
+  echo "WARNING: Failed to generate launchd plist" >&2
+fi
+
+# Load plist (bootstraps on macOS; skipped gracefully on non-macOS)
+if ! load_plist "$loop_id" "$state_dir" 2>/dev/null; then
+  echo "WARNING: Failed to load launchd plist" >&2
+fi
+```
+
+## Step 7: Emit pointer trigger (updated from Step 7)
 
 Print the snippet the user can feed to `/loop`:
 
@@ -82,7 +166,7 @@ Read and execute the latest autonomous work contract at:
 Follow its instructions verbatim. That file self-updates; this trigger stays fixed.
 ```
 
-## Step 5: Offer to start the loop immediately
+## Step 8: Offer to start the loop immediately
 
 Use `AskUserQuestion` with two options:
 
@@ -91,7 +175,7 @@ Use `AskUserQuestion` with two options:
 
 If `Start now`, call `Skill(loop)` with the pointer trigger snippet as `args`. Otherwise print "Contract scaffolded at `$CONTRACT_PATH`. Run `/loop` with the pointer trigger above whenever ready."
 
-## Step 6: Suggest commit
+## Step 9: Suggest commit
 
 Print a suggested first commit:
 
