@@ -144,8 +144,9 @@ read_notifications() {
     # Filter by timestamp
     while IFS= read -r line; do
       if [ -n "$line" ] && echo "$line" | jq . >/dev/null 2>&1; then
-        local ts=$(echo "$line" | jq -r '.ts_us // 0' 2>/dev/null)
-        if [ -n "$ts" ] && [ "$ts" -ge "$since_us" ]; then
+        local ts
+        ts=$(echo "$line" | jq -r '.ts_us // 0' 2>/dev/null)
+        if [ -n "$ts" ] && [ "$ts" -gt "$since_us" ]; then
           echo "$line"
         fi
       fi
