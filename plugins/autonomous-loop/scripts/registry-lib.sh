@@ -119,7 +119,348 @@ read_registry_entry() {
   fi
 }
 
+# _with_registry_lock <fn> [args...]
+# Internal: wraps read-modify-write in file-locking serialization.
+# Acquires exclusive lock on ~/.claude/loops/.registry.lock (using lockf on macOS, flock on Linux),
+# reads current registry, calls fn with args, captures stdout as new registry,
+# atomic-renames to registry.json, releases lock.
+#
+# Arguments:
+#   $1: Function name to invoke (fn)
+#   ${@:2}: Args to pass to fn
+#
+# Stdin to fn: current registry JSON
+# Expected stdout from fn: new registry JSON
+#
+# Exit code:
+#   0 on success
+#   1 if lock contention (timeout), temp write error, or fn exit code != 0
+#   Partial writes cleaned up via trap before exit
+#
+# Example:
+#   _with_registry_lock register_loop_impl "$entry_json"
+_with_registry_lock() {
+  local fn="$1"
+  shift
+
+  # Ensure ~/.claude/loops/ directory exists
+  local loops_dir="$HOME/.claude/loops"
+  if [ ! -d "$loops_dir" ]; then
+    mkdir -p "$loops_dir" || {
+      echo "ERROR: _with_registry_lock: failed to create $loops_dir" >&2
+      return 1
+    }
+  fi
+
+  local lock_file="$loops_dir/.registry.lock"
+  local registry_file="$loops_dir/registry.json"
+  local temp_file
+
+  # Create lock file if it doesn't exist
+  touch "$lock_file" || {
+    echo "ERROR: _with_registry_lock: failed to create lock file" >&2
+    return 1
+  }
+
+  # Acquire exclusive lock using appropriate tool
+  # macOS: lockf (POSIX); Linux: flock (GNU)
+  if command -v flock >/dev/null 2>&1; then
+    # Linux: flock with fd 9
+    exec 9>"$lock_file" || {
+      echo "ERROR: _with_registry_lock: failed to open fd 9" >&2
+      return 1
+    }
+    if ! flock --wait 5 -x 9; then
+      echo "ERROR: _with_registry_lock: lock contention; another writer is active" >&2
+      exec 9>&-
+      return 1
+    fi
+  elif command -v lockf >/dev/null 2>&1; then
+    # macOS: lockf (blocks indefinitely by default, so we use timeout via sleep-retry)
+    local retries=50  # ~5 seconds with 100ms sleeps
+    while ! lockf -t 0 "$lock_file" true 2>/dev/null; do
+      retries=$((retries - 1))
+      if [ $retries -le 0 ]; then
+        echo "ERROR: _with_registry_lock: lock contention; another writer is active" >&2
+        return 1
+      fi
+      sleep 0.1
+    done
+  else
+    echo "ERROR: _with_registry_lock: neither flock nor lockf found; cannot acquire lock" >&2
+    return 1
+  fi
+
+  # Clean up temp files on exit (trap early to cover all paths)
+  trap 'rm -f "$temp_file"; exec 9>&- 2>/dev/null || true' EXIT
+
+  # Read current registry (fail-graceful)
+  local current_registry
+  current_registry=$(read_registry "$registry_file") || {
+    echo "ERROR: _with_registry_lock: failed to read registry" >&2
+    return 1
+  }
+
+  # Call fn with current registry on stdin, capture output
+  local new_registry
+  if ! new_registry=$(echo "$current_registry" | "$fn" "$@" 2>&1); then
+    echo "ERROR: _with_registry_lock: fn '$fn' failed" >&2
+    return 1
+  fi
+
+  # Validate new registry is valid JSON before writing
+  if ! echo "$new_registry" | jq . >/dev/null 2>&1; then
+    echo "ERROR: _with_registry_lock: fn produced invalid JSON" >&2
+    return 1
+  fi
+
+  # Create temp file in same directory (defends pitfall #3: cross-filesystem rename)
+  temp_file=$(mktemp -p "$loops_dir" registry.XXXXXX.json) || {
+    echo "ERROR: _with_registry_lock: mktemp failed" >&2
+    return 1
+  }
+
+  # Write full new content to tempfile, then fsync
+  if ! echo "$new_registry" > "$temp_file"; then
+    echo "ERROR: _with_registry_lock: failed to write temp file" >&2
+    return 1
+  fi
+
+  # Sync to disk (fsync via sync if available, otherwise skip)
+  if command -v fsync >/dev/null 2>&1; then
+    fsync "$temp_file" || true
+  else
+    sync || true
+  fi
+
+  # Atomic rename to commit
+  if ! mv "$temp_file" "$registry_file"; then
+    echo "ERROR: _with_registry_lock: atomic rename failed" >&2
+    return 1
+  fi
+
+  # Explicitly unset temp file so trap doesn't try to rm it (it's now registry.json)
+  temp_file=""
+
+  # Lock is released by trap on EXIT
+  return 0
+}
+
+# register_loop_impl [entry_json]
+# Implementation function: reads stdin (current registry), adds new entry, outputs new registry.
+# This is the "mutator function" passed to _with_registry_lock.
+#
+# Arguments:
+#   $1: New entry JSON object (passed as argument)
+#
+# Stdin:
+#   Current registry JSON
+#
+# Output:
+#   Updated registry JSON to stdout
+#
+# Exit code:
+#   0 on success
+#   1 if entry.loop_id already exists or validation fails
+register_loop_impl() {
+  local entry_json="$1"
+
+  # Parse stdin as registry
+  local registry
+  registry=$(cat)
+
+  # Extract loop_id from new entry
+  local new_loop_id
+  new_loop_id=$(echo "$entry_json" | jq -r '.loop_id' 2>/dev/null) || {
+    echo "ERROR: register_loop_impl: failed to extract loop_id from entry" >&2
+    return 1
+  }
+
+  # Validate loop_id format
+  if ! [[ "$new_loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "ERROR: register_loop_impl: invalid loop_id format '$new_loop_id'" >&2
+    return 1
+  fi
+
+  # Check if loop_id already exists
+  local existing
+  existing=$(echo "$registry" | jq ".loops[] | select(.loop_id == \"$new_loop_id\")" 2>/dev/null)
+  if [ -n "$existing" ]; then
+    echo "ERROR: register_loop_impl: loop_id '$new_loop_id' already exists" >&2
+    return 1
+  fi
+
+  # Append entry to loops array
+  echo "$registry" | jq ".loops += [$entry_json]" 2>/dev/null || {
+    echo "ERROR: register_loop_impl: jq update failed" >&2
+    return 1
+  }
+}
+
+# register_loop <json_entry>
+# Public: registers a new loop entry in the registry.
+# Entry must have all required fields (loop_id, contract_path, etc.) per schema.
+# Errors if loop_id already exists.
+#
+# Arguments:
+#   $1: Complete entry JSON object (with all required fields)
+#
+# Exit code:
+#   0 on success
+#   1 if entry is invalid, loop_id exists, or write fails
+#
+# Example:
+#   entry=$(jq -n --arg id "a1b2c3d4e5f6" --arg path "/tmp/contract.md" '{loop_id: $id, contract_path: $path, ...}')
+#   register_loop "$entry"
+register_loop() {
+  local entry_json="$1"
+
+  # Validate entry is valid JSON
+  if ! echo "$entry_json" | jq . >/dev/null 2>&1; then
+    echo "ERROR: register_loop: entry is not valid JSON" >&2
+    return 1
+  fi
+
+  # Call write-locked helper
+  _with_registry_lock register_loop_impl "$entry_json" || return 1
+}
+
+# unregister_loop_impl <loop_id>
+# Implementation function: reads stdin (current registry), removes entry by loop_id, outputs new registry.
+#
+# Arguments:
+#   $1: loop_id to remove
+#
+# Stdin:
+#   Current registry JSON
+#
+# Output:
+#   Updated registry JSON to stdout
+#
+# Exit code:
+#   0 always (idempotent; no error if loop_id absent)
+unregister_loop_impl() {
+  local loop_id="$1"
+
+  # Parse stdin as registry
+  local registry
+  registry=$(cat)
+
+  # Remove entry by loop_id (if present)
+  echo "$registry" | jq ".loops |= map(select(.loop_id != \"$loop_id\"))" 2>/dev/null || {
+    echo "ERROR: unregister_loop_impl: jq update failed" >&2
+    return 1
+  }
+}
+
+# unregister_loop <loop_id>
+# Public: removes a loop entry from the registry by loop_id.
+# Idempotent: no error if loop_id not found (desirable for clean stop).
+#
+# Arguments:
+#   $1: loop_id to remove
+#
+# Exit code:
+#   0 always (idempotent success)
+#   1 only if loop_id format invalid or write lock fails
+#
+# Example:
+#   unregister_loop "a1b2c3d4e5f6"
+unregister_loop() {
+  local loop_id="$1"
+
+  # Validate loop_id format
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "ERROR: unregister_loop: invalid loop_id format '$loop_id'" >&2
+    return 1
+  fi
+
+  # Call write-locked helper (returns 0 even if not found)
+  _with_registry_lock unregister_loop_impl "$loop_id" || return 1
+}
+
+# update_loop_field_impl <loop_id> <jq_path> <new_value_json>
+# Implementation function: reads stdin (current registry), updates field on entry, outputs new registry.
+#
+# Arguments:
+#   $1: loop_id to update
+#   $2: jq path expression (e.g., ".generation" or ".metadata.last_heartbeat_us")
+#   $3: new value as JSON
+#
+# Stdin:
+#   Current registry JSON
+#
+# Output:
+#   Updated registry JSON to stdout
+#
+# Exit code:
+#   0 on success
+#   1 if loop_id not found or jq update fails
+update_loop_field_impl() {
+  local loop_id="$1"
+  local jq_path="$2"
+  local new_value="$3"
+
+  # Parse stdin as registry
+  local registry
+  registry=$(cat)
+
+  # Find and update entry
+  local updated
+  updated=$(echo "$registry" | jq "(.loops[] | select(.loop_id == \"$loop_id\") | $jq_path) |= $new_value" 2>/dev/null) || {
+    echo "ERROR: update_loop_field_impl: jq update failed" >&2
+    return 1
+  }
+
+  # Verify entry exists by checking if the loop_id is still in the result
+  local exists
+  exists=$(echo "$updated" | jq ".loops[] | select(.loop_id == \"$loop_id\")" 2>/dev/null)
+  if [ -z "$exists" ]; then
+    echo "ERROR: update_loop_field_impl: loop_id '$loop_id' not found" >&2
+    return 1
+  fi
+
+  echo "$updated"
+}
+
+# update_loop_field <loop_id> <jq_path> <new_value_json>
+# Public: updates a field on an existing loop entry.
+# Used by Phase 5+ for heartbeat metadata, Phase 4 for generation bump.
+#
+# Arguments:
+#   $1: loop_id of entry to update
+#   $2: jq path expression (e.g., ".generation" or ".metadata.heartbeat_us")
+#   $3: new value as JSON (e.g., "1" or "1725000000000000")
+#
+# Exit code:
+#   0 on success
+#   1 if loop_id not found, jq_path invalid, or write fails
+#
+# Example:
+#   update_loop_field "a1b2c3d4e5f6" ".generation" "2"
+update_loop_field() {
+  local loop_id="$1"
+  local jq_path="$2"
+  local new_value="$3"
+
+  # Validate loop_id format
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    echo "ERROR: update_loop_field: invalid loop_id format '$loop_id'" >&2
+    return 1
+  fi
+
+  # Call write-locked helper
+  _with_registry_lock update_loop_field_impl "$loop_id" "$jq_path" "$new_value" || return 1
+}
+
 # Export functions for sourcing by other scripts
 export -f derive_loop_id
 export -f read_registry
 export -f read_registry_entry
+export -f _with_registry_lock
+export -f register_loop_impl
+export -f register_loop
+export -f unregister_loop_impl
+export -f unregister_loop
+export -f update_loop_field_impl
+export -f update_loop_field
