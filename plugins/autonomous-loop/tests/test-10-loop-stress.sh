@@ -47,8 +47,12 @@ echo "MIG-03: 10-Loop Stress Test (3 repos)"
 echo "========================================"
 echo ""
 
-# Setup: Create 3 temporary repos
+# Setup: isolated HOME so we never touch the real registry
 TEMP_ROOT=$(mktemp -d)
+export HOME="$TEMP_ROOT/home"
+mkdir -p "$HOME/.claude/loops"
+
+# Setup: Create 3 temporary repos
 REPO_A="$TEMP_ROOT/repo-a"
 REPO_B="$TEMP_ROOT/repo-b"
 REPO_C="$TEMP_ROOT/repo-c"
