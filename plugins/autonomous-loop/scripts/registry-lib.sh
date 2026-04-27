@@ -154,7 +154,10 @@ _with_registry_lock() {
 
   local lock_file="$loops_dir/.registry.lock"
   local registry_file="$loops_dir/registry.json"
-  local temp_file
+  local temp_file=""
+
+  # Clean up temp files on exit (trap early to cover all paths)
+  trap 'rm -f "$temp_file"; exec 9>&- 2>/dev/null || true' EXIT
 
   # Create lock file if it doesn't exist
   touch "$lock_file" || {
@@ -190,9 +193,6 @@ _with_registry_lock() {
     echo "ERROR: _with_registry_lock: neither flock nor lockf found; cannot acquire lock" >&2
     return 1
   fi
-
-  # Clean up temp files on exit (trap early to cover all paths)
-  trap 'rm -f "$temp_file"; exec 9>&- 2>/dev/null || true' EXIT
 
   # Read current registry (fail-graceful)
   local current_registry
