@@ -519,12 +519,62 @@ else:
     fi
 fi
 
+# === Code Statistics (scc) ===
+# Runs scc on every render — no cache (full freshness, user-selected).
+# Single jq pass extracts totals + top-3 languages + COCOMO into a colored line.
+# Bounded by 1s timeout: pathologically large repos drop the line silently rather
+# than hang the statusline.
+code_stats=""
+if command -v scc >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if command -v gtimeout >/dev/null 2>&1; then
+        scc_json=$(gtimeout 1 scc --format=json2 . 2>/dev/null)
+    elif command -v timeout >/dev/null 2>&1; then
+        scc_json=$(timeout 1 scc --format=json2 . 2>/dev/null)
+    else
+        scc_json=$(scc --format=json2 . 2>/dev/null)
+    fi
+
+    if [ -n "$scc_json" ]; then
+        code_stats=$(echo "$scc_json" | jq -r --arg BB "$BRIGHT_BLACK" --arg CY "$CYAN" --arg YE "$YELLOW" --arg RS "$RESET" '
+            def compact(n):
+                if n >= 1000000 then
+                    ((n / 1000000) as $v | (if $v < 10 then ($v * 10 | floor / 10 | tostring) else ($v | floor | tostring) end) + "M")
+                elif n >= 1000 then
+                    ((n / 1000) as $v | (if $v < 10 then ($v * 10 | floor / 10 | tostring) else ($v | floor | tostring) end) + "k")
+                else (n | tostring) end;
+            def money(n):
+                if n >= 1000000 then
+                    ("$" + ((n / 1000000) as $v | (if $v < 10 then ($v * 10 | floor / 10 | tostring) else ($v | floor | tostring) end)) + "M")
+                elif n >= 1000 then ("$" + ((n / 1000) | floor | tostring) + "k")
+                else ("$" + (n | tostring)) end;
+            def abbr: {"Markdown":"MD","TypeScript":"TS","JavaScript":"JS","Python":"Py","Shell":"Sh","BASH":"Bash","Bash":"Bash","C Header":"Ch","Objective C":"ObjC","Plain Text":"Txt","Swift":"Sw","Rust":"Rs","Ruby":"Rb","Kotlin":"Kt","C++":"Cpp","License":"Lic","Dockerfile":"Dock","Makefile":"Make","JSONL":"JSONL"}[.] // .[0:4];
+            (.languageSummary | map(.Code) | add) as $tc |
+            (.languageSummary | map(.Count) | add) as $tf |
+            (.languageSummary | map(.Complexity) | add) as $tx |
+            (if $tc > 0 then
+                (.languageSummary | sort_by(-.Code) | .[0:3] |
+                    map((.Name | abbr) + " " + ((.Code * 100 / $tc) | floor | tostring) + "%")
+                    | join(" "))
+             else "" end) as $top |
+            (if $tx >= 1000 then $YE else $BB end) as $cxc |
+            if ($tc // 0) > 0 then
+                $BB + "Σ" + $RS + " " +
+                $CY + compact($tc) + " LOC" + $RS + " " +
+                $BB + "· " + compact($tf) + " files · " + $RS +
+                $cxc + "cx " + compact($tx) + $RS + " " +
+                $BB + "· " + $top + " · ~" + money(.estimatedCost // 0) + " COCOMO" + $RS
+            else empty end
+        ' 2>/dev/null)
+    fi
+fi
+
 # Status line layout:
 #   Line 1: git stats
-#   Line 2: UTC time | local time | ccmax (inline)
-#   Line 3: ~/path | github-url
-#   Line 4: session UUID (if available)
-#   Line 5: ~/asciinemalogs cast UUID
+#   Line 2: code stats (scc — LOC, files, complexity, top languages, COCOMO)
+#   Line 3: UTC time | local time | ccmax (inline)
+#   Line 4: ~/path | github-url
+#   Line 5: session UUID (if available)
+#   Line 6: ~/asciinemalogs cast UUID
 line1="${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
@@ -554,8 +604,12 @@ if [ -n "$ITERM_SESSION_ID" ]; then
     iterm_session_uuid=$(echo "$ITERM_SESSION_ID" | cut -d':' -f2)
 fi
 
-# Output: git stats, timestamps, repo, session, cast, then cron jobs (bottom)
+# Output: git stats, code stats, timestamps, repo, session, cast, then cron jobs (bottom)
 echo -e "$line1"
+
+# Code statistics (scc): LOC, files, complexity, top 3 languages, COCOMO
+# Empty when scc unavailable, repo not git, or computation timed out (>1s)
+[ -n "$code_stats" ] && echo -e "$code_stats"
 
 # Append ccmax info inline with datetime:
 #   ... UTC | ... PDT | serviceaccount 15% 6d 8h 55% 2h 15m
