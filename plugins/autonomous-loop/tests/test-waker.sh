@@ -596,7 +596,9 @@ echo "SUMMARY: $PASS passed, $FAIL failed"
 echo "============================================================================"
 
 if [ $FAIL -gt 0 ]; then
+  trap - EXIT  # Disable trap before exit
   exit 1
 fi
 
+trap - EXIT  # Disable trap before exit
 exit 0
