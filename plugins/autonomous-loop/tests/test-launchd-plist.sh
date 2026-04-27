@@ -139,14 +139,25 @@ fi
 
 echo ""
 echo "========================================"
-echo "Test 6: plist contains correct ProgramArguments"
+echo "Test 6: plist points at per-loop runner; runner exec's waker"
 echo "========================================"
 
-if grep -q "<string>$STUB_WAKER</string>" "$PLIST_FILE" && grep -q "<string>a1b2c3d4e5f6</string>" "$PLIST_FILE"; then
-  echo "✓ PASS: plist contains correct ProgramArguments"
+# New contract (post 2026-04-27): the plist's ProgramArguments points at
+# <state_dir>/claude-loop-runner — a generated wrapper that exec's the
+# upstream waker.sh with the loop_id. This makes Login Items show
+# "claude-loop-runner" instead of "bash". The waker path + loop_id live
+# in the runner file, not the plist.
+RUNNER_FILE="$TEST_STATE_DIR/claude-loop-runner"
+if grep -q "<string>$RUNNER_FILE</string>" "$PLIST_FILE" \
+  && [ -x "$RUNNER_FILE" ] \
+  && grep -q "exec \"$STUB_WAKER\" \"a1b2c3d4e5f6\"" "$RUNNER_FILE"; then
+  echo "✓ PASS: plist references runner; runner exec's waker with loop_id"
   ((PASS++))
 else
-  echo "✗ FAIL: plist does not contain correct ProgramArguments"
+  echo "✗ FAIL: plist/runner contract broken"
+  echo "  plist references runner string?  $(grep -c "<string>$RUNNER_FILE</string>" "$PLIST_FILE")"
+  echo "  runner exists & executable?      $([ -x "$RUNNER_FILE" ] && echo yes || echo no)"
+  echo "  runner exec's waker w/ loop_id?  $(grep -c "exec \"$STUB_WAKER\" \"a1b2c3d4e5f6\"" "$RUNNER_FILE" 2>/dev/null || echo 0)"
   ((FAIL++))
 fi
 
