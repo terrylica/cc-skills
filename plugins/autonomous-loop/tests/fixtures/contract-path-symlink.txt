@@ -1,0 +1,2 @@
+/tmp/loop-contract-target.md
+/tmp/loop-contract-symlink.md
