@@ -1,3 +1,12 @@
+## [16.5.1](https://github.com/terrylica/cc-skills/compare/v16.5.0...v16.5.1) (2026-04-27)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** named runner + cp install so Login Items shows real name ([3059175](https://github.com/terrylica/cc-skills/commit/3059175dc1bd5b2f732b7a03e68cc0d6199ee386))
+* **autonomous-loop:** trap-cleanup unbound-variable under set -u ([faeab00](https://github.com/terrylica/cc-skills/commit/faeab00c6cec107760009b4320d1711fef3c7c09))
+* **ssh-tunnel-companion:** wrap ssh in named runner; disable ControlMaster ([6f07287](https://github.com/terrylica/cc-skills/commit/6f07287436007678d50bd11d4401c8053a16b31b))
+
 # [16.5.0](https://github.com/terrylica/cc-skills/compare/v16.4.1...v16.5.0) (2026-04-27)
 
 
