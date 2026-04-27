@@ -131,6 +131,12 @@ spawn_loop_safe() {
   local expected_cadence="$4"
   local old_owner_pid="$5"
 
+  # Create temp file for spawn markers (used by spawn_impl_locked to request spawn)
+  local temp_spawn_file
+  temp_spawn_file=$(mktemp) || return 1
+  export TEMP_SPAWN_FILE="$temp_spawn_file"
+  trap 'rm -f "$temp_spawn_file"' RETURN
+
   # Get current timestamp
   local now_us
   now_us=$(now_us) || {
@@ -160,6 +166,15 @@ spawn_loop_safe() {
     echo "ERROR: spawn_loop_safe: lock or spawn implementation failed" >&2
     return 1
   }
+
+  # After lock released, process any spawn requests recorded in temp file
+  if [ -f "$temp_spawn_file" ] && [ -s "$temp_spawn_file" ]; then
+    while IFS='|' read -r req_session_id req_state_dir req_loop_id req_now_us; do
+      spawn_claude_resume "$req_session_id" "$req_state_dir" "$req_loop_id" "$req_now_us" || {
+        echo "ERROR: spawn_loop_safe: post-lock spawn failed" >&2
+      }
+    done < "$temp_spawn_file"
+  fi
 }
 
 # spawn_impl_locked <loop_id> <state_dir> <session_id> <expected_cadence> <old_owner_pid> <now_us>
@@ -209,20 +224,17 @@ spawn_impl_locked() {
     fi
   fi
 
-  # Safe to spawn: update last_spawn_us, spawn process, emit notification
+  # Safe to spawn: update last_spawn_us in registry
   local updated_registry
   updated_registry=$(echo "$registry" | jq "(.loops[] | select(.loop_id == \"$loop_id\") | .last_spawn_us) |= \"$now_us\"" 2>/dev/null) || {
-    echo "ERROR: spawn_impl_locked: failed to update last_spawn_us" >&2
     return 1
   }
 
+  # Write the updated registry to stdout (captured by _with_registry_lock for atomic commit)
   echo "$updated_registry"
 
-  # Now perform the actual spawn (outside the registry write, but we already committed last_spawn_us)
-  spawn_claude_resume "$session_id" "$state_dir" "$loop_id" "$now_us" || {
-    echo "ERROR: spawn_impl_locked: spawn_claude_resume failed" >&2
-    return 1
-  }
+  # Write spawn markers to file for post-lock handling (to avoid stdout pollution)
+  echo "$session_id|$state_dir|$loop_id|$now_us" >> "$TEMP_SPAWN_FILE" 2>/dev/null || true
 }
 
 # spawn_claude_resume <session_id> <state_dir> <loop_id> <now_us>
