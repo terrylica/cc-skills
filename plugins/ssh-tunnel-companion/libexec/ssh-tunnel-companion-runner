@@ -1,0 +1,34 @@
+#!/bin/bash
+# ssh-tunnel-companion-runner — launchd entrypoint for the gpu-host SSH tunnel.
+#
+# Why a dedicated runner: launchd's Login Items UI shows the basename of
+# Program / ProgramArguments[0]. Pointing the plist at /usr/bin/ssh directly
+# surfaces as "ssh" in System Settings → Login Items, which is opaque.
+# This wrapper restores the descriptive service name. exec hands the PID to
+# ssh so launchd's KeepAlive still operates on the real tunnel process.
+#
+# Forwards (kept inline so this file is the single source of truth for ports):
+#   localhost:18123 → gpu-host:8123  (ClickHouse HTTP)
+#   localhost:18081 → gpu-host:8081  (SSE sidecar)
+#   localhost:18095 → gpu-host:8095  (relay-monitor dashboard API)
+#   localhost:5900  → gpu-host:5900  (VNC — x11vnc, MT5/WINE on display :99)
+
+set -euo pipefail
+
+# WHY ControlMaster=no: ~/.ssh/config has `ControlMaster auto`, which causes
+# ssh to fork to background once it sets up a multiplex master socket. The
+# foreground process then exits cleanly (code 0), and launchd's KeepAlive
+# restarts the wrapper in a tight throttle loop. Disabling control-master
+# semantics for THIS invocation keeps the ssh process foreground so launchd
+# can supervise it as the long-lived tunnel.
+exec /usr/bin/ssh \
+  -N \
+  -o ControlMaster=no \
+  -o ControlPath=none \
+  -o ExitOnForwardFailure=yes \
+  -o ConnectTimeout=8 \
+  -L 18123:localhost:8123 \
+  -L 18081:localhost:8081 \
+  -L 18095:localhost:8095 \
+  -L 5900:localhost:5900 \
+  gpu-host
