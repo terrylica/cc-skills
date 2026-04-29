@@ -1,0 +1,13 @@
+{
+  "label": "C4 explicit-cache-replay",
+  "result": {
+    "label": "C4-explicit-cache-replay",
+    "latency": 11.222,
+    "prompt_tokens": 645,
+    "completion_tokens": 538,
+    "prompt_tokens_details": {
+      "cache_read_input_tokens": 622,
+      "cache_creation_input_tokens": 0
+    }
+  }
+}
