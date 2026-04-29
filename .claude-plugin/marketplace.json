@@ -607,6 +607,29 @@
       "strict": false
     },
     {
+      "name": "minimax",
+      "description": "MiniMax M-series production wiring: OpenAI-compat quirks, hybrid prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
+      "version": "0.1.0",
+      "source": "./plugins/minimax",
+      "category": "ai",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "minimax",
+        "m2.7",
+        "openai-compatible",
+        "prompt-caching",
+        "reasoning-model",
+        "quant-llm",
+        "agentic-stack",
+        "chinese-llm-provider",
+        "hailuo"
+      ],
+      "strict": false
+    },
+    {
       "name": "tlg",
       "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
       "version": "16.10.0",

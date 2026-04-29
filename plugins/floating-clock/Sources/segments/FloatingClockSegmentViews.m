@@ -354,6 +354,11 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     bcell.editable = NO; bcell.selectable = NO; bcell.bezeled = NO; bcell.drawsBackground = NO;
     bcell.alignment = NSTextAlignmentCenter;
     bar.cell = bcell;
+    // iter-254: also set on the text field directly. NSTextField has a known
+    // quirk where mutating font/textColor after `cell = ncell` can reset the
+    // cell's alignment to system default (left). Setting num.alignment too
+    // is belt-and-braces — survives any later property mutation.
+    bar.alignment = NSTextAlignmentCenter;
     bar.toolTip = @"[WEEKBAR] — weekly progress bar (7 day-groups divided by ┊; ProgressBarStyle / WeekProgressCellsPerDay control glyphs + width)";
     [self addSubview:bar];
     _weekBarLabel = bar;
@@ -363,6 +368,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     dcell.editable = NO; dcell.selectable = NO; dcell.bezeled = NO; dcell.drawsBackground = NO;
     dcell.alignment = NSTextAlignmentCenter;
     days.cell = dcell;
+    days.alignment = NSTextAlignmentCenter;  // iter-254 belt-and-braces
     days.toolTip = @"[WEEKDAYS] — day-of-week letters (M T W T F S S) aligned over each day-group";
     [self addSubview:days];
     _weekDayLabelsLabel = days;
@@ -374,6 +380,7 @@ static void fcApplyDebugLabelVisibility(NSTextField *lbl) {
     num.cell = ncell;
     num.textColor = [NSColor colorWithCalibratedWhite:1.0 alpha:0.55];
     num.font = [NSFont monospacedSystemFontOfSize:9.5 weight:NSFontWeightMedium];
+    num.alignment = NSTextAlignmentCenter;  // iter-254 belt-and-braces (must be AFTER font/textColor mutations)
     num.toolTip = @"[WEEKNUM] — ISO 8601 week-of-year (financial-market convention)";
     [self addSubview:num];
     _weekNumberLabel = num;

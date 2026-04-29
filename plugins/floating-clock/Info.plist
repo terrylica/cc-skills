@@ -2,25 +2,25 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleIdentifier</key>
-	<string>com.terryli.floating-clock</string>
 	<key>CFBundleExecutable</key>
 	<string>floating-clock</string>
 	<key>CFBundleIconFile</key>
 	<string>Icon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.terryli.floating-clock</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.16.0</string>
 	<key>CFBundleVersion</key>
-	<string>245</string>
+	<string>246</string>
 	<key>LSUIElement</key>
 	<true/>
-	<key>NSRequiresIPhoneOS</key>
-	<false/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>FloatingClock uses your approximate location to compute accurate sunrise, sunset, and civil-twilight times for the dawn/day/dusk/night glyph. City-level accuracy only — no precise GPS, no network, no data leaves your Mac.</string>
 	<key>NSLocationUsageDescription</key>
 	<string>FloatingClock uses your approximate location to compute accurate sunrise, sunset, and civil-twilight times for the dawn/day/dusk/night glyph. City-level accuracy only — no precise GPS, no network, no data leaves your Mac.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FloatingClock uses your approximate location to compute accurate sunrise, sunset, and civil-twilight times for the dawn/day/dusk/night glyph. City-level accuracy only — no precise GPS, no network, no data leaves your Mac.</string>
+	<key>NSRequiresIPhoneOS</key>
+	<false/>
 </dict>
 </plist>

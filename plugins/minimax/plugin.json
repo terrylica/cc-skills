@@ -1,0 +1,9 @@
+{
+  "name": "minimax",
+  "version": "0.1.0",
+  "description": "MiniMax M-series production wiring patterns: OpenAI-compat quirks, prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
