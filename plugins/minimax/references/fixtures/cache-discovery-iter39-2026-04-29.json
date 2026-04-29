@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "probe_id": "iter-39-prompt-caching-discovery",
+    "label": "T4.1: cold-vs-warm same-prompt-twice + explicit cache_control",
+    "model": "MiniMax-M2.7-highspeed",
+    "system_prompt_chars": 2502,
+    "user_question": "Briefly explain why gamma is highest at-the-money for an option, in one paragraph."
+  },
+  "results": [
+    {
+      "label": "C1-cold",
+      "http_status": 200,
+      "latency": 9.879,
+      "prompt_tokens": 645,
+      "completion_tokens": 392,
+      "total_tokens": 1037,
+      "usage_full": {
+        "total_tokens": 1037,
+        "total_characters": 0,
+        "prompt_tokens": 645,
+        "completion_tokens": 392,
+        "completion_tokens_details": {
+          "reasoning_tokens": 258
+        }
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 258
+      },
+      "prompt_tokens_details": null,
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": null,
+      "cached_tokens": null,
+      "finish_reason": "stop",
+      "visible_chars": 562,
+      "visible_first_300": "Gamma peaks at-the-money because it measures delta's sensitivity to underlying price changes, and delta (\u2248 N(d\u2081)) transitions most rapidly around S \u2248 K. Mathematically, gamma \u221d N'(d\u2081)/(S\u00b7\u03c3\u00b7\u221aT), where the standard normal PDF N'(\u00b7) is maximized at d\u2081 = 0\u2014exactly the ATM condition. Intuition: an ATM op"
+    },
+    {
+      "label": "C2-warm",
+      "http_status": 200,
+      "latency": 11.479,
+      "prompt_tokens": 645,
+      "completion_tokens": 507,
+      "total_tokens": 1152,
+      "usage_full": {
+        "total_tokens": 1152,
+        "total_characters": 0,
+        "prompt_tokens": 645,
+        "completion_tokens": 507,
+        "completion_tokens_details": {
+          "reasoning_tokens": 325
+        },
+        "prompt_tokens_details": {
+          "cached_tokens": 443
+        }
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 325
+      },
+      "prompt_tokens_details": {
+        "cached_tokens": 443
+      },
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": null,
+      "cached_tokens": null,
+      "finish_reason": "stop",
+      "visible_chars": 805,
+      "visible_first_300": "Gamma peaks at-the-money because it measures the rate of change of delta, and delta undergoes its steepest transition near the strike price. For a European option, gamma = \u03c6(d\u2081)/(S\u00b7\u03c3\u00b7\u221aT) where \u03c6 is the standard normal PDF\u2014mathematically maximized when d\u2081 = 0, i.e., S = K. Deep ITM or OTM, delta is a"
+    },
+    {
+      "label": "C3-explicit-cache_control",
+      "http_status": 200,
+      "latency": 11.723,
+      "prompt_tokens": 645,
+      "completion_tokens": 453,
+      "total_tokens": 1098,
+      "usage_full": {
+        "total_tokens": 1098,
+        "total_characters": 0,
+        "prompt_tokens": 645,
+        "completion_tokens": 453,
+        "completion_tokens_details": {
+          "reasoning_tokens": 270
+        },
+        "prompt_tokens_details": {
+          "cache_read_input_tokens": 0,
+          "cache_creation_input_tokens": 622
+        }
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 270
+      },
+      "prompt_tokens_details": {
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 622
+      },
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": null,
+      "cached_tokens": null,
+      "finish_reason": "stop",
+      "visible_chars": 773,
+      "visible_first_300": "Gamma measures the rate of change of delta with respect to the underlying price: \u0393 = \u2202\u0394/\u2202S = \u2202\u00b2V/\u2202S\u00b2. For an option near expiration, the probability distribution of terminal payoff is concentrated around the strike\u2014meaning a small move in the underlying is highly likely to flip the option from OTM ("
+    }
+  ]
+}
