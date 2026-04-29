@@ -1,8 +1,8 @@
 ---
 name: cc-skills-minimax-aggregation
 version: 1
-iteration: 0
-last_updated: 2026-04-29T10:38:43Z
+iteration: 1
+last_updated: 2026-04-29T10:55:00Z
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
@@ -260,9 +260,13 @@ If none apply, stay on the same version and keep committing atomic artifacts.
 
 ## Current State (auto-maintained — rewrite each firing)
 
-**Last completed iteration**: iteration 0 — BOOTSTRAP (this firing). Scaffolded LOOP_CONTRACT.md from autonomous-loop template at `~/eon/cc-skills/plugins/minimax/LOOP_CONTRACT.md`. Loop registered (loop_id `909c5fc62d60`), launchd plist loaded (`com.user.claude.loop.909c5fc62d60`), 60s polling cadence. Plugin directory created. Source-of-truth survey: `~/own/<automation-repo>/minimax/` contains 40 pattern docs in api-patterns/, 1 quirks consolidation, 1 RETROSPECTIVE.md (the canonical orient doc), ~50 fixtures, the `bin/minimax-check-upgrade` OPS tool + mise task + locked snapshot + launchd plist (at `~/own/<automation-repo>/config/plists/`). Per user directive: CREATE FIRST, DO NOT MIGRATE — source stays untouched; this campaign builds an aggregated reusable plugin in place.
+**Last completed iteration**: iteration 1 — Phase A scaffolded SKILL.md (plus iter-0's already-merged plugin.json + marketplace registration). Wrote `skills/minimax/SKILL.md` (328 lines, well under 500-line warn threshold) with: discoverability-tuned frontmatter (TRIGGERS list ~50 keywords spanning MiniMax/M2.7/Hailuo/api.minimax.io/embo-01/speech-01-turbo/cache_control/base_resp/specific failure-mode pain points/quant-LLM use cases), body sections covering — when-to-use M2.7 decision table (13 workloads × ✅/❌/⚠️), top 10 production rules verbatim from <automation-repo> RETROSPECTIVE.md, canonical Tier F agentic stack diagram + 10-primitive verdict table (M2.7-vs-Python per primitive), 5 defensive code snippets (strip-`<think>`+finish_reason parser, JSON output system prompt, cache-friendly messages with prefix-match, rate-limit-aware retry watching `base_resp.status_code` not HTTP 429, cached-token reader handling both API shapes), 11-failure-modes catalog (6 hallucination + 4 saturation + 1 cross-language asymmetry — each with detection heuristic + defense), API surface map (8 endpoints × URL/body/plan-gating), operational facts table, OPS tooling pointer to scripts/minimax-check-upgrade (will land iter-16), references/ directory drill-down section, quick-start curl recipe, full provenance.
 
-**Full current apex**: 0 plugin files committed. 0 of 40 pattern docs aggregated. 0 of 11 failure modes captured in skill content. 0 of 4 OPS-tool artifacts ported. SKILL.md does not exist yet. plugin.json does not exist yet. 100% of the source-of-truth knowledge remains exclusively at `~/own/<automation-repo>/minimax/` and is therefore inaccessible to future Claude sessions in other repos. Campaign at the absolute beginning.
+cc-skills marketplace validator passes (35 plugins / 35 directories / 209 skills — was 208, confirming new minimax skill detected). The skill is now AUTO-DISCOVERABLE via natural-language prompts in any future Claude Code session — first time the 41-iter knowledge base is reachable outside <automation-repo>.
+
+Per user directive: CREATE FIRST, DO NOT MIGRATE — source at `~/own/<automation-repo>/minimax/` remains untouched. iter-1 only WROTE to `~/eon/cc-skills/plugins/minimax/`.
+
+**Full current apex**: 3 plugin files committed (LOOP_CONTRACT.md, plugin.json, SKILL.md). 0 of 40 pattern docs aggregated into references/. 11 of 11 failure modes captured AT SUMMARY LEVEL in SKILL.md (deep-dive references not yet aggregated — comes Phase B). 0 of 4 OPS-tool artifacts ported (Phase C, iters 16-18). The skill is auto-discoverable in any Claude Code session via TRIGGERS keyword matching. ~5% of source-of-truth content surfaced (the distilled top-10 rules + agentic stack + decision table reach the SKILL.md primary layer; the 95% deep-reference content remains source-only until Phase B).
 
 **Active monitors**: none
 
@@ -272,8 +276,11 @@ If none apply, stay on the same version and keep committing atomic artifacts.
 - [x] Loop registered in machine registry
 - [x] Launchd plist loaded
 - [x] Plugin directory created at `~/eon/cc-skills/plugins/minimax/`
-- [ ] Initial commit of LOOP_CONTRACT.md (this iter's git work)
-- [ ] First Phase A item (plugin.json scaffold) — iter-1
+- [x] Initial commit of LOOP_CONTRACT.md (iter-0 → 2c2cc84a)
+- [x] First Phase A item (plugin.json + marketplace registration — iter-0 forced merge)
+- [x] SKILL.md scaffolded with discoverability-tuned frontmatter (iter-1)
+- [ ] References/ structure + INDEX.md (iter-2)
+- [ ] README.md + scripts/ stubs (iter-3)
 - [ ] Audit checklist established with concrete coverage criteria — iter-2 or iter-3
 
 ---
@@ -286,13 +293,13 @@ Per-item schema (all optional except the checkbox line):
 
 ```markdown
 - [ ] <action>
-                              id: <stable-identifier-for-worktree-naming>    # required if perspectives set
-                              cost_estimate: low | medium | high             # low = skip dispatch regardless of perspectives
-                              perspectives: [implementer, critic]            # empty/absent = in-turn (Tier 0)
-                              security_sensitive: true                       # triggers auditor hard veto
-                              allowed_writes:                                # per-perspective file-ownership (anti-collision)
-                                implementer: [path/to/dir/, another/file.py]
-                                critic: []                                   # read-only
+                                                      id: <stable-identifier-for-worktree-naming>    # required if perspectives set
+                                                      cost_estimate: low | medium | high             # low = skip dispatch regardless of perspectives
+                                                      perspectives: [implementer, critic]            # empty/absent = in-turn (Tier 0)
+                                                      security_sensitive: true                       # triggers auditor hard veto
+                                                      allowed_writes:                                # per-perspective file-ownership (anti-collision)
+                                                        implementer: [path/to/dir/, another/file.py]
+                                                        critic: []                                   # read-only
 ```
 
 **Source-of-truth inventory** (snapshot at iter-0; verify against `~/own/<automation-repo>/minimax/` each audit):
@@ -315,8 +322,8 @@ Per-item schema (all optional except the checkbox line):
 
 ### Tier 1 — Phase A: Plugin scaffold (iters 1-4)
 
-- [ ] iter-1 — Scaffold `plugin.json` (cc-skills marketplace metadata: name `minimax`, description, version 0.1.0, author, license). Reference: `~/eon/cc-skills/plugins/quant-research/.claude-plugin/plugin.json` for shape.
-- [ ] iter-2 — Scaffold `skills/minimax/SKILL.md` with the canonical orient-first content. Frontmatter description must be discoverability-tuned (triggers: "MiniMax", "OpenAI-compatible Chinese LLM provider", "M-series reasoning model", "MiniMax-M2.7", quant LLM applications). Body: TL;DR + top 10 production rules drawn from `~/own/<automation-repo>/minimax/RETROSPECTIVE.md`.
+- [x] iter-1 (queue-item) — Scaffold `plugin.json` — DONE iter-0 (forced merge by cc-skills validator: every plugins/<name>/ must be registered in marketplace.json or commit fails). Wrote v0.1.0 plugin.json + registered minimax under category "ai" alongside gemini-deep-research. Validator passes (35 plugins / 35 directories).
+- [x] iter-2 (queue-item) — Scaffold `skills/minimax/SKILL.md` — DONE iter-1. 328 lines. Discoverability-tuned frontmatter (TRIGGERS list ~50 keywords). Body: when-to-use decision table (13 workloads), top 10 production rules, canonical Tier F agentic stack + 10-primitive verdict table, 5 defensive code snippets, 11-failure-modes catalog with detection heuristics, API surface map, operational facts, OPS tooling pointer, drill-down references section, quick-start curl recipe, full provenance. Validator skill count went 208 → 209.
 - [ ] iter-3 — Create `references/` directory structure: `api-patterns/`, `fixtures/`, plus `INDEX.md` navigable TOC.
 - [ ] iter-4 — Create `scripts/` directory + plugin `README.md` (high-level: what this plugin does, how to use, how to install OPS tooling).
 
@@ -384,3 +391,4 @@ Per-item schema (all optional except the checkbox line):
 > ```
 
 - 2026-04-29 10:40 UTC — iter-0 BOOTSTRAP. Scaffolded LOOP_CONTRACT.md from autonomous-loop template at `~/eon/cc-skills/plugins/minimax/LOOP_CONTRACT.md`. Loop registered in machine registry as `loop_id=909c5fc62d60`; launchd plist generated and loaded (`com.user.claude.loop.909c5fc62d60`, 60s polling); plugin directory created at `~/eon/cc-skills/plugins/minimax/`. Locked Core Directive (28-iter estimate to aggregate 41-iter MiniMax campaign from `~/own/<automation-repo>/minimax/` into a discoverable cc-skills plugin; user-directed "create first, do not migrate" + "iteratively audit"). Seeded Implementation Queue across 4 tiers: Tier 1 = Phase A plugin scaffold (iters 1-4: plugin.json, SKILL.md, references/, scripts/+README); Tier 2 = Phase B reference content aggregation (iters 5-15: RETROSPECTIVE, quirks, api-patterns INDEX, 40 pattern docs in batches, fixtures, models-list-locked, cross-ref audit); Tier 3 = Phase C OPS tool migration (iters 16-18: minimax-check-upgrade port, plist template, mise pattern docs) + Phase D audit (iters 19-22: mechanical / semantic / failure-modes / cross-references); Tier 4 = Phase E refinement (iters 23-27: frontmatter discoverability, skill-split decision, reproducer, breadcrumbs, fresh-Claude simulation) + Phase F close (iter ~28: retrospective + DONE marker). Source-of-truth inventory captured (10 row-types, ~95 files total). Seeded 5 Non-Obvious Learnings (source-untouched-rule, target-is-discoverable-skill-not-dump, dynamic-pacing-with-launchd-safety-net, iter-0-is-bootstrap-only, audit-coverage-matrix-is-exit-criterion). Next intent: iter-1 picks Phase A item 1 — scaffold `plugin.json` (cc-skills marketplace metadata). Reference: `~/eon/cc-skills/plugins/quant-research/.claude-plugin/plugin.json` for shape. Cumulative API budget: 0 calls (this campaign uses no MiniMax API; pure aggregation work).
+- 2026-04-29 10:55 UTC — iter-1 executed Phase A item 2 (skills/minimax/SKILL.md scaffold) — first content delivery iter. Wrote `~/eon/cc-skills/plugins/minimax/skills/minimax/SKILL.md` (328 lines, well under formatter's 500-line warn threshold). **Frontmatter discoverability**: ~50-keyword TRIGGERS list spanning model names (MiniMax, MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-M2.5, MiniMax-M2, Hailuo), URLs (api.minimax.io, OPENAI_BASE_URL minimax), endpoints (embo-01, t2a_v2, speech-01-turbo, video-01, video_generation), API quirks (response_format/stop/tool_choice/image_url/name silently dropped, base_resp status_code, RPM rate limit), caching (cache_control, prompt_tokens_details cached_tokens, cache_creation_input_tokens, cache_read_input_tokens), and quant-LLM use cases (trade signal JSON, financial agentic stack, Tier F primitives, M2.7 saturation/hallucination, Black-Scholes saturation, backtesting.py hallucinated imports). **Body sections**: (1) when-to-use M2.7 decision table — 13 workloads × ✅/❌/⚠️ verdict; (2) top 10 production rules verbatim from <automation-repo> RETROSPECTIVE.md; (3) canonical Tier F agentic stack diagram + 10-primitive verdict table (M2.7-vs-Python per primitive); (4) 5 defensive code snippets (strip-`<think>`+finish_reason saturation detector, JSON output system prompt template, cache-friendly messages with prefix-match, rate-limit retry watching `base_resp.status_code` not HTTP 429, cached-token reader handling both API shapes); (5) 11-failure-modes catalog with detection heuristics; (6) 8-endpoint API surface map; (7) operational facts table (concurrency p=10, ~50 TPS, 1.5s min latency, 200K context ceiling, ~70% cache hit rate, ≥3min cache TTL, Mandarin 1.4-1.5× token cost); (8) OPS tooling pointer to scripts/minimax-check-upgrade (lands iter-16); (9) deep-references drill-down section (RETROSPECTIVE.md, quirks.md, api-patterns/INDEX.md + 40 docs, fixtures); (10) quick-start curl wiring recipe; (11) full provenance. Validator: 35 plugins / 35 dirs / 209 skills (was 208 — confirms detection). Source untouched (zero writes to ~/own/<automation-repo>/). **🎯 Skill is now AUTO-DISCOVERABLE** — first time the 41-iter knowledge base is reachable from any Claude Code session via natural-language prompts like "wire up MiniMax" or "MiniMax-M2.7 caching". This is the campaign's biggest single discoverability lift; deeper iters add reference depth but the auto-trigger surface is in place. Next intent: iter-2 picks Phase A item 3 — create `references/` directory structure (api-patterns/, fixtures/, INDEX.md). Smaller iter (~5-10 min). Cumulative API budget: 0 calls. Plugin file count: 3 (LOOP_CONTRACT.md, plugin.json, SKILL.md). Coverage of source-of-truth inventory: 0/10 row-types fully aggregated, but 1/10 partially surfaced (RETROSPECTIVE.md content distilled into SKILL.md primary layer; full text aggregation comes iter-5).
