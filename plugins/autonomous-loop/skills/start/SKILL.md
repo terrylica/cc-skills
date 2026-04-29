@@ -16,22 +16,25 @@ Scaffold `LOOP_CONTRACT.md` and start a self-revising `/loop` that reads the con
 
 - Positional (optional): contract file path. Defaults to `./LOOP_CONTRACT.md`.
 
-## Step 1: Ensure hook is installed
+## Step 1: Ensure hooks are installed
 
-Install the heartbeat hook into `~/.claude/settings.json` if not already present. This is a one-time per-machine operation (idempotent — subsequent calls are no-ops).
+Install BOTH autonomous-loop hooks into `~/.claude/settings.json` if not already present. Idempotent.
+
+- **PostToolUse → `heartbeat-tick.sh`** — ticks heartbeat on every tool invocation, detects cwd drift.
+- **SessionStart → `session-bind.sh`** — authoritatively binds `owner_session_id` from stdin payload (replaces broken `$CLAUDE_SESSION_ID` env-var capture; ref [anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018)).
 
 ```bash
 # Source the hook install library
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 
-# Install hook (idempotent)
-if ! install_hook 2>/dev/null; then
-  echo "WARNING: Failed to install heartbeat hook; continuing anyway" >&2
+# Install BOTH hooks (idempotent)
+if ! install_all_hooks 2>/dev/null; then
+  echo "WARNING: Failed to install autonomous-loop hooks; continuing anyway" >&2
 fi
 ```
 
-This ensures that all Claude sessions will have the PostToolUse hook wired up to tick the heartbeat on each tool invocation.
+Result: every Claude session opening in a registered loop's contract dir will (1) bind to the loop on SessionStart, then (2) tick heartbeat with cwd-drift detection on every tool invocation.
 
 ## Step 2: Preflight
 
@@ -88,7 +91,9 @@ Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 
 ## Step 5: Register loop in machine registry
 
-After deriving the loop ID in Step 2/3, register this loop in the machine-level registry:
+After deriving the loop ID in Step 2/3, register this loop in the machine-level registry.
+
+> **`owner_session_id` is set to `pending-bind` here.** The SessionStart hook (`hooks/session-bind.sh`) replaces it atomically on the next session start, because `$CLAUDE_SESSION_ID` env var is **not populated** in skill Bash subprocesses ([anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018)). Capturing it inline would always store empty/garbage — the hook is the only correct binding site.
 
 ```bash
 # Source the registry library
@@ -98,19 +103,23 @@ source "$PLUGIN_ROOT/scripts/registry-lib.sh"
 # Derive loop_id from contract path (if not already done)
 loop_id=$(derive_loop_id "$CONTRACT_PATH")
 
-# Create entry JSON with all required fields
+# Create entry JSON with all required fields. owner_session_id="pending-bind"
+# is the canonical placeholder; the SessionStart hook replaces it atomically
+# on the next session start. bound_cwd starts empty; heartbeat-tick records
+# it on the first tick and detects drift thereafter.
 entry=$(jq -n \
   --arg loop_id "$loop_id" \
   --arg contract_path "$(realpath "$CONTRACT_PATH")" \
   --arg state_dir "$(dirname "$CONTRACT_PATH")/.loop-state/$loop_id/" \
-  --arg owner_session_id "$(echo "$CLAUDE_SESSION_ID" | cut -c1-28)" \
+  --arg owner_session_id "pending-bind" \
+  --arg bound_cwd "" \
   --arg owner_pid "$$" \
   --arg owner_start_time_us "$(date +%s%N | cut -c1-16)" \
   --arg launchd_label "com.user.claude.loop.$loop_id" \
   --arg started_at_us "$(date +%s%N | cut -c1-16)" \
   --arg expected_cadence_seconds "$cadence_seconds" \
   --arg generation "0" \
-  '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_session_id: $owner_session_id, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, launchd_label: $launchd_label, started_at_us: $started_at_us, expected_cadence_seconds: $expected_cadence_seconds, generation: $generation}')
+  '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_session_id: $owner_session_id, bound_cwd: $bound_cwd, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, launchd_label: $launchd_label, started_at_us: $started_at_us, expected_cadence_seconds: $expected_cadence_seconds, generation: $generation}')
 
 # Register in machine registry (atomic, serialized write)
 if ! register_loop "$entry"; then

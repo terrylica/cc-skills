@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # PROCESS-STORM-OK
+# FILE-SIZE-OK — cohesive hook install/uninstall surface; splitting would create
+# artificial separation between PostToolUse and SessionStart installers that
+# share lock primitive and atomic-rename plumbing.
+#
 # hook-install-lib.sh — Idempotent, concurrency-safe hook install/uninstall for settings.json
-# Provides install_hook, uninstall_hook, and is_hook_installed helpers
-# Uses flock on fd 7 (~/.claude/.settings.lock) for safe concurrent access
+# Provides install_hook (now installs BOTH PostToolUse heartbeat-tick.sh AND
+# SessionStart session-bind.sh as of v4.10.0 Phase 36), uninstall_hook, and
+# is_hook_installed helpers. Uses flock/lockf on fd 7 (~/.claude/.settings.lock)
+# for safe concurrent access.
 
 set -euo pipefail
 
@@ -74,6 +80,53 @@ hook_path_default() {
   fi
 
   echo "$hook_path"
+}
+
+# hook_path_default_session_bind
+# Returns the absolute path to session-bind.sh (SessionStart hook).
+hook_path_default_session_bind() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || {
+    echo "ERROR: hook_path_default_session_bind: cannot determine script directory" >&2
+    return 1
+  }
+
+  local plugin_dir
+  plugin_dir="$(dirname "$script_dir")" || return 1
+
+  local hook_path
+  hook_path="$plugin_dir/hooks/session-bind.sh"
+
+  if [ ! -f "$hook_path" ]; then
+    echo "ERROR: hook_path_default_session_bind: session-bind hook not found at $hook_path" >&2
+    return 1
+  fi
+
+  echo "$hook_path"
+}
+
+# is_session_bind_installed [settings_path]
+# Checks if our session-bind hook is registered in settings.json under SessionStart.
+is_session_bind_installed() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+
+  if [ ! -f "$settings_path" ]; then
+    echo "no"
+    return 0
+  fi
+
+  local installed
+  installed=$(jq -r '
+    .hooks.SessionStart[]?.hooks[]? |
+    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/session-bind.sh"))) |
+    .command
+  ' "$settings_path" 2>/dev/null || echo "") || true
+
+  if [ -n "$installed" ]; then
+    echo "yes"
+  else
+    echo "no"
+  fi
 }
 
 # _with_settings_lock <fn> [args...]
@@ -451,11 +504,222 @@ uninstall_hook() {
   _with_settings_lock uninstall_hook_impl "$settings_path" "$hook_path" || return 1
 }
 
+# PROCESS-STORM-OK
+# ===== SessionStart hook (session-bind.sh) install/uninstall =====
+# v4.10.0 Phase 36 (BIND-01): mirrors PostToolUse installer but writes to
+# .hooks.SessionStart and points at session-bind.sh. Each function is a plain
+# bash function definition; no subshell or background expansion involved.
+
+install_session_bind_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+
+  if [ -f "$settings_path" ]; then
+    local installed
+    installed=$(jq -r '
+      .hooks.SessionStart[]?.hooks[]? |
+      select(.type == "command" and (.command == "'"$hook_path"'")) |
+      .command
+    ' "$settings_path" 2>/dev/null || echo "") || true
+
+    if [ -n "$installed" ]; then
+      echo "SessionStart hook already installed at $hook_path; no-op" >&2
+      return 0
+    fi
+
+    if ! jq . "$settings_path" >/dev/null 2>&1; then
+      echo "ERROR: install_session_bind_impl: settings.json malformed" >&2
+      return 1
+    fi
+  fi
+
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || {
+    echo "ERROR: install_session_bind_impl: mktemp failed" >&2
+    return 1
+  }
+
+  local new_settings
+  if [ -f "$settings_path" ]; then
+    new_settings=$(jq '
+      .hooks.SessionStart //= [
+        { "matcher": "*", "hooks": [] }
+      ] |
+      (
+        if (.hooks.SessionStart | length) == 0 then
+          .hooks.SessionStart += [{ "matcher": "*", "hooks": [] }]
+        else
+          .
+        end
+      ) |
+      .hooks.SessionStart[0].hooks += [
+        {
+          "type": "command",
+          "command": "'"$hook_path"'"
+        }
+      ]
+    ' "$settings_path" 2>/dev/null) || {
+      echo "ERROR: install_session_bind_impl: jq update failed" >&2
+      rm -f "$temp_file"
+      return 1
+    }
+  else
+    new_settings=$(jq -n '
+      {
+        "hooks": {
+          "SessionStart": [
+            {
+              "matcher": "*",
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": "'"$hook_path"'"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ') || {
+      echo "ERROR: install_session_bind_impl: jq creation failed" >&2
+      rm -f "$temp_file"
+      return 1
+    }
+  fi
+
+  if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
+    echo "ERROR: install_session_bind_impl: generated invalid JSON" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  if ! echo "$new_settings" >"$temp_file"; then
+    echo "ERROR: install_session_bind_impl: write failed" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  sync || true
+
+  if ! mv "$temp_file" "$settings_path"; then
+    echo "ERROR: install_session_bind_impl: atomic rename failed" >&2
+    rm -f "$temp_file"
+    return 1
+  fi
+
+  echo "SessionStart hook installed successfully at $settings_path" >&2
+  return 0
+}
+
+uninstall_session_bind_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+
+  if [ ! -f "$settings_path" ]; then
+    return 0
+  fi
+
+  if ! jq . "$settings_path" >/dev/null 2>&1; then
+    echo "ERROR: uninstall_session_bind_impl: settings.json malformed" >&2
+    return 1
+  fi
+
+  local new_settings
+  new_settings=$(jq '
+    .hooks.SessionStart[]?.hooks |= map(
+      select(
+        (.type != "command" or .command != "'"$hook_path"'")
+      )
+    )
+  ' "$settings_path" 2>/dev/null) || {
+    echo "ERROR: uninstall_session_bind_impl: jq update failed" >&2
+    return 1
+  }
+
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+
+  if ! echo "$new_settings" >"$temp_file"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  sync || true
+  mv "$temp_file" "$settings_path" || {
+    rm -f "$temp_file"
+    return 1
+  }
+  return 0
+}
+
+install_session_bind() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_session_bind) || return 1
+  fi
+
+  if [ ! -f "$hook_path" ]; then
+    echo "ERROR: install_session_bind: session-bind hook not found at $hook_path" >&2
+    return 1
+  fi
+
+  settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+
+  _with_settings_lock install_session_bind_impl "$settings_path" "$hook_path" || return 1
+}
+
+uninstall_session_bind() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_session_bind) || return 1
+  fi
+
+  if [ -f "$settings_path" ]; then
+    settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  fi
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+
+  _with_settings_lock uninstall_session_bind_impl "$settings_path" "$hook_path" || return 1
+}
+
+# install_all_hooks: composite — installs BOTH heartbeat-tick (PostToolUse)
+# and session-bind (SessionStart). Idempotent. Recommended entry point.
+install_all_hooks() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  install_hook "$settings_path" || return 1
+  install_session_bind "$settings_path" || return 1
+  return 0
+}
+
+# uninstall_all_hooks: composite — removes both autonomous-loop hooks.
+uninstall_all_hooks() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  uninstall_hook "$settings_path" || true
+  uninstall_session_bind "$settings_path" || true
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f is_hook_installed
+export -f is_session_bind_installed
 export -f hook_path_default
+export -f hook_path_default_session_bind
 export -f _with_settings_lock
 export -f install_hook_impl
 export -f install_hook
 export -f uninstall_hook_impl
 export -f uninstall_hook
+export -f install_session_bind_impl
+export -f install_session_bind
+export -f uninstall_session_bind_impl
+export -f uninstall_session_bind
+export -f install_all_hooks
+export -f uninstall_all_hooks
