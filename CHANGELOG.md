@@ -1,3 +1,10 @@
+## [16.9.1](https://github.com/terrylica/cc-skills/compare/v16.9.0...v16.9.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** doctor v16.9.1 display + corrupt-entry handling ([0693f63](https://github.com/terrylica/cc-skills/commit/0693f63aab1b55cd9e1140a1e085817485ec78e9))
+
 # [16.9.0](https://github.com/terrylica/cc-skills/compare/v16.8.0...v16.9.0) (2026-04-29)
 
 
