@@ -1,3 +1,10 @@
+# [16.10.0](https://github.com/terrylica/cc-skills/compare/v16.9.1...v16.10.0) (2026-04-29)
+
+
+### Features
+
+* **statusline-tools:** autonomous-loop awareness in custom statusline ([a4fc264](https://github.com/terrylica/cc-skills/commit/a4fc264ee646989f86a19cd23ab815f5614bebb3))
+
 ## [16.9.1](https://github.com/terrylica/cc-skills/compare/v16.9.0...v16.9.1) (2026-04-29)
 
 
