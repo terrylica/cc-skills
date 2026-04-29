@@ -40,15 +40,15 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 
 | Source (`api-patterns/<name>.md`)       | Destination                                          | Status         | Iter | Headline finding                                             |
 | --------------------------------------- | ---------------------------------------------------- | -------------- | ---- | ------------------------------------------------------------ |
-| chat-completion-minimal.md              | api-patterns/chat-completion-minimal.md              | NOT_AGGREGATED | 2    | `<think>` stripping; 11 MiniMax-specific response fields     |
-| chat-completion-system-prompt.md        | api-patterns/chat-completion-system-prompt.md        | NOT_AGGREGATED | 3    | System role strongly honored; persona ~2× reasoning          |
+| chat-completion-minimal.md              | api-patterns/chat-completion-minimal.md              | AGGREGATED    | 2    | `<think>` stripping; 11 MiniMax-specific response fields     |
+| chat-completion-system-prompt.md        | api-patterns/chat-completion-system-prompt.md        | AGGREGATED    | 3    | System role strongly honored; persona ~2× reasoning          |
 | chat-completion-system-token-scaling.md | api-patterns/chat-completion-system-token-scaling.md | NOT_AGGREGATED | 21   | Hybrid replacement+discount; ~70% rate                       |
-| chat-completion-multi-turn.md           | api-patterns/chat-completion-multi-turn.md           | NOT_AGGREGATED | 4    | Stateless; fabricated assistant turns accepted               |
-| chat-completion-temperature.md          | api-patterns/chat-completion-temperature.md          | NOT_AGGREGATED | 5    | temp=0 NOT deterministic on M-series                         |
-| chat-completion-max-tokens.md           | api-patterns/chat-completion-max-tokens.md           | NOT_AGGREGATED | 6    | Server doesn't enforce; tiny budget = silent empty           |
-| chat-completion-stop.md                 | api-patterns/chat-completion-stop.md                 | NOT_AGGREGATED | 7    | `stop` silently ignored                                      |
-| chat-completion-streaming.md            | api-patterns/chat-completion-streaming.md            | NOT_AGGREGATED | 8    | Coarse chunks (~125 chars/chunk); no usage in stream         |
-| chat-completion-json.md                 | api-patterns/chat-completion-json.md                 | NOT_AGGREGATED | 9    | `response_format` silently dropped; prompt-engineer it       |
+| chat-completion-multi-turn.md           | api-patterns/chat-completion-multi-turn.md           | AGGREGATED    | 4    | Stateless; fabricated assistant turns accepted               |
+| chat-completion-temperature.md          | api-patterns/chat-completion-temperature.md          | AGGREGATED    | 5    | temp=0 NOT deterministic on M-series                         |
+| chat-completion-max-tokens.md           | api-patterns/chat-completion-max-tokens.md           | AGGREGATED    | 6    | Server doesn't enforce; tiny budget = silent empty           |
+| chat-completion-stop.md                 | api-patterns/chat-completion-stop.md                 | AGGREGATED    | 7    | `stop` silently ignored                                      |
+| chat-completion-streaming.md            | api-patterns/chat-completion-streaming.md            | AGGREGATED    | 8    | Coarse chunks (~125 chars/chunk); no usage in stream         |
+| chat-completion-json.md                 | api-patterns/chat-completion-json.md                 | AGGREGATED    | 9    | `response_format` silently dropped; prompt-engineer it       |
 | chat-completion-tokens.md               | api-patterns/chat-completion-tokens.md               | NOT_AGGREGATED | 10   | Server strips `<think>` on assistant replay (no double-bill) |
 | chat-completion-tools.md                | api-patterns/chat-completion-tools.md                | NOT_AGGREGATED | 12   | Tools honored; `tool_choice` silently dropped                |
 | chat-completion-name-field.md           | api-patterns/chat-completion-name-field.md           | NOT_AGGREGATED | 20   | Always returns "MiniMax AI"; request `name` dropped          |
@@ -154,12 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      3  (RETROSPECTIVE iter-5, quirks iter-6, api-patterns/INDEX iter-7)
-NOT_AGGREGATED:                  ~47
+AGGREGATED:                      11  (3 from iter-5/6/7 + 8 chat-completion-core from iter-8)
+NOT_AGGREGATED:                  ~39
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-7 (2026-04-29 11:28 UTC)
+Last updated:                    iter-8 (2026-04-29 11:35 UTC)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
