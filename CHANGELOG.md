@@ -1,3 +1,10 @@
+# [16.7.0](https://github.com/terrylica/cc-skills/compare/v16.6.0...v16.7.0) (2026-04-29)
+
+
+### Features
+
+* **autonomous-loop:** pacing-veto PreToolUse hook denies cache-miss-zone wakers ([ad7f7cc](https://github.com/terrylica/cc-skills/commit/ad7f7cc1055fc48133666c1f24eeb0d4ce2c536c))
+
 # [16.6.0](https://github.com/terrylica/cc-skills/compare/v16.5.1...v16.6.0) (2026-04-29)
 
 
