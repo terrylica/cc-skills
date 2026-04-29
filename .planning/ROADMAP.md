@@ -76,7 +76,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 </details>
 
-### v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-34)
+<details>
+<summary>v4.9.0 SwiftBar UI & Telegram Bot Activation (Phases 29-34) — shipped 2026-03-29</summary>
 
 - [x] **Phase 29: Telegram Bot Activation** - Bot credentials in launchd env, long polling connection, session notifications flowing
 - [x] **Phase 30: SwiftBar UI Updates** - Python TTS health, voice/speed propagation, bot status display
@@ -84,6 +85,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 32: Audio Device Resilience** - CoreAudio HAL listener + health check + engine rebuild for AVAudioEngine stale aggregate device on output switch
 - [x] **Phase 33: Telegram Bot Verification** - Verify BOT-10/11/12 implementation and produce VERIFICATION.md (gap closure)
 - [x] **Phase 34: E2E Pipeline Verification** - Verify E2E-01/02/03 implementation and produce VERIFICATION.md (gap closure)
+
+Full details archived in [milestones/v4.9.0-ROADMAP.md](./milestones/v4.9.0-ROADMAP.md).
+
+</details>
 
 ## Phase Details
 
@@ -647,124 +652,3 @@ Plans:
 
 </details>
 
-### v4.9.0 SwiftBar UI & Telegram Bot Activation Phase Details
-
-### Phase 29: Telegram Bot Activation
-
-**Goal**: The Telegram bot connects to Telegram via long polling and delivers session notifications with rich HTML formatting
-
-**Depends on**: Phase 28 (v4.8.0 codebase with Python TTS delegation)
-**Requirements**: BOT-10, BOT-11, BOT-12
-**Success Criteria** (what must be TRUE):
-
-1. TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are present in the claude-tts-companion launchd plist EnvironmentVariables, sourced from ~/.claude/.secrets/ccterrybot-telegram
-2. Bot connects via long polling within 5 seconds of launchd service start and responds to /status command
-3. Session-end notifications deliver Arc Summary + Tail Brief to Telegram with rich HTML formatting (header, code blocks, links)
-   **Plans**: TBD
-
-### Phase 30: SwiftBar UI Updates
-
-**Goal**: SwiftBar menu bar plugin shows accurate status for all subsystems including Python TTS server and Telegram bot, with voice/speed settings propagating end-to-end
-
-**Depends on**: Phase 29 (bot must be active for status display)
-**Requirements**: BAR-10, BAR-11, BAR-12
-**Success Criteria** (what must be TRUE):
-
-1. SwiftBar Service section shows Python TTS server health with green/red dot, PID, and RSS alongside existing Swift companion status
-2. Changing Voice or Speed in the SwiftBar menu propagates through Swift companion HTTP API to the Python TTS server and takes effect on the next synthesis
-3. Bot subsystem row in SwiftBar shows "connected" (green dot) when bot is polling or "disabled" (grey dot) when token is missing -- never "unknown"
-   **Plans**: TBD
-   **UI hint**: yes
-
-### Phase 31: E2E Integration Verification
-
-**Goal**: The full session-end-to-Telegram pipeline works end-to-end with TTS karaoke and no regressions in the CLI path
-
-**Depends on**: Phase 29, Phase 30
-**Requirements**: E2E-01, E2E-02, E2E-03
-**Success Criteria** (what must be TRUE):
-
-1. A Claude session ending triggers the full chain: notification file detected -> AI summary generated -> TTS synthesized via Python server -> karaoke subtitles displayed -> Telegram message delivered with Arc Summary + Tail Brief
-2. During E2E flow, TTS audio plays with word-level karaoke highlighting driven by Python MToken onsets (gold word advance matches speech)
-3. `tts_kokoro.sh "test sentence"` synthesizes and plays audio end-to-end without errors (regression check against v4.8.0 behavior)
-   **Plans**: TBD
-
-### Phase 32: Audio Device Resilience
-
-**Goal**: AVAudioEngine recovers automatically when the system default audio output changes (Bluetooth connect/disconnect, HDMI, speaker switch) — CoreAudio HAL listener + periodic health check + engine rebuild with debounce
-
-**Depends on**: Phase 31
-**Requirements**: AUDIO-01, AUDIO-02, AUDIO-03, AUDIO-04, AUDIO-05, AUDIO-06
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 32-01-PLAN.md -- Config constants + CoreAudio HAL listener + full engine teardown/rebuild + debounce/cooldown
-- [x] 32-02-PLAN.md -- Periodic health check timer + manual device switch verification checkpoint
-
-### Phase 33: Telegram Bot Verification
-
-**Goal**: Verify that Telegram bot implementation satisfies BOT-10, BOT-11, BOT-12 — produce missing VERIFICATION.md artifacts (gap closure for Phase 29 which was completed outside GSD)
-
-**Depends on**: Phase 32
-**Requirements**: BOT-10, BOT-11, BOT-12
-**Plans**: 1 plan
-
-Plans:
-
-- [x] 33-01-PLAN.md -- Inspect codebase for BOT-10/11/12 evidence and produce VERIFICATION.md
-
-### Phase 34: E2E Pipeline Verification
-
-**Goal**: Verify that the full session-end-to-Telegram pipeline works end-to-end satisfying E2E-01, E2E-02, E2E-03 — produce missing VERIFICATION.md artifacts (gap closure for Phase 31 which was completed outside GSD)
-
-**Depends on**: Phase 33
-**Requirements**: E2E-01, E2E-02, E2E-03
-**Plans**: 1 plan
-
-Plans:
-
-- [x] 34-01-PLAN.md — Inspect codebase for E2E-01/02/03 evidence and produce VERIFICATION.md
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> ... -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18 -> 19 -> 20 -> 20.1 -> 21 -> 22 -> 23 -> 24 -> 25 -> 26 -> 27 -> 28 -> 29 -> 30 -> 31 -> 32 -> 33 -> 34
-
-| Phase                                           | Plans Complete | Status   | Completed  |
-| ----------------------------------------------- | -------------- | -------- | ---------- |
-| 1. Foundation & Build System                    | 2/2            | Complete | -          |
-| 2. Subtitle Overlay                             | 2/2            | Complete | -          |
-| 3. TTS Engine                                   | 2/2            | Complete | 2026-03-26 |
-| 4. AI Summaries                                 | 2/2            | Complete | 2026-03-26 |
-| 5. Telegram Bot Core                            | 2/2            | Complete | 2026-03-26 |
-| 6. Telegram Bot Commands                        | 2/2            | Complete | 2026-03-26 |
-| 7. File Watching & Auto-Continue                | 2/2            | Complete | 2026-03-26 |
-| 8. HTTP Control API                             | 2/2            | Complete | 2026-03-26 |
-| 9. SwiftBar Integration                         | 2/2            | Complete | 2026-03-26 |
-| 10. Deployment & Extras                         | 2/2            | Complete | 2026-03-26 |
-| 11. Notification Formatting                     | 2/2            | Complete | 2026-03-27 |
-| 12. AI Summary Prompts                          | 2/2            | Complete | 2026-03-27 |
-| 13. Auto-Continue Evaluation                    | 2/2            | Complete | 2026-03-27 |
-| 14. TTS Dispatch & Feature Gates                | 2/2            | Complete | 2026-03-27 |
-| 15. Telegram Inline Buttons                     | 2/2            | Complete | 2026-03-27 |
-| 16. Integration & Reliability                   | 1/1            | Complete | 2026-03-27 |
-| 17. TTS Streaming & Subtitle Chunking           | 2/2            | Complete | 2026-03-27 |
-| 18. CompanionCore Library & Test Infrastructure | 2/2            | Complete | 2026-03-28 |
-| 19. TTSEngine Decomposition & Actor Migration   | 2/2            | Complete | 2026-03-28 |
-| 20. Unit & Integration Tests                    | 2/2            | Complete | 2026-03-28 |
-| 20.1. MLX Metal Memory Lifecycle                | 1/1            | Complete | 2026-03-28 |
-| 21. Pipeline Hardening                          | 2/2            | Complete | 2026-03-28 |
-| 22. Bionic Reading Mode                         | 2/2            | Complete | 2026-03-28 |
-| 23. Caption History Panel                       | 2/2            | Complete | 2026-03-28 |
-| 24. Chinese TTS Fallback                        | 2/2            | Complete | 2026-03-28 |
-| 25. Python TTS Server Timestamp Endpoint        | 1/1            | Complete | 2026-03-28 |
-| 26. Swift TTSEngine Python Integration          | 1/1            | Complete | 2026-03-28 |
-| 27. MLX Dependency Removal                      | 1/1            | Complete | 2026-03-28 |
-| 28. Memory Lifecycle Cleanup                    | 1/1            | Complete | 2026-03-28 |
-| 29. Telegram Bot Activation                     | 0/0            | Complete | 2026-03-28 |
-| 30. SwiftBar UI Updates                         | 1/1            | Complete | 2026-03-28 |
-| 31. E2E Integration Verification                | 0/0            | Complete | 2026-03-28 |
-| 32. Audio Device Resilience                     | 2/2            | Complete | 2026-03-29 |
-| 33. Telegram Bot Verification                   | 1/1            | Complete | 2026-03-29 |
-| 34. E2E Pipeline Verification                   | 1/1            | Complete | 2026-03-29 |
