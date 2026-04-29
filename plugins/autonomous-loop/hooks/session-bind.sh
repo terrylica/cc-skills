@@ -197,4 +197,11 @@ while IFS= read -r match; do
   esac
 done <<< "$MATCHES"
 
+# DOC-03: idempotent self-healing on SessionStart. heal-self.sh is gated by
+# registry content-hash so it does nothing when the registry is unchanged.
+HEAL_SCRIPT="$PLUGIN_SCRIPTS/heal-self.sh"
+if [ -x "$HEAL_SCRIPT" ]; then
+  "$HEAL_SCRIPT" 2>/dev/null || true
+fi
+
 exit 0
