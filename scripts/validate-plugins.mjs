@@ -454,16 +454,25 @@ function detectHookType(filename, content, hooksJsonPath) {
   if (lowerFilename.includes("pretooluse") || lowerFilename.includes("pre-tool")) {
     return "PreToolUse";
   }
+  if (lowerFilename.includes("sessionstart") || lowerFilename.includes("session-start") || lowerFilename.includes("session-bind")) {
+    return "SessionStart";
+  }
+  if (lowerFilename.includes("empty-firing") || lowerFilename.includes("firing-detector")) {
+    return "Stop";
+  }
 
   // Content-based heuristics
   if (content.includes("PostToolUse") || content.includes("tool_response")) {
     return "PostToolUse";
   }
-  if (content.includes("stop_hook_active")) {
+  if (content.includes("stop_hook_active") || content.includes('"Stop hook"') || content.includes("(Claude Code Stop hook)")) {
     return "Stop";
   }
   if (content.includes("permissionDecision") || content.includes("PreToolUse")) {
     return "PreToolUse";
+  }
+  if (content.includes("SessionStart") || content.includes('"hookEventName": "SessionStart"')) {
+    return "SessionStart";
   }
 
   return "unknown";
