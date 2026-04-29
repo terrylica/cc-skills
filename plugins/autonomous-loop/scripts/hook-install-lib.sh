@@ -690,22 +690,191 @@ uninstall_session_bind() {
   _with_settings_lock uninstall_session_bind_impl "$settings_path" "$hook_path" || return 1
 }
 
-# install_all_hooks: composite — installs BOTH heartbeat-tick (PostToolUse)
-# and session-bind (SessionStart). Idempotent. Recommended entry point.
+# PROCESS-STORM-OK
+# ===== PreToolUse pacing-veto hook (v16.6.1: anti-pacing enforcement) =====
+
+hook_path_default_pacing_veto() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
+  local plugin_dir
+  plugin_dir="$(dirname "$script_dir")" || return 1
+  local hook_path="$plugin_dir/hooks/pacing-veto.sh"
+  if [ ! -f "$hook_path" ]; then
+    echo "ERROR: hook_path_default_pacing_veto: pacing-veto hook not found at $hook_path" >&2
+    return 1
+  fi
+  echo "$hook_path"
+}
+
+is_pacing_veto_installed() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  if [ ! -f "$settings_path" ]; then
+    echo "no"
+    return 0
+  fi
+  local installed
+  installed=$(jq -r '
+    .hooks.PreToolUse[]?.hooks[]? |
+    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/pacing-veto.sh"))) |
+    .command
+  ' "$settings_path" 2>/dev/null || echo "") || true
+  if [ -n "$installed" ]; then echo "yes"; else echo "no"; fi
+}
+
+install_pacing_veto_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+
+  if [ -f "$settings_path" ]; then
+    local installed
+    installed=$(jq -r '
+      .hooks.PreToolUse[]?.hooks[]? |
+      select(.type == "command" and (.command == "'"$hook_path"'")) |
+      .command
+    ' "$settings_path" 2>/dev/null || echo "") || true
+    if [ -n "$installed" ]; then
+      echo "PreToolUse pacing-veto already installed at $hook_path; no-op" >&2
+      return 0
+    fi
+    if ! jq . "$settings_path" >/dev/null 2>&1; then
+      echo "ERROR: install_pacing_veto_impl: settings.json malformed" >&2
+      return 1
+    fi
+  fi
+
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+
+  # Matcher restricted to ScheduleWakeup tool — cheaper than running on every tool call.
+  local new_settings
+  if [ -f "$settings_path" ]; then
+    new_settings=$(jq '
+      .hooks.PreToolUse //= [] |
+      .hooks.PreToolUse += [{
+        "matcher": "ScheduleWakeup",
+        "hooks": [
+          { "type": "command", "command": "'"$hook_path"'" }
+        ]
+      }]
+    ' "$settings_path" 2>/dev/null) || {
+      rm -f "$temp_file"
+      return 1
+    }
+  else
+    new_settings=$(jq -n '
+      {
+        "hooks": {
+          "PreToolUse": [
+            {
+              "matcher": "ScheduleWakeup",
+              "hooks": [
+                { "type": "command", "command": "'"$hook_path"'" }
+              ]
+            }
+          ]
+        }
+      }
+    ') || { rm -f "$temp_file"; return 1; }
+  fi
+
+  if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  if ! echo "$new_settings" >"$temp_file"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  sync || true
+  if ! mv "$temp_file" "$settings_path"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  echo "PreToolUse pacing-veto hook installed successfully at $settings_path" >&2
+  return 0
+}
+
+uninstall_pacing_veto_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+  [ ! -f "$settings_path" ] && return 0
+  if ! jq . "$settings_path" >/dev/null 2>&1; then
+    return 1
+  fi
+  local new_settings
+  new_settings=$(jq '
+    .hooks.PreToolUse[]?.hooks |= map(
+      select((.type != "command" or .command != "'"$hook_path"'"))
+    ) |
+    .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(select((.hooks // []) | length > 0)))
+  ' "$settings_path" 2>/dev/null) || return 1
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  if ! echo "$new_settings" >"$temp_file"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  sync || true
+  mv "$temp_file" "$settings_path" || { rm -f "$temp_file"; return 1; }
+  return 0
+}
+
+install_pacing_veto() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_pacing_veto) || return 1
+  fi
+  if [ ! -f "$hook_path" ]; then
+    return 1
+  fi
+  settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+  _with_settings_lock install_pacing_veto_impl "$settings_path" "$hook_path" || return 1
+}
+
+uninstall_pacing_veto() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_pacing_veto) || return 1
+  fi
+  if [ -f "$settings_path" ]; then
+    settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  fi
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+  _with_settings_lock uninstall_pacing_veto_impl "$settings_path" "$hook_path" || return 1
+}
+
+# install_all_hooks: composite — installs heartbeat-tick (PostToolUse),
+# session-bind (SessionStart), and pacing-veto (PreToolUse). Idempotent.
 install_all_hooks() {
   local settings_path="${1:-$HOME/.claude/settings.json}"
   install_hook "$settings_path" || return 1
   install_session_bind "$settings_path" || return 1
+  install_pacing_veto "$settings_path" || return 1
   return 0
 }
 
-# uninstall_all_hooks: composite — removes both autonomous-loop hooks.
+# uninstall_all_hooks: composite — removes all three autonomous-loop hooks.
 uninstall_all_hooks() {
   local settings_path="${1:-$HOME/.claude/settings.json}"
   uninstall_hook "$settings_path" || true
   uninstall_session_bind "$settings_path" || true
+  uninstall_pacing_veto "$settings_path" || true
   return 0
 }
+
+export -f hook_path_default_pacing_veto
+export -f is_pacing_veto_installed
+export -f install_pacing_veto_impl
+export -f install_pacing_veto
+export -f uninstall_pacing_veto_impl
+export -f uninstall_pacing_veto
 
 # Export functions for sourcing by other scripts
 export -f is_hook_installed

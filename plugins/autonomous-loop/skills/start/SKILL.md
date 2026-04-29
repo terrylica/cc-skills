@@ -22,6 +22,7 @@ Install BOTH autonomous-loop hooks into `~/.claude/settings.json` if not already
 
 - **PostToolUse → `heartbeat-tick.sh`** — ticks heartbeat on every tool invocation, detects cwd drift.
 - **SessionStart → `session-bind.sh`** — authoritatively binds `owner_session_id` from stdin payload (replaces broken `$CLAUDE_SESSION_ID` env-var capture; ref [anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018)).
+- **PreToolUse(ScheduleWakeup) → `pacing-veto.sh`** — denies pacing-disguised wakers (delays in the 300–1199s cache-miss zone, or any >270s with token-budget/cache-warm/self-pacing/cooldown/rest in the reason text). Forces Tier 0 (in-turn) when no real external blocker exists.
 
 ```bash
 # Source the hook install library
