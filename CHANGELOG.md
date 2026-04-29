@@ -1,3 +1,19 @@
+# [16.6.0](https://github.com/terrylica/cc-skills/compare/v16.5.1...v16.6.0) (2026-04-29)
+
+
+### Bug Fixes
+
+* **autonomous-loop:** add self-evolution sandwich to doctor skill ([4a5b82e](https://github.com/terrylica/cc-skills/commit/4a5b82eb0764ac61a4c2c05d28435377429b1666))
+
+
+### Features
+
+* **autonomous-loop:** add provenance-lib.sh foundation (PROV-01..04) ([124f8bb](https://github.com/terrylica/cc-skills/commit/124f8bb3831d2b91ef3d7f02363a0e845426708d))
+* **autonomous-loop:** doctor + self-heal (DOC-01..04) ([b6e7f6a](https://github.com/terrylica/cc-skills/commit/b6e7f6a13fc2c245c01405140c45c04c07a5e3ba))
+* **autonomous-loop:** hook-time session-loop binding (BIND-01..04) ([76359bf](https://github.com/terrylica/cc-skills/commit/76359bfd9af8a1cd6087f837c9c51df63fab094c)), closes [anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018) [#47018](https://github.com/terrylica/cc-skills/issues/47018)
+* **autonomous-loop:** waker hardening + launchd collision defense (WAKE-01..05) ([8feb534](https://github.com/terrylica/cc-skills/commit/8feb534b81ee436671be64db170a32017abaa0d8))
+* **planning:** scaffold v4.10.0 Autonomous Loop Anti-Fragility milestone ([e9e75de](https://github.com/terrylica/cc-skills/commit/e9e75de58f68eeb42a18593ce273196e94a478f6)), closes [anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018)
+
 ## [16.5.1](https://github.com/terrylica/cc-skills/compare/v16.5.0...v16.5.1) (2026-04-27)
 
 
