@@ -500,6 +500,8 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 
 ## Revision Log (append-only, one line per firing)
 
+- 2026-04-29T10:16:40Z — interactive cc-skills tooling session (not floating-clock work; autonomous-loop hardening + doctor fixes); loop continues at iter 246
+
 - 2026-04-23 23:59 UTC — iter-0: scaffolded contract, queue seeded with 5 Tier 1 items covering the user-confirmed scope (context menu, icon, slash commands, touchpoint manifest, release). Next: iter-1 starts NSMenu implementation.
 - 2026-04-24 00:05 UTC — iter-1: NSMenu context menu shipped (caeb743c). 6 persistent options + reset/about/quit. 521 LoC. Binary 96 KB. Next: iter-2 icon generation.
 - 2026-04-24 00:20 UTC — iter-2: Core Graphics app icon shipped (c2168d0f). gen-icon helper + iconutil pipeline. 124 KB ICNS. Next: iter-3 slash commands.
