@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "probe_id": "E404-bad-model",
+    "label": "chat-completion with invalid model name",
+    "endpoint": "/v1/chat/completions",
+    "method": "POST",
+    "request_body_summary": "<110 bytes>",
+    "auth_kind": "valid",
+    "http_status": 400,
+    "latency_seconds": 0.488,
+    "response_kind": "json-error",
+    "response_headers": {
+      "Date": "Wed, 29 Apr 2026 04:22:27 GMT",
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": "201",
+      "Connection": "close",
+      "Trace-Id": "0640ba836689481a9c9410847decb247",
+      "Minimax-Request-Id": "669c00480194904430b6c5222ab3e18f",
+      "alb_receive_time": "1777436547.392",
+      "alb_request_id": "5ef647e62e5780b005ee8f5849c331cf695e6e88"
+    },
+    "response_body_json": {
+      "type": "error",
+      "error": {
+        "type": "bad_request_error",
+        "message": "invalid params, unknown model 'this-model-does-not-exist-2026' (2013)",
+        "http_code": "400"
+      },
+      "request_id": "0640ba836689481a9c9410847decb247"
+    },
+    "response_body_raw_preview": null,
+    "error_payload": {
+      "http_error_code": 400,
+      "reason": "Bad Request"
+    }
+  }
+}

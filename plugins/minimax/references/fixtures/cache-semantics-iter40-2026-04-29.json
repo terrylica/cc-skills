@@ -1,0 +1,166 @@
+{
+  "_meta": {
+    "probe_id": "iter-40-T4.2-cache-semantics",
+    "label": "Cache-read semantics: threshold + prefix-match + TTL",
+    "model": "MiniMax-M2.7-highspeed"
+  },
+  "P1_threshold_sweep": [
+    {
+      "label": "P1.size100.cold",
+      "latency": 11.717,
+      "prompt_tokens": 105,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size100.warm",
+      "latency": 10.774,
+      "prompt_tokens": 105,
+      "completion_tokens": 430,
+      "auto_cached_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size300.cold",
+      "latency": 12.414,
+      "prompt_tokens": 264,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size300.warm",
+      "latency": 11.439,
+      "prompt_tokens": 264,
+      "completion_tokens": 481,
+      "auto_cached_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size700.cold",
+      "latency": 10.118,
+      "prompt_tokens": 597,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size700.warm",
+      "latency": 10.706,
+      "prompt_tokens": 597,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 443,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size1500.cold",
+      "latency": 8.94,
+      "prompt_tokens": 1256,
+      "completion_tokens": 455,
+      "auto_cached_tokens": 443,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P1.size1500.warm",
+      "latency": 11.132,
+      "prompt_tokens": 1256,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    }
+  ],
+  "P2_prefix_match": [
+    {
+      "label": "P2.U0.warmup",
+      "latency": 10.814,
+      "prompt_tokens": 1256,
+      "completion_tokens": 501,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P2.U1",
+      "latency": 9.223,
+      "prompt_tokens": 1256,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P2.U2",
+      "latency": 9.749,
+      "prompt_tokens": 1255,
+      "completion_tokens": 394,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P2.U3",
+      "latency": 13.587,
+      "prompt_tokens": 1258,
+      "completion_tokens": 490,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    }
+  ],
+  "P3_ttl_decay": [
+    {
+      "label": "P3.t0.warmup",
+      "latency": 10.257,
+      "prompt_tokens": 1256,
+      "completion_tokens": 415,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P3.t5s",
+      "latency": 7.859,
+      "prompt_tokens": 1256,
+      "completion_tokens": 407,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P3.t35s",
+      "latency": 10.709,
+      "prompt_tokens": 1256,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P3.t95s",
+      "latency": 11.255,
+      "prompt_tokens": 1256,
+      "completion_tokens": 512,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    {
+      "label": "P3.t185s",
+      "latency": 9.061,
+      "prompt_tokens": 1256,
+      "completion_tokens": 402,
+      "auto_cached_tokens": 891,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    }
+  ]
+}
