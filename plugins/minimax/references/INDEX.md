@@ -61,14 +61,14 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 
 | Source                  | Destination                          | Status         | Iter | Headline finding                                       |
 | ----------------------- | ------------------------------------ | -------------- | ---- | ------------------------------------------------------ |
-| prompt-caching.md       | api-patterns/prompt-caching.md       | NOT_AGGREGATED | 39   | Hybrid OpenAI+Anthropic cache APIs; 96.4% explicit hit |
-| cache-read-semantics.md | api-patterns/cache-read-semantics.md | NOT_AGGREGATED | 40   | Threshold 264-597 pt; prefix-match works; TTL ≥ 3min   |
+| prompt-caching.md       | api-patterns/prompt-caching.md       | AGGREGATED    | 39   | Hybrid OpenAI+Anthropic cache APIs; 96.4% explicit hit |
+| cache-read-semantics.md | api-patterns/cache-read-semantics.md | AGGREGATED    | 40   | Threshold 264-597 pt; prefix-match works; TTL ≥ 3min   |
 
 ### Other endpoints (8 files)
 
 | Source              | Destination                      | Status         | Iter | Headline finding                                   |
 | ------------------- | -------------------------------- | -------------- | ---- | -------------------------------------------------- |
-| models-endpoint.md  | api-patterns/models-endpoint.md  | NOT_AGGREGATED | 1    | `/v1/models` catalog (7 models); cadence 5-8 weeks |
+| models-endpoint.md  | api-patterns/models-endpoint.md  | AGGREGATED    | 1    | `/v1/models` catalog (7 models); cadence 5-8 weeks |
 | audio-tts.md        | api-patterns/audio-tts.md        | AGGREGATED    | 15   | `/v1/t2a_v2`; all 6 speech models plan-gated       |
 | video-generation.md | api-patterns/video-generation.md | AGGREGATED    | 16   | `/v1/video_generation`; async via task_id          |
 | embeddings.md       | api-patterns/embeddings.md       | AGGREGATED    | 17   | `/v1/embeddings`; RPM-tight; pending vector test   |
@@ -82,23 +82,23 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | Source                     | Destination                             | Status         | Iter | Headline finding                                  |
 | -------------------------- | --------------------------------------- | -------------- | ---- | ------------------------------------------------- |
 | errors-and-responses.md    | api-patterns/errors-and-responses.md    | AGGREGATED    | 23   | Two envelopes; no HTTP 404/413                    |
-| model-aliasing.md          | api-patterns/model-aliasing.md          | NOT_AGGREGATED | 28   | Plain ≠ highspeed; plain FASTER for short outputs |
-| model-upgrade-detection.md | api-patterns/model-upgrade-detection.md | NOT_AGGREGATED | 41   | The OPS tool architecture + bug history           |
+| model-aliasing.md          | api-patterns/model-aliasing.md          | AGGREGATED    | 28   | Plain ≠ highspeed; plain FASTER for short outputs |
+| model-upgrade-detection.md | api-patterns/model-upgrade-detection.md | AGGREGATED    | 41   | The OPS tool architecture + bug history           |
 
 ### Tier F — Financial engineering (10 files)
 
 | Source                        | Destination                                | Status         | Iter | Headline finding                                          |
 | ----------------------------- | ------------------------------------------ | -------------- | ---- | --------------------------------------------------------- |
-| finmath-accuracy.md           | api-patterns/finmath-accuracy.md           | NOT_AGGREGATED | 29   | Accurate at adequate budget; Black-Scholes unsolvable     |
-| trade-signal-json.md          | api-patterns/trade-signal-json.md          | NOT_AGGREGATED | 30   | 6/6 production-ready (100% L1+L2+L3)                      |
-| finconcepts-knowledge.md      | api-patterns/finconcepts-knowledge.md      | NOT_AGGREGATED | 31   | 6/6 graduate-level theory; auto-grading caveat            |
-| long-context-10k.md           | api-patterns/long-context-10k.md           | NOT_AGGREGATED | 32   | 4/4 retrieval at 27K; citations fabricated                |
-| code-generation-validation.md | api-patterns/code-generation-validation.md | NOT_AGGREGATED | 33   | 0/3 runtime; sandbox validation MANDATORY                 |
-| financial-tool-use.md         | api-patterns/financial-tool-use.md         | NOT_AGGREGATED | 34   | 4/4 orchestration; weather-trap refused                   |
-| pattern-recognition.md        | api-patterns/pattern-recognition.md        | NOT_AGGREGATED | 35   | DO NOT USE; random-walk trap triggered                    |
-| portfolio-optimization.md     | api-patterns/portfolio-optimization.md     | NOT_AGGREGATED | 36   | Math saturates 8K reasoning; explains framework with KKT  |
-| risk-metrics-chain.md         | api-patterns/risk-metrics-chain.md         | NOT_AGGREGATED | 37   | Saturates on N=252; data volume drives saturation         |
-| mandarin-cross-language.md    | api-patterns/mandarin-cross-language.md    | NOT_AGGREGATED | 38   | Quality matches/exceeds English; political filter by lang |
+| finmath-accuracy.md           | api-patterns/finmath-accuracy.md           | AGGREGATED    | 29   | Accurate at adequate budget; Black-Scholes unsolvable     |
+| trade-signal-json.md          | api-patterns/trade-signal-json.md          | AGGREGATED    | 30   | 6/6 production-ready (100% L1+L2+L3)                      |
+| finconcepts-knowledge.md      | api-patterns/finconcepts-knowledge.md      | AGGREGATED    | 31   | 6/6 graduate-level theory; auto-grading caveat            |
+| long-context-10k.md           | api-patterns/long-context-10k.md           | AGGREGATED    | 32   | 4/4 retrieval at 27K; citations fabricated                |
+| code-generation-validation.md | api-patterns/code-generation-validation.md | AGGREGATED    | 33   | 0/3 runtime; sandbox validation MANDATORY                 |
+| financial-tool-use.md         | api-patterns/financial-tool-use.md         | AGGREGATED    | 34   | 4/4 orchestration; weather-trap refused                   |
+| pattern-recognition.md        | api-patterns/pattern-recognition.md        | AGGREGATED    | 35   | DO NOT USE; random-walk trap triggered                    |
+| portfolio-optimization.md     | api-patterns/portfolio-optimization.md     | AGGREGATED    | 36   | Math saturates 8K reasoning; explains framework with KKT  |
+| risk-metrics-chain.md         | api-patterns/risk-metrics-chain.md         | AGGREGATED    | 37   | Saturates on N=252; data volume drives saturation         |
+| mandarin-cross-language.md    | api-patterns/mandarin-cross-language.md    | AGGREGATED    | 38   | Quality matches/exceeds English; political filter by lang |
 
 ### Index doc (1 file — meta)
 
@@ -154,12 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      27  (3 from iter-5/6/7 + 24 leaf docs from iter-8/9/10)
-NOT_AGGREGATED:                  ~23
+AGGREGATED:                      42  (3 from iter-5/6/7 + 39 ALL leaf docs from iter-8/9/10/11) — leaf-doc aggregation COMPLETE
+NOT_AGGREGATED:                  ~8  (fixtures + OPS only)
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-10 (2026-04-29 17:39 UTC)
+Last updated:                    iter-11 (2026-04-29 17:44 UTC) — Phase B leaf-doc aggregation COMPLETE
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
