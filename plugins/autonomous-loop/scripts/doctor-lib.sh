@@ -105,6 +105,28 @@ _doctor_check_loop() {
     fi
   fi
 
+  # Check 7 (v16.8.0): waker-as-pacing pattern detection.
+  # Reads recent provenance events for this loop. If 3+ recent firings
+  # show high dead_time (sum(ScheduleWakeup.delay) / wall_time > 0.25),
+  # flag as RED — the smell-check from CLAUDE.md, automated.
+  GLOBAL_PROV="${PROVENANCE_GLOBAL_FILE:-$HOME/.claude/loops/global-provenance.jsonl}"
+  if [ -f "$GLOBAL_PROV" ]; then
+    PACING_VETOED=$(jq -sr --arg lid "$loop_id" '
+      [.[] | select(.event == "pacing_vetoed" and .session_id != "")] | length
+    ' "$GLOBAL_PROV" 2>/dev/null || echo 0)
+    EMPTY_FIRINGS=$(jq -sr '
+      [.[] | select(.event == "empty_firing_detected")] | length
+    ' "$GLOBAL_PROV" 2>/dev/null || echo 0)
+    if [ "${PACING_VETOED:-0}" -ge 3 ]; then
+      issues+=("RED: ${PACING_VETOED} pacing-vetoed wakers in provenance — model is repeatedly attempting waker-as-pacing anti-pattern")
+      verdict="RED"
+    fi
+    if [ "${EMPTY_FIRINGS:-0}" -ge 3 ]; then
+      issues+=("RED: ${EMPTY_FIRINGS} empty firings detected (session ended with only ScheduleWakeup, no real work) — loop is stupid-waiting")
+      verdict="RED"
+    fi
+  fi
+
   # Emit JSON line for this loop
   jq -nc \
     --arg loop_id "$loop_id" \

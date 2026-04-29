@@ -117,6 +117,43 @@ else
   assert_eq "$ALLOWED" ">=2" "allow telemetry"
 fi
 
+# ===== v16.8.0 expanded coverage =====
+
+# Test 8: pacing-vocab catches even short delays
+echo ""
+echo "Test 8 (v16.8.0): 60s with 'let it settle' → deny (pacing regardless of duration)"
+OUT=$(run_hook "$(mk_payload 60 'let it settle')")
+DECISION=$(extract_decision "$OUT")
+assert_eq "$DECISION" "deny" "deny short-delay pacing-vocab"
+
+# Test 9: empty reason on non-trivial delay
+echo ""
+echo "Test 9 (v16.8.0): 1500s empty reason → deny"
+OUT=$(run_hook "$(mk_payload 1500 '')")
+DECISION=$(extract_decision "$OUT")
+assert_eq "$DECISION" "deny" "deny empty reason"
+
+# Test 10: short reason on long delay
+echo ""
+echo "Test 10 (v16.8.0): 1500s reason 'wait for things' → deny (too short)"
+OUT=$(run_hook "$(mk_payload 1500 'wait for things')")
+DECISION=$(extract_decision "$OUT")
+assert_eq "$DECISION" "deny" "deny short reason on long delay"
+
+# Test 11: vacuous filler
+echo ""
+echo "Test 11 (v16.8.0): 3600s with vacuous 'nothing in particular' → deny"
+OUT=$(run_hook "$(mk_payload 3600 'wait for nothing in particular to happen and the system to recover')")
+DECISION=$(extract_decision "$OUT")
+assert_eq "$DECISION" "deny" "deny vacuous filler"
+
+# Test 12: vocabulary evasion via 'settle'
+echo ""
+echo "Test 12 (v16.8.0): 1500s 'settle then continue' → deny (settle is now blocked)"
+OUT=$(run_hook "$(mk_payload 1500 'settle then continue iter-2 with results')")
+DECISION=$(extract_decision "$OUT")
+assert_eq "$DECISION" "deny" "deny 'settle' vocabulary"
+
 echo ""
 echo "========================================"
 echo "Results: $PASS passed, $FAIL failed"

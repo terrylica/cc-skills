@@ -850,22 +850,168 @@ uninstall_pacing_veto() {
   _with_settings_lock uninstall_pacing_veto_impl "$settings_path" "$hook_path" || return 1
 }
 
+# PROCESS-STORM-OK
+# ===== Empty-Firing-Detector hook (Stop event) — v16.8.0 =====
+# Mirrors the SessionStart installer pattern but writes to .hooks.Stop.
+# Detects sessions that ended with only ScheduleWakeup and no real work.
+
+hook_path_default_empty_firing() {
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
+  local plugin_dir
+  plugin_dir="$(dirname "$script_dir")" || return 1
+  local hook_path="$plugin_dir/hooks/empty-firing-detector.sh"
+  if [ ! -f "$hook_path" ]; then
+    echo "ERROR: hook_path_default_empty_firing: hook not found at $hook_path" >&2
+    return 1
+  fi
+  echo "$hook_path"
+}
+
+is_empty_firing_installed() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  if [ ! -f "$settings_path" ]; then echo "no"; return 0; fi
+  local installed
+  installed=$(jq -r '
+    .hooks.Stop[]?.hooks[]? |
+    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/empty-firing-detector.sh"))) |
+    .command
+  ' "$settings_path" 2>/dev/null || echo "") || true
+  if [ -n "$installed" ]; then echo "yes"; else echo "no"; fi
+}
+
+install_empty_firing_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+
+  if [ -f "$settings_path" ]; then
+    local installed
+    installed=$(jq -r '
+      .hooks.Stop[]?.hooks[]? |
+      select(.type == "command" and (.command == "'"$hook_path"'")) |
+      .command
+    ' "$settings_path" 2>/dev/null || echo "") || true
+    if [ -n "$installed" ]; then
+      echo "Stop hook already installed at $hook_path; no-op" >&2
+      return 0
+    fi
+    if ! jq . "$settings_path" >/dev/null 2>&1; then
+      echo "ERROR: install_empty_firing_impl: settings.json malformed" >&2
+      return 1
+    fi
+  fi
+
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+
+  local new_settings
+  if [ -f "$settings_path" ]; then
+    new_settings=$(jq '
+      .hooks.Stop //= [{ "matcher": "*", "hooks": [] }] |
+      ( if (.hooks.Stop | length) == 0 then .hooks.Stop += [{ "matcher": "*", "hooks": [] }] else . end ) |
+      .hooks.Stop[0].hooks += [{ "type": "command", "command": "'"$hook_path"'" }]
+    ' "$settings_path" 2>/dev/null) || { rm -f "$temp_file"; return 1; }
+  else
+    new_settings=$(jq -n '{
+      "hooks": {
+        "Stop": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "'"$hook_path"'" }] }]
+      }
+    }') || { rm -f "$temp_file"; return 1; }
+  fi
+
+  if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  if ! echo "$new_settings" >"$temp_file"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  sync || true
+  if ! mv "$temp_file" "$settings_path"; then
+    rm -f "$temp_file"
+    return 1
+  fi
+  echo "Stop hook (empty-firing-detector) installed at $settings_path" >&2
+  return 0
+}
+
+uninstall_empty_firing_impl() {
+  local settings_path="$1"
+  local hook_path="$2"
+  local claude_dir
+  claude_dir=$(dirname "$settings_path") || return 1
+
+  if [ ! -f "$settings_path" ]; then return 0; fi
+  if ! jq . "$settings_path" >/dev/null 2>&1; then
+    echo "ERROR: uninstall_empty_firing_impl: settings.json malformed" >&2
+    return 1
+  fi
+
+  local new_settings
+  new_settings=$(jq '
+    .hooks.Stop[]?.hooks |= map(
+      select((.type != "command" or .command != "'"$hook_path"'"))
+    )
+  ' "$settings_path" 2>/dev/null) || return 1
+
+  local temp_file
+  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  if ! echo "$new_settings" >"$temp_file"; then rm -f "$temp_file"; return 1; fi
+  sync || true
+  mv "$temp_file" "$settings_path" || { rm -f "$temp_file"; return 1; }
+  return 0
+}
+
+install_empty_firing() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_empty_firing) || return 1
+  fi
+  if [ ! -f "$hook_path" ]; then
+    echo "ERROR: install_empty_firing: hook not found at $hook_path" >&2
+    return 1
+  fi
+  settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+  _with_settings_lock install_empty_firing_impl "$settings_path" "$hook_path" || return 1
+}
+
+uninstall_empty_firing() {
+  local settings_path="${1:-$HOME/.claude/settings.json}"
+  local hook_path="${2:-}"
+  if [ -z "$hook_path" ]; then
+    hook_path=$(hook_path_default_empty_firing) || return 1
+  fi
+  if [ -f "$settings_path" ]; then
+    settings_path=$(cd "$(dirname "$settings_path")" && echo "$PWD/$(basename "$settings_path")")
+  fi
+  hook_path=$(cd "$(dirname "$hook_path")" && echo "$PWD/$(basename "$hook_path")")
+  _with_settings_lock uninstall_empty_firing_impl "$settings_path" "$hook_path" || return 1
+}
+
 # install_all_hooks: composite — installs heartbeat-tick (PostToolUse),
-# session-bind (SessionStart), and pacing-veto (PreToolUse). Idempotent.
+# session-bind (SessionStart), pacing-veto (PreToolUse), and
+# empty-firing-detector (Stop). Idempotent.
 install_all_hooks() {
   local settings_path="${1:-$HOME/.claude/settings.json}"
   install_hook "$settings_path" || return 1
   install_session_bind "$settings_path" || return 1
   install_pacing_veto "$settings_path" || return 1
+  install_empty_firing "$settings_path" || return 1
   return 0
 }
 
-# uninstall_all_hooks: composite — removes all three autonomous-loop hooks.
+# uninstall_all_hooks: composite — removes all four autonomous-loop hooks.
 uninstall_all_hooks() {
   local settings_path="${1:-$HOME/.claude/settings.json}"
   uninstall_hook "$settings_path" || true
   uninstall_session_bind "$settings_path" || true
   uninstall_pacing_veto "$settings_path" || true
+  uninstall_empty_firing "$settings_path" || true
   return 0
 }
 
@@ -875,6 +1021,12 @@ export -f install_pacing_veto_impl
 export -f install_pacing_veto
 export -f uninstall_pacing_veto_impl
 export -f uninstall_pacing_veto
+export -f hook_path_default_empty_firing
+export -f is_empty_firing_installed
+export -f install_empty_firing_impl
+export -f install_empty_firing
+export -f uninstall_empty_firing_impl
+export -f uninstall_empty_firing
 
 # Export functions for sourcing by other scripts
 export -f is_hook_installed
