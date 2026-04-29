@@ -108,6 +108,43 @@ generate_plist() {
   local label
   label=$(plist_label "$loop_id") || return 1
 
+  # WAKE-03 (v4.10.0 Phase 37): launchd Label collision detection.
+  # If launchctl already shows a job with this Label OR a stale plist file
+  # exists in ~/Library/LaunchAgents, archive the existing artefacts to
+  # state_dir/orphans/<unixts>/ and unload the running job. This prevents
+  # silent overwrite of a loaded plist (which would orphan the launchctl
+  # entry while a fresh plist replaces the file).
+  local existing_count=0
+  if command -v launchctl >/dev/null 2>&1; then
+    existing_count=$(launchctl list 2>/dev/null | awk -v lbl="$label" '$3 == lbl' | wc -l | tr -d ' ')
+    existing_count="${existing_count:-0}"
+  fi
+  local stale_plist="$HOME/Library/LaunchAgents/$label.plist"
+  if [ "$existing_count" -ge 1 ] || [ -f "$stale_plist" ]; then
+    local orphan_dir
+    orphan_dir="$state_dir/orphans/$(date +%s)"
+    mkdir -p "$orphan_dir" 2>/dev/null || true
+    if [ "$existing_count" -ge 1 ]; then
+      launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+    fi
+    if [ -f "$stale_plist" ]; then
+      mv "$stale_plist" "$orphan_dir/" 2>/dev/null || true
+    fi
+    # Best-effort provenance event (lib may be absent in test envs)
+    local prov_lib_dir prov_lib
+    prov_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    prov_lib="$prov_lib_dir/provenance-lib.sh"
+    if [ -f "$prov_lib" ]; then
+      # shellcheck source=/dev/null
+      source "$prov_lib" 2>/dev/null || true
+      if command -v emit_provenance >/dev/null 2>&1; then
+        emit_provenance "$loop_id" "label_collision_resolved" \
+          reason="existing launchctl entries=$existing_count stale_plist=$([ -f "$stale_plist" ] && echo yes || echo no); archived to $orphan_dir" \
+          decision="proceeded" 2>/dev/null || true
+      fi
+    fi
+  fi
+
   # WHY the per-loop runner: launchd's Login Items UI displays the basename
   # of ProgramArguments[0]. Pointing the plist at /bin/bash directly makes
   # every loop show up as "bash" in System Settings → Login Items, which

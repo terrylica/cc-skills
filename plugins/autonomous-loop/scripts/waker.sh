@@ -13,10 +13,146 @@ trap 'echo "ERROR at line $LINENO: waker.sh failed" >&2; exit 0' ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source required libraries
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/registry-lib.sh" || { echo "ERROR: failed to source registry-lib.sh" >&2; exit 0; }
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/ownership-lib.sh" || { echo "ERROR: failed to source ownership-lib.sh" >&2; exit 0; }
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/state-lib.sh" || { echo "ERROR: failed to source state-lib.sh" >&2; exit 0; }
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/notifications-lib.sh" || { echo "ERROR: failed to source notifications-lib.sh" >&2; exit 0; }
+
+# Provenance is best-effort; missing lib is non-fatal (Phase 35 introduced it)
+if [ -f "$SCRIPT_DIR/provenance-lib.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$SCRIPT_DIR/provenance-lib.sh" 2>/dev/null || true
+fi
+export _PROV_AGENT="waker.sh"
+
+# WAKE-04 (v4.10.0 Phase 37): Five-check pre-spawn invariant.
+# Every spawn refusal emits a typed provenance event AND a notification.
+# Returns 0 if all invariants pass (caller may proceed with spawn);
+# returns 1 if any invariant fails (caller MUST NOT spawn).
+_invariant_check_spawn() {
+  local loop_id="$1" entry="$2" session_id="$3" expected_cadence="$4"
+
+  # (a) UUID validity — refuses pending-bind, unknown, empty, etc.
+  if ! [[ "$session_id" =~ ^[0-9a-f-]{36}$ ]]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_invalid_session_id" \
+        session_id="$session_id" \
+        reason="session_id '$session_id' is not a UUID; binding incomplete" \
+        decision="refused" 2>/dev/null || true
+    fi
+    emit_notification "$loop_id" "spawn_refused" "spawn refused: invalid session_id '$session_id'" \
+      session_id="$session_id" 2>/dev/null || true
+    return 1
+  fi
+
+  local state_dir contract_path
+  state_dir=$(echo "$entry" | jq -r '.state_dir // ""' 2>/dev/null)
+  contract_path=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
+  state_dir="${state_dir%/}"
+
+  # (b) Heartbeat-from-cwd — proof of life from inside the contract dir.
+  local hb_file="$state_dir/heartbeat.json"
+  if [ ! -f "$hb_file" ]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_no_heartbeat" \
+        session_id="$session_id" \
+        reason="no heartbeat.json at $hb_file; loop has not yet ticked from inside contract dir" \
+        decision="refused" 2>/dev/null || true
+    fi
+    emit_notification "$loop_id" "spawn_refused" "spawn refused: no heartbeat" 2>/dev/null || true
+    return 1
+  fi
+
+  # (c) bound_cwd matches contract_dir
+  local bound_cwd contract_dir
+  bound_cwd=$(jq -r '.bound_cwd // ""' "$hb_file" 2>/dev/null)
+  contract_dir=$(dirname "$contract_path")
+  if [ -z "$bound_cwd" ]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_no_bound_cwd" \
+        session_id="$session_id" \
+        reason="heartbeat has no bound_cwd; binding incomplete" \
+        decision="refused" 2>/dev/null || true
+    fi
+    return 1
+  fi
+  if [ "$bound_cwd" != "$contract_dir" ]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_cwd_drift" \
+        session_id="$session_id" \
+        cwd_bound="$bound_cwd" \
+        reason="bound_cwd '$bound_cwd' != contract_dir '$contract_dir'; cwd drift detected" \
+        decision="refused" 2>/dev/null || true
+    fi
+    emit_notification "$loop_id" "spawn_refused" "spawn refused: cwd drift" \
+      bound_cwd="$bound_cwd" contract_dir="$contract_dir" 2>/dev/null || true
+    return 1
+  fi
+  local drift_flag
+  drift_flag=$(jq -r '.cwd_drift_detected // false' "$hb_file" 2>/dev/null)
+  if [ "$drift_flag" = "true" ]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_cwd_drift" \
+        session_id="$session_id" \
+        reason="heartbeat.cwd_drift_detected=true; resume disabled until reclaim" \
+        decision="refused" 2>/dev/null || true
+    fi
+    return 1
+  fi
+
+  # (d) Launchd Label uniqueness — refuse if duplicate (collision).
+  if command -v launchctl >/dev/null 2>&1; then
+    local label
+    label="com.user.claude.loop.$loop_id"
+    local count
+    count=$(launchctl list 2>/dev/null | awk -v lbl="$label" '$3 == lbl' | wc -l | tr -d ' ')
+    if [ "${count:-0}" -ge 2 ]; then
+      if command -v emit_provenance >/dev/null 2>&1; then
+        emit_provenance "$loop_id" "spawn_refused_label_collision" \
+          session_id="$session_id" \
+          reason="launchctl shows $count entries for label $label; collision" \
+          decision="refused" 2>/dev/null || true
+      fi
+      emit_notification "$loop_id" "spawn_refused" "spawn refused: launchd label collision ($count entries)" 2>/dev/null || true
+      return 1
+    fi
+  fi
+
+  # (e) Generation-drift detection — re-read registry; require generation
+  # equals what we observed at invariant-check entry. (Concurrent reclaim
+  # would have incremented it.)
+  local current_gen entry_gen
+  entry_gen=$(echo "$entry" | jq -r '.generation // 0' 2>/dev/null)
+  local fresh_entry
+  fresh_entry=$(read_registry_entry "$loop_id" 2>/dev/null) || fresh_entry="{}"
+  current_gen=$(echo "$fresh_entry" | jq -r '.generation // 0' 2>/dev/null)
+  if [ "$current_gen" != "$entry_gen" ]; then
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "spawn_refused_generation_drift" \
+        session_id="$session_id" \
+        reason="registry generation drifted from $entry_gen to $current_gen; concurrent reclaim" \
+        decision="refused" 2>/dev/null || true
+    fi
+    return 1
+  fi
+
+  # All invariants pass.
+  if command -v emit_provenance >/dev/null 2>&1; then
+    emit_provenance "$loop_id" "spawn_invariants_passed" \
+      session_id="$session_id" \
+      cwd_bound="$bound_cwd" \
+      registry_generation="$current_gen" \
+      decision="proceeded" 2>/dev/null || true
+  fi
+  return 0
+}
+
+# expected_cadence parameter retained for future cadence-aware refusal logic
+true
 
 # Main waker function
 main() {
@@ -246,14 +382,30 @@ spawn_claude_resume() {
   local loop_id="$3"
   local now_us="$4"
 
-  # Change to state_dir's parent (contract directory)
-  local cwd
-  cwd=$(dirname "$state_dir") || {
-    echo "ERROR: spawn_claude_resume: cannot determine cwd from state_dir" >&2
+  # WAKE-04 (v4.10.0 Phase 37): Five-check invariant gate. If any invariant
+  # fails, refuse the spawn. Refusals already emitted typed provenance +
+  # notification inside the helper; we just bail.
+  local entry
+  entry=$(read_registry_entry "$loop_id" 2>/dev/null) || entry="{}"
+  if ! _invariant_check_spawn "$loop_id" "$entry" "$session_id" "0"; then
+    return 0
+  fi
+
+  # WAKE-02: cd to dirname(contract_path), NOT dirname(state_dir).
+  # state_dir often lives at project root (e.g. .loop-state/<id>/) while the
+  # contract may be nested deeper (e.g. findings/.../FOO_LOOP_CONTRACT.md).
+  # Resuming from the wrong cwd contaminates the JSONL with the wrong project.
+  local contract_path cwd
+  contract_path=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
+  if [ -z "$contract_path" ]; then
+    echo "ERROR: spawn_claude_resume: cannot read contract_path from registry" >&2
+    return 1
+  fi
+  cwd=$(dirname "$contract_path") || {
+    echo "ERROR: spawn_claude_resume: cannot determine cwd from contract_path" >&2
     return 1
   }
 
-  # Spawn in background, detached
   cd "$cwd" || {
     echo "ERROR: spawn_claude_resume: cannot cd to $cwd" >&2
     return 1
@@ -299,10 +451,12 @@ spawn_claude_resume() {
   return 0
 }
 
-# Execute main with the loop_id argument
-if [ $# -lt 1 ]; then
-  echo "ERROR: waker.sh: usage: waker.sh <loop_id>" >&2
-  exit 0
+# Execute main with the loop_id argument — only when invoked directly, not
+# when sourced (e.g. by tests that want access to _invariant_check_spawn).
+if [ "${BASH_SOURCE[0]}" = "$0" ] || [ -z "${BASH_SOURCE[0]:-}" ]; then
+  if [ $# -lt 1 ]; then
+    echo "ERROR: waker.sh: usage: waker.sh <loop_id>" >&2
+    exit 0
+  fi
+  main "$1"
 fi
-
-main "$1"
