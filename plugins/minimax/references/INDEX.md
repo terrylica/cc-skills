@@ -23,12 +23,12 @@ Status legend:
 
 These appear at the SKILL.md primary layer (already auto-discoverable) AND get full-text aggregation in references/.
 
-| Source artifact (read-only)             | Destination                             | Status         | Source iter | Notes                                                                       |
-| --------------------------------------- | --------------------------------------- | -------------- | ----------- | --------------------------------------------------------------------------- |
-| `~/own/<automation-repo>/minimax/RETROSPECTIVE.md` | `references/RETROSPECTIVE.md`           | NOT_AGGREGATED | iter-42     | Distilled into SKILL.md top-10 rules + agentic stack; full migration iter-5 |
-| `~/own/<automation-repo>/minimax/quirks/CLAUDE.md` | `references/quirks.md`                  | NOT_AGGREGATED | iter-11     | Distilled into SKILL.md decision table; full migration iter-6               |
-| `~/own/<automation-repo>/minimax/CLAUDE.md`        | (no destination — distilled only)       | SKIPPED        | iter-1      | Spoke-level pointer; content surfaces via SKILL.md frontmatter              |
-| `~/own/<automation-repo>/minimax/LOOP_CONTRACT.md` | (no destination — campaign archaeology) | SKIPPED        | n/a         | Source-only campaign state machine; not consumer reference                  |
+| Source artifact (read-only)             | Destination                             | Status         | Source iter | Notes                                                                         |
+| --------------------------------------- | --------------------------------------- | -------------- | ----------- | ----------------------------------------------------------------------------- |
+| `~/own/<automation-repo>/minimax/RETROSPECTIVE.md` | `references/RETROSPECTIVE.md`           | AGGREGATED     | iter-42     | DONE iter-5: verbatim copy + 7 cross-ref retargets + provenance note inserted |
+| `~/own/<automation-repo>/minimax/quirks/CLAUDE.md` | `references/quirks.md`                  | NOT_AGGREGATED | iter-11     | Distilled into SKILL.md decision table; full migration iter-6                 |
+| `~/own/<automation-repo>/minimax/CLAUDE.md`        | (no destination — distilled only)       | SKIPPED        | iter-1      | Spoke-level pointer; content surfaces via SKILL.md frontmatter                |
+| `~/own/<automation-repo>/minimax/LOOP_CONTRACT.md` | (no destination — campaign archaeology) | SKIPPED        | n/a         | Source-only campaign state machine; not consumer reference                    |
 
 ---
 
@@ -154,11 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      0  (campaign just-launched)
-NOT_AGGREGATED:                  ~50
+AGGREGATED:                      1  (RETROSPECTIVE.md — iter-5)
+NOT_AGGREGATED:                  ~49
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
+Last updated:                    iter-5 (2026-04-29 11:18 UTC)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
