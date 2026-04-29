@@ -81,6 +81,12 @@ emit_deny() {
   exit 0
 }
 
+# Rule 0 (v16.9.0): nonsense delay (≤ 0). Claude Code clamps delay to
+# [60, 3600] but defense-in-depth: refuse anything ≤ 0 explicitly.
+if [ "$DELAY" -le 0 ]; then
+  emit_deny "ScheduleWakeup delay=${DELAY}s is non-positive — meaningless. If no real blocker exists, drop to Tier 0 (in-turn continuation). If you want the minimum, use delay=60."
+fi
+
 # Rule 1: cache-miss zone (300-1199s)
 if [ "$DELAY" -ge 300 ] && [ "$DELAY" -le 1199 ]; then
   emit_deny "ScheduleWakeup delay=${DELAY}s sits in the prompt-cache-miss zone (300-1199s) — worst of both: pay full cache miss without amortizing a long wait. Stay cache-warm with 60-270s OR commit to ≥1200s if the wait is genuinely long. See plugins/autonomous-loop/CLAUDE.md \"Waker Tier System\"."
