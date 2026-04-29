@@ -141,12 +141,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ## OPS tooling (4 source files → 3 plugin destinations)
 
-| Source                                                               | Destination                                   | Status         | Iter | Notes                                        |
-| -------------------------------------------------------------------- | --------------------------------------------- | -------------- | ---- | -------------------------------------------- |
-| `~/own/<automation-repo>/bin/minimax-check-upgrade`                             | `scripts/minimax-check-upgrade`               | NOT_AGGREGATED | 41   | Path-portable rewrite; defaults via env vars |
-| `~/own/<automation-repo>/.mise/tasks/minimax/check-upgrade`                     | (documented only, not shipped)                | SKIPPED        | 41   | Repo-specific; show pattern in skill instead |
-| `~/own/<automation-repo>/config/plists/com.example.minimax-check-upgrade.plist` | `templates/launchd-check-upgrade.plist`       | NOT_AGGREGATED | 42   | Parameterized template; user populates path  |
-| `~/own/<automation-repo>/minimax/api-patterns/fixtures/models-list-locked.json` | `references/fixtures/models-list-locked.json` | NOT_AGGREGATED | 14   | The data contract the script enforces        |
+| Source                                                               | Destination                                   | Status         | Iter | Notes                                                                                                                                                                                          |
+| -------------------------------------------------------------------- | --------------------------------------------- | -------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `~/own/<automation-repo>/bin/minimax-check-upgrade`                             | `scripts/minimax-check-upgrade`               | AGGREGATED     | 41   | DONE iter-14: path-portable rewrite via MINIMAX_LOCKED_SNAPSHOT / MINIMAX_API_KEY / MINIMAX_API_KEY_OP_PATH / MINIMAX_OP_ACCOUNT env vars; tested 4/4 (default+json+override+missing-snapshot) |
+| `~/own/<automation-repo>/.mise/tasks/minimax/check-upgrade`                     | (documented only, not shipped)                | SKIPPED        | 41   | Repo-specific; show pattern in skill instead                                                                                                                                                   |
+| `~/own/<automation-repo>/config/plists/com.example.minimax-check-upgrade.plist` | `templates/launchd-check-upgrade.plist`       | NOT_AGGREGATED | 42   | Parameterized template; user populates path                                                                                                                                                    |
+| `~/own/<automation-repo>/minimax/api-patterns/fixtures/models-list-locked.json` | `references/fixtures/models-list-locked.json` | NOT_AGGREGATED | 14   | The data contract the script enforces                                                                                                                                                          |
 
 ---
 
@@ -159,7 +159,7 @@ NOT_AGGREGATED:                  ~0  (OPS-tool artifacts only — Phase C)
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-13 (2026-04-29 17:53 UTC) — Phase B COMPLETE (audit clean, 0 broken refs)
+Last updated:                    iter-14 (2026-04-29 17:58 UTC) — Phase C OPS-script ported
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
