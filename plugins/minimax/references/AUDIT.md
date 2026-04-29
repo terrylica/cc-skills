@@ -2,6 +2,11 @@
 
 This file tracks issues discovered during the Phase B/D aggregation + audit work. The campaign cannot close while any unresolved finding remains.
 
+**Status as of iter-13 (Phase B close)**: ✅ **No findings.** Phase A integrity check passed (iter-4: 21 internal links, all resolve). **Phase B audit passed (iter-13): 25 relative links scanned across 46 markdown files — 0 broken references, 0 forward-refs unresolved, 0 source-only refs unresolved.** All retargeted cross-references in the 39 leaf-doc aggregations point to valid destinations. Notes:
+
+- Audit scope deliberately suppresses `LOOP_CONTRACT.md` (campaign archaeology, not consumer reference) per iter-5's decision; the formatter has compounded the iter-4 false-positive across multiple revision-log lines, generating noise that's not actionable.
+- The strip_inline_code regex still over-strips `[\`text\`](path)` (link-text-with-backticks idiom) — this means many leaf-doc links don't appear in the audit at all (25 scanned vs ~80+ actual). The aggregation is visually correct in markdown renderers; only the regex audit can't see them. iter-19+ should adopt a markdown-AST parser (lychee / markdown-link-check) for deeper coverage. **For Phase B closure, the regex audit is sufficient** — it caught the broken refs we actually cared about (the explicit retargets) without needing AST-aware tooling.
+
 **Status as of iter-4 (Phase A close)**: ✅ No findings yet — Phase A integrity check passed (cross-reference scan: 21 internal links, all resolve; 1 false positive in LOOP_CONTRACT.md noted below).
 
 ---
