@@ -10,21 +10,24 @@ A single Swift binary that consolidates the Telegram session bot, Kokoro TTS eng
 
 <!-- SSoT-OK: planning document, not a package version --> <!-- # SSoT-OK -->
 
-## Current Milestone: v4.9.0 SwiftBar UI & Telegram Bot Activation
-
-**Goal:** Wire SwiftBar UI to all touch points of the new Python TTS + Telegram system. Activate the Telegram bot. Verify full E2E flow.
-
-**Target features:**
-
-- SwiftBar shows Python TTS server health alongside Swift companion
-- Telegram bot activated with proper credentials in launchd env
-- Voice/Speed settings propagate SwiftBar → Swift → Python server
-- Full E2E: session end → notification → AI summary → TTS → karaoke → Telegram
-- Bot status shows "connected" or "disabled" (not "unknown")
-
 ## Current State
 
-**Latest milestone:** v4.8.0 Python MLX TTS Consolidation (shipped 2026-03-28)
+**Latest milestone:** v4.10.0 Autonomous Loop Anti-Fragility (shipped 2026-04-29) — eliminated cross-session contamination in the autonomous-loop plugin via 5-check pre-spawn invariant, hook-time session binding (replacing broken `$CLAUDE_SESSION_ID` env-var capture), append-only schema-versioned provenance ledger, and self-diagnostic `/autonomous-loop:doctor` skill with idempotent self-healing.
+
+**Active milestone:** None. Run `/gsd-new-milestone` to start the next cycle.
+
+<details>
+<summary>Prior milestone (v4.9.0 archived)</summary>
+
+### v4.9.0 SwiftBar UI & Telegram Bot Activation (shipped 2026-03-29)
+
+Wire SwiftBar UI to all touch points of the new Python TTS + Telegram system. Activate the Telegram bot. Verify full E2E flow.
+
+</details>
+
+## Historical State
+
+**Pre-v4.10.0:** v4.8.0 Python MLX TTS Consolidation (shipped 2026-03-28)
 **Codebase:** Swift companion (51 MB RSS, no MLX deps) + Python MLX Kokoro server (550 MB, port 8779)
 **Tests:** 82 Swift Testing unit/integration tests via `swift test`
 **Architecture:** TTSEngine actor (HTTP delegation to Python MLX) + PlaybackManager @MainActor + TTSPipelineCoordinator
