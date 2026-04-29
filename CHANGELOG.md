@@ -1,3 +1,10 @@
+# [16.9.0](https://github.com/terrylica/cc-skills/compare/v16.8.0...v16.9.0) (2026-04-29)
+
+
+### Features
+
+* **autonomous-loop:** 32-case anti-fragility audit + nonsense-delay veto ([645e19b](https://github.com/terrylica/cc-skills/commit/645e19b048ac1970cb2c78f881f04e887c34a31a))
+
 # [16.8.0](https://github.com/terrylica/cc-skills/compare/v16.7.0...v16.8.0) (2026-04-29)
 
 
