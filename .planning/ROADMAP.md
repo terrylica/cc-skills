@@ -94,7 +94,7 @@ Full details archived in [milestones/v4.9.0-ROADMAP.md](./milestones/v4.9.0-ROAD
 ### v4.10.0 Autonomous Loop Anti-Fragility (Phases 35-38)
 
 - [x] **Phase 35: Provenance Foundation** - Append-only `<state_dir>/provenance.jsonl` ledger + global mirror with schema-versioned events; intent-before-state-write discipline
-- [ ] **Phase 36: Hook-Time Binding** - SessionStart hook authoritatively binds `owner_session_id` from stdin payload; heartbeat hook reads stdin (not env var); cwd-drift detection
+- [x] **Phase 36: Hook-Time Binding** - SessionStart hook authoritatively binds `owner_session_id` from stdin payload; heartbeat hook reads stdin (not env var); cwd-drift detection
 - [ ] **Phase 37: Waker Hardening + launchd Collision Defense** - Five-check pre-spawn invariant; cd to contract dir on resume; launchd Label collision detection in `generate_plist`
 - [ ] **Phase 38: Doctor & Self-Heal** - `/autonomous-loop:doctor` skill with GREEN/YELLOW/RED report; idempotent `heal-self.sh` migration archives `unknown` owner entries; status skill surfaces last 10 provenance events
 
