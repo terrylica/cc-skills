@@ -17,6 +17,9 @@
 # NEVER spawns claude. NEVER auto-reclaims a live owner.
 
 set -euo pipefail
+# v16.9.1: defensively silence inherited xtrace at source time so function
+# definitions don't dump to stderr/stdout when this file is sourced.
+set +x 2>/dev/null || true
 
 DOCTOR_PENDING_BIND_THRESHOLD_S="${DOCTOR_PENDING_BIND_THRESHOLD_S:-3600}"
 
@@ -51,11 +54,22 @@ _doctor_check_loop() {
   if [ "$owner_sid" = "pending-bind" ] || [ "$owner_sid" = "unknown" ] || [ "$owner_sid" = "unknown-session" ] || [ -z "$owner_sid" ]; then
     local now_us age_s
     now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
-    age_s=$(( (now_us - owner_start_us) / 1000000 ))
-    if [ "$age_s" -gt "$DOCTOR_PENDING_BIND_THRESHOLD_S" ]; then
-      issues+=("YELLOW: pending-bind for ${age_s}s (>${DOCTOR_PENDING_BIND_THRESHOLD_S}s); session never started or never used the contract dir")
-      [ "$verdict" = "GREEN" ] && verdict="YELLOW"
-    fi
+    # v16.9.1: defensive — owner_start_us must be a positive integer in
+    # microseconds. Empty/0/non-numeric → flag as corrupted entry instead
+    # of computing absurd 56-year ages.
+    case "$owner_start_us" in
+      ''|*[!0-9]*|0)
+        issues+=("YELLOW: owner_start_time_us is invalid or zero (\"${owner_start_us}\") — registry entry corrupt")
+        [ "$verdict" = "GREEN" ] && verdict="YELLOW"
+        ;;
+      *)
+        age_s=$(( (now_us - owner_start_us) / 1000000 ))
+        if [ "$age_s" -gt "$DOCTOR_PENDING_BIND_THRESHOLD_S" ]; then
+          issues+=("YELLOW: pending-bind for ${age_s}s (>${DOCTOR_PENDING_BIND_THRESHOLD_S}s); session never started or never used the contract dir")
+          [ "$verdict" = "GREEN" ] && verdict="YELLOW"
+        fi
+        ;;
+    esac
   fi
 
   # Check 3: heartbeat freshness
@@ -127,27 +141,10 @@ _doctor_check_loop() {
     fi
   fi
 
-  # Check 7 (v16.8.0): waker-as-pacing pattern detection.
-  # Reads recent provenance events for this loop. If 3+ recent firings
-  # show high dead_time (sum(ScheduleWakeup.delay) / wall_time > 0.25),
-  # flag as RED — the smell-check from CLAUDE.md, automated.
-  GLOBAL_PROV="${PROVENANCE_GLOBAL_FILE:-$HOME/.claude/loops/global-provenance.jsonl}"
-  if [ -f "$GLOBAL_PROV" ]; then
-    PACING_VETOED=$(jq -sr --arg lid "$loop_id" '
-      [.[] | select(.event == "pacing_vetoed" and .session_id != "")] | length
-    ' "$GLOBAL_PROV" 2>/dev/null || echo 0)
-    EMPTY_FIRINGS=$(jq -sr '
-      [.[] | select(.event == "empty_firing_detected")] | length
-    ' "$GLOBAL_PROV" 2>/dev/null || echo 0)
-    if [ "${PACING_VETOED:-0}" -ge 3 ]; then
-      issues+=("RED: ${PACING_VETOED} pacing-vetoed wakers in provenance — model is repeatedly attempting waker-as-pacing anti-pattern")
-      verdict="RED"
-    fi
-    if [ "${EMPTY_FIRINGS:-0}" -ge 3 ]; then
-      issues+=("RED: ${EMPTY_FIRINGS} empty firings detected (session ended with only ScheduleWakeup, no real work) — loop is stupid-waiting")
-      verdict="RED"
-    fi
-  fi
+  # Pacing-vetoed and empty-firing patterns are FLEET-level metrics — moved
+  # out of _doctor_check_loop in v16.9.1 because the counts are global but
+  # the attribution-per-loop was misleading (every loop showed the same N
+  # pacing-vetoed). Now surfaced once at the top of loop_doctor_report.
 
   # Emit JSON line for this loop
   jq -nc \
@@ -190,6 +187,10 @@ _doctor_check_zombies() {
 
 # loop_doctor_report [--json]
 loop_doctor_report() {
+  # v16.9.1: defensively silence any inherited xtrace so trace output can't
+  # leak into our JSON-emitting pipeline.
+  set +x 2>/dev/null || true
+
   local json_mode=false
   for arg in "$@"; do
     [ "$arg" = "--json" ] && json_mode=true
@@ -201,38 +202,64 @@ loop_doctor_report() {
     loops_json=$(jq '.loops // []' "$registry_path" 2>/dev/null)
   fi
 
+  # v16.9.1: filter _doctor_check_loop output to only JSON lines.
+  # Defends against trace bleed, debug echoes, or other stray stdout.
   local results=""
   while IFS= read -r entry; do
     [ -z "$entry" ] && continue
     [ "$entry" = "null" ] && continue
     local report_line
-    report_line=$(_doctor_check_loop "$entry")
+    report_line=$(_doctor_check_loop "$entry" 2>/dev/null | grep -E '^\{.*\}$' | head -1)
+    [ -z "$report_line" ] && continue
     results+="$report_line"$'\n'
   done < <(echo "$loops_json" | jq -c '.[]?' 2>/dev/null)
 
   while IFS= read -r zombie; do
     [ -z "$zombie" ] && continue
-    results+="$zombie"$'\n'
-  done < <(_doctor_check_zombies "$registry_path")
+    case "$zombie" in
+      \{*\}) results+="$zombie"$'\n' ;;
+      *) ;;
+    esac
+  done < <(_doctor_check_zombies "$registry_path" 2>/dev/null)
+
+  # v16.9.1: fleet-level metrics computed once at the report level.
+  local global_prov pacing_vetoed empty_firings
+  global_prov="${PROVENANCE_GLOBAL_FILE:-$HOME/.claude/loops/global-provenance.jsonl}"
+  pacing_vetoed=0
+  empty_firings=0
+  if [ -f "$global_prov" ]; then
+    # v16.9.1: grep -c ALWAYS outputs the count (even 0); the non-zero exit
+    # on no-match is swallowed by `|| true` without writing extra output to
+    # the captured stdout (avoids SIGPIPE / "0\n0" concatenation).
+    pacing_vetoed=$(grep -c '"event":"pacing_vetoed"' "$global_prov" 2>/dev/null || true)
+    empty_firings=$(grep -c '"event":"empty_firing_detected"' "$global_prov" 2>/dev/null || true)
+  fi
+  pacing_vetoed=${pacing_vetoed:-0}
+  empty_firings=${empty_firings:-0}
 
   if [ "$json_mode" = true ]; then
-    echo "$results" | jq -s '{loops: ., generated_at_iso: (now | todate)}'
+    echo "$results" | jq -s --argjson pv "${pacing_vetoed:-0}" --argjson ef "${empty_firings:-0}" \
+      '{loops: ., fleet: {pacing_vetoed: $pv, empty_firings: $ef}, generated_at_iso: (now | todate)}'
     return 0
   fi
 
   # Pretty terminal output
   if [ -z "$results" ]; then
     echo "No loops registered. (GREEN — nothing to diagnose.)"
+    if [ "${pacing_vetoed:-0}" -gt 0 ] || [ "${empty_firings:-0}" -gt 0 ]; then
+      echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)."
+    fi
     return 0
   fi
   local total green yellow red
-  total=$(echo "$results" | jq -s 'length')
-  green=$(echo "$results" | jq -s '[.[] | select(.verdict == "GREEN")] | length')
-  yellow=$(echo "$results" | jq -s '[.[] | select(.verdict == "YELLOW")] | length')
-  red=$(echo "$results" | jq -s '[.[] | select(.verdict == "RED")] | length')
+  total=$(echo "$results" | jq -s 'length' 2>/dev/null || echo 0)
+  green=$(echo "$results" | jq -s '[.[] | select(.verdict == "GREEN")] | length' 2>/dev/null || echo 0)
+  yellow=$(echo "$results" | jq -s '[.[] | select(.verdict == "YELLOW")] | length' 2>/dev/null || echo 0)
+  red=$(echo "$results" | jq -s '[.[] | select(.verdict == "RED")] | length' 2>/dev/null || echo 0)
   echo "autonomous-loop doctor — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
+  echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)"
   echo "================================================================"
-  echo "$results" | jq -r '.loop_id + " [" + .verdict + "]" + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)'
+  echo "$results" | jq -r '.loop_id + " [" + .verdict + "]" + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)' 2>/dev/null
 }
 
 # loop_doctor_fix — applies SAFE remediations only.
