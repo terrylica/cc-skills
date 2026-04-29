@@ -49,9 +49,9 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | chat-completion-stop.md                 | api-patterns/chat-completion-stop.md                 | AGGREGATED    | 7    | `stop` silently ignored                                      |
 | chat-completion-streaming.md            | api-patterns/chat-completion-streaming.md            | AGGREGATED    | 8    | Coarse chunks (~125 chars/chunk); no usage in stream         |
 | chat-completion-json.md                 | api-patterns/chat-completion-json.md                 | AGGREGATED    | 9    | `response_format` silently dropped; prompt-engineer it       |
-| chat-completion-tokens.md               | api-patterns/chat-completion-tokens.md               | NOT_AGGREGATED | 10   | Server strips `<think>` on assistant replay (no double-bill) |
-| chat-completion-tools.md                | api-patterns/chat-completion-tools.md                | NOT_AGGREGATED | 12   | Tools honored; `tool_choice` silently dropped                |
-| chat-completion-name-field.md           | api-patterns/chat-completion-name-field.md           | NOT_AGGREGATED | 20   | Always returns "MiniMax AI"; request `name` dropped          |
+| chat-completion-tokens.md               | api-patterns/chat-completion-tokens.md               | AGGREGATED    | 10   | Server strips `<think>` on assistant replay (no double-bill) |
+| chat-completion-tools.md                | api-patterns/chat-completion-tools.md                | AGGREGATED    | 12   | Tools honored; `tool_choice` silently dropped                |
+| chat-completion-name-field.md           | api-patterns/chat-completion-name-field.md           | AGGREGATED    | 20   | Always returns "MiniMax AI"; request `name` dropped          |
 | chat-completion-tps.md                  | api-patterns/chat-completion-tps.md                  | NOT_AGGREGATED | 26   | ~50 TPS asymptote (NOT 100); use 40 for capacity planning    |
 | concurrency.md                          | api-patterns/concurrency.md                          | NOT_AGGREGATED | 25   | TRUE parallelism up to p=10; soft ceiling beyond             |
 | context-window-boundary.md              | api-patterns/context-window-boundary.md              | NOT_AGGREGATED | 24   | ~200K tokens; 3.6 chars/token English                        |
@@ -69,12 +69,12 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | Source              | Destination                      | Status         | Iter | Headline finding                                   |
 | ------------------- | -------------------------------- | -------------- | ---- | -------------------------------------------------- |
 | models-endpoint.md  | api-patterns/models-endpoint.md  | NOT_AGGREGATED | 1    | `/v1/models` catalog (7 models); cadence 5-8 weeks |
-| audio-tts.md        | api-patterns/audio-tts.md        | NOT_AGGREGATED | 15   | `/v1/t2a_v2`; all 6 speech models plan-gated       |
-| video-generation.md | api-patterns/video-generation.md | NOT_AGGREGATED | 16   | `/v1/video_generation`; async via task_id          |
-| embeddings.md       | api-patterns/embeddings.md       | NOT_AGGREGATED | 17   | `/v1/embeddings`; RPM-tight; pending vector test   |
+| audio-tts.md        | api-patterns/audio-tts.md        | AGGREGATED    | 15   | `/v1/t2a_v2`; all 6 speech models plan-gated       |
+| video-generation.md | api-patterns/video-generation.md | AGGREGATED    | 16   | `/v1/video_generation`; async via task_id          |
+| embeddings.md       | api-patterns/embeddings.md       | AGGREGATED    | 17   | `/v1/embeddings`; RPM-tight; pending vector test   |
 | files.md            | api-patterns/files.md            | NOT_AGGREGATED | 19   | Full CRUD; int64 file_id; sub-resource verbs       |
-| vision-image-url.md | api-patterns/vision-image-url.md | NOT_AGGREGATED | 13   | M2.7 text-only; image_url silently dropped         |
-| web-search.md       | api-patterns/web-search.md       | NOT_AGGREGATED | 14   | First HTTP 400 in campaign; not on this tier       |
+| vision-image-url.md | api-patterns/vision-image-url.md | AGGREGATED    | 13   | M2.7 text-only; image_url silently dropped         |
+| web-search.md       | api-patterns/web-search.md       | AGGREGATED    | 14   | First HTTP 400 in campaign; not on this tier       |
 | rate-limits.md      | api-patterns/rate-limits.md      | NOT_AGGREGATED | 22   | NO rate-limit headers; per-endpoint asymmetry      |
 
 ### Discovery / errors (3 files)
@@ -154,12 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      11  (3 from iter-5/6/7 + 8 chat-completion-core from iter-8)
-NOT_AGGREGATED:                  ~39
+AGGREGATED:                      19  (3 from iter-5/6/7 + 16 leaf docs from iter-8/9)
+NOT_AGGREGATED:                  ~31
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-8 (2026-04-29 11:35 UTC)
+Last updated:                    iter-9 (2026-04-29 17:34 UTC)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
