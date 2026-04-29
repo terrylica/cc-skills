@@ -141,25 +141,25 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ## OPS tooling (4 source files → 3 plugin destinations)
 
-| Source                                                               | Destination                                   | Status         | Iter | Notes                                                                                                                                                                                          |
-| -------------------------------------------------------------------- | --------------------------------------------- | -------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `~/own/amonic/bin/minimax-check-upgrade`                             | `scripts/minimax-check-upgrade`               | AGGREGATED     | 41   | DONE iter-14: path-portable rewrite via MINIMAX_LOCKED_SNAPSHOT / MINIMAX_API_KEY / MINIMAX_API_KEY_OP_PATH / MINIMAX_OP_ACCOUNT env vars; tested 4/4 (default+json+override+missing-snapshot) |
-| `~/own/amonic/.mise/tasks/minimax/check-upgrade`                     | (documented only, not shipped)                | SKIPPED        | 41   | Repo-specific; show pattern in skill instead                                                                                                                                                   |
-| `~/own/amonic/config/plists/com.terryli.minimax-check-upgrade.plist` | `templates/launchd-check-upgrade.plist`       | NOT_AGGREGATED | 42   | Parameterized template; user populates path                                                                                                                                                    |
-| `~/own/amonic/minimax/api-patterns/fixtures/models-list-locked.json` | `references/fixtures/models-list-locked.json` | NOT_AGGREGATED | 14   | The data contract the script enforces                                                                                                                                                          |
+| Source                                                               | Destination                                   | Status     | Iter | Notes                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------- | --------------------------------------------- | ---------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `~/own/amonic/bin/minimax-check-upgrade`                             | `scripts/minimax-check-upgrade`               | AGGREGATED | 41   | DONE iter-14: path-portable rewrite via MINIMAX_LOCKED_SNAPSHOT / MINIMAX_API_KEY / MINIMAX_API_KEY_OP_PATH / MINIMAX_OP_ACCOUNT env vars; tested 4/4 (default+json+override+missing-snapshot)                                                                                                                                                                                                                         |
+| `~/own/amonic/.mise/tasks/minimax/check-upgrade`                     | (documented only, not shipped)                | SKIPPED    | 41   | Repo-specific; show pattern in skill instead                                                                                                                                                                                                                                                                                                                                                                           |
+| `~/own/amonic/config/plists/com.terryli.minimax-check-upgrade.plist` | `templates/launchd-check-upgrade.plist`       | AGGREGATED | 42   | DONE iter-15: parameterized template with 4 placeholders (`__LABEL__` / `__SCRIPT_PATH__` / `__USER_HOME__` / `__LOG_DIR__`); commented env-var override blocks for `MINIMAX_API_KEY` + `MINIMAX_LOCKED_SNAPSHOT`; sed-render flow + `plutil -lint` validates clean; install instructions in `references/api-patterns/model-upgrade-detection.md` rewritten with [plugin variant] note + 3 secret-handling mitigations |
+| `~/own/amonic/minimax/api-patterns/fixtures/models-list-locked.json` | `references/fixtures/models-list-locked.json` | AGGREGATED | 14   | DONE iter-14: copied alongside the OPS script port (file present, byte-equal to source); cross-listed here as the data contract `scripts/minimax-check-upgrade` reads. Also tracked in fixtures section above.                                                                                                                                                                                                         |
 
 ---
 
 ## Coverage rollup (computed)
 
 ```
-Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      50  (3 distilled + 40 api-patterns + 8 fixture rows from iter-12) — content aggregation COMPLETE
-NOT_AGGREGATED:                  ~0  (OPS-tool artifacts only — Phase C)
+Total tracked source artifacts:  ~52 (40 docs + ~8 fixtures + 1 OPS script + 1 plist + 1 locked-snapshot data file)
+AGGREGATED:                      52  (3 distilled + 40 api-patterns + 8 fixture rows from iter-12 + 1 OPS script iter-14 + 1 plist template iter-15)
+NOT_AGGREGATED:                  0   (Phase C content-port complete — only Phase E refinement + closure remain)
 PARTIAL:                         0
-SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
+SKIPPED:                         3   (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-14 (2026-04-29 17:58 UTC) — Phase C OPS-script ported
+Last updated:                    iter-15 (2026-04-29 18:05 UTC) — Phase C launchd plist template ported
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.

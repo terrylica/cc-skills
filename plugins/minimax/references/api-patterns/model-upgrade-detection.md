@@ -59,34 +59,51 @@ Exit 0 ⇒ nothing to do. Exit 1 ⇒ inspect the diff, decide whether to re-run 
 
 ### Daily polling via launchd (recommended)
 
-A ready-to-install plist is shipped at [`config/plists/com.terryli.minimax-check-upgrade.plist`](../../config/plists/com.terryli.minimax-check-upgrade.plist) (the SSoT per the launchd spoke convention — never edit the symlinked copy under `~/Library/LaunchAgents/`).
+> **[plugin variant]** This section was rewritten in iter-15 of the cc-skills aggregation campaign to use the plugin's parameterized plist template. Source-of-truth (read-only) install instructions in amonic point at `~/own/amonic/config/plists/com.terryli.minimax-check-upgrade.plist`; this plugin variant uses `__PLACEHOLDER__` substitution for portability across consuming repos.
+
+A parameterized plist template ships at [`../../templates/launchd-check-upgrade.plist`](../../templates/launchd-check-upgrade.plist). Render + install in one shot:
 
 ```bash
-# One-time install — symlink + bootstrap
-ln -sf "$HOME/own/amonic/config/plists/com.terryli.minimax-check-upgrade.plist" \
-       "$HOME/Library/LaunchAgents/com.terryli.minimax-check-upgrade.plist"
-mkdir -p "$HOME/.local/state/launchd-logs/minimax-check-upgrade"
-launchctl bootstrap "gui/$(id -u)" \
-    "$HOME/Library/LaunchAgents/com.terryli.minimax-check-upgrade.plist"
+# Locate this plugin's root (cc-skills marketplace install path)
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax"
+USER=$(whoami)
+LABEL="com.${USER}.minimax-check-upgrade"
+LOG_DIR="$HOME/.local/state/launchd-logs/minimax-check-upgrade"
+
+# Render the template with sed substitutions → ~/Library/LaunchAgents/
+sed -e "s|__LABEL__|${LABEL}|g" \
+    -e "s|__SCRIPT_PATH__|${PLUGIN_ROOT}/scripts/minimax-check-upgrade|g" \
+    -e "s|__USER_HOME__|${HOME}|g" \
+    -e "s|__LOG_DIR__|${LOG_DIR}|g" \
+    "${PLUGIN_ROOT}/templates/launchd-check-upgrade.plist" \
+    > "${HOME}/Library/LaunchAgents/${LABEL}.plist"
+
+# Validate the rendered plist before bootstrap
+plutil -lint "${HOME}/Library/LaunchAgents/${LABEL}.plist"
+
+# Create log directory and bootstrap the launch agent
+mkdir -p "${LOG_DIR}"
+launchctl bootstrap "gui/$(id -u)" "${HOME}/Library/LaunchAgents/${LABEL}.plist"
 
 # Verify scheduling
-launchctl print "gui/$(id -u)/com.terryli.minimax-check-upgrade" | head -20
+launchctl print "gui/$(id -u)/${LABEL}" | head -20
 
 # Manual fire (test it works once before relying on the schedule)
-launchctl kickstart "gui/$(id -u)/com.terryli.minimax-check-upgrade"
-tail -f "$HOME/.local/state/launchd-logs/minimax-check-upgrade/stdout.log"
+launchctl kickstart "gui/$(id -u)/${LABEL}"
+tail -f "${LOG_DIR}/stdout.log"
 ```
 
-The plist runs daily at 09:00 local time and logs to `~/.local/state/launchd-logs/minimax-check-upgrade/{stdout,stderr}.log`. Exit 1 (upgrade detected) shows up as the diff in stdout — combine with a separate log-tailer or notification hook to surface alerts.
+The default schedule runs daily at 09:00 local time and logs to `~/.local/state/launchd-logs/minimax-check-upgrade/{stdout,stderr}.log`. Exit 1 (upgrade detected) shows up as the diff in stdout — combine with a separate log-tailer or notification hook to surface alerts. Adjust `StartCalendarInterval` in the template before render if you want a different cadence.
 
-**Secret-handling caveat for launchd context**: the script calls `op read` to fetch the API key from 1Password. In a launchd-spawned shell, `op` may not have a valid SA session and may prompt for re-auth — defeating unattended scheduling. Two mitigations:
+**Secret-handling caveat for launchd context**: the script calls `op read` to fetch the API key from 1Password. In a launchd-spawned shell, `op` may not have a valid SA session and may prompt for re-auth — defeating unattended scheduling. Three mitigations, in order of robustness:
 
-1. **Pre-cache the API key** to a mode-600 file once, then modify the script to prefer the file over `op read` (5-line addition; see Open follow-ups).
-2. **Run as a foreground task on user-active sessions only**: leave `RunAtLoad=false` (default), let the user's interactive `op signin` cache the session via OP*SESSION*\*, and the 09:00 schedule fires while the user is logged in.
+1. **Set `MINIMAX_API_KEY` in the plist's `EnvironmentVariables`** (see commented-out block in the template). Easiest for headless contexts. Tradeoff: the key sits in `~/Library/LaunchAgents/<label>.plist` (mode 600 by default but readable by your user).
+2. **Pre-cache the API key** to a mode-600 file once, then modify the script to prefer the file over `op read` (5-line addition).
+3. **Run as a foreground task on user-active sessions only**: leave `RunAtLoad=false` (default), let the user's interactive `op signin` cache the session, and the 09:00 schedule fires while the user is logged in.
 
-For amonic's current single-user workstation context, option 2 is fine. Production deployments (bigblack daemon, CI runners) should use option 1.
+For single-user workstation context, option 3 is fine. For headless / production / CI contexts, use option 1 or 2.
 
-Combine with `bin/lib/notify.sh` or the existing notification hook to alert on exit 1.
+Combine with a notification hook or log-watcher to alert on exit 1.
 
 ### CI / cron-equivalent on bigblack
 

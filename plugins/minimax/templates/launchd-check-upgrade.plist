@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd-check-upgrade.plist — daily poll of MiniMax /v1/models for upgrades.
+
+  This is a TEMPLATE. Before installing, replace the __PLACEHOLDER__ tokens:
+
+    __LABEL__         reverse-DNS label, e.g. com.youruser.minimax-check-upgrade
+    __SCRIPT_PATH__   absolute path to scripts/minimax-check-upgrade
+                      (e.g. /Users/youruser/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade)
+    __USER_HOME__     your $HOME (e.g. /Users/youruser)
+    __LOG_DIR__       directory for stdout/stderr logs
+                      (e.g. /Users/youruser/.local/state/launchd-logs/minimax-check-upgrade)
+
+  One-line render (replace USER below):
+
+    USER=$(whoami) && \
+    sed -e "s|__LABEL__|com.${USER}.minimax-check-upgrade|g" \
+        -e "s|__SCRIPT_PATH__|$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade|g" \
+        -e "s|__USER_HOME__|$HOME|g" \
+        -e "s|__LOG_DIR__|$HOME/.local/state/launchd-logs/minimax-check-upgrade|g" \
+        templates/launchd-check-upgrade.plist > ~/Library/LaunchAgents/com.${USER}.minimax-check-upgrade.plist
+
+  Then create the log dir + bootstrap:
+
+    mkdir -p "$HOME/.local/state/launchd-logs/minimax-check-upgrade"
+    launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/com.${USER}.minimax-check-upgrade.plist"
+
+  Default schedule: daily at 09:00 local time. Adjust StartCalendarInterval below
+  if you want a different cadence.
+
+  See ../references/api-patterns/model-upgrade-detection.md for full architecture
+  and the secret-handling caveat for launchd context (op CLI may not have valid
+  SA session in launchd-spawned shells — set MINIMAX_API_KEY env var below or
+  rely on user's interactive op signin session).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+    <key>Program</key>
+    <string>__SCRIPT_PATH__</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>__USER_HOME__</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <!-- Optional: pre-cache the API key here to avoid op CLI dependency in launchd context.
+             Uncomment and set if 'op' may not have a valid SA session at scheduled fire time:
+        <key>MINIMAX_API_KEY</key>
+        <string>YOUR_KEY_HERE</string>
+        -->
+        <!-- Optional: override the locked snapshot path if not using the plugin default:
+        <key>MINIMAX_LOCKED_SNAPSHOT</key>
+        <string>/path/to/your/models-list-locked.json</string>
+        -->
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/stderr.log</string>
+</dict>
+</plist>
