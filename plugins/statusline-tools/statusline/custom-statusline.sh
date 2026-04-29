@@ -645,6 +645,99 @@ else
     echo -e "${datetime_display}"
 fi
 
+# Autonomous-loop awareness (v16.9.2): if the current cwd is under any
+# registered loop's contract dir, print one compact line with the loop's
+# identity + health. Sits between datetime and the path line so the
+# operator sees "what loop owns this terminal" alongside the project info.
+loop_registry="$HOME/.claude/loops/registry.json"
+if [ -f "$loop_registry" ]; then
+    # Find the loop whose contract dir is a prefix of the current cwd OR
+    # whose contract dir IS the current cwd. Same matcher as session-bind.sh.
+    loop_match=$(jq -c --arg cwd "$PWD" '
+        .loops[]? |
+        select(
+            ((.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
+              ($contract_dir + "/") as $contract_prefix |
+              ($cwd | startswith($contract_prefix)) or ($cwd == $contract_dir)
+            )
+        ) |
+        {
+            loop_id, contract_path, state_dir,
+            owner_session_id: (.owner_session_id // "")
+        }
+    ' "$loop_registry" 2>/dev/null | head -1)
+    if [ -n "$loop_match" ] && [ "$loop_match" != "null" ]; then
+        loop_id=$(echo "$loop_match" | jq -r '.loop_id // ""')
+        contract_path=$(echo "$loop_match" | jq -r '.contract_path // ""')
+        state_dir=$(echo "$loop_match" | jq -r '.state_dir // ""' | sed 's:/*$::')
+        owner_sid=$(echo "$loop_match" | jq -r '.owner_session_id // ""')
+
+        # Read contract frontmatter for name + status + iteration
+        loop_name=""; loop_status=""; loop_iter=""
+        if [ -f "$contract_path" ]; then
+            # Single awk pass — name / status / iteration from YAML frontmatter
+            eval "$(awk '
+                /^---$/{n++; next}
+                n==1 && /^name:[[:space:]]*/      {sub(/^name:[[:space:]]*/, "");      gsub(/'\''/, ""); printf "loop_name=%s\n", "\"" $0 "\""; next}
+                n==1 && /^status:[[:space:]]*/    {sub(/^status:[[:space:]]*/, "");    gsub(/'\''/, ""); printf "loop_status=%s\n", "\"" $0 "\""; next}
+                n==1 && /^iteration:[[:space:]]*/ {sub(/^iteration:[[:space:]]*/, ""); printf "loop_iter=%s\n", "\"" $0 "\""; next}
+                n==1 && NR > 30 {exit}
+            ' "$contract_path" 2>/dev/null)" 2>/dev/null
+        fi
+        loop_name="${loop_name:-$loop_id}"
+        loop_status="${loop_status:-?}"
+        loop_iter="${loop_iter:-?}"
+
+        # Heartbeat freshness — last_wake_us age in seconds; cwd-drift flag
+        hb_age="?"
+        drift_flag=""
+        if [ -n "$state_dir" ] && [ -f "$state_dir/heartbeat.json" ]; then
+            last_us=$(jq -r '.last_wake_us // 0' "$state_dir/heartbeat.json" 2>/dev/null)
+            now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
+            if [ "${last_us:-0}" -gt 0 ]; then
+                hb_age=$(( (now_us - last_us) / 1000000 ))
+            fi
+            drift=$(jq -r '.cwd_drift_detected // false' "$state_dir/heartbeat.json" 2>/dev/null)
+            [ "$drift" = "true" ] && drift_flag=" ${RED}⚠ cwd-drift${RESET}"
+        fi
+
+        # Binding state — color-code owner_session_id
+        case "$owner_sid" in
+            ""|"unknown"|"unknown-session"|"pending-bind")
+                bind_label="${YELLOW}${owner_sid:-unbound}${RESET}"
+                ;;
+            *)
+                # Truncate UUID to first 8 chars for compactness
+                bind_label="${GREEN}${owner_sid:0:8}${RESET}"
+                ;;
+        esac
+
+        # Status color: ACTIVE → green; DONE/* → bright_black; PAUSED → yellow; else cyan
+        case "$loop_status" in
+            ACTIVE*|active*)            status_label="${GREEN}${loop_status:0:30}${RESET}" ;;
+            DONE*|done*|COMPLETE*|FINISHED*|SUPERSEDED*|STOPPED*|ABORTED*)
+                                        status_label="${BRIGHT_BLACK}${loop_status:0:30}${RESET}" ;;
+            PAUSED*|paused*)            status_label="${YELLOW}${loop_status:0:30}${RESET}" ;;
+            *)                          status_label="${CYAN}${loop_status:0:30}${RESET}" ;;
+        esac
+
+        # Heartbeat age color: <60s green; <600s cyan; <3600s yellow; else red/?
+        case "$hb_age" in
+            "?")           hb_label="${BRIGHT_BLACK}♡ never${RESET}" ;;
+            *)
+                if   [ "$hb_age" -lt 60 ];   then hb_label="${GREEN}♡ ${hb_age}s${RESET}"
+                elif [ "$hb_age" -lt 600 ];  then hb_label="${CYAN}♡ ${hb_age}s${RESET}"
+                elif [ "$hb_age" -lt 3600 ]; then hb_label="${YELLOW}♡ ${hb_age}s${RESET}"
+                else                              hb_label="${RED}♡ ${hb_age}s${RESET}"
+                fi
+                ;;
+        esac
+
+        # Compose: ⏿ <name> [<id>] iter N · <status> · bound: <sid> · ♡ <age>
+        echo -e "${BRIGHT_BLACK}⏿${RESET} ${MAGENTA}${loop_name:0:40}${RESET} ${BRIGHT_BLACK}[${loop_id}]${RESET} iter ${loop_iter} ${BRIGHT_BLACK}·${RESET} ${status_label} ${BRIGHT_BLACK}·${RESET} bound:${bind_label} ${BRIGHT_BLACK}·${RESET} ${hb_label}${drift_flag}"
+    fi
+fi
+
 echo -e "$line_repo"
 
 if [ -n "$session_chain" ]; then
