@@ -105,6 +105,28 @@ _doctor_check_loop() {
     fi
   fi
 
+  # Check 6.5 (v16.8.1): DONE-status contract still loaded.
+  # Reads contract frontmatter for `status:` line. If it starts with DONE,
+  # COMPLETE, FINISHED, or SUPERSEDED (case-insensitive), the loop is stale
+  # and should be cleaned. Eligible for auto-fix.
+  if [ -n "$contract_path" ] && [ -f "$contract_path" ]; then
+    local contract_status
+    contract_status=$(awk '
+      /^---$/{n++; next}
+      n==1 && /^status:[[:space:]]*/ {
+        sub(/^status:[[:space:]]*/, "")
+        gsub(/^"|"$|^'\''|'\''$/, "")
+        print
+        exit
+      }
+      n==1 && NR > 30 { exit }
+    ' "$contract_path" 2>/dev/null || echo "")
+    if echo "$contract_status" | grep -qiE '^(done|complete|finished|superseded|stopped|aborted)\b'; then
+      issues+=("YELLOW: contract status='${contract_status:0:60}' but loop still loaded — run doctor --fix to clean (auto-fix removes plist + registry entry + state dir)")
+      [ "$verdict" = "GREEN" ] && verdict="YELLOW"
+    fi
+  fi
+
   # Check 7 (v16.8.0): waker-as-pacing pattern detection.
   # Reads recent provenance events for this loop. If 3+ recent firings
   # show high dead_time (sum(ScheduleWakeup.delay) / wall_time > 0.25),
@@ -242,15 +264,69 @@ loop_doctor_fix() {
     done <<< "$labels"
   fi
 
-  # Fix 2: tmp-folder registry entries (test artefacts)
+  # Fix 2: tmp-folder registry entries (test artefacts).
+  # Match the precise mktemp leftover pattern only:
+  # /var/folders/<seg1>/<seg2>/T/tmp.<rand>/LOOP_CONTRACT.md
+  # Avoids false positives when a user's HOME or repo lives under /var/folders
+  # (e.g. test environments using mktemp -d as HOME).
+  local tmp_re='^/var/folders/[^/]+/[^/]+/T/tmp\.[^/]+/LOOP_CONTRACT\.md$'
   if [ -f "$registry_path" ]; then
     local removed
-    removed=$(jq '[.loops[] | select(.contract_path | startswith("/var/folders/"))] | length' "$registry_path")
+    removed=$(jq --arg re "$tmp_re" '[.loops[] | select(.contract_path | test($re))] | length' "$registry_path")
     if [ "$removed" -gt 0 ]; then
-      echo "Pruning $removed /var/folders/* test entries from registry"
-      jq '.loops |= map(select(.contract_path | startswith("/var/folders/") | not))' "$registry_path" >"$registry_path.tmp" && mv "$registry_path.tmp" "$registry_path"
+      echo "Pruning $removed mktemp LOOP_CONTRACT.md test entries from registry"
+      jq --arg re "$tmp_re" '.loops |= map(select(.contract_path | test($re) | not))' "$registry_path" >"$registry_path.tmp" && mv "$registry_path.tmp" "$registry_path"
       fixed=$((fixed + removed))
     fi
+  fi
+
+  # Fix 3 (v16.8.1): clean DONE-marked contracts.
+  # User marks contract status: DONE but forgets to run /autonomous-loop:stop —
+  # the plist keeps firing forever. Doctor --fix detects DONE status, boots
+  # out the launchd job, removes the plist, archives the registry entry, and
+  # leaves the .loop-state/ dir in place for forensics.
+  if [ -f "$registry_path" ]; then
+    while IFS= read -r entry; do
+      [ -z "$entry" ] && continue
+      [ "$entry" = "null" ] && continue
+      local cp lid sid_label
+      cp=$(echo "$entry" | jq -r '.contract_path // ""')
+      lid=$(echo "$entry" | jq -r '.loop_id // ""')
+      [ -z "$cp" ] || [ -z "$lid" ] && continue
+      [ ! -f "$cp" ] && continue
+      local cstatus
+      cstatus=$(awk '
+        /^---$/{n++; next}
+        n==1 && /^status:[[:space:]]*/ {
+          sub(/^status:[[:space:]]*/, "")
+          gsub(/^"|"$|^'\''|'\''$/, "")
+          print
+          exit
+        }
+        n==1 && NR > 30 { exit }
+      ' "$cp" 2>/dev/null || echo "")
+      if echo "$cstatus" | grep -qiE '^(done|complete|finished|superseded|stopped|aborted)\b'; then
+        sid_label="com.user.claude.loop.$lid"
+        echo "Cleaning DONE loop $lid (status='${cstatus:0:50}') — bootout + plist + registry"
+        if command -v launchctl >/dev/null 2>&1; then
+          launchctl bootout "gui/$(id -u)/$sid_label" 2>/dev/null || true
+        fi
+        rm -f "$HOME/Library/LaunchAgents/$sid_label.plist" 2>/dev/null || true
+        # Archive registry entry instead of hard delete (forensics)
+        local archive="$HOME/.claude/loops/registry.archive.jsonl"
+        local now_iso
+        now_iso=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        echo "$entry" | jq -c --arg ts "$now_iso" --arg s "$cstatus" '. + {archived_ts_iso: $ts, archived_reason: ("contract status=" + $s)}' >>"$archive" 2>/dev/null || true
+        # Remove from active registry
+        jq --arg id "$lid" '.loops |= map(select(.loop_id != $id))' "$registry_path" >"$registry_path.tmp" && mv "$registry_path.tmp" "$registry_path"
+        if command -v emit_provenance >/dev/null 2>&1; then
+          emit_provenance "$lid" "doctor_fixed_done_loop" \
+            reason="auto-cleanup of DONE-marked loop; status=${cstatus:0:80}" \
+            decision="proceeded" 2>/dev/null || true
+        fi
+        fixed=$((fixed + 1))
+      fi
+    done < <(jq -c '.loops[]' "$registry_path" 2>/dev/null)
   fi
 
   echo "Doctor fix complete. Remediations applied: $fixed"
