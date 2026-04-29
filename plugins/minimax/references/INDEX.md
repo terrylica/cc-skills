@@ -102,9 +102,9 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 
 ### Index doc (1 file — meta)
 
-| Source                 | Destination           | Status         | Notes                                                                  |
-| ---------------------- | --------------------- | -------------- | ---------------------------------------------------------------------- |
-| api-patterns/CLAUDE.md | api-patterns/INDEX.md | NOT_AGGREGATED | Source's TOC; aggregate version drops the "TBD by loop" template hints |
+| Source                 | Destination           | Status     | Notes                                                                                                                                                                        |
+| ---------------------- | --------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| api-patterns/CLAUDE.md | api-patterns/INDEX.md | AGGREGATED | DONE iter-7: 63 lines + 3 retarget patterns (spoke + LOOP_CONTRACT abs paths; fixtures/ → ../fixtures/). 39 sibling refs preserved as forward-refs to iter-8-12 aggregations |
 
 ---
 
@@ -154,12 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      2  (RETROSPECTIVE.md iter-5, quirks.md iter-6)
-NOT_AGGREGATED:                  ~48
+AGGREGATED:                      3  (RETROSPECTIVE iter-5, quirks iter-6, api-patterns/INDEX iter-7)
+NOT_AGGREGATED:                  ~47
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-6 (2026-04-29 11:23 UTC)
+Last updated:                    iter-7 (2026-04-29 11:28 UTC)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
