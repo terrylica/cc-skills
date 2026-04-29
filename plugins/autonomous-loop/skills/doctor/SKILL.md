@@ -10,6 +10,8 @@ disable-model-invocation: false
 
 # autonomous-loop: Doctor
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Self-diagnostic for the autonomous-loop fleet. Cross-references registry.json, heartbeat.json files, launchctl list output, plist files, and (lightly) `~/.claude/projects` JSONL transcripts to surface zombies, orphans, label collisions, multi-cwd contamination, stale bindings, and missing heartbeats.
 
 ## Arguments
@@ -72,3 +74,10 @@ What `--fix` will **NEVER** do (intentionally — operator decision required):
 
 - Library: `plugins/autonomous-loop/scripts/doctor-lib.sh`
 - Companion script: `plugins/autonomous-loop/scripts/heal-self.sh`
+
+## Post-Execution Reflection
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — Fix the instruction that caused it (e.g., a detection that produced false positives, a `--fix` op that wasn't actually safe).
+2. **What drifted?** — Update if the registry schema, heartbeat fields, or launchctl output format changed.
+3. **Log it.** — Evolution-log entry with trigger, fix, evidence.
