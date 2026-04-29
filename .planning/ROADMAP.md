@@ -9,6 +9,7 @@
 - ✅ **v4.7.0 Architecture Hardening + Feature Expansion** - Phases 18-24 (shipped 2026-03-28)
 - ✅ **v4.8.0 Python MLX TTS Consolidation** - Phases 25-28 (shipped 2026-03-28)
 - ✅ **v4.9.0 SwiftBar UI & Telegram Bot Activation** - Phases 29-34 (shipped 2026-03-29)
+- 🚧 **v4.10.0 Autonomous Loop Anti-Fragility** - Phases 35-38 (in progress)
 
 ## Overview
 
@@ -89,6 +90,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 Full details archived in [milestones/v4.9.0-ROADMAP.md](./milestones/v4.9.0-ROADMAP.md).
 
 </details>
+
+### v4.10.0 Autonomous Loop Anti-Fragility (Phases 35-38)
+
+- [ ] **Phase 35: Provenance Foundation** - Append-only `<state_dir>/provenance.jsonl` ledger + global mirror with schema-versioned events; intent-before-state-write discipline
+- [ ] **Phase 36: Hook-Time Binding** - SessionStart hook authoritatively binds `owner_session_id` from stdin payload; heartbeat hook reads stdin (not env var); cwd-drift detection
+- [ ] **Phase 37: Waker Hardening + launchd Collision Defense** - Five-check pre-spawn invariant; cd to contract dir on resume; launchd Label collision detection in `generate_plist`
+- [ ] **Phase 38: Doctor & Self-Heal** - `/autonomous-loop:doctor` skill with GREEN/YELLOW/RED report; idempotent `heal-self.sh` migration archives `unknown` owner entries; status skill surfaces last 10 provenance events
 
 ## Phase Details
 
@@ -652,3 +660,63 @@ Plans:
 
 </details>
 
+### v4.10.0 Autonomous Loop Anti-Fragility Phase Details
+
+### Phase 35: Provenance Foundation
+
+**Goal**: Every state mutation in the autonomous-loop plugin writes an append-only schema-versioned event to `<state_dir>/provenance.jsonl` BEFORE the registry/heartbeat write — and a 10k-line global mirror at `~/.claude/loops/global-provenance.jsonl` exists for cross-loop forensics.
+
+**Depends on**: Nothing (first phase of v4.10.0; introduces the foundational primitive other phases consume)
+**Requirements**: PROV-01, PROV-02, PROV-03, PROV-04
+**Success Criteria** (what must be TRUE):
+
+1. `plugins/autonomous-loop/scripts/provenance-lib.sh` exists and exports `emit_provenance(loop_id, event, fields...)` writing schema-versioned JSONL lines atomically (mktemp + flock)
+2. Schema lines include: `ts_iso, ts_us, event, loop_id, agent, session_id, cwd_observed, cwd_bound, registry_generation, owner_pid_before, owner_pid_after, reason, decision, schema_version`
+3. Global mirror at `~/.claude/loops/global-provenance.jsonl` rotates at 10k lines (oldest 5k moved to `global-provenance.<ts>.jsonl.gz`)
+4. Tests in `plugins/autonomous-loop/tests/test-provenance.sh` cover: schema validation, atomic concurrent writes (no torn lines), rotation correctness, intent-before-state ordering
+   **Plans**: TBD (planned just-in-time before execute)
+
+### Phase 36: Hook-Time Binding
+
+**Goal**: Session→loop binding moves from skill-Bash-subprocess (broken `$CLAUDE_SESSION_ID`) to hook-time (stdin payload) — the SessionStart hook authoritatively binds `owner_session_id` and the PostToolUse hook reads stdin too. Multi-session same-folder becomes a first-class concept (one owner, N observers).
+
+**Depends on**: Phase 35 (binding events emit provenance)
+**Requirements**: BIND-01, BIND-02, BIND-03, BIND-04
+**Success Criteria** (what must be TRUE):
+
+1. New `plugins/autonomous-loop/hooks/session-bind.sh` (SessionStart) installed via `hook-install-lib.sh` alongside PostToolUse; reads `{session_id, cwd, source}` from stdin; binds atomically via `update_loop_field`
+2. `heartbeat-tick.sh` no longer reads `$CLAUDE_SESSION_ID` env var; reads stdin payload; records `bound_cwd` on first heartbeat; sets `cwd_drift_detected: true` on subsequent ticks if cwd changes
+3. `skills/start/SKILL.md` step 5 no longer captures `$CLAUDE_SESSION_ID`; sets `owner_session_id: "pending-bind"`; collision check via `AskUserQuestion` if registry already has live owner for same loop_id
+4. Multi-session test: open two sessions in same folder with same contract; verify only one becomes owner, the other logs `observer` to provenance, neither corrupts the other's state
+5. JSONL contamination test: invoke `claude --resume <id>` from a different cwd; verify `cwd_drift_detected` flag set and waker refuses subsequent spawn
+   **Plans**: TBD
+
+### Phase 37: Waker Hardening + launchd Collision Defense
+
+**Goal**: The waker NEVER spawns `claude --resume` unless five invariants hold (UUID validity, heartbeat-from-cwd, bound_cwd matches, label uniqueness, no conflicting binding). `generate_plist` detects and resolves launchd Label collisions before write.
+
+**Depends on**: Phase 36 (waker reads bound_cwd and cwd_drift_detected from heartbeat)
+**Requirements**: WAKE-01, WAKE-02, WAKE-03, WAKE-04, WAKE-05
+**Success Criteria** (what must be TRUE):
+
+1. `spawn_claude_resume` validates session_id matches UUID regex `^[0-9a-f-]{36}$`; refuses with typed `spawn_refused_invalid_session_id` provenance event on mismatch
+2. Spawn cd's to `dirname(contract_path)` (not `dirname(state_dir)`); waker.log records the cwd choice
+3. `generate_plist` runs `launchctl list | grep -c <label>` before write; if existing entry, archives old plist to `state_dir/orphans/<ts>/`, unloads, regenerates
+4. Five-check invariant gate inside `_with_registry_lock`; any failure emits typed refusal event to provenance + user-facing notification (no silent drops)
+5. Regression test: simulate each refusal scenario (a-e from invariant list); verify all log to provenance and emit notification; verify no spawn occurred
+   **Plans**: TBD
+
+### Phase 38: Doctor & Self-Heal
+
+**Goal**: A `/autonomous-loop:doctor` skill produces a GREEN/YELLOW/RED report per loop with remediation hints; `heal-self.sh` archives stale `unknown` owner entries idempotently on every fresh SessionStart; the `status` skill surfaces the doctor verdict.
+
+**Depends on**: Phases 35, 36, 37 (doctor reads provenance, registry, heartbeats, launchctl)
+**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04
+**Success Criteria** (what must be TRUE):
+
+1. `plugins/autonomous-loop/skills/doctor/SKILL.md` and `scripts/doctor-lib.sh` produce per-loop GREEN/YELLOW/RED report citing: registry vs launchctl mismatches, missing/stale heartbeats, JSONL multi-cwd contamination, label collisions, dangling owner_pids
+2. `--fix` mode auto-remediates SAFE ops only: unload orphan plists, archive corrupted entries, prune `/var/folders/*` test entries; never spawns claude
+3. `scripts/heal-self.sh` archives entries with `owner_session_id ∈ {"unknown", "unknown-session", "", "pending-bind"}` older than 1 hour to `~/.claude/loops/registry.archive.jsonl`; runs once per registry-version-hash on SessionStart (gated to avoid repeat work)
+4. `skills/status/SKILL.md` surfaces last 10 provenance events per loop + one-line doctor verdict at top of output
+5. End-to-end test: artificially create the 4 zombie scenarios from the 2026-04-29 incident (orphan plist, dangling registry, multi-cwd JSONL, missing heartbeat); verify doctor detects all four with correct severity; verify `--fix` cleans them
+   **Plans**: TBD
