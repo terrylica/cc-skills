@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.10.0
 milestone_name: Autonomous Loop Anti-Fragility
 status: executing
-stopped_at: Phase 35 complete (provenance-lib.sh shipped); Phase 36 ready
-last_updated: "2026-04-29T04:00:00.000Z"
+stopped_at: Phase 36 complete (hook-time binding shipped); Phase 37 ready
+last_updated: "2026-04-29T04:30:00.000Z"
 last_activity: 2026-04-29
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 25
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 50
 ---
 
 <!-- # SSoT-OK -->
