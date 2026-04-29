@@ -159,7 +159,7 @@ NOT_AGGREGATED:                  ~0  (OPS-tool artifacts only — Phase C)
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-12 (2026-04-29 17:48 UTC) — Phase B content aggregation COMPLETE
+Last updated:                    iter-13 (2026-04-29 17:53 UTC) — Phase B COMPLETE (audit clean, 0 broken refs)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
