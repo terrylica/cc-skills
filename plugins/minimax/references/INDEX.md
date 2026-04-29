@@ -42,7 +42,7 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | --------------------------------------- | ---------------------------------------------------- | -------------- | ---- | ------------------------------------------------------------ |
 | chat-completion-minimal.md              | api-patterns/chat-completion-minimal.md              | AGGREGATED    | 2    | `<think>` stripping; 11 MiniMax-specific response fields     |
 | chat-completion-system-prompt.md        | api-patterns/chat-completion-system-prompt.md        | AGGREGATED    | 3    | System role strongly honored; persona ~2× reasoning          |
-| chat-completion-system-token-scaling.md | api-patterns/chat-completion-system-token-scaling.md | NOT_AGGREGATED | 21   | Hybrid replacement+discount; ~70% rate                       |
+| chat-completion-system-token-scaling.md | api-patterns/chat-completion-system-token-scaling.md | AGGREGATED    | 21   | Hybrid replacement+discount; ~70% rate                       |
 | chat-completion-multi-turn.md           | api-patterns/chat-completion-multi-turn.md           | AGGREGATED    | 4    | Stateless; fabricated assistant turns accepted               |
 | chat-completion-temperature.md          | api-patterns/chat-completion-temperature.md          | AGGREGATED    | 5    | temp=0 NOT deterministic on M-series                         |
 | chat-completion-max-tokens.md           | api-patterns/chat-completion-max-tokens.md           | AGGREGATED    | 6    | Server doesn't enforce; tiny budget = silent empty           |
@@ -52,10 +52,10 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | chat-completion-tokens.md               | api-patterns/chat-completion-tokens.md               | AGGREGATED    | 10   | Server strips `<think>` on assistant replay (no double-bill) |
 | chat-completion-tools.md                | api-patterns/chat-completion-tools.md                | AGGREGATED    | 12   | Tools honored; `tool_choice` silently dropped                |
 | chat-completion-name-field.md           | api-patterns/chat-completion-name-field.md           | AGGREGATED    | 20   | Always returns "MiniMax AI"; request `name` dropped          |
-| chat-completion-tps.md                  | api-patterns/chat-completion-tps.md                  | NOT_AGGREGATED | 26   | ~50 TPS asymptote (NOT 100); use 40 for capacity planning    |
-| concurrency.md                          | api-patterns/concurrency.md                          | NOT_AGGREGATED | 25   | TRUE parallelism up to p=10; soft ceiling beyond             |
-| context-window-boundary.md              | api-patterns/context-window-boundary.md              | NOT_AGGREGATED | 24   | ~200K tokens; 3.6 chars/token English                        |
-| sensitivity-flags.md                    | api-patterns/sensitivity-flags.md                    | NOT_AGGREGATED | 27   | Flags inert on this tier; 100% default-rate                  |
+| chat-completion-tps.md                  | api-patterns/chat-completion-tps.md                  | AGGREGATED    | 26   | ~50 TPS asymptote (NOT 100); use 40 for capacity planning    |
+| concurrency.md                          | api-patterns/concurrency.md                          | AGGREGATED    | 25   | TRUE parallelism up to p=10; soft ceiling beyond             |
+| context-window-boundary.md              | api-patterns/context-window-boundary.md              | AGGREGATED    | 24   | ~200K tokens; 3.6 chars/token English                        |
+| sensitivity-flags.md                    | api-patterns/sensitivity-flags.md                    | AGGREGATED    | 27   | Flags inert on this tier; 100% default-rate                  |
 
 ### Caching (2 files)
 
@@ -72,16 +72,16 @@ Every doc gets a verbatim aggregate copy with internal cross-references retarget
 | audio-tts.md        | api-patterns/audio-tts.md        | AGGREGATED    | 15   | `/v1/t2a_v2`; all 6 speech models plan-gated       |
 | video-generation.md | api-patterns/video-generation.md | AGGREGATED    | 16   | `/v1/video_generation`; async via task_id          |
 | embeddings.md       | api-patterns/embeddings.md       | AGGREGATED    | 17   | `/v1/embeddings`; RPM-tight; pending vector test   |
-| files.md            | api-patterns/files.md            | NOT_AGGREGATED | 19   | Full CRUD; int64 file_id; sub-resource verbs       |
+| files.md            | api-patterns/files.md            | AGGREGATED    | 19   | Full CRUD; int64 file_id; sub-resource verbs       |
 | vision-image-url.md | api-patterns/vision-image-url.md | AGGREGATED    | 13   | M2.7 text-only; image_url silently dropped         |
 | web-search.md       | api-patterns/web-search.md       | AGGREGATED    | 14   | First HTTP 400 in campaign; not on this tier       |
-| rate-limits.md      | api-patterns/rate-limits.md      | NOT_AGGREGATED | 22   | NO rate-limit headers; per-endpoint asymmetry      |
+| rate-limits.md      | api-patterns/rate-limits.md      | AGGREGATED    | 22   | NO rate-limit headers; per-endpoint asymmetry      |
 
 ### Discovery / errors (3 files)
 
 | Source                     | Destination                             | Status         | Iter | Headline finding                                  |
 | -------------------------- | --------------------------------------- | -------------- | ---- | ------------------------------------------------- |
-| errors-and-responses.md    | api-patterns/errors-and-responses.md    | NOT_AGGREGATED | 23   | Two envelopes; no HTTP 404/413                    |
+| errors-and-responses.md    | api-patterns/errors-and-responses.md    | AGGREGATED    | 23   | Two envelopes; no HTTP 404/413                    |
 | model-aliasing.md          | api-patterns/model-aliasing.md          | NOT_AGGREGATED | 28   | Plain ≠ highspeed; plain FASTER for short outputs |
 | model-upgrade-detection.md | api-patterns/model-upgrade-detection.md | NOT_AGGREGATED | 41   | The OPS tool architecture + bug history           |
 
@@ -154,12 +154,12 @@ NOT every fixture migrates — bulky ones (long-context probes, code-generation 
 
 ```
 Total tracked source artifacts:  ~50 (40 docs + ~8 fixtures + 1 OPS script + 1 plist)
-AGGREGATED:                      19  (3 from iter-5/6/7 + 16 leaf docs from iter-8/9)
-NOT_AGGREGATED:                  ~31
+AGGREGATED:                      27  (3 from iter-5/6/7 + 24 leaf docs from iter-8/9/10)
+NOT_AGGREGATED:                  ~23
 PARTIAL:                         0
 SKIPPED:                         3  (CLAUDE.md, LOOP_CONTRACT.md, mise task)
 STUB:                            0
-Last updated:                    iter-9 (2026-04-29 17:34 UTC)
+Last updated:                    iter-10 (2026-04-29 17:39 UTC)
 ```
 
 **Closure criterion**: AGGREGATED + SKIPPED == total. The campaign cannot close while any row shows NOT_AGGREGATED, PARTIAL, or STUB.
