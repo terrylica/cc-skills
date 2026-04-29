@@ -1,3 +1,16 @@
+# [16.8.0](https://github.com/terrylica/cc-skills/compare/v16.7.0...v16.8.0) (2026-04-29)
+
+
+### Bug Fixes
+
+* **validate-plugins:** detectHookType recognizes SessionStart and Stop hooks ([275bcee](https://github.com/terrylica/cc-skills/commit/275bcee6b62b8387fa963929acd11a1b3648e795))
+
+
+### Features
+
+* **autonomous-loop:** comprehensive anti-stupid-idle guards + identifiable runner names ([ff63940](https://github.com/terrylica/cc-skills/commit/ff639405ebdd394e7385bc0606893d957e36cc57))
+* **autonomous-loop:** doctor detects + auto-cleans DONE-marked loops ([6b688c8](https://github.com/terrylica/cc-skills/commit/6b688c8ca80cea1c1b8527c08297e856d945931d))
+
 # [16.7.0](https://github.com/terrylica/cc-skills/compare/v16.6.0...v16.7.0) (2026-04-29)
 
 
