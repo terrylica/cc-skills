@@ -37,20 +37,43 @@ fi
 
 Result: every Claude session opening in a registered loop's contract dir will (1) bind to the loop on SessionStart, then (2) tick heartbeat with cwd-drift detection on every tool invocation.
 
-## Step 2: Preflight
+## Step 2: Preflight (v2 layout — `.autoloop/<slug>--<hash>/CONTRACT.md`)
 
-Check whether a contract already exists at the target path.
+Wave 3 introduced a new on-disk layout: contracts live under
+`<project_cwd>/.autoloop/<campaign-slug>--<short-hash>/CONTRACT.md` with a
+sibling `state/` directory. This makes multi-campaign coexistence in one cwd
+first-class and lets any AI agent ID the right contract by directory name.
+
+**Migration is automatic on first `/autoloop:start` in any directory that
+contains a legacy `<cwd>/LOOP_CONTRACT.md`:**
 
 ```bash
-CONTRACT_PATH="${1:-./LOOP_CONTRACT.md}"
-if [ -f "$CONTRACT_PATH" ]; then
-  echo "EXISTS — user should be asked whether to resume or overwrite"
-else
-  echo "ABSENT — safe to scaffold"
+PROJECT_CWD="${1:-$(pwd -P)}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh"
+source "$PLUGIN_ROOT/scripts/state-lib.sh"
+
+# Returns "noop" if nothing to migrate, or two lines starting with
+# "migrated_to_loop_id:" / "migrated_to_path:" on success.
+MIGRATION_OUTPUT=$(migrate_legacy_contract "$PROJECT_CWD" "${CLAUDE_SESSION_ID:-$$-$(date +%s)}")
+if [ "$MIGRATION_OUTPUT" != "noop" ]; then
+  echo "$MIGRATION_OUTPUT"
+  echo "Legacy LOOP_CONTRACT.md migrated to .autoloop/ subdir; resuming with new layout."
 fi
 ```
 
-If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autoloop:status` instead of starting fresh) or `overwrite` (proceed with Step 3).
+**Then check whether ANY v2 contract already exists for this project:**
+
+```bash
+existing=$(compgen -G "$PROJECT_CWD/.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md" 2>/dev/null || true)
+if [ -n "$existing" ]; then
+  echo "v2 contract(s) present:"
+  echo "$existing"
+  # Ask the user: resume an existing campaign, start a new one alongside, or stop?
+fi
+```
+
+Use `AskUserQuestion` to choose: **resume existing**, **start new campaign alongside** (creates a second `.autoloop/<slug>--<hash>/`), or **stop**.
 
 ## Step 3: Collect contract inputs
 
@@ -59,9 +82,22 @@ Use `AskUserQuestion` to collect:
 ```
 1. name        — short slug for this loop (e.g. "odb-research", "flaky-ci-watcher")
 2. scope       — one-line Core Directive describing the long-horizon goal
-3. location    — path for the contract file (default: ./LOOP_CONTRACT.md)
-4. cadence     — typical wake-up cadence hint (continuous | event-driven | hourly | daily)
+3. cadence     — typical wake-up cadence hint (continuous | event-driven | hourly | daily)
 ```
+
+The contract path is **derived deterministically** from `name` + a stable
+short_hash, so the user does not pick a path:
+
+```bash
+SLUG=$(slugify "$NAME_INPUT")
+SHORT_HASH=$(compute_short_hash "${CLAUDE_SESSION_ID:-$$-$(date +%s)}" "$(date -u +%s)")
+CONTRACT_DIR="$PROJECT_CWD/.autoloop/${SLUG}--${SHORT_HASH}"
+CONTRACT_PATH="$CONTRACT_DIR/CONTRACT.md"
+mkdir -p "$CONTRACT_DIR/state/revision-log"
+```
+
+If `$CONTRACT_DIR` already exists, append a numeric suffix to short_hash or
+ask the user to pick a different `name`.
 
 ## Step 4: Scaffold the contract
 
@@ -81,14 +117,28 @@ if [ ! -f "$TEMPLATE" ]; then
   exit 1
 fi
 cp "$TEMPLATE" "$CONTRACT_PATH"
+
+# Also copy the PROVENANCE.md template (Wave 3) — sits alongside CONTRACT.md
+PROV_TEMPLATE="$PLUGIN_ROOT/templates/PROVENANCE.template.md"
+if [ -f "$PROV_TEMPLATE" ]; then
+  cp "$PROV_TEMPLATE" "$CONTRACT_DIR/PROVENANCE.md"
+fi
 ```
 
 Then inject user inputs via `sed` (or Edit the file via Claude's tools):
 
 - `<SHORT_DESCRIPTIVE_NAME>` → user-provided `name`
 - `<ISO_8601_UTC>` → `date -u +"%Y-%m-%dT%H:%M:%SZ"` (always `-u`; bare `date` returns local time and silently mismatches the contract's UTC fields)
-- `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH`
+- `<RELATIVE_PATH_TO_LOOP_CONTRACT_MD>` → `$CONTRACT_PATH` (now under `.autoloop/<slug>--<hash>/CONTRACT.md`)
 - `<CORE DIRECTIVE>` / `<PROJECT OR CAMPAIGN TITLE>` → user-provided `scope`
+
+After the template is in place, call `init_contract_frontmatter_v2` to stamp
+all v2 birth-record fields (loop_id, campaign_slug, created_at_utc, etc.):
+
+```bash
+NEW_LOOP_ID=$(derive_loop_id "$CONTRACT_PATH")
+init_contract_frontmatter_v2 "$CONTRACT_PATH" "$NEW_LOOP_ID" "$CONTRACT_DIR/state"
+```
 
 ## Step 5: Register loop in machine registry
 

@@ -113,9 +113,42 @@ The autoloop system is built on four atomic primitives that collectively defend 
 
 ---
 
+## On-Disk Layout (Wave 3, schema_version: 2)
+
+New contracts live under a hidden `.autoloop/` subdirectory keyed by campaign slug + 6-hex short hash. Multiple campaigns can coexist in the same project cwd; each gets its own slot.
+
+```
+<project_cwd>/
+├── .autoloop/
+│   ├── odb-research--a1b2c3/
+│   │   ├── CONTRACT.md              ← the live contract (the /loop prompt)
+│   │   ├── PROVENANCE.md            ← human+AI-readable owner+history index
+│   │   └── state/
+│   │       ├── heartbeat.json
+│   │       └── revision-log/<session_id>.jsonl
+│   └── flaky-ci-watcher--d4e5f6/    ← second concurrent campaign
+│       └── ...
+└── .gitignore                       ← auto-appended `.autoloop/`
+```
+
+**Why this layout**:
+
+- Each campaign is fully self-contained: contract, provenance ledger, state, and revision log all sit together. Easy to inspect, archive, or rsync.
+- Multi-campaign coexistence in one cwd is first-class — different campaigns get different `loop_id`s deterministically because their paths differ.
+- The `<slug>--<hash>` directory name is self-explanatory enough that an AI agent can `ls .autoloop/` and immediately tell which campaigns are present, when each was created, and which is "theirs" (cross-referencing `created_in_session` in the frontmatter).
+- `.autoloop/` lives inside the project — survives `cp -r`, ships in tarballs, gets `git clean -dXf`'d cleanly. State that lives in `~/.claude/loops/registry.json` is the SSoT for ownership; the per-campaign dir is the storage for everything else.
+
+**Short hash** (`short_hash` in the registry) = `sha256(creator_session_id + ":" + created_at_utc + ":" + legacy_loop_id)[:6]`. Independent of contract path, so the path can be derived from the slug + hash without circular dependency.
+
+**Auto-migration**: when `/autoloop:start` runs in a directory containing a legacy `<cwd>/LOOP_CONTRACT.md`, the `migrate_legacy_contract` function (in `scripts/state-lib.sh`) detects it and performs the move atomically: contract → `.autoloop/<slug>--<hash>/CONTRACT.md`, state dir → `.autoloop/<slug>--<hash>/state/`, registry-entry split (old marked `migrated_to=<new>`, new entry created with `migrated_from=<old>`). Idempotent; the second call is a no-op.
+
+**Legacy layout still works**: contracts at `<cwd>/LOOP_CONTRACT.md` with state at `<git-toplevel>/.loop-state/<loop_id>/` continue to function. `state_dir_path` detects the path pattern and routes accordingly. Migration is opportunistic — it only fires when the user explicitly invokes `/autoloop:start`.
+
+---
+
 ## The Contract File (schema_version: 2)
 
-`LOOP_CONTRACT.md` lives at a path you choose (default: `./LOOP_CONTRACT.md`). Structure:
+`LOOP_CONTRACT.md` (legacy layout) or `.autoloop/<slug>--<hash>/CONTRACT.md` (v2). Structure:
 
 ```yaml
 ---
