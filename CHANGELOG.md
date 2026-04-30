@@ -1,3 +1,10 @@
+# [16.14.0](https://github.com/terrylica/cc-skills/compare/v16.13.0...v16.14.0) (2026-04-30)
+
+
+### Features
+
+* **itp-hooks:** consolidate 5 Stop hooks into one orchestrator entry ([c234c38](https://github.com/terrylica/cc-skills/commit/c234c38ee952b9cf4b3558f3cf77e298281006b0))
+
 # [16.13.0](https://github.com/terrylica/cc-skills/compare/v16.12.1...v16.13.0) (2026-04-30)
 
 
