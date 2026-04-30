@@ -1,3 +1,10 @@
+## [16.12.1](https://github.com/terrylica/cc-skills/compare/v16.12.0...v16.12.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **clarify-prompts:** shorten Stop-hook nudge reason to one line ([8db2599](https://github.com/terrylica/cc-skills/commit/8db25999ec61629f1134425f1ec8921545e37159))
+
 # [16.12.0](https://github.com/terrylica/cc-skills/compare/v16.11.0...v16.12.0) (2026-04-30)
 
 
