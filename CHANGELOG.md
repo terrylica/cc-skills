@@ -1,3 +1,30 @@
+# [17.0.0](https://github.com/terrylica/cc-skills/compare/v16.14.2...v17.0.0) (2026-04-30)
+
+
+* feat(autoloop)!: relocate contracts to .autoloop/<slug>--<hash>/CONTRACT.md ([b5e6cf3](https://github.com/terrylica/cc-skills/commit/b5e6cf3af832a094abcba576067b29c06099ea77))
+* refactor(autoloop)!: rename autonomous-loop plugin → autoloop ([89d5eab](https://github.com/terrylica/cc-skills/commit/89d5eab4798dc682ceed0c68ea74cbeed7b4f265))
+
+
+### Bug Fixes
+
+* **clarify-prompts:** bump max_tokens 300→800 + strip unclosed <think> ([764326e](https://github.com/terrylica/cc-skills/commit/764326e2a6133eaf484be98ae9abad96d0a381b6))
+
+
+### Features
+
+* **autoloop:** add v2 provenance schema to LOOP_CONTRACT frontmatter ([879324e](https://github.com/terrylica/cc-skills/commit/879324e8f62dddf2cb75d58bb9c71eb4b72679d3))
+
+
+### BREAKING CHANGES
+
+* contract path changes for new contracts, which rotates
+loop_id. Auto-migration handles this transparently for any directory with
+a legacy LOOP_CONTRACT.md. Concurrent campaigns in one cwd are now
+supported and expected.
+* plugin slug, slash commands, and directory path renamed.
+Run /autoloop:setup (or bash plugins/autoloop/scripts/migrate-from-autonomous-loop.sh)
+to migrate ~/.claude/settings.json hook paths after deploying this version.
+
 ## [16.14.2](https://github.com/terrylica/cc-skills/compare/v16.14.1...v16.14.2) (2026-04-30)
 
 
