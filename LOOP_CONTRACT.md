@@ -2,7 +2,7 @@
 name: floating-clock-v4-continuous-aesthetic-evolution
 version: 4
 iteration: 246
-status: ACTIVE
+status: DONE
 last_updated: 2026-04-25T04:55:00Z
 exit_condition: "explicit user-stop OR max_iterations OR explicit DONE section"
 max_iterations: 10000
@@ -500,6 +500,7 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 
 ## Revision Log (append-only, one line per firing)
 
+- 2026-04-29T10:33:49Z — DONE: campaign closed by user (iter 246 final state, no further iteration); cleanup via /autonomous-loop:doctor --fix
 - 2026-04-29T10:16:40Z — interactive cc-skills tooling session (not floating-clock work; autonomous-loop hardening + doctor fixes); loop continues at iter 246
 
 - 2026-04-23 23:59 UTC — iter-0: scaffolded contract, queue seeded with 5 Tier 1 items covering the user-confirmed scope (context menu, icon, slash commands, touchpoint manifest, release). Next: iter-1 starts NSMenu implementation.
