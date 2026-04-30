@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# FILE-SIZE-OK
 # state-lib.sh — State directory and atomic heartbeat primitives for autoloop
-# Provides: now_us, state_dir_path, init_state_dir, write_heartbeat, read_heartbeat
+# Provides: now_us, state_dir_path, init_state_dir, write_heartbeat, read_heartbeat,
+#           set_contract_field, init_contract_frontmatter_v2, migrate_legacy_contract
 
 set -euo pipefail
 
@@ -80,14 +82,22 @@ state_dir_path() {
   }
   contract_abs="$contract_dir/$(basename "$contract_path")"
 
-  # Try to find git toplevel
+  # v2 LAYOUT: contract under .autoloop/<slug>--<hash>/CONTRACT.md → state is sibling
+  # Detected by the parent dir name pattern "<slug>--<6hex>" inside an .autoloop/ ancestor.
+  case "$contract_dir" in
+    */.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+      echo "$contract_dir/state"
+      return 0
+      ;;
+  esac
+
+  # LEGACY LAYOUT (Wave 1 / pre-v2): try git toplevel, fall back to contract parent.
   local repo_root
   if repo_root=$(git -C "$(dirname "$contract_abs")" rev-parse --show-toplevel 2>/dev/null); then
     echo "$repo_root/.loop-state/$loop_id"
     return 0
   fi
 
-  # Fallback: use contract's parent directory
   echo "$(dirname "$contract_abs")/.loop-state/$loop_id"
   return 0
 }
@@ -595,6 +605,227 @@ init_contract_frontmatter_v2() {
   return 0
 }
 
+# slugify <text>
+# Convert arbitrary text into a kebab-case ASCII slug suitable for use in a
+# directory name. Lowercases, collapses non-alphanumeric runs to single dashes,
+# trims leading/trailing dashes. Outputs empty string on empty input.
+#
+# Example:
+#   slugify "My Cool Campaign! v2" → "my-cool-campaign-v2"
+slugify() {
+  local input="$1"
+  if [ -z "$input" ]; then
+    echo ""
+    return 0
+  fi
+  echo "$input" \
+    | tr '[:upper:]' '[:lower:]' \
+    | sed -e 's/[^a-z0-9]\{1,\}/-/g' -e 's/^-//' -e 's/-$//'
+}
+
+# compute_short_hash <seed1> [seed2 ...]
+# Compute a stable 6-character hex hash from one or more seed strings joined
+# by ":". Used for the <short-hash> portion of .autoloop/<slug>--<short-hash>/.
+# Independent of contract path (avoids the circular dependency where loop_id
+# depends on path which depends on hash).
+#
+# Example:
+#   compute_short_hash "$session_id" "$created_at_utc"  → "a1b2c3"
+compute_short_hash() {
+  local IFS=":"
+  local joined="$*"
+  echo -n "$joined" | shasum -a 256 | cut -c 1-6
+}
+
+# derive_v2_contract_path <project_cwd> <campaign_slug> <short_hash>
+# Build the canonical v2 contract path under .autoloop/.
+#   <project_cwd>/.autoloop/<slug>--<hash>/CONTRACT.md
+derive_v2_contract_path() {
+  local project_cwd="$1" slug="$2" hash="$3"
+  echo "$project_cwd/.autoloop/${slug}--${hash}/CONTRACT.md"
+}
+
+# migrate_legacy_contract <project_cwd> [creator_session_id]
+# Detect a legacy LOOP_CONTRACT.md at <project_cwd>/LOOP_CONTRACT.md and migrate
+# it into the v2 layout: <project_cwd>/.autoloop/<slug>--<hash>/CONTRACT.md.
+#
+# Steps (idempotent — safe to call multiple times):
+#   1. If <project_cwd>/.autoloop/ already contains a CONTRACT.md, no-op (return 0).
+#   2. If no legacy contract exists, no-op (return 0).
+#   3. Read campaign_slug from frontmatter (`name:` slugified). Fail if empty.
+#   4. Compute short_hash from (creator_session_id, created_at_utc, legacy_loop_id).
+#   5. Build new dir: <project_cwd>/.autoloop/<slug>--<hash>/
+#   6. Move LOOP_CONTRACT.md → <new-dir>/CONTRACT.md (git mv if tracked).
+#   7. Move <git-toplevel>/.loop-state/<old-loop-id>/ → <new-dir>/state/ if present.
+#   8. Recompute new loop_id from the new contract path. Stamp it into frontmatter.
+#   9. Add new registry entry with migrated_from = old_loop_id, project_cwd set.
+#  10. Mark old registry entry as status="migrated", migrated_to=<new-loop-id>.
+#  11. Append .autoloop/ to <project_cwd>/.gitignore (idempotent).
+#
+# On stdout, prints two lines on success:
+#   migrated_to_loop_id: <new-loop-id>
+#   migrated_to_path: <absolute-new-contract-path>
+# Or "noop" if nothing to migrate.
+#
+# Arguments:
+#   $1: project_cwd (must exist; must be a directory)
+#   $2 (optional): creator_session_id for short_hash seeding (defaults to $$)
+migrate_legacy_contract() {
+  local project_cwd="$1"
+  local session_seed="${2:-$$-$(date +%s)}"
+
+  if [ ! -d "$project_cwd" ]; then
+    echo "ERROR: migrate_legacy_contract: project_cwd '$project_cwd' is not a directory" >&2
+    return 1
+  fi
+
+  project_cwd=$(cd "$project_cwd" && pwd -P)
+
+  # Step 1: check for existing v2 contract — if present, nothing to do.
+  if compgen -G "$project_cwd/.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md" >/dev/null 2>&1; then
+    echo "noop"
+    return 0
+  fi
+
+  # Step 2: check for legacy contract.
+  local legacy="$project_cwd/LOOP_CONTRACT.md"
+  if [ ! -f "$legacy" ]; then
+    echo "noop"
+    return 0
+  fi
+
+  # Step 3: read campaign_slug.
+  local name_value
+  name_value=$(awk '
+    NR == 1 && /^---/ { in_fm = 1; next }
+    in_fm && /^---/ { exit }
+    in_fm && /^name:/ { sub(/^name:[[:space:]]*/, ""); gsub(/^["<]|[">]$/, ""); print; exit }
+  ' "$legacy" 2>/dev/null)
+  local slug
+  slug=$(slugify "$name_value")
+  if [ -z "$slug" ]; then
+    echo "ERROR: migrate_legacy_contract: cannot derive campaign_slug — legacy contract has empty 'name:' field" >&2
+    return 1
+  fi
+
+  # Step 4: compute short_hash.
+  local legacy_created_at
+  legacy_created_at=$(awk '
+    NR == 1 && /^---/ { in_fm = 1; next }
+    in_fm && /^---/ { exit }
+    in_fm && /^created_at_utc:/ { sub(/^created_at_utc:[[:space:]]*/, ""); gsub(/^"|"$/, ""); print; exit }
+  ' "$legacy" 2>/dev/null)
+  local legacy_loop_id
+  legacy_loop_id=$(awk '
+    NR == 1 && /^---/ { in_fm = 1; next }
+    in_fm && /^---/ { exit }
+    in_fm && /^loop_id:/ { sub(/^loop_id:[[:space:]]*/, ""); gsub(/^"|"$/, ""); print; exit }
+  ' "$legacy" 2>/dev/null)
+  local short_hash
+  short_hash=$(compute_short_hash "$session_seed" "${legacy_created_at:-no-created-at}" "${legacy_loop_id:-no-loop-id}")
+
+  # Step 5: build new dir.
+  local new_dir="$project_cwd/.autoloop/${slug}--${short_hash}"
+  if [ -e "$new_dir" ]; then
+    echo "ERROR: migrate_legacy_contract: target dir already exists: $new_dir" >&2
+    return 1
+  fi
+  mkdir -p "$new_dir" || {
+    echo "ERROR: migrate_legacy_contract: failed to create $new_dir" >&2
+    return 1
+  }
+  local new_contract="$new_dir/CONTRACT.md"
+  local new_state="$new_dir/state"
+
+  # Step 6: move contract (prefer git mv if tracked).
+  local moved="no"
+  if git -C "$project_cwd" rev-parse --git-dir >/dev/null 2>&1; then
+    if git -C "$project_cwd" ls-files --error-unmatch "LOOP_CONTRACT.md" >/dev/null 2>&1; then
+      if git -C "$project_cwd" mv "LOOP_CONTRACT.md" "${new_dir#"$project_cwd"/}/CONTRACT.md" 2>/dev/null; then
+        moved="yes"
+      fi
+    fi
+  fi
+  if [ "$moved" = "no" ]; then
+    mv "$legacy" "$new_contract" || {
+      echo "ERROR: migrate_legacy_contract: failed to move contract" >&2
+      return 1
+    }
+  fi
+
+  # Step 7: move legacy state dir if present.
+  if [ -n "$legacy_loop_id" ]; then
+    local legacy_state=""
+    local repo_root
+    if repo_root=$(git -C "$project_cwd" rev-parse --show-toplevel 2>/dev/null); then
+      [ -d "$repo_root/.loop-state/$legacy_loop_id" ] && legacy_state="$repo_root/.loop-state/$legacy_loop_id"
+    fi
+    if [ -z "$legacy_state" ] && [ -d "$project_cwd/.loop-state/$legacy_loop_id" ]; then
+      legacy_state="$project_cwd/.loop-state/$legacy_loop_id"
+    fi
+    if [ -n "$legacy_state" ] && [ -d "$legacy_state" ]; then
+      mv "$legacy_state" "$new_state" 2>/dev/null || true
+    fi
+  fi
+  mkdir -p "$new_state/revision-log"
+
+  # Step 8: recompute new loop_id from new path; stamp into frontmatter.
+  local registry_lib_dir
+  registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$registry_lib_dir/registry-lib.sh" 2>/dev/null || true
+  fi
+  local new_loop_id
+  new_loop_id=$(derive_loop_id "$new_contract") || {
+    echo "ERROR: migrate_legacy_contract: cannot derive new loop_id" >&2
+    return 1
+  }
+  set_contract_field "$new_contract" "loop_id" "$new_loop_id"
+  set_contract_field "$new_contract" "campaign_slug" "\"$slug\""
+  set_contract_field "$new_contract" "schema_version" "2"
+  set_contract_field "$new_contract" "state_dir" "\"$new_state\""
+  set_contract_field "$new_contract" "revision_log_path" "\"$new_state/revision-log\""
+  # Stamp creation provenance only if missing (preserve real birth time).
+  init_contract_frontmatter_v2 "$new_contract" "$new_loop_id" "$new_state"
+
+  # Step 9 + 10: registry updates (best-effort; success path adds new entry +
+  # marks old as migrated; on failure we still print the migration info so the
+  # caller can see what happened).
+  if command -v register_loop >/dev/null 2>&1; then
+    local entry_json
+    entry_json=$(jq -n \
+      --arg loop_id "$new_loop_id" \
+      --arg contract_path "$new_contract" \
+      --arg state_dir "$new_state" \
+      --arg project_cwd "$project_cwd" \
+      --arg campaign_slug "$slug" \
+      --arg short_hash "$short_hash" \
+      --arg migrated_from "${legacy_loop_id:-}" \
+      --arg generation "0" \
+      '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir,
+        project_cwd: $project_cwd, campaign_slug: $campaign_slug,
+        short_hash: $short_hash, migrated_from: $migrated_from,
+        generation: $generation}')
+    register_loop "$entry_json" 2>/dev/null || true
+  fi
+  if [ -n "$legacy_loop_id" ] && command -v update_loop_field >/dev/null 2>&1; then
+    update_loop_field "$legacy_loop_id" ".status" "\"migrated\"" 2>/dev/null || true
+    update_loop_field "$legacy_loop_id" ".migrated_to" "\"$new_loop_id\"" 2>/dev/null || true
+  fi
+
+  # Step 11: .gitignore
+  local gi="$project_cwd/.gitignore"
+  [ ! -f "$gi" ] && touch "$gi"
+  if ! grep -q '^\.autoloop/$' "$gi" 2>/dev/null; then
+    echo ".autoloop/" >> "$gi"
+  fi
+
+  echo "migrated_to_loop_id: $new_loop_id"
+  echo "migrated_to_path: $new_contract"
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f now_us
 export -f state_dir_path
@@ -603,3 +834,7 @@ export -f write_heartbeat
 export -f read_heartbeat
 export -f set_contract_field
 export -f init_contract_frontmatter_v2
+export -f slugify
+export -f compute_short_hash
+export -f derive_v2_contract_path
+export -f migrate_legacy_contract
