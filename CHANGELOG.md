@@ -1,3 +1,10 @@
+# [16.13.0](https://github.com/terrylica/cc-skills/compare/v16.12.1...v16.13.0) (2026-04-30)
+
+
+### Features
+
+* **clarify-prompts:** two-layer ambiguity classifier with MiniMax-M2.7 ([1453b22](https://github.com/terrylica/cc-skills/commit/1453b22c1f58dd816c775bf7f972b80246eee5af))
+
 ## [16.12.1](https://github.com/terrylica/cc-skills/compare/v16.12.0...v16.12.1) (2026-04-30)
 
 
