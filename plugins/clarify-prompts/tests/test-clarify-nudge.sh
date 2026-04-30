@@ -144,21 +144,44 @@ run_case "empty-text guard (tool-only assistant turn)" \
     allow
 
 echo ""
-echo "--- Layer 1: question-mark detection ---"
+echo "--- Layer 1: trailing-question-mark detection ---"
 
-# Latin question mark
+# Trailing Latin '?' → Layer 1 short-circuits, no LLM call needed.
 T_Q="$TMP/q.jsonl"; build_transcript "$T_Q" plain-text "Should we use option A or B?"
-run_case "qmark Latin '?' → nudge (no LLM call)" \
+run_case "trailing '?' → nudge (no LLM call)" \
     "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
     "$(mk_payload "$T_Q")" \
     block
 # Note: even with LLM_FORCE=NOGO, qmark wins (Layer 1 short-circuits).
 
-# CJK question mark
+# Trailing CJK '？'
 T_CJK="$TMP/cjk.jsonl"; build_transcript "$T_CJK" plain-text "需要選擇哪一個方案？"
-run_case "qmark CJK '？' → nudge (no LLM call)" \
+run_case "trailing '？' (CJK) → nudge (no LLM call)" \
     "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
     "$(mk_payload "$T_CJK")" \
+    block
+
+# Trailing whitespace shouldn't break the trailing-? detection.
+T_TRAIL="$TMP/trail.jsonl"; build_transcript "$T_TRAIL" plain-text $'Should we A or B?\n\n'
+run_case "trailing '?' followed by whitespace → still nudges" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_TRAIL")" \
+    block
+
+# Joke pattern: '?' mid-message with punchline AFTER → must NOT short-circuit.
+T_JOKE="$TMP/joke.jsonl"
+build_transcript "$T_JOKE" plain-text $'Why did the developer go broke?\n\nBecause he used up all his cache.'
+run_case "joke (Q? answer.) → falls to Layer 2 (NOGO → silent)" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_JOKE")" \
+    allow
+
+# Joke followed by a real trailing question → trailing-? still nudges.
+T_JOKE2="$TMP/joke2.jsonl"
+build_transcript "$T_JOKE2" plain-text $'Why did the dev cache? Because money.\n\nWant me to draft a fix?'
+run_case "joke + real trailing '?' → nudge via Layer 1" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_JOKE2")" \
     block
 
 # No question mark in last 1500 chars
