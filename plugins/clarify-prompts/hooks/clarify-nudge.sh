@@ -207,7 +207,7 @@ MESSAGE TO CLASSIFY:'
                     --arg msg "$last_text" \
                     '{
                         model: $model,
-                        max_tokens: 300,
+                        max_tokens: 800,
                         messages: [
                             {role: "system", content: "You are a binary classifier. Your output is parsed by a script. Respond with ONLY one word: GO or NOGO."},
                             {role: "user", content: ($prompt + "\n<<<\n" + $msg + "\n>>>\n\nAnswer:")}
@@ -224,8 +224,14 @@ MESSAGE TO CLASSIFY:'
                 # block (MiniMax-M2.7 is a reasoning model). The remainder
                 # holds the GO/NOGO answer.
                 content=$(jq -r '.choices[0].message.content // empty' <<<"$response" 2>/dev/null || echo "")
-                # Strip <think>...</think> (multiline; perl handles cleanly).
-                stripped=$(printf '%s' "$content" | perl -0777 -pe 's{<think>.*?</think>}{}gs' 2>/dev/null || echo "")
+                # Strip <think>...</think>. If the model exhausted its
+                # token budget mid-think (no closing tag), also strip
+                # any UNCLOSED `<think>...$` so we don't accidentally
+                # return "THINK" as the verdict. Fail open → NOGO.
+                stripped=$(printf '%s' "$content" | perl -0777 -pe '
+                    s{<think>.*?</think>}{}gs;
+                    s{<think>.*$}{}s;
+                ' 2>/dev/null || echo "")
                 # First non-empty token, uppercased.
                 first_word=$(echo "$stripped" | awk 'NF{print $1; exit}' | tr '[:lower:]' '[:upper:]' | tr -d '[:punct:]')
 
