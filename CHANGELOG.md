@@ -1,3 +1,10 @@
+# [16.11.0](https://github.com/terrylica/cc-skills/compare/v16.10.0...v16.11.0) (2026-04-30)
+
+
+### Features
+
+* **floating-clock:** UTC counterpart on every regional time + cyan local highlight ([b5e46e8](https://github.com/terrylica/cc-skills/commit/b5e46e88bf92440af9d9fc4496d3c2a5f26d7449))
+
 # [16.10.0](https://github.com/terrylica/cc-skills/compare/v16.9.1...v16.10.0) (2026-04-29)
 
 
