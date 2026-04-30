@@ -76,8 +76,10 @@ if [[ -n "$last_assistant" ]]; then
     fi
 fi
 
-# 5. Nudge.
+# 5. Nudge. Keep the reason terse — Claude Code surfaces it back as a
+#    "Stop hook error" line in the user-visible hook list. A long reason
+#    crowds the already-long Stop hook output. ~15 words max.
 jq -nc '{
     decision: "block",
-    reason: "Before stopping, scan the just-completed turn for unresolved ambiguity in the user'"'"'s request — unclear scope, implementation choices, or missing requirements. If any remain, invoke AskUserQuestion (1-4 questions, each header ≤12 chars, 2-4 options each) presenting choices in plain non-technical language. If nothing is genuinely ambiguous, just stop normally on the next pass."
+    reason: "If user'"'"'s request had ambiguity, invoke AskUserQuestion (plain language, ≤12-char headers, 2-4 options); else stop next pass."
 }'
