@@ -1,16 +1,16 @@
 ---
 name: setup
-description: "Manage hook installation and uninstallation for autonomous-loop heartbeat. Install or remove the PostToolUse hook from ~/.claude/settings.json."
+description: "Manage hook installation and uninstallation for autoloop heartbeat. Install or remove the PostToolUse hook from ~/.claude/settings.json."
 allowed-tools: Bash, Read, Write, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Setup
+# autoloop: Setup
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-Manage the heartbeat hook installation for autonomous-loop. This skill allows explicit control over when the hook is installed or uninstalled from `~/.claude/settings.json`.
+Manage the heartbeat hook installation for autoloop. This skill allows explicit control over when the hook is installed or uninstalled from `~/.claude/settings.json`.
 
 ## Arguments
 
@@ -30,7 +30,7 @@ Otherwise, use the provided argument (`install`, `uninstall`, or `status`).
 
 ```bash
 # Source the hook install library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 
 # Check installation status
@@ -96,7 +96,7 @@ Report installation status (already done in Step 2). No further action.
 | Symptom                      | Fix                                                        |
 | ---------------------------- | ---------------------------------------------------------- |
 | "settings.json is malformed" | Manually edit `~/.claude/settings.json` to fix JSON syntax |
-| "Hook not found"             | Reinstall the autonomous-loop plugin                       |
+| "Hook not found"             | Reinstall the autoloop plugin                              |
 | Lock contention error        | Wait a few seconds; another process is updating settings   |
 
 ## Implementation Notes

@@ -1,8 +1,8 @@
-# autonomous-loop Plugin
+# autoloop Plugin
 
 > Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. V1 Final: multiplicity-safe registry, atomic ownership, PID-reuse defense, generation counters.
 
-**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Siblings**: [ru](../ru/CLAUDE.md) | **Deep dive**: [tech-stack](./docs/registry-schema.md)
+**Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Deep dive**: [tech-stack](./docs/registry-schema.md)
 
 ---
 
@@ -22,7 +22,7 @@
 
 **If you have an existing `LOOP_CONTRACT.md` without `loop_id` in the frontmatter:**
 
-1. Run `/autonomous-loop:start` on the contract path
+1. Run `/autoloop:start` on the contract path
 2. The `init_state_dir` function in Phase 5 (state-lib.sh) auto-derives `loop_id` from the file path and adds it to frontmatter (MIG-01)
 3. Contract body is unchanged; only frontmatter is mutated (idempotent)
 4. The loop is automatically registered in `~/.claude/loops/registry.json`
@@ -34,7 +34,7 @@ Single-loop users upgrading to v1: The registry is per-machine, not per-repo. If
 
 ## Architecture Overview (4-Layer)
 
-The autonomous-loop system is built on four atomic primitives that collectively defend against 6 catastrophic pitfalls:
+The autoloop system is built on four atomic primitives that collectively defend against 6 catastrophic pitfalls:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -72,14 +72,14 @@ The autonomous-loop system is built on four atomic primitives that collectively 
 
 ## Skills at a Glance
 
-| Skill     | Purpose                                          | When to Use                                       |
-| --------- | ------------------------------------------------ | ------------------------------------------------- |
-| `start`   | Scaffold contract, install hook, register loop   | First time: `/autonomous-loop:start`              |
-| `status`  | Read loop state, report iteration, owner, health | Mid-loop: `/autonomous-loop:status`               |
-| `stop`    | Mark DONE, unregister, unload launchd            | End loop: `/autonomous-loop:stop`                 |
-| `setup`   | One-time machine setup (hook install, dirs)      | Once per machine (or after reinstall)             |
-| `notify`  | Send notifications (coalesced by loop_id)        | Called by heartbeat-tick.sh (automatic)           |
-| `reclaim` | Take ownership of stuck loop (dead owner)        | Emergencies: `/autonomous-loop:reclaim <loop_id>` |
+| Skill     | Purpose                                          | When to Use                                |
+| --------- | ------------------------------------------------ | ------------------------------------------ |
+| `start`   | Scaffold contract, install hook, register loop   | First time: `/autoloop:start`              |
+| `status`  | Read loop state, report iteration, owner, health | Mid-loop: `/autoloop:status`               |
+| `stop`    | Mark DONE, unregister, unload launchd            | End loop: `/autoloop:stop`                 |
+| `setup`   | One-time machine setup (hook install, dirs)      | Once per machine (or after reinstall)      |
+| `notify`  | Send notifications (coalesced by loop_id)        | Called by heartbeat-tick.sh (automatic)    |
+| `reclaim` | Take ownership of stuck loop (dead owner)        | Emergencies: `/autoloop:reclaim <loop_id>` |
 
 ---
 
@@ -180,7 +180,7 @@ max_iterations: 100
 
 ### "Loop won't start" (MIG-05 evidence: contract missing loop_id)
 
-**Symptom**: `/autonomous-loop:start` fails or contract has no `loop_id:` line.
+**Symptom**: `/autoloop:start` fails or contract has no `loop_id:` line.
 
 **Diagnosis**:
 
@@ -192,7 +192,7 @@ grep "^loop_id:" ./LOOP_CONTRACT.md
 **Fix**: Call `init_state_dir` via the library:
 
 ```bash
-PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop"
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop"
 source "$PLUGIN_ROOT/scripts/registry-lib.sh"
 source "$PLUGIN_ROOT/scripts/state-lib.sh"
 
@@ -204,7 +204,7 @@ Result: `loop_id` auto-added to frontmatter; loop registered in registry; ready 
 
 ### "Stuck owner" (Pitfall #5: orphaned lock)
 
-**Symptom**: `/autonomous-loop:start` hangs on "acquiring lock" for >10 seconds.
+**Symptom**: `/autoloop:start` hangs on "acquiring lock" for >10 seconds.
 
 **Diagnosis**:
 
@@ -218,7 +218,7 @@ ps -p $(jq -r ".loops[] | select(.loop_id == \"$LOOP_ID\") | .owner_pid" \
 **Fix**: Reclaim the loop:
 
 ```bash
-/autonomous-loop:reclaim $LOOP_ID
+/autoloop:reclaim $LOOP_ID
 # Confirm the prompt; generation counter increments; ownership transfers
 ```
 
@@ -281,7 +281,7 @@ jq '.last_wake_us' "$STATE_DIR/heartbeat.json"
 **Fix**: Reinstall hook:
 
 ```bash
-PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop"
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 install_hook
 # Restart Claude Code; next tool invocation fires the hook
@@ -325,6 +325,6 @@ The classical bug: using a waker as pacing. If iter-N completes and iter-N+1 is 
 
 ## Real-World Case Study
 
-See `docs/design/2026-04-20-autonomous-loop/spec.md` for a full walkthrough of a 37-iteration autonomous quant-research campaign that used a hand-authored version of this pattern (before v1 automation).
+See `docs/design/2026-04-20-autonomous-loop/spec.md` (preserved at original path for historical context) for a full walkthrough of a 37-iteration autonomous quant-research campaign that used a hand-authored version of this pattern (before v1 automation).
 
 Key takeaway: **The contract file is the interface contract**. Subagents, external tools, resumable firings — all read it directly. The revision-log captures decisions atomically. Ownership disputes are resolved by generation counter. This architecture survived 23 days of continuous operation, 4 machine reboots, and 2 session interruptions without missing a beat.

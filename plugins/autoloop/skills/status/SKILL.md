@@ -1,12 +1,12 @@
 ---
 name: status
-description: "Machine-wide loop status enumeration and health reporting. TRIGGERS - autonomous-loop status, loop state, all loops, show loops, machine status."
+description: "Machine-wide loop status enumeration and health reporting. TRIGGERS - autoloop status, loop state, all loops, show loops, machine status."
 allowed-tools: Bash, Read
 argument-hint: "[--json | --reclaim-candidates | <loop_id>]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Machine-Wide Status
+# autoloop: Machine-Wide Status
 
 Enumerates all registered loops on the machine and reports health, dead-time ratio, staleness, and reclaim candidacy. Works as a table view for human inspection or JSONL for machine consumers.
 
@@ -100,7 +100,7 @@ One JSON object per line, no top-level array. Fields:
 
 ### Reclaim Candidates (--reclaim-candidates)
 
-Filters JSONL to `reclaim_candidate == "yes"` and formats as table. Use with `/autonomous-loop:reclaim <loop_id>` to clean up.
+Filters JSONL to `reclaim_candidate == "yes"` and formats as table. Use with `/autoloop:reclaim <loop_id>` to clean up.
 
 ### Single Loop Detail (<loop_id>)
 
@@ -120,7 +120,7 @@ A loop is flagged "reclaim_candidate: yes" if:
 1. Owner PID is dead AND state-dir mtime > 7 days, OR
 2. Original Phase 4 predicate (owner dead OR heartbeat >3× cadence stale)
 
-Use `/autonomous-loop:reclaim <loop_id>` to manually clean up stale entries.
+Use `/autoloop:reclaim <loop_id>` to manually clean up stale entries.
 
 ## Dead-Time Ratio Formula
 
@@ -136,23 +136,23 @@ dead_time_ratio = 1 - (heartbeat_count × cadence / lifespan)
 
 ```bash
 # Show all loops
-/autonomous-loop:status
+/autoloop:status
 
 # Export to JSON for external processing
-/autonomous-loop:status --json | jq '.[] | select(.status == "STALE")'
+/autoloop:status --json | jq '.[] | select(.status == "STALE")'
 
 # Find loops ready for cleanup
-/autonomous-loop:status --reclaim-candidates
+/autoloop:status --reclaim-candidates
 
 # Check single loop (backward compat)
-/autonomous-loop:status a1b2c3d4e5f6
+/autoloop:status a1b2c3d4e5f6
 ```
 
 ## Troubleshooting
 
 | Symptom              | Fix                                                                    |
 | -------------------- | ---------------------------------------------------------------------- |
-| "No active loops"    | No loops registered; run `/autonomous-loop:start` to create one        |
+| "No active loops"    | No loops registered; run `/autoloop:start` to create one               |
 | All loops DEAD       | Likely system restart; loops recover on next iteration                 |
 | high dead_time_ratio | Loop may be saturated or paused; check reclaim eligibility             |
 | JSONL parse error    | Heartbeat file corrupted; check state_dir for malformed heartbeat.json |
@@ -160,7 +160,7 @@ dead_time_ratio = 1 - (heartbeat_count × cadence / lifespan)
 ## Anti-patterns
 
 - Do NOT modify the registry or state-dir while status is running
-- Do NOT use status to trigger cleanup (use explicit `/autonomous-loop:reclaim` command)
+- Do NOT use status to trigger cleanup (use explicit `/autoloop:reclaim` command)
 
 ## Post-Execution Reflection
 

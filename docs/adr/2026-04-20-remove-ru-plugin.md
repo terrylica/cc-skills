@@ -30,9 +30,9 @@ Users of `/ru:*` commands should switch to `autonomous-loop`:
 
 | Before          | After                                                                            |
 | --------------- | -------------------------------------------------------------------------------- |
-| `/ru:start`     | `/autonomous-loop:start`                                                         |
-| `/ru:status`    | `/autonomous-loop:status`                                                        |
-| `/ru:stop`      | `/autonomous-loop:stop`                                                          |
+| `/ru:start`     | `/autoloop:start`                                                                |
+| `/ru:status`    | `/autoloop:status`                                                               |
+| `/ru:stop`      | `/autoloop:stop`                                                                 |
 | `/ru:forbid`    | (not yet ported — add an entry to `LOOP_CONTRACT.md`'s "Current State" manually) |
 | `/ru:encourage` | (same as above)                                                                  |
 | `/ru:audit-now` | (handled via the contract's Implementation Queue)                                |

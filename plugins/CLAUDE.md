@@ -98,7 +98,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 
 - [agent-reach](./agent-reach/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
-- [autonomous-loop](./autonomous-loop/CLAUDE.md)
+- [autoloop](./autoloop/CLAUDE.md)
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [chronicle-share](./chronicle-share/CLAUDE.md)
 - [clarify-prompts](./clarify-prompts/CLAUDE.md)

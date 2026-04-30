@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# provenance-lib.sh — Append-only schema-versioned ledger for autonomous-loop state mutations.
+# provenance-lib.sh — Append-only schema-versioned ledger for autoloop state mutations.
 # Provides: emit_provenance, rotate_global_provenance
 #
 # Design (v4.10.0 Phase 35):
