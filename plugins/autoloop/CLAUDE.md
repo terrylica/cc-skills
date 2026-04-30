@@ -113,7 +113,7 @@ The autoloop system is built on four atomic primitives that collectively defend 
 
 ---
 
-## The Contract File
+## The Contract File (schema_version: 2)
 
 `LOOP_CONTRACT.md` lives at a path you choose (default: `./LOOP_CONTRACT.md`). Structure:
 
@@ -121,13 +121,35 @@ The autoloop system is built on four atomic primitives that collectively defend 
 ---
 name: <short-descriptive-name>
 version: 1
-loop_id: <auto-derived on first init, 12 hex chars>
+schema_version: 2 # signals v2 fields below are populated
 iteration: 0
 last_updated: <ISO 8601 UTC>
 exit_condition: <human-readable termination rule>
 max_iterations: 100
+# Immutable birth record (auto-stamped at start; never mutated)
+loop_id: <12 hex>
+campaign_slug: <kebab-case slug from `name`>
+created_at_utc: <ISO 8601>
+created_in_session: <session-uuid; bound on first SessionStart>
+created_at_cwd: <absolute realpath>
+created_at_git_branch: <branch>
+created_at_git_commit: <sha>
+# Mutable owner mirror (registry is SSoT; these track for offline readers)
+owner_session_id: <uuid>
+owner_pid: <int>
+owner_started_us: <epoch_us>
+generation: <int>
+last_heartbeat_us: <epoch_us>
+last_heartbeat_session_id: <uuid>
+# Cross-links
+state_dir: <absolute path>
+revision_log_path: <absolute path>
+# Staleness hint
+expected_cadence: hourly # continuous | event-driven | hourly | daily | <N>s
+status: active # active | paused | completed | orphaned
 ---
 # Core Directive         # preserved verbatim
+## Provenance & Ownership # decision tree for any AI agent reading this file
 ## Execution Contract    # Orient / Act / Revise / Persist
 ## Dynamic Wake-Up       # delay table
 ## Current State         # rewrite every firing
@@ -136,7 +158,18 @@ max_iterations: 100
 ## Non-Obvious Learnings # preserved across firings
 ```
 
-**Key invariant**: The contract file is the SSoT for loop state. Every firing reads it fresh, updates it, and persists decisions atomically via git commit. The heartbeat and registry track **ownership and health**, not state. Separation of concerns.
+**Key invariant**: The **registry** at `~/.claude/loops/registry.json` is the SSoT for ownership decisions. The contract frontmatter is a **read-cache** — written best-effort by `set_contract_field` (in `scripts/state-lib.sh`) AFTER the registry write succeeds. If a crash interleaves, the frontmatter mirror is stale but the registry remains authoritative. Consumers (offline readers, doctor, post-mortem agents) should treat divergence as "trust the registry; the contract is stale".
+
+**Where the mirror is written**:
+
+| Hook / Function     | Mirrors                                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `init_state_dir`    | All immutable birth fields (loop*id, campaign_slug, created*\*) at scaffold time, idempotent — only writes missing fields |
+| `session-bind.sh`   | `owner_session_id`, `owner_started_us`, `created_in_session` (only if pending) on first SessionStart binding              |
+| `heartbeat-tick.sh` | `last_heartbeat_us`, `last_heartbeat_session_id`, `iteration`, `generation` after every PostToolUse heartbeat write       |
+| `reclaim_loop`      | `owner_session_id`, `owner_pid`, `owner_started_us`, `generation` after atomic registry takeover                          |
+
+**Legacy contracts** (`schema_version: 1` or absent) remain readable. Status reporters print `(legacy)` and skip the v2 fields. They are not auto-upgraded by Wave 2 — that's deferred to Wave 3 (which moves the contract path and rotates loop_id anyway).
 
 ---
 
