@@ -58,7 +58,7 @@ trap '_log_error "Unexpected error in session-bind hook" "$?"' ERR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_SCRIPTS="$SCRIPT_DIR/../scripts"
 
-for lib in registry-lib.sh provenance-lib.sh; do
+for lib in registry-lib.sh provenance-lib.sh state-lib.sh; do
   if [ ! -f "$PLUGIN_SCRIPTS/$lib" ]; then
     _log_error "missing $lib" 1
     exit 0
@@ -136,6 +136,23 @@ while IFS= read -r match; do
       # bind_first: atomic CAS to set owner_session_id
       if update_loop_field "$LOOP_ID" ".owner_session_id" "\"$SESSION_ID\"" 2>/dev/null; then
         update_loop_field "$LOOP_ID" ".owner_start_time_us" "\"$NOW_US\"" 2>/dev/null || true
+        # v2: mirror owner_session_id + created_in_session into contract frontmatter
+        # (best-effort; registry is SSoT)
+        if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_field >/dev/null 2>&1; then
+          set_contract_field "$CONTRACT_PATH" "owner_session_id" "\"$SESSION_ID\"" 2>/dev/null || true
+          set_contract_field "$CONTRACT_PATH" "owner_started_us" "$NOW_US" 2>/dev/null || true
+          # created_in_session: only if pending-bind placeholder present
+          local_created_session=$(awk '
+            NR == 1 && /^---/ { in_fm = 1; next }
+            in_fm && /^---/ { exit }
+            in_fm && /^created_in_session:/ { sub(/^created_in_session:[[:space:]]*/, ""); print; exit }
+          ' "$CONTRACT_PATH" 2>/dev/null)
+          case "$local_created_session" in
+            ""|"<bound by session-bind hook on first SessionStart>"|"\"\""|"pending-bind")
+              set_contract_field "$CONTRACT_PATH" "created_in_session" "\"$SESSION_ID\"" 2>/dev/null || true
+              ;;
+          esac
+        fi
         emit_provenance "$LOOP_ID" "bind_first" \
           session_id="$SESSION_ID" \
           cwd_observed="$CWD" \

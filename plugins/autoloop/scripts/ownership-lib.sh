@@ -569,6 +569,25 @@ reclaim_loop() {
     return 1
   }
 
+  # v2: mirror new ownership into contract frontmatter (best-effort).
+  # Source state-lib for set_contract_field if not already loaded.
+  local _contract_path
+  _contract_path=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
+  if [ -n "$_contract_path" ] && [ -f "$_contract_path" ]; then
+    if ! command -v set_contract_field >/dev/null 2>&1; then
+      local _slib
+      _slib="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/state-lib.sh"
+      # shellcheck source=/dev/null
+      [ -f "$_slib" ] && source "$_slib" 2>/dev/null || true
+    fi
+    if command -v set_contract_field >/dev/null 2>&1; then
+      set_contract_field "$_contract_path" "owner_session_id" "\"$new_session_id\"" 2>/dev/null || true
+      set_contract_field "$_contract_path" "owner_pid" "$current_pid" 2>/dev/null || true
+      set_contract_field "$_contract_path" "owner_started_us" "$current_start_time_us" 2>/dev/null || true
+      set_contract_field "$_contract_path" "generation" "$new_generation" 2>/dev/null || true
+    fi
+  fi
+
   echo "Reclaimed loop $loop_id (generation: $old_generation -> $new_generation, reason: $reason)"
   return 0
 }

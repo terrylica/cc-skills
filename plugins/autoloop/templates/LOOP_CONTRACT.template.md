@@ -1,6 +1,7 @@
 ---
 name: <SHORT_DESCRIPTIVE_NAME>
 version: 1
+schema_version: 2
 iteration: 0
 last_updated: <ISO_8601_UTC>
 exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE section"
@@ -9,6 +10,27 @@ trigger: "/loop — reads this file verbatim each firing"
 dispatch_policy:
   enabled: false # set true to allow Phase 2a multi-agent dispatch on opt-in items
   require_experimental_teams: false # set true only if using TeamCreate/SendMessage (needs CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
+# === IMMUTABLE BIRTH RECORD (auto-stamped at /autoloop:start; never mutated) ===
+loop_id: <auto-derived 12-hex>
+campaign_slug: <auto-derived from name>
+created_at_utc: <ISO_8601_UTC>
+created_in_session: <bound by session-bind hook on first SessionStart>
+created_at_cwd: <absolute realpath>
+created_at_git_branch: <branch at creation>
+created_at_git_commit: <commit sha at creation>
+# === MUTABLE OWNERSHIP MIRROR (registry is SSoT; these track for offline readers) ===
+owner_session_id: pending-bind
+owner_pid: 0
+owner_started_us: 0
+generation: 0
+last_heartbeat_us: 0
+last_heartbeat_session_id: ""
+# === CROSS-LINKS ===
+state_dir: <absolute path>
+revision_log_path: <absolute path>
+# === STALENESS HINT (user-tunable) ===
+expected_cadence: "hourly"  # continuous | event-driven | hourly | daily | <N>s
+status: "active"            # active | paused | completed | orphaned
 ---
 
 # <PROJECT OR CAMPAIGN TITLE>
@@ -35,6 +57,30 @@ That's the entire `/loop` command going forward. The short trigger is stable; th
 ## Core Directive (preserve verbatim across revisions)
 
 <ONE PARAGRAPH describing the long-horizon goal. This section is the campaign's north star and must NOT be rewritten each firing. It describes WHAT + WHY, not HOW. Examples: "Find OOD-robust positively-yielding OOS trading rules across 4 FX symbols" or "Maintain green CI on main branch by investigating flaky tests as they surface".>
+
+---
+
+## Provenance & Ownership
+
+> **For any AI agent reading this file**: the frontmatter above is a *read-cache* of the registry. The registry at `~/.claude/loops/registry.json` is the SSoT for ownership decisions. The fields below let you orient without consulting the registry.
+
+**Loop ID**: `<loop_id>` · **Campaign**: `<campaign_slug>`
+**Created**: `<created_at_utc>` in session `<created_in_session>` at `<created_at_cwd>` on branch `<created_at_git_branch>` @ `<created_at_git_commit>`
+**Current owner**: session `<owner_session_id>` · pid `<owner_pid>` · gen `<generation>` · last heartbeat `<last_heartbeat_us>`
+**State**: `<state_dir>` · **Revision log**: `<revision_log_path>`
+**Registry**: `jq '.loops[] | select(.loop_id == "<loop_id>")' ~/.claude/loops/registry.json`
+
+### Identification decision tree
+
+When a Claude session sees this file in a directory, it should decide:
+
+1. `owner_session_id == $CLAUDE_SESSION_ID` AND owner alive (`kill -0 owner_pid`, start_time matches within 1s) → **MINE, active.** Proceed.
+2. `owner_session_id` matches but pid dead → **MINE, orphaned (probably crashed).** Resume cautiously; the heartbeat-tick hook will detect stale generation and back off if reclaimed.
+3. `owner_session_id` differs, pid alive, start_time matches → **NOT MINE, hands off.** Exit silently.
+4. `owner_session_id` differs, pid dead OR `now_us - last_heartbeat_us > 3 * expected_cadence` → **RECLAIMABLE.** Run `/autoloop:reclaim <loop_id>`.
+5. `status: completed` or `status: orphaned` → **DONE, do not touch.**
+
+The registry is authoritative; if frontmatter and registry disagree (e.g., post-crash), trust the registry and treat the contract's mirror as stale.
 
 ---
 
