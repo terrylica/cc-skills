@@ -118,12 +118,19 @@ fi
 
 nudge=false
 
-# Layer 1: question-mark scan with structural strip — `?` inside
-# quoted/illustrative content shouldn't fire. We strip these regions
-# BEFORE scanning so a punchline like `"Mind if I join you?"` or a
-# table row like `| Should we use A? |` doesn't trigger a false-positive
-# nudge. What's stripped:
+# Layer 1: trailing-question-mark scan, with structural strip applied
+# first. Why both?
 #
+#   1. Strip quoted speech / code / table rows so a `?` inside
+#      `"…"` / ```…``` / `…` / a markdown row doesn't trigger anything.
+#      (Catches "punchline?" inside dialogue, code samples, etc.)
+#   2. Then check whether the stripped, right-trimmed text ENDS with
+#      `?` or `？`. Real user-directed questions terminate the message
+#      (e.g. "Want me to X?"). Jokes / rhetorical setups have a
+#      punchline AFTER the `?` — those fall through to Layer 2 (the
+#      semantic classifier) instead of short-circuiting here.
+#
+# Stripped:
 #   * Fenced code blocks  (```…```)
 #   * Inline code         (`…`)
 #   * Double-quoted strs  ("…")
@@ -136,9 +143,13 @@ sanitized=$(printf '%s' "$last_text" | perl -0777 -pe '
     s/`[^`]*`//g;
     s/"[^"]*"//g;
     s/^\s*\|.*$//mg;
+    s/\s+$//;
 ' 2>/dev/null || echo "$last_text")
 
-if [[ "$sanitized" == *"?"* || "$sanitized" == *"？"* ]]; then
+# Bash glob `*"?"` matches strings ending in `?`. Same for CJK `？`.
+# (The strip above already trimmed trailing whitespace, so trailing
+# punctuation is the very last character in `sanitized`.)
+if [[ "$sanitized" == *"?" || "$sanitized" == *"？" ]]; then
     nudge=true
 elif [[ "${CLARIFY_NUDGE_NO_LLM:-0}" != "1" ]]; then
     # Layer 2: MiniMax binary classifier.
