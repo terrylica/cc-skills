@@ -118,8 +118,27 @@ fi
 
 nudge=false
 
-# Layer 1: question-mark scan (Latin `?` and CJK `？`).
-if [[ "$last_text" == *"?"* || "$last_text" == *"？"* ]]; then
+# Layer 1: question-mark scan with structural strip — `?` inside
+# quoted/illustrative content shouldn't fire. We strip these regions
+# BEFORE scanning so a punchline like `"Mind if I join you?"` or a
+# table row like `| Should we use A? |` doesn't trigger a false-positive
+# nudge. What's stripped:
+#
+#   * Fenced code blocks  (```…```)
+#   * Inline code         (`…`)
+#   * Double-quoted strs  ("…")
+#   * Markdown table rows (lines starting with `|`)
+#
+# Single-quoted strings are NOT stripped — apostrophes in contractions
+# (`I'd`, `don't`) make any `'…'` regex unsafe. Rare false positive.
+sanitized=$(printf '%s' "$last_text" | perl -0777 -pe '
+    s/```.*?```//gs;
+    s/`[^`]*`//g;
+    s/"[^"]*"//g;
+    s/^\s*\|.*$//mg;
+' 2>/dev/null || echo "$last_text")
+
+if [[ "$sanitized" == *"?"* || "$sanitized" == *"？"* ]]; then
     nudge=true
 elif [[ "${CLARIFY_NUDGE_NO_LLM:-0}" != "1" ]]; then
     # Layer 2: MiniMax binary classifier.
@@ -141,15 +160,46 @@ elif [[ "${CLARIFY_NUDGE_NO_LLM:-0}" != "1" ]]; then
                 nudge=false
             else
                 # Build request via jq to handle escaping safely.
+                # Few-shot prompt: bare classifier instructions miss
+                # genre context (e.g., a `?` in a joke punchline gets
+                # classified GO when it's clearly NOGO). Six examples
+                # cover the calibration: jokes/code/quotes/statements
+                # → NOGO; direct questions / implicit decisions → GO.
+                user_prompt='Classify the assistant message below. Reply with EXACTLY one word: GO or NOGO.
+
+GO  = the message has a real unresolved decision the user could weigh in on (a question to the user, a choice between options, a "need to pick" statement, or "want me to X?").
+NOGO = the message is complete (statement, report, joke, code example, narrative). Question marks inside quoted speech, jokes, dialogue, code blocks, or hypothetical examples DO NOT count as real decisions.
+
+EXAMPLES:
+MSG: A SQL query walks into a bar and asks: "Mind if I join you?"
+ANSWER: NOGO
+
+MSG: Want me to schedule a cleanup PR for next week?
+ANSWER: GO
+
+MSG: Released v16.12.1. Restart to pick it up.
+ANSWER: NOGO
+
+MSG: I could go with either approach A or B. Both work. Need to pick one to start.
+ANSWER: GO
+
+MSG: Should we use option A or option B?
+ANSWER: GO
+
+MSG: The pattern /foo?/ matches a literal question mark. Done.
+ANSWER: NOGO
+
+MESSAGE TO CLASSIFY:'
                 req=$(jq -nc \
                     --arg model "$model" \
+                    --arg prompt "$user_prompt" \
                     --arg msg "$last_text" \
                     '{
                         model: $model,
-                        max_tokens: 200,
+                        max_tokens: 300,
                         messages: [
-                            {role: "system", content: "You are a binary classifier. Your output is parsed by a script. Respond with ONLY one word: GO or NOGO. No explanation."},
-                            {role: "user", content: ("Classify: GO if the message ends with an unresolved question, ambiguous choice, or pending decision. NOGO if it is a complete statement.\n\nMESSAGE:\n<<<\n" + $msg + "\n>>>\n\nAnswer:")}
+                            {role: "system", content: "You are a binary classifier. Your output is parsed by a script. Respond with ONLY one word: GO or NOGO."},
+                            {role: "user", content: ($prompt + "\n<<<\n" + $msg + "\n>>>\n\nAnswer:")}
                         ]
                     }')
 

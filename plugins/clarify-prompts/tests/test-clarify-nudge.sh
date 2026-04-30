@@ -166,6 +166,57 @@ T_NQ="$TMP/nq.jsonl"; build_transcript "$T_NQ" plain-text "Released v16.12.1. Af
 # This will fall through to Layer 2 — force NOGO to test that path.
 
 echo ""
+echo "--- Layer 1: structural strip (quotes / code / tables) ---"
+
+# `?` inside double-quoted string → strip → no qmark → fall to Layer 2
+T_QUOTE="$TMP/quote.jsonl"; build_transcript "$T_QUOTE" plain-text 'A SQL query walks into a bar and asks: "Mind if I join you?"'
+run_case "qmark inside double quotes → stripped (Layer 2 NOGO → silent)" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_QUOTE")" \
+    allow
+
+# `?` inside fenced code → stripped
+T_FENCE="$TMP/fence.jsonl"
+build_transcript "$T_FENCE" plain-text $'Here is the example:\n```\nshould we use ?\n```\nDone.'
+run_case "qmark inside fenced code → stripped" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_FENCE")" \
+    allow
+
+# `?` inside inline code → stripped
+T_INLINE="$TMP/inline.jsonl"
+# shellcheck disable=SC2016  # backticks here are literal markdown, not command sub
+build_transcript "$T_INLINE" plain-text 'The `regex/?/` pattern is fine. Done.'
+run_case "qmark inside inline code → stripped" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_INLINE")" \
+    allow
+
+# `?` inside markdown table row → stripped
+T_TABLE="$TMP/table.jsonl"
+build_transcript "$T_TABLE" plain-text $'| Q | A |\n| - | - |\n| Should we use A? | maybe |\n\nReleased it.'
+run_case "qmark inside markdown table → stripped" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_TABLE")" \
+    allow
+
+# Real question OUTSIDE any quotes/code/tables → still nudges
+T_REAL="$TMP/real.jsonl"
+build_transcript "$T_REAL" plain-text 'I see two paths. Should we go with option A or option B?'
+run_case "real qmark (not in quote/code) → nudge" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_REAL")" \
+    block
+
+# Mixed: fake `?` inside quote AND real `?` outside → nudge wins
+T_MIX="$TMP/mix.jsonl"
+build_transcript "$T_MIX" plain-text 'He asked "What now?" and walked away. Should we follow him?'
+run_case "mixed (quoted ? + real ?) → real one still triggers nudge" \
+    "CLARIFY_NUDGE_LLM_FORCE=NOGO" \
+    "$(mk_payload "$T_MIX")" \
+    block
+
+echo ""
 echo "--- Layer 2: LLM classifier (forced) ---"
 
 run_case "Layer 2 forced GO → nudge" \
