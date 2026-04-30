@@ -110,6 +110,10 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             NSTimeZone *mktTz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:e.mkt->iana]];
             if (mktTz) openFmt.timeZone = mktTz;
             NSString *label = fullTzLabelForIana(e.mkt->iana, opensAt);
+            // iter-255/256: bare opens-form here. Local + UTC twins are
+            // appended later as separately-colored segments (cyan local,
+            // header UTC) — keeping them out of this string lets us
+            // render the local twin in a distinct color.
             countdown = [NSString stringWithFormat:@"opens %@ %@",
                 [openFmt stringFromDate:opensAt], label];
         } else {
@@ -206,9 +210,45 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // v4 iter-210: emit `  Mon 09:00 JST` directly after code
             // on line 1 — dim color so flag/code remain primary. 2-
             // space gap separates from code visually.
+            // iter-255/256: triple-zone display when ShowUTCReference is on:
+            // market-time → local-time (cyan, distinct) → UTC. Same instant
+            // expressed in three frames, with the user's wall-clock twin
+            // colored cyan to stand out (per user directive).
+            BOOL showUTCNxt = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+            // Part 1: "  mktAt" in codeColor.
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:[@"  " stringByAppendingString:mktAt]
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+            if (showUTCNxt) {
+                // Detect whether the landing crosses local-midnight — pick
+                // "EEE HH:mm" vs "HH:mm" so the format matches FCFormatLandingTime.
+                NSCalendar *uc = [NSCalendar currentCalendar];
+                uc.timeZone = [NSTimeZone localTimeZone];
+                NSDateComponents *nC = [uc components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:[NSDate date]];
+                NSDateComponents *lC = [uc components:(NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay) fromDate:landsAt];
+                BOOL crossDay = !(nC.year == lC.year && nC.month == lC.month && nC.day == lC.day);
+                NSString *fmt = crossDay ? @"EEE HH:mm" : @"HH:mm";
+
+                // Part 2: " · localTime localTzLabel" in distinct cyan.
+                NSDateFormatter *lf = [[NSDateFormatter alloc] init];
+                lf.timeZone = [NSTimeZone localTimeZone];
+                lf.dateFormat = fmt;
+                NSString *localTzLabel = fullTzLabelForZone([NSTimeZone localTimeZone], landsAt);
+                NSString *localTwin = [NSString stringWithFormat:@" · %@ %@",
+                    [lf stringFromDate:landsAt], localTzLabel];
+                [out appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:localTwin
+                    attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: [NSColor systemCyanColor]}]];
+
+                // Part 3: " · utc UTC" in codeColor.
+                NSDateFormatter *uf = [[NSDateFormatter alloc] init];
+                uf.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+                uf.dateFormat = fmt;
+                NSString *utcTwin = [NSString stringWithFormat:@" · %@ UTC", [uf stringFromDate:landsAt]];
+                [out appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:utcTwin
+                    attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: codeColor}]];
+            }
 
             // Line 2 prefix: `└─ Sun 17:00 · 6.5 hr  ` (your local time
             // + duration). 4-space indent under flag+code (iter-208).
@@ -225,9 +265,33 @@ NSAttributedString *FCBuildNextSegmentContent(void) {
             // >99h case: append countdown (absolute-date form) still
             // at the end of the row. There's no second line in this
             // branch, so it follows right after flag + code.
+            // iter-256: emit "opens EEE HH:mm BST" first in countdownColor,
+            // then " · EEE HH:mm PDT" in distinct cyan, then " · EEE HH:mm UTC"
+            // in countdownColor — local-time twin highlighted per directive.
             [out appendAttributedString:[[NSAttributedString alloc]
                 initWithString:[@"  " stringByAppendingString:countdownStr]
                 attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
+            BOOL showUTCOob = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+            if (showUTCOob) {
+                NSDate *opensAt = [NSDate dateWithTimeIntervalSinceNow:e.secs];
+                NSDateFormatter *lf = [[NSDateFormatter alloc] init];
+                lf.timeZone = [NSTimeZone localTimeZone];
+                lf.dateFormat = @"EEE HH:mm";
+                NSString *localTzLabel = fullTzLabelForZone([NSTimeZone localTimeZone], opensAt);
+                NSString *localTwinOob = [NSString stringWithFormat:@" · %@ %@",
+                    [lf stringFromDate:opensAt], localTzLabel];
+                [out appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:localTwinOob
+                    attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: [NSColor systemCyanColor]}]];
+
+                NSDateFormatter *uf = [[NSDateFormatter alloc] init];
+                uf.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+                uf.dateFormat = @"EEE HH:mm";
+                NSString *utcTwinOob = [NSString stringWithFormat:@" · %@ UTC", [uf stringFromDate:opensAt]];
+                [out appendAttributedString:[[NSAttributedString alloc]
+                    initWithString:utcTwinOob
+                    attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: countdownColor}]];
+            }
         }
 
         // v4 iter-63: horizontal rule between entries — clear tabular

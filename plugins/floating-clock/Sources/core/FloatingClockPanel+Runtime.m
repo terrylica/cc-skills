@@ -89,7 +89,6 @@ static uint64_t nsUntilNextSecond(void) {
     // written HH:mm:ss in every ISO-8601 context, regardless of the user's
     // local 12h preference). Hidden when ShowUTCReference pref is NO.
     BOOL showUTC = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
-    NSString *localBase = [_dateFormatter stringFromDate:nowLocal];
 
     // v4 iter-42 + iter-112: sun/moon glyph — subtle day/night cue.
     // No astronomical calculation (needs lat/lon + solar position);
@@ -142,6 +141,38 @@ static uint64_t nsUntilNextSecond(void) {
     // "▕<bar>▏" where <bar> is a fractional fill across 14 cells (2
     // per day × 7 days). Default ON so users see the new feature
     // after rebuild; toggle via Show Week Progress menu item.
+    // iter-257: build LOCAL row as attributed string so the time-of-day
+    // portion can be painted in distinct cyan per user directive ("the
+    // top section local time hh:mm:ss needs that same unique coloring").
+    // Three runs: datePrefix (theme color) → "HH:mm:ss TZ" (cyan) → " ·
+    // HH:mm:ss UTC" (theme color, only when ShowUTCReference).
+    NSString *datePrefix = @"";
+    if (showDate) {
+        NSDateFormatter *df = [[NSDateFormatter alloc] init];
+        df.timeZone = localTz;
+        // Strip trailing whitespace from the prefix pattern — we add a
+        // single space between prefix and time below.
+        NSString *prefixPattern = FCDateFormatPrefix([d stringForKey:@"DateFormat"]);
+        df.dateFormat = [prefixPattern stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+        datePrefix = [df stringFromDate:nowLocal];
+    }
+    NSDateFormatter *tf2 = [[NSDateFormatter alloc] init];
+    tf2.timeZone = localTz;
+    tf2.dateFormat = FCCurrentTimeFormat([tf isEqualToString:@"12h"], showSec);
+    NSString *timeOfDay = [tf2 stringFromDate:nowLocal];
+
+    NSColor *themeColor = _localSeg.timeLabel.textColor ?: [NSColor labelColor];
+    NSFont  *timeFont   = _localSeg.timeLabel.font ?: [NSFont monospacedSystemFontOfSize:24 weight:NSFontWeightMedium];
+    NSMutableAttributedString *line = [[NSMutableAttributedString alloc] init];
+    if (datePrefix.length > 0) {
+        [line appendAttributedString:[[NSAttributedString alloc]
+            initWithString:[datePrefix stringByAppendingString:@"  "]
+            attributes:@{NSFontAttributeName: timeFont, NSForegroundColorAttributeName: themeColor}]];
+    }
+    NSString *timeRun = [NSString stringWithFormat:@"%@ %@", timeOfDay, localLabel];
+    [line appendAttributedString:[[NSAttributedString alloc]
+        initWithString:timeRun
+        attributes:@{NSFontAttributeName: timeFont, NSForegroundColorAttributeName: [NSColor systemCyanColor]}]];
     if (showUTC) {
         if (!_utcFormatter) {
             _utcFormatter = [[NSDateFormatter alloc] init];
@@ -151,14 +182,20 @@ static uint64_t nsUntilNextSecond(void) {
         // for visual consistency with the local time beside it.
         _utcFormatter.dateFormat = FCCurrentTimeFormat(NO, showSec);
         NSString *utcStr = [_utcFormatter stringFromDate:nowLocal];
-        // iter-252f: timeLabel is now PURE mono — no emojis. Sky/moon
-        // glyphs render in their own sub-views.
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@ · %@ UTC",
-            localBase, localLabel, utcStr];
-    } else {
-        _localSeg.timeLabel.stringValue = [NSString stringWithFormat:@"%@ %@",
-            localBase, localLabel];
+        NSString *utcRun = [NSString stringWithFormat:@" · %@ UTC", utcStr];
+        [line appendAttributedString:[[NSAttributedString alloc]
+            initWithString:utcRun
+            attributes:@{NSFontAttributeName: timeFont, NSForegroundColorAttributeName: themeColor}]];
     }
+    // iter-258: paragraph-style center alignment. attributedStringValue
+    // ignores the cell's alignment (set in Layout.m line 155) unless the
+    // attributed string carries its own paragraph style — same quirk
+    // that bit W18/bar/days in iter-254. Without this the whole LOCAL
+    // row left-aligns inside the wider segment frame.
+    NSMutableParagraphStyle *centerPS = [[NSMutableParagraphStyle alloc] init];
+    centerPS.alignment = NSTextAlignmentCenter;
+    [line addAttribute:NSParagraphStyleAttributeName value:centerPS range:NSMakeRange(0, line.length)];
+    _localSeg.timeLabel.attributedStringValue = line;
 
     // v4 iter-231 / iter-232: week-progress bar in its own NSTextField
     // (weekBarLabel). cellsPerDay computed dynamically from the LOCAL
@@ -209,6 +246,14 @@ static uint64_t nsUntilNextSecond(void) {
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▕" attributes:frameAttrs]];
         [full appendAttributedString:body];
         [full appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:frameAttrs]];
+        // iter-254: apply paragraph-style center alignment to the entire bar.
+        // attributedStringValue ignores cell.alignment unless the attributed
+        // string carries its own paragraph style. Without this the bar
+        // renders left-aligned even though _weekBarLabel has center
+        // alignment set on both cell and field.
+        NSMutableParagraphStyle *barCenterPS = [[NSMutableParagraphStyle alloc] init];
+        barCenterPS.alignment = NSTextAlignmentCenter;
+        [full addAttribute:NSParagraphStyleAttributeName value:barCenterPS range:NSMakeRange(0, full.length)];
         _weekSeg.weekBarLabel.attributedStringValue = full;
 
         // v4 iter-252: day-letter row uses SAME ▕/▏ brackets as the bar
@@ -227,11 +272,30 @@ static uint64_t nsUntilNextSecond(void) {
         [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:@"▕" attributes:invisibleFrameAttrs]];
         [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:plainLabels attributes:labelAttrs]];
         [labelsRow appendAttributedString:[[NSAttributedString alloc] initWithString:@"▏" attributes:invisibleFrameAttrs]];
+        // iter-254: paragraph-style center alignment (same reason as the bar above).
+        NSMutableParagraphStyle *daysCenterPS = [[NSMutableParagraphStyle alloc] init];
+        daysCenterPS.alignment = NSTextAlignmentCenter;
+        [labelsRow addAttribute:NSParagraphStyleAttributeName value:daysCenterPS range:NSMakeRange(0, labelsRow.length)];
         _weekSeg.weekDayLabelsLabel.attributedStringValue = labelsRow;
 
-        // v4 iter-234: ISO 8601 week-of-year top-left.
+        // v4 iter-234: ISO 8601 week-of-year.
+        // iter-254: render as ATTRIBUTED string with paragraph-style center
+        // alignment. NSTextFieldCell.alignment + NSTextField.alignment did
+        // not take effect for short plain strings in this setup;
+        // paragraph style is the ground-truth that every code path
+        // respects (same approach as how the day-letters and bar already
+        // render via attributedStringValue above).
         NSInteger isoWeek = FCISOWeekOfYear(nowLocal);
-        _weekSeg.weekNumberLabel.stringValue = [NSString stringWithFormat:@"W%02ld", (long)isoWeek];
+        NSString *weekText = [NSString stringWithFormat:@"W%02ld", (long)isoWeek];
+        NSMutableParagraphStyle *centerPS = [[NSMutableParagraphStyle alloc] init];
+        centerPS.alignment = NSTextAlignmentCenter;
+        NSDictionary *weekNumAttrs = @{
+            NSFontAttributeName: _weekSeg.weekNumberLabel.font ?: [NSFont monospacedSystemFontOfSize:9.5 weight:NSFontWeightMedium],
+            NSForegroundColorAttributeName: _weekSeg.weekNumberLabel.textColor ?: [NSColor colorWithCalibratedWhite:1.0 alpha:0.55],
+            NSParagraphStyleAttributeName: centerPS
+        };
+        _weekSeg.weekNumberLabel.attributedStringValue =
+            [[NSAttributedString alloc] initWithString:weekText attributes:weekNumAttrs];
     } else {
         _weekSeg.weekBarLabel.stringValue = @"";
         _weekSeg.weekDayLabelsLabel.stringValue = @"";

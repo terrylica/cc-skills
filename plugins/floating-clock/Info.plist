@@ -13,7 +13,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.16.0</string>
 	<key>CFBundleVersion</key>
-	<string>246</string>
+	<string>253</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSLocationUsageDescription</key>
