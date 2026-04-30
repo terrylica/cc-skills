@@ -92,8 +92,21 @@ NSAttributedString *FCBuildActiveSegmentContent(void) {
         hf.dateFormat = showSec ? @"HH:mm:ss" : @"HH:mm";
         if (tz) hf.timeZone = tz;
         NSString *tzLabel = fullTzLabelForIana(iana.UTF8String, now);
-        NSString *headerTime = [NSString stringWithFormat:@"%@ %@",
-            [hf stringFromDate:now], tzLabel];
+        // iter-255: append UTC counterpart when ShowUTCReference is on.
+        // iter-257: ACTIVE no longer carries the local-time twin — the
+        // LOCAL row at the top of the panel already shows the user's
+        // wall-clock, so duplicating it on every market header is
+        // redundant. Two-zone display here: market-time + UTC.
+        BOOL showUTC = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
+        NSString *utcSuffix = @"";
+        if (showUTC) {
+            NSDateFormatter *uf = [[NSDateFormatter alloc] init];
+            uf.timeZone = [NSTimeZone timeZoneForSecondsFromGMT:0];
+            uf.dateFormat = showSec ? @"HH:mm:ss" : @"HH:mm";
+            utcSuffix = [NSString stringWithFormat:@" · %@ UTC", [uf stringFromDate:now]];
+        }
+        NSString *headerTime = [NSString stringWithFormat:@"%@ %@%@",
+            [hf stringFromDate:now], tzLabel, utcSuffix];
         const ClockMarket *firstM = &kMarkets[[(NSNumber *)group[0] intValue]];
         const char *cityCode = cityCodeForIana(firstM->iana);
         const char *flag = [d boolForKey:@"ShowFlags"] ? flagForIana(firstM->iana) : "";
