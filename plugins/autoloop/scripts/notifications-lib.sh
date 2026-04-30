@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# notifications-lib.sh — Notification emission and filtering for autonomous-loop
+# notifications-lib.sh — Notification emission and filtering for autoloop
 # Provides: emit_notification, read_notifications
 # Notifications are appended to ~/.claude/loops/.notifications.jsonl as JSONL
 

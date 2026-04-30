@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# state-lib.sh — State directory and atomic heartbeat primitives for autonomous-loop
+# state-lib.sh — State directory and atomic heartbeat primitives for autoloop
 # Provides: now_us, state_dir_path, init_state_dir, write_heartbeat, read_heartbeat
 
 set -euo pipefail

@@ -401,7 +401,7 @@ Each audit iter spawns 2-4 agents in parallel (`run_in_background: true`). Agent
 
 - [ ] **iter-43** — Aggregate all 25 audit reports. Produce `SYNTHESIS.md` with: top-10 critical findings, top-10 aesthetic improvements, top-10 UX improvements, list of Tier 2 deferred items, and a single "must-fix before v1.3.0" priority list. No code changes — document only, user reviews before any fixes land.
 
-### Autonomous Loop Rules for Campaign v3
+### Autoloop Rules for Campaign v3
 
 - **Feature iters (iter-11 to iter-17)**: Tier 0 in-turn chaining, same as campaign v2. Each ships + validates.
 - **Audit iters (iter-18 to iter-42)**: Phase 2a multi-agent dispatch with `run_in_background: true`. Main loop waits for parallel reports (fires new wake on last report completion via notification). Aggregates + commits report files (no source changes). Continues to next iter.
@@ -413,7 +413,7 @@ Each audit iter spawns 2-4 agents in parallel (`run_in_background: true`). Agent
 
 ## Campaign v4 — Continuous Aesthetic/UX Evolution (Active from iter-25)
 
-**Scope expanded 2026-04-24 via /autonomous-loop:start** — user directive:
+**Scope expanded 2026-04-24 via /autoloop:start** — user directive:
 
 > Continuous, limitless, and unbounded iterations to aesthetically and critically find and expand customization. We aim to make aesthetic choices, layout choices, and layout options more unbounded, providing more options to users to perform customizations in a modularized manner. Every round should involve using multimodal models to self-critically assess and dispatch individual layout artists and user experience analysts to make it increasingly sophisticated—round after round, time after time, through every iteration. Also, you have to make consistent adjustments to the UI. The UI and the menu bar must be revamped consistently because you always have to use an alignment auditor to ensure all layouts and functionalities are aligned with the user interface and the menu options.
 
@@ -500,8 +500,8 @@ _Additional iters seeded dynamically by agent recommendations. No fixed endpoint
 
 ## Revision Log (append-only, one line per firing)
 
-- 2026-04-29T10:33:49Z — DONE: campaign closed by user (iter 246 final state, no further iteration); cleanup via /autonomous-loop:doctor --fix
-- 2026-04-29T10:16:40Z — interactive cc-skills tooling session (not floating-clock work; autonomous-loop hardening + doctor fixes); loop continues at iter 246
+- 2026-04-29T10:33:49Z — DONE: campaign closed by user (iter 246 final state, no further iteration); cleanup via /autoloop:doctor --fix
+- 2026-04-29T10:16:40Z — interactive cc-skills tooling session (not floating-clock work; autoloop hardening + doctor fixes); loop continues at iter 246
 
 - 2026-04-23 23:59 UTC — iter-0: scaffolded contract, queue seeded with 5 Tier 1 items covering the user-confirmed scope (context menu, icon, slash commands, touchpoint manifest, release). Next: iter-1 starts NSMenu implementation.
 - 2026-04-24 00:05 UTC — iter-1: NSMenu context menu shipped (caeb743c). 6 persistent options + reset/about/quit. 521 LoC. Binary 96 KB. Next: iter-2 icon generation.

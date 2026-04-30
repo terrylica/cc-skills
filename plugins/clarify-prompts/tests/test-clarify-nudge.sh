@@ -103,7 +103,7 @@ run_case "subagent guard (/agents/ in path)" \
     "$(mk_payload "$T2")" \
     allow
 
-# Guard 3: autonomous-loop session_id match
+# Guard 3: autoloop session_id match
 REG="$TMP/registry.json"
 cat >"$REG" <<JSON
 {
@@ -117,14 +117,14 @@ cat >"$REG" <<JSON
 }
 JSON
 T3="$TMP/t3.jsonl"; build_transcript "$T3" plain-text "Need a decision?"
-run_case "autonomous-loop guard (session_id match)" \
+run_case "autoloop guard (session_id match)" \
     "LOOP_REGISTRY_PATH=$REG CLARIFY_NUDGE_LLM_FORCE=GO" \
     "$(mk_payload "$T3" loop-uuid-AAA /elsewhere)" \
     allow
 
-# Guard 3b: autonomous-loop cwd match
+# Guard 3b: autoloop cwd match
 T3B="$TMP/t3b.jsonl"; build_transcript "$T3B" plain-text "Need a decision?"
-run_case "autonomous-loop guard (cwd matches contract dir)" \
+run_case "autoloop guard (cwd matches contract dir)" \
     "LOOP_REGISTRY_PATH=$REG CLARIFY_NUDGE_LLM_FORCE=GO" \
     "$(mk_payload "$T3B" different /tmp/some-loop)" \
     allow

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# notify-coalesce-lib.sh — Notification coalescing for autonomous-loop
+# notify-coalesce-lib.sh — Notification coalescing for autoloop
 # Provides: get_cursor, set_cursor, coalesce_notifications, display_macos_notification, notify_coalesce_run
 # Consumes notifications from ~/.claude/loops/.notifications.jsonl and emits coalesced summaries.
 
@@ -154,7 +154,7 @@ coalesce_notifications() {
              loop_ids: $loop_ids,
              window_start_us: ($bucket_key * $ws * 1000000 | tostring),
              window_end_us: (($bucket_key + 1) * $ws * 1000000 - 1 | tostring),
-             summary: "\($distinct_count) loops stale; check /autonomous-loop:status"
+             summary: "\($distinct_count) loops stale; check /autoloop:status"
            }
          else
            $window[]

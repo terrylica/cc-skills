@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# session-bind.sh — SessionStart hook for autonomous-loop (v4.10.0 Phase 36)
+# session-bind.sh — SessionStart hook for autoloop (v4.10.0 Phase 36)
 #
 # Authoritatively binds owner_session_id from stdin payload because the
 # $CLAUDE_SESSION_ID env var is NOT populated in skill Bash subprocesses
@@ -181,7 +181,7 @@ while IFS= read -r match; do
             cwd_observed="$CWD" \
             registry_generation="$GEN" \
             owner_pid_before="$OWNER_PID" \
-            reason="prior owner $OWNER_SID (pid $OWNER_PID) dead; last_updated ${AGE_S}s ago; auto-reclaim NOT performed (use /autonomous-loop:reclaim or doctor --fix)" \
+            reason="prior owner $OWNER_SID (pid $OWNER_PID) dead; last_updated ${AGE_S}s ago; auto-reclaim NOT performed (use /autoloop:reclaim or doctor --fix)" \
             decision="deferred"
         else
           # Recent dead-owner — log but don't act (race window)
