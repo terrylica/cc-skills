@@ -1,3 +1,10 @@
+## [16.14.1](https://github.com/terrylica/cc-skills/compare/v16.14.0...v16.14.1) (2026-04-30)
+
+
+### Bug Fixes
+
+* **clarify-prompts:** genre-aware classification — jokes/code/quotes no longer nudge ([7df1d0b](https://github.com/terrylica/cc-skills/commit/7df1d0b406f2dd819a7a93a7aecb7d0fa26cd137))
+
 # [16.14.0](https://github.com/terrylica/cc-skills/compare/v16.13.0...v16.14.0) (2026-04-30)
 
 
