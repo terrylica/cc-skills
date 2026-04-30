@@ -43,3 +43,4 @@ __pycache__/
 # Temporary workspace files
 tmp/
 .link-check-results.md
+.loop-state/
