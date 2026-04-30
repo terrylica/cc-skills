@@ -1,3 +1,10 @@
+## [16.14.2](https://github.com/terrylica/cc-skills/compare/v16.14.1...v16.14.2) (2026-04-30)
+
+
+### Bug Fixes
+
+* **clarify-prompts:** only short-circuit Layer 1 on TRAILING question mark ([d26bc31](https://github.com/terrylica/cc-skills/commit/d26bc31b4a43b8729b3d66ffbacbd9cd71254476))
+
 ## [16.14.1](https://github.com/terrylica/cc-skills/compare/v16.14.0...v16.14.1) (2026-04-30)
 
 
