@@ -1,3 +1,10 @@
+# [16.12.0](https://github.com/terrylica/cc-skills/compare/v16.11.0...v16.12.0) (2026-04-30)
+
+
+### Features
+
+* **clarify-prompts:** Stop-hook nudge for AskUserQuestion with autonomous-loop guard ([9956971](https://github.com/terrylica/cc-skills/commit/99569717b37b09510df535a562e08b526eba9536))
+
 # [16.11.0](https://github.com/terrylica/cc-skills/compare/v16.10.0...v16.11.0) (2026-04-30)
 
 
