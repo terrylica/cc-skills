@@ -46,7 +46,7 @@
 **Command**:
 
 ```bash
-cd $HOME/eon/mql5
+cd $HOME/eon/mql5-local
 curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > page.html
 .venv/bin/python scripts/official_docs_extractor.py page.html "URL"
 ```
@@ -62,7 +62,7 @@ curl -s "https://www.mql5.com/en/docs/python_metatrader5/mt5copyticksfrom_py" > 
 **Command**:
 
 ```bash
-cd $HOME/eon/mql5
+cd $HOME/eon/mql5-local
 ./scripts/extract_all_python_docs.sh
 ```
 

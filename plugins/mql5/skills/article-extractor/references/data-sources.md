@@ -54,7 +54,7 @@ Which do you have?"
 **Skill**:
 
 ```bash
-cd $HOME/eon/mql5
+cd $HOME/eon/mql5-local
 .venv/bin/python mql5_extract.py discover-and-extract --user-id 29210372
 ```
 
@@ -64,7 +64,7 @@ cd $HOME/eon/mql5
 **Skill**:
 
 ```bash
-cd $HOME/eon/mql5
+cd $HOME/eon/mql5-local
 .venv/bin/python mql5_extract.py single https://www.mql5.com/en/articles/19625
 ```
 
@@ -79,7 +79,7 @@ cd $HOME/eon/mql5
 **Skill**:
 
 ```bash
-cd $HOME/eon/mql5
+cd $HOME/eon/mql5-local
 .venv/bin/python mql5_extract.py discover-and-extract --user-id jslopes --max-articles 5
 ```
 

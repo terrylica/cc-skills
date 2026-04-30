@@ -1,0 +1,16 @@
+{
+  "description": "Stop-hook nudge — instructs the main agent to invoke AskUserQuestion when ambiguity remains, unless it already did so this turn.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/clarify-nudge.sh",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

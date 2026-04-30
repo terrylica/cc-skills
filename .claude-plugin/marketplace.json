@@ -8,93 +8,223 @@
   },
   "plugins": [
     {
-      "name": "plugin-dev",
-      "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
+      "name": "agent-reach",
+      "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
       "version": "16.11.0",
-      "source": "./plugins/plugin-dev",
-      "category": "development",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "plugin",
-        "skill",
-        "validation",
-        "silent-failures",
-        "meta-skill",
-        "skill-creation",
-        "architecture",
-        "templates",
-        "shellcheck"
-      ],
-      "strict": false
-    },
-    {
-      "name": "itp",
-      "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "16.11.0",
-      "source": "./plugins/itp",
+      "source": "./plugins/agent-reach",
       "category": "productivity",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "adr",
-        "workflow",
-        "implementation",
-        "release",
-        "semantic-release",
-        "mise",
-        "mise.toml",
-        "task-runner"
+        "agent-reach",
+        "web-search",
+        "twitter",
+        "reddit",
+        "youtube",
+        "bilibili",
+        "xiaohongshu",
+        "douyin",
+        "weibo",
+        "wechat",
+        "linkedin",
+        "v2ex",
+        "rss",
+        "exa",
+        "internet",
+        "scraping"
       ],
       "strict": false
     },
     {
-      "name": "gh-tools",
-      "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
+      "name": "asciinema-tools",
+      "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
       "version": "16.11.0",
-      "source": "./plugins/gh-tools",
+      "source": "./plugins/asciinema-tools",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "asciinema",
+        "recording",
+        "terminal",
+        "cast",
+        "streaming",
+        "backup",
+        "analysis",
+        "launchd",
+        "daemon",
+        "keychain",
+        "pushover"
+      ],
+      "strict": false
+    },
+    {
+      "name": "autonomous-loop",
+      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autonomous-loop:start, /autonomous-loop:status, /autonomous-loop:stop",
+      "version": "16.11.0",
+      "source": "./plugins/autonomous-loop",
+      "category": "automation",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "autonomous",
+        "loop",
+        "self-revising",
+        "contract",
+        "dynamic-pacing",
+        "schedule-wakeup",
+        "monitor",
+        "long-horizon",
+        "living-documentation"
+      ],
+      "strict": false
+    },
+    {
+      "name": "calcom-commander",
+      "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
+      "version": "16.11.0",
+      "source": "./plugins/calcom-commander",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "calcom",
+        "cal.com",
+        "calendar",
+        "booking",
+        "scheduling",
+        "telegram",
+        "bot",
+        "cloud-run",
+        "gcp",
+        "supabase",
+        "agent-sdk",
+        "1password",
+        "mise",
+        "bun"
+      ],
+      "hooks": "./plugins/calcom-commander/hooks/hooks.json",
+      "strict": false
+    },
+    {
+      "name": "chronicle-share",
+      "description": "Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)",
+      "version": "16.11.0",
+      "source": "./plugins/chronicle-share",
+      "category": "devops",
+      "author": {
+        "name": "mdnasim",
+        "url": "https://github.com/nasimubd"
+      },
+      "keywords": [
+        "session-chronicle",
+        "chronicle-share",
+        "r2",
+        "cloudflare-r2",
+        "presigned-url",
+        "sanitize",
+        "bundle",
+        "session-sharing",
+        "producer-side"
+      ],
+      "strict": false
+    },
+    {
+      "name": "clarify-prompts",
+      "description": "Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autonomous-loop sessions, subagents, and turns that already asked.",
+      "version": "16.11.0",
+      "source": "./plugins/clarify-prompts",
+      "category": "automation",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "stop-hook",
+        "ask-user-question",
+        "clarify",
+        "ambiguity",
+        "main-agent-only",
+        "autonomous-loop-aware"
+      ],
+      "strict": false
+    },
+    {
+      "name": "claude-tts-companion",
+      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "version": "16.11.0",
+      "source": "./plugins/claude-tts-companion",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "tts",
+        "subtitles",
+        "karaoke",
+        "macos",
+        "swift",
+        "telegram",
+        "sherpa-onnx",
+        "kokoro"
+      ],
+      "strict": false
+    },
+    {
+      "name": "cli-anything",
+      "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
+      "version": "16.11.0",
+      "source": "./plugins/cli-anything",
       "category": "development",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "github",
-        "pull-request",
-        "gfm",
-        "link-validation",
-        "gh-cli",
-        "webfetch",
-        "enforcement"
+        "cli",
+        "gui",
+        "harness",
+        "agent",
+        "cli-anything",
+        "gimp",
+        "blender",
+        "libreoffice",
+        "inkscape",
+        "click",
+        "repl",
+        "automation"
       ],
-      "hooks": "./plugins/gh-tools/hooks/hooks.json",
       "strict": false
     },
     {
-      "name": "link-tools",
-      "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
+      "name": "crucible",
+      "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
       "version": "16.11.0",
-      "source": "./plugins/link-tools",
-      "category": "quality",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "markdown",
-        "links",
-        "validation",
-        "portability",
-        "relative-paths",
-        "broken-links",
-        "path-linting",
-        "ulid"
+        "research-methodology",
+        "self-evolving",
+        "adversarial-gates",
+        "shuffled-null",
+        "genetic-evolutionary",
+        "agnostic-principles",
+        "llm-investigation"
       ],
-      "strict": false
+      "strict": false,
+      "source": "./plugins/crucible",
+      "category": "ai"
     },
     {
       "name": "devops-tools",
@@ -132,26 +262,6 @@
       "strict": false
     },
     {
-      "name": "dotfiles-tools",
-      "description": "Chezmoi dotfile management via natural language workflows",
-      "version": "16.11.0",
-      "source": "./plugins/dotfiles-tools",
-      "category": "utilities",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "chezmoi",
-        "dotfiles",
-        "configuration",
-        "sync",
-        "git"
-      ],
-      "hooks": "./plugins/dotfiles-tools/hooks/hooks.json",
-      "strict": false
-    },
-    {
       "name": "doc-tools",
       "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
       "version": "16.11.0",
@@ -177,140 +287,88 @@
       "strict": false
     },
     {
-      "name": "quality-tools",
-      "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
+      "name": "dotfiles-tools",
+      "description": "Chezmoi dotfile management via natural language workflows",
       "version": "16.11.0",
-      "source": "./plugins/quality-tools",
-      "category": "quality",
+      "source": "./plugins/dotfiles-tools",
+      "category": "utilities",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "quality",
-        "testing",
-        "validation",
-        "performance",
-        "profiling",
-        "e2e",
-        "clones",
-        "schema"
+        "chezmoi",
+        "dotfiles",
+        "configuration",
+        "sync",
+        "git"
       ],
+      "hooks": "./plugins/dotfiles-tools/hooks/hooks.json",
       "strict": false
     },
     {
-      "name": "productivity-tools",
-      "description": "Slash command factory and calendar event management with tiered sound alarms",
+      "name": "floating-clock",
+      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
       "version": "16.11.0",
-      "source": "./plugins/productivity-tools",
-      "category": "productivity",
+      "source": "./plugins/floating-clock",
+      "category": "utilities",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "productivity",
-        "automation",
-        "commands",
-        "slash-commands",
-        "calendar",
-        "reminders",
         "macos",
-        "applescript",
-        "events",
-        "sound-alarms"
+        "clock",
+        "floating-window",
+        "nspanel",
+        "objective-c",
+        "minimal-footprint",
+        "always-on-top",
+        "draggable"
       ],
-      "hooks": "./plugins/productivity-tools/hooks/hooks.json",
       "strict": false
     },
     {
-      "name": "mql5",
-      "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
+      "name": "gemini-deep-research",
+      "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
       "version": "16.11.0",
-      "source": "./plugins/mql5",
-      "category": "trading",
+      "source": "./plugins/gemini-deep-research",
+      "category": "ai",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "mql5",
-        "metatrader",
-        "indicators",
-        "trading",
-        "mt5",
-        "mql5.com",
-        "article-extraction",
-        "python-mt5"
+        "gemini",
+        "deep-research",
+        "browser-automation",
+        "playwright",
+        "cdp",
+        "research",
+        "google"
       ],
       "strict": false
     },
     {
-      "name": "itp-hooks",
-      "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+      "name": "gh-tools",
+      "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
       "version": "16.11.0",
-      "source": "./plugins/itp-hooks",
-      "category": "enforcement",
+      "source": "./plugins/gh-tools",
+      "category": "development",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "itp",
-        "hooks",
-        "enforcement",
-        "adr",
-        "graph-easy",
-        "standards",
-        "ruff",
-        "python",
-        "linting",
-        "mise",
-        "mise-hygiene"
+        "github",
+        "pull-request",
+        "gfm",
+        "link-validation",
+        "gh-cli",
+        "webfetch",
+        "enforcement"
       ],
-      "hooks": "./plugins/itp-hooks/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "statusline-tools",
-      "description": "Custom status line with git status indicators",
-      "version": "16.11.0",
-      "source": "./plugins/statusline-tools",
-      "category": "utilities",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "statusline",
-        "status-bar",
-        "git-status"
-      ],
-      "strict": false
-    },
-    {
-      "name": "asciinema-tools",
-      "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
-      "version": "16.11.0",
-      "source": "./plugins/asciinema-tools",
-      "category": "utilities",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "asciinema",
-        "recording",
-        "terminal",
-        "cast",
-        "streaming",
-        "backup",
-        "analysis",
-        "launchd",
-        "daemon",
-        "keychain",
-        "pushover"
-      ],
+      "hooks": "./plugins/gh-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -337,29 +395,23 @@
       "strict": false
     },
     {
-      "name": "quant-research",
-      "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
+      "name": "gitnexus-tools",
+      "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
       "version": "16.11.0",
-      "source": "./plugins/quant-research",
-      "category": "trading",
+      "source": "./plugins/gitnexus-tools",
+      "category": "development",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "quant",
-        "range-bars",
-        "sharpe-ratio",
-        "metrics",
-        "evaluation",
-        "crypto",
-        "ml",
-        "prediction-quality",
-        "ic",
-        "dsr",
-        "psr",
-        "wfo"
+        "gitnexus",
+        "knowledge-graph",
+        "blast-radius",
+        "impact-analysis",
+        "execution-flows"
       ],
+      "hooks": "./plugins/gitnexus-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -390,6 +442,54 @@
       "strict": false
     },
     {
+      "name": "itp",
+      "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
+      "version": "16.11.0",
+      "source": "./plugins/itp",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "adr",
+        "workflow",
+        "implementation",
+        "release",
+        "semantic-release",
+        "mise",
+        "mise.toml",
+        "task-runner"
+      ],
+      "strict": false
+    },
+    {
+      "name": "itp-hooks",
+      "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+      "version": "16.11.0",
+      "source": "./plugins/itp-hooks",
+      "category": "enforcement",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "itp",
+        "hooks",
+        "enforcement",
+        "adr",
+        "graph-easy",
+        "standards",
+        "ruff",
+        "python",
+        "linting",
+        "mise",
+        "mise-hygiene"
+      ],
+      "hooks": "./plugins/itp-hooks/hooks/hooks.json",
+      "strict": false
+    },
+    {
       "name": "kokoro-tts",
       "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
       "version": "16.11.0",
@@ -410,379 +510,24 @@
       "strict": false
     },
     {
-      "name": "tts-tg-sync",
-      "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
+      "name": "link-tools",
+      "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
       "version": "16.11.0",
-      "source": "./plugins/tts-tg-sync",
-      "category": "devops",
-      "requires": [
-        "kokoro-tts"
-      ],
+      "source": "./plugins/link-tools",
+      "category": "quality",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "tts",
-        "kokoro",
-        "telegram",
-        "bot",
-        "voice-synthesis",
-        "audio",
-        "notifications",
-        "iterm2",
-        "session-sync",
-        "health-check"
-      ],
-      "hooks": "./plugins/tts-tg-sync/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "calcom-commander",
-      "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
-      "version": "16.11.0",
-      "source": "./plugins/calcom-commander",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "calcom",
-        "cal.com",
-        "calendar",
-        "booking",
-        "scheduling",
-        "telegram",
-        "bot",
-        "cloud-run",
-        "gcp",
-        "supabase",
-        "agent-sdk",
-        "1password",
-        "mise",
-        "bun"
-      ],
-      "hooks": "./plugins/calcom-commander/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "mise",
-      "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
-      "version": "16.11.0",
-      "source": "./plugins/mise",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "mise",
-        "release",
-        "task-runner",
-        "workflow",
-        "user-global",
-        "cross-repo"
-      ],
-      "strict": false
-    },
-    {
-      "name": "gitnexus-tools",
-      "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
-      "version": "16.11.0",
-      "source": "./plugins/gitnexus-tools",
-      "category": "development",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "gitnexus",
-        "knowledge-graph",
-        "blast-radius",
-        "impact-analysis",
-        "execution-flows"
-      ],
-      "hooks": "./plugins/gitnexus-tools/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "rust-tools",
-      "description": "SOTA Rust tooling - refactoring, profiling, benchmarking, testing, SIMD, dependency audit",
-      "version": "16.11.0",
-      "source": "./plugins/rust-tools",
-      "category": "development",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "rust",
-        "cargo",
-        "ast-grep",
-        "divan",
-        "samply",
-        "cargo-mutants",
-        "macerator",
-        "simd",
-        "pgo",
-        "pyo3",
-        "cargo-semver-checks",
-        "cargo-nextest",
-        "cargo-wizard",
-        "cargo-hack",
-        "cargo-audit",
-        "cargo-deny",
-        "cargo-vet"
-      ],
-      "hooks": "./plugins/rust-tools/hooks/hooks.json",
-      "strict": false
-    },
-    {
-      "name": "media-tools",
-      "description": "YouTube audio download and iOS device media transfer workflows",
-      "version": "16.11.0",
-      "source": "./plugins/media-tools",
-      "category": "utilities",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "youtube",
-        "audio",
-        "bookplayer",
-        "ios",
-        "media",
-        "pymobiledevice3",
-        "yt-dlp"
-      ],
-      "strict": false
-    },
-    {
-      "name": "cli-anything",
-      "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
-      "version": "16.11.0",
-      "source": "./plugins/cli-anything",
-      "category": "development",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "cli",
-        "gui",
-        "harness",
-        "agent",
-        "cli-anything",
-        "gimp",
-        "blender",
-        "libreoffice",
-        "inkscape",
-        "click",
-        "repl",
-        "automation"
-      ],
-      "strict": false
-    },
-    {
-      "name": "gemini-deep-research",
-      "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
-      "version": "16.11.0",
-      "source": "./plugins/gemini-deep-research",
-      "category": "ai",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "gemini",
-        "deep-research",
-        "browser-automation",
-        "playwright",
-        "cdp",
-        "research",
-        "google"
-      ],
-      "strict": false
-    },
-    {
-      "name": "minimax",
-      "description": "MiniMax M-series production wiring: OpenAI-compat quirks, hybrid prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
-      "version": "16.11.0",
-      "source": "./plugins/minimax",
-      "category": "ai",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "minimax",
-        "m2.7",
-        "openai-compatible",
-        "prompt-caching",
-        "reasoning-model",
-        "quant-llm",
-        "agentic-stack",
-        "chinese-llm-provider",
-        "hailuo"
-      ],
-      "strict": false
-    },
-    {
-      "name": "tlg",
-      "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
-      "version": "16.11.0",
-      "source": "./plugins/tlg",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "telegram",
-        "telethon",
-        "mtproto",
-        "messaging",
-        "user-account",
-        "1password"
-      ],
-      "strict": false
-    },
-    {
-      "name": "agent-reach",
-      "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
-      "version": "16.11.0",
-      "source": "./plugins/agent-reach",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "agent-reach",
-        "web-search",
-        "twitter",
-        "reddit",
-        "youtube",
-        "bilibili",
-        "xiaohongshu",
-        "douyin",
-        "weibo",
-        "wechat",
-        "linkedin",
-        "v2ex",
-        "rss",
-        "exa",
-        "internet",
-        "scraping"
-      ],
-      "strict": false
-    },
-    {
-      "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
-      "version": "16.11.0",
-      "source": "./plugins/claude-tts-companion",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "tts",
-        "subtitles",
-        "karaoke",
-        "macos",
-        "swift",
-        "telegram",
-        "sherpa-onnx",
-        "kokoro"
-      ],
-      "strict": false
-    },
-    {
-      "name": "ssh-tunnel-companion",
-      "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
-      "version": "16.11.0",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "ssh",
-        "tunnel",
-        "clickhouse",
-        "launchd"
-      ],
-      "strict": false,
-      "source": "./plugins/ssh-tunnel-companion",
-      "category": "devops"
-    },
-    {
-      "name": "crucible",
-      "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
-      "version": "16.11.0",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "research-methodology",
-        "self-evolving",
-        "adversarial-gates",
-        "shuffled-null",
-        "genetic-evolutionary",
-        "agnostic-principles",
-        "llm-investigation"
-      ],
-      "strict": false,
-      "source": "./plugins/crucible",
-      "category": "ai"
-    },
-    {
-      "name": "autonomous-loop",
-      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autonomous-loop:start, /autonomous-loop:status, /autonomous-loop:stop",
-      "version": "16.11.0",
-      "source": "./plugins/autonomous-loop",
-      "category": "automation",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "autonomous",
-        "loop",
-        "self-revising",
-        "contract",
-        "dynamic-pacing",
-        "schedule-wakeup",
-        "monitor",
-        "long-horizon",
-        "living-documentation"
-      ],
-      "strict": false
-    },
-    {
-      "name": "chronicle-share",
-      "description": "Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)",
-      "version": "16.11.0",
-      "source": "./plugins/chronicle-share",
-      "category": "devops",
-      "author": {
-        "name": "mdnasim",
-        "url": "https://github.com/nasimubd"
-      },
-      "keywords": [
-        "session-chronicle",
-        "chronicle-share",
-        "r2",
-        "cloudflare-r2",
-        "presigned-url",
-        "sanitize",
-        "bundle",
-        "session-sharing",
-        "producer-side"
+        "markdown",
+        "links",
+        "validation",
+        "portability",
+        "relative-paths",
+        "broken-links",
+        "path-linting",
+        "ulid"
       ],
       "strict": false
     },
@@ -835,25 +580,300 @@
       "strict": false
     },
     {
-      "name": "floating-clock",
-      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "name": "media-tools",
+      "description": "YouTube audio download and iOS device media transfer workflows",
       "version": "16.11.0",
-      "source": "./plugins/floating-clock",
+      "source": "./plugins/media-tools",
       "category": "utilities",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "macos",
-        "clock",
-        "floating-window",
-        "nspanel",
-        "objective-c",
-        "minimal-footprint",
-        "always-on-top",
-        "draggable"
+        "youtube",
+        "audio",
+        "bookplayer",
+        "ios",
+        "media",
+        "pymobiledevice3",
+        "yt-dlp"
       ],
+      "strict": false
+    },
+    {
+      "name": "minimax",
+      "description": "MiniMax M-series production wiring: OpenAI-compat quirks, hybrid prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
+      "version": "16.11.0",
+      "source": "./plugins/minimax",
+      "category": "ai",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "minimax",
+        "m2.7",
+        "openai-compatible",
+        "prompt-caching",
+        "reasoning-model",
+        "quant-llm",
+        "agentic-stack",
+        "chinese-llm-provider",
+        "hailuo"
+      ],
+      "strict": false
+    },
+    {
+      "name": "mise",
+      "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
+      "version": "16.11.0",
+      "source": "./plugins/mise",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "mise",
+        "release",
+        "task-runner",
+        "workflow",
+        "user-global",
+        "cross-repo"
+      ],
+      "strict": false
+    },
+    {
+      "name": "mql5",
+      "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
+      "version": "16.11.0",
+      "source": "./plugins/mql5",
+      "category": "trading",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "mql5",
+        "metatrader",
+        "indicators",
+        "trading",
+        "mt5",
+        "mql5.com",
+        "article-extraction",
+        "python-mt5"
+      ],
+      "strict": false
+    },
+    {
+      "name": "plugin-dev",
+      "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
+      "version": "16.11.0",
+      "source": "./plugins/plugin-dev",
+      "category": "development",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "plugin",
+        "skill",
+        "validation",
+        "silent-failures",
+        "meta-skill",
+        "skill-creation",
+        "architecture",
+        "templates",
+        "shellcheck"
+      ],
+      "strict": false
+    },
+    {
+      "name": "productivity-tools",
+      "description": "Slash command factory and calendar event management with tiered sound alarms",
+      "version": "16.11.0",
+      "source": "./plugins/productivity-tools",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "productivity",
+        "automation",
+        "commands",
+        "slash-commands",
+        "calendar",
+        "reminders",
+        "macos",
+        "applescript",
+        "events",
+        "sound-alarms"
+      ],
+      "hooks": "./plugins/productivity-tools/hooks/hooks.json",
+      "strict": false
+    },
+    {
+      "name": "quality-tools",
+      "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
+      "version": "16.11.0",
+      "source": "./plugins/quality-tools",
+      "category": "quality",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "quality",
+        "testing",
+        "validation",
+        "performance",
+        "profiling",
+        "e2e",
+        "clones",
+        "schema"
+      ],
+      "strict": false
+    },
+    {
+      "name": "quant-research",
+      "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
+      "version": "16.11.0",
+      "source": "./plugins/quant-research",
+      "category": "trading",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "quant",
+        "range-bars",
+        "sharpe-ratio",
+        "metrics",
+        "evaluation",
+        "crypto",
+        "ml",
+        "prediction-quality",
+        "ic",
+        "dsr",
+        "psr",
+        "wfo"
+      ],
+      "strict": false
+    },
+    {
+      "name": "rust-tools",
+      "description": "SOTA Rust tooling - refactoring, profiling, benchmarking, testing, SIMD, dependency audit",
+      "version": "16.11.0",
+      "source": "./plugins/rust-tools",
+      "category": "development",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "rust",
+        "cargo",
+        "ast-grep",
+        "divan",
+        "samply",
+        "cargo-mutants",
+        "macerator",
+        "simd",
+        "pgo",
+        "pyo3",
+        "cargo-semver-checks",
+        "cargo-nextest",
+        "cargo-wizard",
+        "cargo-hack",
+        "cargo-audit",
+        "cargo-deny",
+        "cargo-vet"
+      ],
+      "hooks": "./plugins/rust-tools/hooks/hooks.json",
+      "strict": false
+    },
+    {
+      "name": "ssh-tunnel-companion",
+      "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
+      "version": "16.11.0",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "ssh",
+        "tunnel",
+        "clickhouse",
+        "launchd"
+      ],
+      "strict": false,
+      "source": "./plugins/ssh-tunnel-companion",
+      "category": "devops"
+    },
+    {
+      "name": "statusline-tools",
+      "description": "Custom status line with git status indicators",
+      "version": "16.11.0",
+      "source": "./plugins/statusline-tools",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "statusline",
+        "status-bar",
+        "git-status"
+      ],
+      "strict": false
+    },
+    {
+      "name": "tlg",
+      "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
+      "version": "16.11.0",
+      "source": "./plugins/tlg",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "telegram",
+        "telethon",
+        "mtproto",
+        "messaging",
+        "user-account",
+        "1password"
+      ],
+      "strict": false
+    },
+    {
+      "name": "tts-tg-sync",
+      "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
+      "version": "16.11.0",
+      "source": "./plugins/tts-tg-sync",
+      "category": "devops",
+      "requires": [
+        "kokoro-tts"
+      ],
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "tts",
+        "kokoro",
+        "telegram",
+        "bot",
+        "voice-synthesis",
+        "audio",
+        "notifications",
+        "iterm2",
+        "session-sync",
+        "health-check"
+      ],
+      "hooks": "./plugins/tts-tg-sync/hooks/hooks.json",
       "strict": false
     }
   ]

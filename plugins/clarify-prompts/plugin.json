@@ -1,0 +1,9 @@
+{
+  "name": "clarify-prompts",
+  "version": "0.1.0",
+  "description": "Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) whenever the just-finished turn left ambiguity unresolved. Self-suppresses if the agent already asked.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
