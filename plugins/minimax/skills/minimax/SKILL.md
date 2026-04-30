@@ -326,3 +326,10 @@ Distilled from the 41-iteration `minimax-m27-explore` autonomous-loop campaign a
 - ~155 Non-Obvious Learnings, 35 critical findings, 11 documented failure modes, 4 error code families, 6 compat envelope categories
 
 Campaign verified against `MiniMax-M2.7-highspeed` between 2026-04-28 and 2026-04-29. Re-verify against new model versions via `mise run minimax:check-upgrade`.
+
+## Post-Execution Reflection
+
+0. **Locate yourself.** — Confirm this SKILL.md is the canonical file before any edit.
+1. **What failed?** — A wiring snippet stopped working, a parameter that was reported "silently dropped" now succeeds, or a `base_resp.status_code` mapping changed. Update the affected pattern doc + the table here so the next reader doesn't repeat the failure.
+2. **What drifted?** — `mise run minimax:check-upgrade` flagged a new model version, the OpenAI-compat envelope changed shape, or rate-limit / cache_control semantics shifted. Update the locked-snapshot pointer and the impacted sections.
+3. **Log it.** — Append a dated line under "Provenance" (or a new "Evolution log" section) with trigger + fix + evidence so future iters can audit drift.
