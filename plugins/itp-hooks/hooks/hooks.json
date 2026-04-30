@@ -315,34 +315,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-subprocess-session-cleanup.ts",
-            "timeout": 10000,
-            "description": "Session cleanup - kills PUEUE jobs, background processes, clears TTY references"
-          },
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook-error-summary.ts",
-            "timeout": 5000
-          },
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-ty-project-check.ts",
-            "timeout": 15000,
-            "description": "ty project-wide type check on session exit (only if .py files were edited)"
-          },
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-markdown-lint.ts",
-            "timeout": 15000,
-            "description": "markdownlint + prettier on .md files at session exit (only if .md files were edited)"
-          },
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-loop-stall-guard.ts",
-            "timeout": 15000,
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
+            "timeout": 65000,
             "asyncRewake": true,
             "rewakeSummary": "Loop stall detected — rewaking to schedule waker",
-            "description": "Autonomous-loop stall detector. Wakes the model (asyncRewake exit 2) when an active LOOP_CONTRACT.md session ends without calling ScheduleWakeup/Monitor/Agent/TeamCreate."
+            "description": "Stop-hook orchestrator: sequentially runs the 5 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint, loop-stall-guard) with per-subhook timeout + crash isolation. Replaces 5 entries in the Stop hook display list with 1. asyncRewake on exit 2 propagates from loop-stall-guard."
           }
         ]
       }
