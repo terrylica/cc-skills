@@ -176,6 +176,10 @@ loop_id: '"$loop_id" "$contract_path" || true
         fi
       fi
     fi
+
+    # v2 birth record: stamp immutable fields once (idempotent — only writes
+    # missing fields). Mutable owner mirror fields are written by hooks/reclaim.
+    init_contract_frontmatter_v2 "$contract_path" "$loop_id" "$state_dir" 2>/dev/null || true
   fi
 
   # Source registry-lib to check if entry exists and register if needed (MIG-02)
@@ -431,9 +435,171 @@ read_heartbeat() {
   fi
 }
 
+# set_contract_field <contract_path> <field_name> <field_value>
+# Atomically set a single YAML field in a contract's frontmatter.
+# If the field exists, replaces its value. If missing, inserts it before the
+# closing `---` of the frontmatter. Idempotent and safe to call repeatedly.
+#
+# The frontmatter MUST start at line 1 with `---` and have a closing `---`.
+# field_value is written verbatim; quote it yourself if needed (e.g. ISO timestamp).
+#
+# Atomicity: writes to mktemp in same dir then mv (defends pitfall #3).
+# Best-effort: returns 0 on any I/O failure; never blocks the calling hook.
+#
+# Arguments:
+#   $1: contract_path (must exist and be a regular file)
+#   $2: field_name (e.g. "owner_session_id")
+#   $3: field_value (verbatim, including quotes if string-typed)
+#
+# Example:
+#   set_contract_field "./LOOP_CONTRACT.md" "owner_session_id" "\"abc-def-123\""
+#   set_contract_field "./LOOP_CONTRACT.md" "generation" "3"
+set_contract_field() {
+  local contract_path="$1"
+  local field="$2"
+  local value="$3"
+
+  if [ ! -f "$contract_path" ]; then
+    return 0
+  fi
+  if [ -z "$field" ]; then
+    return 0
+  fi
+
+  local contract_dir
+  contract_dir=$(dirname "$contract_path") || return 0
+
+  local tmp
+  tmp=$(mktemp "${contract_path}.XXXXXX") 2>/dev/null || return 0
+
+  # awk: walk through frontmatter (between line-1 `---` and the next `---`).
+  # If field already present, replace its line. If absent, insert before closing.
+  awk -v field="$field" -v value="$value" '
+    BEGIN { in_fm = 0; fm_done = 0; replaced = 0 }
+    NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; print; next }
+    in_fm && /^---[[:space:]]*$/ {
+      if (!replaced) {
+        print field ": " value
+      }
+      in_fm = 0; fm_done = 1; print; next
+    }
+    in_fm {
+      if ($0 ~ "^" field ":") {
+        print field ": " value
+        replaced = 1
+        next
+      }
+    }
+    { print }
+  ' "$contract_path" > "$tmp" 2>/dev/null || { rm -f "$tmp"; return 0; }
+
+  if [ ! -s "$tmp" ]; then
+    rm -f "$tmp"
+    return 0
+  fi
+
+  mv "$tmp" "$contract_path" 2>/dev/null || { rm -f "$tmp"; return 0; }
+  return 0
+}
+
+# init_contract_frontmatter_v2 <contract_path> <loop_id> <state_dir>
+# Populate the immutable birth-record fields of a v2 contract.
+# Idempotent: only writes fields that are missing — never overwrites existing
+# values (so contracts are not "rebirthed" by a re-run of /autoloop:start).
+#
+# Fields written if missing:
+#   schema_version, loop_id, campaign_slug, created_at_utc, created_at_cwd,
+#   created_at_git_branch, created_at_git_commit, state_dir, revision_log_path,
+#   expected_cadence (default), status (default "active")
+#
+# created_in_session is left empty for the session-bind hook to fill on first
+# SessionStart (skill subprocess does not see $CLAUDE_SESSION_ID — see
+# session-bind.sh header for context).
+#
+# Arguments:
+#   $1: contract_path
+#   $2: loop_id
+#   $3: state_dir
+init_contract_frontmatter_v2() {
+  local contract_path="$1"
+  local loop_id="$2"
+  local state_dir="$3"
+
+  if [ ! -f "$contract_path" ]; then
+    return 0
+  fi
+
+  # Helper: only set if not already in frontmatter (read up to closing ---)
+  _set_if_missing() {
+    local field="$1" value="$2"
+    if ! awk '
+      NR == 1 && /^---/ { in_fm = 1; next }
+      in_fm && /^---/ { exit }
+      in_fm && $0 ~ "^" field ":" { found = 1; exit }
+      END { exit (found ? 0 : 1) }
+    ' field="$field" "$contract_path" 2>/dev/null; then
+      set_contract_field "$contract_path" "$field" "$value"
+    fi
+  }
+
+  # schema_version: bump to 2 if missing or 1 (signals v2 fields are populated)
+  local existing_schema
+  existing_schema=$(awk '
+    NR == 1 && /^---/ { in_fm = 1; next }
+    in_fm && /^---/ { exit }
+    in_fm && /^schema_version:/ { gsub(/^schema_version:[[:space:]]*/, ""); print; exit }
+  ' "$contract_path" 2>/dev/null)
+  if [ -z "$existing_schema" ] || [ "$existing_schema" = "1" ]; then
+    set_contract_field "$contract_path" "schema_version" "2"
+  fi
+
+  _set_if_missing "loop_id" "$loop_id"
+
+  # campaign_slug: derive from existing `name:` field if missing
+  local name_value
+  name_value=$(awk '
+    NR == 1 && /^---/ { in_fm = 1; next }
+    in_fm && /^---/ { exit }
+    in_fm && /^name:/ { sub(/^name:[[:space:]]*/, ""); gsub(/^["<]|[">]$/, ""); print; exit }
+  ' "$contract_path" 2>/dev/null)
+  if [ -n "$name_value" ]; then
+    # slugify: lowercase, replace non-alnum with -, trim leading/trailing -
+    local slug
+    slug=$(echo "$name_value" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]\{1,\}/-/g; s/^-//; s/-$//')
+    [ -n "$slug" ] && _set_if_missing "campaign_slug" "\"$slug\""
+  fi
+
+  # created_at_utc: stamp with `date -u` if missing
+  local created_at
+  created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "")
+  [ -n "$created_at" ] && _set_if_missing "created_at_utc" "\"$created_at\""
+
+  # created_at_cwd: realpath of contract's parent directory
+  local cwd_abs
+  cwd_abs=$(cd "$(dirname "$contract_path")" && pwd -P 2>/dev/null || echo "")
+  [ -n "$cwd_abs" ] && _set_if_missing "created_at_cwd" "\"$cwd_abs\""
+
+  # git branch + commit (best-effort)
+  local branch commit
+  branch=$(git -C "$cwd_abs" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  commit=$(git -C "$cwd_abs" rev-parse HEAD 2>/dev/null || echo "")
+  [ -n "$branch" ] && _set_if_missing "created_at_git_branch" "\"$branch\""
+  [ -n "$commit" ] && _set_if_missing "created_at_git_commit" "\"$commit\""
+
+  _set_if_missing "state_dir" "\"$state_dir\""
+  _set_if_missing "revision_log_path" "\"$state_dir/revision-log\""
+
+  _set_if_missing "expected_cadence" "\"hourly\""
+  _set_if_missing "status" "\"active\""
+
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f now_us
 export -f state_dir_path
 export -f init_state_dir
 export -f write_heartbeat
 export -f read_heartbeat
+export -f set_contract_field
+export -f init_contract_frontmatter_v2

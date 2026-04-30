@@ -246,6 +246,19 @@ if ! write_heartbeat "$MATCHING_LOOP_ID" "$SESSION_ID" "$NEW_ITERATION" 2>/dev/n
   exit 0
 fi
 
+# v2: mirror heartbeat into contract frontmatter (best-effort; registry+heartbeat
+# are SSoT). Failure here MUST NOT abort the loop tick — a stale frontmatter is
+# fine; an aborted heartbeat is not.
+if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_field >/dev/null 2>&1; then
+  _NOW_US=$(now_us 2>/dev/null || echo "")
+  if [ -n "$_NOW_US" ]; then
+    set_contract_field "$CONTRACT_PATH" "last_heartbeat_us" "$_NOW_US" 2>/dev/null || true
+  fi
+  set_contract_field "$CONTRACT_PATH" "last_heartbeat_session_id" "\"$SESSION_ID\"" 2>/dev/null || true
+  set_contract_field "$CONTRACT_PATH" "iteration" "$NEW_ITERATION" 2>/dev/null || true
+  set_contract_field "$CONTRACT_PATH" "generation" "$REGISTRY_GENERATION" 2>/dev/null || true
+fi
+
 # Step 8 (BIND-03): cwd-drift detection.
 # Re-merge bound_cwd into the freshly-written heartbeat.json (write_heartbeat
 # doesn't preserve our extension fields). Detect drift if PRE_BOUND_CWD was
