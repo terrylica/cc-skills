@@ -7,8 +7,8 @@ exit_condition: "saturation OR user-stop OR max_iterations OR explicit DONE sect
 max_iterations: 100
 trigger: "/loop — reads this file verbatim each firing"
 dispatch_policy:
-  enabled: false              # set true to allow Phase 2a multi-agent dispatch on opt-in items
-  require_experimental_teams: false  # set true only if using TeamCreate/SendMessage (needs CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
+  enabled: false # set true to allow Phase 2a multi-agent dispatch on opt-in items
+  require_experimental_teams: false # set true only if using TeamCreate/SendMessage (needs CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
 ---
 
 # <PROJECT OR CAMPAIGN TITLE>
@@ -141,9 +141,10 @@ Implementation Queue has any non-blocked item. Reviewers should flag it.
 Verdict: approve | flag | reject
 Rationale: <≤ 200 words>
 Risks:
+
 - <risk 1>
 - <risk 2>
-Allowed writes touched: <paths>
+  Allowed writes touched: <paths>
 ```
 
 ### Phase 3 — Revise (this file)
@@ -164,23 +165,23 @@ Rewrite the **Current State** section. Remove completed queue items. Promote nex
 
 A firing that ends with a text-only summary, no final tool call, and a pending ScheduleWakeup from a prior firing is a bug — the pending wake's context is frozen at pre-interrupt state and will fire on a stale contract. Never rely on "already queued" — call a fresh waker or chain in-turn.
 
-**Handling manual interrupts inside an active wake window**: when `/loop`, `/autonomous-loop:start`, or a user prompt triggers this firing while a prior `ScheduleWakeup` is still pending, treat the fresh firing as authoritative and supersede the pending wake with option 1, 2, 3, 4, or 5 above. Phase 3 Revise is mandatory even on interrupt firings — update the contract so the (now-stale) pending wake, if it still fires, reads accurate state.
+**Handling manual interrupts inside an active wake window**: when `/loop`, `/autoloop:start`, or a user prompt triggers this firing while a prior `ScheduleWakeup` is still pending, treat the fresh firing as authoritative and supersede the pending wake with option 1, 2, 3, 4, or 5 above. Phase 3 Revise is mandatory even on interrupt firings — update the contract so the (now-stale) pending wake, if it still fires, reads accurate state.
 
 #### Pre-decision gate (REQUIRED before any `ScheduleWakeup` call)
 
 Before the tier table is even consulted, answer **all three** questions in writing in your firing summary. If any answer is missing or vague, the only legal options are **Tier 0 (chain in-turn)** or **option 5 (DONE / exit honestly)**.
 
 1. **Is the Implementation Queue empty?** (yes/no — name the next ready item if no)
-2. **What specific external thing am I waiting for?** (must name a concrete external signal: a build PID, a CI run URL, a rate-limit window with a known ETA, a file-watch path, a webhook. *Not* a valid answer: "the next iteration", "let cache stay warm", "pacing", "cogitation", "I want to think more", "in-flight task I started" — the last is your own work, not external state.)
+2. **What specific external thing am I waiting for?** (must name a concrete external signal: a build PID, a CI run URL, a rate-limit window with a known ETA, a file-watch path, a webhook. _Not_ a valid answer: "the next iteration", "let cache stay warm", "pacing", "cogitation", "I want to think more", "in-flight task I started" — the last is your own work, not external state.)
 3. **Could this work continue right now in-turn?** (if yes → Tier 0. `ScheduleWakeup` is forbidden.)
 
 > **Anti-pattern recognized in the wild (iter-N example, ~2026-04-27)**:
 > Queue had 4 actionable items; model wrote "Next wake at 08:29:00Z (~247s,
-> cache-warm)" — the *only* justification offered was "cache-warm". That is
+> cache-warm)" — the _only_ justification offered was "cache-warm". That is
 > pacing, not waiting. Dead-time ratio for the firing: ~0.5, double the 0.25
 > smell-check threshold. The legal move was Tier 0: pick item 2.1 and start it.
 
-If you find yourself reaching for "cache-warm" as a reason to schedule a wake, stop. Cache-warmth is a side-property of Tier 2, not its purpose. The purpose is *waiting for an external signal*. Tier 0 is also cache-warm and is strictly cheaper when you have ready work.
+If you find yourself reaching for "cache-warm" as a reason to schedule a wake, stop. Cache-warmth is a side-property of Tier 2, not its purpose. The purpose is _waiting for an external signal_. Tier 0 is also cache-warm and is strictly cheaper when you have ready work.
 
 | Tier                                                 | Mechanism                                                                                                         | When to use                                                                                          | Cost                              |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -280,25 +281,25 @@ Per-item schema (all optional except the checkbox line):
 
 ```markdown
 - [ ] <action>
-      id: <stable-identifier-for-worktree-naming>    # required if perspectives set
-      cost_estimate: low | medium | high             # low = skip dispatch regardless of perspectives
-      perspectives: [implementer, critic]            # empty/absent = in-turn (Tier 0)
-      security_sensitive: true                       # triggers auditor hard veto
-      allowed_writes:                                # per-perspective file-ownership (anti-collision)
-        implementer: [path/to/dir/, another/file.py]
-        critic: []                                   # read-only
+                      id: <stable-identifier-for-worktree-naming>    # required if perspectives set
+                      cost_estimate: low | medium | high             # low = skip dispatch regardless of perspectives
+                      perspectives: [implementer, critic]            # empty/absent = in-turn (Tier 0)
+                      security_sensitive: true                       # triggers auditor hard veto
+                      allowed_writes:                                # per-perspective file-ownership (anti-collision)
+                        implementer: [path/to/dir/, another/file.py]
+                        critic: []                                   # read-only
 ```
 
 ### Tier 1 (start here — ready-to-build, 1-3 days each)
 
 - [ ] <simple action — in-turn, no dispatch>
 - [ ] <complex action>
-      id: <slug>
-      cost_estimate: high
-      perspectives: [implementer, critic]
-      allowed_writes:
-        implementer: [<paths>]
-        critic: []
+                      id: <slug>
+                      cost_estimate: high
+                      perspectives: [implementer, critic]
+                      allowed_writes:
+                        implementer: [<paths>]
+                        critic: []
 
 ### Tier 2 (1-2 weeks, production libraries available)
 
@@ -333,10 +334,11 @@ Per-item schema (all optional except the checkbox line):
 > the registry's `started_at_us` / `last_wake_us` are UTC microseconds-since-epoch.
 > A wake-up labeled "01:11 UTC" computed from local PDT 01:11 is actually
 > 08:11 UTC and silently mismatches every other clock — including the
-> heartbeat's freshness check. When the autonomous-loop sees a stale
+> heartbeat's freshness check. When the autoloop sees a stale
 > heartbeat from a wrong-clock entry, it can spuriously trigger reclaim.
 >
 > Quick reference:
+>
 > ```bash
 > date -u +"%Y-%m-%dT%H:%M:%SZ"        # for last_updated frontmatter
 > date -u +"%Y-%m-%d %H:%M UTC"        # for revision-log lines

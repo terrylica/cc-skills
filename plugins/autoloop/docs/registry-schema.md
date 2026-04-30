@@ -1,4 +1,4 @@
-# Registry Schema: Autonomous Loop Machine-Level Registry
+# Registry Schema: Autoloop Machine-Level Registry
 
 **Version:** 1  
 **Last Updated:** 2026-04-26  
@@ -6,7 +6,7 @@
 
 ## Overview
 
-The autonomous-loop registry is a single JSON file at `~/.claude/loops/registry.json` that serves as the canonical source of truth for all active loops on a machine. It enables:
+The autoloop registry is a single JSON file at `~/.claude/loops/registry.json` that serves as the canonical source of truth for all active loops on a machine. It enables:
 
 - **Unique loop identification** via `loop_id` (derived from contract path)
 - **Ownership tracking** via session ID and process ID
@@ -292,7 +292,7 @@ Writes depend on locking primitives (Phase 2), which in turn depend on the schem
 
 ## Read API (registry-lib.sh)
 
-Two read-only functions are provided in `plugins/autonomous-loop/scripts/registry-lib.sh`:
+Two read-only functions are provided in `plugins/autoloop/scripts/registry-lib.sh`:
 
 ### read_registry([registry_path_override])
 
@@ -322,7 +322,7 @@ registry=$(read_registry [path_override])
 **Example:**
 
 ```bash
-source plugins/autonomous-loop/scripts/registry-lib.sh
+source plugins/autoloop/scripts/registry-lib.sh
 
 registry=$(read_registry)
 count=$(echo "$registry" | jq '.loops | length')
@@ -385,7 +385,7 @@ fi
 
 ## JSON Schema Validation
 
-A machine-readable JSON Schema is provided at `plugins/autonomous-loop/schemas/registry.schema.json` for validators (e.g., `ajv`, `json-schema-validator`).
+A machine-readable JSON Schema is provided at `plugins/autoloop/schemas/registry.schema.json` for validators (e.g., `ajv`, `json-schema-validator`).
 
 Use it to validate registry files before consuming them:
 
@@ -397,7 +397,7 @@ jq -e '.' < ~/.claude/loops/registry.json > /dev/null && \
 Or for full schema validation:
 
 ```bash
-npx ajv validate -s plugins/autonomous-loop/schemas/registry.schema.json \
+npx ajv validate -s plugins/autoloop/schemas/registry.schema.json \
   -d ~/.claude/loops/registry.json
 ```
 

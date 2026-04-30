@@ -63,10 +63,10 @@
       "strict": false
     },
     {
-      "name": "autonomous-loop",
-      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autonomous-loop:start, /autonomous-loop:status, /autonomous-loop:stop",
+      "name": "autoloop",
+      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:status, /autoloop:stop",
       "version": "16.14.2",
-      "source": "./plugins/autonomous-loop",
+      "source": "./plugins/autoloop",
       "category": "automation",
       "author": {
         "name": "Terry Li",
@@ -139,7 +139,7 @@
     },
     {
       "name": "clarify-prompts",
-      "description": "Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autonomous-loop sessions, subagents, and turns that already asked.",
+      "description": "Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autoloop sessions, subagents, and turns that already asked.",
       "version": "16.14.2",
       "source": "./plugins/clarify-prompts",
       "category": "automation",
@@ -153,7 +153,7 @@
         "clarify",
         "ambiguity",
         "main-agent-only",
-        "autonomous-loop-aware"
+        "autoloop-aware"
       ],
       "strict": false
     },

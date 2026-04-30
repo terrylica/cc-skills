@@ -1,6 +1,6 @@
 # clarify-prompts
 
-Stop-hook plugin: nudges the main agent to invoke `AskUserQuestion` when ambiguity remains. Two-layer ambiguity classifier (qmark + MiniMax-M2.7 binary judge), with autonomous-loop suppression so overnight campaigns don't get blocked.
+Stop-hook plugin: nudges the main agent to invoke `AskUserQuestion` when ambiguity remains. Two-layer ambiguity classifier (qmark + MiniMax-M2.7 binary judge), with autoloop suppression so overnight campaigns don't get blocked.
 
 **Hub:** [Root CLAUDE.md](../../CLAUDE.md) | **Sibling:** [plugins/CLAUDE.md](../CLAUDE.md)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# registry-lib.sh — Loop ID derivation and registry read helpers for autonomous-loop
+# registry-lib.sh — Loop ID derivation and registry read helpers for autoloop
 # Provides deterministic loop ID generation and read-only registry access
 
 set -euo pipefail

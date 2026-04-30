@@ -36,11 +36,11 @@ is_hook_installed() {
   fi
 
   # Parse settings.json and check if our hook path is present
-  # Our hook is identified by command path ending with /plugins/autonomous-loop/hooks/heartbeat-tick.sh
+  # Our hook is identified by command path ending with /plugins/autoloop/hooks/heartbeat-tick.sh
   local installed
   installed=$(jq -r '
     .hooks.PostToolUse[]?.hooks[]? |
-    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/heartbeat-tick.sh"))) |
+    select(.type == "command" and (.command | endswith("/plugins/autoloop/hooks/heartbeat-tick.sh"))) |
     .command
   ' "$settings_path" 2>/dev/null || echo "") || true
 
@@ -118,7 +118,7 @@ is_session_bind_installed() {
   local installed
   installed=$(jq -r '
     .hooks.SessionStart[]?.hooks[]? |
-    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/session-bind.sh"))) |
+    select(.type == "command" and (.command | endswith("/plugins/autoloop/hooks/session-bind.sh"))) |
     .command
   ' "$settings_path" 2>/dev/null || echo "") || true
 
@@ -715,7 +715,7 @@ is_pacing_veto_installed() {
   local installed
   installed=$(jq -r '
     .hooks.PreToolUse[]?.hooks[]? |
-    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/pacing-veto.sh"))) |
+    select(.type == "command" and (.command | endswith("/plugins/autoloop/hooks/pacing-veto.sh"))) |
     .command
   ' "$settings_path" 2>/dev/null || echo "") || true
   if [ -n "$installed" ]; then echo "yes"; else echo "no"; fi
@@ -874,7 +874,7 @@ is_empty_firing_installed() {
   local installed
   installed=$(jq -r '
     .hooks.Stop[]?.hooks[]? |
-    select(.type == "command" and (.command | endswith("/plugins/autonomous-loop/hooks/empty-firing-detector.sh"))) |
+    select(.type == "command" and (.command | endswith("/plugins/autoloop/hooks/empty-firing-detector.sh"))) |
     .command
   ' "$settings_path" 2>/dev/null || echo "") || true
   if [ -n "$installed" ]; then echo "yes"; else echo "no"; fi
@@ -1005,7 +1005,7 @@ install_all_hooks() {
   return 0
 }
 
-# uninstall_all_hooks: composite — removes all four autonomous-loop hooks.
+# uninstall_all_hooks: composite — removes all four autoloop hooks.
 uninstall_all_hooks() {
   local settings_path="${1:-$HOME/.claude/settings.json}"
   uninstall_hook "$settings_path" || true

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-lib.sh — Self-diagnostic for autonomous-loop fleet (v4.10.0 Phase 38).
+# doctor-lib.sh — Self-diagnostic for autoloop fleet (v4.10.0 Phase 38).
 # Provides: loop_doctor_report, loop_doctor_fix
 #
 # Cross-references registry.json, heartbeat.json files, launchctl list output,
@@ -88,7 +88,7 @@ _doctor_check_loop() {
     local drift
     drift=$(jq -r '.cwd_drift_detected // false' "$hb_file" 2>/dev/null)
     if [ "$drift" = "true" ]; then
-      issues+=("RED: cwd_drift_detected — session went outside contract dir; resume disabled until /autonomous-loop:reclaim")
+      issues+=("RED: cwd_drift_detected — session went outside contract dir; resume disabled until /autoloop:reclaim")
       verdict="RED"
     fi
   fi
@@ -256,7 +256,7 @@ loop_doctor_report() {
   green=$(echo "$results" | jq -s '[.[] | select(.verdict == "GREEN")] | length' 2>/dev/null || echo 0)
   yellow=$(echo "$results" | jq -s '[.[] | select(.verdict == "YELLOW")] | length' 2>/dev/null || echo 0)
   red=$(echo "$results" | jq -s '[.[] | select(.verdict == "RED")] | length' 2>/dev/null || echo 0)
-  echo "autonomous-loop doctor — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
+  echo "autoloop doctor — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
   echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)"
   echo "================================================================"
   echo "$results" | jq -r '.loop_id + " [" + .verdict + "]" + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)' 2>/dev/null
@@ -308,7 +308,7 @@ loop_doctor_fix() {
   fi
 
   # Fix 3 (v16.8.1): clean DONE-marked contracts.
-  # User marks contract status: DONE but forgets to run /autonomous-loop:stop —
+  # User marks contract status: DONE but forgets to run /autoloop:stop —
   # the plist keeps firing forever. Doctor --fix detects DONE status, boots
   # out the launchd job, removes the plist, archives the registry entry, and
   # leaves the .loop-state/ dir in place for forensics.

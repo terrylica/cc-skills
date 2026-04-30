@@ -87,7 +87,7 @@ cc-skills/
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
-│   ├── autonomous-loop/             ← Self-paced loop mode (replaces deprecated ru)
+│   ├── autoloop/                    ← Self-paced loop mode (replaces deprecated ru; renamed from autonomous-loop in v17)
 │   ├── mise/                        ← User-global mise workflow commands
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)

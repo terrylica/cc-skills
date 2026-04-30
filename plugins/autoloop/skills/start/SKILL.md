@@ -1,12 +1,12 @@
 ---
 name: start
-description: "Scaffold LOOP_CONTRACT.md in the current project and kick off a self-revising autonomous loop. TRIGGERS - autonomous-loop start, scaffold loop contract, begin self-revising loop, install LOOP_CONTRACT."
+description: "Scaffold LOOP_CONTRACT.md in the current project and kick off a self-revising autonomous loop. TRIGGERS - autoloop start, scaffold loop contract, begin self-revising loop, install LOOP_CONTRACT."
 allowed-tools: Bash, Read, Write, AskUserQuestion, Skill
 argument-hint: "[path-to-contract]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Start
+# autoloop: Start
 
 Scaffold `LOOP_CONTRACT.md` and start a self-revising `/loop` that reads the contract each firing.
 
@@ -18,7 +18,7 @@ Scaffold `LOOP_CONTRACT.md` and start a self-revising `/loop` that reads the con
 
 ## Step 1: Ensure hooks are installed
 
-Install BOTH autonomous-loop hooks into `~/.claude/settings.json` if not already present. Idempotent.
+Install BOTH autoloop hooks into `~/.claude/settings.json` if not already present. Idempotent.
 
 - **PostToolUse → `heartbeat-tick.sh`** — ticks heartbeat on every tool invocation, detects cwd drift.
 - **SessionStart → `session-bind.sh`** — authoritatively binds `owner_session_id` from stdin payload (replaces broken `$CLAUDE_SESSION_ID` env-var capture; ref [anthropics/claude-code#47018](https://github.com/anthropics/claude-code/issues/47018)).
@@ -26,12 +26,12 @@ Install BOTH autonomous-loop hooks into `~/.claude/settings.json` if not already
 
 ```bash
 # Source the hook install library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 
 # Install BOTH hooks (idempotent)
 if ! install_all_hooks 2>/dev/null; then
-  echo "WARNING: Failed to install autonomous-loop hooks; continuing anyway" >&2
+  echo "WARNING: Failed to install autoloop hooks; continuing anyway" >&2
 fi
 ```
 
@@ -50,7 +50,7 @@ else
 fi
 ```
 
-If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autonomous-loop:status` instead of starting fresh) or `overwrite` (proceed with Step 3).
+If `EXISTS`: use `AskUserQuestion` to choose between `resume` (run `/autoloop:status` instead of starting fresh) or `overwrite` (proceed with Step 3).
 
 ## Step 3: Collect contract inputs
 
@@ -74,7 +74,7 @@ SKILL.md is loaded as instructions rather than executed as a script.
 # CLAUDE_PLUGIN_ROOT points at /…/plugins/<plugin-name> when invoked from
 # a skill. Fall back to the marketplace cache path if unset (e.g., when a
 # user invokes the skill's Bash manually outside the harness).
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 TEMPLATE="$PLUGIN_ROOT/templates/LOOP_CONTRACT.template.md"
 if [ ! -f "$TEMPLATE" ]; then
   echo "ERROR: template missing at $TEMPLATE — reinstall the plugin" >&2
@@ -98,7 +98,7 @@ After deriving the loop ID in Step 2/3, register this loop in the machine-level 
 
 ```bash
 # Source the registry library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/registry-lib.sh"
 
 # Derive loop_id from contract path (if not already done)
@@ -134,7 +134,7 @@ After registering the loop, generate the launchd plist and load it:
 
 ```bash
 # Source the launchd library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/launchd-lib.sh"
 source "$PLUGIN_ROOT/scripts/state-lib.sh"
 
@@ -204,7 +204,7 @@ git commit -m "loop(bootstrap): scaffold LOOP_CONTRACT.md for $name"
 
 | Symptom                             | Fix                                                          |
 | ----------------------------------- | ------------------------------------------------------------ |
-| Template not found                  | `claude plugin reinstall autonomous-loop@cc-skills`          |
+| Template not found                  | `claude plugin reinstall autoloop@cc-skills`                 |
 | `/loop` says "unknown skill"        | Claude Code version < 2.1.101; upgrade to get native `/loop` |
 | Pointer trigger re-reads stale file | Ensure `$CONTRACT_PATH` is absolute or CWD-stable            |
 

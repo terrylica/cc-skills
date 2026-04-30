@@ -1,12 +1,12 @@
 ---
 name: reclaim
-description: "Reclaim a stuck loop from a dead or unresponsive owner. Check reclaim candidacy, prompt confirmation, atomically take ownership and increment generation. TRIGGERS - autonomous-loop reclaim, recover stuck loop, take over dead loop, seize ownership."
+description: "Reclaim a stuck loop from a dead or unresponsive owner. Check reclaim candidacy, prompt confirmation, atomically take ownership and increment generation. TRIGGERS - autoloop reclaim, recover stuck loop, take over dead loop, seize ownership."
 allowed-tools: Bash, Read, AskUserQuestion
 argument-hint: "[loop-id]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Reclaim
+# autoloop: Reclaim
 
 Forcibly reclaim ownership of a loop that appears stuck (dead owner or stale heartbeat). This skill performs an atomic takeover, increments the generation counter, and logs the event in the revision-log.
 
@@ -26,7 +26,7 @@ if [ -z "$LOOP_ID" ]; then
   # Prompt user to select from registry
   # Or search for LOOP_CONTRACT.md files and derive their IDs
   # For simplicity: require explicit loop_id argument
-  echo "ERROR: loop_id required. Provide as argument: /autonomous-loop:reclaim <loop_id>"
+  echo "ERROR: loop_id required. Provide as argument: /autoloop:reclaim <loop_id>"
   exit 1
 fi
 ```
@@ -43,7 +43,7 @@ fi
 ## Step 2: Source ownership library and check reclaim candidacy
 
 ```bash
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/ownership-lib.sh" || {
   echo "ERROR: Failed to source ownership-lib.sh" >&2
   exit 1
@@ -60,7 +60,7 @@ if [ "$CANDIDATE" = "no" ]; then
   exit 1
 elif [ "$CANDIDATE" = "owner_alive" ]; then
   echo "ERROR: Loop $LOOP_ID has a live owner and fresh heartbeat. Reclaim not needed."
-  echo "       Use /autonomous-loop:stop to cleanly terminate an active loop."
+  echo "       Use /autoloop:stop to cleanly terminate an active loop."
   exit 1
 fi
 ```
@@ -113,7 +113,7 @@ If user selects "Cancel", exit with status 0 (not an error).
 Once confirmed:
 
 ```bash
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/ownership-lib.sh" || exit 1
 
 if reclaim_loop "$LOOP_ID" --reason "user_request"; then
@@ -135,25 +135,25 @@ Ready to resume the loop. Next steps:
 
 1. Review the contract at: $CONTRACT_PATH
 2. Verify its state (iteration, Current State section, etc.)
-3. Run /autonomous-loop:start $CONTRACT_PATH to resume
+3. Run /autoloop:start $CONTRACT_PATH to resume
 
 Or, to clean up:
-4. Run /autonomous-loop:stop $CONTRACT_PATH if the loop is no longer needed
+4. Run /autoloop:stop $CONTRACT_PATH if the loop is no longer needed
 ```
 
 ## Anti-patterns
 
 - Do NOT reclaim an active loop without confirmation — this will conflict with the running owner
 - Do NOT change the contract file before the new owner reads it — generation mismatch will cause confusion
-- Do NOT use reclaim as a workaround for slow loops — use `/autonomous-loop:stop` and `/autonomous-loop:start` instead
+- Do NOT use reclaim as a workaround for slow loops — use `/autoloop:stop` and `/autoloop:start` instead
 
 ## Troubleshooting
 
-| Symptom                                | Fix                                                                         |
-| -------------------------------------- | --------------------------------------------------------------------------- |
-| "does not exist in the registry"       | Loop was never registered; use `/autonomous-loop:start` instead             |
-| "has a live owner and fresh heartbeat" | Don't forcibly reclaim; use `/autonomous-loop:stop` to shut it down cleanly |
-| "Failed to reclaim loop"               | Registry file was deleted or unreadable; reinstall the plugin               |
+| Symptom                                | Fix                                                                  |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| "does not exist in the registry"       | Loop was never registered; use `/autoloop:start` instead             |
+| "has a live owner and fresh heartbeat" | Don't forcibly reclaim; use `/autoloop:stop` to shut it down cleanly |
+| "Failed to reclaim loop"               | Registry file was deleted or unreadable; reinstall the plugin        |
 
 ## Post-Execution Reflection
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# heartbeat-tick.sh — PostToolUse hook for autonomous-loop
+# heartbeat-tick.sh — PostToolUse hook for autoloop
 # Ticks the heartbeat for the current loop on each tool invocation.
 #
 # v4.10.0 Phase 36 (BIND-03): now reads session_id and cwd from stdin JSON

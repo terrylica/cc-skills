@@ -99,7 +99,7 @@ No hard runtime dependencies — the skill is pure documentation. The OPS script
 
 ## Provenance
 
-Distilled from the 41-iteration `minimax-m27-explore` autonomous-loop campaign at `~/own/amonic/minimax/`:
+Distilled from the 41-iteration `minimax-m27-explore` autoloop campaign at `~/own/amonic/minimax/`:
 
 - 40 verified hands-on pattern docs (`api-patterns/*.md`)
 - 1 quirks consolidation (`quirks/CLAUDE.md`)
@@ -112,7 +112,7 @@ Campaign verified against `MiniMax-M2.7-highspeed` between 2026-04-28 and 2026-0
 
 ## Aggregation campaign status
 
-This plugin is being built incrementally by an autonomous-loop campaign tracked in [`LOOP_CONTRACT.md`](./LOOP_CONTRACT.md). Current status:
+This plugin is being built incrementally by an autoloop campaign tracked in [`LOOP_CONTRACT.md`](./LOOP_CONTRACT.md). Current status:
 
 | Phase                                   | Status         | Iters          |
 | --------------------------------------- | -------------- | -------------- |

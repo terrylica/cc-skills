@@ -49,9 +49,9 @@ EOF
 }
 
 # Source the hook and libraries
-HOOK_SCRIPT="/Users/terryli/gsd-workspaces/autonomous-loop-multiplicity/cc-skills/plugins/autonomous-loop/hooks/heartbeat-tick.sh"
-REGISTRY_LIB="/Users/terryli/gsd-workspaces/autonomous-loop-multiplicity/cc-skills/plugins/autonomous-loop/scripts/registry-lib.sh"
-STATE_LIB="/Users/terryli/gsd-workspaces/autonomous-loop-multiplicity/cc-skills/plugins/autonomous-loop/scripts/state-lib.sh"
+HOOK_SCRIPT="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/hooks/heartbeat-tick.sh"
+REGISTRY_LIB="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/scripts/registry-lib.sh"
+STATE_LIB="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/scripts/state-lib.sh"
 
 if [ ! -f "$REGISTRY_LIB" ] || [ ! -f "$STATE_LIB" ] || [ ! -f "$HOOK_SCRIPT" ]; then
   echo "ERROR: Required scripts not found"

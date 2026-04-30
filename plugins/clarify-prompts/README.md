@@ -1,6 +1,6 @@
 # clarify-prompts
 
-Stop-hook nudge that asks Claude to invoke `AskUserQuestion` (in plain non-technical terms) whenever the just-finished turn left ambiguity unresolved. Self-suppresses when the agent already asked, when running inside an autonomous-loop session, or when triggered by a subagent.
+Stop-hook nudge that asks Claude to invoke `AskUserQuestion` (in plain non-technical terms) whenever the just-finished turn left ambiguity unresolved. Self-suppresses when the agent already asked, when running inside an autoloop session, or when triggered by a subagent.
 
 ## Why
 
@@ -21,7 +21,7 @@ The Stop hook returns `{"decision": "block", "reason": "..."}` — Claude reads 
 | Already-asked       | Last assistant turn invoked `AskUserQuestion` | Allow stop |
 | (default)           | None of the above                             | **Nudge**  |
 
-The autonomous-loop guards are critical: an `AskUserQuestion` invocation inside an overnight loop session would block the agent until morning. The hook reads `~/.claude/loops/registry.json` to detect loop sessions and stays silent in those.
+The autoloop guards are critical: an `AskUserQuestion` invocation inside an overnight loop session would block the agent until morning. The hook reads `~/.claude/loops/registry.json` to detect loop sessions and stays silent in those.
 
 ## Failure mode
 

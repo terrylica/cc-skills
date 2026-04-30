@@ -108,7 +108,7 @@ if install_hook "$CLAUDE_SETTINGS_PATH" "$HOOK_PATH" 2>/dev/null; then
 
   # Verify JSON structure
   COMMAND=$(jq -r '.hooks.PostToolUse[0].hooks[0].command' "$CLAUDE_SETTINGS_PATH")
-  assert_contains "$COMMAND" "autonomous-loop/hooks/heartbeat-tick.sh" "Hook command correct"
+  assert_contains "$COMMAND" "autoloop/hooks/heartbeat-tick.sh" "Hook command correct"
 else
   echo "✗ FAIL: Install failed for empty settings.json creation"
   FAIL=$((FAIL+1))
@@ -157,7 +157,7 @@ if install_hook "$CLAUDE_SETTINGS_PATH" "$HOOK_PATH" 2>/dev/null; then
 
   # Verify new hook added
   NEW=$(jq -r '.hooks.PostToolUse[0].hooks[1].command' "$CLAUDE_SETTINGS_PATH")
-  assert_contains "$NEW" "autonomous-loop/hooks/heartbeat-tick.sh" "New hook appended"
+  assert_contains "$NEW" "autoloop/hooks/heartbeat-tick.sh" "New hook appended"
 else
   echo "✗ FAIL: Install into existing settings failed"
   FAIL=$((FAIL+1))

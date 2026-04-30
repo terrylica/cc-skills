@@ -27,7 +27,7 @@ A 37-iteration autonomous quant-research campaign (`opendeviationbar-patterns`, 
 
 ## Decision
 
-Package the pattern as a cc-skills plugin (`plugins/autonomous-loop/`) with three skills:
+Package the pattern as a cc-skills plugin (`plugins/autoloop/`) with three skills:
 
 | Skill    | Role                                                         |
 | -------- | ------------------------------------------------------------ |
@@ -64,7 +64,7 @@ autonomous-loop architecture
 ┌─────────────────────────────────────────────────────────────────┐
 │ Target project                                                  │
 │                                                                 │
-│  LOOP_CONTRACT.md  ◀──── /autonomous-loop:start scaffolds       │
+│  LOOP_CONTRACT.md  ◀──── /autoloop:start scaffolds       │
 │    │                                                            │
 │    │ read each firing                                           │
 │    ▼                                                            │
@@ -77,8 +77,8 @@ autonomous-loop architecture
 │    ├──▶ ScheduleWakeup(60s / 270s / 1200s / 1800s / 3600s)     │
 │    └──▶ Monitor(event) ← primary wake signal when applicable   │
 │                                                                 │
-│  /autonomous-loop:status  ◀──── anytime: read frontmatter      │
-│  /autonomous-loop:stop    ◀──── mark DONE, send PushNotification│
+│  /autoloop:status  ◀──── anytime: read frontmatter      │
+│  /autoloop:stop    ◀──── mark DONE, send PushNotification│
 └─────────────────────────────────────────────────────────────────┘
 ```
 

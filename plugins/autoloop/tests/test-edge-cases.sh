@@ -5,7 +5,7 @@
 #
 # test-edge-cases.sh — Anti-fragility audit (v16.9.0).
 #
-# Probes 30+ edge cases across the autonomous-loop lifecycle:
+# Probes 30+ edge cases across the autoloop lifecycle:
 #   A. Input validation (start, hook stdin, env)            — 8 cases
 #   B. State corruption (registry, heartbeat, provenance)   — 6 cases
 #   C. Concurrency / races                                   — 4 cases
