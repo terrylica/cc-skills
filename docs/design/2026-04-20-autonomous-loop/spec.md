@@ -83,11 +83,11 @@ The campaign's effectiveness rested entirely on the contract file being the livi
 
 Manual validation steps for v1:
 
-1. `claude plugin install autonomous-loop@cc-skills` in a fresh dir
-2. `/autonomous-loop:start` — confirm `LOOP_CONTRACT.md` created with placeholders substituted
+1. `claude plugin install autoloop@cc-skills` in a fresh dir
+2. `/autoloop:start` — confirm `LOOP_CONTRACT.md` created with placeholders substituted
 3. `/loop "<pointer trigger>"` — confirm Claude reads the contract + acts + rewrites
-4. `/autonomous-loop:status` — confirm concise state report
-5. `/autonomous-loop:stop` — confirm DONE section appended, `PushNotification` sent
+4. `/autoloop:status` — confirm concise state report
+5. `/autoloop:stop` — confirm DONE section appended, `PushNotification` sent
 6. Restart session (auto-compact) and `/loop "<pointer trigger>"` — confirm loop resumes cleanly from contract state
 
 ## Non-goals

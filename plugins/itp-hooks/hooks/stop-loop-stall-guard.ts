@@ -1,20 +1,21 @@
 #!/usr/bin/env bun
 /**
- * Stop hook: autonomous-loop stall detector with async rewake
+ * Stop hook: autoloop stall detector with async rewake
  *
  * Detects when a LOOP_CONTRACT.md-driven session ends without calling a valid
  * waker (ScheduleWakeup, Monitor, Agent, TeamCreate) and the contract is still
  * in an active state. On stall, exits code 2 under asyncRewake to force the
  * model to wake and schedule a waker or flip status honestly.
  *
- * Enforcement layer for the autonomous-loop skill's "Mandatory end-of-firing
+ * Enforcement layer for the autoloop skill's "Mandatory end-of-firing
  * decision" rule. The skill documents it; this hook enforces it.
  *
  * Gates (all must pass to fire stall):
  *   1. LOOP_CONTRACT.md exists in cwd
  *   2. frontmatter status is NOT {done, saturated, paused, completed, stopped}
- *   3. Session's last user message was a /loop or /autonomous-loop invocation
- *      (distinguishes loop firings from manual sessions in the same project)
+ *   3. Session's last user message was a /loop, /autoloop, or legacy
+ *      /autonomous-loop invocation (legacy detection retained one major
+ *      version for in-flight loops; remove in v20.0.0)
  *   4. Last assistant tool_use was NOT a valid waker
  *
  * Escape hatch: set CLAUDE_LOOP_STALL_GUARD_DISABLE=1 to skip.
@@ -138,6 +139,10 @@ async function main() {
 
   const isLoopFiring =
     lastRealUserContent.includes("/loop") ||
+    lastRealUserContent.includes("/autoloop:start") ||
+    lastRealUserContent.includes("autoloop:start") ||
+    // DEPRECATED: /autonomous-loop:* renamed to /autoloop:* (v17.0.0).
+    // Legacy detection kept for in-flight loops; remove in v20.0.0.
     lastRealUserContent.includes("/autonomous-loop:start") ||
     lastRealUserContent.includes("autonomous-loop:start");
 
@@ -176,7 +181,7 @@ async function main() {
     `Status:   ${status}`,
     `Last assistant tool_use: ${lastToolUse ?? "(none — firing ended text-only)"}`,
     ``,
-    `Per autonomous-loop Mandatory end-of-firing decision, every active-loop`,
+    `Per autoloop Mandatory end-of-firing decision, every active-loop`,
     `firing must end with exactly one of these as its literal final tool call:`,
     ``,
     `  1. Chain in-turn (next queue item's first tool call — via Agent or direct)`,

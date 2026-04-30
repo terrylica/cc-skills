@@ -1,4 +1,4 @@
-# autonomous-loop
+# autoloop
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
@@ -8,31 +8,31 @@
 
 ## When to use this plugin vs alternatives
 
-| Tool                | Scope                                                         | Pick it when                                                              |
-| ------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Native `/loop`      | Built-in pacing; no contract file                             | Ad-hoc "keep checking this every X" without state continuity              |
-| `ru` plugin         | Ralph Wiggum + Stop-hook continuation                         | Short autonomous bursts (<9 hours) on a single machine                    |
-| Anthropic Routines  | Cloud-scheduled fire-and-forget                               | Unattended overnight work, machine can be off                             |
-| **autonomous-loop** | Self-revising contract + dynamic wake + multi-session handoff | Multi-day research/ops where each firing must revise plans based on state |
+| Tool               | Scope                                                         | Pick it when                                                              |
+| ------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Native `/loop`     | Built-in pacing; no contract file                             | Ad-hoc "keep checking this every X" without state continuity              |
+| `ru` plugin        | Ralph Wiggum + Stop-hook continuation                         | Short autonomous bursts (<9 hours) on a single machine                    |
+| Anthropic Routines | Cloud-scheduled fire-and-forget                               | Unattended overnight work, machine can be off                             |
+| **autoloop**       | Self-revising contract + dynamic wake + multi-session handoff | Multi-day research/ops where each firing must revise plans based on state |
 
 ## Installation
 
 ```bash
 claude plugin marketplace add terrylica/cc-skills
-claude plugin install autonomous-loop@cc-skills
+claude plugin install autoloop@cc-skills
 ```
 
 ## Quick start
 
 ```bash
 # Initialize a contract in the current project
-/autonomous-loop:start
+/autoloop:start
 
 # Check progress after restart / compaction
-/autonomous-loop:status
+/autoloop:status
 
 # Clean terminate (writes completion promise, sends PushNotification)
-/autonomous-loop:stop
+/autoloop:stop
 ```
 
 ## What it installs
@@ -55,18 +55,18 @@ Three features distinguish this pattern from a plain `/loop`:
 
 ## Motivating example
 
-This plugin was extracted from a 37-iteration autonomous quant-research campaign on Open Deviation Bars (ODB). See [docs/design/2026-04-20-autonomous-loop/spec.md](../../docs/design/2026-04-20-autonomous-loop/spec.md) for the full case study with verbatim contract snapshots.
+This plugin was extracted from a 37-iteration autonomous quant-research campaign on Open Deviation Bars (ODB). See [docs/design/2026-04-20-autoloop/spec.md](../../docs/design/2026-04-20-autoloop/spec.md) for the full case study with verbatim contract snapshots.
 
 ## Skills
 
-| Skill                     | Invocation                           | Purpose                                                             |
-| ------------------------- | ------------------------------------ | ------------------------------------------------------------------- |
-| `autonomous-loop:start`   | `/autonomous-loop:start [path]`      | Scaffold contract, install hook, register loop, load launchd plist  |
-| `autonomous-loop:status`  | `/autonomous-loop:status [loop_id]`  | Report ownership, iteration, health, staleness across all loops     |
-| `autonomous-loop:stop`    | `/autonomous-loop:stop [path]`       | Unload plist, unregister loop, mark DONE in contract                |
-| `autonomous-loop:setup`   | `/autonomous-loop:setup`             | One-time machine setup: create ~/.claude/loops dir, verify hook env |
-| `autonomous-loop:notify`  | (automatic via heartbeat-tick)       | Send coalesced notifications per loop                               |
-| `autonomous-loop:reclaim` | `/autonomous-loop:reclaim <loop_id>` | Atomically seize stuck loop (dead owner, stale heartbeat)           |
+| Skill              | Invocation                     | Purpose                                                             |
+| ------------------ | ------------------------------ | ------------------------------------------------------------------- |
+| `autoloop:start`   | `/autoloop:start [path]`       | Scaffold contract, install hook, register loop, load launchd plist  |
+| `autoloop:status`  | `/autoloop:status [loop_id]`   | Report ownership, iteration, health, staleness across all loops     |
+| `autoloop:stop`    | `/autoloop:stop [path]`        | Unload plist, unregister loop, mark DONE in contract                |
+| `autoloop:setup`   | `/autoloop:setup`              | One-time machine setup: create ~/.claude/loops dir, verify hook env |
+| `autoloop:notify`  | (automatic via heartbeat-tick) | Send coalesced notifications per loop                               |
+| `autoloop:reclaim` | `/autoloop:reclaim <loop_id>`  | Atomically seize stuck loop (dead owner, stale heartbeat)           |
 
 ## Subscription-safe
 

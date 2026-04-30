@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # pacing-veto.sh — PreToolUse hook that denies pacing-disguised ScheduleWakeup
-# calls. References plugins/autonomous-loop/CLAUDE.md anti-pattern: "Wakers
+# calls. References plugins/autoloop/CLAUDE.md anti-pattern: "Wakers
 # are not pacing". Documentation alone wasn't enforcing it; this hook is.
 #
 # Stdin payload (Claude Code PreToolUse hook):
@@ -89,14 +89,14 @@ fi
 
 # Rule 1: cache-miss zone (300-1199s)
 if [ "$DELAY" -ge 300 ] && [ "$DELAY" -le 1199 ]; then
-  emit_deny "ScheduleWakeup delay=${DELAY}s sits in the prompt-cache-miss zone (300-1199s) — worst of both: pay full cache miss without amortizing a long wait. Stay cache-warm with 60-270s OR commit to ≥1200s if the wait is genuinely long. See plugins/autonomous-loop/CLAUDE.md \"Waker Tier System\"."
+  emit_deny "ScheduleWakeup delay=${DELAY}s sits in the prompt-cache-miss zone (300-1199s) — worst of both: pay full cache miss without amortizing a long wait. Stay cache-warm with 60-270s OR commit to ≥1200s if the wait is genuinely long. See plugins/autoloop/CLAUDE.md \"Waker Tier System\"."
 fi
 
 # Rule 2: ANY delay with pacing vocabulary in reason. Pacing is pacing
 # regardless of duration; even a 60s "let it settle" is using the waker
 # as pacing instead of Tier 0 in-turn continuation.
 if echo "$REASON" | grep -qiE "$PACING_RE"; then
-  emit_deny "ScheduleWakeup reason contains pacing vocabulary (token-budget / cache-warm / self-pacing / cooldown / rest / pause / settle / buffer / give time / let it / breather / recover) — these are pacing concerns, not external blockers. Drop to Tier 0 (in-turn continuation) if work is ready, OR name a specific external signal you're waiting for. See plugins/autonomous-loop/CLAUDE.md \"Anti-Patterns: Never use ScheduleWakeup as pacing\"."
+  emit_deny "ScheduleWakeup reason contains pacing vocabulary (token-budget / cache-warm / self-pacing / cooldown / rest / pause / settle / buffer / give time / let it / breather / recover) — these are pacing concerns, not external blockers. Drop to Tier 0 (in-turn continuation) if work is ready, OR name a specific external signal you're waiting for. See plugins/autoloop/CLAUDE.md \"Anti-Patterns: Never use ScheduleWakeup as pacing\"."
 fi
 
 # Rule 3 (v16.8.0): empty/missing reason for any non-trivial delay.

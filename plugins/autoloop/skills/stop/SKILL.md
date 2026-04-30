@@ -1,12 +1,12 @@
 ---
 name: stop
-description: "Mark LOOP_CONTRACT.md completed, append DONE section, send PushNotification, let loop terminate naturally. TRIGGERS - autonomous-loop stop, end loop, terminate contract, stop self-revising loop, complete loop."
+description: "Mark LOOP_CONTRACT.md completed, append DONE section, send PushNotification, let loop terminate naturally. TRIGGERS - autoloop stop, end loop, terminate contract, stop self-revising loop, complete loop."
 allowed-tools: Bash, Read, Edit, AskUserQuestion, Skill
 argument-hint: "[reason]"
 disable-model-invocation: false
 ---
 
-# autonomous-loop: Stop
+# autoloop: Stop
 
 Cleanly terminate a self-revising loop. Appends a `## DONE` section with timestamp + reason, sends a `PushNotification` summarizing final state, and stops scheduling new wake-ups. The next `/loop` firing will see the DONE marker and exit without acting.
 
@@ -74,7 +74,7 @@ Before unregistering, unload the launchd plist:
 
 ```bash
 # Source the launchd library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/launchd-lib.sh"
 source "$PLUGIN_ROOT/scripts/state-lib.sh"
 
@@ -94,7 +94,7 @@ After unloading the plist, clean up the machine registry entry:
 
 ```bash
 # Source the registry library
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autonomous-loop}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/registry-lib.sh"
 
 # Derive loop_id from contract path
