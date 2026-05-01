@@ -484,6 +484,14 @@ set_contract_field() {
 
   # awk: walk through frontmatter (between line-1 `---` and the next `---`).
   # If field already present, replace its line. If absent, insert before closing.
+  #
+  # Field match uses a literal substring + boundary check instead of a regex
+  # built from the field name. Pre-2026-04-29 the regex was ` ~ "^" field ":"`
+  # which (a) interpreted regex metachars in `field` and (b) had no boundary
+  # after the colon — so `field="a"` would also match `a:b: …`-style nested
+  # YAML keys. The literal-match version is metachar-safe and demands the
+  # character after the colon be whitespace or end-of-line, which is the YAML
+  # key-line shape we actually want.
   awk -v field="$field" -v value="$value" '
     BEGIN { in_fm = 0; fm_done = 0; replaced = 0 }
     NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; print; next }
@@ -494,10 +502,16 @@ set_contract_field() {
       in_fm = 0; fm_done = 1; print; next
     }
     in_fm {
-      if ($0 ~ "^" field ":") {
-        print field ": " value
-        replaced = 1
-        next
+      prefix = field ":"
+      plen = length(prefix)
+      if (substr($0, 1, plen) == prefix) {
+        # Boundary: char after colon must be whitespace or end-of-line.
+        rest = substr($0, plen + 1)
+        if (rest == "" || rest ~ /^[[:space:]]/) {
+          print field ": " value
+          replaced = 1
+          next
+        }
       }
     }
     { print }

@@ -36,8 +36,11 @@ export _PROV_AGENT="waker.sh"
 _invariant_check_spawn() {
   local loop_id="$1" entry="$2" session_id="$3" expected_cadence="$4"
 
-  # (a) UUID validity — refuses pending-bind, unknown, empty, etc.
-  if ! [[ "$session_id" =~ ^[0-9a-f-]{36}$ ]]; then
+  # (a) UUID validity — refuses pending-bind, unknown, empty, "------------…",
+  # and any 36-char hex/dash string that doesn't match the actual 8-4-4-4-12
+  # UUID structure. The pre-2026-04-29 regex `^[0-9a-f-]{36}$` was loose enough
+  # to admit pathological inputs.
+  if ! [[ "$session_id" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
     if command -v emit_provenance >/dev/null 2>&1; then
       emit_provenance "$loop_id" "spawn_refused_invalid_session_id" \
         session_id="$session_id" \
