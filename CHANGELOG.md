@@ -1,3 +1,10 @@
+## [17.0.1](https://github.com/terrylica/cc-skills/compare/v17.0.0...v17.0.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* **sync-hooks:** skip-list for plugins Claude Code auto-discovers ([eed6e47](https://github.com/terrylica/cc-skills/commit/eed6e4795e78e8ee1695fc9dad4a005fe80ebfef))
+
 # [17.0.0](https://github.com/terrylica/cc-skills/compare/v16.14.2...v17.0.0) (2026-04-30)
 
 
