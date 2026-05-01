@@ -1,3 +1,10 @@
+# [17.1.0](https://github.com/terrylica/cc-skills/compare/v17.0.1...v17.1.0) (2026-05-01)
+
+
+### Features
+
+* **release:** wire hook-registration validator into preflight ([9e0f906](https://github.com/terrylica/cc-skills/commit/9e0f906aeb9fd0b1e09f6db7ef3124865ca8b803))
+
 ## [17.0.1](https://github.com/terrylica/cc-skills/compare/v17.0.0...v17.0.1) (2026-05-01)
 
 
