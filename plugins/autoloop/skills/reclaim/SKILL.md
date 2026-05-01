@@ -2,7 +2,7 @@
 name: reclaim
 description: "Reclaim a stuck loop from a dead or unresponsive owner. Check reclaim candidacy, prompt confirmation, atomically take ownership and increment generation. TRIGGERS - autoloop reclaim, recover stuck loop, take over dead loop, seize ownership."
 allowed-tools: Bash, Read, AskUserQuestion
-argument-hint: "[loop-id]"
+argument-hint: "[loop_id | AL-<slug>--<hash> | AL-<slug>]"
 disable-model-invocation: false
 ---
 
@@ -14,28 +14,35 @@ Forcibly reclaim ownership of a loop that appears stuck (dead owner or stale hea
 
 ## Arguments
 
-- Positional (optional): `loop_id` (12 hex characters). If not provided, prompt user or search registry.
+- Positional (optional): a loop identifier. Three forms accepted, all routed through `resolve_loop_identifier`:
+  - `<loop_id>` — bare 12 hex chars, e.g. `3555bbe1f0fb`
+  - `AL-<slug>--<hash>` — display-name with disambiguator, e.g. `AL-odb-research--a1b2c3` (matches the on-disk `.autoloop/<slug>--<hash>/` directory)
+  - `AL-<slug>` — display-name without disambiguator, e.g. `AL-flaky-ci-watcher`. Errors with a candidate list if multiple campaigns share the slug.
 
 ## Step 1: Identify the loop
 
-If `loop_id` not provided as argument:
-
 ```bash
-LOOP_ID="${1:-}"
-if [ -z "$LOOP_ID" ]; then
-  # Prompt user to select from registry
-  # Or search for LOOP_CONTRACT.md files and derive their IDs
-  # For simplicity: require explicit loop_id argument
-  echo "ERROR: loop_id required. Provide as argument: /autoloop:reclaim <loop_id>"
+INPUT="${1:-}"
+if [ -z "$INPUT" ]; then
+  echo "ERROR: identifier required. Try one of:"
+  echo "  /autoloop:reclaim <loop_id>            (e.g. 3555bbe1f0fb)"
+  echo "  /autoloop:reclaim AL-<slug>            (e.g. AL-odb-research)"
+  echo "  /autoloop:reclaim AL-<slug>--<hash>    (e.g. AL-odb-research--a1b2c3)"
+  echo "  Run /autoloop:status to list active campaigns by name."
   exit 1
 fi
-```
 
-Validate format (must be 12 hex characters):
+# Source the resolver and translate any input form to the canonical loop_id.
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
+source "$PLUGIN_ROOT/scripts/registry-lib.sh" || {
+  echo "ERROR: Failed to source registry-lib.sh" >&2
+  exit 1
+}
 
-```bash
-if ! [[ "$LOOP_ID" =~ ^[0-9a-f]{12}$ ]]; then
-  echo "ERROR: Invalid loop_id format. Expected 12 hex characters, got: $LOOP_ID"
+if ! LOOP_ID=$(resolve_loop_identifier "$INPUT"); then
+  # resolve_loop_identifier already printed the error context to stderr (no
+  # match / ambiguous slug / refused regex). Exit code 2 = ambiguity, in
+  # which case the candidate list was printed and the user picks one.
   exit 1
 fi
 ```
@@ -72,12 +79,16 @@ If `$CANDIDATE = "yes"`, proceed to Step 3.
 Read the registry entry to display owner information:
 
 ```bash
-ENTRY=$(jq ".loops[] | select(.loop_id == \"$LOOP_ID\")" "$HOME/.claude/loops/registry.json" 2>/dev/null)
+ENTRY=$(jq --arg id "$LOOP_ID" '.loops[] | select(.loop_id == $id)' "$HOME/.claude/loops/registry.json" 2>/dev/null)
 
 if [ -z "$ENTRY" ] || [ "$ENTRY" = "{}" ]; then
   echo "ERROR: Registry entry not found for loop $LOOP_ID"
   exit 1
 fi
+
+# Source state-lib for the human-readable display name.
+source "$PLUGIN_ROOT/scripts/state-lib.sh" 2>/dev/null || true
+DISPLAY_NAME=$(format_loop_display_name "$LOOP_ID" 2>/dev/null || echo "AL-loop-${LOOP_ID:0:6}")
 
 OWNER_PID=$(echo "$ENTRY" | jq -r '.owner_pid // "unknown"')
 OWNER_SESSION=$(echo "$ENTRY" | jq -r '.owner_session_id // "unknown"')
@@ -89,7 +100,7 @@ STALENESS=$(staleness_seconds "$LOOP_ID")
 Format confirmation message:
 
 ```
-Loop: $LOOP_ID
+Loop: $DISPLAY_NAME ($LOOP_ID)
 Current owner PID: $OWNER_PID
 Current owner session: $OWNER_SESSION (last seen $STALENESS seconds ago)
 Current generation: $GENERATION
@@ -117,11 +128,12 @@ PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/
 source "$PLUGIN_ROOT/scripts/ownership-lib.sh" || exit 1
 
 if reclaim_loop "$LOOP_ID" --reason "user_request"; then
-  echo "✓ Loop reclaimed successfully"
-  echo "  New generation: $(($(jq ".loops[] | select(.loop_id == \"$LOOP_ID\") | .generation" "$HOME/.claude/loops/registry.json"))))"
+  NEW_GEN=$(jq -r --arg id "$LOOP_ID" '.loops[] | select(.loop_id == $id) | .generation' "$HOME/.claude/loops/registry.json" 2>/dev/null)
+  echo "✓ Reclaimed $DISPLAY_NAME ($LOOP_ID)"
+  echo "  New generation: $NEW_GEN"
   exit 0
 else
-  echo "ERROR: Failed to reclaim loop (it may have been reclaimed or deleted)"
+  echo "ERROR: Failed to reclaim $DISPLAY_NAME ($LOOP_ID) — it may have been reclaimed or deleted concurrently"
   exit 1
 fi
 ```

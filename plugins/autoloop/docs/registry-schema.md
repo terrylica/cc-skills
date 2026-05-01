@@ -1,7 +1,7 @@
 # Registry Schema: Autoloop Machine-Level Registry
 
-**Version:** 1  
-**Last Updated:** 2026-04-26  
+**Version:** 1
+**Last Updated:** 2026-05-01 (added v2 optional fields, AL- naming convention)
 **Purpose:** Define the machine-level registry structure that tracks every active loop on the system.
 
 ## Overview
@@ -9,9 +9,22 @@
 The autoloop registry is a single JSON file at `~/.claude/loops/registry.json` that serves as the canonical source of truth for all active loops on a machine. It enables:
 
 - **Unique loop identification** via `loop_id` (derived from contract path)
+- **Human-readable display** via `AL-<campaign_slug>--<short_hash>` (Wave 3 convention; see `format_loop_display_name`)
 - **Ownership tracking** via session ID and process ID
 - **Heartbeat staleness detection** for recovery and external waker logic
 - **Hook-based loop discovery** without requiring per-hook configuration
+
+## Identifier Convention (Wave 3)
+
+The registry tracks two identifiers per loop. The `loop_id` is the canonical primary key; the `display_name` (derived from `campaign_slug` and `short_hash`) is what surfaces in user-facing output:
+
+| What the user sees                       | What the code uses |
+| ---------------------------------------- | ------------------ |
+| `AL-odb-research--a1b2c3 (3555bbe1f0fb)` | `3555bbe1f0fb`     |
+| `AL-flaky-ci-watcher (abcdef012345)`     | `abcdef012345`     |
+| `AL-loop-cafeba (cafebabe1234)` (legacy) | `cafebabe1234`     |
+
+`/autoloop:reclaim`, `/autoloop:status`, and `/autoloop:doctor` accept either form at the CLI boundary. Conversions go through `resolve_loop_identifier` in `scripts/registry-lib.sh`. Display formatting goes through `format_loop_display_name` in `scripts/state-lib.sh`. Tests live in `tests/test-display-name.sh`.
 
 ## Top-Level Structure
 
