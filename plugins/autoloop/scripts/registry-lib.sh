@@ -506,6 +506,142 @@ update_loop_field() {
   _with_registry_lock update_loop_field_impl "$loop_id" "$jq_path" "$new_value" || return 1
 }
 
+# resolve_loop_identifier <input> [registry_path]
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Map a user-supplied identifier to the canonical 12-hex loop_id.
+#
+# Accepted input forms:
+#   1. `<12-hex>`                    — already a loop_id; returned as-is after
+#                                      verifying it exists in the registry.
+#   2. `AL-<slug>--<6-hex>`          — display-name form with disambiguator;
+#                                      matched on (campaign_slug == slug AND
+#                                      short_hash == hex).
+#   3. `AL-<slug>`                   — display-name form without hash; matches
+#                                      uniquely by campaign_slug, errors on
+#                                      ambiguity with a list of candidates.
+#   4. `<slug>` (no AL- prefix)      — same as form 3, accepted as a courtesy
+#                                      so users can paste either style.
+#
+# This function exists because Wave 3 surfaces AL-named identifiers in skill
+# prompts and doctor output, but the registry's primary key is still the
+# 12-hex loop_id. Skills that previously took a bare loop_id (reclaim, status)
+# now route through this resolver so either form works at the CLI boundary.
+#
+# Output: 12-hex loop_id on success.
+# Exit codes:
+#   0 on unique match
+#   1 on no match
+#   2 on ambiguity (multiple slugs match) — stderr lists candidates
+#   3 on input format invalid (refused at the regex gate)
+resolve_loop_identifier() {
+  local input="${1:-}"
+  local registry_path="${2:-$HOME/.claude/loops/registry.json}"
+
+  if [ -z "$input" ]; then
+    echo "ERROR: resolve_loop_identifier: empty input" >&2
+    return 3
+  fi
+
+  if [ ! -f "$registry_path" ]; then
+    echo "ERROR: resolve_loop_identifier: registry not found at $registry_path" >&2
+    return 1
+  fi
+
+  # Form 1: bare 12-hex loop_id
+  if [[ "$input" =~ ^[0-9a-f]{12}$ ]]; then
+    local exists
+    exists=$(jq -r --arg id "$input" \
+      '.loops[] | select(.loop_id == $id) | .loop_id' \
+      "$registry_path" 2>/dev/null | head -1)
+    if [ -n "$exists" ]; then
+      echo "$input"
+      return 0
+    fi
+    echo "ERROR: resolve_loop_identifier: loop_id '$input' not in registry" >&2
+    return 1
+  fi
+
+  # Strip optional AL- prefix to normalize forms 2/3/4 down to a single path.
+  local body="$input"
+  if [[ "$body" == AL-* ]]; then
+    body="${body#AL-}"
+  fi
+
+  # Form 5: AL-loop-<6-hex> — the legacy/fallback display form for entries
+  # without a campaign_slug. Match against loop_id prefix.
+  if [[ "$body" =~ ^loop-([0-9a-f]{6})$ ]]; then
+    local prefix="${BASH_REMATCH[1]}"
+    local match
+    match=$(jq -r --arg p "$prefix" \
+      '.loops[] | select(.loop_id | startswith($p)) | .loop_id' \
+      "$registry_path" 2>/dev/null)
+    if [ -z "$match" ]; then
+      echo "ERROR: resolve_loop_identifier: no loop with id starting '$prefix'" >&2
+      return 1
+    fi
+    local match_count
+    match_count=$(echo "$match" | wc -l | tr -d ' ')
+    if [ "$match_count" -gt 1 ]; then
+      echo "ERROR: resolve_loop_identifier: ambiguous loop_id prefix '$prefix' — $match_count matches:" >&2
+      while IFS= read -r m; do
+        [ -n "$m" ] && echo "  $m" >&2
+      done <<< "$match"
+      return 2
+    fi
+    echo "$match"
+    return 0
+  fi
+
+  # Form 2: <slug>--<6-hex>
+  if [[ "$body" =~ ^(.+)--([0-9a-f]{6})$ ]]; then
+    local slug="${BASH_REMATCH[1]}"
+    local hash="${BASH_REMATCH[2]}"
+    local match
+    match=$(jq -r --arg slug "$slug" --arg hash "$hash" \
+      '.loops[] | select(.campaign_slug == $slug and .short_hash == $hash) | .loop_id' \
+      "$registry_path" 2>/dev/null | head -1)
+    if [ -n "$match" ]; then
+      echo "$match"
+      return 0
+    fi
+    echo "ERROR: resolve_loop_identifier: no loop with campaign_slug='$slug' AND short_hash='$hash'" >&2
+    return 1
+  fi
+
+  # Forms 3/4: bare slug. Refuse if it doesn't look like a slug at all
+  # (would otherwise let a typo slip through to the jq query).
+  if ! [[ "$body" =~ ^[a-z][a-z0-9-]{0,63}$ ]]; then
+    echo "ERROR: resolve_loop_identifier: '$input' is not a valid loop_id, AL-name, or slug" >&2
+    return 3
+  fi
+
+  # Look up by campaign_slug. Capture all matches to detect ambiguity.
+  local matches
+  matches=$(jq -r --arg slug "$body" \
+    '.loops[] | select(.campaign_slug == $slug) | .loop_id + " " + (.short_hash // "")' \
+    "$registry_path" 2>/dev/null)
+
+  if [ -z "$matches" ]; then
+    echo "ERROR: resolve_loop_identifier: no loop with campaign_slug='$body'" >&2
+    return 1
+  fi
+
+  local match_count
+  match_count=$(echo "$matches" | wc -l | tr -d ' ')
+  if [ "$match_count" -gt 1 ]; then
+    echo "ERROR: resolve_loop_identifier: ambiguous slug '$body' — $match_count matches:" >&2
+    echo "$matches" | while IFS=' ' read -r lid sh; do
+      echo "  AL-${body}--${sh}  ($lid)" >&2
+    done
+    echo "  Use the AL-<slug>--<hash> form to disambiguate." >&2
+    return 2
+  fi
+
+  # Single match — return its loop_id.
+  echo "$matches" | head -1 | awk '{print $1}'
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f derive_loop_id
 export -f read_registry
@@ -517,3 +653,4 @@ export -f unregister_loop_impl
 export -f unregister_loop
 export -f update_loop_field_impl
 export -f update_loop_field
+export -f resolve_loop_identifier

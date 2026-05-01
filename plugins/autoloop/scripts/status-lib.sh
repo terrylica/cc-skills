@@ -390,10 +390,20 @@ enumerate_loops() {
       reclaim_candidate="no"
     fi
 
+    # Compute display_name (AL-<slug>--<hash> when available; AL-loop-<id6>
+    # for legacy contracts). Cached on the line so format_status_table
+    # doesn't have to re-resolve from the registry per row.
+    local display_name=""
+    if command -v format_loop_display_name >/dev/null 2>&1; then
+      display_name=$(format_loop_display_name "$loop_id" "$registry_path" 2>/dev/null || echo "")
+    fi
+    [ -z "$display_name" ] && display_name="AL-loop-${loop_id:0:6}"
+
     # Emit JSON line (compact format for JSONL)
     local output
     output=$(jq -cn \
       --arg loop_id "$loop_id" \
+      --arg display_name "$display_name" \
       --arg session_id "$session_prefix" \
       --arg status "$status" \
       --arg last_wake_us "$last_wake_us" \
@@ -401,7 +411,7 @@ enumerate_loops() {
       --arg dead_time_ratio "$dead_time_ratio" \
       --arg staleness_flag "$staleness_flag" \
       --arg reclaim_candidate "$reclaim_candidate" \
-      '{loop_id: $loop_id, session_id: $session_id, status: $status, last_wake_us: $last_wake_us, last_wake_human: $last_wake_human, dead_time_ratio: $dead_time_ratio, staleness_flag: $staleness_flag, reclaim_candidate: $reclaim_candidate}')
+      '{loop_id: $loop_id, display_name: $display_name, session_id: $session_id, status: $status, last_wake_us: $last_wake_us, last_wake_human: $last_wake_human, dead_time_ratio: $dead_time_ratio, staleness_flag: $staleness_flag, reclaim_candidate: $reclaim_candidate}')
 
     echo "$output"
   done
@@ -435,8 +445,10 @@ format_status_table() {
     fi
 
     # Parse JSON fields
-    local loop_id session_id status last_wake_human dead_time_ratio staleness_flag reclaim_candidate
+    local loop_id display_name session_id status last_wake_human dead_time_ratio staleness_flag reclaim_candidate
     loop_id=$(echo "$jsonl_line" | jq -r '.loop_id // "—"' 2>/dev/null)
+    display_name=$(echo "$jsonl_line" | jq -r '.display_name // empty' 2>/dev/null)
+    [ -z "$display_name" ] && display_name="AL-loop-${loop_id:0:6}"
     session_id=$(echo "$jsonl_line" | jq -r '.session_id // "—"' 2>/dev/null)
     status=$(echo "$jsonl_line" | jq -r '.status // "—"' 2>/dev/null)
     last_wake_human=$(echo "$jsonl_line" | jq -r '.last_wake_human // "—"' 2>/dev/null)
@@ -444,18 +456,25 @@ format_status_table() {
     staleness_flag=$(echo "$jsonl_line" | jq -r '.staleness_flag // "—"' 2>/dev/null)
     reclaim_candidate=$(echo "$jsonl_line" | jq -r '.reclaim_candidate // "no"' 2>/dev/null)
 
+    # Truncate display_name to 32 chars with ellipsis. The full name is in the
+    # JSON stream for programmatic consumers; the table column has to fit on a
+    # terminal and the loop_id column right after it is the unambiguous handle.
+    if [ "${#display_name}" -gt 32 ]; then
+      display_name="${display_name:0:31}…"
+    fi
+
     # Print header on first iteration
     if [ "$header_printed" -eq 0 ]; then
-      printf "%-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
-        "LOOP_ID" "SESSION" "STATUS" "LAST_WAKE" "DEAD" "STALE" "RECLAIM"
-      printf "%-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
-        "————————————" "————————" "—————————" "——————————" "————" "——————" "————"
+      printf "%-32s %-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
+        "NAME" "LOOP_ID" "SESSION" "STATUS" "LAST_WAKE" "DEAD" "STALE" "RECLAIM"
+      printf "%-32s %-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
+        "————————————————————————————————" "————————————" "————————" "—————————" "——————————" "————" "——————" "————"
       header_printed=1
     fi
 
     # Print data row
-    printf "%-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
-      "$loop_id" "$session_id" "$status" "$last_wake_human" "$dead_time_ratio" "$staleness_flag" "$reclaim_candidate"
+    printf "%-32s %-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
+      "$display_name" "$loop_id" "$session_id" "$status" "$last_wake_human" "$dead_time_ratio" "$staleness_flag" "$reclaim_candidate"
 
     ((line_count++))
   done

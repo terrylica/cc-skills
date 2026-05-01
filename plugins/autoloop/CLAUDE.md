@@ -110,6 +110,38 @@ Verify with: `ls plugins/autoloop/scripts/`. Library scripts (the `*-lib.sh` fil
 
 ---
 
+## Identifier Naming Convention (Wave 3)
+
+Loops are tracked by two complementary identifiers. The `loop_id` is the canonical primary key — deterministic, immutable, machine-friendly. The `display_name` is the human-readable label that appears in skill prompts, doctor output, status tables, and error messages. Always paired together when surfaced to the user.
+
+| Identifier      | Format                          | Source                                                          | Example                   |
+| --------------- | ------------------------------- | --------------------------------------------------------------- | ------------------------- |
+| `loop_id`       | 12-hex                          | `sha256(realpath(contract_path))[:12]`                          | `3555bbe1f0fb`            |
+| `campaign_slug` | kebab-case, ≤64 chars           | `slugify(contract.frontmatter.name)`                            | `odb-research`            |
+| `short_hash`    | 6-hex                           | `sha256(creator_session + ':' + created_at_utc + ':' + id)[:6]` | `a1b2c3`                  |
+| `display_name`  | `AL-<slug>--<hash>` or fallback | derived from the above by `format_loop_display_name`            | `AL-odb-research--a1b2c3` |
+
+**Display name fallback chain:**
+
+1. Both `campaign_slug` and `short_hash` present → `AL-<slug>--<hash>` (matches the on-disk `.autoloop/<slug>--<hash>/` directory name; this is the most common case for v2 contracts)
+2. Only `campaign_slug` present → `AL-<slug>` (rare; only happens for legacy contracts that got partially migrated)
+3. Neither present → `AL-loop-<loop_id_first6>` (emergency fallback for truly legacy registry entries)
+
+**Identifier acceptance at the CLI boundary.** Skills that take a loop identifier route input through `resolve_loop_identifier` so users can paste any of:
+
+| Input form               | Behavior                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `<12-hex>`               | Validated against the registry; returned as-is.                                                                          |
+| `AL-<slug>--<6-hex>`     | Looked up by `(campaign_slug, short_hash)` pair. Always unambiguous.                                                     |
+| `AL-<slug>`              | Looked up by `campaign_slug`. If multiple campaigns share the slug, errors with a candidate list and the user picks one. |
+| `<slug>` (no AL- prefix) | Same as `AL-<slug>` — accepted as a courtesy so users can paste either style.                                            |
+
+**Why this layer exists.** The bare 12-hex `loop_id` is fine for code, but a user looking at a `/autoloop:doctor` prompt that says `3555bbe1f0fb [RED]` has zero context about _what_ that campaign is. The `AL-` prefix makes it obvious the identifier belongs to autoloop (not, e.g., a git SHA), and the slug carries the human-meaningful project name. The loop_id stays attached in parens for unambiguous reference: `AL-odb-research--a1b2c3 (3555bbe1f0fb) [RED]`.
+
+The convention is implemented by `format_loop_display_name` (in `scripts/state-lib.sh`) and `resolve_loop_identifier` (in `scripts/registry-lib.sh`). Both are exported and tested in `tests/test-display-name.sh`.
+
+---
+
 ## 6 Catastrophic Pitfalls & Phase Ownership
 
 | Pitfall                                | Scenario                                                                                                                                         | Mitigation                                                                                                                                                           | Phase Owner                                         | Evidence                                                                       |
