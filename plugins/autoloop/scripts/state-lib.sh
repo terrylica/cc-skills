@@ -682,7 +682,15 @@ migrate_legacy_contract() {
   project_cwd=$(cd "$project_cwd" && pwd -P)
 
   # Step 1: check for existing v2 contract — if present, nothing to do.
-  if compgen -G "$project_cwd/.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md" >/dev/null 2>&1; then
+  # Use `find` (not `compgen -G` or `ls`) so this is portable across bash and
+  # zsh: `compgen -G` returns 0 on no-match in zsh (opposite of bash), and a
+  # raw glob triggers zsh's nomatch error. `find` returns empty + exit 0
+  # consistently when nothing matches.
+  local _v2_check
+  _v2_check=$(find "$project_cwd/.autoloop" -mindepth 2 -maxdepth 2 -name CONTRACT.md 2>/dev/null \
+    | grep -E '/.+--[0-9a-f]{6}/CONTRACT\.md$' \
+    | head -1)
+  if [ -n "$_v2_check" ]; then
     echo "noop"
     return 0
   fi
