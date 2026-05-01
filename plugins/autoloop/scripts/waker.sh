@@ -414,11 +414,36 @@ spawn_claude_resume() {
     return 1
   }
 
-  # nohup detaches the process from launchd's control
-  nohup claude --resume "$session_id" >> "$state_dir/spawn.log" 2>&1 &
+  # Wave 4 W2.4 + adversarial-#11: detect non-zero exit from `claude --resume`
+  # without blocking the waker. Spawn in a subshell that reports its exit
+  # code to a status file; nohup detaches from launchd. Existing behavior
+  # (logs to spawn.log, runs detached) is preserved; the only addition is
+  # the post-mortem exit-code check that runs ~5s later via a sleep+probe
+  # subshell, since `claude --resume` either succeeds quickly (and the
+  # session takes over) or fails fast (session deleted, project moved).
+  local spawn_log="$state_dir/spawn.log"
+  local spawn_status="$state_dir/spawn.last-status"
+  : > "$spawn_status" 2>/dev/null || true
+  nohup bash -c "
+    claude --resume \"$session_id\" >> \"$spawn_log\" 2>&1
+    rc=\$?
+    echo \"\$rc\" > \"$spawn_status\" 2>/dev/null || true
+    if [ \"\$rc\" != 0 ]; then
+      ts=\$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      jq -nc --arg ts \"\$ts\" --arg sid \"$session_id\" --arg rc \"\$rc\" \
+        '{ts: \$ts, kind:\"claude_resume_failed\", field:\"session_id\", value_truncated:\$sid, pid:\"$$\", extra:{rc:\$rc}}' \
+        >> \"$HOME/.claude/loops/.hook-errors.log\" 2>/dev/null || true
+    fi
+  " >/dev/null 2>&1 &
   local spawn_pid=$!
 
   echo "INFO: spawn_claude_resume: spawned claude --resume $session_id (PID: $spawn_pid)"
+
+  # Opportunistic rotation of spawn.log so a 6-month loop doesn't accumulate
+  # 50k+ resume entries (adversarial-audit finding W4-#4).
+  if command -v rotate_jsonl_if_large >/dev/null 2>&1; then
+    rotate_jsonl_if_large "$spawn_log" 2>/dev/null || true
+  fi
 
   # Append spawn event to revision-log
   local spawn_event
@@ -436,10 +461,14 @@ spawn_claude_resume() {
     return 1
   }
 
-  echo "$spawn_event" >> "$state_dir/revision-log/spawn.jsonl" || {
+  local spawn_jsonl="$state_dir/revision-log/spawn.jsonl"
+  echo "$spawn_event" >> "$spawn_jsonl" || {
     echo "ERROR: spawn_claude_resume: failed to append spawn event" >&2
     return 1
   }
+  if command -v rotate_jsonl_if_large >/dev/null 2>&1; then
+    rotate_jsonl_if_large "$spawn_jsonl" 2>/dev/null || true
+  fi
 
   # Emit spawn notification
   local staleness_s
