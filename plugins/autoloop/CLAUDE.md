@@ -85,19 +85,27 @@ Verify with: `ls plugins/autoloop/skills/` (expected: doctor reclaim setup start
 
 ---
 
-## Library Scripts (All 7)
+## Library Scripts (13 .sh files)
 
-| Script                                            | Exports                                                                                                                       | Used By                              |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| `registry-lib.sh`                                 | `derive_loop_id`, `read_registry`, `register_loop`, `enumerate_loops`, `update_loop_field`                                    | All other libs; start skill          |
-| `state-lib.sh`                                    | `state_dir_path`, `init_state_dir`, `write_heartbeat`, `read_heartbeat`, `now_us`                                             | start, status, heartbeat-tick        |
-| `ownership-lib.sh`                                | `acquire_owner_lock`, `release_owner_lock`, `verify_owner_alive`, `is_reclaim_candidate`, `reclaim_loop`, `staleness_seconds` | start, stop, reclaim, heartbeat-tick |
-| `hook-install-lib.sh`                             | `install_hook`, `uninstall_hook`                                                                                              | start, setup                         |
-| `launchd-lib.sh`                                  | `generate_plist`, `load_plist`, `unload_plist`                                                                                | start, stop                          |
-| `status-lib.sh`                                   | `loop_status`, `format_status_table`                                                                                          | status skill                         |
-| `notifications-lib.sh` + `notify-coalesce-lib.sh` | `send_notification`, `coalesce_notifications`                                                                                 | notify skill; heartbeat-tick hook    |
+Verify with: `ls plugins/autoloop/scripts/`. Library scripts (the `*-lib.sh` files) define functions sourced by skills and hooks; standalone scripts (`heal-self.sh`, `migrate-from-autonomous-loop.sh`, `waker.sh`) are executable directly.
 
-**All scripts source each other as needed** (e.g., state-lib.sh sources registry-lib.sh to read loop entries). Each uses `set -euo pipefail` and exits with 0 on success, 1 on error.
+| Script                            | Role | Exports / Purpose                                                                                                                                                                                   | Used By                                                      |
+| --------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `registry-lib.sh`                 | lib  | `derive_loop_id`, `read_registry`, `register_loop`, `enumerate_loops`, `update_loop_field`, `_with_registry_lock`                                                                                   | All other libs; start skill                                  |
+| `state-lib.sh`                    | lib  | `state_dir_path`, `init_state_dir`, `write_heartbeat`, `read_heartbeat`, `now_us`, `set_contract_field`, `init_contract_frontmatter_v2`, `slugify`, `compute_short_hash`, `migrate_legacy_contract` | start, status, heartbeat-tick, session-bind, /autoloop:start |
+| `ownership-lib.sh`                | lib  | `acquire_owner_lock`, `release_owner_lock`, `verify_owner_alive`, `is_reclaim_candidate`, `reclaim_loop`, `staleness_seconds`                                                                       | start, stop, reclaim, heartbeat-tick                         |
+| `hook-install-lib.sh`             | lib  | `install_hook`, `install_session_bind`, `install_pacing_veto`, `install_empty_firing`, `install_all_hooks`, `uninstall_*`                                                                           | start, setup                                                 |
+| `launchd-lib.sh`                  | lib  | `generate_plist`, `load_plist`, `unload_plist`                                                                                                                                                      | start, stop                                                  |
+| `status-lib.sh`                   | lib  | `loop_status`, `format_status_table`                                                                                                                                                                | status skill                                                 |
+| `doctor-lib.sh`                   | lib  | Fleet-diagnostic helpers — orphan detection, cross-validation, --fix actions                                                                                                                        | doctor skill                                                 |
+| `provenance-lib.sh`               | lib  | `emit_provenance` — append JSONL events to per-loop + global provenance logs                                                                                                                        | session-bind, heartbeat-tick, ownership-lib                  |
+| `notifications-lib.sh`            | lib  | `send_notification` — emit Pushover / Telegram notifications                                                                                                                                        | notify, heartbeat-tick                                       |
+| `notify-coalesce-lib.sh`          | lib  | `coalesce_notifications` — dedupe by loop_id within a window                                                                                                                                        | notify, heartbeat-tick                                       |
+| `heal-self.sh`                    | exec | Idempotent registry self-heal: archive entries with no owner binding > 1h                                                                                                                           | session-bind hook (gated by registry hash)                   |
+| `migrate-from-autonomous-loop.sh` | exec | One-shot rewriter for legacy `~/.claude/settings.json` paths after the v17 rename                                                                                                                   | /autoloop:setup; manual                                      |
+| `waker.sh`                        | exec | launchd bridge — invoked by per-loop launchd plist to trigger an external waker                                                                                                                     | launchd job                                                  |
+
+**All libs source each other as needed** (e.g., state-lib.sh sources registry-lib.sh). Each uses `set -euo pipefail` and exits with 0 on success, 1 on error.
 
 ---
 
