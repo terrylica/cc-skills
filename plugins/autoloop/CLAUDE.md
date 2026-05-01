@@ -72,14 +72,16 @@ The autoloop system is built on four atomic primitives that collectively defend 
 
 ## Skills at a Glance
 
-| Skill     | Purpose                                          | When to Use                                |
-| --------- | ------------------------------------------------ | ------------------------------------------ |
-| `start`   | Scaffold contract, install hook, register loop   | First time: `/autoloop:start`              |
-| `status`  | Read loop state, report iteration, owner, health | Mid-loop: `/autoloop:status`               |
-| `stop`    | Mark DONE, unregister, unload launchd            | End loop: `/autoloop:stop`                 |
-| `setup`   | One-time machine setup (hook install, dirs)      | Once per machine (or after reinstall)      |
-| `notify`  | Send notifications (coalesced by loop_id)        | Called by heartbeat-tick.sh (automatic)    |
-| `reclaim` | Take ownership of stuck loop (dead owner)        | Emergencies: `/autoloop:reclaim <loop_id>` |
+Verify with: `ls plugins/autoloop/skills/` (expected: doctor reclaim setup start status stop)
+
+| Skill     | Purpose                                                    | When to Use                                |
+| --------- | ---------------------------------------------------------- | ------------------------------------------ |
+| `start`   | Scaffold contract, install hooks, register loop            | First time: `/autoloop:start`              |
+| `status`  | Read loop state, report iteration, owner, health           | Mid-loop: `/autoloop:status`               |
+| `stop`    | Mark DONE, unregister, unload launchd                      | End loop: `/autoloop:stop`                 |
+| `setup`   | One-time machine setup (hook install, dirs)                | Once per machine (or after reinstall)      |
+| `reclaim` | Take ownership of stuck loop (dead owner)                  | Emergencies: `/autoloop:reclaim <loop_id>` |
+| `doctor`  | Diagnose fleet health, surface stale/orphaned loops, --fix | Periodic audits or after suspected crash   |
 
 ---
 
