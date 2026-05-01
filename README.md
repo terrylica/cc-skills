@@ -1,33 +1,53 @@
 # cc-skills
 
-Claude Code Skills Marketplace: Meta-skills and foundational tools for Claude Code.
+Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-20-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-36-green.svg)](#plugins)
+[![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
 ## Plugins
 
-| Plugin                                                  | Description                                                                                             | Category     |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------ |
-| [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, validation, silent failure auditing, TodoWrite templates        | development  |
-| [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release | productivity |
-| [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation for PRs                                 | development  |
-| [link-tools](./plugins/link-tools/)                     | Link validation: portability checks, broken link detection, path policy linting                         | quality      |
-| [devops-tools](./plugins/devops-tools/)                 | Doppler credentials, Firecrawl self-hosted, ML pipelines, Telegram bot, MLflow, session recovery        | devops       |
-| [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                               | utilities    |
-| [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF                | documents    |
-| [quality-tools](./plugins/quality-tools/)               | Code clone detection, multi-agent E2E validation, performance profiling, schema testing                 | quality      |
-| [productivity-tools](./plugins/productivity-tools/)     | Slash command generation for Claude Code                                                                | productivity |
-| [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace                     | trading      |
-| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement: ASCII art blocking, graph-easy reminders, Ruff linting                        | enforcement  |
-| [research-repo-worktree](./plugins/research-repo-worktree/) | Git worktree management for research-repo with ADR-style naming and dynamic iTerm2 tab detection          | development  |
-| [ru](./plugins/ru/)                                     | Autonomous AI orchestration with Ralph Wiggum technique - keeps AI in loop until task complete          | automation   |
-| [iterm2-layout-config](./plugins/iterm2-layout-config/) | iTerm2 workspace layout configuration with TOML-based separation of private paths from publishable code | development  |
-| [statusline-tools](./plugins/statusline-tools/)         | Custom status line with git status, link validation (L), and path linting (P) indicators                | utilities    |
-| [notion-api](./plugins/notion-api/)                     | Notion API integration using notion-client Python SDK with preflight credential prompting               | productivity |
-| [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon, Keychain PAT storage                  | utilities    |
-| [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                   | devops       |
-| [quant-research](./plugins/quant-research/)             | Quantitative research: SOTA range bar metrics, Sharpe ratios, ML prediction quality, WFO epochs         | trading      |
+> Generated from `.claude-plugin/marketplace.json` (the SSoT). Run `bun scripts/validate-plugins.mjs` to verify the table reflects reality.
+
+| Plugin                                                  | Description                                                                                                                                                                                                                                                          | Category      |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.             | productivity  |
+| [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
+| [autoloop](./plugins/autoloop/)                         | Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:status, /autoloop:stop                                                                           | automation    |
+| [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
+| [chronicle-share](./plugins/chronicle-share/)           | Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)                                                                                                                                | devops        |
+| [clarify-prompts](./plugins/clarify-prompts/)           | Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autoloop sessions, subagents, and turns that already asked.                                     | automation    |
+| [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
+| [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
+| [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
+| [devops-tools](./plugins/devops-tools/)                 | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis                                                                                                                 | devops        |
+| [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation tooling: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF, glossary management, plotext financial charts                                                                                                                      | documentation |
+| [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                                                                                                                                                                                            | utilities     |
+| [floating-clock](./plugins/floating-clock/)             | macOS floating clock overlay with profile-based aesthetics, controlled via SwiftBar control center                                                                                                                                                                   | utilities     |
+| [gemini-deep-research](./plugins/gemini-deep-research/) | Run Gemini Deep Research via browser automation (claude-in-chrome MCP). Submit prompts, monitor progress, retrieve final reports.                                                                                                                                    | research      |
+| [gh-tools](./plugins/gh-tools/)                         | GitHub workflow automation with intelligent GFM link validation, fork intelligence, and issue creation tooling                                                                                                                                                       | development   |
+| [git-town-workflow](./plugins/git-town-workflow/)       | Prescriptive git-town workflow enforcement for fork-based development                                                                                                                                                                                                | devops        |
+| [gitnexus-tools](./plugins/gitnexus-tools/)             | GitNexus CLI integration: knowledge-graph reindex, blast-radius impact analysis, dead-code detection, structured exploration                                                                                                                                         | development   |
+| [gmail-commander](./plugins/gmail-commander/)           | Gmail bot + CLI lifecycle: 1Password OAuth, scheduled email triage via Agent SDK Haiku, interactive Telegram bot                                                                                                                                                     | productivity  |
+| [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release                                                                                                                                                              | productivity  |
+| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement + code correctness: PreToolUse / PostToolUse / Stop hooks for SSoT principles, file-size guard, type checks, ASCII art blocking, ty/oxlint/biome lint, autoloop stall guard                                                                 | enforcement   |
+| [kokoro-tts](./plugins/kokoro-tts/)                     | Kokoro TTS engine: install, server lifecycle, synthesis, health checks, and real-time audio architecture for macOS Apple Silicon                                                                                                                                     | productivity  |
+| [link-tools](./plugins/link-tools/)                     | Link validation: portability checks, broken link detection, path policy linting                                                                                                                                                                                      | quality       |
+| [macro-keyboard](./plugins/macro-keyboard/)             | Karabiner remap for cheap 3-key USB-C/Bluetooth macro pads + HID diagnostic + Fn-key emit utilities                                                                                                                                                                  | utilities     |
+| [media-tools](./plugins/media-tools/)                   | Download YouTube audio and push to BookPlayer for offline listening                                                                                                                                                                                                  | productivity  |
+| [minimax](./plugins/minimax/)                           | MiniMax M-series production wiring patterns — API client templates verified across multi-iteration campaigns                                                                                                                                                         | ai            |
+| [mise](./plugins/mise/)                                 | User-global mise workflow commands: env status, list-repo-tasks, run-full-release, SR&ED commit                                                                                                                                                                      | productivity  |
+| [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, MT5 tick collection ops, FXView Parquet consumer                                                                                                                                | trading       |
+| [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, plugin validation, silent failure auditing, TodoWrite templates                                                                                                                                                              | development   |
+| [productivity-tools](./plugins/productivity-tools/)     | Slash command generation, Notion (SDK + CLI), iMessage queries, iTerm2 layouts, calendar event manager, Google Drive access                                                                                                                                          | productivity  |
+| [quality-tools](./plugins/quality-tools/)               | Code quality and validation: clone detection, dead-code, multi-agent E2E + performance profiling, ClickHouse architect, refactoring guide                                                                                                                            | quality       |
+| [quant-research](./plugins/quant-research/)             | Quantitative research: SOTA range bar metrics, Sharpe ratios, ML prediction quality, WFO epochs                                                                                                                                                                      | trading       |
+| [rust-tools](./plugins/rust-tools/)                     | Rust dependency audit + SOTA Rust arsenal reference                                                                                                                                                                                                                  | development   |
+| [ssh-tunnel-companion](./plugins/ssh-tunnel-companion/) | macOS launchd companion for SSH tunnels (Tailscale + CF Access) — see plugin's CLAUDE.md for the SSoT on tunnel architecture                                                                                                                                         | devops        |
+| [statusline-tools](./plugins/statusline-tools/)         | Custom Claude Code status line with git status indicators + global ignore patterns + session-info reporter                                                                                                                                                           | utilities     |
+| [tlg](./plugins/tlg/)                                   | Telegram operations toolkit: messages, channels, dialogs, members, media, search, dump, drafting, cleanup                                                                                                                                                            | productivity  |
+| [tts-tg-sync](./plugins/tts-tg-sync/)                   | TTS + Telegram sync stack: bot process control, voice quality audition, settings tuning, full-stack bootstrap, diagnostic resolver                                                                                                                                   | productivity  |
 
 ## Installation
 
@@ -45,8 +65,10 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all plugins (one-liner)
-for p in itp plugin-dev gh-tools link-tools devops-tools dotfiles-tools doc-tools quality-tools productivity-tools mql5 itp-hooks research-repo-worktree ru iterm2-layout-config statusline-tools notion-api asciinema-tools git-town-workflow quant-research gmail-commander; do claude plugin install "$p@cc-skills"; done
+# 2. Install all 36 plugins (one-liner, alphabetically ordered to match marketplace.json)
+for p in agent-reach asciinema-tools autoloop calcom-commander chronicle-share clarify-prompts claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock gemini-deep-research gh-tools git-town-workflow gitnexus-tools gmail-commander itp itp-hooks kokoro-tts link-tools macro-keyboard media-tools minimax mise mql5 plugin-dev productivity-tools quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync; do
+  claude plugin install "$p@cc-skills"
+done
 
 # 3. Sync hooks to settings.json (requires cloning the repo)
 git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
@@ -75,30 +97,32 @@ claude plugin marketplace list
 
 #### Step 2: Install Individual Plugins
 
+Use the install one-liner above, or pick the plugins you need from the [Plugins table](#plugins). Examples:
+
 ```bash
-# Install core plugins
+# Workflow + dev essentials
 claude plugin install itp@cc-skills
+claude plugin install itp-hooks@cc-skills
 claude plugin install plugin-dev@cc-skills
 claude plugin install gh-tools@cc-skills
-
-# Install all remaining plugins
 claude plugin install link-tools@cc-skills
+
+# Autonomous loop primitives
+claude plugin install autoloop@cc-skills
+claude plugin install clarify-prompts@cc-skills
+
+# DevOps + quality
 claude plugin install devops-tools@cc-skills
-claude plugin install dotfiles-tools@cc-skills
-claude plugin install doc-tools@cc-skills
 claude plugin install quality-tools@cc-skills
-claude plugin install productivity-tools@cc-skills
-claude plugin install mql5@cc-skills
-claude plugin install itp-hooks@cc-skills
-claude plugin install research-repo-worktree@cc-skills
-claude plugin install ru@cc-skills
-claude plugin install iterm2-layout-config@cc-skills
-claude plugin install statusline-tools@cc-skills
-claude plugin install notion-api@cc-skills
+claude plugin install doc-tools@cc-skills
+
+# Media / productivity (optional, install on demand)
 claude plugin install asciinema-tools@cc-skills
-claude plugin install git-town-workflow@cc-skills
-claude plugin install quant-research@cc-skills
+claude plugin install productivity-tools@cc-skills
+claude plugin install statusline-tools@cc-skills
 ```
+
+The full alphabetical list is in `.claude-plugin/marketplace.json` — `jq -r '.plugins[].name' .claude-plugin/marketplace.json` enumerates all 36.
 
 #### Step 3: Sync Hooks
 
@@ -453,38 +477,38 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   ├── plugin.json          # Marketplace metadata
-│   └── marketplace.json     # Plugin registry (23 plugins) - SSoT
-├── plugins/
-│   ├── itp/                       # ADR-driven development workflow (11 bundled skills)
-│   ├── plugin-dev/                # Plugin development + skill architecture
-│   ├── gh-tools/                  # GitHub workflow automation
-│   ├── link-tools/                # Comprehensive link validation
-│   ├── devops-tools/              # Doppler, secrets, MLflow, Telegram, recovery
-│   ├── dotfiles-tools/            # Chezmoi dotfile management
-│   ├── doc-tools/                 # ASCII diagrams, standards, LaTeX, Pandoc PDF
-│   ├── quality-tools/             # Code clones, E2E validation, profiling, schema
-│   ├── productivity-tools/        # Slash command generation
-│   ├── mql5/                      # MQL5 development (indicators + mql5.com)
-│   ├── itp-hooks/                 # ITP workflow enforcement hooks
-│   ├── research-repo-worktree/      # Git worktree management
-│   ├── ru/                        # Autonomous loop mode (Ralph Universe)
-│   ├── iterm2-layout-config/      # iTerm2 workspace layout configuration
-│   ├── statusline-tools/          # Custom status line with indicators
-│   ├── notion-api/                # Notion API integration
-│   ├── asciinema-tools/           # Terminal recording automation
-│   ├── git-town-workflow/         # Prescriptive git-town workflow
-│   └── quant-research/            # Quantitative research metrics
+│   └── marketplace.json          # Plugin registry (36 plugins) — SSoT
+├── plugins/                      # 36 marketplace plugins (each with its own CLAUDE.md)
+│   ├── autoloop/                 # Self-revising LOOP_CONTRACT pattern (.autoloop/<slug>--<hash>/ layout)
+│   ├── itp/                      # ADR-driven 4-phase development workflow
+│   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
+│   ├── clarify-prompts/          # Stop-hook nudge for ambiguous turns (autoloop-aware)
+│   ├── plugin-dev/               # Plugin / skill architecture meta-tools
+│   ├── gh-tools/                 # GitHub workflow + GFM link validation
+│   ├── doc-tools/                # ASCII diagrams, markdown standards, LaTeX, Pandoc
+│   ├── quality-tools/            # Clone detection, E2E validation, profiling, refactor guide
+│   ├── devops-tools/             # ClickHouse, Doppler, MLflow, pueue, session recovery
+│   ├── claude-tts-companion/     # Swift macOS karaoke-subtitles companion
+│   ├── kokoro-tts/               # Kokoro TTS engine (install / server / synthesis)
+│   ├── tts-tg-sync/              # TTS + Telegram sync stack
+│   ├── tlg/                      # Telegram operations toolkit
+│   ├── ssh-tunnel-companion/     # macOS launchd companion for SSH tunnels
+│   ├── floating-clock/           # macOS floating clock overlay
+│   ├── macro-keyboard/           # Karabiner remap for 3-key macro pads
+│   ├── …                         # 20 more — see Plugins table for the full set
 ├── scripts/
-│   ├── sync-hooks-to-settings.sh  # Hook synchronization
-│   ├── validate-plugins.mjs       # Plugin validation
-│   └── marketplace.schema.json    # JSON Schema for marketplace.json
-├── .mise/tasks/                   # Release automation tasks
-│   ├── release:full               # Complete 4-phase release
-│   ├── release:sync               # Sync hooks and marketplace
-│   └── ...
-├── plugin.json                    # Root plugin config
-├── package.json                   # Node.js + semantic-release
+│   ├── sync-hooks-to-settings.sh    # Hook synchronization (called by release:sync)
+│   ├── sync-commands-to-settings.sh # Command synchronization
+│   ├── validate-plugins.mjs         # Plugin validation
+│   └── marketplace.schema.json      # JSON Schema for marketplace.json
+├── .mise/tasks/release/             # Release automation (5 phases — see below)
+├── docs/                            # ADRs, design docs, lessons-learned, troubleshooting
+├── .autoloop/                       # autoloop campaign storage (gitignored)
+│   └── <campaign-slug>--<short-hash>/
+│       ├── CONTRACT.md              # Live LOOP_CONTRACT
+│       ├── PROVENANCE.md            # Owner+history index
+│       └── state/                   # heartbeat.json + revision-log
+├── package.json                     # semantic-release
 └── README.md
 ```
 
@@ -511,12 +535,18 @@ mise run release:sync
 
 ### Release Phases
 
-| Phase | Task                | Description                                               |
-| ----- | ------------------- | --------------------------------------------------------- |
-| 1     | `release:preflight` | Validate prerequisites, check GitHub auth, verify plugins |
-| 2     | `release:version`   | Run semantic-release (version bump + changelog)           |
-| 3     | `release:sync`      | Update marketplace repo, sync hooks to settings.json      |
-| 4     | `release:verify`    | Verify git tag, GitHub release, plugin cache              |
+`mise run release:full` runs all five phases in sequence (six counting postflight). Each is also independently invokable.
+
+| Phase | Task                 | Description                                                                                      |
+| ----- | -------------------- | ------------------------------------------------------------------------------------------------ |
+| 1     | `release:preflight`  | Validate clean working dir, GH_TOKEN presence, plugin manifests, releasable conventional commits |
+| 1.5   | `release:presync`    | Mirror current main HEAD to ~/.claude marketplace clone so the live env reflects pending changes |
+| 2     | `release:version`    | Run semantic-release (version bump + CHANGELOG + git tag + GitHub release)                       |
+| 3     | `release:sync`       | Update marketplace repo, sync hooks/commands to settings.json, populate plugin cache             |
+| 4     | `release:verify`     | Verify git tag, GitHub release, marketplace, hooks files, runtime artifact consistency           |
+| 5     | `release:postflight` | Reset lockfile drift, confirm clean working dir, confirm all commits pushed                      |
+
+Run `mise tasks ls | grep -i release` for the complete list (also includes `release:status`, `release:dry`, `release:hooks`, `release:clean`).
 
 ## Available Plugins
 
@@ -544,21 +574,23 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 **Commands**: `/plugin-dev:create`
 
-### ru (Ralph Universe)
+### autoloop
 
-**Autonomous AI orchestration with Ralph Wiggum technique.**
+**Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work.** Replaces the previously-shipped `ru` plugin (removed 2026-04 per [ADR](./docs/adr/2026-04-20-remove-ru-plugin.md)) and renames the post-Ralph "autonomous-loop" plugin to a shorter slug.
 
 Features:
 
-- RSSI (Recursively Self-Improving Super Intelligence) loop mode
-- Multi-signal task completion detection
-- Validation exhaustion scoring
-- Plan archive preservation
-- Runtime limit configuration
+- **Per-campaign storage layout**: contracts live at `<cwd>/.autoloop/<slug>--<short-hash>/CONTRACT.md` with sibling `state/` dir and `PROVENANCE.md` ledger
+- **Multi-campaign coexistence** in one cwd via slug+hash directory naming (no collisions when multiple Claude sessions run in the same branch+folder)
+- **Auto-migration** on first `/autoloop:start` for any directory containing a legacy `LOOP_CONTRACT.md`
+- **schema_version 2 frontmatter** with self-describing provenance: `loop_id`, `campaign_slug`, `created_in_session`, `created_at_cwd`, `created_at_git_branch`, `created_at_git_commit`, mirrored owner state, expected-cadence hint
+- **5-step identification decision tree** in every contract so any AI agent (offline or live) can answer "is this mine, reclaimable, or hands-off?" without consulting the registry
+- **Atomic ownership**: registry at `~/.claude/loops/registry.json` is the SSoT; flock-serialized writes; PID-reuse defense via `owner_start_time_us`; generation counter for TOCTOU defense
+- **Stall-guard hook** in `itp-hooks` (`stop-loop-stall-guard.ts`) detects firings that ended without a valid waker and forces a rewake
 
-**Commands**: `/ru:start`, `/ru:stop`, `/ru:status`, `/ru:settings`, `/ru:hooks`
+**Commands**: `/autoloop:start`, `/autoloop:status`, `/autoloop:stop`, `/autoloop:setup`, `/autoloop:reclaim`, `/autoloop:doctor`
 
-**Additional setup required**: See [plugins/ru/README.md](./plugins/ru/README.md)
+**Plugin doc**: [plugins/autoloop/CLAUDE.md](./plugins/autoloop/CLAUDE.md) — architecture, 6 catastrophic pitfalls, troubleshooting playbook.
 
 ### gh-tools
 
@@ -613,16 +645,11 @@ Six bundled skills: clickhouse-architect, code-clone-assistant, multi-agent-e2e-
 
 ### Other Plugins
 
-See individual plugin READMEs for detailed documentation:
+For everything not detailed above, see the [Plugins table](#plugins) and the per-plugin `CLAUDE.md` (the SSoT for purpose, stack, and conventions). The full list is enumerable via:
 
-- [dotfiles-tools](./plugins/dotfiles-tools/) - Chezmoi dotfile management
-- [productivity-tools](./plugins/productivity-tools/) - Slash command generation
-- [mql5](./plugins/mql5/) - MQL5 development
-- [research-repo-worktree](./plugins/research-repo-worktree/) - Git worktree management
-- [iterm2-layout-config](./plugins/iterm2-layout-config/) - iTerm2 workspace configuration
-- [notion-api](./plugins/notion-api/) - Notion API integration
-- [asciinema-tools](./plugins/asciinema-tools/) - Terminal recording automation
-- [git-town-workflow](./plugins/git-town-workflow/) - Prescriptive git-town workflow
+```bash
+jq -r '.plugins[] | "\(.name) — \(.description)"' .claude-plugin/marketplace.json
+```
 
 ## Known Issues
 
