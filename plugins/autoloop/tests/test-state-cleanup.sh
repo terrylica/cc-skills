@@ -115,6 +115,40 @@ else
   nok "expected no-op, got: $out"
 fi
 
+echo ""
+echo "[Case 6] Symlink-traversal attack: symlink under \$HOME pointing outside"
+EVIL=$(mktemp -d)
+echo "evil-data" > "$EVIL/secret"
+SD_LINK="$HOME/loop-state/symlink-attack"
+mkdir -p "$(dirname "$SD_LINK")"
+ln -s "$EVIL" "$SD_LINK"
+out=$(cleanup_state_dir "$SD_LINK" 2>&1 || true)
+if [ -f "$EVIL/secret" ]; then
+  ok "symlink target outside \$HOME survived (defense held)"
+else
+  nok "symlink target was deleted — defense BROKE"
+fi
+if echo "$out" | grep -q "refusing to operate"; then
+  ok "explicit refusal message printed"
+else
+  nok "no refusal message (got: $out)"
+fi
+rm -rf "$EVIL"
+
+echo ""
+echo "[Case 7] Same-second concurrent cleanup must not clobber tarballs"
+SDA="$HOME/loop-concurrent-a"; mkdir -p "$SDA"; echo a > "$SDA/data"
+SDB="$HOME/loop-concurrent-b"; mkdir -p "$SDB"; echo b > "$SDB/data"
+( cleanup_state_dir "$SDA" >/dev/null 2>&1 ) &
+( cleanup_state_dir "$SDB" >/dev/null 2>&1 ) &
+wait
+archive_count=$(find "$HOME" -maxdepth 1 -name 'loop-concurrent-*-archive-*.tar.gz' 2>/dev/null | wc -l | tr -d ' ')
+if [ "$archive_count" = "2" ]; then
+  ok "two distinct tarballs after concurrent cleanup (random suffix worked)"
+else
+  nok "expected 2 tarballs, got $archive_count"
+fi
+
 rm -rf "$T"
 echo ""
 echo "========================================"

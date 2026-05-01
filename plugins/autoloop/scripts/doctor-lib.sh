@@ -106,6 +106,37 @@ _doctor_check_loop() {
     fi
   fi
 
+  # Check 5.5 (Wave 4): foreign machine_id detection. If the entry was
+  # registered on a different machine and rsync'd / Time-Machine-restored
+  # here, owner_pid checks are meaningless (the PID belongs to a process on
+  # the source machine). Surface this BEFORE the owner_pid check so we don't
+  # paint everything red with "owner dead" false positives.
+  if command -v current_machine_id >/dev/null 2>&1; then
+    local entry_mid this_mid
+    entry_mid=$(echo "$entry" | jq -r '.machine_id // ""' 2>/dev/null)
+    this_mid=$(current_machine_id)
+    if [ -n "$entry_mid" ] && [ -n "$this_mid" ] && [ "$entry_mid" != "$this_mid" ]; then
+      issues+=("RED: foreign machine_id ($entry_mid != $this_mid) — registry entry came from another machine. PID/heartbeat checks below are meaningless. To re-bind: run /autoloop:reclaim or remove and /autoloop:start fresh.")
+      verdict="RED"
+      # Skip the owner_pid liveness check below since it would always fail
+      # for foreign entries. Emit the JSON line and return.
+      local display_name=""
+      if command -v format_loop_display_name >/dev/null 2>&1; then
+        display_name=$(format_loop_display_name "$loop_id" 2>/dev/null || echo "")
+      fi
+      [ -z "$display_name" ] && display_name="AL-loop-${loop_id:0:6}"
+      jq -nc \
+        --arg loop_id "$loop_id" \
+        --arg display_name "$display_name" \
+        --arg verdict "$verdict" \
+        --argjson issues "$(printf '%s\n' "${issues[@]}" | jq -R . | jq -s .)" \
+        --arg owner_session_id "$owner_sid" \
+        --arg state_dir "$state_dir" \
+        '{loop_id: $loop_id, display_name: $display_name, verdict: $verdict, owner_session_id: $owner_session_id, state_dir: $state_dir, issues: $issues, kind: "foreign_machine"}'
+      return 0
+    fi
+  fi
+
   # Check 6: owner_pid liveness vs heartbeat freshness
   if [ -n "$owner_pid" ] && [ "$owner_pid" != "null" ] && ! kill -0 "$owner_pid" 2>/dev/null; then
     if [ -f "$hb_file" ]; then

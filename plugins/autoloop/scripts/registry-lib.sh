@@ -350,6 +350,21 @@ register_loop() {
     return 1
   fi
 
+  # Stamp machine_id on the entry if not already set. Wave 4 cross-machine
+  # contamination defense: doctor uses machine_id to filter out entries that
+  # came from a different machine via rsync/Time Machine restore (their
+  # owner_pids would look dead on the receiving machine, causing false-zombie
+  # noise). If portable.sh isn't sourced, skip silently — pre-Wave-4 entries
+  # without machine_id continue to work.
+  if command -v current_machine_id >/dev/null 2>&1; then
+    local mid existing_mid
+    existing_mid=$(echo "$entry_json" | jq -r '.machine_id // ""' 2>/dev/null)
+    if [ -z "$existing_mid" ]; then
+      mid=$(current_machine_id)
+      entry_json=$(echo "$entry_json" | jq --arg mid "$mid" '. + {machine_id: $mid}')
+    fi
+  fi
+
   # Call write-locked helper
   _with_registry_lock register_loop_impl "$entry_json" || return 1
 }
