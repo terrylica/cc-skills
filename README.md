@@ -535,7 +535,7 @@ mise run release:sync
 
 ### Release Phases
 
-`mise run release:full` runs all five phases in sequence (six counting postflight). Each is also independently invokable.
+`mise run release:full` runs all six phases in sequence — matches the canonical task description in `.mise/tasks/release/full`. Each phase is independently invokable.
 
 | Phase | Task                 | Description                                                                                      |
 | ----- | -------------------- | ------------------------------------------------------------------------------------------------ |
