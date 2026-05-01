@@ -75,6 +75,35 @@
             "type": "number",
             "description": "Monotonic counter incremented on each reclaim (TOCTOU defense)",
             "minimum": 0
+          },
+          "campaign_slug": {
+            "type": "string",
+            "description": "Optional v2 field: kebab-case slug derived from the contract's `name:` frontmatter. When present together with short_hash, the human-readable display name is `AL-<campaign_slug>--<short_hash>`. Used by /autoloop:reclaim and /autoloop:status to accept identifier forms beyond the bare loop_id.",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "short_hash": {
+            "type": "string",
+            "description": "Optional v2 field: 6-char hex disambiguator for campaigns sharing a slug. Computed as sha256(creator_session_id + ':' + created_at_utc + ':' + legacy_loop_id)[:6].",
+            "pattern": "^[0-9a-f]{6}$"
+          },
+          "project_cwd": {
+            "type": "string",
+            "description": "Optional v2 field: realpath of the project root that owns this campaign (where the .autoloop/ subdir lives)."
+          },
+          "migrated_from": {
+            "type": "string",
+            "description": "Optional v2 field: previous loop_id when migrate_legacy_contract created a new entry from a legacy LOOP_CONTRACT.md.",
+            "pattern": "^[0-9a-f]{12}$"
+          },
+          "migrated_to": {
+            "type": "string",
+            "description": "Optional v2 field: new loop_id when this entry was superseded by migrate_legacy_contract.",
+            "pattern": "^[0-9a-f]{12}$"
+          },
+          "status": {
+            "type": "string",
+            "description": "Optional v2 field: lifecycle status. Doctor uses this to detect zombie loops marked DONE in the contract but still loaded.",
+            "enum": ["active", "paused", "completed", "orphaned", "migrated", "DONE"]
           }
         }
       }

@@ -27,6 +27,8 @@ _DOCTOR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 [ -f "$_DOCTOR_SCRIPT_DIR/registry-lib.sh" ] && source "$_DOCTOR_SCRIPT_DIR/registry-lib.sh"
 # shellcheck source=/dev/null
+[ -f "$_DOCTOR_SCRIPT_DIR/state-lib.sh" ] && source "$_DOCTOR_SCRIPT_DIR/state-lib.sh" 2>/dev/null || true
+# shellcheck source=/dev/null
 [ -f "$_DOCTOR_SCRIPT_DIR/provenance-lib.sh" ] && source "$_DOCTOR_SCRIPT_DIR/provenance-lib.sh" 2>/dev/null || true
 export _PROV_AGENT="doctor-lib.sh"
 
@@ -146,14 +148,24 @@ _doctor_check_loop() {
   # the attribution-per-loop was misleading (every loop showed the same N
   # pacing-vetoed). Now surfaced once at the top of loop_doctor_report.
 
+  # Compute the human-readable display name (AL-<slug>--<hash> when available;
+  # AL-loop-<id6> for legacy contracts). Always paired with loop_id for
+  # disambiguation since two campaigns in different repos can share a slug.
+  local display_name=""
+  if command -v format_loop_display_name >/dev/null 2>&1; then
+    display_name=$(format_loop_display_name "$loop_id" 2>/dev/null || echo "")
+  fi
+  [ -z "$display_name" ] && display_name="AL-loop-${loop_id:0:6}"
+
   # Emit JSON line for this loop
   jq -nc \
     --arg loop_id "$loop_id" \
+    --arg display_name "$display_name" \
     --arg verdict "$verdict" \
     --argjson issues "$(printf '%s\n' "${issues[@]}" | jq -R . | jq -s .)" \
     --arg owner_session_id "$owner_sid" \
     --arg state_dir "$state_dir" \
-    '{loop_id: $loop_id, verdict: $verdict, owner_session_id: $owner_session_id, state_dir: $state_dir, issues: $issues}'
+    '{loop_id: $loop_id, display_name: $display_name, verdict: $verdict, owner_session_id: $owner_session_id, state_dir: $state_dir, issues: $issues}'
 }
 
 # _doctor_check_zombies — scan launchctl for entries with no registry record.
@@ -175,12 +187,15 @@ _doctor_check_zombies() {
     local exists
     exists=$(jq -r --arg id "$loop_id" '.loops[] | select(.loop_id == $id) | .loop_id' "$registry_path" 2>/dev/null)
     if [ -z "$exists" ]; then
+      # No registry entry → no slug available. Fall back to AL-loop-<id6>.
+      local display_name="AL-loop-${loop_id:0:6}"
       jq -nc \
         --arg loop_id "$loop_id" \
+        --arg display_name "$display_name" \
         --arg verdict "RED" \
         --arg label "$label" \
         --argjson issues "[\"RED: zombie launchctl entry ($label) — no matching registry record; run: launchctl bootout gui/\$(id -u)/$label\"]" \
-        '{loop_id: $loop_id, verdict: $verdict, issues: $issues, kind: "zombie_launchctl"}'
+        '{loop_id: $loop_id, display_name: $display_name, verdict: $verdict, issues: $issues, kind: "zombie_launchctl"}'
     fi
   done <<< "$labels"
 }
@@ -340,7 +355,13 @@ loop_doctor_report() {
     echo "YELLOW: $rapid_reclaim_count loop(s) had >3 reclaims in last 24h (rapid-reclaim signal — competing sessions or stuck owner)"
   fi
   echo "================================================================"
-  echo "$results" | jq -r '.loop_id + " [" + .verdict + "]" + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)' 2>/dev/null
+  # User-facing per-loop summary: lead with the human-readable AL-name,
+  # show the loop_id in parens for unambiguous reference (commands still
+  # take the loop_id as the canonical identifier).
+  echo "$results" | jq -r '
+    (.display_name // ("AL-loop-" + (.loop_id // "?")[0:6])) + " (" + (.loop_id // "?") + ") [" + .verdict + "]"
+    + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)
+  ' 2>/dev/null
 }
 
 # loop_doctor_fix — applies SAFE remediations only.

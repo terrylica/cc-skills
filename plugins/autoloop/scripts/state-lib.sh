@@ -924,6 +924,75 @@ cleanup_state_dir() {
   return 0
 }
 
+# format_loop_display_name <loop_id> [registry_path]
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Returns the human-readable display name for a loop, prefixed with `AL-`.
+#
+# Naming rules (in priority order):
+#   1. v2 contract with both campaign_slug and short_hash present:
+#      → AL-<slug>--<hash>          (e.g. AL-odb-research--a1b2c3)
+#      Matches the on-disk .autoloop/ directory layout.
+#
+#   2. v2 contract with only campaign_slug:
+#      → AL-<slug>                  (e.g. AL-flaky-ci-watcher)
+#
+#   3. legacy / pre-v2 / unknown loop_id:
+#      → AL-loop-<loop_id_first6>   (e.g. AL-loop-3555bb)
+#
+# Why this format exists: the bare 12-hex loop_id (e.g. "3555bbe1f0fb") is
+# a deterministic primary key but carries zero meaning when surfaced in
+# /autoloop:reclaim, /autoloop:status, doctor output, etc. The user's mental
+# model is "the ODB research campaign" not "the c46e8ee3 hex string". This
+# function is the single source of truth for human-readable identifiers,
+# always paired with the loop_id in parens for disambiguation.
+#
+# Use:
+#   echo "$(format_loop_display_name 3555bbe1f0fb) (3555bbe1f0fb)"
+#   → AL-odb-research--a1b2c3 (3555bbe1f0fb)
+#
+# Arguments:
+#   $1: loop_id (12 hex chars)
+#   $2 (optional): registry_path override (for testing)
+#
+# Output:
+#   Single line on stdout, never empty unless loop_id format is invalid.
+#
+# Exit code:
+#   0 on success
+#   1 if loop_id format is invalid (no output)
+format_loop_display_name() {
+  local loop_id="$1"
+  local registry_path="${2:-$HOME/.claude/loops/registry.json}"
+
+  if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
+    return 1
+  fi
+
+  if [ ! -f "$registry_path" ]; then
+    echo "AL-loop-${loop_id:0:6}"
+    return 0
+  fi
+
+  # Look up campaign_slug + short_hash from the registry. Both fields are
+  # optional in legacy contracts, so we tolerate empty values.
+  local slug short_hash
+  slug=$(jq -r --arg id "$loop_id" \
+    '.loops[] | select(.loop_id == $id) | .campaign_slug // ""' \
+    "$registry_path" 2>/dev/null | head -1)
+  short_hash=$(jq -r --arg id "$loop_id" \
+    '.loops[] | select(.loop_id == $id) | .short_hash // ""' \
+    "$registry_path" 2>/dev/null | head -1)
+
+  if [ -n "$slug" ] && [ -n "$short_hash" ]; then
+    echo "AL-${slug}--${short_hash}"
+  elif [ -n "$slug" ]; then
+    echo "AL-${slug}"
+  else
+    echo "AL-loop-${loop_id:0:6}"
+  fi
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f now_us
 export -f state_dir_path
@@ -936,4 +1005,5 @@ export -f slugify
 export -f compute_short_hash
 export -f derive_v2_contract_path
 export -f cleanup_state_dir
+export -f format_loop_display_name
 export -f migrate_legacy_contract
