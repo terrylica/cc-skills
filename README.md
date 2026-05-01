@@ -501,7 +501,7 @@ cc-skills/
 │   ├── sync-commands-to-settings.sh # Command synchronization
 │   ├── validate-plugins.mjs         # Plugin validation
 │   └── marketplace.schema.json      # JSON Schema for marketplace.json
-├── .mise/tasks/release/             # Release automation (5 phases — see below)
+├── .mise/tasks/release/             # Release automation (6 phases — see below)
 ├── docs/                            # ADRs, design docs, lessons-learned, troubleshooting
 ├── .autoloop/                       # autoloop campaign storage (gitignored)
 │   └── <campaign-slug>--<short-hash>/
