@@ -76,6 +76,14 @@ if [[ "$SANDWICH_ERRORS" -gt 0 ]]; then
 fi
 echo "  ✓ All skills have self-evolution sandwich (top + bottom)"
 
+# Check 4c: Hook registration sanity (post-incident regression catcher).
+# Catches: stale paths in settings.json, duplicate commands, SKIP_HOOK_SYNC
+# typos, plugin/skip-list/settings.json drift. See:
+# scripts/validate-hook-registration.sh for details.
+if ! bash "$(dirname "$0")/../../../scripts/validate-hook-registration.sh"; then
+    exit 1
+fi
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
