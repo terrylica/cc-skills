@@ -112,6 +112,28 @@ done
 
 **mise `depends` runs in parallel** (`release:full` deps `[preflight, version]`): preflight and version race. If version dirties the working tree (e.g. lockfile cascade above), preflight may report failure mid-stream while version still completes, leaving an irreversible tag + GitHub release without `release:crates`/`verify`/`postflight` having run. Recovery: fix the dirty state, then run the remaining phases manually (`release:crates` → `release:verify` → `release:postflight`) — do NOT re-run `release:full`, which would attempt another semantic-release pass.
 
+**`release:verify` false-positive on naive grep against crates.io API**: a verify implementation of the form `if curl ... | grep -q "version"` matches the API's _error_ responses too, because the JSON error contains the word "version" in the detail text (e.g. `"crate <name> does not have a version <X.Y.Z>"`). Result: every release run reports "✓ <crate> published on crates.io" even when the actual cargo publish failed. Discovered after a multi-version, multi-day silent-failure window where every tagged version was absent from crates.io but verify reported green. Fix: match the unique success-only JSON shape `"num":"<exact-version>"` (or parse the JSON via Python so TOML's escape rules don't mangle the quotes inside a `run = """ ... """` block). Hard-fail on miss with the actual API response logged. Reference fix:
+
+```bash
+RESPONSE=$(curl -s "https://crates.io/api/v1/crates/<crate>/${VERSION}")
+PUBLISHED_NUM=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',{}).get('num',''))" 2>/dev/null || echo "")
+if [[ "$PUBLISHED_NUM" == "$VERSION" ]]; then
+    echo "✓ <crate> v${VERSION} confirmed on crates.io"
+else
+    echo "⚠ <crate> v${VERSION} NOT on crates.io (API returned: '${PUBLISHED_NUM:-error}')"
+    echo "  raw: $(echo "$RESPONSE" | head -c 200)"
+    exit 1
+fi
+```
+
+**`release:full` silent-swallow of crates publish failures**: any orchestrator pattern of the form `mise run release:crates || { echo "non-fatal" }` masks the actual `cargo publish` error and continues with apparent success. Combined with the verify false-positive above, this hides multi-version publish gaps for days. Crates publish failure must be a hard fail; the operator runs `release:crates` manually after diagnosis (token, network, registry rate-limit, etc.). Replace any `||`-swallow with a plain unwrapped invocation.
+
+**Schema-drift gate parser exits at indented `)`**: a parser of the form `awk '... in_table { if ($0 ~ /^[[:space:]]*\)/) { in_table = 0; exit } ... }'` truncates mid-table when a column's multi-line DEFAULT expression has a closing paren on its own indented line (e.g. nested `multiIf(\n  ...,\n  )` or arithmetic group close). Late columns are silently missed and falsely flagged as drift on the live-CH side. ClickHouse formatting convention puts the actual table-end `)` at column 0 — change the exit guard to `^\)` (no leading whitespace) for correctness.
+
+**Parallel SSH ControlMaster race in pre-push gates**: when multiple mise tasks open SSH connections in parallel (`depends`), the loser prints `ControlSocket /Users/.../control-host:22 already exists, disabling multiplexing` to stderr. If your gate script uses `ssh ... 2>&1` (merging stderr into stdout), that warning leaks into the data pipe and trips identifier-shaped sanity checks with phantom "extra" entries. Fix: route SSH stderr to `/dev/null` (we don't need it for column extraction; real errors surface via the explicit exit-code propagation downstream), and add a defense-in-depth filter `grep -E '^[a-zA-Z_][a-zA-Z0-9_]*$'` so even if some other stderr path leaks in the future, only valid identifier-shaped strings flow through.
+
+**Idempotent `git push` returns non-zero**: orchestrators that include a manual `git push --follow-tags origin main` step AFTER `release:version` (where semantic-release's `@semantic-release/git` plugin already pushed) can fail when re-pushing an already-up-to-date branch + an existing tag. Treat this as success: detect via `[[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]]` before pushing, and only push the latest tag if `git ls-remote --tags origin "refs/tags/$LATEST_TAG"` returns empty. Otherwise the wrapper exits non-zero on a release that actually shipped fine, polluting the success/failure signal.
+
 ## Step 3: Execute
 
 ```bash
