@@ -1,3 +1,10 @@
+# [17.2.0](https://github.com/terrylica/cc-skills/compare/v17.1.1...v17.2.0) (2026-05-01)
+
+
+### Features
+
+* **autoloop:** Wave 1 — identity & integrity hardening ([2b92314](https://github.com/terrylica/cc-skills/commit/2b92314bc1bae667b94b0395aa443c648f7e3c4f))
+
 ## [17.1.1](https://github.com/terrylica/cc-skills/compare/v17.1.0...v17.1.1) (2026-05-01)
 
 # [17.1.0](https://github.com/terrylica/cc-skills/compare/v17.0.1...v17.1.0) (2026-05-01)
