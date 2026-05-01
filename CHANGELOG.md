@@ -1,3 +1,10 @@
+# [17.5.0](https://github.com/terrylica/cc-skills/compare/v17.4.0...v17.5.0) (2026-05-01)
+
+
+### Features
+
+* **autoloop:** Wave 4 hardening — machine_id, JSONL rotation, symlink defense ([184a61a](https://github.com/terrylica/cc-skills/commit/184a61aa99188f03568bb5ee9eb152067216320c)), closes [Adversarial-scan-#7](https://github.com/Adversarial-scan-/issues/7) [Adversarial-scan-#5](https://github.com/Adversarial-scan-/issues/5) [Adversarial-scan-#11](https://github.com/Adversarial-scan-/issues/11) [Adversarial-scan-#2](https://github.com/Adversarial-scan-/issues/2) [Adversarial-scan-#1](https://github.com/Adversarial-scan-/issues/1)
+
 # [17.4.0](https://github.com/terrylica/cc-skills/compare/v17.3.0...v17.4.0) (2026-05-01)
 
 
