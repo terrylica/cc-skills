@@ -1,3 +1,10 @@
+# [17.4.0](https://github.com/terrylica/cc-skills/compare/v17.3.0...v17.4.0) (2026-05-01)
+
+
+### Features
+
+* **autoloop:** AL-naming convention for human-readable loop identifiers ([c429b6b](https://github.com/terrylica/cc-skills/commit/c429b6b1ccb647f32506fb250518b36b0c5fee2c))
+
 # [17.3.0](https://github.com/terrylica/cc-skills/compare/v17.2.1...v17.3.0) (2026-05-01)
 
 
