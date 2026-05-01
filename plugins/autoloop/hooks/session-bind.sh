@@ -90,6 +90,29 @@ if [ -z "$SESSION_ID" ]; then
   exit 0
 fi
 
+# Strict UUID validation — refuse to write a malformed session_id into the
+# registry. Without this, a hostile or malformed stdin payload can pollute
+# owner_session_id; downstream `claude --resume <id>` would then fail with a
+# confusing error far from the source. Source portable.sh on demand
+# (best-effort — if the file is missing or sourcing fails, fall through to
+# the inline regex check).
+PORTABLE_LIB="$PLUGIN_SCRIPTS/portable.sh"
+if [ -f "$PORTABLE_LIB" ]; then
+  # shellcheck source=/dev/null
+  source "$PORTABLE_LIB" 2>/dev/null || true
+fi
+if ! [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+  if command -v log_validation_event >/dev/null 2>&1; then
+    log_validation_event validation_reject session_id "$SESSION_ID" hook=session-bind.sh source="$SOURCE"
+  else
+    _log_error "session_id validation rejected: '$SESSION_ID'" 0
+  fi
+  emit_provenance "" "bind_skipped_invalid_session_id" \
+    reason="session_id from stdin failed UUID validation" \
+    decision="deferred" 2>/dev/null || true
+  exit 0
+fi
+
 # Fall back to pwd if cwd not in payload
 CWD="${PAYLOAD_CWD:-$(pwd)}"
 

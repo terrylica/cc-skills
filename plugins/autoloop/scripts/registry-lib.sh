@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
+# FILE-SIZE-OK
 # registry-lib.sh — Loop ID derivation and registry read helpers for autoloop
 # Provides deterministic loop ID generation and read-only registry access
 
 set -euo pipefail
+
+# Source portable.sh for is_valid_jq_simple_path / log_validation_event.
+# Tolerate missing file (callers without portable.sh fall back to no validation
+# beyond the legacy regex checks already in this file).
+_REGISTRY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+if [ -f "$_REGISTRY_LIB_DIR/portable.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$_REGISTRY_LIB_DIR/portable.sh" 2>/dev/null || true
+fi
 
 # derive_loop_id <path>
 # Derives a stable 12-character hexadecimal loop ID from an absolute contract path.
@@ -104,9 +114,11 @@ read_registry_entry() {
   local registry
   registry=$(read_registry "$registry_path") || return 1
 
-  # Use jq to find the entry
+  # Use jq to find the entry. --arg keeps loop_id outside the jq AST so a
+  # malformed value can't escape the JSON string boundary even if validation
+  # above is bypassed by a future code change.
   local entry
-  entry=$(echo "$registry" | jq ".loops[] | select(.loop_id == \"$loop_id\") // empty" 2>/dev/null) || {
+  entry=$(echo "$registry" | jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id) // empty' 2>/dev/null) || {
     echo "ERROR: read_registry_entry: jq query failed" >&2
     return 1
   }
@@ -284,16 +296,17 @@ register_loop_impl() {
     return 1
   fi
 
-  # Check if loop_id already exists
+  # Check if loop_id already exists (--arg avoids string-interpolation injection)
   local existing
-  existing=$(echo "$registry" | jq ".loops[] | select(.loop_id == \"$new_loop_id\")" 2>/dev/null)
+  existing=$(echo "$registry" | jq --arg id "$new_loop_id" '.loops[] | select(.loop_id == $id)' 2>/dev/null)
   if [ -n "$existing" ]; then
     echo "ERROR: register_loop_impl: loop_id '$new_loop_id' already exists" >&2
     return 1
   fi
 
-  # Append entry to loops array
-  echo "$registry" | jq ".loops += [$entry_json]" 2>/dev/null || {
+  # Append entry to loops array. --argjson parses entry_json as JSON; the call
+  # site (register_loop) already validated it.
+  echo "$registry" | jq --argjson entry "$entry_json" '.loops += [$entry]' 2>/dev/null || {
     echo "ERROR: register_loop_impl: jq update failed" >&2
     return 1
   }
@@ -348,8 +361,8 @@ unregister_loop_impl() {
   local registry
   registry=$(cat)
 
-  # Remove entry by loop_id (if present)
-  echo "$registry" | jq ".loops |= map(select(.loop_id != \"$loop_id\"))" 2>/dev/null || {
+  # Remove entry by loop_id (if present). --arg avoids string-interpolation injection.
+  echo "$registry" | jq --arg id "$loop_id" '.loops |= map(select(.loop_id != $id))' 2>/dev/null || {
     echo "ERROR: unregister_loop_impl: jq update failed" >&2
     return 1
   }
@@ -382,6 +395,7 @@ unregister_loop() {
 }
 
 # update_loop_field_impl <loop_id> <jq_path> <new_value_json>
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
 # Implementation function: reads stdin (current registry), updates field on entry, outputs new registry.
 #
 # Arguments:
@@ -403,20 +417,31 @@ update_loop_field_impl() {
   local jq_path="$2"
   local new_value="$3"
 
+  # Defense-in-depth: whitelist jq_path here as well. The public entry point
+  # update_loop_field already validates, but impl is exported and could be
+  # called directly by tests or future callers.
+  if ! [[ "$jq_path" =~ ^\.[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+    echo "ERROR: update_loop_field_impl: jq_path '$jq_path' rejected (must match ^\\.[a-zA-Z_][a-zA-Z0-9_]*$)" >&2
+    return 1
+  fi
+
   # Parse stdin as registry
   local registry
   registry=$(cat)
 
-  # Find and update entry
+  # Find and update entry. Loop_id goes through --arg; jq_path is interpolated
+  # into the filter (whitelist already restricted it to a simple dotted path).
+  # new_value is interpolated as JSON literal — caller is responsible for
+  # passing valid JSON (numbers, "strings", true/false, null).
   local updated
-  updated=$(echo "$registry" | jq "(.loops[] | select(.loop_id == \"$loop_id\") | $jq_path) |= $new_value" 2>/dev/null) || {
+  updated=$(echo "$registry" | jq --arg id "$loop_id" "(.loops[] | select(.loop_id == \$id) | $jq_path) |= $new_value" 2>/dev/null) || {
     echo "ERROR: update_loop_field_impl: jq update failed" >&2
     return 1
   }
 
   # Verify entry exists by checking if the loop_id is still in the result
   local exists
-  exists=$(echo "$updated" | jq ".loops[] | select(.loop_id == \"$loop_id\")" 2>/dev/null)
+  exists=$(echo "$updated" | jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' 2>/dev/null)
   if [ -z "$exists" ]; then
     echo "ERROR: update_loop_field_impl: loop_id '$loop_id' not found" >&2
     return 1
@@ -448,6 +473,18 @@ update_loop_field() {
   # Validate loop_id format
   if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
     echo "ERROR: update_loop_field: invalid loop_id format '$loop_id'" >&2
+    return 1
+  fi
+
+  # Validate jq_path is a single-key dotted path (^\.[a-zA-Z_][a-zA-Z0-9_]*$).
+  # This blocks env-injection (".env"), debug-injection (".debug"), and any
+  # pipe-chained jq filters that could read or mutate fields beyond the named
+  # one. All current callers use simple paths like .generation, .owner_pid.
+  if ! [[ "$jq_path" =~ ^\.[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+    echo "ERROR: update_loop_field: jq_path '$jq_path' rejected (must match ^\\.[a-zA-Z_][a-zA-Z0-9_]*$)" >&2
+    if command -v log_validation_event >/dev/null 2>&1; then
+      log_validation_event validation_reject jq_path "$jq_path" caller=update_loop_field
+    fi
     return 1
   fi
 

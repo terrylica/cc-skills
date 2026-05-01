@@ -201,9 +201,9 @@ verify_owner_alive() {
     return 0
   fi
 
-  # Read registry entry
+  # Read registry entry (--arg avoids string-interpolation injection)
   local entry
-  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+  entry=$(jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' "$registry_path" 2>/dev/null) || {
     echo "unknown"
     return 0
   }
@@ -310,9 +310,9 @@ staleness_seconds() {
     return 0
   fi
 
-  # Read registry entry to get state_dir
+  # Read registry entry to get state_dir (--arg avoids string-interpolation injection)
   local entry
-  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+  entry=$(jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' "$registry_path" 2>/dev/null) || {
     echo "-1"
     return 0
   }
@@ -405,9 +405,9 @@ is_reclaim_candidate() {
     return 0
   fi
 
-  # Read registry entry
+  # Read registry entry (--arg avoids string-interpolation injection)
   local entry
-  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+  entry=$(jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' "$registry_path" 2>/dev/null) || {
     echo "no"
     return 0
   }
@@ -442,6 +442,50 @@ is_reclaim_candidate() {
   # Owner is alive and heartbeat fresh
   echo "owner_alive"
   return 0
+}
+
+# _reclaim_apply_impl <loop_id> <generation> <owner_pid> <owner_start_time_us> <owner_session_id>
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Implementation function passed to _with_registry_lock for atomic 4-field
+# update during reclaim. Reads registry on stdin, mutates the matched loop's
+# generation / owner_pid / owner_start_time_us / owner_session_id in a single
+# jq pass, returns the new registry on stdout.
+#
+# Why this exists: pre-2026-04-29 reclaim_loop called update_loop_field 4 times
+# in sequence — each acquired _with_registry_lock independently, opening a
+# split-brain window where another reader could observe a partially-applied
+# state (e.g. generation=N+1 while owner_pid still pointed at the dead owner).
+# Bundling them into one transaction closes that window.
+_reclaim_apply_impl() {
+  local loop_id="$1" gen="$2" pid="$3" start_us="$4" sid="$5"
+  local registry
+  registry=$(cat)
+
+  # Verify entry exists before mutating
+  local exists
+  exists=$(echo "$registry" | jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' 2>/dev/null)
+  if [ -z "$exists" ]; then
+    echo "ERROR: _reclaim_apply_impl: loop_id '$loop_id' not found" >&2
+    return 1
+  fi
+
+  # Apply all 4 fields in one expression. --argjson for numerics so they end up
+  # as JSON numbers (matching pre-existing schema); --arg for the session_id
+  # string so any pathological value cannot escape the JSON string boundary.
+  echo "$registry" | jq \
+    --arg id "$loop_id" \
+    --argjson gen "$gen" \
+    --argjson pid "$pid" \
+    --argjson start_us "$start_us" \
+    --arg sid "$sid" \
+    '(.loops[] | select(.loop_id == $id))
+     |= ( .generation = $gen
+        | .owner_pid = $pid
+        | .owner_start_time_us = $start_us
+        | .owner_session_id = $sid )' 2>/dev/null || {
+    echo "ERROR: _reclaim_apply_impl: jq update failed" >&2
+    return 1
+  }
 }
 
 # reclaim_loop <loop_id> [--reason owner_dead|heartbeat_stale]
@@ -483,9 +527,9 @@ reclaim_loop() {
     return 1
   fi
 
-  # Read current entry to get state_dir and generation
+  # Read current entry to get state_dir and generation (--arg avoids injection)
   local entry
-  entry=$(jq ".loops[] | select(.loop_id == \"$loop_id\")" "$registry_path" 2>/dev/null) || {
+  entry=$(jq --arg id "$loop_id" '.loops[] | select(.loop_id == $id)' "$registry_path" 2>/dev/null) || {
     echo "ERROR: reclaim_loop: failed to read entry" >&2
     return 1
   }
@@ -518,31 +562,25 @@ reclaim_loop() {
     return 1
   fi
 
-  # Generate new session_id for reclaimer
+  # Generate new session_id for reclaimer. Avoid `tr | head` — under
+  # `set -euo pipefail`, head closing the pipe early sends SIGPIPE to tr
+  # (exit 141), and pipefail bubbles that up so the local assignment trips
+  # set -e and the function exits silently. `od -N4` reads exactly 4 bytes
+  # and exits cleanly, no pipe SIGPIPE.
   local random_suffix
-  random_suffix=$(tr -dc 'a-f0-9' </dev/urandom | head -c 8)
+  random_suffix=$(LC_ALL=C od -An -tx1 -N4 /dev/urandom | tr -d ' \n')
   local session_timestamp
   session_timestamp=$(date +%s)
   local new_session_id="session_${session_timestamp}_${random_suffix}"
 
-  # Call atomic update via _with_registry_lock
-  if ! update_loop_field "$loop_id" ".generation" "$new_generation"; then
-    echo "ERROR: reclaim_loop: failed to increment generation" >&2
-    return 1
-  fi
-
-  if ! update_loop_field "$loop_id" ".owner_pid" "$current_pid"; then
-    echo "ERROR: reclaim_loop: failed to update owner_pid" >&2
-    return 1
-  fi
-
-  if ! update_loop_field "$loop_id" ".owner_start_time_us" "$current_start_time_us"; then
-    echo "ERROR: reclaim_loop: failed to update owner_start_time_us" >&2
-    return 1
-  fi
-
-  if ! update_loop_field "$loop_id" ".owner_session_id" "\"$new_session_id\""; then
-    echo "ERROR: reclaim_loop: failed to update owner_session_id" >&2
+  # Atomic 4-field update in a single _with_registry_lock transaction.
+  # Pre-2026-04-29 this was 4 separate update_loop_field calls; that opened a
+  # split-brain window between increments. Now: one lock acquisition, one jq
+  # pass, all-or-nothing.
+  if ! _with_registry_lock _reclaim_apply_impl \
+      "$loop_id" "$new_generation" "$current_pid" \
+      "$current_start_time_us" "$new_session_id"; then
+    echo "ERROR: reclaim_loop: atomic 4-field update failed" >&2
     return 1
   fi
 
@@ -637,5 +675,6 @@ export -f release_owner_lock
 export -f verify_owner_alive
 export -f staleness_seconds
 export -f is_reclaim_candidate
+export -f _reclaim_apply_impl
 export -f reclaim_loop
 export -f append_takeover_event
