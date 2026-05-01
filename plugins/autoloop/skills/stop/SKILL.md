@@ -2,7 +2,7 @@
 name: stop
 description: "Mark LOOP_CONTRACT.md completed, append DONE section, send PushNotification, let loop terminate naturally. TRIGGERS - autoloop stop, end loop, terminate contract, stop self-revising loop, complete loop."
 allowed-tools: Bash, Read, Edit, AskUserQuestion, Skill
-argument-hint: "[reason]"
+argument-hint: "[reason] [--keep-forensics]"
 disable-model-invocation: false
 ---
 
@@ -15,6 +15,7 @@ Cleanly terminate a self-revising loop. Appends a `## DONE` section with timesta
 ## Arguments
 
 - Positional (optional): reason string. Defaults to "user-requested stop".
+- `--keep-forensics` (flag, optional): retain the state directory after stop instead of archiving + removing it. Default behavior since Wave 2: cleanup tarball is created and `<state_dir>` is `rm -rf`'d. Pass this flag if you need to inspect heartbeat.json or revision-log/ after stop.
 
 ## Step 1: Locate contract
 
@@ -106,11 +107,30 @@ if ! unregister_loop "$loop_id"; then
 fi
 ```
 
-## Step 7: Update frontmatter
+## Step 7: Clean state directory (Wave 2)
+
+After unregistering, archive and remove the loop's state directory so it doesn't accumulate as an orphan. The tarball is created next to the dir (in its parent), then the dir itself is `rm -rf`'d:
+
+```bash
+# state_dir was already computed in Step 5 via state_dir_path()
+if [ -n "$state_dir" ]; then
+  # Pass --keep-forensics if the user requested it (e.g. they want to inspect
+  # heartbeat.json or revision-log/<session>.jsonl after stop).
+  KEEP_FLAG=""
+  for arg in "$@"; do
+    [ "$arg" = "--keep-forensics" ] && KEEP_FLAG="--keep-forensics"
+  done
+  cleanup_state_dir "$state_dir" $KEEP_FLAG
+fi
+```
+
+`cleanup_state_dir` is exported by `state-lib.sh`. It refuses to operate on paths outside `$HOME` (safety guard). Tarball failure is non-fatal — it warns and proceeds with the rm.
+
+## Step 8: Update frontmatter
 
 Edit the YAML frontmatter `exit_condition` field to include `DONE` so the next firing detects it immediately without scanning the body.
 
-## Step 8: Suggest final commit
+## Step 9: Suggest final commit
 
 Print a suggested commit:
 
