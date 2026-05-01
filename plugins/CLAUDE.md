@@ -120,6 +120,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [link-tools](./link-tools/CLAUDE.md)
 - [macro-keyboard](./macro-keyboard/CLAUDE.md) — also has skill-level CLAUDE.mds (first plugin to adopt the deeper layer; see [macro-keyboard/CLAUDE.md](./macro-keyboard/CLAUDE.md#skills) for the per-skill table)
 - [media-tools](./media-tools/CLAUDE.md)
+- [minimax](./minimax/CLAUDE.md)
 - [mise](./mise/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
 - [plugin-dev](./plugin-dev/CLAUDE.md)
