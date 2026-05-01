@@ -198,8 +198,16 @@ loop_doctor_report() {
 
   local registry_path="$HOME/.claude/loops/registry.json"
   local loops_json="[]"
+  # W2.1 (a): explicit registry corruption check. The pre-existing `jq … 2>/dev/null`
+  # below silently fell through to `loops_json="[]"` on parse failure, so a
+  # corrupted registry looked identical to an empty one. Surface as RED.
+  local registry_corrupt=false
   if [ -f "$registry_path" ]; then
-    loops_json=$(jq '.loops // []' "$registry_path" 2>/dev/null)
+    if ! jq empty "$registry_path" >/dev/null 2>&1; then
+      registry_corrupt=true
+    else
+      loops_json=$(jq '.loops // []' "$registry_path" 2>/dev/null)
+    fi
   fi
 
   # v16.9.1: filter _doctor_check_loop output to only JSON lines.
@@ -237,17 +245,83 @@ loop_doctor_report() {
   pacing_vetoed=${pacing_vetoed:-0}
   empty_firings=${empty_firings:-0}
 
+  # W2.1 (b): recent .hook-errors.log entries. Hooks log validation rejections
+  # and unexpected errors there; without surfacing them, a misbehaving session
+  # is invisible until /autoloop:status shows GREEN-everywhere despite repeated
+  # rejection events. Count newer than 1h, retain newest 3 as samples.
+  local hook_errors_log="$HOME/.claude/loops/.hook-errors.log"
+  local hook_errors_recent=0
+  local hook_errors_samples="[]"
+  if [ -f "$hook_errors_log" ]; then
+    local cutoff_iso
+    cutoff_iso=$(date -u -v-1H +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null \
+      || date -u -d "1 hour ago" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null \
+      || echo "")
+    if [ -n "$cutoff_iso" ]; then
+      hook_errors_recent=$(jq -c --arg cutoff "$cutoff_iso" \
+        'select((.ts // "") > $cutoff)' "$hook_errors_log" 2>/dev/null | wc -l | tr -d ' ')
+      # `-s` slurps newline-delimited JSON values into one array.
+      hook_errors_samples=$(jq -sc --arg cutoff "$cutoff_iso" \
+        'map(select((.ts // "") > $cutoff)) | sort_by(.ts) | reverse | .[0:3]' \
+        "$hook_errors_log" 2>/dev/null || echo "[]")
+    fi
+  fi
+  hook_errors_recent=${hook_errors_recent:-0}
+  [ -z "$hook_errors_samples" ] && hook_errors_samples="[]"
+
+  # W2.1 (c): rapid-reclaim signal — per-loop count of revision-log/superseded-*.json
+  # files newer than 24h. >3 indicates the loop is being repeatedly reclaimed,
+  # often from competing sessions or a stuck owner that won't die.
+  local rapid_reclaim_count=0
+  if [ -n "$loops_json" ] && [ "$loops_json" != "[]" ] && [ "$loops_json" != "null" ]; then
+    while IFS= read -r sd; do
+      [ -z "$sd" ] && continue
+      local rl_dir="$sd/revision-log"
+      [ ! -d "$rl_dir" ] && continue
+      local n
+      n=$(find "$rl_dir" -name 'superseded-*.json' -type f -mtime -1 2>/dev/null | wc -l | tr -d ' ')
+      if [ "${n:-0}" -gt 3 ]; then
+        rapid_reclaim_count=$((rapid_reclaim_count + 1))
+      fi
+    done < <(echo "$loops_json" | jq -r '.[].state_dir // ""' 2>/dev/null | sed 's:/*$::')
+  fi
+
   if [ "$json_mode" = true ]; then
-    echo "$results" | jq -s --argjson pv "${pacing_vetoed:-0}" --argjson ef "${empty_firings:-0}" \
-      '{loops: ., fleet: {pacing_vetoed: $pv, empty_firings: $ef}, generated_at_iso: (now | todate)}'
+    echo "$results" | jq -s \
+      --argjson pv "${pacing_vetoed:-0}" \
+      --argjson ef "${empty_firings:-0}" \
+      --argjson her "${hook_errors_recent:-0}" \
+      --argjson hes "$hook_errors_samples" \
+      --argjson rrc "${rapid_reclaim_count:-0}" \
+      --argjson registry_corrupt "$($registry_corrupt && echo true || echo false)" \
+      '{loops: .,
+        fleet: {pacing_vetoed: $pv,
+                empty_firings: $ef,
+                hook_errors_recent_1h: $her,
+                hook_errors_samples: $hes,
+                loops_with_rapid_reclaim_24h: $rrc,
+                registry_corrupt: $registry_corrupt},
+        generated_at_iso: (now | todate)}'
     return 0
   fi
 
   # Pretty terminal output
+  if [ "$registry_corrupt" = true ]; then
+    echo "RED: ~/.claude/loops/registry.json is NOT valid JSON — doctor cannot enumerate loops."
+    echo "     Inspect:  jq empty $registry_path"
+    echo "     Recover:  cp $registry_path $registry_path.corrupted; restore from backup or rebuild via /autoloop:start in each repo"
+    if [ "${hook_errors_recent:-0}" -gt 0 ]; then
+      echo "     Also:    $hook_errors_recent hook errors in last 1h (see $hook_errors_log)"
+    fi
+    return 1
+  fi
   if [ -z "$results" ]; then
     echo "No loops registered. (GREEN — nothing to diagnose.)"
     if [ "${pacing_vetoed:-0}" -gt 0 ] || [ "${empty_firings:-0}" -gt 0 ]; then
       echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)."
+    fi
+    if [ "${hook_errors_recent:-0}" -gt 0 ]; then
+      echo "YELLOW: $hook_errors_recent hook errors in the last 1h — see $hook_errors_log"
     fi
     return 0
   fi
@@ -258,6 +332,13 @@ loop_doctor_report() {
   red=$(echo "$results" | jq -s '[.[] | select(.verdict == "RED")] | length' 2>/dev/null || echo 0)
   echo "autoloop doctor — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
   echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)"
+  if [ "${hook_errors_recent:-0}" -gt 0 ]; then
+    echo "YELLOW: $hook_errors_recent hook errors in last 1h — newest 3:"
+    echo "$hook_errors_samples" | jq -r '.[] | "  - " + (.ts // "?") + " " + (.kind // "?") + " field=" + (.field // "?") + " value=" + (.value_truncated // "?")' 2>/dev/null
+  fi
+  if [ "${rapid_reclaim_count:-0}" -gt 0 ]; then
+    echo "YELLOW: $rapid_reclaim_count loop(s) had >3 reclaims in last 24h (rapid-reclaim signal — competing sessions or stuck owner)"
+  fi
   echo "================================================================"
   echo "$results" | jq -r '.loop_id + " [" + .verdict + "]" + (if .issues|length > 0 then "\n  - " + (.issues | join("\n  - ")) else "" end)' 2>/dev/null
 }
