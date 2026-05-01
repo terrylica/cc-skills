@@ -884,24 +884,51 @@ cleanup_state_dir() {
     return 0
   fi
 
+  # Resolve symlinks BEFORE the $HOME safety check. Without this, an
+  # attacker (or accidental misconfiguration) could place a symlink at
+  # ~/.autoloop/<slug>--<hash> pointing to /etc or /var/tmp and bypass
+  # the case-glob safety guard. The case-match operates on the literal
+  # string, so a symlink under $HOME passes the check, then `rm -rf` and
+  # `tar -C` follow the link to operate on the target outside $HOME.
+  # By collapsing symlinks first we ensure the safety check sees the
+  # actual destination.
+  local state_dir_real
+  state_dir_real=$(cd "$state_dir" 2>/dev/null && pwd -P) || state_dir_real=""
+  if [ -z "$state_dir_real" ]; then
+    echo "cleanup_state_dir: cannot resolve realpath of '$state_dir'; refusing to act"
+    return 0
+  fi
+  state_dir="$state_dir_real"
+
   # Refuse to operate outside the user's home — accidental absolute path bugs
   # could otherwise rm -rf the wrong tree. The loop state dirs always live
   # under $HOME/.claude/loops/ or under a project's .autoloop/ in $HOME.
+  # Resolve $HOME's own realpath too — on macOS /var is a symlink to
+  # /private/var, so $HOME from env may not match the realpath'd state_dir
+  # prefix character-for-character. Compare against both forms.
+  local home_real
+  home_real=$(cd "$HOME" 2>/dev/null && pwd -P) || home_real="$HOME"
   case "$state_dir" in
     "$HOME"/*) ;;
+    "$home_real"/*) ;;
     *)
-      echo "ERROR: cleanup_state_dir: refusing to operate on '$state_dir' (not under \$HOME)" >&2
+      echo "ERROR: cleanup_state_dir: refusing to operate on '$state_dir' (resolved path not under \$HOME)" >&2
       return 1
       ;;
   esac
 
   # Build archive path. Place tarball alongside the state dir (in its parent),
   # not inside it — otherwise the tarball is part of what we then delete.
-  local parent base ts archive_path
+  # Timestamp uses second-resolution; add a 4-hex random suffix so two
+  # concurrent /autoloop:stop calls within the same second don't clobber each
+  # other's tarballs. (Adversarial-audit finding W4-#5.)
+  local parent base ts rnd archive_path
   parent=$(dirname "$state_dir")
   base=$(basename "$state_dir")
   ts=$(date -u +"%Y%m%dT%H%M%SZ")
-  archive_path="$parent/${base}-archive-${ts}.tar.gz"
+  rnd=$(LC_ALL=C od -An -tx1 -N2 /dev/urandom 2>/dev/null | tr -d ' \n' | head -c 4)
+  [ -z "$rnd" ] && rnd="0000"
+  archive_path="$parent/${base}-archive-${ts}-${rnd}.tar.gz"
 
   # Best-effort tarball — failure here doesn't block the cleanup.
   if ! tar -czf "$archive_path" -C "$parent" "$base" 2>/dev/null; then
