@@ -9,12 +9,42 @@
 # - Merges into settings.json, avoiding duplicates
 # - Preserves existing user hooks that aren't from cc-skills plugins
 # - Uses marketplace path (not cache) for reliability
+# - SKIP_HOOK_SYNC: plugins Claude Code auto-discovers at runtime are
+#   skipped to prevent double-registration. Maintain that list as new
+#   plugins are observed firing twice in the runtime hook display.
 
 set -euo pipefail
 
 SETTINGS="$HOME/.claude/settings.json"
 BACKUP_DIR="$HOME/.claude/backups"
 MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
+
+# Plugins whose hooks Claude Code auto-discovers from the marketplace
+# directly at runtime. Syncing these into settings.json causes
+# DOUBLE-REGISTRATION — the same hook fires twice per event, visible
+# in the "Ran N stop hooks" display as the same script listed twice.
+#
+# We don't fully understand WHY only certain plugins auto-discover (it's
+# not based on path style, hook event type, or enabledPlugins). But the
+# duplication is empirically observable in the runtime hook list — when
+# you see a hook listed twice, add the plugin name here.
+#
+# Plugins in this list still get installed/enabled like all others; only
+# their hooks are skipped during settings.json sync. Claude Code's plugin
+# loader registers them at runtime instead.
+SKIP_HOOK_SYNC=(
+    clarify-prompts
+    statusline-tools
+)
+
+# Returns 0 if plugin is in the skip-list, 1 otherwise.
+is_skipped() {
+    local plugin="$1"
+    for skip in "${SKIP_HOOK_SYNC[@]}"; do
+        [[ "$skip" == "$plugin" ]] && return 0
+    done
+    return 1
+}
 
 # Colors
 GREEN='\033[0;32m'
@@ -54,10 +84,17 @@ main() {
 
     # Find all hooks.json files in marketplace
     local hooks_added=0
+    local skipped_count=0
     for hooks_file in "$MARKETPLACE_DIR"/plugins/*/hooks/hooks.json; do
         if [[ -f "$hooks_file" ]]; then
             local plugin_name
             plugin_name=$(basename "$(dirname "$(dirname "$hooks_file")")")
+
+            # Skip auto-discovered plugins (see SKIP_HOOK_SYNC at top).
+            if is_skipped "$plugin_name"; then
+                ((skipped_count++))
+                continue
+            fi
 
             # Read hooks from plugin — must be object format (keyed by event type)
             local hooks_type
@@ -113,6 +150,9 @@ main() {
     stop_count=$(jq '.hooks.Stop | length' "$SETTINGS")
 
     info "Hooks synced: PreToolUse=$pretooluse_count, PostToolUse=$posttooluse_count, Stop=$stop_count"
+    if [[ $skipped_count -gt 0 ]]; then
+        info "Auto-discovered plugins skipped (avoid double-registration): $skipped_count"
+    fi
 }
 
 main "$@"
