@@ -11,7 +11,7 @@ mise run release:status
 # Dry run (preview)
 mise run release:dry
 
-# Full release (5 phases)
+# Full release (6 phases)
 mise run release:full
 ```
 
