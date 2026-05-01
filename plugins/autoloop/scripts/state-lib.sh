@@ -848,6 +848,82 @@ migrate_legacy_contract() {
   return 0
 }
 
+# cleanup_state_dir <state_dir> [--keep-forensics]
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Archive a loop's state dir to a tarball next to it, then remove the dir.
+# Used by /autoloop:stop AFTER unregister_loop has run; without this, every
+# stop accumulates a stale state dir under .autoloop/ that never gets pruned
+# (root cause of orphan accumulation surfaced in Wave 1's audit).
+#
+# Tarball location: <state_dir>/../<basename(state_dir)>-archive-<ts>.tar.gz
+#   — sits next to (not inside) the dir, so removing the dir doesn't trash it.
+#
+# Idempotent: missing state_dir returns 0 with a notice. Tarball failure is
+# recoverable (we still rm -rf the dir; archive is best-effort forensics).
+#
+# Arguments:
+#   $1 (state_dir):         absolute path to the loop's state directory.
+#                           Callers already have this from state_dir_path().
+#   $2 (optional flag):     --keep-forensics → archive but DO NOT rm the dir
+#
+# Exit code:
+#   0 on success or no-op
+#   1 only on rm failure
+cleanup_state_dir() {
+  local state_dir="${1:-}"
+  local keep_forensics=false
+  if [ "${2:-}" = "--keep-forensics" ]; then
+    keep_forensics=true
+  fi
+
+  # Strip trailing slashes for clean basename/dirname computation.
+  state_dir="${state_dir%/}"
+
+  if [ -z "$state_dir" ] || [ ! -d "$state_dir" ]; then
+    echo "cleanup_state_dir: no state_dir to clean (path empty or already gone)"
+    return 0
+  fi
+
+  # Refuse to operate outside the user's home — accidental absolute path bugs
+  # could otherwise rm -rf the wrong tree. The loop state dirs always live
+  # under $HOME/.claude/loops/ or under a project's .autoloop/ in $HOME.
+  case "$state_dir" in
+    "$HOME"/*) ;;
+    *)
+      echo "ERROR: cleanup_state_dir: refusing to operate on '$state_dir' (not under \$HOME)" >&2
+      return 1
+      ;;
+  esac
+
+  # Build archive path. Place tarball alongside the state dir (in its parent),
+  # not inside it — otherwise the tarball is part of what we then delete.
+  local parent base ts archive_path
+  parent=$(dirname "$state_dir")
+  base=$(basename "$state_dir")
+  ts=$(date -u +"%Y%m%dT%H%M%SZ")
+  archive_path="$parent/${base}-archive-${ts}.tar.gz"
+
+  # Best-effort tarball — failure here doesn't block the cleanup.
+  if ! tar -czf "$archive_path" -C "$parent" "$base" 2>/dev/null; then
+    echo "WARNING: cleanup_state_dir: tarball creation failed at $archive_path; proceeding with rm" >&2
+  else
+    echo "cleanup_state_dir: archived state_dir → $archive_path"
+  fi
+
+  if [ "$keep_forensics" = true ]; then
+    echo "cleanup_state_dir: --keep-forensics set; leaving $state_dir in place"
+    return 0
+  fi
+
+  if rm -rf "$state_dir" 2>/dev/null; then
+    echo "cleanup_state_dir: removed $state_dir"
+  else
+    echo "WARNING: cleanup_state_dir: failed to remove $state_dir" >&2
+    return 1
+  fi
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f now_us
 export -f state_dir_path
@@ -859,4 +935,5 @@ export -f init_contract_frontmatter_v2
 export -f slugify
 export -f compute_short_hash
 export -f derive_v2_contract_path
+export -f cleanup_state_dir
 export -f migrate_legacy_contract

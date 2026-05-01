@@ -247,6 +247,20 @@ _with_registry_lock() {
     sync || true
   fi
 
+  # Pre-rename JSON validation (W2.3). The in-memory check at line 226 catches
+  # fn-produced garbage; this catches DISK-side truncation between `echo >`
+  # and `mv` — disk-full, filesystem error, OOM-killed echo. Without this gate
+  # a partial `}{`-style write could silently replace registry.json. If the
+  # temp file is invalid, abort and let the trap clean it up; the original
+  # registry.json is untouched.
+  if ! jq empty "$temp_file" >/dev/null 2>&1; then
+    echo "ERROR: _with_registry_lock: temp file is not valid JSON post-write — aborting transaction" >&2
+    if command -v log_validation_event >/dev/null 2>&1; then
+      log_validation_event registry_corrupt_pre_rename temp_file "$temp_file" caller=_with_registry_lock fn="$fn"
+    fi
+    return 1
+  fi
+
   # Atomic rename to commit
   if ! mv "$temp_file" "$registry_file"; then
     echo "ERROR: _with_registry_lock: atomic rename failed" >&2
