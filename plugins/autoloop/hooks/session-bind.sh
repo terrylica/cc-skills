@@ -50,6 +50,11 @@ _log_error() {
     --arg hook "session-bind.sh" \
     '{ts_us: $ts_us, cwd: $cwd, error: $error, exit_code: $exit_code, hook: $hook}' \
     >>"$HOOK_ERRORS_LOG" 2>/dev/null || true
+  # Wave 4 W2.4: opportunistic rotation. Best-effort; missing helper or
+  # rotation failure does not block the hook.
+  if command -v rotate_jsonl_if_large >/dev/null 2>&1; then
+    rotate_jsonl_if_large "$HOOK_ERRORS_LOG" 2>/dev/null || true
+  fi
 }
 
 trap '_log_error "Unexpected error in session-bind hook" "$?"' ERR
