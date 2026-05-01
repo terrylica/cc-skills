@@ -55,18 +55,18 @@ Three features distinguish this pattern from a plain `/loop`:
 
 ## Motivating example
 
-This plugin was extracted from a 37-iteration autonomous quant-research campaign on Open Deviation Bars (ODB). See [docs/design/2026-04-20-autoloop/spec.md](../../docs/design/2026-04-20-autoloop/spec.md) for the full case study with verbatim contract snapshots.
+This plugin was extracted from a 37-iteration autonomous quant-research campaign on Open Deviation Bars (ODB). See [docs/design/2026-04-20-autonomous-loop/spec.md](../../docs/design/2026-04-20-autonomous-loop/spec.md) for the full case study with verbatim contract snapshots (path retains the pre-rename `autonomous-loop` directory name for historical context).
 
 ## Skills
 
-| Skill              | Invocation                     | Purpose                                                             |
-| ------------------ | ------------------------------ | ------------------------------------------------------------------- |
-| `autoloop:start`   | `/autoloop:start [path]`       | Scaffold contract, install hook, register loop, load launchd plist  |
-| `autoloop:status`  | `/autoloop:status [loop_id]`   | Report ownership, iteration, health, staleness across all loops     |
-| `autoloop:stop`    | `/autoloop:stop [path]`        | Unload plist, unregister loop, mark DONE in contract                |
-| `autoloop:setup`   | `/autoloop:setup`              | One-time machine setup: create ~/.claude/loops dir, verify hook env |
-| `autoloop:notify`  | (automatic via heartbeat-tick) | Send coalesced notifications per loop                               |
-| `autoloop:reclaim` | `/autoloop:reclaim <loop_id>`  | Atomically seize stuck loop (dead owner, stale heartbeat)           |
+| Skill              | Invocation                          | Purpose                                                                 |
+| ------------------ | ----------------------------------- | ----------------------------------------------------------------------- |
+| `autoloop:start`   | `/autoloop:start [path]`            | Scaffold contract, install hook, register loop, load launchd plist      |
+| `autoloop:status`  | `/autoloop:status [loop_id]`        | Report ownership, iteration, health, staleness across all loops         |
+| `autoloop:stop`    | `/autoloop:stop [path]`             | Unload plist, unregister loop, mark DONE in contract                    |
+| `autoloop:setup`   | `/autoloop:setup`                   | One-time machine setup: create ~/.claude/loops dir, verify hook env     |
+| `autoloop:reclaim` | `/autoloop:reclaim <loop_id>`       | Atomically seize stuck loop (dead owner, stale heartbeat)               |
+| `autoloop:doctor`  | `/autoloop:doctor [--json] [--fix]` | Diagnose fleet health, surface stale/orphaned loops, --fix safe orphans |
 
 ## Subscription-safe
 
