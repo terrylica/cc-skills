@@ -1,3 +1,10 @@
+# [17.3.0](https://github.com/terrylica/cc-skills/compare/v17.2.1...v17.3.0) (2026-05-01)
+
+
+### Features
+
+* **autoloop:** Wave 2 — observability + lifecycle cleanup ([693ff42](https://github.com/terrylica/cc-skills/commit/693ff42887dd4797e8b9e8b811f1bb539f570815))
+
 ## [17.2.1](https://github.com/terrylica/cc-skills/compare/v17.2.0...v17.2.1) (2026-05-01)
 
 # [17.2.0](https://github.com/terrylica/cc-skills/compare/v17.1.1...v17.2.0) (2026-05-01)
