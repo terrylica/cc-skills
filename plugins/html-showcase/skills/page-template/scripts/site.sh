@@ -5,8 +5,9 @@
 # scripts/check-orphan-pages.py, and you're done.
 #
 # Subcommands:
-#   push <local-dir>        Validate + rsync to bigblack:~/sites/<project>/<page>/
-#   check <local-dir>       Validate only (lychee + orphan-page detector)
+#   nav <local-dir>         Regenerate site-map.html + auto-nav rail (no network)
+#   push <local-dir>        Build nav + validate + rsync to bigblack:~/sites/<project>/<page>/
+#   check <local-dir>       Build nav + validate only (lychee + orphan-page detector)
 #   url <local-dir>         Print the URL where <local-dir> would publish to
 #   list                    List all published projects/pages on bigblack
 #   unpublish <local-dir>   Remove the page from bigblack (asks for confirmation)
@@ -69,9 +70,43 @@ build_remote_path() {
 
 require() { command -v "$1" >/dev/null 2>&1 || { echo "missing: $1" >&2; exit 1; }; }
 
+# Resolve build-nav.py: prefer scripts/build-nav.py in the consuming repo;
+# fall back to the canonical copy that ships with this skill so a repo can
+# call site.sh before it has copied the script in.
+resolve_build_nav() {
+  if [[ -f "$REPO_ROOT/scripts/build-nav.py" ]]; then
+    echo "$REPO_ROOT/scripts/build-nav.py"
+    return
+  fi
+  local skill_root="${HTML_SHOWCASE_PLUGIN:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}"
+  if [[ -f "$skill_root/skills/page-template/scripts/build-nav.py" ]]; then
+    echo "$skill_root/skills/page-template/scripts/build-nav.py"
+    return
+  fi
+  echo ""
+}
+
+cmd_nav() {
+  local local_dir="${1:?nav <local-dir>}"
+  [[ -d "$local_dir" ]] || { echo "not a directory: $local_dir" >&2; exit 1; }
+  local build_nav
+  build_nav="$(resolve_build_nav)"
+  if [[ -z "$build_nav" ]]; then
+    echo "✗ build-nav.py not found in $REPO_ROOT/scripts/ or the html-showcase plugin" >&2
+    echo "  Copy it: cp \$CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py ./scripts/" >&2
+    exit 1
+  fi
+  echo "→ regenerating site-map + auto-nav for $local_dir"
+  python3 "$build_nav" --root "$local_dir"
+}
+
 cmd_check() {
   local local_dir="${1:?check <local-dir>}"
   [[ -d "$local_dir" ]] || { echo "not a directory: $local_dir" >&2; exit 1; }
+
+  # Always regenerate nav before validating — sitemap is the SSoT for the
+  # page graph, and lychee/orphan-check both depend on it being fresh.
+  cmd_nav "$local_dir"
 
   echo "→ validating $local_dir"
 
@@ -192,6 +227,7 @@ cmd_unpublish() {
 }
 
 case "${1:-}" in
+  nav)       shift; cmd_nav       "$@" ;;
   push)      shift; cmd_push      "$@" ;;
   check)     shift; cmd_check     "$@" ;;
   url)       shift; cmd_url       "$@" ;;
@@ -202,8 +238,9 @@ case "${1:-}" in
 Usage: $0 <command> [args]
 
 Commands:
-  push <local-dir>        Validate + rsync to bigblack
-  check <local-dir>       Validate only (lychee + orphan-page check)
+  nav <local-dir>         Regenerate site-map + auto-nav (no network)
+  push <local-dir>        Build nav + validate + rsync to bigblack
+  check <local-dir>       Build nav + validate (lychee + orphan-page check)
   url <local-dir>         Print the URL where <local-dir> publishes to
   list                    List all published pages on bigblack
   unpublish <local-dir>   Remove the page from bigblack
@@ -213,6 +250,9 @@ Environment overrides:
   SITE_BIGBLACK_SSH       SSH alias (default: bigblack)
   SITE_BIGBLACK_ROOT      Remote root (default: /home/tca/sites)
   SITE_BASE_URL           Public URL (default: https://bigblack.tail0f299b.ts.net:8448)
+  HTML_SHOWCASE_PLUGIN    Override plugin root if build-nav.py is not in
+                          scripts/ (default: ~/.claude/plugins/marketplaces/cc-skills/
+                          plugins/html-showcase)
 EOF
     exit 1 ;;
 esac

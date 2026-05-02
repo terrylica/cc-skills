@@ -10,16 +10,19 @@
 The kernel CSS and the rendered HTML pages live in different places, on
 purpose:
 
-| Asset                    | Hosted at                     | Why                                                                   |
-| ------------------------ | ----------------------------- | --------------------------------------------------------------------- |
-| `assets/showcase.css`    | jsDelivr CDN (public)         | Shared infrastructure: every page anywhere imports it via one URL.    |
-| Your rendered HTML pages | Tailscale tailnet on bigblack | Internal-only audience; no DNS, no public exposure, no reverse proxy. |
-| (alternatively) HTML     | jsDelivr / GH Pages / Workers | Public reach, public-internet caching, public-search visibility.      |
+| Asset                                | Hosted at                     | Why                                                                                           |
+| ------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------- |
+| `assets/showcase.css`                | jsDelivr CDN (public)         | Shared infrastructure: every page anywhere imports it via one URL.                            |
+| `auto-nav.css`, `auto-nav.js`        | Generated next to your HTML   | Site-local; written by `build-nav.py` at publish time. Versioned via the `?v=N` query string. |
+| `site-map.html` + per-page rail HTML | Generated into your site dir  | The sitemap is part of your published artifact; it ships alongside the pages it indexes.      |
+| Your rendered HTML pages             | Tailscale tailnet on bigblack | Internal-only audience; no DNS, no public exposure, no reverse proxy.                         |
+| (alternatively) HTML                 | jsDelivr / GH Pages / Workers | Public reach, public-internet caching, public-search visibility.                              |
 
-The kernel is _shared infrastructure_; rendered pages are _evidence_
-intended for a specific audience. Treat the two surfaces independently.
-A page that imports the public kernel can still be served privately —
-the kernel CSS is the only public artifact.
+The kernel is _shared infrastructure_; rendered pages (and their
+auto-generated nav assets) are _evidence_ intended for a specific
+audience. Treat the two surfaces independently. A page that imports the
+public kernel can still be served privately — the kernel CSS is the only
+public artifact, and the nav rail's CSS/JS travel with the site dir.
 
 ## Pick a delivery surface
 
@@ -59,28 +62,38 @@ Tailscale terminates TLS automatically using its own MagicDNS cert.
 ### Per-repo setup (3 lines)
 
 ```bash
-cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/site.sh ./scripts/
+cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py ./scripts/
 cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/check-orphan-pages.py ./scripts/
+cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/site.sh ./scripts/
 echo '**/.published.json' >> .gitignore
 ```
 
+That's the full pipeline: nav build, orphan detector, publish wrapper.
+`site.sh` will fall back to the canonical `build-nav.py` shipped with
+this plugin if the in-repo copy is missing, so the very first push works
+even before you commit your `scripts/` directory — but committing the
+three scripts keeps the repo self-contained.
+
 (If you also want shorthand commands like `mise run site:push`, add a
-small `.mise/tasks/site.toml` that calls `scripts/site.sh` — see the
-opendeviationbar-py repo for a working example.)
+small `.mise/tasks/site.toml` that calls `scripts/site.sh`.)
 
 ### The publish workflow
 
 ```bash
-scripts/site.sh check  <local-dir>   # validate (lychee + orphan-check)
-scripts/site.sh push   <local-dir>   # validate then rsync to bigblack
-scripts/site.sh url    <local-dir>   # print the URL where it lives
-scripts/site.sh list                 # show every published page across projects
-scripts/site.sh unpublish <local-dir>  # remove (asks for confirmation)
+scripts/site.sh nav       <local-dir>   # regenerate site-map + auto-nav (no network)
+scripts/site.sh check     <local-dir>   # nav + lychee + orphan-page check
+scripts/site.sh push      <local-dir>   # nav + check + rsync to bigblack
+scripts/site.sh url       <local-dir>   # print the URL where it lives
+scripts/site.sh list                    # show every published page across projects
+scripts/site.sh unpublish <local-dir>   # remove (asks for confirmation)
 ```
 
-`push` always re-runs `check` first — broken links or unreachable pages
-abort the push **before** anything reaches bigblack. This is the only
-gate; there's no semantic-release step.
+`check` always re-runs `nav` first; `push` always re-runs `check` first.
+Broken links, unreachable pages, or a stale rail abort the push **before**
+anything reaches bigblack. This is the only gate; there's no
+semantic-release step. The sitemap itself becomes part of the link graph
+that lychee + the orphan detector validate, so the rail's correctness is
+checked on every publish.
 
 ### The URL formula
 
