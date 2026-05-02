@@ -181,7 +181,20 @@ cmd_search() {
     return 0
   fi
   echo "→ rebuilding Pagefind search index for $local_dir"
-  "$pagefind" --site "${local_dir%/}" 2>&1 | grep -E '(Indexed|Finished|error|Error)' || true
+  # Pre-clean any stale or half-built index from a previous killed run.
+  # Without this, a SIGINT mid-pagefind leaves orphan chunks that the
+  # next run won't auto-overwrite — bigblack would serve a half-broken
+  # search until the user noticed and intervened. rm -rf is safe here
+  # because pagefind owns this dir entirely.
+  rm -rf "${local_dir%/}/pagefind"
+  if ! "$pagefind" --site "${local_dir%/}" 2>&1 | grep -E '(Indexed|Finished|error|Error)'; then
+    : # captured output already piped
+  fi
+  # Sanity: pagefind didn't write its UI assets → search will 404.
+  if [[ ! -f "${local_dir%/}/pagefind/pagefind-ui.js" ]]; then
+    echo "⚠ pagefind ran but didn't produce pagefind-ui.js — index may be incomplete." >&2
+    return 1
+  fi
 }
 
 cmd_check() {
@@ -228,10 +241,12 @@ cmd_push() {
   # 1. Validate first — push-side gate
   cmd_check "$local_dir"
 
-  # 2. Stamp provenance
-  local commit_sha timestamp project page url remote_path
+  # 2. Compute provenance values (write the file ONLY after rsync
+  # succeeds; otherwise a torn rsync would leave a `.published.json`
+  # claiming the publish completed when bigblack was actually mid-write).
+  local commit_sha timestamp project page url remote_path source_repo dirty
   commit_sha="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
-  local dirty=""
+  dirty=""
   if ! git -C "$REPO_ROOT" diff --quiet -- "$local_dir" 2>/dev/null; then
     dirty="-dirty"
   fi
@@ -240,30 +255,48 @@ cmd_push() {
   page="$(page_name "$local_dir")"
   url="$(build_url "$local_dir")"
   remote_path="$(build_remote_path "$local_dir")"
+  source_repo="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || echo unknown)"
 
-  cat > "$local_dir/.published.json" <<JSON
+  # 3. Rsync to bigblack — abort on SSH or rsync failure BEFORE stamping
+  # provenance. A failure here means the live site wasn't updated.
+  echo "→ rsync $local_dir/ → $BIGBLACK_SSH:$remote_path/"
+  # shellcheck disable=SC2029  # intentional client-side expansion of $remote_path
+  if ! ssh -o ConnectTimeout=15 -o BatchMode=yes "$BIGBLACK_SSH" "mkdir -p '$remote_path'"; then
+    echo "✗ SSH to $BIGBLACK_SSH failed — site not published. Check Tailscale / ssh keys." >&2
+    return 1
+  fi
+  if ! rsync -av --delete \
+        --timeout=30 \
+        -e "ssh -o ConnectTimeout=15 -o BatchMode=yes" \
+        --exclude '.git/' \
+        --exclude '.DS_Store' \
+        --exclude '*.swp' \
+        --exclude 'node_modules/' \
+        --exclude '__pycache__/' \
+        --exclude '.venv/' \
+        --exclude '.published.json.tmp.*' \
+        "$local_dir/" "$BIGBLACK_SSH:$remote_path/"; then
+    echo "✗ rsync failed — site may be partially updated. Re-run scripts/site.sh push <site> to retry." >&2
+    return 1
+  fi
+
+  # 4. Stamp provenance only AFTER rsync confirmed success. Atomic via
+  # tmp + mv so a SIGINT during this step doesn't leave an unparseable
+  # `.published.json`. Write to local; rsync's already done — the
+  # next push (or a fresh re-run) will mirror this stamp to bigblack.
+  local tmpfile
+  tmpfile=$(mktemp "$local_dir/.published.json.tmp.XXXXXX")
+  cat > "$tmpfile" <<JSON
 {
   "project": "$project",
   "page": "$page",
   "commit": "${commit_sha}${dirty}",
   "published_utc": "$timestamp",
-  "source_repo": "$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || echo unknown)",
+  "source_repo": "$source_repo",
   "url": "$url"
 }
 JSON
-
-  # 3. Rsync to bigblack
-  echo "→ rsync $local_dir/ → $BIGBLACK_SSH:$remote_path/"
-  # shellcheck disable=SC2029  # intentional client-side expansion of $remote_path
-  ssh "$BIGBLACK_SSH" "mkdir -p '$remote_path'"
-  rsync -av --delete \
-    --exclude '.git/' \
-    --exclude '.DS_Store' \
-    --exclude '*.swp' \
-    --exclude 'node_modules/' \
-    --exclude '__pycache__/' \
-    --exclude '.venv/' \
-    "$local_dir/" "$BIGBLACK_SSH:$remote_path/"
+  mv -f "$tmpfile" "$local_dir/.published.json"
 
   echo ""
   echo "✓ published"
