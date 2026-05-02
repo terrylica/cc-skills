@@ -43,6 +43,9 @@ Idempotency contract:
 
 Pure stdlib. Works on file:// URLs. Pure HTML+CSS rail rendering with a
 small optional JS for drag-to-resize.
+
+Requires Python 3.10+. On 3.12+ uses Path.relative_to(walk_up=True) for
+relative-path resolution; falls back to os.path.relpath on 3.10 / 3.11.
 """
 from __future__ import annotations
 
@@ -612,10 +615,17 @@ def write_rail_assets(root: Path) -> None:
 
 
 def relpath_from(page: Path, target: Path) -> str:
-    """Compute relative path from page's dir to target."""
+    """Compute relative path from page's dir to target.
+
+    Tries Pathlib's walk_up=True (Python 3.12+) and falls back to
+    os.path.relpath on older interpreters or any other shape problem.
+    The fallback covers TypeError (3.10/3.11 — kwarg unknown),
+    AttributeError (legacy stdlib shapes), and ValueError (siblings on
+    different drives, etc.).
+    """
     try:
         return str(target.relative_to(page.parent.resolve(), walk_up=True))
-    except (ValueError, AttributeError):
+    except (ValueError, AttributeError, TypeError):
         from os.path import relpath
         return relpath(target, start=page.parent.resolve())
 
