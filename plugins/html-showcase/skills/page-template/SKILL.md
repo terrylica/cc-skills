@@ -90,6 +90,18 @@ The auto-nav rail is _generated_, not hand-written. Its styling lives in
 between `<!-- AUTO-NAV-START -->` and `<!-- AUTO-NAV-END -->` markers in
 each page's `<body>`.
 
+The rail's runtime behavior:
+
+- **First load**: width auto-fits to the longest unwrapped link (uses
+  `width: max-content` to measure each link's true intrinsic width,
+  independent of the rail's current size), clamped to `[220, 760]px`.
+- **Drag the right-edge handle**: resize manually within `[220, 1200]px`;
+  the chosen width is persisted in `localStorage`.
+- **Double-click the handle**: clears the saved width and re-runs
+  auto-fit (semantically: "reset to smart default").
+- The handle is a 14px hit zone with an always-visible 2px indicator
+  line and a hover tooltip explaining the dual gesture.
+
 ## Four contributor stances
 
 Pick the role that matches your task. Full workflow for each in
@@ -125,6 +137,7 @@ Do NOT use for: blog posts, marketing landing pages, interactive web apps.
 | `scripts/build-nav.py`            | **Universal sitemap builder — auto-nav + site-map.html generator** |
 | `scripts/check-orphan-pages.py`   | Pure-stdlib orphan-page graph validator                            |
 | `scripts/site.sh`                 | Build nav + validate + push to bigblack via Tailscale (see below)  |
+| `scripts/install.sh`              | **One-shot bootstrap: install all 3 scripts into any repo**        |
 | `references/principles.md`        | The WHY — five principles + AI patterns                            |
 | `references/sitemap.md`           | The HOW — filesystem-as-sitemap contract, rail rendering           |
 | `references/contributing.md`      | The HOW — four stances with full workflows                         |
@@ -146,14 +159,21 @@ Two surfaces, two roles:
 
 For internal-audience sites (audit reports, contractor showcases,
 telemetry views, weekly digests), the bigblack tailnet path is the
-lowest-friction option. Adopting it in any repo is four lines:
+lowest-friction option. Adopting it in any repo is **one command**:
 
 ```bash
 PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-cp "$PLUGIN/skills/page-template/scripts/build-nav.py"        ./scripts/
-cp "$PLUGIN/skills/page-template/scripts/check-orphan-pages.py" ./scripts/
-cp "$PLUGIN/skills/page-template/scripts/site.sh"             ./scripts/
-echo '**/.published.json' >> .gitignore
+bash "$PLUGIN/skills/page-template/scripts/install.sh"
+```
+
+That installs all three pipeline scripts (`build-nav.py`,
+`check-orphan-pages.py`, `site.sh`) into `<repo>/scripts/` and
+appends `**/.published.json` to `.gitignore`. The installer is
+idempotent (re-running it is a no-op) and non-destructive
+(`--force` to overwrite). To also seed a starter site directory:
+
+```bash
+bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
 ```
 
 Then `scripts/site.sh push <site-dir>` regenerates the sitemap, validates
@@ -217,36 +237,47 @@ choices — both legitimate, both documented in `references/contributing.md`:
 
 ## Quick start (Consumer stance, sitemap-organized)
 
+The fastest path: run the installer to bootstrap the pipeline scripts +
+a starter site, then iterate.
+
+```bash
+PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
+
+# 1. Bootstrap the pipeline + starter site directory
+bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
+
+# 2. (Optional) Add one or more sections under contractor-site/
+mkdir -p contractor-site/2026-05-02-first-section
+cp "$PLUGIN/skills/page-template/templates/section-index.html" \
+   contractor-site/2026-05-02-first-section/index.html
+cp "$PLUGIN/skills/page-template/templates/index.html" \
+   contractor-site/2026-05-02-first-section/page-a.html
+
+# 3. Fill {{ PLACEHOLDERS }} in the HTML, then build the sitemap + nav
+scripts/site.sh nav contractor-site
+
+# 4. Validate (lychee + orphan check)
+scripts/site.sh check contractor-site
+
+# 5. View — any page reaches every other via the rail
+open contractor-site/index.html
+open contractor-site/site-map.html
+```
+
+Or, if you'd rather copy the templates by hand without the installer:
+
 ```bash
 PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
 DEST=/path/to/your-site
 mkdir -p "$DEST"
-
-# Site home + lychee config
-cp "$PLUGIN/skills/page-template/templates/index.html" "$DEST/"
-cp "$PLUGIN/skills/page-template/templates/lychee.toml" "$DEST/"
-
-# (Optional) per-site overrides
-cp "$PLUGIN/skills/page-template/templates/overrides.css.example" "$DEST/overrides.css"
-
-# (Optional) one or more sections — repeat per section
-mkdir -p "$DEST/2026-05-02-first-section"
-cp "$PLUGIN/skills/page-template/templates/section-index.html" \
-   "$DEST/2026-05-02-first-section/index.html"
-cp "$PLUGIN/skills/page-template/templates/index.html" \
-   "$DEST/2026-05-02-first-section/page-a.html"
-
-# Fill {{ PLACEHOLDERS }} in the HTML, then build the sitemap + nav
+cp "$PLUGIN/skills/page-template/templates/index.html"   "$DEST/"
+cp "$PLUGIN/skills/page-template/templates/lychee.toml"  "$DEST/"
 python3 "$PLUGIN/skills/page-template/scripts/build-nav.py" --root "$DEST"
-
-# Verify
-lychee --config "$DEST/lychee.toml" "$DEST/**/*.html"
-python3 "$PLUGIN/skills/page-template/scripts/check-orphan-pages.py" "$DEST/"
-
-# View
-open "$DEST/index.html"          # any page reaches every other via the rail
-open "$DEST/site-map.html"       # master tree view
 ```
+
+`site.sh` falls back to the plugin-shipped `build-nav.py` when no copy
+is present in `<repo>/scripts/`, so even without the installer you can
+push to bigblack from any repo using the plugin-shipped script directly.
 
 For the other three stances (Customizer, Contributor, Publisher), see
 [`references/contributing.md`](references/contributing.md). For the

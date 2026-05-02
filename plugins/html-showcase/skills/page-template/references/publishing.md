@@ -59,7 +59,34 @@ ssh bigblack 'sudo tailscale serve --bg --https=8448 /home/tca/sites'
 That's the whole server. No nginx. No reverse proxy. No certs to renew —
 Tailscale terminates TLS automatically using its own MagicDNS cert.
 
-### Per-repo setup (3 lines)
+### Per-repo setup (one command)
+
+```bash
+PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
+bash "$PLUGIN/skills/page-template/scripts/install.sh"
+```
+
+That's it. `install.sh` is the one-shot bootstrap: it copies the three
+pipeline scripts (`build-nav.py`, `check-orphan-pages.py`, `site.sh`)
+into `<repo>/scripts/` and appends `**/.published.json` to your
+`.gitignore`. It auto-detects the repo root via `git rev-parse
+--show-toplevel`, or falls back to `$PWD`.
+
+The installer is **idempotent** (re-running with no changes prints `=
+unchanged` for every file) and **non-destructive** (refuses to
+overwrite an existing differing file unless you pass `--force`).
+
+To also seed a starter site directory in one go:
+
+```bash
+bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
+```
+
+That additionally copies `templates/index.html`,
+`templates/overrides.css.example`, and `templates/lychee.toml` into
+`<repo>/contractor-site/`.
+
+If you'd rather copy by hand, the four-line manual form still works:
 
 ```bash
 cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py ./scripts/
@@ -68,11 +95,11 @@ cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/site.sh ./scripts/
 echo '**/.published.json' >> .gitignore
 ```
 
-That's the full pipeline: nav build, orphan detector, publish wrapper.
-`site.sh` will fall back to the canonical `build-nav.py` shipped with
-this plugin if the in-repo copy is missing, so the very first push works
-even before you commit your `scripts/` directory — but committing the
-three scripts keeps the repo self-contained.
+In either form, the `site.sh` shipped here will fall back to the
+canonical `build-nav.py` shipped with this plugin if the in-repo copy
+is missing, so the very first push works even before you commit your
+`scripts/` directory — but committing the three scripts keeps the repo
+self-contained.
 
 (If you also want shorthand commands like `mise run site:push`, add a
 small `.mise/tasks/site.toml` that calls `scripts/site.sh`.)
