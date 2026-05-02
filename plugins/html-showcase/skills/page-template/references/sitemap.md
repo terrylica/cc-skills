@@ -89,6 +89,30 @@ Top-level pages (pages directly in `<site-root>`, not in a subdirectory)
 get the home-page version of the rail: just the Site shortcuts. They
 have no "section siblings" because they aren't in a section.
 
+## Rail width: auto-fit, drag, persist
+
+The rail's width is dynamic at runtime, governed by `auto-nav.js`:
+
+| Gesture                          | Effect                                                                                                                                   |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **First load** (no saved width)  | Measures every `.rail-link`'s **intrinsic** width via `width: max-content`, picks `max + padding + scrollbar`, clamps to `[220, 760]px`. |
+| **Drag the right-edge handle**   | Live resize within `[220, 1200]px`. The chosen width is saved to `localStorage` under `autoNavWidth_universal_v1`.                       |
+| **Double-click the handle**      | Clears the saved width and re-runs auto-fit. Mental model: "reset to smart default", not "force the maximum".                            |
+| **Return visit** (saved present) | The saved width wins; auto-fit is skipped. Drag preferences persist across pages.                                                        |
+
+Why `width: max-content` matters: `scrollWidth` on a block-level link
+returns `max(clientWidth, content-width)`. If the rail is currently 880
+px, the link element fills its parent and `scrollWidth` collapses to
+the rail's content width — measuring text width via `scrollWidth` while
+the rail is wide returns junk. Forcing `max-content` per link sizes
+each one to its true intrinsic content, regardless of the rail's
+current width, so auto-fit converges on the same answer whether the
+rail is at 220 px or 1200 px when measurement runs.
+
+The 14 px-wide handle has an always-visible 2 px indicator line and a
+hover tooltip that explains the dual gesture. The hit zone is wider
+than the visible indicator so double-clicks are easy to land.
+
 ## The marker convention
 
 ```html
