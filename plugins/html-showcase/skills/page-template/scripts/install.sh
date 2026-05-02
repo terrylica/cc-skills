@@ -10,7 +10,7 @@
 # never overwrites an existing file unless --force is passed.
 #
 # Usage:
-#   bash install.sh [--repo <path>] [--site <name>] [--force] [--check]
+#   bash install.sh [--repo <path>] [--site <name>] [--force] [--check] [--hook]
 #
 #   --repo <path>   Target repo root (default: $PWD or `git rev-parse
 #                   --show-toplevel` if invoked inside a git tree)
@@ -22,6 +22,12 @@
 #                   what would be installed, exit 0 if everything is
 #                   already in place, exit 10 if anything is missing.
 #                   Pairs with the /html-showcase:setup skill.
+#   --hook          Also install a pre-push git hook that regenerates the
+#                   sitemap + Pagefind search index and rsyncs every
+#                   tracked site dir to bigblack on `git push main`.
+#                   Wires <repo>/.githooks/ via `git config
+#                   core.hooksPath .githooks`. Non-blocking; failure
+#                   never blocks the push.
 #
 # After install, the workflow is:
 #   scripts/site.sh nav   <site-dir>   # regenerate sitemap + auto-nav
@@ -50,6 +56,7 @@ REPO=""
 SITE=""
 FORCE=0
 CHECK_ONLY=0
+INSTALL_HOOK=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -57,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --site)  SITE="$2";  shift 2 ;;
     --force) FORCE=1;    shift ;;
     --check) CHECK_ONLY=1; shift ;;
+    --hook)  INSTALL_HOOK=1; shift ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | sed 's/^# *//'
       exit 0 ;;
@@ -78,6 +86,23 @@ REPO="$(cd "$REPO" && pwd)"
 
 if [[ ! -d "$REPO" ]]; then
   echo "✗ target repo does not exist: $REPO" >&2
+  exit 1
+fi
+
+# ----------------------------------------------------------------------
+# Toolchain preflight: python3 must be ≥ 3.10 (build-nav.py uses
+# pathlib's walk_up=True on 3.12+ with a 3.10/3.11 fallback). Failing
+# loudly here beats a cryptic TypeError on first nav rebuild.
+# ----------------------------------------------------------------------
+if command -v python3 >/dev/null 2>&1; then
+  if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+    py_ver="$(python3 --version 2>&1 || echo unknown)"
+    echo "✗ python3 is too old: ${py_ver}. Need Python 3.10 or newer." >&2
+    echo "  Install: brew install python@3.13  (or: mise use python@3.13)" >&2
+    exit 1
+  fi
+else
+  echo "✗ python3 not on PATH. Install: brew install python@3.13" >&2
   exit 1
 fi
 
@@ -120,9 +145,10 @@ copy_if_new() {
     MISSING_COUNT=$((MISSING_COUNT + 1))
     return 0
   fi
-  local mode
-  mode="$(stat -f '%A' "$src" 2>/dev/null || stat -c '%a' "$src" 2>/dev/null || echo 755)"
-  install -m "$mode" "$src" "$dst"
+  # Explicit 0755 — don't trust the source file's bits (the user might
+  # have a tight umask or a checkout with stripped exec bits) and don't
+  # trust stat to be portable across filesystems.
+  install -m 0755 "$src" "$dst"
   echo "  ✓ $label"
 }
 
@@ -135,29 +161,57 @@ copy_if_new "$SCRIPTS_SRC/check-orphan-pages.py" "$REPO/scripts/check-orphan-pag
 copy_if_new "$SCRIPTS_SRC/site.sh"              "$REPO/scripts/site.sh"              "scripts/site.sh"
 
 # ----------------------------------------------------------------------
-# 2. .gitignore — ensure **/.published.json is ignored
+# 2. .gitignore — ensure provenance + Pagefind index aren't committed.
+#
+# Two patterns:
+#   **/.published.json   — per-push provenance stamp (regenerated each push)
+#   **/pagefind/         — Pagefind binary's static index (regenerated each
+#                          nav build; committing it causes diff churn when
+#                          team members have different pagefind versions)
+#
+# We use a BOM-aware variant of grep -qxF: if a user's .gitignore was
+# saved with a UTF-8 BOM, `grep -qxF` against the raw line "**/foo" can
+# fail-to-find an entry that's actually present. Strip BOM via sed first.
 # ----------------------------------------------------------------------
 GITIGNORE="$REPO/.gitignore"
 PUBLISHED_PATTERN='**/.published.json'
-if [[ ! -f "$GITIGNORE" ]]; then
-  if [[ $CHECK_ONLY -eq 1 ]]; then
-    echo "  ✗ .gitignore missing (would create with $PUBLISHED_PATTERN)"
-    MISSING_COUNT=$((MISSING_COUNT + 1))
+PAGEFIND_PATTERN='**/pagefind/'
+
+# Test for a pattern's presence in .gitignore, BOM-tolerant.
+gitignore_has() {
+  local pat="$1"
+  [[ -f "$GITIGNORE" ]] || return 1
+  sed '1s/^\xEF\xBB\xBF//' "$GITIGNORE" | grep -qxF "$pat"
+}
+
+ensure_gitignore_entry() {
+  local pat="$1" comment="$2"
+  if [[ ! -f "$GITIGNORE" ]]; then
+    if [[ $CHECK_ONLY -eq 1 ]]; then
+      echo "  ✗ .gitignore missing (would create with $pat)"
+      MISSING_COUNT=$((MISSING_COUNT + 1))
+    else
+      echo "# html-showcase: $comment" > "$GITIGNORE"
+      echo "$pat" >> "$GITIGNORE"
+      echo "  ✓ created .gitignore with $pat"
+    fi
+  elif ! gitignore_has "$pat"; then
+    if [[ $CHECK_ONLY -eq 1 ]]; then
+      echo "  ✗ .gitignore missing entry $pat"
+      MISSING_COUNT=$((MISSING_COUNT + 1))
+    else
+      printf '\n# html-showcase: %s\n%s\n' "$comment" "$pat" >> "$GITIGNORE"
+      echo "  ✓ appended $pat to .gitignore"
+    fi
   else
-    echo "$PUBLISHED_PATTERN" > "$GITIGNORE"
-    echo "  ✓ created .gitignore with $PUBLISHED_PATTERN"
+    echo "  = .gitignore already lists $pat"
   fi
-elif ! grep -qxF "$PUBLISHED_PATTERN" "$GITIGNORE"; then
-  if [[ $CHECK_ONLY -eq 1 ]]; then
-    echo "  ✗ .gitignore missing entry $PUBLISHED_PATTERN"
-    MISSING_COUNT=$((MISSING_COUNT + 1))
-  else
-    printf '\n# html-showcase: published-page provenance manifests\n%s\n' "$PUBLISHED_PATTERN" >> "$GITIGNORE"
-    echo "  ✓ appended $PUBLISHED_PATTERN to .gitignore"
-  fi
-else
-  echo "  = .gitignore already lists $PUBLISHED_PATTERN"
-fi
+}
+
+ensure_gitignore_entry "$PUBLISHED_PATTERN" \
+  "published-page provenance manifests"
+ensure_gitignore_entry "$PAGEFIND_PATTERN" \
+  "Pagefind static search index (regenerated per nav build)"
 
 # ----------------------------------------------------------------------
 # 3. (optional) Seed a starter site dir with index.html + overrides + lychee
@@ -172,6 +226,62 @@ if [[ -n "$SITE" ]]; then
   if [[ $CHECK_ONLY -ne 1 ]]; then
     echo "  → fill {{ PLACEHOLDERS }} in $SITE/index.html, then:"
     echo "      python3 $REPO/scripts/build-nav.py --root $SITE_DIR"
+  fi
+fi
+
+# ----------------------------------------------------------------------
+# 3.5. (optional) Install pre-push hook for auto-resync on git push
+# ----------------------------------------------------------------------
+if [[ $INSTALL_HOOK -eq 1 ]]; then
+  HOOK_SRC="$SCRIPTS_SRC/pre-push.template"
+  HOOK_DST="$REPO/.githooks/pre-push"
+  echo "→ installing pre-push hook: $HOOK_DST"
+  if [[ ! -f "$HOOK_SRC" ]]; then
+    echo "  ✗ template missing at $HOOK_SRC" >&2
+    [[ $CHECK_ONLY -eq 1 ]] && MISSING_COUNT=$((MISSING_COUNT + 1))
+  else
+    if [[ -f "$HOOK_DST" ]] && cmp -s "$HOOK_SRC" "$HOOK_DST"; then
+      echo "  = .githooks/pre-push (unchanged)"
+    elif [[ -f "$HOOK_DST" && $FORCE -ne 1 && $CHECK_ONLY -ne 1 ]]; then
+      echo "  ⚠ .githooks/pre-push exists and differs — pass --force to overwrite"
+    elif [[ $CHECK_ONLY -eq 1 ]]; then
+      if [[ -f "$HOOK_DST" ]]; then
+        echo "  ✗ .githooks/pre-push differs from canonical (would update on install)"
+      else
+        echo "  ✗ .githooks/pre-push not installed"
+      fi
+      MISSING_COUNT=$((MISSING_COUNT + 1))
+    else
+      mkdir -p "$REPO/.githooks"
+      install -m 755 "$HOOK_SRC" "$HOOK_DST"
+      echo "  ✓ .githooks/pre-push"
+    fi
+  fi
+  # Wire core.hooksPath so the hook actually fires. Idempotent and
+  # collision-aware: if another hook engine (Husky, lefthook, pre-commit)
+  # already pointed core.hooksPath somewhere else, refuse to clobber it
+  # silently. The user gets a clear error and can pass --force to
+  # override after they've decided whether to migrate.
+  if [[ $CHECK_ONLY -ne 1 ]]; then
+    current_path="$(git -C "$REPO" config --get core.hooksPath 2>/dev/null || echo '')"
+    if [[ "$current_path" == ".githooks" ]]; then
+      echo "  = git config core.hooksPath already set to .githooks"
+    elif [[ -n "$current_path" ]]; then
+      if [[ $FORCE -eq 1 ]]; then
+        git -C "$REPO" config core.hooksPath .githooks
+        echo "  ✓ git config core.hooksPath = .githooks (overrode '$current_path' via --force)"
+      else
+        echo "  ⚠ core.hooksPath is already set to '$current_path' (Husky/lefthook/pre-commit?)" >&2
+        echo "    Refusing to override silently. Options:" >&2
+        echo "      • Re-run with --force to set core.hooksPath = .githooks" >&2
+        echo "      • Manually merge: copy $REPO/.githooks/pre-push into '$current_path/pre-push'" >&2
+        echo "      • Skip the hook: use scripts/site.sh push manually instead" >&2
+        exit 3
+      fi
+    else
+      git -C "$REPO" config core.hooksPath .githooks
+      echo "  ✓ git config core.hooksPath = .githooks"
+    fi
   fi
 fi
 

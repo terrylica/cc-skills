@@ -5,7 +5,8 @@
 # scripts/check-orphan-pages.py, and you're done.
 #
 # Subcommands:
-#   nav <local-dir>         Regenerate site-map.html + auto-nav rail (no network)
+#   nav <local-dir>         Regenerate site-map.html + auto-nav rail + search index
+#   search <local-dir>      Rebuild Pagefind search index only (no nav rebuild)
 #   push <local-dir>        Build nav + validate + rsync to bigblack:~/sites/<project>/<page>/
 #   check <local-dir>       Build nav + validate only (lychee + orphan-page detector)
 #   url <local-dir>         Print the URL where <local-dir> would publish to
@@ -107,7 +108,18 @@ resolve_build_nav() {
 }
 
 cmd_nav() {
-  local local_dir="${1:?nav <local-dir>}"
+  # Accepts: <local-dir> [--skip-search]
+  # The --skip-search flag is the wired-up consumer for the
+  # NO_HTMLSHOWCASE_SEARCH=1 env knob in pre-push.template.
+  local local_dir=""
+  local skip_search=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --skip-search) skip_search=1; shift ;;
+      *) local_dir="$1"; shift ;;
+    esac
+  done
+  [[ -n "$local_dir" ]] || { echo "usage: site.sh nav <local-dir> [--skip-search]" >&2; exit 1; }
   [[ -d "$local_dir" ]] || { echo "not a directory: $local_dir" >&2; exit 1; }
   local build_nav
   build_nav="$(resolve_build_nav)"
@@ -118,6 +130,58 @@ cmd_nav() {
   fi
   echo "→ regenerating site-map + auto-nav for $local_dir"
   python3 "$build_nav" --root "$local_dir"
+  if [[ $skip_search -eq 1 ]]; then
+    echo "  (skipping search-index rebuild via --skip-search)"
+  else
+    # Always re-build the search index too — search is a default
+    # feature, not an opt-in. cmd_search degrades gracefully if pagefind
+    # is missing.
+    cmd_search "$local_dir"
+  fi
+}
+
+# pagefind is fetched separately (Rust single-binary release). Resolution
+# order: $PAGEFIND_BIN, then $HOME/.local/bin/pagefind, then PATH lookup.
+resolve_pagefind() {
+  if [[ -n "${PAGEFIND_BIN:-}" && -x "$PAGEFIND_BIN" ]]; then
+    echo "$PAGEFIND_BIN"
+    return
+  fi
+  if [[ -x "$HOME/.local/bin/pagefind" ]]; then
+    echo "$HOME/.local/bin/pagefind"
+    return
+  fi
+  command -v pagefind 2>/dev/null || echo ""
+}
+
+cmd_search() {
+  local local_dir="${1:?search <local-dir>}"
+  [[ -d "$local_dir" ]] || { echo "not a directory: $local_dir" >&2; exit 1; }
+  local pagefind
+  pagefind="$(resolve_pagefind)"
+  if [[ -z "$pagefind" ]]; then
+    # Search is a default feature, but a missing binary should NOT block
+    # the publish flow. Warn loudly and continue with whatever index is
+    # already at <local-dir>/pagefind/ (or none, in which case the search
+    # box renders inert until the user installs pagefind and re-runs).
+    echo "⚠ pagefind not found — skipping search-index rebuild." >&2
+    echo "  Install: brew install pagefind" >&2
+    echo "  (or:     curl -fsSL https://github.com/CloudCannon/pagefind/releases/latest \\" >&2
+    echo "             | … see https://pagefind.app/docs/installation/ )" >&2
+    return 0
+  fi
+  # Sanity-check the binary actually runs before invoking it. ABI
+  # mismatches (e.g., user upgraded macOS 13→15, or downloaded the
+  # arm64 binary on an Intel Mac) would otherwise show up as a buried
+  # "killed" message swallowed by our grep filter downstream.
+  if ! "$pagefind" --version >/dev/null 2>&1; then
+    echo "⚠ pagefind binary at $pagefind failed --version check." >&2
+    echo "  Likely cause: architecture mismatch or corrupted download." >&2
+    echo "  Reinstall: brew reinstall pagefind  (or rm $pagefind and re-fetch)" >&2
+    return 0
+  fi
+  echo "→ rebuilding Pagefind search index for $local_dir"
+  "$pagefind" --site "${local_dir%/}" 2>&1 | grep -E '(Indexed|Finished|error|Error)' || true
 }
 
 cmd_check() {
@@ -248,6 +312,7 @@ cmd_unpublish() {
 
 case "${1:-}" in
   nav)       shift; cmd_nav       "$@" ;;
+  search)    shift; cmd_search    "$@" ;;
   push)      shift; cmd_push      "$@" ;;
   check)     shift; cmd_check     "$@" ;;
   url)       shift; cmd_url       "$@" ;;
@@ -258,7 +323,8 @@ case "${1:-}" in
 Usage: $0 <command> [args]
 
 Commands:
-  nav <local-dir>         Regenerate site-map + auto-nav (no network)
+  nav <local-dir>         Regenerate site-map + auto-nav + search index
+  search <local-dir>      Rebuild Pagefind search index only
   push <local-dir>        Build nav + validate + rsync to bigblack
   check <local-dir>       Build nav + validate (lychee + orphan-page check)
   url <local-dir>         Print the URL where <local-dir> publishes to
@@ -275,6 +341,8 @@ Environment overrides:
                           Code when this script is invoked via the skill;
                           used as a fallback when scripts/build-nav.py is
                           not present in the consuming repo)
+  PAGEFIND_BIN            Override path to the pagefind binary (default:
+                          ~/.local/bin/pagefind, falling back to PATH)
 EOF
     exit 1 ;;
 esac
