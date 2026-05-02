@@ -79,12 +79,41 @@ Do NOT use for: blog posts, marketing landing pages, interactive web apps.
 | `templates/overrides.css.example` | Reference for per-page customization (rename to `overrides.css`) |
 | `templates/lychee.toml`           | Link-checker config                                              |
 | `scripts/check-orphan-pages.py`   | Pure-stdlib orphan-page graph validator                          |
+| `scripts/site.sh`                 | Push a finished page to bigblack via Tailscale (see below)       |
 | `references/principles.md`        | The WHY — five principles + AI patterns                          |
 | `references/contributing.md`      | The HOW — four stances with full workflows                       |
+| `references/publishing.md`        | The WHERE — delivery surfaces (CDN vs tailnet) + bigblack setup  |
 
 The CSS kernel itself lives at the **plugin** level
 (`plugins/html-showcase/assets/showcase.css`) and is served from jsDelivr —
 the skeleton HTML references the public CDN URL, not a local file.
+
+## Where finished pages get hosted
+
+Two surfaces, two roles:
+
+| Surface                     | What goes there     | When to use                                                             |
+| --------------------------- | ------------------- | ----------------------------------------------------------------------- |
+| **jsDelivr CDN** (public)   | The kernel CSS only | Always — every page imports the kernel from one shared URL              |
+| **bigblack on the tailnet** | Your rendered pages | Default for internal audiences (no DNS, no auth UI, no public exposure) |
+| jsDelivr / Pages / Workers  | Your rendered pages | Only when an external reader genuinely needs the page                   |
+
+For internal-audience pages (audit reports, contractor showcases,
+telemetry views, weekly digests), the bigblack tailnet path is the
+lowest-friction option. Adopting it in any repo is three lines:
+
+```bash
+cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/site.sh ./scripts/
+cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/check-orphan-pages.py ./scripts/
+echo '**/.published.json' >> .gitignore
+```
+
+Then `scripts/site.sh push <local-dir>` validates locally and rsyncs to
+`bigblack:~/sites/<repo>/<page>/`, served at
+`https://bigblack.tail0f299b.ts.net:8448/<repo>/<page>/`. Push-side
+gating (lychee + orphan check) is the only gate. Full mechanics, the
+URL formula, when NOT to use bigblack, and the bigblack one-time setup
+are in [`references/publishing.md`](references/publishing.md).
 
 ## Universal density knobs
 
