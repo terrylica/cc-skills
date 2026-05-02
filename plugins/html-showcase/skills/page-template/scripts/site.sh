@@ -24,7 +24,9 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Repo detection: prefer git toplevel; fall back to PWD so site.sh works
+# in non-git directories too (e.g. a one-off site assembled in /tmp).
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 BIGBLACK_SSH="${SITE_BIGBLACK_SSH:-bigblack}"
 BIGBLACK_ROOT="${SITE_BIGBLACK_ROOT:-/home/tca/sites}"
 SERVER_BASE_URL="${SITE_BASE_URL:-https://bigblack.tail0f299b.ts.net:8448}"
@@ -68,21 +70,39 @@ build_remote_path() {
   echo "$BIGBLACK_ROOT/$project/$page"
 }
 
-require() { command -v "$1" >/dev/null 2>&1 || { echo "missing: $1" >&2; exit 1; }; }
+# require <command> [install-hint]
+# Aborts with a friendly error + brew/install hint when the command is missing.
+require() {
+  local cmd="$1" hint="${2:-}"
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "✗ missing: $cmd" >&2
+    [[ -n "$hint" ]] && echo "  Install: $hint" >&2
+    exit 1
+  fi
+}
 
 # Resolve build-nav.py: prefer scripts/build-nav.py in the consuming repo;
 # fall back to the canonical copy that ships with this skill so a repo can
-# call site.sh before it has copied the script in.
+# call site.sh before it has copied the script in. Resolution order:
+#   1. <repo>/scripts/build-nav.py
+#   2. $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py
+#      (set automatically by Claude Code when the skill is invoked)
+#   3. Canonical install path: ~/.claude/plugins/marketplaces/cc-skills/...
 resolve_build_nav() {
   if [[ -f "$REPO_ROOT/scripts/build-nav.py" ]]; then
     echo "$REPO_ROOT/scripts/build-nav.py"
     return
   fi
-  local skill_root="${HTML_SHOWCASE_PLUGIN:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}"
-  if [[ -f "$skill_root/skills/page-template/scripts/build-nav.py" ]]; then
-    echo "$skill_root/skills/page-template/scripts/build-nav.py"
-    return
-  fi
+  local candidate
+  for candidate in \
+    "${CLAUDE_PLUGIN_ROOT:-}/skills/page-template/scripts/build-nav.py" \
+    "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase/skills/page-template/scripts/build-nav.py"
+  do
+    if [[ -n "$candidate" && -f "$candidate" ]]; then
+      echo "$candidate"
+      return
+    fi
+  done
   echo ""
 }
 
@@ -111,7 +131,7 @@ cmd_check() {
   echo "→ validating $local_dir"
 
   # Lychee link check
-  require lychee
+  require lychee "brew install lychee  (or: cargo install lychee)"
   local lychee_config="$local_dir/lychee.toml"
   if [[ -f "$lychee_config" ]]; then
     echo "  lychee (config: $lychee_config)"
@@ -246,13 +266,15 @@ Commands:
   unpublish <local-dir>   Remove the page from bigblack
 
 Environment overrides:
-  SITE_PROJECT_NAME       Project namespace (default: from git remote)
+  SITE_PROJECT_NAME       Project namespace (default: from git remote, or
+                          basename of the working tree when not in a git repo)
   SITE_BIGBLACK_SSH       SSH alias (default: bigblack)
   SITE_BIGBLACK_ROOT      Remote root (default: /home/tca/sites)
   SITE_BASE_URL           Public URL (default: https://bigblack.tail0f299b.ts.net:8448)
-  HTML_SHOWCASE_PLUGIN    Override plugin root if build-nav.py is not in
-                          scripts/ (default: ~/.claude/plugins/marketplaces/cc-skills/
-                          plugins/html-showcase)
+  CLAUDE_PLUGIN_ROOT      Plugin install path (set automatically by Claude
+                          Code when this script is invoked via the skill;
+                          used as a fallback when scripts/build-nav.py is
+                          not present in the consuming repo)
 EOF
     exit 1 ;;
 esac

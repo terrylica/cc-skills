@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **36 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **37 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -45,9 +45,9 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
 | Resume Context    | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 
-### Plugin CLAUDE.md Files (36/36)
+### Plugin CLAUDE.md Files (37/37)
 
-All 36 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+All 37 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
 **Emerging deeper layer**: skill-level CLAUDE.mds (one per skill, sibling to `SKILL.md`) are appearing where a skill is large enough that maintainers need a separate compass from the user-invocable instructions. First adopter: [`plugins/macro-keyboard/skills/{configure-macro-keyboard,emit-fn-key-on-macos,diagnose-hid-keycodes}/CLAUDE.md`](./plugins/macro-keyboard/CLAUDE.md). Add one to your skill if SKILL.md is starting to mix "what to do when invoked" with "what to know before editing".
 
@@ -82,8 +82,8 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 36 plugins)
-├── plugins/                         ← 36 marketplace plugins (each has CLAUDE.md)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 37 plugins)
+├── plugins/                         ← 37 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness (incl. autoloop stall guard)
