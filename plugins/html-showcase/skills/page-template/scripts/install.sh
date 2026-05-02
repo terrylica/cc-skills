@@ -10,7 +10,7 @@
 # never overwrites an existing file unless --force is passed.
 #
 # Usage:
-#   bash install.sh [--repo <path>] [--site <name>] [--force]
+#   bash install.sh [--repo <path>] [--site <name>] [--force] [--check]
 #
 #   --repo <path>   Target repo root (default: $PWD or `git rev-parse
 #                   --show-toplevel` if invoked inside a git tree)
@@ -18,6 +18,10 @@
 #                   (default: skip; pass e.g. `--site contractor-site`
 #                   to seed one)
 #   --force         Overwrite existing scripts/templates if they differ
+#   --check         Preflight only: report what's already installed and
+#                   what would be installed, exit 0 if everything is
+#                   already in place, exit 10 if anything is missing.
+#                   Pairs with the /html-showcase:setup skill.
 #
 # After install, the workflow is:
 #   scripts/site.sh nav   <site-dir>   # regenerate sitemap + auto-nav
@@ -30,8 +34,12 @@ set -euo pipefail
 # Resolve the source skill directory regardless of how install.sh was
 # invoked (via $CLAUDE_PLUGIN_ROOT, via a clone of cc-skills, or via a
 # direct path).
+#
+# Use $0 (works under both bash and zsh) instead of BASH_SOURCE[0]
+# (bash-only) so users who accidentally run `zsh install.sh` still get
+# a working bootstrap.
 # ----------------------------------------------------------------------
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_SRC="$SKILL_DIR/scripts"
 TEMPLATES_SRC="$SKILL_DIR/templates"
 
@@ -41,14 +49,16 @@ TEMPLATES_SRC="$SKILL_DIR/templates"
 REPO=""
 SITE=""
 FORCE=0
+CHECK_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo)  REPO="$2";  shift 2 ;;
     --site)  SITE="$2";  shift 2 ;;
     --force) FORCE=1;    shift ;;
+    --check) CHECK_ONLY=1; shift ;;
     -h|--help)
-      sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# *//'
+      sed -n '2,/^$/p' "$0" | sed 's/^# *//'
       exit 0 ;;
     *)
       echo "unknown flag: $1 (use --help)" >&2
@@ -71,11 +81,19 @@ if [[ ! -d "$REPO" ]]; then
   exit 1
 fi
 
-echo "→ installing html-showcase pipeline into $REPO"
+if [[ $CHECK_ONLY -eq 1 ]]; then
+  echo "→ preflight check for $REPO"
+else
+  echo "→ installing html-showcase pipeline into $REPO"
+fi
+
+# Tracks "missing or out-of-date" count for --check exit code.
+MISSING_COUNT=0
 
 # ----------------------------------------------------------------------
 # Helper: copy a file unless it already exists with identical content.
-# Honors --force for a clean overwrite.
+# Honors --force for a clean overwrite. Under --check, never copies —
+# only reports.
 # ----------------------------------------------------------------------
 copy_if_new() {
   local src="$1" dst="$2" label="$3"
@@ -88,19 +106,30 @@ copy_if_new() {
       echo "  = $label (unchanged)"
       return 0
     fi
+    if [[ $CHECK_ONLY -eq 1 ]]; then
+      echo "  ✗ $label differs from canonical (would update on install)"
+      MISSING_COUNT=$((MISSING_COUNT + 1))
+      return 0
+    fi
     if [[ $FORCE -ne 1 ]]; then
       echo "  ⚠ $label exists and differs — pass --force to overwrite"
       return 0
     fi
+  elif [[ $CHECK_ONLY -eq 1 ]]; then
+    echo "  ✗ $label not installed"
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+    return 0
   fi
-  install -m "$(stat -f '%A' "$src" 2>/dev/null || stat -c '%a' "$src")" "$src" "$dst"
+  local mode
+  mode="$(stat -f '%A' "$src" 2>/dev/null || stat -c '%a' "$src" 2>/dev/null || echo 755)"
+  install -m "$mode" "$src" "$dst"
   echo "  ✓ $label"
 }
 
 # ----------------------------------------------------------------------
 # 1. Pipeline scripts → <repo>/scripts/
 # ----------------------------------------------------------------------
-mkdir -p "$REPO/scripts"
+[[ $CHECK_ONLY -eq 1 ]] || mkdir -p "$REPO/scripts"
 copy_if_new "$SCRIPTS_SRC/build-nav.py"         "$REPO/scripts/build-nav.py"         "scripts/build-nav.py"
 copy_if_new "$SCRIPTS_SRC/check-orphan-pages.py" "$REPO/scripts/check-orphan-pages.py" "scripts/check-orphan-pages.py"
 copy_if_new "$SCRIPTS_SRC/site.sh"              "$REPO/scripts/site.sh"              "scripts/site.sh"
@@ -111,11 +140,21 @@ copy_if_new "$SCRIPTS_SRC/site.sh"              "$REPO/scripts/site.sh"         
 GITIGNORE="$REPO/.gitignore"
 PUBLISHED_PATTERN='**/.published.json'
 if [[ ! -f "$GITIGNORE" ]]; then
-  echo "$PUBLISHED_PATTERN" > "$GITIGNORE"
-  echo "  ✓ created .gitignore with $PUBLISHED_PATTERN"
+  if [[ $CHECK_ONLY -eq 1 ]]; then
+    echo "  ✗ .gitignore missing (would create with $PUBLISHED_PATTERN)"
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+  else
+    echo "$PUBLISHED_PATTERN" > "$GITIGNORE"
+    echo "  ✓ created .gitignore with $PUBLISHED_PATTERN"
+  fi
 elif ! grep -qxF "$PUBLISHED_PATTERN" "$GITIGNORE"; then
-  printf '\n# html-showcase: published-page provenance manifests\n%s\n' "$PUBLISHED_PATTERN" >> "$GITIGNORE"
-  echo "  ✓ appended $PUBLISHED_PATTERN to .gitignore"
+  if [[ $CHECK_ONLY -eq 1 ]]; then
+    echo "  ✗ .gitignore missing entry $PUBLISHED_PATTERN"
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+  else
+    printf '\n# html-showcase: published-page provenance manifests\n%s\n' "$PUBLISHED_PATTERN" >> "$GITIGNORE"
+    echo "  ✓ appended $PUBLISHED_PATTERN to .gitignore"
+  fi
 else
   echo "  = .gitignore already lists $PUBLISHED_PATTERN"
 fi
@@ -125,18 +164,31 @@ fi
 # ----------------------------------------------------------------------
 if [[ -n "$SITE" ]]; then
   SITE_DIR="$REPO/$SITE"
-  mkdir -p "$SITE_DIR"
+  [[ $CHECK_ONLY -eq 1 ]] || mkdir -p "$SITE_DIR"
   echo "→ seeding site directory: $SITE_DIR"
   copy_if_new "$TEMPLATES_SRC/index.html"             "$SITE_DIR/index.html"        "$SITE/index.html"
   copy_if_new "$TEMPLATES_SRC/overrides.css.example"  "$SITE_DIR/overrides.css"     "$SITE/overrides.css"
   copy_if_new "$TEMPLATES_SRC/lychee.toml"            "$SITE_DIR/lychee.toml"       "$SITE/lychee.toml"
-  echo "  → fill {{ PLACEHOLDERS }} in $SITE/index.html, then:"
-  echo "      python3 $REPO/scripts/build-nav.py --root $SITE_DIR"
+  if [[ $CHECK_ONLY -ne 1 ]]; then
+    echo "  → fill {{ PLACEHOLDERS }} in $SITE/index.html, then:"
+    echo "      python3 $REPO/scripts/build-nav.py --root $SITE_DIR"
+  fi
 fi
 
 # ----------------------------------------------------------------------
 # 4. Summary
 # ----------------------------------------------------------------------
+if [[ $CHECK_ONLY -eq 1 ]]; then
+  if [[ $MISSING_COUNT -eq 0 ]]; then
+    echo
+    echo "✓ everything in place — no install needed"
+    exit 0
+  fi
+  echo
+  echo "$MISSING_COUNT item(s) need installation. Re-run without --check to apply."
+  exit 10
+fi
+
 cat <<EOF
 
 ✓ install complete
