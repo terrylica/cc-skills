@@ -9,7 +9,8 @@
 #
 # Forwards (kept inline so this file is the single source of truth for ports):
 #   localhost:18123 → bigblack:8123  (ClickHouse HTTP)
-#   localhost:18081 → bigblack:8081  (SSE sidecar)
+#   localhost:18081 → bigblack:8081  (SSE sidecar — crypto ODB live bars)
+#   localhost:18082 → bigblack:8082  (fxview-sidecar — forex live tick SSE)
 #   localhost:18095 → bigblack:8095  (ccmax-monitor dashboard API)
 #   localhost:5900  → bigblack:5900  (VNC — x11vnc, MT5/WINE on display :99)
 
@@ -29,6 +30,7 @@ exec /usr/bin/ssh \
   -o ConnectTimeout=8 \
   -L 18123:localhost:8123 \
   -L 18081:localhost:8081 \
+  -L 18082:localhost:8082 \
   -L 18095:localhost:8095 \
   -L 5900:localhost:5900 \
   bigblack
