@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ SECTION TITLE }} — {{ SITE NAME }}</title>
+  <meta name="description" content="{{ ONE-LINE DESCRIPTION OF THIS SECTION }}">
+
+  <!--
+    Section landing page — sits at <site-root>/<section-slug>/index.html.
+    Sibling pages live next to this file as *.html. Sections sort
+    newest-first when slugs match YYYY-MM-DD-<rest>; otherwise A-Z.
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/terrylica/cc-skills@main/plugins/html-showcase/assets/showcase.css">
+  <link rel="stylesheet" href="../overrides.css">
+  <!-- auto-nav.css/js are injected here by scripts/build-nav.py -->
+</head>
+<body>
+
+  <!-- AUTO-NAV-START -->
+  <!-- AUTO-NAV-END -->
+
+  <header class="hero">
+    <div class="shell hero__inner">
+      <div class="hero__eyebrow">
+        <span class="hero__pulse" aria-hidden="true"></span>
+        <span>Section · {{ DATE OR LABEL }}</span>
+      </div>
+      <h1 class="hero__title">{{ SECTION HEADLINE }}</h1>
+      <p class="hero__lede">
+        {{ 1–2 SENTENCES THAT FRAME WHAT THIS SECTION COVERS AND WHY IT EXISTS. }}
+      </p>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <!--
+      Section index = a list of sibling pages. Keep it semantic; the
+      auto-nav rail also lists them, but the body links here let the
+      page stand alone (e.g. when shared as a single URL with no rail).
+    -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Pages in this section</h2>
+        <span class="section-head__hint">{{ COUNT }} pages</span>
+      </div>
+
+      <ul class="rail-list" style="padding: 0; list-style: none;">
+        <li><a class="rail-link" href="{{ PAGE-1.html }}">📄 {{ PAGE 1 TITLE }}</a></li>
+        <li><a class="rail-link" href="{{ PAGE-2.html }}">📄 {{ PAGE 2 TITLE }}</a></li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell">
+      <div class="site-footer__legal">
+        <span>Section index · auto-discovered by <code>scripts/build-nav.py</code></span>
+        <span>{{ YYYY-MM-DD }}</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
