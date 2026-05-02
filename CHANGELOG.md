@@ -1,3 +1,10 @@
+## [17.10.1](https://github.com/terrylica/cc-skills/compare/v17.10.0...v17.10.1) (2026-05-02)
+
+
+### Bug Fixes
+
+* **html-showcase:** atomic writes + ordered rsync + 6 more anti-fragility fixes ([4ed8766](https://github.com/terrylica/cc-skills/commit/4ed8766b2b8409298c6fef19e3ff97c77b664054)), closes [hi#leverage](https://github.com/hi/issues/leverage) [#3](https://github.com/terrylica/cc-skills/issues/3) [#4](https://github.com/terrylica/cc-skills/issues/4) [#2](https://github.com/terrylica/cc-skills/issues/2) [#3](https://github.com/terrylica/cc-skills/issues/3) [#1](https://github.com/terrylica/cc-skills/issues/1) [#4](https://github.com/terrylica/cc-skills/issues/4) [#5](https://github.com/terrylica/cc-skills/issues/5) [#1](https://github.com/terrylica/cc-skills/issues/1) [#5](https://github.com/terrylica/cc-skills/issues/5) [#3](https://github.com/terrylica/cc-skills/issues/3)
+
 # [17.10.0](https://github.com/terrylica/cc-skills/compare/v17.9.0...v17.10.0) (2026-05-02)
 
 
