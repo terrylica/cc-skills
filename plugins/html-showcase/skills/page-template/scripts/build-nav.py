@@ -51,10 +51,44 @@ from __future__ import annotations
 
 import argparse
 import html
+import os
 import re
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
+
+
+def atomic_write_text(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """Write text to `path` atomically: write to a sibling tmp file in the
+    same directory, fsync, then rename into place.
+
+    Why this matters: `path.write_text()` on POSIX is open(WRONLY) →
+    truncate → write → close. A SIGKILL, power loss, or disk-full event
+    mid-write leaves the file empty or torn. Other readers (a webserver
+    serving the page, a concurrent build script) see broken content. By
+    writing to `<name>.tmp.<pid>` and using os.replace (atomic on POSIX
+    for same-filesystem renames), readers always see either the old
+    file in full or the new file in full — never a torn state.
+    """
+    parent = path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=parent
+    )
+    try:
+        with os.fdopen(fd, "w", encoding=encoding) as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, path)
+    except Exception:
+        # Best-effort cleanup of the tmp file on any failure path.
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
 
 # Marker convention — do not change; existing pages depend on these.
 NAV_START = "<!-- AUTO-NAV-START -->"
@@ -750,8 +784,8 @@ AUTO_NAV_JS_BODY = """\
 
 
 def write_rail_assets(root: Path) -> None:
-    (root / AUTO_NAV_CSS_NAME).write_text(AUTO_NAV_CSS_BODY, encoding="utf-8")
-    (root / AUTO_NAV_JS_NAME).write_text(AUTO_NAV_JS_BODY, encoding="utf-8")
+    atomic_write_text(root / AUTO_NAV_CSS_NAME, AUTO_NAV_CSS_BODY)
+    atomic_write_text(root / AUTO_NAV_JS_NAME, AUTO_NAV_JS_BODY)
 
 
 # ----------------------------------------------------------------------
@@ -917,9 +951,26 @@ _PAGEFIND_SCRIPT_RE = re.compile(
 )
 
 
-def strip_legacy_footer(text: str) -> str:
-    """Remove any legacy AUTO-NAV-FOOTER block (cross-section nav now lives in the rail)."""
-    return _LEGACY_FOOTER_RE.sub("", text)
+def strip_legacy_footer(text: str, page_path: Path | None = None) -> str:
+    """Remove any legacy AUTO-NAV-FOOTER block (cross-section nav now lives
+    in the rail).
+
+    Warns to stderr when the strip actually fires — these markers came
+    from very-old (pre-v17.7) builds. If a user hand-edited content
+    between them before the nav was automated, that content is lost.
+    The warning is the user's signal to check git history before the
+    next commit.
+    """
+    new_text, n = _LEGACY_FOOTER_RE.subn("", text)
+    if n > 0:
+        loc = f"{page_path}: " if page_path else ""
+        print(
+            f"  WARN: {loc}stripped a legacy AUTO-NAV-FOOTER block "
+            "(pre-v17.7 marker). If that block contained hand-written "
+            "content, recover it from git before committing.",
+            file=sys.stderr,
+        )
+    return new_text
 
 
 def ensure_nav_assets(text: str, page_path: Path, root: Path, asset_version: str) -> str:
@@ -958,11 +1009,14 @@ def ensure_nav_assets(text: str, page_path: Path, root: Path, asset_version: str
     nav_link = f'<link rel="stylesheet" id="auto-nav-css" href="{html.escape(css_href)}">'
     nav_script = f'<script id="auto-nav-js" src="{html.escape(js_src)}" defer></script>'
 
+    # Case-insensitive: matches </head>, </HEAD>, </Head>, etc. so pages
+    # that came out of legacy editors don't fail asset injection silently.
     new_text, n = re.subn(
-        r"\s*</head>",
+        r"\s*</head\s*>",
         f"\n{pf_link}\n{nav_link}\n{pf_script}\n{nav_script}\n</head>",
         text,
         count=1,
+        flags=re.IGNORECASE,
     )
     if n == 0:
         print(
@@ -993,8 +1047,11 @@ def inject_block(
     )
     if pattern.search(text):
         return pattern.sub(block, text)
+    # IGNORECASE for the same reason as ensure_nav_assets — uppercase
+    # tags like <BODY> shouldn't silently miss the rail injection.
     new_text, n = re.subn(
-        anchor_pattern, anchor_replace.format(block=block), text, count=1
+        anchor_pattern, anchor_replace.format(block=block), text, count=1,
+        flags=re.IGNORECASE,
     )
     if n == 0:
         loc = f"{page_path}: " if page_path else ""
@@ -1022,7 +1079,7 @@ def inject_into_page(
     path = page["path"]
     text = path.read_text(encoding="utf-8-sig", errors="replace")
     new_text = ensure_nav_assets(text, path, root, asset_version)
-    new_text = strip_legacy_footer(new_text)
+    new_text = strip_legacy_footer(new_text, page_path=path)
 
     rail = render_rail(page, section, sections, root)
     new_text = inject_block(
@@ -1032,7 +1089,7 @@ def inject_into_page(
         page_path=path,
     )
     if new_text != text:
-        path.write_text(new_text, encoding="utf-8")
+        atomic_write_text(path, new_text)
         return True
     return False
 
@@ -1244,18 +1301,37 @@ def main() -> int:
             work.append((page, section))
 
     n_changed = 0
+    failed: list[tuple[Path, str]] = []
     for page, section in work:
         try:
             if inject_into_page(page, section, sections, root, args.asset_version):
                 n_changed += 1
         except Exception as e:
-            print(f"  ERROR injecting nav into {page['path']}: {e}", file=sys.stderr)
+            # Don't crash the whole site for one bad page — but DO track it
+            # so we can surface a final summary. Silent skip-and-continue
+            # was the #1 visibility gap from the audit.
+            failed.append((page["path"], f"{type(e).__name__}: {e}"))
+            print(f"  ERROR injecting nav into {page['path']}: {type(e).__name__}: {e}",
+                  file=sys.stderr)
 
     print(f"Injected nav into {n_changed} page(s) (others unchanged)")
 
     site_map_html = render_site_map(root_page, sections, root, args.asset_version)
-    (root / SITE_MAP_NAME).write_text(site_map_html, encoding="utf-8")
+    atomic_write_text(root / SITE_MAP_NAME, site_map_html)
     print(f"Wrote {SITE_MAP_NAME}")
+
+    if failed:
+        print(
+            f"\n⚠ {len(failed)} page(s) FAILED nav injection — they will render "
+            "without the nav rail until the underlying error is fixed:",
+            file=sys.stderr,
+        )
+        for path, err in failed:
+            print(f"    {path}\n      → {err}", file=sys.stderr)
+        # Exit non-zero so calling shells (site.sh, pre-push hook) see the
+        # failure and can decide how loud to make it. site.sh's pipeline
+        # propagates this via PIPESTATUS — no silent green-light.
+        return 1
     return 0
 
 
