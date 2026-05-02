@@ -92,7 +92,7 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (36)
+## All Plugins (37)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
@@ -114,6 +114,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [git-town-workflow](./git-town-workflow/CLAUDE.md)
 - [gitnexus-tools](./gitnexus-tools/CLAUDE.md)
 - [gmail-commander](./gmail-commander/CLAUDE.md)
+- [html-showcase](./html-showcase/CLAUDE.md)
 - [itp](./itp/CLAUDE.md)
 - [itp-hooks](./itp-hooks/CLAUDE.md)
 - [kokoro-tts](./kokoro-tts/CLAUDE.md)
