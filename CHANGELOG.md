@@ -1,3 +1,10 @@
+# [17.7.0](https://github.com/terrylica/cc-skills/compare/v17.6.1...v17.7.0) (2026-05-02)
+
+
+### Features
+
+* **html-showcase:** sitemap as default page-template organization ([d21bac6](https://github.com/terrylica/cc-skills/commit/d21bac6282a2d9566e44c491613479a1e5e82bba))
+
 ## [17.6.1](https://github.com/terrylica/cc-skills/compare/v17.6.0...v17.6.1) (2026-05-02)
 
 # [17.6.0](https://github.com/terrylica/cc-skills/compare/v17.5.0...v17.6.0) (2026-05-02)
