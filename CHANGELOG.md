@@ -1,3 +1,10 @@
+# [17.8.0](https://github.com/terrylica/cc-skills/compare/v17.7.0...v17.8.0) (2026-05-02)
+
+
+### Features
+
+* **html-showcase:** autofit rail width + one-shot install.sh bootstrap ([aa26054](https://github.com/terrylica/cc-skills/commit/aa2605428eea10e77b6e6f9e1f96f40ac1eeafe9))
+
 # [17.7.0](https://github.com/terrylica/cc-skills/compare/v17.6.1...v17.7.0) (2026-05-02)
 
 
