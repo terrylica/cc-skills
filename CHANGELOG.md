@@ -1,3 +1,10 @@
+# [17.10.0](https://github.com/terrylica/cc-skills/compare/v17.9.0...v17.10.0) (2026-05-02)
+
+
+### Features
+
+* **html-showcase:** search-by-default, push-as-hook, edge-case hardening ([c9edd4c](https://github.com/terrylica/cc-skills/commit/c9edd4c7997b882283ec320992977f4c54c27b2f))
+
 # [17.9.0](https://github.com/terrylica/cc-skills/compare/v17.8.0...v17.9.0) (2026-05-02)
 
 
