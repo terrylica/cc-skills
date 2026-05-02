@@ -1,3 +1,11 @@
+# [17.6.0](https://github.com/terrylica/cc-skills/compare/v17.5.0...v17.6.0) (2026-05-02)
+
+
+### Features
+
+* **html-showcase:** canonical CSS kernel + CDN release-flow wiring ([8ae1381](https://github.com/terrylica/cc-skills/commit/8ae1381b9cd888bad6aabacac7532938209a8bb8))
+* **ssh-tunnel-companion:** forward fxview-sidecar SSE on :18082 ([f117ec8](https://github.com/terrylica/cc-skills/commit/f117ec887021d320465e6db198d7e384c07c64c1))
+
 # [17.5.0](https://github.com/terrylica/cc-skills/compare/v17.4.0...v17.5.0) (2026-05-01)
 
 
