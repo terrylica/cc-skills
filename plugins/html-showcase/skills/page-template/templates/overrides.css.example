@@ -1,0 +1,49 @@
+/* =============================================================================
+ * overrides.css — per-page customization on top of the canonical kernel.
+ *
+ * Copy this file to `overrides.css` next to your `index.html`. It must be
+ * linked AFTER showcase.css so the cascade lets your overrides win.
+ *
+ * The kernel exposes ~30 CSS custom properties; the most useful ones are
+ * shown below. Set only the ones you need; leave everything else inheriting
+ * from the kernel.
+ *
+ * To find the full list of overridable tokens, view the kernel:
+ *   https://cdn.jsdelivr.net/gh/terrylica/cc-skills@main/plugins/html-showcase/assets/showcase.css
+ *
+ * Search inside it for `:root {` — every variable defined there is overridable.
+ * ============================================================================= */
+
+:root {
+  /* === DENSITY KNOBS — universal layout multipliers ====================== */
+  /* --density: 1.00; */    /* baseline; lower = tighter, higher = airier */
+  /* --font-scale: 1.00; */ /* base font size multiplier */
+
+  /* === BRAND ============================================================ */
+  /* --brand-primary: #2563eb; */
+  /* --brand-primary-strong: #1d4ed8; */
+  /* --brand-primary-deep: #1e3a8a; */
+  /* --brand-accent: #7c3aed; */
+  /* --brand-accent-deep: #4c1d95; */
+  /* --brand-amber: #f59e0b; */
+  /* --brand-emerald: #10b981; */
+
+  /* === SURFACE / TEXT (rarely needs overriding) ========================= */
+  /* --surface-page: #f8fafc; */
+  /* --surface-card: #ffffff; */
+  /* --text-headline: #0f172a; */
+  /* --text-body: #334155; */
+  /* --text-muted: #64748b; */
+
+  /* === FONTS ============================================================ */
+  /* --font-display: "Inter Tight", "Inter", system-ui, sans-serif; */
+  /* --font-text: "Inter", system-ui, sans-serif; */
+  /* --font-mono-stack: "JetBrains Mono", ui-monospace, monospace; */
+
+  /* === LAYOUT WIDTH ===================================================== */
+  /* --shell-max: 1200px; */
+}
+
+/* You may also add page-specific component classes here — but resist the urge.
+ * If a pattern repeats across pages, it belongs in the kernel CSS instead.
+ */
