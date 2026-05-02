@@ -184,34 +184,68 @@ gitignore_has() {
   sed '1s/^\xEF\xBB\xBF//' "$GITIGNORE" | grep -qxF "$pat"
 }
 
-ensure_gitignore_entry() {
-  local pat="$1" comment="$2"
-  if [[ ! -f "$GITIGNORE" ]]; then
-    if [[ $CHECK_ONLY -eq 1 ]]; then
-      echo "  ✗ .gitignore missing (would create with $pat)"
-      MISSING_COUNT=$((MISSING_COUNT + 1))
-    else
-      echo "# html-showcase: $comment" > "$GITIGNORE"
-      echo "$pat" >> "$GITIGNORE"
-      echo "  ✓ created .gitignore with $pat"
-    fi
-  elif ! gitignore_has "$pat"; then
-    if [[ $CHECK_ONLY -eq 1 ]]; then
-      echo "  ✗ .gitignore missing entry $pat"
-      MISSING_COUNT=$((MISSING_COUNT + 1))
-    else
-      printf '\n# html-showcase: %s\n%s\n' "$comment" "$pat" >> "$GITIGNORE"
-      echo "  ✓ appended $pat to .gitignore"
-    fi
+# Single-pass append: collect all missing patterns, write them all in
+# one append operation. Atomic enough that a SIGINT between the first
+# and second append doesn't leave the repo in a "I already added one
+# pattern, re-run won't add the second" state.
+missing_patterns=()
+missing_comments=()
+for pair in \
+    "$PUBLISHED_PATTERN|published-page provenance manifests" \
+    "$PAGEFIND_PATTERN|Pagefind static search index (regenerated per nav build)"
+do
+  pat="${pair%%|*}"
+  comment="${pair#*|}"
+  if [[ ! -f "$GITIGNORE" ]] || ! gitignore_has "$pat"; then
+    missing_patterns+=("$pat")
+    missing_comments+=("$comment")
   else
     echo "  = .gitignore already lists $pat"
   fi
-}
+done
 
-ensure_gitignore_entry "$PUBLISHED_PATTERN" \
-  "published-page provenance manifests"
-ensure_gitignore_entry "$PAGEFIND_PATTERN" \
-  "Pagefind static search index (regenerated per nav build)"
+if [[ ${#missing_patterns[@]} -gt 0 ]]; then
+  if [[ $CHECK_ONLY -eq 1 ]]; then
+    for pat in "${missing_patterns[@]}"; do
+      echo "  ✗ .gitignore missing entry $pat"
+      MISSING_COUNT=$((MISSING_COUNT + 1))
+    done
+  else
+    # Build the full block in memory FIRST, then write in one shot.
+    # Resolving "does the file exist?" BEFORE opening the append
+    # redirect avoids the shellcheck SC2094 read+write-in-same-pipeline
+    # warning, and also lets us either-write-everything-or-nothing on
+    # SIGINT (no half-applied state across the two patterns).
+    gitignore_existed=0
+    [[ -f "$GITIGNORE" ]] && gitignore_existed=1
+    block=""
+    if [[ $gitignore_existed -eq 1 ]]; then
+      block=$'\n'
+    fi
+    hash_tag='#'
+    for i in "${!missing_patterns[@]}"; do
+      block+="${hash_tag} html-showcase: ${missing_comments[$i]}"$'\n'
+      block+="${missing_patterns[$i]}"$'\n'
+    done
+    printf '%s' "$block" >> "$GITIGNORE"
+    for pat in "${missing_patterns[@]}"; do
+      echo "  ✓ appended $pat to .gitignore"
+    done
+  fi
+fi
+
+# If `pagefind/` is already TRACKED by git (committed before being
+# gitignored), gitignoring it doesn't untrack the existing copies. The
+# user will keep seeing diff churn every time the index regenerates.
+# This is a one-time-fix situation — surface it loudly so they know.
+if [[ $CHECK_ONLY -ne 1 ]] && command -v git >/dev/null 2>&1; then
+  if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+    if git -C "$REPO" ls-files --error-unmatch -- '**/pagefind/' >/dev/null 2>&1; then
+      echo "  ⚠ pagefind/ is already tracked by git. To stop committing the index, run:" >&2
+      echo "      git -C $REPO rm -r --cached '**/pagefind/' && git commit -m 'untrack pagefind index'" >&2
+    fi
+  fi
+fi
 
 # ----------------------------------------------------------------------
 # 3. (optional) Seed a starter site dir with index.html + overrides + lychee
@@ -230,8 +264,24 @@ if [[ -n "$SITE" ]]; then
 fi
 
 # ----------------------------------------------------------------------
-# 3.5. (optional) Install pre-push hook for auto-resync on git push
+# 3.5. Pre-push hook validation/install.
+#
+# When --hook is passed: install/refresh the hook in .githooks/pre-push
+# and wire core.hooksPath. When --check is passed AND a hook is already
+# present at .githooks/pre-push, validate it even WITHOUT --hook so a
+# user upgrading the plugin can detect a stale committed hook without
+# having to remember to add --hook each time.
 # ----------------------------------------------------------------------
+EXISTING_HOOK="$REPO/.githooks/pre-push"
+if [[ $INSTALL_HOOK -ne 1 && $CHECK_ONLY -eq 1 && -f "$EXISTING_HOOK" ]]; then
+  HOOK_SRC="$SCRIPTS_SRC/pre-push.template"
+  if [[ -f "$HOOK_SRC" ]] && ! cmp -s "$HOOK_SRC" "$EXISTING_HOOK"; then
+    echo "→ pre-push hook present at .githooks/pre-push but differs from canonical:"
+    echo "  ✗ .githooks/pre-push is stale (would update on install --hook --force)"
+    MISSING_COUNT=$((MISSING_COUNT + 1))
+  fi
+fi
+
 if [[ $INSTALL_HOOK -eq 1 ]]; then
   HOOK_SRC="$SCRIPTS_SRC/pre-push.template"
   HOOK_DST="$REPO/.githooks/pre-push"
@@ -263,7 +313,11 @@ if [[ $INSTALL_HOOK -eq 1 ]]; then
   # silently. The user gets a clear error and can pass --force to
   # override after they've decided whether to migrate.
   if [[ $CHECK_ONLY -ne 1 ]]; then
-    current_path="$(git -C "$REPO" config --get core.hooksPath 2>/dev/null || echo '')"
+    # `--local` reads ONLY the repo's .git/config, NOT global/system. A
+    # global `core.hooksPath = .husky` (set in ~/.config/git/config) is
+    # the user's environment choice and shouldn't false-positive a
+    # collision warning for every repo they install into.
+    current_path="$(git -C "$REPO" config --local --get core.hooksPath 2>/dev/null || echo '')"
     if [[ "$current_path" == ".githooks" ]]; then
       echo "  = git config core.hooksPath already set to .githooks"
     elif [[ -n "$current_path" ]]; then
