@@ -1,3 +1,10 @@
+# [17.9.0](https://github.com/terrylica/cc-skills/compare/v17.8.0...v17.9.0) (2026-05-02)
+
+
+### Features
+
+* **html-showcase:** self-contained plugin — setup skill, docs, anti-fragility fixes ([ea679c7](https://github.com/terrylica/cc-skills/commit/ea679c7c5096aebc6c5ee07f5f86a732d5387700))
+
 # [17.8.0](https://github.com/terrylica/cc-skills/compare/v17.7.0...v17.8.0) (2026-05-02)
 
 
