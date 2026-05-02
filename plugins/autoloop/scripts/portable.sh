@@ -131,6 +131,13 @@ log_validation_event() {
 # machine_id on every entry at register_loop time lets doctor distinguish
 # "real local zombie" from "foreign-machine entry, ignore the owner_pid".
 #
+# Wave 5 C3: cached at ~/.claude/loops/.machine-id on first compute. macOS
+# rotates `hostname` with DHCP / network changes / Sharing→Computer Name
+# edits; recomputing every call would falsely flag healthy local entries as
+# foreign whenever the hostname mutates. The cache pins the value at first
+# run; user can `rm ~/.claude/loops/.machine-id` to force a re-stamp after
+# a genuine machine move.
+#
 # Derivation: sha256(hostname + ':' + uname-mhash)[:12] — stable across
 # reboots on the same machine, different across machines that share a
 # username and home directory layout. Avoids embedding the hostname raw
@@ -140,6 +147,20 @@ log_validation_event() {
 #   12-hex string on stdout. Always succeeds; falls back to "unknown000000"
 #   if neither hostname nor uname is available (very unlikely).
 current_machine_id() {
+  local cache_dir="${HOME:-/tmp}/.claude/loops"
+  local cache_file="$cache_dir/.machine-id"
+
+  # Fast path: cache exists and contains a valid 12-hex string.
+  if [ -f "$cache_file" ]; then
+    local cached
+    cached=$(head -c 12 "$cache_file" 2>/dev/null || echo "")
+    if [[ "$cached" =~ ^[0-9a-f]{12}$ ]]; then
+      printf '%s' "$cached"
+      return 0
+    fi
+  fi
+
+  # Compute fresh.
   local h=""
   if command -v hostname >/dev/null 2>&1; then
     h=$(hostname 2>/dev/null || echo "")
@@ -151,11 +172,30 @@ current_machine_id() {
   if command -v uname >/dev/null 2>&1; then
     m=$(uname -m 2>/dev/null || echo "")
   fi
+  local computed
   if [ -z "$h" ] && [ -z "$m" ]; then
-    echo "unknown000000"
-    return 0
+    computed="unknown000000"
+  else
+    computed=$(printf '%s:%s' "$h" "$m" | shasum -a 256 2>/dev/null | cut -c1-12)
   fi
-  printf '%s:%s' "$h" "$m" | shasum -a 256 2>/dev/null | cut -c1-12
+
+  # Best-effort persist. Failure is non-fatal — caller still gets the value.
+  # Atomic write: tempfile + mv so concurrent first-callers don't see a
+  # partial file. mkdir -p tolerates a pre-existing dir.
+  if mkdir -p "$cache_dir" 2>/dev/null; then
+    local tmp
+    if tmp=$(mktemp "$cache_dir/.machine-id.XXXXXX" 2>/dev/null); then
+      if printf '%s\n' "$computed" > "$tmp" 2>/dev/null; then
+        if ! mv "$tmp" "$cache_file" 2>/dev/null; then
+          rm -f "$tmp" 2>/dev/null
+        fi
+      else
+        rm -f "$tmp" 2>/dev/null
+      fi
+    fi
+  fi
+
+  printf '%s' "$computed"
 }
 
 # --- JSONL rotation ---
