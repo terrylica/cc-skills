@@ -159,7 +159,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "17.5.0",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -308,7 +308,7 @@
     },
     {
       "name": "floating-clock",
-      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "description": "Always-on-top floating desktop clock for macOS \u2014 borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
       "version": "17.5.0",
       "source": "./plugins/floating-clock",
       "category": "utilities",
@@ -440,6 +440,30 @@
       ],
       "hooks": "./plugins/gmail-commander/hooks/hooks.json",
       "strict": false
+    },
+    {
+      "name": "html-showcase",
+      "description": "Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, contractor portfolios, telemetry dashboards). Single design-system SSoT served via jsDelivr CDN; pages stay pure HTML with optional per-page CSS overrides.",
+      "version": "1.0.0",
+      "source": "./plugins/html-showcase",
+      "category": "documents",
+      "author": {
+        "name": "<user>ca",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "html-showcase",
+        "page-template",
+        "css-kernel",
+        "provenance",
+        "showcase",
+        "contractor-portfolio",
+        "telemetry-dashboard",
+        "static-html",
+        "open-props",
+        "jsdelivr"
+      ],
+      "strict": true
     },
     {
       "name": "itp",

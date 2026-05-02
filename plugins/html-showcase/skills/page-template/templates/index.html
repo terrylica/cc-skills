@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ PAGE TITLE }} — {{ SUBJECT }}</title>
+  <meta name="description" content="{{ ONE-LINE DESCRIPTION }}">
+
+  <!--
+    Two-hierarchy stylesheet pattern:
+      H1 (kernel)    — canonical design system, served from jsDelivr CDN
+      H2 (overrides) — optional per-page tweaks (colors, density). Tiny file.
+    Order matters: kernel first, overrides last so cascade lets you win.
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/terrylica/cc-skills@main/plugins/html-showcase/assets/showcase.css">
+  <link rel="stylesheet" href="overrides.css">
+</head>
+<body>
+
+  <!-- ============================================================== -->
+  <!-- 1. HERO                                                          -->
+  <!-- ============================================================== -->
+  <header class="hero">
+    <div class="shell hero__inner">
+      <div class="hero__eyebrow">
+        <span class="hero__pulse" aria-hidden="true"></span>
+        <span>{{ EYEBROW LABEL · MAX ~70 chars }}</span>
+      </div>
+      <h1 class="hero__title">{{ ONE-LINE HEADLINE }}</h1>
+      <p class="hero__lede">
+        {{ 2–3 SENTENCE LEDE THAT SUMMARIZES WHAT THIS PAGE PRESENTS.
+           Mention the most concrete metric or finding up front. }}
+      </p>
+      <div class="hero__cta-row">
+        <a class="chip chip--solid" href="#section-anchor">{{ PRIMARY CTA }}</a>
+        <a class="chip chip--ghost" href="#another-anchor">{{ SECONDARY }}</a>
+        <a class="chip chip--ghost" href="https://example.com" rel="noopener">{{ EXTERNAL ↗ }}</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+
+    <!-- ========================================================== -->
+    <!-- 2. AT-A-GLANCE METRICS — 3 to 5 cards in a responsive grid  -->
+    <!-- ========================================================== -->
+    <section class="section" id="at-a-glance" aria-labelledby="metrics-h">
+      <div class="section-head">
+        <h2 id="metrics-h">{{ SECTION TITLE }}</h2>
+        <span class="section-head__hint">{{ DATE RANGE OR PROVENANCE }}</span>
+      </div>
+
+      <div class="metric-grid">
+        <article class="metric-card">
+          <p class="metric-card__label">{{ LABEL }}</p>
+          <p class="metric-card__value">{{ NUMBER }}</p>
+          <p class="metric-card__hint">{{ ONE-LINE CONTEXT }}</p>
+        </article>
+        <article class="metric-card metric-card--accent">
+          <p class="metric-card__label">{{ LABEL }}</p>
+          <p class="metric-card__value">{{ NUMBER }}</p>
+          <p class="metric-card__hint">{{ ONE-LINE CONTEXT }}</p>
+        </article>
+        <article class="metric-card metric-card--success">
+          <p class="metric-card__label">{{ LABEL }}</p>
+          <p class="metric-card__value">{{ NUMBER }}</p>
+          <p class="metric-card__hint">{{ ONE-LINE CONTEXT }}</p>
+        </article>
+        <article class="metric-card metric-card--warning">
+          <p class="metric-card__label">{{ LABEL }}</p>
+          <p class="metric-card__value">{{ NUMBER }}</p>
+          <p class="metric-card__hint">{{ ONE-LINE CONTEXT }}</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ========================================================== -->
+    <!-- 3. ITEM QUEUE — many small cards (bugs, items, links, etc.) -->
+    <!-- ========================================================== -->
+    <section class="section" id="queue" aria-labelledby="queue-h">
+      <div class="section-head">
+        <h2 id="queue-h">{{ SECTION TITLE }}</h2>
+        <span class="section-head__hint">{{ COUNT OR PROVENANCE }}</span>
+      </div>
+      <p class="section-intro">{{ ONE-PARAGRAPH FRAMING (optional, can omit). }}</p>
+
+      <div class="bug-grid">
+        <article class="bug-card bug-card--high">
+          <div class="bug-card__head">
+            <a class="bug-card__id" href="https://example.com/123" rel="noopener">#123</a>
+            <span class="badge badge--high">High</span>
+          </div>
+          <p class="bug-card__title">{{ ONE-LINE ROOT CAUSE OR STATUS }}</p>
+        </article>
+        <article class="bug-card">
+          <div class="bug-card__head">
+            <a class="bug-card__id" href="https://example.com/124" rel="noopener">#124</a>
+            <span class="badge badge--medium">Medium</span>
+          </div>
+          <p class="bug-card__title">{{ ONE-LINE ROOT CAUSE OR STATUS }}</p>
+        </article>
+        <article class="bug-card">
+          <div class="bug-card__head">
+            <a class="bug-card__id" href="https://example.com/125" rel="noopener">#125</a>
+            <span class="badge badge--info">Info</span>
+          </div>
+          <p class="bug-card__title">{{ ONE-LINE ROOT CAUSE OR STATUS }}</p>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- FOOTER · PROVENANCE — every claim should link to its source     -->
+  <!-- ============================================================== -->
+  <footer class="site-footer">
+    <div class="shell">
+      <h2 class="visually-hidden">Provenance</h2>
+      <div class="site-footer__grid">
+        <div>
+          <h3>{{ GROUP A }}</h3>
+          <ul>
+            <li><a href="https://example.com/source-1" rel="noopener">{{ SOURCE 1 }}</a></li>
+            <li><a href="https://example.com/source-2" rel="noopener">{{ SOURCE 2 }}</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>{{ GROUP B }}</h3>
+          <ul>
+            <li><a href="https://example.com/source-3" rel="noopener">{{ SOURCE 3 }}</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="site-footer__legal">
+        <span>All claims verifiable via the linked artifacts. Lychee-checked, orphan-page-validated.</span>
+        <span>v1 · {{ YYYY-MM-DD }}</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
