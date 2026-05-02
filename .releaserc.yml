@@ -150,7 +150,51 @@ plugins:
           echo "  ⚠ Hook issues found: $HOOKS_MISSING plugin(s)"
         fi
 
-        # Step 7: Final summary
+        # Step 7: jsDelivr CDN purge + smoke-test for html-showcase kernel CSS
+        # Auto-discovers CDN-served assets via the html-showcase plugin's
+        # assets/ directory. Adding new files there picks them up on the
+        # next release with zero config change here.
+        if [[ -d "$MARKETPLACE_DIR/plugins/html-showcase/assets" ]]; then
+          echo "→ Step 6: Refreshing jsDelivr CDN for html-showcase assets..."
+          PURGED=0
+          SMOKE_OK=0
+          SMOKE_FAIL=0
+          for ASSET_PATH in "$MARKETPLACE_DIR/plugins/html-showcase/assets"/*; do
+            [[ -f "$ASSET_PATH" ]] || continue
+            ASSET_NAME=$(basename "$ASSET_PATH")
+            REL_PATH="plugins/html-showcase/assets/$ASSET_NAME"
+
+            # 7a. Purge @main cache so kernel edits go live worldwide within seconds.
+            #     Tagged URLs (@v$VERSION) are immutable; no purge needed.
+            if curl -fsSL --max-time 10 \
+                "https://purge.jsdelivr.net/gh/terrylica/cc-skills@main/$REL_PATH" \
+                >/dev/null 2>&1; then
+              ((PURGED++))
+            fi
+
+            # 7b. Smoke-test that the new tagged URL resolves with correct MIME.
+            #     Pages that pin to v$VERSION must work immediately on release.
+            CDN_URL="https://cdn.jsdelivr.net/gh/terrylica/cc-skills@v$VERSION/$REL_PATH"
+            if curl -fsSL --max-time 15 -o /dev/null -w "%{http_code}" "$CDN_URL" \
+                | grep -q "^200$"; then
+              ((SMOKE_OK++))
+            else
+              ((SMOKE_FAIL++))
+              echo "  ✗ Smoke-test failed: $CDN_URL"
+            fi
+          done
+          if [[ $PURGED -gt 0 ]]; then
+            echo "  ✓ Purged @main cache for $PURGED asset(s)"
+          fi
+          if [[ $SMOKE_OK -gt 0 ]]; then
+            echo "  ✓ Smoke-test passed: $SMOKE_OK asset(s) reachable at @v$VERSION"
+          fi
+          if [[ $SMOKE_FAIL -gt 0 ]]; then
+            echo "  ⚠ Smoke-test: $SMOKE_FAIL asset(s) not yet propagated (transient; jsDelivr usually catches up within 60s)"
+          fi
+        fi
+
+        # Step 8: Final summary
         echo ""
         echo "═══════════════════════════════════════════════════════════"
         echo "  ✓ Post-release verification complete for v$VERSION"

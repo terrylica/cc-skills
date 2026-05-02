@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#MISE description="Purge jsDelivr CDN cache for html-showcase assets (and any other plugin's assets/ dir). Use after editing the CSS kernel between releases — flips the CDN to serve the latest @main commit immediately instead of waiting up to 7 days."
+set -euo pipefail
+
+REPO_ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
+cd "$REPO_ROOT"
+
+PURGED=0
+MISSED=0
+PLUGIN_COUNT=0
+
+# Auto-discover any plugin with an assets/ directory and purge each file's @main cache.
+# Adding new plugins or new assets requires no edit to this script.
+for ASSETS_DIR in "$REPO_ROOT"/plugins/*/assets; do
+  [[ -d "$ASSETS_DIR" ]] || continue
+  PLUGIN_NAME=$(basename "$(dirname "$ASSETS_DIR")")
+  ((PLUGIN_COUNT++))
+
+  for ASSET_PATH in "$ASSETS_DIR"/*; do
+    [[ -f "$ASSET_PATH" ]] || continue
+    ASSET_NAME=$(basename "$ASSET_PATH")
+    REL_PATH="plugins/$PLUGIN_NAME/assets/$ASSET_NAME"
+    PURGE_URL="https://purge.jsdelivr.net/gh/terrylica/cc-skills@main/$REL_PATH"
+
+    if curl -fsSL --max-time 10 "$PURGE_URL" >/dev/null 2>&1; then
+      echo "  ✓ purged $REL_PATH"
+      ((PURGED++))
+    else
+      echo "  ✗ failed  $REL_PATH"
+      ((MISSED++))
+    fi
+  done
+done
+
+echo ""
+if [[ $PLUGIN_COUNT -eq 0 ]]; then
+  echo "No plugins/*/assets/ directories found — nothing to purge."
+elif [[ $MISSED -eq 0 ]]; then
+  echo "✓ jsDelivr cache refreshed: $PURGED asset(s) across $PLUGIN_COUNT plugin(s)"
+else
+  echo "⚠ Purged $PURGED asset(s); $MISSED failed (jsDelivr may be rate-limiting; retry in 30s)"
+  exit 1
+fi

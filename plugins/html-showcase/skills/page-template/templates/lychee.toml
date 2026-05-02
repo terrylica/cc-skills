@@ -1,0 +1,30 @@
+# Lychee link-checker config for the contractor showcase mini-site.
+# Run via:  mise run site:check
+# Docs:     https://lychee.cli.rs/
+
+# Only follow http(s) and same-directory relative links
+include = ["^https?://", "^/", "^\\."]
+
+# Skip schemes / private hosts that lychee can't validate
+exclude = [
+  "^mailto:",
+  "^tel:",
+  "127\\.0\\.0\\.1",
+  "localhost",
+  "0\\.0\\.0\\.0",
+]
+
+# Network behaviour
+max_redirects = 5
+timeout = 15
+max_concurrency = 4
+retry_wait_time = 2
+accept = [200, 206, 301, 302, 304]
+
+# GitHub rate-limit etiquette: cache 7d so re-runs are fast and rarely 429
+cache = true
+max_cache_age = "7d"
+
+# Verbose output for the human; CI can switch via --format json
+verbose = "info"
+no_progress = false
