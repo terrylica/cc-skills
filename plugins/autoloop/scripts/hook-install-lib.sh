@@ -1028,6 +1028,59 @@ export -f install_empty_firing
 export -f uninstall_empty_firing_impl
 export -f uninstall_empty_firing
 
+# strip_plugin_quarantine_xattrs [plugin_root]
+# Best-effort macOS quarantine attribute cleanup. After `claude plugin
+# marketplace add`, scripts downloaded via curl/zip/tar inherit
+# com.apple.quarantine and refuse to execute with "operation not permitted".
+# Removing the xattr once at setup time is harmless and idempotent.
+#
+# Arguments:
+#   $1 (optional): plugin root dir; defaults to two levels above this script
+#                  (so .../scripts/ → .../).
+#
+# Output:
+#   stderr — one line per stripped file (visible to the user via SKILL.md)
+#   stdout — final count of stripped files
+#
+# Exit code: always 0 (best-effort; no-op on non-macOS or if xattr missing)
+strip_plugin_quarantine_xattrs() {
+  local plugin_root="${1:-}"
+  if [ -z "$plugin_root" ]; then
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 0
+    plugin_root="$(dirname "$script_dir")"
+  fi
+
+  # macOS-only: xattr is a darwin/BSD tool. Linux installations don't have
+  # quarantine bits to clean.
+  case "$(uname -s 2>/dev/null)" in
+    Darwin) ;;
+    *) echo "0"; return 0 ;;
+  esac
+
+  command -v xattr >/dev/null 2>&1 || { echo "0"; return 0; }
+  [ -d "$plugin_root" ] || { echo "0"; return 0; }
+
+  local stripped=0
+  local f
+  # Scan only the directories where executables live; don't traverse the whole
+  # plugin tree (templates/, schemas/, references/ don't run).
+  for d in "$plugin_root/scripts" "$plugin_root/hooks"; do
+    [ -d "$d" ] || continue
+    while IFS= read -r f; do
+      if xattr -p com.apple.quarantine "$f" >/dev/null 2>&1; then
+        if xattr -d com.apple.quarantine "$f" 2>/dev/null; then
+          stripped=$((stripped + 1))
+          echo "  stripped com.apple.quarantine from $f" >&2
+        fi
+      fi
+    done < <(find "$d" -type f \( -name '*.sh' -o -name '*.bash' \) 2>/dev/null)
+  done
+
+  echo "$stripped"
+  return 0
+}
+
 # Export functions for sourcing by other scripts
 export -f is_hook_installed
 export -f is_session_bind_installed
@@ -1044,3 +1097,4 @@ export -f uninstall_session_bind_impl
 export -f uninstall_session_bind
 export -f install_all_hooks
 export -f uninstall_all_hooks
+export -f strip_plugin_quarantine_xattrs
