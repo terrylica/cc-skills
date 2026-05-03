@@ -200,6 +200,84 @@ _doctor_check_loop() {
     '{loop_id: $loop_id, display_name: $display_name, verdict: $verdict, owner_session_id: $owner_session_id, state_dir: $state_dir, issues: $issues}'
 }
 
+# _doctor_check_disk_orphans — Wave 5 B3 — enumerate state_dirs on disk
+# that have NO matching registry entry. Doctor's existing checks all
+# iterate registry entries, so a state_dir created by a registered loop
+# whose entry was later deleted (or a manual `cp -R old new` clone, or a
+# legacy migration leaving both old and new paths) becomes invisible.
+#
+# Heuristic — bounded scan, NOT a full filesystem walk:
+#   - Parents of every registered state_dir are the cwds where loops live
+#   - Glob each `<parent>/.autoloop/*/state/` for sibling state_dirs
+#   - Glob `<parent>/.loop-state/*/` for legacy state_dirs
+# This catches the common cases (forked or rsync'd projects, migration
+# remnants) without paying the cost of `find /`.
+#
+# Emits one JSON line per orphan, kind=disk_orphan, verdict=YELLOW.
+_doctor_check_disk_orphans() {
+  local registry_path="${1:-$HOME/.claude/loops/registry.json}"
+  if [ ! -f "$registry_path" ]; then
+    return 0
+  fi
+
+  # Build the set of registered state_dirs (newline-separated) for O(1)-ish lookup.
+  # Normalize: strip trailing slashes so comparisons against `find` output
+  # (which never has trailing slashes) match. Some legacy registry entries
+  # store paths with a trailing slash.
+  local registered_dirs
+  registered_dirs=$(jq -r '.loops[]?.state_dir // empty' "$registry_path" 2>/dev/null \
+    | sed 's:/$::')
+
+  # Derive scan roots: parents of registered state_dirs (de-duplicated).
+  local scan_roots
+  scan_roots=$(jq -r '
+    .loops[]? |
+    (.state_dir // "") |
+    select(. != "") |
+    capture("(?<root>.*?)/(\\.autoloop|\\.loop-state)/") |
+    .root
+  ' "$registry_path" 2>/dev/null | sort -u)
+
+  [ -z "$scan_roots" ] && return 0
+
+  while IFS= read -r root; do
+    [ -z "$root" ] && continue
+    [ ! -d "$root" ] && continue
+
+    # v2 layout: <root>/.autoloop/<slug>--<hash>/state/
+    while IFS= read -r candidate; do
+      [ -z "$candidate" ] && continue
+      [ ! -d "$candidate" ] && continue
+      if ! echo "$registered_dirs" | grep -Fxq "$candidate"; then
+        local short="${candidate##*/.autoloop/}"
+        jq -nc \
+          --arg display_name "AL-orphan-${short%%/*}" \
+          --arg verdict "YELLOW" \
+          --arg path "$candidate" \
+          --argjson issues "[\"YELLOW: state_dir on disk has no registry entry — $candidate. Archive with: tar czf orphan-$(date +%s).tar.gz $candidate && rm -rf $candidate\"]" \
+          '{loop_id: "—", display_name: $display_name, verdict: $verdict, state_dir: $path, issues: $issues, kind: "disk_orphan"}'
+      fi
+    done < <(find "$root/.autoloop" -mindepth 2 -maxdepth 2 -type d -name 'state' 2>/dev/null)
+
+    # Legacy layout: <root>/.loop-state/<loop_id>/
+    while IFS= read -r candidate; do
+      [ -z "$candidate" ] && continue
+      [ ! -d "$candidate" ] && continue
+      if ! echo "$registered_dirs" | grep -Fxq "$candidate"; then
+        local short="${candidate##*/.loop-state/}"
+        jq -nc \
+          --arg display_name "AL-orphan-legacy-${short:0:6}" \
+          --arg verdict "YELLOW" \
+          --arg path "$candidate" \
+          --argjson issues "[\"YELLOW: legacy .loop-state/ dir has no registry entry — $candidate\"]" \
+          '{loop_id: "—", display_name: $display_name, verdict: $verdict, state_dir: $path, issues: $issues, kind: "disk_orphan"}'
+      fi
+    done < <(find "$root/.loop-state" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+  done <<< "$scan_roots"
+
+  return 0
+}
+
 # _doctor_check_zombies — scan launchctl for entries with no registry record.
 _doctor_check_zombies() {
   local registry_path="${1:-$HOME/.claude/loops/registry.json}"
@@ -276,6 +354,15 @@ loop_doctor_report() {
       *) ;;
     esac
   done < <(_doctor_check_zombies "$registry_path" 2>/dev/null)
+
+  # Wave 5 B3: disk orphans — state_dirs on disk with no registry entry.
+  while IFS= read -r orphan; do
+    [ -z "$orphan" ] && continue
+    case "$orphan" in
+      \{*\}) results+="$orphan"$'\n' ;;
+      *) ;;
+    esac
+  done < <(_doctor_check_disk_orphans "$registry_path" 2>/dev/null)
 
   # v16.9.1: fleet-level metrics computed once at the report level.
   local global_prov pacing_vetoed empty_firings
