@@ -43,6 +43,17 @@ if ! LOOP_ID=$(resolve_loop_identifier "$INPUT"); then
   # resolve_loop_identifier already printed the error context to stderr (no
   # match / ambiguous slug / refused regex). Exit code 2 = ambiguity, in
   # which case the candidate list was printed and the user picks one.
+  # Wave 5 A6: when no match was found, surface the closest registered
+  # loops so the user has a concrete candidate to retry with instead of
+  # a bare "not in registry" error.
+  SUGGESTIONS=$(suggest_closest_loops "$INPUT" 2>/dev/null)
+  if [ -n "$SUGGESTIONS" ]; then
+    echo "" >&2
+    echo "Did you mean one of these?" >&2
+    echo "$SUGGESTIONS" >&2
+    echo "" >&2
+    echo "Run /autoloop:status to see the full registered fleet." >&2
+  fi
   exit 1
 fi
 ```
