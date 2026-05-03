@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # status-lib.sh — Machine-wide loop enumeration and status reporting
 # Provides: enumerate_loops, compute_dead_time_ratio, format_status_table, human_relative_time, is_reclaim_candidate_v2
+# FILE-SIZE-OK (formatting + enumeration logic; cohesive unit, no clean split point)
 
 set -euo pipefail
 
@@ -479,9 +480,15 @@ format_status_table() {
     ((line_count++))
   done
 
-  # If no loops, print "No active loops"
+  # If no loops, print a self-nudging zero-state instead of just an empty
+  # acknowledgement. Wave 5 A5: a fresh-install user invoking `/autoloop:status`
+  # for the first time should see "what to do next", not "did the command work?".
   if [ "$line_count" -eq 0 ]; then
-    echo "No active loops."
+    echo "No autoloop loops registered on this machine."
+    echo ""
+    echo "  To start your first loop:  /autoloop:start <campaign-slug>"
+    echo "  To install hooks first:    /autoloop:setup install"
+    echo "  To check fleet health:     /autoloop:doctor"
   fi
 
   return 0

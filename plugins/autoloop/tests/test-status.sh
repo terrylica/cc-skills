@@ -55,11 +55,12 @@ OUTPUT=$(bash -c "
   echo '' | format_status_table
 " 2>&1 || true)
 
-if echo "$OUTPUT" | grep -q "No active loops"; then
-  echo "✓ PASS: Empty input prints 'No active loops'"
+if echo "$OUTPUT" | grep -q "No autoloop loops registered" && \
+   echo "$OUTPUT" | grep -q "/autoloop:start"; then
+  echo "✓ PASS: Empty input prints zero-state nudge (Wave 5 A5)"
   ((PASS++))
 else
-  echo "✗ FAIL: Expected 'No active loops' message, got: $OUTPUT"
+  echo "✗ FAIL: Expected zero-state nudge with /autoloop:start hint, got: $OUTPUT"
   ((FAIL++))
 fi
 
