@@ -29,11 +29,11 @@
   /* --brand-emerald: #10b981; */
 
   /* === SURFACE / TEXT (rarely needs overriding) ========================= */
-  /* --surface-page: #f8fafc; */
-  /* --surface-card: #ffffff; */
-  /* --text-headline: #0f172a; */
-  /* --text-body: #334155; */
-  /* --text-muted: #64748b; */
+  /* --surface-page: #0b1120; */
+  /* --surface-card: #111c33; */
+  /* --text-headline: #e2e8f0; */
+  /* --text-body: #cbd5e1; */
+  /* --text-muted: #94a3b8; */
 
   /* === FONTS ============================================================ */
   /* --font-display: "Inter Tight", "Inter", system-ui, sans-serif; */

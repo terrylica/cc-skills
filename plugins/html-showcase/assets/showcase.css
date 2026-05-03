@@ -28,7 +28,7 @@
 /* 3. SITE TOKENS */
 @layer tokens {
   :root {
-    color-scheme: light;
+    color-scheme: dark;
 
     /* === DENSITY KNOBS ===================================================
      * Two universal multipliers — change one number, affect the whole site.
@@ -90,47 +90,47 @@
 
     /* Severity / status palette */
     --severity-high: #dc2626;
-    --severity-high-soft: #fee2e2;
-    --severity-high-text: #991b1b;
+    --severity-high-soft: rgba(220, 38, 38, 0.18);
+    --severity-high-text: #fca5a5;
     --severity-medium: #d97706;
-    --severity-medium-soft: #fef3c7;
-    --severity-medium-text: #92400e;
+    --severity-medium-soft: rgba(245, 158, 11, 0.18);
+    --severity-medium-text: #fcd34d;
     --severity-low: #ca8a04;
-    --severity-low-soft: #fef9c3;
-    --severity-low-text: #854d0e;
+    --severity-low-soft: rgba(202, 138, 4, 0.18);
+    --severity-low-text: #fde68a;
     --status-success: #059669;
-    --status-success-soft: #d1fae5;
-    --status-success-text: #065f46;
+    --status-success-soft: rgba(5, 150, 105, 0.18);
+    --status-success-text: #86efac;
     --status-info: #2563eb;
-    --status-info-soft: #dbeafe;
-    --status-info-text: #1e40af;
+    --status-info-soft: rgba(37, 99, 235, 0.18);
+    --status-info-text: #93c5fd;
     --status-violet: #7c3aed;
-    --status-violet-soft: #ede9fe;
-    --status-violet-text: #5b21b6;
+    --status-violet-soft: rgba(124, 58, 237, 0.18);
+    --status-violet-text: #c4b5fd;
     --status-neutral: #475569;
-    --status-neutral-soft: #f1f5f9;
-    --status-neutral-text: #1e293b;
+    --status-neutral-soft: #1e293b;
+    --status-neutral-text: #cbd5e1;
 
     /* Surfaces + text */
-    --surface-page: #f8fafc;
-    --surface-page-tint: #f1f5f9;
-    --surface-card: #ffffff;
-    --surface-card-hover: #f8fafc;
-    --border-subtle: #e2e8f0;
-    --border-strong: #cbd5e1;
-    --border-card: #e5e7eb;
-    --text-headline: #0f172a;
-    --text-body: #334155;
-    --text-muted: #64748b;
-    --text-subtle: #94a3b8;
+    --surface-page: #0b1120;
+    --surface-page-tint: #111c33;
+    --surface-card: #111c33;
+    --surface-card-hover: #1e293b;
+    --border-subtle: #334155;
+    --border-strong: #475569;
+    --border-card: #334155;
+    --text-headline: #e2e8f0;
+    --text-body: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-subtle: #64748b;
     --text-on-brand: #ffffff;
 
     /* Elevation */
-    --elev-1: 0 1px 2px rgb(15 23 42 / 0.05);
-    --elev-2: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-    --elev-3: 0 4px 6px rgb(15 23 42 / 0.07), 0 2px 4px rgb(15 23 42 / 0.04);
-    --elev-4: 0 10px 15px rgb(15 23 42 / 0.08), 0 4px 6px rgb(15 23 42 / 0.04);
-    --elev-5: 0 20px 25px rgb(15 23 42 / 0.10), 0 8px 10px rgb(15 23 42 / 0.04);
+    --elev-1: 0 1px 2px rgb(0 0 0 / 0.40);
+    --elev-2: 0 1px 3px rgb(0 0 0 / 0.50), 0 1px 2px rgb(0 0 0 / 0.40);
+    --elev-3: 0 4px 6px rgb(0 0 0 / 0.50), 0 2px 4px rgb(0 0 0 / 0.40);
+    --elev-4: 0 10px 15px rgb(0 0 0 / 0.55), 0 4px 6px rgb(0 0 0 / 0.40);
+    --elev-5: 0 20px 25px rgb(0 0 0 / 0.60), 0 8px 10px rgb(0 0 0 / 0.40);
 
     /* Radii */
     --radius-1: 6px;
