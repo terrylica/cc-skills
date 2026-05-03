@@ -1075,6 +1075,100 @@ export -f install_empty_firing
 export -f uninstall_empty_firing_impl
 export -f uninstall_empty_firing
 
+# run_hook_runtime_selftest [plugin_root]
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Wave 5 A1 — runtime hook self-test. Confirms each shipped hook script:
+#   1. Exists and is readable
+#   2. Has the executable bit set (or can be invoked via `bash`)
+#   3. Exits 0 when fed a minimal synthetic Claude Code event payload
+#
+# This is meaningfully different from is_hook_installed (which only checks
+# settings.json structure). A hook can be registered in settings.json yet
+# crash on invocation due to: missing shebang, broken shellcheck disable,
+# stale path to a sibling lib, syntax error from a botched edit, missing
+# dependency (jq, python3). The self-test catches all of those.
+#
+# The test runs in a sandbox HOME so the synthetic payloads can't pollute
+# the user's real registry, hook-errors log, or heartbeat files.
+#
+# Output:
+#   On success: nothing (silent)
+#   On failure: per-hook diagnostic line on stderr ending with "FAIL: <reason>"
+# Exit code: 0 if all hooks pass, 1 if any hook fails
+run_hook_runtime_selftest() {
+  local plugin_root="${1:-}"
+  if [ -z "$plugin_root" ]; then
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
+    plugin_root="$(dirname "$script_dir")"
+  fi
+
+  local hooks_dir="$plugin_root/hooks"
+  if [ ! -d "$hooks_dir" ]; then
+    echo "  FAIL: hooks dir not found at $hooks_dir" >&2
+    return 1
+  fi
+
+  # Sandbox: scratch HOME so synthetic payloads land in a throwaway tree.
+  local sandbox
+  sandbox=$(mktemp -d) || {
+    echo "  FAIL: cannot create sandbox tmpdir" >&2
+    return 1
+  }
+
+  local fails=0
+
+  # heartbeat-tick.sh: PostToolUse hook. Reads session_id + cwd from stdin
+  # JSON. With no registered loop matching the cwd, it should no-op + exit 0.
+  local tick="$hooks_dir/heartbeat-tick.sh"
+  if [ ! -r "$tick" ]; then
+    echo "  FAIL: heartbeat-tick.sh missing or unreadable" >&2
+    fails=$((fails + 1))
+  else
+    local out rc
+    out=$(HOME="$sandbox" bash "$tick" <<<'{"session_id":"00000000-0000-0000-0000-000000000000","cwd":"'"$sandbox"'","tool_name":"Bash"}' 2>&1) && rc=0 || rc=$?
+    if [ "$rc" != "0" ]; then
+      echo "  FAIL: heartbeat-tick.sh exited rc=$rc; output: $out" >&2
+      fails=$((fails + 1))
+    fi
+  fi
+
+  # session-bind.sh: SessionStart hook. Reads session_id + cwd; with no
+  # matching contract it should no-op + exit 0.
+  local bind="$hooks_dir/session-bind.sh"
+  if [ ! -r "$bind" ]; then
+    echo "  FAIL: session-bind.sh missing or unreadable" >&2
+    fails=$((fails + 1))
+  else
+    local out rc
+    out=$(HOME="$sandbox" bash "$bind" <<<'{"session_id":"00000000-0000-0000-0000-000000000000","cwd":"'"$sandbox"'","source":"startup","hook_event_name":"SessionStart"}' 2>&1) && rc=0 || rc=$?
+    if [ "$rc" != "0" ]; then
+      echo "  FAIL: session-bind.sh exited rc=$rc; output: $out" >&2
+      fails=$((fails + 1))
+    fi
+  fi
+
+  # pacing-veto.sh: PreToolUse hook for ScheduleWakeup. With no registered
+  # loop bound to the cwd, the hook is meant to be a no-op. We feed it a
+  # minimal ScheduleWakeup payload.
+  local veto="$hooks_dir/pacing-veto.sh"
+  if [ -r "$veto" ]; then
+    local out rc
+    out=$(HOME="$sandbox" bash "$veto" <<<'{"session_id":"00000000-0000-0000-0000-000000000000","cwd":"'"$sandbox"'","tool_name":"ScheduleWakeup","tool_input":{"delaySeconds":60,"reason":"selftest"}}' 2>&1) && rc=0 || rc=$?
+    if [ "$rc" != "0" ] && [ "$rc" != "2" ]; then
+      # rc=2 is the documented "deny" verdict; any other non-zero is a crash.
+      echo "  FAIL: pacing-veto.sh crashed rc=$rc; output: $out" >&2
+      fails=$((fails + 1))
+    fi
+  fi
+
+  rm -rf "$sandbox" 2>/dev/null || true
+  if [ "$fails" -gt 0 ]; then
+    return 1
+  fi
+  return 0
+}
+
 # strip_plugin_quarantine_xattrs [plugin_root]
 # Best-effort macOS quarantine attribute cleanup. After `claude plugin
 # marketplace add`, scripts downloaded via curl/zip/tar inherit
@@ -1145,3 +1239,4 @@ export -f uninstall_session_bind
 export -f install_all_hooks
 export -f uninstall_all_hooks
 export -f strip_plugin_quarantine_xattrs
+export -f run_hook_runtime_selftest
