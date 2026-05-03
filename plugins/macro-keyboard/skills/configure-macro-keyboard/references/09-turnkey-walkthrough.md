@@ -10,17 +10,21 @@ A single rule in Karabiner-Elements that scopes three physical buttons on a chea
 
 **The user-facing behavior**:
 
-| Button | Single-tap action                                  | Double-tap action (≤200ms) | Real-world use                                                              |
-| ------ | -------------------------------------------------- | -------------------------- | --------------------------------------------------------------------------- |
-| Top    | Toggle Typeless / dictation (real Fn, after 200ms) | Paste (`Cmd+V`)            | Tap to start/stop dictation; double-tap to paste the system clipboard       |
-| Middle | Insert newline (`Shift+Return`, after 200ms)       | Commit/send (`Return`)     | Chat composers, Claude Code prompt, email compose — safer-than-usual "send" |
-| Bottom | Delete to start of line (`Command+Delete`)         | —                          | Clear the current line without selecting it first                           |
+| Button | Single-tap action                                  | Double-tap action (≤200ms)          | Real-world use                                                                                                                      |
+| ------ | -------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Top    | Toggle Typeless / dictation (real Fn, after 200ms) | Paste (`Cmd+V`)                     | Tap to start/stop dictation; double-tap to paste the system clipboard                                                               |
+| Middle | Insert newline (`Shift+Return`, after 200ms)       | Commit/send (`Return`)              | Chat composers, Claude Code prompt, email compose — safer-than-usual "send"                                                         |
+| Bottom | Cursor up one line (`up_arrow`)                    | Cursor down one line (`down_arrow`) | Tap to step up; double-tap to step down. **Asymmetric mechanism** — see "Why the bottom-button uses two different mechanisms" below |
 
 **Why the tap/double-tap on middle**: in most chat apps, a stray `Return` sends a half-typed message. By making the single-tap insert a newline and the double-tap send, accidentally-sent messages become nearly impossible. You pay ~200ms of detection latency on every newline — a fair trade if you've ever misfired a `Return` at work.
 
 **Why the tap/double-tap on top**: dictation is a soft, two-handed action; paste needs a one-handed shortcut you can hit without breaking flow. Tap to toggle Typeless, double-tap when you want the clipboard.
 
+**Why the tap/double-tap on bottom (and why it differs by transport)**: cursor up + down are both reversible navigation, so the single-tap latency cost matters less than for the other buttons. The interesting twist is **the pad's BT firmware does its own double-tap detection on the bottom button only** — single tap emits `equal_sign`, double tap emits `Option+Z` (verified 2026-05-02 via Karabiner-EventViewer). On USB the same button emits `Ctrl+X` for every press. Consequently the rule uses two different mechanisms for the bottom button: USB does Karabiner-side `set_variable`+`to_delayed_action` discrimination; BT translates the firmware-decided keycode immediately. User-facing behavior is identical (tap = up, double-tap = down) — the asymmetry is invisible unless you inspect the rule.
+
 > **Top-button caveat** — the 200ms tap-detection window means Fn fires only after release, not on press-and-hold. That makes this rule **incompatible with Typeless's push-to-talk mode** (hold to dictate). Use Typeless's tap-to-toggle Fn mode, or — if you need PTT — collapse the top-button pair back into the original single-manipulator-per-transport "Fn fires immediately" rule (see git history of `references/raw/karabiner-rule.json` from before the top-button double-tap addition).
+
+> **Bottom-button caveat** — arrow keys do not auto-repeat on hold on either transport. On USB the single-tap target (`up_arrow`) fires once after the 200ms window; on BT the pad's firmware emits one discrete event per gesture (no key-down/key-up stream). Real macOS arrow keys auto-repeat for scrolling; this remap does not. To navigate a long list, tap repeatedly. To restore continuous scroll on USB, collapse the USB pair back into a single immediate-`up_arrow` manipulator. On BT you can't restore auto-repeat — the firmware doesn't emit a stream.
 
 ## Shopping List
 
@@ -160,7 +164,7 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
 
 ```json
 {
-  "description": "MacroKeyBot: Top single-tap -> Fn (Typeless toggle) / double-tap -> Cmd+V (paste); Middle single-tap -> Shift+Return / double-tap -> Return; Bottom -> Command+Delete",
+  "description": "MacroKeyBot: Top single-tap -> Fn (Typeless toggle) / double-tap -> Cmd+V (paste); Middle single-tap -> Shift+Return / double-tap -> Return; Bottom single-tap -> up_arrow / double-tap -> down_arrow. USB uses Karabiner-side detection on bottom (Ctrl+X for both presses); BT uses pad-firmware detection (equal_sign single, Option+Z double).",
   "manipulators": [
     {
       "type": "basic",
@@ -373,8 +377,43 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
         }
       },
       "to": [
-        { "key_code": "delete_or_backspace", "modifiers": ["left_command"] }
+        { "key_code": "down_arrow" },
+        { "set_variable": { "name": "macrokeybot_bottom_tap", "value": 0 } }
       ],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 19530, "product_id": 16725 },
+            { "vendor_id": 1256, "product_id": 28705 }
+          ]
+        },
+        { "type": "variable_if", "name": "macrokeybot_bottom_tap", "value": 1 }
+      ]
+    },
+    {
+      "type": "basic",
+      "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+      "from": {
+        "simultaneous": [{ "key_code": "left_control" }, { "key_code": "x" }],
+        "simultaneous_options": {
+          "key_down_order": "insensitive",
+          "key_up_order": "insensitive",
+          "detect_key_down_uninterruptedly": true
+        }
+      },
+      "to": [
+        { "set_variable": { "name": "macrokeybot_bottom_tap", "value": 1 } }
+      ],
+      "to_delayed_action": {
+        "to_if_invoked": [
+          { "key_code": "up_arrow" },
+          { "set_variable": { "name": "macrokeybot_bottom_tap", "value": 0 } }
+        ],
+        "to_if_canceled": [
+          { "set_variable": { "name": "macrokeybot_bottom_tap", "value": 0 } }
+        ]
+      },
       "conditions": [
         {
           "type": "device_if",
@@ -388,9 +427,24 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
     {
       "type": "basic",
       "from": { "key_code": "equal_sign" },
-      "to": [
-        { "key_code": "delete_or_backspace", "modifiers": ["left_command"] }
-      ],
+      "to": [{ "key_code": "up_arrow" }],
+      "conditions": [
+        {
+          "type": "device_if",
+          "identifiers": [
+            { "vendor_id": 19530, "product_id": 16725 },
+            { "vendor_id": 1256, "product_id": 28705 }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "basic",
+      "from": {
+        "key_code": "z",
+        "modifiers": { "mandatory": ["left_option"] }
+      },
+      "to": [{ "key_code": "down_arrow" }],
       "conditions": [
         {
           "type": "device_if",
@@ -408,9 +462,10 @@ Open `~/.config/karabiner/karabiner.json` in your editor. Find `profiles[0].comp
 **Adapt for your pad**:
 
 - If your pad emits something other than `Ctrl+C / Ctrl+V / Ctrl+X` on USB, substitute the matching `key_code` values in each `from.simultaneous[1]`.
-- If your BT mode emits something other than `page_up / page_down / equal_sign`, substitute the matching `from.key_code` values in the BT-side manipulators (5-10 in the rule).
-- If you don't care about Bluetooth: delete the BT-side manipulators (numbers 5-10 — the ones whose `from` uses `page_up` / `page_down` / `equal_sign`), and remove the BT identifier from every remaining `device_if`. You'll end up with 5 manipulators instead of 10.
-- If you don't want the top-button double-tap (you need Fn-as-push-to-talk, or one binding is enough): delete manipulators 1 and 5 (the `variable_if`-guarded paste detectors), and replace manipulators 2 and 6 with the simpler immediate-Fn form — drop `parameters`, `to_delayed_action`, and `variable_if`; set `to: [{ "apple_vendor_top_case_key_code": "keyboard_fn" }]`. You'll go from 10 → 8 manipulators.
+- If your BT mode emits something other than `page_up / page_down / equal_sign` on a single tap (top + middle + bottom), substitute the matching `from.key_code` values in the BT-side manipulators (5-8 and 11). For the bottom button on BT, also **check what the pad emits on a double tap** — the worked-example pad emits `Option+Z` due to firmware-side double-tap detection. If yours emits a different chord, update manipulator 12's `from` accordingly. If yours emits the _same_ keycode for single and double tap (no firmware discrimination), use the USB-style software detection pattern (mirror manipulators 9 + 10 to the BT keycode and drop manipulator 11).
+- If you don't care about Bluetooth: delete the BT-side manipulators (numbers 5-8 and 11-12 — the ones whose `from` uses `page_up` / `page_down` / `equal_sign` / `left_option`+`z`), and remove the BT identifier from every remaining `device_if`. You'll end up with 6 manipulators instead of 12.
+- If you don't want the top-button double-tap (you need Fn-as-push-to-talk, or one binding is enough): delete manipulators 1 and 5 (the `variable_if`-guarded paste detectors), and replace manipulators 2 and 6 with the simpler immediate-Fn form — drop `parameters`, `to_delayed_action`, and `variable_if`; set `to: [{ "apple_vendor_top_case_key_code": "keyboard_fn" }]`. You'll go from 12 → 10 manipulators.
+- If you don't want the bottom-button double-tap (you want `up_arrow` to auto-repeat for fast scrolling, or a single-action key is enough): on USB, delete manipulator 9 and replace 10 with a single immediate-target manipulator (drop `parameters`, `to_delayed_action`, and `variable_if`; set `to: [{ "key_code": "up_arrow" }]`). On BT, delete manipulator 12 (the `Option+Z` translator) and keep 11 (the `equal_sign` → `up_arrow` immediate translator). You'll go from 12 → 10 manipulators. Note: this still won't restore auto-repeat over BT — the pad's firmware emits one discrete event per gesture either way.
 - If you want different bindings (see "Variations" below): replace the `to` targets accordingly.
 
 **Save the file**. Karabiner auto-reloads within ~1 second. Watch the log to confirm:
@@ -430,18 +485,20 @@ karabiner_cli --list-connected-devices | jq '.[] | select(.vendor_id == 19530 or
 
 # 2. The rule is loaded
 jq '.profiles[0].complex_modifications.rules[] | select(.description | startswith("MacroKeyBot")) | {description, manipulator_count: (.manipulators | length)}' ~/.config/karabiner/karabiner.json
-# Expect: manipulator_count: 10 (or 5 if you dropped the BT side; or 8 if you dropped only the top-button double-tap)
+# Expect: manipulator_count: 12 (or 6 if you dropped the BT side; or 10 if you dropped one button's double-tap pair)
 ```
 
 **Functional test** (the only test that matters):
 
-| Action                               | Expected result                                                                                               |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| Single-tap Top (don't press fast)    | After ~200ms, Fn fires once. Typeless / dictation UI toggles on (or off, on the next single-tap).             |
-| Double-tap Top (fast, <200ms)        | The system clipboard is pasted at the cursor. Same effect as ⌘V.                                              |
-| Single-tap Middle (don't press fast) | After ~200ms, a newline is inserted. In Claude Code: text bumps to next line; in Slack: new line in composer. |
-| Double-tap Middle (fast, <200ms)     | The message is sent / Return fires immediately on the second press.                                           |
-| Press Bottom                         | Everything from the cursor back to the start of the line is deleted.                                          |
+| Action                               | Expected result                                                                                                                                                                                                                     |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Single-tap Top (don't press fast)    | After ~200ms, Fn fires once. Typeless / dictation UI toggles on (or off, on the next single-tap).                                                                                                                                   |
+| Double-tap Top (fast, <200ms)        | The system clipboard is pasted at the cursor. Same effect as ⌘V.                                                                                                                                                                    |
+| Single-tap Middle (don't press fast) | After ~200ms, a newline is inserted. In Claude Code: text bumps to next line; in Slack: new line in composer.                                                                                                                       |
+| Double-tap Middle (fast, <200ms)     | The message is sent / Return fires immediately on the second press.                                                                                                                                                                 |
+| Single-tap Bottom (don't press fast) | The cursor / selection moves up one line. On USB this fires after ~200ms; on BT the pad's firmware decides "single tap" and emits `equal_sign` immediately. Either way, one `up_arrow` keystroke.                                   |
+| Double-tap Bottom (fast)             | The cursor / selection moves down one line. On USB the second press triggers the `variable_if` detector (immediate `down_arrow`). On BT the pad's firmware emits `Option+Z` which Karabiner translates to `down_arrow` immediately. |
+| Hold Bottom                          | Exactly one `up_arrow` fires (no auto-repeat). This is by design on both transports — see the bottom-button caveat above.                                                                                                           |
 
 If any step misbehaves, see [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md#troubleshooting) or [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md#diagnostic-commands).
 
@@ -462,7 +519,7 @@ For non-Return single-button variations, replace the affected button-pair's two 
 - Second-tap detector's `to[0].key_code` (or `to[0].shell_command`) = your double-tap action
 - First-tap handler's `to_delayed_action.to_if_invoked[0].key_code` (or `to[0].shell_command`) = your single-tap action
 
-Keep the `set_variable` + `device_if` + `variable_if` structure unchanged. **Use a distinct variable name per button** (the rule above uses `macrokeybot_top_tap` and `macrokeybot_middle_tap`) — sharing a variable across buttons would let a tap on one button arm the double-tap detector on the other.
+Keep the `set_variable` + `device_if` + `variable_if` structure unchanged. **Use a distinct variable name per button** (the rule above uses `macrokeybot_top_tap`, `macrokeybot_middle_tap`, `macrokeybot_bottom_tap`) — sharing a variable across buttons would let a tap on one button arm the double-tap detector on another.
 
 The same alternates table works for the top button — common pairings:
 
@@ -473,7 +530,18 @@ The same alternates table works for the top button — common pairings:
 | Copy + copy-path in Finder         | `Cmd+C`                   | `Cmd+Option+C`                | Everyday copy is fast, "copy full path" is deliberate      |
 | App launcher pair                  | `open -a 'Notes'`         | `open -a 'Notes' && new note` | Switch is fast, create-and-switch is deliberate            |
 
-For the bottom button (single-action), the decision-tree table in [`SKILL.md`](../SKILL.md#decision-tree-which-target-keycode) shows common target JSON for Fn, media keys, shell commands, app launchers, etc.
+And for the bottom button — pair two related actions where the single-tap is the more common one:
+
+| Use case                       | Single-tap target         | Double-tap target         | Framing                                                                                                                                                                                                   |
+| ------------------------------ | ------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cursor up + down (our default) | `up_arrow`                | `down_arrow`              | Both reversible; pick the direction you reach for more often as the single-tap (we picked `up_arrow` because the bottom key sits closer to the user when worn around the neck — going "up" feels natural) |
+| Browser tab navigation         | `Cmd+]` (next tab)        | `Cmd+W` (close tab)       | Switching tabs is fast; closing one needs intent                                                                                                                                                          |
+| Read receipt + archive         | `Cmd+Shift+U` (mark read) | `e` (Gmail/Slack archive) | Triage is fast; archival commits to action                                                                                                                                                                |
+| Window cycle + close           | `Cmd+\`` (next window)    | `Cmd+W` (close window)    | Switching windows is fast; closing needs intent                                                                                                                                                           |
+
+> **Heads-up if your bottom-button BT signals differ**: the worked-example pad uses pad-firmware-side double-tap detection on BT (`equal_sign` for single, `Option+Z` for double). If you change the bottom button's targets, you only need to update the `to` arrays of manipulators 9 (USB detector), 10 (USB handler's `to_if_invoked`), 11 (BT single-tap translator), and 12 (BT double-tap translator). The `from` keycodes are pad-firmware-defined and don't change.
+
+If you'd rather keep the bottom button as a single-action key (no double-tap layer), the decision-tree table in [`SKILL.md`](../SKILL.md#decision-tree-which-target-keycode) shows common target JSON for Fn, media keys, shell commands, app launchers, etc. — see the "Adapt for your pad" recipe above for collapsing the pair back into a single immediate-target manipulator per transport.
 
 ## Rolling Back
 
@@ -511,4 +579,4 @@ Then System Settings → General → Login Items & Extensions → Driver Extensi
 
 ## Credits & Provenance
 
-This walkthrough distills ~2 days of live exploration on a Jieli/Free3-P 3-key pad, captured in [`01-hardware-identification.md`](01-hardware-identification.md) through [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md). The middle-button tap/double-tap pattern was added on 2026-04-23 to give Return a safer-than-default behavior; the same pattern was extended to the top button on 2026-04-24 (single-tap → Fn for Typeless toggle, double-tap → Cmd+V paste). All patterns, traps, and adaptation notes here have been field-tested on the development laptop. If a detail doesn't survive contact with your reality, open an issue — this file is meant to evolve.
+This walkthrough distills ~2 days of live exploration on a Jieli/Free3-P 3-key pad, captured in [`01-hardware-identification.md`](01-hardware-identification.md) through [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md). The middle-button tap/double-tap pattern was added on 2026-04-23 to give Return a safer-than-default behavior; the same pattern was extended to the top button on 2026-04-24 (single-tap → Fn for Typeless toggle, double-tap → Cmd+V paste); to the bottom button on 2026-05-02 (initially single-tap → `down_arrow` cursor nudge, double-tap → `Cmd+Delete` line-clear); and revised later the same day to single-tap → `up_arrow`, double-tap → `down_arrow`. The 2026-05-02 revision also surfaced a hardware-level surprise: **the pad's BT firmware runs its own double-tap detection on the bottom button only**, emitting `equal_sign` for single tap and `Option+Z` for double tap. The rule was restructured to translate those firmware-decided keycodes immediately on BT while keeping the original `set_variable` + `to_delayed_action` software discrimination on USB (where the pad emits `Ctrl+X` for every press). Top + middle buttons remain pure software discrimination on both transports. All patterns, traps, and adaptation notes here have been field-tested on the development laptop. If a detail doesn't survive contact with your reality, open an issue — this file is meant to evolve.
