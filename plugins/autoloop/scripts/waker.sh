@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # PROCESS-STORM-OK: Intentional single spawn under heavy safeguards (pitfall #6 defense: re-verify in lock, rate-limit via last_spawn_us)
+# FILE-SIZE-OK — single waker decision tree; splitting would fragment a flow that's already hard to follow across multiple guards
 # waker.sh — Launchd-invoked waker that decides whether to spawn/notify/do-nothing
 # Directly invoked with <loop_id> argument. Implements decision tree per phase 9 context.
 # Sources: registry-lib.sh, ownership-lib.sh, state-lib.sh, notifications-lib.sh
@@ -424,6 +425,13 @@ spawn_claude_resume() {
   local spawn_log="$state_dir/spawn.log"
   local spawn_status="$state_dir/spawn.last-status"
   : > "$spawn_status" 2>/dev/null || true
+  # Wave 5 A2: when claude --resume fails (session deleted, binary moved,
+  # crashed mid-init), the user previously had to run `/autoloop:doctor`
+  # to discover it. Now the failure path appends a notification entry to
+  # ~/.claude/loops/.notifications.jsonl so any consumer (statusline,
+  # SwiftBar, future Telegram bridge) surfaces the dead loop proactively.
+  # Gated on AUTOLOOP_NO_NOTIFY=1 for users who want strict silence.
+  local notify_path="$HOME/.claude/loops/.notifications.jsonl"
   nohup bash -c "
     claude --resume \"$session_id\" >> \"$spawn_log\" 2>&1
     rc=\$?
@@ -433,6 +441,12 @@ spawn_claude_resume() {
       jq -nc --arg ts \"\$ts\" --arg sid \"$session_id\" --arg rc \"\$rc\" \
         '{ts: \$ts, kind:\"claude_resume_failed\", field:\"session_id\", value_truncated:\$sid, pid:\"$$\", extra:{rc:\$rc}}' \
         >> \"$HOME/.claude/loops/.hook-errors.log\" 2>/dev/null || true
+      if [ -z \"\${AUTOLOOP_NO_NOTIFY:-}\" ]; then
+        ts_us=\$(date +%s)000000
+        jq -nc --arg ts_us \"\$ts_us\" --arg loop_id \"$loop_id\" --arg msg \"claude --resume exited rc=\$rc (session likely deleted or binary missing)\" --argjson rc \$rc \
+          '{ts_us: \$ts_us, loop_id: \$loop_id, kind: \"claude_resume_failed\", message: \$msg, exit_code: \$rc}' \
+          >> \"$notify_path\" 2>/dev/null || true
+      fi
     fi
   " >/dev/null 2>&1 &
   local spawn_pid=$!
