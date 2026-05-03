@@ -63,14 +63,30 @@ fi
 ```bash
 if [ "$(is_hook_installed "$SETTINGS_PATH")" = "yes" ]; then
   echo "Hook already installed; no action needed"
-  exit 0
+else
+  if install_hook "$SETTINGS_PATH"; then
+    echo "✓ Hook installed successfully"
+    echo "  The heartbeat will now tick on each tool invocation"
+  else
+    echo "✗ Failed to install hook"
+    exit 1
+  fi
 fi
 
-if install_hook "$SETTINGS_PATH"; then
-  echo "✓ Hook installed successfully"
-  echo "  The heartbeat will now tick on each tool invocation"
+# Wave 5 A1: runtime self-test. is_hook_installed only verifies that a
+# command path matching our hook is present in settings.json — it cannot
+# detect a hook that's registered but crashes on invocation (broken
+# shebang, missing dependency, syntax error from a botched edit, stale
+# sibling-lib path). Run each hook with a synthetic Claude Code event
+# payload in a sandbox HOME and confirm exit 0.
+echo ""
+echo "Verifying hooks run cleanly..."
+if run_hook_runtime_selftest "$PLUGIN_ROOT" 2>&1; then
+  echo "✓ All hooks invoke cleanly"
 else
-  echo "✗ Failed to install hook"
+  echo "✗ One or more hooks failed runtime self-test (see lines above)"
+  echo "  This means the hooks are registered but won't actually fire."
+  echo "  Reinstall the plugin or investigate the failing script."
   exit 1
 fi
 ```
