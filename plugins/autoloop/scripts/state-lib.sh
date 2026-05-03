@@ -303,6 +303,42 @@ write_heartbeat() {
     return 1
   fi
 
+  # Wave 5 B1: contract-disappeared detection. If the user `git restore .`'d
+  # the contract file, ran `git clean -dXf`, or manually `rm`'d the contract,
+  # the registry entry + state_dir survive but the loop is unmoored — every
+  # subsequent heartbeat would tick happily on a contract that no longer
+  # exists. Detect and refuse the write so doctor can surface RED.
+  local registry_lib_dir
+  registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
+    local _entry _cp
+    _entry=$(read_registry_entry "$loop_id" 2>/dev/null) || _entry="{}"
+    _cp=$(echo "$_entry" | jq -r '.contract_path // ""' 2>/dev/null)
+    if [ -n "$_cp" ] && [ ! -f "$_cp" ]; then
+      echo "ERROR: write_heartbeat: contract file '$_cp' has disappeared (likely git restore / git clean / rm). Halting heartbeat for loop '$loop_id'. Run /autoloop:doctor to recover." >&2
+      # Best-effort: emit a provenance event for forensics. Tolerated if
+      # provenance-lib isn't loaded.
+      if command -v emit_provenance >/dev/null 2>&1; then
+        emit_provenance "$loop_id" "contract_disappeared" \
+          "contract_path=$_cp" 2>/dev/null || true
+      fi
+      # Best-effort: append a notification entry so consumers (statusline,
+      # SwiftBar) surface the dead loop proactively. Same opt-out env var
+      # as Wave 5 A2 (AUTOLOOP_NO_NOTIFY=1).
+      if [ -z "${AUTOLOOP_NO_NOTIFY:-}" ]; then
+        local _notif="$HOME/.claude/loops/.notifications.jsonl"
+        local _ts_us
+        _ts_us=$(now_us 2>/dev/null || echo "0")
+        jq -nc --arg ts_us "$_ts_us" --arg loop_id "$loop_id" \
+          --arg path "$_cp" \
+          --arg msg "contract file disappeared (likely git restore or manual rm)" \
+          '{ts_us: $ts_us, loop_id: $loop_id, kind: "contract_disappeared", message: $msg, contract_path: $path}' \
+          >> "$_notif" 2>/dev/null || true
+      fi
+      return 1
+    fi
+  fi
+
   # Get current timestamp in microseconds
   local last_wake_us
   if ! last_wake_us=$(now_us); then
