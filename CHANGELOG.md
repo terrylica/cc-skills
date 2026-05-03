@@ -1,3 +1,20 @@
+# [17.11.0](https://github.com/terrylica/cc-skills/compare/v17.10.1...v17.11.0) (2026-05-03)
+
+
+### Bug Fixes
+
+* **html-showcase:** round-3 anti-fragility — symlink safety + UX hints ([9938e6d](https://github.com/terrylica/cc-skills/commit/9938e6dcb3f75ffc3f05f69532eb6fce37699bd5))
+
+
+### Features
+
+* **autoloop:** Wave 5 A3 — settings.json schema validation + fresh-install dir creation ([dae90ec](https://github.com/terrylica/cc-skills/commit/dae90ececc88987921240356498b79f7aba609d4))
+* **autoloop:** Wave 5 A4 — strip macOS quarantine xattrs at setup ([868c605](https://github.com/terrylica/cc-skills/commit/868c60502f43897cc14f29c6bec660ead9e33081))
+* **autoloop:** Wave 5 A5 — zero-state nudge in status + doctor ([a392f9d](https://github.com/terrylica/cc-skills/commit/a392f9d6c8f5de8357657634a1b0dec3e1e27d0e))
+* **autoloop:** Wave 5 A6 — suggest closest loops on reclaim no-match ([8474be3](https://github.com/terrylica/cc-skills/commit/8474be3b304ed4de9dc7b1069ded3065cee08854))
+* **autoloop:** Wave 5 A8 — explicit auto-setup messaging in start skill ([28e0b60](https://github.com/terrylica/cc-skills/commit/28e0b609cde91b36262e1f7f1904d5d04186470a))
+* **autoloop:** Wave 5 C3 — cache machine_id at ~/.claude/loops/.machine-id ([911ec0b](https://github.com/terrylica/cc-skills/commit/911ec0ba9cdf72c4237afd0512b0cfe14f375fc7))
+
 ## [17.10.1](https://github.com/terrylica/cc-skills/compare/v17.10.0...v17.10.1) (2026-05-02)
 
 
