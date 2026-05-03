@@ -2,7 +2,59 @@
 
 All notable changes to the `macro-keyboard` plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning tracks the cc-skills marketplace (synchronized major version across all plugins).
 
-## Unreleased — 2026-04-24
+## Unreleased — 2026-05-02
+
+### Changed — Bottom button: tap/double-tap added, then revised, mechanism made transport-asymmetric
+
+Three rapid iterations on the bottom button on the same day:
+
+**Iteration 1 (morning, 13:07)** — Added Karabiner-side tap/double-tap discrimination on the bottom button (matching the established top + middle pattern). Single-tap → `down_arrow` cursor nudge; double-tap → `Cmd+Delete` line-clear. New runtime variable `jieli_bottom_tap`. Manipulator count: 10 → 12. Backup: `~/.config/karabiner/karabiner.json.bak.before-bottom-tap-20260502-130639`.
+
+**Iteration 2 (afternoon, 14:18)** — Revised targets to `up_arrow` (single tap) / `down_arrow` (double tap). Both directions are reversible navigation — pick whichever you reach for more often as the single-tap. Backup: `~/.config/karabiner/karabiner.json.bak.before-bottom-arrows-20260502-141718`.
+
+**Iteration 3 (afternoon, 14:35)** — During testing, **discovered via Karabiner-EventViewer that the pad's BT firmware does its own double-tap detection on the bottom button only**. Double-tapping over Bluetooth emits `Option+Z` (not a repeated `equal_sign`), so the Karabiner-side software discrimination never fired the double-tap target. Restructured the BT bottom path: dropped the software discrimination, replaced manipulators 11 + 12 with two simple immediate-translation manipulators (`equal_sign` → `up_arrow`, `Option+Z` → `down_arrow`). USB bottom path kept its software discrimination (USB still emits `Ctrl+X` on every press). Top + middle buttons continue to use software discrimination on both transports — they're not affected by firmware-side discrimination. Manipulator count stays at 12. The variable `jieli_bottom_tap` is now used only on USB.
+
+### Asymmetric-mechanism summary (post-iteration 3)
+
+| Button | USB mechanism                                                                                            | BT mechanism                                                                                                                                                |
+| ------ | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Top    | Software discrimination (Karabiner `set_variable` + `to_delayed_action`; pad emits `Ctrl+C` every press) | Software discrimination (pad emits `page_up` every press)                                                                                                   |
+| Middle | Software discrimination (pad emits `Ctrl+V` every press)                                                 | Software discrimination (pad emits `page_down` every press)                                                                                                 |
+| Bottom | Software discrimination (pad emits `Ctrl+X` every press)                                                 | **Firmware-decided keycode translation** (pad firmware emits `equal_sign` for single tap, `Option+Z` for double tap; Karabiner translates each immediately) |
+
+User-facing behavior is identical (single-tap = up_arrow, double-tap = down_arrow). Only inspecting the rule reveals the asymmetry.
+
+### Caveats
+
+**No auto-repeat on the bottom button on either transport**: USB single-tap fires once after the 200ms detection window expires; BT firmware emits one discrete event per gesture (no key-down/key-up stream). Real macOS arrow keys auto-repeat when held; this remap does not. To restore continuous scroll on USB, collapse the pair into a single immediate-target manipulator. On BT you can't restore it — the firmware doesn't emit a stream.
+
+**Top-button PTT-incompatibility caveat from 2026-04-24 still applies**: holding the top key won't sustain Fn-down because Fn fires only after the 200ms detection window expires. Use Typeless tap-to-toggle, not push-to-talk.
+
+### Updated docs
+
+- `references/raw/karabiner-rule.json` — 10 → 12 manipulators (count unchanged across iterations 2 + 3, but BT bottom manipulators became immediate translations rather than detector/handler pair). Description string now lists the asymmetric mechanisms.
+- `references/02-usb-wired-configuration.md` — mapping table (bottom row now `up_arrow` / `down_arrow`), abridged JSON view's count-comment notes the 12-manipulator total and the asymmetric BT bottom mechanism, "How the tap/double-tap pattern works" section reframed for top + middle + (USB) bottom; troubleshooting rows updated for arrow-key targets; "Bottom button's Ctrl+X passes through" limitation rewritten as the universal "no key auto-repeat" caveat
+- `references/08-bluetooth-configuration.md` — Status section adds **Important asymmetry** callout. Mapping table now shows `equal_sign` (single) / `Option+Z` (double) for the bottom row. Manipulator structure list (1-12) updated: items 11 + 12 are now "single-tap translator" + "double-tap translator", not detector/handler. New "Why USB and BT use different mechanisms for the bottom button" subsection explains the firmware behavior. Bottom-button caveat updated for the firmware-emits-one-event-per-gesture reality.
+- `references/09-turnkey-walkthrough.md` — Full 12-manipulator JSON updated (USB bottom = software pair; BT bottom = two immediate translations). Behavior table notes the asymmetric mechanism. "Why the tap/double-tap on bottom (and why it differs by transport)" explainer added. Verification step rewritten to mention both mechanisms. Variations table refreshed for bottom button (no longer "destructive deliberate" framing — both targets are reversible). "Adapt for your pad" notes call out checking both transports for firmware-side discrimination. Credits & provenance line updated with the iteration history.
+- `references/overview.md` — Current-status bullets and quick-reference mapping table reflect the asymmetric mechanism.
+- `references/03-patterns.md` — Live-examples line clarifies that the BT bottom does NOT use Karabiner-side discrimination. **New pattern added**: "Translate pad-firmware-decided keycodes (no Karabiner-side discrimination)" — the recipe for the case where the pad's firmware emits two distinct keycodes for single-vs-double-tap. Anti-pattern warning's auto-repeat trap updated for the current `up_arrow` target.
+- `references/04-anti-patterns.md` — **New entry**: "Assuming the pad emits the same keycode on single-tap and double-tap on every transport". Documents the 2026-05-02 surprise + the fix + the EventViewer test recipe.
+- `SKILL.md` — Manipulator count math reframed (8 software-discriminated for top + middle, 2 software-discriminated for USB bottom, 2 firmware-translated for BT bottom = 12). Turnkey description updated.
+- `CLAUDE.md` (plugin) — Tap-vs-double-tap section now describes both techniques (software discrimination + firmware-decided-keycode translation) with the live examples for each. File-list descriptions for `02-` / `08-` / `raw/` updated. Patterns description now lists both techniques.
+- `skills/configure-macro-keyboard/CLAUDE.md` — Critical Invariants gains an 8th item documenting the asymmetric bottom-button mechanism. Recent Changes log records all three iterations. Common Edits note that the BT bottom path can NOT be tuned via `to_delayed_action_delay_milliseconds` (firmware-controlled). File table descriptions for `02-` / `08-` updated to mention the asymmetry.
+- `README.md` — Turnkey TIP and Quick Example bullets reflect the new bindings + the asymmetric mechanism note.
+
+### Live config
+
+Applied to `~/.config/karabiner/karabiner.json` in three iterations on 2026-05-02:
+
+- 13:07:33 — Iteration 1 (down_arrow / Cmd+Delete, software discrimination)
+- 14:18:18 — Iteration 2 (up_arrow / down_arrow, software discrimination on both transports)
+- 14:35:10 — Iteration 3 (up_arrow / down_arrow, asymmetric mechanism: USB software, BT firmware-translation)
+
+Karabiner reloaded cleanly each time. Functional verification done by user via Karabiner-EventViewer + real-app testing after iteration 3.
+
+## 2026-04-24
 
 ### Changed — Top button gains tap/double-tap pair
 
