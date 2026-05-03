@@ -426,6 +426,50 @@ INSTALLED=$(is_hook_installed "$CLAUDE_SETTINGS_PATH")
 assert_equals "$INSTALLED" "no" "is_hook_installed returns 'no' after uninstall"
 
 echo ""
+echo "Test 11: Wave 5 A3 — schema validation rejects .hooks of wrong type"
+rm -f "$CLAUDE_SETTINGS_PATH"
+echo '{"hooks": "not-an-object"}' > "$CLAUDE_SETTINGS_PATH"
+EXIT_CODE=0
+ERR=$(install_hook "$CLAUDE_SETTINGS_PATH" "$HOOK_PATH" 2>&1 1>/dev/null) || EXIT_CODE=$?
+if [ "$EXIT_CODE" != "0" ] && echo "$ERR" | grep -q "expected object"; then
+  echo "✓ PASS: .hooks of type string rejected with clear error"
+  PASS=$((PASS+1))
+else
+  echo "✗ FAIL: expected schema error; got rc=$EXIT_CODE err='$ERR'"
+  FAIL=$((FAIL+1))
+fi
+
+echo ""
+echo "Test 12: Wave 5 A3 — schema validation rejects .hooks.PostToolUse of wrong type"
+rm -f "$CLAUDE_SETTINGS_PATH"
+echo '{"hooks": {"PostToolUse": "not-an-array"}}' > "$CLAUDE_SETTINGS_PATH"
+EXIT_CODE=0
+ERR=$(install_hook "$CLAUDE_SETTINGS_PATH" "$HOOK_PATH" 2>&1 1>/dev/null) || EXIT_CODE=$?
+if [ "$EXIT_CODE" != "0" ] && echo "$ERR" | grep -q "expected array"; then
+  echo "✓ PASS: .hooks.PostToolUse of type string rejected with clear error"
+  PASS=$((PASS+1))
+else
+  echo "✗ FAIL: expected schema error; got rc=$EXIT_CODE err='$ERR'"
+  FAIL=$((FAIL+1))
+fi
+
+echo ""
+echo "Test 13: Wave 5 A3 — auto-creates ~/.claude dir on truly fresh install"
+FRESH=$(mktemp -d)
+FRESH_SETTINGS="$FRESH/.claude/settings.json"
+# Note: $FRESH/.claude does NOT exist yet.
+EXIT_CODE=0
+install_hook "$FRESH_SETTINGS" "$HOOK_PATH" >/dev/null 2>&1 || EXIT_CODE=$?
+if [ "$EXIT_CODE" = "0" ] && [ -f "$FRESH_SETTINGS" ]; then
+  echo "✓ PASS: install succeeds when ~/.claude doesn't exist (auto-mkdir)"
+  PASS=$((PASS+1))
+else
+  echo "✗ FAIL: install failed on missing parent dir; rc=$EXIT_CODE"
+  FAIL=$((FAIL+1))
+fi
+rm -rf "$FRESH"
+
+echo ""
 echo "========================================"
 echo "Test Summary"
 echo "========================================"
