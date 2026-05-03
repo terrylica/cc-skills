@@ -202,8 +202,12 @@ _with_settings_lock() {
     return 1
   fi
 
-  # Call fn with args
-  if ! "$fn" "$@" 2>&1; then
+  # Call fn with args. Wave 5 A3: dropped a stray `2>&1` here so errors from
+  # the impl function reach stderr (where callers expect them) instead of
+  # being merged into stdout — that merge silently broke `ERR=$(... 2>&1
+  # 1>/dev/null)` capture in the test harness and any other caller that
+  # separates streams.
+  if ! "$fn" "$@"; then
     return 1
   fi
 
@@ -228,6 +232,17 @@ install_hook_impl() {
   local claude_dir
   claude_dir=$(dirname "$settings_path") || return 1
 
+  # Wave 5 A3: ensure ~/.claude/ exists before any read/write. On a true
+  # fresh install (user has never run claude-code or has just removed
+  # ~/.claude entirely), the parent dir is missing and mktemp -p later
+  # would fail with a confusing "no such file" error.
+  if [ ! -d "$claude_dir" ]; then
+    mkdir -p "$claude_dir" || {
+      echo "ERROR: install_hook_impl: cannot create $claude_dir" >&2
+      return 1
+    }
+  fi
+
   # Check if already installed (idempotent)
   if [ -f "$settings_path" ]; then
     # Check if our hook is already there
@@ -246,6 +261,25 @@ install_hook_impl() {
     # Validate JSON before modifying
     if ! jq . "$settings_path" >/dev/null 2>&1; then
       echo "ERROR: install_hook_impl: settings.json at $settings_path is malformed JSON" >&2
+      echo "       Inspect:  jq . $settings_path" >&2
+      echo "       Recover:  fix the JSON manually, or back up + remove and re-run" >&2
+      return 1
+    fi
+
+    # Wave 5 A3: validate schema shape. `.hooks` must be an object (or absent),
+    # and `.hooks.PostToolUse` must be an array (or absent). If either is the
+    # wrong type — e.g. someone hand-edited `.hooks: "command"` — the jq update
+    # below would silently produce garbage. Catch it with a clear error.
+    local hooks_type post_type
+    hooks_type=$(jq -r '.hooks | type' "$settings_path" 2>/dev/null)
+    post_type=$(jq -r '.hooks.PostToolUse | type' "$settings_path" 2>/dev/null)
+    if [ "$hooks_type" != "object" ] && [ "$hooks_type" != "null" ]; then
+      echo "ERROR: install_hook_impl: settings.json has .hooks of type '$hooks_type' (expected object)" >&2
+      echo "       Fix manually so .hooks is an object: jq '.hooks //= {}' $settings_path" >&2
+      return 1
+    fi
+    if [ "$post_type" != "array" ] && [ "$post_type" != "null" ]; then
+      echo "ERROR: install_hook_impl: settings.json has .hooks.PostToolUse of type '$post_type' (expected array)" >&2
       return 1
     fi
 
@@ -377,6 +411,19 @@ install_hook() {
   if [ ! -f "$hook_path" ]; then
     echo "ERROR: install_hook: heartbeat hook not found at $hook_path" >&2
     return 1
+  fi
+
+  # Wave 5 A3: ensure parent dir of settings_path exists before the path
+  # canonicalization below. On a truly fresh install (or when callers pass a
+  # path under a freshly-mktemp'd dir), the cd would silently fall through
+  # and produce a malformed absolute path.
+  local settings_dir
+  settings_dir=$(dirname "$settings_path")
+  if [ ! -d "$settings_dir" ]; then
+    mkdir -p "$settings_dir" || {
+      echo "ERROR: install_hook: cannot create $settings_dir" >&2
+      return 1
+    }
   fi
 
   # Convert paths to absolute
