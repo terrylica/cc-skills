@@ -126,11 +126,11 @@ follow:
   in its head. The layer order tells it whether the new rule will win.
   Predictability beats cleverness.
 
-- **Light-mode-only beats `light-dark()` for showcase pages.** A page
+- **Dark-mode-only beats `light-dark()` for showcase pages.** A page
   whose appearance depends on the _viewer's_ OS settings can't be reviewed
-  by screenshot consistently. The kernel sets `color-scheme: light` to
-  pin the look. If you need dark-mode showcase pages, fork the kernel and
-  build a dark variant — don't auto-switch based on `prefers-color-scheme`.
+  by screenshot consistently. The kernel sets `color-scheme: dark` to
+  pin the look. If you need light-mode showcase pages, fork the kernel and
+  build a light variant — don't auto-switch based on `prefers-color-scheme`.
 
 ## Why a CDN, not a local copy
 
