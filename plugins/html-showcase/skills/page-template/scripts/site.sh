@@ -124,8 +124,9 @@ cmd_nav() {
   local build_nav
   build_nav="$(resolve_build_nav)"
   if [[ -z "$build_nav" ]]; then
-    echo "✗ build-nav.py not found in $REPO_ROOT/scripts/ or the html-showcase plugin" >&2
-    echo "  Copy it: cp \$CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py ./scripts/" >&2
+    echo "✗ build-nav.py not found." >&2
+    echo "  Easiest fix: invoke /html-showcase:setup from Claude Code." >&2
+    echo "  Manual fix:  bash \$CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/install.sh" >&2
     exit 1
   fi
   echo "→ regenerating site-map + auto-nav for $local_dir"
@@ -184,9 +185,20 @@ cmd_search() {
   # Pre-clean any stale or half-built index from a previous killed run.
   # Without this, a SIGINT mid-pagefind leaves orphan chunks that the
   # next run won't auto-overwrite — bigblack would serve a half-broken
-  # search until the user noticed and intervened. rm -rf is safe here
-  # because pagefind owns this dir entirely.
-  rm -rf "${local_dir%/}/pagefind"
+  # search until the user noticed and intervened.
+  #
+  # SYMLINK GUARD: refuse to follow a symlinked pagefind/ — `rm -rf`
+  # on a symlink-to-directory deletes the TARGET's contents, not the
+  # link. If a user symlinked pagefind/ to a shared cache outside the
+  # site root, that cache would be wiped on every nav rebuild. (Caught
+  # by the round-3 adversarial audit.)
+  pf_dir="${local_dir%/}/pagefind"
+  if [[ -L "$pf_dir" ]]; then
+    echo "✗ $pf_dir is a symlink — refusing to rm -rf (would delete the link's target)." >&2
+    echo "  Resolve manually: replace the symlink with a real directory before running search." >&2
+    return 1
+  fi
+  rm -rf "$pf_dir"
   if ! "$pagefind" --site "${local_dir%/}" 2>&1 | grep -E '(Indexed|Finished|error|Error)'; then
     : # captured output already piped
   fi
@@ -207,9 +219,16 @@ cmd_check() {
 
   echo "→ validating $local_dir"
 
-  # Lychee link check
+  # Lychee link check.
+  # Disable pipefail for the lychee pipe: a non-zero lychee exit (broken
+  # links) interacts with `set -e` to abort the whole script BEFORE we
+  # reach the if-block that prints remediation hints. By dropping
+  # pipefail just for this pipe, we capture the exit code via
+  # PIPESTATUS and print our own actionable diagnosis.
   require lychee "brew install lychee  (or: cargo install lychee)"
   local lychee_config="$local_dir/lychee.toml"
+  local lychee_status=0
+  set +o pipefail
   if [[ -f "$lychee_config" ]]; then
     echo "  lychee (config: $lychee_config)"
     lychee --config "$lychee_config" "$local_dir"/**/*.html 2>&1 | tail -20
@@ -217,9 +236,13 @@ cmd_check() {
     echo "  lychee (no config; using defaults)"
     lychee "$local_dir"/**/*.html 2>&1 | tail -20
   fi
-  local lychee_status=${PIPESTATUS[0]}
+  lychee_status=${PIPESTATUS[0]}
+  set -o pipefail
   if [[ $lychee_status -ne 0 ]]; then
     echo "✗ lychee found broken links — aborting" >&2
+    echo "  Review the report above, fix the offending URLs / file paths," >&2
+    echo "  then re-run:  scripts/site.sh check $local_dir" >&2
+    echo "  (To allowlist a host, add it to the [exclude] section of $local_dir/lychee.toml.)" >&2
     exit 1
   fi
 
@@ -259,10 +282,22 @@ cmd_push() {
 
   # 3. Rsync to bigblack — abort on SSH or rsync failure BEFORE stamping
   # provenance. A failure here means the live site wasn't updated.
+  #
+  # The default $BIGBLACK_SSH (`bigblack`) resolves via Tailscale
+  # MagicDNS. If Tailscale isn't running, the SSH attempt will fail
+  # with a name-resolution error after a brief delay. The post-failure
+  # message below mentions Tailscale explicitly so the user knows
+  # what's missing rather than chasing SSH-key debug paths.
   echo "→ rsync $local_dir/ → $BIGBLACK_SSH:$remote_path/"
   # shellcheck disable=SC2029  # intentional client-side expansion of $remote_path
   if ! ssh -o ConnectTimeout=15 -o BatchMode=yes "$BIGBLACK_SSH" "mkdir -p '$remote_path'"; then
-    echo "✗ SSH to $BIGBLACK_SSH failed — site not published. Check Tailscale / ssh keys." >&2
+    echo "✗ SSH to $BIGBLACK_SSH failed — site not published." >&2
+    echo "  Common causes:" >&2
+    echo "    • Tailscale not running   (this script publishes via MagicDNS)" >&2
+    echo "    • SSH keys not loaded     (BatchMode=yes prevents interactive auth)" >&2
+    echo "    • bigblack offline" >&2
+    echo "  Quick diagnose:  ssh $BIGBLACK_SSH echo ok" >&2
+    echo "  See references/publishing.md for the bigblack/Tailscale setup." >&2
     return 1
   fi
   if ! rsync -av --delete \

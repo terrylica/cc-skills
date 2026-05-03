@@ -530,6 +530,22 @@ body:has(.auto-nav-rail[open]) {
   --pagefind-ui-image-box-ratio: 3 / 2;
   --pagefind-ui-font: inherit;
 }
+/* When Pagefind hasn't been built yet (no pagefind/ dir), the host
+ * div is empty. Show an inert placeholder so users see "search needs
+ * a build step" instead of a confusing empty box. mountSearch()
+ * removes this state once PagefindUI fills the div with children. */
+.auto-nav-rail #auto-nav-search:empty::before {
+  content: "Search index pending. Run scripts/site.sh nav <site> to enable.";
+  display: block;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.4;
+}
 .auto-nav-rail .pagefind-ui__search-input {
   background: #f8fafc !important;
   color: #1e293b !important;
@@ -1267,6 +1283,28 @@ code {{ background: #f1f5f9; color: #0f172a; padding: 1px 6px; border-radius: 3p
 # ----------------------------------------------------------------------
 
 
+def cleanup_stale_tmp_files(root: Path) -> None:
+    """Sweep up orphan tmp files left by killed atomic_write_text calls.
+
+    A SIGKILL between mkstemp and os.replace leaves `.<name>.NN.tmp` files
+    in the same directory as the target. They're harmless but accumulate
+    if the user repeatedly Ctrl+Cs build-nav.py. Clean them at start so
+    the working tree stays tidy.
+    """
+    cleaned = 0
+    for tmp in root.rglob(".*.tmp"):
+        # Match tempfile.mkstemp's prefix=`.{name}.` suffix=`.tmp` shape.
+        if "/pagefind/" in str(tmp):
+            continue  # pagefind manages its own dir; don't touch
+        try:
+            tmp.unlink()
+            cleaned += 1
+        except OSError:
+            pass
+    if cleaned:
+        print(f"  cleaned {cleaned} orphan .tmp file(s) from prior killed runs")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Universal site-map navigator builder.",
@@ -1276,7 +1314,7 @@ def main() -> int:
         help="Site root directory (default: current dir)",
     )
     parser.add_argument(
-        "--asset-version", default="3",
+        "--asset-version", default="4",
         help="Cache-bust version appended to asset URLs (bump on rail asset changes)",
     )
     args = parser.parse_args()
@@ -1286,6 +1324,7 @@ def main() -> int:
         print(f"FATAL: {root} is not a directory", file=sys.stderr)
         return 2
 
+    cleanup_stale_tmp_files(root)
     write_rail_assets(root)
     print(f"Wrote {AUTO_NAV_CSS_NAME}, {AUTO_NAV_JS_NAME}")
 

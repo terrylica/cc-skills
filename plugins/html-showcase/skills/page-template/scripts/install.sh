@@ -237,12 +237,21 @@ fi
 # If `pagefind/` is already TRACKED by git (committed before being
 # gitignored), gitignoring it doesn't untrack the existing copies. The
 # user will keep seeing diff churn every time the index regenerates.
-# This is a one-time-fix situation — surface it loudly so they know.
-if [[ $CHECK_ONLY -ne 1 ]] && command -v git >/dev/null 2>&1; then
+# Surfaced in BOTH --check and install modes so users running --check
+# (the most common upgrade pre-flight) actually see the warning.
+#
+# Pathspec note: `**/pagefind/` is gitignore-glob syntax, NOT git
+# pathspec syntax. ls-files needs a real pathspec — `*pagefind/*`
+# matches any path containing pagefind/ (verified empirically; the
+# previous --error-unmatch with gitignore syntax never matched).
+if command -v git >/dev/null 2>&1; then
   if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
-    if git -C "$REPO" ls-files --error-unmatch -- '**/pagefind/' >/dev/null 2>&1; then
-      echo "  ⚠ pagefind/ is already tracked by git. To stop committing the index, run:" >&2
-      echo "      git -C $REPO rm -r --cached '**/pagefind/' && git commit -m 'untrack pagefind index'" >&2
+    tracked_pagefind="$(git -C "$REPO" ls-files '*pagefind/*' 2>/dev/null | head -1)"
+    if [[ -n "$tracked_pagefind" ]]; then
+      echo "  ⚠ pagefind/ is already tracked by git (e.g., $tracked_pagefind)." >&2
+      echo "    To stop committing the index, run:" >&2
+      echo "      git -C $REPO rm -r --cached '*pagefind/*' && git commit -m 'untrack pagefind index'" >&2
+      [[ $CHECK_ONLY -eq 1 ]] && MISSING_COUNT=$((MISSING_COUNT + 1))
     fi
   fi
 fi
