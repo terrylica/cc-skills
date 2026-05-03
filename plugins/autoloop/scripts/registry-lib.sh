@@ -548,6 +548,83 @@ update_loop_field() {
 #   1 on no match
 #   2 on ambiguity (multiple slugs match) — stderr lists candidates
 #   3 on input format invalid (refused at the regex gate)
+# suggest_closest_loops <input> [registry_path] [max_results]
+# PROCESS-STORM-OK (bash function definition, not a fork bomb)
+# Best-effort fuzzy match: given a user input that resolve_loop_identifier
+# rejected, return up to N candidate loops ranked by simple heuristics
+# (substring match → prefix match → first-character match). Wave 5 A6.
+#
+# Output: zero or more lines on stdout, format: "AL-<slug>--<hash>  (<loop_id>)"
+#         or "<loop_id>" if the entry has no slug/hash.
+# Exit:   always 0 (best-effort; emits nothing if no candidates).
+suggest_closest_loops() {
+  local input="${1:-}"
+  local registry_path="${2:-$HOME/.claude/loops/registry.json}"
+  local max_results="${3:-3}"
+
+  [ -z "$input" ] && return 0
+  [ ! -f "$registry_path" ] && return 0
+
+  # Normalize: strip optional AL- prefix, lowercase for case-insensitive match.
+  local needle="${input#AL-}"
+  needle=$(echo "$needle" | tr '[:upper:]' '[:lower:]')
+
+  # Build a JSON array of (display_name, loop_id, campaign_slug, short_hash)
+  # tuples for every registered entry, then score each one.
+  local entries
+  entries=$(jq -r '
+    .loops[]? |
+    {
+      loop_id: (.loop_id // ""),
+      slug: (.campaign_slug // ""),
+      hash: (.short_hash // ""),
+      display: (
+        if (.campaign_slug // "") != "" and (.short_hash // "") != "" then
+          "AL-" + .campaign_slug + "--" + .short_hash
+        elif (.campaign_slug // "") != "" then
+          "AL-" + .campaign_slug
+        else
+          "AL-loop-" + ((.loop_id // "?")[0:6])
+        end
+      )
+    } |
+    .display + "\t" + .loop_id + "\t" + .slug + "\t" + .hash
+  ' "$registry_path" 2>/dev/null)
+
+  [ -z "$entries" ] && return 0
+
+  # Score: 1=substring, 2=prefix, 3=first-char, 4=other.
+  # awk implementation keeps this bash-3.2 friendly and avoids spawning a
+  # subshell per row.
+  local scored
+  scored=$(echo "$entries" | awk -F'\t' -v needle="$needle" '
+    function tolower2(s) { return tolower(s) }
+    {
+      d = tolower2($1); l = tolower2($2); s = tolower2($3); h = tolower2($4)
+      score = 99
+      # Substring of display, slug, loop_id, or hash
+      if (index(d, needle) || index(s, needle) || index(l, needle) || index(h, needle)) {
+        score = 1
+      }
+      # Prefix match (≥3 chars)
+      else if (length(needle) >= 3 && (substr(d,1,length(needle)) == needle || substr(s,1,length(needle)) == needle)) {
+        score = 2
+      }
+      # First-char match as last resort
+      else if (length(needle) >= 1 && substr(d,1,1) == substr(needle,1,1)) {
+        score = 3
+      }
+      printf "%d\t%s\t%s\n", score, $1, $2
+    }
+  ' | sort -k1,1n -k2,2 | head -n "$max_results")
+
+  [ -z "$scored" ] && return 0
+
+  # Drop the score column, format as "display  (loop_id)".
+  echo "$scored" | awk -F'\t' '{ printf "  %s  (%s)\n", $2, $3 }'
+  return 0
+}
+
 resolve_loop_identifier() {
   local input="${1:-}"
   local registry_path="${2:-$HOME/.claude/loops/registry.json}"
@@ -669,3 +746,4 @@ export -f unregister_loop
 export -f update_loop_field_impl
 export -f update_loop_field
 export -f resolve_loop_identifier
+export -f suggest_closest_loops
