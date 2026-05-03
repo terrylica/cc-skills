@@ -37,8 +37,12 @@ emit_notification() {
     return 1
   fi
 
-  # Validate kind is one of the expected values
-  if ! [[ "$kind" =~ ^(stuck|anomaly|pending_takeover|spawn)$ ]]; then
+  # Validate kind is one of the expected values. Wave 5 A2 added
+  # `claude_resume_failed` for the surface-the-failure path in
+  # waker.sh's spawn_claude_resume; `spawn_refused` was always emitted by
+  # waker.sh's preflight gates but was previously rejected silently by
+  # this validator (the calls all had `2>/dev/null || true`).
+  if ! [[ "$kind" =~ ^(stuck|anomaly|pending_takeover|spawn|spawn_refused|claude_resume_failed)$ ]]; then
     echo "ERROR: emit_notification: invalid kind '$kind'" >&2
     return 1
   fi
