@@ -1,3 +1,11 @@
+# [17.13.0](https://github.com/terrylica/cc-skills/compare/v17.12.0...v17.13.0) (2026-05-03)
+
+
+### Features
+
+* **html-showcase:** dark theme as the kernel default ([497f6f2](https://github.com/terrylica/cc-skills/commit/497f6f2d2a7ffe427db2f1c917c3b19bc107c560)), closes [#f8fafc](https://github.com/terrylica/cc-skills/issues/f8fafc) [#0b1120](https://github.com/terrylica/cc-skills/issues/0b1120) [#f1f5f9](https://github.com/terrylica/cc-skills/issues/f1f5f9) [#111c33](https://github.com/terrylica/cc-skills/issues/111c33) [#ffffff](https://github.com/terrylica/cc-skills/issues/ffffff) [#111c33](https://github.com/terrylica/cc-skills/issues/111c33) [#f8fafc](https://github.com/terrylica/cc-skills/issues/f8fafc) [#1e293b](https://github.com/terrylica/cc-skills/issues/1e293b) [#e2e8f0](https://github.com/terrylica/cc-skills/issues/e2e8f0) [#334155](https://github.com/terrylica/cc-skills/issues/334155) [#cbd5e1](https://github.com/terrylica/cc-skills/issues/cbd5e1) [#475569](https://github.com/terrylica/cc-skills/issues/475569) [#e5e7eb](https://github.com/terrylica/cc-skills/issues/e5e7eb) [#334155](https://github.com/terrylica/cc-skills/issues/334155) [#0f172a](https://github.com/terrylica/cc-skills/issues/0f172a) [#e2e8f0](https://github.com/terrylica/cc-skills/issues/e2e8f0) [#334155](https://github.com/terrylica/cc-skills/issues/334155) [#cbd5e1](https://github.com/terrylica/cc-skills/issues/cbd5e1) [#64748b](https://github.com/terrylica/cc-skills/issues/64748b) [#94a3b8](https://github.com/terrylica/cc-skills/issues/94a3b8) [#94a3b8](https://github.com/terrylica/cc-skills/issues/94a3b8) [#64748b](https://github.com/terrylica/cc-skills/issues/64748b)
+* **macro-keyboard:** bottom button tap/double-tap with transport-asymmetric mechanism ([cf0c5c7](https://github.com/terrylica/cc-skills/commit/cf0c5c75a9a296155ea9037f93245bd78c669a48))
+
 # [17.12.0](https://github.com/terrylica/cc-skills/compare/v17.11.0...v17.12.0) (2026-05-03)
 
 
