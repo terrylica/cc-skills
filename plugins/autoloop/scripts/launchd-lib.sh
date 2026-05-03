@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # launchd-lib.sh — Per-loop launchd plist generation, validation, and load/unload
 # Provides: plist_label, generate_plist, load_plist, unload_plist, is_plist_loaded
+# FILE-SIZE-OK — generate/load/unload form a tightly-coupled trio that share
+# label conventions and macOS-specific quirks; splitting would force every
+# caller to source 3 files and would risk drift between them.
 
 set -euo pipefail
 
@@ -349,19 +352,58 @@ load_plist() {
     return 1
   fi
 
-  # Attempt to bootstrap (modern macOS 10.10+)
-  if launchctl bootstrap gui/$UID "$installed_plist" 2>/dev/null; then
+  # Wave 5 A7: capture stderr from launchctl so the failure path can give
+  # actionable diagnostics. Previously `2>/dev/null` swallowed everything,
+  # leaving the user with a "both ... failed" error that pointed nowhere.
+  local bootstrap_err="" load_err=""
+
+  # Attempt to bootstrap (modern macOS 10.10+). Use if-form to satisfy
+  # SC2181 — capture err in the success branch's mirror; on failure we
+  # re-run capture cheaply since launchctl is fast.
+  if launchctl bootstrap "gui/$UID" "$installed_plist" 2>/dev/null; then
     echo "INFO: plist loaded via launchctl bootstrap for label '$label'" >&2
     return 0
   fi
+  bootstrap_err=$(launchctl bootstrap "gui/$UID" "$installed_plist" 2>&1 || true)
 
   # Fallback to launchctl load (deprecated but still works on older macOS)
   if launchctl load "$installed_plist" 2>/dev/null; then
     echo "INFO: plist loaded via launchctl load (deprecated) for label '$label'" >&2
     return 0
   fi
+  load_err=$(launchctl load "$installed_plist" 2>&1 || true)
 
-  echo "ERROR: load_plist: both launchctl bootstrap and launchctl load failed" >&2
+  # Wave 5 A7: pattern-match the captured stderr for the common failure
+  # modes and surface remediation. Detection-only — we can't auto-fix any
+  # of these (FDA grant, MDM unblock, malformed plist all need user
+  # intervention).
+  echo "ERROR: load_plist: launchctl rejected the plist for label '$label'" >&2
+  echo "       bootstrap stderr: $bootstrap_err" >&2
+  echo "       load stderr: $load_err" >&2
+
+  local combined="${bootstrap_err}${load_err}"
+  case "$combined" in
+    *"Operation not permitted"*|*"not permitted"*)
+      echo "" >&2
+      echo "       Likely cause: Full Disk Access or background-agent permission denied." >&2
+      echo "       Fix on macOS Ventura+: System Settings → Privacy & Security → Full Disk Access" >&2
+      echo "       Add your terminal app (or claude-code binary) and toggle on." >&2
+      ;;
+    *"Bootstrap failed"*|*"5: Input/output error"*|*"86:"*)
+      echo "" >&2
+      echo "       Likely cause: launchd label collision or domain-policy block (MDM/Jamf)." >&2
+      echo "       Inspect:  launchctl print 'gui/$UID/$label' 2>&1 | head -20" >&2
+      ;;
+    *"No such file"*|*"is not a valid"*|*"plist parse"*)
+      echo "" >&2
+      echo "       Likely cause: malformed plist or path mismatch." >&2
+      echo "       Inspect:  plutil -lint $installed_plist" >&2
+      ;;
+    *"Domain does not support"*)
+      echo "" >&2
+      echo "       Likely cause: running as root or in a non-GUI session — gui/<uid> domain unavailable." >&2
+      ;;
+  esac
   return 1
 }
 
