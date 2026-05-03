@@ -16,7 +16,15 @@ Generic "remap my keyboard" plugins (Karabiner skills bundled in other marketpla
 
 And once the basics work, a sixth challenge often appears: with only 3 buttons, users want more than 3 actions. The reusable trick here is:
 
-1. **Tap-vs-double-tap discrimination** — coordinate two manipulators via `set_variable` + `to_delayed_action` sharing one `from` trigger. The single-tap target fires after a 200ms detection window expires; the double-tap target fires on the second press (which cancels the pending single-tap). Live examples: the "MacroKeyBot" middle-button Shift+Return/Return pair, and the top-button Fn/Cmd+V pair (added 2026-04-24). Each button needs its own variable name to prevent cross-arming. Full reusable recipe in [`03-patterns.md`](./skills/configure-macro-keyboard/references/03-patterns.md#pattern-tap-vs-double-tap-discrimination-on-one-button) with the safety/speed framing and tuning knob.
+1. **Tap-vs-double-tap discrimination** — two complementary techniques, both used by the live MacroKeyBot rule:
+   - **Software discrimination** (Karabiner-side): coordinate two manipulators via `set_variable` + `to_delayed_action` sharing one `from` trigger. Single-tap target fires after a 200ms detection window expires; double-tap target fires on the second press (which cancels the pending single-tap). Used for top + middle on both transports (USB + BT) and bottom on USB. Each button needs its own variable name (`jieli_top_tap`, `jieli_middle_tap`, `jieli_bottom_tap`) to prevent cross-arming. Live examples:
+     - Middle button Shift+Return / Return (2026-04-23)
+     - Top button Fn / Cmd+V (2026-04-24)
+     - Bottom button initial down_arrow / Cmd+Delete (2026-05-02 morning)
+     - Bottom button current up_arrow / down_arrow (2026-05-02 afternoon)
+   - **Firmware-decided keycode translation** (pad-firmware-side, no Karabiner discrimination): when the pad's firmware itself decides single-vs-double-tap and emits two different keycodes, Karabiner just translates each immediately — no variable, no delayed action. Used for the bottom button on BT only: pad firmware emits `equal_sign` for single tap, `Option+Z` for double tap; rule maps each to `up_arrow` / `down_arrow`. Discovered via Karabiner-EventViewer 2026-05-02. **Always check both transports of every button for firmware-side discrimination before assuming software discrimination is needed** — see [`04-anti-patterns.md`](./skills/configure-macro-keyboard/references/04-anti-patterns.md) → "Assuming the pad emits the same keycode on single-tap and double-tap on every transport".
+
+   Both techniques + their anti-patterns (PTT-incompatibility, no-auto-repeat, firmware-discrimination assumption) are in [`03-patterns.md`](./skills/configure-macro-keyboard/references/03-patterns.md). Total: 12 manipulators in the live rule.
 
 All six traps were hit and solved during the live Jieli/Free3-P work captured here. The plugin packages the reusable patterns + a device-specific worked example ("MacroKeyBot").
 
@@ -34,17 +42,17 @@ Each skill has its own CLAUDE.md (per-skill SSoT for invariants, edit convention
 
 The device-specific config lives under `configure-macro-keyboard/references/`:
 
-- **`09-turnkey-walkthrough.md`** — **start here for replication** — copy-paste-ready 30-minute MacroKeyBot recipe for any 3-key pad, with VID/PID placeholders, complete 10-manipulator config (top + middle tap/double-tap pairs across USB + BT), and variation bindings for different use cases
+- **`09-turnkey-walkthrough.md`** — **start here for replication** — copy-paste-ready 30-minute MacroKeyBot recipe for any 3-key pad, with VID/PID placeholders, complete 12-manipulator config (top + middle: software discrimination on both transports; bottom: software discrimination on USB, firmware-decided-keycode translation on BT), and variation bindings for different use cases
 - `overview.md` — TL;DR of device signatures + mapping table
 - `01-hardware-identification.md` — VID/PID, HID descriptor decode, chip family inference
-- `02-usb-wired-configuration.md` — live USB rule with `simultaneous: [Ctrl, C/V/X]` matchers + tap/double-tap pair on top (Fn / Cmd+V) and middle (Shift+Return / Return) buttons
-- `03-patterns.md` — reusable techniques (`simultaneous` vs `mandatory`, `device_if`, Quartz capture, `ignore:true`, tap-vs-double-tap discrimination)
+- `02-usb-wired-configuration.md` — live USB rule with `simultaneous: [Ctrl, C/V/X]` matchers + tap/double-tap pairs on top (Fn / Cmd+V), middle (Shift+Return / Return), and bottom (up_arrow / down_arrow) buttons; cross-references the asymmetric BT bottom-button mechanism in `08-bluetooth-configuration.md`
+- `03-patterns.md` — reusable techniques (`simultaneous` vs `mandatory`, `device_if`, Quartz capture, `ignore:true`, tap-vs-double-tap software discrimination, pad-firmware-decided-keycode translation)
 - `04-anti-patterns.md` — dead-ends (BTT `CGEventPost`, hidutil combos, QMK/VIA on Jieli, Touch-ID-triggering audits, tap-vs-hold Fn emission)
 - `05-bluetooth-roadmap.md` — historical pre-pairing plan
 - `06-bluetooth-landscape-survey.md` — 2026 macro-pad ecosystem survey
 - `07-bluetooth-toolbox.md` — tier-ranked FOSS tools for BT control on macOS
-- `08-bluetooth-configuration.md` — live BT rule with mode-4 firmware (page_up/page_down/equal_sign) and parallel tap/double-tap top + middle button manipulators
-- `raw/` — verbatim `lsusb -v`, `system_profiler`, `ioreg`, and Karabiner exports regenerated on change (currently: 10-manipulator live rule)
+- `08-bluetooth-configuration.md` — live BT rule with mode-4 firmware. Top + middle use Karabiner-side software discrimination (page_up / page_down emitted on every press, same as USB). Bottom uses pad-firmware-side discrimination — `equal_sign` on single tap → `up_arrow`, `Option+Z` on double tap → `down_arrow`. Documents the asymmetry and how to detect it on a new pad.
+- `raw/` — verbatim `lsusb -v`, `system_profiler`, `ioreg`, and Karabiner exports regenerated on change (currently: 12-manipulator live rule)
 
 ## Dependencies
 

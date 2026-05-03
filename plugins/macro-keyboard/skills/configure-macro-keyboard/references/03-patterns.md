@@ -191,9 +191,52 @@ grep "USB Composite Device" /var/log/karabiner/core_service.log | tail -2
 | `Escape`          | `Command+.`       | Dismiss is fast, interrupt is deliberate                                           |
 | `Cmd+C`           | `Cmd+Shift+C`     | Copy is fast, copy-path is deliberate                                              |
 
-**Live examples**: Jieli/Free3-P middle button (Shift+Return / Return) and top button (Fn / Cmd+V), both USB + BT. See `references/raw/karabiner-rule.json` for the full 10-manipulator config (2 single-action for bottom + 4 manipulators per tap/double-tap pair × 2 buttons). **Use a distinct variable name per button** (`jieli_top_tap`, `jieli_middle_tap`) — sharing one variable across buttons would let a tap on one arm the double-tap detector on another.
+**Live examples**: Jieli/Free3-P top button (Fn / Cmd+V) + middle button (Shift+Return / Return) on both transports, plus bottom button (up_arrow / down_arrow) on **USB only**. See `references/raw/karabiner-rule.json` for the full 12-manipulator config. **Use a distinct variable name per button** (`jieli_top_tap`, `jieli_middle_tap`, `jieli_bottom_tap`) — sharing one variable across buttons would let a tap on one arm the double-tap detector on another.
 
-**Anti-pattern warning**: don't pick this pattern when the latency on single-tap matters. For instance, tap-vs-double-tap on a push-to-talk button adds 200ms before the mic opens — use tap-vs-hold instead (`to_if_alone` + `to_if_held_down`), which discriminates by duration rather than a commit window. **The Jieli/Free3-P top button hits this trap if Typeless is configured for push-to-talk** (hold-to-talk): the 200ms detection window means Fn fires only after release, so PTT doesn't work. The live config assumes Typeless is in tap-to-toggle mode. To restore PTT, collapse the top-button pair into the original single-manipulator immediate-Fn form (see git history of `references/raw/karabiner-rule.json` from before 2026-04-24).
+**The Jieli/Free3-P bottom button on BT does NOT use this pattern** — see "Pattern: Translate pad-firmware-decided keycodes" below for why. In short, the pad's BT firmware emits `equal_sign` for a single tap and `Option+Z` for a double tap, so Karabiner doesn't need to discriminate; it just translates each keycode immediately. **Always check what your pad emits for both single and double tap on each transport before assuming software discrimination is needed.** The `ignore: true` diagnostic ([`diagnose-hid-keycodes`](../../diagnose-hid-keycodes/SKILL.md) sibling skill) is the right tool for this.
+
+**Anti-pattern warning**: don't pick this pattern when the latency-on-single-tap matters _or_ when the single-tap target needs key auto-repeat on hold. Two concrete failure modes:
+
+1. **Push-to-talk** — tap-vs-double-tap on a PTT button adds 200ms before the mic opens, and holding the button doesn't sustain the modifier. Use tap-vs-hold instead (`to_if_alone` + `to_if_held_down`), which discriminates by duration rather than a commit window. **The Jieli/Free3-P top button hits this trap if Typeless is configured for push-to-talk**: Fn fires only after release, so PTT doesn't work. The live config assumes Typeless is in tap-to-toggle mode.
+2. **Arrow-key auto-repeat** — `to_delayed_action`'s `to_if_invoked` fires the single-tap target as one discrete event after the timer elapses (or on key-up, whichever comes first). It does not emit a sustained key-down state, so macOS's auto-repeat doesn't kick in. **The Jieli/Free3-P bottom button hits this trap with `up_arrow`**: holding the bottom key produces one arrow keystroke, not the rapid scroll a real arrow key produces. Acceptable if you only nudge the cursor; painful if you scroll long lists.
+
+To restore the immediate-fire / auto-repeat behavior on any button: collapse its pair into a single immediate-target manipulator per transport (drop `parameters`, `to_delayed_action`, and `variable_if`; set `to: [{ ... your target ... }]`). See git history of `references/raw/karabiner-rule.json` for snapshots before each pair was added: pre-2026-04-24 for the immediate-Fn top-button form, pre-2026-05-02 for the bottom-button single-action forms.
+
+## Pattern: Translate pad-firmware-decided keycodes (no Karabiner-side discrimination)
+
+**What**: When the pad's firmware emits **two different keycodes** for single-tap vs double-tap on the same physical button, you don't need Karabiner-side `set_variable` + `to_delayed_action` discrimination. Just write two simple immediate-translation manipulators — one per emitted keycode — and let the firmware do the timing.
+
+**Why**: This is faster (no software 200ms wait), simpler (no variable, no delayed action, no `variable_if` ordering), and gives the user better feedback (single tap fires immediately).
+
+**Trigger to look for**: open Karabiner-EventViewer's Main tab, double-tap the button quickly, and see what comes through. If you see the **same** keycode twice in a row, the pad isn't doing firmware-level discrimination — use the previous "tap vs. double-tap" pattern. If you see a **different** keycode (or chord) on the second tap, the firmware is doing it for you.
+
+**How**:
+
+```jsonc
+// Single-tap path — translate the firmware's "single tap" keycode
+{
+  "type": "basic",
+  "from": { "key_code": "<single-tap firmware code>" },
+  "to": [{ "key_code": "<your target>" }],
+  "conditions": [{ "type": "device_if", "identifiers": [/* ... */] }]
+},
+// Double-tap path — translate the firmware's "double tap" keycode (often a modifier+key chord)
+{
+  "type": "basic",
+  "from": {
+    "key_code": "<double-tap key>",
+    "modifiers": { "mandatory": ["<double-tap modifier>"] }
+  },
+  "to": [{ "key_code": "<your other target>" }],
+  "conditions": [{ "type": "device_if", "identifiers": [/* ... */] }]
+}
+```
+
+**Live example**: Jieli/Free3-P bottom button on **Bluetooth mode 4 only** (verified 2026-05-02 via EventViewer). The pad's BT firmware emits `equal_sign` for a single tap and `Option+Z` for a double tap. The rule translates each immediately: `equal_sign` → `up_arrow`, `Option+Z` → `down_arrow`. No variable, no delayed action.
+
+**Not all transports of the same pad behave the same way**: the same Free3-P over USB-C emits `Ctrl+X` for **every** press regardless of tap rate, so the USB path uses the original software-discrimination pattern. **Always test both transports separately.**
+
+**Anti-pattern warning**: don't assume firmware-side discrimination is consistent across buttons. The Free3-P only does it on the bottom button — `page_up` (top) and `page_down` (middle) come through on every press, regardless of tap rate. Mixing patterns on the same physical pad is fine; the rule just has both kinds of manipulators.
 
 ## Pattern: Atomic commits after verifying each change
 

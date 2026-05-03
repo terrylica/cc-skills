@@ -109,3 +109,13 @@ Dead-ends, wrong turns, and things we tried that didn't work. Recorded here so f
 **What happened**: Memory file `reference_jieli_macropad_karabiner.md` was updated three times in this session as the rule evolved. Each update required re-reading, re-editing, and keeping MEMORY.md index in sync. Early updates became stale within minutes.
 
 **The lesson**: During rapid iteration, wait for the workflow to stabilize before committing to memory files. Better to update memory once at the end than to repeatedly rewrite it during the discovery phase.
+
+## Anti-pattern: Assuming the pad emits the same keycode on single-tap and double-tap on every transport
+
+**What happened (2026-05-02)**: Configured the bottom button with the standard Karabiner-side tap-vs-double-tap discrimination pattern (`set_variable` + `to_delayed_action`), assuming that — like the top + middle buttons — the pad would emit the same keycode (`equal_sign`) on every press over Bluetooth. After the rule went live, double-tap appeared to do nothing while single-tap worked. The user's Karabiner-EventViewer dump showed that **the pad's BT firmware actually emits `Option+Z` for a double tap** instead of repeating `equal_sign`. The rule had no manipulator matching `Option+Z` so the double-tap chord passed through to the focused app, while the first-tap delayed action still fired the (wrong) single-tap target ~200ms later.
+
+**Why we missed it earlier**: the previous rule for the bottom button was a single-action mapping (`equal_sign` → `Cmd+Delete`), so double-tap was never tested in EventViewer. We carried the "page_up/page_down behave the same on every press" assumption from the top + middle buttons over to the bottom button without verification. Same pad, same vendor, same BT mode — but a per-button firmware difference.
+
+**The fix**: drop the software discrimination on the affected transport (BT bottom) and add two simple immediate-translation manipulators — one for each firmware-emitted keycode. Keep software discrimination on the unaffected transport (USB bottom, where the firmware does emit `Ctrl+X` on every press). See `03-patterns.md` → "Pattern: Translate pad-firmware-decided keycodes" for the recipe.
+
+**The lesson**: **before adding the tap-vs-double-tap pattern to a button, double-tap it in EventViewer on each transport you care about** and confirm the same keycode comes through twice. If a different keycode (or chord) appears on the second tap, the pad is doing firmware-side discrimination — use the immediate-translation pattern instead. The `ignore: true` diagnostic ([`diagnose-hid-keycodes`](../../diagnose-hid-keycodes/SKILL.md)) is the right tool: open EventViewer Main tab, double-tap fast, screenshot, repeat per transport. ~10 seconds per check.

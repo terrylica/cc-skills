@@ -4,7 +4,9 @@ How the pad is configured over Bluetooth, paralleling [`02-usb-wired-configurati
 
 ## Status
 
-✅ **Pad works over Bluetooth with identical user-facing behavior as USB-C.** Top = tap/double-tap pair (single-tap = Fn for Typeless, double-tap = Cmd+V paste), middle = tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), bottom = Command+Delete. Same Karabiner rule handles both transports plus the BT mode-4 firmware quirks.
+✅ **Pad works over Bluetooth with identical user-facing behavior as USB-C.** Top = tap/double-tap pair (single-tap = Fn for Typeless, double-tap = Cmd+V paste), middle = tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), bottom = tap/double-tap pair (single-tap = up arrow, double-tap = down arrow). Same Karabiner rule handles both transports plus the BT mode-4 firmware quirks.
+
+**Important asymmetry** (verified 2026-05-02 via Karabiner-EventViewer): the pad's BT firmware does its own double-tap detection **on the bottom button only**. Top + middle behave the same on BT as on USB — `page_up` / `page_down` is emitted on every press regardless of tap rate, and Karabiner does the single-vs-double-tap discrimination in software. The bottom button is different: pad firmware emits `equal_sign` for a single tap and `Option+Z` for a double tap. The rule consequently uses two different mechanisms — software detection for top + middle, firmware-emitted-keycode translation for bottom. See "Manipulators" below for the structural difference.
 
 The initial assumption in the earlier roadmap — that BT would emit the same Ctrl+C/V/X as USB — was wrong. The pad has **four distinct BT modes** with different keycode firmware, none of which emit Ctrl+C/V/X. We chose mode 4 and added parallel manipulators to the Karabiner rule.
 
@@ -44,17 +46,17 @@ Mode-switching button combo: **not yet identified**. The manual/vendor listing d
 
 ## Mapping (Same UX as USB)
 
-| Physical Button | BT emits (mode 4) | Remapped to                                                                                    | Effect                                                      |
-| --------------- | ----------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **Top**         | `page_up`         | **Single-tap** → `Fn` (after ~200ms); **Double-tap ≤200ms** → `Cmd+V` (paste)                  | Tap toggles Typeless dictation; double-tap pastes clipboard |
-| **Middle**      | `page_down`       | **Single-tap** → `Shift+Return` (after ~200ms); **Double-tap ≤200ms** → `Return` (send/commit) | Newline (safe default) vs. deliberate send                  |
-| **Bottom**      | `equal_sign`      | `Command+Delete`                                                                               | Delete from cursor to start of line                         |
+| Physical Button | BT emits (mode 4)                                                                               | Remapped to                                                                                                                                   | Effect                                                                                                                   |
+| --------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Top**         | `page_up`                                                                                       | **Single-tap** → `Fn` (after ~200ms); **Double-tap ≤200ms** → `Cmd+V` (paste)                                                                 | Tap toggles Typeless dictation; double-tap pastes clipboard                                                              |
+| **Middle**      | `page_down`                                                                                     | **Single-tap** → `Shift+Return` (after ~200ms); **Double-tap ≤200ms** → `Return` (send/commit)                                                | Newline (safe default) vs. deliberate send                                                                               |
+| **Bottom**      | `equal_sign` (single tap, pad-firmware-decided) / `Option+Z` (double tap, pad-firmware-decided) | **Single-tap** → `up_arrow` (immediate — pad firmware does the timing); **Double-tap** → `down_arrow` (also immediate, translates `Option+Z`) | Step up vs. step down. No software 200ms wait — the pad's firmware decides single-vs-double-tap. No auto-repeat on hold. |
 
 ## The Karabiner Rule (Full)
 
 Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules` → rule named `Jieli/Free3-P macro pad: ...`. Verbatim export in [`references/karabiner-rule.json`](references/karabiner-rule.json).
 
-**Structure**: one rule, ten manipulators (the top and middle buttons each use a tap/double-tap pair per transport; bottom is a single manipulator per transport). All manipulators share the same `device_if` scoping to both USB and BT identifiers:
+**Structure**: one rule, twelve manipulators (all three buttons use a tap/double-tap pair per transport — 2 manipulators per button per transport × 3 buttons × 2 transports = 12). All manipulators share the same `device_if` scoping to both USB and BT identifiers:
 
 ```json
 "conditions": [{
@@ -76,18 +78,24 @@ Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modif
 6. **BT top, first-tap handler** — plain match on `key_code: page_up`, no variable guard → set variable + 200ms delayed Fn / reset on cancel
 7. **BT middle, double-tap detector** — plain match on `key_code: page_down`, guarded by `variable_if jieli_middle_tap == 1` → emit `key_code: return_or_enter` + reset variable
 8. **BT middle, first-tap handler** — plain match on `key_code: page_down`, no variable guard → set variable + 200ms delayed Shift+Return / reset on cancel
-9. **USB bottom** — `simultaneous` match on `left_control` + `x` → `key_code: delete_or_backspace` + `modifiers: ["left_command"]`
-10. **BT bottom** — plain match on `key_code: equal_sign` → `key_code: delete_or_backspace` + `modifiers: ["left_command"]`
+9. **USB bottom, double-tap detector** — `simultaneous` match on `left_control` + `x`, guarded by `variable_if jieli_bottom_tap == 1` → emit `key_code: down_arrow` + reset variable to `0`
+10. **USB bottom, first-tap handler** — `simultaneous` match on `left_control` + `x`, no variable guard → set `jieli_bottom_tap = 1`; `to_delayed_action` (200ms): `to_if_invoked` emits `key_code: up_arrow` + resets variable; `to_if_canceled` just resets variable
+11. **BT bottom, single-tap translator** — plain match on `key_code: equal_sign` → emit `key_code: up_arrow`. **No variable, no delayed action** — the pad's BT firmware has already decided this is a single tap (it would have emitted `Option+Z` for a double tap instead).
+12. **BT bottom, double-tap translator** — match on `key_code: z` with `mandatory: ["left_option"]` → emit `key_code: down_arrow`. **No variable, no delayed action** — the pad's BT firmware has already decided this is a double tap.
 
-Each transport's path triggers a different manipulator. The targets are identical across both transports, so user experience is transport-agnostic. The variables `jieli_top_tap` and `jieli_middle_tap` are each shared across the USB and BT transports of their respective buttons — harmless because only one transport is physically active at a time. Top and middle each have their own variable so a tap on one button cannot arm the double-tap detector on the other.
+Each transport's path triggers a different manipulator. The targets are identical across both transports, so user experience is transport-agnostic. The variables `jieli_top_tap` and `jieli_middle_tap` are each shared across the USB and BT transports of their respective buttons — harmless because only one transport is physically active at a time. The bottom-button variable `jieli_bottom_tap` is **only used on USB** (manipulators 9 + 10); the BT bottom path doesn't need it because the pad's firmware emits two distinct keycodes (`equal_sign` vs `Option+Z`) and Karabiner just translates each immediately.
 
-**Why the detector must come before the handler**: Karabiner evaluates manipulators top-down. When the relevant variable (`jieli_top_tap` or `jieli_middle_tap`) is already `1` (first-tap fired within the last 200ms), the detector's variable condition matches first and fires the double-tap target, canceling the pending delayed action. When the variable is `0` (default), the detector fails and execution falls through to the handler, which starts a new tap cycle. See `03-patterns.md` → "Tap vs. double-tap discrimination" for the reusable pattern in isolation, and `02-usb-wired-configuration.md#how-the-tapdouble-tap-pattern-works-top--middle-buttons` for a deeper walkthrough.
+**Why USB and BT use different mechanisms for the bottom button** (verified 2026-05-02 via Karabiner-EventViewer): the pad's USB firmware emits `Ctrl+X` on every press regardless of tap rate — Karabiner has to do the single-vs-double-tap discrimination in software (manipulators 9 + 10, the `set_variable` + `to_delayed_action` pattern). The pad's BT mode-4 firmware **runs its own double-tap detection on the bottom button**: single tap → `equal_sign`, double tap → `Option+Z`. Karabiner just translates the firmware-decided keycode (manipulators 11 + 12). This asymmetry is bottom-button-specific — the top + middle buttons emit `page_up` / `page_down` on every press over BT and use the same software-side detection as USB.
+
+**Why the detector must come before the handler** (USB only): Karabiner evaluates manipulators top-down. For USB top + middle + bottom, when the relevant variable (`jieli_top_tap` / `jieli_middle_tap` / `jieli_bottom_tap`) is already `1` (first-tap fired within the last 200ms), the detector's variable condition matches first and fires the double-tap target, canceling the pending delayed action. When the variable is `0` (default), the detector fails and execution falls through to the handler, which starts a new tap cycle. See `03-patterns.md` → "Tap vs. double-tap discrimination" for the reusable pattern in isolation, and `02-usb-wired-configuration.md#how-the-tapdouble-tap-pattern-works-all-three-buttons` for a deeper walkthrough. **The BT bottom-button manipulators (11 + 12) skip this dance entirely** — neither uses `variable_if`; their `from` keycodes (`equal_sign` vs `Option+Z`) are themselves the discriminator.
 
 **Top-button caveat**: because the Fn keystroke fires only after the 200ms detection window expires, holding the top key produces a single delayed Fn keypress — not the sustained Fn-down state required for push-to-talk. Use Typeless's tap-to-toggle Fn mode if you adopt this rule. To restore push-to-talk, collapse the top-button pair back into a single immediate-Fn manipulator per transport.
 
+**Bottom-button caveat**: arrow keys do not auto-repeat when you hold the bottom key on either transport. On USB, the single-tap target (`up_arrow`) fires once after the 200ms detection window expires, not as a stream. On BT, the pad's firmware emits one discrete `equal_sign` event per gesture (no key-down/key-up stream). Real macOS arrow keys repeat for scrolling; this remap does not. To restore continuous scroll, collapse both bottom-button paths into single-action manipulators (USB: replace 9 + 10 with one immediate `down_arrow`; BT: keep 11 + 12 but Karabiner can't restore auto-repeat because the firmware doesn't emit a stream).
+
 ### Handling Other BT Modes
 
-If you ever switch the pad to mode 1 (Media/Volume) or modes 2/3, the pad's keycodes won't match the BT manipulators (5-8 in the list above), so they'll pass through to macOS normally:
+If you ever switch the pad to mode 1 (Media/Volume) or modes 2/3, the pad's keycodes won't match the BT manipulators (5-8 and 11-12 in the list above), so they'll pass through to macOS normally:
 
 - Mode 1 top (volume_increment) → macOS raises system volume as expected. Not what we want for push-to-talk, but harmless.
 - Mode 1 middle (volume_decrement) → volume down.
@@ -109,9 +117,9 @@ If you later observe silent mid-meeting disconnects (pad stays "paired" but "dis
 
 ## Switching Modes Between USB-C and Bluetooth
 
-**USB-C → BT**: unplug USB-C. macOS auto-terminates the USB transport; BT reconnects in 5-6 seconds. Karabiner re-grabs via the BT VID/PID identifier. The BT manipulators (5-8: page_up/page_down pairs and equal_sign) become active in mode 4.
+**USB-C → BT**: unplug USB-C. macOS auto-terminates the USB transport; BT reconnects in 5-6 seconds. Karabiner re-grabs via the BT VID/PID identifier. The BT manipulators (5-8 and 11-12: page_up / page_down / equal_sign pairs) become active in mode 4.
 
-**BT → USB-C**: plug in USB-C. macOS prefers USB; BT stays paired but disconnected. The USB manipulators (1-4: Ctrl+C/V pairs and Ctrl+X) become active.
+**BT → USB-C**: plug in USB-C. macOS prefers USB; BT stays paired but disconnected. The USB manipulators (1-4 and 9-10: Ctrl+C / Ctrl+V / Ctrl+X pairs) become active.
 
 **Both attached simultaneously**: don't. macOS may double-emit. The pad's firmware may stop responding to BT while USB is plugged in (cheap-pad charging mode).
 
