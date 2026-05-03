@@ -4,8 +4,8 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 ## Current Status
 
-- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP is a tap/double-tap pair (single-tap = Fn for Typeless dictation toggle, double-tap = Cmd+V paste), MIDDLE is a tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), BOTTOM is Command+Delete (delete-to-start-of-line). See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
-- **Bluetooth mode**: ✅ working on firmware mode 4 (page_up / page_down / equal_sign). Same Karabiner rule extended with parallel BT manipulators — page_up→tap/double-tap pair (Fn / Cmd+V), page_down→tap/double-tap pair (Shift+Return / Return), equal_sign→Command+Delete. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
+- **USB-C wired mode**: ✅ working. Remapped via Karabiner so TOP is a tap/double-tap pair (single-tap = Fn for Typeless dictation toggle, double-tap = Cmd+V paste), MIDDLE is a tap/double-tap pair (single-tap = Shift+Return newline, double-tap = Return send), BOTTOM is a tap/double-tap pair (single-tap = up arrow, double-tap = down arrow). See [`02-usb-wired-configuration.md`](02-usb-wired-configuration.md).
+- **Bluetooth mode**: ✅ working on firmware mode 4. Pad emits `page_up` / `page_down` for top + middle (every press, regardless of tap rate — Karabiner detects single-vs-double-tap in software). Pad's BT firmware **also runs its own double-tap detection on the bottom button**: single-tap → `equal_sign`, double-tap → `Option+Z`. The rule routes accordingly: top/middle use the same `set_variable` + `to_delayed_action` pattern as USB; bottom uses two simple immediate-translation manipulators. See [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md).
 
 ## Contents
 
@@ -32,11 +32,11 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 
 **Current button mapping** — same user-facing behavior across both transports:
 
-| Physical | USB-C emits | BT mode-4 emits | Effect after Karabiner                                                                                          |
-| -------- | ----------- | --------------- | --------------------------------------------------------------------------------------------------------------- |
-| Top      | `Ctrl+C`    | `page_up`       | **Single-tap** = `Fn` (Typeless toggle, ~200ms after release); **Double-tap ≤200ms** = `Cmd+V` (paste)          |
-| Middle   | `Ctrl+V`    | `page_down`     | **Single-tap** = `Shift+Return` (newline, ~200ms after release); **Double-tap ≤200ms** = `Return` (send/commit) |
-| Bottom   | `Ctrl+X`    | `equal_sign`    | `Command+Delete` (delete to start of line)                                                                      |
+| Physical | USB-C emits            | BT mode-4 emits                             | Effect after Karabiner                                                                                                                                                                                                                                                                               |
+| -------- | ---------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Top      | `Ctrl+C`               | `page_up`                                   | **Single-tap** = `Fn` (Typeless toggle, ~200ms after release); **Double-tap ≤200ms** = `Cmd+V` (paste)                                                                                                                                                                                               |
+| Middle   | `Ctrl+V`               | `page_down`                                 | **Single-tap** = `Shift+Return` (newline, ~200ms after release); **Double-tap ≤200ms** = `Return` (send/commit)                                                                                                                                                                                      |
+| Bottom   | `Ctrl+X` (every press) | `equal_sign` (single) / `Option+Z` (double) | **Single-tap** = `up_arrow` (USB ~200ms; BT immediate); **Double-tap** = `down_arrow` (USB immediate; BT immediate). The pad's BT firmware does its own double-tap discrimination on the bottom button — Karabiner just translates each emitted keycode. No key-repeat on hold for either transport. |
 
 The pad's BT firmware has 4 distinct modes; we use mode 4 because its native keys (PageUp, PageDown, `=`) are rarely used on macOS and map cleanly to Fn/Return via Karabiner.
 
