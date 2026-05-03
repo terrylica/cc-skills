@@ -33,6 +33,16 @@ Otherwise, use the provided argument (`install`, `uninstall`, or `status`).
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 
+# Wave 5 A4: strip macOS quarantine xattr from plugin scripts. After
+# `claude plugin marketplace add`, files downloaded via curl/zip/tar inherit
+# com.apple.quarantine and refuse to execute with "operation not permitted".
+# This is a no-op on Linux and idempotent on macOS.
+STRIPPED=$(strip_plugin_quarantine_xattrs "$PLUGIN_ROOT" 2>&1)
+COUNT=$(echo "$STRIPPED" | tail -1)
+if [ "$COUNT" -gt 0 ] 2>/dev/null; then
+  echo "  Removed com.apple.quarantine from $COUNT plugin scripts (one-time cleanup)"
+fi
+
 # Check installation status
 SETTINGS_PATH="$HOME/.claude/settings.json"
 INSTALLED=$(is_hook_installed "$SETTINGS_PATH")
