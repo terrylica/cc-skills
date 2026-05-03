@@ -68,6 +68,10 @@ while IFS=' ' read -r local_ref _local_oid remote_ref _remote_oid; do
 done
 
 if [[ "${pushing_main}" -eq 0 ]]; then
+    # Silent exit was confusing (round-3 audit: user pushes a feature
+    # branch and sees no [html-showcase] output, can't tell if hook ran).
+    # One-line log makes it explicit that the skip was intentional.
+    echo "[html-showcase] skipping nav rebuild + rsync (push is not to main/master)"
     exit 0
 fi
 
