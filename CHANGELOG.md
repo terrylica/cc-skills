@@ -1,3 +1,14 @@
+# [17.12.0](https://github.com/terrylica/cc-skills/compare/v17.11.0...v17.12.0) (2026-05-03)
+
+
+### Features
+
+* **autoloop:** Wave 5 A1 — runtime hook self-test ([1d11840](https://github.com/terrylica/cc-skills/commit/1d11840fb1ae6e8170fffd5c1280a9b0bff5759b))
+* **autoloop:** Wave 5 A2 — surface claude-resume failure as a notification ([d7ed4a0](https://github.com/terrylica/cc-skills/commit/d7ed4a0c02aad5b48d696f3a89cd577284822f6a)), closes [#11](https://github.com/terrylica/cc-skills/issues/11)
+* **autoloop:** Wave 5 A7 — launchctl FDA / MDM rejection diagnostics ([0f6c9ba](https://github.com/terrylica/cc-skills/commit/0f6c9ba6a0aca3ed8418222fd5be7cca0711b14b))
+* **autoloop:** Wave 5 B1 — contract-disappeared detection in write_heartbeat ([30da1d3](https://github.com/terrylica/cc-skills/commit/30da1d36f0b5735896ed8ceec99918c03e380073))
+* **autoloop:** Wave 5 B3 — doctor disk-orphan scan ([59d284a](https://github.com/terrylica/cc-skills/commit/59d284ab40595511f7cd069c6d95eda77c3b489b))
+
 # [17.11.0](https://github.com/terrylica/cc-skills/compare/v17.10.1...v17.11.0) (2026-05-03)
 
 
