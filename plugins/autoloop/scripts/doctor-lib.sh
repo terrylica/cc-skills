@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # doctor-lib.sh — Self-diagnostic for autoloop fleet (v4.10.0 Phase 38).
 # Provides: loop_doctor_report, loop_doctor_fix
+# FILE-SIZE-OK (single-purpose diagnostic; checks belong together for cohesion)
 #
 # Cross-references registry.json, heartbeat.json files, launchctl list output,
 # plist files in ~/Library/LaunchAgents, and ~/.claude/projects JSONL transcripts
@@ -362,11 +363,16 @@ loop_doctor_report() {
     return 1
   fi
   if [ -z "$results" ]; then
-    echo "No loops registered. (GREEN — nothing to diagnose.)"
+    echo "No autoloop loops registered. (GREEN — fleet is clean.)"
+    echo ""
+    echo "  To start your first loop:  /autoloop:start <campaign-slug>"
+    echo "  To install hooks first:    /autoloop:setup install"
     if [ "${pacing_vetoed:-0}" -gt 0 ] || [ "${empty_firings:-0}" -gt 0 ]; then
+      echo ""
       echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)."
     fi
     if [ "${hook_errors_recent:-0}" -gt 0 ]; then
+      echo ""
       echo "YELLOW: $hook_errors_recent hook errors in the last 1h — see $hook_errors_log"
     fi
     return 0
