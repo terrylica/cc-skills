@@ -29,9 +29,25 @@ Install BOTH autoloop hooks into `~/.claude/settings.json` if not already presen
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 
+# Wave 5 A4: strip macOS quarantine xattrs in case this is the first run
+# after `claude plugin marketplace add`. No-op on Linux / clean trees.
+strip_plugin_quarantine_xattrs "$PLUGIN_ROOT" >/dev/null 2>&1 || true
+
+# Wave 5 A8: explicit "auto-setup-on-start". If neither hook is installed,
+# announce that we're running first-time setup before the install_all_hooks
+# call so the user understands the side effect. If both are already
+# installed, stay quiet — there's nothing to surface.
+SETTINGS_PATH="$HOME/.claude/settings.json"
+if [ "$(is_hook_installed "$SETTINGS_PATH" 2>/dev/null)" != "yes" ] || \
+   [ "$(is_session_bind_installed "$SETTINGS_PATH" 2>/dev/null)" != "yes" ]; then
+  echo "Installing autoloop hooks into ~/.claude/settings.json (one-time setup)..."
+fi
+
 # Install BOTH hooks (idempotent)
 if ! install_all_hooks 2>/dev/null; then
-  echo "WARNING: Failed to install autoloop hooks; continuing anyway" >&2
+  echo "WARNING: Failed to install autoloop hooks." >&2
+  echo "  Try /autoloop:setup install for diagnostics, or check that" >&2
+  echo "  ~/.claude/settings.json is valid JSON and writable." >&2
 fi
 ```
 
