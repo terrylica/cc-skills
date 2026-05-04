@@ -36,7 +36,7 @@ Two paths from Plan Mode to `/itp:go`:
 - [code-hardcode-audit](./skills/code-hardcode-audit/SKILL.md)
 - [go](./skills/go/SKILL.md)
 - [graph-easy](./skills/graph-easy/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [impl-standards](./skills/impl-standards/SKILL.md)
 - [implement-plan-preflight](./skills/implement-plan-preflight/SKILL.md)
 - [mise-configuration](./skills/mise-configuration/SKILL.md)
@@ -46,11 +46,11 @@ Two paths from Plan Mode to `/itp:go`:
 
 ## Commands
 
-| Command      | Purpose                                        |
-| ------------ | ---------------------------------------------- |
-| `/itp:go`    | Execute 4-phase workflow                       |
-| `/itp:setup` | Install dependencies and configure environment |
-| `/itp:hooks` | Install/uninstall enforcement hooks            |
+| Command       | Purpose                                        |
+| ------------- | ---------------------------------------------- |
+| `/itp:go`     | Execute 4-phase workflow                       |
+| `/itp:setup`  | Install dependencies and configure environment |
+| `/itp:tether` | Install/uninstall enforcement hooks            |
 
 For release, use the repo's mise pipeline directly: `/mise:run-full-release`.
 

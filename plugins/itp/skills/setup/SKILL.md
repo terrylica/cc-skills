@@ -301,13 +301,13 @@ After setup completes, configure itp-hooks for enhanced workflow guidance:
 1. **Check hook status**:
 
    ```bash
-   /itp:hooks status
+   /itp:tether status
    ```
 
 2. **Install hooks** (if not already installed):
 
    ```bash
-   /itp:hooks install
+   /itp:tether install
    ```
 
 ### What hooks provide

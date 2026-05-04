@@ -27,7 +27,7 @@ This plugin bridges Claude Code's **Plan Mode** and implementation:
 4. **Execute Workflow** — 4-phase transformation into permanent artifacts
 
 > [!TIP]
-> **Command Format**: Plugin commands display as `/itp:go`, `/itp:setup`, `/itp:hooks` in autocomplete. See [Slash Command Naming Convention](../../README.md#slash-command-naming-convention) for details on the `plugin:command` format.
+> **Command Format**: Plugin commands display as `/itp:go`, `/itp:setup`, `/itp:tether` in autocomplete. See [Slash Command Naming Convention](../../README.md#slash-command-naming-convention) for details on the `plugin:command` format.
 
 ### Plan Mode → /itp:go Bridge (Two Rejection Paths)
 

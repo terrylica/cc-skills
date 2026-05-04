@@ -1124,7 +1124,7 @@ SRED-Claim: <claim-id>
 The `sred-commit-guard` hook (from itp-hooks) validates this format. Install via:
 
 ```bash
-/itp:hooks install
+/itp:tether install
 ```
 
 ---
