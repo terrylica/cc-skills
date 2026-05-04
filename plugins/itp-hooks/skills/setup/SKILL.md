@@ -101,7 +101,7 @@ The hooks work with graceful degradation:
 After setup, install the hooks to your settings:
 
 ```bash
-/itp:hooks install
+/itp:tether install
 ```
 
 **IMPORTANT**: Restart Claude Code session for hooks to take effect.
@@ -116,7 +116,6 @@ After setup, install the hooks to your settings:
 | ruff version error   | Outdated ruff         | `brew upgrade ruff`                 |
 | Plugin dir not found | Plugin not installed  | Re-install plugin via marketplace   |
 | PATH issues          | Shims not in PATH     | Add mise shims to ~/.zshenv         |
-
 
 ## Post-Execution Reflection
 
