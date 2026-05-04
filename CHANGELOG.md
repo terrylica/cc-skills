@@ -1,3 +1,17 @@
+# [19.0.0](https://github.com/terrylica/cc-skills/compare/v18.0.0...v19.0.0) (2026-05-04)
+
+
+* refactor(autoloop)!: rename status skill → muster to avoid clashing with /status ([5c4b7e0](https://github.com/terrylica/cc-skills/commit/5c4b7e0191170b8bd872a3814cff58d9a74c17d6))
+
+
+### BREAKING CHANGES
+
+* Users invoking /autoloop:status must use /autoloop:muster.
+Scripts calling format_status_table must update to format_muster_table.
+Sourcing scripts/status-lib.sh must update to scripts/muster-lib.sh.
+TRIGGER list keeps "autoloop status" for soft backward-compat in
+discovery.
+
 # [18.0.0](https://github.com/terrylica/cc-skills/compare/v17.13.0...v18.0.0) (2026-05-04)
 
 
