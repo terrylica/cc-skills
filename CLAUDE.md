@@ -65,7 +65,7 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 | Execute workflow | `/itp:go feature-name -b`                                 |
 | Setup env        | `/itp:setup`                                              |
 | Add plugin       | `/plugin-dev:create plugin-name`                          |
-| Autonomous loop  | `/autoloop:start` / `/autoloop:stop` / `/autoloop:status` |
+| Autonomous loop  | `/autoloop:start` / `/autoloop:stop` / `/autoloop:muster` |
 
 ## Plugin Discovery
 
