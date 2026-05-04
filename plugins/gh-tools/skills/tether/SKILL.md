@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall gh-tools hooks to ~/.claude/settings.json. TRIGGERS - gh hooks, github hooks, install gh hook, webfetch guard hook."
+name: tether
+description: "Tether (install/uninstall) gh-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, gh hooks, github hooks, install gh hook, webfetch guard hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku
@@ -88,13 +88,13 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 
 ```bash
 # Check current installation status
-/gh-tools:hooks status
+/gh-tools:tether status
 
 # Install the WebFetch enforcement hook
-/gh-tools:hooks install
+/gh-tools:tether install
 
 # Uninstall hooks
-/gh-tools:hooks uninstall
+/gh-tools:tether uninstall
 ```
 
 ## Troubleshooting
@@ -110,7 +110,6 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 ## Reference
 
 - [ADR: gh-tools WebFetch Enforcement](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
-
 
 ## Post-Execution Reflection
 
