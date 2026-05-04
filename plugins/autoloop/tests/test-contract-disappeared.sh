@@ -98,8 +98,8 @@ if echo "$out" | grep -q "git restore"; then
 else
   nok "error doesn't suggest cause; got: $out"
 fi
-if echo "$out" | grep -q "/autoloop:doctor"; then
-  ok "error points at recovery via /autoloop:doctor"
+if echo "$out" | grep -q "/autoloop:triage"; then
+  ok "error points at recovery via /autoloop:triage"
 else
   nok "error doesn't point at recovery; got: $out"
 fi
