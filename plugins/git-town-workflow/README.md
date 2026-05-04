@@ -21,10 +21,10 @@ This plugin enforces idiomatic git-town usage through:
 
 | Command                         | Purpose                             |
 | ------------------------------- | ----------------------------------- |
-| `/git-town-workflow:fork`       | Create/configure fork workflow      |
+| `/git-town-workflow:scion`       | Create/configure fork workflow      |
 | `/git-town-workflow:contribute` | Complete contribution cycle         |
 | `/git-town-workflow:setup`      | Initialize git-town in repository   |
-| `/git-town-workflow:hooks`      | Install/uninstall enforcement hooks |
+| `/git-town-workflow:tether`      | Install/uninstall enforcement hooks |
 
 ## Quick Start
 
@@ -33,10 +33,10 @@ This plugin enforces idiomatic git-town usage through:
 brew install git-town
 
 # 2. Configure fork workflow
-/git-town-workflow:fork
+/git-town-workflow:scion
 
 # 3. Install enforcement hooks
-/git-town-workflow:hooks install
+/git-town-workflow:tether install
 
 # 4. Start contributing
 /git-town-workflow:contribute feat/my-feature
@@ -111,7 +111,7 @@ These raw git commands are still allowed:
 | git-town not found  | Not in PATH             | `brew install git-town` and restart shell       |
 | Command blocked     | Hook enforcement active | Use git-town equivalent (see table above)       |
 | Merge conflicts     | Sync diverged           | `git town sync` handles conflicts interactively |
-| Fork not configured | Missing upstream        | Run `/git-town-workflow:fork` to configure      |
+| Fork not configured | Missing upstream        | Run `/git-town-workflow:scion` to configure      |
 
 ## References
 

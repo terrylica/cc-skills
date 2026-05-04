@@ -1,8 +1,8 @@
 ---
-name: hooks
+name: tether
 allowed-tools: Read, Write, Edit, Bash(cat:*), Bash(jq:*), Grep, Glob, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
-description: "Install/uninstall hooks that enforce git-town over raw git commands in Claude Code. Blocks forbidden git commands. TRIGGERS - enforce git-town, install hooks, git-town hooks, prevent raw git."
+description: "Tether (install/uninstall) hooks that enforce git-town over raw git commands in Claude Code. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. Blocks forbidden git commands. TRIGGERS - tether hooks, enforce git-town, install hooks, git-town hooks, prevent raw git."
 model: haiku
 disable-model-invocation: true
 ---
@@ -186,7 +186,7 @@ echo "=== GIT-TOWN ENFORCEMENT HOOK STATUS ==="
 
 if [[ ! -f "$SETTINGS_FILE" ]]; then
     echo "❌ No settings file found"
-    echo "   Run: /git-town-workflow:hooks install"
+    echo "   Run: /git-town-workflow:tether install"
     exit 0
 fi
 
@@ -205,7 +205,7 @@ if [[ "$HOOK_EXISTS" -gt 0 ]]; then
     echo "  - git rebase → use git town sync"
 else
     echo "❌ Git-town enforcement hook is NOT installed"
-    echo "   Run: /git-town-workflow:hooks install"
+    echo "   Run: /git-town-workflow:tether install"
 fi
 
 STATUS_HOOK_EOF
@@ -223,13 +223,13 @@ STATUS_HOOK_EOF
 
 ```bash
 # Install hooks
-/git-town-workflow:hooks install
+/git-town-workflow:tether install
 
 # Check status
-/git-town-workflow:hooks status
+/git-town-workflow:tether status
 
 # Remove hooks
-/git-town-workflow:hooks uninstall
+/git-town-workflow:tether uninstall
 ```
 
 ## Troubleshooting
@@ -241,7 +241,6 @@ STATUS_HOOK_EOF
 | Hook not blocking       | Session not restarted     | Restart Claude Code session         |
 | Invalid JSON error      | Corrupted settings.json   | Check JSON syntax or restore backup |
 | Hook still active       | Multiple hooks registered | Uninstall and reinstall to dedupe   |
-
 
 ## Post-Execution Reflection
 

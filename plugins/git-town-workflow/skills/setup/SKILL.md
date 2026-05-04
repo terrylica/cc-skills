@@ -224,7 +224,7 @@ AskUserQuestion with questions:
   multiSelect: false
 ```
 
-If "Yes": Run `/git-town-workflow:hooks install`
+If "Yes": Run `/git-town-workflow:tether install`
 
 ---
 
@@ -269,7 +269,7 @@ Next steps:
 | gh auth failed        | GitHub CLI not authenticated | `gh auth login`                     |
 | Not in a git repo     | Missing .git directory       | Run from within a git repository    |
 | No remotes configured | Repo has no remotes          | `git remote add origin <url>`       |
-| Upstream not found    | Fork not configured          | Run `/git-town-workflow:fork` first |
+| Upstream not found    | Fork not configured          | Run `/git-town-workflow:scion` first |
 | Config not persisting | Git config scope issue       | Check `--global` vs `--local` scope |
 
 ## Post-Execution Reflection
