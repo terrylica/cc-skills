@@ -6,7 +6,7 @@ argument-hint: "[install|uninstall|status] [--backup-on-stop] [--convert-on-stop
 disable-model-invocation: true
 ---
 
-# /asciinema-tools:hooks
+# /asciinema-tools:tether
 
 Manage Claude Code hooks for asciinema-tools automation.
 
@@ -59,16 +59,16 @@ Manage Claude Code hooks for asciinema-tools automation.
 
 ```bash
 # Check current hook status
-/asciinema-tools:hooks status
+/asciinema-tools:tether status
 
 # Install auto-backup hook
-/asciinema-tools:hooks install --backup-on-stop
+/asciinema-tools:tether install --backup-on-stop
 
 # Install without prompts
-/asciinema-tools:hooks install -y
+/asciinema-tools:tether install -y
 
 # Remove all asciinema hooks
-/asciinema-tools:hooks uninstall
+/asciinema-tools:tether uninstall
 ```
 
 ## Troubleshooting
