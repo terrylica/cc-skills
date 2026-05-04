@@ -149,7 +149,7 @@ do_status() {
         echo -e "  ${GREEN}✓${NC} Installed in settings.json"
     else
         echo -e "  ${CYAN}○${NC} Not installed"
-        echo -e "      Run: /productivity-tools:hooks install"
+        echo -e "      Run: /productivity-tools:tether install"
     fi
     echo ""
 }
