@@ -79,4 +79,4 @@ Full patterns and anti-patterns: `kokoro-tts:realtime-audio-architecture`
 - [remove](./skills/remove/SKILL.md)
 - [server](./skills/server/SKILL.md)
 - [synthesize](./skills/synthesize/SKILL.md)
-- [upgrade](./skills/upgrade/SKILL.md)
+- [augment](./skills/augment/SKILL.md) — renamed from `upgrade` to avoid `/upgrade` clash
