@@ -57,7 +57,7 @@ session_id=$(echo "$input" | jq -r '.session_id // ""')
 # Traces session ancestry, displays last 5 sessions with arrows
 # All in gray for uniform, non-distracting reference display
 session_chain=""
-if [ -n "$session_id" ]; then
+if [ -n "$session_id" ] && command -v bun >/dev/null 2>&1; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     chain_script="${SCRIPT_DIR}/../scripts/session-chain.ts"
     if [ -f "$chain_script" ]; then
@@ -268,12 +268,16 @@ if [ -n "$remote_url_raw" ]; then
 fi
 
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
-# include GSD milestone tags like v2.0/v2.1 that sort above semver releases)
+# include GSD milestone tags like v2.0/v2.1 that sort above semver releases).
+# Tri-state: real release → version+age; API-says-no-release → ∅ rel; gh broken → ⌁ offline.
+# `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
+# pattern-match stderr to tell them apart instead of trusting exit code alone.
 if [ -n "$owner_repo" ]; then
-    release_json=$(timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>/dev/null)
-    if [ -n "$release_json" ]; then
-        latest_tag="${release_json%%|*}"
-        published_at="${release_json##*|}"
+    release_out=$(timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
+    release_exit=$?
+    if [ $release_exit -eq 0 ] && [ -n "$release_out" ]; then
+        latest_tag="${release_out%%|*}"
+        published_at="${release_out##*|}"
         # Convert ISO 8601 publishedAt (UTC) to epoch for reltime
         tag_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$published_at" "+%s" 2>/dev/null || echo "")
         tag_age=""
@@ -281,7 +285,11 @@ if [ -n "$owner_repo" ]; then
             tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
         fi
         git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}${tag_age}"
+    elif [[ "$release_out" == *"release not found"* ]]; then
+        # gh succeeded talking to the API; the API just has no release for this repo
+        git_changes="${git_changes} ${BRIGHT_BLACK}| ∅ rel${RESET}"
     else
+        # Genuine failure: timeout (124), gh missing (127), HTTP 4xx/5xx, network unreachable
         git_changes="${git_changes} ${BRIGHT_BLACK}| ⌁ offline${RESET}"
     fi
 else
@@ -342,10 +350,21 @@ get_github_url() {
 
 github_url=$(get_github_url)
 
-# Repo visibility (public/private) — live query per render
+# Repo visibility (public/private) — live query per render.
+# Tri-state: known visibility → "public"/"private"; gh-broken → "?" (rendered red);
+# repo-genuinely-missing-or-no-access (HTTP 404) → empty (badge hidden, same as no remote).
+# Pre-fix: any gh failure silently disappeared the badge — no signal that auth/network broke.
 repo_visibility=""
 if [[ -n "$github_url" && -n "$owner_repo" ]]; then
-    repo_visibility=$(gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>/dev/null || echo "")
+    vis_out=$(timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
+    vis_exit=$?
+    if [ $vis_exit -eq 0 ] && [ -n "$vis_out" ]; then
+        repo_visibility="$vis_out"
+    elif [[ "$vis_out" == *"HTTP 404"* ]]; then
+        repo_visibility=""  # repo doesn't exist or no read access — leave badge off
+    else
+        repo_visibility="?"  # auth, network, timeout, gh-missing — surface a marker
+    fi
 fi
 
 # UTC and local timestamps with conditional date display
@@ -579,13 +598,11 @@ line1="${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
 vis_label=""
-if [ -n "$repo_visibility" ]; then
-    if [ "$repo_visibility" = "private" ]; then
-        vis_label=" ${YELLOW}(${repo_visibility})${RESET}"
-    else
-        vis_label=" ${BRIGHT_BLACK}(${repo_visibility})${RESET}"
-    fi
-fi
+case "$repo_visibility" in
+    private) vis_label=" ${YELLOW}(private)${RESET}" ;;
+    public)  vis_label=" ${BRIGHT_BLACK}(public)${RESET}" ;;
+    "?")     vis_label=" ${RED}(?)${RESET}" ;;  # gh failed — auth/network/timeout
+esac
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
         line_repo="${GREEN}${repo_path}${RESET} | ${BRIGHT_BLACK}${github_url}${RESET}${vis_label}"
