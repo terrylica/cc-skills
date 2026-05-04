@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall productivity-tools hooks to ~/.claude/settings.json. TRIGGERS - productivity hooks, install productivity hook, calendar alarm hook."
+name: tether
+description: "Tether (install/uninstall) productivity-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, productivity hooks, install productivity hook, calendar alarm hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku
@@ -86,13 +86,13 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 
 ```bash
 # Check current installation status
-/productivity-tools:hooks status
+/productivity-tools:tether status
 
 # Install the calendar-reminder-sync hook
-/productivity-tools:hooks install
+/productivity-tools:tether install
 
 # Uninstall hooks
-/productivity-tools:hooks uninstall
+/productivity-tools:tether uninstall
 ```
 
 ## Troubleshooting
@@ -103,9 +103,8 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 | bun not found           | bun not installed      | `brew install bun`                                   |
 | Plugin root not found   | Plugin not installed   | Re-install via marketplace                           |
 | Hooks not working       | Session not restarted  | Restart Claude Code session                          |
-| Reminders not created   | Hook not installed     | Run `/productivity-tools:hooks install`              |
+| Reminders not created   | Hook not installed     | Run `/productivity-tools:tether install`             |
 | Sound alarm not playing | Notifications disabled | Enable in System Settings > Notifications > Calendar |
-
 
 ## Post-Execution Reflection
 

@@ -8,7 +8,7 @@
 
 - [calendar-event-manager](./skills/calendar-event-manager/SKILL.md)
 - [gdrive-access](./skills/gdrive-access/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [imessage-query](./skills/imessage-query/SKILL.md)
 - [iterm2-layout](./skills/iterm2-layout/SKILL.md)
 - [notion-cli](./skills/notion-cli/SKILL.md)
@@ -25,4 +25,4 @@
 
 - **6-Tier Sound Alarms**: Blow → Sosumi → Pop → Glass → Ping → Funk (escalating urgency)
 - **gdrive-access**: Absorbed from former `gdrive-tools` plugin (1Password OAuth)
-- **Hook opt-in**: `/productivity-tools:hooks install` (not auto-enabled)
+- **Hook opt-in**: `/productivity-tools:tether install` (not auto-enabled)
