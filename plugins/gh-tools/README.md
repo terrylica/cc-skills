@@ -123,10 +123,10 @@ After plugin installation, enable hooks:
 
 ```bash
 # Check hook status
-/gh-tools:hooks status
+/gh-tools:tether status
 
 # Install hooks
-/gh-tools:hooks install
+/gh-tools:tether install
 
 # IMPORTANT: Restart Claude Code for hooks to take effect
 ```
@@ -244,8 +244,8 @@ Future skills to be added to gh-tools:
 
 | Issue                            | Cause                             | Solution                                                |
 | -------------------------------- | --------------------------------- | ------------------------------------------------------- |
-| Hooks not triggering             | Hooks not installed or not active | Run `/gh-tools:hooks install` and restart Claude Code   |
-| WebFetch guard not showing       | Missing matcher in settings.json  | Check `/gh-tools:hooks status` for configuration        |
+| Hooks not triggering             | Hooks not installed or not active | Run `/gh-tools:tether install` and restart Claude Code   |
+| WebFetch guard not showing       | Missing matcher in settings.json  | Check `/gh-tools:tether status` for configuration        |
 | Links still broken after convert | External links unchanged          | External links are preserved; only repo-relative fixed  |
 | gh CLI not authenticated         | Missing GitHub token              | Run `gh auth login` to authenticate                     |
 | Branch detection wrong           | Detached HEAD state               | Checkout a named branch before creating PR              |
