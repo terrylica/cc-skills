@@ -1,10 +1,10 @@
 ---
-name: quit
-description: "Terminate the running FloatingClock process. Use when the user wants to stop or close the floating-clock app."
+name: quench
+description: "Terminate (quench) the running FloatingClock process. Renamed from 'quit' to avoid clashing with Claude Code's built-in /quit alias for /exit. TRIGGERS - quench clock, quit floating-clock, stop clock, close clock, terminate clock."
 allowed-tools: Bash
 ---
 
-# /floating-clock:quit
+# /floating-clock:quench
 
 Terminate any running FloatingClock process.
 
