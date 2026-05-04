@@ -14,7 +14,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.             | productivity  |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
-| [autoloop](./plugins/autoloop/)                         | Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:status, /autoloop:stop                                                                           | automation    |
+| [autoloop](./plugins/autoloop/)                         | Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:muster, /autoloop:stop, /autoloop:reclaim, /autoloop:triage, /autoloop:setup                     | automation    |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
 | [chronicle-share](./plugins/chronicle-share/)           | Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)                                                                                                                                | devops        |
 | [clarify-prompts](./plugins/clarify-prompts/)           | Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autoloop sessions, subagents, and turns that already asked.                                     | automation    |
@@ -588,7 +588,9 @@ Features:
 - **Atomic ownership**: registry at `~/.claude/loops/registry.json` is the SSoT; flock-serialized writes; PID-reuse defense via `owner_start_time_us`; generation counter for TOCTOU defense
 - **Stall-guard hook** in `itp-hooks` (`stop-loop-stall-guard.ts`) detects firings that ended without a valid waker and forces a rewake
 
-**Commands**: `/autoloop:start`, `/autoloop:status`, `/autoloop:stop`, `/autoloop:setup`, `/autoloop:reclaim`, `/autoloop:doctor`
+**Commands**: `/autoloop:start`, `/autoloop:muster`, `/autoloop:stop`, `/autoloop:setup`, `/autoloop:reclaim`, `/autoloop:triage`
+
+> `muster` (was `status`) and `triage` (was `doctor`) renamed in v18/v19 to avoid clashing with Claude Code's built-in `/status` and `/doctor`. Old TRIGGER keywords kept in skill descriptions for soft backward-compat.
 
 **Plugin doc**: [plugins/autoloop/CLAUDE.md](./plugins/autoloop/CLAUDE.md) — architecture, 6 catastrophic pitfalls, troubleshooting playbook.
 

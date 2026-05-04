@@ -9,12 +9,72 @@
 ## Navigation
 
 - [Back-Compat Notes](#back-compat-notes-single-loop-migration)
+- [Naming Collision Audit](#naming-collision-audit)
 - [Architecture Overview](#architecture-overview-4-layer)
 - [Skills at a Glance](#skills-at-a-glance)
 - [Library Scripts](#library-scripts)
 - [6 Catastrophic Pitfalls](#6-catastrophic-pitfalls--phase-ownership)
 - [Troubleshooting Playbook](#troubleshooting-playbook)
 - [Deferred to V2](#deferred-to-v2)
+
+---
+
+<!-- # SSoT-OK — historical version references for renames; not the version source -->
+
+## Naming Collision Audit
+
+Plugin skill names live in the same discovery surface as Claude Code's
+built-in slash commands. A skill named `doctor` or `status` gets shadowed
+by `/doctor` and `/status` respectively. To prevent silent regressions
+when adding a new skill, check the candidate name against the authoritative
+native-command list **before** picking it.
+
+**As of the post-collision-audit release (audit date 2026-05-04):** 6/6
+skills clear, 0 collisions.
+
+| Skill     | Status  | Notes                                                                   |
+| --------- | ------- | ----------------------------------------------------------------------- |
+| `muster`  | ✓ clear | renamed from `status` — Old French "gather and inspect troops"          |
+| `reclaim` | ✓ clear |                                                                         |
+| `setup`   | ✓ clear | bare `/setup` is not native; only `/setup-bedrock`, `/setup-vertex` are |
+| `start`   | ✓ clear |                                                                         |
+| `stop`    | ✓ clear |                                                                         |
+| `triage`  | ✓ clear | renamed from `doctor` — medical/military "sort by urgency"              |
+
+**Native Claude Code commands** (snapshot, may grow):
+`add-dir, agents, autofix-pr, batch, branch, btw, chrome, claude-api, clear,
+color, compact, config, context, copy, cost, debug, desktop, diff, doctor,
+effort, exit, export, extra-usage, fast, feedback, fewer-permission-prompts,
+focus, heapdump, help, hooks, ide, init, insights, install-github-app,
+install-slack-app, keybindings, login, logout, loop, mcp, memory, mobile,
+model, passes, permissions, plan, plugin, powerup, privacy-settings, recap,
+release-notes, reload-plugins, remote-control, remote-env, rename, resume,
+review, rewind, sandbox, schedule, security-review, setup-bedrock,
+setup-vertex, simplify, skills, stats, status, statusline, stickers, tasks,
+team-onboarding, teleport, terminal-setup, theme, tui, ultraplan,
+ultrareview, upgrade, usage, voice, web-setup`
+
+**Aliases worth knowing:** `reset|new → clear`, `settings → config`,
+`fork → branch`, `proactive → loop`, `allowed-tools → permissions`,
+`routines → schedule`, `checkpoint|undo → rewind`, `cost|stats → usage`,
+`bashes → tasks`, `tp → teleport`, `bug → feedback`, `quit → exit`.
+
+**Subargs are safe.** `setup install|uninstall|status` doesn't collide with
+`/install-github-app` or `/status` because subargs are parsed _after_ the
+skill dispatch, not at the slash boundary.
+
+**When to re-audit:**
+
+- Before naming any new skill
+- After every Claude Code release that lists new built-in slash commands
+- If the user reports `/autoloop:foo` seems to dispatch to a built-in
+
+**Rename precedent:** when a collision IS found, prefer archaic / military /
+medical lexicon — names like `triage` and `muster` are visually distinct
+from likely future Anthropic command names and won't drift back into
+collision territory. The doctor→triage and status→muster renames used a
+full-scope pattern (skill dir + library + functions + tests + docs) which
+is the recommended template if another collision arises.
 
 ---
 

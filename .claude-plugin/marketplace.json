@@ -64,7 +64,7 @@
     },
     {
       "name": "autoloop",
-      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:status, /autoloop:stop",
+      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:muster, /autoloop:stop, /autoloop:reclaim, /autoloop:triage, /autoloop:setup",
       "version": "19.0.0",
       "source": "./plugins/autoloop",
       "category": "automation",
