@@ -1,3 +1,38 @@
+# [20.0.0](https://github.com/terrylica/cc-skills/compare/v19.0.1...v20.0.0) (2026-05-04)
+
+
+* refactor(asciinema-tools)!: rename hooks skill → tether (avoid /hooks clash) ([82feb46](https://github.com/terrylica/cc-skills/commit/82feb46f413ef1f75611d941f5e6691b88819c33))
+* refactor(dotfiles-tools)!: rename hooks skill → tether (avoid /hooks clash) ([0cb81ef](https://github.com/terrylica/cc-skills/commit/0cb81ef6d9ecd1c79fe73a1b9d7eefd18e5a3aa5))
+* refactor(floating-clock)!: rename quit skill → quench (avoid /quit clash) ([3ad92a0](https://github.com/terrylica/cc-skills/commit/3ad92a0903193b8518dd21ccf387699ac8a48fee))
+* refactor(gh-tools)!: rename hooks skill → tether (avoid /hooks clash) ([15b8be4](https://github.com/terrylica/cc-skills/commit/15b8be41f4a10a72248d2062e2cd4d95312e2da6)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* refactor(git-town-workflow)!: rename fork→scion + hooks→tether (avoid /fork and /hooks clashes) ([6c161d8](https://github.com/terrylica/cc-skills/commit/6c161d8f75ac1a4c3b90cfac8b0dd7e0b4eb9657))
+* refactor(itp)!: rename hooks skill → tether (avoid /hooks clash) ([1d532d5](https://github.com/terrylica/cc-skills/commit/1d532d5d3d3a2723181290672e59d69bdbd63fa5))
+* refactor(kokoro-tts)!: rename upgrade skill → augment (avoid /upgrade clash) ([30099aa](https://github.com/terrylica/cc-skills/commit/30099aaf33ed916a6a71a420ebfd7dbfbfb8e11f))
+* refactor(productivity-tools)!: rename hooks skill → tether (avoid /hooks clash) ([8ad27e3](https://github.com/terrylica/cc-skills/commit/8ad27e31da3afc237011097384a3cab78f5f7c73))
+* refactor(statusline-tools)!: rename hooks skill → tether (avoid /hooks clash) ([3e1d538](https://github.com/terrylica/cc-skills/commit/3e1d5382bafbf12fb2c55972c845debd4fd70db6))
+* refactor(tts-tg-sync)!: rename hooks skill → tether (avoid /hooks clash) ([94f9f89](https://github.com/terrylica/cc-skills/commit/94f9f89b4f3d3b4dafda629fe21ea9a9ada8731a))
+
+
+### Bug Fixes
+
+* **asciinema-tools:** complete tether rename (frontmatter name + CLAUDE.md link) ([e8109be](https://github.com/terrylica/cc-skills/commit/e8109be0ef6c3d2d71a2c8553a951ffa9d990b6b))
+
+
+### BREAKING CHANGES
+
+* /git-town-workflow:fork → /git-town-workflow:scion. /git-town-workflow:hooks → /git-town-workflow:tether.
+* /tts-tg-sync:hooks → /tts-tg-sync:tether
+* /statusline-tools:hooks → /statusline-tools:tether
+* /productivity-tools:hooks → /productivity-tools:tether
+* /itp:hooks → /itp:tether
+* /gh-tools:hooks → /gh-tools:tether
+* /dotfiles-tools:hooks → /dotfiles-tools:tether
+* Users invoking /asciinema-tools:hooks must use /asciinema-tools:tether.
+* Users invoking /kokoro-tts:upgrade must use
+/kokoro-tts:augment.
+* Users invoking /floating-clock:quit must use
+/floating-clock:quench.
+
 ## [19.0.1](https://github.com/terrylica/cc-skills/compare/v19.0.0...v19.0.1) (2026-05-04)
 
 # [19.0.0](https://github.com/terrylica/cc-skills/compare/v18.0.0...v19.0.0) (2026-05-04)
