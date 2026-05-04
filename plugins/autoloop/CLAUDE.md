@@ -30,7 +30,24 @@ when adding a new skill, check the candidate name against the authoritative
 native-command list **before** picking it.
 
 **As of the post-collision-audit release (audit date 2026-05-04):** 6/6
-skills clear, 0 collisions.
+autoloop skills clear, 0 collisions.
+
+**Fleet-wide audit (same date):** the collision check was extended across
+all 37 plugins. 11 collisions were found and renamed (all archaic):
+
+| Old skill    | Plugin(s)                                                                                                            | New skill |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- | --------- |
+| `hooks` (×8) | asciinema-tools, dotfiles-tools, gh-tools, git-town-workflow, itp, productivity-tools, statusline-tools, tts-tg-sync | `tether`  |
+| `fork`       | git-town-workflow                                                                                                    | `scion`   |
+| `quit`       | floating-clock                                                                                                       | `quench`  |
+| `upgrade`    | kokoro-tts                                                                                                           | `augment` |
+
+Each rename followed the same full-scope pattern as autoloop's
+doctor→triage and status→muster: skill dir + frontmatter `name:` field +
+description (with old name retained in TRIGGER list for soft
+backward-compat) + plugin CLAUDE.md + plugin README.md + any
+cross-plugin references. Old names are documented in the renamed skill's
+description so users searching for the old keyword still find them.
 
 | Skill     | Status  | Notes                                                                   |
 | --------- | ------- | ----------------------------------------------------------------------- |
