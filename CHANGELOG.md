@@ -1,3 +1,17 @@
+# [18.0.0](https://github.com/terrylica/cc-skills/compare/v17.13.0...v18.0.0) (2026-05-04)
+
+
+* refactor(autoloop)!: rename doctor skill → triage to avoid clashing with /doctor ([ed66a18](https://github.com/terrylica/cc-skills/commit/ed66a182ca54968dde3057082d1f00805df1ebc3))
+
+
+### BREAKING CHANGES
+
+* Users previously invoking /autoloop:doctor must use
+/autoloop:triage. Scripts or skills that call loop_doctor_report or
+related functions must be updated. The SKILL.md description includes
+"autoloop doctor" as a trigger keyword for soft backward compat in
+discovery.
+
 # [17.13.0](https://github.com/terrylica/cc-skills/compare/v17.12.0...v17.13.0) (2026-05-03)
 
 
