@@ -24,7 +24,7 @@ The registry tracks two identifiers per loop. The `loop_id` is the canonical pri
 | `AL-flaky-ci-watcher (abcdef012345)`     | `abcdef012345`     |
 | `AL-loop-cafeba (cafebabe1234)` (legacy) | `cafebabe1234`     |
 
-`/autoloop:reclaim`, `/autoloop:status`, and `/autoloop:doctor` accept either form at the CLI boundary. Conversions go through `resolve_loop_identifier` in `scripts/registry-lib.sh`. Display formatting goes through `format_loop_display_name` in `scripts/state-lib.sh`. Tests live in `tests/test-display-name.sh`.
+`/autoloop:reclaim`, `/autoloop:status`, and `/autoloop:triage` accept either form at the CLI boundary. Conversions go through `resolve_loop_identifier` in `scripts/registry-lib.sh`. Display formatting goes through `format_loop_display_name` in `scripts/state-lib.sh`. Tests live in `tests/test-display-name.sh`.
 
 ## Top-Level Structure
 

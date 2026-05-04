@@ -72,16 +72,16 @@ The autoloop system is built on four atomic primitives that collectively defend 
 
 ## Skills at a Glance
 
-Verify with: `ls plugins/autoloop/skills/` (expected: doctor reclaim setup start status stop)
+Verify with: `ls plugins/autoloop/skills/` (expected: reclaim setup start status stop triage)
 
-| Skill     | Purpose                                                    | When to Use                                |
-| --------- | ---------------------------------------------------------- | ------------------------------------------ |
-| `start`   | Scaffold contract, install hooks, register loop            | First time: `/autoloop:start`              |
-| `status`  | Read loop state, report iteration, owner, health           | Mid-loop: `/autoloop:status`               |
-| `stop`    | Mark DONE, unregister, unload launchd                      | End loop: `/autoloop:stop`                 |
-| `setup`   | One-time machine setup (hook install, dirs)                | Once per machine (or after reinstall)      |
-| `reclaim` | Take ownership of stuck loop (dead owner)                  | Emergencies: `/autoloop:reclaim <loop_id>` |
-| `doctor`  | Diagnose fleet health, surface stale/orphaned loops, --fix | Periodic audits or after suspected crash   |
+| Skill     | Purpose                                                  | When to Use                                                                                                     |
+| --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `start`   | Scaffold contract, install hooks, register loop          | First time: `/autoloop:start`                                                                                   |
+| `status`  | Read loop state, report iteration, owner, health         | Mid-loop: `/autoloop:status`                                                                                    |
+| `stop`    | Mark DONE, unregister, unload launchd                    | End loop: `/autoloop:stop`                                                                                      |
+| `setup`   | One-time machine setup (hook install, dirs)              | Once per machine (or after reinstall)                                                                           |
+| `reclaim` | Take ownership of stuck loop (dead owner)                | Emergencies: `/autoloop:reclaim <loop_id>`                                                                      |
+| `triage`  | Triage fleet health, surface stale/orphaned loops, --fix | Periodic audits or after suspected crash. Renamed from `doctor` to avoid clashing with Claude Code's `/doctor`. |
 
 ---
 
@@ -98,7 +98,7 @@ Verify with: `ls plugins/autoloop/scripts/`. Library scripts (the `*-lib.sh` fil
 | `hook-install-lib.sh`             | lib  | `install_hook`, `install_session_bind`, `install_pacing_veto`, `install_empty_firing`, `install_all_hooks`, `uninstall_*`                                                                                                                               | start, setup                                                                                             |
 | `launchd-lib.sh`                  | lib  | `generate_plist`, `load_plist`, `unload_plist`                                                                                                                                                                                                          | start, stop                                                                                              |
 | `status-lib.sh`                   | lib  | `loop_status`, `format_status_table`                                                                                                                                                                                                                    | status skill                                                                                             |
-| `doctor-lib.sh`                   | lib  | Fleet-diagnostic helpers — orphan detection, cross-validation, --fix actions                                                                                                                                                                            | doctor skill                                                                                             |
+| `triage-lib.sh`                   | lib  | Fleet-diagnostic helpers — orphan detection, cross-validation, --fix actions                                                                                                                                                                            | triage skill                                                                                             |
 | `provenance-lib.sh`               | lib  | `emit_provenance` — append JSONL events to per-loop + global provenance logs                                                                                                                                                                            | session-bind, heartbeat-tick, ownership-lib                                                              |
 | `notifications-lib.sh`            | lib  | `send_notification` — emit Pushover / Telegram notifications                                                                                                                                                                                            | heartbeat-tick                                                                                           |
 | `notify-coalesce-lib.sh`          | lib  | `coalesce_notifications` — dedupe by loop_id within a window                                                                                                                                                                                            | heartbeat-tick                                                                                           |
@@ -112,7 +112,7 @@ Verify with: `ls plugins/autoloop/scripts/`. Library scripts (the `*-lib.sh` fil
 
 ## Identifier Naming Convention (Wave 3)
 
-Loops are tracked by two complementary identifiers. The `loop_id` is the canonical primary key — deterministic, immutable, machine-friendly. The `display_name` is the human-readable label that appears in skill prompts, doctor output, status tables, and error messages. Always paired together when surfaced to the user.
+Loops are tracked by two complementary identifiers. The `loop_id` is the canonical primary key — deterministic, immutable, machine-friendly. The `display_name` is the human-readable label that appears in skill prompts, triage output, status tables, and error messages. Always paired together when surfaced to the user.
 
 | Identifier      | Format                          | Source                                                          | Example                   |
 | --------------- | ------------------------------- | --------------------------------------------------------------- | ------------------------- |
@@ -136,7 +136,7 @@ Loops are tracked by two complementary identifiers. The `loop_id` is the canonic
 | `AL-<slug>`              | Looked up by `campaign_slug`. If multiple campaigns share the slug, errors with a candidate list and the user picks one. |
 | `<slug>` (no AL- prefix) | Same as `AL-<slug>` — accepted as a courtesy so users can paste either style.                                            |
 
-**Why this layer exists.** The bare 12-hex `loop_id` is fine for code, but a user looking at a `/autoloop:doctor` prompt that says `3555bbe1f0fb [RED]` has zero context about _what_ that campaign is. The `AL-` prefix makes it obvious the identifier belongs to autoloop (not, e.g., a git SHA), and the slug carries the human-meaningful project name. The loop_id stays attached in parens for unambiguous reference: `AL-odb-research--a1b2c3 (3555bbe1f0fb) [RED]`.
+**Why this layer exists.** The bare 12-hex `loop_id` is fine for code, but a user looking at a `/autoloop:triage` prompt that says `3555bbe1f0fb [RED]` has zero context about _what_ that campaign is. The `AL-` prefix makes it obvious the identifier belongs to autoloop (not, e.g., a git SHA), and the slug carries the human-meaningful project name. The loop_id stays attached in parens for unambiguous reference: `AL-odb-research--a1b2c3 (3555bbe1f0fb) [RED]`.
 
 The convention is implemented by `format_loop_display_name` (in `scripts/state-lib.sh`) and `resolve_loop_identifier` (in `scripts/registry-lib.sh`). Both are exported and tested in `tests/test-display-name.sh`.
 
@@ -234,7 +234,7 @@ status: active # active | paused | completed | orphaned
 ## Non-Obvious Learnings # preserved across firings
 ```
 
-**Key invariant**: The **registry** at `~/.claude/loops/registry.json` is the SSoT for ownership decisions. The contract frontmatter is a **read-cache** — written best-effort by `set_contract_field` (in `scripts/state-lib.sh`) AFTER the registry write succeeds. If a crash interleaves, the frontmatter mirror is stale but the registry remains authoritative. Consumers (offline readers, doctor, post-mortem agents) should treat divergence as "trust the registry; the contract is stale".
+**Key invariant**: The **registry** at `~/.claude/loops/registry.json` is the SSoT for ownership decisions. The contract frontmatter is a **read-cache** — written best-effort by `set_contract_field` (in `scripts/state-lib.sh`) AFTER the registry write succeeds. If a crash interleaves, the frontmatter mirror is stale but the registry remains authoritative. Consumers (offline readers, triage, post-mortem agents) should treat divergence as "trust the registry; the contract is stale".
 
 **Where the mirror is written**:
 

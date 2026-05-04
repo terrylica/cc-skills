@@ -426,7 +426,7 @@ spawn_claude_resume() {
   local spawn_status="$state_dir/spawn.last-status"
   : > "$spawn_status" 2>/dev/null || true
   # Wave 5 A2: when claude --resume fails (session deleted, binary moved,
-  # crashed mid-init), the user previously had to run `/autoloop:doctor`
+  # crashed mid-init), the user previously had to run `/autoloop:triage`
   # to discover it. Now the failure path appends a notification entry to
   # ~/.claude/loops/.notifications.jsonl so any consumer (statusline,
   # SwiftBar, future Telegram bridge) surfaces the dead loop proactively.

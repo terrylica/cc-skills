@@ -388,7 +388,7 @@ echo "## Group E: Cleanup races + idempotency"
 echo "E1: doctor --fix with deleted state_dir"
 reset
 # shellcheck source=/dev/null
-source "$SCRIPTS/doctor-lib.sh"
+source "$SCRIPTS/triage-lib.sh"
 SD=$(put_loop "111aaa111aaa" "$HOME/c-E1.md" "pending-bind" 7200)
 {
   echo "---"
@@ -398,7 +398,7 @@ SD=$(put_loop "111aaa111aaa" "$HOME/c-E1.md" "pending-bind" 7200)
 } >"$HOME/c-E1.md"
 rm -rf "$SD"
 RC=0
-loop_doctor_fix >/dev/null 2>&1 || RC=$?
+loop_triage_fix >/dev/null 2>&1 || RC=$?
 assert "$RC" "0" "doctor --fix tolerates missing state_dir"
 
 # E2: heal-self with read-only archive file
@@ -423,7 +423,7 @@ reset
 } >"$HOME/c-E3.md"
 SD=$(put_loop "333ccc333ccc" "$HOME/c-E3.md" "pending-bind" 0)
 echo "<plist/>" >"$HOME/Library/LaunchAgents/com.user.claude.loop.333ccc333ccc.plist"
-loop_doctor_fix >/dev/null 2>&1
+loop_triage_fix >/dev/null 2>&1
 PLIST_GONE="no"
 [ ! -f "$HOME/Library/LaunchAgents/com.user.claude.loop.333ccc333ccc.plist" ] && PLIST_GONE="yes"
 assert "$PLIST_GONE" "yes" "lowercase 'done' triggers cleanup"
@@ -438,7 +438,7 @@ reset
   echo "---"
 } >"$HOME/c-E4.md"
 put_loop "444ddd444ddd" "$HOME/c-E4.md" "pending-bind" 0 >/dev/null
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 VERDICT=$(echo "$JSON" | jq -r '.loops[] | select(.loop_id == "444ddd444ddd") | .verdict')
 assert "$VERDICT" "YELLOW" "long status starting with DONE flagged YELLOW"
 
@@ -452,9 +452,9 @@ reset
   echo "---"
 } >"$HOME/c-E5.md"
 put_loop "555eee555eee" "$HOME/c-E5.md" "pending-bind" 0 >/dev/null
-loop_doctor_fix >/dev/null 2>&1
+loop_triage_fix >/dev/null 2>&1
 RC=0
-loop_doctor_fix >/dev/null 2>&1 || RC=$?
+loop_triage_fix >/dev/null 2>&1 || RC=$?
 assert "$RC" "0" "doctor --fix idempotent on second call"
 
 # E6: cleanup of loop with "ABORTED" status (synonym)
@@ -467,7 +467,7 @@ reset
   echo "---"
 } >"$HOME/c-E6.md"
 put_loop "666fff666fff" "$HOME/c-E6.md" "pending-bind" 0 >/dev/null
-loop_doctor_fix >/dev/null 2>&1
+loop_triage_fix >/dev/null 2>&1
 GONE=$(jq -r '.loops[] | select(.loop_id == "666fff666fff") | .loop_id' "$CLAUDE_LOOPS_REGISTRY" || echo "")
 assert "$GONE" "" "ABORTED status loop removed from active registry"
 
