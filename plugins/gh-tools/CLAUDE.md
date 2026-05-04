@@ -165,7 +165,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 ## Skills
 
 - [fork-intelligence](./skills/fork-intelligence/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [issue-create](./skills/issue-create/SKILL.md)
 - [issues-workflow](./skills/issues-workflow/SKILL.md)
 - [pr-gfm-validator](./skills/pr-gfm-validator/SKILL.md)

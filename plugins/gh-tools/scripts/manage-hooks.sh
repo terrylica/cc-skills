@@ -145,7 +145,7 @@ do_status() {
         echo -e "  ${GREEN}✓${NC} Installed in settings.json"
     else
         echo -e "  ${CYAN}○${NC} Not installed"
-        echo -e "      Run: /gh-tools:hooks install"
+        echo -e "      Run: /gh-tools:tether install"
     fi
     echo ""
 }
