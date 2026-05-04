@@ -561,7 +561,9 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **Phase 2**: Format & Push to GitHub
 - **Phase 3**: Release via the repo's mise release pipeline, optionally Publish (PyPI)
 
-**Commands**: `/itp:go`, `/itp:setup`, `/itp:hooks` (release runs via `/mise:run-full-release`)
+**Commands**: `/itp:go`, `/itp:setup`, `/itp:tether` (release runs via `/mise:run-full-release`)
+
+> `tether` (was `hooks`) renamed to avoid clashing with Claude Code's built-in `/hooks`. Old TRIGGERS keyword retained.
 
 **Bundled Skills**: adr-code-traceability, adr-graph-easy-architect, bootstrap-monorepo, code-hardcode-audit, graph-easy, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler
 
