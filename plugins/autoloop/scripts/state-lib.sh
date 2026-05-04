@@ -1004,7 +1004,7 @@ cleanup_state_dir() {
 #
 # Why this format exists: the bare 12-hex loop_id (e.g. "3555bbe1f0fb") is
 # a deterministic primary key but carries zero meaning when surfaced in
-# /autoloop:reclaim, /autoloop:status, doctor output, etc. The user's mental
+# /autoloop:reclaim, /autoloop:muster, doctor output, etc. The user's mental
 # model is "the ODB research campaign" not "the c46e8ee3 hex string". This
 # function is the single source of truth for human-readable identifiers,
 # always paired with the loop_id in parens for disambiguation.

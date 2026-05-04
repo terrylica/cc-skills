@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# status-lib.sh — Machine-wide loop enumeration and status reporting
-# Provides: enumerate_loops, compute_dead_time_ratio, format_status_table, human_relative_time, is_reclaim_candidate_v2
+# muster-lib.sh — Machine-wide loop enumeration and status reporting
+# Provides: enumerate_loops, compute_dead_time_ratio, format_muster_table, human_relative_time, is_reclaim_candidate_v2
 # FILE-SIZE-OK (formatting + enumeration logic; cohesive unit, no clean split point)
 
 set -euo pipefail
@@ -9,17 +9,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/registry-lib.sh" 2>/dev/null || {
-  echo "ERROR: status-lib.sh: cannot source registry-lib.sh" >&2
+  echo "ERROR: muster-lib.sh: cannot source registry-lib.sh" >&2
   return 1
 }
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/state-lib.sh" 2>/dev/null || {
-  echo "ERROR: status-lib.sh: cannot source state-lib.sh" >&2
+  echo "ERROR: muster-lib.sh: cannot source state-lib.sh" >&2
   return 1
 }
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/ownership-lib.sh" 2>/dev/null || {
-  echo "ERROR: status-lib.sh: cannot source ownership-lib.sh" >&2
+  echo "ERROR: muster-lib.sh: cannot source ownership-lib.sh" >&2
   return 1
 }
 
@@ -392,7 +392,7 @@ enumerate_loops() {
     fi
 
     # Compute display_name (AL-<slug>--<hash> when available; AL-loop-<id6>
-    # for legacy contracts). Cached on the line so format_status_table
+    # for legacy contracts). Cached on the line so format_muster_table
     # doesn't have to re-resolve from the registry per row.
     local display_name=""
     if command -v format_loop_display_name >/dev/null 2>&1; then
@@ -418,7 +418,7 @@ enumerate_loops() {
   done
 }
 
-# format_status_table <jsonl_input>
+# format_muster_table <jsonl_input>
 # Reads JSONL from stdin (one loop per line), formats as a pretty ASCII table.
 # Output includes headers and aligned columns.
 #
@@ -433,8 +433,8 @@ enumerate_loops() {
 #   1 if jq fails
 #
 # Example:
-#   enumerate_loops | format_status_table
-format_status_table() {
+#   enumerate_loops | format_muster_table
+format_muster_table() {
   local line_count=0
   local header_printed=0
 
@@ -481,7 +481,7 @@ format_status_table() {
   done
 
   # If no loops, print a self-nudging zero-state instead of just an empty
-  # acknowledgement. Wave 5 A5: a fresh-install user invoking `/autoloop:status`
+  # acknowledgement. Wave 5 A5: a fresh-install user invoking `/autoloop:muster`
   # for the first time should see "what to do next", not "did the command work?".
   if [ "$line_count" -eq 0 ]; then
     echo "No autoloop loops registered on this machine."
@@ -499,4 +499,4 @@ export -f human_relative_time
 export -f compute_dead_time_ratio
 export -f is_reclaim_candidate_v2
 export -f enumerate_loops
-export -f format_status_table
+export -f format_muster_table
