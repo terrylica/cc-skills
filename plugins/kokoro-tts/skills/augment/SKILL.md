@@ -1,10 +1,10 @@
 ---
-name: upgrade
-description: "Upgrade Kokoro TTS engine dependencies and model. TRIGGERS - upgrade kokoro, update tts, kokoro update, update mlx-audio."
+name: augment
+description: "Augment Kokoro TTS engine — upgrade dependencies and model. Renamed from 'upgrade' to avoid clashing with Claude Code's built-in /upgrade. TRIGGERS - augment kokoro, upgrade kokoro, update tts, kokoro update, update mlx-audio."
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 
-# Upgrade Kokoro TTS
+# Augment Kokoro TTS
 
 Upgrade MLX-Audio dependencies, re-download the model, and update bundled scripts.
 
@@ -66,7 +66,6 @@ Model cache is preserved across uninstall, so reinstall reuses the cached model.
 | Upgrade fails       | No internet or PyPI down  | Check connectivity, retry                       |
 | Import error after  | mlx-audio incompatibility | Clean reinstall: `--uninstall` then `--install` |
 | Model download slow | Large download            | Wait for HuggingFace download to complete       |
-
 
 ## Post-Execution Reflection
 
