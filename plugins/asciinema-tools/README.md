@@ -34,7 +34,7 @@ Terminal recording, playback, streaming, and analysis plugin for Claude Code. Re
 | `/asciinema-tools:bootstrap`     | Pre-session setup for automatic streaming (PRE-CLAUDE) |
 | `/asciinema-tools:finalize`      | Finalize orphaned recordings (stop, compress, push)    |
 | `/asciinema-tools:setup`         | Check and install dependencies                         |
-| `/asciinema-tools:hooks`         | Install/uninstall auto-backup hooks                    |
+| `/asciinema-tools:tether`         | Install/uninstall auto-backup hooks                    |
 | `/asciinema-tools:daemon-setup`  | Set up chunker daemon with interactive wizard          |
 | `/asciinema-tools:daemon-start`  | Start the asciinema chunker daemon                     |
 | `/asciinema-tools:daemon-stop`   | Stop the asciinema chunker daemon                      |
