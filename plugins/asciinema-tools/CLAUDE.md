@@ -28,7 +28,7 @@ Full terminal recording lifecycle: record sessions, stream to GitHub, convert to
 - [finalize](./skills/finalize/SKILL.md)
 - [format](./skills/format/SKILL.md)
 - [full-workflow](./skills/full-workflow/SKILL.md)
-- [hooks](./skills/tether/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [play](./skills/play/SKILL.md)
 - [post-session](./skills/post-session/SKILL.md)
 - [record](./skills/record/SKILL.md)
@@ -51,7 +51,7 @@ Full terminal recording lifecycle: record sessions, stream to GitHub, convert to
 | `/asciinema-tools:bootstrap`     | Pre-session setup (runs OUTSIDE Claude)    |
 | `/asciinema-tools:finalize`      | Finalize orphaned recordings               |
 | `/asciinema-tools:setup`         | Check and install dependencies             |
-| `/asciinema-tools:tether`         | Install/uninstall auto-backup hooks        |
+| `/asciinema-tools:tether`        | Install/uninstall auto-backup hooks        |
 | `/asciinema-tools:daemon-setup`  | Set up chunker daemon (interactive wizard) |
 | `/asciinema-tools:daemon-start`  | Start the chunker daemon                   |
 | `/asciinema-tools:daemon-stop`   | Stop the chunker daemon                    |
