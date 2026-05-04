@@ -66,7 +66,7 @@ This plugin was extracted from a 37-iteration autonomous quant-research campaign
 | `autoloop:stop`    | `/autoloop:stop [path]`             | Unload plist, unregister loop, mark DONE in contract                    |
 | `autoloop:setup`   | `/autoloop:setup`                   | One-time machine setup: create ~/.claude/loops dir, verify hook env     |
 | `autoloop:reclaim` | `/autoloop:reclaim <loop_id>`       | Atomically seize stuck loop (dead owner, stale heartbeat)               |
-| `autoloop:doctor`  | `/autoloop:doctor [--json] [--fix]` | Diagnose fleet health, surface stale/orphaned loops, --fix safe orphans |
+| `autoloop:triage`  | `/autoloop:triage [--json] [--fix]` | Diagnose fleet health, surface stale/orphaned loops, --fix safe orphans |
 
 ## Subscription-safe
 

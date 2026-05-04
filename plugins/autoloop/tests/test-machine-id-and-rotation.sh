@@ -19,7 +19,7 @@ source "$PLUGIN_DIR/scripts/registry-lib.sh"
 # shellcheck source=/dev/null
 source "$PLUGIN_DIR/scripts/state-lib.sh"
 # shellcheck source=/dev/null
-source "$PLUGIN_DIR/scripts/doctor-lib.sh"
+source "$PLUGIN_DIR/scripts/triage-lib.sh"
 
 PASS=0
 FAIL=0
@@ -88,7 +88,7 @@ EOF
 touch "$SD/CONTRACT.md"
 
 set +e
-out=$(loop_doctor_report 2>&1)
+out=$(loop_triage_report 2>&1)
 set -e
 if echo "$out" | grep -q "RED: foreign machine_id"; then
   ok "doctor surfaces foreign machine_id as RED"
@@ -98,7 +98,7 @@ fi
 
 # JSON output should classify as foreign_machine kind
 set +e
-json_out=$(loop_doctor_report --json 2>/dev/null || echo '{}')
+json_out=$(loop_triage_report --json 2>/dev/null || echo '{}')
 set -e
 if echo "$json_out" | jq -e '.loops[] | select(.kind == "foreign_machine")' >/dev/null 2>&1; then
   ok "JSON output marks entry kind=foreign_machine"

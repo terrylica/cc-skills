@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# doctor-lib.sh — Self-diagnostic for autoloop fleet (v4.10.0 Phase 38).
-# Provides: loop_doctor_report, loop_doctor_fix
+# triage-lib.sh — Self-diagnostic for autoloop fleet (v4.10.0 Phase 38).
+# Provides: loop_triage_report, loop_triage_fix
 # FILE-SIZE-OK (single-purpose diagnostic; checks belong together for cohesion)
 #
 # Cross-references registry.json, heartbeat.json files, launchctl list output,
@@ -13,7 +13,7 @@
 #   YELLOW — probably-OK but worth attention
 #   GREEN  — healthy
 #
-# loop_doctor_fix performs ONLY safe remediations: unload orphan launchctl
+# loop_triage_fix performs ONLY safe remediations: unload orphan launchctl
 # entries, archive corrupted/stale registry entries to registry.archive.jsonl.
 # NEVER spawns claude. NEVER auto-reclaims a live owner.
 
@@ -31,10 +31,10 @@ _DOCTOR_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 [ -f "$_DOCTOR_SCRIPT_DIR/state-lib.sh" ] && source "$_DOCTOR_SCRIPT_DIR/state-lib.sh" 2>/dev/null || true
 # shellcheck source=/dev/null
 [ -f "$_DOCTOR_SCRIPT_DIR/provenance-lib.sh" ] && source "$_DOCTOR_SCRIPT_DIR/provenance-lib.sh" 2>/dev/null || true
-export _PROV_AGENT="doctor-lib.sh"
+export _PROV_AGENT="triage-lib.sh"
 
-# _doctor_check_loop <entry> — emits one JSON line with verdict per loop.
-_doctor_check_loop() {
+# _triage_check_loop <entry> — emits one JSON line with verdict per loop.
+_triage_check_loop() {
   local entry="$1"
   local issues=()
   local verdict="GREEN"
@@ -170,15 +170,15 @@ _doctor_check_loop() {
       n==1 && NR > 30 { exit }
     ' "$contract_path" 2>/dev/null || echo "")
     if echo "$contract_status" | grep -qiE '^(done|complete|finished|superseded|stopped|aborted)\b'; then
-      issues+=("YELLOW: contract status='${contract_status:0:60}' but loop still loaded — run doctor --fix to clean (auto-fix removes plist + registry entry + state dir)")
+      issues+=("YELLOW: contract status='${contract_status:0:60}' but loop still loaded — run /autoloop:triage --fix to clean (auto-fix removes plist + registry entry + state dir)")
       [ "$verdict" = "GREEN" ] && verdict="YELLOW"
     fi
   fi
 
   # Pacing-vetoed and empty-firing patterns are FLEET-level metrics — moved
-  # out of _doctor_check_loop in v16.9.1 because the counts are global but
+  # out of _triage_check_loop in v16.9.1 because the counts are global but
   # the attribution-per-loop was misleading (every loop showed the same N
-  # pacing-vetoed). Now surfaced once at the top of loop_doctor_report.
+  # pacing-vetoed). Now surfaced once at the top of loop_triage_report.
 
   # Compute the human-readable display name (AL-<slug>--<hash> when available;
   # AL-loop-<id6> for legacy contracts). Always paired with loop_id for
@@ -200,7 +200,7 @@ _doctor_check_loop() {
     '{loop_id: $loop_id, display_name: $display_name, verdict: $verdict, owner_session_id: $owner_session_id, state_dir: $state_dir, issues: $issues}'
 }
 
-# _doctor_check_disk_orphans — Wave 5 B3 — enumerate state_dirs on disk
+# _triage_check_disk_orphans — Wave 5 B3 — enumerate state_dirs on disk
 # that have NO matching registry entry. Doctor's existing checks all
 # iterate registry entries, so a state_dir created by a registered loop
 # whose entry was later deleted (or a manual `cp -R old new` clone, or a
@@ -214,7 +214,7 @@ _doctor_check_loop() {
 # remnants) without paying the cost of `find /`.
 #
 # Emits one JSON line per orphan, kind=disk_orphan, verdict=YELLOW.
-_doctor_check_disk_orphans() {
+_triage_check_disk_orphans() {
   local registry_path="${1:-$HOME/.claude/loops/registry.json}"
   if [ ! -f "$registry_path" ]; then
     return 0
@@ -278,8 +278,8 @@ _doctor_check_disk_orphans() {
   return 0
 }
 
-# _doctor_check_zombies — scan launchctl for entries with no registry record.
-_doctor_check_zombies() {
+# _triage_check_zombies — scan launchctl for entries with no registry record.
+_triage_check_zombies() {
   local registry_path="${1:-$HOME/.claude/loops/registry.json}"
   if ! command -v launchctl >/dev/null 2>&1; then
     return 0
@@ -310,8 +310,8 @@ _doctor_check_zombies() {
   done <<< "$labels"
 }
 
-# loop_doctor_report [--json]
-loop_doctor_report() {
+# loop_triage_report [--json]
+loop_triage_report() {
   # v16.9.1: defensively silence any inherited xtrace so trace output can't
   # leak into our JSON-emitting pipeline.
   set +x 2>/dev/null || true
@@ -335,14 +335,14 @@ loop_doctor_report() {
     fi
   fi
 
-  # v16.9.1: filter _doctor_check_loop output to only JSON lines.
+  # v16.9.1: filter _triage_check_loop output to only JSON lines.
   # Defends against trace bleed, debug echoes, or other stray stdout.
   local results=""
   while IFS= read -r entry; do
     [ -z "$entry" ] && continue
     [ "$entry" = "null" ] && continue
     local report_line
-    report_line=$(_doctor_check_loop "$entry" 2>/dev/null | grep -E '^\{.*\}$' | head -1)
+    report_line=$(_triage_check_loop "$entry" 2>/dev/null | grep -E '^\{.*\}$' | head -1)
     [ -z "$report_line" ] && continue
     results+="$report_line"$'\n'
   done < <(echo "$loops_json" | jq -c '.[]?' 2>/dev/null)
@@ -353,7 +353,7 @@ loop_doctor_report() {
       \{*\}) results+="$zombie"$'\n' ;;
       *) ;;
     esac
-  done < <(_doctor_check_zombies "$registry_path" 2>/dev/null)
+  done < <(_triage_check_zombies "$registry_path" 2>/dev/null)
 
   # Wave 5 B3: disk orphans — state_dirs on disk with no registry entry.
   while IFS= read -r orphan; do
@@ -362,7 +362,7 @@ loop_doctor_report() {
       \{*\}) results+="$orphan"$'\n' ;;
       *) ;;
     esac
-  done < <(_doctor_check_disk_orphans "$registry_path" 2>/dev/null)
+  done < <(_triage_check_disk_orphans "$registry_path" 2>/dev/null)
 
   # v16.9.1: fleet-level metrics computed once at the report level.
   local global_prov pacing_vetoed empty_firings
@@ -441,7 +441,7 @@ loop_doctor_report() {
 
   # Pretty terminal output
   if [ "$registry_corrupt" = true ]; then
-    echo "RED: ~/.claude/loops/registry.json is NOT valid JSON — doctor cannot enumerate loops."
+    echo "RED: ~/.claude/loops/registry.json is NOT valid JSON — triage cannot enumerate loops."
     echo "     Inspect:  jq empty $registry_path"
     echo "     Recover:  cp $registry_path $registry_path.corrupted; restore from backup or rebuild via /autoloop:start in each repo"
     if [ "${hook_errors_recent:-0}" -gt 0 ]; then
@@ -469,7 +469,7 @@ loop_doctor_report() {
   green=$(echo "$results" | jq -s '[.[] | select(.verdict == "GREEN")] | length' 2>/dev/null || echo 0)
   yellow=$(echo "$results" | jq -s '[.[] | select(.verdict == "YELLOW")] | length' 2>/dev/null || echo 0)
   red=$(echo "$results" | jq -s '[.[] | select(.verdict == "RED")] | length' 2>/dev/null || echo 0)
-  echo "autoloop doctor — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
+  echo "autoloop triage — $total loop(s)  GREEN=$green  YELLOW=$yellow  RED=$red"
   echo "Fleet provenance: $pacing_vetoed pacing-vetoed, $empty_firings empty-firings (cumulative)"
   if [ "${hook_errors_recent:-0}" -gt 0 ]; then
     echo "YELLOW: $hook_errors_recent hook errors in last 1h — newest 3:"
@@ -488,8 +488,8 @@ loop_doctor_report() {
   ' 2>/dev/null
 }
 
-# loop_doctor_fix — applies SAFE remediations only.
-loop_doctor_fix() {
+# loop_triage_fix — applies SAFE remediations only.
+loop_triage_fix() {
   local registry_path="$HOME/.claude/loops/registry.json"
   local fixed=0
 
@@ -586,5 +586,5 @@ loop_doctor_fix() {
   return 0
 }
 
-export -f loop_doctor_report
-export -f loop_doctor_fix
+export -f loop_triage_report
+export -f loop_triage_fix

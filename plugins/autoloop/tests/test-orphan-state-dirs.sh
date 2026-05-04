@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test-orphan-state-dirs.sh — Wave 5 B3 doctor disk-orphan detection harness
 #
-# Verifies _doctor_check_disk_orphans:
+# Verifies _triage_check_disk_orphans:
 #   1. Returns nothing on a clean tree (every state_dir registered)
 #   2. Detects a v2 .autoloop/<slug>--<hash>/state/ orphan
 #   3. Detects a legacy .loop-state/<loop_id>/ orphan
@@ -20,7 +20,7 @@ source "$PLUGIN_DIR/scripts/registry-lib.sh"
 # shellcheck source=/dev/null
 source "$PLUGIN_DIR/scripts/state-lib.sh"
 # shellcheck source=/dev/null
-source "$PLUGIN_DIR/scripts/doctor-lib.sh"
+source "$PLUGIN_DIR/scripts/triage-lib.sh"
 set +e
 
 PASS=0
@@ -65,7 +65,7 @@ REG="$HOME/.claude/loops/registry.json"
 
 echo ""
 echo "[Case 1] Clean tree: no orphans reported"
-out=$(_doctor_check_disk_orphans "$REG" 2>/dev/null)
+out=$(_triage_check_disk_orphans "$REG" 2>/dev/null)
 if [ -z "$out" ]; then
   ok "no orphans on clean tree"
 else
@@ -76,7 +76,7 @@ echo ""
 echo "[Case 2] v2 orphan: detected as YELLOW disk_orphan"
 ORPHAN_V2="$PROJ/.autoloop/orphaned--def456/state"
 mkdir -p "$ORPHAN_V2/revision-log"
-out=$(_doctor_check_disk_orphans "$REG" 2>/dev/null)
+out=$(_triage_check_disk_orphans "$REG" 2>/dev/null)
 if echo "$out" | grep -q "disk_orphan"; then
   ok "v2 orphan detected"
 else
@@ -114,7 +114,7 @@ cat > "$REG" <<EOF
   ]
 }
 EOF
-out=$(_doctor_check_disk_orphans "$REG" 2>/dev/null)
+out=$(_triage_check_disk_orphans "$REG" 2>/dev/null)
 if echo "$out" | grep -Fq "$LEGACY_STATE"; then
   ok "legacy orphan detected"
 else
@@ -128,16 +128,16 @@ fi
 
 echo ""
 echo "[Case 4] Doctor surfaces orphan in full report"
-report=$(loop_doctor_report 2>&1)
+report=$(loop_triage_report 2>&1)
 if echo "$report" | grep -q "disk_orphan\|state_dir on disk"; then
-  ok "loop_doctor_report wires in disk-orphan output"
+  ok "loop_triage_report wires in disk-orphan output"
 else
   nok "doctor report missing orphan signal; tail: $(echo "$report" | tail -5)"
 fi
 
 echo ""
 echo "[Case 5] JSON output includes kind=disk_orphan"
-json_out=$(loop_doctor_report --json 2>/dev/null || echo '{}')
+json_out=$(loop_triage_report --json 2>/dev/null || echo '{}')
 if echo "$json_out" | jq -e '.loops[]? | select(.kind == "disk_orphan")' >/dev/null 2>&1; then
   ok "JSON output marks entries kind=disk_orphan"
 else

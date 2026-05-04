@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# test-doctor-extensions.sh — W2.1 doctor harness
+# test-triage-extensions.sh — W2.1 doctor harness
 #
-# Verifies the three new fleet-level checks added to loop_doctor_report:
+# Verifies the three new fleet-level checks added to loop_triage_report:
 #   1. registry_corrupt detection (RED in --json fleet object; RED line in human output)
 #   2. .hook-errors.log surfacing (count + 3 newest samples in --json)
 #   3. rapid-reclaim signal (loops_with_rapid_reclaim_24h)
@@ -19,7 +19,7 @@ source "$PLUGIN_DIR/scripts/portable.sh"
 # shellcheck source=/dev/null
 source "$PLUGIN_DIR/scripts/registry-lib.sh"
 # shellcheck source=/dev/null
-source "$PLUGIN_DIR/scripts/doctor-lib.sh"
+source "$PLUGIN_DIR/scripts/triage-lib.sh"
 
 PASS=0
 FAIL=0
@@ -46,7 +46,7 @@ mkdir -p "$HOME/.claude/loops"
 echo "}{ NOT JSON" > "$HOME/.claude/loops/registry.json"
 
 # Human output should print the RED line.
-human=$(loop_doctor_report 2>&1 || true)
+human=$(loop_triage_report 2>&1 || true)
 if echo "$human" | grep -q "RED:.*registry.json is NOT valid JSON"; then
   ok "human output flags corrupt registry as RED"
 else
@@ -54,7 +54,7 @@ else
 fi
 
 # JSON output should set fleet.registry_corrupt=true.
-json=$(loop_doctor_report --json 2>/dev/null || echo '{}')
+json=$(loop_triage_report --json 2>/dev/null || echo '{}')
 if echo "$json" | jq -e '.fleet.registry_corrupt == true' >/dev/null 2>&1; then
   ok "JSON output: fleet.registry_corrupt == true"
 else
@@ -81,7 +81,7 @@ jq -nc --arg ts "2020-01-01T00:00:00Z" \
   '{ts:$ts, kind:"validation_reject", field:"session_id", value_truncated:"old", pid:"0", extra:{}}' \
   >> "$HOME/.claude/loops/.hook-errors.log"
 
-json=$(loop_doctor_report --json 2>/dev/null || echo '{}')
+json=$(loop_triage_report --json 2>/dev/null || echo '{}')
 recent=$(echo "$json" | jq -r '.fleet.hook_errors_recent_1h // 0')
 samples_count=$(echo "$json" | jq '.fleet.hook_errors_samples | length' 2>/dev/null || echo 0)
 
@@ -129,7 +129,7 @@ cat > "$HOME/.claude/loops/registry.json" <<EOF
 EOF
 touch "$SD/CONTRACT.md"
 
-json=$(loop_doctor_report --json 2>/dev/null || echo '{}')
+json=$(loop_triage_report --json 2>/dev/null || echo '{}')
 rrc=$(echo "$json" | jq -r '.fleet.loops_with_rapid_reclaim_24h // 0')
 if [ "$rrc" = "1" ]; then
   ok "fleet.loops_with_rapid_reclaim_24h == 1"

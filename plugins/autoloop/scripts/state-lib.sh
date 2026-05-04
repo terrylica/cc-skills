@@ -315,7 +315,7 @@ write_heartbeat() {
     _entry=$(read_registry_entry "$loop_id" 2>/dev/null) || _entry="{}"
     _cp=$(echo "$_entry" | jq -r '.contract_path // ""' 2>/dev/null)
     if [ -n "$_cp" ] && [ ! -f "$_cp" ]; then
-      echo "ERROR: write_heartbeat: contract file '$_cp' has disappeared (likely git restore / git clean / rm). Halting heartbeat for loop '$loop_id'. Run /autoloop:doctor to recover." >&2
+      echo "ERROR: write_heartbeat: contract file '$_cp' has disappeared (likely git restore / git clean / rm). Halting heartbeat for loop '$loop_id'. Run /autoloop:triage to recover." >&2
       # Best-effort: emit a provenance event for forensics. Tolerated if
       # provenance-lib isn't loaded.
       if command -v emit_provenance >/dev/null 2>&1; then
