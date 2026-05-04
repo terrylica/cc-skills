@@ -78,7 +78,7 @@
           },
           "campaign_slug": {
             "type": "string",
-            "description": "Optional v2 field: kebab-case slug derived from the contract's `name:` frontmatter. When present together with short_hash, the human-readable display name is `AL-<campaign_slug>--<short_hash>`. Used by /autoloop:reclaim and /autoloop:status to accept identifier forms beyond the bare loop_id.",
+            "description": "Optional v2 field: kebab-case slug derived from the contract's `name:` frontmatter. When present together with short_hash, the human-readable display name is `AL-<campaign_slug>--<short_hash>`. Used by /autoloop:reclaim and /autoloop:muster to accept identifier forms beyond the bare loop_id.",
             "pattern": "^[a-z][a-z0-9-]{0,63}$"
           },
           "short_hash": {

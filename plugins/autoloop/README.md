@@ -29,7 +29,7 @@ claude plugin install autoloop@cc-skills
 /autoloop:start
 
 # Check progress after restart / compaction
-/autoloop:status
+/autoloop:muster
 
 # Clean terminate (writes completion promise, sends PushNotification)
 /autoloop:stop
@@ -62,7 +62,7 @@ This plugin was extracted from a 37-iteration autonomous quant-research campaign
 | Skill              | Invocation                          | Purpose                                                                 |
 | ------------------ | ----------------------------------- | ----------------------------------------------------------------------- |
 | `autoloop:start`   | `/autoloop:start [path]`            | Scaffold contract, install hook, register loop, load launchd plist      |
-| `autoloop:status`  | `/autoloop:status [loop_id]`        | Report ownership, iteration, health, staleness across all loops         |
+| `autoloop:muster`  | `/autoloop:muster [loop_id]`        | Report ownership, iteration, health, staleness across all loops         |
 | `autoloop:stop`    | `/autoloop:stop [path]`             | Unload plist, unregister loop, mark DONE in contract                    |
 | `autoloop:setup`   | `/autoloop:setup`                   | One-time machine setup: create ~/.claude/loops dir, verify hook env     |
 | `autoloop:reclaim` | `/autoloop:reclaim <loop_id>`       | Atomically seize stuck loop (dead owner, stale heartbeat)               |

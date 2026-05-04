@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# test-status.sh — Unit tests for machine-wide status enumeration (Phase 10)
-# Tests: enumerate_loops, compute_dead_time_ratio, format_status_table, human_relative_time, is_reclaim_candidate_v2
+# test-muster.sh — Unit tests for machine-wide status enumeration (Phase 10)
+# Tests: enumerate_loops, compute_dead_time_ratio, format_muster_table, human_relative_time, is_reclaim_candidate_v2
 
 set -euo pipefail
 
@@ -8,8 +8,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 # shellcheck source=/dev/null
-source "$PLUGIN_DIR/scripts/status-lib.sh" 2>/dev/null || {
-  echo "Failed to source status-lib.sh" >&2
+source "$PLUGIN_DIR/scripts/muster-lib.sh" 2>/dev/null || {
+  echo "Failed to source muster-lib.sh" >&2
   exit 1
 }
 
@@ -46,13 +46,13 @@ fi
 
 echo ""
 echo "========================================"
-echo "Test 2: format_status_table with Empty Input"
+echo "Test 2: format_muster_table with Empty Input"
 echo "========================================"
 
-# format_status_table is a function, we need to call it in a bash context
+# format_muster_table is a function, we need to call it in a bash context
 OUTPUT=$(bash -c "
-  source '$PLUGIN_DIR/scripts/status-lib.sh'
-  echo '' | format_status_table
+  source '$PLUGIN_DIR/scripts/muster-lib.sh'
+  echo '' | format_muster_table
 " 2>&1 || true)
 
 if echo "$OUTPUT" | grep -q "No autoloop loops registered" && \
@@ -228,10 +228,10 @@ fi
 
 echo ""
 echo "========================================"
-echo "Test 11: format_status_table - Single Loop"
+echo "Test 11: format_muster_table - Single Loop"
 echo "========================================"
 
-OUTPUT=$(enumerate_loops "$TEST_HOME/.claude/loops/registry.json" | format_status_table)
+OUTPUT=$(enumerate_loops "$TEST_HOME/.claude/loops/registry.json" | format_muster_table)
 
 if echo "$OUTPUT" | grep -q "LOOP_ID"; then
   echo "✓ PASS: Table has header row"
