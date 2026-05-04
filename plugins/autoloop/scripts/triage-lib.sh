@@ -381,7 +381,7 @@ loop_triage_report() {
 
   # W2.1 (b): recent .hook-errors.log entries. Hooks log validation rejections
   # and unexpected errors there; without surfacing them, a misbehaving session
-  # is invisible until /autoloop:status shows GREEN-everywhere despite repeated
+  # is invisible until /autoloop:muster shows GREEN-everywhere despite repeated
   # rejection events. Count newer than 1h, retain newest 3 as samples.
   local hook_errors_log="$HOME/.claude/loops/.hook-errors.log"
   local hook_errors_recent=0
