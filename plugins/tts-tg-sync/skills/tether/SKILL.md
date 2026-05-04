@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall tts-tg-sync Stop hook to ~/.claude/settings.json. TRIGGERS - tts hooks, install tts hook, tts stop hook."
+name: tether
+description: "Tether (install/uninstall) tts-tg-sync Stop hook to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, tts hooks, install tts hook, tts stop hook."
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
@@ -84,7 +84,6 @@ Hooks are loaded at session start.
 | Notification missing | Bot not running        | Start bot first                 |
 | Timeout errors       | Bot slow to respond    | Increase timeout in hooks.json  |
 | Bun not found        | PATH issue in hook env | Add Bun to PATH in hook command |
-
 
 ## Post-Execution Reflection
 

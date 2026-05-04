@@ -23,7 +23,7 @@ Full lifecycle management for Kokoro TTS, Telegram bot sync, and iTerm2 integrat
 /tts-tg-sync:health
 
 # Install hooks
-/tts-tg-sync:hooks install
+/tts-tg-sync:tether install
 ```
 
 ## Skills

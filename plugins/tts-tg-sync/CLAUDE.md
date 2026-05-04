@@ -6,7 +6,7 @@
 
 ## Overview
 
-This plugin manages the Telegram notification bot and iTerm2 tab focus integration for TTS. The Kokoro TTS engine itself is managed by the `kokoro-tts` plugin — use `/kokoro-tts:install`, `/kokoro-tts:health`, `/kokoro-tts:upgrade`, `/kokoro-tts:remove`, and `/kokoro-tts:diagnose` for engine management. All components share a lock file protocol and NDJSON telemetry.
+This plugin manages the Telegram notification bot and iTerm2 tab focus integration for TTS. The Kokoro TTS engine itself is managed by the `kokoro-tts` plugin — use `/kokoro-tts:install`, `/kokoro-tts:health`, `/kokoro-tts:augment` (renamed from `upgrade`), `/kokoro-tts:remove`, and `/kokoro-tts:diagnose` for engine management. All components share a lock file protocol and NDJSON telemetry.
 
 ## Conventions
 
@@ -72,7 +72,7 @@ Shell scripts use plain text via `tts_log`. Logs: `~/.claude/automation/claude-t
 - [diagnostic-issue-resolver](./skills/diagnostic-issue-resolver/SKILL.md)
 - [full-stack-bootstrap](./skills/full-stack-bootstrap/SKILL.md)
 - [health](./skills/health/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [settings-and-tuning](./skills/settings-and-tuning/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
 - [voice-quality-audition](./skills/voice-quality-audition/SKILL.md)
