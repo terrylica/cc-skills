@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json. TRIGGERS - itp hooks, install itp hooks, itp hook manager, adr sync hook."
+name: tether
+description: "Tether (install/uninstall) itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, itp hooks, install itp hooks, itp hook manager, adr sync hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku
@@ -58,19 +58,19 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 
 ```bash
 # Check current installation status
-/itp:hooks status
+/itp:tether status
 
 # Install all itp-hooks
-/itp:hooks install
+/itp:tether install
 
 # Uninstall hooks
-/itp:hooks uninstall
+/itp:tether uninstall
 
 # List available backups
-/itp:hooks restore
+/itp:tether restore
 
 # Restore most recent backup
-/itp:hooks restore latest
+/itp:tether restore latest
 ```
 
 ## Troubleshooting
@@ -83,7 +83,6 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 | Hooks not working | Session not restarted    | Restart Claude Code session        |
 | Script not found  | Plugin not installed     | Re-install plugin via marketplace  |
 | Invalid JSON      | Corrupted settings.json  | Use `restore latest` to recover    |
-
 
 ## Post-Execution Reflection
 
