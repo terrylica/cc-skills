@@ -8,7 +8,7 @@
 
 - [chezmoi-sync](./skills/chezmoi-sync/SKILL.md)
 - [chezmoi-workflows](./skills/chezmoi-workflows/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 
 ## Hooks
 
