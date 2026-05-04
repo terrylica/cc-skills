@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: Install/uninstall hooks for auto-backup on session end. TRIGGERS - hooks, auto backup, session hooks.
+name: tether
+description: "Tether (install/uninstall) hooks for auto-backup on session end. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, asciinema hooks, auto backup, session hooks, install hooks."
 allowed-tools: Bash, Read, Write, AskUserQuestion
 argument-hint: "[install|uninstall|status] [--backup-on-stop] [--convert-on-stop] [-y|--yes]"
 disable-model-invocation: true
@@ -79,7 +79,6 @@ Manage Claude Code hooks for asciinema-tools automation.
 | Settings file not found | ~/.claude/ doesn't exist | Create with `mkdir -p ~/.claude`  |
 | Hooks not working       | Session not restarted    | Restart Claude Code session       |
 | Backup not triggering   | No active recordings     | Start recording first with daemon |
-
 
 ## Post-Execution Reflection
 
