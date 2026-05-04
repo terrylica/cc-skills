@@ -74,7 +74,7 @@ Create macOS Calendar events with tiered sound alarms and auto-paired Reminders.
 | 30 min       | -30 min   | Ping   | 1.50s    |
 | At event     | 0 min     | Funk   | 2.16s    |
 
-**Hook**: Install with `/productivity-tools:hooks install` (opt-in, not auto-enabled).
+**Hook**: Install with `/productivity-tools:tether install` (opt-in, not auto-enabled).
 
 ## Installation
 
@@ -112,7 +112,7 @@ claude plugin install productivity-tools@cc-skills
 | Bun not available              | Optional dependency missing    | Install with `brew install bun` for TypeScript        |
 | Validation warnings            | Missing required fields        | Add description and allowed-tools to YAML frontmatter |
 | Sound alarm not playing        | Notifications disabled         | Enable in System Settings > Notifications > Calendar  |
-| Reminders not created          | Hook not installed             | Run `/productivity-tools:hooks install`               |
+| Reminders not created          | Hook not installed             | Run `/productivity-tools:tether install`               |
 
 ## License
 
