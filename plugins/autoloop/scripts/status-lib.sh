@@ -488,7 +488,7 @@ format_status_table() {
     echo ""
     echo "  To start your first loop:  /autoloop:start <campaign-slug>"
     echo "  To install hooks first:    /autoloop:setup install"
-    echo "  To check fleet health:     /autoloop:doctor"
+    echo "  To check fleet health:     /autoloop:triage"
   fi
 
   return 0

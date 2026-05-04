@@ -1,6 +1,6 @@
 ---
-name: doctor
-description: "Diagnose autoloop fleet health. Reports GREEN/YELLOW/RED per loop with remediation hints. TRIGGERS - autoloop doctor, fleet diagnose, loop health check, find zombie loops, loop status report."
+name: triage
+description: "Triage autoloop fleet health. Reports GREEN/YELLOW/RED per loop with remediation hints. Renamed from 'doctor' to avoid clashing with Claude Code's built-in /doctor. TRIGGERS - autoloop triage, fleet triage, loop health check, find zombie loops, loop status report, autoloop diagnose, autoloop doctor."
 allowed-tools: Bash
 argument-hint: "[--json] [--fix]"
 disable-model-invocation: false
@@ -8,7 +8,7 @@ disable-model-invocation: false
 
 <!-- # SSoT-OK -->
 
-# autoloop: Doctor
+# autoloop: Triage
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
@@ -30,7 +30,7 @@ Self-diagnostic for the autoloop fleet. Cross-references registry.json, heartbea
 ```bash
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop}"
 # shellcheck source=/dev/null
-source "$PLUGIN_ROOT/scripts/doctor-lib.sh"
+source "$PLUGIN_ROOT/scripts/triage-lib.sh"
 
 JSON=false
 FIX=false
@@ -42,12 +42,12 @@ for arg in "$@"; do
 done
 
 if [ "$FIX" = true ]; then
-  loop_doctor_fix
+  loop_triage_fix
 else
   if [ "$JSON" = true ]; then
-    loop_doctor_report --json
+    loop_triage_report --json
   else
-    loop_doctor_report
+    loop_triage_report
   fi
 fi
 ```
@@ -72,7 +72,7 @@ What `--fix` will **NEVER** do (intentionally — operator decision required):
 
 ## Refs
 
-- Library: `plugins/autoloop/scripts/doctor-lib.sh`
+- Library: `plugins/autoloop/scripts/triage-lib.sh`
 - Companion script: `plugins/autoloop/scripts/heal-self.sh`
 
 ## Post-Execution Reflection

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-doctor.sh — Tests for doctor-lib.sh (DOC-01, DOC-02).
+# test-triage.sh — Tests for triage-lib.sh (DOC-01, DOC-02).
 # shellcheck disable=SC2329
 
 set -euo pipefail
@@ -34,7 +34,7 @@ export PATH="$STUB_BIN:$PATH"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # shellcheck source=/dev/null
-source "$PLUGIN_DIR/scripts/doctor-lib.sh"
+source "$PLUGIN_DIR/scripts/triage-lib.sh"
 
 PASS=0
 FAIL=0
@@ -86,7 +86,7 @@ echo "Test 1: clean state → GREEN"
 reset
 SID="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 put_loop "111111111111" "$SID" 60 "yes" >/dev/null
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 VERDICT=$(echo "$JSON" | jq -r '.loops[0].verdict // "MISSING"')
 assert_eq "$VERDICT" "GREEN" "verdict GREEN for fresh loop"
 
@@ -96,7 +96,7 @@ echo "Test 2: zombie launchctl → RED"
 reset
 put_loop "222222222222" "$SID" 60 "yes" >/dev/null
 echo "1234	0	com.user.claude.loop.zzzzzzzzzzzz" >"$HOME/.claude/loops/.fake-launchctl-list"
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 ZOMBIE=$(echo "$JSON" | jq -r '.loops[] | select(.kind == "zombie_launchctl") | .verdict')
 assert_eq "$ZOMBIE" "RED" "zombie_launchctl entry detected as RED"
 LABEL_HINT=$(echo "$JSON" | jq -r '.loops[] | select(.kind == "zombie_launchctl") | .issues[0]' 2>/dev/null)
@@ -111,7 +111,7 @@ echo "Test 3: stale pending-bind → YELLOW"
 reset
 echo "" >"$HOME/.claude/loops/.fake-launchctl-list"  # no zombies
 put_loop "333333333333" "pending-bind" 7200 "yes" >/dev/null
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 VERDICT=$(echo "$JSON" | jq -r '.loops[0].verdict')
 assert_eq "$VERDICT" "YELLOW" "stale pending-bind = YELLOW"
 
@@ -121,7 +121,7 @@ echo "Test 4: --json output structure"
 reset
 put_loop "444444444444" "$SID" 60 "yes" >/dev/null
 put_loop "555555555555" "pending-bind" 7200 "yes" >/dev/null
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 HAS_LOOPS=$(echo "$JSON" | jq -r 'has("loops")')
 assert_eq "$HAS_LOOPS" "true" "JSON has loops field"
 LOOP_COUNT=$(echo "$JSON" | jq -r '.loops | length')
@@ -166,14 +166,14 @@ jq --argjson e "$DONE_ENTRY" '.loops += [$e]' "$CLAUDE_LOOPS_REGISTRY" >"$CLAUDE
 mkdir -p "$HOME/Library/LaunchAgents"
 echo "<plist/>" >"$HOME/Library/LaunchAgents/com.user.claude.loop.deadbeef0001.plist"
 
-JSON=$(loop_doctor_report --json 2>/dev/null)
+JSON=$(loop_triage_report --json 2>/dev/null)
 VERDICT=$(echo "$JSON" | jq -r '.loops[] | select(.loop_id == "deadbeef0001") | .verdict')
 assert_eq "$VERDICT" "YELLOW" "DONE-status loop flagged as YELLOW"
 HAS_DONE_HINT=$(echo "$JSON" | jq -r '[.loops[] | select(.loop_id == "deadbeef0001") | .issues[] | select(test("status="))] | length > 0')
 assert_eq "$HAS_DONE_HINT" "true" "issues mention contract status"
 
 # Run --fix
-loop_doctor_fix >/dev/null 2>&1
+loop_triage_fix >/dev/null 2>&1
 PLIST_REMOVED="missing"
 if [ ! -f "$HOME/Library/LaunchAgents/com.user.claude.loop.deadbeef0001.plist" ]; then
   PLIST_REMOVED="ok"
