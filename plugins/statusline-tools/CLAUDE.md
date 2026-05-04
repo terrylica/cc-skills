@@ -6,7 +6,7 @@
 
 ## Skills
 
-- [hooks](./skills/hooks/SKILL.md)
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [ignore](./skills/ignore/SKILL.md)
 - [session-info](./skills/session-info/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
@@ -17,7 +17,7 @@
 | -------------------------- | ---------------------------- |
 | `/statusline-tools:setup`  | Configure statusline         |
 | `/statusline-tools:ignore` | Manage ignore patterns       |
-| `/statusline-tools:hooks`  | Manage link validation hooks |
+| `/statusline-tools:tether` | Manage link validation hooks |
 
 ## Hooks
 

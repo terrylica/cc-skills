@@ -9,12 +9,12 @@ Custom Claude Code status line with git status indicators.
 
 ## Skills
 
-| Skill          | Description                                            |
-| -------------- | ------------------------------------------------------ |
-| `setup`        | Install/uninstall/status for statusline + dependencies |
-| `ignore`       | Manage global ignore patterns for lint-relative-paths  |
-| `session-info` | Display current session UUID, chain, registry info     |
-| `hooks`        | Install/uninstall link validation stop hooks           |
+| Skill          | Description                                                         |
+| -------------- | ------------------------------------------------------------------- |
+| `setup`        | Install/uninstall/status for statusline + dependencies              |
+| `ignore`       | Manage global ignore patterns for lint-relative-paths               |
+| `session-info` | Display current session UUID, chain, registry info                  |
+| `tether`       | Install/uninstall link validation stop hooks (renamed from `hooks`) |
 
 **Trigger phrases:** "current session", "session uuid", "session id", "what session"
 
@@ -60,13 +60,13 @@ Manage global ignore patterns for `lint-relative-paths`. Use this when a reposit
 
 **Ignore file location**: `~/.claude/lint-relative-paths-ignore`
 
-### /statusline-tools:hooks
+### /statusline-tools:tether
 
 Install or uninstall link validation stop hooks.
 
 ```bash
-/statusline-tools:hooks install    # Install link validation hooks
-/statusline-tools:hooks uninstall  # Remove link validation hooks
+/statusline-tools:tether install    # Install link validation hooks
+/statusline-tools:tether uninstall  # Remove link validation hooks
 ```
 
 ## Status Line Display

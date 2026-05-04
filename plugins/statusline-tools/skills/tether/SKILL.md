@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall statusline-tools Stop hook to ~/.claude/settings.json. TRIGGERS - statusline hooks, install statusline hook, statusline stop hook."
+name: tether
+description: "Tether (install/uninstall) statusline-tools Stop hook to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, statusline hooks, install statusline hook, statusline stop hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku
@@ -86,13 +86,13 @@ Hooks are loaded at session start. Modifications to settings.json require a rest
 
 ```bash
 # Check current installation status
-/statusline-tools:hooks status
+/statusline-tools:tether status
 
 # Install the Stop hook for link validation
-/statusline-tools:hooks install
+/statusline-tools:tether install
 
 # Uninstall hooks
-/statusline-tools:hooks uninstall
+/statusline-tools:tether uninstall
 ```
 
 ## Troubleshooting
