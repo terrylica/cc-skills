@@ -1,8 +1,8 @@
 ---
-name: fork
+name: scion
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git remote:*), Bash(git config:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(gh repo:*), Bash(gh api:*), Bash(gh auth:*), Bash(which:*), Bash(brew:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[upstream-url] | --check | --fix"
-description: "Create or configure a fork workflow with git-town. Preflight checks at every step. TRIGGERS - fork repo, setup fork, git-town fork, create fork, fork workflow, upstream setup."
+description: "Scion (create or configure) a fork workflow with git-town. Renamed from 'fork' to avoid clashing with Claude Code's built-in /fork alias for /branch. TRIGGERS - scion repo, fork repo, setup fork, git-town fork, create fork, fork workflow, upstream setup."
 ---
 
 <!-- ⛔⛔⛔ MANDATORY: READ THIS ENTIRE FILE BEFORE ANY ACTION ⛔⛔⛔ -->
@@ -450,17 +450,17 @@ git remote add upstream git@github.com:{upstream_owner}/{repo}.git
 
 ```bash
 # Fork a new repository
-/git-town-workflow:fork https://github.com/EonLabs-Spartan/alpha-forge
+/git-town-workflow:scion https://github.com/EonLabs-Spartan/alpha-forge
 
 # Check existing fork setup
-/git-town-workflow:fork --check
+/git-town-workflow:scion --check
 
 # Auto-fix misconfigured remotes
-/git-town-workflow:fork --fix
+/git-town-workflow:scion --fix
 ```
 
-
 ---
+
 ## Troubleshooting
 
 | Issue                 | Cause                       | Solution                              |

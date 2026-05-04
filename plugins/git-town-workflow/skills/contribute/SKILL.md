@@ -57,7 +57,7 @@ UPSTREAM=$(git remote get-url upstream 2>/dev/null)
 
 if [[ -z "$UPSTREAM" ]]; then
     echo "❌ FATAL: upstream remote not configured"
-    echo "Run: /git-town-workflow:fork to configure"
+    echo "Run: /git-town-workflow:scion to configure"
     exit 1
 fi
 
@@ -85,7 +85,7 @@ AskUserQuestion with questions:
 - question: "Fork workflow is not configured. Run fork setup first?"
   header: "Setup Required"
   options:
-    - label: "Yes, run /git-town-workflow:fork now"
+    - label: "Yes, run /git-town-workflow:scion now"
       description: "Configure fork workflow first"
     - label: "No, abort"
       description: "Cannot proceed without fork setup"
