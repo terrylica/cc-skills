@@ -1,12 +1,12 @@
 ---
-name: status
-description: "Machine-wide loop status enumeration and health reporting. TRIGGERS - autoloop status, loop state, all loops, show loops, machine status."
+name: muster
+description: "Machine-wide loop muster — enumerate every registered loop with health, ownership, and staleness. Renamed from 'status' to avoid clashing with Claude Code's built-in /status. TRIGGERS - autoloop muster, autoloop status, fleet roster, loop state, all loops, show loops, machine status."
 allowed-tools: Bash, Read
 argument-hint: "[--json | --reclaim-candidates | <loop_id>]"
 disable-model-invocation: false
 ---
 
-# autoloop: Machine-Wide Status
+# autoloop: Muster (Fleet Roster)
 
 Enumerates all registered loops on the machine and reports health, dead-time ratio, staleness, and reclaim candidacy. Works as a table view for human inspection or JSONL for machine consumers.
 
@@ -25,8 +25,8 @@ Enumerates all registered loops on the machine and reports health, dead-time rat
 
 ```bash
 PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source "$PLUGIN_DIR/scripts/status-lib.sh" || {
-  echo "ERROR: Cannot load status-lib.sh" >&2
+source "$PLUGIN_DIR/scripts/muster-lib.sh" || {
+  echo "ERROR: Cannot load muster-lib.sh" >&2
   exit 1
 }
 ```
@@ -40,12 +40,12 @@ case "${1:-}" in
     exit 0
     ;;
   --reclaim-candidates)
-    enumerate_loops | jq -r 'select(.reclaim_candidate == "yes") | @json' | format_status_table
+    enumerate_loops | jq -r 'select(.reclaim_candidate == "yes") | @json' | format_muster_table
     exit 0
     ;;
   "")
     # Default: show all loops as table
-    enumerate_loops | format_status_table
+    enumerate_loops | format_muster_table
     exit 0
     ;;
   *)
@@ -136,16 +136,16 @@ dead_time_ratio = 1 - (heartbeat_count × cadence / lifespan)
 
 ```bash
 # Show all loops
-/autoloop:status
+/autoloop:muster
 
 # Export to JSON for external processing
-/autoloop:status --json | jq '.[] | select(.status == "STALE")'
+/autoloop:muster --json | jq '.[] | select(.status == "STALE")'
 
 # Find loops ready for cleanup
-/autoloop:status --reclaim-candidates
+/autoloop:muster --reclaim-candidates
 
 # Check single loop (backward compat)
-/autoloop:status a1b2c3d4e5f6
+/autoloop:muster a1b2c3d4e5f6
 ```
 
 ## Troubleshooting

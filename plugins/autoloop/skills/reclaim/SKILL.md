@@ -28,7 +28,7 @@ if [ -z "$INPUT" ]; then
   echo "  /autoloop:reclaim <loop_id>            (e.g. 3555bbe1f0fb)"
   echo "  /autoloop:reclaim AL-<slug>            (e.g. AL-odb-research)"
   echo "  /autoloop:reclaim AL-<slug>--<hash>    (e.g. AL-odb-research--a1b2c3)"
-  echo "  Run /autoloop:status to list active campaigns by name."
+  echo "  Run /autoloop:muster to list active campaigns by name."
   exit 1
 fi
 
@@ -52,7 +52,7 @@ if ! LOOP_ID=$(resolve_loop_identifier "$INPUT"); then
     echo "Did you mean one of these?" >&2
     echo "$SUGGESTIONS" >&2
     echo "" >&2
-    echo "Run /autoloop:status to see the full registered fleet." >&2
+    echo "Run /autoloop:muster to see the full registered fleet." >&2
   fi
   exit 1
 fi

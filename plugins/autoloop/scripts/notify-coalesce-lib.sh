@@ -13,8 +13,8 @@ source "$SCRIPT_DIR/notifications-lib.sh" 2>/dev/null || {
   return 1
 }
 # shellcheck source=/dev/null
-source "$SCRIPT_DIR/status-lib.sh" 2>/dev/null || {
-  echo "ERROR: notify-coalesce-lib.sh: cannot source status-lib.sh" >&2
+source "$SCRIPT_DIR/muster-lib.sh" 2>/dev/null || {
+  echo "ERROR: notify-coalesce-lib.sh: cannot source muster-lib.sh" >&2
   return 1
 }
 
@@ -154,7 +154,7 @@ coalesce_notifications() {
              loop_ids: $loop_ids,
              window_start_us: ($bucket_key * $ws * 1000000 | tostring),
              window_end_us: (($bucket_key + 1) * $ws * 1000000 - 1 | tostring),
-             summary: "\($distinct_count) loops stale; check /autoloop:status"
+             summary: "\($distinct_count) loops stale; check /autoloop:muster"
            }
          else
            $window[]
