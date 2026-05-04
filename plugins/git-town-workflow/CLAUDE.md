@@ -8,10 +8,10 @@
 
 | Command                         | Purpose                             |
 | ------------------------------- | ----------------------------------- |
-| `/git-town-workflow:fork`       | Create/configure fork workflow      |
+| `/git-town-workflow:scion`      | Create/configure fork workflow      |
 | `/git-town-workflow:contribute` | Complete contribution cycle         |
 | `/git-town-workflow:setup`      | Initialize git-town in repository   |
-| `/git-town-workflow:hooks`      | Install/uninstall enforcement hooks |
+| `/git-town-workflow:tether`     | Install/uninstall enforcement hooks |
 
 ## Philosophy
 
@@ -31,6 +31,6 @@ Allowed: `git add`, `git commit`, `git status`, `git log`, `git diff`, `git stas
 ## Skills
 
 - [contribute](./skills/contribute/SKILL.md)
-- [fork](./skills/fork/SKILL.md)
-- [hooks](./skills/hooks/SKILL.md)
+- [scion](./skills/scion/SKILL.md) — renamed from `fork` to avoid `/fork` (alias for `/branch`) clash
+- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [setup](./skills/setup/SKILL.md)
