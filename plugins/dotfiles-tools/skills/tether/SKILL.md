@@ -1,6 +1,6 @@
 ---
-name: hooks
-description: "Install/uninstall chezmoi hooks to ~/.claude/settings.json. TRIGGERS - dotfiles hooks, chezmoi hooks, install chezmoi hook, dotfiles sync hook."
+name: tether
+description: "Tether (install/uninstall) chezmoi hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, dotfiles hooks, chezmoi hooks, install chezmoi hook, dotfiles sync hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku
@@ -50,19 +50,19 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 
 ```bash
 # Check current installation status
-/dotfiles-tools:hooks status
+/dotfiles-tools:tether status
 
 # Install the chezmoi sync reminder hook
-/dotfiles-tools:hooks install
+/dotfiles-tools:tether install
 
 # Uninstall hooks
-/dotfiles-tools:hooks uninstall
+/dotfiles-tools:tether uninstall
 
 # List available backups
-/dotfiles-tools:hooks restore
+/dotfiles-tools:tether restore
 
 # Restore most recent backup
-/dotfiles-tools:hooks restore latest
+/dotfiles-tools:tether restore latest
 ```
 
 ## Troubleshooting
@@ -74,7 +74,6 @@ The hooks are loaded at session start. Modifications to settings.json require a 
 | Hooks not working       | Session not restarted    | Restart Claude Code session                 |
 | Settings file not found | ~/.claude/ doesn't exist | Create with `mkdir -p ~/.claude`            |
 | Invalid JSON            | Corrupted settings.json  | Use `restore latest` to recover from backup |
-
 
 ## Post-Execution Reflection
 
