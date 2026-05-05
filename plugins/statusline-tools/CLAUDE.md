@@ -54,3 +54,42 @@ Cost on cc-skills repo: ~70ms cold (scc with complexity) + ~20ms jq = ~100ms
 incremental over the pre-existing 1.1s baseline.
 
 Dependency: `brew install scc` (Go binary, single-shot — no daemon).
+
+## Optional: ccmax-monitor Integration
+
+The status line includes an optional integration with [ccmax-monitor](https://github.com/terrylica/ccmax-monitor), a **private internal fleet system** for managing multi-account Claude Code Max subscriptions. This integration is **not required** and gracefully degrades — public users without ccmax-monitor see no change.
+
+### What it shows
+
+When ccmax-monitor is running locally, the datetime line gains:
+
+```
+2026-05-05 14:32 UTC | 03:32 PDT | usalchemist@gmail.com 42% 1d 22h [soft]
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                    account  5h-used  7d-reset  pin-badge
+```
+
+| Element               | Source                                        | Meaning                                   |
+| --------------------- | --------------------------------------------- | ----------------------------------------- |
+| Account email         | `GET localhost:18095/api/status` (cached 60s) | Which fleet account is active on this Mac |
+| `42%`                 | Same API response                             | 5-hour quota utilization                  |
+| `1d 22h`              | Same API response                             | Time until 7-day quota reset              |
+| `[soft]` / `[strict]` | `~/.config/ccmax/pin.toml`                    | Pin mode override (HEART-23)              |
+
+### Pin badge
+
+`custom-statusline.sh` reads `~/.config/ccmax/pin.toml` via Python `tomllib` (3.11+). If the file does not exist or is unreadable, `ccmax_pin_mode` is empty and no badge is shown.
+
+| Badge             | Meaning                                                    |
+| ----------------- | ---------------------------------------------------------- |
+| _(none)_          | Following fleet rotation (default)                         |
+| `[soft]` (yellow) | Pinned to a specific account; auto-fallback when unhealthy |
+| `[strict]` (red)  | Pinned regardless of health                                |
+
+### Graceful degradation
+
+If ccmax-monitor is not running (`localhost:18095` unreachable), `curl` times out in 1–2 seconds and the entire ccmax section is silently omitted. The status line continues to work normally. The 60-second cache (`/tmp/ccmax-statusline-cache.json`) means one tunnel drop doesn't immediately blank the display.
+
+### Scope
+
+This integration is internal to the `terrylica` fleet. Public cc-skills users will never have `localhost:18095` listening, so the block is effectively a no-op — the `curl` silently fails and nothing appears.

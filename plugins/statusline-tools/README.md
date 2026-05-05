@@ -25,6 +25,10 @@ Custom Claude Code status line with git status indicators.
 - **Repository State**: ≡ (stash count), ⚠ (merge conflicts)
 - **GitHub URL**: Clickable link to current branch
 
+### Optional: ccmax-monitor Integration
+
+If you run [ccmax-monitor](https://github.com/terrylica/ccmax-monitor) (a private internal fleet system for multi-account Claude Code Max management), the status line also displays the active fleet account, quota usage, and pin-mode badge. This is **optional** — the status line works normally without it and silently omits the ccmax section if the local dashboard is unreachable.
+
 ## Installation
 
 ```bash
