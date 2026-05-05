@@ -398,12 +398,38 @@ else
     datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
 fi
 
-# === ccmax-monitor: Active Account + 7d Reset ===
+# === ccmax-monitor: Active Account + 7d Reset + Pin Mode ===
 # Fetches from ccmax-monitor Dashboard API, cached for 60s to avoid network spam.
 # Endpoint: localhost:18095 (forwarded by ssh-tunnel-companion to bigblack:8095).
 # ccmax-monitor binds 127.0.0.1 only — must be reached via SSH tunnel.
 # Network: Tailscale primary (bigblack.tail0f299b.ts.net), CF Access fallback.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
+#
+# Pin-mode badge (HEART-23, ccmax-monitor v1.63.0+): reads ~/.config/ccmax/pin.toml
+# and shows the current override state next to the account name. No badge = default
+# rotation (this Mac follows the fleet's switcher). [soft] = pinned with auto-fallback
+# when unhealthy. [strict] = pinned no matter what.
+CCMAX_PIN_FILE="${HOME}/.config/ccmax/pin.toml"
+ccmax_pin_mode=""
+if [ -f "$CCMAX_PIN_FILE" ]; then
+    ccmax_pin_mode=$(python3 -c "
+import sys
+try:
+    import tomllib
+except ImportError:
+    sys.exit(0)
+try:
+    with open('${CCMAX_PIN_FILE}', 'rb') as f:
+        d = tomllib.load(f)
+    acc = d.get('account', '')
+    mode = d.get('mode', 'soft')
+    if acc and mode in ('soft', 'strict'):
+        print(mode)
+except Exception:
+    pass
+" 2>/dev/null) || ccmax_pin_mode=""
+fi
+
 CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
 CCMAX_CACHE_TTL=60
 ccmax_line=""
@@ -634,13 +660,27 @@ echo -e "$line1"
 # Account name + reset windows in BRIGHT_BLACK, percentages in CYAN (7d) and MAGENTA (5h)
 # for visual demarcation between the two quota windows.
 if [ -n "$ccmax_line" ]; then
+    # Pin-mode badge (HEART-23). Inserted right after the account name so the
+    # override label visually associates with the account it applies to.
+    #   default rotation → empty (clean state, no extra clutter)
+    #   soft pin         → YELLOW [soft]   (auto-fallback on unhealthy)
+    #   strict pin       → RED    [strict] (honor pin even when unhealthy)
+    ccmax_pin_badge=""
+    case "$ccmax_pin_mode" in
+        soft)   ccmax_pin_badge="${YELLOW}[soft]${RESET}" ;;
+        strict) ccmax_pin_badge="${RED}[strict]${RESET}" ;;
+    esac
+
     # Parse tokens produced by the Python block:
     #   <name> <7d%> <7d reset...> <5h%> <5h reset...>
     # Reset values may be "3d 1h", "2h 15m", or "5m" — variable token count.
     # Strategy: iterate and split whenever we hit a token ending in '%'.
-    ccmax_colored=$(echo "$ccmax_line" | awk -v BB="${BRIGHT_BLACK}" -v C="${CYAN}" -v M="${MAGENTA}" -v R="${RESET}" '
+    ccmax_colored=$(echo "$ccmax_line" | awk \
+        -v BB="${BRIGHT_BLACK}" -v C="${CYAN}" -v M="${MAGENTA}" -v R="${RESET}" \
+        -v PIN="$ccmax_pin_badge" '
     {
         out = BB $1 R           # account name
+        if (PIN != "") out = out " " PIN
         buf = ""                # reset-string accumulator
         window = 0              # 0 = 7d, 1 = 5h
         for (i = 2; i <= NF; i++) {
