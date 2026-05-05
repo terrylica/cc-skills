@@ -430,6 +430,11 @@ except Exception:
 " 2>/dev/null) || ccmax_pin_mode=""
 fi
 
+# Query relay-monitor dashboard (private internal fleet system, OPTIONAL).
+# relay-monitor exposes a local port via ssh-tunnel-companion: gpu-host:8095 → localhost:18095.
+# If the tunnel is down or relay-monitor is not installed, curl times out silently (1–2s)
+# and ccmax_raw stays empty — the entire ccmax section is omitted. Graceful degradation.
+# Public cc-skills users will never have localhost:18095 listening; this block is a no-op.
 CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
 CCMAX_CACHE_TTL=60
 ccmax_line=""
