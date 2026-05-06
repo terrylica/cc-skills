@@ -1,3 +1,10 @@
+# [20.1.0](https://github.com/terrylica/cc-skills/compare/v20.0.1...v20.1.0) (2026-05-06)
+
+
+### Features
+
+* **statusline-tools:** show ccmax pin mode badge next to account ([b253a27](https://github.com/terrylica/cc-skills/commit/b253a2765e29458261d0c5fbb9db2051aae1d87e))
+
 ## [20.0.1](https://github.com/terrylica/cc-skills/compare/v20.0.0...v20.0.1) (2026-05-04)
 
 
