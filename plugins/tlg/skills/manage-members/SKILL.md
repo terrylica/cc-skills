@@ -1,6 +1,6 @@
 ---
 name: manage-members
-description: "Use when user wants to manage Telegram group or channel members, including inviting users, kicking or banning someone, listing members, or filtering admins."
+description: user wants to manage Telegram group or channel members, including inviting users, kicking or banning someone, listing members, or filtering.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

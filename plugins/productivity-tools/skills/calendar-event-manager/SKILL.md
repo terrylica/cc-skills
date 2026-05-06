@@ -1,6 +1,6 @@
 ---
 name: calendar-event-manager
-description: "Use when user wants to create a macOS Calendar event with sound alarms and paired Reminders, schedule a meeting, RSVP to an invitation, or set reminders."
+description: user wants to create a macOS Calendar event with sound alarms and paired Reminders, schedule a meeting, RSVP to an invitation, or set reminders.
 allowed-tools: Bash, Read, AskUserQuestion
 ---
 

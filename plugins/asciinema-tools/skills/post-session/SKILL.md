@@ -1,6 +1,6 @@
 ---
 name: post-session
-description: Complete post-session workflow - finalize orphaned recordings, convert, and AI summarize. TRIGGERS - post session, analyze recording, session review, complete workflow.
+description: Complete post-session workflow - finalize orphaned recordings, convert, and AI summarize. TRIGGERS - post session, analyze recording, session review
 allowed-tools: Bash, Grep, AskUserQuestion, Glob, Write, Read, Task
 argument-hint: "[file] [--finalize] [-q|--quick] [-f|--full] [--summarize] [--output file]"
 ---
@@ -203,7 +203,6 @@ AskUserQuestion:
 | Convert fails            | Corrupted .cast file     | Run `/asciinema-tools:finalize` first       |
 | AI summarize timeout     | Recording too large      | Use `-q` for quick analysis first           |
 | Orphan branch push fails | Git authentication issue | Check GitHub token with `echo $GH_TOKEN`    |
-
 
 ## Post-Execution Reflection
 

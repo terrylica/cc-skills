@@ -1,6 +1,6 @@
 ---
 name: diagnostic-issue-resolver
-description: Diagnose and resolve TTS and Telegram bot issues. TRIGGERS - tts not working, bot not responding, kokoro error, audio not playing, lock stuck, telegram bot troubleshoot, diagnose issue.
+description: Diagnose and resolve TTS and Telegram bot issues. TRIGGERS - tts not working, bot not responding, kokoro error
 allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 ---
 
@@ -135,7 +135,6 @@ After applying the fix, verify the issue is resolved:
 - [ ] Test audio plays correctly
 - [ ] No stale locks or orphan processes remain
 
-
 ## Troubleshooting
 
 This skill IS the troubleshooting skill. If the standard diagnostics do not identify the issue:
@@ -167,4 +166,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

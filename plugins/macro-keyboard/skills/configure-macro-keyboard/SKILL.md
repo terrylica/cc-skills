@@ -1,6 +1,6 @@
 ---
 name: configure-macro-keyboard
-description: Configure a cheap 3-key USB-C/Bluetooth macro pad on macOS end-to-end with Karabiner-Elements. TRIGGERS - macro pad setup, remap macro keyboard, 3-key macropad, cheap HID pad, Jieli macro pad, Free3-P, Karabiner rule for macro keyboard, USB + Bluetooth remap, Stream Deck alternative, AliExpress macro pad, remap external keyboard device-only, fix BTT cannot emit Fn, Typeless push-to-talk via macro pad.
+description: Configure a cheap 3-key USB-C/Bluetooth macro pad on macOS end-to-end with Karabiner-Elements.
 allowed-tools: Read, Edit, Write, Bash
 ---
 

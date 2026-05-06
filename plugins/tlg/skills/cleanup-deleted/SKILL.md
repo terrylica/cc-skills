@@ -1,6 +1,6 @@
 ---
 name: cleanup-deleted
-description: "Use when user wants to clean up Telegram by purging deleted or ghost accounts from their dialog list and contacts, or removing spam ghosts that clutter the chat list."
+description: user wants to clean up Telegram by purging deleted or ghost accounts from their dialog list and contacts, or removing spam ghosts that clutter.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: health
-description: "Health check for TTS and Telegram bot subsystems. TRIGGERS - health check, bot health, kokoro health, tts health, kokoro status, telegram bot check, tts diagnostics, tts lock, system status, diagnostics."
+description: Health check for TTS and Telegram bot subsystems. TRIGGERS - health check, bot health, kokoro health
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 
@@ -179,8 +179,8 @@ Display results as a table:
 - [ ] Each failure has an actionable recommendation
 - [ ] No sensitive values (tokens, secrets) exposed in output
 
-
 ---
+
 ## Troubleshooting
 
 | Issue                             | Cause                               | Solution                                                                |

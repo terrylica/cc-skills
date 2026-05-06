@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) hooks for auto-backup on session end. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, asciinema hooks, auto backup, session hooks, install hooks."
+description: Tether (install/uninstall) hooks for auto-backup on session end. Renamed from 'hooks' to avoid clashing with Claude Code's.
 allowed-tools: Bash, Read, Write, AskUserQuestion
 argument-hint: "[install|uninstall|status] [--backup-on-stop] [--convert-on-stop] [-y|--yes]"
 disable-model-invocation: true

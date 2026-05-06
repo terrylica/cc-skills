@@ -1,6 +1,6 @@
 ---
 name: static-page-stack
-description: "SOTA stack recommendations for elegant, controlled, semantic static HTML pages — dashboards, post-mortems, technical-investigation reports, documentation sites with embedded SVG/charts. Use when the user asks to create a new static HTML page, build a dashboard, design a post-mortem report, set up a technical-doc site, choose a chart library, or pick a whiteboard tool. Also use when the user is dissatisfied with current ad-hoc HTML output (e.g., Tailwind CDN + utility-class soup) and wants a proper design system. Do NOT use for: dynamic web apps, server-rendered sites, single-page React/Vue applications, or one-off prose-only pages with no diagrams or structure."
+description: SOTA stack recommendations for elegant, controlled, semantic static HTML pages — dashboards, post-mortems, technical-investigation reports,
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
 ---
 

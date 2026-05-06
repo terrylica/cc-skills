@@ -1,6 +1,6 @@
 ---
 name: full-stack-bootstrap
-description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather, bootstrap tts-tg-sync, configure telegram bot, full stack setup.
+description: One-time bootstrap for Kokoro TTS engine, Telegram bot, and BotFather setup. TRIGGERS - setup tts, install kokoro, botfather
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 disable-model-invocation: false
 ---
@@ -177,7 +177,6 @@ After modifying this skill:
 5. [ ] Run a full TTS round-trip: clipboard text to audio playback
 6. [ ] Update `references/evolution-log.md` with change description
 
-
 ## Troubleshooting
 
 | Issue                               | Cause                               | Solution                                                    |
@@ -213,4 +212,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

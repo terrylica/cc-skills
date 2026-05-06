@@ -1,6 +1,6 @@
 ---
 name: fork-intelligence
-description: Discover valuable GitHub fork divergence beyond stars. TRIGGERS - fork analysis, fork intelligence, find forks, valuable forks, fork divergence, fork discovery, upstream forks.
+description: Discover valuable GitHub fork divergence beyond stars. TRIGGERS - fork analysis, fork intelligence, find forks
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -322,7 +322,6 @@ After modifying THIS skill:
 4. [ ] Pipeline steps numbered consistently
 5. [ ] Shell commands tested against a real repository
 6. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)
-
 
 ## Post-Execution Reflection
 

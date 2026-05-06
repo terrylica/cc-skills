@@ -1,6 +1,6 @@
 ---
 name: calcom-access
-description: Access Cal.com API via CLI with 1Password API key. Use when user wants to list bookings, create event types, manage schedules, or mentions cal.com access. TRIGGERS - calcom, cal.com, bookings, list bookings, event types, schedules, availability, create booking page.
+description: Access Cal.com API via CLI with 1Password API key. Use when user wants to list bookings, create event types, manage schedules, or.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 
@@ -176,7 +176,6 @@ $CALCOM_CLI bookings list -n 10 --json
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] References exist and are linked
-
 
 ## Post-Execution Reflection
 
