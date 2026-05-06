@@ -1,6 +1,6 @@
 ---
 name: summarize
-description: AI-powered iterative deep-dive analysis of converted recordings. TRIGGERS - summarize recording, analyze session, what happened, session summary, deep analysis, findings extraction.
+description: AI-powered iterative deep-dive analysis of converted recordings. TRIGGERS - summarize recording, analyze session, what happened
 allowed-tools: Bash, Grep, Read, AskUserQuestion, Task, Write
 argument-hint: "[file] [--topic topic] [--depth quick|medium|deep] [--output file]"
 ---
@@ -262,7 +262,6 @@ permission|approve|reject|block
 - `/asciinema-tools:convert` - Convert .cast to .txt first
 - `/asciinema-tools:analyze` - Keyword-based analysis (faster, less deep)
 - `/asciinema-tools:finalize` - Process orphaned recordings
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: plotext-financial-chart
-description: ASCII financial line charts for markdown using plotext dot marker. TRIGGERS - financial chart, line chart, plotext, price chart, trading chart, ASCII chart.
+description: ASCII financial line charts for markdown using plotext dot marker. TRIGGERS - financial chart, line chart, plotext
 allowed-tools: Read, Bash, Write, Edit
 ---
 
@@ -152,7 +152,6 @@ See [./references/api-and-patterns.md](./references/api-and-patterns.md) for ful
 - [plotext GitHub](https://github.com/piccolomo/plotext)
 - [Full API, patterns, and embedding guide](./references/api-and-patterns.md)
 - [Tool selection rationale](./references/tool-selection.md)
-
 
 ## Post-Execution Reflection
 

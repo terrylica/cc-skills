@@ -1,6 +1,6 @@
 ---
 name: mise-tasks
-description: "Orchestrate multi-step project workflows using mise task definitions with dependency management and argument handling. Use whenever the user wants to create, edit, or debug mise tasks, wire up task dependencies with depends/depends_post, or run workflows via 'mise run'. Also use when setting up task runners or automating build pipelines through mise. Do NOT use for mise environment variable configuration (use mise-configuration instead) or for general shell scripting unrelated to mise."
+description: Orchestrate multi-step project workflows using mise task definitions with dependency management and argument handling. Use whenever the user.
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 
@@ -201,7 +201,6 @@ The `mise-configuration` skill covers:
 | Watch not triggering   | File outside sources list | Add file pattern to sources array          |
 | Env vars not available | Task in wrong directory   | Ensure mise.toml is in cwd or parent       |
 | Run fails with error   | Script path issue         | Use absolute path or relative to mise.toml |
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: Pre-session bootstrap - generates script to start recording BEFORE entering Claude Code. Chunking handled by daemon. TRIGGERS - bootstrap, pre-session, start recording, before claude.
+description: Pre-session bootstrap - generates script to start recording BEFORE entering Claude Code. Chunking handled by daemon.
 allowed-tools: Bash, AskUserQuestion, Glob, Write, Read
 argument-hint: "[-r repo] [-b branch] [--setup-orphan] [-y|--yes]"
 disable-model-invocation: false
@@ -372,8 +372,8 @@ Script generated at: `tmp/bootstrap-claude-session.sh`
 - If `-y` provided -> skip all confirmations
 - If `--setup-orphan` provided -> force create orphan branch
 
-
 ---
+
 ## Troubleshooting
 
 | Issue                 | Cause                   | Solution                            |

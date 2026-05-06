@@ -1,6 +1,6 @@
 ---
 name: quench
-description: "Terminate (quench) the running FloatingClock process. Renamed from 'quit' to avoid clashing with Claude Code's built-in /quit alias for /exit. TRIGGERS - quench clock, quit floating-clock, stop clock, close clock, terminate clock."
+description: Terminate (quench) the running FloatingClock process. Renamed from 'quit' to avoid clashing with Claude Code's built-in /quit.
 allowed-tools: Bash
 ---
 

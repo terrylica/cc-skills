@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) tts-tg-sync Stop hook to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, tts hooks, install tts hook, tts stop hook."
+description: Tether (install/uninstall) tts-tg-sync Stop hook to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude.
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku

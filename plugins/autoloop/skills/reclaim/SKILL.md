@@ -1,6 +1,6 @@
 ---
 name: reclaim
-description: "Reclaim a stuck loop from a dead or unresponsive owner. Check reclaim candidacy, prompt confirmation, atomically take ownership and increment generation. TRIGGERS - autoloop reclaim, recover stuck loop, take over dead loop, seize ownership."
+description: Reclaim a stuck loop from a dead or unresponsive owner. Check reclaim candidacy, prompt confirmation, atomically take ownership.
 allowed-tools: Bash, Read, AskUserQuestion
 argument-hint: "[loop_id | AL-<slug>--<hash> | AL-<slug>]"
 disable-model-invocation: false

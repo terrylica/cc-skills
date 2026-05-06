@@ -1,6 +1,6 @@
 ---
 name: explore
-description: "Explore how code works using GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - how does X work, explore symbol, understand function, trace execution, code walkthrough."
+description: Explore how code works using GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus://.
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -102,7 +102,6 @@ gitnexus context "discover_shards" --content
 ```
 
 Then read the relevant source files and synthesize the explanation.
-
 
 ## Post-Execution Reflection
 

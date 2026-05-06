@@ -1,6 +1,6 @@
 ---
 name: cloudflare-workers-publish
-description: Deploy static HTML files to Cloudflare Workers with 1Password credential management. TRIGGERS - Cloudflare Workers deploy, publish static site, wrangler deploy, static hosting, cloudflare publish, CF Workers, HTML hosting, workers.dev, static assets deploy
+description: Deploy static HTML files to Cloudflare Workers with 1Password credential management.
 disable-model-invocation: false
 allowed-tools: Read, Bash, Grep, Write, Edit, Glob, AskUserQuestion
 ---
@@ -302,5 +302,4 @@ After this skill completes, reflect before closing the task:
 3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
 4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
 
-Do NOT defer. The next invocation inherits whatever you leave behind.
----
+## Do NOT defer. The next invocation inherits whatever you leave behind

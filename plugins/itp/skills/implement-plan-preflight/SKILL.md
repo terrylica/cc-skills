@@ -1,6 +1,6 @@
 ---
 name: implement-plan-preflight
-description: "Run the Preflight phase of the ITP workflow to create ADR and design spec artifacts. Use whenever the user asks to create an ADR, write a design spec, set up MADR-format documentation, or when the /itp:go workflow enters its preflight stage. Do NOT use for general documentation writing or markdown formatting that is unrelated to the ADR-driven development workflow."
+description: Run the Preflight phase of the ITP workflow to create ADR and design spec artifacts. Use whenever the user asks to create an ADR, write a design.
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep
 ---
 
@@ -175,7 +175,6 @@ uv run scripts/preflight_validator.py 2025-12-01-my-feature
 | Spec phase mismatch   | Wrong phase value        | Use: preflight, phase-1, phase-2, or phase-3 |
 | ADR status wrong      | Manual status edit       | Let workflow manage status transitions       |
 | Design folder missing | Wrong path structure     | Use docs/design/YYYY-MM-DD-slug/spec.md      |
-
 
 ## Post-Execution Reflection
 

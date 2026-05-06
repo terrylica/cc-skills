@@ -1,6 +1,6 @@
 ---
 name: dead-code-detector
-description: Detect unused/unreachable code in polyglot codebases (Python, TypeScript, Rust). TRIGGERS - dead code, unused functions, unused imports, unreachable code.
+description: Detect unused/unreachable code in polyglot codebases (Python, TypeScript, Rust). TRIGGERS - dead code, unused functions, unused imports
 allowed-tools: Read, Grep, Bash, Edit, Write
 ---
 
@@ -339,7 +339,6 @@ AskUserQuestion({
 - [Effective TypeScript: Use knip](https://effectivetypescript.com/2023/07/29/knip/)
 - [Rust dead_code lint](https://doc.rust-lang.org/rust-by-example/attribute/unused.html)
 - [DCE-LLM research paper](https://aclanthology.org/2025.naacl-long.501.pdf) (emerging LLM-based approach)
-
 
 ## Post-Execution Reflection
 

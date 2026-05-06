@@ -1,6 +1,6 @@
 ---
 name: muster
-description: "Machine-wide loop muster — enumerate every registered loop with health, ownership, and staleness. Renamed from 'status' to avoid clashing with Claude Code's built-in /status. TRIGGERS - autoloop muster, autoloop status, fleet roster, loop state, all loops, show loops, machine status."
+description: Machine-wide loop muster — enumerate every registered loop with health, ownership, and staleness. Renamed from 'status' to avoid.
 allowed-tools: Bash, Read
 argument-hint: "[--json | --reclaim-candidates | <loop_id>]"
 disable-model-invocation: false

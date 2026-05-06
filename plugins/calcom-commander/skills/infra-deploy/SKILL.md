@@ -1,6 +1,6 @@
 ---
 name: infra-deploy
-description: Cal.com self-hosted deployment to GCP Cloud Run with Supabase PostgreSQL. Docker Compose for local dev. TRIGGERS - deploy calcom, cloud run, self-hosted, docker compose, supabase, gcp deploy, infrastructure, cal.com hosting.
+description: Cal.com self-hosted deployment to GCP Cloud Run with Supabase PostgreSQL. Docker Compose for local dev.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 disable-model-invocation: false
 ---
@@ -263,7 +263,6 @@ All secrets in Claude Automation vault (biometric-free access):
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] 1Password references are agnostic (no hardcoded UUIDs)
-
 
 ## Post-Execution Reflection
 

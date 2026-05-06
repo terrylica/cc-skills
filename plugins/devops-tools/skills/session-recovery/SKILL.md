@@ -1,6 +1,6 @@
 ---
 name: session-recovery
-description: "Diagnose and recover Claude Code session issues including missing conversations, corrupted sessions, and session file problems. Use whenever the user sees 'No conversations found to resume', sessions appear in wrong locations, or session files are missing or corrupted. Do NOT use for general Claude Code configuration or for issues unrelated to session persistence and recovery."
+description: Diagnose and recover Claude Code session issues including missing conversations, corrupted sessions, and session file problems. Use whenever the.
 allowed-tools: Read, Bash
 ---
 
@@ -87,7 +87,6 @@ For detailed diagnostic steps and solutions, see:
 | IDE sessions separate        | Different HOME per environment | Ensure consistent HOME across terminal and IDE       |
 | Legacy sessions not visible  | Migration not complete         | See migration section in TROUBLESHOOTING.md          |
 | UUID filename corruption     | Incomplete writes              | Check for partial .jsonl files, remove corrupt ones  |
-
 
 ## Post-Execution Reflection
 

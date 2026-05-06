@@ -2,7 +2,7 @@
 name: setup
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git config:*), Bash(git remote:*), Bash(which:*), Bash(brew:*), Bash(gh:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[--check]"
-description: "Initialize git-town in current repository with fork-aware configuration. One-time setup. TRIGGERS - git-town setup, initialize git-town, configure git-town, git town init."
+description: Initialize git-town in current repository with fork-aware configuration. One-time setup.
 disable-model-invocation: false
 ---
 
@@ -259,18 +259,18 @@ Next steps:
 /git-town-workflow:setup --check
 ```
 
-
 ---
+
 ## Troubleshooting
 
-| Issue                 | Cause                        | Solution                            |
-| --------------------- | ---------------------------- | ----------------------------------- |
-| git-town not found    | git-town not installed       | `brew install git-town`             |
-| gh auth failed        | GitHub CLI not authenticated | `gh auth login`                     |
-| Not in a git repo     | Missing .git directory       | Run from within a git repository    |
-| No remotes configured | Repo has no remotes          | `git remote add origin <url>`       |
+| Issue                 | Cause                        | Solution                             |
+| --------------------- | ---------------------------- | ------------------------------------ |
+| git-town not found    | git-town not installed       | `brew install git-town`              |
+| gh auth failed        | GitHub CLI not authenticated | `gh auth login`                      |
+| Not in a git repo     | Missing .git directory       | Run from within a git repository     |
+| No remotes configured | Repo has no remotes          | `git remote add origin <url>`        |
 | Upstream not found    | Fork not configured          | Run `/git-town-workflow:scion` first |
-| Config not persisting | Git config scope issue       | Check `--global` vs `--local` scope |
+| Config not persisting | Git config scope issue       | Check `--global` vs `--local` scope  |
 
 ## Post-Execution Reflection
 

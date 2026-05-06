@@ -2,7 +2,7 @@
 name: go
 allowed-tools: Read, Write, Edit, Bash(git checkout:*), Bash(git pull:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git branch:*), Bash(prettier --write:*), Bash(open:*), Bash(gh repo:*), Bash(cp:*), Bash(mkdir -p:*), Bash(date:*), Bash(PLUGIN_DIR:*), Bash(uv run:*), Grep, Glob, Task
 argument-hint: "Start: [name] [-b] [-r] [-p] | Resume: -c [choice]"
-description: "Execute the ADR-driven 4-phase development workflow (preflight, implementation, formatting, release). Use whenever the user says 'itp go', 'start the workflow', 'implement this feature', 'begin the task', or references the ITP workflow. Also use when the user has an approved plan and wants structured execution with ADR tracking. Do NOT use for simple one-off edits, quick fixes, or tasks that do not need ADR tracking or phased execution."
+description: Execute the ADR-driven 4-phase development workflow (preflight, implementation, formatting, release). Use whenever the user says 'itp go',
 ---
 
 <!-- ⛔⛔⛔ MANDATORY: READ THIS ENTIRE FILE BEFORE ANY ACTION ⛔⛔⛔ -->
@@ -301,8 +301,8 @@ Use Earthly as canonical pipeline: non-blocking, observability-first, ensure Git
 - [ ] Release completed via semantic-release
 - [ ] If feature branch: PR created, Phase 3 skipped
 
-
 ---
+
 ## Troubleshooting
 
 | Issue                  | Cause                        | Solution                                     |

@@ -1,6 +1,6 @@
 ---
 name: crucible-navigator
-description: Use when starting a new research campaign, entering a new Claude Code session on a research repo, or when unsure which methodology principle applies. Orients agents to the plugin's 4 specialized skills (foundations, investigation, meta-governance, resurrection) and the genetic-evolutionary framing that treats hypotheses as a population under selection. Covers reading order, when-to-invoke routing, and anti-patterns. TRIGGERS - new research campaign, where to start, which skill to use, how to approach, getting oriented, first time here, genetic evolutionary research, self-evolving methodology.
+description: starting a new research campaign, entering a new Claude Code session on a research repo, or when unsure which methodology.
 allowed-tools: Read, Glob, Grep
 ---
 

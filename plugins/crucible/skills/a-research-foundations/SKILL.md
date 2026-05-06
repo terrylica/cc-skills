@@ -1,6 +1,6 @@
 ---
 name: crucible-research-foundations
-description: Use when validating whether a finding is real, designing a shuffled null, checking for label leakage, reviewing causal feature definitions, interpreting agent-reported z-scores, or setting up append-only record-keeping. Covers the 6 epistemic disciplines that prevent known methodological traps — invariant causality (bars[:i] only), bar-local label scaling (not window-relative), three null types (feature-shuffle vs mask-shuffle vs selection-shuffle), agent z-score overstatement corrections, audit-folder ledger discipline, and the post-mortem-before-abandon rule. TRIGGERS - shuffled null, permutation test, causal feature, label leakage, look-ahead bias, z-score significance, Bonferroni correction, bar-local scaling, epistemic discipline, record keeping, audit folder, supersedes ledger, is this real, signal validation, null hypothesis design.
+description: Validate findings, design shuffled nulls, check label leakage, review causal features. TRIGGERS - shuffled null, label leakage
 allowed-tools: Read, Grep, Glob
 ---
 

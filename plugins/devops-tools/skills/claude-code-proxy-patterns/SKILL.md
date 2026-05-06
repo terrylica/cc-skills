@@ -1,6 +1,6 @@
 ---
 name: claude-code-proxy-patterns
-description: Claude Code OAuth proxy patterns and anti-patterns for multi-provider model routing. TRIGGERS - proxy Claude Code, OAuth token Keychain, route Haiku to MiniMax, ANTHROPIC_BASE_URL, model routing proxy, claude-code-proxy, proxy-toggle, multi-provider setup, anthropic-beta oauth, proxy auth failure, go proxy, failover proxy, launchd proxy, proxy failover
+description: Claude Code OAuth proxy patterns and anti-patterns for multi-provider model routing.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -316,7 +316,6 @@ After modifying this skill:
 | Token expired after 5 min              | Cache TTL (WP-05)                              | Normal behavior; proxy re-reads from Keychain    |
 | Auth conflict warning in Claude Code   | ANTHROPIC_API_KEY set (CCP-08)                 | Unset ANTHROPIC_API_KEY in .zshenv               |
 | cache_control.ephemeral.scope error    | MiniMax doesn't support cache_control (CCP-09) | Remove cache_control from allowedParams          |
-
 
 ## Post-Execution Reflection
 
