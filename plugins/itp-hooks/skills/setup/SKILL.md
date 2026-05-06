@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Check and install dependencies for itp-hooks (silent failure detection + fake-data-guard). TRIGGERS - itp-hooks setup, install hook deps, hook dependencies, ruff install."
+description: Check and install dependencies for itp-hooks (silent failure detection + fake-data-guard).
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--install|--check]"
 model: haiku

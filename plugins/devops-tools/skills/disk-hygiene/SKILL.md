@@ -1,6 +1,6 @@
 ---
 name: disk-hygiene
-description: macOS disk cleanup, cache pruning, stale file detection, and Downloads triage. TRIGGERS - disk space, cleanup, disk usage, stale files, cache clean, brew cleanup, forgotten files, Downloads cleanup, free space, storage, dust, dua, gdu, ncdu.
+description: macOS disk cleanup, cache pruning, stale file detection, and Downloads triage. TRIGGERS - disk space, cleanup, disk usage
 allowed-tools: Read, Bash, Write, Glob, Grep, AskUserQuestion
 ---
 
@@ -289,7 +289,6 @@ After modifying this skill:
 | `dust` shows different size than `df` | Counting method differs          | Normal - `df` includes filesystem overhead |
 | Stale file scan is slow               | Deep directory tree              | Limit `-maxdepth` or exclude more paths    |
 | Docker not accessible                 | Desktop app not running          | Start Docker.app or skip Docker cleanup    |
-
 
 ## Post-Execution Reflection
 

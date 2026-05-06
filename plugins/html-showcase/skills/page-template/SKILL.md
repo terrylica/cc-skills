@@ -1,6 +1,6 @@
 ---
 name: page-template
-description: Scaffold a sitemap-organized HTML showcase site (provenance reports, contractor showcases, telemetry dashboards, weekly digests, audit results) with the canonical CSS kernel + auto-discovered nav rail + auto-generated site-map. Use whenever the user asks for one or more HTML pages that present structured technical work — metrics, commits, audit findings, before/after comparisons, anything that needs a polished presentation surface with full link provenance. Also use when the user mentions "showcase", "presentation page", "contractor portfolio", "audit results page", "telemetry report", "weekly digest", "static HTML report", or "static mini-site". Do NOT use for blog posts, marketing landing pages, or interactive web apps.
+description: Scaffold a sitemap-organized HTML showcase site (provenance reports, contractor showcases, telemetry dashboards, weekly digests, audit results).
 allowed-tools: Read, Write, Edit, Bash
 ---
 

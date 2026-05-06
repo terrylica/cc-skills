@@ -1,6 +1,6 @@
 ---
 name: gmail-access
-description: Access Gmail via CLI with 1Password OAuth. Use when user wants to read emails, search inbox, export messages, create drafts, or mentions gmail access. TRIGGERS - gmail, email, read email, list emails, search inbox, export emails, create draft, draft email, compose email.
+description: Access Gmail via CLI with 1Password OAuth. Use when user wants to read emails, search inbox, export messages, create drafts, or.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 
@@ -517,7 +517,6 @@ done
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] References exist and are linked
-
 
 ## Post-Execution Reflection
 

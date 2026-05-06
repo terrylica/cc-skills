@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Full Cal.com Commander setup wizard - Cal.com API, Telegram bot, Supabase DB, GCP project, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - calcom setup, calendar bot setup, cal.com install, booking bot configure."
+description: Full Cal.com Commander setup wizard - Cal.com API, Telegram bot, Supabase DB, GCP project, launchd services. Discovers 1Password.
 allowed-tools: Bash, Read, Write, AskUserQuestion, Edit
 disable-model-invocation: false
 ---
@@ -193,7 +193,6 @@ DATABASE_URL=$(op read "$SUPABASE_DB_URL_REF" 2>/dev/null) && psql "$DATABASE_UR
 ## No API Credentials?
 
 Direct user to: [calcom-api-setup.md](../skills/calcom-access/references/calcom-api-setup.md)
-
 
 ---
 

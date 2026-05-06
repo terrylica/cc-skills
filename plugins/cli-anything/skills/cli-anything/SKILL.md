@@ -1,6 +1,6 @@
 ---
 name: cli-anything
-description: Reference guide for CLI-Anything, which auto-generates production-ready agent-controllable CLI harnesses for any GUI application via a 7-phase pipeline. Use when the user asks about CLI-Anything, wants to generate a CLI for a GUI app, asks how to install or invoke cli-anything commands, wants usage examples for any of the 11 supported apps (GIMP, Blender, LibreOffice, Inkscape, Audacity, OBS, Kdenlive, Shotcut, Zoom, Draw.io, AnyGen), or mentions HARNESS.md, agent harness, or cli-anything-gimp. Do not use for building CLIs from scratch without the CLI-Anything tool.
+description: Reference guide for CLI-Anything, which auto-generates production-ready agent-controllable CLI harnesses for any GUI application via a 7-phase.
 allowed-tools:
   - Read
 ---
@@ -335,7 +335,6 @@ Before running `/cli-anything <path>`:
 | `cli-anything-plugin/commands/test.md`         | `/cli-anything:test` command               |
 | `cli-anything-plugin/commands/validate.md`     | `/cli-anything:validate` command           |
 | `cli-anything-plugin/commands/list.md`         | `/cli-anything:list` command               |
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: realtime-audio-architecture
-description: "Real-time audio playback patterns for macOS Apple Silicon. TRIGGERS - audio jitter, tts choppy, sounddevice, afplay jitter, audio architecture, playback glitch, GIL contention audio, launchd audio priority, wrong audio device, airpods, bluetooth audio, device switching."
+description: Real-time audio playback patterns for macOS Apple Silicon. TRIGGERS - audio jitter, tts choppy, sounddevice
 allowed-tools: Read, Bash, Glob, Grep, WebSearch
 ---
 
@@ -311,7 +311,6 @@ If audio goes to wrong device:
 ## See Also
 
 - **`devops-tools:macbook-desktop-mode`** — Complementary skill covering USB device _resilience_ (sleep/wake recovery, uhubctl port cycling, battery longevity, pmset desktop configuration). This skill handles the application/playback layer; that one handles the system/USB layer.
-
 
 ## Post-Execution Reflection
 

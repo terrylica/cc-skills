@@ -1,6 +1,6 @@
 ---
 name: booking-notify
-description: Dual-channel booking notifications via Telegram + Pushover. Scheduled sync, webhook relay, emergency alerts with custom sounds. TRIGGERS - booking sync, booking digest, booking notifications, upcoming bookings, calendar sync, booking reminder, pushover, webhook, dune alert.
+description: Dual-channel booking notifications via Telegram + Pushover. Scheduled sync, webhook relay, emergency alerts with custom sounds.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -131,7 +131,6 @@ WEBHOOK_RELAY_URL = "https://calcom-pushover-webhook-XXXXX.us-central1.run.app/"
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] Pushover graceful degradation verified (works without Pushover creds)
-
 
 ## Post-Execution Reflection
 

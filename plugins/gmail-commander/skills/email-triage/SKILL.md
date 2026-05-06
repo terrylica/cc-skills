@@ -1,6 +1,6 @@
 ---
 name: email-triage
-description: Scheduled email digest via Agent SDK Haiku. Triages emails into 3 categories, sends Telegram notification + podcast voice. TRIGGERS - email digest, triage emails, digest, run digest, email summary, voice briefing.
+description: Scheduled email digest via Agent SDK Haiku. Triages emails into 3 categories, sends Telegram notification + podcast voice.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -67,7 +67,6 @@ cd ~/own/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins
 - [ ] YAML frontmatter valid (no colons in description)
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
-
 
 ## Post-Execution Reflection
 

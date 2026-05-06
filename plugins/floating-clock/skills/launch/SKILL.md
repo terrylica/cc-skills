@@ -1,6 +1,6 @@
 ---
 name: launch
-description: "Launch FloatingClock. Prefers the installed /Applications version; falls back to the local build. Use when the user wants to open the floating-clock app."
+description: Launch FloatingClock. Prefers the installed /Applications version; falls back to the local build. Use when the user wants to open the.
 allowed-tools: Bash
 ---
 

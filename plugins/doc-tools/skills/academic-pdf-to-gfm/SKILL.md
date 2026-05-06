@@ -1,6 +1,6 @@
 ---
 name: academic-pdf-to-gfm
-description: Convert academic PDF papers to GitHub-renderable GFM markdown with inline figures and correctly formatted math equations. Use this skill when converting research papers, technical reports, or math-heavy PDFs for display on GitHub or GitLab. Also use it when GFM math equations are broken or not rendering on GitHub, when someone asks about the $$-vs-```math decision, when equations look garbled on GitHub, when KaTeX validation is needed, or when investigating why LaTeX renders locally but not on GitHub. Also use when comparing GitHub vs GitLab math rendering, when asking about self-hosting GitLab for math documents, or when looking for a platform that requires less LaTeX workarounds. Covers PDF type detection (Word vs LaTeX vs scanned), tool selection (pymupdf4llm/pdftotext/marker-pdf), image extraction, GitHub math rendering rules ($$-vs-```math decision), GitLab native math support (no workarounds needed), KaTeX validation, and multi-agent adversarial equation verification.
+description: Convert academic PDF papers to GitHub-renderable GFM markdown with math equations. TRIGGERS - PDF, GitHub markdown, math
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
@@ -381,7 +381,6 @@ For papers with 10+ equations, use this multi-agent pattern:
 | [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md)                                                      | Opposite direction: markdown → PDF                               |
 | [documentation-standards](../documentation-standards/SKILL.md)                                                  | GFM formatting standards                                         |
 | [quant-research:opendeviation-eval-metrics](../../../quant-research/skills/opendeviation-eval-metrics/SKILL.md) | Worked example: `references/how-to-use-the-sharpe-ratio-2026.md` |
-
 
 ## Post-Execution Reflection
 

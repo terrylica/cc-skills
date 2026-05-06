@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, itp hooks, install itp hooks, itp hook manager, adr sync hook."
+description: Tether (install/uninstall) itp-hooks (ASCII guard, ADR sync reminder, fake-data-guard) to ~/.claude/settings.json. Renamed from.
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku

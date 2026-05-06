@@ -1,6 +1,6 @@
 ---
 name: documentation-standards
-description: "Apply markdown documentation standards optimized for both LLM consumption and Pandoc PDF generation. Use whenever the user is writing or reviewing documentation, asks about section numbering conventions, markdown formatting standards, or documentation style guidelines. Also use when preparing documents for PDF export via Pandoc. Do NOT use for general prose editing, code commenting, or README generation unrelated to these standards."
+description: Apply markdown documentation standards optimized for both LLM consumption and Pandoc PDF generation. Use whenever the user is writing or.
 allowed-tools: Read, Glob, Grep
 ---
 
@@ -206,7 +206,6 @@ Follow these standards for all documentation.
 | Duplicate content             | Same info in multiple docs   | Identify SSoT, remove duplicates, add links       |
 | YAML spec not rendering       | Wrong file extension         | Use .yaml extension for OpenAPI specs             |
 | Index navigation missing      | No INDEX.md or README.md     | Create navigation index in each directory         |
-
 
 ## Post-Execution Reflection
 

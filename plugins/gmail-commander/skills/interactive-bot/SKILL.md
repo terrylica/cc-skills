@@ -1,6 +1,6 @@
 ---
 name: interactive-bot
-description: Gmail Commander Telegram bot with slash commands, inline keyboards, and AI routing. TRIGGERS - telegram bot, bot commands, inbox bot, email bot, start bot, stop bot, compose email via telegram.
+description: Gmail Commander Telegram bot with slash commands, inline keyboards, and AI routing. TRIGGERS - telegram bot, bot commands, inbox bot
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -72,7 +72,6 @@ cd ~/own/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins
 - [ ] YAML frontmatter valid (no colons in description)
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
-
 
 ## Post-Execution Reflection
 

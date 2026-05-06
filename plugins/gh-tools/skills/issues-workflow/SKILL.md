@@ -1,6 +1,6 @@
 ---
 name: issues-workflow
-description: "Plan and track work using a GitHub Issues-first workflow with sub-issue hierarchies, issue-branch-PR lifecycle, and auto-close on merge. Use whenever the user needs to organize issues into parent-child hierarchies, manage sub-issues, use closing keywords (Closes/Fixes/Resolves), create branches from issues (gh issue develop), coordinate cross-repo issue workflows, or asks about issue tracking strategy. Do NOT use for creating individual issues (use issue-create instead) or for GitHub Projects board management."
+description: Plan and track work using a GitHub Issues-first workflow with sub-issue hierarchies, issue-branch-PR lifecycle, and auto-close on merge.
 allowed-tools: Read, Bash, Grep, Glob, Write
 ---
 
@@ -486,7 +486,6 @@ See the full reference for 6 documented anti-patterns: **[GFM Anti-Patterns Refe
 - [Auto-Link Configuration](./references/auto-link-config.md)
 - [GraphQL Queries Reference](./references/graphql-queries.md)
 - [GitHub Issues Documentation](https://docs.github.com/en/issues)
-
 
 ## Post-Execution Reflection
 

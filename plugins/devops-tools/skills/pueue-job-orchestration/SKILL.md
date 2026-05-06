@@ -1,6 +1,6 @@
 ---
 name: pueue-job-orchestration
-description: "Manage long-running jobs and batch processing with pueue queue orchestration, CLI telemetry, and companion monitoring tools (noti, ntfy, mprocs, task-spooler). Use whenever the user wants to queue a job, run tasks on bigblack, manage long-running processes, do batch processing, set up pueue callbacks or priorities, get notified when jobs finish (noti/ntfy), watch multiple processes (mprocs), or needs GPU workstation job management. Also use for cache population tasks that run in the background. Do NOT use for simple foreground shell commands that complete quickly or for job scheduling via cron/launchd."
+description: Manage long-running jobs and batch processing with pueue queue orchestration, CLI telemetry, and companion monitoring tools (noti, ntfy, mprocs,
 allowed-tools: Read, Bash, Write
 ---
 

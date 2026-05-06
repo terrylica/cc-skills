@@ -1,6 +1,6 @@
 ---
 name: share
-description: "STUB — bundle, sanitize, upload Claude Code sessions to Cloudflare R2, emit 7-day presigned URL. TRIGGERS - share my chronicle, upload sessions, chronicle share, send chronicle to supervisor"
+description: STUB — bundle, sanitize, upload Claude Code sessions to Cloudflare R2, emit 7-day presigned URL.
 allowed-tools: Bash, Read, AskUserQuestion
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: firecrawl-research-patterns
-description: "Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence. TRIGGERS - firecrawl search, firecrawl scrape, academic paper, arxiv, deep research, recursive search, research pattern, corpus persistence, firecrawl, self-hosted scraping, web scrape, scraper wrapper, littleblack, Tailscale scraping."
+description: Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

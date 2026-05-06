@@ -1,6 +1,6 @@
 ---
 name: symmetric-dogfooding
-description: Bidirectional integration validation where two repositories validate each other before release. TRIGGERS - symmetric dogfooding, bidirectional testing, cross-repo validation, reciprocal testing, polyrepo integration.
+description: Bidirectional integration validation where two repositories validate each other before release.
 allowed-tools: Read, Bash, Write, Edit, Grep, Glob
 ---
 
@@ -274,7 +274,6 @@ depends = ["test:unit", "validate:symmetric"]
 | Mock data hiding bugs       | Using stubs instead of real    | Always import real partner repo for integration  |
 | Version matrix explosion    | Too many combinations          | Limit support to N-1 versions, document clearly  |
 | Circular dependency         | Both repos require each other  | Use optional-dependencies for validation only    |
-
 
 ## Post-Execution Reflection
 

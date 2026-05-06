@@ -1,6 +1,6 @@
 ---
 name: component-version-upgrade
-description: Upgrade Kokoro model, bot dependencies, or TTS components. TRIGGERS - upgrade kokoro, update model, upgrade bot, update dependencies, version bump, component update.
+description: Upgrade Kokoro model, bot dependencies, or TTS components. TRIGGERS - upgrade kokoro, update model, upgrade bot
 allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 disable-model-invocation: false
 ---
@@ -109,7 +109,6 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 - [ ] Test audio generates and plays correctly
 - [ ] Bot is running if it was restarted
 
-
 ## Troubleshooting
 
 | Problem                       | Likely Cause                         | Fix                                                              |
@@ -140,4 +139,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

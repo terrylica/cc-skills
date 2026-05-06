@@ -1,6 +1,6 @@
 ---
 name: exchange-session-detector
-description: "Production-grade DST-aware exchange session detection using the exchange_calendars library. Covers holiday detection, lunch break handling, vectorized session lookups, and the ExchangeConfig registry pattern for 10 global exchanges. Use this skill whenever the user needs to detect trading sessions, check market hours, handle DST transitions for exchanges, add session flags to DataFrames, detect holidays, handle lunch breaks (Tokyo, Hong Kong, Singapore), or mentions exchange_calendars, xcals, MIC codes, or trading hours. Also use when upgrading from simplified hour-range session detection (like zoneinfo + fixed hours) to production-grade exchange calendar support. TRIGGERS - exchange session, trading session, DST session, exchange calendar, market hours, lunch break, holiday detection, exchange_calendars, session detector, xcals, MIC code, trading hours, is market open, session flags, trading schedule."
+description: "DST-aware exchange session detection using exchange_calendars. Holiday & lunch break handling. TRIGGERS - exchange session, trading hours"
 allowed-tools: Read, Grep, Glob, Bash, Write, Edit
 ---
 
@@ -175,7 +175,6 @@ The `exchange_calendars` library is ~10MB installed and has no heavy dependencie
 Validated implementation: `~/eon/exness-data-preprocess/src/exness_data_preprocess/session_detector.py` + `exchanges.py`
 
 Simplified predecessor: `~/eon/opendeviationbar-py/python/opendeviationbar/ouroboros.py` (Tier 1 only)
-
 
 ## Post-Execution Reflection
 

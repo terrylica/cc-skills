@@ -1,6 +1,6 @@
 ---
 name: pre-ship-review
-description: "Run a structured quality review before shipping code at any checkpoint such as PRs, releases, or milestones. Use whenever the user says 'pre-ship review', 'ship check', 'quality review', 'self review', or 'ready to ship', or before any significant code submission. This skill catches integration boundary failures where AI-generated code breaks between components. Do NOT use for routine linting or formatting (those are handled by Phase 2 of ITP) or for reviewing documentation-only changes."
+description: Run a structured quality review before shipping code at any checkpoint such as PRs, releases, or milestones. Use whenever the user says.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
@@ -232,7 +232,6 @@ After modifying THIS skill:
 - [ ] All `references/` links resolve correctly
 - [ ] Append changes to `references/evolution-log.md`
 
-
 ## Troubleshooting
 
 | Issue                                           | Cause                              | Solution                                                         |
@@ -270,4 +269,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

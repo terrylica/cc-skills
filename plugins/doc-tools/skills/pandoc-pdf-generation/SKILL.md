@@ -1,6 +1,6 @@
 ---
 name: pandoc-pdf-generation
-description: PDF generation from markdown via Pandoc/XeLaTeX. TRIGGERS - markdown for PDF, print document, pandoc, xelatex, section numbering, table of contents, page breaks.
+description: PDF generation from markdown via Pandoc/XeLaTeX. TRIGGERS - markdown for PDF, print document, pandoc
 allowed-tools: Bash, Read, Write
 ---
 
@@ -256,7 +256,6 @@ For detailed information, see:
 | Bullet list renders as dashes | Markdown formatting issue    | Check for proper blank lines before lists         |
 | Bibliography not rendering    | Missing references.bib       | Create .bib file or remove --bibliography flag    |
 | PDF file size too large       | Embedded fonts               | Use --pdf-engine-opt=-dEmbedAllFonts=false        |
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: research-archival
-description: Scrape AI research URLs, archive with frontmatter, create GitHub Issues with identity verification. TRIGGERS - scrape research, archive findings, save ChatGPT share, save Gemini research, research to issue.
+description: Scrape AI research URLs, archive with frontmatter, create GitHub Issues with identity verification.
 allowed-tools: Read, Bash, Grep, Glob, Edit, Write
 ---
 

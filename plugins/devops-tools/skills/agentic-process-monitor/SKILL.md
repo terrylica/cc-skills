@@ -1,6 +1,6 @@
 ---
 name: agentic-process-monitor
-description: Monitor background processes from Claude Code using sentinel files, heartbeat liveness, and subagent polling. Best practices and anti-patterns for autonomous loops that need to kick off work, detect completion/failure/hang/timeout, and resume the main context without wasting tokens. TRIGGERS - monitor background process, sentinel file, heartbeat monitoring, process supervision, agentic loop monitor, background task health, detect hung process, poll for completion, watchdog pattern, process liveness, monitor long-running task, agent poll loop, circuit breaker pattern.
+description: Monitor background processes from Claude Code using sentinel files, heartbeat liveness, and subagent polling. Best practices and.
 allowed-tools: Read, Bash, Write
 ---
 
@@ -170,7 +170,6 @@ curl -sf "http://localhost:PORT/?query=SELECT+1" \
 | `pip show` says not found, `uv run` says installed              | `uv run` resolution bypasses venv pip metadata                   | `uv sync` reconciles both           |
 
 **Rule**: After any repo rename, directory move, or Python version change → always `uv sync --python 3.13 --extra dev` before running anything.
-
 
 ## Post-Execution Reflection
 

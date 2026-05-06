@@ -1,6 +1,6 @@
 ---
 name: start
-description: "Scaffold LOOP_CONTRACT.md in the current project and kick off a self-revising autonomous loop. TRIGGERS - autoloop start, scaffold loop contract, begin self-revising loop, install LOOP_CONTRACT."
+description: Scaffold LOOP_CONTRACT.md in the current project and kick off a self-revising autonomous loop.
 allowed-tools: Bash, Read, Write, AskUserQuestion, Skill
 argument-hint: "[path-to-contract]"
 disable-model-invocation: false

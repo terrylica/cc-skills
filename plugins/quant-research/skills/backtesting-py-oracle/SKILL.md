@@ -1,6 +1,6 @@
 ---
 name: backtesting-py-oracle
-description: backtesting.py configuration for SQL oracle validation and range bar pattern backtesting. Use when running backtesting.py against ClickHouse SQL results, configuring Backtest() constructor, handling overlapping trades, multi-position mode, rolling quantile NaN handling, trade sorting, or oracle gate validation. TRIGGERS - backtesting.py, Backtest(), hedging, exclusive_orders, multi-position, overlapping trades, oracle validation, SQL vs Python, trade comparison, entry price mismatch, signal count mismatch, rolling quantile NaN, ExitTime sort, stats._trades, gen600_strategy, champion_strategy, gen300_strategy, barrier setup.
+description: backtesting.py configuration for SQL oracle validation and range bar pattern backtesting. Use when running backtesting.py against.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -311,7 +311,6 @@ child.x_range.js_on_change("end", cb)
 | Backtest CLAUDE.md          | `backtest/CLAUDE.md`                              |
 | ClickHouse AP-16            | `.claude/skills/clickhouse-antipatterns/SKILL.md` |
 | Fork source                 | `~/fork-tools/backtesting.py/`                    |
-
 
 ## Post-Execution Reflection
 

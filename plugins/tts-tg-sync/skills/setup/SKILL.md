@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "One-time bootstrap for Kokoro TTS, Telegram bot, and BotFather setup. TRIGGERS - tts setup, kokoro install, telegram bot setup, tts bootstrap, voice synthesis setup."
+description: One-time bootstrap for Kokoro TTS, Telegram bot, and BotFather setup. TRIGGERS - tts setup, kokoro install, telegram bot setup
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[--check|--install]"
 disable-model-invocation: false
@@ -101,7 +101,6 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 | Model download slow | Large first download | ~400MB, wait for completion           |
 | Token invalid       | Typo or expired      | Re-verify with `/mybots` in BotFather |
 | Symlinks broken     | Plugin path changed  | Re-run symlink creation step          |
-
 
 ## Post-Execution Reflection
 

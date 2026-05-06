@@ -1,6 +1,6 @@
 ---
 name: crucible-meta-governance
-description: Use when deciding whether to pivot or persist, whether to ship or hold, whether to scope-narrow a partial pass, how to manage context-window budget, or when to record a supersedes link. Also for sensing "the investigation is confused" vs "on track". Covers the 6 decision-layer patterns that kept the session on a productive arc — physical-constraint first pivot, incremental artifact promotion, gate-failure scopes not kills, agent disagreement as signal, context-budget discipline, and supersede-not-rewrite. TRIGGERS - should we pivot, ship this, kill or refine, scope narrow, partial pass, supersede finding, superseded by, context budget, conversation too long, agents disagree, promote artifact, physical constraint, stop or continue.
+description: deciding whether to pivot or persist, whether to ship or hold, whether to scope-narrow a partial pass, how to manage.
 allowed-tools: Read, Grep, Glob
 ---
 

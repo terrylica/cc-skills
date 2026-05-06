@@ -1,6 +1,6 @@
 ---
 name: project-directory-migration
-description: Migrate Claude Code project sessions when renaming directories. TRIGGERS - directory rename, move project, migrate sessions, project path change, workspace reorganization, rename folder.
+description: Migrate Claude Code project sessions when renaming directories. TRIGGERS - directory rename, move project, migrate sessions
 allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 ---
 
@@ -169,7 +169,6 @@ bash scripts/claude-code-migrate.sh --help
 | `.envrc` not allowed          | **Warned** (Phase 8) | `direnv allow`                         |
 | Git push auth fails           | No                   | Update credential helper or remote URL |
 | Session subdirs missing       | No                   | Use `--rollback`, retry                |
-
 
 ## Post-Execution Reflection
 

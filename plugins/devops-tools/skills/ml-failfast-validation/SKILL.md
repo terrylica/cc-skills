@@ -1,6 +1,6 @@
 ---
 name: ml-failfast-validation
-description: POC validation patterns to catch issues before committing to long-running ML experiments. TRIGGERS - fail-fast, POC validation, preflight check, experiment validation, schema validation, gradient check, sanity check, smoke test.
+description: POC validation patterns to catch issues before committing to long-running ML experiments. TRIGGERS - fail-fast, POC validation, preflight check
 allowed-tools: Read, Grep, Glob
 ---
 
@@ -481,7 +481,6 @@ print(f"Processing fold {i}...", flush=True)
 | Mini training no progress | Learning rate too low or frozen | Increase LR, verify optimizer updates all parameters |
 | NDJSON validation fails   | Missing required event types    | Check all phases emit expected fields                |
 | Shape mismatch error      | Wrong input_size or seq_len     | Verify feature count matches model input dimension   |
-
 
 ## Post-Execution Reflection
 

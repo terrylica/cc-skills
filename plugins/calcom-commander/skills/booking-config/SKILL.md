@@ -1,6 +1,6 @@
 ---
 name: booking-config
-description: Cal.com event types, schedules, and availability configuration. TRIGGERS - event type, booking page, schedule, availability, create calendar, configure calcom, booking link.
+description: Cal.com event types, schedules, and availability configuration. TRIGGERS - event type, booking page, schedule
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 
@@ -166,7 +166,6 @@ curl -s -X DELETE "https://api.cal.com/v1/webhooks/<webhook-id>?apiKey=$CALCOM_A
 - [ ] YAML frontmatter valid (no colons in description)
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
-
 
 ## Post-Execution Reflection
 

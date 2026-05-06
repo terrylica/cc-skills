@@ -1,6 +1,6 @@
 ---
 name: zigzag-pattern-classifier
-description: "ZigZag swing pattern classification framework for algorithmic trading. Covers the complete taxonomy of two-pivot (UP-DOWN, L₀→H₁→L₂) and three-pivot (UP-DOWN-UP, L₀→H₁→L₂→H₃) ZigZag patterns with EL/HL/LL base classes, 9 FD-binned variants, 9 three-pivot variants, 27-way extension, and market regime mapping. Use this skill whenever the user asks about zigzag patterns, swing classification, leg patterns, EL/HL/LL classification, higher-low/lower-low/equal-low patterns, pattern exhaustiveness proofs (why 9 or 27), Freedman-Diaconis binning for swing patterns, epsilon tolerance bands for price equality, normalized retracement z-scores, UP-DOWN or UP-DOWN-UP variant enumeration, market regime labels from swing structure, or any question about how many distinct zigzag configurations exist and what they mean. TRIGGERS - zigzag pattern, swing classification, EL HL LL, higher low lower low, pattern variants, leg classification, zigzag variants, UP-DOWN pattern, three-pivot, two-pivot, FD binning swing, tolerance band epsilon, retracement z-score, pattern exhaustiveness, 9 variants, 27 variants, swing regime, triangle compression, continuation impulse, rally failure."
+description: "ZigZag swing pattern classification for algorithmic trading. UP-DOWN and UP-DOWN-UP patterns. TRIGGERS - zigzag, swing classification"
 allowed-tools: Read, Grep, Glob
 ---
 
@@ -272,7 +272,6 @@ For ASCII visualizations, worked examples, and implementation pseudocode, read t
 | `references/binning-methodology.md`         | Freedman-Diaconis algorithm details, FD vs quantile comparison, worked example    |
 | `references/data-pipeline.md`               | 11-step end-to-end pipeline: raw quotes → OHLC → ATR → pivots → classify → output |
 | `references/eurusd-validation-scenarios.md` | 3 worked market scenarios (Normal, Volatile, Crash) validating ε and τ            |
-
 
 ## Post-Execution Reflection
 

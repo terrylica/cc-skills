@@ -1,6 +1,6 @@
 ---
 name: evolutionary-metric-ranking
-description: Multi-objective evolutionary optimization for per-metric percentile cutoffs and intersection-based config selection. TRIGGERS - ranking optimization, cutoff search, metric intersection, Optuna cutoffs, evolutionary search, percentile ranking, multi-objective ranking, config selection, survivor analysis, binding metrics, Pareto frontier cutoffs.
+description: Multi-objective evolutionary optimization for per-metric percentile cutoffs and intersection-based config selection.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -503,5 +503,4 @@ After this skill completes, reflect before closing the task:
 3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
 4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
 
-Do NOT defer. The next invocation inherits whatever you leave behind.
----
+## Do NOT defer. The next invocation inherits whatever you leave behind

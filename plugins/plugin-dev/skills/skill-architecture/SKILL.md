@@ -1,6 +1,6 @@
 ---
 name: skill-architecture
-description: Create new skills, modify existing skills, and understand skill architecture. Use when users want to create a skill from scratch, learn YAML frontmatter standards, validate skill structure, understand progressive disclosure patterns, or choose between structural patterns (workflow, task, reference, capabilities, suite). Also use for troubleshooting skills that don't trigger correctly, optimizing skill descriptions, or learning best practices for writing effective skill instructions.
+description: Create new skills, modify existing skills, and understand skill architecture. Use when users want to create a skill from scratch, learn YAML.
 ---
 
 # Skill Architecture

@@ -1,6 +1,6 @@
 ---
 name: opendeviation-eval-metrics
-description: Use when evaluating open deviation bar signal quality, computing Sharpe ratios with non-IID bars, running PSR/DSR/MinTRL statistical tests, or assessing outcome predictability via the Beyond Hit Rate framework (entropy, CUSUM, runs test, Lempel-Ziv complexity, OPI score). Also use when someone reports only hit rate as evidence of signal quality — this skill provides the anti-pattern guidance and proper evaluation stack including temporal decay detection and regime break analysis.
+description: evaluating open deviation bar signal quality, computing Sharpe ratios with non-IID bars, running PSR/DSR/MinTRL statistical tests, or assessing.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 
@@ -265,7 +265,6 @@ See reference docs for complete implementation details.
 | Sharpe inflated 18%        | Wrong annualization for data | Use sqrt(5) for session-filtered, sqrt(7) for 24/7 |
 | PSR/DSR not computed       | Missing scipy                | Install: `pip install scipy`                       |
 | Timestamps not parsed      | Wrong format                 | Ensure Unix timestamps, not datetime strings       |
-
 
 ## Post-Execution Reflection
 

@@ -2,7 +2,7 @@
 name: scion
 allowed-tools: Read, Write, Edit, Bash(git town:*), Bash(git remote:*), Bash(git config:*), Bash(git status:*), Bash(git log:*), Bash(git branch:*), Bash(gh repo:*), Bash(gh api:*), Bash(gh auth:*), Bash(which:*), Bash(brew:*), Grep, Glob, AskUserQuestion, TodoWrite
 argument-hint: "[upstream-url] | --check | --fix"
-description: "Scion (create or configure) a fork workflow with git-town. Renamed from 'fork' to avoid clashing with Claude Code's built-in /fork alias for /branch. TRIGGERS - scion repo, fork repo, setup fork, git-town fork, create fork, fork workflow, upstream setup."
+description: Scion (create or configure) a fork workflow with git-town. Renamed from 'fork' to avoid clashing with Claude Code's built-in.
 ---
 
 <!-- ⛔⛔⛔ MANDATORY: READ THIS ENTIRE FILE BEFORE ANY ACTION ⛔⛔⛔ -->

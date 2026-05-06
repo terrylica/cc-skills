@@ -1,6 +1,6 @@
 ---
 name: odb-microstructure-forensics
-description: "Investigate why ODB bars are oversized, have zero duration, or show anomalous price ranges by forensically analyzing Parquet trade data and ClickHouse cache. Use this skill whenever the user asks about ODB bar anomalies, threshold overshoot, liquidation cascades, flash crashes in range bars, same-timestamp trade bursts, order book sweeps, matching engine batches, or why bars are bigger than expected. Also use when diagnosing data quality issues in the opendeviationbar_cache — the methodology distinguishes algorithm bugs from market microstructure phenomena. TRIGGERS - oversized bars, bar overshoot, zero duration bar, liquidation cascade, flash crash ODB, trade burst, same timestamp trades, matching engine batch, order book sweep, bar too large, threshold violation, microstructure anomaly, bar forensics, ODB data quality."
+description: Investigate why ODB bars are oversized, have zero duration, or show anomalous price ranges by forensically analyzing Parquet.
 allowed-tools: Read, Grep, Glob, Bash
 ---
 

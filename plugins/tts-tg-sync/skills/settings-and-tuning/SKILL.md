@@ -1,6 +1,6 @@
 ---
 name: settings-and-tuning
-description: Configure TTS voices, speed, timeouts, queue depth, and bot settings. TRIGGERS - configure tts, change voice, tts speed, queue depth, tts timeout, bot config, tune settings, adjust parameters.
+description: Configure TTS voices, speed, timeouts, queue depth, and bot settings. TRIGGERS - configure tts, change voice, tts speed
 allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 ---
 
@@ -108,7 +108,6 @@ After modifying this skill:
 3. [ ] Test that changed settings take effect after bot restart
 4. [ ] Update `references/evolution-log.md` with change description
 
-
 ## Troubleshooting
 
 | Issue                      | Cause                            | Solution                                               |
@@ -141,4 +140,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

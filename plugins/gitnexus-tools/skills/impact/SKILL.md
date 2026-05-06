@@ -1,6 +1,6 @@
 ---
 name: impact
-description: "Blast radius analysis via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - what breaks if I change, blast radius, impact analysis, safe to modify."
+description: Blast radius analysis via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus://.
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -110,7 +110,6 @@ gitnexus impact "RangeBarProcessor" --include-tests
 ```
 
 Output: "CRITICAL risk — 73 dependents across 12 processes. 8 test files cover it. Recommend backward-compatible changes only."
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: refactoring-guide
-description: "SOTA refactoring and modularization principles that LLMs systematically miss. Covers language-agnostic principles plus Rust-specific (visibility, crate boundaries, Cargo features) and Swift/macOS-specific (access control, import visibility, target boundaries) guidance. Apply during any refactoring, code restructuring, module extraction, or architectural cleanup task. TRIGGERS - refactor, restructure, modularize, extract module, split file, reduce coupling, code smell, architectural cleanup, decompose, reorganize code, Rust crate boundary, Swift module, pub(crate), package access. Also use proactively when you detect code smells (boolean params, import cycles, god modules, temporal coupling) even if the user doesn't explicitly ask for refactoring advice."
+description: SOTA refactoring and modularization principles that LLMs systematically miss. Covers language-agnostic principles plus.
 allowed-tools: Read, Grep, Glob, Bash, Edit, Write
 ---
 
@@ -116,7 +116,6 @@ Read when refactoring Rust codebases. Covers visibility as architecture, public 
 ### Swift/macOS-Specific (`references/swift-macos-specific.md`)
 
 Read when refactoring Swift codebases on macOS. Covers access control as architecture (`package` modifier), explicit import visibility (SE-0409), target/framework boundary selection, macro isolation, and API governance tooling.
-
 
 ## Post-Execution Reflection
 

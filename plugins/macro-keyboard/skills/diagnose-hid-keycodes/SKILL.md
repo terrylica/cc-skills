@@ -1,6 +1,6 @@
 ---
 name: diagnose-hid-keycodes
-description: Find out what an unknown USB/Bluetooth HID button actually emits without assuming the label or documentation. Uses Karabiner's no-op diagnostic rule + Karabiner-EventViewer + Quartz focus-free screen capture. TRIGGERS - what does this button emit, mystery HID keycode, macro pad keycode, 3-key pad keycode, Karabiner EventViewer, identify macro pad keycode, HID descriptor unknown, vk_none diagnostic, Karabiner device grab, inspect external keyboard keycodes.
+description: Find out what an unknown USB/Bluetooth HID button actually emits without assuming the label or documentation. Uses Karabiner's.
 allowed-tools: Read, Edit, Write, Bash
 ---
 

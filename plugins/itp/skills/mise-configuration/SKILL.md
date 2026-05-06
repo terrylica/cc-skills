@@ -1,6 +1,6 @@
 ---
 name: mise-configuration
-description: "Configure environment variables and project settings using mise [env] as the single source of truth. Use whenever the user needs to set up mise.toml, centralize environment variables, configure Python venvs through mise, use mise templates, or structure hub-spoke and monorepo mise configurations with subfolder overrides. Do NOT use for mise task orchestration (use mise-tasks instead) or for runtime version management unrelated to environment configuration."
+description: Configure environment variables and project settings using mise [env] as the single source of truth. Use whenever the user needs to set up.
 allowed-tools: Read, Bash, Glob, Grep, Edit, Write
 ---
 
@@ -226,7 +226,6 @@ When detecting multi-step project workflows during mise configuration, invoke th
 | PATH not updated         | Shims not in PATH        | Add mise shims to ~/.zshenv                 |
 | \.file not loading       | .env file missing        | Create .env file or remove \.file directive |
 | Subfolder config ignored | Missing min_version      | Add min_version to subfolder mise.toml      |
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: telemetry-terminology-similarity
-description: Score telemetry field name similarity across syntactic, taxonomic, and semantic layers. TRIGGERS - field name collision, terminology overlap, schema dedup, naming inconsistency, telemetry naming, log field similarity.
+description: Score telemetry field name similarity across syntactic, taxonomic, and semantic layers.
 allowed-tools: Read, Bash, Grep, Edit, Write
 ---
 

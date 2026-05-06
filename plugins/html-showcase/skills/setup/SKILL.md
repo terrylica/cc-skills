@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Bootstrap the html-showcase pipeline into the current repo. Copies build-nav.py, check-orphan-pages.py, and site.sh into <repo>/scripts/, ensures **/.published.json is gitignored, and (optionally) seeds a starter site directory. Idempotent and non-destructive. Use when the user invokes `/html-showcase:setup`, asks to "install the showcase scripts", "bootstrap a sitemap-organized site", or wants to publish HTML pages to bigblack via Tailscale from a fresh repo.
+description: Bootstrap the html-showcase pipeline into the current repo. Copies build-nav.py, check-orphan-pages.py, and site.sh into <repo>/scripts/,
 allowed-tools: Read, Bash, AskUserQuestion
 argument-hint: "[--site <name>] [--force] [--repo <path>]"
 disable-model-invocation: false

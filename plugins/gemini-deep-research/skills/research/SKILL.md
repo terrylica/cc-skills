@@ -1,6 +1,6 @@
 ---
 name: gemini-deep-research
-description: Run Gemini Deep Research via browser automation. Persistent Chrome on CDP port 9222. Use when user asks to research a topic with Gemini, run deep research, or wants comprehensive AI-powered research reports. TRIGGERS - Gemini research, deep research, research report, Gemini Deep Research
+description: Run Gemini Deep Research via browser automation. Persistent Chrome on CDP port 9222. Use when user asks to research a topic with.
 allowed-tools:
   - Bash
   - Read
@@ -177,7 +177,6 @@ Research completion is detected via three signals:
 3. **Text stability** — 3 consecutive identical text lengths (15s total)
 
 The spinner may remain visible as a stale artifact after completion — the mic button is the primary signal.
-
 
 ## Post-Execution Reflection
 

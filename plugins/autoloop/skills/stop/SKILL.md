@@ -1,6 +1,6 @@
 ---
 name: stop
-description: "Mark LOOP_CONTRACT.md completed, append DONE section, send PushNotification, let loop terminate naturally. TRIGGERS - autoloop stop, end loop, terminate contract, stop self-revising loop, complete loop."
+description: Mark LOOP_CONTRACT.md completed, append DONE section, send PushNotification, let loop terminate naturally.
 allowed-tools: Bash, Read, Edit, AskUserQuestion, Skill
 argument-hint: "[reason] [--keep-forensics]"
 disable-model-invocation: false

@@ -1,6 +1,6 @@
 ---
 name: dump-channel
-description: "Use when user wants to archive, dump, or back up an entire Telegram channel or chat history to NDJSON with all media files downloaded. Full history extraction with resume support."
+description: user wants to archive, dump, or back up an entire Telegram channel or chat history to NDJSON with all media files downloaded. Full history.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

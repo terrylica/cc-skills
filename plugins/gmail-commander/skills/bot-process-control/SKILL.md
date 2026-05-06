@@ -1,6 +1,6 @@
 ---
 name: bot-process-control
-description: Gmail Commander daemon lifecycle - start, stop, restart, status, logs, launchd plist management. TRIGGERS - bot start, bot stop, bot restart, bot status, bot logs, launchd, daemon, process control, gmail-commander service.
+description: Gmail Commander daemon lifecycle - start, stop, restart, status, logs, launchd plist management. TRIGGERS - bot start, bot stop, bot restart
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -255,7 +255,6 @@ launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] launchd plist templates match actual launcher scripts
 - [ ] OAuth token refresher launchd service loaded and running
-
 
 ## Post-Execution Reflection
 

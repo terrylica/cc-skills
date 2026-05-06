@@ -1,6 +1,6 @@
 ---
 name: ml-data-pipeline-architecture
-description: Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse. TRIGGERS - data pipeline, polars vs pandas, arrow format, clickhouse ml, efficient loading, zero-copy, memory optimization.
+description: Patterns for efficient ML data pipelines using Polars, Arrow, and ClickHouse. TRIGGERS - data pipeline, polars vs pandas, arrow format
 allowed-tools: Read, Grep, Glob
 ---
 
@@ -328,7 +328,6 @@ for batch in pl.scan_parquet("huge_file.parquet").iter_batches():
 | PyTorch DataLoader OOM      | Loading full dataset into memory | Use PolarsDataset with Arrow backing for lazy access |
 | Parquet scan performance    | Not using predicate pushdown     | Add filters before collect() for lazy evaluation     |
 | Type mismatch in tensor     | Float64 vs Float32 mismatch      | Explicitly cast with .cast(pl.Float32) before numpy  |
-
 
 ## Post-Execution Reflection
 

@@ -1,6 +1,6 @@
 ---
 name: augment
-description: "Augment Kokoro TTS engine — upgrade dependencies and model. Renamed from 'upgrade' to avoid clashing with Claude Code's built-in /upgrade. TRIGGERS - augment kokoro, upgrade kokoro, update tts, kokoro update, update mlx-audio."
+description: Augment Kokoro TTS engine — upgrade dependencies and model. Renamed from 'upgrade' to avoid clashing with Claude Code's built-in.
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 

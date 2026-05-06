@@ -2,7 +2,7 @@
 name: tether
 allowed-tools: Read, Write, Edit, Bash(cat:*), Bash(jq:*), Grep, Glob, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
-description: "Tether (install/uninstall) hooks that enforce git-town over raw git commands in Claude Code. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. Blocks forbidden git commands. TRIGGERS - tether hooks, enforce git-town, install hooks, git-town hooks, prevent raw git."
+description: Tether (install/uninstall) hooks that enforce git-town over raw git commands in Claude Code. Renamed from 'hooks' to avoid.
 model: haiku
 disable-model-invocation: true
 ---

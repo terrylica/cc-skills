@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Triage autoloop fleet health. Reports GREEN/YELLOW/RED per loop with remediation hints. Renamed from 'doctor' to avoid clashing with Claude Code's built-in /doctor. TRIGGERS - autoloop triage, fleet triage, loop health check, find zombie loops, loop status report, autoloop diagnose, autoloop doctor."
+description: Triage autoloop fleet health. Reports GREEN/YELLOW/RED per loop with remediation hints. Renamed from 'doctor' to avoid clashing.
 allowed-tools: Bash
 argument-hint: "[--json] [--fix]"
 disable-model-invocation: false

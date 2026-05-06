@@ -1,6 +1,6 @@
 ---
 name: crucible-investigation-methodology
-description: Use when actively investigating a hypothesis — running a sweep, dispatching multi-agent analysis, designing serial adversarial gates, enriching per-trade data for loss postmortem, encoding data as LLM-readable tokens, orchestrating long-running compute on BigBlack, or re-testing a positive with an orthogonal null. Covers the 6 execution patterns that took NGRAM3FU-STRADDLE from idea to validated finding. TRIGGERS - run a sweep, test a hypothesis, multi-lens agents, adversarial gates, per-trade enrichment, quintile tokens, llm-readable data, BigBlack pueue, shuffled null retest, orthogonal validation, loss postmortem, gate validation, sweep orchestration.
+description: actively investigating a hypothesis — running a sweep, dispatching multi-agent analysis, designing serial adversarial gates,
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 ---
 

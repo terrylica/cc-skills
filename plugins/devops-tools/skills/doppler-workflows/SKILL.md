@@ -1,6 +1,6 @@
 ---
 name: doppler-workflows
-description: "Manage credentials and secrets through Doppler for publishing and deployment workflows. Use whenever the user needs to publish Python packages to PyPI, rotate AWS credentials, manage Doppler secrets, or configure credential pipelines for CI/CD. Do NOT use for 1Password vault operations or for secrets that are not managed through Doppler."
+description: Manage credentials and secrets through Doppler for publishing and deployment workflows. Use whenever the user needs to publish Python packages.
 allowed-tools: Read, Bash
 ---
 
@@ -135,7 +135,6 @@ For PyPI publishing, see [`pypi-doppler` skill](../../../itp/skills/pypi-doppler
 | mise [env] not loading     | Not in directory with .mise.toml | `cd` to project directory or check mise.toml path     |
 | Secret retrieval slow      | No caching configured            | Use mise `cache()` with duration for repeated access  |
 | Token length mismatch      | Copied with extra whitespace     | Trim token: `echo -n 'secret' \| doppler secrets set` |
-
 
 ## Post-Execution Reflection
 

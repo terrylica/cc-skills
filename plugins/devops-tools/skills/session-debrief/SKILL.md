@@ -1,6 +1,6 @@
 ---
 name: session-debrief
-description: Analyze Claude Code sessions in three expert modes — Handoff Document (exhaustive context extraction for the next developer or session), Error Forensics (complete inventory of warnings and errors Claude ignored or deferred), and Chronological Summary (dense technical timeline with key outcomes). Use when the user wants a session handoff, asks what happened, wants to know what errors were missed or ignored, requests a retrospective or debrief, mentions session history or session analysis, or wants to understand past work in the current repo. Do not use for live debugging or code review.
+description: Analyze Claude Code sessions in three expert modes — Handoff Document (exhaustive context extraction for the next developer or session), Error.
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 

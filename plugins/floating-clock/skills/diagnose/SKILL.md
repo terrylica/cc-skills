@@ -1,6 +1,6 @@
 ---
 name: diagnose
-description: "Print a compact health report for FloatingClock. Covers binary info, code-sign status, running process, and test-suite status. Use when a user wants to verify install integrity or debug an issue."
+description: Print a compact health report for FloatingClock. Covers binary info, code-sign status, running process, and test-suite status. Use when a user.
 allowed-tools: Bash
 ---
 

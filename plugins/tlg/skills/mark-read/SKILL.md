@@ -1,6 +1,6 @@
 ---
 name: mark-read
-description: "Use when user wants to mark Telegram chats as read, clear unread badges and mentions, dismiss notifications, or acknowledge messages to remove the unread counter."
+description: user wants to mark Telegram chats as read, clear unread badges and mentions, dismiss notifications, or acknowledge messages to remove the unread.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
