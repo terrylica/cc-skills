@@ -1,3 +1,10 @@
+# [20.2.0](https://github.com/terrylica/cc-skills/compare/v20.1.0...v20.2.0) (2026-05-06)
+
+
+### Features
+
+* **openwolf:** add plugin wrapping cytostack/openwolf middleware ([6df1159](https://github.com/terrylica/cc-skills/commit/6df1159ee46ee2cc49a66e468df9ed2c77289d95))
+
 # [20.1.0](https://github.com/terrylica/cc-skills/compare/v20.0.1...v20.1.0) (2026-05-06)
 
 
