@@ -159,7 +159,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "20.1.0",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -308,7 +308,7 @@
     },
     {
       "name": "floating-clock",
-      "description": "Always-on-top floating desktop clock for macOS \u2014 borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
       "version": "20.1.0",
       "source": "./plugins/floating-clock",
       "category": "utilities",
@@ -411,7 +411,6 @@
         "impact-analysis",
         "execution-flows"
       ],
-      "hooks": "./plugins/gitnexus-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -644,6 +643,29 @@
         "agentic-stack",
         "chinese-llm-provider",
         "hailuo"
+      ],
+      "strict": false
+    },
+    {
+      "name": "openwolf",
+      "description": "Wraps the third-party openwolf npm middleware (token-saving project memory for Claude Code). Installs the global binary, runs openwolf init in the current project, surfaces status, and provides a clean removal path that openwolf itself does not ship.",
+      "version": "20.1.0",
+      "source": "./plugins/openwolf",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "openwolf",
+        "third-party",
+        "context",
+        "token-optimization",
+        "middleware",
+        "anatomy",
+        "cerebrum",
+        "hooks",
+        "npm-wrapper"
       ],
       "strict": false
     },
