@@ -1,6 +1,6 @@
 ---
 name: fxview-parquet-consumer
-description: "Consume FXView tick data from Parquet files. Schema, file layout, DuckDB queries, Python/Rust examples. TRIGGERS - FXView Parquet, read tick data, consume FXView ticks, tick Parquet schema, FXView tick files."
+description: Consume FXView tick data from Parquet files. Schema, file layout, DuckDB queries, Python/Rust examples.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -143,7 +143,6 @@ ORDER BY cnt DESC;
 | Timestamp looks wrong    | Using seconds not ms        | time_msc is milliseconds -- multiply by 1000 for microseconds |
 | Schema mismatch          | Different broker or version | Verify against SCHEMA_VERIFIED.md permalink                   |
 | Multiple files same day  | Crash recovery segments     | All \_N suffixed files are valid, union them                  |
-
 
 ## Post-Execution Reflection
 

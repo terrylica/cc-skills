@@ -1,6 +1,6 @@
 ---
 name: gdrive-access
-description: Access Google Drive via CLI with 1Password OAuth. Use when user wants to list files, download from Drive, sync folders, or mentions google drive access. TRIGGERS - google drive, gdrive, drive folder, download drive, sync drive, list drive files.
+description: Access Google Drive via CLI with 1Password OAuth. Use when user wants to list files, download from Drive, sync folders, or.
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 
@@ -247,7 +247,6 @@ Google Docs (Docs, Sheets, Slides) are automatically exported:
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] References exist and are linked
-
 
 ## Post-Execution Reflection
 

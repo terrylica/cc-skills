@@ -1,6 +1,6 @@
 ---
 name: run-full-release
-description: "Run the current repo's mise release pipeline, or bootstrap one if missing. Use when user wants to release, version bump, publish a package, or set up release automation for a new repo. Detects ecosystem (Python/Rust/Node/mixed) and scaffolds individualized mise release tasks."
+description: Run the current repo's mise release pipeline, or bootstrap one if missing. Use when user wants to release, version bump, publish a package, or.
 allowed-tools: Read, Bash, Glob, Grep, Write, Edit, AskUserQuestion
 argument-hint: "[--dry] [--status]"
 ---

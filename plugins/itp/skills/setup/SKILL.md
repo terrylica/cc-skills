@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify. TRIGGERS - itp setup, install dependencies, check prerequisites, itp preflight."
+description: SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify. TRIGGERS - itp setup, install dependencies, check prerequisites
 allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
 argument-hint: "[--check | --install | --yes]"
 disable-model-invocation: false
@@ -254,7 +254,6 @@ esac
 | `--install` flag passed           | Skip Todo 7 gate, proceed directly to install                     |
 | macOS vs Linux                    | Todo 1 detects platform, install commands adapt                   |
 
-
 ## Troubleshooting
 
 ### graph-easy fails to install
@@ -330,4 +329,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

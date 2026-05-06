@@ -1,6 +1,6 @@
 ---
 name: daemon-status
-description: Check asciinema status - daemon, running processes, and unhandled .cast files. TRIGGERS - daemon status, check backup, chunker health, recording status, unhandled files.
+description: Check asciinema status - daemon, running processes, and unhandled .cast files. TRIGGERS - daemon status, check backup, chunker health
 allowed-tools: Bash
 argument-hint: "[--verbose] [--files-only] [--processes-only]"
 model: haiku
@@ -191,7 +191,6 @@ Recent daemon logs:
 | GitHub PAT not found | Keychain credential missing   | Run `/asciinema-tools:daemon-setup`    |
 | Many unhandled files | Orphan branch not initialized | Run `/asciinema-tools:finalize`        |
 | Status hangs         | Large find operation          | Use `--processes-only` for quick check |
-
 
 ## Post-Execution Reflection
 

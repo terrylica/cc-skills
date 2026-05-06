@@ -1,6 +1,6 @@
 ---
 name: emit-fn-key-on-macos
-description: Emit a real Fn key on macOS (for Typeless push-to-talk, macOS dictation, screenshot shortcuts, emoji picker, Spotlight via globe). Explains why BetterTouchTool, hidutil, QMK-on-locked-firmware all fail, and why Karabiner-Elements is the only userland path. TRIGGERS - emit Fn key, real Apple Fn, Fn globe key macOS, macro pad emit Fn, 3-key pad Fn, Typeless shortcut Fn, BTT cannot emit Fn, Fn not working in Typeless, hidutil Fn mapping not working, kCGEventFlagMaskSecondaryFn, apple_vendor_top_case_key_code, DriverKit VirtualHIDDevice, NX_DEVICE_CAPABILITY_INPUTKEYBOARD_FUNCTION.
+description: Emit a real Fn key on macOS (for Typeless push-to-talk, macOS dictation, screenshot shortcuts, emoji picker, Spotlight via.
 allowed-tools: Read, Edit, Write, Bash
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) chezmoi hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, dotfiles hooks, chezmoi hooks, install chezmoi hook, dotfiles sync hook."
+description: Tether (install/uninstall) chezmoi hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's.
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status|restore [latest|<n>]]"
 model: haiku

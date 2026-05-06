@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) productivity-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, productivity hooks, install productivity hook, calendar alarm hook."
+description: Tether (install/uninstall) productivity-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with.
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku

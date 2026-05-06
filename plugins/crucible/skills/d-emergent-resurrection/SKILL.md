@@ -1,6 +1,6 @@
 ---
 name: crucible-emergent-resurrection
-description: Use when a hypothesis has failed and needs archiving with resurrection conditions, when reviewing dormant ideas for possible revival, when a previously-killed strategy resembles the current one, or when investigating whether market conditions have changed enough to retry an archived campaign. Covers the taxonomy of failure modes (null-insignificant, overfit, cross-asset-failed, wrong-null-applied, etc.), the dormant-vs-dead distinction, resurrect_if frontmatter schema, and the 3-layer exhumation process (autonomous flag → agent review → human sign-off). TRIGGERS - dormant, failed hypothesis, resurrect, exhume, conditions changed, archived, try again, previously failed, negative knowledge, dead but not buried, re-emerge, resurrection conditions.
+description: a hypothesis has failed and needs archiving with resurrection conditions, when reviewing dormant ideas for possible revival, when.
 allowed-tools: Read, Write, Edit, Grep, Glob
 ---
 

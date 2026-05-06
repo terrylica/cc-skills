@@ -1,6 +1,6 @@
 ---
 name: voice-quality-audition
-description: Audition Kokoro TTS voices to compare quality and grade. TRIGGERS - audition voices, kokoro voices, voice comparison, tts voice, voice quality, compare voices.
+description: Audition Kokoro TTS voices to compare quality and grade. TRIGGERS - audition voices, kokoro voices, voice comparison
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 
@@ -146,7 +146,6 @@ After changing mise.toml, restart the Telegram bot for the new voice to take eff
 - [ ] Bot restarted after configuration change (if applicable)
 - [ ] Voice catalog grades updated in reference doc (if re-graded)
 
-
 ## Troubleshooting
 
 | Issue                           | Cause                              | Solution                                                                |
@@ -180,4 +179,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

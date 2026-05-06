@@ -1,6 +1,6 @@
 ---
 name: distributed-job-safety
-description: Concurrency safety patterns for distributed pueue + mise + systemd-run job pipelines. TRIGGERS - queue pueue jobs, deploy to remote host, concurrent job collisions, checkpoint races, resource guards, cgroup memory limits, systemd-run, autoscale, batch processing safety, job parameter isolation.
+description: Concurrency safety patterns for distributed pueue + mise + systemd-run job pipelines.
 allowed-tools: Read, Bash, Write
 ---
 
@@ -332,7 +332,6 @@ For structured, repeatable job pipelines, [Temporal](https://temporal.io/) provi
 - [Autoscaler](./references/autoscaler.md) -- Dynamic parallelism tuning patterns
 - **Cross-reference**: `devops-tools:pueue-job-orchestration` -- Pueue basics, dependency chaining, installation
 - **SOTA Alternative**: [Temporal](https://temporal.io/) -- Durable workflow orchestration with built-in dedup and retry
-
 
 ## Post-Execution Reflection
 

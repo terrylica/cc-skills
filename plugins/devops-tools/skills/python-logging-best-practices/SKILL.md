@@ -1,6 +1,6 @@
 ---
 name: python-logging-best-practices
-description: Python logging with loguru, structlog, and orjson. TRIGGERS - loguru, structlog, structured logging, JSONL logs, log rotation, secret redaction, OTel logging, lightweight logging, print logging, systemd logging.
+description: Python logging with loguru, structlog, and orjson. TRIGGERS - loguru, structlog, structured logging
 allowed-tools: Read, Bash, Grep, Edit, Write
 ---
 

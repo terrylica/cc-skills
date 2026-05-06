@@ -1,6 +1,6 @@
 ---
 name: reindex
-description: "Re-index the GitNexus knowledge graph via CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - reindex, refresh index, update knowledge graph, $GN analyze."
+description: Re-index the GitNexus knowledge graph via CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with.
 allowed-tools: Bash, Read
 model: haiku
 ---
@@ -85,7 +85,6 @@ Index is now current with HEAD.
 - KuzuDB database is stored in `.gitnexus/` at the repo root
 - Large codebases (10k+ files) may take 2+ minutes
 - The `--force` flag rebuilds from scratch; without it, incremental analysis is used
-
 
 ## Post-Execution Reflection
 

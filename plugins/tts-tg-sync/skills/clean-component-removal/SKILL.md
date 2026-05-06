@@ -1,6 +1,6 @@
 ---
 name: clean-component-removal
-description: Remove TTS and Telegram sync components cleanly. TRIGGERS - uninstall tts, remove telegram bot, uninstall kokoro, clean tts, teardown, component removal.
+description: Remove TTS and Telegram sync components cleanly. TRIGGERS - uninstall tts, remove telegram bot, uninstall kokoro
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 disable-model-invocation: false
 ---
@@ -141,7 +141,6 @@ rm -f ~/.claude/.secrets/ccterrybot-telegram
 - [ ] No stale lock file (`ls /tmp/kokoro-tts.lock` returns "No such file")
 - [ ] No orphan audio processes (`pgrep -x afplay` returns nothing)
 
-
 ## Troubleshooting
 
 | Problem                            | Likely Cause                         | Fix                                                           |
@@ -171,4 +170,5 @@ After this skill completes, reflect before closing the task:
 Do NOT defer. The next invocation inherits whatever you leave behind.
 
 ---
+
 ---

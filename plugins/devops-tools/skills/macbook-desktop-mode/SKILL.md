@@ -1,6 +1,6 @@
 ---
 name: macbook-desktop-mode
-description: "Configure a MacBook as an always-on-AC desktop workstation with USB device resilience, battery longevity, and self-healing audio device monitoring. Covers charge limits, sleep optimization, powered USB hub with uhubctl, and the AudioDeviceMonitor Swift guardian (state machine + wake detection + heartbeat + recovery cascade + Telegram notification). Use whenever the user mentions desktop mode, always on AC, charge limit, battery longevity, USB device disappearing, sleep settings, powered hub, thermal management, or USB microphone dead after sleep. Do NOT use for general macOS troubleshooting unrelated to the desktop workstation pattern."
+description: Configure a MacBook as an always-on-AC desktop workstation with USB device resilience, battery longevity, and self-healing audio device.
 allowed-tools: Read, Bash, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch
 ---
 
@@ -325,7 +325,6 @@ tail -50 /path/to/logs/audio-device-monitor-stderr.log
 ## See Also
 
 - **`kokoro-tts:realtime-audio-architecture`** — Complementary skill covering audio _playback_ patterns (PortAudio, GIL contention, jitter elimination, device hot-switching). This skill handles the system/USB layer; that one handles the application/playback layer.
-
 
 ## Post-Execution Reflection
 

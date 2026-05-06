@@ -1,6 +1,6 @@
 ---
 name: tether
-description: "Tether (install/uninstall) gh-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's built-in /hooks. TRIGGERS - tether hooks, gh hooks, github hooks, install gh hook, webfetch guard hook."
+description: Tether (install/uninstall) gh-tools hooks to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with Claude Code's.
 allowed-tools: Read, Bash, TodoWrite, TodoRead
 argument-hint: "[install|uninstall|status]"
 model: haiku

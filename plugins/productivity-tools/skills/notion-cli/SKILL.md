@@ -1,6 +1,6 @@
 ---
 name: notion-cli
-description: Access Notion via the 4ier/notion-cli Go binary. Use when user wants to search Notion, query databases, read pages, export data, manage blocks, or add comments from the command line. TRIGGERS - notion search, query database, read page, notion export, notion blocks, notion comments, notion cli.
+description: Access Notion via the 4ier/notion-cli Go binary. Use when user wants to search Notion, query databases, read pages, export data,
 allowed-tools: Read, Bash, Glob, Grep
 ---
 

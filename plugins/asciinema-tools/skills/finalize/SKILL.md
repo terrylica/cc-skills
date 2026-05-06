@@ -1,6 +1,6 @@
 ---
 name: finalize
-description: Finalize orphaned recordings - stop processes, compress, push to orphan branch. TRIGGERS - finalize recording, stop asciinema, orphaned recording, cleanup recording, push recording.
+description: Finalize orphaned recordings - stop processes, compress, push to orphan branch. TRIGGERS - finalize recording, stop asciinema, orphaned recording
 allowed-tools: Bash, AskUserQuestion, Glob, Read
 argument-hint: "[file|--all] [--force] [--no-push] [--keep-local]"
 ---
@@ -267,7 +267,6 @@ AskUserQuestion:
 - `/asciinema-tools:daemon-status` - View status and find unhandled files
 - `/asciinema-tools:convert` - Convert .cast to .txt for analysis
 - `/asciinema-tools:summarize` - AI-powered analysis of recordings
-
 
 ## Post-Execution Reflection
 

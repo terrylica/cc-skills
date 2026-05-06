@@ -1,6 +1,6 @@
 ---
 name: tick-collection-ops
-description: "Operate and troubleshoot the MT5 tick collection system on Linux/Wine. Systemd topology, gap detection, restart recovery, daily rotation. TRIGGERS - tick collection, MT5 Wine, tick gaps, EA restart, systemd MT5, tick writer DLL."
+description: Operate and troubleshoot the MT5 tick collection system on Linux/Wine. Systemd topology, gap detection, restart recovery, daily.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -181,7 +181,6 @@ journalctl --user -u mt5 --since "1 hour ago" --no-pager
 | Recovery file \_1_2       | Normal after restart           | All segments are valid, union in DuckDB          |
 | Compile log unreadable    | UTF-16LE encoding              | Use iconv -f UTF-16LE -t UTF-8                   |
 | Xvfb not running          | Service crashed or not enabled | systemctl --user start xvfb                      |
-
 
 ## Post-Execution Reflection
 

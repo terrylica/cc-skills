@@ -1,6 +1,6 @@
 ---
 name: dead-code
-description: "Find orphan functions, dangling imports, and dead code via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use readMcpResource with gitnexus:// URIs. TRIGGERS - dead code, orphan functions, unused imports, dangling references, unreachable code."
+description: Find orphan functions, dangling imports, and dead code via GitNexus CLI (gitnexus). CLI ONLY - NO MCP server exists, never use.
 allowed-tools: Bash, Read, Grep, Glob
 model: haiku
 ---
@@ -126,7 +126,6 @@ Present categorized by module/directory:
 - Results depend on index freshness — reindex if results seem wrong
 - The graph captures static relationships only — dynamic dispatch, reflection, and plugin loading may cause false positives
 - Use `quality-tools:dead-code-detector` for language-specific analysis (vulture, knip, clippy) which complements this structural view
-
 
 ## Post-Execution Reflection
 

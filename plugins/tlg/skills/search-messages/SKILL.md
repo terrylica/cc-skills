@@ -1,6 +1,6 @@
 ---
 name: search-messages
-description: "Use when user wants to search for messages across all Telegram chats or within a specific chat, find old messages by text, or look up Telegram message history filtered by sender."
+description: user wants to search for messages across all Telegram chats or within a specific chat, find old messages by text, or look up Telegram message.
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

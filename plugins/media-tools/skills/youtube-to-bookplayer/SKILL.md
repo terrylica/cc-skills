@@ -1,6 +1,6 @@
 ---
 name: youtube-to-bookplayer
-description: Download YouTube audio and push to BookPlayer on iPhone via USB. TRIGGERS - youtube audio, bookplayer, download youtube, push to iphone, youtube to bookplayer, audiobook from youtube, youtube bookplayer
+description: Download YouTube audio and push to BookPlayer on iPhone via USB. TRIGGERS - youtube audio, bookplayer, download youtube
 allowed-tools: Bash, Read, AskUserQuestion
 argument-hint: "[YouTube URL]"
 ---
@@ -293,5 +293,4 @@ After this skill completes, reflect before closing the task:
 3. **What drifted?** — Any script, reference, or external dependency that no longer matches reality gets fixed now.
 4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
 
-Do NOT defer. The next invocation inherits whatever you leave behind.
----
+## Do NOT defer. The next invocation inherits whatever you leave behind

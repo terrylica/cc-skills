@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise environment, installs launchd plists. TRIGGERS - gmail setup, email bot setup, gmail install, gmail oauth configure."
+description: Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise.
 allowed-tools: Bash, Read, Write, AskUserQuestion, Edit
 disable-model-invocation: false
 ---
@@ -154,7 +154,6 @@ launchctl list | grep gmail-commander || echo "Not registered"
 ## No OAuth Credentials?
 
 Direct user to: [gmail-api-setup.md](../skills/gmail-access/references/gmail-api-setup.md)
-
 
 ---
 

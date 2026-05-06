@@ -1,6 +1,6 @@
 ---
 name: imessage-query
-description: Query macOS iMessage database (chat.db) via SQLite. Decode NSAttributedString messages, handle tapbacks, search conversations. TRIGGERS - imessage, chat.db, messages database, text messages, iMessage history, NSAttributedString, attributedBody
+description: Query macOS iMessage database (chat.db) via SQLite. Decode NSAttributedString messages, handle tapbacks, search conversations.
 allowed-tools: Read, Bash, Grep, Glob, Write
 ---
 
@@ -311,7 +311,6 @@ After modifying this skill:
 4. [ ] Decode script works with `python3` (pytypedstream optional, tiers 2/3 are stdlib-only)
 5. [ ] All reference links are relative paths
 6. [ ] Append changes to [evolution-log.md](./references/evolution-log.md)
-
 
 ## Post-Execution Reflection
 

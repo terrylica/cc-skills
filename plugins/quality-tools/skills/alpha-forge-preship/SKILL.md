@@ -1,6 +1,6 @@
 ---
 name: research-repo-preship
-description: Research Repo quality gates for PR review - RNG determinism, URL validation, parameter validation, manifest sync. TRIGGERS - Research Repo, quality gates, pre-ship gates, preship review.
+description: Research Repo quality gates for PR review - RNG determinism, URL validation, parameter validation, manifest sync.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -78,7 +78,6 @@ issues = validate_manifest("manifest.yaml")
 ## Status
 
 ✅ Phase 1 Complete - Ready for merge to cc-skills and integration with research-repo
-
 
 ## Post-Execution Reflection
 
