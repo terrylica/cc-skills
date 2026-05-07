@@ -88,7 +88,6 @@ cc-skills/
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness (incl. autoloop stall guard)
 │   ├── autoloop/                    ← Self-paced loop mode (replaces deprecated ru; renamed from autonomous-loop)
-│   ├── clarify-prompts/             ← Stop-hook AskUserQuestion nudge (autoloop-aware)
 │   ├── mise/                        ← User-global mise workflow commands
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
