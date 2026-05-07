@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-hoisted-deps-guard.mjs",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-hoisted-deps-guard.mjs",
             "timeout": 5000
           }
         ]

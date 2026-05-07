@@ -17,8 +17,8 @@ import {
 } from "./tool-schemas.ts";
 
 describe("TOOL_SCHEMAS", () => {
-  it("has schemas for 8 built-in tools", () => {
-    expect(Object.keys(TOOL_SCHEMAS)).toHaveLength(8);
+  it("has schemas for 9 built-in tools", () => {
+    expect(Object.keys(TOOL_SCHEMAS)).toHaveLength(9);
   });
 
   it("includes all expected tool names", () => {
@@ -29,11 +29,11 @@ describe("TOOL_SCHEMAS", () => {
   });
 
   it("does NOT have schemas for UI tools", () => {
-    expect(TOOL_SCHEMAS["AskUserQuestion"]).toBeUndefined();
-    expect(TOOL_SCHEMAS["TaskCreate"]).toBeUndefined();
-    expect(TOOL_SCHEMAS["Agent"]).toBeUndefined();
-    expect(TOOL_SCHEMAS["EnterPlanMode"]).toBeUndefined();
-    expect(TOOL_SCHEMAS["Skill"]).toBeUndefined();
+    expect(TOOL_SCHEMAS.AskUserQuestion).toBeUndefined();
+    expect(TOOL_SCHEMAS.TaskCreate).toBeUndefined();
+    expect(TOOL_SCHEMAS.Agent).toBeUndefined();
+    expect(TOOL_SCHEMAS.EnterPlanMode).toBeUndefined();
+    expect(TOOL_SCHEMAS.Skill).toBeUndefined();
   });
 });
 
