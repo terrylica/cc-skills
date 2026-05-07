@@ -111,7 +111,6 @@
         "mise",
         "bun"
       ],
-      "hooks": "./plugins/calcom-commander/hooks/hooks.json",
       "strict": false
     },
     {
@@ -303,7 +302,6 @@
         "sync",
         "git"
       ],
-      "hooks": "./plugins/dotfiles-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -368,7 +366,6 @@
         "webfetch",
         "enforcement"
       ],
-      "hooks": "./plugins/gh-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -437,7 +434,6 @@
         "mise",
         "bun"
       ],
-      "hooks": "./plugins/gmail-commander/hooks/hooks.json",
       "strict": false
     },
     {
@@ -509,7 +505,6 @@
         "mise",
         "mise-hygiene"
       ],
-      "hooks": "./plugins/itp-hooks/hooks/hooks.json",
       "strict": false
     },
     {
@@ -756,7 +751,6 @@
         "events",
         "sound-alarms"
       ],
-      "hooks": "./plugins/productivity-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -836,7 +830,6 @@
         "cargo-deny",
         "cargo-vet"
       ],
-      "hooks": "./plugins/rust-tools/hooks/hooks.json",
       "strict": false
     },
     {
@@ -919,7 +912,6 @@
         "session-sync",
         "health-check"
       ],
-      "hooks": "./plugins/tts-tg-sync/hooks/hooks.json",
       "strict": false
     }
   ]
