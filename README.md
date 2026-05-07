@@ -17,7 +17,6 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [autoloop](./plugins/autoloop/)                         | Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:muster, /autoloop:stop, /autoloop:reclaim, /autoloop:triage, /autoloop:setup                     | automation    |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
 | [chronicle-share](./plugins/chronicle-share/)           | Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)                                                                                                                                | devops        |
-| [clarify-prompts](./plugins/clarify-prompts/)           | Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autoloop sessions, subagents, and turns that already asked.                                     | automation    |
 | [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
@@ -65,8 +64,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 36 plugins (one-liner, alphabetically ordered to match marketplace.json)
-for p in agent-reach asciinema-tools autoloop calcom-commander chronicle-share clarify-prompts claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock gemini-deep-research gh-tools git-town-workflow gitnexus-tools gmail-commander itp itp-hooks kokoro-tts link-tools macro-keyboard media-tools minimax mise mql5 plugin-dev productivity-tools quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync; do
+# 2. Install all 37 plugins (one-liner, alphabetically ordered to match marketplace.json)
+for p in agent-reach asciinema-tools autoloop calcom-commander chronicle-share claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock gemini-deep-research gh-tools git-town-workflow gitnexus-tools gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macro-keyboard media-tools minimax mise mql5 openwolf plugin-dev productivity-tools quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -109,7 +108,6 @@ claude plugin install link-tools@cc-skills
 
 # Autonomous loop primitives
 claude plugin install autoloop@cc-skills
-claude plugin install clarify-prompts@cc-skills
 
 # DevOps + quality
 claude plugin install devops-tools@cc-skills
@@ -482,7 +480,6 @@ cc-skills/
 │   ├── autoloop/                 # Self-revising LOOP_CONTRACT pattern (.autoloop/<slug>--<hash>/ layout)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
-│   ├── clarify-prompts/          # Stop-hook nudge for ambiguous turns (autoloop-aware)
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
 │   ├── gh-tools/                 # GitHub workflow + GFM link validation
 │   ├── doc-tools/                # ASCII diagrams, markdown standards, LaTeX, Pandoc
