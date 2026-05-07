@@ -13,7 +13,26 @@
  */
 
 import { join } from "path";
-import { trackHookError } from "../../itp-hooks/hooks/lib/hook-error-tracker.ts";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+
+// Inline error tracker — avoids cross-plugin imports that break in versioned
+// install-cache layout (cache/cc-skills/<plugin>/<version>/ has no sibling access).
+function trackHookError(hookName: string, message: string): void {
+  try {
+    const logDir = join(homedir(), ".claude", "logs");
+    mkdirSync(logDir, { recursive: true });
+    const entry = `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      hook: hookName,
+      message,
+      sessionId: process.env.CLAUDE_SESSION_ID ?? "unknown",
+    })}\n`;
+    appendFileSync(join(logDir, "hook-errors.jsonl"), entry);
+  } catch {
+    // logging failed — bail silently to keep hook fail-open
+  }
+}
 
 interface StopHookInput {
   session_id?: string;  // Claude Code uses snake_case
@@ -31,8 +50,6 @@ interface NotificationFile {
   transcriptPath: string;
   itermSessionId?: string;
 }
-
-import { appendFileSync } from "fs";
 
 function hookLog(msg: string) {
   appendFileSync("/tmp/telegram-stop-hook.log", `${new Date().toISOString()} ${msg}\n`);
@@ -69,7 +86,7 @@ async function main() {
 
     // Use transcript_path from stdin (Claude Code provides it directly).
     // Fall back to filesystem scan only when transcript_path is absent.
-    const { readdirSync, statSync, existsSync, mkdirSync } = await import("fs");
+    const { readdirSync, statSync, existsSync } = await import("fs");
 
     let transcriptPath = input.transcript_path || "";
     let finalSessionId = sessionId;

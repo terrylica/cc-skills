@@ -27,20 +27,12 @@ async function findChildProcesses(): Promise<
   Map<number, { pid: number; ppid: number; cmd: string }>
 > {
   try {
-    const result = await new Promise<string>((resolve, reject) => {
-      const proc = Bun.spawn(["ps", "-o", "ppid=,pid=,cmd="], {
-        stdout: "pipe",
-        stderr: "ignore",
-      });
-
-      let output = "";
-      proc.stdout?.on("data", (chunk) => {
-        output += chunk.toString();
-      });
-
-      proc.on("close", () => resolve(output));
-      proc.on("error", reject);
+    const proc = Bun.spawn(["ps", "-o", "ppid=,pid=,cmd="], {
+      stdout: "pipe",
+      stderr: "ignore",
     });
+    const result = await new Response(proc.stdout).text();
+    await proc.exited;
 
     const processes = new Map<
       number,
@@ -50,11 +42,11 @@ async function findChildProcesses(): Promise<
 
     for (const line of lines) {
       const [ppid_str, pid_str, ...cmd_parts] = line.trim().split(/\s+/);
-      const ppid = parseInt(ppid_str);
-      const pid = parseInt(pid_str);
+      const ppid = parseInt(ppid_str, 10);
+      const pid = parseInt(pid_str, 10);
       const cmd = cmd_parts.join(" ");
 
-      if (!isNaN(pid) && !isNaN(ppid)) {
+      if (!Number.isNaN(pid) && !Number.isNaN(ppid)) {
         processes.set(pid, { pid, ppid, cmd });
       }
     }
