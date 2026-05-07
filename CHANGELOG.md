@@ -1,3 +1,32 @@
+# [21.0.0](https://github.com/terrylica/cc-skills/compare/v20.2.3...v21.0.0) (2026-05-07)
+
+
+* feat(clarify-prompts)!: remove plugin entirely ([d863be9](https://github.com/terrylica/cc-skills/commit/d863be9355b2f4d4e7543c80bace617f8fbcfa2e))
+
+
+### BREAKING CHANGES
+
+* clarify-prompts@cc-skills is removed from the
+marketplace. The plugin's Stop hook posted to MiniMax-M2.7 on every
+turn whose response lacked a `?` (~1.5s round-trip per qualifying
+turn), and even on the fast path it would block-and-resume the agent
+to nudge AskUserQuestion. Net effect: meaningful per-turn latency
+plus extra Claude turns the user didn't ask for.
+
+Removed:
+- plugins/clarify-prompts/ (whole tree, including 19-case test harness)
+- .claude-plugin/marketplace.json entry (38 plugins -> 37)
+- Cross-references in CLAUDE.md, plugins/CLAUDE.md, README.md (table,
+  install one-liner, install command, dir tree comment)
+
+Migration: anyone relying on the AskUserQuestion nudge has to invoke
+it themselves; the auto-nudge is gone. The MiniMax usage pattern
+itself stays documented in plugins/minimax/skills/minimax/SKILL.md
+for users who want the same classifier elsewhere.
+
+CHANGELOG.md historical entries are kept — they describe past
+state, not current behavior.
+
 ## [20.2.3](https://github.com/terrylica/cc-skills/compare/v20.2.2...v20.2.3) (2026-05-07)
 
 
