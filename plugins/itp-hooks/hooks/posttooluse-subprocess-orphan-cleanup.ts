@@ -63,22 +63,13 @@ async function findChildProcesses(): Promise<
  */
 async function isHoldingTTY(pid: number): Promise<boolean> {
   try {
-    const lsof_result = await new Promise<string>((resolve) => {
-      const proc = Bun.spawn(["lsof", "-p", pid.toString()], {
-        stdout: "pipe",
-        stderr: "ignore",
-      });
-
-      let output = "";
-      proc.stdout?.on("data", (chunk) => {
-        output += chunk.toString();
-      });
-
-      proc.on("close", () => resolve(output));
-      proc.on("error", () => resolve(""));
+    const proc = Bun.spawn(["lsof", "-p", pid.toString()], {
+      stdout: "pipe",
+      stderr: "ignore",
     });
+    const lsof_result = await new Response(proc.stdout).text();
+    await proc.exited;
 
-    // Check if output contains TTY references
     return (
       lsof_result.includes("/dev/tty") ||
       lsof_result.includes("PTY") ||
@@ -176,20 +167,12 @@ async function main() {
 
     // Check for background jobs in shell
     try {
-      const jobs_output = await new Promise<string>((resolve) => {
-        const proc = Bun.spawn(["bash", "-c", "jobs -l"], {
-          stdout: "pipe",
-          stderr: "ignore",
-        });
-
-        let output = "";
-        proc.stdout?.on("data", (chunk) => {
-          output += chunk.toString();
-        });
-
-        proc.on("close", () => resolve(output));
-        proc.on("error", () => resolve(""));
+      const proc = Bun.spawn(["bash", "-c", "jobs -l"], {
+        stdout: "pipe",
+        stderr: "ignore",
       });
+      const jobs_output = await new Response(proc.stdout).text();
+      await proc.exited;
 
       if (jobs_output.trim()) {
         console.warn(
