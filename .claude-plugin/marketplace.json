@@ -137,26 +137,6 @@
       "strict": false
     },
     {
-      "name": "clarify-prompts",
-      "description": "Stop-hook nudge that asks Claude to invoke AskUserQuestion (in plain non-technical terms) when the just-finished turn left ambiguity unresolved. Self-suppresses for autoloop sessions, subagents, and turns that already asked.",
-      "version": "20.2.3",
-      "source": "./plugins/clarify-prompts",
-      "category": "automation",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "stop-hook",
-        "ask-user-question",
-        "clarify",
-        "ambiguity",
-        "main-agent-only",
-        "autoloop-aware"
-      ],
-      "strict": false
-    },
-    {
       "name": "claude-tts-companion",
       "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "20.2.3",
