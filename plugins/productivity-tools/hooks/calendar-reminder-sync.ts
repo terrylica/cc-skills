@@ -115,8 +115,7 @@ function checkSoundAlarms(command: string): {
   const displayAlarms = command.match(displayAlarmPattern) ?? [];
 
   const usedBannedSounds: string[] = [];
-  let match: RegExpExecArray | null;
-  while ((match = soundNamePattern.exec(command)) !== null) {
+  for (const match of command.matchAll(soundNamePattern)) {
     if (BANNED_SOUNDS.has(match[1])) {
       usedBannedSounds.push(match[1]);
     }
@@ -134,11 +133,11 @@ function checkSoundAlarms(command: string): {
 // REMINDER CREATION
 // ============================================================================
 
-function buildReminderScript(event: EventDetails): string {
-  const esc = (s: string) => s.replace(/'/g, "'\\''");
+const escAppleScript = (s: string): string => s.replace(/'/g, "'\\''");
 
+function buildReminderScript(event: EventDetails): string {
   return `osascript -e '
-set dueDate to date "${esc(event.startDate)}"
+set dueDate to date "${escAppleScript(event.startDate)}"
 
 tell application "Reminders"
     set defaultList to default list
@@ -284,7 +283,27 @@ async function runHook(): Promise<HookResult> {
 // ENTRY POINT
 // ============================================================================
 
-import { trackHookError } from "../../itp-hooks/hooks/lib/hook-error-tracker.ts";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join as pathJoin } from "node:path";
+
+// Inline error tracker — avoids cross-plugin imports that break in versioned
+// install-cache layout (cache/cc-skills/<plugin>/<version>/ has no sibling access).
+function trackHookError(hookName: string, message: string): void {
+  try {
+    const logDir = pathJoin(homedir(), ".claude", "logs");
+    mkdirSync(logDir, { recursive: true });
+    const entry = `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      hook: hookName,
+      message,
+      sessionId: process.env.CLAUDE_SESSION_ID ?? "unknown",
+    })}\n`;
+    appendFileSync(pathJoin(logDir, "hook-errors.jsonl"), entry);
+  } catch {
+    // logging failed — bail silently to keep hook fail-open
+  }
+}
 
 async function main(): Promise<never> {
   let result: HookResult;
