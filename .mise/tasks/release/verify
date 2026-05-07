@@ -44,11 +44,21 @@ else
     echo "  ⚠ Marketplace not found - users should run: claude plugin marketplace add terrylica/cc-skills"
 fi
 
-# Check 4: Hooks in settings.json
-echo "→ Checking hooks in settings.json..."
+# Check 4: settings.json should have NO cc-skills marketplace-path entries
+# (plugin hooks auto-load from each plugin's hooks/hooks.json — settings.json
+# entries would duplicate those, firing every hook twice).
+echo "→ Checking for cc-skills hook leaks in settings.json..."
 HOOK_COUNT=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]?] | length' "$SETTINGS" 2>/dev/null || echo 0)
-CC_SKILLS_HOOKS=$(jq '[.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]? | select(.hooks[]?.command | contains("cc-skills"))] | length' "$SETTINGS" 2>/dev/null || echo 0)
-echo "  ✓ Total hooks: $HOOK_COUNT ($CC_SKILLS_HOOKS from cc-skills)"
+CC_SKILLS_LEAKS=$(jq '
+    [.hooks // {} | to_entries[] | .value[]?.hooks[]?.command]
+    | map(select(. != null and contains("marketplaces/cc-skills/plugins/")))
+    | length
+' "$SETTINGS" 2>/dev/null || echo 0)
+if [[ "$CC_SKILLS_LEAKS" -eq 0 ]]; then
+    echo "  ✓ Total user hooks: $HOOK_COUNT, zero cc-skills marketplace-path leaks"
+else
+    echo "  ✗ $CC_SKILLS_LEAKS cc-skills marketplace-path entr$([[ $CC_SKILLS_LEAKS -eq 1 ]] && echo y || echo ies) leaked into settings.json — run scripts/sync-hooks-to-settings.sh to prune"
+fi
 
 # Check 5: Hook files in marketplace
 echo "→ Verifying hook files in marketplace..."
@@ -128,7 +138,7 @@ echo ""
 echo "Post-release steps for users:"
 echo "  1. Update marketplace: cd ~/.claude/plugins/marketplaces/cc-skills && git pull"
 echo "  2. Reinstall plugins: claude plugin install itp@cc-skills"
-echo "  3. Sync hooks: ./scripts/sync-hooks-to-settings.sh"
+echo "  3. Prune marketplace-path leaks: ./scripts/sync-hooks-to-settings.sh"
 echo "  4. Sync commands: ./scripts/sync-commands-to-settings.sh"
 echo "  5. Restart Claude Code"
 echo ""
