@@ -1,3 +1,11 @@
+## [20.2.1](https://github.com/terrylica/cc-skills/compare/v20.2.0...v20.2.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* **itp-hooks:** drop zod dep + use bun for .ts-importing .mjs ([bcf3e0c](https://github.com/terrylica/cc-skills/commit/bcf3e0cee5784c88230484896550dcafad2abf0e))
+* **marketplace:** remove redundant hooks: <path> entries ([7b75582](https://github.com/terrylica/cc-skills/commit/7b75582948872125dab123c1f811e812f024397a)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
 # [20.2.0](https://github.com/terrylica/cc-skills/compare/v20.1.0...v20.2.0) (2026-05-06)
 
 
