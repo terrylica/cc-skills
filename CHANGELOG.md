@@ -1,3 +1,11 @@
+## [20.2.3](https://github.com/terrylica/cc-skills/compare/v20.2.2...v20.2.3) (2026-05-07)
+
+
+### Bug Fixes
+
+* **itp-hooks:** replace remaining Bun.spawn EventEmitter usage ([f55b5bf](https://github.com/terrylica/cc-skills/commit/f55b5bf9ccff466d7a1f0a23e8d4205fb58d0796))
+* **release:** stop double-registering plugin hooks via settings.json ([f923485](https://github.com/terrylica/cc-skills/commit/f92348520d60dde8d4b4feece9a8c6db678648a3))
+
 ## [20.2.2](https://github.com/terrylica/cc-skills/compare/v20.2.1...v20.2.2) (2026-05-07)
 
 
