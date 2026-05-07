@@ -1,52 +1,26 @@
 #!/usr/bin/env bash
-# sync-hooks-to-settings.sh - Sync plugin hooks.json to ~/.claude/settings.json
+# sync-hooks-to-settings.sh — Prune cc-skills marketplace-path hook entries.
 #
-# Called during post-release to ensure any new hooks are automatically
-# installed in the user's settings.json without manual intervention.
+# History (v20.2.3+):
+# Plugin hooks are auto-loaded by Claude Code from each plugin's
+# `hooks/hooks.json` file in the standard install location. Adding
+# the same hooks to ~/.claude/settings.json (with marketplace paths)
+# was the original sync strategy but caused DOUBLE registration —
+# every hook fired twice per event, observable in the runtime "Ran N
+# stop hooks" display as the same script listed twice.
 #
-# Design:
-# - Reads hooks.json from each plugin in the marketplace
-# - Merges into settings.json, avoiding duplicates
-# - Preserves existing user hooks that aren't from cc-skills plugins
-# - Uses marketplace path (not cache) for reliability
-# - SKIP_HOOK_SYNC: plugins Claude Code auto-discovers at runtime are
-#   skipped to prevent double-registration. Maintain that list as new
-#   plugins are observed firing twice in the runtime hook display.
+# This script now PRUNES any cc-skills marketplace-path entries that
+# leaked into settings.json from older releases. It does NOT add any
+# new entries. Plugins register their own hooks at session start via
+# the auto-load mechanism.
+#
+# Idempotent. Safe to re-run.
 
 set -euo pipefail
 
 SETTINGS="$HOME/.claude/settings.json"
 BACKUP_DIR="$HOME/.claude/backups"
-MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
 
-# Plugins whose hooks Claude Code auto-discovers from the marketplace
-# directly at runtime. Syncing these into settings.json causes
-# DOUBLE-REGISTRATION — the same hook fires twice per event, visible
-# in the "Ran N stop hooks" display as the same script listed twice.
-#
-# We don't fully understand WHY only certain plugins auto-discover (it's
-# not based on path style, hook event type, or enabledPlugins). But the
-# duplication is empirically observable in the runtime hook list — when
-# you see a hook listed twice, add the plugin name here.
-#
-# Plugins in this list still get installed/enabled like all others; only
-# their hooks are skipped during settings.json sync. Claude Code's plugin
-# loader registers them at runtime instead.
-SKIP_HOOK_SYNC=(
-    clarify-prompts
-    statusline-tools
-)
-
-# Returns 0 if plugin is in the skip-list, 1 otherwise.
-is_skipped() {
-    local plugin="$1"
-    for skip in "${SKIP_HOOK_SYNC[@]}"; do
-        [[ "$skip" == "$plugin" ]] && return 0
-    done
-    return 1
-}
-
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
@@ -54,7 +28,6 @@ NC='\033[0m'
 info() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 
-# Backup settings
 backup_settings() {
     mkdir -p "$BACKUP_DIR"
     local ts
@@ -62,96 +35,61 @@ backup_settings() {
     cp "$SETTINGS" "$BACKUP_DIR/settings.json.backup.$ts"
 }
 
-# Main
 main() {
-    echo "→ Syncing plugin hooks to settings.json..."
+    echo "→ Pruning cc-skills marketplace-path hook entries from settings.json..."
 
-    # Ensure settings exists
     if [[ ! -f "$SETTINGS" ]]; then
-        echo '{"hooks": {"PreToolUse": [], "PostToolUse": [], "Stop": []}}' > "$SETTINGS"
+        warn "settings.json not found at $SETTINGS — nothing to prune"
+        return 0
     fi
 
-    # Backup
     backup_settings
 
-    # Remove all cc-skills hooks first (clean slate approach)
+    # Count cc-skills entries before pruning so we can report what changed.
+    local before_count
+    before_count=$(jq '
+        [.hooks // {} | to_entries[] | .value[]?.hooks[]?.command]
+        | map(select(. != null and contains("marketplaces/cc-skills/plugins/")))
+        | length
+    ' "$SETTINGS")
+
+    # Per-hook filter: drop hooks whose command references the cc-skills
+    # marketplace path; if a matcher entry's .hooks array becomes empty
+    # after filtering, drop the matcher entry too.
     jq '
-        .hooks.PreToolUse = [.hooks.PreToolUse[]? | select(.hooks[]?.command | contains("cc-skills") | not)] |
-        .hooks.PostToolUse = [.hooks.PostToolUse[]? | select(.hooks[]?.command | contains("cc-skills") | not)] |
-        .hooks.Stop = [.hooks.Stop[]? | select(.hooks[]?.command | contains("cc-skills") | not)]
-    ' "$SETTINGS" > /tmp/settings-clean.json
-    mv /tmp/settings-clean.json "$SETTINGS"
+        .hooks |= with_entries(
+            .value |= (
+                map(.hooks |= map(select(.command | contains("marketplaces/cc-skills/plugins/") | not)))
+                | map(select(.hooks | length > 0))
+            )
+        )
+    ' "$SETTINGS" > /tmp/settings-pruned.$$.json
 
-    # Find all hooks.json files in marketplace
-    local hooks_added=0
-    local skipped_count=0
-    for hooks_file in "$MARKETPLACE_DIR"/plugins/*/hooks/hooks.json; do
-        if [[ -f "$hooks_file" ]]; then
-            local plugin_name
-            plugin_name=$(basename "$(dirname "$(dirname "$hooks_file")")")
-
-            # Skip auto-discovered plugins (see SKIP_HOOK_SYNC at top).
-            if is_skipped "$plugin_name"; then
-                ((skipped_count++))
-                continue
-            fi
-
-            # Read hooks from plugin — must be object format (keyed by event type)
-            local hooks_type
-            hooks_type=$(jq -r '.hooks | type' "$hooks_file" 2>/dev/null) || continue
-            if [[ "$hooks_type" != "object" ]]; then
-                warn "Skipping $plugin_name: hooks.json uses $hooks_type format (expected object keyed by event type)"
-                continue
-            fi
-
-            local plugin_hooks
-            plugin_hooks=$(jq '.hooks' "$hooks_file" 2>/dev/null) || continue
-
-            # Add each hook type
-            for hook_type in PreToolUse PostToolUse Stop; do
-                local type_hooks
-                type_hooks=$(echo "$plugin_hooks" | jq ".$hook_type // []")
-                if [[ "$type_hooks" != "[]" && "$type_hooks" != "null" ]]; then
-                    # Replace ${CLAUDE_PLUGIN_ROOT} with actual marketplace path
-                    local plugin_path="\$HOME/.claude/plugins/marketplaces/cc-skills/plugins/$plugin_name"
-                    # shellcheck disable=SC2001
-                    type_hooks=$(echo "$type_hooks" | sed "s|\\\${CLAUDE_PLUGIN_ROOT}|$plugin_path|g")
-
-                    # Merge into settings
-                    jq --argjson new_hooks "$type_hooks" "
-                        .hooks.$hook_type = (.hooks.$hook_type // []) + \$new_hooks
-                    " "$SETTINGS" > /tmp/settings-merged.json
-                    mv /tmp/settings-merged.json "$SETTINGS"
-                    ((hooks_added++))
-                fi
-            done
-        fi
-    done
-
-    # Deduplicate by matcher + hooks content
-    jq '
-        .hooks.PreToolUse = (.hooks.PreToolUse | unique_by(.matcher + (.hooks | tostring))) |
-        .hooks.PostToolUse = (.hooks.PostToolUse | unique_by(.matcher + (.hooks | tostring))) |
-        .hooks.Stop = (.hooks.Stop | unique_by(.hooks | tostring))
-    ' "$SETTINGS" > /tmp/settings-dedup.json
-    mv /tmp/settings-dedup.json "$SETTINGS"
-
-    # Validate JSON
-    if ! jq empty "$SETTINGS" 2>/dev/null; then
-        warn "Invalid JSON in settings.json, restoring backup"
-        cp "$BACKUP_DIR/settings.json.backup."* "$SETTINGS" 2>/dev/null || true
+    if ! jq empty /tmp/settings-pruned.$$.json 2>/dev/null; then
+        warn "Pruning produced invalid JSON — leaving settings.json untouched"
+        rm -f /tmp/settings-pruned.$$.json
         exit 1
     fi
 
-    # Count final hooks
-    local pretooluse_count posttooluse_count stop_count
-    pretooluse_count=$(jq '.hooks.PreToolUse | length' "$SETTINGS")
-    posttooluse_count=$(jq '.hooks.PostToolUse | length' "$SETTINGS")
-    stop_count=$(jq '.hooks.Stop | length' "$SETTINGS")
+    mv /tmp/settings-pruned.$$.json "$SETTINGS"
 
-    info "Hooks synced: PreToolUse=$pretooluse_count, PostToolUse=$posttooluse_count, Stop=$stop_count"
-    if [[ $skipped_count -gt 0 ]]; then
-        info "Auto-discovered plugins skipped (avoid double-registration): $skipped_count"
+    local after_count
+    after_count=$(jq '
+        [.hooks // {} | to_entries[] | .value[]?.hooks[]?.command]
+        | map(select(. != null and contains("marketplaces/cc-skills/plugins/")))
+        | length
+    ' "$SETTINGS")
+
+    local removed=$((before_count - after_count))
+    if [[ $removed -gt 0 ]]; then
+        info "Pruned $removed marketplace-path entr$([[ $removed -eq 1 ]] && echo y || echo ies)"
+    else
+        info "No cc-skills marketplace-path entries found (already clean)"
+    fi
+
+    if [[ $after_count -ne 0 ]]; then
+        warn "$after_count cc-skills entr$([[ $after_count -eq 1 ]] && echo y || echo ies) remain (filter mismatch?)"
+        exit 1
     fi
 }
 
