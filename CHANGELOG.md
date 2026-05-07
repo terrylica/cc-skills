@@ -1,3 +1,10 @@
+## [20.2.2](https://github.com/terrylica/cc-skills/compare/v20.2.1...v20.2.2) (2026-05-07)
+
+
+### Bug Fixes
+
+* **itp-hooks,productivity-tools,tts-tg-sync:** bun api + cross-plugin imports ([c620a75](https://github.com/terrylica/cc-skills/commit/c620a759fa4dab756d390ccaa0b49b0969d5c8c7))
+
 ## [20.2.1](https://github.com/terrylica/cc-skills/compare/v20.2.0...v20.2.1) (2026-05-07)
 
 
