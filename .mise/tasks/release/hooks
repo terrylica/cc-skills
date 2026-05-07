@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Sync all cc-skills PreToolUse/PostToolUse/Stop hooks into ~/.claude/settings.json. Wraps scripts/sync-hooks-to-settings.sh. Requires Claude Code restart after running. Run after adding new hook files or updating hook configurations."
+#MISE description="Prune cc-skills marketplace-path hook entries from ~/.claude/settings.json. Plugin hooks are auto-loaded from each plugin's hooks/hooks.json — settings.json should NOT contain duplicates. Wraps scripts/sync-hooks-to-settings.sh."
 set -euo pipefail
 
 ./scripts/sync-hooks-to-settings.sh
-
-echo ""
-echo "NOTE: Restart Claude Code for hooks to take effect."
