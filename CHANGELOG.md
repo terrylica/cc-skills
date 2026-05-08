@@ -1,3 +1,10 @@
+# [21.1.0](https://github.com/terrylica/cc-skills/compare/v21.0.0...v21.1.0) (2026-05-08)
+
+
+### Features
+
+* **release:** bundle sanitized session JSONLs as a private-repo release asset ([ae8ed09](https://github.com/terrylica/cc-skills/commit/ae8ed092907c28e61cc9f413f9c7965bb3e78097))
+
 # [21.0.0](https://github.com/terrylica/cc-skills/compare/v20.2.3...v21.0.0) (2026-05-07)
 
 
