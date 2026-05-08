@@ -84,6 +84,18 @@ if ! bash "$(dirname "$0")/../../../scripts/validate-hook-registration.sh"; then
     exit 1
 fi
 
+# Check 4d: Chronicle slicing regression suite (37 assertions). Verifies the
+# release:chronicle phase picks the right JSONLs across boundary mtimes,
+# subagent recursion, brotli decompression, and visibility-gate parsing.
+echo "→ Running chronicle slicing stress test..."
+if ! mise run release:test-chronicle-slicing >/tmp/chronicle-test.log 2>&1; then
+    echo "  ✗ Chronicle slicing test FAILED — see /tmp/chronicle-test.log"
+    tail -20 /tmp/chronicle-test.log
+    exit 1
+fi
+PASS=$(grep -oE '[0-9]+ passed' /tmp/chronicle-test.log | head -1 | awk '{print $1}')
+echo "  ✓ Chronicle slicing: $PASS assertions passed"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
