@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+#MISE description="Phase 4.5 of 5: Bundle sanitized session JSONLs from the previous release window into the GitHub release asset list. PRIVATE REPOS ONLY — public repos skip this phase silently. JSONLs are sanitized via plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py before upload."
+set -euo pipefail
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Phase 4.5: SESSION CHRONICLE (private repos only)"
+echo "═══════════════════════════════════════════════════════════"
+
+# ────────────────────────────────────────────────────────────────
+# 1. Repo visibility gate — HARD FAIL on public, skip cleanly.
+# ────────────────────────────────────────────────────────────────
+
+parse_owner_repo() {
+    # Robust to ssh-aliased hosts (git@github.com-foo:owner/repo.git)
+    local url="${1%.git}"
+    echo "$url" | awk -F'[:/]' '{print $(NF-1)"/"$NF}'
+}
+
+REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
+if [[ -z "$REMOTE_URL" ]]; then
+    echo "  ⚠ No git remote — cannot determine repo visibility, SKIPPING chronicle"
+    exit 0
+fi
+
+OWNER_REPO=$(parse_owner_repo "$REMOTE_URL")
+PRIVATE=$(gh api "repos/$OWNER_REPO" --jq '.private' 2>/dev/null || echo "")
+
+if [[ "$PRIVATE" != "true" ]]; then
+    if [[ "$PRIVATE" == "false" ]]; then
+        echo "  ⊘ Repo is PUBLIC ($OWNER_REPO) — chronicle SKIPPED by design"
+        echo "    (Session logs would leak via GitHub release assets.)"
+    else
+        echo "  ⚠ Could not determine visibility for $OWNER_REPO (gh api failed)"
+        echo "    Defaulting to SKIP for safety. Set the repo private if you want chronicle attached."
+    fi
+    exit 0
+fi
+echo "  ✓ Repo is private ($OWNER_REPO) — chronicle will be attached"
+
+# ────────────────────────────────────────────────────────────────
+# 2. Date-window detection: previous tag's commit date → now.
+# ────────────────────────────────────────────────────────────────
+
+# Resolve NEW_TAG: prefer the tag pointing at HEAD (set by semantic-release in
+# Phase 2), fall back to package.json version. Some repos use dynamic
+# placeholder versions (`0.0.0-semantic-release`) so package.json alone is unsafe.
+NEW_TAG=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+if [[ -z "$NEW_TAG" ]]; then
+    if [[ -f package.json ]]; then
+        VERSION=$(jq -r '.version' package.json 2>/dev/null || echo "")
+        [[ -n "$VERSION" && "$VERSION" != "null" ]] && NEW_TAG="v${VERSION}"
+    fi
+fi
+if [[ -z "$NEW_TAG" ]]; then
+    echo "  ⚠ Could not determine release tag (no tag at HEAD, no package.json)"
+    exit 0
+fi
+
+PREV_TAG=$(git tag --sort=-creatordate --merged HEAD | grep -v "^${NEW_TAG}$" | head -1 || echo "")
+
+if [[ -n "$PREV_TAG" ]]; then
+    SINCE_EPOCH=$(git log -1 --format=%ct "$PREV_TAG" 2>/dev/null || echo "")
+    SINCE_DATE=$(date -r "$SINCE_EPOCH" '+%Y-%m-%d %H:%M' 2>/dev/null)
+    echo "  → Window: previous tag $PREV_TAG ($SINCE_DATE) → now"
+else
+    # First release: take the past 7 days as a reasonable default.
+    SINCE_EPOCH=$(date -v-7d +%s 2>/dev/null || date -d '7 days ago' +%s)
+    SINCE_DATE=$(date -r "$SINCE_EPOCH" '+%Y-%m-%d %H:%M' 2>/dev/null)
+    echo "  → Window: no previous tag, defaulting to last 7 days ($SINCE_DATE → now)"
+fi
+
+# ────────────────────────────────────────────────────────────────
+# 3. Locate this project's session JSONLs.
+# ────────────────────────────────────────────────────────────────
+
+# Claude Code stores sessions in ~/.claude/projects/<encoded-cwd>/<session-id>.jsonl
+# where <encoded-cwd> = replace `/` with `-` in the absolute project dir.
+ENCODED_CWD="$(echo "$PWD" | tr '/' '-')"
+PROJ_DIR="$HOME/.claude/projects/$ENCODED_CWD"
+
+if [[ ! -d "$PROJ_DIR" ]]; then
+    echo "  ⚠ No Claude Code session dir at $PROJ_DIR — nothing to chronicle"
+    exit 0
+fi
+
+# ────────────────────────────────────────────────────────────────
+# 4. Stage candidates: .jsonl + .jsonl.br with mtime ≥ SINCE_EPOCH.
+#    Recurse into subdirs (subagent transcripts).
+# ────────────────────────────────────────────────────────────────
+
+STAGING=$(mktemp -d -t chronicle-staging-XXXXXX)
+RAW="$STAGING/raw"
+SANITIZED="$STAGING/sanitized"
+mkdir -p "$RAW" "$SANITIZED"
+
+# Cleanup staging on any exit
+trap 'rm -rf "$STAGING"' EXIT
+
+count_jsonl=0
+count_br=0
+total_bytes=0
+
+# Use find -newermt for the time window; -newer + reference is also POSIX but mtime cmp is cleaner here.
+SINCE_REF="$STAGING/.since.ref"
+touch -t "$(date -r "$SINCE_EPOCH" '+%Y%m%d%H%M.%S')" "$SINCE_REF"
+
+while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    rel="${f#$PROJ_DIR/}"
+    # Flatten path-separator into double-underscore so subagent paths survive in tarball
+    flat="${rel//\//__}"
+    case "$f" in
+        *.jsonl)
+            cp "$f" "$RAW/$flat"
+            count_jsonl=$((count_jsonl + 1))
+            ;;
+        *.jsonl.br)
+            # Decompress to staging .jsonl (drop .br extension)
+            out="${flat%.br}"
+            if command -v brotli >/dev/null 2>&1; then
+                brotli -d -c "$f" > "$RAW/$out" 2>/dev/null && count_br=$((count_br + 1)) || rm -f "$RAW/$out"
+            fi
+            ;;
+    esac
+    sz=$(stat -f%z "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || echo 0)
+    total_bytes=$((total_bytes + sz))
+done < <(find "$PROJ_DIR" -type f \( -name '*.jsonl' -o -name '*.jsonl.br' \) -newer "$SINCE_REF" 2>/dev/null)
+
+if [[ $((count_jsonl + count_br)) -eq 0 ]]; then
+    echo "  ⊘ No session JSONLs in window — nothing to attach"
+    exit 0
+fi
+
+echo "  → Staged $count_jsonl raw + $count_br decompressed-from-br = $((count_jsonl + count_br)) files"
+echo "    pre-sanitization size: $((total_bytes / 1024)) KB"
+
+# ────────────────────────────────────────────────────────────────
+# 5. Sanitize.
+# ────────────────────────────────────────────────────────────────
+
+# The sanitizer must be reachable from any repo, not just the cc-skills checkout.
+# Resolve in priority order:
+#   1. cc-skills marketplace clone (always present once cc-skills is installed)
+#   2. local cc-skills source repo (if running from cc-skills itself)
+SANITIZER=""
+for candidate in \
+    "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py" \
+    "plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py"; do
+    if [[ -f "$candidate" ]]; then
+        SANITIZER="$candidate"
+        break
+    fi
+done
+if [[ -z "$SANITIZER" ]]; then
+    echo "  ✗ Sanitizer not found — refusing to upload raw JSONLs"
+    echo "    Expected at: \$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py"
+    exit 1
+fi
+
+REPORT="$STAGING/redaction-report.txt"
+echo "  → Sanitizing..."
+if ! python3 "$SANITIZER" --input "$RAW" --output "$SANITIZED" --report "$REPORT" 2>&1 | tail -5; then
+    echo "  ✗ Sanitizer failed — refusing to upload"
+    exit 1
+fi
+
+# Copy redaction report into the bundle for transparency
+cp "$REPORT" "$SANITIZED/REDACTION-REPORT.txt"
+
+# ────────────────────────────────────────────────────────────────
+# 6. Bundle as tarball.
+# ────────────────────────────────────────────────────────────────
+
+ASSET="$STAGING/session-chronicle-${NEW_TAG}.tar.gz"
+tar -czf "$ASSET" -C "$STAGING" sanitized
+ASSET_SIZE_KB=$(($(stat -f%z "$ASSET" 2>/dev/null || stat -c%s "$ASSET") / 1024))
+echo "  → Bundle: $(basename "$ASSET") (${ASSET_SIZE_KB} KB)"
+
+# ────────────────────────────────────────────────────────────────
+# 7. Attach to GitHub release.
+# ────────────────────────────────────────────────────────────────
+
+if ! gh release view "$NEW_TAG" >/dev/null 2>&1; then
+    echo "  ⚠ GitHub release $NEW_TAG not found — skipping upload (release:version may not have run)"
+    exit 0
+fi
+
+echo "  → Uploading asset to release $NEW_TAG..."
+gh release upload "$NEW_TAG" "$ASSET" --clobber 2>&1 | tail -3
+
+echo ""
+echo "  ✓ Chronicle attached: session-chronicle-${NEW_TAG}.tar.gz"
+echo ""
