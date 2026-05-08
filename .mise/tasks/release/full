@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Execute complete 6-phase release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
+#MISE description="Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
 #MISE depends=["release:preflight"]
 set -euo pipefail
 
@@ -23,6 +23,11 @@ mise run release:sync
 
 # Phase 4: Verify
 mise run release:verify
+
+# Phase 4.5: Session Chronicle (PRIVATE REPOS ONLY)
+# Bundles sanitized session JSONLs from the previous-release window into a
+# tarball attached to the GitHub release. Skips silently for public repos.
+mise run release:chronicle
 
 # Phase 5: Postflight
 mise run release:postflight
