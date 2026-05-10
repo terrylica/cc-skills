@@ -4,7 +4,7 @@
 # Verifies:
 #   1. current_machine_id is stable + 12-hex
 #   2. register_loop stamps machine_id on new entries
-#   3. doctor flags entries with foreign machine_id as RED
+#   3. tinker flags entries with foreign machine_id as RED
 #   4. rotate_jsonl_if_large rotates when over threshold, leaves alone when under
 
 set -uo pipefail
@@ -74,7 +74,7 @@ else
 fi
 
 echo ""
-echo "[Group 3] doctor flags foreign machine_id"
+echo "[Group 3] tinker flags foreign machine_id"
 SD="$HOME/loop-state/foreignloop00"
 mkdir -p "$SD"
 cat > "$HOME/.claude/loops/registry.json" <<EOF
@@ -91,9 +91,9 @@ set +e
 out=$(loop_triage_report 2>&1)
 set -e
 if echo "$out" | grep -q "RED: foreign machine_id"; then
-  ok "doctor surfaces foreign machine_id as RED"
+  ok "tinker surfaces foreign machine_id as RED"
 else
-  nok "doctor did not flag foreign machine_id (got: $(echo "$out" | tail -3))"
+  nok "tinker did not flag foreign machine_id (got: $(echo "$out" | tail -3))"
 fi
 
 # JSON output should classify as foreign_machine kind

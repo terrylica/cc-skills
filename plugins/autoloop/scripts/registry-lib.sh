@@ -351,7 +351,7 @@ register_loop() {
   fi
 
   # Stamp machine_id on the entry if not already set. Wave 4 cross-machine
-  # contamination defense: doctor uses machine_id to filter out entries that
+  # contamination defense: tinker uses machine_id to filter out entries that
   # came from a different machine via rsync/Time Machine restore (their
   # owner_pids would look dead on the receiving machine, causing false-zombie
   # noise). If portable.sh isn't sourced, skip silently — pre-Wave-4 entries
@@ -538,7 +538,7 @@ update_loop_field() {
 #                                      so users can paste either style.
 #
 # This function exists because Wave 3 surfaces AL-named identifiers in skill
-# prompts and doctor output, but the registry's primary key is still the
+# prompts and tinker output, but the registry's primary key is still the
 # 12-hex loop_id. Skills that previously took a bare loop_id (reclaim, status)
 # now route through this resolver so either form works at the CLI boundary.
 #

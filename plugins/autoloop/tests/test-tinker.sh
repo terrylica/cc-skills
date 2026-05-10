@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# test-doctor.sh — Tests for doctor-lib.sh diagnose + repair flows.
+# test-tinker.sh — Tests for tinker-lib.sh diagnose + repair flows.
 # shellcheck disable=SC2329
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
-DOCTOR_LIB="$PLUGIN_DIR/scripts/doctor-lib.sh"
+DOCTOR_LIB="$PLUGIN_DIR/scripts/tinker-lib.sh"
 
 TEMP_DIR=$(mktemp -d)
 export HOME="$TEMP_DIR/home"

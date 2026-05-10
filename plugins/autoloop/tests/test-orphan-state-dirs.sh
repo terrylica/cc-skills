@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-orphan-state-dirs.sh — Wave 5 B3 doctor disk-orphan detection harness
+# test-orphan-state-dirs.sh — Wave 5 B3 tinker disk-orphan detection harness
 #
 # Verifies _triage_check_disk_orphans:
 #   1. Returns nothing on a clean tree (every state_dir registered)
@@ -127,12 +127,12 @@ else
 fi
 
 echo ""
-echo "[Case 4] Doctor surfaces orphan in full report"
+echo "[Case 4] Tinker surfaces orphan in full report"
 report=$(loop_triage_report 2>&1)
 if echo "$report" | grep -q "disk_orphan\|state_dir on disk"; then
   ok "loop_triage_report wires in disk-orphan output"
 else
-  nok "doctor report missing orphan signal; tail: $(echo "$report" | tail -5)"
+  nok "tinker report missing orphan signal; tail: $(echo "$report" | tail -5)"
 fi
 
 echo ""

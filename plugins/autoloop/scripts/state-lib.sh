@@ -307,7 +307,7 @@ write_heartbeat() {
   # the contract file, ran `git clean -dXf`, or manually `rm`'d the contract,
   # the registry entry + state_dir survive but the loop is unmoored — every
   # subsequent heartbeat would tick happily on a contract that no longer
-  # exists. Detect and refuse the write so doctor can surface RED.
+  # exists. Detect and refuse the write so tinker can surface RED.
   local registry_lib_dir
   registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
@@ -1004,7 +1004,7 @@ cleanup_state_dir() {
 #
 # Why this format exists: the bare 12-hex loop_id (e.g. "3555bbe1f0fb") is
 # a deterministic primary key but carries zero meaning when surfaced in
-# /autoloop:reclaim, /autoloop:muster, doctor output, etc. The user's mental
+# /autoloop:reclaim, /autoloop:muster, tinker output, etc. The user's mental
 # model is "the ODB research campaign" not "the c46e8ee3 hex string". This
 # function is the single source of truth for human-readable identifiers,
 # always paired with the loop_id in parens for disambiguation.

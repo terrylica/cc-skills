@@ -29,8 +29,19 @@ by `/doctor` and `/status` respectively. To prevent silent regressions
 when adding a new skill, check the candidate name against the authoritative
 native-command list **before** picking it.
 
-**As of the post-collision-audit release (audit date 2026-05-04):** 6/6
+**As of the post-collision-audit release (audit date 2026-05-04, refreshed 2026-05-10):** 7/7
 autoloop skills clear, 0 collisions.
+
+**2026-05-10 regression caught:** a per-loop repair skill named `doctor` had
+been re-added after the original `doctor → triage` rename, silently
+re-introducing the `/doctor` collision the audit was designed to prevent. It
+was renamed to `tinker` (archaic English for "an itinerant repairer") using
+the same full-scope rename pattern. `triage` (fleet-level) and `tinker`
+(per-loop) now coexist without overlap. Rule of thumb when a future skill
+adds repair semantics: pick a craft / archaic-occupation noun (`tinker`,
+`fettle`, `cobble`) — these have the same distinctiveness property as
+medical/military lexicon and don't drift back toward likely Anthropic
+namespaces.
 
 **Fleet-wide audit (same date):** the collision check was extended across
 all 37 plugins. 11 collisions were found and renamed (all archaic):
@@ -49,14 +60,15 @@ backward-compat) + plugin CLAUDE.md + plugin README.md + any
 cross-plugin references. Old names are documented in the renamed skill's
 description so users searching for the old keyword still find them.
 
-| Skill     | Status  | Notes                                                                   |
-| --------- | ------- | ----------------------------------------------------------------------- |
-| `muster`  | ✓ clear | renamed from `status` — Old French "gather and inspect troops"          |
-| `reclaim` | ✓ clear |                                                                         |
-| `setup`   | ✓ clear | bare `/setup` is not native; only `/setup-bedrock`, `/setup-vertex` are |
-| `start`   | ✓ clear |                                                                         |
-| `stop`    | ✓ clear |                                                                         |
-| `triage`  | ✓ clear | renamed from `doctor` — medical/military "sort by urgency"              |
+| Skill     | Status  | Notes                                                                                                   |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `muster`  | ✓ clear | renamed from `status` — Old French "gather and inspect troops"                                          |
+| `reclaim` | ✓ clear |                                                                                                         |
+| `setup`   | ✓ clear | bare `/setup` is not native; only `/setup-bedrock`, `/setup-vertex` are                                 |
+| `start`   | ✓ clear |                                                                                                         |
+| `stop`    | ✓ clear |                                                                                                         |
+| `tinker`  | ✓ clear | renamed from `doctor` (regression after the original `doctor → triage` rename) — archaic "to repair"    |
+| `triage`  | ✓ clear | fleet-level audit, distinct from per-loop `tinker`; original `doctor → triage` rename predates `tinker` |
 
 **Native Claude Code commands** (snapshot, may grow):
 `add-dir, agents, autofix-pr, batch, branch, btw, chrome, claude-api, clear,
@@ -149,16 +161,17 @@ The autoloop system is built on four atomic primitives that collectively defend 
 
 ## Skills at a Glance
 
-Verify with: `ls plugins/autoloop/skills/` (expected: muster reclaim setup start stop triage)
+Verify with: `ls plugins/autoloop/skills/` (expected: muster reclaim setup start stop tinker triage)
 
-| Skill     | Purpose                                                  | When to Use                                                                                                     |
-| --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `start`   | Scaffold contract, install hooks, register loop          | First time: `/autoloop:start`                                                                                   |
-| `muster`  | Enumerate the loop fleet with health, owner, staleness   | Mid-loop: `/autoloop:muster`. Renamed from `status` to avoid clashing with Claude Code's `/status`.             |
-| `stop`    | Mark DONE, unregister, unload launchd                    | End loop: `/autoloop:stop`                                                                                      |
-| `setup`   | One-time machine setup (hook install, dirs)              | Once per machine (or after reinstall)                                                                           |
-| `reclaim` | Take ownership of stuck loop (dead owner)                | Emergencies: `/autoloop:reclaim <loop_id>`                                                                      |
-| `triage`  | Triage fleet health, surface stale/orphaned loops, --fix | Periodic audits or after suspected crash. Renamed from `doctor` to avoid clashing with Claude Code's `/doctor`. |
+| Skill     | Purpose                                                  | When to Use                                                                                                                         |
+| --------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `start`   | Scaffold contract, install hooks, register loop          | First time: `/autoloop:start`                                                                                                       |
+| `muster`  | Enumerate the loop fleet with health, owner, staleness   | Mid-loop: `/autoloop:muster`. Renamed from `status` to avoid clashing with Claude Code's `/status`.                                 |
+| `stop`    | Mark DONE, unregister, unload launchd                    | End loop: `/autoloop:stop`                                                                                                          |
+| `setup`   | One-time machine setup (hook install, dirs)              | Once per machine (or after reinstall)                                                                                               |
+| `reclaim` | Take ownership of stuck loop (dead owner)                | Emergencies: `/autoloop:reclaim <loop_id>`                                                                                          |
+| `tinker`  | Per-loop diagnose + idempotent repair of bootstrap modes | When a registered loop won't fire, owner_session_id stuck at `pending-bind`, or after a marketplace upgrade. Renamed from `doctor`. |
+| `triage`  | Triage fleet health, surface stale/orphaned loops, --fix | Periodic audits or after suspected crash. Renamed from `doctor → triage` (fleet-level audit; per-loop repair lives in `tinker`).    |
 
 ---
 
