@@ -89,8 +89,13 @@ _invariant_check_spawn() {
     return 1
   fi
   if [ "$bound_cwd" != "$contract_dir" ]; then
+    # Wave 6.3: split spawn_refused_cwd_drift into _mismatch (bound_cwd
+    # disagrees with contract_dir at refusal time) and _flagged (sticky
+    # cwd_drift_detected from a prior heartbeat). Pre-fix the same event
+    # name covered both, so post-mortem queries couldn't tell whether
+    # the drift was discovered now or persisted across firings.
     if command -v emit_provenance >/dev/null 2>&1; then
-      emit_provenance "$loop_id" "spawn_refused_cwd_drift" \
+      emit_provenance "$loop_id" "spawn_refused_cwd_drift_mismatch" \
         session_id="$session_id" \
         cwd_bound="$bound_cwd" \
         reason="bound_cwd '$bound_cwd' != contract_dir '$contract_dir'; cwd drift detected" \
@@ -104,7 +109,7 @@ _invariant_check_spawn() {
   drift_flag=$(jq -r '.cwd_drift_detected // false' "$hb_file" 2>/dev/null)
   if [ "$drift_flag" = "true" ]; then
     if command -v emit_provenance >/dev/null 2>&1; then
-      emit_provenance "$loop_id" "spawn_refused_cwd_drift" \
+      emit_provenance "$loop_id" "spawn_refused_cwd_drift_flagged" \
         session_id="$session_id" \
         reason="heartbeat.cwd_drift_detected=true; resume disabled until reclaim" \
         decision="refused" 2>/dev/null || true

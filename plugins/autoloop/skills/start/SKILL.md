@@ -195,10 +195,18 @@ loop_id=$(derive_loop_id "$CONTRACT_PATH")
 # is the canonical placeholder; the SessionStart hook replaces it atomically
 # on the next session start. bound_cwd starts empty; heartbeat-tick records
 # it on the first tick and detects drift thereafter.
+#
+# state_dir resolution: ALWAYS go through `state_dir_path "$loop_id"
+# "$CONTRACT_PATH"` instead of hand-rolling `<dir>/.loop-state/<id>/`.
+# Wave 3 introduced the v2 layout (.autoloop/<slug>--<hash>/state/) and
+# `state_dir_path` returns the correct path for both v1 and v2 contracts.
+# Hand-rolling .loop-state would register a v1 path against a v2 contract
+# and the heartbeat-tick hook would write to a directory the contract
+# doesn't recognize.
 entry=$(jq -n \
   --arg loop_id "$loop_id" \
   --arg contract_path "$(realpath "$CONTRACT_PATH")" \
-  --arg state_dir "$(dirname "$CONTRACT_PATH")/.loop-state/$loop_id/" \
+  --arg state_dir "$(state_dir_path "$loop_id" "$CONTRACT_PATH")" \
   --arg owner_session_id "pending-bind" \
   --arg bound_cwd "" \
   --arg owner_pid "$$" \

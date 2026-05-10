@@ -161,17 +161,20 @@ assert_eq "$SID4" "$SID_OLD_OWNER" "registry NOT auto-reclaimed (owner unchanged
 STALE=$(jq -sr '.[] | select(.event=="stale_owner_detected" and .loop_id=="dddddddddddd") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
 assert_eq "$STALE" "stale_owner_detected" "stale_owner_detected provenance event emitted"
 
-# ===== Test 5: live other-owner → observer =====
+# ===== Test 5: live other-owner → observer_active =====
+# Wave 6.3 split the prior single `observer` event into observer_active
+# (live other-owner; co-tenant) and observer_dead_grace (dead other-owner
+# inside the race-window threshold). This test exercises the live branch.
 echo ""
-echo "Test 5: live other-owner → observer (no mutation)"
+echo "Test 5: live other-owner → observer_active (no mutation)"
 reset
 LIVE_PID=$$
 DIR5=$(init_loop "eeeeeeeeeeee" "$SID_LIVE_OWNER" "$LIVE_PID" "0")
 run_hook "$SID_INCOMING" "$DIR5"
 SID5=$(jq -r '.loops[] | select(.loop_id=="eeeeeeeeeeee") | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
 assert_eq "$SID5" "$SID_LIVE_OWNER" "registry unchanged"
-OBS=$(jq -sr '.[] | select(.event=="observer" and .loop_id=="eeeeeeeeeeee") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
-assert_eq "$OBS" "observer" "observer provenance event emitted"
+OBS=$(jq -sr '.[] | select(.event=="observer_active" and .loop_id=="eeeeeeeeeeee") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
+assert_eq "$OBS" "observer_active" "observer_active provenance event emitted (Wave 6.3 split)"
 
 # ===== Wave 6 helper: v2 loop fixture (.autoloop/<slug>--<hash>/CONTRACT.md) =====
 # Wave 6 added the path-hierarchy match: cwd anywhere from project_root

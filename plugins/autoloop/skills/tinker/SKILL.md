@@ -47,7 +47,7 @@ if [ -z "$INPUT" ]; then
     echo "  inferred loop_id $LOOP_ID from $candidates" >&2
   else
     echo "ERROR: no argument given and could not unambiguously infer loop_id from cwd" >&2
-    echo "       Try /autoloop:status to list registered loops, then call /autoloop:tinker <loop_id>." >&2
+    echo "       Try /autoloop:muster to list registered loops, then call /autoloop:tinker <loop_id>." >&2
     exit 1
   fi
 else
