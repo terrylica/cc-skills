@@ -102,6 +102,66 @@ state_dir_path() {
   return 0
 }
 
+# derive_project_root <contract_path>
+# Compute the project-root directory the loop lives in. This is the directory
+# from which the user runs Claude Code on the project — the "natural" cwd that
+# session-bind.sh and heartbeat-tick.sh should match against (NOT the contract
+# parent dir, which is a hidden subdirectory).
+#
+# Layout-aware:
+#   v2:     <root>/.autoloop/<slug>--<hash>/CONTRACT.md  →  returns <root>
+#   legacy: <root>/LOOP_CONTRACT.md                       →  returns <root>
+#           (falls back to git toplevel if the contract is not at the repo root)
+#
+# This is the SSoT for the "created_at_cwd" registry field. Hooks bind a
+# session to a loop iff the session's cwd is at or below the project root.
+#
+# Arguments:
+#   $1: contract_path (absolute or relative; resolved to realpath)
+#
+# Output:
+#   project_root absolute path (no trailing slash)
+#
+# Exit code:
+#   0 on success
+#   1 if contract_path doesn't resolve
+#
+# Example:
+#   derive_project_root "/Users/x/eon/foo/.autoloop/bar--a1b2c3/CONTRACT.md"
+#   → /Users/x/eon/foo
+derive_project_root() {
+  local contract_path="$1"
+
+  local contract_dir
+  contract_dir=$(cd "$(dirname "$contract_path")" 2>/dev/null && pwd -P) || {
+    echo "ERROR: derive_project_root: cannot resolve contract_path '$contract_path'" >&2
+    return 1
+  }
+
+  # v2: contract is at <root>/.autoloop/<slug>--<hash>/CONTRACT.md
+  # Strip the ".autoloop/<slug>--<hash>" tail to recover <root>.
+  case "$contract_dir" in
+    */.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+      # Two dirname's gets us from <slug>--<hash> → .autoloop → <root>
+      local autoloop_dir project_root
+      autoloop_dir=$(dirname "$contract_dir")
+      project_root=$(dirname "$autoloop_dir")
+      echo "$project_root"
+      return 0
+      ;;
+  esac
+
+  # Legacy: contract at <root>/LOOP_CONTRACT.md. Use git toplevel if available
+  # (handles deeply-nested contracts in monorepos), else the contract's own dir.
+  local repo_root
+  if repo_root=$(git -C "$contract_dir" rev-parse --show-toplevel 2>/dev/null); then
+    echo "$repo_root"
+    return 0
+  fi
+  echo "$contract_dir"
+  return 0
+}
+
 # init_state_dir <loop_id> <contract_path>
 # Initializes the state directory for a loop. Creates directories, adds .gitignore entry,
 # auto-derives loop_id in contract frontmatter if missing, and registers in loop registry.
@@ -204,6 +264,11 @@ loop_id: '"$loop_id" "$contract_path" || true
     local existing_entry
     existing_entry=$(read_registry_entry "$loop_id" 2>/dev/null) || existing_entry="{}"
 
+    # created_at_cwd: project root the loop lives in. SSoT for the bind hook's
+    # cwd-match check. Derived from contract path shape (parent of .autoloop/).
+    local proj_root
+    proj_root=$(derive_project_root "$contract_path" 2>/dev/null || echo "")
+
     if [ "$existing_entry" = "{}" ] || [ -z "$existing_entry" ]; then
       # Auto-register entry if missing (MIG-02)
       local entry_json
@@ -211,10 +276,23 @@ loop_id: '"$loop_id" "$contract_path" || true
         --arg loop_id "$loop_id" \
         --arg contract_path "$contract_path" \
         --arg state_dir "$state_dir" \
+        --arg created_at_cwd "$proj_root" \
         --arg generation "0" \
-        '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, generation: $generation}')
+        '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, created_at_cwd: $created_at_cwd, generation: $generation}')
 
       register_loop "$entry_json" 2>/dev/null || true
+    elif [ -n "$proj_root" ]; then
+      # Backfill created_at_cwd on existing entries whose value is missing,
+      # empty, or pointed at the contract dir (the historical bug). This
+      # restores binding for loops registered before the schema fix.
+      local existing_cwd
+      existing_cwd=$(echo "$existing_entry" | jq -r '.created_at_cwd // ""' 2>/dev/null)
+      local contract_dir
+      contract_dir=$(cd "$(dirname "$contract_path")" 2>/dev/null && pwd -P || echo "")
+      if [ -z "$existing_cwd" ] \
+         || [ "$existing_cwd" = "$contract_dir" ]; then
+        update_loop_field "$loop_id" ".created_at_cwd" "\"$proj_root\"" 2>/dev/null || true
+      fi
     fi
   fi
 
@@ -634,9 +712,14 @@ init_contract_frontmatter_v2() {
   created_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "")
   [ -n "$created_at" ] && _set_if_missing "created_at_utc" "\"$created_at\""
 
-  # created_at_cwd: realpath of contract's parent directory
+  # created_at_cwd: project root (the dir containing .autoloop/, NOT the contract
+  # parent dir). Derived from contract path shape via derive_project_root —
+  # session-bind.sh and heartbeat-tick.sh use this field to decide whether a
+  # Claude session running in <root> should bind to this loop. Recording the
+  # contract parent dir (a hidden subdir) was the historical bug that left
+  # owner_session_id stuck at "pending-bind" for sessions opened from <root>.
   local cwd_abs
-  cwd_abs=$(cd "$(dirname "$contract_path")" && pwd -P 2>/dev/null || echo "")
+  cwd_abs=$(derive_project_root "$contract_path" 2>/dev/null || echo "")
   [ -n "$cwd_abs" ] && _set_if_missing "created_at_cwd" "\"$cwd_abs\""
 
   # git branch + commit (best-effort)
@@ -856,13 +939,13 @@ migrate_legacy_contract() {
       --arg loop_id "$new_loop_id" \
       --arg contract_path "$new_contract" \
       --arg state_dir "$new_state" \
-      --arg project_cwd "$project_cwd" \
+      --arg created_at_cwd "$project_cwd" \
       --arg campaign_slug "$slug" \
       --arg short_hash "$short_hash" \
       --arg migrated_from "${legacy_loop_id:-}" \
       --arg generation "0" \
       '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir,
-        project_cwd: $project_cwd, campaign_slug: $campaign_slug,
+        created_at_cwd: $created_at_cwd, campaign_slug: $campaign_slug,
         short_hash: $short_hash, migrated_from: $migrated_from,
         generation: $generation}')
     register_loop "$entry_json" 2>/dev/null || true
@@ -1059,6 +1142,7 @@ format_loop_display_name() {
 # Export functions for sourcing by other scripts
 export -f now_us
 export -f state_dir_path
+export -f derive_project_root
 export -f init_state_dir
 export -f write_heartbeat
 export -f read_heartbeat
