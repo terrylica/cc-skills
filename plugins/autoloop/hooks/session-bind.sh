@@ -284,10 +284,15 @@ while IFS= read -r match; do
       ;;
 
     *)
-      # Different session owns this loop — check liveness
+      # Different session owns this loop — check liveness.
+      # Wave 6.3: split the prior single `observer` event into
+      # `observer_active` (other owner is alive — we're a passive co-tenant)
+      # and `observer_dead_grace` (other owner is dead but we're still inside
+      # the race-window threshold and waiting). Post-mortem queries couldn't
+      # previously tell these apart from the event name alone.
       if [ -n "$OWNER_PID" ] && kill -0 "$OWNER_PID" 2>/dev/null; then
         # Other owner alive → this session is an observer
-        emit_provenance "$LOOP_ID" "observer" \
+        emit_provenance "$LOOP_ID" "observer_active" \
           session_id="$SESSION_ID" \
           cwd_observed="$CWD" \
           registry_generation="$GEN" \
@@ -306,7 +311,7 @@ while IFS= read -r match; do
             decision="deferred"
         else
           # Recent dead-owner — log but don't act (race window)
-          emit_provenance "$LOOP_ID" "observer" \
+          emit_provenance "$LOOP_ID" "observer_dead_grace" \
             session_id="$SESSION_ID" \
             cwd_observed="$CWD" \
             registry_generation="$GEN" \

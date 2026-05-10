@@ -235,24 +235,59 @@ while IFS= read -r entry; do
   ARCHIVED=$((ARCHIVED + 1))
 done <<< "$STALE_ENTRIES"
 
-# Remove archived entries from registry (filter out those matching the stale predicate).
-TMP_REG=$(mktemp "$REGISTRY_PATH.heal.XXXXXX") || exit 0
-jq --argjson now "$NOW_US" --argjson threshold_us "$((STALE_THRESHOLD_S * 1000000))" '
-  .loops |= map(select(
-    (.owner_session_id == "unknown" or .owner_session_id == "unknown-session" or
-     .owner_session_id == "" or .owner_session_id == "pending-bind" or .owner_session_id == null)
-    and ((.owner_start_time_us | tonumber) > 0)
-    and (($now - (.owner_start_time_us | tonumber)) > $threshold_us)
-    | not
-  ))
-' "$REGISTRY_PATH" >"$TMP_REG" 2>/dev/null || {
-  rm -f "$TMP_REG"
-  exit 0
-}
-mv "$TMP_REG" "$REGISTRY_PATH" || {
-  rm -f "$TMP_REG"
-  exit 0
-}
+# Wave 6.3: remove archived entries from registry inside _with_registry_lock.
+# Pre-fix this was a bare mktemp+jq+mv sequence that raced against
+# concurrent update_loop_field() callers — a SessionStart firing in another
+# Claude window could acquire the registry lock, write an updated owner_pid
+# / owner_session_id field, release, and then heal-self's unprotected `mv`
+# would overwrite that change with its filtered (older) snapshot. The lock
+# primitive serializes the read-modify-write transaction.
+REG_LIB_HEAL="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/registry-lib.sh"
+if [ -f "$REG_LIB_HEAL" ]; then
+  # shellcheck source=/dev/null
+  source "$REG_LIB_HEAL" 2>/dev/null || true
+fi
+
+if command -v _with_registry_lock >/dev/null 2>&1; then
+  # _with_registry_lock invokes its callback indirectly via "$fn" "$@"
+  # (registry-lib.sh:220), so shellcheck can't see the call site.
+  # shellcheck disable=SC2329
+  _heal_archive_filter() {
+    local now="$1" threshold_us="$2"
+    jq --argjson now "$now" --argjson threshold_us "$threshold_us" '
+      .loops |= map(select(
+        (.owner_session_id == "unknown" or .owner_session_id == "unknown-session" or
+         .owner_session_id == "" or .owner_session_id == "pending-bind" or .owner_session_id == null)
+        and ((.owner_start_time_us | tonumber) > 0)
+        and (($now - (.owner_start_time_us | tonumber)) > $threshold_us)
+        | not
+      ))
+    '
+  }
+  _with_registry_lock _heal_archive_filter "$NOW_US" "$((STALE_THRESHOLD_S * 1000000))" \
+    >/dev/null 2>&1 || exit 0
+else
+  # Fail-graceful: if registry-lib couldn't be sourced (test envs that
+  # stub it out), fall back to the historical unsafe path. Better to
+  # archive racy than to leave stale entries forever.
+  TMP_REG=$(mktemp "$REGISTRY_PATH.heal.XXXXXX") || exit 0
+  jq --argjson now "$NOW_US" --argjson threshold_us "$((STALE_THRESHOLD_S * 1000000))" '
+    .loops |= map(select(
+      (.owner_session_id == "unknown" or .owner_session_id == "unknown-session" or
+       .owner_session_id == "" or .owner_session_id == "pending-bind" or .owner_session_id == null)
+      and ((.owner_start_time_us | tonumber) > 0)
+      and (($now - (.owner_start_time_us | tonumber)) > $threshold_us)
+      | not
+    ))
+  ' "$REGISTRY_PATH" >"$TMP_REG" 2>/dev/null || {
+    rm -f "$TMP_REG"
+    exit 0
+  }
+  mv "$TMP_REG" "$REGISTRY_PATH" || {
+    rm -f "$TMP_REG"
+    exit 0
+  }
+fi
 
 # Emit provenance event (best-effort)
 PROV_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/provenance-lib.sh"
