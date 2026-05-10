@@ -521,7 +521,15 @@ _reclaim_apply_impl() {
 reclaim_loop() {
   local loop_id="$1"
   local reason="${3:-owner_dead}"
-  local registry_path="${LOOP_REGISTRY_PATH:-$HOME/.claude/loops/registry.json}"
+  # Wave 6.5: honor CLAUDE_LOOPS_REGISTRY (the env var heal-self.sh,
+  # session-bind.sh, and heartbeat-tick.sh use) AS WELL AS the historical
+  # LOOP_REGISTRY_PATH. Pre-fix the two were synonyms — same default, same
+  # effect — but a user tuning one would not have discovered the other,
+  # and tests that exported CLAUDE_LOOPS_REGISTRY would have silently
+  # missed the reclaim path. Precedence is CLAUDE_LOOPS_REGISTRY first
+  # since it's the more visible / more-frequently-set name across the
+  # plugin; LOOP_REGISTRY_PATH stays as a back-compat fallback.
+  local registry_path="${CLAUDE_LOOPS_REGISTRY:-${LOOP_REGISTRY_PATH:-$HOME/.claude/loops/registry.json}}"
 
   # Validate loop_id format
   if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
