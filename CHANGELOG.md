@@ -1,3 +1,15 @@
+# [21.4.0](https://github.com/terrylica/cc-skills/compare/v21.3.0...v21.4.0) (2026-05-10)
+
+
+### Features
+
+* **autoloop:** /autoloop:start prints bind-verification block ([b40437a](https://github.com/terrylica/cc-skills/commit/b40437a33285e6d467cc76c3182ac85aa60d0c6c))
+* **autoloop:** bind hooks match on path-hierarchy with telemetry ([9c8509d](https://github.com/terrylica/cc-skills/commit/9c8509dfa0c3184cc1a162b18e537b4715791cfa))
+* **autoloop:** heal-self auto-binds pending-bind to live sessions ([cfbd326](https://github.com/terrylica/cc-skills/commit/cfbd326018e3fa7dcad3dbfaadf2ebee8cd8f7dc))
+* **autoloop:** muster surfaces PENDING-BIND-STUCK status with hint ([cd66cd6](https://github.com/terrylica/cc-skills/commit/cd66cd6ff37ef7bf84e21957be05670d3b8f62e4))
+* **autoloop:** promote created_at_cwd to first-class registry field ([9210f0c](https://github.com/terrylica/cc-skills/commit/9210f0ce8a3d1a53286ba18a137192bb10d28f79))
+* **autoloop:** waker classifies dead+fresh anomaly with actionable hint ([7c14548](https://github.com/terrylica/cc-skills/commit/7c14548c431e433d9eccdea620dacc3bffc78824))
+
 # [21.3.0](https://github.com/terrylica/cc-skills/compare/v21.2.1...v21.3.0) (2026-05-10)
 
 
