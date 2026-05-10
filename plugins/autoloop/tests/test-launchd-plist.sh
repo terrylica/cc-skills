@@ -143,11 +143,13 @@ echo "Test 6: plist points at per-loop runner; runner exec's waker"
 echo "========================================"
 
 # New contract (post 2026-04-27): the plist's ProgramArguments points at
-# <state_dir>/claude-loop-runner — a generated wrapper that exec's the
-# upstream waker.sh with the loop_id. This makes Login Items show
-# "claude-loop-runner" instead of "bash". The waker path + loop_id live
-# in the runner file, not the plist.
-RUNNER_FILE="$TEST_STATE_DIR/claude-loop-runner"
+# <state_dir>/claude-loop-<loop_name> — a generated wrapper that exec's
+# the upstream waker.sh with the loop_id. v16.8.0 added the loop_name
+# suffix so System Settings → Login Items shows e.g.
+# "claude-loop-minimax-explore" instead of N identical
+# "claude-loop-runner" rows. With no registered contract the
+# fallback embeds the loop_id's first 8 chars.
+RUNNER_FILE="$TEST_STATE_DIR/claude-loop-a1b2c3d4"
 if grep -q "<string>$RUNNER_FILE</string>" "$PLIST_FILE" \
   && [ -x "$RUNNER_FILE" ] \
   && grep -q "exec \"$STUB_WAKER\" \"a1b2c3d4e5f6\"" "$RUNNER_FILE"; then

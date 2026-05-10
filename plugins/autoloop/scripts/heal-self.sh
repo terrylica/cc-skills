@@ -112,6 +112,17 @@ if [ -d "$PROJECTS_DIR" ]; then
     fi
     [ -z "$local_root" ] && continue
 
+    # Wave 6.2: canonicalize via realpath before encoding. Claude Code names
+    # the JSONL directory after the realpath-resolved cwd; an entry whose
+    # created_at_cwd was written before realpath canonicalization existed
+    # (or via a symlinked workspace) would encode to a non-matching dir
+    # and the auto-bind would silently fall through to archival even
+    # though a live session was sitting right there. The fallback to the
+    # raw value preserves behavior when the path no longer exists on disk.
+    if local_root_canon=$(cd "$local_root" 2>/dev/null && pwd -P); then
+      local_root="$local_root_canon"
+    fi
+
     # Encode: leading-slash path with "/" replaced by "-"
     encoded="${local_root//\//-}"
     project_jsonl_dir="$PROJECTS_DIR/$encoded"
@@ -148,7 +159,10 @@ if [ -d "$PROJECTS_DIR" ]; then
           local_state_dir=$(echo "$entry" | jq -r '.state_dir // ""' 2>/dev/null)
           if [ -n "$local_state_dir" ] && [ -d "$local_state_dir" ]; then
             HB_FILE="$local_state_dir/heartbeat.json"
-            local_contract_dir=$(dirname "$local_contract")
+            # Wave 6.2: canonicalize so the seeded bound_cwd matches what
+            # heartbeat-tick.sh and waker.sh now expect post-canonicalization.
+            local_contract_dir=$(cd "$(dirname "$local_contract")" 2>/dev/null && pwd -P) || \
+              local_contract_dir=$(dirname "$local_contract")
             if [ -f "$HB_FILE" ]; then
               # Merge bound_cwd into existing heartbeat
               TMP_HB=$(mktemp "$HB_FILE.heal.XXXXXX") || TMP_HB=""

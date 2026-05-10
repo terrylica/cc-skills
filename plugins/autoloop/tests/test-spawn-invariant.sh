@@ -8,6 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 
 TEMP_DIR=$(mktemp -d)
+# Wave 6.2: canonicalize via pwd -P. waker.sh's invariant check now
+# canonicalizes contract_dir, so fixtures must match that encoding to
+# pass the bound_cwd equality check.
+TEMP_DIR=$(cd "$TEMP_DIR" && pwd -P)
 export HOME="$TEMP_DIR/home"
 mkdir -p "$HOME/.claude/loops"
 export CLAUDE_LOOPS_REGISTRY="$HOME/.claude/loops/registry.json"

@@ -26,6 +26,13 @@ HOOKS="$PLUGIN_DIR/hooks"
 SCRIPTS="$PLUGIN_DIR/scripts"
 
 TEMP_DIR=$(mktemp -d)
+# Wave 6.2: canonicalize via pwd -P. C1 race test passes CDIR (under
+# TEMP_DIR) as cwd; session-bind.sh canonicalizes cwd via pwd -P, so
+# without this fixture-side normalization the macOS /var/folders →
+# /private/var/folders symlink divergence makes the path-hierarchy
+# predicate miss the registered loop and the race test silently
+# reports "no winner".
+TEMP_DIR=$(cd "$TEMP_DIR" && pwd -P)
 export HOME="$TEMP_DIR/home"
 mkdir -p "$HOME/.claude/loops" "$HOME/Library/LaunchAgents"
 export CLAUDE_LOOPS_REGISTRY="$HOME/.claude/loops/registry.json"
@@ -287,6 +294,11 @@ echo "## Group C: Concurrency"
 # ============================================================
 
 # C1: parallel session-bind for same cwd → exactly one wins
+# Wave 6.2: fixture must use real UUIDs. session-bind.sh enforces strict
+# UUID regex (added with the marketplace-pollution defense); the
+# pre-existing `uuid-race-N` placeholders were silently rejected, so the
+# race "had no contestants" and `pending-bind` survived — test failed
+# without ever exercising the actual race semantics.
 echo "C1: 5 parallel session-bind for same loop"
 reset
 CDIR="$TEMP_DIR/contracts/parallel-C1"
@@ -295,13 +307,13 @@ put_contract "$CDIR" "parallel-test" >/dev/null
 LID=$(derive_loop_id "$CDIR/LOOP_CONTRACT.md")
 put_loop "$LID" "$CDIR/LOOP_CONTRACT.md" "pending-bind" 0 >/dev/null
 for i in 1 2 3 4 5; do
-  ( probe_session_bind "uuid-race-$i" "$CDIR" >/dev/null 2>&1 ) &
+  ( probe_session_bind "0000000$i-1111-2222-3333-444444444444" "$CDIR" >/dev/null 2>&1 ) &
 done
 wait
 WINNER=$(jq -r --arg l "$LID" '.loops[] | select(.loop_id == $l) | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
 case "$WINNER" in
-  uuid-race-*) assert "ok" "ok" "exactly one race winner ($WINNER)" ;;
-  *) assert "$WINNER" "uuid-race-?" "race winner not bound" ;;
+  0000000[1-5]-1111-2222-3333-444444444444) assert "ok" "ok" "exactly one race winner ($WINNER)" ;;
+  *) assert "$WINNER" "0000000?-1111-2222-3333-444444444444" "race winner not bound" ;;
 esac
 
 # C2: provenance concurrent writes (already covered in test-provenance)

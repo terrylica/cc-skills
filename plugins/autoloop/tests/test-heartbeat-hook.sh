@@ -48,10 +48,14 @@ name: test-loop
 EOF
 }
 
-# Source the hook and libraries
-HOOK_SCRIPT="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/hooks/heartbeat-tick.sh"
-REGISTRY_LIB="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/scripts/registry-lib.sh"
-STATE_LIB="/Users/terryli/gsd-workspaces/autoloop-multiplicity/cc-skills/plugins/autoloop/scripts/state-lib.sh"
+# Source the hook and libraries (resolve from this test file's location, not
+# a hardcoded developer path — pre-Wave-6.2 these strings prevented the test
+# from running anywhere except one author's checkout, masking real coverage).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
+HOOK_SCRIPT="$PLUGIN_DIR/hooks/heartbeat-tick.sh"
+REGISTRY_LIB="$PLUGIN_DIR/scripts/registry-lib.sh"
+STATE_LIB="$PLUGIN_DIR/scripts/state-lib.sh"
 
 if [ ! -f "$REGISTRY_LIB" ] || [ ! -f "$STATE_LIB" ] || [ ! -f "$HOOK_SCRIPT" ]; then
   echo "ERROR: Required scripts not found"
@@ -109,7 +113,12 @@ test_hook_02_1_matching_cwd() {
   fi
 }
 
-# ===== Test: HOOK-02.2 — Hook no-op in non-matching CWD =====
+# ===== Test: HOOK-02.2 — Hook no-op when neither session-id nor cwd matches =====
+# BIND-03 makes session-id the primary match key (a session that drifts out of
+# its contract dir keeps ticking), so the historical "non-matching cwd → no-op"
+# only holds when session-id ALSO doesn't match. Otherwise, see HOOK-02.3 which
+# covers the missing-session-id branch and HOOK-03 which covers session
+# mismatch with a heartbeat already on disk.
 test_hook_02_2_non_matching_cwd() {
   setup_test_env
 
@@ -126,16 +135,18 @@ test_hook_02_2_non_matching_cwd() {
     --arg contract_path "$TEST_REPO/LOOP_CONTRACT.md" \
     --arg state_dir "$state_dir" \
     --arg generation "0" \
-    --arg owner_session_id "test-session-123" \
+    --arg owner_session_id "test-session-owner" \
     '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, generation: $generation, owner_session_id: $owner_session_id}')
   register_loop "$entry"
 
-  # Run hook from different directory
-  export CLAUDE_SESSION_ID="test-session-123"
+  # Run hook from different directory under a DIFFERENT session id
+  # (different-session + non-matching cwd is the only combination that
+  # genuinely no-ops post-BIND-03; same-session would tick by design).
+  export CLAUDE_SESSION_ID="test-session-stranger"
   cd /tmp
 
   # Manually write a baseline heartbeat
-  write_heartbeat "$loop_id" "test-session-123" 0
+  write_heartbeat "$loop_id" "test-session-owner" 0
 
   # Run hook
   bash "$HOOK_SCRIPT" > /dev/null 2>&1
@@ -147,7 +158,7 @@ test_hook_02_2_non_matching_cwd() {
   iteration=$(echo "$hb" | jq -r '.iteration // -1')
 
   if [ "$iteration" = "0" ]; then
-    echo "✓ HOOK-02.2: Non-matching CWD no-op (iteration still 0)"
+    echo "✓ HOOK-02.2: Non-matching CWD + non-matching session no-op (iteration still 0)"
     PASS=$((PASS + 1))
   else
     echo "✗ HOOK-02.2: Expected iteration=0, got iteration=$iteration"

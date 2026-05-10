@@ -9,6 +9,10 @@ PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 HOOK="$PLUGIN_DIR/hooks/heartbeat-tick.sh"
 
 TEMP_DIR=$(mktemp -d)
+# Wave 6.2: canonicalize via pwd -P so fixture paths match the SUT's
+# realpath normalization. macOS symlinks /var/folders → /private/var/folders;
+# without this, bound_cwd asserts compare the two divergent forms and fail.
+TEMP_DIR=$(cd "$TEMP_DIR" && pwd -P)
 export HOME="$TEMP_DIR/home"
 mkdir -p "$HOME/.claude/loops"
 export CLAUDE_LOOPS_REGISTRY="$HOME/.claude/loops/registry.json"
