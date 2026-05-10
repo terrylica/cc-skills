@@ -1,3 +1,10 @@
+## [21.2.1](https://github.com/terrylica/cc-skills/compare/v21.2.0...v21.2.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* **disk-hygiene:** document pueue hook + heredoc spaced-path failure mode ([377c797](https://github.com/terrylica/cc-skills/commit/377c797792f6e26567fefdb8edb42f0c92a1dd00))
+
 # [21.2.0](https://github.com/terrylica/cc-skills/compare/v21.1.0...v21.2.0) (2026-05-10)
 
 
