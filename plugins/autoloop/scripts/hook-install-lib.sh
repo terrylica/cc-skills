@@ -12,6 +12,40 @@
 
 set -euo pipefail
 
+# _capture_jq_stderr_to <var-name>
+# Internal: allocate a tempfile for jq stderr capture and assign its path
+# to the named variable. Caller is responsible for `rm -f "$<var>"` on
+# every exit path.
+#
+# Wave 6.6: introduced after a real-world incident where every install_*_impl
+# function silenced jq's stderr with `2>/dev/null` and surfaced only a
+# generic "jq update failed" message. The user could not diagnose what
+# actually broke (malformed input, special character in $hook_path, etc.).
+# Replacing the silent redirect with a tempfile-capture pattern keeps
+# atomicity (no shared global) and makes the real jq diagnostic surface to
+# the operator on the failing path.
+#
+# Usage:
+#   local jq_err
+#   _capture_jq_stderr_to jq_err "$claude_dir"
+#   new_settings=$(jq '...' "$path" 2>"$jq_err") || {
+#     local err_msg
+#     err_msg=$(cat "$jq_err" 2>/dev/null || echo "(stderr capture failed)")
+#     rm -f "$jq_err"
+#     echo "ERROR: ...: jq failed: ${err_msg:-(no stderr)}" >&2
+#     return 1
+#   }
+#   rm -f "$jq_err"
+_capture_jq_stderr_to() {
+  local _var_name="$1"
+  local _claude_dir="${2:-${TMPDIR:-/tmp}}"
+  local _path
+  if ! _path=$(mktemp "${_claude_dir}/jq-stderr.XXXXXX" 2>/dev/null); then
+    _path=$(mktemp "${TMPDIR:-/tmp}/jq-stderr.XXXXXX" 2>/dev/null) || _path="${TMPDIR:-/tmp}/jq-stderr.$$"
+  fi
+  printf -v "$_var_name" '%s' "$_path"
+}
+
 # is_hook_installed [settings_path]
 # Checks if our heartbeat hook is already installed in settings.json.
 #
@@ -356,6 +390,8 @@ install_hook_impl() {
 
   # Read existing or create new
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   if [ -f "$settings_path" ]; then
     # Add hook to existing PostToolUse array
     new_settings=$(jq '
@@ -375,11 +411,16 @@ install_hook_impl() {
           "command": "'"$hook_path"'"
         }
       ]
-    ' "$settings_path" 2>/dev/null) || {
-      echo "ERROR: install_hook_impl: jq update failed" >&2
-      rm -f "$temp_file"
+    ' "$settings_path" 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_hook_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path:     $hook_path" >&2
+      echo "       settings_path: $settings_path" >&2
       return 1
     }
+    rm -f "$jq_stderr_file"
   else
     # Create new settings.json with just our hook
     new_settings=$(jq -n '
@@ -398,11 +439,15 @@ install_hook_impl() {
           ]
         }
       }
-    ') || {
-      echo "ERROR: install_hook_impl: jq creation failed" >&2
-      rm -f "$temp_file"
+    ' 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_hook_impl: jq creation failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path: $hook_path" >&2
       return 1
     }
+    rm -f "$jq_stderr_file"
   fi
 
   # Validate JSON before write
@@ -519,16 +564,24 @@ uninstall_hook_impl() {
 
   # Remove our hook from PostToolUse (idempotent: no error if not found)
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   new_settings=$(jq '
     .hooks.PostToolUse[]?.hooks |= map(
       select(
         (.type != "command" or .command != "'"$hook_path"'")
       )
     )
-  ' "$settings_path" 2>/dev/null) || {
-    echo "ERROR: uninstall_hook_impl: jq update failed" >&2
+  ' "$settings_path" 2>"$jq_stderr_file") || {
+    local jq_err_msg
+    jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+    rm -f "$jq_stderr_file"
+    echo "ERROR: uninstall_hook_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+    echo "       hook_path:     $hook_path" >&2
+    echo "       settings_path: $settings_path" >&2
     return 1
   }
+  rm -f "$jq_stderr_file"
 
   # Validate JSON before write
   if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
@@ -644,6 +697,8 @@ install_session_bind_impl() {
   }
 
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   if [ -f "$settings_path" ]; then
     new_settings=$(jq '
       .hooks.SessionStart //= [
@@ -662,11 +717,16 @@ install_session_bind_impl() {
           "command": "'"$hook_path"'"
         }
       ]
-    ' "$settings_path" 2>/dev/null) || {
-      echo "ERROR: install_session_bind_impl: jq update failed" >&2
-      rm -f "$temp_file"
+    ' "$settings_path" 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_session_bind_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path:     $hook_path" >&2
+      echo "       settings_path: $settings_path" >&2
       return 1
     }
+    rm -f "$jq_stderr_file"
   else
     new_settings=$(jq -n '
       {
@@ -684,11 +744,15 @@ install_session_bind_impl() {
           ]
         }
       }
-    ') || {
-      echo "ERROR: install_session_bind_impl: jq creation failed" >&2
-      rm -f "$temp_file"
+    ' 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_session_bind_impl: jq creation failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path: $hook_path" >&2
       return 1
     }
+    rm -f "$jq_stderr_file"
   fi
 
   if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
@@ -731,16 +795,24 @@ uninstall_session_bind_impl() {
   fi
 
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   new_settings=$(jq '
     .hooks.SessionStart[]?.hooks |= map(
       select(
         (.type != "command" or .command != "'"$hook_path"'")
       )
     )
-  ' "$settings_path" 2>/dev/null) || {
-    echo "ERROR: uninstall_session_bind_impl: jq update failed" >&2
+  ' "$settings_path" 2>"$jq_stderr_file") || {
+    local jq_err_msg
+    jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+    rm -f "$jq_stderr_file"
+    echo "ERROR: uninstall_session_bind_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+    echo "       hook_path:     $hook_path" >&2
+    echo "       settings_path: $settings_path" >&2
     return 1
   }
+  rm -f "$jq_stderr_file"
 
   local temp_file
   temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
@@ -849,6 +921,8 @@ install_pacing_veto_impl() {
 
   # Matcher restricted to ScheduleWakeup tool — cheaper than running on every tool call.
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   if [ -f "$settings_path" ]; then
     new_settings=$(jq '
       .hooks.PreToolUse //= [] |
@@ -858,10 +932,16 @@ install_pacing_veto_impl() {
           { "type": "command", "command": "'"$hook_path"'" }
         ]
       }]
-    ' "$settings_path" 2>/dev/null) || {
-      rm -f "$temp_file"
+    ' "$settings_path" 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_pacing_veto_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path:     $hook_path" >&2
+      echo "       settings_path: $settings_path" >&2
       return 1
     }
+    rm -f "$jq_stderr_file"
   else
     new_settings=$(jq -n '
       {
@@ -876,7 +956,15 @@ install_pacing_veto_impl() {
           ]
         }
       }
-    ') || { rm -f "$temp_file"; return 1; }
+    ' 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_pacing_veto_impl: jq creation failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path: $hook_path" >&2
+      return 1
+    }
+    rm -f "$jq_stderr_file"
   fi
 
   if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
@@ -906,12 +994,23 @@ uninstall_pacing_veto_impl() {
     return 1
   fi
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   new_settings=$(jq '
     .hooks.PreToolUse[]?.hooks |= map(
       select((.type != "command" or .command != "'"$hook_path"'"))
     ) |
     .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(select((.hooks // []) | length > 0)))
-  ' "$settings_path" 2>/dev/null) || return 1
+  ' "$settings_path" 2>"$jq_stderr_file") || {
+    local jq_err_msg
+    jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+    rm -f "$jq_stderr_file"
+    echo "ERROR: uninstall_pacing_veto_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+    echo "       hook_path:     $hook_path" >&2
+    echo "       settings_path: $settings_path" >&2
+    return 1
+  }
+  rm -f "$jq_stderr_file"
   local temp_file
   temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
   if ! echo "$new_settings" >"$temp_file"; then
@@ -1005,18 +1104,37 @@ install_empty_firing_impl() {
   temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
 
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   if [ -f "$settings_path" ]; then
     new_settings=$(jq '
       .hooks.Stop //= [{ "matcher": "*", "hooks": [] }] |
       ( if (.hooks.Stop | length) == 0 then .hooks.Stop += [{ "matcher": "*", "hooks": [] }] else . end ) |
       .hooks.Stop[0].hooks += [{ "type": "command", "command": "'"$hook_path"'" }]
-    ' "$settings_path" 2>/dev/null) || { rm -f "$temp_file"; return 1; }
+    ' "$settings_path" 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_empty_firing_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path:     $hook_path" >&2
+      echo "       settings_path: $settings_path" >&2
+      return 1
+    }
+    rm -f "$jq_stderr_file"
   else
     new_settings=$(jq -n '{
       "hooks": {
         "Stop": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "'"$hook_path"'" }] }]
       }
-    }') || { rm -f "$temp_file"; return 1; }
+    }' 2>"$jq_stderr_file") || {
+      local jq_err_msg
+      jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+      rm -f "$jq_stderr_file" "$temp_file"
+      echo "ERROR: install_empty_firing_impl: jq creation failed: ${jq_err_msg:-(no stderr)}" >&2
+      echo "       hook_path: $hook_path" >&2
+      return 1
+    }
+    rm -f "$jq_stderr_file"
   fi
 
   if ! echo "$new_settings" | jq . >/dev/null 2>&1; then
@@ -1049,11 +1167,22 @@ uninstall_empty_firing_impl() {
   fi
 
   local new_settings
+  local jq_stderr_file
+  _capture_jq_stderr_to jq_stderr_file "$claude_dir"
   new_settings=$(jq '
     .hooks.Stop[]?.hooks |= map(
       select((.type != "command" or .command != "'"$hook_path"'"))
     )
-  ' "$settings_path" 2>/dev/null) || return 1
+  ' "$settings_path" 2>"$jq_stderr_file") || {
+    local jq_err_msg
+    jq_err_msg=$(cat "$jq_stderr_file" 2>/dev/null || echo "(stderr capture failed)")
+    rm -f "$jq_stderr_file"
+    echo "ERROR: uninstall_empty_firing_impl: jq update failed: ${jq_err_msg:-(no stderr)}" >&2
+    echo "       hook_path:     $hook_path" >&2
+    echo "       settings_path: $settings_path" >&2
+    return 1
+  }
+  rm -f "$jq_stderr_file"
 
   local temp_file
   temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
