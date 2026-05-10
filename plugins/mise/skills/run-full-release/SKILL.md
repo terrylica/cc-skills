@@ -145,6 +145,11 @@ git pull origin main
 # Check for unpushed commits
 git log --oneline @{u}..HEAD
 
+# (cc-skills only) Preemptively prune leaked marketplace-path hook entries.
+# This recurs across sessions — see Known Issues. Running this BEFORE
+# release:full saves a preflight-fail/retry round trip. No-op if clean.
+[[ -x ./scripts/sync-hooks-to-settings.sh ]] && ./scripts/sync-hooks-to-settings.sh
+
 # Route by flags
 mise run release:full    # default
 mise run release:dry     # --dry
