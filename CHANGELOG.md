@@ -1,3 +1,11 @@
+# [21.2.0](https://github.com/terrylica/cc-skills/compare/v21.1.0...v21.2.0) (2026-05-10)
+
+
+### Features
+
+* **statusline-tools:** layered pin badge — show scope + mode (HEART-23 v2) ([78e95ef](https://github.com/terrylica/cc-skills/commit/78e95ef5ba5007af31b75a2143b20492df1e25ff))
+* **terminal-print:** bypass AirPrint blank-page bug on HP LaserJet 3101/3108 family ([2071206](https://github.com/terrylica/cc-skills/commit/2071206ff254816aced9027415989382c39c3138))
+
 # [21.1.0](https://github.com/terrylica/cc-skills/compare/v21.0.0...v21.1.0) (2026-05-08)
 
 
