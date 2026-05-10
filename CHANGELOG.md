@@ -1,3 +1,10 @@
+## [21.4.2](https://github.com/terrylica/cc-skills/compare/v21.4.1...v21.4.2) (2026-05-10)
+
+
+### Bug Fixes
+
+* **autoloop:** Wave 6.2 — realpath-symmetric writes + 6 test rectifications ([d7e419f](https://github.com/terrylica/cc-skills/commit/d7e419fac7aea5587d50956908fc4ce25ebbbe73))
+
 ## [21.4.1](https://github.com/terrylica/cc-skills/compare/v21.4.0...v21.4.1) (2026-05-10)
 
 
