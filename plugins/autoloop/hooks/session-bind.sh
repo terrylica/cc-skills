@@ -127,15 +127,43 @@ REGISTRY=$(read_registry "$REGISTRY_PATH" 2>/dev/null) || {
   exit 0
 }
 
-# ===== Iterate loops, find ones whose contract dir contains CWD =====
-# Use jq to emit matching loop entries as JSON lines
+# ===== Iterate loops, find ones whose path hierarchy contains CWD =====
+# Match rule (Wave 6 fix for the pending-bind silent failure):
+#
+#   The session's cwd must lie on the path hierarchy between project_root
+#   (inclusive) and contract_dir (inclusive). Equivalently:
+#
+#         project_root  ⊆  cwd  ⊆  contract_dir
+#
+#   This binds sessions opened from the project root (the natural workflow)
+#   AND sessions opened inside .autoloop/<slug>--<hash>/. The old strict
+#   match only handled the latter, leaving project-root-launched sessions
+#   stuck at owner_session_id="pending-bind" forever.
+#
+#   project_root resolves to .created_at_cwd if present (registry SSoT for
+#   v2 entries), else derives it on-the-fly from contract_path shape so the
+#   fix applies immediately to legacy entries that haven't been backfilled.
+#
+#   Legacy contracts at <root>/LOOP_CONTRACT.md (no .autoloop/ prefix) keep
+#   the old strict semantics — derived_root is null and stored is null, so
+#   the fallback "cwd at-or-below contract_dir" predicate runs.
 MATCHES=$(echo "$REGISTRY" | jq -c --arg cwd "$CWD" '
   .loops[] |
   select(
-    ((.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
-      ($contract_dir + "/") as $contract_prefix |
-      ($cwd | startswith($contract_prefix)) or ($cwd == $contract_dir)
-    )
+    (.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
+    (.created_at_cwd // "") as $stored_root |
+    # On-the-fly derivation: peel ".autoloop/<slug>--<6hex>" off contract_path
+    ((.contract_path | capture("^(?<root>.+)/\\.autoloop/[^/]+--[0-9a-f]{6}/CONTRACT\\.md$") | .root) // "") as $derived_root |
+    (if $stored_root != "" then $stored_root else $derived_root end) as $project_root |
+    if $project_root == "" then
+      # Legacy LOOP_CONTRACT.md layout: keep strict cwd-inside-contract-dir match
+      ($cwd == $contract_dir) or ($cwd | startswith($contract_dir + "/"))
+    else
+      # v2 hierarchy check: project_root ⊆ cwd ⊆ contract_dir
+      (($cwd == $project_root) or ($cwd | startswith($project_root + "/")))
+        and
+      (($cwd == $contract_dir) or ($contract_dir | startswith($cwd + "/")))
+    end
   )
 ' 2>/dev/null || echo "")
 
@@ -156,6 +184,19 @@ while IFS= read -r match; do
   GEN=$(echo "$match" | jq -r '.generation // 0')
   LAST_UPDATED_US=$(echo "$match" | jq -r '.owner_start_time_us // 0')
   CONTRACT_PATH=$(echo "$match" | jq -r '.contract_path // ""')
+  STORED_ROOT=$(echo "$match" | jq -r '.created_at_cwd // ""')
+
+  # Wave 6 telemetry: capture path-hierarchy provenance so post-mortem
+  # sessions can reconstruct exactly why a bind decision was made.
+  PROJECT_ROOT_FOR_LOG="$STORED_ROOT"
+  if [ -z "$PROJECT_ROOT_FOR_LOG" ] && [ -n "$CONTRACT_PATH" ]; then
+    # Mirror the on-the-fly derivation jq did during MATCHES selection
+    case "$CONTRACT_PATH" in
+      */.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md)
+        PROJECT_ROOT_FOR_LOG="${CONTRACT_PATH%/.autoloop/*}"
+        ;;
+    esac
+  fi
 
   [ -z "$LOOP_ID" ] && continue
 
@@ -185,8 +226,10 @@ while IFS= read -r match; do
           session_id="$SESSION_ID" \
           cwd_observed="$CWD" \
           cwd_bound="$(dirname "$CONTRACT_PATH")" \
+          project_root="$PROJECT_ROOT_FOR_LOG" \
+          project_root_source="$([ -n "$STORED_ROOT" ] && echo "registry" || echo "derived_from_path")" \
           registry_generation="$GEN" \
-          reason="prior owner_session_id=$OWNER_SID; bound on SessionStart source=$SOURCE" \
+          reason="prior owner_session_id=$OWNER_SID; bound on SessionStart source=$SOURCE; cwd lies in project_root..contract_dir hierarchy" \
           decision="proceeded"
       else
         emit_provenance "$LOOP_ID" "bind_failed_cas" \
