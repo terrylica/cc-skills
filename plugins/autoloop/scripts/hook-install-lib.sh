@@ -61,15 +61,76 @@ is_hook_installed() {
 # Exit code:
 #   0 on success
 #   1 if script directory cannot be determined
-hook_path_default() {
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || {
-    echo "ERROR: hook_path_default: cannot determine script directory" >&2
-    return 1
-  }
+# _resolve_autoloop_plugin_root
+# Returns the absolute path to the autoloop plugin directory using a robust
+# precedence chain that survives non-bash parent shells (zsh-launched
+# `bash -c`, where BASH_SOURCE may be empty), `bash -c` invocations that
+# don't set BASH_SOURCE properly, and direct calls outside the source chain.
+#
+# Precedence (first match wins):
+#   1. $AUTOLOOP_PLUGIN_ROOT — explicit override (used by tests and doctor)
+#   2. $CLAUDE_PLUGIN_ROOT — set by Claude Code when invoking plugin skills
+#   3. ${BASH_SOURCE[0]} — works when sourced from bash; previous behavior
+#   4. $HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop — fallback
+#
+# Output:
+#   Absolute path to plugin root on stdout
+#
+# Exit code:
+#   0 on success
+#   1 if no candidate path resolves to a real directory containing /scripts/
+#
+# WHY this exists: the prior `hook_path_default*` family relied solely on
+# BASH_SOURCE[0]. When a zsh user does `bash -c 'source .../hook-install-lib.sh
+# && install_all_hooks'`, BASH_SOURCE inside the function call is empty and
+# the path resolution silently joins to $PWD, producing a wrong heartbeat-hook
+# path. Fix: use multiple candidate sources with explicit precedence.
+_resolve_autoloop_plugin_root() {
+  local candidate=""
 
+  # 1. Explicit override
+  if [ -n "${AUTOLOOP_PLUGIN_ROOT:-}" ] && [ -d "${AUTOLOOP_PLUGIN_ROOT}/scripts" ]; then
+    echo "$AUTOLOOP_PLUGIN_ROOT"
+    return 0
+  fi
+
+  # 2. CLAUDE_PLUGIN_ROOT (set by Claude Code skill invocation)
+  if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -d "${CLAUDE_PLUGIN_ROOT}/scripts" ]; then
+    case "${CLAUDE_PLUGIN_ROOT}" in
+      */autoloop)
+        echo "$CLAUDE_PLUGIN_ROOT"
+        return 0
+        ;;
+    esac
+  fi
+
+  # 3. BASH_SOURCE[0] — original behavior, works when sourced from bash
+  if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+    candidate="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)" || candidate=""
+    if [ -n "$candidate" ]; then
+      candidate="$(dirname "$candidate")"
+      if [ -d "${candidate}/scripts" ] && [ -d "${candidate}/hooks" ]; then
+        echo "$candidate"
+        return 0
+      fi
+    fi
+  fi
+
+  # 4. Marketplace fallback
+  local marketplace_root="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop"
+  if [ -d "${marketplace_root}/scripts" ] && [ -d "${marketplace_root}/hooks" ]; then
+    echo "$marketplace_root"
+    return 0
+  fi
+
+  echo "ERROR: _resolve_autoloop_plugin_root: cannot resolve plugin root" >&2
+  echo "       Tried: AUTOLOOP_PLUGIN_ROOT, CLAUDE_PLUGIN_ROOT, BASH_SOURCE[0], $marketplace_root" >&2
+  return 1
+}
+
+hook_path_default() {
   local plugin_dir
-  plugin_dir="$(dirname "$script_dir")" || return 1
+  plugin_dir="$(_resolve_autoloop_plugin_root)" || return 1
 
   local hook_path
   hook_path="$plugin_dir/hooks/heartbeat-tick.sh"
@@ -85,14 +146,8 @@ hook_path_default() {
 # hook_path_default_session_bind
 # Returns the absolute path to session-bind.sh (SessionStart hook).
 hook_path_default_session_bind() {
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || {
-    echo "ERROR: hook_path_default_session_bind: cannot determine script directory" >&2
-    return 1
-  }
-
   local plugin_dir
-  plugin_dir="$(dirname "$script_dir")" || return 1
+  plugin_dir="$(_resolve_autoloop_plugin_root)" || return 1
 
   local hook_path
   hook_path="$plugin_dir/hooks/session-bind.sh"
@@ -741,10 +796,8 @@ uninstall_session_bind() {
 # ===== PreToolUse pacing-veto hook (v16.6.1: anti-pacing enforcement) =====
 
 hook_path_default_pacing_veto() {
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
   local plugin_dir
-  plugin_dir="$(dirname "$script_dir")" || return 1
+  plugin_dir="$(_resolve_autoloop_plugin_root)" || return 1
   local hook_path="$plugin_dir/hooks/pacing-veto.sh"
   if [ ! -f "$hook_path" ]; then
     echo "ERROR: hook_path_default_pacing_veto: pacing-veto hook not found at $hook_path" >&2
@@ -903,10 +956,8 @@ uninstall_pacing_veto() {
 # Detects sessions that ended with only ScheduleWakeup and no real work.
 
 hook_path_default_empty_firing() {
-  local script_dir
-  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
   local plugin_dir
-  plugin_dir="$(dirname "$script_dir")" || return 1
+  plugin_dir="$(_resolve_autoloop_plugin_root)" || return 1
   local hook_path="$plugin_dir/hooks/empty-firing-detector.sh"
   if [ ! -f "$hook_path" ]; then
     echo "ERROR: hook_path_default_empty_firing: hook not found at $hook_path" >&2
@@ -1062,6 +1113,7 @@ uninstall_all_hooks() {
   return 0
 }
 
+export -f _resolve_autoloop_plugin_root
 export -f hook_path_default_pacing_veto
 export -f is_pacing_veto_installed
 export -f install_pacing_veto_impl

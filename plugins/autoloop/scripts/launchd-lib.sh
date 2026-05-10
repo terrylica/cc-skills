@@ -103,9 +103,20 @@ generate_plist() {
     return 1
   fi
 
-  # Validate waker_script exists
+  # Validate waker_script exists.
+  # Phase 9 has shipped waker.sh, so its absence at generate-time is a real
+  # error: a plist that points at a missing program is silently broken until
+  # launchd actually fires it minutes later. Refuse to ship a broken plist.
+  # Tests can opt out by setting AUTOLOOP_GENERATE_PLIST_ALLOW_MISSING_WAKER=1.
   if [ ! -f "$waker_script" ]; then
-    echo "WARNING: generate_plist: waker_script '$waker_script' does not exist yet (Phase 9 will ship it)" >&2
+    if [ "${AUTOLOOP_GENERATE_PLIST_ALLOW_MISSING_WAKER:-0}" = "1" ]; then
+      echo "WARNING: generate_plist: waker_script '$waker_script' missing (override allowed by AUTOLOOP_GENERATE_PLIST_ALLOW_MISSING_WAKER=1)" >&2
+    else
+      echo "ERROR: generate_plist: waker_script '$waker_script' does not exist" >&2
+      echo "       The plist would be silently broken until launchd fires it." >&2
+      echo "       Verify the plugin install (waker.sh ships in plugin/scripts/)." >&2
+      return 1
+    fi
   fi
 
   local label
