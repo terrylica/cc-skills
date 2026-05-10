@@ -117,9 +117,12 @@ else
   assert_eq "$EVT" "spawn_refused_no_heartbeat" "spawn_refused_no_heartbeat event"
 fi
 
-# ===== Test 3: cwd drift (bound_cwd != contract_dir) → spawn_refused_cwd_drift =====
+# ===== Test 3: cwd drift (bound_cwd != contract_dir) → spawn_refused_cwd_drift_mismatch =====
+# Wave 6.3 split spawn_refused_cwd_drift into _mismatch (current bound_cwd
+# disagrees with contract_dir) and _flagged (sticky cwd_drift_detected from
+# a prior heartbeat). Tests 3/4 exercise the two distinct paths.
 echo ""
-echo "Test 3: cwd drift"
+echo "Test 3: cwd drift mismatch"
 reset
 ENTRY=$(build_entry "333333333333" "$SID")
 put_entry "$ENTRY"
@@ -128,13 +131,13 @@ write_hb "$STATE_DIR" "/some/wrong/dir" false
 if _invariant_check_spawn "333333333333" "$ENTRY" "$SID" "1500"; then
   assert_eq "passed" "refused" "invariant should refuse cwd drift"
 else
-  EVT=$(jq -sr '.[] | select(.event=="spawn_refused_cwd_drift" and .loop_id=="333333333333") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
-  assert_eq "$EVT" "spawn_refused_cwd_drift" "spawn_refused_cwd_drift event"
+  EVT=$(jq -sr '.[] | select(.event=="spawn_refused_cwd_drift_mismatch" and .loop_id=="333333333333") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
+  assert_eq "$EVT" "spawn_refused_cwd_drift_mismatch" "spawn_refused_cwd_drift_mismatch event (Wave 6.3 split)"
 fi
 
-# ===== Test 4: cwd_drift_detected flag set → refused =====
+# ===== Test 4: cwd_drift_detected flag set → spawn_refused_cwd_drift_flagged =====
 echo ""
-echo "Test 4: cwd_drift_detected flag"
+echo "Test 4: cwd_drift_detected flag (sticky)"
 reset
 ENTRY=$(build_entry "444444444444" "$SID")
 put_entry "$ENTRY"
@@ -144,8 +147,8 @@ write_hb "$STATE_DIR" "$CONTRACT_DIR" true
 if _invariant_check_spawn "444444444444" "$ENTRY" "$SID" "1500"; then
   assert_eq "passed" "refused" "invariant should refuse when cwd_drift_detected=true"
 else
-  EVT=$(jq -sr '.[] | select(.event=="spawn_refused_cwd_drift" and .loop_id=="444444444444") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
-  assert_eq "$EVT" "spawn_refused_cwd_drift" "spawn_refused_cwd_drift event (flag-based)"
+  EVT=$(jq -sr '.[] | select(.event=="spawn_refused_cwd_drift_flagged" and .loop_id=="444444444444") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
+  assert_eq "$EVT" "spawn_refused_cwd_drift_flagged" "spawn_refused_cwd_drift_flagged event (Wave 6.3 split, flag-based)"
 fi
 
 # ===== Test 5: generation drift → spawn_refused_generation_drift =====

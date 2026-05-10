@@ -138,8 +138,11 @@ dead_time_ratio = 1 - (heartbeat_count × cadence / lifespan)
 # Show all loops
 /autoloop:muster
 
-# Export to JSON for external processing
-/autoloop:muster --json | jq '.[] | select(.status == "STALE")'
+# Export to JSON for external processing.
+# --json emits JSONL (one object per line), so iterate with `jq 'select(...)'`
+# directly — NOT `jq '.[] | select(...)'` (the latter would try to iterate
+# inside each line and crash with "Cannot iterate over null").
+/autoloop:muster --json | jq 'select(.status == "STALE")'
 
 # Find loops ready for cleanup
 /autoloop:muster --reclaim-candidates

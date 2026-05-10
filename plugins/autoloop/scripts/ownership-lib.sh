@@ -30,27 +30,37 @@ set -euo pipefail
 capture_process_start_time() {
   local pid="$1"
 
-  # Use ps to get lstart (absolute start time, stable)
+  # Use ps to get lstart (absolute start time, stable). Wave 6.3: pin
+  # LC_ALL=C so day/month names render in English regardless of the
+  # operator's locale. Without this, a French (fr_FR) or German (de_DE)
+  # session returns "Lun"/"Mon" or "Mär" — the date parser below silently
+  # fails, capture_process_start_time returns empty, and verify_owner_alive
+  # treats every owner as dead → spurious reclaim cascades on every
+  # SessionStart.
+  #
+  # Subtlety: BSD ps under LC_ALL=C prints "Mon May 10 10:36:02 2026"
+  # (Day-Month order), while default en_US locale prints
+  # "Mon 10 May 10:36:02 2026" (DD-Month order). We try both formats so
+  # the parse succeeds regardless of which is in play. Tested both on
+  # macOS 14 (Darwin 24.6).
   local lstart
-  lstart=$(ps -p "$pid" -o lstart= 2>/dev/null) || return 0
+  lstart=$(LC_ALL=C ps -p "$pid" -o lstart= 2>/dev/null) || return 0
+  # Strip trailing whitespace that BSD ps appends.
+  lstart="${lstart%"${lstart##*[![:space:]]}"}"
 
-  # Parse lstart (e.g., "Sun 26 Apr 17:55:09 2026") to Unix timestamp
-  # Format from ps lstart: "DayOfWeek DD Mon HH:MM:SS YYYY"
-  # Use date -j -f on macOS, gdate or native date on Linux
-  local unix_ts
+  local unix_ts=""
   if command -v date >/dev/null 2>&1 && date -j >/dev/null 2>&1; then
-    # macOS native date with -j
-    unix_ts=$(date -j -f "%a %d %b %T %Y" "$lstart" +%s 2>/dev/null) || return 0
+    # macOS native date with -j: try LC_ALL=C order first, then DD-Month.
+    unix_ts=$(LC_ALL=C date -j -f "%a %b %d %T %Y" "$lstart" +%s 2>/dev/null) \
+      || unix_ts=$(LC_ALL=C date -j -f "%a %d %b %T %Y" "$lstart" +%s 2>/dev/null) \
+      || return 0
   elif command -v gdate >/dev/null 2>&1; then
-    # GNU date (from coreutils on macOS or Linux)
-    # gdate uses slightly different format parsing; try directly with gdate
-    unix_ts=$(gdate -d "$lstart" +%s 2>/dev/null) || return 0
+    unix_ts=$(LC_ALL=C gdate -d "$lstart" +%s 2>/dev/null) || return 0
   else
-    # Fallback: try native date (non-macOS)
-    unix_ts=$(date -d "$lstart" +%s 2>/dev/null) || return 0
+    unix_ts=$(LC_ALL=C date -d "$lstart" +%s 2>/dev/null) || return 0
   fi
 
-  # Convert seconds to microseconds
+  [ -z "$unix_ts" ] && return 0
   local start_time_us=$((unix_ts * 1000000))
   echo "$start_time_us"
 }
