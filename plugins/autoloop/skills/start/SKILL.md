@@ -303,6 +303,45 @@ git add "$CONTRACT_PATH"
 git commit -m "loop(bootstrap): scaffold LOOP_CONTRACT.md for $name"
 ```
 
+## Step 10: Print bind-verification block (Wave 6)
+
+After Step 9, print the explicit verification block below. This is the
+last user-visible signal before /autoloop:start exits. Do NOT skip it —
+the silent pending-bind failure mode that motivated Wave 6 was caused
+in part by /autoloop:start exiting cleanly even when the loop was not
+actually firing autonomously.
+
+```
+🔧 Loop registered: $loop_id ($display_name)
+   project_root:  $project_root              # = .created_at_cwd; bind hooks match cwd against this
+   contract:      $CONTRACT_PATH
+
+📡 Autonomous-fire requirement
+   The launchd waker can only fire /loop on this loop AFTER the
+   SessionStart hook has bound owner_session_id. The hook fires when
+   you open Claude Code with cwd anywhere in the path hierarchy:
+
+       $project_root  ⊆  cwd  ⊆  $(dirname "$CONTRACT_PATH")
+
+   Until that bind happens, the registry shows owner_session_id =
+   "pending-bind" and the waker logs "dead+fresh anomaly" instead of
+   firing. Run /autoloop:muster to verify state.
+
+✅ Verify within 30s of your next session start
+   /autoloop:muster
+       expect: STATUS=ACTIVE  (not PENDING-BIND or PENDING-BIND-STUCK)
+
+   If PENDING-BIND-STUCK after 5min:
+     • cd "$project_root" && claude        # opens a session that the hook can bind
+     • /autoloop:tinker $loop_id           # patches owner_session_id from THIS session
+     • heal-self.sh runs hourly and will auto-bind to a live session
+       whose JSONL mtime is <5min — a third safety net
+```
+
+Echo this block verbatim with the variables expanded. Don't paraphrase
+or shorten — the troubleshooting hint paths are load-bearing for
+operators encountering pending-bind for the first time.
+
 ## Anti-patterns
 
 - Do NOT overwrite an existing contract without explicit user confirmation
