@@ -143,13 +143,24 @@ select(.owner_session_id == $sid) |
 ' 2>/dev/null | head -1) || MATCHING_LOOP=""
 
 if [ -z "$MATCHING_LOOP" ] || [ "$MATCHING_LOOP" = "" ]; then
+  # Wave 6 fix: project_root ⊆ cwd ⊆ contract_dir hierarchy check
+  # (matches sessions opened at the project root as well as inside .autoloop/<slug>--<hash>/).
+  # See session-bind.sh for the full rationale and the on-the-fly project_root
+  # derivation that backfills legacy entries without a stored created_at_cwd.
   MATCHING_LOOP=$(echo "$REGISTRY" | jq -r --arg cwd "$CWD" '
 .loops[] |
 select(
-  ((.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
-    ($contract_dir + "/") as $contract_prefix |
-    ($cwd | startswith($contract_prefix)) or ($cwd == $contract_dir)
-  )
+  (.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
+  (.created_at_cwd // "") as $stored_root |
+  ((.contract_path | capture("^(?<root>.+)/\\.autoloop/[^/]+--[0-9a-f]{6}/CONTRACT\\.md$") | .root) // "") as $derived_root |
+  (if $stored_root != "" then $stored_root else $derived_root end) as $project_root |
+  if $project_root == "" then
+    ($cwd == $contract_dir) or ($cwd | startswith($contract_dir + "/"))
+  else
+    (($cwd == $project_root) or ($cwd | startswith($project_root + "/")))
+      and
+    (($cwd == $contract_dir) or ($contract_dir | startswith($cwd + "/")))
+  end
 ) |
 @json
 ' 2>/dev/null | head -1) || {

@@ -145,6 +145,13 @@ emit_provenance() {
   local session_id="" cwd_observed="" cwd_bound=""
   local registry_generation="" owner_pid_before="" owner_pid_after=""
   local reason="" decision=""
+  # Wave 6 (bind hardening): path-hierarchy fields. project_root captures the
+  # SSoT used for the cwd-match check (registry.created_at_cwd or derived
+  # from contract_path). project_root_source distinguishes "registry"
+  # (stored, post-backfill) from "derived_from_path" (computed at hook time
+  # before backfill). Together they make pending-bind silent failures
+  # forensically reconstructable.
+  local project_root="" project_root_source=""
   local kv key val
   for kv in "$@"; do
     key="${kv%%=*}"
@@ -158,6 +165,8 @@ emit_provenance() {
       owner_pid_after)     owner_pid_after="$val" ;;
       reason)              reason="$val" ;;
       decision)            decision="$val" ;;
+      project_root)        project_root="$val" ;;
+      project_root_source) project_root_source="$val" ;;
       *) ;;  # silently ignore unknown fields (forward-compat)
     esac
   done
@@ -183,6 +192,8 @@ emit_provenance() {
     --arg owner_pid_after "$owner_pid_after" \
     --arg reason "$reason" \
     --arg decision "$decision" \
+    --arg project_root "$project_root" \
+    --arg project_root_source "$project_root_source" \
     --argjson schema_version "$PROVENANCE_SCHEMA_VERSION" \
     '{
       ts_iso: $ts_iso,
@@ -198,6 +209,8 @@ emit_provenance() {
       owner_pid_after: ($owner_pid_after | if . == "" then null else (tonumber? // .) end),
       reason: ($reason | if . == "" then null else . end),
       decision: ($decision | if . == "" then null else . end),
+      project_root: ($project_root | if . == "" then null else . end),
+      project_root_source: ($project_root_source | if . == "" then null else . end),
       schema_version: $schema_version
     }' 2>/dev/null) || return 0
 
