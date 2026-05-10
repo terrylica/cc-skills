@@ -221,6 +221,10 @@ emit_provenance() {
   state_dir=$(_prov_resolve_state_dir "$loop_id")
   if [ -n "$state_dir" ] && [ -d "$state_dir" ]; then
     _prov_atomic_append "$state_dir/provenance.jsonl" "$json_line"
+    # Wave 6.4: opportunistic rotation. Cheap fast-path (size check)
+    # short-circuits in the common case so this adds ~one stat() per
+    # emit. Without this, per-loop ledgers grew unbounded.
+    rotate_per_loop_provenance "$state_dir" 2>/dev/null || true
   fi
 
   # Write 2: global mirror (always)
@@ -236,6 +240,44 @@ emit_provenance() {
 # Archive name: global-provenance.<unixts>.jsonl.gz
 #
 # Output: nothing on stdout. Errors print to stderr but return 0 (graceful).
+# _prov_rotate_body — Wave 6.4: hoisted to module scope so both
+# rotate_global_provenance and rotate_per_loop_provenance can call it
+# without redefining the function on every invocation. Pre-Wave-6.4 this
+# lived nested inside rotate_global_provenance, which made it
+# inaccessible to per-loop callers and forced per-loop ledgers to grow
+# unbounded.
+# shellcheck disable=SC2329
+_prov_rotate_body() {
+  local target="$1" archive_path="$2" keep="$3" threshold="$4"
+
+  local now_lines
+  now_lines=$(wc -l <"$target" 2>/dev/null | tr -d ' ')
+  [ -z "$now_lines" ] && return 0
+  if [ "$now_lines" -le "$threshold" ]; then
+    return 0
+  fi
+  local archive_count=$((now_lines - keep))
+  [ "$archive_count" -le 0 ] && return 0
+
+  local tmp_remainder
+  tmp_remainder=$(mktemp "$target.rotate.XXXXXX") || return 0
+
+  head -n "$archive_count" "$target" >"$archive_path" 2>/dev/null || {
+    rm -f "$tmp_remainder" "$archive_path"
+    return 0
+  }
+  tail -n "$keep" "$target" >"$tmp_remainder" 2>/dev/null || {
+    rm -f "$tmp_remainder" "$archive_path"
+    return 0
+  }
+  mv "$tmp_remainder" "$target" || {
+    rm -f "$tmp_remainder" "$archive_path"
+    return 0
+  }
+  gzip -f "$archive_path" 2>/dev/null || true
+  return 0
+}
+
 rotate_global_provenance() {
   local target="$PROVENANCE_GLOBAL_FILE"
   [ -f "$target" ] || return 0
@@ -254,38 +296,6 @@ rotate_global_provenance() {
   local ts archive_path
   ts=$(date +%s)
   archive_path="$PROVENANCE_GLOBAL_DIR/global-provenance.${ts}.jsonl"
-
-  # Rotation body — runs under whatever lock primitive is available.
-  _prov_rotate_body() {
-    local target="$1" archive_path="$2" keep="$3" threshold="$4"
-
-    local now_lines
-    now_lines=$(wc -l <"$target" 2>/dev/null | tr -d ' ')
-    [ -z "$now_lines" ] && return 0
-    if [ "$now_lines" -le "$threshold" ]; then
-      return 0
-    fi
-    local archive_count=$((now_lines - keep))
-    [ "$archive_count" -le 0 ] && return 0
-
-    local tmp_remainder
-    tmp_remainder=$(mktemp "$target.rotate.XXXXXX") || return 0
-
-    head -n "$archive_count" "$target" >"$archive_path" 2>/dev/null || {
-      rm -f "$tmp_remainder" "$archive_path"
-      return 0
-    }
-    tail -n "$keep" "$target" >"$tmp_remainder" 2>/dev/null || {
-      rm -f "$tmp_remainder" "$archive_path"
-      return 0
-    }
-    mv "$tmp_remainder" "$target" || {
-      rm -f "$tmp_remainder" "$archive_path"
-      return 0
-    }
-    gzip -f "$archive_path" 2>/dev/null || true
-    return 0
-  }
 
   local lockfile="$target.lock"
   touch "$lockfile" 2>/dev/null || true
@@ -310,6 +320,67 @@ rotate_global_provenance() {
     _prov_rotate_body "$target" "$archive_path" "$keep" "$PROVENANCE_ROTATION_THRESHOLD"
   else
     _prov_rotate_body "$target" "$archive_path" "$keep" "$PROVENANCE_ROTATION_THRESHOLD"
+  fi
+
+  return 0
+}
+
+# rotate_per_loop_provenance <state_dir>
+#
+# Wave 6.4: rotate <state_dir>/provenance.jsonl using the same threshold/keep
+# as the global mirror. Pre-Wave-6.4 the per-loop ledger had no rotation
+# policy at all — long-lived loops would accumulate unbounded provenance
+# JSONL on disk, making post-mortem `jq` queries progressively more
+# expensive and risking eventual fs/quota issues.
+#
+# Always returns 0 (graceful — provenance is best-effort).
+rotate_per_loop_provenance() {
+  local state_dir="$1"
+  [ -z "$state_dir" ] && return 0
+  [ -d "$state_dir" ] || return 0
+  local target="$state_dir/provenance.jsonl"
+  [ -f "$target" ] || return 0
+
+  # Cheap fast-path: skip the wc when file is small (<1 MB). The rotation
+  # threshold is line-based but the wc is the expensive step on every
+  # emit; a sub-MB file is well below 10k JSON-line entries in practice.
+  local size
+  size=$(wc -c <"$target" 2>/dev/null | tr -d ' ')
+  [ -z "$size" ] && return 0
+  if [ "$size" -lt 1048576 ]; then
+    return 0
+  fi
+
+  local lines
+  lines=$(wc -l <"$target" 2>/dev/null | tr -d ' ')
+  [ -z "$lines" ] && return 0
+  if [ "$lines" -le "$PROVENANCE_ROTATION_THRESHOLD" ]; then
+    return 0
+  fi
+
+  local ts archive_path
+  ts=$(date +%s)
+  archive_path="$state_dir/provenance.${ts}.jsonl"
+
+  local lockfile="$target.lock"
+  touch "$lockfile" 2>/dev/null || true
+
+  if command -v flock >/dev/null 2>&1; then
+    (
+      exec 9>>"$lockfile" 2>/dev/null || exit 0
+      flock -x -w 5 9 2>/dev/null || exit 0
+      _prov_rotate_body "$target" "$archive_path" "$PROVENANCE_ROTATION_KEEP" "$PROVENANCE_ROTATION_THRESHOLD"
+    ) || true
+  elif command -v lockf >/dev/null 2>&1; then
+    local retries=50
+    while ! lockf -t 0 "$lockfile" true 2>/dev/null; do
+      retries=$((retries - 1))
+      [ "$retries" -le 0 ] && return 0
+      sleep 0.1
+    done
+    _prov_rotate_body "$target" "$archive_path" "$PROVENANCE_ROTATION_KEEP" "$PROVENANCE_ROTATION_THRESHOLD"
+  else
+    _prov_rotate_body "$target" "$archive_path" "$PROVENANCE_ROTATION_KEEP" "$PROVENANCE_ROTATION_THRESHOLD"
   fi
 
   return 0
