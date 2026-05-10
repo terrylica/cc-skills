@@ -1,3 +1,10 @@
+## [21.4.5](https://github.com/terrylica/cc-skills/compare/v21.4.4...v21.4.5) (2026-05-10)
+
+
+### Bug Fixes
+
+* **autoloop:** Wave 6.5 — fd CLOEXEC for spawn, env-var synonym unify, stale plist cleanup ([29531f2](https://github.com/terrylica/cc-skills/commit/29531f208068bddd225b3aed5c37e18f9d81ae5d)), closes [HI#severity](https://github.com/HI/issues/severity)
+
 ## [21.4.4](https://github.com/terrylica/cc-skills/compare/v21.4.3...v21.4.4) (2026-05-10)
 
 
