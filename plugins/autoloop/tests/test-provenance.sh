@@ -237,7 +237,7 @@ emit_provenance "dddddddddddd" "spawn_succeeded" \
   owner_pid_before="100" \
   owner_pid_after="200" \
   decision="proceeded"
-emit_provenance "" "doctor_check" reason="orphan event with empty loop_id"
+emit_provenance "" "tinker_check" reason="orphan event with empty loop_id"
 
 # Every line must:
 #  - parse as JSON
@@ -266,7 +266,7 @@ NUMERIC_OK=$(jq -r 'select(.event == "spawn_succeeded") | (.registry_generation 
 assert_eq "$NUMERIC_OK" "true" "numeric fields parsed as JSON numbers"
 
 # Verify empty-string args become null
-NULL_LOOP=$(jq -r 'select(.event == "doctor_check") | .loop_id' "$PROVENANCE_GLOBAL_FILE")
+NULL_LOOP=$(jq -r 'select(.event == "tinker_check") | .loop_id' "$PROVENANCE_GLOBAL_FILE")
 assert_eq "$NULL_LOOP" "null" "empty loop_id arg becomes JSON null"
 
 # ===== Summary =====

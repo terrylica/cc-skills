@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-triage-extensions.sh — W2.1 doctor harness
+# test-triage-extensions.sh — W2.1 tinker harness
 #
 # Verifies the three new fleet-level checks added to loop_triage_report:
 #   1. registry_corrupt detection (RED in --json fleet object; RED line in human output)
@@ -34,7 +34,7 @@ setup_isolated_home() {
 }
 
 echo "========================================"
-echo "Doctor Extensions Tests (W2.1)"
+echo "Tinker Extensions Tests (W2.1)"
 echo "========================================"
 
 # ---- Case 1: registry_corrupt detection ----

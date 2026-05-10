@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# doctor-lib.sh — Diagnose and repair the four documented autoloop bootstrap
+# tinker-lib.sh — Diagnose and repair the four documented autoloop bootstrap
 # failure modes.
 #
 # Provides:
@@ -9,7 +9,7 @@
 #   repair_pending_bind_owner_session <loop_id> <session_uuid>
 #                                                 — patch registry owner_session_id
 #   repair_stale_waker_path <loop_id>             — regenerate plist if waker drifted
-#   doctor_repair_all_for_loop <loop_id> [session_uuid]
+#   tinker_repair_all_for_loop <loop_id> [session_uuid]
 #                                                 — orchestrate the four repairs
 #
 # Failure modes addressed (one PR landed in plugin v12.52.0):
@@ -19,10 +19,10 @@
 #   F4 — plist's ProgramArguments[0] points at a stale waker path (e.g. plugin
 #        moved between marketplace versions)
 #
-# Every repair is idempotent. Doctor never deletes contracts or revision-log;
+# Every repair is idempotent. Tinker never deletes contracts or revision-log;
 # the worst it does is regenerate a plist or patch a single registry field.
 #
-# WHY a single doctor: prior to this lib, the same hand-rolled diagnose+repair
+# WHY a single tinker: prior to this lib, the same hand-rolled diagnose+repair
 # was open-coded in incident response. Concentrating the logic here keeps the
 # four failure-mode definitions in one place and guarantees the repair
 # sequence stays consistent across human and agent invocations.
@@ -31,7 +31,7 @@ set -euo pipefail
 
 # Resolve plugin root so we can source siblings even if BASH_SOURCE[0]
 # is empty (zsh-launched bash, etc).
-_doctor_lib_resolve_plugin_root() {
+_tinker_lib_resolve_plugin_root() {
   if [ -n "${AUTOLOOP_PLUGIN_ROOT:-}" ] && [ -d "${AUTOLOOP_PLUGIN_ROOT}/scripts" ]; then
     echo "$AUTOLOOP_PLUGIN_ROOT"
     return 0
@@ -49,21 +49,21 @@ _doctor_lib_resolve_plugin_root() {
     echo "$marketplace"
     return 0
   fi
-  echo "ERROR: doctor-lib: cannot resolve plugin root" >&2
+  echo "ERROR: tinker-lib: cannot resolve plugin root" >&2
   return 1
 }
 
-_DOCTOR_LIB_PLUGIN_ROOT="$(_doctor_lib_resolve_plugin_root)" || exit 1
+_TINKER_LIB_PLUGIN_ROOT="$(_tinker_lib_resolve_plugin_root)" || exit 1
 
 # Source siblings (each is idempotent and exports its public functions).
 # shellcheck source=/dev/null
-source "$_DOCTOR_LIB_PLUGIN_ROOT/scripts/registry-lib.sh"
+source "$_TINKER_LIB_PLUGIN_ROOT/scripts/registry-lib.sh"
 # shellcheck source=/dev/null
-source "$_DOCTOR_LIB_PLUGIN_ROOT/scripts/state-lib.sh"
+source "$_TINKER_LIB_PLUGIN_ROOT/scripts/state-lib.sh"
 # shellcheck source=/dev/null
-source "$_DOCTOR_LIB_PLUGIN_ROOT/scripts/hook-install-lib.sh"
+source "$_TINKER_LIB_PLUGIN_ROOT/scripts/hook-install-lib.sh"
 # shellcheck source=/dev/null
-source "$_DOCTOR_LIB_PLUGIN_ROOT/scripts/launchd-lib.sh"
+source "$_TINKER_LIB_PLUGIN_ROOT/scripts/launchd-lib.sh"
 
 # Grace period before a "pending-bind" owner is considered a real failure
 # rather than an in-progress bind. Default 5 minutes.
@@ -126,7 +126,7 @@ diagnose_loop() {
   fi
 
   # Expected waker path (the script the runner should exec)
-  local waker_script_expected="$_DOCTOR_LIB_PLUGIN_ROOT/scripts/waker.sh"
+  local waker_script_expected="$_TINKER_LIB_PLUGIN_ROOT/scripts/waker.sh"
 
   # Detect waker-path drift: the runner contains `exec "<waker_path>" "$loop_id"`.
   # We consider the plist stale ONLY when the actual chain is broken:
@@ -134,7 +134,7 @@ diagnose_loop() {
   #   - runner exists but its exec target (waker.sh) is missing on disk.
   # We DO NOT compare runner_target against $waker_script_expected literally,
   # because an installed loop may legitimately point at the marketplace copy
-  # of waker.sh while doctor was sourced from the source repo (or vice-versa).
+  # of waker.sh while tinker was sourced from the source repo (or vice-versa).
   # Both paths are valid as long as the file exists.
   local waker_path_stale=false
   if [ "$plist_present" = "true" ]; then
@@ -242,7 +242,7 @@ repair_missing_plist() {
   local interval=$((cadence / 2))
   [ "$interval" -lt 60 ] && interval=60
 
-  local waker="$_DOCTOR_LIB_PLUGIN_ROOT/scripts/waker.sh"
+  local waker="$_TINKER_LIB_PLUGIN_ROOT/scripts/waker.sh"
   echo "  repair_missing_plist: loop=$loop_id state=$state_dir interval=${interval}s" >&2
   generate_plist "$loop_id" "$state_dir" "$waker" "$interval" || return 1
   load_plist "$loop_id" "$state_dir" || return 1
@@ -255,10 +255,10 @@ repair_missing_plist() {
 # the plugin root, so this works in non-bash parent shells too.
 repair_missing_hooks() {
   local settings_path="$HOME/.claude/settings.json"
-  local heartbeat="$_DOCTOR_LIB_PLUGIN_ROOT/hooks/heartbeat-tick.sh"
-  local session_bind="$_DOCTOR_LIB_PLUGIN_ROOT/hooks/session-bind.sh"
-  local pacing="$_DOCTOR_LIB_PLUGIN_ROOT/hooks/pacing-veto.sh"
-  local empty="$_DOCTOR_LIB_PLUGIN_ROOT/hooks/empty-firing-detector.sh"
+  local heartbeat="$_TINKER_LIB_PLUGIN_ROOT/hooks/heartbeat-tick.sh"
+  local session_bind="$_TINKER_LIB_PLUGIN_ROOT/hooks/session-bind.sh"
+  local pacing="$_TINKER_LIB_PLUGIN_ROOT/hooks/pacing-veto.sh"
+  local empty="$_TINKER_LIB_PLUGIN_ROOT/hooks/empty-firing-detector.sh"
 
   for f in "$heartbeat" "$session_bind" "$pacing" "$empty"; do
     if [ ! -f "$f" ]; then
@@ -336,13 +336,13 @@ repair_stale_waker_path() {
   return 0
 }
 
-# doctor_repair_all_for_loop <loop_id> [session_uuid]
+# tinker_repair_all_for_loop <loop_id> [session_uuid]
 # Runs diagnose_loop, then applies each repair whose corresponding failure
 # mode is present. Prints a one-line summary per repair attempted.
 #
 # When session_uuid is omitted AND F3_pending_bind_stale is present, the
 # repair is skipped (the caller's session UUID isn't known).
-doctor_repair_all_for_loop() {
+tinker_repair_all_for_loop() {
   local loop_id="$1"
   local session_uuid="${2:-}"
 
@@ -391,10 +391,10 @@ doctor_repair_all_for_loop() {
   return $exit_code
 }
 
-export -f _doctor_lib_resolve_plugin_root
+export -f _tinker_lib_resolve_plugin_root
 export -f diagnose_loop
 export -f repair_missing_plist
 export -f repair_missing_hooks
 export -f repair_pending_bind_owner_session
 export -f repair_stale_waker_path
-export -f doctor_repair_all_for_loop
+export -f tinker_repair_all_for_loop

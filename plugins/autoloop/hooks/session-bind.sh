@@ -23,7 +23,7 @@
 #   other UUID, owner_pid alive                    → observer (no mutation)
 #   other UUID, owner_pid dead, last_updated > 1h  → stale_owner_detected
 #                                                     (no auto-reclaim;
-#                                                      surfaced for doctor)
+#                                                      surfaced for tinker)
 #
 # All paths exit 0 — SessionStart hooks must never block session startup.
 
@@ -226,7 +226,7 @@ while IFS= read -r match; do
             cwd_observed="$CWD" \
             registry_generation="$GEN" \
             owner_pid_before="$OWNER_PID" \
-            reason="prior owner $OWNER_SID (pid $OWNER_PID) dead; last_updated ${AGE_S}s ago; auto-reclaim NOT performed (use /autoloop:reclaim or doctor --fix)" \
+            reason="prior owner $OWNER_SID (pid $OWNER_PID) dead; last_updated ${AGE_S}s ago; auto-reclaim NOT performed (use /autoloop:reclaim or tinker --fix)" \
             decision="deferred"
         else
           # Recent dead-owner — log but don't act (race window)
