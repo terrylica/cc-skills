@@ -384,8 +384,8 @@ echo ""
 echo "## Group E: Cleanup races + idempotency"
 # ============================================================
 
-# E1: doctor --fix when state_dir already deleted
-echo "E1: doctor --fix with deleted state_dir"
+# E1: tinker --fix when state_dir already deleted
+echo "E1: tinker --fix with deleted state_dir"
 reset
 # shellcheck source=/dev/null
 source "$SCRIPTS/triage-lib.sh"
@@ -399,7 +399,7 @@ SD=$(put_loop "111aaa111aaa" "$HOME/c-E1.md" "pending-bind" 7200)
 rm -rf "$SD"
 RC=0
 loop_triage_fix >/dev/null 2>&1 || RC=$?
-assert "$RC" "0" "doctor --fix tolerates missing state_dir"
+assert "$RC" "0" "tinker --fix tolerates missing state_dir"
 
 # E2: heal-self with read-only archive file
 echo "E2: heal-self with read-only archive"
@@ -442,8 +442,8 @@ JSON=$(loop_triage_report --json 2>/dev/null)
 VERDICT=$(echo "$JSON" | jq -r '.loops[] | select(.loop_id == "444ddd444ddd") | .verdict')
 assert "$VERDICT" "YELLOW" "long status starting with DONE flagged YELLOW"
 
-# E5: idempotent doctor --fix (run twice)
-echo "E5: doctor --fix run twice"
+# E5: idempotent tinker --fix (run twice)
+echo "E5: tinker --fix run twice"
 reset
 {
   echo "---"
@@ -455,7 +455,7 @@ put_loop "555eee555eee" "$HOME/c-E5.md" "pending-bind" 0 >/dev/null
 loop_triage_fix >/dev/null 2>&1
 RC=0
 loop_triage_fix >/dev/null 2>&1 || RC=$?
-assert "$RC" "0" "doctor --fix idempotent on second call"
+assert "$RC" "0" "tinker --fix idempotent on second call"
 
 # E6: cleanup of loop with "ABORTED" status (synonym)
 echo "E6: status='ABORTED' triggers cleanup"

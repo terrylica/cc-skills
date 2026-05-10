@@ -68,7 +68,7 @@ is_hook_installed() {
 # don't set BASH_SOURCE properly, and direct calls outside the source chain.
 #
 # Precedence (first match wins):
-#   1. $AUTOLOOP_PLUGIN_ROOT — explicit override (used by tests and doctor)
+#   1. $AUTOLOOP_PLUGIN_ROOT — explicit override (used by tests and tinker)
 #   2. $CLAUDE_PLUGIN_ROOT — set by Claude Code when invoking plugin skills
 #   3. ${BASH_SOURCE[0]} — works when sourced from bash; previous behavior
 #   4. $HOME/.claude/plugins/marketplaces/cc-skills/plugins/autoloop — fallback

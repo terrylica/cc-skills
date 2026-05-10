@@ -201,7 +201,7 @@ _triage_check_loop() {
 }
 
 # _triage_check_disk_orphans — Wave 5 B3 — enumerate state_dirs on disk
-# that have NO matching registry entry. Doctor's existing checks all
+# that have NO matching registry entry. Tinkers existing checks all
 # iterate registry entries, so a state_dir created by a registered loop
 # whose entry was later deleted (or a manual `cp -R old new` clone, or a
 # legacy migration leaving both old and new paths) becomes invisible.
@@ -509,7 +509,7 @@ loop_triage_fix() {
         rm -f "$HOME/Library/LaunchAgents/$label.plist" 2>/dev/null || true
         fixed=$((fixed + 1))
         if command -v emit_provenance >/dev/null 2>&1; then
-          emit_provenance "$loop_id" "doctor_fixed_zombie" \
+          emit_provenance "$loop_id" "tinker_fixed_zombie" \
             reason="bootout + plist removal for label $label" \
             decision="proceeded" 2>/dev/null || true
         fi
@@ -535,7 +535,7 @@ loop_triage_fix() {
 
   # Fix 3 (v16.8.1): clean DONE-marked contracts.
   # User marks contract status: DONE but forgets to run /autoloop:stop —
-  # the plist keeps firing forever. Doctor --fix detects DONE status, boots
+  # the plist keeps firing forever. Tinker --fix detects DONE status, boots
   # out the launchd job, removes the plist, archives the registry entry, and
   # leaves the .loop-state/ dir in place for forensics.
   if [ -f "$registry_path" ]; then
@@ -573,7 +573,7 @@ loop_triage_fix() {
         # Remove from active registry
         jq --arg id "$lid" '.loops |= map(select(.loop_id != $id))' "$registry_path" >"$registry_path.tmp" && mv "$registry_path.tmp" "$registry_path"
         if command -v emit_provenance >/dev/null 2>&1; then
-          emit_provenance "$lid" "doctor_fixed_done_loop" \
+          emit_provenance "$lid" "tinker_fixed_done_loop" \
             reason="auto-cleanup of DONE-marked loop; status=${cstatus:0:80}" \
             decision="proceeded" 2>/dev/null || true
         fi
@@ -582,7 +582,7 @@ loop_triage_fix() {
     done < <(jq -c '.loops[]' "$registry_path" 2>/dev/null)
   fi
 
-  echo "Doctor fix complete. Remediations applied: $fixed"
+  echo "Tinker fix complete. Remediations applied: $fixed"
   return 0
 }
 

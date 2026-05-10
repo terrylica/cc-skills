@@ -109,14 +109,14 @@ NEW_HASH=$(_compute_hash)
 [ -n "$NEW_HASH" ] && echo "$NEW_HASH" >"$HASH_PATH" 2>/dev/null || true
 
 # Wave-6 anti-fragility: scan for live registry entries missing their plist
-# and best-effort regenerate via doctor-lib. This catches the documented F1
+# and best-effort regenerate via tinker-lib. This catches the documented F1
 # failure mode (registered loop, no plist on disk) without waiting for the
-# user to invoke /autoloop:doctor manually.
+# user to invoke /autoloop:tinker manually.
 #
 # Conservative: only operate on entries whose owner_session_id is a real
 # UUID (already-bound loop) — never touch pending-bind entries the operator
 # may still be wiring up. Logs to provenance and exits 0 either way.
-DOCTOR_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/doctor-lib.sh"
+DOCTOR_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/tinker-lib.sh"
 if [ -f "$DOCTOR_LIB" ] && [ "$(uname -s 2>/dev/null)" = "Darwin" ]; then
   # Find loop_ids whose owner_session_id is a real UUID
   BOUND_LOOPS=$(jq -r '

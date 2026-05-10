@@ -1,12 +1,12 @@
 ---
-name: doctor
-description: Diagnose and repair the four documented autoloop bootstrap failure modes for a registered loop. Idempotent. Use when a loop is registered but doesn't fire, or after a marketplace update that may have left stale plists.
+name: tinker
+description: Diagnose and repair the documented autoloop bootstrap failure modes for a registered loop. Idempotent. Use when a loop is registered but doesn't fire, when owner_session_id is stuck at "pending-bind", or after a marketplace update that may have left stale plists. Renamed from "doctor" to avoid clashing with Claude Code's /doctor. TRIGGERS - autoloop doctor, autoloop repair, autoloop fix, fix loop, repair loop, pending-bind, loop won't fire, loop not firing.
 allowed-tools: Bash, Read
 argument-hint: "[loop_id_or_AL_slug]"
 disable-model-invocation: false
 ---
 
-# autoloop: Doctor
+# autoloop: Tinker
 
 Diagnose and repair a registered autoloop that won't fire.
 
@@ -21,7 +21,7 @@ Diagnose and repair a registered autoloop that won't fire.
 - The plist's runner script may point at a stale waker path (e.g. after a marketplace upgrade moved the plugin tree).
 - `owner_session_id == "pending-bind"` may persist beyond the bind grace window.
 
-`autoloop:doctor` runs all four diagnoses, prints a JSON report, and applies idempotent repairs. Safe to invoke at any time — healthy loops produce no changes.
+`autoloop:tinker` runs all four diagnoses, prints a JSON report, and applies idempotent repairs. Safe to invoke at any time — healthy loops produce no changes.
 
 ## Arguments
 
@@ -47,7 +47,7 @@ if [ -z "$INPUT" ]; then
     echo "  inferred loop_id $LOOP_ID from $candidates" >&2
   else
     echo "ERROR: no argument given and could not unambiguously infer loop_id from cwd" >&2
-    echo "       Try /autoloop:status to list registered loops, then call /autoloop:doctor <loop_id>." >&2
+    echo "       Try /autoloop:status to list registered loops, then call /autoloop:tinker <loop_id>." >&2
     exit 1
   fi
 else
@@ -58,7 +58,7 @@ fi
 ## Step 2: Diagnose
 
 ```bash
-source "$PLUGIN_ROOT/scripts/doctor-lib.sh"
+source "$PLUGIN_ROOT/scripts/tinker-lib.sh"
 diagnosis=$(diagnose_loop "$LOOP_ID")
 echo "$diagnosis" | jq .
 ```
@@ -88,7 +88,7 @@ If user chose `Repair all`:
 # When this skill is invoked, $CLAUDE_SESSION_ID is what the user's current
 # session-bind would have written, so we pass it through to F3 repair.
 SESSION_UUID="${CLAUDE_SESSION_ID:-}"
-doctor_repair_all_for_loop "$LOOP_ID" "$SESSION_UUID"
+tinker_repair_all_for_loop "$LOOP_ID" "$SESSION_UUID"
 ```
 
 If `SESSION_UUID` is empty (not set in this Claude version), F3 is skipped with a printed instruction telling the user to open a fresh session in the loop's cwd to trigger session-bind.sh naturally.
@@ -112,9 +112,9 @@ fi
 
 ## Anti-patterns
 
-- Do NOT delete the contract file or the revision-log when repairing. Doctor is non-destructive.
+- Do NOT delete the contract file or the revision-log when repairing. Tinker is non-destructive.
 - Do NOT overwrite a real owner_session_id (e.g. when another session legitimately holds the loop). The F3 repair refuses to patch when the registry's `owner_session_id` is already a valid UUID.
-- Do NOT use doctor as a substitute for `/autoloop:reclaim` when ownership transfer is the actual goal — those are different operations.
+- Do NOT use tinker as a substitute for `/autoloop:reclaim` when ownership transfer is the actual goal — those are different operations.
 
 ## Troubleshooting
 

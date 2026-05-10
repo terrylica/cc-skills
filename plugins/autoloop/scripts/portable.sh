@@ -5,7 +5,7 @@
 #   1. Identifier validation (UUID, loop_id, slug, session_id) — strict regex
 #      gates that callers use to refuse hostile or malformed input before it
 #      reaches `claude --resume`, `jq --arg`, `launchctl`, or the registry.
-#   2. Structured logging to ~/.claude/loops/.hook-errors.log so the doctor
+#   2. Structured logging to ~/.claude/loops/.hook-errors.log so tinker
 #      skill can surface validation rejections instead of them being silent.
 #
 # Source via:
@@ -127,8 +127,8 @@ log_validation_event() {
 # detect cross-machine registry contamination — if a user rsyncs / Time
 # Machine-restores ~/.claude/loops/ between machines, registry entries from
 # the source machine carry foreign owner_pids that look "dead" on the
-# destination, leading doctor to flag everything as zombie. Stamping a
-# machine_id on every entry at register_loop time lets doctor distinguish
+# destination, leading tinker to flag everything as zombie. Stamping a
+# machine_id on every entry at register_loop time lets tinker distinguish
 # "real local zombie" from "foreign-machine entry, ignore the owner_pid".
 #
 # Wave 5 C3: cached at ~/.claude/loops/.machine-id on first compute. macOS
