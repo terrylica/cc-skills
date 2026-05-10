@@ -108,4 +108,39 @@ fi
 NEW_HASH=$(_compute_hash)
 [ -n "$NEW_HASH" ] && echo "$NEW_HASH" >"$HASH_PATH" 2>/dev/null || true
 
+# Wave-6 anti-fragility: scan for live registry entries missing their plist
+# and best-effort regenerate via doctor-lib. This catches the documented F1
+# failure mode (registered loop, no plist on disk) without waiting for the
+# user to invoke /autoloop:doctor manually.
+#
+# Conservative: only operate on entries whose owner_session_id is a real
+# UUID (already-bound loop) — never touch pending-bind entries the operator
+# may still be wiring up. Logs to provenance and exits 0 either way.
+DOCTOR_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/doctor-lib.sh"
+if [ -f "$DOCTOR_LIB" ] && [ "$(uname -s 2>/dev/null)" = "Darwin" ]; then
+  # Find loop_ids whose owner_session_id is a real UUID
+  BOUND_LOOPS=$(jq -r '
+    .loops[]?
+    | select(.owner_session_id | test("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
+    | .loop_id
+  ' "$REGISTRY_PATH" 2>/dev/null || echo "")
+
+  if [ -n "$BOUND_LOOPS" ]; then
+    # shellcheck source=/dev/null
+    source "$DOCTOR_LIB" 2>/dev/null || BOUND_LOOPS=""
+    while IFS= read -r LID; do
+      [ -z "$LID" ] && continue
+      PLIST="$HOME/Library/LaunchAgents/com.user.claude.loop.${LID}.plist"
+      if [ ! -f "$PLIST" ]; then
+        if command -v emit_provenance >/dev/null 2>&1; then
+          emit_provenance "$LID" "heal_self_repairing_missing_plist" \
+            reason="bound loop with missing plist detected" \
+            decision="repair_attempt" 2>/dev/null || true
+        fi
+        repair_missing_plist "$LID" 2>/dev/null || true
+      fi
+    done <<<"$BOUND_LOOPS"
+  fi
+fi
+
 exit 0
