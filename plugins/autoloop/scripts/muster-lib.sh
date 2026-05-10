@@ -327,28 +327,53 @@ enumerate_loops() {
       session_prefix="—"
     fi
 
-    # Determine status: ACTIVE, SATURATED, STALE, or DEAD
-    local owner_alive
-    owner_alive=$(verify_owner_alive "$loop_id" "$registry_path")
-
+    # Determine status: ACTIVE, SATURATED, STALE, DEAD, or PENDING-BIND.
+    # Wave 6: detect pending-bind first — these loops have a registered
+    # entry but the SessionStart hook never patched owner_session_id, so
+    # the launchd waker refuses to fire. Pre-Wave 6 they were silently
+    # bucketed as ACTIVE because owner_alive returned alive (the original
+    # spawning PID was still alive) and staleness was within threshold.
     local status="ACTIVE"
-    if [ "$owner_alive" = "dead" ]; then
-      status="DEAD"
-    else
-      # Owner is alive; check staleness
-      local staleness_secs
-      staleness_secs=$(staleness_seconds "$loop_id" "$registry_path")
+    case "$session_id" in
+      "" | "pending-bind" | "unknown" | "unknown-session")
+        # Compute age of pending-bind state from owner_start_time_us
+        # (heal-self uses this same field as the staleness clock).
+        if [ -n "$started_at_us" ]; then
+          local now_us age_s
+          now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
+          age_s=$(( (now_us - started_at_us) / 1000000 ))
+          if [ "$age_s" -gt 300 ]; then
+            status="PENDING-BIND-STUCK"  # >5min pending — surfacing this matters
+          else
+            status="PENDING-BIND"  # young; bind likely still in flight
+          fi
+        else
+          status="PENDING-BIND"
+        fi
+        ;;
+      *)
+        local owner_alive
+        owner_alive=$(verify_owner_alive "$loop_id" "$registry_path")
 
-      if [ "$staleness_secs" -gt $((4 * expected_cadence)) ]; then
-        status="DEAD"
-      elif [ "$staleness_secs" -gt $((3 * expected_cadence)) ]; then
-        status="STALE"
-      fi
+        if [ "$owner_alive" = "dead" ]; then
+          status="DEAD"
+        else
+          # Owner is alive; check staleness
+          local staleness_secs
+          staleness_secs=$(staleness_seconds "$loop_id" "$registry_path")
 
-      # Check if loop is saturated (contract has done: true or stop event)
-      # For Phase 10 v1, assume not saturated (TODO: Phase 11 will add this check)
-      # status="SATURATED"  # Placeholder
-    fi
+          if [ "$staleness_secs" -gt $((4 * expected_cadence)) ]; then
+            status="DEAD"
+          elif [ "$staleness_secs" -gt $((3 * expected_cadence)) ]; then
+            status="STALE"
+          fi
+
+          # Check if loop is saturated (contract has done: true or stop event)
+          # For Phase 10 v1, assume not saturated (TODO: Phase 11 will add this check)
+          # status="SATURATED"  # Placeholder
+        fi
+        ;;
+    esac
 
     # Get last_wake timestamp and human-readable form
     local last_wake_us
@@ -437,6 +462,7 @@ enumerate_loops() {
 format_muster_table() {
   local line_count=0
   local header_printed=0
+  local pending_stuck_count=0
 
   # Read and format each line
   while IFS= read -r jsonl_line; do
@@ -456,6 +482,14 @@ format_muster_table() {
     dead_time_ratio=$(echo "$jsonl_line" | jq -r '.dead_time_ratio // "—"' 2>/dev/null)
     staleness_flag=$(echo "$jsonl_line" | jq -r '.staleness_flag // "—"' 2>/dev/null)
     reclaim_candidate=$(echo "$jsonl_line" | jq -r '.reclaim_candidate // "no"' 2>/dev/null)
+
+    # Wave 6: count PENDING-BIND-STUCK loops so the footer can surface a
+    # one-line remediation hint. The status string itself is loud enough
+    # in the table that operators will spot it; the footer makes sure
+    # they know what to DO about it.
+    if [ "$status" = "PENDING-BIND-STUCK" ]; then
+      pending_stuck_count=$((pending_stuck_count + 1))
+    fi
 
     # Truncate display_name to 32 chars with ellipsis. The full name is in the
     # JSON stream for programmatic consumers; the table column has to fit on a
@@ -489,6 +523,18 @@ format_muster_table() {
     echo "  To start your first loop:  /autoloop:start <campaign-slug>"
     echo "  To install hooks first:    /autoloop:setup install"
     echo "  To check fleet health:     /autoloop:triage"
+  fi
+
+  # Wave 6: PENDING-BIND-STUCK footer. Loops in this state look alive but
+  # the launchd waker cannot fire /loop on them. Surface the remediation
+  # path once at the bottom of the table so operators don't miss it.
+  if [ "$pending_stuck_count" -gt 0 ]; then
+    echo ""
+    echo "⚠  ${pending_stuck_count} loop(s) in PENDING-BIND-STUCK state (>5min unbound)."
+    echo "   These won't autonomous-fire until session-bind completes. Either:"
+    echo "     • Open Claude Code with cwd at the project root → SessionStart hook binds automatically"
+    echo "     • Run /autoloop:tinker <loop_id>                → patches owner_session_id from current session"
+    echo "   heal-self runs hourly and will auto-bind to a live session if cwd matches; this footer is the visible signal."
   fi
 
   return 0
