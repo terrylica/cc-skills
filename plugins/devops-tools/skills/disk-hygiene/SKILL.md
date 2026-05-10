@@ -280,15 +280,28 @@ After modifying this skill:
 
 ## Troubleshooting
 
-| Issue                                 | Cause                            | Solution                                   |
-| ------------------------------------- | -------------------------------- | ------------------------------------------ |
-| `uv cache clean` hangs                | Lock held by running uv          | Use `--force` flag                         |
-| `brew cleanup` frees 0 bytes          | Already clean or formulae linked | Run `brew cleanup --prune=all`             |
-| `find` reports permission denied      | System Integrity Protection      | Add `2>/dev/null` to suppress              |
-| `gdu` command not found               | Installed as `gdu-go`            | Use `gdu-go` (coreutils conflict)          |
-| `dust` shows different size than `df` | Counting method differs          | Normal - `df` includes filesystem overhead |
-| Stale file scan is slow               | Deep directory tree              | Limit `-maxdepth` or exclude more paths    |
-| Docker not accessible                 | Desktop app not running          | Start Docker.app or skip Docker cleanup    |
+| Issue                                                                      | Cause                                                                                                                                  | Solution                                                                                                                                                            |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uv cache clean` hangs                                                     | Lock held by running uv                                                                                                                | Use `--force` flag                                                                                                                                                  |
+| `brew cleanup` frees 0 bytes                                               | Already clean or formulae linked                                                                                                       | Run `brew cleanup --prune=all`                                                                                                                                      |
+| `find` reports permission denied                                           | System Integrity Protection                                                                                                            | Add `2>/dev/null` to suppress                                                                                                                                       |
+| `gdu` command not found                                                    | Installed as `gdu-go`                                                                                                                  | Use `gdu-go` (coreutils conflict)                                                                                                                                   |
+| `dust` shows different size than `df`                                      | Counting method differs                                                                                                                | Normal - `df` includes filesystem overhead                                                                                                                          |
+| Stale file scan is slow                                                    | Deep directory tree                                                                                                                    | Limit `-maxdepth` or exclude more paths                                                                                                                             |
+| Docker not accessible                                                      | Desktop app not running                                                                                                                | Start Docker.app or skip Docker cleanup                                                                                                                             |
+| `parse error near TASK_ID=$(pueue add ...)` from heredoc with spaced paths | A user shell hook (e.g. pueue submission) re-parses the command string and breaks on `${var}/Path With Spaces/*` globs inside heredocs | Write multi-line scripts to `/tmp/<name>.sh` first via Write tool, then invoke as `bash /tmp/<name>.sh` — bypasses the inline heredoc → hook re-quote path entirely |
+
+### Hook-safe multi-line scripts
+
+If the user's shell environment has bash hooks that intercept tool calls (pueue, asciinema, etc.) and the heredoc pattern fails with cryptic parse errors, write the script to a temp file and invoke it:
+
+```bash
+# Instead of: bash << 'EOF'  ... EOF
+# Use: Write tool → /tmp/<task>.sh, then:
+bash /tmp/<task>.sh
+```
+
+Single-line bash invocations like `du -sh "$HOME/Library/Application Support"/Google/* 2>/dev/null | sort -rh | head` work fine even with hooks installed — only multi-line heredocs containing spaced-path globs are problematic.
 
 ## Post-Execution Reflection
 
