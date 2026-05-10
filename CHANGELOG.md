@@ -1,3 +1,10 @@
+# [21.3.0](https://github.com/terrylica/cc-skills/compare/v21.2.1...v21.3.0) (2026-05-10)
+
+
+### Features
+
+* **autoloop:** six antifragility fixes — doctor skill + start hardening ([4218809](https://github.com/terrylica/cc-skills/commit/4218809d11c19744d5dbb7bf3c2c6bc7bb0051b4))
+
 ## [21.2.1](https://github.com/terrylica/cc-skills/compare/v21.2.0...v21.2.1) (2026-05-10)
 
 
