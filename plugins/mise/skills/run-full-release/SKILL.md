@@ -79,6 +79,8 @@ Create only the tasks this repo actually needs. The 5-phase pattern is:
 
 ### 2d. Known Issues
 
+**Stale cc-skills marketplace-path hook entries leak into `~/.claude/settings.json`**: cc-skills' `release:preflight` hook-validation gate fails with `✗ N cc-skills marketplace-path entries found in settings.json`. Cause: hooks loaded from a previous Claude Code session can persist their resolved marketplace paths into `settings.json`, but plugin hooks are auto-loaded from each plugin's `hooks/hooks.json` — settings.json should NOT contain duplicates. The fix is built in: run `./scripts/sync-hooks-to-settings.sh` (idempotent — prunes only the leaked marketplace-path entries, leaves user-authored hooks alone), then re-run `mise run release:full`. Recurs across releases — not a one-time issue. Verified 2026-05-09 mid-release: 4 entries pruned, re-run succeeded.
+
 **`@semantic-release/git` untracked file explosion**: v10.x runs `git ls-files -m -o` without `--exclude-standard`. Patch after install:
 
 ```bash
