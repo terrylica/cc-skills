@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 # PROCESS-STORM-OK
+# FILE-SIZE-OK — single cohesive integration test surface for the hook
+# install/uninstall library; splitting would force every test to re-establish
+# the same fixture (HOME override, mktemp dir, sourced lib) without a real
+# axis to split along.
 # test-hook-install.sh — Comprehensive tests for hook install/uninstall (Phase 7: HOOK-01, HOOK-06, HOOK-07)
 # Tests idempotent install, uninstall, concurrency safety, and error handling
 # shellcheck disable=SC2329
@@ -468,6 +472,39 @@ else
   FAIL=$((FAIL+1))
 fi
 rm -rf "$FRESH"
+
+echo ""
+echo "Test 14: Wave 6.6 — jq update failure surfaces actual stderr (not silenced)"
+# Reproduce the silent-error scenario: settings.json is structurally valid JSON
+# but with .hooks.PostToolUse[0].hooks set to a non-array value, so jq's
+# `+= [...]` mutation throws. Pre-Wave-6.6 the user saw only a generic
+# "jq update failed"; now they should see the real jq message.
+WAVE66_SETTINGS="$TEMP_DIR/wave66-settings.json"
+cat > "$WAVE66_SETTINGS" <<'EOF'
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "*", "hooks": "not-an-array-on-purpose" }
+    ]
+  }
+}
+EOF
+EXIT_CODE=0
+ERR=$(install_hook "$WAVE66_SETTINGS" "$HOOK_PATH" 2>&1 1>/dev/null) || EXIT_CODE=$?
+# Expect non-zero exit + the diagnostic includes a jq-shaped error AND the
+# hook_path/settings_path context lines.
+if [ "$EXIT_CODE" != "0" ] \
+   && echo "$ERR" | grep -q "jq update failed:" \
+   && echo "$ERR" | grep -q "hook_path:" \
+   && echo "$ERR" | grep -q "settings_path:" \
+   && ! echo "$ERR" | grep -q '\(no stderr\)'; then
+  echo "✓ PASS: jq error surfaces with real stderr + path context"
+  PASS=$((PASS+1))
+else
+  echo "✗ FAIL: expected real jq stderr in error output; rc=$EXIT_CODE"
+  echo "        captured: $ERR"
+  FAIL=$((FAIL+1))
+fi
 
 echo ""
 echo "========================================"
