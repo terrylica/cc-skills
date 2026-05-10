@@ -142,37 +142,8 @@ bun pm ls -g                 # List
 
 See [docs/LESSONS.md](./docs/LESSONS.md).
 
-<!-- GSD:project-start source:plugins/claude-tts-companion/CLAUDE.md -->
-
 ## Active Project
 
 **[claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)** — the Swift macOS companion binary (Telegram bot + Kokoro TTS + subtitle overlay) has its own CLAUDE.md as the SSoT. Project description, constraints, stack, conventions, architecture, and critical invariants live there. **Do not duplicate them here** — pre-2026-04-07 the root had a full copy and it drifted (wrong model path, wrong audio playback description).
 
 Quick hand-off: read `plugins/claude-tts-companion/CLAUDE.md` when the user mentions TTS, karaoke subtitles, Telegram bot, session notifications, `tts_kokoro.sh`, or anything under `plugins/claude-tts-companion/`.
-
-<!-- GSD:project-end -->
-
-<!-- GSD:workflow-start source:GSD defaults -->
-
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-
-- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd:debug` for investigation and bug fixing
-- `/gsd:execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-
-<!-- GSD:workflow-end -->
-
-<!-- GSD:profile-start -->
-
-## Developer Profile
-
-> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
-> This section is managed by `generate-claude-profile` -- do not edit manually.
-
-<!-- GSD:profile-end -->
