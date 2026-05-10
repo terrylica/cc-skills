@@ -1,3 +1,10 @@
+## [21.4.3](https://github.com/terrylica/cc-skills/compare/v21.4.2...v21.4.3) (2026-05-10)
+
+
+### Bug Fixes
+
+* **autoloop:** Wave 6.3 — locale-safe lstart parsing, registry lock for heal-archive, event-name disambiguation, doc drift ([3e528cc](https://github.com/terrylica/cc-skills/commit/3e528cc7226de5f20d1462565cdf0b80ea9c33f5))
+
 ## [21.4.2](https://github.com/terrylica/cc-skills/compare/v21.4.1...v21.4.2) (2026-05-10)
 
 
