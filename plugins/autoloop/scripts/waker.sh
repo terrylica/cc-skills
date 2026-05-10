@@ -474,6 +474,19 @@ spawn_claude_resume() {
   # SwiftBar, future Telegram bridge) surfaces the dead loop proactively.
   # Gated on AUTOLOOP_NO_NOTIFY=1 for users who want strict silence.
   local notify_path="$HOME/.claude/loops/.notifications.jsonl"
+  # Wave 6.5: explicitly close fds 7, 8, 9 before the nohup subprocess
+  # inherits them. registry-lib's `exec 9>"$lock_file"` and ownership-lib's
+  # `exec 8>"$lock_file"` open the lock fds without FD_CLOEXEC. The EXIT
+  # trap in _with_registry_lock closes fd 9 only when the parent shell
+  # exits — but spawn_claude_resume runs while the parent is still alive,
+  # so the spawned `bash -c "claude --resume …"` inherits fd 9 (and 8 if
+  # an owner.lock was held), keeping the lock held until claude --resume
+  # exits (could be minutes). The next waker firing then blocks for 5s
+  # on flock and reports false-positive "lock contention" — even though
+  # no other writer is actually active, just a lingering subprocess
+  # holding an inherited handle. The redirections `9>&- 8>&- 7>&-` close
+  # those fds in the child *before* bash exec's, so the locks are
+  # released as soon as the parent shell would have closed them anyway.
   nohup bash -c "
     claude --resume \"$session_id\" >> \"$spawn_log\" 2>&1
     rc=\$?
@@ -490,7 +503,7 @@ spawn_claude_resume() {
           >> \"$notify_path\" 2>/dev/null || true
       fi
     fi
-  " >/dev/null 2>&1 &
+  " 7>&- 8>&- 9>&- >/dev/null 2>&1 &
   local spawn_pid=$!
 
   echo "INFO: spawn_claude_resume: spawned claude --resume $session_id (PID: $spawn_pid)"

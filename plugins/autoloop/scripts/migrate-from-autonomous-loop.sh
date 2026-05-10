@@ -86,6 +86,33 @@ main() {
     grep -n 'plugins/autonomous-loop/' "$SETTINGS" || true
     return 1
   fi
+
+  # Wave 6.5: clean up the launchd-side leftovers the original migrate
+  # never touched. Pre-fix only settings.json was rewritten — but
+  # `~/Library/LaunchAgents/com.user.claude.autonomous_loop.<id>.plist`
+  # files and their loaded launchctl entries persisted indefinitely,
+  # firing every StartInterval and trying to exec waker scripts at the
+  # old marketplace path that no longer exists. Symptoms: spurious
+  # "Program not found" entries in system.log, plus duplicate Login
+  # Items rows. Each stale plist is bootout'd if loaded, then archived
+  # alongside settings.json so the user can recover if anything was
+  # incorrectly classified as legacy.
+  local stale_plist_dir="$HOME/Library/LaunchAgents"
+  local stale_count=0
+  if [ -d "$stale_plist_dir" ] && command -v launchctl >/dev/null 2>&1; then
+    local stale_plist
+    while IFS= read -r stale_plist; do
+      [ -z "$stale_plist" ] && continue
+      local label
+      label=$(basename "$stale_plist" .plist)
+      launchctl bootout "gui/$(id -u)/$label" 2>/dev/null || true
+      mv "$stale_plist" "$BACKUP_DIR/$(basename "$stale_plist").$ts" 2>/dev/null || rm -f "$stale_plist"
+      stale_count=$((stale_count + 1))
+    done < <(find "$stale_plist_dir" -maxdepth 1 -name 'com.user.claude.autonomous_loop.*.plist' -type f 2>/dev/null)
+  fi
+  if [ "$stale_count" -gt 0 ]; then
+    info "Cleaned $stale_count stale autonomous_loop launchd plist(s); originals archived to $BACKUP_DIR/"
+  fi
 }
 
 main "$@"
