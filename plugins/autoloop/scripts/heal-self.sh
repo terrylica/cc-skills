@@ -62,6 +62,91 @@ if [ -z "$STALE_ENTRIES" ]; then
   exit 0
 fi
 
+# Wave 6 anti-fragility: BEFORE archiving, try to auto-bind each stale
+# pending-bind entry to a live Claude session whose cwd matches the
+# loop's project_root. This rescues loops the bind hook missed because
+# the user's session opened with cwd at project_root rather than inside
+# .autoloop/<slug>--<hash>/.
+#
+# Detection signal: ~/.claude/projects/<encoded-cwd>/<session-uuid>.jsonl
+# with mtime within the last 5 minutes. The encoding maps absolute path
+# to "-" separators (e.g. /Users/x/eon/foo → -Users-x-eon-foo). The
+# JSONL filename IS the session UUID. If a recent JSONL exists at the
+# matching encoded path, that session is the natural new owner.
+RESCUED_LOOP_IDS=""
+PROJECTS_DIR="$HOME/.claude/projects"
+if [ -d "$PROJECTS_DIR" ]; then
+  RESCUED_LIST=$(mktemp -t autoloop-heal.XXXXXX) || RESCUED_LIST=""
+  while IFS= read -r entry; do
+    [ -z "$entry" ] && continue
+    local_loop_id=$(echo "$entry" | jq -r '.loop_id // ""' 2>/dev/null)
+    local_root=$(echo "$entry" | jq -r '.created_at_cwd // ""' 2>/dev/null)
+    local_contract=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
+    # Derive project_root if registry doesn't have it (legacy entries)
+    if [ -z "$local_root" ] && [ -n "$local_contract" ]; then
+      case "$local_contract" in
+        */.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md)
+          local_root="${local_contract%/.autoloop/*}"
+          ;;
+      esac
+    fi
+    [ -z "$local_root" ] && continue
+
+    # Encode: leading-slash path with "/" replaced by "-"
+    encoded="${local_root//\//-}"
+    project_jsonl_dir="$PROJECTS_DIR/$encoded"
+    [ -d "$project_jsonl_dir" ] || continue
+
+    # Find the most recent JSONL (mtime within 5min = live session)
+    candidate=$(find "$project_jsonl_dir" -maxdepth 1 -name '*.jsonl' -mmin -5 -print 2>/dev/null | head -1)
+    [ -z "$candidate" ] && continue
+
+    candidate_sid=$(basename "$candidate" .jsonl)
+    # Validate UUID shape before mutating registry
+    if ! [[ "$candidate_sid" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]]; then
+      continue
+    fi
+
+    # Source registry-lib for atomic update_loop_field
+    REG_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/registry-lib.sh"
+    if [ -f "$REG_LIB" ]; then
+      # shellcheck source=/dev/null
+      source "$REG_LIB" 2>/dev/null || continue
+      if command -v update_loop_field >/dev/null 2>&1; then
+        if update_loop_field "$local_loop_id" ".owner_session_id" "\"$candidate_sid\"" 2>/dev/null; then
+          update_loop_field "$local_loop_id" ".owner_start_time_us" "\"$NOW_US\"" 2>/dev/null || true
+          if command -v emit_provenance >/dev/null 2>&1; then
+            emit_provenance "$local_loop_id" "heal_auto_bound" \
+              session_id="$candidate_sid" \
+              project_root="$local_root" \
+              project_root_source="heal-self.sh" \
+              reason="rescued from pending-bind: live JSONL at $candidate (mtime <5min)" \
+              decision="proceeded" 2>/dev/null || true
+          fi
+          [ -n "$RESCUED_LIST" ] && echo "$local_loop_id" >>"$RESCUED_LIST"
+        fi
+      fi
+    fi
+  done <<< "$STALE_ENTRIES"
+
+  # Re-filter STALE_ENTRIES to drop loops we just rescued (so they don't
+  # get archived in the next block).
+  if [ -n "$RESCUED_LIST" ] && [ -s "$RESCUED_LIST" ]; then
+    RESCUED_LOOP_IDS=$(tr '\n' '|' <"$RESCUED_LIST" | sed 's/|$//')
+    if [ -n "$RESCUED_LOOP_IDS" ]; then
+      STALE_ENTRIES=$(echo "$STALE_ENTRIES" | jq -c --arg rescued "$RESCUED_LOOP_IDS" \
+        'select(.loop_id | test("^(" + $rescued + ")$") | not)' 2>/dev/null || echo "$STALE_ENTRIES")
+    fi
+    rm -f "$RESCUED_LIST"
+  fi
+fi
+
+# Re-check after rescue — if everything got auto-bound, no archival needed.
+if [ -z "$STALE_ENTRIES" ]; then
+  echo "$CURRENT_HASH" >"$HASH_PATH" 2>/dev/null || true
+  exit 0
+fi
+
 # Append each stale entry to archive (with archived_ts annotation), then remove from registry.
 mkdir -p "$LOOPS_DIR" 2>/dev/null || true
 ARCHIVED=0
