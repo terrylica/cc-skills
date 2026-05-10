@@ -58,13 +58,20 @@ while IFS= read -r line; do
   esac
 done < <(tail -200 "$TRANSCRIPT" 2>/dev/null)
 
-# Empty firing: ScheduleWakeup called but no real work
+# Empty firing: ScheduleWakeup called but no real work.
+# Wave 6.4: decision="flagged" — a Stop hook never blocks Claude Code (it
+# can't refuse anything; Stop fires after the session is already winding
+# down). The historical "refused" value mis-categorized this event in
+# provenance forever-after — every post-mortem that filtered for actual
+# refusals (spawn_refused_*, bind_skipped_*) had to special-case
+# empty_firing_detected. "flagged" is the right verb: this is a passive
+# audit note for an operator's attention, not a blocked operation.
 if [ "$SCHEDULE_WAKEUP_COUNT" -gt 0 ] && [ "$OTHER_TOOL_COUNT" -eq 0 ]; then
   if command -v emit_provenance >/dev/null 2>&1; then
     emit_provenance "" "empty_firing_detected" \
       session_id="$SESSION_ID" \
       reason="session ended with ${SCHEDULE_WAKEUP_COUNT} ScheduleWakeup call(s) and 0 other tool invocations — empty firing" \
-      decision="refused" 2>/dev/null || true
+      decision="flagged" 2>/dev/null || true
   fi
 fi
 
