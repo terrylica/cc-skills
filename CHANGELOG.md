@@ -1,3 +1,10 @@
+## [21.4.4](https://github.com/terrylica/cc-skills/compare/v21.4.3...v21.4.4) (2026-05-10)
+
+
+### Bug Fixes
+
+* **autoloop:** Wave 6.4 — per-loop provenance rotation, decision-field accuracy ([ed007c8](https://github.com/terrylica/cc-skills/commit/ed007c863fe4d6ff5b7b36869379edfc97518c48))
+
 ## [21.4.3](https://github.com/terrylica/cc-skills/compare/v21.4.2...v21.4.3) (2026-05-10)
 
 
