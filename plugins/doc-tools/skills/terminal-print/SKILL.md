@@ -1,6 +1,6 @@
 ---
 name: terminal-print
-description: Print iTerm2 terminal output to network printer. TRIGGERS - print terminal, terminal PDF, print session output.
+description: Print iTerm2 terminal output to network printer. Also documents AirPrint blank-page workaround for HP LaserJet Pro MFP 3101/3108 family. TRIGGERS - print terminal, terminal PDF, print session output, AirPrint blank page, printer prints blank, lpr no output, HP LaserJet driverless blank, IPP-Everywhere blank page.
 allowed-tools: Bash, Read
 ---
 
@@ -56,12 +56,14 @@ bash "$SKILL_DIR/assets/print-terminal.sh" --no-preview
 PRINT_EOF
 ```
 
-| Flag           | Description                              |
-| -------------- | ---------------------------------------- |
-| `--file FILE`  | Read from file instead of clipboard      |
-| `--no-preview` | Skip PDF preview, print directly         |
-| `--no-print`   | Generate PDF only, don't send to printer |
-| `-h, --help`   | Show help message                        |
+| Flag                | Description                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `--file FILE`       | Read from file instead of clipboard                                                                                        |
+| `--no-preview`      | Skip PDF preview, print directly                                                                                           |
+| `--no-print`        | Generate PDF only, don't send to printer                                                                                   |
+| `--printer NAME`    | Override target printer queue (default: system default)                                                                    |
+| `--bypass-airprint` | Use socket-9100 + PostScript queue. Workaround for HP LaserJet Pro MFP 3101/3108/3201/3208/3301/3308 AirPrint blank pages. |
+| `-h, --help`        | Show help message                                                                                                          |
 
 ## Examples
 
@@ -121,13 +123,30 @@ Install MacTeX: `brew install --cask mactex`
 
 Check printer status: `lpstat -p -d`
 
-The default printer is `HP_LaserJet_Pro_MFP_3101_3108`. Edit the script to change.
+The script auto-detects the system default printer. Override with `--printer NAME` or set `TERMINAL_PRINT_PRINTER` in the environment.
+
+### Blank page came out (or `lpr` reported success but nothing printed)
+
+Strong fingerprint of the **HP LaserJet Pro MFP 3101/3108/3201/3208/3301/3308 AirPrint blank-page bug** — the printer's IPP-Everywhere PDF interpreter silently drops jobs while CUPS reports `completed`. Confirmed with this exact symptom on 2026-05-09.
+
+**Quick fix:**
+
+```bash
+# 1. One-time setup of bypass queue (socket-9100 + Generic PostScript PPD)
+"${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/setup-socket-9100-queue.sh"
+
+# 2. Reprint with --bypass-airprint
+bash "${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/print-terminal.sh" --bypass-airprint
+```
+
+**Full diagnostic playbook with command sequences and decision tree:** see [airprint-blank-page-troubleshooting.md](references/airprint-blank-page-troubleshooting.md).
+
+Key takeaway: do not trust `lpstat -o` or `job-state=completed` — query the **printer's own job ledger** via `ipptool -tv ipp://<printer>.local.:631/ipp/print` for `job-impressions-completed` and `job-media-sheets-completed`. CUPS lies; the printer (mostly) tells the truth.
 
 ## Related Skills
 
 - [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md) - General Markdown to PDF conversion
 - [asciinema-converter](../../../asciinema-tools/skills/asciinema-converter/SKILL.md) - Convert terminal recordings
-
 
 ## Post-Execution Reflection
 
