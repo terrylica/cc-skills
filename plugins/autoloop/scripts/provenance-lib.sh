@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # ===== Constants =====
-PROVENANCE_SCHEMA_VERSION=1
+PROVENANCE_SCHEMA_VERSION=2  # Wave 6: added project_root + project_root_source fields. v1 events lack these; consumers should treat them as null.
 PROVENANCE_GLOBAL_DIR="${PROVENANCE_GLOBAL_DIR:-$HOME/.claude/loops}"
 PROVENANCE_GLOBAL_FILE="${PROVENANCE_GLOBAL_FILE:-$PROVENANCE_GLOBAL_DIR/global-provenance.jsonl}"
 PROVENANCE_ROTATION_THRESHOLD="${PROVENANCE_ROTATION_THRESHOLD:-10000}"

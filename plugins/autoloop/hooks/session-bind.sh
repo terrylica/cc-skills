@@ -119,7 +119,17 @@ if ! [[ "$SESSION_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 fi
 
 # Fall back to pwd if cwd not in payload
-CWD="${PAYLOAD_CWD:-$(pwd)}"
+CWD_RAW="${PAYLOAD_CWD:-$(pwd)}"
+# Wave 6.1: normalize via realpath (cd && pwd -P) so the hierarchy match
+# works for symlinked paths and trailing-slash variants. macOS dev setups
+# frequently route through symlinks (~/projects → /Volumes/work/projects)
+# and the hooks must compare apples to apples with the registry's
+# realpath-canonicalized created_at_cwd values.
+if CWD_NORM=$(cd "$CWD_RAW" 2>/dev/null && pwd -P); then
+  CWD="$CWD_NORM"
+else
+  CWD="$CWD_RAW"
+fi
 
 # ===== Read registry =====
 REGISTRY=$(read_registry "$REGISTRY_PATH" 2>/dev/null) || {
@@ -154,7 +164,16 @@ MATCHES=$(echo "$REGISTRY" | jq -c --arg cwd "$CWD" '
     (.created_at_cwd // "") as $stored_root |
     # On-the-fly derivation: peel ".autoloop/<slug>--<6hex>" off contract_path
     ((.contract_path | capture("^(?<root>.+)/\\.autoloop/[^/]+--[0-9a-f]{6}/CONTRACT\\.md$") | .root) // "") as $derived_root |
-    (if $stored_root != "" then $stored_root else $derived_root end) as $project_root |
+    # Corruption guard (Wave 6.1): a stored_root that is NOT a strict
+    # ancestor of contract_dir is broken — the historical bug recorded
+    # contract_dir itself as created_at_cwd, which makes the hierarchy
+    # check collapse to cwd-equals-contract_dir only and re-introduces
+    # the pending-bind silent failure. Detect by requiring contract_dir
+    # to start with stored_root + "/" (trailing slash excludes equality).
+    (if ($stored_root != "") and ($contract_dir | startswith($stored_root + "/"))
+     then $stored_root
+     else $derived_root
+     end) as $project_root |
     if $project_root == "" then
       # Legacy LOOP_CONTRACT.md layout: keep strict cwd-inside-contract-dir match
       ($cwd == $contract_dir) or ($cwd | startswith($contract_dir + "/"))
@@ -168,7 +187,21 @@ MATCHES=$(echo "$REGISTRY" | jq -c --arg cwd "$CWD" '
 ' 2>/dev/null || echo "")
 
 if [ -z "$MATCHES" ]; then
-  # No loops registered for this cwd — totally fine
+  # No loops matched the cwd hierarchy. Fine if no loops are registered at
+  # all — but if loops EXIST and none matched, that's forensically valuable
+  # (Wave 6.1 telemetry gap closure). Without this event, an operator with
+  # a session that "should" be binding but isn't has no signal explaining
+  # the silence. The event lists the loops that were considered and the
+  # cwd that didn't match, so post-mortem can pinpoint the broken entry.
+  REG_LOOP_COUNT=$(echo "$REGISTRY" | jq '.loops | length' 2>/dev/null || echo 0)
+  if [ "${REG_LOOP_COUNT:-0}" -gt 0 ] && command -v emit_provenance >/dev/null 2>&1; then
+    CONSIDERED=$(echo "$REGISTRY" | jq -c '[.loops[] | {loop_id, contract_path, created_at_cwd: (.created_at_cwd // null)}]' 2>/dev/null || echo "[]")
+    emit_provenance "" "bind_skipped_no_match" \
+      session_id="$SESSION_ID" \
+      cwd_observed="$CWD" \
+      reason="cwd does not lie in any registered loop's project_root..contract_dir hierarchy; considered=$CONSIDERED; loop_count=$REG_LOOP_COUNT" \
+      decision="deferred" 2>/dev/null || true
+  fi
   exit 0
 fi
 
@@ -225,7 +258,7 @@ while IFS= read -r match; do
         emit_provenance "$LOOP_ID" "bind_first" \
           session_id="$SESSION_ID" \
           cwd_observed="$CWD" \
-          cwd_bound="$(dirname "$CONTRACT_PATH")" \
+          cwd_bound="$CWD" \
           project_root="$PROJECT_ROOT_FOR_LOG" \
           project_root_source="$([ -n "$STORED_ROOT" ] && echo "registry" || echo "derived_from_path")" \
           registry_generation="$GEN" \
