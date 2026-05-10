@@ -405,30 +405,82 @@ fi
 # Network: Tailscale primary (bigblack.tail0f299b.ts.net), CF Access fallback.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
 #
-# Pin-mode badge (HEART-23, ccmax-monitor v1.63.0+): reads ~/.config/ccmax/pin.toml
-# and shows the current override state next to the account name. No badge = default
-# rotation (this Mac follows the fleet's switcher). [soft] = pinned with auto-fallback
-# when unhealthy. [strict] = pinned no matter what.
-CCMAX_PIN_FILE="${HOME}/.config/ccmax/pin.toml"
+# Pin-scope+mode badge (HEART-23 v2; requires ccmax-monitor with layered-pin
+# support — graceful fallback to legacy device-only path if missing).
+#
+# The pin file format is layered: a single Mac can have pins at three
+# scopes simultaneously, walked in this precedence:
+#   1. session — ~/.config/ccmax/pin-by-session/<session-uuid>.toml  (highest)
+#   2. repo    — ~/.config/ccmax/pin-by-repo/<md5-prefix-8>.toml
+#   3. device  — ~/.config/ccmax/pin.toml                            (lowest)
+# The first hit wins.
+#
+# We surface the WINNING scope in the badge so the user sees which layer is
+# active, not just the mode:
+#   default rotation → empty badge
+#   session-soft     → [session:soft]    (yellow)
+#   session-strict   → [session:strict]  (red)
+#   repo-soft        → [repo:soft]       (yellow)
+#   repo-strict      → [repo:strict]     (red)
+#   device-soft      → [device:soft]     (yellow)  — replaces legacy [soft]
+#   device-strict    → [device:strict]   (red)     — replaces legacy [strict]
+#
+# Resolution path (with graceful fallback for users without ccmax):
+#   1. If ccmax-monitor's pin-helper.sh is installed at the marketplace path,
+#      source it and call ccmax_resolve_layered_pin (~2 ms cost via awk).
+#   2. Else if the legacy device-only ~/.config/ccmax/pin.toml exists, fall
+#      back to a tiny inline awk parser (this is what every cc-skills user
+#      gets if they don't have ccmax installed; the file legitimately won't
+#      exist for them and the parser cleanly returns empty).
+ccmax_pin_scope=""
 ccmax_pin_mode=""
-if [ -f "$CCMAX_PIN_FILE" ]; then
-    ccmax_pin_mode=$(python3 -c "
-import sys
-try:
-    import tomllib
-except ImportError:
-    sys.exit(0)
-try:
-    with open('${CCMAX_PIN_FILE}', 'rb') as f:
-        d = tomllib.load(f)
-    acc = d.get('account', '')
-    mode = d.get('mode', 'soft')
-    if acc and mode in ('soft', 'strict'):
-        print(mode)
-except Exception:
-    pass
-" 2>/dev/null) || ccmax_pin_mode=""
+CCMAX_PIN_HELPER_PATH="${HOME}/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh"
+CCMAX_PIN_DEVICE_FILE="${HOME}/.config/ccmax/pin.toml"
+
+if [ -f "$CCMAX_PIN_HELPER_PATH" ]; then
+    # Layered-pin path: source the helper and call the awk single-pass resolver.
+    # We can't read the live session_id here (the statusline JSON does carry
+    # it, but we want the badge to also be correct DURING the SessionStart
+    # boundary when no JSONL exists yet). So we pass the session_id
+    # extracted from the stdin JSON if available, else empty — the resolver
+    # then considers only repo + device scopes, which is the desired
+    # behavior at SessionStart.
+    _ccmax_pin_layered_resolved=$(
+        # shellcheck source=/dev/null
+        source "$CCMAX_PIN_HELPER_PATH" 2>/dev/null \
+            && ccmax_resolve_layered_pin "${session_id:-}" "$PWD" 2>/dev/null
+    ) || _ccmax_pin_layered_resolved="||none"
+    # Format: <account>|<mode>|<scope>
+    ccmax_pin_scope="${_ccmax_pin_layered_resolved##*|}"
+    _ccmax_pin_layered_rest="${_ccmax_pin_layered_resolved%|*}"
+    ccmax_pin_mode="${_ccmax_pin_layered_rest##*|}"
+    [ "$ccmax_pin_scope" = "none" ] && { ccmax_pin_scope=""; ccmax_pin_mode=""; }
+elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
+    # Legacy fallback for older ccmax-monitor installs OR cc-skills users
+    # without ccmax-monitor at all (in which case the file simply won't
+    # exist and both vars stay empty, producing no badge).
+    _ccmax_pin_legacy_combined=$(awk '
+        {
+            sub(/^[[:space:]]+/, ""); sub(/^#.*$/, "")
+            eq = index($0, "="); if (eq == 0) next
+            key = substr($0, 1, eq - 1); val = substr($0, eq + 1)
+            sub(/[[:space:]]+$/, "", key)
+            sub(/^[[:space:]]+/, "", val); sub(/[[:space:]]*#.*$/, "", val); sub(/[[:space:]]+$/, "", val)
+            gsub(/^["'\'']|["'\'']$/, "", val)
+            if (key == "account") account_value = val
+            else if (key == "mode") mode_value = val
+        }
+        END {
+            if (mode_value == "") mode_value = "soft"
+            printf "%s|%s\n", account_value, mode_value
+        }
+    ' "$CCMAX_PIN_DEVICE_FILE" 2>/dev/null) || _ccmax_pin_legacy_combined="|"
+    if [ -n "${_ccmax_pin_legacy_combined%%|*}" ]; then
+        ccmax_pin_scope="device"
+        ccmax_pin_mode="${_ccmax_pin_legacy_combined#*|}"
+    fi
 fi
+unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined
 
 # Query ccmax-monitor dashboard (private internal fleet system, OPTIONAL).
 # ccmax-monitor exposes a local port via ssh-tunnel-companion: bigblack:8095 → localhost:18095.
@@ -665,16 +717,22 @@ echo -e "$line1"
 # Account name + reset windows in BRIGHT_BLACK, percentages in CYAN (7d) and MAGENTA (5h)
 # for visual demarcation between the two quota windows.
 if [ -n "$ccmax_line" ]; then
-    # Pin-mode badge (HEART-23). Inserted right after the account name so the
-    # override label visually associates with the account it applies to.
+    # Pin scope+mode badge (HEART-23 v2). Inserted right after the account
+    # name so the override label visually associates with the account.
     #   default rotation → empty (clean state, no extra clutter)
-    #   soft pin         → YELLOW [soft]   (auto-fallback on unhealthy)
-    #   strict pin       → RED    [strict] (honor pin even when unhealthy)
+    #   soft pin (any scope)   → YELLOW [<scope>:soft]   (auto-fallback on unhealthy)
+    #   strict pin (any scope) → RED    [<scope>:strict] (honor pin even when unhealthy)
+    # Color encodes mode (yellow=soft, red=strict). Scope label tells the
+    # user WHICH layer is winning so they know whether clearing the device
+    # pin (legacy default) is enough to return to fleet rotation, or if
+    # they need to clear a session/repo override too.
     ccmax_pin_badge=""
-    case "$ccmax_pin_mode" in
-        soft)   ccmax_pin_badge="${YELLOW}[soft]${RESET}" ;;
-        strict) ccmax_pin_badge="${RED}[strict]${RESET}" ;;
-    esac
+    if [ -n "$ccmax_pin_scope" ] && [ -n "$ccmax_pin_mode" ]; then
+        case "$ccmax_pin_mode" in
+            soft)   ccmax_pin_badge="${YELLOW}[${ccmax_pin_scope}:soft]${RESET}" ;;
+            strict) ccmax_pin_badge="${RED}[${ccmax_pin_scope}:strict]${RESET}" ;;
+        esac
+    fi
 
     # Parse tokens produced by the Python block:
     #   <name> <7d%> <7d reset...> <5h%> <5h reset...>

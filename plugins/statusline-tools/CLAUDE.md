@@ -64,27 +64,41 @@ The status line includes an optional integration with [ccmax-monitor](https://gi
 When ccmax-monitor is running locally, the datetime line gains:
 
 ```
-2026-05-05 14:32 UTC | 03:32 PDT | usalchemist@gmail.com 42% 1d 22h [soft]
-                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                                    account  5h-used  7d-reset  pin-badge
+2026-05-09 17:25 PDT | usalchemist 42% 1d 22h [device:soft]
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       account  5h-used  7d-reset  scope-mode-badge
 ```
 
-| Element               | Source                                        | Meaning                                   |
-| --------------------- | --------------------------------------------- | ----------------------------------------- |
-| Account email         | `GET localhost:18095/api/status` (cached 60s) | Which fleet account is active on this Mac |
-| `42%`                 | Same API response                             | 5-hour quota utilization                  |
-| `1d 22h`              | Same API response                             | Time until 7-day quota reset              |
-| `[soft]` / `[strict]` | `~/.config/ccmax/pin.toml`                    | Pin mode override (HEART-23)              |
+| Element                                | Source                                                      | Meaning                                   |
+| -------------------------------------- | ----------------------------------------------------------- | ----------------------------------------- |
+| Account email prefix                   | `GET localhost:18095/api/status` (cached 60s)               | Which fleet account is active on this Mac |
+| `42%`                                  | Same API response                                           | 5-hour quota utilization                  |
+| `1d 22h`                               | Same API response                                           | Time until 7-day quota reset              |
+| `[<scope>:<mode>]` (one of six values) | `ccmax_resolve_layered_pin` from ccmax-monitor's pin-helper | Pin scope+mode override (HEART-23 v2)     |
 
-### Pin badge
+### Pin scope+mode badge (HEART-23 v2)
 
-`custom-statusline.sh` reads `~/.config/ccmax/pin.toml` via Python `tomllib` (3.11+). If the file does not exist or is unreadable, `ccmax_pin_mode` is empty and no badge is shown.
+`custom-statusline.sh` resolves the layered pin via ccmax-monitor's helper at `~/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh`. The helper walks three scopes (highest → lowest precedence):
 
-| Badge             | Meaning                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| _(none)_          | Following fleet rotation (default)                         |
-| `[soft]` (yellow) | Pinned to a specific account; auto-fallback when unhealthy |
-| `[strict]` (red)  | Pinned regardless of health                                |
+1. `~/.config/ccmax/pin-by-session/<session-uuid>.toml` — session scope (auto-pruned at 24h JSONL staleness)
+2. `~/.config/ccmax/pin-by-repo/<md5-prefix-8>.toml` — repo scope (cwd path → MD5 → 8-hex prefix)
+3. `~/.config/ccmax/pin.toml` — device scope (the original HEART-23 location)
+
+The first hit wins; the badge shows WHICH scope is winning and its mode. **No badge** = following fleet rotation.
+
+| Badge                     | Meaning                                                                          |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| _(none)_                  | Following fleet rotation (default)                                               |
+| `[session:soft]` (yellow) | Session-scoped pin; auto-fallback to next layer when pinned account is unhealthy |
+| `[session:strict]` (red)  | Session-scoped pin; honored regardless of health                                 |
+| `[repo:soft]` (yellow)    | Repo-scoped pin; auto-fallback when unhealthy                                    |
+| `[repo:strict]` (red)     | Repo-scoped pin; honored regardless                                              |
+| `[device:soft]` (yellow)  | Device-scoped pin (replaces the legacy `[soft]` rendering); auto-fallback        |
+| `[device:strict]` (red)   | Device-scoped pin (replaces the legacy `[strict]` rendering); honored regardless |
+
+**Backwards compat for older ccmax-monitor installs**: if `pin-helper.sh` is missing at the marketplace path (older release OR no ccmax-monitor at all), the statusline falls back to a tiny inline awk parser that reads only the device-scope file and renders `[device:<mode>]`. Public cc-skills users without ccmax-monitor see no badge (the file doesn't exist).
+
+**Performance**: the layered helper uses awk single-pass parsing (~2 ms per resolve including 3 file checks) versus the prior python+tomllib path (~17 ms). On every statusline render the savings are imperceptible to the user but eliminate a recurring Python interpreter startup.
 
 ### Graceful degradation
 
