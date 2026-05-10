@@ -1,3 +1,10 @@
+## [21.4.1](https://github.com/terrylica/cc-skills/compare/v21.4.0...v21.4.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* **autoloop:** Wave 6.1 conflict patches across hooks and scripts ([16b3921](https://github.com/terrylica/cc-skills/commit/16b39211645d20a99d51d13ded476620f6d5f041))
+
 # [21.4.0](https://github.com/terrylica/cc-skills/compare/v21.3.0...v21.4.0) (2026-05-10)
 
 
