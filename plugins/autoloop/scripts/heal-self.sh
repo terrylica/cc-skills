@@ -62,6 +62,18 @@ if [ -z "$STALE_ENTRIES" ]; then
   exit 0
 fi
 
+# Wave 6.1: source provenance-lib early so the auto-bind block below
+# can emit heal_auto_bound events. The historical placement at line ~232
+# was AFTER the auto-bind block, so emit_provenance silently no-op'd
+# (`command -v emit_provenance` returned false), losing the rescue
+# telemetry. Sourcing here is idempotent — the later block re-sources
+# without harm.
+PROV_LIB_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/provenance-lib.sh"
+if [ -f "$PROV_LIB_EARLY" ]; then
+  # shellcheck source=/dev/null
+  source "$PROV_LIB_EARLY" 2>/dev/null || true
+fi
+
 # Wave 6 anti-fragility: BEFORE archiving, try to auto-bind each stale
 # pending-bind entry to a live Claude session whose cwd matches the
 # loop's project_root. This rescues loops the bind hook missed because

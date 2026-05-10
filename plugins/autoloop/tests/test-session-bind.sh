@@ -9,6 +9,11 @@ PLUGIN_DIR="$(dirname "$SCRIPT_DIR")"
 HOOK="$PLUGIN_DIR/hooks/session-bind.sh"
 
 TEMP_DIR=$(mktemp -d)
+# Wave 6.1: canonicalize TEMP_DIR via realpath so test fixtures match the
+# cd && pwd -P normalization the hook applies to incoming cwd payloads.
+# Without this, macOS /var/folders → /private/var/folders symlink causes
+# the hierarchy-match predicate to spuriously fail.
+TEMP_DIR=$(cd "$TEMP_DIR" && pwd -P)
 export HOME="$TEMP_DIR/home"
 mkdir -p "$HOME/.claude/loops"
 export CLAUDE_LOOPS_REGISTRY="$HOME/.claude/loops/registry.json"
@@ -167,6 +172,95 @@ SID5=$(jq -r '.loops[] | select(.loop_id=="eeeeeeeeeeee") | .owner_session_id' "
 assert_eq "$SID5" "$SID_LIVE_OWNER" "registry unchanged"
 OBS=$(jq -sr '.[] | select(.event=="observer" and .loop_id=="eeeeeeeeeeee") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
 assert_eq "$OBS" "observer" "observer provenance event emitted"
+
+# ===== Wave 6 helper: v2 loop fixture (.autoloop/<slug>--<hash>/CONTRACT.md) =====
+# Wave 6 added the path-hierarchy match: cwd anywhere from project_root
+# down to contract_dir binds the loop. The legacy init_loop helper above
+# uses LOOP_CONTRACT.md at the contract_dir, which exercises the strict
+# fallback path. To test the new hierarchy path we need a v2 contract
+# at <project_root>/.autoloop/<slug>--<hash>/CONTRACT.md.
+init_v2_loop() {
+  local loop_id="$1" owner_sid="$2" stored_root="${3:-}"
+  local project_root="$TEMP_DIR/wave6proj-$loop_id"
+  local contract_dir="$project_root/.autoloop/test-campaign--abc123"
+  mkdir -p "$contract_dir"
+  local contract="$contract_dir/CONTRACT.md"
+  {
+    echo "---"
+    echo "name: wave6-test"
+    echo "loop_id: $loop_id"
+    echo "---"
+  } >"$contract"
+  local now_us
+  now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))")
+  local entry
+  entry=$(jq -nc \
+    --arg loop_id "$loop_id" \
+    --arg contract_path "$contract" \
+    --arg state_dir "$contract_dir/state/" \
+    --arg owner_session_id "$owner_sid" \
+    --arg owner_pid "99999" \
+    --arg owner_start_time_us "$now_us" \
+    --arg created_at_cwd "$stored_root" \
+    --argjson generation 0 \
+    '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_session_id: $owner_session_id, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, created_at_cwd: $created_at_cwd, generation: $generation}')
+  [ ! -f "$CLAUDE_LOOPS_REGISTRY" ] && echo '{"schema_version": 1, "loops": []}' >"$CLAUDE_LOOPS_REGISTRY"
+  jq --argjson e "$entry" '.loops += [$e]' "$CLAUDE_LOOPS_REGISTRY" >"$CLAUDE_LOOPS_REGISTRY.tmp" && mv "$CLAUDE_LOOPS_REGISTRY.tmp" "$CLAUDE_LOOPS_REGISTRY"
+  mkdir -p "$contract_dir/state"
+  echo "$project_root"
+}
+
+reset_wave6() {
+  rm -rf "$HOME/.claude/loops" "$TEMP_DIR/wave6proj-"*
+  mkdir -p "$HOME/.claude/loops"
+}
+
+SID_W6="aaaaaaaa-1234-1234-1234-aaaaaaaaaaaa"
+
+# ===== Test 6 (Wave 6): bind from cwd == project_root =====
+echo ""
+echo "Test 6 (Wave 6): cwd == project_root binds via hierarchy match"
+reset_wave6
+ROOT6=$(init_v2_loop "f1f1f1f1f1f1" "pending-bind" "$TEMP_DIR/wave6proj-f1f1f1f1f1f1")
+run_hook "$SID_W6" "$ROOT6"
+SID6=$(jq -r '.loops[] | select(.loop_id=="f1f1f1f1f1f1") | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
+assert_eq "$SID6" "$SID_W6" "project-root cwd binds (Wave 6 path-hierarchy fix)"
+
+# ===== Test 7 (Wave 6): cwd above project_root does NOT bind =====
+echo ""
+echo "Test 7 (Wave 6): cwd above project_root (e.g. \$HOME) does NOT bind"
+reset_wave6
+init_v2_loop "f2f2f2f2f2f2" "pending-bind" "$TEMP_DIR/wave6proj-f2f2f2f2f2f2" >/dev/null
+run_hook "$SID_W6" "$HOME"
+SID7=$(jq -r '.loops[] | select(.loop_id=="f2f2f2f2f2f2") | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
+assert_eq "$SID7" "pending-bind" "cwd above project_root must NOT bind"
+
+# ===== Test 8 (Wave 6.1): on-the-fly project_root derivation when registry has no created_at_cwd =====
+echo ""
+echo "Test 8 (Wave 6.1): registry missing created_at_cwd — derive from contract_path shape"
+reset_wave6
+ROOT8=$(init_v2_loop "f3f3f3f3f3f3" "pending-bind" "")  # empty stored root
+run_hook "$SID_W6" "$ROOT8"
+SID8=$(jq -r '.loops[] | select(.loop_id=="f3f3f3f3f3f3") | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
+assert_eq "$SID8" "$SID_W6" "on-the-fly derivation rescues legacy entries with empty created_at_cwd"
+
+# ===== Test 9 (Wave 6.1): corruption guard rejects stored_root == contract_dir =====
+echo ""
+echo "Test 9 (Wave 6.1): stored_root pointing at contract_dir — corruption guard prefers derived"
+reset_wave6
+ROOT9_PROJ=$(init_v2_loop "f4f4f4f4f4f4" "pending-bind" "$TEMP_DIR/wave6proj-f4f4f4f4f4f4/.autoloop/test-campaign--abc123")  # WRONG: contract_dir
+run_hook "$SID_W6" "$ROOT9_PROJ"
+SID9=$(jq -r '.loops[] | select(.loop_id=="f4f4f4f4f4f4") | .owner_session_id' "$CLAUDE_LOOPS_REGISTRY")
+assert_eq "$SID9" "$SID_W6" "corruption guard falls through to derived_root, project-root cwd still binds"
+
+# ===== Test 10 (Wave 6.1): bind_skipped_no_match telemetry =====
+echo ""
+echo "Test 10 (Wave 6.1): bind_skipped_no_match emitted when loops exist but cwd doesn't match"
+reset_wave6
+init_v2_loop "f5f5f5f5f5f5" "pending-bind" "$TEMP_DIR/wave6proj-f5f5f5f5f5f5" >/dev/null
+run_hook "$SID_W6" "$HOME"  # cwd above project_root → no match
+SKIPPED=$(jq -sr '.[] | select(.event=="bind_skipped_no_match") | .event' "$PROVENANCE_GLOBAL_FILE" | head -1)
+assert_eq "$SKIPPED" "bind_skipped_no_match" "bind_skipped_no_match event emitted when registered loops exist but cwd unmatched"
 
 # ===== Summary =====
 echo ""
