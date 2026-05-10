@@ -86,9 +86,9 @@
             "description": "Optional v2 field: 6-char hex disambiguator for campaigns sharing a slug. Computed as sha256(creator_session_id + ':' + created_at_utc + ':' + legacy_loop_id)[:6].",
             "pattern": "^[0-9a-f]{6}$"
           },
-          "project_cwd": {
+          "created_at_cwd": {
             "type": "string",
-            "description": "Optional v2 field: realpath of the project root that owns this campaign (where the .autoloop/ subdir lives)."
+            "description": "First-class v2 field (Wave 6): realpath of the project root that owns this campaign — the directory containing .autoloop/. SSoT for session-bind.sh and heartbeat-tick.sh cwd-match: a Claude session at this path (or descendant up to and including the contract dir) is the rightful owner of this loop. Backfilled by init_state_dir for legacy entries that had this empty or set to the contract dir (the historical pending-bind bug)."
           },
           "migrated_from": {
             "type": "string",
