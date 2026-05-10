@@ -67,7 +67,10 @@ source "$_TINKER_LIB_PLUGIN_ROOT/scripts/launchd-lib.sh"
 
 # Grace period before a "pending-bind" owner is considered a real failure
 # rather than an in-progress bind. Default 5 minutes.
-_DOCTOR_PENDING_BIND_GRACE_SECONDS="${AUTOLOOP_DOCTOR_PENDING_BIND_GRACE_S:-300}"
+# Env var: AUTOLOOP_TINKER_PENDING_BIND_GRACE_S (or legacy
+# AUTOLOOP_DOCTOR_PENDING_BIND_GRACE_S, retained for back-compat after the
+# doctor → tinker rename).
+_TINKER_PENDING_BIND_GRACE_SECONDS="${AUTOLOOP_TINKER_PENDING_BIND_GRACE_S:-${AUTOLOOP_DOCTOR_PENDING_BIND_GRACE_S:-300}}"
 
 # diagnose_loop <loop_id>
 # Emits a single-line JSON object describing each of the four documented
@@ -181,7 +184,7 @@ diagnose_loop() {
   fi
   if [ "$owner_session_id" = "pending-bind" ] && \
      [ "$owner_pending_bind_age" != "null" ] && \
-     [ "$owner_pending_bind_age" -gt "$_DOCTOR_PENDING_BIND_GRACE_SECONDS" ]; then
+     [ "$owner_pending_bind_age" -gt "$_TINKER_PENDING_BIND_GRACE_SECONDS" ]; then
     failure_modes+=("F3_pending_bind_stale")
   fi
   if [ "$waker_path_stale" = "true" ]; then

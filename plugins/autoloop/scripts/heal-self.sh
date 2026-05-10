@@ -83,10 +83,18 @@ if [ -d "$PROJECTS_DIR" ]; then
     local_root=$(echo "$entry" | jq -r '.created_at_cwd // ""' 2>/dev/null)
     local_contract=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
     # Derive project_root if registry doesn't have it (legacy entries)
+    # Wave 6.1: also handle legacy <root>/LOOP_CONTRACT.md layout — those
+    # entries' project_root is the contract's parent dir (the git toplevel
+    # in practice). Without this fallback, legacy contracts that the bind
+    # hook's derived_root logic CAN handle were invisible to heal-self
+    # auto-bind.
     if [ -z "$local_root" ] && [ -n "$local_contract" ]; then
       case "$local_contract" in
         */.autoloop/*--[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/CONTRACT.md)
           local_root="${local_contract%/.autoloop/*}"
+          ;;
+        */LOOP_CONTRACT.md)
+          local_root="$(dirname "$local_contract")"
           ;;
       esac
     fi
@@ -115,12 +123,56 @@ if [ -d "$PROJECTS_DIR" ]; then
       if command -v update_loop_field >/dev/null 2>&1; then
         if update_loop_field "$local_loop_id" ".owner_session_id" "\"$candidate_sid\"" 2>/dev/null; then
           update_loop_field "$local_loop_id" ".owner_start_time_us" "\"$NOW_US\"" 2>/dev/null || true
+
+          # Wave 6.1: seed heartbeat.bound_cwd to close the spawn-refusal
+          # gap. Pre-Wave-6.1, heal-self auto-bind only patched the
+          # registry; the next launchd waker firing would read
+          # heartbeat.json, find bound_cwd empty (heartbeat-tick hadn't
+          # fired yet for the rescued session), and spawn-refuse with
+          # "spawn_refused_no_bound_cwd". This left auto-bound loops
+          # stuck for one extra waker cycle. Seeding bound_cwd to
+          # contract_dir (which is what heartbeat-tick.sh would write
+          # on first tick) lets the very next waker firing proceed.
+          local_state_dir=$(echo "$entry" | jq -r '.state_dir // ""' 2>/dev/null)
+          if [ -n "$local_state_dir" ] && [ -d "$local_state_dir" ]; then
+            HB_FILE="$local_state_dir/heartbeat.json"
+            local_contract_dir=$(dirname "$local_contract")
+            if [ -f "$HB_FILE" ]; then
+              # Merge bound_cwd into existing heartbeat
+              TMP_HB=$(mktemp "$HB_FILE.heal.XXXXXX") || TMP_HB=""
+              if [ -n "$TMP_HB" ]; then
+                if jq --arg bc "$local_contract_dir" \
+                    '. + {bound_cwd: $bc, cwd_drift_detected: false}' \
+                    "$HB_FILE" >"$TMP_HB" 2>/dev/null; then
+                  mv "$TMP_HB" "$HB_FILE" 2>/dev/null || rm -f "$TMP_HB"
+                else
+                  rm -f "$TMP_HB"
+                fi
+              fi
+            else
+              # No heartbeat yet — synthesize a minimal one so waker can
+              # proceed. last_wake_us=NOW makes the loop look "fresh"
+              # which is correct: the heal-self detection signal proves
+              # the rescued session is alive RIGHT NOW.
+              jq -nc --arg loop_id "$local_loop_id" \
+                     --arg session_id "$candidate_sid" \
+                     --arg last_wake_us "$NOW_US" \
+                     --arg bound_cwd "$local_contract_dir" \
+                '{loop_id: $loop_id, session_id: $session_id,
+                  iteration: "0", last_wake_us: $last_wake_us,
+                  generation: "0", bound_cwd: $bound_cwd,
+                  cwd_drift_detected: false}' \
+                >"$HB_FILE" 2>/dev/null || true
+            fi
+          fi
+
           if command -v emit_provenance >/dev/null 2>&1; then
             emit_provenance "$local_loop_id" "heal_auto_bound" \
               session_id="$candidate_sid" \
               project_root="$local_root" \
               project_root_source="heal-self.sh" \
-              reason="rescued from pending-bind: live JSONL at $candidate (mtime <5min)" \
+              cwd_bound="$local_root" \
+              reason="rescued from pending-bind: live JSONL at $candidate (mtime <5min); seeded heartbeat.bound_cwd to allow next waker firing to proceed" \
               decision="proceeded" 2>/dev/null || true
           fi
           [ -n "$RESCUED_LIST" ] && echo "$local_loop_id" >>"$RESCUED_LIST"

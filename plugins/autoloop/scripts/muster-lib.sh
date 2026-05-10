@@ -336,12 +336,16 @@ enumerate_loops() {
     local status="ACTIVE"
     case "$session_id" in
       "" | "pending-bind" | "unknown" | "unknown-session")
-        # Compute age of pending-bind state from owner_start_time_us
-        # (heal-self uses this same field as the staleness clock).
-        if [ -n "$started_at_us" ]; then
+        # Compute age of pending-bind state from owner_start_time_us — this is
+        # the same field heal-self.sh uses as its staleness clock, so muster's
+        # "PENDING-BIND-STUCK" threshold and heal-self's "ready to archive"
+        # threshold both read from the same authoritative timestamp.
+        local owner_start_us
+        owner_start_us=$(echo "$loop_json" | jq -r '.owner_start_time_us // empty' 2>/dev/null)
+        if [ -n "$owner_start_us" ]; then
           local now_us age_s
           now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
-          age_s=$(( (now_us - started_at_us) / 1000000 ))
+          age_s=$(( (now_us - owner_start_us) / 1000000 ))
           if [ "$age_s" -gt 300 ]; then
             status="PENDING-BIND-STUCK"  # >5min pending — surfacing this matters
           else

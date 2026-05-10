@@ -113,9 +113,12 @@ if [ -z "$SESSION_ID" ]; then
 fi
 
 # Step 2: Determine cwd (prefer stdin payload, fall back to pwd)
-CWD="${PAYLOAD_CWD:-}"
-if [ -z "$CWD" ]; then
-  CWD="$(pwd 2>/dev/null || echo '')"
+CWD_RAW="${PAYLOAD_CWD:-$(pwd 2>/dev/null || echo '')}"
+# Wave 6.1: realpath normalization (see session-bind.sh comment for rationale)
+if [ -n "$CWD_RAW" ] && CWD_NORM=$(cd "$CWD_RAW" 2>/dev/null && pwd -P); then
+  CWD="$CWD_NORM"
+else
+  CWD="$CWD_RAW"
 fi
 if [ -z "$CWD" ]; then
   _log_error "Failed to determine cwd" 1
@@ -153,7 +156,13 @@ select(
   (.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
   (.created_at_cwd // "") as $stored_root |
   ((.contract_path | capture("^(?<root>.+)/\\.autoloop/[^/]+--[0-9a-f]{6}/CONTRACT\\.md$") | .root) // "") as $derived_root |
-  (if $stored_root != "" then $stored_root else $derived_root end) as $project_root |
+  # Wave 6.1 corruption guard: prefer derived_root when stored_root is
+  # not a strict ancestor of contract_dir. See session-bind.sh for the
+  # full rationale; the predicate must stay byte-identical here.
+  (if ($stored_root != "") and ($contract_dir | startswith($stored_root + "/"))
+   then $stored_root
+   else $derived_root
+   end) as $project_root |
   if $project_root == "" then
     ($cwd == $contract_dir) or ($cwd | startswith($contract_dir + "/"))
   else
