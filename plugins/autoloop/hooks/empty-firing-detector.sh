@@ -5,7 +5,7 @@
 # doing real work — the cumulative version of the pacing anti-pattern.
 # Counts non-ScheduleWakeup tool invocations from the session transcript.
 # If the count is 0 AND a ScheduleWakeup was emitted, logs an
-# `empty_firing_detected` provenance event for doctor surfacing.
+# `empty_firing_detected` provenance event for tinker surfacing.
 #
 # Stdin payload (Claude Code Stop hook):
 #   {

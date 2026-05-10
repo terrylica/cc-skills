@@ -52,7 +52,7 @@ fi
 if ! install_all_hooks; then
   echo "ERROR: Failed to install autoloop hooks." >&2
   echo "  The bootstrap cannot continue safely — a registered loop without" >&2
-  echo "  its hooks installed is what /autoloop:doctor calls F2_missing_hooks." >&2
+  echo "  its hooks installed is what /autoloop:tinker calls F2_missing_hooks." >&2
   echo "  Inspect: jq . $SETTINGS_PATH ; ls $PLUGIN_ROOT/hooks/" >&2
   exit 1
 fi
@@ -67,7 +67,7 @@ if ! run_hook_runtime_selftest "$PLUGIN_ROOT" 2>&1; then
   echo "ERROR: Autoloop hook runtime self-test failed." >&2
   echo "  Hooks were registered in settings.json but at least one crashes" >&2
   echo "  on invocation. Inspect the FAIL line(s) above." >&2
-  echo "  Recover: /autoloop:doctor will redo the install with diagnostics." >&2
+  echo "  Recover: /autoloop:tinker will redo the install with diagnostics." >&2
   exit 1
 fi
 ```
@@ -244,7 +244,7 @@ fi
 # into loud failure).
 if ! generate_plist "$loop_id" "$state_dir" "$waker_script" "$interval_seconds"; then
   echo "ERROR: Failed to generate launchd plist" >&2
-  echo "  The bootstrap cannot continue safely; recover with /autoloop:doctor" >&2
+  echo "  The bootstrap cannot continue safely; recover with /autoloop:tinker" >&2
   exit 1
 fi
 
@@ -254,7 +254,7 @@ fi
 # has when launchctl rejects the plist.
 if ! load_plist "$loop_id" "$state_dir"; then
   echo "ERROR: Failed to load launchd plist" >&2
-  echo "  The loop is registered but will not fire; recover with /autoloop:doctor" >&2
+  echo "  The loop is registered but will not fire; recover with /autoloop:tinker" >&2
   exit 1
 fi
 
@@ -266,7 +266,7 @@ if [ "$(uname -s)" = "Darwin" ]; then
   label="com.user.claude.loop.${loop_id}"
   if ! launchctl list "$label" >/dev/null 2>&1; then
     echo "ERROR: launchctl list does not show '$label' after bootstrap" >&2
-    echo "  This is a half-loaded plist state. Recover with /autoloop:doctor" >&2
+    echo "  This is a half-loaded plist state. Recover with /autoloop:tinker" >&2
     exit 1
   fi
 fi
