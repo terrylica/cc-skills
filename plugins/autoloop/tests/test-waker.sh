@@ -314,21 +314,32 @@ test_dead_stale_spawn() {
     --arg state_dir "$state_dir" \
     --arg owner_pid "$dead_pid" \
     --arg owner_start_time_us "1700000000000000" \
-    --arg owner_session_id "ses_mno345" \
+    --arg owner_session_id "11111111-2222-3333-4444-555555555555" \
     --arg expected_cadence_seconds "300" \
     '{loop_id: $loop_id, contract_path: $contract_path, state_dir: $state_dir, owner_pid: $owner_pid, owner_start_time_us: $owner_start_time_us, owner_session_id: $owner_session_id, expected_cadence_seconds: $expected_cadence_seconds}')
   register_loop "$entry"
 
-  # Write very stale heartbeat (>4× cadence = >1200s)
+  # Write very stale heartbeat (>4× cadence = >1200s).
+  # Wave 6.2 rectification: the pre-2026-04-29 fixture used the placeholder
+  # `ses_mno345` and omitted bound_cwd. The strict UUID regex (waker.sh:44)
+  # and the bound_cwd invariant (waker.sh:78) both refuse to spawn on that
+  # shape, so the test silently failed — TEST 5 was asserting "spawn
+  # should occur" against a fixture that the SUT correctly refused. Use a
+  # real UUID and seed bound_cwd to match the contract dir so the fixture
+  # represents a *properly bound, then went stale* loop.
+  local contract_dir
+  contract_dir=$(cd "$(dirname "$contract_path")" 2>/dev/null && pwd -P) || \
+    contract_dir=$(dirname "$contract_path")
   local stale_time_us=$(($(now_us) - (1500 * 1000000)))
   local hb
   hb=$(jq -n \
     --arg loop_id "$loop_id" \
-    --arg session_id "ses_mno345" \
+    --arg session_id "11111111-2222-3333-4444-555555555555" \
     --arg iteration "2" \
     --arg last_wake_us "$stale_time_us" \
     --arg generation "0" \
-    '{loop_id: $loop_id, session_id: $session_id, iteration: $iteration, last_wake_us: $last_wake_us, generation: $generation}')
+    --arg bound_cwd "$contract_dir" \
+    '{loop_id: $loop_id, session_id: $session_id, iteration: $iteration, last_wake_us: $last_wake_us, generation: $generation, bound_cwd: $bound_cwd, cwd_drift_detected: false}')
   mkdir -p "$state_dir"
   echo "$hb" > "$state_dir/heartbeat.json"
 
