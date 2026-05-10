@@ -103,7 +103,7 @@ HAS_FIELDS=$(echo "$LINE" | jq -r '
 ' 2>/dev/null)
 assert_eq "$HAS_FIELDS" "true" "all required fields present"
 SCHEMA_V=$(echo "$LINE" | jq -r '.schema_version')
-assert_eq "$SCHEMA_V" "1" "schema_version=1"
+assert_eq "$SCHEMA_V" "2" "schema_version=2 (Wave 6: project_root + project_root_source)"
 EVENT=$(echo "$LINE" | jq -r '.event')
 assert_eq "$EVENT" "bind_first" "event=bind_first"
 SID=$(echo "$LINE" | jq -r '.session_id')
@@ -241,12 +241,14 @@ emit_provenance "" "tinker_check" reason="orphan event with empty loop_id"
 
 # Every line must:
 #  - parse as JSON
-#  - have schema_version = 1
-#  - have all 14 required keys
+#  - have schema_version in {1, 2} (Wave 6 bumped to 2; v1 entries on disk
+#    from older releases must still validate so mixed-schema replay works)
+#  - have all 14 v1-required keys (v2 adds project_root/project_root_source
+#    optionally; presence is asserted separately in Test 5b below)
 ALL_VALID="true"
 while IFS= read -r line; do
   IS_VALID=$(echo "$line" | jq -r '
-    .schema_version == 1 and
+    (.schema_version == 1 or .schema_version == 2) and
     has("ts_iso") and has("ts_us") and has("event") and has("loop_id") and
     has("agent") and has("session_id") and has("cwd_observed") and
     has("cwd_bound") and has("registry_generation") and

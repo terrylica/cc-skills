@@ -284,7 +284,15 @@ fi
 # doesn't preserve our extension fields). Detect drift if PRE_BOUND_CWD was
 # set and current CWD doesn't sit under it.
 if [ -n "$STATE_DIR" ] && [ -f "$HB_FILE" ] && [ -n "$CONTRACT_PATH" ]; then
-  CONTRACT_DIR=$(dirname "$CONTRACT_PATH")
+  # Wave 6.2: canonicalize CONTRACT_DIR via realpath. CWD on line 118 is
+  # already realpath-resolved, so deriving CONTRACT_DIR with bare `dirname`
+  # left a symlink-asymmetric BOUND_CWD on disk: a session under
+  # `~/work/...` would see CWD=/Volumes/work/... but BOUND_CWD=/Users/.../work/...
+  # The case glob at the bottom of this block then mismatched and falsely
+  # flagged cwd_drift. `cd && pwd -P` matches the same normalization the
+  # bind hook performs, so writer and reader speak the same encoding.
+  CONTRACT_DIR=$(cd "$(dirname "$CONTRACT_PATH")" 2>/dev/null && pwd -P) || \
+    CONTRACT_DIR=$(dirname "$CONTRACT_PATH")
   BOUND_CWD="$PRE_BOUND_CWD"
 
   if [ -z "$BOUND_CWD" ]; then
