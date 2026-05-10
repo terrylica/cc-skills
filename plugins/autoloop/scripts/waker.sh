@@ -229,12 +229,45 @@ main() {
 
   # owner_status is "dead"
   if [ "$staleness" -le $((3 * expected_cadence)) ]; then
-    # Dead + fresh: anomaly. Emit "anomaly" notification, do NOT spawn.
-    echo "INFO: waker.sh: loop '$loop_id' dead+fresh (anomaly), emitting notification"
-    local msg="Owner dead but heartbeat fresh (anomaly: process gone, heartbeat recent)"
+    # Dead + fresh: anomaly. Classify cause for actionable post-mortem.
+    # Wave 6 — three sub-cases, each with a tinker_hint pointing to the
+    # canonical remediation command. Pre-Wave-6 the notification said only
+    # "anomaly: process gone, heartbeat recent" with no actionable signal.
+    local cause hint
+    case "$owner_session_id" in
+      "" | "pending-bind" | "unknown" | "unknown-session")
+        cause="pending_bind_never_completed"
+        hint="open Claude Code at the project root (or .autoloop/<slug>--<hash>/) to trigger SessionStart bind, or run /autoloop:tinker $loop_id"
+        ;;
+      *)
+        # Real UUID present. PID is dead. Distinguish PID-recycled vs
+        # owner-process-killed-with-fresh-heartbeat by checking whether
+        # the heartbeat session_id matches the registry owner_session_id.
+        local hb_sid
+        hb_sid=$(jq -r '.session_id // ""' "$state_dir/heartbeat.json" 2>/dev/null || echo "")
+        if [ -n "$hb_sid" ] && [ "$hb_sid" != "$owner_session_id" ]; then
+          cause="heartbeat_session_id_mismatch"
+          hint="heartbeat written by session '$hb_sid' but registry owner is '$owner_session_id'; suspected PID-reuse or split-brain. Run /autoloop:reclaim $loop_id"
+        else
+          cause="owner_pid_terminated_with_recent_heartbeat"
+          hint="owner process likely killed externally (kill -9 / OS shutdown); heartbeat is recent. Run /autoloop:reclaim $loop_id to take over."
+        fi
+        ;;
+    esac
+    echo "INFO: waker.sh: loop '$loop_id' dead+fresh cause=$cause"
+    local msg="Owner dead but heartbeat fresh — cause: $cause. Hint: $hint"
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "waker_refused_dead_fresh" \
+        session_id="$owner_session_id" \
+        owner_pid_before="$owner_pid" \
+        reason="$cause" \
+        decision="refused" 2>/dev/null || true
+    fi
     emit_notification "$loop_id" "anomaly" "$msg" \
       owner_pid="$owner_pid" \
       owner_session="$owner_session_id" \
+      cause="$cause" \
+      tinker_hint="$hint" \
       staleness_s="$staleness" \
       expected_cadence_s="$expected_cadence" || {
       echo "ERROR: waker.sh: failed to emit anomaly notification" >&2
