@@ -69,7 +69,16 @@ Waiting to begin.
 - Setup complete
 EOF
 
-BODY_BEFORE=$(tail -n +5 "$CONTRACT_PATH")
+# Extract body via awk on the second `---` boundary instead of a fixed line
+# offset. Pre-Wave-6.2 the test used `tail -n +5` which assumed exactly four
+# lines of frontmatter, then broke as soon as init_contract_frontmatter_v2
+# stamped birth-record fields (loop_id, schema_version, campaign_slug,
+# created_at_utc, created_at_cwd, …). The boundary-based extraction is
+# robust to any future frontmatter expansion.
+extract_body() {
+  awk 'BEGIN{n=0} /^---[[:space:]]*$/{n++; next} n>=2{print}' "$1"
+}
+BODY_BEFORE=$(extract_body "$CONTRACT_PATH")
 echo "✓ Created fixture contract at $CONTRACT_PATH"
 ((PASS++))
 
@@ -107,7 +116,7 @@ fi
 echo ""
 echo "Test 3: Contract body unchanged (only frontmatter mutated)"
 
-BODY_AFTER=$(tail -n +5 "$CONTRACT_PATH")
+BODY_AFTER=$(extract_body "$CONTRACT_PATH")
 if [ "$BODY_BEFORE" = "$BODY_AFTER" ]; then
   echo "✓ Contract body unchanged"
   ((PASS++))
@@ -143,7 +152,7 @@ else
 fi
 
 # Verify body is still unchanged
-BODY_AFTER_2=$(tail -n +5 "$CONTRACT_PATH")
+BODY_AFTER_2=$(extract_body "$CONTRACT_PATH")
 if [ "$BODY_BEFORE" = "$BODY_AFTER_2" ]; then
   echo "✓ Contract body still unchanged after second call"
   ((PASS++))

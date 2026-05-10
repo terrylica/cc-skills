@@ -72,9 +72,13 @@ _invariant_check_spawn() {
   fi
 
   # (c) bound_cwd matches contract_dir
+  # Wave 6.2: canonicalize via realpath so the equality check below speaks
+  # the same encoding as heartbeat-tick.sh (which now writes a canonical
+  # bound_cwd) and session-bind.sh (which already canonicalizes CWD).
   local bound_cwd contract_dir
   bound_cwd=$(jq -r '.bound_cwd // ""' "$hb_file" 2>/dev/null)
-  contract_dir=$(dirname "$contract_path")
+  contract_dir=$(cd "$(dirname "$contract_path")" 2>/dev/null && pwd -P) || \
+    contract_dir=$(dirname "$contract_path")
   if [ -z "$bound_cwd" ]; then
     if command -v emit_provenance >/dev/null 2>&1; then
       emit_provenance "$loop_id" "spawn_refused_no_bound_cwd" \
