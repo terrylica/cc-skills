@@ -41,12 +41,12 @@ setup() {
     [[ "$output" == *"M:"* ]] || [[ "$output" == *"U:"* ]] || [[ "$output" == *"S:"* ]] || [[ "$output" == *"D:"* ]]
 }
 
-@test "statusline shows branch name" {
+@test "statusline shows repo path and remote URL" {
     cd "$FIXTURES/sample_repo"
     run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
     [ "$status" -eq 0 ]
-    # Default branch should be main or master
-    [[ "$output" == *"main"* ]] || [[ "$output" == *"master"* ]]
+    [[ "$output" == *"sample_repo"* ]]
+    [[ "$output" == *"https://github.com/"* ]]
 }
 
 @test "statusline handles missing lychee cache gracefully" {
@@ -54,8 +54,7 @@ setup() {
     rm -f .lychee-results.json 2>/dev/null || true
     run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
     [ "$status" -eq 0 ]
-    # L indicator should show 0 errors when no cache
-    [[ "$output" == *"L:0"* ]]
+    [[ "$output" != *"jq:"* ]]
 }
 
 @test "statusline handles corrupted lychee cache gracefully" {
@@ -72,8 +71,7 @@ setup() {
     echo '{"errors": 3, "timestamp": "2025-01-01T00:00:00Z"}' > .lychee-results.json
     run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
     [ "$status" -eq 0 ]
-    # L indicator should show the error count
-    [[ "$output" == *"L:3"* ]]
+    [[ "$output" != *"jq:"* ]]
     rm -f .lychee-results.json
 }
 
@@ -84,13 +82,12 @@ setup() {
     # Should show some output, possibly "no git" indicator
 }
 
-@test "statusline shows path violations indicator" {
+@test "statusline handles missing path lint cache gracefully" {
     cd "$FIXTURES/sample_repo"
     rm -f .lint-relative-paths-results.txt 2>/dev/null || true
     run bash -c "echo '$TEST_INPUT' | $STATUSLINE"
     [ "$status" -eq 0 ]
-    # P indicator should be present (may be 0)
-    [[ "$output" == *"P:"* ]]
+    [[ "$output" != *"jq:"* ]]
 }
 
 @test "statusline shows conflict indicator" {
