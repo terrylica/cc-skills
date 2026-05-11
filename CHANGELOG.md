@@ -1,3 +1,15 @@
+# [21.5.0](https://github.com/terrylica/cc-skills/compare/v21.4.5...v21.5.0) (2026-05-11)
+
+
+### Bug Fixes
+
+* **autoloop:** surface real jq stderr in hook install errors (Wave 6.6) ([1c51ba6](https://github.com/terrylica/cc-skills/commit/1c51ba6dc0ca8ec2e624f00c761e4b28162f603e))
+
+
+### Features
+
+* **statusline:** visually distinguish bearer-key fifth-fleet account from OAuth fleet (HEART-34) ([a4a694b](https://github.com/terrylica/cc-skills/commit/a4a694b5292309f01845e001366a2076a0abcf20))
+
 ## [21.4.5](https://github.com/terrylica/cc-skills/compare/v21.4.4...v21.4.5) (2026-05-10)
 
 
