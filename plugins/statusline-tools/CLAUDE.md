@@ -75,6 +75,7 @@ When ccmax-monitor is running locally, the datetime line gains:
 | `42%`                                  | Same API response                                           | 5-hour quota utilization                  |
 | `1d 22h`                               | Same API response                                           | Time until 7-day quota reset              |
 | `[<scope>:<mode>]` (one of six values) | `ccmax_resolve_layered_pin` from ccmax-monitor's pin-helper | Pin scope+mode override (HEART-23 v2)     |
+| `[5th-fleet]`                          | Bearer-key `account_mode` pin or injected bearer env         | Fifth-fleet Anthropic-compatible API path |
 
 ### Pin scope+mode badge (HEART-23 v2)
 
@@ -85,6 +86,8 @@ When ccmax-monitor is running locally, the datetime line gains:
 3. `~/.config/ccmax/pin.toml` — device scope (the original HEART-23 location)
 
 The first hit wins; the badge shows WHICH scope is winning and its mode. **No badge** = following fleet rotation.
+
+If the winning pin has `account_mode = "bearer_key_anthropic_compatible_api_mode"`, the statusline shows the pinned account name directly, for example `el02-doorward-bearer-api-1 [repo:soft] [5th-fleet]`, and skips OAuth quota windows because the fifth-fleet bearer path is served by cc-router/sub2api rather than a Claude Max subscription account.
 
 | Badge                     | Meaning                                                                          |
 | ------------------------- | -------------------------------------------------------------------------------- |
