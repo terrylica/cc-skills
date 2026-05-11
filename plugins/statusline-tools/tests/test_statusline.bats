@@ -108,3 +108,36 @@ setup() {
     # Stash indicator should be present
     [[ "$output" == *"≡:"* ]]
 }
+
+@test "statusline shows bearer-key pin account instead of OAuth keychain account" {
+    tmp_home="$(mktemp -d)"
+    mkdir -p "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks"
+    cat > "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh" <<'EOF'
+ccmax_resolve_layered_pin_with_account_mode() {
+    printf 'el02-doorward-bearer-api-1|soft|repo|bearer_key_anthropic_compatible_api_mode\n'
+}
+EOF
+
+    cd "$FIXTURES/sample_repo"
+    run env HOME="$tmp_home" bash -c "echo '$TEST_INPUT' | '$STATUSLINE'"
+    rm -rf "$tmp_home"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" == *"[repo:soft]"* ]]
+    [[ "$output" == *"[5th-fleet]"* ]]
+}
+
+@test "statusline shows inherited bearer-key env even without a local pin helper" {
+    tmp_home="$(mktemp -d)"
+    mkdir -p "$tmp_home/.claude"
+
+    cd "$FIXTURES/sample_repo"
+    run env HOME="$tmp_home" CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION="el02-doorward-bearer-api-1" \
+        bash -c "echo '$TEST_INPUT' | '$STATUSLINE'"
+    rm -rf "$tmp_home"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" == *"[5th-fleet]"* ]]
+}

@@ -434,6 +434,8 @@ fi
 #      exist for them and the parser cleanly returns empty).
 ccmax_pin_scope=""
 ccmax_pin_mode=""
+ccmax_pin_account=""
+ccmax_pin_account_mode=""
 CCMAX_PIN_HELPER_PATH="${HOME}/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh"
 CCMAX_PIN_DEVICE_FILE="${HOME}/.config/ccmax/pin.toml"
 
@@ -448,13 +450,25 @@ if [ -f "$CCMAX_PIN_HELPER_PATH" ]; then
     _ccmax_pin_layered_resolved=$(
         # shellcheck source=/dev/null
         source "$CCMAX_PIN_HELPER_PATH" 2>/dev/null \
-            && ccmax_resolve_layered_pin "${session_id:-}" "$PWD" 2>/dev/null
-    ) || _ccmax_pin_layered_resolved="||none"
-    # Format: <account>|<mode>|<scope>
-    ccmax_pin_scope="${_ccmax_pin_layered_resolved##*|}"
-    _ccmax_pin_layered_rest="${_ccmax_pin_layered_resolved%|*}"
-    ccmax_pin_mode="${_ccmax_pin_layered_rest##*|}"
-    [ "$ccmax_pin_scope" = "none" ] && { ccmax_pin_scope=""; ccmax_pin_mode=""; }
+            && if declare -F ccmax_resolve_layered_pin_with_account_mode >/dev/null 2>&1; then
+                ccmax_resolve_layered_pin_with_account_mode "${session_id:-}" "$PWD" 2>/dev/null
+            else
+                ccmax_resolve_layered_pin "${session_id:-}" "$PWD" 2>/dev/null
+            fi
+    ) || _ccmax_pin_layered_resolved="|||none"
+    # Formats:
+    #   New helper: <account>|<mode>|<scope>|<account_mode>
+    #   Old helper: <account>|<mode>|<scope>
+    ccmax_pin_account="${_ccmax_pin_layered_resolved%%|*}"
+    _ccmax_pin_layered_rest="${_ccmax_pin_layered_resolved#*|}"
+    ccmax_pin_mode="${_ccmax_pin_layered_rest%%|*}"
+    _ccmax_pin_layered_rest="${_ccmax_pin_layered_rest#*|}"
+    ccmax_pin_scope="${_ccmax_pin_layered_rest%%|*}"
+    ccmax_pin_account_mode="${_ccmax_pin_layered_rest#*|}"
+    if [ "$ccmax_pin_account_mode" = "$ccmax_pin_scope" ]; then
+        ccmax_pin_account_mode=""
+    fi
+    [ "$ccmax_pin_scope" = "none" ] && { ccmax_pin_scope=""; ccmax_pin_mode=""; ccmax_pin_account=""; ccmax_pin_account_mode=""; }
 elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
     # Legacy fallback for older ccmax-monitor installs OR cc-skills users
     # without ccmax-monitor at all (in which case the file simply won't
@@ -469,18 +483,35 @@ elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
             gsub(/^["'\'']|["'\'']$/, "", val)
             if (key == "account") account_value = val
             else if (key == "mode") mode_value = val
+            else if (key == "account_mode") account_mode_value = val
         }
         END {
             if (mode_value == "") mode_value = "soft"
-            printf "%s|%s\n", account_value, mode_value
+            printf "%s|%s|%s\n", account_value, mode_value, account_mode_value
         }
-    ' "$CCMAX_PIN_DEVICE_FILE" 2>/dev/null) || _ccmax_pin_legacy_combined="|"
+    ' "$CCMAX_PIN_DEVICE_FILE" 2>/dev/null) || _ccmax_pin_legacy_combined="||"
     if [ -n "${_ccmax_pin_legacy_combined%%|*}" ]; then
+        ccmax_pin_account="${_ccmax_pin_legacy_combined%%|*}"
+        _ccmax_pin_legacy_rest="${_ccmax_pin_legacy_combined#*|}"
         ccmax_pin_scope="device"
-        ccmax_pin_mode="${_ccmax_pin_legacy_combined#*|}"
+        ccmax_pin_mode="${_ccmax_pin_legacy_rest%%|*}"
+        ccmax_pin_account_mode="${_ccmax_pin_legacy_rest#*|}"
     fi
 fi
-unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined
+unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined _ccmax_pin_legacy_rest
+
+ccmax_bearer_account=""
+if [ "$ccmax_pin_account_mode" = "bearer_key_anthropic_compatible_api_mode" ] && [ -n "$ccmax_pin_account" ]; then
+    ccmax_bearer_account="$ccmax_pin_account"
+elif [ -n "${CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION:-}" ]; then
+    ccmax_bearer_account="$CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION"
+elif [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    case "$ANTHROPIC_BASE_URL" in
+        *bigblack.tail0f299b.ts.net:8450*|*127.0.0.1:8450*|*localhost:8450*)
+            ccmax_bearer_account="el02-doorward-bearer-api-1"
+            ;;
+    esac
+fi
 
 # Query ccmax-monitor dashboard (private internal fleet system, OPTIONAL).
 # ccmax-monitor exposes a local port via ssh-tunnel-companion: bigblack:8095 → localhost:18095.
@@ -493,13 +524,19 @@ ccmax_line=""
 CCMAX_BASE="http://localhost:18095"
 
 ccmax_needs_fetch=1
-if [ -f "$CCMAX_CACHE" ]; then
+if [ -n "$ccmax_bearer_account" ]; then
+    # Bearer-key fifth fleet accounts do not have OAuth quota windows.
+    # Show the resolved account explicitly and avoid labeling the session
+    # with whatever OAuth credential still lives in the local keychain.
+    # Mark with [5th-fleet] badge for clear visual distinction.
+    ccmax_line="${ccmax_bearer_account} [5th-fleet]"
+elif [ -f "$CCMAX_CACHE" ]; then
     cache_mtime=$(stat -f %m "$CCMAX_CACHE" 2>/dev/null || echo 0)
     cache_age=$(( $(date +%s) - cache_mtime ))
     [ "$cache_age" -lt "$CCMAX_CACHE_TTL" ] && ccmax_needs_fetch=0
 fi
 
-if [ "$ccmax_needs_fetch" -eq 1 ]; then
+if [ -z "$ccmax_line" ] && [ "$ccmax_needs_fetch" -eq 1 ]; then
     ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
     if [ -n "$ccmax_raw" ]; then
         echo "$ccmax_raw" > "$CCMAX_CACHE"
@@ -508,20 +545,20 @@ if [ "$ccmax_needs_fetch" -eq 1 ]; then
         # Stale quota data is better than the tok-only fallback path.
         ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
     fi
-else
+elif [ -z "$ccmax_line" ]; then
     ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
 fi
 
 # Identify which account the LOCAL keychain token belongs to (cached 5min)
 CCMAX_LOCAL_CACHE="/tmp/ccmax-local-account"
 ccmax_local_account=""
-if [ -f "$CCMAX_LOCAL_CACHE" ]; then
+if [ -z "$ccmax_line" ] && [ -f "$CCMAX_LOCAL_CACHE" ]; then
     local_cache_age=$(( $(date +%s) - $(stat -f %m "$CCMAX_LOCAL_CACHE" 2>/dev/null || echo 0) ))
     if [ "$local_cache_age" -lt 60 ]; then
         ccmax_local_account=$(cat "$CCMAX_LOCAL_CACHE")
     fi
 fi
-if [ -z "$ccmax_local_account" ]; then
+if [ -z "$ccmax_line" ] && [ -z "$ccmax_local_account" ]; then
     local_token=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
         | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null) || local_token=""
     if [ -n "$local_token" ]; then
@@ -534,7 +571,7 @@ if [ -z "$ccmax_local_account" ]; then
     fi
 fi
 
-if [ -n "$ccmax_raw" ]; then
+if [ -z "$ccmax_line" ] && [ -n "$ccmax_raw" ]; then
     # Use local keychain account if known, otherwise fall back to fleet's active
     ccmax_lookup="${ccmax_local_account}"
     [ -z "$ccmax_lookup" ] && ccmax_lookup=$(echo "$ccmax_raw" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('active_account',''))" 2>/dev/null)
@@ -734,20 +771,34 @@ if [ -n "$ccmax_line" ]; then
         esac
     fi
 
-    # Parse tokens produced by the Python block:
-    #   <name> <7d%> <7d reset...> <5h%> <5h reset...>
+    # Parse tokens produced by the Python block or bearer-mode marker:
+    #   <name> <7d%> <7d reset...> <5h%> <5h reset...>  [OAuth]
+    #   <name> [5th-fleet]                                [Bearer mode]
     # Reset values may be "3d 1h", "2h 15m", or "5m" — variable token count.
     # Strategy: iterate and split whenever we hit a token ending in '%'.
+    # Bearer mode: detect [5th-fleet] badge and render account name + badge in CYAN for visibility.
     ccmax_colored=$(echo "$ccmax_line" | awk \
         -v BB="${BRIGHT_BLACK}" -v C="${CYAN}" -v M="${MAGENTA}" -v R="${RESET}" \
         -v PIN="$ccmax_pin_badge" '
     {
-        out = BB $1 R           # account name
-        if (PIN != "") out = out " " PIN
+        # Detect bearer mode: check if last token is [5th-fleet] badge
+        is_bearer = (NF >= 2 && $NF ~ /^\[5th-fleet\]$/)
+
+        if (is_bearer) {
+            # Bearer mode: account name + badge both in CYAN
+            out = C $1 R " " PIN           # account name in CYAN, then pin badge
+            out = out " " C $2 R           # [5th-fleet] badge in CYAN
+        } else {
+            # OAuth mode: account name in BRIGHT_BLACK
+            out = BB $1 R           # account name
+            if (PIN != "") out = out " " PIN
+        }
+
         buf = ""                # reset-string accumulator
         window = 0              # 0 = 7d, 1 = 5h
         for (i = 2; i <= NF; i++) {
             tok = $i
+            if (is_bearer) break   # Bearer mode has no quota tokens, exit early
             if (tok ~ /%$/) {
                 if (buf != "") { out = out " " BB buf R; buf = "" }
                 color = (window == 0) ? C : M
@@ -757,7 +808,7 @@ if [ -n "$ccmax_line" ]; then
                 buf = (buf == "") ? tok : buf " " tok
             }
         }
-        if (buf != "") { out = out " " BB buf R }
+        if (buf != "" && !is_bearer) { out = out " " BB buf R }
         print out
     }')
     echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${ccmax_colored}"
