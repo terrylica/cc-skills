@@ -1,3 +1,10 @@
+## [21.5.1](https://github.com/terrylica/cc-skills/compare/v21.5.0...v21.5.1) (2026-05-12)
+
+
+### Bug Fixes
+
+* **statusline:** bypass parent HTTPS_PROXY for outbound probes (antifragile) ([6f5f0cf](https://github.com/terrylica/cc-skills/commit/6f5f0cf7446b1e8a1e890fab9643762926bde5fa))
+
 # [21.5.0](https://github.com/terrylica/cc-skills/compare/v21.4.5...v21.5.0) (2026-05-11)
 
 
