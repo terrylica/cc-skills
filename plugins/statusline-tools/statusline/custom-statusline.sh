@@ -30,6 +30,39 @@ RED='\033[91m'
 GREEN='\033[92m'
 CYAN='\033[96m'
 
+# probe_direct — antifragile invariant for outbound network probes.
+#
+# The statusline must be a faithful mirror of system state, not a victim of
+# whatever proxy state the host imposes on it. Parent processes (notably
+# ccmax-claude's bearer-pin wrapper) inject HTTPS_PROXY=http://127.0.0.1:<port>
+# into every child's env to MITM api.anthropic.com — but that local proxy
+# returns 502 Bad Gateway for every CONNECT target it isn't programmed to
+# intercept, including api.github.com. Without this guard, every `gh api`
+# call from the statusline would 502 → the (?) visibility badge would
+# permanently replace (private)/(public), and `gh release view` would
+# permanently surface `⌁ offline` even though the network is fine.
+#
+# Strip both UPPER and lower variants because curl/git/gh each honor a
+# different subset. NO_PROXY is left intact (defensive whitelist, harmless).
+#
+# Invariant pinned by the "all outbound network calls use probe_direct"
+# bats test in tests/test_statusline.bats — any new gh/curl(https://) call
+# MUST be wrapped, or the lint test fails.
+#
+# CALL PATTERN — probe_direct goes FIRST, before timeout/gh/curl:
+#     probe_direct timeout 2 gh api ...    ✓ correct
+#     timeout 2 probe_direct gh api ...    ✗ wrong: `timeout` execs a real
+#                                          binary and cannot see shell
+#                                          functions, errors with
+#                                          "No such file or directory".
+# Inside the function body, `env -u ...` execs whatever was passed (timeout,
+# gh, curl) as a real binary lookup against PATH, which is what we want.
+probe_direct() {
+    env -u HTTPS_PROXY -u HTTP_PROXY -u ALL_PROXY \
+        -u https_proxy -u http_proxy -u all_proxy \
+        "$@"
+}
+
 # Get path display with ~ substitution
 # Shows: ~/eon/cc-skills or ~/eon/cc-skills/plugins/itp-hooks
 get_repo_path() {
@@ -273,7 +306,7 @@ fi
 # `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
 # pattern-match stderr to tell them apart instead of trusting exit code alone.
 if [ -n "$owner_repo" ]; then
-    release_out=$(timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
+    release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
     release_exit=$?
     if [ $release_exit -eq 0 ] && [ -n "$release_out" ]; then
         latest_tag="${release_out%%|*}"
@@ -356,7 +389,7 @@ github_url=$(get_github_url)
 # Pre-fix: any gh failure silently disappeared the badge — no signal that auth/network broke.
 repo_visibility=""
 if [[ -n "$github_url" && -n "$owner_repo" ]]; then
-    vis_out=$(timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
+    vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
     vis_exit=$?
     if [ $vis_exit -eq 0 ] && [ -n "$vis_out" ]; then
         repo_visibility="$vis_out"
@@ -537,7 +570,7 @@ elif [ -f "$CCMAX_CACHE" ]; then
 fi
 
 if [ -z "$ccmax_line" ] && [ "$ccmax_needs_fetch" -eq 1 ]; then
-    ccmax_raw=$(curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
+    ccmax_raw=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
     if [ -n "$ccmax_raw" ]; then
         echo "$ccmax_raw" > "$CCMAX_CACHE"
     elif [ -f "$CCMAX_CACHE" ]; then
@@ -562,7 +595,7 @@ if [ -z "$ccmax_line" ] && [ -z "$ccmax_local_account" ]; then
     local_token=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
         | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null) || local_token=""
     if [ -n "$local_token" ]; then
-        ccmax_local_account=$(curl -sf --max-time 3 "https://api.anthropic.com/api/oauth/profile" \
+        ccmax_local_account=$(probe_direct curl -sf --max-time 3 "https://api.anthropic.com/api/oauth/profile" \
             -H "Authorization: Bearer $local_token" -H "Content-Type: application/json" 2>/dev/null \
             | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('account',{}).get('email',''))" 2>/dev/null) || ccmax_local_account=""
         if [ -n "$ccmax_local_account" ]; then
