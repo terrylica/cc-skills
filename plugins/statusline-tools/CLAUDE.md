@@ -75,7 +75,7 @@ When ccmax-monitor is running locally, the datetime line gains:
 | `42%`                                  | Same API response                                           | 5-hour quota utilization                  |
 | `1d 22h`                               | Same API response                                           | Time until 7-day quota reset              |
 | `[<scope>:<mode>]` (one of six values) | `ccmax_resolve_layered_pin` from ccmax-monitor's pin-helper | Pin scope+mode override (HEART-23 v2)     |
-| `[5th-fleet]`                          | Bearer-key `account_mode` pin or injected bearer env         | Fifth-fleet Anthropic-compatible API path |
+| `[5th-fleet]`                          | Bearer-key `account_mode` pin or injected bearer env        | Fifth-fleet Anthropic-compatible API path |
 
 ### Pin scope+mode badge (HEART-23 v2)
 
@@ -110,3 +110,31 @@ If ccmax-monitor is not running (`localhost:18095` unreachable), `curl` times ou
 ### Scope
 
 This integration is internal to the `terrylica` fleet. Public cc-skills users will never have `localhost:18095` listening, so the block is effectively a no-op — the `curl` silently fails and nothing appears.
+
+## Antifragile Network Probes — the `probe_direct` invariant
+
+**Invariant**: every outbound network call in `custom-statusline.sh` (any `gh api`, `gh release`, `gh auth`, or `curl`) MUST be wrapped with the `probe_direct` helper. Enforced by the bats test _"every outbound gh/curl call in custom-statusline.sh is wrapped with probe_direct"_ — adding an unwrapped call fails CI.
+
+**Call pattern**:
+
+```bash
+release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" ...)
+vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" ...)
+ccmax_raw=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" ...)
+```
+
+`probe_direct` goes **first**, before `timeout`/`gh`/`curl`. Inverting the order (`timeout 2 probe_direct gh ...`) silently fails because `timeout` is an external coreutils binary and cannot resolve shell functions — you'd get `"No such file or directory"` for `probe_direct` itself.
+
+**What it does**: strips `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY` (and their lowercase variants) from the subprocess env using `env -u`. `NO_PROXY` is left intact (defensive whitelist, harmless).
+
+**Why this exists**: discovered 2026-05-12 when ccmax-claude's bearer-pin CONNECT proxy on `127.0.0.1:<random-port>` started 502'ing every CONNECT target it doesn't intercept — including `api.github.com`. Every child process of ccmax-claude (including this statusline) inherits `HTTPS_PROXY=http://127.0.0.1:<port>`, so without the guard `gh api` 502s, the `(?)` visibility badge permanently replaces `(private)`/`(public)`, and `gh release view` permanently surfaces `⌁ offline` even though the real network is fine.
+
+**The statusline is a diagnostic instrument** — it must be a faithful mirror of system state, not a victim of whatever proxy state the host imposes on it. Probes go direct; the proxy is irrelevant to whether the badge is correct.
+
+**Pinned by three bats tests** (`tests/test_statusline.bats`):
+
+| Test                                                                               | What it catches                                                  |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `probe_direct strips HTTPS_PROXY/HTTP_PROXY/ALL_PROXY from subprocess`             | Helper definition regresses (e.g. someone removes a `-u` flag)   |
+| `every outbound gh/curl call in custom-statusline.sh is wrapped with probe_direct` | New unwrapped probe call added                                   |
+| `statusline survives broken HTTPS_PROXY in env (antifragile)`                      | End-to-end: poisoned proxy in env still produces a correct badge |
