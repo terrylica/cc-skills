@@ -138,3 +138,74 @@ EOF
     [[ "$output" == *"el02-doorward-bearer-api-1"* ]]
     [[ "$output" == *"[5th-fleet]"* ]]
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Antifragile probe invariant — discovered 2026-05-12 when ccmax-claude's
+# bearer-pin CONNECT proxy on 127.0.0.1:<port> started 502'ing every CONNECT
+# target it doesn't intercept (api.github.com etc.). Without `probe_direct`,
+# the statusline's outbound gh/curl calls inherited the broken HTTPS_PROXY
+# and the visibility badge permanently showed (?), the release lookup
+# permanently showed `⌁ offline`, even though the network was fine.
+#
+# These three tests pin the fix so it cannot regress silently.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@test "probe_direct strips HTTPS_PROXY/HTTP_PROXY/ALL_PROXY from subprocess" {
+    # Extract the probe_direct definition from the live script, source it
+    # into a poisoned-proxy subshell, and confirm zero proxy env vars
+    # survive into the wrapped subprocess.
+    helper_body=$(sed -n '/^probe_direct() {/,/^}/p' "$STATUSLINE")
+    [ -n "$helper_body" ]  # guard: definition extracted
+
+    run env \
+        HTTPS_PROXY=http://127.0.0.1:1 \
+        HTTP_PROXY=http://127.0.0.1:1 \
+        ALL_PROXY=http://127.0.0.1:1 \
+        https_proxy=http://127.0.0.1:1 \
+        http_proxy=http://127.0.0.1:1 \
+        all_proxy=http://127.0.0.1:1 \
+        bash -c "${helper_body}"$'\n'"probe_direct env | grep -iE '^(https?|all)_proxy=' | wc -l | tr -d ' '"
+    [ "$status" -eq 0 ]
+    [ "$output" = "0" ]  # zero proxy env vars visible to the subprocess
+}
+
+@test "every outbound gh/curl call in custom-statusline.sh is wrapped with probe_direct" {
+    # Lint: any line that runs `gh api`, `gh release`, `gh auth`, or `curl`
+    # must contain `probe_direct` on the same line. Comments (`^\s*#`) are
+    # excluded by the first grep. The second grep is allowed to "fail"
+    # (exit 1 = zero violations = success) so we capture its output without
+    # tripping bats's errexit; the violations check is on the captured text.
+    violations=$(grep -nE '^[[:space:]]*[^#].*(\bgh[[:space:]]+(api|release|auth)\b|\bcurl[[:space:]])' \
+        "$STATUSLINE" | grep -v 'probe_direct' || true)
+    if [ -n "$violations" ]; then
+        echo "Unwrapped outbound network call(s) found:" >&2
+        echo "$violations" >&2
+        echo "Wrap each with: probe_direct <command>" >&2
+        return 1
+    fi
+}
+
+@test "statusline survives broken HTTPS_PROXY in env (antifragile)" {
+    # Inject an unreachable proxy on a deliberately closed port. With the fix
+    # in place the statusline must still exit 0 and the visibility badge
+    # must NOT be the red `(?)` fault marker (which would mean gh was still
+    # being routed through the broken proxy).
+    cd "$FIXTURES/sample_repo"
+    run env \
+        HTTPS_PROXY=http://127.0.0.1:1 \
+        HTTP_PROXY=http://127.0.0.1:1 \
+        ALL_PROXY=http://127.0.0.1:1 \
+        https_proxy=http://127.0.0.1:1 \
+        http_proxy=http://127.0.0.1:1 \
+        all_proxy=http://127.0.0.1:1 \
+        bash -c "echo '$TEST_INPUT' | '$STATUSLINE'"
+    [ "$status" -eq 0 ]
+
+    # Strip ANSI color codes for plain-text assertions.
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+
+    # The red `(?)` badge means gh's visibility query failed. With
+    # probe_direct in place gh bypasses the broken proxy and returns
+    # either `(private)` or `(public)` — anything but `(?)`.
+    [[ "$plain" != *"(?)"* ]]
+}
