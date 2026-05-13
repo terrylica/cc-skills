@@ -1368,6 +1368,86 @@ fi
 # Full source-of-truth legend for each token lives in the in-script LEGEND
 # block earlier in the file (search "Doorward gateway summary — render LEGEND").
 
+# =============================================================================
+# L2 STATISTICS SURFACE — JSONL append per render (2026-05-13, task #7)
+# =============================================================================
+# Persists every parsed doorward state to ~/.claude/doorward-state.jsonl, one
+# line per render. Consumed by the sibling analytics CLI:
+#   plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py
+# which emits time-windowed uptime %, type-code distribution, state-machine
+# transition counts, and pre-warning event timelines.
+#
+# Schema (v1) — 20 fields, verbose snake_case names:
+#   schema_version                                          (int, monotonic)
+#   wall_clock_unix_seconds                                 (int, epoch seconds)
+#   doorward_gateway_legacy_binary_gate_status              ∈ {healthy, degraded, parse-error, unreachable}
+#   doorward_pool_schedulable_active_accounts_count         (int)
+#   doorward_pool_rotation_working_set_size                 (int, denom = schedulable + errors)
+#   doorward_pool_error_accounts_count                      (int)
+#   doorward_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
+#   doorward_canary_consecutive_failures                    (int)
+#   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unknown}
+#   doorward_canary_failure_type_code                       ∈ {AU, QT, CF, UP, IN, ""}  (RFC 9457 taxonomy)
+#   doorward_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
+#   doorward_canary_real_traffic_damper_engaged             (bool)
+#   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unknown}
+#   doorward_local_ccmax_claude_wrapper_version             (semver str, e.g. "1.93.0")
+#   doorward_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
+#   doorward_wrapper_skew_present                           (bool, wrapper < floor)
+#   doorward_wrapper_at_floor_pre_warn                      (bool, wrapper == floor)
+#   doorward_pin_scope_active                               ∈ {"", session, repo, device}
+#   doorward_pin_mode_active                                ∈ {"", soft, strict}
+#   doorward_bearer_mode_routing_active                     (bool)
+#
+# Safety: all string fields are constrained to ASCII-safe enums (parser output)
+# or semver shapes; none can contain quote/backslash characters, so direct
+# string interpolation into the JSON is safe and avoids a jq dependency. Match
+# the existing terse-echo pattern used at line ~83 for statusline.jsonl.
+#
+# Failure mode: every write redirects errors to /dev/null. If the log file
+# can't be written (disk full, perms), we silently continue — never block the
+# statusline render on telemetry persistence.
+
+doorward_state_jsonl_log_absolute_path="${HOME}/.claude/doorward-state.jsonl"
+
+doorward_wrapper_skew_present_boolean_serialized="false"
+doorward_wrapper_at_floor_pre_warn_boolean_serialized="false"
+if [ -n "$wrapper_version" ]; then
+    if version_lt "$wrapper_version" "$DOORWARD_MIN_WRAPPER_VERSION"; then
+        doorward_wrapper_skew_present_boolean_serialized="true"
+    elif [ "$wrapper_version" = "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
+        doorward_wrapper_at_floor_pre_warn_boolean_serialized="true"
+    fi
+fi
+doorward_bearer_mode_routing_active_boolean_serialized="false"
+[ -n "$ccmax_bearer_account" ] && doorward_bearer_mode_routing_active_boolean_serialized="true"
+doorward_real_traffic_damper_engaged_boolean_serialized="false"
+[ "$real_traffic_recent" -eq 1 ] && doorward_real_traffic_damper_engaged_boolean_serialized="true"
+
+doorward_state_jsonl_log_record_for_this_render="{\
+\"schema_version\":1,\
+\"wall_clock_unix_seconds\":$(date +%s),\
+\"doorward_gateway_legacy_binary_gate_status\":\"${doorward_status}\",\
+\"doorward_pool_schedulable_active_accounts_count\":${pool_schedulable},\
+\"doorward_pool_rotation_working_set_size\":${pool_rotation_size},\
+\"doorward_pool_error_accounts_count\":${pool_errors},\
+\"doorward_pool_resilience_state_machine_label\":\"${pool_resilience_state_machine_label}\",\
+\"doorward_canary_consecutive_failures\":${canary_failures},\
+\"doorward_canary_classification_four_state\":\"${canary_class}\",\
+\"doorward_canary_failure_type_code\":\"${canary_failure_type_code_AU_QT_CF_UP_IN}\",\
+\"doorward_canary_failure_duration_humanized\":\"${canary_failure_duration_humanized_short_form}\",\
+\"doorward_canary_real_traffic_damper_engaged\":${doorward_real_traffic_damper_engaged_boolean_serialized},\
+\"doorward_unified_state_name_for_render\":\"${unified_state_name_for_render_label}\",\
+\"doorward_local_ccmax_claude_wrapper_version\":\"${wrapper_version}\",\
+\"doorward_minimum_supported_wrapper_version_floor\":\"${DOORWARD_MIN_WRAPPER_VERSION}\",\
+\"doorward_wrapper_skew_present\":${doorward_wrapper_skew_present_boolean_serialized},\
+\"doorward_wrapper_at_floor_pre_warn\":${doorward_wrapper_at_floor_pre_warn_boolean_serialized},\
+\"doorward_pin_scope_active\":\"${ccmax_pin_scope}\",\
+\"doorward_pin_mode_active\":\"${ccmax_pin_mode}\",\
+\"doorward_bearer_mode_routing_active\":${doorward_bearer_mode_routing_active_boolean_serialized}\
+}"
+echo "${doorward_state_jsonl_log_record_for_this_render}" >> "${doorward_state_jsonl_log_absolute_path}" 2>/dev/null
+
 doorward_inline=""
 if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; then
     # Pool ratio colored by pool_resilience_state_machine_label (orthogonal to

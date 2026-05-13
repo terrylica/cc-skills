@@ -144,6 +144,37 @@ The local `ccmax-claude` binary's version is read once (cached by binary mtime) 
 
 When doorward raises its floor, bump the `DOORWARD_MIN_WRAPPER_VERSION` constant in `custom-statusline.sh`. Until the local binary is updated to match, the wrapper segment will be yellow and the operator knows to `gh release download` a fresh ccmax-claude.
 
+### Statistics surface — JSONL log + analytics CLI (L2, 2026-05-13)
+
+Every statusline render appends a parsed-state JSON record to `~/.claude/doorward-state.jsonl`. The schema is documented in-script (search `custom-statusline.sh` for "L2 STATISTICS SURFACE — JSONL append per render") and covers 20 fields per render: gate status, pool primitives + state-machine label, canary primitives + classification + type-code + duration, wrapper version + floor + skew/at-floor pre-warn flags, pin scope/mode, bearer-mode routing flag.
+
+The sibling analytics CLI at `plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py` reads the JSONL log and emits a time-windowed operator report. Verbose name encodes "telemetry analytics from the statusline jsonl log" so the file's purpose is discoverable from grep alone.
+
+Usage:
+
+```bash
+# 24h comprehensive report (all metrics)
+doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 24h
+
+# 7d single-metric report
+doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric type-codes
+doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric state-transitions
+```
+
+The six metric subsets:
+
+| `--metric`          | Answers operator question                                                      |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `uptime`            | What fraction of the window was the gateway reachable?                         |
+| `type-codes`        | Of the failures observed, which RFC 9457 taxonomy bucket dominated?            |
+| `state-names`       | What fraction of the window did we spend in each operator-facing state?        |
+| `state-transitions` | How many "from→to" flips between unified states? (leading flapping indicator)  |
+| `pre-warnings`      | When did wrapper-skew, wrapper-at-floor, and partial-outage pre-warnings fire? |
+| `pool-health`       | What fraction of the window was the rotation pool at each resilience state?    |
+| `all`               | (default) All six in one report                                                |
+
+Read-only — never mutates the JSONL log. Log path overridable via `--jsonl <path>` for testing. Time windows accept `15m`, `1h`, `24h`, `7d`, `4w` forms.
+
 ### Graceful degradation
 
 Three independent triggers gate whether the ccmax line is rendered at all (any one is sufficient):
