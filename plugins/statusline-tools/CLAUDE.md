@@ -66,14 +66,18 @@ The statusline reads doorward (the cc-router admission gateway in front of sub2a
 When doorward is reachable, the datetime line gains:
 
 ```
-Wed 13 May 2026 03:07 UTC | Tue 12 20:07 PDT | doorward 3/3 ✓ 1.92.0          ← all healthy
-Wed 13 May 2026 03:07 UTC | Tue 12 20:07 PDT | doorward 3/3 ✗1076 1.92.0      ← canary failing (✗N red)
-Wed 13 May 2026 03:07 UTC | Tue 12 20:07 PDT | doorward 2/3 ✓ 1.92.0          ← rotation hurting (pool ratio red)
-Wed 13 May 2026 03:07 UTC | Tue 12 20:07 PDT | doorward 3/3 ✓ 1.0.0<1.2.0     ← wrapper below floor (version yellow)
-Wed 13 May 2026 03:07 UTC | Tue 12 20:07 PDT | doorward unreachable 1.92.0    ← gateway down (literal red "unreachable")
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✓ 1.93.0                          ← all healthy
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✗AU 3d since-boot 1.93.0          ← today's actual state (config bug, gray)
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 2/3 ⚠UP 3m flapping 1.93.0            ← one backend transient
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 1/3 ⚠UP 12m partial-outage 1.93.0     ← last healthy account, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 0/3 ✗UP 47m outage 1.93.0             ← total outage, alarm
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✓ 1.2.0=1.2.0                      ← wrapper exactly at floor, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward unreachable 1.93.0                    ← gateway down
 ```
 
-**Label-stripped + emoji-dropped format (2026-05-13).** Three rounds of redundancy were removed: (1) the `pool`, `canary`, `wrapper` field labels — within a segment already anchored by `doorward`, the slash-fraction format is self-evidently a ratio, the `✗N` glyph is unambiguous, and a three-dot semver is visually distinct; (2) the leading `🟢/🟡/🔴` gate-state emoji — every state the dot could signal was already expressed by per-token coloring (red ✗N, red pool ratio, red "unreachable" word, yellow version-floor suffix); (3) the prior `[5th-fleet]` bearer-mode badge — presence of the doorward block itself implies bearer-mode routing. The full source-of-truth legend lives next to the rendering code — search `custom-statusline.sh` for "Doorward gateway summary — render LEGEND" to find the authoritative reference for what each terse token means, which `/v1/router-status` field it comes from, and the color rules.
+**L1d multi-dimensional unified render (2026-05-13).** Replaced the raw consecutive-failure-count (the prior `✗1090` "magic number") with a three-token composite — severity glyph + RFC-9457-style type code + humanized duration — plus an operator-facing state-name word that doubles as the playbook hint. The state-name maps to a clear action (`since-boot` → file an issue; `flapping` → watch; `partial-outage` → intervene; `outage` → page). The full source-of-truth legend for every visible token lives in `custom-statusline.sh` — search for "Doorward gateway summary — render LEGEND".
+
+**Antecedent label-stripping rounds (all 2026-05-13):** (1) dropped the `pool`, `canary`, `wrapper` field labels — within a segment already anchored by `doorward`, the slash-fraction format is self-evidently a ratio, the `✗<type-code>` glyph is unambiguous, and a three-dot semver is visually distinct; (2) dropped the leading `🟢/🟡/🔴` gate-state emoji — every state the dot could signal was already expressed by per-token coloring + state-name word; (3) retired the `[5th-fleet]` bearer-mode badge — presence of the doorward block itself implies bearer-mode routing.
 
 | Render token        | Source field (in `/v1/router-status`)                                                   | Meaning (short)                                                                                                                                      |
 | ------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |

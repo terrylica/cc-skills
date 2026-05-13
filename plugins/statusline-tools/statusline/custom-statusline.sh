@@ -749,49 +749,212 @@ version_lt() {
 #   unknown              canary fields absent or unreadable
 #                        → fail-safe to "degraded color" so we don't silently
 #                          hide a real problem behind missing data.
+# All ten primitives below feed the unified renderer further down.
 doorward_status="unreachable"
 pool_schedulable=0
 pool_rotation_size=0
 pool_errors=0
+# canary_failures retained as a parsed primitive even though the L1d
+# renderer prefers humanized duration over raw count; downstream task #7 (L2
+# statistics surface) will append this to the per-render JSONL log.
+# shellcheck disable=SC2034
 canary_failures=0
 canary_class="unknown"
+canary_failure_type_code_AU_QT_CF_UP_IN=""
+pool_resilience_state_machine_label=""
+unified_state_name_for_render_label=""
+canary_failure_duration_humanized_short_form=""
 if [ -n "$doorward_raw" ]; then
     doorward_parsed=$(echo "$doorward_raw" | python3 -c "
 import sys, json
+
+# ===========================================================================
+# L1d UNIFIED-RENDER PRIMITIVE EXTRACTOR (cc-skills statusline, 2026-05-13)
+# ===========================================================================
+# Reads doorward's /v1/router-status response and emits a single pipe-delimited
+# line of 10 primitives that the shell side unpacks via IFS='|' read. The
+# verbose field names below match the names exported to shell-side variables
+# downstream so a future reader can grep across the python<->bash boundary.
+# Design contract documented in:
+#   ccmax-monitor/HANDOFF-CC-SKILLS-STATUSLINE-DOORWARD-TELEMETRY-REDESIGN-AND-PATH-A-REPO-MERGE-2026-05-13.md
+# Output line shape:
+#   <gate_status>|<pool_schedulable>|<pool_rotation_size>|<pool_errors>
+#    |<canary_consecutive_failures>|<canary_classification_four_state>
+#    |<canary_failure_type_code_AU_QT_CF_UP_IN>
+#    |<pool_resilience_state_machine_label>
+#    |<unified_state_name_for_render_label>
+#    |<canary_failure_duration_humanized_short_form>
+
+def derive_canary_failure_type_code_from_last_observed_http_status(
+    last_observed_http_status_code_from_canary_self_test_block,
+):
+    # RFC 9110 status-class taxonomy collapsed onto the operationally-distinct
+    # 5-code shape we render in the statusline. Citation taxonomy:
+    # RFC 9457 (problem+json), Envoy cluster_stats upstream_rq_* metric groups,
+    # AWS API Gateway 4XXError/5XXError separation, Cloudflare Tunnel error
+    # categorization (auth/policy/upstream/network/internal). Single source
+    # signal today is canary_self_test.last_observed_http_status_code; richer
+    # per-account reasons require L3 server work (task #8).
+    s = int(last_observed_http_status_code_from_canary_self_test_block or 0)
+    if s == 0:
+        # Canary couldn't complete the HTTP request at all — network or
+        # timeout before status was observed. Treat as upstream-unavailable.
+        return 'UP'
+    if s in (401, 403):
+        return 'AU'  # Auth / credential / version-gate rejection
+    if s in (429, 509):
+        return 'QT'  # Quota / rate-limit / throttle
+    if s in (400, 422):
+        return 'CF'  # Client / schema / policy-deny
+    if s in (502, 503, 504):
+        return 'UP'  # Upstream unavailable / pool exhausted / gateway timeout
+    if 500 <= s <= 599:
+        return 'IN'  # Internal / proxy bug / 500 from our own gateway
+    return ''        # Status 2xx/3xx (shouldn't happen on a 'failure' branch)
+
+def derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
+    schedulable_active_accounts_count, rotation_working_set_size,
+):
+    # Envoy outlier-detection + Resilience4j circuit-breaker state machine
+    # adapted to a finite N-account rotation pool. The PARTIAL_OUTAGE state
+    # (schedulable == 1) is the canonical pre-warning gate: one more failure
+    # = total outage. Operators read this as 'pool has no resilience left,
+    # intervene before next failure'.
+    if rotation_working_set_size == 0:
+        return 'unknown'
+    if schedulable_active_accounts_count == 0:
+        return 'total-outage'
+    if schedulable_active_accounts_count == 1 and rotation_working_set_size >= 2:
+        return 'partial-outage'
+    if schedulable_active_accounts_count < rotation_working_set_size:
+        return 'degraded'
+    return 'healthy'
+
+def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
+    canary_classification_four_state, pool_resilience_state,
+):
+    # Single label combining the canary's failure classification with the
+    # pool's resilience state, taking the worst-of via this severity-ranked
+    # precedence (highest to lowest):
+    #   outage (red)       ← pool total-outage OR canary recent-degradation
+    #   partial-outage (yellow) ← pool partial-outage (last-account-standing)
+    #   flapping (yellow)  ← pool degraded OR canary transient
+    #   since-boot (gray)  ← canary never-succeeded-since-router-start config bug
+    #   healthy (green)    ← both signals report no failure
+    if pool_resilience_state == 'total-outage':
+        return 'outage'
+    if canary_classification_four_state == 'recent-degradation':
+        return 'outage'
+    if pool_resilience_state == 'partial-outage':
+        return 'partial-outage'
+    if pool_resilience_state == 'degraded':
+        return 'flapping'
+    if canary_classification_four_state == 'transient':
+        return 'flapping'
+    if canary_classification_four_state == 'since-start-failure':
+        return 'since-boot'
+    if canary_classification_four_state == 'healthy' and pool_resilience_state == 'healthy':
+        return 'healthy'
+    return 'unknown'
+
+def format_seconds_as_humanized_short_duration_with_no_ago_suffix(total_seconds):
+    # Same humanization grammar as the existing reltime() bash helper but
+    # without the trailing ' ago'. Output examples: '8s', '47m', '18h', '3d',
+    # '5w'. Output is intentionally fixed-precision (no fractional units) to
+    # keep the rendered token width predictable.
+    s = int(max(0, total_seconds))
+    if s < 60:
+        return f'{s}s'
+    if s < 3600:
+        return f'{s // 60}m'
+    if s < 86400:
+        return f'{s // 3600}h'
+    if s < 604800:
+        return f'{s // 86400}d'
+    return f'{s // 604800}w'
+
 try:
     d = json.loads(sys.stdin.read())
     pool = d.get('pool', {}) or {}
-    schedulable = int(pool.get('schedulable_active_accounts', 0) or 0)
-    errors = int(pool.get('error_accounts', 0) or 0)
-    rotation_size = schedulable + errors
+    schedulable_active_accounts_count = int(pool.get('schedulable_active_accounts', 0) or 0)
+    pool_error_accounts_count = int(pool.get('error_accounts', 0) or 0)
+    rotation_working_set_size = schedulable_active_accounts_count + pool_error_accounts_count
+
     canary = d.get('canary_self_test', {}) or {}
-    cfailures = int(canary.get('consecutive_failures', 0) or 0)
-    csuccess = int(canary.get('success_runs', 0) or 0)
-    ctotal = int(canary.get('total_runs', 0) or 0)
-    cthreshold = int(canary.get('consecutive_failure_threshold', 3) or 3)
-    if cfailures == 0:
-        cclass = 'healthy'
-    elif csuccess == 0 and cfailures == ctotal:
-        cclass = 'since-start-failure'
-    elif cfailures < cthreshold:
-        cclass = 'transient'
+    canary_consecutive_failures_count = int(canary.get('consecutive_failures', 0) or 0)
+    canary_lifetime_success_runs_count = int(canary.get('success_runs', 0) or 0)
+    canary_lifetime_total_runs_count = int(canary.get('total_runs', 0) or 0)
+    canary_consecutive_failure_alarm_threshold = int(
+        canary.get('consecutive_failure_threshold', 3) or 3
+    )
+    canary_configured_interval_seconds = int(
+        canary.get('configured_interval_secs', 300) or 300
+    )
+    canary_last_observed_http_status_code = canary.get('last_observed_http_status_code', 0)
+
+    # L1b four-state classification (unchanged from prior edit).
+    if canary_consecutive_failures_count == 0:
+        canary_classification_four_state = 'healthy'
+    elif (
+        canary_lifetime_success_runs_count == 0
+        and canary_consecutive_failures_count == canary_lifetime_total_runs_count
+    ):
+        canary_classification_four_state = 'since-start-failure'
+    elif canary_consecutive_failures_count < canary_consecutive_failure_alarm_threshold:
+        canary_classification_four_state = 'transient'
     else:
-        cclass = 'recent-degradation'
-    # Gate status mirrors the canary's degradation: alarm-state classes
-    # report 'degraded', everything else (including since-start-failure
-    # which is a config bug not a real outage) reports 'healthy' at the
-    # pool/gate level. Pool errors still escalate to 'degraded' independent
-    # of canary state.
-    if errors > 0 or cclass == 'recent-degradation':
-        status = 'degraded'
+        canary_classification_four_state = 'recent-degradation'
+
+    # Gate-status binary (legacy primitive retained for backward-compat with
+    # the existing $doorward_status check that triggers render-or-suppress).
+    if pool_error_accounts_count > 0 or canary_classification_four_state == 'recent-degradation':
+        legacy_gate_status_binary = 'degraded'
     else:
-        status = 'healthy'
-    print(f'{status}|{schedulable}|{rotation_size}|{errors}|{cfailures}|{cclass}')
+        legacy_gate_status_binary = 'healthy'
+
+    # L1d new primitives.
+    canary_failure_type_code_AU_QT_CF_UP_IN = \
+        derive_canary_failure_type_code_from_last_observed_http_status(
+            canary_last_observed_http_status_code,
+        )
+    pool_resilience_state_machine_label = \
+        derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
+            schedulable_active_accounts_count, rotation_working_set_size,
+        )
+    unified_state_name_for_render_label = \
+        compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
+            canary_classification_four_state, pool_resilience_state_machine_label,
+        )
+    canary_failure_duration_seconds_lower_bound = (
+        canary_consecutive_failures_count * canary_configured_interval_seconds
+    )
+    canary_failure_duration_humanized_short_form = (
+        format_seconds_as_humanized_short_duration_with_no_ago_suffix(
+            canary_failure_duration_seconds_lower_bound,
+        )
+        if canary_consecutive_failures_count > 0 else ''
+    )
+
+    print(
+        f'{legacy_gate_status_binary}'
+        f'|{schedulable_active_accounts_count}'
+        f'|{rotation_working_set_size}'
+        f'|{pool_error_accounts_count}'
+        f'|{canary_consecutive_failures_count}'
+        f'|{canary_classification_four_state}'
+        f'|{canary_failure_type_code_AU_QT_CF_UP_IN}'
+        f'|{pool_resilience_state_machine_label}'
+        f'|{unified_state_name_for_render_label}'
+        f'|{canary_failure_duration_humanized_short_form}'
+    )
 except Exception:
-    print('parse-error|0|0|0|0|unknown')
+    # Fail-safe shape: same 10 fields, sentinel values that the renderer
+    # interprets as 'parse-error' (red, replaces numerics with the literal
+    # 'parse-error' word — same UX as 'unreachable').
+    print('parse-error|0|0|0|0|unknown||unknown|unknown|')
 " 2>/dev/null) || doorward_parsed=""
     if [ -n "$doorward_parsed" ]; then
-        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class <<< "$doorward_parsed"
+        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_failure_type_code_AU_QT_CF_UP_IN pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
     fi
 fi
 
@@ -935,22 +1098,35 @@ echo -e "$line1"
 # Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
 # =============================================================================
 #
-# Final output shapes (no field labels — the "pool", "canary", "wrapper"
-# words AND the leading 🟢/🟡/🔴 gate-state emoji were all dropped
-# 2026-05-13 because they were redundant within a segment that is already
-# anchored by the literal "doorward" subject and per-token coloring carries
-# the state signal):
+# Final output shapes (L1d unified multi-dimensional render, 2026-05-13):
 #
-#   ... UTC | ... PDT | doorward 3/3 ✓ 1.92.0
-#   ... UTC | ... PDT | doorward 3/3 ✗1054 1.92.0
-#   ... UTC | ... PDT | doorward unreachable 1.92.0
+#   ... UTC | ... PDT | doorward 3/3 ✓ 1.93.0                                ← all healthy
+#   ... UTC | ... PDT | doorward 3/3 ✗AU 3d since-boot 1.93.0                ← today (config bug, gray)
+#   ... UTC | ... PDT | doorward 2/3 ⚠UP 3m flapping 1.93.0                   ← one backend transient
+#   ... UTC | ... PDT | doorward 1/3 ⚠UP 12m partial-outage 1.93.0            ← last healthy account, pre-warn
+#   ... UTC | ... PDT | doorward 0/3 ✗UP 47m outage 1.93.0                    ← total outage, alarm
+#   ... UTC | ... PDT | doorward 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
+#   ... UTC | ... PDT | doorward unreachable 1.93.0                          ← gateway down
 #
-# State is conveyed entirely by per-token coloring:
-#   "all healthy"    → every token gray/green; reader sees no warning color
-#   "canary failing" → ✗N renders RED, rest stays gray
-#   "rotation hurts" → pool ratio renders RED, rest stays gray
-#   "version skewed" → wrapper version renders YELLOW with `<floor` suffix
+# The render grammar is:
+#   doorward <pool-ratio> <severity-glyph><type-code> [<duration>] [<state-name>] <wrapper-version>
+#
+# State is conveyed entirely by per-token coloring + the named state label:
+#   "all healthy"    → ✓ in GREEN, rest in BRIGHT_BLACK, no state label
+#   "since-boot"     → ✗AU and "since-boot" in BRIGHT_BLACK (calm, config bug)
+#   "flapping"       → ⚠<type> and "flapping" in YELLOW (watch, transient)
+#   "partial-outage" → ⚠<type> and "partial-outage" in YELLOW, pool ratio also YELLOW (pre-warn — last account standing)
+#   "outage"         → ✗<type> and "outage" in RED, pool ratio in RED if 0/N (alarm)
+#   "wrapper skewed" → wrapper version in YELLOW with "<floor" suffix
+#   "wrapper at floor" → wrapper version in YELLOW with "=floor" suffix (pre-warn)
 #   "gateway down"   → literal RED word "unreachable" replaces numerics
+#
+# Three label-stripping rounds preceded this design (all 2026-05-13):
+#   - dropped the "pool", "canary", "wrapper" field labels (redundant within
+#     a segment already anchored by "doorward")
+#   - dropped the leading 🟢/🟡/🔴 gate-state emoji (redundant with per-token
+#     coloring + state name)
+#   - retired the "[5th-fleet]" bearer-mode badge (terminology no longer used)
 #
 # Every visible token, including the labels we stripped, is mapped here so the
 # next maintainer can re-derive what each rendered glyph means without
@@ -995,36 +1171,51 @@ echo -e "$line1"
 #   carries each account's {name, status, schedulable} triple if you need to
 #   know WHICH account is in which state.
 #
-# ── "✓" or "✗N"  ←  canary self-test outcome (L1b CLASSIFICATION-AWARE) ──────
-#   Render shape: ✓ alone (healthy), or ✗ glued to a count (any failure class).
+# ── "✓" or "✗AU 3d" or "⚠UP 12m"  ←  severity-glyph + type-code + duration ──
+#   The L1d unified render replaced the raw consecutive-failure-count display
+#   with a three-token composite that's both more glanceable and more
+#   actionable. Each token answers a distinct operator question:
+#
+#     severity-glyph   How urgent? — ✓ (none), ⚠ (warn), ✗ (alarm or calm)
+#     type-code        What kind of failure? — AU / QT / CF / UP / IN
+#     duration         How long has it been failing? — humanized short form
+#
 #   Source primitives = /v1/router-status .canary_self_test sub-object:
-#     .canary_self_test.consecutive_failures (int)            → N in ✗N
+#     .canary_self_test.consecutive_failures (int)            → drives classification + duration
 #     .canary_self_test.success_runs (int)                    → for classification
 #     .canary_self_test.total_runs (int)                      → for classification
 #     .canary_self_test.consecutive_failure_threshold (int)   → alarm cutoff
+#     .canary_self_test.configured_interval_secs (int)        → × failures = duration
+#     .canary_self_test.last_observed_http_status_code (int)  → maps to type-code
 #
-#   Color is no longer a binary "degraded vs healthy" mapping. The python
-#   parser classifies the canary into one of FOUR operationally-meaningful
-#   states (see parser block below for exact rules + rationale), and the
-#   renderer maps each state to a distinct color:
-#     healthy             → GREEN ✓     (zero failures)
-#     since-start-failure → BRIGHT_BLACK ✗N (gray — never succeeded since
-#                                            router boot → config bug, NOT
-#                                            real outage; calm signal)
-#     transient           → YELLOW ✗N   (below threshold, watch but don't page)
-#     recent-degradation  → RED ✗N      (had successes before, now degraded
-#                                        past threshold → real problem)
-#     unknown             → RED ✗N      (fail-safe; canary fields missing)
+#   Type-code derivation (RFC 9457 / Envoy / AWS API Gateway taxonomy):
+#     401, 403         → AU (auth / credential / version-gate)
+#     429, 509         → QT (quota / rate-limit / throttle)
+#     400, 422         → CF (client / schema / policy-deny)
+#     502, 503, 504, 0 → UP (upstream unavailable / pool exhausted / timeout)
+#     500, 501, 505..  → IN (internal / proxy bug from our own gateway)
+#
+#   The single source of type information today is the LAST observed canary
+#   status code. Richer per-account failure reasons (one type-code per pool
+#   account in the rotation) require L3 server work (task #8 — extending the
+#   doorward response with .pool.per_account_failure_reason[]).
+#
+#   Duration formula:
+#     duration_secs = consecutive_failures × configured_interval_secs
+#     human-readable form: '8s', '47m', '18h', '3d', '5w' (no 'ago' suffix)
+#   This is a lower bound — actual duration could be slightly larger because
+#   the response only reports the CURRENT consecutive run, not the precise
+#   first-failure timestamp. Exact timestamps require L3 server work (adding
+#   .canary_self_test.first_failure_at_unix_secs).
 #
 #   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at doorward AND
 #   the current transcript JSONL has mtime within last 60s (= real prompts
 #   are completing through doorward right now), recent-degradation gets
 #   downgraded to transient, and transient gets downgraded to since-start-
-#   failure. Healthy stays healthy. since-start-failure stays. This is a
-#   damper not a silencer (preserves signal at one severity level lower) —
-#   real traffic confirms doorward is serving, so the canary alarm cannot
-#   be at "real problem" severity, but residual flapping signal is kept
-#   visible.
+#   failure. Healthy stays healthy. since-start-failure stays. Damper not
+#   silencer — real traffic confirms doorward is serving, so the canary alarm
+#   cannot be at "real problem" severity, but residual flapping signal is
+#   kept visible.
 #
 #   What the canary actually IS:
 #     doorward runs a Tokio task on a .canary_self_test.configured_interval_secs
@@ -1034,15 +1225,44 @@ echo -e "$line1"
 #     http://127.0.0.1:8089/v1/messages — i.e. doorward probes ITSELF) using
 #     the DOORWARD_CANARY_BEARER_API_KEY env var as Authorization. If the
 #     response isn't 200 the consecutive_failures counter increments; on any
-#     success the counter resets to 0. The HTTP status of the most recent
-#     failure is in .canary_self_test.last_observed_http_status_code —
-#     diagnostic for WHY the canary is red (e.g. 403 means the canary's own
-#     synthetic request is being version-skew-rejected, a doorward-side bug
-#     pending fix in L3). Source: cc-router/spikes/spike-11-.../src/main.rs:1227-1291.
+#     success the counter resets to 0. Source: cc-router/spikes/spike-11-...
+#     /src/main.rs:1227-1291.
 #
-#   "canary" label removed — the ✗ glyph with a consecutive-failure count is
-#   unambiguous against the other tokens (no other field is rendered as
-#   "✗<integer>"), and the green ✓ alone has no other plausible meaning.
+# ── pool-resilience state machine label (color of N/M ratio) ─────────────────
+#   Source primitives:
+#     .pool.schedulable_active_accounts → schedulable_active_accounts_count
+#     .pool.error_accounts              → pool_error_accounts_count
+#     rotation_size = schedulable + errors (admin-inactive excluded)
+#
+#   Adapted from Envoy outlier-detection + Resilience4j circuit-breaker state
+#   machines to a finite N-account rotation pool. Operators distinguish FIVE
+#   states, not one binary health flag:
+#
+#     HEALTHY        schedulable == rotation_size                  (gray)
+#     DEGRADED       schedulable < rotation_size && schedulable > 1 (yellow)
+#     PARTIAL_OUTAGE schedulable == 1 && rotation_size >= 2        (yellow — pre-warn)
+#     TOTAL_OUTAGE   schedulable == 0                              (red — alarm)
+#     UNKNOWN        rotation_size == 0 (empty pool — config issue)
+#
+#   PARTIAL_OUTAGE is the canonical PRE-WARNING gate: one more failure means
+#   the pool has no resilience left, and the next request 503's the user.
+#
+# ── unified state-name label (the operator-facing word) ──────────────────────
+#   Combines canary classification + pool resilience state via worst-of
+#   precedence (severity-ranked, highest to lowest):
+#     pool total-outage          → "outage" (red, alarm)
+#     canary recent-degradation  → "outage" (red, alarm)
+#     pool partial-outage        → "partial-outage" (yellow, pre-warn)
+#     pool degraded              → "flapping" (yellow, watch)
+#     canary transient           → "flapping" (yellow, watch)
+#     canary since-start-failure → "since-boot" (gray, calm — config bug)
+#     all healthy                → "healthy" (no rendered label)
+#
+#   The state-name IS the playbook hint:
+#     "since-boot" → file an issue against doorward; do NOT page
+#     "flapping"   → watch for next minute; may self-recover
+#     "partial-outage" → intervene now; pool has no redundancy
+#     "outage"     → page someone immediately
 #
 # ── "1.93.0" or "1.93.0<1.2.0"  ←  local ccmax-claude wrapper version ────────
 #   Render shape: bare semver, or "X<Y" when X is below floor Y.
@@ -1117,59 +1337,118 @@ fi
 # duplication. The state is now read entirely from the per-token coloring of
 # the trailing numbers/words.
 
+# =============================================================================
+# L1d MULTI-DIMENSIONAL UNIFIED RENDERER (2026-05-13)
+# =============================================================================
+# Render shape (all tokens after the BRIGHT_BLACK "doorward" anchor):
+#
+#   doorward <N/M> <severity><type>[<duration>] [<state-name>] <wrapper>
+#
+#   N/M         pool ratio, colored by pool resilience state machine
+#               (BRIGHT_BLACK healthy, YELLOW degraded/partial-outage, RED total-outage)
+#   severity    ✓ healthy (GREEN) | ✗ degraded/outage (RED/gray) | ⚠ pre-warn (YELLOW)
+#   type        AU/QT/CF/UP/IN — only when severity != ✓ (derived from canary
+#               last_observed_http_status_code per RFC 9457 taxonomy)
+#   duration    humanized canary failure duration (e.g. 18h, 3m, 2d) — only
+#               when severity != ✓
+#   state-name  since-boot | flapping | partial-outage | outage — operator-
+#               facing label that names the actionable failure category
+#   wrapper     local ccmax-claude version, with <floor suffix (YELLOW) when
+#               below DOORWARD_MIN_WRAPPER_VERSION, or =floor suffix (YELLOW)
+#               when exactly at floor (pre-warn for next floor bump)
+#
+# Scenario examples (against today's live state and hypotheticals):
+#   doorward 3/3 ✓ 1.93.0                              all healthy
+#   doorward 3/3 ✗AU 18h since-boot 1.93.0             today (config bug, gray)
+#   doorward 2/3 ⚠UP 3m flapping 1.93.0                one backend transient
+#   doorward 1/3 ⚠UP 12m partial-outage 1.93.0         last healthy, pre-warn
+#   doorward 0/3 ✗UP 47m outage 1.93.0                 total outage, alarm
+#   doorward 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
+#
+# Full source-of-truth legend for each token lives in the in-script LEGEND
+# block earlier in the file (search "Doorward gateway summary — render LEGEND").
+
 doorward_inline=""
 if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; then
-    # Pool numerator/denominator. See legend block above for full source-of-
-    # truth derivation. Label "pool" deliberately dropped from render.
-    if [ "$pool_errors" -gt 0 ]; then
-        pool_part="${RED}${pool_schedulable}/${pool_rotation_size}${RESET}"
-    else
-        pool_part="${BRIGHT_BLACK}${pool_schedulable}/${pool_rotation_size}${RESET}"
-    fi
-
-    # Canary outcome glyph (L1b classification-aware coloring, 2026-05-13).
-    # Color encodes severity, distinguishing operationally-distinct failure
-    # modes (see legend + classification rules in the parser block above):
-    #   healthy             → green ✓ (zero failures)
-    #   since-start-failure → gray ✗N ("config bug, not real outage" — also
-    #                         the state today's canary lives in due to the
-    #                         missing wrapper-version header on its loopback
-    #                         self-probe; will be cleared by L3 server fix)
-    #   transient           → yellow ✗N (failures present but below threshold,
-    #                         or recent-degradation downgraded by L1c real-
-    #                         traffic cross-check)
-    #   recent-degradation  → red ✗N (had successes, now failing past threshold
-    #                         — the only state that warrants a page)
-    #   unknown             → red ✗N (fail-safe; missing fields)
-    case "$canary_class" in
+    # Pool ratio colored by pool_resilience_state_machine_label (orthogonal to
+    # canary state — pool can be healthy while canary is broken via L1c
+    # damper, or vice versa).
+    case "$pool_resilience_state_machine_label" in
         healthy)
-            canary_part="${GREEN}✓${RESET}"
+            pool_part="${BRIGHT_BLACK}${pool_schedulable}/${pool_rotation_size}${RESET}"
             ;;
-        since-start-failure)
-            canary_part="${BRIGHT_BLACK}✗${canary_failures}${RESET}"
+        degraded)
+            pool_part="${YELLOW}${pool_schedulable}/${pool_rotation_size}${RESET}"
             ;;
-        transient)
-            canary_part="${YELLOW}✗${canary_failures}${RESET}"
+        partial-outage)
+            # "Last healthy account" pre-warn — yellow (escalates if pool
+            # falls to 0 next; precedent for using yellow on the pre-warn
+            # state is from Envoy outlier-detection ejection-threshold UX).
+            pool_part="${YELLOW}${pool_schedulable}/${pool_rotation_size}${RESET}"
             ;;
-        recent-degradation|unknown|*)
-            canary_part="${RED}✗${canary_failures}${RESET}"
+        total-outage)
+            pool_part="${RED}${pool_schedulable}/${pool_rotation_size}${RESET}"
+            ;;
+        *)
+            pool_part="${BRIGHT_BLACK}${pool_schedulable}/${pool_rotation_size}${RESET}"
             ;;
     esac
 
-    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${pool_part} ${canary_part}"
+    # Severity glyph + type-code + duration, composed from the unified state
+    # name. The four operator-facing state names map onto three visual
+    # severity tiers (GREEN healthy / BRIGHT_BLACK calm-since-boot / YELLOW
+    # warn-flapping-or-partial / RED alarm-outage):
+    case "$unified_state_name_for_render_label" in
+        healthy)
+            severity_glyph_with_optional_type_code_and_duration="${GREEN}✓${RESET}"
+            unified_state_name_visible_label_token=""
+            ;;
+        since-boot)
+            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            unified_state_name_visible_label_token=" ${BRIGHT_BLACK}since-boot${RESET}"
+            ;;
+        flapping)
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            unified_state_name_visible_label_token=" ${YELLOW}flapping${RESET}"
+            ;;
+        partial-outage)
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            unified_state_name_visible_label_token=" ${YELLOW}partial-outage${RESET}"
+            ;;
+        outage)
+            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            unified_state_name_visible_label_token=" ${RED}outage${RESET}"
+            ;;
+        *)
+            # unknown / parse-error / sentinel — fail-safe to red alarm so we
+            # don't hide a real problem behind missing data.
+            severity_glyph_with_optional_type_code_and_duration="${RED}?${RESET}"
+            unified_state_name_visible_label_token=" ${RED}${unified_state_name_for_render_label:-unknown}${RESET}"
+            ;;
+    esac
+
+    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${pool_part} ${severity_glyph_with_optional_type_code_and_duration}${unified_state_name_visible_label_token}"
 elif [ -n "$doorward_status" ] && [ "$doorward_status" != "unreachable" ]; then
+    # Non-empty $doorward_status but not the expected healthy/degraded values —
+    # surface the raw state token in red so the operator sees the literal
+    # parse-error word (or any future sentinel we introduce).
     doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}${doorward_status}${RESET}"
 else
     doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}unreachable${RESET}"
 fi
 
-# Wrapper version: bare semver normally, "<floor" suffix in YELLOW when below.
-# See legend block above for the comparison source + floor derivation. Label
-# "wrapper" deliberately dropped — three-dot semver is visually unique.
+# Wrapper version: bare semver normally; YELLOW with "<floor" suffix when
+# below floor (skew, will be 403'd); YELLOW with "=floor" suffix when exactly
+# at floor (pre-warn — next doorward floor-bump will reject us). The "=floor"
+# pre-warning is the canonical "at-threshold" SRE pattern (one perturbation
+# away from breach). Label "wrapper" deliberately dropped — three-dot semver
+# is visually unique against the other tokens.
 wrapper_part=""
 if [ -n "$wrapper_version" ]; then
     if version_lt "$wrapper_version" "$DOORWARD_MIN_WRAPPER_VERSION"; then
         wrapper_part=" ${YELLOW}${wrapper_version}<${DOORWARD_MIN_WRAPPER_VERSION}${RESET}"
+    elif [ "$wrapper_version" = "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
+        wrapper_part=" ${YELLOW}${wrapper_version}=${DOORWARD_MIN_WRAPPER_VERSION}${RESET}"
     else
         wrapper_part=" ${BRIGHT_BLACK}${wrapper_version}${RESET}"
     fi
