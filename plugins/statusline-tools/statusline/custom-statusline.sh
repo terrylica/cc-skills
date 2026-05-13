@@ -546,148 +546,298 @@ elif [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
     esac
 fi
 
-# Query ccmax-monitor dashboard (private internal fleet system, OPTIONAL).
-# ccmax-monitor exposes a local port via ssh-tunnel-companion: bigblack:8095 → localhost:18095.
-# If the tunnel is down or ccmax-monitor is not installed, curl times out silently (1–2s)
-# and ccmax_raw stays empty — the entire ccmax section is omitted. Graceful degradation.
-# Public cc-skills users will never have localhost:18095 listening; this block is a no-op.
-CCMAX_CACHE="/tmp/ccmax-statusline-cache.json"
-CCMAX_CACHE_TTL=60
-ccmax_line=""
-CCMAX_BASE="http://localhost:18095"
+# === Doorward Gateway Health (replaces legacy OAuth-account/quota block) ===
+#
+# WHY THE REWRITE: Fleet migrated to bearer-mode routing where ccmax-claude PTY
+# wrapper sets ANTHROPIC_BASE_URL=https://bigblack.tail0f299b.ts.net:8450 and
+# doorward picks from a rotation pool of OAuth accounts dynamically per-request.
+# The local keychain's OAuth account no longer tells you what's serving you, so
+# the prior "account email + 5h%/7d% quota windows" rendering became misleading
+# (it described a credential that isn't even being used). We replaced it with
+# four signals that actually reflect the live pipeline:
+#
+#   1. Gate health badge   — composite of doorward reachability + canary state
+#   2. Pool size           — pool.schedulable_active_accounts / pool.total_accounts
+#   3. Canary state        — canary_self_test.consecutive_failures count
+#   4. Wrapper version     — local ccmax-claude version vs doorward's floor
+#
+# Only two doorward routes are wrapper-version-gate-exempt and therefore safe
+# for the statusline to hit anonymously on every render:
+#   GET /v1/health         → liveness + canary + fleet transition counters
+#   GET /v1/router-status  → adds the pool breakdown (per-account schedulable)
+# We use the latter because it's a superset (canary + pool in one fetch).
+# Confirmed bypass paths: spike-11/src/main.rs:1492,1505 (health) and 1515,1556
+# (router-status). Both responses include x-doorward-decision and
+# x-doorward-router-version headers for forensics.
+#
+# Cache: /tmp/ccmax-doorward-cache.json, 60s TTL. doorward already enforces a
+# 30s server-side TTL on /v1/router-status (spike-11 cache_ttl_seconds), so 60s
+# client-side covers two server windows with headroom. Stale-on-failure: if a
+# fresh fetch fails but a cache exists, we render with stale cache rather than
+# blanking — the operator still sees something instead of a false "unreachable".
+#
+# Failure semantics (drives $doorward_status string — used downstream to pick
+# the render branch and per-token color, no longer a leading visual glyph):
+#   reachable + status=ok + canary healthy + errors=0  → "healthy"    (all gray/✓)
+#   reachable but canary degraded OR errors>0          → "degraded"   (red ✗N or red ratio)
+#   unreachable / no cache                             → "unreachable" (literal red word replaces numerics)
+#   /v1/router-status JSON parse failure               → "parse-error" (red word replaces numerics)
+#
+# Public cc-skills users (no doorward, no tailnet membership) get curl timeout
+# → "unreachable" state → if they also have no bearer-mode env signal AND no
+# pin, the entire ccmax line is suppressed (see renderer below). Graceful
+# degradation.
 
-ccmax_needs_fetch=1
-if [ -n "$ccmax_bearer_account" ]; then
-    # Bearer-key fifth fleet accounts do not have OAuth quota windows.
-    # Show the resolved account explicitly and avoid labeling the session
-    # with whatever OAuth credential still lives in the local keychain.
-    # Mark with [5th-fleet] badge for clear visual distinction.
-    ccmax_line="${ccmax_bearer_account} [5th-fleet]"
-elif [ -f "$CCMAX_CACHE" ]; then
-    cache_mtime=$(stat -f %m "$CCMAX_CACHE" 2>/dev/null || echo 0)
-    cache_age=$(( $(date +%s) - cache_mtime ))
-    [ "$cache_age" -lt "$CCMAX_CACHE_TTL" ] && ccmax_needs_fetch=0
-fi
+DOORWARD_BASE="https://bigblack.tail0f299b.ts.net:8450"
+DOORWARD_CACHE="/tmp/ccmax-doorward-cache.json"
+DOORWARD_CACHE_TTL=60
 
-if [ -z "$ccmax_line" ] && [ "$ccmax_needs_fetch" -eq 1 ]; then
-    ccmax_raw=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" 2>/dev/null) || ccmax_raw=""
-    if [ -n "$ccmax_raw" ]; then
-        echo "$ccmax_raw" > "$CCMAX_CACHE"
-    elif [ -f "$CCMAX_CACHE" ]; then
-        # Fresh fetch failed (tunnel down?) — fall back to stale cache.
-        # Stale quota data is better than the tok-only fallback path.
-        ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
+# Doorward's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
+#
+# Earlier versions hardcoded "1.2.0" here and required a manual bump whenever
+# doorward raised its gate. Now we discover the live floor by probing any
+# wrapper-gated route (e.g. /v1/users/me) WITHOUT the wrapper version header;
+# doorward returns HTTP 403 with `minimum_wrapper_version_required` in the
+# JSON body, which IS the current floor. Cached at /tmp/ccmax-doorward-floor
+# with a 3600s TTL so we only probe doorward once per hour for this value.
+#
+# Probe failure modes (any → fall back to compiled-in default):
+#   - Doorward unreachable: probe times out, no response
+#   - Doorward returns 200 (gate disabled / env var unset): no floor to read
+#   - Response body doesn't have the expected error.minimum_wrapper_version_required shape
+# The fallback ensures the renderer always has SOMETHING to compare against,
+# even when doorward is down. The fallback is updated whenever a fresh probe
+# succeeds, so cold-start with a stale fallback only matters for the very
+# first render after a new install.
+DOORWARD_MIN_WRAPPER_VERSION_FALLBACK="1.2.0"
+DOORWARD_FLOOR_CACHE="/tmp/ccmax-doorward-floor"
+DOORWARD_FLOOR_TTL=3600  # 1 hour
+
+# Cache-aware floor lookup. The cache file holds a single line containing the
+# discovered floor semver (or empty if discovery failed). On cache miss or
+# expiry, probe doorward; on probe failure, fall back to compiled-in default.
+DOORWARD_MIN_WRAPPER_VERSION=""
+if [ -f "$DOORWARD_FLOOR_CACHE" ]; then
+    floor_cache_mtime=$(stat -f %m "$DOORWARD_FLOOR_CACHE" 2>/dev/null || echo 0)
+    floor_cache_age=$(( $(date +%s) - floor_cache_mtime ))
+    if [ "$floor_cache_age" -lt "$DOORWARD_FLOOR_TTL" ]; then
+        DOORWARD_MIN_WRAPPER_VERSION=$(cat "$DOORWARD_FLOOR_CACHE" 2>/dev/null)
     fi
-elif [ -z "$ccmax_line" ]; then
-    ccmax_raw=$(cat "$CCMAX_CACHE" 2>/dev/null) || ccmax_raw=""
 fi
-
-# Identify which account the LOCAL keychain token belongs to (cached 5min)
-CCMAX_LOCAL_CACHE="/tmp/ccmax-local-account"
-ccmax_local_account=""
-if [ -z "$ccmax_line" ] && [ -f "$CCMAX_LOCAL_CACHE" ]; then
-    local_cache_age=$(( $(date +%s) - $(stat -f %m "$CCMAX_LOCAL_CACHE" 2>/dev/null || echo 0) ))
-    if [ "$local_cache_age" -lt 60 ]; then
-        ccmax_local_account=$(cat "$CCMAX_LOCAL_CACHE")
-    fi
-fi
-if [ -z "$ccmax_line" ] && [ -z "$ccmax_local_account" ]; then
-    local_token=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
-        | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('claudeAiOauth',{}).get('accessToken',''))" 2>/dev/null) || local_token=""
-    if [ -n "$local_token" ]; then
-        ccmax_local_account=$(probe_direct curl -sf --max-time 3 "https://api.anthropic.com/api/oauth/profile" \
-            -H "Authorization: Bearer $local_token" -H "Content-Type: application/json" 2>/dev/null \
-            | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('account',{}).get('email',''))" 2>/dev/null) || ccmax_local_account=""
-        if [ -n "$ccmax_local_account" ]; then
-            echo "$ccmax_local_account" > "$CCMAX_LOCAL_CACHE"
-        fi
-    fi
-fi
-
-if [ -z "$ccmax_line" ] && [ -n "$ccmax_raw" ]; then
-    # Use local keychain account if known, otherwise fall back to fleet's active
-    ccmax_lookup="${ccmax_local_account}"
-    [ -z "$ccmax_lookup" ] && ccmax_lookup=$(echo "$ccmax_raw" | python3 -c "import sys,json; print(json.loads(sys.stdin.read()).get('active_account',''))" 2>/dev/null)
-
-    ccmax_line=$(echo "$ccmax_raw" | python3 -c "
+if [ -z "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
+    # Probe a wrapper-gated route anonymously. The gate runs BEFORE auth, so
+    # even without a Bearer header we elicit a 403 with the JSON body that
+    # carries `minimum_wrapper_version_required`. Implementation note: the
+    # `probe_direct curl` call below uses `-s` (NOT `-sf`) because `-f`
+    # suppresses the response body on 4xx — and the body is exactly what we
+    # need to parse.
+    discovered_floor=$(probe_direct curl -s --connect-timeout 1 --max-time 2 \
+        "${DOORWARD_BASE}/v1/users/me" 2>/dev/null | python3 -c "
 import sys, json
-from datetime import datetime, timezone
-
-def humanize(secs: int) -> str:
-    secs = max(0, secs)
-    days = secs // 86400
-    hours = (secs % 86400) // 3600
-    mins = (secs % 3600) // 60
-    if days > 0:
-        return f'{days}d {hours}h'
-    if hours > 0:
-        return f'{hours}h {mins}m'
-    return f'{mins}m'
-
-def window_parts(window: dict | None) -> list[str]:
-    if not window:
-        return []
-    pct = window.get('utilization', 0) or 0
-    parts = [f'{pct:.0f}%']
-    secs = window.get('resets_in_seconds')
-    if secs is None:
-        resets_at = window.get('resets_at', '')
-        if resets_at:
-            try:
-                rt = datetime.fromisoformat(resets_at)
-                now = datetime.now(timezone.utc)
-                secs = int((rt - now).total_seconds())
-            except Exception:
-                secs = None
-    if secs is not None:
-        parts.append(humanize(int(secs)))
-    return parts
-
 try:
     d = json.loads(sys.stdin.read())
-    lookup = '${ccmax_lookup}'
-    accounts = d.get('accounts', [])
-    if not lookup:
-        print('')
-        sys.exit()
-    prefix = lookup.split('@')[0]
-    for a in accounts:
-        if a.get('name', '').startswith(prefix + '@') or a.get('name', '').startswith(prefix + \"'\"):
-            u = a.get('usage', {})
-            # Format: <name> <7d%> <7d reset> <5h%> <5h reset>
-            # Fields are space-separated for downstream shell parsing.
-            parts = [prefix]
-            parts.extend(window_parts(u.get('seven_day')))
-            parts.extend(window_parts(u.get('five_hour')))
-            print(' '.join(parts))
-            sys.exit()
-    # Fallback: just show account name
-    print(prefix)
+    err = d.get('error', {}) or {}
+    floor = err.get('minimum_wrapper_version_required', '') or ''
+    print(floor)
 except Exception:
-    print('')
-" 2>/dev/null) || ccmax_line=""
+    pass
+" 2>/dev/null) || discovered_floor=""
+    if [ -n "$discovered_floor" ]; then
+        printf '%s' "$discovered_floor" > "$DOORWARD_FLOOR_CACHE"
+        DOORWARD_MIN_WRAPPER_VERSION="$discovered_floor"
+    else
+        DOORWARD_MIN_WRAPPER_VERSION="$DOORWARD_MIN_WRAPPER_VERSION_FALLBACK"
+    fi
+fi
+
+# Fetch /v1/router-status (cache-aware).
+doorward_raw=""
+doorward_needs_fetch=1
+if [ -f "$DOORWARD_CACHE" ]; then
+    doorward_cache_mtime=$(stat -f %m "$DOORWARD_CACHE" 2>/dev/null || echo 0)
+    doorward_cache_age=$(( $(date +%s) - doorward_cache_mtime ))
+    [ "$doorward_cache_age" -lt "$DOORWARD_CACHE_TTL" ] && doorward_needs_fetch=0
+fi
+if [ "$doorward_needs_fetch" -eq 1 ]; then
+    doorward_fresh=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 \
+        "${DOORWARD_BASE}/v1/router-status" 2>/dev/null) || doorward_fresh=""
+    if [ -n "$doorward_fresh" ]; then
+        echo "$doorward_fresh" > "$DOORWARD_CACHE"
+        doorward_raw="$doorward_fresh"
+    elif [ -f "$DOORWARD_CACHE" ]; then
+        # Fetch failed but cache exists → render stale data rather than going
+        # dark. The cache mtime already telegraphs staleness to anyone reading
+        # the file directly.
+        doorward_raw=$(cat "$DOORWARD_CACHE" 2>/dev/null) || doorward_raw=""
+    fi
 else
-    # el02 unreachable — show account name + token expiry from local keychain
-    if [ -n "$ccmax_local_account" ]; then
-        expiry=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
-            | python3 -c "
-import sys, json, time
-d = json.loads(sys.stdin.read())
-exp = d.get(\"claudeAiOauth\", {}).get(\"expiresAt\", 0)
-if exp:
-    remaining = (exp / 1000) - time.time()
-    h = int(remaining / 3600)
-    m = int((remaining % 3600) / 60)
-    print(\"{}h{}m\".format(h, m) if remaining > 0 else \"expired\")
-else:
-    print(\"\")
-" 2>/dev/null) || expiry=""
-        short="${ccmax_local_account%%@*}"
-        if [ -n "$expiry" ]; then
-            ccmax_line="${short} tok:${expiry}"
-        else
-            ccmax_line="${short}"
-        fi
+    doorward_raw=$(cat "$DOORWARD_CACHE" 2>/dev/null) || doorward_raw=""
+fi
+
+# Local ccmax-claude wrapper version (cached by binary mtime). The subprocess
+# only re-runs when the binary file itself changes — rare — so the render-time
+# cost amortizes to a file stat per render. Empty when the wrapper isn't
+# installed (public cc-skills users), which the renderer treats as "skip the
+# wrapper segment entirely".
+WRAPPER_BIN="${HOME}/.local/bin/ccmax-claude"
+WRAPPER_VERSION_CACHE="/tmp/ccmax-wrapper-version"
+wrapper_version=""
+if [ -x "$WRAPPER_BIN" ]; then
+    wrapper_bin_mtime=$(stat -f %m "$WRAPPER_BIN" 2>/dev/null || echo 0)
+    wrapper_cache_mtime=$(stat -f %m "$WRAPPER_VERSION_CACHE" 2>/dev/null || echo 0)
+    if [ -f "$WRAPPER_VERSION_CACHE" ] && [ "$wrapper_cache_mtime" -ge "$wrapper_bin_mtime" ]; then
+        wrapper_version=$(cat "$WRAPPER_VERSION_CACHE" 2>/dev/null)
+    else
+        wrapper_version=$("$WRAPPER_BIN" --version 2>/dev/null | head -1 | tr -d ' \n')
+        [ -n "$wrapper_version" ] && printf '%s' "$wrapper_version" > "$WRAPPER_VERSION_CACHE"
+    fi
+fi
+
+# Semver less-than via sort -V. Returns 0 (true) when $1 < $2.
+version_lt() {
+    [ "$1" = "$2" ] && return 1
+    [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]
+}
+
+# Parse the doorward snapshot into primitives. One python invocation emits a
+# fixed-shape pipe-delimited line; shell unpacks with `IFS='|' read`. Output:
+#   <status>|<schedulable>|<rotation_size>|<errors>|<canary_failures>|<canary_class>
+# status      ∈ {healthy, degraded, parse-error}; unreachable is signalled by
+#               empty doorward_raw before we enter this block
+# canary_class ∈ {healthy, since-start-failure, transient, recent-degradation,
+#               unknown} — see classification rules below
+#
+# Pool denominator semantics — we deliberately EXCLUDE inactive accounts from
+# the denominator. doorward's response distinguishes three account states:
+#   - schedulable + status=active   → in the rotation, picking traffic
+#   - error_accounts                → in the rotation, currently failing
+#   - other_status_accounts         → administratively inactive (paused,
+#                                     not part of the rotation by operator
+#                                     intent — NOT a failure mode)
+# Including inactive accounts in the denominator (the prior `pool 3/4` form)
+# was misleading because it visually framed an operator-intended deactivation
+# as a partial pool failure. We use `schedulable + errors` as the denominator,
+# which is the actual rotation working-set size: "how many accounts are
+# expected to be able to serve, and how many of those actually can right now".
+#
+# Canary classification (L1b, 2026-05-13) — replaces the prior binary
+# "degraded vs healthy" flag with a four-state model that distinguishes
+# operationally-meaningful failure modes:
+#
+#   healthy              consecutive_failures == 0
+#                        → the canary just succeeded; nothing to see here.
+#
+#   since-start-failure  success_runs == 0 AND consecutive_failures == total_runs
+#                        → the canary has NEVER succeeded since the router
+#                          process started. This is the fingerprint of a
+#                          config bug (e.g. canary's request missing a
+#                          required header). It is NOT evidence of upstream
+#                          trouble — if upstream were broken, the canary
+#                          would have at least ONE prior success at boot.
+#                          Renderer dims this in gray instead of red.
+#
+#   transient            0 < consecutive_failures < consecutive_failure_threshold
+#                        → canary had successes before, currently has a small
+#                          run of failures below the alarm threshold. Worth
+#                          watching, not yet worth paging.
+#
+#   recent-degradation   consecutive_failures >= consecutive_failure_threshold
+#                        AND success_runs > 0 (i.e. NOT since-start-failure)
+#                        → canary worked at some point, now degraded past the
+#                          alarm threshold. This is the "real outage" signal.
+#
+#   unknown              canary fields absent or unreadable
+#                        → fail-safe to "degraded color" so we don't silently
+#                          hide a real problem behind missing data.
+doorward_status="unreachable"
+pool_schedulable=0
+pool_rotation_size=0
+pool_errors=0
+canary_failures=0
+canary_class="unknown"
+if [ -n "$doorward_raw" ]; then
+    doorward_parsed=$(echo "$doorward_raw" | python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.stdin.read())
+    pool = d.get('pool', {}) or {}
+    schedulable = int(pool.get('schedulable_active_accounts', 0) or 0)
+    errors = int(pool.get('error_accounts', 0) or 0)
+    rotation_size = schedulable + errors
+    canary = d.get('canary_self_test', {}) or {}
+    cfailures = int(canary.get('consecutive_failures', 0) or 0)
+    csuccess = int(canary.get('success_runs', 0) or 0)
+    ctotal = int(canary.get('total_runs', 0) or 0)
+    cthreshold = int(canary.get('consecutive_failure_threshold', 3) or 3)
+    if cfailures == 0:
+        cclass = 'healthy'
+    elif csuccess == 0 and cfailures == ctotal:
+        cclass = 'since-start-failure'
+    elif cfailures < cthreshold:
+        cclass = 'transient'
+    else:
+        cclass = 'recent-degradation'
+    # Gate status mirrors the canary's degradation: alarm-state classes
+    # report 'degraded', everything else (including since-start-failure
+    # which is a config bug not a real outage) reports 'healthy' at the
+    # pool/gate level. Pool errors still escalate to 'degraded' independent
+    # of canary state.
+    if errors > 0 or cclass == 'recent-degradation':
+        status = 'degraded'
+    else:
+        status = 'healthy'
+    print(f'{status}|{schedulable}|{rotation_size}|{errors}|{cfailures}|{cclass}')
+except Exception:
+    print('parse-error|0|0|0|0|unknown')
+" 2>/dev/null) || doorward_parsed=""
+    if [ -n "$doorward_parsed" ]; then
+        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class <<< "$doorward_parsed"
+    fi
+fi
+
+# L1c (real-traffic cross-check, 2026-05-13) — second-opinion damper on the
+# canary signal. The canary is one synthetic probe; if it's degraded, that
+# may or may not reflect actual upstream health. Real traffic is the ground
+# truth: when this Mac's Claude Code session is actively pumping requests
+# through doorward AND those requests are completing, doorward IS serving,
+# regardless of what the canary says.
+#
+# Detection signals:
+#   (a) $ANTHROPIC_BASE_URL points at doorward (bearer-mode routing) AND
+#   (b) The current session's transcript JSONL has been written to within
+#       the last 60s (Claude Code only appends to the transcript when it
+#       successfully receives upstream responses)
+#
+# Effect: when both hold, downgrade the canary class by one alarm level.
+# This is a damper, not a silencer — recent-degradation → transient,
+# transient → since-start-failure (i.e. "config bug, not outage"). Healthy
+# stays healthy. since-start-failure stays since-start-failure (already
+# minimum-alarm).
+#
+# Why we DON'T just suppress the canary signal entirely when real traffic
+# flows: the canary's interval (1-5min) doesn't perfectly align with the
+# user's prompt cadence. A 5min-stale transcript with an actively-failing
+# canary IS a credible early-warning of impending failure on the next
+# prompt. Damper-not-silencer preserves that signal at one severity level.
+real_traffic_recent=0
+if [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
+    case "$ANTHROPIC_BASE_URL" in
+        *bigblack.tail0f299b.ts.net:8450*|*127.0.0.1:8450*|*localhost:8450*)
+            transcript_mtime=$(stat -f %m "$transcript_file" 2>/dev/null || echo 0)
+            transcript_age=$(( $(date +%s) - transcript_mtime ))
+            [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
+            ;;
+    esac
+fi
+if [ "$real_traffic_recent" -eq 1 ]; then
+    case "$canary_class" in
+        recent-degradation) canary_class="transient" ;;
+        transient)          canary_class="since-start-failure" ;;
+    esac
+    # Also clear pool-error escalation: if traffic is flowing, error_accounts
+    # might be a transient blip the rotation is already routing around.
+    if [ "$doorward_status" = "degraded" ] && [ "$pool_errors" -gt 0 ] && [ "$canary_class" != "recent-degradation" ]; then
+        doorward_status="healthy"
     fi
 fi
 
@@ -781,70 +931,264 @@ echo -e "$line1"
 # Empty when scc unavailable, repo not git, or computation timed out (>1s)
 [ -n "$code_stats" ] && echo -e "$code_stats"
 
-# Append ccmax info inline with datetime:
-#   ... UTC | ... PDT | serviceaccount 15% 6d 8h 55% 2h 15m
-#                      └─name──────┘ └7d──────┘ └5h──────┘
-# Account name + reset windows in BRIGHT_BLACK, percentages in CYAN (7d) and MAGENTA (5h)
-# for visual demarcation between the two quota windows.
-if [ -n "$ccmax_line" ]; then
-    # Pin scope+mode badge (HEART-23 v2). Inserted right after the account
-    # name so the override label visually associates with the account.
-    #   default rotation → empty (clean state, no extra clutter)
-    #   soft pin (any scope)   → YELLOW [<scope>:soft]   (auto-fallback on unhealthy)
-    #   strict pin (any scope) → RED    [<scope>:strict] (honor pin even when unhealthy)
-    # Color encodes mode (yellow=soft, red=strict). Scope label tells the
-    # user WHICH layer is winning so they know whether clearing the device
-    # pin (legacy default) is enough to return to fleet rotation, or if
-    # they need to clear a session/repo override too.
-    ccmax_pin_badge=""
-    if [ -n "$ccmax_pin_scope" ] && [ -n "$ccmax_pin_mode" ]; then
-        case "$ccmax_pin_mode" in
-            soft)   ccmax_pin_badge="${YELLOW}[${ccmax_pin_scope}:soft]${RESET}" ;;
-            strict) ccmax_pin_badge="${RED}[${ccmax_pin_scope}:strict]${RESET}" ;;
-        esac
+# =============================================================================
+# Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
+# =============================================================================
+#
+# Final output shapes (no field labels — the "pool", "canary", "wrapper"
+# words AND the leading 🟢/🟡/🔴 gate-state emoji were all dropped
+# 2026-05-13 because they were redundant within a segment that is already
+# anchored by the literal "doorward" subject and per-token coloring carries
+# the state signal):
+#
+#   ... UTC | ... PDT | doorward 3/3 ✓ 1.92.0
+#   ... UTC | ... PDT | doorward 3/3 ✗1054 1.92.0
+#   ... UTC | ... PDT | doorward unreachable 1.92.0
+#
+# State is conveyed entirely by per-token coloring:
+#   "all healthy"    → every token gray/green; reader sees no warning color
+#   "canary failing" → ✗N renders RED, rest stays gray
+#   "rotation hurts" → pool ratio renders RED, rest stays gray
+#   "version skewed" → wrapper version renders YELLOW with `<floor` suffix
+#   "gateway down"   → literal RED word "unreachable" replaces numerics
+#
+# Every visible token, including the labels we stripped, is mapped here so the
+# next maintainer can re-derive what each rendered glyph means without
+# re-grepping doorward's source or CLAUDE.md. Tokens are listed left-to-right
+# in render order.
+#
+# ── Gate emoji (RETIRED 2026-05-13) ──────────────────────────────────────────
+#   Earlier versions led the segment with a 🟢/🟡/🔴 dot synthesised from
+#   pool.error_accounts + canary_self_test.is_degraded_per_threshold +
+#   reachability. Retired because:
+#     - 🟢 "all healthy" was redundant with every trailing token being gray/✓
+#     - 🟡 "degraded" was redundant with the RED ✗N glyph or RED pool ratio
+#     - 🔴 "unreachable" was redundant with the literal RED word "unreachable"
+#   The python parser still produces $doorward_status ∈ {healthy, degraded,
+#   parse-error, unreachable} because that variable drives WHICH render
+#   branch runs (numeric tokens vs. "unreachable" word), but the value is
+#   no longer mapped to a leading visual glyph.
+#
+# ── "doorward" anchor word ───────────────────────────────────────────────────
+#   The single retained label. Identifies which subsystem the segment is
+#   reporting on. Without it the trailing numbers would float context-free
+#   after the datetime. Rendered in BRIGHT_BLACK (gray) to de-emphasise.
+#
+# ── "3/3"  ←  pool numerator/denominator ─────────────────────────────────────
+#   Render shape: <schedulable_active>/<rotation_working_set_size>
+#   Numerator   = /v1/router-status .pool.schedulable_active_accounts
+#                 (accounts whose status=="active" AND schedulable==true,
+#                  i.e. currently picking traffic from doorward's rotation)
+#   Denominator = .pool.schedulable_active_accounts + .pool.error_accounts
+#                 (the rotation WORKING-SET: accounts expected to serve,
+#                  whether currently healthy or transiently failing)
+#   EXCLUDED from denominator:
+#                .pool.other_status_accounts (status=="inactive" — admin-
+#                paused by operator intent, NOT a failure mode; including them
+#                would mis-frame an intentional deactivation as partial pool
+#                degradation, e.g. the 4-registered-but-1-admin-inactive fleet
+#                state would mislead as "3/4" instead of the correct "3/3").
+#   Color: RED when .pool.error_accounts > 0; BRIGHT_BLACK (gray) otherwise.
+#   "pool" label removed — the slash-fraction format is self-evidently a ratio
+#   and the segment is already anchored by "doorward".
+#   Live cross-reference: pool.per_account_summaries[] in the same response
+#   carries each account's {name, status, schedulable} triple if you need to
+#   know WHICH account is in which state.
+#
+# ── "✓" or "✗N"  ←  canary self-test outcome (L1b CLASSIFICATION-AWARE) ──────
+#   Render shape: ✓ alone (healthy), or ✗ glued to a count (any failure class).
+#   Source primitives = /v1/router-status .canary_self_test sub-object:
+#     .canary_self_test.consecutive_failures (int)            → N in ✗N
+#     .canary_self_test.success_runs (int)                    → for classification
+#     .canary_self_test.total_runs (int)                      → for classification
+#     .canary_self_test.consecutive_failure_threshold (int)   → alarm cutoff
+#
+#   Color is no longer a binary "degraded vs healthy" mapping. The python
+#   parser classifies the canary into one of FOUR operationally-meaningful
+#   states (see parser block below for exact rules + rationale), and the
+#   renderer maps each state to a distinct color:
+#     healthy             → GREEN ✓     (zero failures)
+#     since-start-failure → BRIGHT_BLACK ✗N (gray — never succeeded since
+#                                            router boot → config bug, NOT
+#                                            real outage; calm signal)
+#     transient           → YELLOW ✗N   (below threshold, watch but don't page)
+#     recent-degradation  → RED ✗N      (had successes before, now degraded
+#                                        past threshold → real problem)
+#     unknown             → RED ✗N      (fail-safe; canary fields missing)
+#
+#   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at doorward AND
+#   the current transcript JSONL has mtime within last 60s (= real prompts
+#   are completing through doorward right now), recent-degradation gets
+#   downgraded to transient, and transient gets downgraded to since-start-
+#   failure. Healthy stays healthy. since-start-failure stays. This is a
+#   damper not a silencer (preserves signal at one severity level lower) —
+#   real traffic confirms doorward is serving, so the canary alarm cannot
+#   be at "real problem" severity, but residual flapping signal is kept
+#   visible.
+#
+#   What the canary actually IS:
+#     doorward runs a Tokio task on a .canary_self_test.configured_interval_secs
+#     timer (default 300s, override via DOORWARD_CANARY_INTERVAL_SECS_OVERRIDE
+#     — currently set to 60s in prod). Each fire posts a synthetic /v1/messages
+#     request to .canary_self_test.target_loopback_url (currently
+#     http://127.0.0.1:8089/v1/messages — i.e. doorward probes ITSELF) using
+#     the DOORWARD_CANARY_BEARER_API_KEY env var as Authorization. If the
+#     response isn't 200 the consecutive_failures counter increments; on any
+#     success the counter resets to 0. The HTTP status of the most recent
+#     failure is in .canary_self_test.last_observed_http_status_code —
+#     diagnostic for WHY the canary is red (e.g. 403 means the canary's own
+#     synthetic request is being version-skew-rejected, a doorward-side bug
+#     pending fix in L3). Source: cc-router/spikes/spike-11-.../src/main.rs:1227-1291.
+#
+#   "canary" label removed — the ✗ glyph with a consecutive-failure count is
+#   unambiguous against the other tokens (no other field is rendered as
+#   "✗<integer>"), and the green ✓ alone has no other plausible meaning.
+#
+# ── "1.93.0" or "1.93.0<1.2.0"  ←  local ccmax-claude wrapper version ────────
+#   Render shape: bare semver, or "X<Y" when X is below floor Y.
+#   Source X = $(ccmax-claude --version), cached by binary mtime in
+#              /tmp/ccmax-wrapper-version. Empty when the binary isn't
+#              installed (segment then omits the version entirely).
+#   Source Y = DOORWARD_MIN_WRAPPER_VERSION — AUTO-DISCOVERED (L1a).
+#              On a miss against /tmp/ccmax-doorward-floor (3600s TTL), we
+#              anonymously probe doorward's /v1/users/me without the wrapper
+#              version header and parse .error.minimum_wrapper_version_required
+#              out of the 403 response body. Caches the discovered value, so
+#              when doorward raises its floor, the next render within the
+#              hour picks it up — no manual constant bump required. On probe
+#              failure (doorward unreachable, gate disabled, parse error)
+#              we fall back to compiled-in DOORWARD_MIN_WRAPPER_VERSION_FALLBACK
+#              so the renderer always has SOMETHING to compare against.
+#   Color: BRIGHT_BLACK (gray) when X >= Y; YELLOW with explicit "<Y" suffix
+#          when below. Yellow surfaces version-skew BEFORE a real request
+#          fails with 403 — instead of after.
+#   "wrapper" label removed — a three-dotted semver token is visually distinct
+#   from the slash-fractions and ✗N tokens that precede it.
+#
+# ── "unreachable" (replaces numeric tokens when fetch fails) ─────────────────
+#   Rendered as a literal RED word in place of the pool/canary numerics.
+#   Kept as a word (not redundant labeling) because it carries the WHY:
+#   distinguishes "doorward is genuinely down" from "got a response but
+#   couldn't parse it" (the latter would just show empty numerics if we
+#   omitted this). With the gate emoji retired, this word IS the down-state
+#   signal — the red color on the word itself replaces the prior red dot.
+#
+# ── "[<scope>:<mode>]"  ←  pin scope+mode badge (HEART-23 v2) ────────────────
+#   Render shape: bracketed scope+mode, e.g. [device:soft] or [repo:strict].
+#   Source = ccmax_resolve_layered_pin_with_account_mode from ccmax-monitor's
+#            pin-helper.sh; walks session→repo→device pin files, first hit wins.
+#   Color: YELLOW for ":soft", RED for ":strict". No badge = following the
+#          default rotation (no pin file present).
+#
+# ── Bearer-mode detection (NO visible badge) ─────────────────────────────────
+#   $ccmax_bearer_account is set via pin file's account_mode field, the
+#   CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION env var, or by
+#   pattern-matching $ANTHROPIC_BASE_URL against the doorward hosts. It gates
+#   whether to render the ccmax line at all (so that a red "unreachable"
+#   warning still appears on a bearer-routed session even if no pin exists)
+#   but no longer produces a visible label — the prior "[5th-fleet]" badge
+#   was retired 2026-05-13 alongside the broader fleet-terminology cleanup.
+#
+# ── Line-suppression rule ────────────────────────────────────────────────────
+#   The whole ccmax segment is suppressed (only datetime renders) when ALL of:
+#     - doorward_status == "unreachable", AND
+#     - ccmax_pin_badge is empty, AND
+#     - ccmax_bearer_account is empty
+#   This is the "no integration installed at all" case (most public cc-skills
+#   users). They see the bare datetime line and nothing else.
+# =============================================================================
+
+# Pin scope+mode badge (HEART-23 v2). Color encodes mode (yellow=soft,
+# red=strict). Scope label tells the user WHICH layer is winning so they know
+# what to clear to return to default rotation.
+ccmax_pin_badge=""
+if [ -n "$ccmax_pin_scope" ] && [ -n "$ccmax_pin_mode" ]; then
+    case "$ccmax_pin_mode" in
+        soft)   ccmax_pin_badge=" ${YELLOW}[${ccmax_pin_scope}:soft]${RESET}" ;;
+        strict) ccmax_pin_badge=" ${RED}[${ccmax_pin_scope}:strict]${RESET}" ;;
+    esac
+fi
+
+# NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
+# state the emoji could signal is already expressed by a colored token after
+# the "doorward" anchor — the RED ✗N glyph carries "canary degraded", the
+# RED pool ratio carries "errors in rotation", and the literal RED word
+# "unreachable" carries "gateway down". The emoji was therefore pure
+# duplication. The state is now read entirely from the per-token coloring of
+# the trailing numbers/words.
+
+doorward_inline=""
+if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; then
+    # Pool numerator/denominator. See legend block above for full source-of-
+    # truth derivation. Label "pool" deliberately dropped from render.
+    if [ "$pool_errors" -gt 0 ]; then
+        pool_part="${RED}${pool_schedulable}/${pool_rotation_size}${RESET}"
+    else
+        pool_part="${BRIGHT_BLACK}${pool_schedulable}/${pool_rotation_size}${RESET}"
     fi
 
-    # Parse tokens produced by the Python block or bearer-mode marker:
-    #   <name> <7d%> <7d reset...> <5h%> <5h reset...>  [OAuth]
-    #   <name> [5th-fleet]                                [Bearer mode]
-    # Reset values may be "3d 1h", "2h 15m", or "5m" — variable token count.
-    # Strategy: iterate and split whenever we hit a token ending in '%'.
-    # Bearer mode: detect [5th-fleet] badge and render account name + badge in CYAN for visibility.
-    ccmax_colored=$(echo "$ccmax_line" | awk \
-        -v BB="${BRIGHT_BLACK}" -v C="${CYAN}" -v M="${MAGENTA}" -v R="${RESET}" \
-        -v PIN="$ccmax_pin_badge" '
-    {
-        # Detect bearer mode: check if last token is [5th-fleet] badge
-        is_bearer = (NF >= 2 && $NF ~ /^\[5th-fleet\]$/)
+    # Canary outcome glyph (L1b classification-aware coloring, 2026-05-13).
+    # Color encodes severity, distinguishing operationally-distinct failure
+    # modes (see legend + classification rules in the parser block above):
+    #   healthy             → green ✓ (zero failures)
+    #   since-start-failure → gray ✗N ("config bug, not real outage" — also
+    #                         the state today's canary lives in due to the
+    #                         missing wrapper-version header on its loopback
+    #                         self-probe; will be cleared by L3 server fix)
+    #   transient           → yellow ✗N (failures present but below threshold,
+    #                         or recent-degradation downgraded by L1c real-
+    #                         traffic cross-check)
+    #   recent-degradation  → red ✗N (had successes, now failing past threshold
+    #                         — the only state that warrants a page)
+    #   unknown             → red ✗N (fail-safe; missing fields)
+    case "$canary_class" in
+        healthy)
+            canary_part="${GREEN}✓${RESET}"
+            ;;
+        since-start-failure)
+            canary_part="${BRIGHT_BLACK}✗${canary_failures}${RESET}"
+            ;;
+        transient)
+            canary_part="${YELLOW}✗${canary_failures}${RESET}"
+            ;;
+        recent-degradation|unknown|*)
+            canary_part="${RED}✗${canary_failures}${RESET}"
+            ;;
+    esac
 
-        if (is_bearer) {
-            # Bearer mode: account name + badge both in CYAN
-            out = C $1 R " " PIN           # account name in CYAN, then pin badge
-            out = out " " C $2 R           # [5th-fleet] badge in CYAN
-        } else {
-            # OAuth mode: account name in BRIGHT_BLACK
-            out = BB $1 R           # account name
-            if (PIN != "") out = out " " PIN
-        }
+    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${pool_part} ${canary_part}"
+elif [ -n "$doorward_status" ] && [ "$doorward_status" != "unreachable" ]; then
+    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}${doorward_status}${RESET}"
+else
+    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}unreachable${RESET}"
+fi
 
-        buf = ""                # reset-string accumulator
-        window = 0              # 0 = 7d, 1 = 5h
-        for (i = 2; i <= NF; i++) {
-            tok = $i
-            if (is_bearer) break   # Bearer mode has no quota tokens, exit early
-            if (tok ~ /%$/) {
-                if (buf != "") { out = out " " BB buf R; buf = "" }
-                color = (window == 0) ? C : M
-                out = out " " color tok R
-                window++
-            } else {
-                buf = (buf == "") ? tok : buf " " tok
-            }
-        }
-        if (buf != "" && !is_bearer) { out = out " " BB buf R }
-        print out
-    }')
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET} ${ccmax_colored}"
+# Wrapper version: bare semver normally, "<floor" suffix in YELLOW when below.
+# See legend block above for the comparison source + floor derivation. Label
+# "wrapper" deliberately dropped — three-dot semver is visually unique.
+wrapper_part=""
+if [ -n "$wrapper_version" ]; then
+    if version_lt "$wrapper_version" "$DOORWARD_MIN_WRAPPER_VERSION"; then
+        wrapper_part=" ${YELLOW}${wrapper_version}<${DOORWARD_MIN_WRAPPER_VERSION}${RESET}"
+    else
+        wrapper_part=" ${BRIGHT_BLACK}${wrapper_version}${RESET}"
+    fi
+fi
+
+# Decide whether to render the ccmax segment at all. Three independent
+# triggers, any one is sufficient:
+#   - doorward responded (cached or fresh) → status != "unreachable"
+#   - a pin file resolved a scope+mode → ccmax_pin_badge non-empty
+#   - bearer-mode detection found a bearer account → ccmax_bearer_account set
+# Otherwise (no integration installed), print the bare datetime line.
+# ccmax_bearer_account itself produces no visible badge — only the render
+# decision uses it; presence of the doorward block already implies bearer-
+# mode routing for the operator.
+if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_pin_badge" ] || [ -n "$ccmax_bearer_account" ]; then
+    # $doorward_inline starts with its own leading space (the "doorward"
+    # anchor), so concatenating directly after the BRIGHT_BLACK "|" separator
+    # produces exactly one space of padding between them.
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}${ccmax_pin_badge}"
 else
     echo -e "${datetime_display}"
 fi
@@ -1018,10 +1362,17 @@ if [ "$cron_count" -gt 0 ]; then
         job_sess=$(echo "$entry"   | jq -r '.session_id // ""' | cut -c1-8)
         job_proj=$(echo "$entry"   | jq -r '.project_path // ""')
         job_prompt=$(echo "$entry" | jq -r '.prompt_file // ""')
-        # id(schedule) — clickable hyperlink to prompt file if available, cyan text
+        # id(schedule) — clickable hyperlink to prompt file if available, cyan text.
+        # The '\033\\' sequences are OSC 8 hyperlink open/close terminators
+        # (ESC byte + literal backslash = the OSC String Terminator). SC1003
+        # is a known false-positive for OSC 8 because shellcheck reads the
+        # trailing `\\` as an attempt to escape a single quote, when it's
+        # actually a printf format-string escape producing a single backslash.
         if [ -n "$job_prompt" ] && [ -f "$job_prompt" ]; then
+            # shellcheck disable=SC1003
             printf '\033]8;;file://%s\033\\' "$job_prompt"
             printf '\033[96m%s(%s)\033[0m' "$job_id" "$job_sched"
+            # shellcheck disable=SC1003
             printf '\033]8;;\033\\'
         else
             printf '\033[96m%s(%s)\033[0m' "$job_id" "$job_sched"
@@ -1039,8 +1390,12 @@ if [ "$cron_count" -gt 0 ]; then
             while IFS= read -r vfile; do
                 [ -f "$vfile" ] || continue
                 printf ' \033[90m'
+                # OSC 8 hyperlink terminators — see comment in earlier block
+                # explaining the SC1003 false-positive on `\033\\`.
+                # shellcheck disable=SC1003
                 printf '\033]8;;file://%s\033\\' "$vfile"
                 printf 'v%s' "$version_num"
+                # shellcheck disable=SC1003
                 printf '\033]8;;\033\\'
                 printf '\033[0m'
                 version_num=$((version_num + 1))

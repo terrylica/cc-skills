@@ -106,7 +106,15 @@ setup() {
     [[ "$output" == *"≡:"* ]]
 }
 
-@test "statusline shows bearer-key pin account instead of OAuth keychain account" {
+@test "statusline detects bearer-mode pin and renders pin scope badge" {
+    # Post-rewrite design (2026-05-13):
+    #   - Drops the "[5th-fleet]" badge entirely (fleet terminology retired).
+    #   - Drops rendering of the bearer credential NAME (operationally
+    #     uninteresting since doorward picks the upstream account per-request).
+    #   - Pin scope+mode badge is preserved — operator still needs to see
+    #     which scope (session/repo/device) is overriding default rotation.
+    #   - Bearer-mode detection still gates whether the doorward block renders
+    #     (presence of the block implies bearer-mode routing).
     tmp_home="$(mktemp -d)"
     mkdir -p "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks"
     cat > "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh" <<'EOF'
@@ -120,12 +128,21 @@ EOF
     rm -rf "$tmp_home"
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"el02-doorward-bearer-api-1"* ]]
     [[ "$output" == *"[repo:soft]"* ]]
-    [[ "$output" == *"[5th-fleet]"* ]]
+    # Retired markers — must NOT appear under the post-rewrite design.
+    [[ "$output" != *"[5th-fleet]"* ]]
+    [[ "$output" != *"el02-doorward-bearer-api-1"* ]]
 }
 
-@test "statusline shows inherited bearer-key env even without a local pin helper" {
+@test "statusline detects inherited bearer-key env without crashing" {
+    # When no local pin-helper exists but the operator has
+    # CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION exported (legacy
+    # env-based bearer activation), the statusline must still:
+    #   - exit 0 (no crash from missing helper)
+    #   - NOT leak the bearer credential name into render output
+    #   - NOT render the retired [5th-fleet] marker
+    # Whether the doorward block renders depends on live reachability, which
+    # we can't fake here — so we don't assert on it.
     tmp_home="$(mktemp -d)"
     mkdir -p "$tmp_home/.claude"
 
@@ -135,8 +152,8 @@ EOF
     rm -rf "$tmp_home"
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"el02-doorward-bearer-api-1"* ]]
-    [[ "$output" == *"[5th-fleet]"* ]]
+    [[ "$output" != *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" != *"[5th-fleet]"* ]]
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
