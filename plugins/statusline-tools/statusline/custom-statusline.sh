@@ -1293,12 +1293,17 @@ echo -e "$line1"
 #   omitted this). With the gate emoji retired, this word IS the down-state
 #   signal — the red color on the word itself replaces the prior red dot.
 #
-# ── "[<scope>:<mode>]"  ←  pin scope+mode badge (HEART-23 v2) ────────────────
-#   Render shape: bracketed scope+mode, e.g. [device:soft] or [repo:strict].
-#   Source = ccmax_resolve_layered_pin_with_account_mode from ccmax-monitor's
-#            pin-helper.sh; walks session→repo→device pin files, first hit wins.
-#   Color: YELLOW for ":soft", RED for ":strict". No badge = following the
-#          default rotation (no pin file present).
+# ── pin scope+mode badge (RETIRED 2026-05-13) ───────────────────────────────
+#   Earlier versions rendered a bracketed scope+mode marker like
+#   "[device:soft]" or "[repo:strict]" synthesised from
+#   ccmax_resolve_layered_pin_with_account_mode in ccmax-monitor's
+#   pin-helper.sh, with YELLOW for ":soft" and RED for ":strict" coloring.
+#   Retired per operator directive 2026-05-13 because under bearer-mode
+#   routing doorward picks the upstream OAuth account dynamically per-
+#   request, so knowing WHICH scope holds the pin no longer changes the
+#   operator's mental model of "what is actually serving me". The pin
+#   resolution itself still runs upstream — its output feeds bearer-mode
+#   detection (see next section) — but the visible badge is dropped.
 #
 # ── Bearer-mode detection (NO visible badge) ─────────────────────────────────
 #   $ccmax_bearer_account is set via pin file's account_mode field, the
@@ -1318,16 +1323,16 @@ echo -e "$line1"
 #   users). They see the bare datetime line and nothing else.
 # =============================================================================
 
-# Pin scope+mode badge (HEART-23 v2). Color encodes mode (yellow=soft,
-# red=strict). Scope label tells the user WHICH layer is winning so they know
-# what to clear to return to default rotation.
+# Pin scope+mode badge RETIRED 2026-05-13 (operator directive: "[repo:soft]
+# no longer needed"). The upstream pin-resolution cascade still runs because
+# ccmax_pin_account_mode + ccmax_pin_account feed into ccmax_bearer_account
+# detection, which gates the render-decision below. The visible badge itself
+# is dropped — the operator has no remaining need to see WHICH scope holds
+# the pin since under bearer-mode routing doorward picks the upstream
+# account dynamically per-request anyway. ccmax_pin_badge stays as an empty
+# placeholder so downstream render-decision and echo statements don't need
+# structural changes.
 ccmax_pin_badge=""
-if [ -n "$ccmax_pin_scope" ] && [ -n "$ccmax_pin_mode" ]; then
-    case "$ccmax_pin_mode" in
-        soft)   ccmax_pin_badge=" ${YELLOW}[${ccmax_pin_scope}:soft]${RESET}" ;;
-        strict) ccmax_pin_badge=" ${RED}[${ccmax_pin_scope}:strict]${RESET}" ;;
-    esac
-fi
 
 # NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
 # state the emoji could signal is already expressed by a colored token after

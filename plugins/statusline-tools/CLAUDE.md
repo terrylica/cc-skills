@@ -79,15 +79,15 @@ Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward unreachable 1.93.0      
 
 **Antecedent label-stripping rounds (all 2026-05-13):** (1) dropped the `pool`, `canary`, `wrapper` field labels — within a segment already anchored by `doorward`, the slash-fraction format is self-evidently a ratio, the `✗<type-code>` glyph is unambiguous, and a three-dot semver is visually distinct; (2) dropped the leading `🟢/🟡/🔴` gate-state emoji — every state the dot could signal was already expressed by per-token coloring + state-name word; (3) retired the `[5th-fleet]` bearer-mode badge — presence of the doorward block itself implies bearer-mode routing.
 
-| Render token        | Source field (in `/v1/router-status`)                                                   | Meaning (short)                                                                                                                                      |
-| ------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _(no gate dot)_     | retired 2026-05-13 — formerly synthesised 🟢/🟡/🔴 from those four fields               | State is now expressed entirely by per-token coloring (red ✗N, red pool ratio, red "unreachable", yellow version<floor)                              |
-| `doorward`          | (anchor word, not a field)                                                              | Names the subsystem so trailing numbers have context                                                                                                 |
-| `3/3`               | `pool.schedulable_active_accounts` / (`schedulable_active_accounts` + `error_accounts`) | Rotation working-set ratio. Denominator EXCLUDES admin-inactive accounts (paused by operator intent, not failing). Red when any `error_accounts > 0` |
-| `✓` / `✗1074`       | `canary_self_test.is_degraded_per_threshold` + `consecutive_failures`                   | Canary outcome glyph + consecutive-failure count when degraded                                                                                       |
-| `1.92.0` / `<1.2.0` | `ccmax-claude --version` vs `DOORWARD_MIN_WRAPPER_VERSION`                              | Local wrapper version, with `<floor` suffix in yellow when below                                                                                     |
-| `[<scope>:<mode>]`  | `ccmax_resolve_layered_pin_with_account_mode` from pin-helper                           | Pin scope+mode override (HEART-23 v2)                                                                                                                |
-| `unreachable`       | (synthesized when fetch fails and no usable cache)                                      | Literal word in RED that replaces the numeric tokens — distinguishes "doorward genuinely down" from "got a response but couldn't parse"              |
+| Render token        | Source field (in `/v1/router-status`)                                                      | Meaning (short)                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| _(no gate dot)_     | retired 2026-05-13 — formerly synthesised 🟢/🟡/🔴 from those four fields                  | State is now expressed entirely by per-token coloring (red ✗N, red pool ratio, red "unreachable", yellow version<floor)                              |
+| `doorward`          | (anchor word, not a field)                                                                 | Names the subsystem so trailing numbers have context                                                                                                 |
+| `3/3`               | `pool.schedulable_active_accounts` / (`schedulable_active_accounts` + `error_accounts`)    | Rotation working-set ratio. Denominator EXCLUDES admin-inactive accounts (paused by operator intent, not failing). Red when any `error_accounts > 0` |
+| `✓` / `✗1074`       | `canary_self_test.is_degraded_per_threshold` + `consecutive_failures`                      | Canary outcome glyph + consecutive-failure count when degraded                                                                                       |
+| `1.92.0` / `<1.2.0` | `ccmax-claude --version` vs `DOORWARD_MIN_WRAPPER_VERSION`                                 | Local wrapper version, with `<floor` suffix in yellow when below                                                                                     |
+| _(no pin badge)_    | retired 2026-05-13 — formerly synthesised `[<scope>:<mode>]` from the layered-pin resolver | Pin parsing still runs upstream to feed bearer-mode detection; only the badge rendering is dropped per operator directive                            |
+| `unreachable`       | (synthesized when fetch fails and no usable cache)                                         | Literal word in RED that replaces the numeric tokens — distinguishes "doorward genuinely down" from "got a response but couldn't parse"              |
 
 #### Pool denominator semantics (why we don't show `pool 3/4`)
 
@@ -114,29 +114,17 @@ The latter is a superset of `/v1/health` (it includes everything from health plu
 
 Every other doorward route (`/v1/messages`, `/api/v1/keys/info`, etc.) requires the `X-Ccmax-Wrapper-Version` header injected by ccmax-claude's local reverse proxy, so they can't be queried from a bare curl invocation — those are off-limits to the statusline by design.
 
-### Pin scope+mode badge (HEART-23 v2)
+### Pin scope+mode resolution (badge RETIRED 2026-05-13)
 
-`custom-statusline.sh` resolves the layered pin via ccmax-monitor's helper at `~/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh`. The helper walks three scopes (highest → lowest precedence):
+`custom-statusline.sh` still runs the layered pin resolution upstream via ccmax-monitor's helper at `~/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh` because the helper output feeds the bearer-mode detection cascade that gates whether the doorward render-block fires at all. The helper walks three scopes (highest → lowest precedence):
 
 1. `~/.config/ccmax/pin-by-session/<session-uuid>.toml` — session scope (auto-pruned at 24 h JSONL staleness)
 2. `~/.config/ccmax/pin-by-repo/<md5-prefix-8>.toml` — repo scope (cwd path → MD5 → 8-hex prefix)
 3. `~/.config/ccmax/pin.toml` — device scope (the original HEART-23 location)
 
-The first hit wins; the badge shows which scope is winning and its mode. **No badge** = following default rotation.
+**The visible `[<scope>:<mode>]` badge was retired 2026-05-13** (operator directive: under bearer-mode routing, doorward picks the upstream account dynamically per-request, so the operator has no remaining need to see WHICH scope holds the pin). The pin parsing continues to run because it feeds bearer-mode detection; only the badge rendering is dropped.
 
-If the winning pin has `account_mode = "bearer_key_anthropic_compatible_api_mode"`, no additional badge is rendered — the prior `[5th-fleet]` label is retired (2026-05-13). Presence of the doorward block itself implies bearer-mode routing, and the bearer credential NAME isn't useful to surface anyway because doorward dynamically picks the upstream OAuth account from the rotation pool per-request — the bearer key is just the entry credential.
-
-| Badge                     | Meaning                                                                          |
-| ------------------------- | -------------------------------------------------------------------------------- |
-| _(none)_                  | Following default rotation                                                       |
-| `[session:soft]` (yellow) | Session-scoped pin; auto-fallback to next layer when pinned account is unhealthy |
-| `[session:strict]` (red)  | Session-scoped pin; honored regardless of health                                 |
-| `[repo:soft]` (yellow)    | Repo-scoped pin; auto-fallback when unhealthy                                    |
-| `[repo:strict]` (red)     | Repo-scoped pin; honored regardless                                              |
-| `[device:soft]` (yellow)  | Device-scoped pin (replaces the legacy `[soft]` rendering); auto-fallback        |
-| `[device:strict]` (red)   | Device-scoped pin (replaces the legacy `[strict]` rendering); honored regardless |
-
-**Backwards compat for older ccmax-monitor installs**: if `pin-helper.sh` is missing at the marketplace path (older release OR no ccmax-monitor at all), the statusline falls back to a tiny inline awk parser that reads only the device-scope file and renders `[device:<mode>]`. Public cc-skills users without ccmax-monitor see no pin badge (the file doesn't exist).
+**Backwards compat for older ccmax-monitor installs**: if `pin-helper.sh` is missing at the marketplace path (older release OR no ccmax-monitor at all), the statusline falls back to a tiny inline awk parser that reads only the device-scope file. Public cc-skills users without ccmax-monitor never had a pin badge anyway (no pin file). The retirement is therefore transparent to public users.
 
 ### Wrapper version + skew check
 
@@ -177,13 +165,14 @@ Read-only — never mutates the JSONL log. Log path overridable via `--jsonl <pa
 
 ### Graceful degradation
 
-Three independent triggers gate whether the ccmax line is rendered at all (any one is sufficient):
+Two independent triggers gate whether the ccmax line is rendered at all (any one is sufficient):
 
 1. Doorward reachable (cached or fresh) → render gate badge + pool + canary
-2. Pin file resolved a scope+mode → render `[scope:mode]` badge
-3. Bearer-mode detected (env var or pin file) → triggers render so that a red `unreachable` warning still appears when doorward is down on a bearer-routed session
+2. Bearer-mode detected (env var or pin file) → triggers render so that a red `unreachable` warning still appears when doorward is down on a bearer-routed session
 
-If none of the three is true (most likely a public cc-skills install with no integration), just the bare datetime line renders. Public users see no change vs. a fully unconfigured statusline.
+If neither is true (most likely a public cc-skills install with no integration), just the bare datetime line renders. Public users see no change vs. a fully unconfigured statusline.
+
+Note: the prior pin-badge render-trigger was retired 2026-05-13 along with the visible `[scope:mode]` badge — pin resolution still runs upstream to feed bearer-mode detection, but it no longer produces a standalone render trigger.
 
 ## Antifragile Network Probes — the `probe_direct` invariant
 
