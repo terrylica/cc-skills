@@ -106,15 +106,22 @@ setup() {
     [[ "$output" == *"≡:"* ]]
 }
 
-@test "statusline detects bearer-mode pin and renders pin scope badge" {
-    # Post-rewrite design (2026-05-13):
-    #   - Drops the "[5th-fleet]" badge entirely (fleet terminology retired).
-    #   - Drops rendering of the bearer credential NAME (operationally
-    #     uninteresting since doorward picks the upstream account per-request).
-    #   - Pin scope+mode badge is preserved — operator still needs to see
-    #     which scope (session/repo/device) is overriding default rotation.
-    #   - Bearer-mode detection still gates whether the doorward block renders
-    #     (presence of the block implies bearer-mode routing).
+@test "statusline detects bearer-mode pin without leaking retired badges into output" {
+    # Post-rewrite design (2026-05-13, two rounds):
+    #   - Retired "[5th-fleet]" badge (fleet terminology no longer used).
+    #   - Retired the bearer credential NAME from render (doorward picks
+    #     the upstream account per-request, so the bearer key tells the
+    #     operator nothing about what is serving them).
+    #   - Retired the pin scope+mode badge "[repo:soft]" / "[device:strict]"
+    #     etc. (operator directive 2026-05-13: no remaining need to see
+    #     which scope holds the pin under bearer-mode routing).
+    #   - Bearer-mode DETECTION still runs upstream because it gates whether
+    #     the doorward render-block fires at all — but no visible label
+    #     reflects it. Presence of the doorward block itself implies bearer-
+    #     mode routing.
+    # This test verifies that the upstream pin-resolution cascade still runs
+    # (doesn't crash) when a pin file resolves to a bearer-mode pin, AND
+    # that none of the three retired surface markers leak into output.
     tmp_home="$(mktemp -d)"
     mkdir -p "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks"
     cat > "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh" <<'EOF'
@@ -128,10 +135,15 @@ EOF
     rm -rf "$tmp_home"
 
     [ "$status" -eq 0 ]
-    [[ "$output" == *"[repo:soft]"* ]]
-    # Retired markers — must NOT appear under the post-rewrite design.
+    # All three retired surface markers must NOT appear.
     [[ "$output" != *"[5th-fleet]"* ]]
     [[ "$output" != *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" != *"[repo:soft]"* ]]
+    [[ "$output" != *"[repo:strict]"* ]]
+    [[ "$output" != *"[device:soft]"* ]]
+    [[ "$output" != *"[device:strict]"* ]]
+    [[ "$output" != *"[session:soft]"* ]]
+    [[ "$output" != *"[session:strict]"* ]]
 }
 
 @test "statusline detects inherited bearer-key env without crashing" {
