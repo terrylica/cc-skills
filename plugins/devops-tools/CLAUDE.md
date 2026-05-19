@@ -86,6 +86,31 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [session-recovery](./skills/session-recovery/SKILL.md)
 - [worktree-manager](./skills/worktree-manager/SKILL.md)
 
+## Hooks
+
+| Hook                                              | Event            | Matcher             | Purpose                                                                                  |
+| ------------------------------------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| `pretooluse-firecrawl-research-reminder.ts`       | PreToolUse       | WebFetch\|WebSearch | Routes academic-paper fetches to `Skill(firecrawl-research-patterns)`                    |
+| `posttooluse-1password-pattern-reminder.sh`       | PostToolUse      | Bash                | Reminds Claude of the SA-token-first, biometric-fallback pattern when `op` is run "bare" |
+| `userpromptsubmit-1password-context-injection.sh` | UserPromptSubmit | (any)               | Injects the canonical 1Password pattern upfront when the user mentions 1Password in chat |
+
+### 1Password pattern reminder (iter 4, 2026-05-19)
+
+The two 1Password hooks above implement the canonical credential-management pattern as a hook chain rather than a documentation-only rule. The chain has three layers:
+
+1. **`UserPromptSubmit` (proactive)**: when the user types something containing `1Password`, `1P`, `op item`, `op read`, `op vault`, `service account`, `SA token`, `Claude Automation vault`, or `op://`, inject upfront context about the pattern. Claude sees this before planning.
+
+2. **`PostToolUse` on `Bash` (reactive)**: when Claude runs an `op` command that doesn't already use `OP_SERVICE_ACCOUNT_TOKEN=...` and isn't an obvious meta command (`op --version`, `op --help`, `op signin`, `op account list`) or biometric-fallback (`unset OP_SERVICE_ACCOUNT_TOKEN`), emit the reminder so future commands follow the pattern. Does NOT undo the command — just makes Claude SEE the reminder via the cc-skills `{decision: "block"}` convention (see [docs/HOOKS.md "Hook Output Visibility"](/docs/HOOKS.md)).
+
+3. **Both reminders include**: the proxy bypass (`unset HTTPS_PROXY HTTP_PROXY` — Claude Code OAuth proxy at `127.0.0.1:52205` returns 502 on `api.1password.com`), the SA token path, and the biometric-fallback path. Discovered during iter 4 when registering the Pushover credential.
+
+Skip rules in the PostToolUse hook prevent nag-loops:
+
+- Skips if command already uses `OP_SERVICE_ACCOUNT_TOKEN=...`
+- Skips if command uses `unset OP_SERVICE_ACCOUNT_TOKEN` (biometric fallback by design)
+- Skips meta commands (`op --version|--help|-h|signin|account list`)
+- Word-boundary detection prevents false positives on `open`, `stop`, etc.
+
 ## Environment Variables
 
 | Variable        | Required | Description                                                                                                                           |
