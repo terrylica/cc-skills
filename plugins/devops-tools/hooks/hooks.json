@@ -1,5 +1,5 @@
 {
-  "description": "DevOps tool hooks - academic paper Firecrawl routing reminder",
+  "description": "DevOps tool hooks — Firecrawl routing + 1Password credential pattern reminders",
   "hooks": {
     "PreToolUse": [
       {
@@ -9,6 +9,29 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-firecrawl-research-reminder.ts",
             "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-1password-pattern-reminder.sh",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-1password-context-injection.sh",
+            "timeout": 2000
           }
         ]
       }
