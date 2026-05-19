@@ -1,3 +1,24 @@
+# [21.7.0](https://github.com/terrylica/cc-skills/compare/v21.6.0...v21.7.0) (2026-05-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** native-binary-guard escape-hatch missed Edit case across edits ([342c283](https://github.com/terrylica/cc-skills/commit/342c283a36fd71f955591d1fff8dbfea6818ec3c))
+
+
+### Features
+
+* **pushover:** add --device + --sound flags to pushover-notify (iter 14) ([1b2d3c2](https://github.com/terrylica/cc-skills/commit/1b2d3c2f3c3d1ef0ccb6efee56ba615315b2034b))
+* **pushover:** add pushover-prune retention helper + fix rotation doc drift ([597eeea](https://github.com/terrylica/cc-skills/commit/597eeeaa1b04d2773c585854062ef9f2f5440907))
+* **pushover:** fleet daily heartbeat (iter 20) ([611c23f](https://github.com/terrylica/cc-skills/commit/611c23f1c0393777c7fdb6b1f50c0a57ab8d593f))
+* **pushover:** quota auto-monitoring (iter 12b — eat own dogfood) ([e701ca6](https://github.com/terrylica/cc-skills/commit/e701ca6e26779d2c865500b699d51ce5d3055462))
+* **pushover:** ship launchd timer template + finish iter 8 retention wiring ([e1b65ff](https://github.com/terrylica/cc-skills/commit/e1b65ff420923d6a8274b6ef4bf4ca686ab8551f))
+
+
+### Performance Improvements
+
+* **statusline:** cache gh release+visibility calls (5min/60min TTL) ([14ac89b](https://github.com/terrylica/cc-skills/commit/14ac89b962664a8a9e2784e52db4f0c75846618e)), closes [.git/ccstatusline-#release-cache](https://github.com/.git/ccstatusline-/issues/release-cache) [.git/ccstatusline-#visibility-cache](https://github.com/.git/ccstatusline-/issues/visibility-cache)
+
 # [21.6.0](https://github.com/terrylica/cc-skills/compare/v21.5.1...v21.6.0) (2026-05-19)
 
 
