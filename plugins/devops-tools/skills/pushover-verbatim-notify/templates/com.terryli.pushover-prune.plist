@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Daily retention timer for pushover-verbatim-notify audit JSONL.
+  Iter 8 (2026-05-19): wired at 04:15 daily, 90-day retention.
+
+  Install:
+    cp templates/com.terryli.pushover-prune.plist ~/Library/LaunchAgents/
+    mkdir -p ~/.local/state/launchd-logs/pushover-prune
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
+
+  Verify:
+    launchctl print gui/$(id -u)/com.terryli.pushover-prune | grep -E '(state|program|start interval)'
+    launchctl kickstart -p gui/$(id -u)/com.terryli.pushover-prune   # one-off test run
+    tail -1 ~/.local/state/launchd-logs/pushover-prune/stdout.log    # should show "deleted=N kept=M ..."
+
+  Uninstall:
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
+    rm ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
+
+  Tune retention: edit --keep argument below (90 = 90-day window, dial down
+  for tighter retention or up for forensic headroom).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.terryli.pushover-prune</string>
+    <key>Program</key>
+    <string>/Users/terryli/.local/bin/pushover-prune</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/terryli/.local/bin/pushover-prune</string>
+        <string>--keep</string>
+        <string>90</string>
+        <string>--apply</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>15</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/terryli/.local/state/launchd-logs/pushover-prune/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/terryli/.local/state/launchd-logs/pushover-prune/stderr.log</string>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>Nice</key>
+    <integer>10</integer>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/terryli</string>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

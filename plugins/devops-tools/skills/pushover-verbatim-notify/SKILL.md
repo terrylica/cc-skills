@@ -19,18 +19,27 @@ The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the devic
 
 ## Three scripts
 
-| Script               | Role                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------ |
-| `pushover-notify.sh` | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID |
-| `pushover-lookup.sh` | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry           |
-| `pushover-prune.sh`  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)  |
+| Asset                                        | Role                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `scripts/pushover-notify.sh`                 | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID |
+| `scripts/pushover-lookup.sh`                 | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry           |
+| `scripts/pushover-prune.sh`                  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)  |
+| `templates/com.terryli.pushover-prune.plist` | launchd timer template — daily at 04:15, 90-day retention (iter 8)                   |
 
-Add them to your PATH:
+Add the scripts to your PATH:
 
 ```bash
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-notify.sh" ~/.local/bin/pushover-notify
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
+```
+
+Install the launchd timer (daily 04:15, 90-day retention — see template header for tuning):
+
+```bash
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-prune.plist" ~/Library/LaunchAgents/
+mkdir -p ~/.local/state/launchd-logs/pushover-prune
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
 ```
 
 ## Quick start
