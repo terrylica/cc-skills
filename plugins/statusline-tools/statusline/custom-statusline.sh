@@ -345,9 +345,14 @@ cron_countdown_pid=$(pgrep -f 'cron-countdown\.py' 2>/dev/null | head -1)
 
 # Get GitHub remote URL (convert SSH to HTTPS for browser link)
 # Handles standard repos and wiki repos (*.wiki.git → /wiki URL)
+#
+# Iter 18 (2026-05-19): take the remote URL as a positional arg instead of
+# re-running `git remote get-url origin`. The caller already captured it as
+# $remote_url_raw at the top of the script (line ~298). Each git-remote
+# subprocess was ~450ms on this Mac; eliminating the second call shaves
+# the same amount off every render.
 get_github_url() {
-    local remote_url
-    remote_url=$(git remote get-url origin 2>/dev/null)
+    local remote_url="$1"
 
     if [[ -z "$remote_url" ]]; then
         echo ""
@@ -381,7 +386,7 @@ get_github_url() {
     fi
 }
 
-github_url=$(get_github_url)
+github_url=$(get_github_url "$remote_url_raw")
 
 # Repo visibility (public/private) — live query per render.
 # Tri-state: known visibility → "public"/"private"; gh-broken → "?" (rendered red);
