@@ -37,6 +37,23 @@ ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-quota.sh" ~/.local/bin/pushover-quota
 ```
 
+**Verify the symlinks resolve to THIS skill** (iter 13a 2026-05-19 caught the trap where stale symlinks from a legacy pushover-notify in `~/.claude/tools/notifications/` silently masked the new flag-rich script — the legacy didn't understand `--service/--level/--extra`, so dispatches "succeeded" but wrote no JSONL audit and sent malformed Pushover payloads):
+
+```bash
+for cmd in pushover-notify pushover-lookup pushover-prune pushover-quota; do
+    readlink "$HOME/.local/bin/$cmd" | grep -q "cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify" \
+        && echo "✓ $cmd → iter-5 skill" \
+        || echo "✗ $cmd → STALE target ($(readlink "$HOME/.local/bin/$cmd" || echo 'not a symlink')) — rerun the ln -sf commands above"
+done
+```
+
+Then sanity-fire the alert path once to catch any other silent failures:
+
+```bash
+pushover-quota --alert-threshold 1.0   # always fires; check phone + audit log
+pushover-lookup --recent 2             # confirm WARN + pushover-notify dispatch lines pair up
+```
+
 Install the launchd timers (retention + quota monitor — see each template header for tuning):
 
 ```bash
