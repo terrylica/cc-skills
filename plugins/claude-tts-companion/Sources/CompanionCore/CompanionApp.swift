@@ -308,47 +308,18 @@ private extension CompanionApp {
             }
 
             Task {
-                // If we have a transcript, evaluate auto-continue and send rich notification
-                if let tp = transcriptPath {
-                    let workDir = cwd ?? ""
-                    let result = await self.autoContinue.evaluate(sessionId: sessionId, transcriptPath: tp, cwd: workDir)
-                    self.logger.info("Auto-continue decision: \(result.decision.rawValue) -- \(result.reason)")
-
-                    // Send rich decision notification to Telegram (EVAL-05)
-                    if let bot = self.telegramBot {
-                        // Check if this is an early exit (limits, errors, sweep_done) vs active decision
-                        let isEarlyExit = !result.shouldBlock && (
-                            result.reason.contains("cap") ||
-                            result.reason.contains("Max iterations") ||
-                            result.reason.contains("Max runtime") ||
-                            result.reason.contains("failed") ||
-                            result.reason.contains("No turns")
-                        )
-
-                        if isEarlyExit {
-                            // Lightweight exit notification
-                            let exitMessage = self.autoContinue.formatExitMessage(
-                                reason: result.reason,
-                                sessionId: sessionId,
-                                cwd: workDir,
-                                state: result.state,
-                                maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
-                                maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
-                            )
-                            await bot.sendSilentMessage(exitMessage)
-                        } else {
-                            // Full rich decision notification
-                            let message = self.autoContinue.formatDecisionMessage(
-                                result: result,
-                                sessionId: sessionId,
-                                cwd: workDir,
-                                maxIterations: AutoContinueEvaluator.MAX_ITERATIONS,
-                                maxRuntimeMin: Double(AutoContinueEvaluator.MAX_RUNTIME_MIN)
-                            )
-                            await bot.sendSilentMessage(message)
-                        }
-                    }
-                }
+                // AutoContinue subsystem disabled 2026-05-18: the user found that
+                // injecting CONTINUE/SWEEP/REDIRECT decisions wasn't actually feeding
+                // back into Claude Code's running context window, so the evaluator was
+                // doing MiniMax work + Telegram noise with no behavioral payoff.
+                // Code retained (AutoContinue*.swift, autoContinue field) for easy
+                // re-enable; just uncomment the evaluate() block below.
+                //
+                // if let tp = transcriptPath {
+                //     let workDir = cwd ?? ""
+                //     let result = await self.autoContinue.evaluate(sessionId: sessionId, transcriptPath: tp, cwd: workDir)
+                //     ... (full block preserved in git history at commit 0ce1638b's parent)
+                // }
 
                 // Parse transcript for session notification (FMT-01, FMT-02, FMT-03)
                 if let tp = transcriptPath {
