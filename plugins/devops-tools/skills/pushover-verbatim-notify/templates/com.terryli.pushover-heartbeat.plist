@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Daily fleet heartbeat (iter 20, 2026-05-19).
+
+  Runs every day at 09:03 PDT with a single Pushover INFO message that
+  summarizes companion uptime, kokoro idle state, github-notifications
+  cycle health, Pushover quota %, disk usage, and any failed launchd
+  services. Level=INFO (silent priority -1) so it doesn't disturb routine
+  mornings; if anything is off (companion not ok, kokoro down, failed
+  services), the script automatically promotes to WARN.
+
+  Why 09:03 not 09:00: minute-0 collides with everyone else's daily timers
+  globally; off-the-hour scheduling is cheaper for shared infra
+  (per Anthropic's prompt-cache best practice).
+
+  Install:
+    cp templates/com.terryli.pushover-heartbeat.plist ~/Library/LaunchAgents/
+    mkdir -p ~/.local/state/launchd-logs/pushover-heartbeat
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
+
+  Verify:
+    launchctl kickstart -p gui/$(id -u)/com.terryli.pushover-heartbeat
+    cat ~/.local/state/launchd-logs/pushover-heartbeat/stdout.log
+
+  Uninstall:
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
+    rm ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
+
+  Cost: 1 Pushover msg/day = 30/month = 0.3% of the 10k monthly cap.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.terryli.pushover-heartbeat</string>
+    <key>Program</key>
+    <string>/Users/terryli/.local/bin/pushover-heartbeat</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/terryli/.local/bin/pushover-heartbeat</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>3</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/Users/terryli/.local/state/launchd-logs/pushover-heartbeat/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/terryli/.local/state/launchd-logs/pushover-heartbeat/stderr.log</string>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>Nice</key>
+    <integer>10</integer>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/terryli</string>
+        <key>PATH</key>
+        <string>/Users/terryli/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>

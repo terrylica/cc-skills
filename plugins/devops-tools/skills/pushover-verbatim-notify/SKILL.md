@@ -17,16 +17,18 @@ Pushover messages are limited to 1024 UTF-8 characters in the body and 250 in th
 
 The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the device, full verbatim payload in a local newline-delimited JSON file, UUID linking them. When a notification fires, the body contains the UUID and a `pushover-lookup` command. Run that and you get the complete entry.
 
-## Four scripts + two launchd templates
+## Five scripts + three launchd templates
 
-| Asset                                        | Role                                                                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `scripts/pushover-notify.sh`                 | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID      |
-| `scripts/pushover-lookup.sh`                 | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                |
-| `scripts/pushover-prune.sh`                  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)       |
-| `scripts/pushover-quota.sh`                  | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b) |
-| `templates/com.terryli.pushover-prune.plist` | launchd timer template — daily at 04:15, 90-day retention (iter 8)                        |
-| `templates/com.terryli.pushover-quota.plist` | launchd timer template — daily at 03:30, alerts when remaining <20% (iter 12b)            |
+| Asset                                            | Role                                                                                            |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `scripts/pushover-notify.sh`                     | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID            |
+| `scripts/pushover-lookup.sh`                     | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                      |
+| `scripts/pushover-prune.sh`                      | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)             |
+| `scripts/pushover-quota.sh`                      | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b)       |
+| `scripts/pushover-heartbeat.sh`                  | Daily fleet status summary — companion+kokoro+github-notif+quota+disk+failed services (iter 20) |
+| `templates/com.terryli.pushover-prune.plist`     | launchd timer — daily at 04:15, 90-day retention (iter 8)                                       |
+| `templates/com.terryli.pushover-quota.plist`     | launchd timer — daily at 03:30, alerts when remaining <20% (iter 12b)                           |
+| `templates/com.terryli.pushover-heartbeat.plist` | launchd timer — daily at 09:03, INFO heartbeat (auto-promotes to WARN on failure) (iter 20)     |
 
 Add the scripts to your PATH:
 
@@ -35,6 +37,7 @@ ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-quota.sh" ~/.local/bin/pushover-quota
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-heartbeat.sh" ~/.local/bin/pushover-heartbeat
 ```
 
 **Verify the symlinks resolve to THIS skill** (iter 13a 2026-05-19 caught the trap where stale symlinks from a legacy pushover-notify in `~/.claude/tools/notifications/` silently masked the new flag-rich script — the legacy didn't understand `--service/--level/--extra`, so dispatches "succeeded" but wrote no JSONL audit and sent malformed Pushover payloads):
@@ -66,7 +69,26 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-pru
 cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-quota.plist" ~/Library/LaunchAgents/
 mkdir -p ~/.local/state/launchd-logs/pushover-quota
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
+
+# Daily fleet heartbeat (09:03, INFO; auto-promotes to WARN on failure)
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-heartbeat.plist" ~/Library/LaunchAgents/
+mkdir -p ~/.local/state/launchd-logs/pushover-heartbeat
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
 ```
+
+### Heartbeat sample output (iter 20)
+
+```text
+🔔 Fleet daily heartbeat
+
+companion: ok · up 11h 36m · 320MB · audio✓ · bot=watching · tts=ready
+kokoro: ok · idle=-1s · queue=0
+pushover quota: 611/10000 (6.11%)
+disk: launchd-logs=119MB · audit days=1
+failed services: com.terryli.maccy-backup=1
+```
+
+Auto-promotes from INFO (silent) to WARN when any subsystem is degraded (companion or kokoro not `ok`, OR any `com.terryli.*` launchd service has `last_exit != 0`). The structured `--extra` payload captures every dimension as JSON for forensic lookup via `pushover-lookup`.
 
 ## Quick start
 
