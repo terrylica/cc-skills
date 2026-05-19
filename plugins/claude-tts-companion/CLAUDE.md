@@ -71,6 +71,24 @@ These are load-bearing decisions from prior incidents. Future changes MUST respe
 | `Sources/claude-tts-companion/main.swift`   | NSApplication accessory entry point with SIGTERM handling  |
 | `Sources/claude-tts-companion/Config.swift` | Centralized path and configuration constants               |
 
+## Menubar Control Plane (SwiftBar)
+
+Live menubar control of the companion runs through SwiftBar plugins. The companion exposes its HTTP control API on `[::1]:8780`; SwiftBar invokes the shell plugins below, which translate clicks into HTTP POSTs.
+
+| File                            | Role                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------- |
+| `swiftbar/claude-hq.10s.sh`     | Main menu plugin (polled every 10 s); renders service status, subtitle controls, TTS controls |
+| `swiftbar/claude-hq-actions.sh` | Action handler invoked by menu clicks — POSTs to companion HTTP API, writes JSONL telemetry   |
+| `swiftbar/tts-custom-test.sh`   | osascript dialog for custom-text TTS test; delegates to `claude-hq-actions.sh test-tts`       |
+
+**Deployment**: scripts live in this repo (SSoT); SwiftBar reads them via symlinks at `~/Library/Application Support/SwiftBar/Plugins/`. To deploy after edits, the symlinks pick up changes automatically — just trigger `open "swiftbar://refreshplugin?name=claude-hq.10s.sh"`.
+
+**Performance refactor (2026-05-18)**: 4 HTTP fetches parallelized, jq consolidated to one call per blob, python3 float-compare loop replaced with bash `printf %.1f`. Wall time 435 ms → 222 ms (1.96× faster), CPU per refresh 0.36 s → 0.19 s (47% less).
+
+**Naming history**: `claude-hq-actions.sh` was renamed from `nc-action.sh` 2026-05-18 — the original name predated the curl-based implementation. Old `.bak` copies remain at `~/Library/Application Support/SwiftBar/Plugins/*.pre-symlink.bak` and can be deleted once the new scripts have a few days of stability.
+
+**Planned (Task #2)**: full SSE migration — companion exposes `/events`, a new streamable plugin replaces the polling shell plugin. Eliminates the 10 s refresh cadence and the per-refresh fork/exec overhead.
+
 <!-- GSD:project-start source:PROJECT.md -->
 
 ## Project
