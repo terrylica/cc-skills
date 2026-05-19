@@ -1,3 +1,23 @@
+# [21.6.0](https://github.com/terrylica/cc-skills/compare/v21.5.1...v21.6.0) (2026-05-19)
+
+
+### Bug Fixes
+
+* **devops-tools/pushover-verbatim-notify:** add self-evolution sandwich ([1a45a59](https://github.com/terrylica/cc-skills/commit/1a45a59b01ac920d3113851b1ae88dadb8272cb1))
+* **rust-tools/hooks:** use additionalContext instead of decision:block for SOTA reminder ([e248aa5](https://github.com/terrylica/cc-skills/commit/e248aa5d72a6f9e7ed88a9f529644e903837818b)), closes [#24788](https://github.com/terrylica/cc-skills/issues/24788) [anthropics/claude-code#24788](https://github.com/anthropics/claude-code/issues/24788) [anthropics/claude-code#40380](https://github.com/anthropics/claude-code/issues/40380)
+* **statusline-tools:** retire visible [scope:mode] pin badge from render ([17f169e](https://github.com/terrylica/cc-skills/commit/17f169e3de23ee5474c2083aff4f8fc47c5f90d3)), closes [#14](https://github.com/terrylica/cc-skills/issues/14)
+
+
+### Features
+
+* **claude-tts-companion/swiftbar:** version-control + 2x speedup of Claude HQ menu plugin ([0ce1638](https://github.com/terrylica/cc-skills/commit/0ce1638b1c14f65d9f23ca4e7f31ed86c1ed5623))
+* **devops-tools/disk-hygiene:** document go-build, mise toolchain, rustup uninstall syntax + TTS debug-output growth vector ([f25f0a2](https://github.com/terrylica/cc-skills/commit/f25f0a2e40780eb992b38ae7c685363ae1835c48))
+* **devops-tools/hooks:** 1Password credential-pattern reminder chain ([2ad2e9c](https://github.com/terrylica/cc-skills/commit/2ad2e9c8a6b0c849ae26966b5c95278b76ed5a70))
+* **devops-tools/pushover-verbatim-notify:** UUID-linked observability skill ([022ac4d](https://github.com/terrylica/cc-skills/commit/022ac4db88feebe0376ef9c1a35f4248bfc2b682))
+* **statusline-tools:** L1d multi-dimensional unified render (severity + type + duration + state-name) ([6ab342f](https://github.com/terrylica/cc-skills/commit/6ab342fb81e1e0f965e1c3f7affd502cd1042032))
+* **statusline-tools:** L2 statistics surface — per-render JSONL log + time-windowed analytics CLI ([910eae2](https://github.com/terrylica/cc-skills/commit/910eae297d51540aaedeaa7a5daf6b5aa8eeb867))
+* **statusline-tools:** redesign doorward telemetry rendering with antifragile L1 layer ([e8e4be1](https://github.com/terrylica/cc-skills/commit/e8e4be14ba34224d6d141fc2b05c44795cff39f2))
+
 ## [21.5.1](https://github.com/terrylica/cc-skills/compare/v21.5.0...v21.5.1) (2026-05-12)
 
 
