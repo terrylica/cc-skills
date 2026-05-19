@@ -136,10 +136,11 @@ plugins:
           if [[ -f "$HOOKS_JSON" ]]; then
             # Validate hooks.json is valid JSON
             if jq empty "$HOOKS_JSON" 2>/dev/null; then
-              ((HOOKS_VERIFIED++))
+              # Iter 22: ++ form returns exit 1 on first call (VAR was 0); +=1 always 0
+              ((HOOKS_VERIFIED+=1))
             else
               echo "  ✗ Invalid JSON: $PLUGIN_NAME/hooks/hooks.json"
-              ((HOOKS_MISSING++))
+              ((HOOKS_MISSING+=1))
             fi
           fi
         done
@@ -169,7 +170,10 @@ plugins:
             if curl -fsSL --max-time 10 \
                 "https://purge.jsdelivr.net/gh/terrylica/cc-skills@main/$REL_PATH" \
                 >/dev/null 2>&1; then
-              ((PURGED++))
+              # Iter 22: ((VAR++)) returns exit 1 when VAR starts at 0 (post-increment
+              # returns the OLD value 0 → arithmetic context returns falsy → set -e kills
+              # the script). Use += assignment which always returns 0.
+              ((PURGED+=1))
             fi
 
             # 7b. Smoke-test that the new tagged URL resolves with correct MIME.
@@ -177,9 +181,9 @@ plugins:
             CDN_URL="https://cdn.jsdelivr.net/gh/terrylica/cc-skills@v$VERSION/$REL_PATH"
             if curl -fsSL --max-time 15 -o /dev/null -w "%{http_code}" "$CDN_URL" \
                 | grep -q "^200$"; then
-              ((SMOKE_OK++))
+              ((SMOKE_OK+=1))
             else
-              ((SMOKE_FAIL++))
+              ((SMOKE_FAIL+=1))
               echo "  ✗ Smoke-test failed: $CDN_URL"
             fi
           done

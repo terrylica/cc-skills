@@ -11,10 +11,16 @@ PLUGIN_COUNT=0
 
 # Auto-discover any plugin with an assets/ directory and purge each file's @main cache.
 # Adding new plugins or new assets requires no edit to this script.
+#
+# Iter 22 (2026-05-19): replaced `((VAR++))` with `((VAR+=1))` because the
+# post-increment returns the OLD value (0 on first call), arithmetic context
+# returns exit 1, and set -euo pipefail then kills the script. The compound-
+# assignment form always returns 0. Same fix applied to .releaserc.yml's
+# inline copy of this logic.
 for ASSETS_DIR in "$REPO_ROOT"/plugins/*/assets; do
   [[ -d "$ASSETS_DIR" ]] || continue
   PLUGIN_NAME=$(basename "$(dirname "$ASSETS_DIR")")
-  ((PLUGIN_COUNT++))
+  ((PLUGIN_COUNT+=1))
 
   for ASSET_PATH in "$ASSETS_DIR"/*; do
     [[ -f "$ASSET_PATH" ]] || continue
@@ -24,10 +30,10 @@ for ASSETS_DIR in "$REPO_ROOT"/plugins/*/assets; do
 
     if curl -fsSL --max-time 10 "$PURGE_URL" >/dev/null 2>&1; then
       echo "  ✓ purged $REL_PATH"
-      ((PURGED++))
+      ((PURGED+=1))
     else
       echo "  ✗ failed  $REL_PATH"
-      ((MISSED++))
+      ((MISSED+=1))
     fi
   done
 done

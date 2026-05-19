@@ -67,7 +67,7 @@ for plugin_source in "$MARKETPLACE_DIR/plugins"/*/; do
     [[ -d "$plugin_source/skills" ]] && cp -r "$plugin_source/skills" "$plugin_target/"
     [[ -d "$plugin_source/hooks" ]] && cp -r "$plugin_source/hooks" "$plugin_target/"
     [[ -f "$plugin_source/plugin.json" ]] && cp "$plugin_source/plugin.json" "$plugin_target/"
-    ((CACHE_COUNT++))
+    ((CACHE_COUNT+=1))
 done
 echo "  ✓ Cache populated: $CACHE_COUNT plugin(s) at v$VERSION (older versions preserved)"
 
@@ -104,7 +104,7 @@ if [[ -f "$INSTALLED" ]]; then
               "installedAt":(now|todate),"lastUpdated":(now|todate),"gitCommitSha":$sha}]
             ' "$INSTALLED" > /tmp/cc_skills_installed.json \
             && mv /tmp/cc_skills_installed.json "$INSTALLED"
-            ((BOOTSTRAPPED++))
+            ((BOOTSTRAPPED+=1))
         fi
     done
     [[ $BOOTSTRAPPED -gt 0 ]] && echo "  + Bootstrapped $BOOTSTRAPPED new plugin(s)"

@@ -66,7 +66,7 @@ HOOKS_OK=0
 for PLUGIN_DIR in $(ls -d "$MARKETPLACE_DIR/plugins"/*/ 2>/dev/null); do
     HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
     if [[ -f "$HOOKS_JSON" ]] && jq empty "$HOOKS_JSON" 2>/dev/null; then
-        ((HOOKS_OK++))
+        ((HOOKS_OK+=1))
     fi
 done
 echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
@@ -102,19 +102,19 @@ for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
         IN_INSTALLED=$(jq -r --arg k "$KEY" '.plugins[$k] // "missing"' "$INSTALLED")
         if [[ "$IN_INSTALLED" == "missing" ]]; then
             echo "  ✗ $KEY missing from installed_plugins.json"
-            ((ERRORS++))
+            ((ERRORS+=1))
         fi
     fi
     # 8b: in enabledPlugins?
     IN_ENABLED=$(jq -r --arg k "$KEY" '.enabledPlugins[$k] // "missing"' "$SETTINGS")
     if [[ "$IN_ENABLED" == "missing" ]]; then
         echo "  ✗ $KEY missing from enabledPlugins in settings.json"
-        ((ERRORS++))
+        ((ERRORS+=1))
     fi
     # 8c: cache dir exists?
     if [[ ! -d "$CACHE_DIR/$PLUGIN/$VERSION" ]]; then
         echo "  ✗ $KEY missing cache dir: $CACHE_DIR/$PLUGIN/$VERSION"
-        ((ERRORS++))
+        ((ERRORS+=1))
     fi
 done
 if [[ $ERRORS -eq 0 ]]; then
