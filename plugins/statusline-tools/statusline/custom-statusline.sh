@@ -306,8 +306,25 @@ fi
 # `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
 # pattern-match stderr to tell them apart instead of trusting exit code alone.
 if [ -n "$owner_repo" ]; then
-    release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
-    release_exit=$?
+    # Iter 19 (2026-05-19) — 5-minute disk cache. gh release view costs ~460ms
+    # per call (network round-trip to api.github.com). Latest release rarely
+    # changes within a 5-min window; semantic-release ships <1/hour typically.
+    # Cache hits skip the network entirely. Auth/network errors are NOT cached
+    # (they should retry). "release not found" IS cached (it's a stable state).
+    release_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
+    release_cache_file="${release_cache_dir:-/tmp}/ccstatusline-gh-release-cache"
+    release_cache_age=9999
+    [ -f "$release_cache_file" ] && release_cache_age=$(($(date +%s) - $(stat -f %m "$release_cache_file" 2>/dev/null || echo 0)))
+    if [ "$release_cache_age" -lt 300 ]; then
+        release_out=$(cat "$release_cache_file")
+        release_exit=0
+    else
+        release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
+        release_exit=$?
+        if { [ $release_exit -eq 0 ] && [ -n "$release_out" ]; } || [[ "$release_out" == *"release not found"* ]]; then
+            echo "$release_out" > "$release_cache_file" 2>/dev/null
+        fi
+    fi
     if [ $release_exit -eq 0 ] && [ -n "$release_out" ]; then
         latest_tag="${release_out%%|*}"
         published_at="${release_out##*|}"
@@ -394,8 +411,24 @@ github_url=$(get_github_url "$remote_url_raw")
 # Pre-fix: any gh failure silently disappeared the badge — no signal that auth/network broke.
 repo_visibility=""
 if [[ -n "$github_url" && -n "$owner_repo" ]]; then
-    vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
-    vis_exit=$?
+    # Iter 19 (2026-05-19) — 60-minute disk cache. Visibility hardly ever
+    # changes; an hour TTL keeps the badge fresh enough while removing ~430ms
+    # of network round-trip per render. Auth errors NOT cached; "public" and
+    # "private" ARE cached.
+    vis_cache_dir=$(git rev-parse --git-dir 2>/dev/null)
+    vis_cache_file="${vis_cache_dir:-/tmp}/ccstatusline-gh-visibility-cache"
+    vis_cache_age=9999
+    [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(stat -f %m "$vis_cache_file" 2>/dev/null || echo 0)))
+    if [ "$vis_cache_age" -lt 3600 ]; then
+        vis_out=$(cat "$vis_cache_file")
+        vis_exit=0
+    else
+        vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
+        vis_exit=$?
+        if [ $vis_exit -eq 0 ] && [[ "$vis_out" == "public" || "$vis_out" == "private" ]]; then
+            echo "$vis_out" > "$vis_cache_file" 2>/dev/null
+        fi
+    fi
     if [ $vis_exit -eq 0 ] && [ -n "$vis_out" ]; then
         repo_visibility="$vis_out"
     elif [[ "$vis_out" == *"HTTP 404"* ]]; then
