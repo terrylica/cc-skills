@@ -1,3 +1,10 @@
+## [21.8.1](https://github.com/terrylica/cc-skills/compare/v21.8.0...v21.8.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **release:** replace `((VAR++))` with `((VAR+=1))` — set -e killed every release postflight ([c3b3673](https://github.com/terrylica/cc-skills/commit/c3b367390f0b737653d96334e7545c7f0eb43983))
+
 # [21.8.0](https://github.com/terrylica/cc-skills/compare/v21.7.0...v21.8.0) (2026-05-19)
 
 
