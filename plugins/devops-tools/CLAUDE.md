@@ -79,6 +79,7 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [mlflow-python](./skills/mlflow-python/SKILL.md)
 - [project-directory-migration](./skills/project-directory-migration/SKILL.md)
 - [pueue-job-orchestration](./skills/pueue-job-orchestration/SKILL.md)
+- [macos-fda-grant-helper](./skills/macos-fda-grant-helper/SKILL.md) — interactive Full Disk Access (FDA) grant walkthrough for launchd-spawned binaries (iter 21)
 - [pushover-verbatim-notify](./skills/pushover-verbatim-notify/SKILL.md) — UUID-linked Pushover notifications with full-fidelity JSONL audit trail (iter 5)
 - [python-logging-best-practices](./skills/python-logging-best-practices/SKILL.md)
 - [python-memory-safe-scripts](./skills/python-memory-safe-scripts/SKILL.md)
