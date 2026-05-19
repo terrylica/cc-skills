@@ -17,18 +17,20 @@ Pushover messages are limited to 1024 UTF-8 characters in the body and 250 in th
 
 The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the device, full verbatim payload in a local newline-delimited JSON file, UUID linking them. When a notification fires, the body contains the UUID and a `pushover-lookup` command. Run that and you get the complete entry.
 
-## Two scripts
+## Three scripts
 
 | Script               | Role                                                                                 |
 | -------------------- | ------------------------------------------------------------------------------------ |
 | `pushover-notify.sh` | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID |
 | `pushover-lookup.sh` | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry           |
+| `pushover-prune.sh`  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)  |
 
 Add them to your PATH:
 
 ```bash
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-notify.sh" ~/.local/bin/pushover-notify
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
 ```
 
 ## Quick start
@@ -172,10 +174,17 @@ pushover-notify \
 
 ## Operational notes
 
-- **Log location**: `~/.local/state/pushover/audit-YYYYMMDD.jsonl` — one file per UTC day, simplifies retention.
-- **Rotation**: not yet wired into `~/.config/log-rotation.conf` — if your fleet emits a lot, add it. Today's footprint will be small.
+- **Log location**: `~/.local/state/pushover/audit-YYYYMMDD.jsonl` — one file per UTC day.
+- **Rotation vs retention** (iter 7, 2026-05-19): the per-day filename gives you natural size-rotation for free — every UTC midnight a new file starts, so size never grows unboundedly within a file. Size-based rotation in `~/.config/log-rotation.conf` is therefore **not needed and intentionally not wired** (the conf file documents this explicitly). What IS needed is **retention** — pruning old days. `pushover-prune` handles this: default 30-day window, dry-run by default, never deletes today's file. Run manually or wire into a daily launchd timer:
+
+  ```bash
+  pushover-prune                  # show what would be pruned (30d default)
+  pushover-prune --apply          # delete files older than 30 days
+  pushover-prune --keep 7 --apply # tighter 7-day window
+  ```
+
 - **Privacy**: JSONL is on the local Mac. Pushover only sees what's in the message body (1024 chars max). Secrets should NOT go in `--message` or `--title`.
-- **Tested**: Pushover-side validated end-to-end during iter 4 (test UUID `C3B649E1-BF34-4346-A211-511EFE7CDCBD` delivered).
+- **Tested**: Pushover-side validated end-to-end during iter 4 (test UUID `C3B649E1-BF34-4346-A211-511EFE7CDCBD` delivered). Prune script boundary-tested iter 7 (today's file preserved even at `--keep 0`).
 
 ## References
 
