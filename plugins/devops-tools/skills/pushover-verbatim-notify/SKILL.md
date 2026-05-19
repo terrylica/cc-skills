@@ -81,6 +81,22 @@ pushover-notify \
     --extra '{"db_path":"/Users/terryli/Library/Containers/org.p0deje.Maccy/Data/Library/Application Support/Maccy/Storage.sqlite","last_success":"2026-04-17","days_since":31}'
 ```
 
+**Optional device targeting + sound override** (iter 14, 2026-05-19) — useful for high-priority events that should land on a specific device with an attention-grabbing sound:
+
+```bash
+pushover-notify \
+    --title "Telegram rate-limit" \
+    --message "Bot blocked for 4900s" \
+    --service telegram-bot \
+    --target rate-limit \
+    --level ERROR \
+    --priority 1 \
+    --device iphone_13_mini \
+    --sound siren
+```
+
+`--device <name>` sends only to the named Pushover device (omit to broadcast to all). `--sound <name>` selects the alert tone (`siren`, `magic`, `intermission`, `none`, etc.); the chosen device+sound are also persisted into the JSONL audit entry for forensic completeness.
+
 Output (stdout): the UUID, e.g.
 
 ```
