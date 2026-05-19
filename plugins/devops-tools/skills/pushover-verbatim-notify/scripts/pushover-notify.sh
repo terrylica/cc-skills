@@ -71,6 +71,8 @@ OPTIONAL:
   --level <lvl>       INFO|WARN|ERROR (default: INFO; influences default priority)
   --priority <-2..2>  Pushover priority. Default -1=INFO, 0=WARN, 1=ERROR, 2=panic
   --ttl <seconds>     Auto-expire on device after N seconds (low-signal events)
+  --device <name>     Send only to specified Pushover device (e.g. iphone_13_mini)
+  --sound <name>      Pushover sound (e.g. siren, magic, intermission, none)
   --extra <json>      Extra structured fields, merged into JSONL entry
   --help              This help
 
@@ -153,6 +155,8 @@ LEVEL="INFO"
 PRIORITY=""
 TTL=""
 EXTRA_JSON="{}"
+DEVICE=""   # iter 14: optional Pushover device name (e.g. iphone_13_mini); empty = all devices
+SOUND=""    # iter 14: optional Pushover sound name (e.g. siren, magic, etc.); empty = default
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -165,6 +169,8 @@ while [ $# -gt 0 ]; do
         --priority) PRIORITY="$2"; shift 2 ;;
         --ttl)      TTL="$2"; shift 2 ;;
         --extra)    EXTRA_JSON="$2"; shift 2 ;;
+        --device)   DEVICE="$2"; shift 2 ;;
+        --sound)    SOUND="$2"; shift 2 ;;
         --help|-h)  usage; exit 0 ;;
         *)          die "unknown flag: $1" 1 ;;
     esac
@@ -198,7 +204,8 @@ HOST=$(/bin/hostname -s 2>/dev/null || echo unknown)
 
 # Build the canonical JSONL entry — keeps full verbatim context.
 # Schema: run_id (UUID), ts (ISO8601), host, service, actor, target, level,
-# title, message, priority, ttl (if set), extra (any extra fields).
+# title, message, priority, ttl (if set), device (if set, iter 14),
+# sound (if set, iter 14), extra (any extra fields).
 JSONL_ENTRY=$(/usr/bin/jq -c -n \
     --arg run_id "$UUID" \
     --arg ts "$TS" \
@@ -211,6 +218,8 @@ JSONL_ENTRY=$(/usr/bin/jq -c -n \
     --arg message "$MESSAGE" \
     --argjson priority "$PRIORITY" \
     --arg ttl "$TTL" \
+    --arg device "$DEVICE" \
+    --arg sound "$SOUND" \
     --argjson extra "$EXTRA_JSON" \
     '{
         run_id: $run_id,
@@ -224,6 +233,8 @@ JSONL_ENTRY=$(/usr/bin/jq -c -n \
         message: $message,
         priority: $priority,
         ttl: (if $ttl == "" then null else ($ttl | tonumber) end),
+        device: (if $device == "" then null else $device end),
+        sound: (if $sound == "" then null else $sound end),
         extra: $extra
     } | with_entries(select(.value != null))')
 
@@ -305,6 +316,10 @@ CURL_ARGS=(
 )
 
 [ -n "$TTL" ] && CURL_ARGS+=( --data-urlencode "ttl=$TTL" )
+
+# Iter 14: optional device targeting + sound override
+[ -n "$DEVICE" ] && CURL_ARGS+=( --data-urlencode "device=$DEVICE" )
+[ -n "$SOUND" ] && CURL_ARGS+=( --data-urlencode "sound=$SOUND" )
 
 # Emergency priority requires retry/expire params; default conservative values
 if [ "$PRIORITY" = "2" ]; then
