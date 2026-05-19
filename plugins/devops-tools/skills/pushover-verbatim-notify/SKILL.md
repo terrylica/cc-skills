@@ -17,14 +17,16 @@ Pushover messages are limited to 1024 UTF-8 characters in the body and 250 in th
 
 The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the device, full verbatim payload in a local newline-delimited JSON file, UUID linking them. When a notification fires, the body contains the UUID and a `pushover-lookup` command. Run that and you get the complete entry.
 
-## Three scripts
+## Four scripts + two launchd templates
 
-| Asset                                        | Role                                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `scripts/pushover-notify.sh`                 | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID |
-| `scripts/pushover-lookup.sh`                 | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry           |
-| `scripts/pushover-prune.sh`                  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)  |
-| `templates/com.terryli.pushover-prune.plist` | launchd timer template — daily at 04:15, 90-day retention (iter 8)                   |
+| Asset                                        | Role                                                                                      |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `scripts/pushover-notify.sh`                 | Sender: generates UUID, writes verbatim JSONL, dispatches Pushover with summary+UUID      |
+| `scripts/pushover-lookup.sh`                 | Retriever: given a UUID (or prefix), prints the pretty-printed JSONL entry                |
+| `scripts/pushover-prune.sh`                  | Retention pruner: deletes audit-YYYYMMDD.jsonl files older than N days (default 30)       |
+| `scripts/pushover-quota.sh`                  | Quota monitor: hits Pushover /apps/limits.json, persists JSON, alerts when low (iter 12b) |
+| `templates/com.terryli.pushover-prune.plist` | launchd timer template — daily at 04:15, 90-day retention (iter 8)                        |
+| `templates/com.terryli.pushover-quota.plist` | launchd timer template — daily at 03:30, alerts when remaining <20% (iter 12b)            |
 
 Add the scripts to your PATH:
 
@@ -32,14 +34,21 @@ Add the scripts to your PATH:
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-notify.sh" ~/.local/bin/pushover-notify
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
 ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-quota.sh" ~/.local/bin/pushover-quota
 ```
 
-Install the launchd timer (daily 04:15, 90-day retention — see template header for tuning):
+Install the launchd timers (retention + quota monitor — see each template header for tuning):
 
 ```bash
+# Retention (daily 04:15, 90-day window)
 cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-prune.plist" ~/Library/LaunchAgents/
 mkdir -p ~/.local/state/launchd-logs/pushover-prune
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
+
+# Quota monitor (daily 03:30, alert at <20% remaining)
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-quota.plist" ~/Library/LaunchAgents/
+mkdir -p ~/.local/state/launchd-logs/pushover-quota
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
 ```
 
 ## Quick start
