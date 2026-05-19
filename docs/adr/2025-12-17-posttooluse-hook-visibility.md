@@ -1,10 +1,19 @@
 ---
-status: implemented
+status: superseded
+superseded-by: 2026-05-19-posttooluse-additional-context.md
+superseded-date: 2026-05-19
 date: 2025-12-17
 decision-maker: Terry Li
 consulted: [claude-code-guide, web-research]
 research-method: empirical-testing
 ---
+
+> ⚠️ **SUPERSEDED 2026-05-19**: Claude Code now supports `hookSpecificOutput.additionalContext`
+> for PostToolUse hooks on standard tools (Read|Glob|Grep|Bash|Edit|Write). The `decision: "block"`
+> workaround documented below is no longer required and is semantically wrong (it halts the agent
+> loop). See [`2026-05-19-posttooluse-additional-context.md`](./2026-05-19-posttooluse-additional-context.md)
+> for the current pattern. GitHub issue [#24788](https://github.com/anthropics/claude-code/issues/24788)
+> tracks a related MCP-only bug, which does not apply to standard tools.
 
 # ADR: PostToolUse Hook Output Visibility to Claude
 
