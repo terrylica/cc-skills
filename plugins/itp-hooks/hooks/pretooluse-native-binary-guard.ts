@@ -122,10 +122,28 @@ async function main() {
   const content =
     (tool_input.content as string) || (tool_input.new_string as string) || "";
 
-  // Escape hatch
+  // Escape hatch (proposed content)
   if (ESCAPE_HATCH.test(content)) {
     outputAllow();
     return;
+  }
+
+  // Escape hatch (existing file) — iter 15 fix (2026-05-19): when the
+  // BASH-LAUNCHD-OK marker was added in a previous Edit at the top of
+  // the file, subsequent Edits whose new_string targets a different
+  // region (e.g. replacing a curl block lower down) would not contain
+  // the marker. The original check missed this case. We're already
+  // gated by isLaunchdPath() so the file read is rare; cost is fine.
+  if (tool_name === "Edit" && filePath) {
+    try {
+      const existingContent = await Bun.file(filePath).text();
+      if (ESCAPE_HATCH.test(existingContent)) {
+        outputAllow();
+        return;
+      }
+    } catch {
+      // File doesn't exist or unreadable — fall through to normal check
+    }
   }
 
   // Detection 1: Shell scripts in launchd directories
