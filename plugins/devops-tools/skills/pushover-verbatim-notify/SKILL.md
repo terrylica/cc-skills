@@ -5,6 +5,8 @@ description: Send Pushover notifications with UUID-linked verbatim JSONL audit t
 
 # Pushover Verbatim+UUID Notification
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 A two-script skill that solves the **"Pushover message hit my phone but I don't remember what it was about"** problem for personal automation fleets. Every notification carries a UUID; the full verbatim payload (including everything that didn't fit in Pushover's 1024-char body) lands in a local JSONL audit log keyed by that UUID. You look it up by pasting the UUID back.
 
 **Designed for**: cron-fired scripts, launchd daemons, hook outputs — any place that wants "fire-and-forget alerting with full context if you ever need to dig in." Personal scale; one Mac; one Pushover account. Not a microservices observability stack.
@@ -181,3 +183,14 @@ pushover-notify \
 - [Pushover May 2026 quota changes](https://blog.pushover.net/posts/2026/4/app-limits) — per-account 10k msgs/month
 - 1Password registry: `docs/1password-credential-registry.md`
 - Companion hook: `plugins/devops-tools/hooks/posttooluse-1password-pattern-reminder.sh` (reminds Claude of credential pattern)
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the notification deliver?** — Pushover returns a receipt token; if delivery silently failed, fix the instruction (auth, rate-limit, malformed body) that caused it.
+2. **Did the JSONL audit entry write correctly?** — `pushover-lookup <uuid>` should round-trip the full payload. If not, the writer is dropping fields — fix the schema.
+3. **Was the message truncated?** — If the body exceeded 1024 chars, confirm the `--extra` payload captured everything that didn't fit. Update Usage examples if the truncation boundary moved.
+4. **Did `pushover-lookup` find by UUID prefix?** — If only the full UUID worked, the prefix-search needs fixing.
+
+Only update if the issue is real and reproducible — not speculative.
