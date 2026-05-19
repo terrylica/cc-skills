@@ -35,10 +35,21 @@ const GATE_DIR = "/tmp/.claude-rust-sota-reminder";
 
 // --- Utility ---
 
-function blockWithReminder(reason: string): void {
-  // ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
-  // MUST use decision:block format — only "reason" field is visible to Claude
-  console.log(JSON.stringify({ decision: "block", reason }));
+function emitAdditionalContext(context: string): void {
+  // ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md (updated 2026-05-19)
+  // hookSpecificOutput.additionalContext is wrapped in a system-reminder
+  // and injected next to the tool result. Claude sees it; transcript shows
+  // no misleading "blocking error" label; agent loop is not interrupted.
+  // Standard tools (Read|Glob|Grep|Bash|Edit|Write) — MCP visibility bug
+  // (issue #24788) does not apply.
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: "PostToolUse",
+        additionalContext: context,
+      },
+    })
+  );
 }
 
 function hashString(s: string): string {
@@ -95,7 +106,7 @@ async function main(): Promise<void> {
       }).trim();
       break;
     } catch {
-      continue;
+      // try next candidate
     }
   }
 
@@ -135,7 +146,7 @@ async function main(): Promise<void> {
 
   const repoName = gitRoot.split("/").pop() || "this repo";
 
-  blockWithReminder(
+  emitAdditionalContext(
     `[RUST-TOOLS] Rust project detected (${repoName}). SOTA tools available:
 
 REFACTORING: ast-grep (AST-aware rewrite), cargo-semver-checks (API compat)
