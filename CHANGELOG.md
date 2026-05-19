@@ -1,3 +1,10 @@
+# [21.8.0](https://github.com/terrylica/cc-skills/compare/v21.7.0...v21.8.0) (2026-05-19)
+
+
+### Features
+
+* **macos-fda-grant:** walkthrough helper for granting Full Disk Access ([890dc78](https://github.com/terrylica/cc-skills/commit/890dc78abb19a17d2faa5e428bede1fd4e1827ac))
+
 # [21.7.0](https://github.com/terrylica/cc-skills/compare/v21.6.0...v21.7.0) (2026-05-19)
 
 
