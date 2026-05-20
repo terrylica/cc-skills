@@ -1,3 +1,15 @@
+# [21.17.0](https://github.com/terrylica/cc-skills/compare/v21.16.0...v21.17.0) (2026-05-20)
+
+
+### Bug Fixes
+
+* **release-gate:** iter-69 follow-up — preflight Check 4j brittle-banner-grep fix mirrors the regression test fix from the same iter ([c75e691](https://github.com/terrylica/cc-skills/commit/c75e69150e9ddad60982584315a0152d5ddfe42f))
+
+
+### Features
+
+* **release-gate:** iter-69 complete the additionalContext-silently-dropped pentad — extend iter-68 trinity (Stop+SubagentStop+SessionEnd) to also cover PreCompact + Notification hooks with per-event-type schema-rule diagnostic + 6 new regression assertions + loose-coupled summary-grep insulating test from future audit-banner phrasing evolution ([eb4dde0](https://github.com/terrylica/cc-skills/commit/eb4dde04a13a1f6a9a727b56491ca6f861fd5a55)), closes [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#55889](https://github.com/terrylica/cc-skills/issues/55889) [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#09](https://github.com/terrylica/cc-skills/issues/09) [#10](https://github.com/terrylica/cc-skills/issues/10) [#19115](https://github.com/terrylica/cc-skills/issues/19115)
+
 # [21.16.0](https://github.com/terrylica/cc-skills/compare/v21.15.0...v21.16.0) (2026-05-20)
 
 
