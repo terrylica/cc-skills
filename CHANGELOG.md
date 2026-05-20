@@ -1,3 +1,30 @@
+## [21.8.2](https://github.com/terrylica/cc-skills/compare/v21.8.1...v21.8.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **autoloop) + perf(autoloop:** iter-32 throttle-key UUID-hardening + read/write symmetry + adversarial bash-((VAR++)) gotcha sweep (uncovered 16 silently-masked tests + 1 real test failure) ([add69b5](https://github.com/terrylica/cc-skills/commit/add69b5927425efcd1447a763b50355f1306433c))
+* **autoloop:** iter-29 mktemp BSD-portable rename + pacing-veto non-ScheduleWakeup bash-regex fast-path + empty-firing-detector single-jq-streaming-pass ([3651459](https://github.com/terrylica/cc-skills/commit/365145972081272f62d107ddd7b0e779bb595b74))
+* **autoloop:** iter-33 bash-5.2-amp-backreference safety in launchd-lib.sh xmlescape + plist substitution (uncovered by iter-32 ((VAR++)) sweep) ([7d7384a](https://github.com/terrylica/cc-skills/commit/7d7384a29e53b88ae3347d4b51dbbaa77ba2bd76))
+* **autoloop:** iter-34 shopt -u patsub_replacement defense-in-depth at every hook entry point (bash 5.2 amp-backreference class fix) ([85c5006](https://github.com/terrylica/cc-skills/commit/85c500601d762699bf8e330bdf851076fd0a1391))
+* **devops-tools:** iter-38 SC2064 trap-quoting sweep + SC2155 iter-37 leftover + SC2034 dead-var cleanup in session-chronicle validation scripts (3 silent-bug classes, 4 files) ([03b81b7](https://github.com/terrylica/cc-skills/commit/03b81b79120c97875283a6c479309cec6a8701a1))
+* **devops-tools:** iter-39 1Password reminder hook false-positive fix — anchor regex at ^ so reminder fires only when op is the LEADING EXECUTABLE, not when it appears inside heredoc bodies or string literals ([c9a5b4c](https://github.com/terrylica/cc-skills/commit/c9a5b4cd974b6d826d1342d7b1d709975bcaa18e))
+* **marketplace-wide:** iter-35 cross-plugin sweep of shopt -u patsub_replacement defense (7 unprotected bash hook entry points) ([50cb976](https://github.com/terrylica/cc-skills/commit/50cb97660545c5fb97929c46952baa92858a622c))
+* **marketplace-wide:** iter-36 complete cross-plugin ((VAR++)) gotcha sweep (iter-32 missed 9 unsafe sites uncovered by shellcheck marketplace audit) ([e00856e](https://github.com/terrylica/cc-skills/commit/e00856e4d375f8d692b441cdc00fab12a78a7841))
+* **marketplace-wide:** iter-37 high-value SC2155 sweep — split declare-from-assign on 5 silent-exit-code-masking sites (uuid_tracer + AWS-cred exports + backup-file declares) ([5836888](https://github.com/terrylica/cc-skills/commit/5836888dba342b87f2cdf586afabf407a44125a9)), closes [hi#value](https://github.com/hi/issues/value) [koalaman/shellcheck#2770](https://github.com/koalaman/shellcheck/issues/2770) [HI#to-MEDIUM](https://github.com/HI/issues/to-MEDIUM) [github/gh-aw#7897](https://github.com/github/gh-aw/issues/7897)
+* **release:** stop release:sync wiping operator work via symlink loop + iter-23 sync-script bash gotcha + iter-25 heartbeat-tick jq-batching perf ([063b024](https://github.com/terrylica/cc-skills/commit/063b02424c3ce37cf847dff38542d07bb42cb645))
+
+
+### Performance Improvements
+
+* **autoloop) + docs(autoloop:** iter-31 waker.sh launchd-path TSV batching + operator-facing perf-knob documentation surface ([8a8e079](https://github.com/terrylica/cc-skills/commit/8a8e0791980470d86e03376c40eeebcf60d357c2))
+* **autoloop:** iter-26 write-heartbeat zero-registry-read fast path + bench-loop-id-hex-validity-fix ([e9b55fa](https://github.com/terrylica/cc-skills/commit/e9b55fa5526342c8f04a66efa3fa0cbe29617e48))
+* **autoloop:** iter-27 tool-burst-tick-deduplication throttle (10-12× burst speedup) ([91431e4](https://github.com/terrylica/cc-skills/commit/91431e4ed9fbf01f46fcf973978dd325447fc6af))
+* **autoloop:** iter-28 batched-frontmatter-rewrite + session-bind jq+python3 cleanup (~21% slow-path latency drop) ([9c497d9](https://github.com/terrylica/cc-skills/commit/9c497d99f13fa8ad5b03ba56aaedfd96b948f738))
+* **devops-tools:** iter-40 pre-jq-fastpath bash-builtin-case-glob short-circuit on posttooluse-1password-pattern-reminder hook (~2.5x bail-out speedup) + verbose-named bench + tests/ subdir to dodge plugin-validator hook-classification ([ae4ac63](https://github.com/terrylica/cc-skills/commit/ae4ac6393575432a85a5c58e8e20b9086f3fc03a))
+* **devops-tools:** iter-41 pre-jq-fastpath on userpromptsubmit-1password-context-injection.sh (second hook to receive iter-40 bash-builtin case-glob short-circuit pattern) ([93509ff](https://github.com/terrylica/cc-skills/commit/93509ff9e24d8f8670f655add4ed67971ef14c73))
+* **statusline-tools:** iter-30 statusline-input-payload + autoloop-loop-match + heartbeat TSV batching + python3-now-us-replacement + bats regex backtracking fix ([b0f2c23](https://github.com/terrylica/cc-skills/commit/b0f2c23f30876700f210f67c66e1612c46d61eaa))
+
 ## [21.8.1](https://github.com/terrylica/cc-skills/compare/v21.8.0...v21.8.1) (2026-05-19)
 
 
