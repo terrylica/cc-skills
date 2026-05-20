@@ -161,16 +161,44 @@ Top 2 phases accounted for **59% of preflight wall time** at iter-73 baseline.
 
 Iter-74 win: replaced 217-file × 8-fork-exec storm (~1736 forks) with a single awk process invocation emitting TSV records to a fork-free bash post-processor. The actual speedup (27.8×) exceeded the conservative ~4× forecast because fork overhead on macOS aarch64 is amortized down to ~0.34ms per file when batched into one process versus ~9.4ms per file when forking serially.
 
-#### Iter-75+ optimization candidates (forensic notes for future iterations)
+#### Iter-75 measurement (after xargs-P parallelization of Check 4e)
 
-After the iter-74 win, **Check 4e dominates at 48.8% of preflight wall time**. New highest-leverage targets:
+| Rank | Phase                                                           | ms       | % of preflight | Δ from iter-74                      |
+| ---- | --------------------------------------------------------------- | -------- | -------------- | ----------------------------------- |
+| 1    | **Check 4e: marketplace-wide hook regression suite (parallel)** | **1381** | **23.1%**      | **−2489ms (−64.3%, 2.80× speedup)** |
+| 2    | Check 4h: INVERSE PreToolUse schema audit                       | 964      | 16.1%          | +117ms                              |
+| 3    | Check 4f: PreToolUse schema audit                               | 786      | 13.1%          | +134ms                              |
+| 4    | Check 4d: chronicle slicing (37 assertions)                     | 742      | 12.4%          | +94ms                               |
+| 5    | Check 4j: additionalContext-pentad audit                        | 524      | 8.8%           | +36ms                               |
+| 6    | Check 4i: wildcard-matcher audit                                | 488      | 8.2%           | +63ms                               |
+| 7    | Check 4g: pueue-wrap-guard ordering audit                       | 482      | 8.1%           | +41ms                               |
+| 8    | Check 4: plugin manifest validation (bun)                       | 323      | 5.4%           | +15ms                               |
+| 9    | Check 4c: hook registration sanity                              | 139      | 2.3%           | +28ms                               |
+| 10   | Check 4b: self-evolution sandwich                               | 76       | 1.3%           | +3ms                                |
+| 11   | Check 1: working directory clean                                | 25       | 0.4%           | +7ms                                |
+| 12   | Check 5: releasable commits since last tag                      | 16       | 0.3%           | unchanged                           |
+| 13   | Check 2-3: GH_TOKEN + GH_ACCOUNT env                            | 3        | 0.1%           | +1ms                                |
+| —    | **Whole-script total**                                          | **5979** | **100%**       | **−1945ms (−24.5%)**                |
 
-- **Check 4e (48.8%, 3870ms)**: auto-discovered marketplace-wide hook regression suite. Currently 15 test files run serially via the iter-50 runner. Candidate: parallel execution via `xargs -P` or GNU parallel (estimated 1-2s savings; subject to bun startup parallelism and shared `/tmp` log file contention — each test writes a unique `/tmp/<plugin>-<hook>-debug.log` so contention should be minimal).
-- **Check 4h (10.7%, 847ms)**: INVERSE PreToolUse schema audit. ~847ms scans every non-PreToolUse hook source for forbidden `permissionDecision` field usage. Lower-priority target; investigate whether the audit can short-circuit on `*.json` file-mtime ahead of opening sources.
-- **Check 4f (8.2%, 652ms)**: PreToolUse schema audit. Similar shape to Check 4h. Consider combining 4f + 4h into a single audit task that scans hooks.json once and dispatches per-source-file regex.
-- **Check 4d (8.2%, 648ms)**: chronicle slicing test (37 assertions). Bun-based; likely dominated by bun startup. Out-of-scope for marketplace-side fixes.
+Iter-75 win: replaced sequential `for` loop with `xargs -P` (operator-tunable via `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES`, default 8) running per-test bash worker that captures stdout+exit-code to per-test files in a shared mktemp results directory. Aggregation runs sequentially in stable sort order AFTER all parallel jobs complete, preserving the iter-54 UX (compact summary on PASS, full output on FAIL) bit-for-bit. Distribution flattened — Check 4e is no longer dominant.
 
-The instrumentation is a permanent self-diagnosis tool — keep it shipped, default-off, so future iterations can capture before/after measurements to validate perf wins.
+#### Cumulative iter-73 → iter-75 progression
+
+| Iter          | Phase Optimized                   | Change                  | Whole-script preflight                        |
+| ------------- | --------------------------------- | ----------------------- | --------------------------------------------- |
+| 73 (baseline) | — (instrumentation only)          | —                       | 9871ms                                        |
+| 74            | Check 4b: single-pass awk scanner | 2032 → 73ms (−1959ms)   | 7924ms (−19.7%)                               |
+| 75            | Check 4e: xargs-P parallelization | 3870 → 1381ms (−2489ms) | 5979ms (−24.5% additional, −39.4% cumulative) |
+
+#### Iter-76+ optimization candidates (forensic notes for future iterations)
+
+After iter-75 flattened the distribution, the top-4 phases are within 1.9× of each other (1381 / 964 / 786 / 742 ms). No single dominant lever remains. Highest-leverage incremental wins:
+
+- **Check 4e bin-packing tail (1381ms)**: bound by the longest single test (`userpromptsubmit-1password-context-injection-prejq-fastpath` at 635ms) + second-longest (`posttooluse-1password-pattern-reminder` at 429ms) = 1064ms theoretical floor. Further parallel-lane scaling cannot improve this. Path forward: optimize the slowest tests themselves (reduce probe count, batch jq, share fixture loading).
+- **Checks 4f + 4h combined (1750ms, 29.3% combined)**: PreToolUse and INVERSE PreToolUse schema audits scan hooks.json twice. Candidate: combine into a single audit task that scans hooks.json once and dispatches per-source-file regex in one pass. Estimated saving ~300-500ms.
+- **Check 4d (742ms)**: chronicle slicing test (37 assertions, bun-based). Bun startup dominates; out-of-scope for marketplace-side fixes unless we batch all assertions into a single bun invocation.
+
+The PREFLIGHT_TIMING_PROFILE=1 instrumentation has now validated two predicted perf wins end-to-end. Keep the knob shipped default-off; it will validate iter-76+ wins the same way.
 
 ### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
 
