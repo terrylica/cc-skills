@@ -96,6 +96,22 @@ fi
 PASS=$(grep -oE '[0-9]+ passed' /tmp/chronicle-test.log | head -1 | awk '{print $1}')
 echo "  ✓ Chronicle slicing: $PASS assertions passed"
 
+# Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
+# the iter-50 mise task into the release gate. Auto-discovers every
+# plugins/*/hooks/tests/test-*.sh and runs it. Catches behavioral
+# regressions in hooks BEFORE the release publishes a tag that would
+# deploy the broken behavior to operator Layer 3 caches (see iter-42
+# docs/HOOKS.md for the 3-layer cache lifecycle).
+echo "→ Running marketplace-wide hook regression suite..."
+if ! mise run test-marketplace-hook-regression-suite >/tmp/hook-regression-test.log 2>&1; then
+    echo "  ✗ Hook regression suite FAILED — see /tmp/hook-regression-test.log"
+    tail -20 /tmp/hook-regression-test.log
+    exit 1
+fi
+HOOK_TESTS_PASSED=$(grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log | head -1 | awk '{print $NF}')
+HOOK_TESTS_FAILED=$(grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log | head -1 | awk '{print $NF}')
+echo "  ✓ Hook regression: $HOOK_TESTS_PASSED test files passed (${HOOK_TESTS_FAILED:-0} failed)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
