@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Audit every plugins/*/hooks/hooks.json REGISTERED Stop, SubagentStop, AND SessionEnd hook source file for emission of the additionalContext field in stdout JSON. All three event types share the same silent-drop mechanism: Stop+SubagentStop hooks read only {decision, reason} per Anthropic schema (GitHub #19115); SessionEnd hooks read NO output fields at all (per Go type definitions in CorridorSecurity/hookshot — SessionEndOK returns empty output, session is terminating). Any additionalContext field on these three event types is silently dropped by Claude Code. iter-66 fixed the itp-hooks stop-orchestrator silent-drop bug; iter-67 scaled the fix into a Stop-only audit; iter-68 extends coverage to SubagentStop + SessionEnd (iter-67 deferred SubagentStop explicitly; SessionEnd added preventively per same schema family). Strips JSDoc and line comments before scanning. Escape hatch: STOP-HOOK-ADDITIONAL-CONTEXT-OK source comment with reason ≥ 10 chars applies to all three event types. Exits non-zero on any unjustified emission. Symmetric companion to iter-60 / iter-62 / iter-65 / iter-67 schema-correctness gates."
+#MISE description="Audit every plugins/*/hooks/hooks.json REGISTERED Stop, SubagentStop, SessionEnd, PreCompact, AND Notification hook source file for emission of the additionalContext field in stdout JSON. All five event types share the same silent-drop mechanism but with three distinct schema sub-rules: (1) Stop+SubagentStop+PreCompact read only {decision:'block', reason} per Anthropic docs (code.claude.com/docs/en/hooks); (2) SessionEnd reads NO output fields at all (per Go type definitions in CorridorSecurity/hookshot — SessionEndOK returns empty output, session is terminating); (3) Notification is purely informational with no decision/blocking capability (Anthropic docs: 'no blocking — exit 2 shows stderr only'). Any additionalContext field on any of these five event types is silently dropped by Claude Code. iter-66 fixed the itp-hooks stop-orchestrator silent-drop bug; iter-67 scaled to a Stop-only audit; iter-68 extended to SubagentStop + SessionEnd; iter-69 completes the additionalContext-silently-dropped pentad by adding PreCompact + Notification. Strips JSDoc and line comments before scanning. Escape hatch: STOP-HOOK-ADDITIONAL-CONTEXT-OK source comment with reason ≥ 10 chars applies to all five event types. Exits non-zero on any unjustified emission. Symmetric companion to iter-60 / iter-62 / iter-65 / iter-67 schema-correctness gates."
 #
 # audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json
 #
@@ -44,33 +44,62 @@
 #   iter-67 (this audit) scales the iter-66 fix into preventive
 #   infrastructure marketplace-wide.
 #
-# Iter-68 scope expansion (post-event-terminal-additionalContext trinity):
+# Iter-68/69 scope expansion (additionalContext-silently-dropped pentad):
 #
 #   Iter-67 covered only Stop hooks and explicitly deferred SubagentStop
 #   (file comment line 74: "SubagentStop hooks (same schema rules,
-#   separate audit if needed)"). Iter-68 extends coverage to the full
-#   trinity of event types where additionalContext is silently dropped:
+#   separate audit if needed)"). Iter-68 extended to SubagentStop +
+#   SessionEnd. Iter-69 completes the pentad by adding PreCompact +
+#   Notification — the remaining two hook event types where
+#   additionalContext is silently dropped per official Anthropic schema:
 #
-#     1. Stop hooks — reads only {decision, reason} per iter-66/67.
+#     1. Stop hooks — reads only {decision:'block', reason} per
+#        iter-66/67. additionalContext silently dropped.
 #     2. SubagentStop hooks — same schema as Stop per
 #        https://code.claude.com/docs/en/hooks ("SubagentStop hooks
-#        use the same decision control format as Stop hooks"). Marketplace
-#        has 0 registrations today; preventive gate catches future
-#        regressions when subagent-based workflows add SubagentStop hooks.
+#        use the same decision control format as Stop hooks").
+#        additionalContext silently dropped. Marketplace 0.
 #     3. SessionEnd hooks — per Go type definitions in CorridorSecurity/
 #        hookshot (https://pkg.go.dev/github.com/CorridorSecurity/hookshot/
 #        claude), SessionEndOK returns EMPTY output — SessionEnd cannot
 #        inject any context because the session is terminating. Any
 #        additionalContext (or any other output field) is silently
-#        dropped. Marketplace has 0 registrations today; preventive gate.
+#        dropped. Marketplace 0.
+#     4. PreCompact hooks (iter-69) — supports only {decision:'block',
+#        reason} per official Anthropic docs (the 'decision' field is
+#        used by UserPromptSubmit, UserPromptExpansion, PostToolUse,
+#        PostToolUseFailure, PostToolBatch, Stop, SubagentStop,
+#        ConfigChange, and PreCompact — the only value is 'block').
+#        additionalContext is NOT in the PreCompact output schema.
+#        Common use case: pre-compaction transcript backup via
+#        async: true (Jan 2026 feature). Marketplace 0.
+#     5. Notification hooks (iter-69) — purely informational, NO decision
+#        capability per official docs ('Exit Code 2 Behavior: N/A —
+#        shows stderr to user only, no blocking capability'). Subtypes:
+#        permission_prompt, idle_prompt, auth_success. Any output field
+#        including additionalContext is silently dropped — only stderr
+#        on exit 2 reaches the user. Marketplace 0.
 #
-#   All three event types share the same root cause (the field is
+#   All five event types share the same root cause (the field is
 #   absent from the consumer-side schema), the same operator-facing
 #   symptom (silent drop), and the same remediation (route summary
 #   text to stderr instead of stdout JSON, OR for legitimate read-only
 #   aggregation, add an OK marker). Unifying them under one audit
 #   reduces conceptual surface area and per-event-type tracking gives
 #   precise violation diagnostics.
+#
+#   Events EXCLUDED from this audit because they DO support
+#   additionalContext (and emitting it is CORRECT, not a violation):
+#     - PreToolUse / PostToolUse — hookSpecificOutput.additionalContext
+#       (caveat: GitHub #55889 documents v2.1.123 regression where Bash
+#       matcher silently drops all 3 context channels; that's a runtime
+#       bug, not a schema bug — out of scope for this static audit)
+#     - UserPromptSubmit / SessionStart — hookSpecificOutput.additional-
+#       Context + plain stdout both reach Claude
+#     - Newer 2026 events (UserPromptExpansion, PostToolBatch,
+#       PostToolUseFailure, ConfigChange) — accept decision:"block"
+#       but their additionalContext support requires per-event
+#       verification; out of scope for iter-69 (would need iter-70+).
 #
 # What this audit checks:
 #
@@ -143,37 +172,42 @@ REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.
 MIN_OK_REASON_LENGTH=10
 
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  Stop / SubagentStop / SessionEnd additionalContext-Emission Audit"
-echo "  (iter-67 audit + iter-68 scope expansion)"
+echo "  additionalContext-Silently-Dropped Pentad Audit"
+echo "  (Stop / SubagentStop / SessionEnd / PreCompact / Notification)"
+echo "  (iter-67 audit + iter-68 trinity expansion + iter-69 pentad completion)"
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "→ Scans registered Stop, SubagentStop, AND SessionEnd hook source files"
-echo "  for additionalContext emission."
+echo "→ Scans registered Stop, SubagentStop, SessionEnd, PreCompact, AND"
+echo "  Notification hook source files for additionalContext emission."
 echo "→ Per official Anthropic schema (GitHub #19115 + code.claude.com/docs/en/"
-echo "  hooks), Stop and SubagentStop hooks read ONLY {decision, reason}; per"
-echo "  Go type defs (CorridorSecurity/hookshot), SessionEnd reads NOTHING"
-echo "  (empty output — session is terminating). Any additionalContext field"
-echo "  on these three event types is silently dropped — operator gets no"
-echo "  transcript visibility, Claude gets no context. The hook author sees"
-echo "  JSON being emitted normally."
+echo "  hooks), three distinct schema sub-rules but a unified silent-drop"
+echo "  symptom:"
+echo "  • Stop, SubagentStop, PreCompact: read only {decision:'block', reason}"
+echo "  • SessionEnd: reads NOTHING (empty output — session terminating)"
+echo "  • Notification: no decision, purely informational (exit 2 stderr only)"
+echo "  Any additionalContext field on any of these five event types is"
+echo "  silently dropped — operator gets no transcript visibility, Claude gets"
+echo "  no context. The hook author sees JSON being emitted normally."
 echo "→ Comment-aware: strips // line and /* */ block comments before scan,"
 echo "  so JSDoc references (like iter-66 forensic docs) don't false-positive."
 echo "→ Escape hatch: 'STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason>' source"
 echo "  comment with reason ≥ ${MIN_OK_REASON_LENGTH} chars. (Marker name is"
-echo "  historical from iter-67 Stop-only scope; per iter-68 it applies"
-echo "  equivalently to SubagentStop and SessionEnd hooks.)"
+echo "  historical from iter-67 Stop-only scope; per iter-68/69 it applies"
+echo "  equivalently to SubagentStop, SessionEnd, PreCompact, Notification.)"
 echo ""
 
-# Classification counters (aggregate across all three event types).
+# Classification counters (aggregate across all five event types in the pentad).
 no_additionalContext_count=0
 with_ok_marker_count=0
 emission_violation_count=0
 total_scanned_event_terminal_hooks=0
 
 # Per-event-type counters for precise summary breakdown.
-# Initialize each event type to 0 so the summary table always shows all
-# three rows (clarifies "no hooks of type X exist" vs. "audit skipped X").
-declare -A scanned_count_by_event_type=( ["Stop"]=0 ["SubagentStop"]=0 ["SessionEnd"]=0 )
-declare -A violation_count_by_event_type=( ["Stop"]=0 ["SubagentStop"]=0 ["SessionEnd"]=0 )
+# Initialize each pentad-member event type to 0 so the summary table always
+# shows all five rows (clarifies "no hooks of type X exist" vs. "audit
+# skipped X"). Pentad order matches iter-66 → iter-67 → iter-68 → iter-69
+# expansion sequence for forensic traceability.
+declare -A scanned_count_by_event_type=( ["Stop"]=0 ["SubagentStop"]=0 ["SessionEnd"]=0 ["PreCompact"]=0 ["Notification"]=0 )
+declare -A violation_count_by_event_type=( ["Stop"]=0 ["SubagentStop"]=0 ["SessionEnd"]=0 ["PreCompact"]=0 ["Notification"]=0 )
 
 # Accumulator for violation report
 VIOLATION_LINES=""
@@ -282,13 +316,13 @@ while IFS= read -r hooks_json; do
     VIOLATION_LINES+="  ✗ ($event_type) $plugin_name/hooks/$hook_basename"$'\n'
     VIOLATION_LINES+="      Issue:   source references 'additionalContext' in non-comment code."$'\n'
     case "$event_type" in
-      Stop|SubagentStop)
+      Stop|SubagentStop|PreCompact)
         VIOLATION_LINES+="               Per official Anthropic ${event_type}-hook schema (verbatim in"$'\n'
         VIOLATION_LINES+="               GitHub #19115; ${event_type} uses the same decision-control format"$'\n'
         VIOLATION_LINES+="               as Stop per code.claude.com/docs/en/hooks), ${event_type} hooks read"$'\n'
-        VIOLATION_LINES+="               ONLY {decision, reason} from stdout JSON. Any additionalContext"$'\n'
-        VIOLATION_LINES+="               field is silently dropped — the hook author sees the field being"$'\n'
-        VIOLATION_LINES+="               emitted, but Claude Code never reads it."$'\n'
+        VIOLATION_LINES+="               ONLY {decision:'block', reason} from stdout JSON. Any"$'\n'
+        VIOLATION_LINES+="               additionalContext field is silently dropped — the hook author sees"$'\n'
+        VIOLATION_LINES+="               the field being emitted, but Claude Code never reads it."$'\n'
         ;;
       SessionEnd)
         VIOLATION_LINES+="               Per Go type definitions in CorridorSecurity/hookshot (mirroring"$'\n'
@@ -298,23 +332,35 @@ while IFS= read -r hooks_json; do
         VIOLATION_LINES+="               field) is silently dropped — the hook author sees the field being"$'\n'
         VIOLATION_LINES+="               emitted, but Claude Code never reads it."$'\n'
         ;;
+      Notification)
+        VIOLATION_LINES+="               Per official Anthropic docs (code.claude.com/docs/en/hooks),"$'\n'
+        VIOLATION_LINES+="               Notification hooks are purely informational with NO decision-"$'\n'
+        VIOLATION_LINES+="               control capability ('Exit Code 2 Behavior: N/A — shows stderr to"$'\n'
+        VIOLATION_LINES+="               user only, no blocking capability'). Subtypes: permission_prompt,"$'\n'
+        VIOLATION_LINES+="               idle_prompt, auth_success. Any output field including"$'\n'
+        VIOLATION_LINES+="               additionalContext is silently dropped — only stderr on exit 2"$'\n'
+        VIOLATION_LINES+="               reaches the user."$'\n'
+        ;;
     esac
     VIOLATION_LINES+="      Fix:     route the summary text to PROCESS.STDERR instead of stdout JSON."$'\n'
     VIOLATION_LINES+="               Stderr is transcript-visible via Ctrl-R; operators can still see"$'\n'
-    VIOLATION_LINES+="               summaries during debugging. For Stop/SubagentStop only, to inject"$'\n'
-    VIOLATION_LINES+="               context that Claude actually reads on next turn, use"$'\n'
+    VIOLATION_LINES+="               summaries during debugging. For Stop/SubagentStop/PreCompact only,"$'\n'
+    VIOLATION_LINES+="               to inject context that Claude actually reads on next turn, use"$'\n'
     VIOLATION_LINES+="               decision:\"block\" + reason (which keeps Claude running and surfaces"$'\n'
     VIOLATION_LINES+="               reason as a system reminder). SessionEnd cannot inject context at all"$'\n'
     VIOLATION_LINES+="               — for end-of-session context use SessionStart on the NEXT session."$'\n'
+    VIOLATION_LINES+="               Notification can only surface via stderr on exit 2 — for context"$'\n'
+    VIOLATION_LINES+="               injection use a different event type (UserPromptSubmit, SessionStart)."$'\n'
     VIOLATION_LINES+="               OR add to source: // STOP-HOOK-ADDITIONAL-CONTEXT-OK: <reason ≥ ${MIN_OK_REASON_LENGTH} chars>"$'\n'
     VIOLATION_LINES+="      Refs:    iter-66 (single-hook orchestrator fix), iter-67 (Stop-only audit),"$'\n'
     VIOLATION_LINES+="               iter-68 (audit scope expansion to SubagentStop + SessionEnd),"$'\n'
+    VIOLATION_LINES+="               iter-69 (pentad completion: + PreCompact + Notification),"$'\n'
     VIOLATION_LINES+="               GitHub #19115 (Anthropic schema verbatim example),"$'\n'
     VIOLATION_LINES+="               https://code.claude.com/docs/en/hooks (official docs)."$'\n'
 
   done < <(jq -r '
     (.hooks // {}) | to_entries[]
-    | select(.key == "Stop" or .key == "SubagentStop" or .key == "SessionEnd")
+    | select(.key == "Stop" or .key == "SubagentStop" or .key == "SessionEnd" or .key == "PreCompact" or .key == "Notification")
     | . as $entry
     | $entry.value[]?
     | .hooks[]?.command // empty
@@ -326,9 +372,10 @@ done < <(find "$REPO_ROOT/plugins" -path '*/hooks/hooks.json' -type f 2>/dev/nul
 # Emit structured report.
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  Stop / SubagentStop / SessionEnd Schema-Correctness Audit Summary"
+echo "  additionalContext-Silently-Dropped Pentad Audit Summary"
+echo "  (Stop / SubagentStop / SessionEnd / PreCompact / Notification)"
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  Total registered Stop hooks scanned:           $total_scanned_event_terminal_hooks"
+echo "  Total registered pentad-member hooks scanned: $total_scanned_event_terminal_hooks"
 echo "  CLEAN (no additionalContext in code):          $no_additionalContext_count"
 echo "  WITH-OK-MARKER (justified internal usage):     $with_ok_marker_count"
 echo "  EMISSION-VIOLATION (silent-drop risk):         $emission_violation_count"
@@ -337,10 +384,12 @@ echo "  Per-event-type breakdown (scanned / violations):"
 printf "    Stop:         %s scanned / %s violations\n" "${scanned_count_by_event_type[Stop]}" "${violation_count_by_event_type[Stop]}"
 printf "    SubagentStop: %s scanned / %s violations\n" "${scanned_count_by_event_type[SubagentStop]}" "${violation_count_by_event_type[SubagentStop]}"
 printf "    SessionEnd:   %s scanned / %s violations\n" "${scanned_count_by_event_type[SessionEnd]}" "${violation_count_by_event_type[SessionEnd]}"
+printf "    PreCompact:   %s scanned / %s violations\n" "${scanned_count_by_event_type[PreCompact]}" "${violation_count_by_event_type[PreCompact]}"
+printf "    Notification: %s scanned / %s violations\n" "${scanned_count_by_event_type[Notification]}" "${violation_count_by_event_type[Notification]}"
 echo ""
 
 if [ "$emission_violation_count" -gt 0 ]; then
-  echo "─── EMISSION-VIOLATION ($emission_violation_count) — Stop/SubagentStop/SessionEnd hooks emitting additionalContext to /dev/null from Claude Code's perspective ───"
+  echo "─── EMISSION-VIOLATION ($emission_violation_count) — pentad-member hooks emitting additionalContext to /dev/null from Claude Code's perspective ───"
   printf "%s" "$VIOLATION_LINES"
   echo ""
   echo "═══════════════════════════════════════════════════════════════════════════"
@@ -350,8 +399,9 @@ if [ "$emission_violation_count" -gt 0 ]; then
 fi
 
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  ✓ No Stop, SubagentStop, or SessionEnd hooks emit additionalContext to"
-echo "    stdout JSON. All three event types honor their respective official"
-echo "    Anthropic schemas (Stop+SubagentStop: {decision, reason} only;"
-echo "    SessionEnd: empty output)."
+echo "  ✓ No Stop, SubagentStop, SessionEnd, PreCompact, or Notification hooks"
+echo "    emit additionalContext to stdout JSON. All five event types in the"
+echo "    silently-dropped pentad honor their respective official Anthropic"
+echo "    schemas (Stop+SubagentStop+PreCompact: {decision:'block', reason} only;"
+echo "    SessionEnd: empty output; Notification: no fields, exit-2 stderr only)."
 echo "═══════════════════════════════════════════════════════════════════════════"
