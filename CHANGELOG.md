@@ -1,3 +1,10 @@
+# [21.15.0](https://github.com/terrylica/cc-skills/compare/v21.14.1...v21.15.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-67 marketplace-wide Stop-hook additionalContext-emission audit — preventive gate scaling iter-66 single-hook fix into structural enforcement + 11-assertion regression test caught comment-stripping + min-reason-length + escape-hatch edge cases + release:preflight Check 4j ([afa38a9](https://github.com/terrylica/cc-skills/commit/afa38a9a311e2d4e8de8e6b92782260ec068af06)), closes [#19115](https://github.com/terrylica/cc-skills/issues/19115)
+
 ## [21.14.1](https://github.com/terrylica/cc-skills/compare/v21.14.0...v21.14.1) (2026-05-20)
 
 
