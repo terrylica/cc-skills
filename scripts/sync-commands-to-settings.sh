@@ -53,7 +53,18 @@ main() {
         [[ -f "$cmd_file" ]] || continue
         if head -5 "$cmd_file" | grep -q "cc-skills-marketplace"; then
             rm "$cmd_file"
-            ((removed++))
+            # iter-23 fix: post-increment `((removed++))` returns OLD value (0
+            # on first iteration) → arithmetic context exits 1 → `set -euo
+            # pipefail` (line 14) kills the script on the very first cc-skills
+            # command match. Compound-assignment `+=1` always returns 0.
+            # Symptom this hid: `mise run release:sync` exited "ERROR task
+            # failed" right after "→ Syncing plugin skills..." with no error
+            # detail, leaving installed_plugins.json + cache stuck at the
+            # previous version (releases v21.6.0 through v21.8.1 silently
+            # failed to advance any user's runtime past v21.5.1).
+            # Same gotcha as iter-22's .releaserc.yml fix; this script was
+            # missed in that sweep.
+            ((removed+=1))
         fi
     done
 
@@ -91,7 +102,7 @@ main() {
             } > "$target"
         fi
 
-        ((commands_added++))
+        ((commands_added+=1))
     done
 
     info "Commands synced: $commands_added skill(s) from cc-skills marketplace"
