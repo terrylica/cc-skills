@@ -1,3 +1,10 @@
+## [21.10.1](https://github.com/terrylica/cc-skills/compare/v21.10.0...v21.10.1) (2026-05-20)
+
+
+### Performance Improvements
+
+* **hooks:** iter-58 batch rollout of async:true to 5 verified-safe non-blocking hooks + harden audit with 3 new false-positive-prevention detection layers (input-rewriting, additionalContext, console.log-as-context) ([2b8ca32](https://github.com/terrylica/cc-skills/commit/2b8ca32c0820d23e163f76ba6bd513810ecfcddb))
+
 # [21.10.0](https://github.com/terrylica/cc-skills/compare/v21.9.1...v21.10.0) (2026-05-20)
 
 
