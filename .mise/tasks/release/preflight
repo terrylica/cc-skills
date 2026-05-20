@@ -93,8 +93,14 @@ if ! mise run release:test-chronicle-slicing >/tmp/chronicle-test.log 2>&1; then
     tail -20 /tmp/chronicle-test.log
     exit 1
 fi
-PASS=$(grep -oE '[0-9]+ passed' /tmp/chronicle-test.log | head -1 | awk '{print $1}')
-echo "  ✓ Chronicle slicing: $PASS assertions passed"
+# Loose-coupled defensive grep — see iter-70 "brittle-banner-grep
+# hardening" lesson in docs/HOOKS.md. The `|| true` swallows pipefail
+# when the audit banner phrasing evolves; `|| echo 0` provides a safe
+# fallback if the downstream awk pipeline fails. Without these defenses,
+# a future banner rename would silently abort the gate with no
+# actionable diagnostic (exactly what hit iter-69 Check 4j).
+PASS=$( { grep -oE '[0-9]+ passed' /tmp/chronicle-test.log || true; } | head -1 | awk '{print $1}' || echo 0)
+echo "  ✓ Chronicle slicing: ${PASS:-0} assertions passed"
 
 # Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
 # the iter-50 mise task into the release gate. Auto-discovers every
@@ -108,9 +114,10 @@ if ! mise run test-marketplace-hook-regression-suite >/tmp/hook-regression-test.
     tail -20 /tmp/hook-regression-test.log
     exit 1
 fi
-HOOK_TESTS_PASSED=$(grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log | head -1 | awk '{print $NF}')
-HOOK_TESTS_FAILED=$(grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log | head -1 | awk '{print $NF}')
-echo "  ✓ Hook regression: $HOOK_TESTS_PASSED test files passed (${HOOK_TESTS_FAILED:-0} failed)"
+# Loose-coupled defensive grep — see iter-70 hardening note above.
+HOOK_TESTS_PASSED=$( { grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
+HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
+echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_TESTS_FAILED:-0} failed)"
 
 # Check 4f: PreToolUse schema-correctness audit (iter-60 gate). Per Claude
 # Code v2.0.10+ spec, PreToolUse top-level `decision: "block"|"deny"`
@@ -125,10 +132,11 @@ if ! mise run audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-ve
     tail -20 /tmp/pretooluse-schema-audit.log
     exit 1
 fi
-SCHEMA_MODERN=$(grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
-SCHEMA_HELPER=$(grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
-SCHEMA_DEPRECATED=$(grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
-echo "  ✓ PreToolUse schema: $SCHEMA_MODERN modern + $SCHEMA_HELPER helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
+# Loose-coupled defensive grep — see iter-70 hardening note above.
+SCHEMA_MODERN=$( { grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SCHEMA_HELPER=$( { grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SCHEMA_DEPRECATED=$( { grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+echo "  ✓ PreToolUse schema: ${SCHEMA_MODERN:-0} modern + ${SCHEMA_HELPER:-0} helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
 
 # Check 4g: pueue-wrap-guard last-PreToolUse-entry ordering audit (iter-61
 # gate). Per GitHub #15897, when multiple PreToolUse hooks fire on the
@@ -148,8 +156,9 @@ if ! mise run audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hook
     tail -20 /tmp/pueue-wrap-guard-ordering-audit.log
     exit 1
 fi
-ORDERING_OK=$(grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log | grep -oE '[0-9]+$' | head -1)
-ORDERING_VIOLATION=$(grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log | grep -oE '[0-9]+$' | head -1)
+# Loose-coupled defensive grep — see iter-70 hardening note above.
+ORDERING_OK=$( { grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+ORDERING_VIOLATION=$( { grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
 
 # Check 4h: INVERSE PreToolUse schema audit (iter-62 gate). Symmetric
@@ -172,9 +181,10 @@ if ! mise run audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-h
     tail -20 /tmp/inverse-pretooluse-schema-audit.log
     exit 1
 fi
-INV_CORRECT=$(grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
-INV_NO_BLOCK=$(grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
-INV_WRONG=$(grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+# Loose-coupled defensive grep — see iter-70 hardening note above.
+INV_CORRECT=$( { grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+INV_NO_BLOCK=$( { grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+INV_WRONG=$( { grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
 
 # Check 4i: Wildcard-matcher audit (iter-65 gate). Scales iter-63 +
@@ -197,9 +207,10 @@ if ! mise run audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-o
     tail -20 /tmp/wildcard-matcher-audit.log
     exit 1
 fi
-WM_SCOPED=$(grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
-WM_WITH_OK=$(grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
-WM_VIOL=$(grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
+# Loose-coupled defensive grep — see iter-70 hardening note above.
+WM_SCOPED=$( { grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+WM_WITH_OK=$( { grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+WM_VIOL=$( { grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
 
 # Check 4j: additionalContext-Silently-Dropped Pentad audit (iter-67 gate +
