@@ -59,6 +59,28 @@ The hook scripts execute correctly. The JSON output is well-formed. The harness 
 
 **Forensic source**: [GitHub #55889](https://github.com/anthropics/claude-code/issues/55889) (filed 2026-05-03, OPEN, last updated 2026-05-18 — track this issue for fix availability).
 
+### Schema-Validator Rejection of Stop Hook additionalContext (GitHub #60993 — OPEN as of 2026-05-20)
+
+**Forensic confirmation of the iter-66/67/68/69 audit chain.** GitHub #60993 (filed 2026-05-20, OPEN, label: `enhancement` + `area:hooks`) is an upstream feature request titled _"Revive #24244 — Stop hook needs additionalContext (or continueWith) for clean workflow continuation"_. The reporter cites the exact validator-side rejection message they received when trying to emit `additionalContext` from a Stop hook:
+
+> "hookEventName: Stop is not a permitted value for hookSpecificOutput"
+
+This validator error is a **hard upstream signal** (stronger than third-party blog research) that the Claude Code schema **currently rejects** Stop hook `additionalContext` at the input-validation layer — confirming the iter-66/67/68/69 audit's premise from an independent community-filed bug report.
+
+**Why the issue exists** (from the reporter):
+
+| Approach the reporter tried                     | Outcome                                                          |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| `Stop` + `hookSpecificOutput.additionalContext` | ❌ Schema validator rejects                                      |
+| `Stop` + `decision: "block"` + `reason`         | ⚠ Works but renders red **"Stop hook blocked"** error banner     |
+| `UserPromptSubmit` + `additionalContext`        | ✅ Works but 1-turn delay; misses end-of-session firing entirely |
+
+The reporter's `decision: "block"` workaround is exactly the path documented in the iter-66/67/68/69 audit's violation diagnostic — confirming it's the correct community-consensus current workaround.
+
+**Schema-evolution watch**: if Anthropic accepts #60993 (or any of its duplicate predecessors [#24244](https://github.com/anthropics/claude-code/issues/24244), [#50682](https://github.com/anthropics/claude-code/issues/50682), [#46191](https://github.com/anthropics/claude-code/issues/46191), [#34600](https://github.com/anthropics/claude-code/issues/34600)) and ships a schema change adding `additionalContext` support to Stop hooks OR introducing a `continueWith` field that delivers context without the `decision:"block"` red-banner side effect — the iter-67/68/69 audit's premise would invert. The audit task header documents the mitigation plan (track #60993 close-status; on schema change, extend the case-statement diagnostic with a new branch differentiating "additionalContext now supported in newer Claude Code versions" from "still silent-dropped").
+
+**Forensic source**: [GitHub #60993](https://github.com/anthropics/claude-code/issues/60993) (filed 2026-05-20, OPEN — track for schema-change signal).
+
 ## PreToolUse Hook Patterns
 
 ### Soft Block (User Can Override)

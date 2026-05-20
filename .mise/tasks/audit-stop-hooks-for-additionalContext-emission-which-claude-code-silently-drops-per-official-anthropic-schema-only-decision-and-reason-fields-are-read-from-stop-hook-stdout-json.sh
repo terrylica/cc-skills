@@ -139,6 +139,48 @@
 #     CorridorSecurity/hookshot Go type defs) before adding event
 #     types to the jq filter and case-statement diagnostic branches.
 #
+# Schema-Evolution Watch (iter-72 forensic confirmation + future-proofing):
+#
+#   GitHub #60993 — "Revive #24244 — Stop hook needs additionalContext
+#   (or continueWith) for clean workflow continuation" (filed 2026-05-20,
+#   OPEN, label: enhancement + area:hooks) — provides upstream community
+#   confirmation that the iter-66/67/68/69 audit's premise is correct.
+#   The issue body contains the exact validator-side rejection message
+#   the reporter received when attempting to emit additionalContext from
+#   a Stop hook:
+#
+#       "hookEventName: Stop is not a permitted value for hookSpecificOutput"
+#
+#   This validator error message is a hard upstream signal — stronger
+#   than third-party blog research — that the Claude Code schema CURRENTLY
+#   rejects Stop hook additionalContext at the input-validation layer.
+#   This audit's premise (Stop hooks silently drop additionalContext) is
+#   forensically validated by an independent community-filed bug report.
+#
+#   Schema-evolution contingency: if Anthropic accepts #60993 (or the
+#   related #24244, #50682, #46191, #34600 duplicates predating it) and
+#   ships a schema change adding additionalContext support to Stop hooks
+#   OR introducing a continueWith field that delivers context without
+#   the decision:"block" red-error-banner side effects — this audit
+#   would generate false-positives on legitimate Stop hooks. Mitigation:
+#     1. Track #60993 close-status (re-check before each marketplace
+#        release with significant Stop-hook changes).
+#     2. If schema changes ship: extend the audit's case statement with
+#        a new branch differentiating "additionalContext now supported
+#        in newer Claude Code versions" from "still silent-dropped".
+#     3. Operators on the affected Claude Code version range can use
+#        the STOP-HOOK-ADDITIONAL-CONTEXT-OK marker to opt out per-hook
+#        without waiting for the audit to be updated.
+#
+#   Related upstream issues (forensic citation chain):
+#     - #19115 — original Stop schema documentation
+#     - #19432, #20062 — earlier PreToolUse additionalContext drops (closed)
+#     - #55889 — v2.1.123 PreToolUse/PostToolUse Bash-matcher silent-drop
+#       regression (OPEN, documented in docs/HOOKS.md)
+#     - #24244 — original Stop hook continueWith feature request (closed)
+#     - #50682, #46191, #34600 — duplicate predecessor feature requests
+#     - #60993 — currently-open revival of #24244 (filed 2026-05-20)
+#
 # What this audit checks:
 #
 #   For every plugins/*/hooks/hooks.json that registers a Stop,
