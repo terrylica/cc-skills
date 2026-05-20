@@ -152,6 +152,31 @@ ORDERING_OK=$(grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-gua
 ORDERING_VIOLATION=$(grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
 
+# Check 4h: INVERSE PreToolUse schema audit (iter-62 gate). Symmetric
+# companion to iter-60 Check 4f. Where Check 4f catches PreToolUse
+# hooks using the DEPRECATED top-level decision:"block" schema (silent
+# fail on Claude Code v2.0.10+), Check 4h catches the inverse: non-
+# PreToolUse hooks (PostToolUse, Stop, UserPromptSubmit, SessionStart,
+# SessionEnd) accidentally using the PreToolUse-only
+# hookSpecificOutput.permissionDecision field. Per the official spec,
+# only PreToolUse consumes permissionDecision; non-PreToolUse events
+# expect top-level decision:"block" + reason. A non-PreToolUse hook
+# emitting permissionDecision goes to no consumer — silent fail. At
+# iter-62 build time the marketplace has ZERO instances. This gate
+# is preventive: blocks tag publish so a future regression cannot
+# escape to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
+# cache lifecycle).
+echo "→ Running INVERSE PreToolUse schema-correctness audit (non-PreToolUse hooks)..."
+if ! mise run audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events >/tmp/inverse-pretooluse-schema-audit.log 2>&1; then
+    echo "  ✗ Inverse PreToolUse schema audit FAILED — see /tmp/inverse-pretooluse-schema-audit.log"
+    tail -20 /tmp/inverse-pretooluse-schema-audit.log
+    exit 1
+fi
+INV_CORRECT=$(grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+INV_NO_BLOCK=$(grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+INV_WRONG=$(grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
