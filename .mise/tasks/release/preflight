@@ -177,6 +177,31 @@ INV_NO_BLOCK=$(grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inver
 INV_WRONG=$(grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
 
+# Check 4i: Wildcard-matcher audit (iter-65 gate). Scales iter-63 +
+# iter-64 perf forensic findings into preventive infrastructure.
+# PreToolUse and PostToolUse hooks registered with matcher "*" or
+# null/missing cause Claude Code to cold-start bun on EVERY tool call
+# (~12-17ms each). iter-63 measured the cost (~1360ms wasted per
+# session for a single 100-tool session at 80% non-meaningful calls).
+# iter-63 narrowed pretooluse-subprocess-stdin-inlet-guard from "*"
+# to "Bash"; iter-64 did the same for posttooluse-subprocess-orphan-
+# cleanup. iter-65 audit walks every plugins/*/hooks/hooks.json and
+# blocks tag publish if any new wildcard matcher appears without an
+# explicit WILDCARD-MATCHER-OK source-comment escape hatch (with a
+# justification reason ≥ 10 chars). Prevents perf regressions from
+# escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
+# cache lifecycle).
+echo "→ Running wildcard-matcher audit (PreToolUse + PostToolUse hooks)..."
+if ! mise run audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation >/tmp/wildcard-matcher-audit.log 2>&1; then
+    echo "  ✗ Wildcard-matcher audit FAILED — see /tmp/wildcard-matcher-audit.log"
+    tail -20 /tmp/wildcard-matcher-audit.log
+    exit 1
+fi
+WM_SCOPED=$(grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
+WM_WITH_OK=$(grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
+WM_VIOL=$(grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
+echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
