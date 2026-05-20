@@ -1,3 +1,5 @@
+## [21.10.2](https://github.com/terrylica/cc-skills/compare/v21.10.1...v21.10.2) (2026-05-20)
+
 ## [21.10.1](https://github.com/terrylica/cc-skills/compare/v21.10.0...v21.10.1) (2026-05-20)
 
 
