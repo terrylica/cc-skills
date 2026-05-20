@@ -138,13 +138,37 @@ PREFLIGHT_TIMING_PROFILE=1 mise run release:preflight 2>&1 | grep '⧗'
 | 11   | Check 5: releasable commits since last tag            | 16   | 0.2%           |
 | —    | Whole-script total                                    | 9871 | 100%           |
 
-Top 2 phases account for **59% of preflight wall time** — these are the highest-leverage iter-74+ optimization targets.
+Top 2 phases accounted for **59% of preflight wall time** at iter-73 baseline.
 
-#### Iter-74+ optimization candidates (forensic notes for future iterations)
+#### Iter-74 measurement (after single-pass-awk-scanner replacement of Check 4b)
 
-- **Check 4e (38.7%)**: auto-discovered marketplace-wide hook regression suite. Currently 14 test files run serially. Candidate: parallel execution via `xargs -P` (estimated 1-2s savings; subject to bun startup parallelism and shared `/tmp` log file contention).
-- **Check 4b (20.6%)**: self-evolution sandwich check loops over 217 SKILL.md files spawning ~5 fork/execs each (awk + head + grep + cut + wc). Candidate: rewrite the per-file body as a single awk/bun script that processes all files in one process. Estimated ~1.5s savings (~2032ms → ~500ms).
-- **Check 4h (8.7%)**: INVERSE PreToolUse schema audit. ~860ms is justified for what it does (scanning all non-PreToolUse hooks for forbidden field usage). Lower-priority target; gate this against the iter-74+ planning to avoid premature optimization.
+| Rank | Phase                                            | ms       | % of preflight | Δ from iter-73                      |
+| ---- | ------------------------------------------------ | -------- | -------------- | ----------------------------------- |
+| 1    | Check 4e: marketplace-wide hook regression suite | 3870     | 48.8%          | +51ms (test added)                  |
+| 2    | Check 4h: INVERSE PreToolUse schema audit        | 847      | 10.7%          | -16ms                               |
+| 3    | Check 4f: PreToolUse schema audit                | 652      | 8.2%           | +39ms                               |
+| 4    | Check 4d: chronicle slicing (37 assertions)      | 648      | 8.2%           | -2ms                                |
+| 5    | Check 4j: additionalContext-pentad audit         | 488      | 6.2%           | -3ms                                |
+| 6    | Check 4g: pueue-wrap-guard ordering audit        | 441      | 5.6%           | +6ms                                |
+| 7    | Check 4i: wildcard-matcher audit                 | 425      | 5.4%           | -43ms                               |
+| 8    | Check 4: plugin manifest validation (bun)        | 308      | 3.9%           | -19ms                               |
+| 9    | Check 4c: hook registration sanity               | 111      | 1.4%           | +9ms                                |
+| 10   | **Check 4b: self-evolution sandwich**            | **73**   | **0.9%**       | **−1959ms (−96.4%, 27.8× speedup)** |
+| 11   | Check 1: working directory clean                 | 18       | 0.2%           | new (instrumented)                  |
+| 12   | Check 5: releasable commits since last tag       | 16       | 0.2%           | unchanged                           |
+| 13   | Check 2-3: GH_TOKEN + GH_ACCOUNT env             | 2        | 0.0%           | new (instrumented)                  |
+| —    | **Whole-script total**                           | **7924** | **100%**       | **−1947ms (−19.7%)**                |
+
+Iter-74 win: replaced 217-file × 8-fork-exec storm (~1736 forks) with a single awk process invocation emitting TSV records to a fork-free bash post-processor. The actual speedup (27.8×) exceeded the conservative ~4× forecast because fork overhead on macOS aarch64 is amortized down to ~0.34ms per file when batched into one process versus ~9.4ms per file when forking serially.
+
+#### Iter-75+ optimization candidates (forensic notes for future iterations)
+
+After the iter-74 win, **Check 4e dominates at 48.8% of preflight wall time**. New highest-leverage targets:
+
+- **Check 4e (48.8%, 3870ms)**: auto-discovered marketplace-wide hook regression suite. Currently 15 test files run serially via the iter-50 runner. Candidate: parallel execution via `xargs -P` or GNU parallel (estimated 1-2s savings; subject to bun startup parallelism and shared `/tmp` log file contention — each test writes a unique `/tmp/<plugin>-<hook>-debug.log` so contention should be minimal).
+- **Check 4h (10.7%, 847ms)**: INVERSE PreToolUse schema audit. ~847ms scans every non-PreToolUse hook source for forbidden `permissionDecision` field usage. Lower-priority target; investigate whether the audit can short-circuit on `*.json` file-mtime ahead of opening sources.
+- **Check 4f (8.2%, 652ms)**: PreToolUse schema audit. Similar shape to Check 4h. Consider combining 4f + 4h into a single audit task that scans hooks.json once and dispatches per-source-file regex.
+- **Check 4d (8.2%, 648ms)**: chronicle slicing test (37 assertions). Bun-based; likely dominated by bun startup. Out-of-scope for marketplace-side fixes.
 
 The instrumentation is a permanent self-diagnosis tool — keep it shipped, default-off, so future iterations can capture before/after measurements to validate perf wins.
 
