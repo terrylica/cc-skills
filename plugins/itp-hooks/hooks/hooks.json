@@ -194,7 +194,8 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-subprocess-orphan-cleanup.ts",
             "timeout": 5000,
-            "description": "Orphan process cleanup - removes zombie/orphaned subprocesses after tool execution"
+            "description": "Orphan process cleanup - removes zombie/orphaned subprocesses after tool execution",
+            "async": true
           }
         ]
       },
