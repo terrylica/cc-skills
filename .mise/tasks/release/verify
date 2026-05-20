@@ -61,12 +61,28 @@ else
 fi
 
 # Check 5: Hook files in marketplace
+#
+# iter-45 SC2045 fix (2026-05-20): the prior `for PLUGIN_DIR in $(ls -d ...)`
+# iterated over `ls` output, which mangles plugin directory names that
+# contain whitespace or special shell chars (SC2045 — "Iterating over ls
+# output is fragile"). Switched to bash native glob `"$MARKETPLACE_DIR/
+# plugins"/*/` which iterates safely under any name, including those with
+# spaces, $, *, etc. The `[ -d ]` guard handles the empty-glob case where
+# no plugin directories exist (glob expands to the literal pattern).
+#
+# Same iter also defends the `((HOOKS_OK+=1))` arithmetic increment
+# against the iter-32/36 ((VAR+=N))-returns-new-value-as-exit-code
+# gotcha. Counter-only-increments-from-0 makes this SAFE today (the new
+# value never lands on 0), but the `|| true` guard preserves defensive
+# consistency with the cross-marketplace iter-36 sweep and prevents
+# regression if a future refactor changes the initial value.
 echo "→ Verifying hook files in marketplace..."
 HOOKS_OK=0
-for PLUGIN_DIR in $(ls -d "$MARKETPLACE_DIR/plugins"/*/ 2>/dev/null); do
+for PLUGIN_DIR in "$MARKETPLACE_DIR/plugins"/*/; do
+    [ -d "$PLUGIN_DIR" ] || continue  # handle empty-glob fallback
     HOOKS_JSON="$PLUGIN_DIR/hooks/hooks.json"
     if [[ -f "$HOOKS_JSON" ]] && jq empty "$HOOKS_JSON" 2>/dev/null; then
-        ((HOOKS_OK+=1))
+        ((HOOKS_OK+=1)) || true  # iter-45 ((VAR+=N)) defensive consistency
     fi
 done
 echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
