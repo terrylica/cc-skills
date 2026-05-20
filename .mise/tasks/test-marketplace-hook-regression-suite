@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+#MISE description="Auto-discover and run every plugins/*/hooks/tests/test-*.sh regression test. Aggregates pass/fail counts per test file and emits a marketplace-wide summary. Exits non-zero if any single test file fails. Use before cutting a release, or after editing any hook to verify the iter-39/40/41/46/47-style regression guards still pass. Self-contained — no CI/GitHub Actions required (cc-skills local-first policy)."
+#
+# test-marketplace-hook-regression-suite
+#
+# Iter-50 test-discoverability fix: regression tests added across iter-39
+# through iter-47 (5 tests so far) all live in plugins/*/hooks/tests/test-*.sh
+# but were INVISIBLE to anyone not grep'ing for the verbose filenames. This
+# task makes them discoverable via a single command:
+#
+#   mise run test-marketplace-hook-regression-suite
+#
+# Auto-discovers via the glob `plugins/*/hooks/tests/test-*.sh`. New tests
+# added in future iters following this convention are picked up
+# automatically — no task edit required.
+#
+# Per the user "self-explanatory scaffolding" directive: the task name
+# encodes WHAT it tests (marketplace-wide), WHICH layer (hook regression),
+# and WHAT TYPE of runs are aggregated (the test suite, not benchmarks).
+# Benchmarks live alongside as bench-*.sh and are NOT run by this task —
+# they're for manual perf investigation, not regression coverage.
+
+set -euo pipefail
+
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+shopt -u patsub_replacement 2>/dev/null || true
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Marketplace Hook Regression Suite"
+echo "═══════════════════════════════════════════════════════════"
+echo "→ Auto-discovering tests at plugins/*/hooks/tests/test-*.sh"
+echo ""
+
+# Discover all test files in test directories under any plugin's hooks/
+# directory. Glob is bash-native, no `find` subprocess. Sort for stable
+# output and reproducible test order.
+TEST_FILES=()
+while IFS= read -r test_file; do
+    [ -f "$test_file" ] && TEST_FILES+=("$test_file")
+done < <(find "$REPO_ROOT/plugins" -path '*/hooks/tests/test-*.sh' -type f 2>/dev/null | sort)
+
+if [ "${#TEST_FILES[@]}" -eq 0 ]; then
+    echo "⚠  No tests found matching plugins/*/hooks/tests/test-*.sh"
+    echo "   Add tests following this naming convention to have them auto-discovered."
+    exit 0
+fi
+
+echo "→ Discovered ${#TEST_FILES[@]} test file(s)"
+echo ""
+
+# Run each test, capture exit code, aggregate counts
+PASSED_TEST_FILES_COUNT=0
+FAILED_TEST_FILES_COUNT=0
+FAILED_TEST_FILES_LIST=()
+
+for test_file in "${TEST_FILES[@]}"; do
+    # Compute repo-relative path for readable output
+    relative_path="${test_file#"$REPO_ROOT"/}"
+    test_name=$(basename "$test_file" .sh)
+
+    echo "─── $relative_path ───"
+
+    # Run test with `bash` (not exec) so we capture exit code without
+    # affecting the parent shell's $?. Pipe through tail -5 for compact
+    # output — each test's verbose-named filename already tells the
+    # operator WHAT was tested.
+    if bash "$test_file" 2>&1 | tail -8; then
+        echo "  ✓ FILE-PASS: $test_name"
+        PASSED_TEST_FILES_COUNT=$((PASSED_TEST_FILES_COUNT + 1))
+    else
+        echo "  ✗ FILE-FAIL: $test_name"
+        FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
+        FAILED_TEST_FILES_LIST+=("$relative_path")
+    fi
+    echo ""
+done
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Marketplace Hook Regression Suite — Summary"
+echo "═══════════════════════════════════════════════════════════"
+echo "  Test files discovered: ${#TEST_FILES[@]}"
+echo "  Test files PASSED:     $PASSED_TEST_FILES_COUNT"
+echo "  Test files FAILED:     $FAILED_TEST_FILES_COUNT"
+
+if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
+    echo ""
+    echo "  Failed test files:"
+    for fp in "${FAILED_TEST_FILES_LIST[@]}"; do
+        echo "    - $fp"
+    done
+    echo ""
+    echo "  Run a failing test directly to see its detailed output:"
+    echo "    bash <test-file-path>"
+    exit 1
+fi
+
+echo ""
+echo "  ✓ All marketplace hook regression tests PASSED"
