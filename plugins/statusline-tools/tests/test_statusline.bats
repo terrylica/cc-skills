@@ -204,7 +204,16 @@ EOF
     # excluded by the first grep. The second grep is allowed to "fail"
     # (exit 1 = zero violations = success) so we capture its output without
     # tripping bats's errexit; the violations check is on the captured text.
-    violations=$(grep -nE '^[[:space:]]*[^#].*(\bgh[[:space:]]+(api|release|auth)\b|\bcurl[[:space:]])' \
+    #
+    # iter-30 regex backtracking fix:
+    #   Pre-iter-30 the anchor was `^[[:space:]]*[^#]` — which under regex
+    #   backtracking would accept comment lines like "    # ... gh release ..."
+    #   by matching 3 spaces of whitespace, then the 4th space as `[^#]`, then
+    #   `.*` swallowing the `#`. Lines starting with `# Iter-19 (...) gh
+    #   release view costs ~460ms` got flagged as violations even though
+    #   they're comments. The correct anchor is `[^[:space:]#]` — require
+    #   the first non-whitespace character to be neither whitespace nor `#`.
+    violations=$(grep -nE '^[[:space:]]*[^[:space:]#].*(\bgh[[:space:]]+(api|release|auth)\b|\bcurl[[:space:]])' \
         "$STATUSLINE" | grep -v 'probe_direct' || true)
     if [ -n "$violations" ]; then
         echo "Unwrapped outbound network call(s) found:" >&2

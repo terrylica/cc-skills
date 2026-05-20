@@ -82,9 +82,24 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INPUT_LEN=${#input} MODEL_RAW=$(echo "$inpu
 # Format matches ccost's expected schema: {"ts":<unix_epoch>,"data":<stdin_json>}
 echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
 
-# Extract fields
-model=$(echo "$input" | jq -r '.model.display_name // .model.id // .model // "Unknown"' | sed 's/Claude //' | sed 's/ 4.5/4.5/')
-session_id=$(echo "$input" | jq -r '.session_id // ""')
+# Extract fields.
+#
+# Perf (iter-30 statusline-input-payload-tsv-batch-decode): pre-iter-30 the
+# statusline spawned FIVE jq processes for five top-level input fields
+# (model, session_id, transcript_path, cost, git_branch) — each ~7-10ms
+# cold-start on macOS, so ~35-50ms of overhead PER STATUSLINE REFRESH just
+# to decode the input JSON. The statusline refreshes every few seconds so
+# the cost compounds across every session.
+#
+# One TSV-batched jq + bash `read` decodes all five at once. The model
+# field still gets post-processed with sed (Claude → display compactor)
+# but the JSON-extraction step is now a single spawn. The trailing-tab
+# fallback via printf keeps `read` happy if jq dies.
+IFS=$'\t' read -r model_raw session_id transcript_file cost git_branch <<< "$(
+    echo "$input" | jq -r '"\(.model.display_name // .model.id // .model // "Unknown")\t\(.session_id // "")\t\(.transcript_path // "")\t\(.cost.total_cost_usd // "")\t\(.git.branch // "")"' 2>/dev/null \
+        || printf 'Unknown\t\t\t\t'
+)"
+model=$(echo "$model_raw" | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 
 # === Session Chain (Bun-based) ===
 # Traces session ancestry, displays last 5 sessions with arrows
@@ -107,16 +122,23 @@ if [ -n "$session_id" ] && command -v bun >/dev/null 2>&1; then
 fi
 
 # Context - Claude Code doesn't send token counts in status JSON
-# Instead, try to read from transcript file or show cost
-transcript_file=$(echo "$input" | jq -r '.transcript_path // empty')
+# Instead, try to read from transcript file or show cost.
+# (transcript_file already TSV-batched above in iter-30 input-payload decode.)
 ctx_display=""
 
 if [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
-    # Try to get token count from last line of transcript
+    # Try to get token count from last line of transcript.
+    # Perf (iter-30 transcript-last-line-tsv-batch): pre-iter-30 this block
+    # spawned TWO jq processes (one per token field). Single TSV-batched
+    # jq + bash `read` decodes both at once. Saves ~10ms per refresh when
+    # a transcript exists. Fallback via printf '\t' keeps `read` happy if
+    # jq dies (e.g. malformed last-line JSON) — both vars default to empty.
     last_line=$(tail -1 "$transcript_file" 2>/dev/null)
     if [ -n "$last_line" ]; then
-        input_tok=$(echo "$last_line" | jq -r '.usage.input_tokens // empty' 2>/dev/null)
-        output_tok=$(echo "$last_line" | jq -r '.usage.output_tokens // empty' 2>/dev/null)
+        IFS=$'\t' read -r input_tok output_tok <<< "$(
+            echo "$last_line" | jq -r '"\(.usage.input_tokens // "")\t\(.usage.output_tokens // "")"' 2>/dev/null \
+                || printf '\t'
+        )"
 
         if [ -n "$input_tok" ] && [ -n "$output_tok" ]; then
             total_tok=$((input_tok + output_tok))
@@ -130,11 +152,11 @@ if [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
     fi
 fi
 
-# Fallback: show cost if no token count available
+# Fallback: show cost if no token count available.
+# (cost already TSV-batched above in iter-30 input-payload decode; empty-string
+# defaults from the TSV become the "no cost available" branch here.)
 if [ -z "$ctx_display" ]; then
-    cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
     if [ -n "$cost" ]; then
-        # Format cost to 2 decimal places
         cost_formatted=$(printf "%.2f" "$cost" 2>/dev/null || echo "$cost")
         ctx_display="\$${cost_formatted}"
     else
@@ -142,8 +164,8 @@ if [ -z "$ctx_display" ]; then
     fi
 fi
 
-# Git info - try JSON first, fallback to direct git commands
-git_branch=$(echo "$input" | jq -r '.git.branch // empty')
+# Git info - try JSON first, fallback to direct git commands.
+# (git_branch already TSV-batched above in iter-30 input-payload decode.)
 if [ -z "$git_branch" ]; then
     # Fallback: read git directly
     git_branch=$(git branch --show-current 2>/dev/null || echo "no-branch")
@@ -1617,10 +1639,22 @@ if [ -f "$loop_registry" ]; then
         }
     ' "$loop_registry" 2>/dev/null | head -1)
     if [ -n "$loop_match" ] && [ "$loop_match" != "null" ]; then
-        loop_id=$(echo "$loop_match" | jq -r '.loop_id // ""')
-        contract_path=$(echo "$loop_match" | jq -r '.contract_path // ""')
-        state_dir=$(echo "$loop_match" | jq -r '.state_dir // ""' | sed 's:/*$::')
-        owner_sid=$(echo "$loop_match" | jq -r '.owner_session_id // ""')
+        # Perf (iter-30 statusline-loop-match-tsv-batch-decode): pre-iter-30
+        # the statusline spawned FOUR jq processes here — one per field
+        # extracted from $loop_match. Each spawn pays ~7-10ms cold-start on
+        # macOS, so a 4-field decode cost ~30-40ms PER STATUSLINE REFRESH.
+        # The statusline refreshes every few seconds; with autoloop active
+        # this cost compounds across the whole session.
+        #
+        # TSV-batched decode + bash `read` mirrors the iter-25/26 pattern
+        # established in heartbeat-tick.sh's MATCHING_LOOP decode. The
+        # trailing-tab fallback via printf keeps `read` happy if jq dies so
+        # all four vars default to empty strings.
+        IFS=$'\t' read -r loop_id contract_path state_dir_raw owner_sid <<< "$(
+            echo "$loop_match" | jq -r '"\(.loop_id // "")\t\(.contract_path // "")\t\(.state_dir // "")\t\(.owner_session_id // "")"' 2>/dev/null \
+                || printf '\t\t\t'
+        )"
+        state_dir="${state_dir_raw%/}"  # strip trailing slash (was `sed 's:/*$::'`)
 
         # Read contract frontmatter for name + status + iteration
         loop_name=""; loop_status=""; loop_iter=""
@@ -1638,16 +1672,34 @@ if [ -f "$loop_registry" ]; then
         loop_status="${loop_status:-?}"
         loop_iter="${loop_iter:-?}"
 
-        # Heartbeat freshness — last_wake_us age in seconds; cwd-drift flag
+        # Heartbeat freshness — last_wake_us age in seconds; cwd-drift flag.
+        #
+        # Perf (iter-30 statusline-heartbeat-tsv-batch + python3-now-us-replacement):
+        # Pre-iter-30 this block did THREE expensive things:
+        #   1. jq for last_wake_us (~7-10ms)
+        #   2. python3 -c "import time; ..." for now_us (~30-50ms cold start
+        #      on macOS — Python startup is much slower than gdate)
+        #   3. jq for cwd_drift_detected (~7-10ms)
+        # Cumulative: ~45-70ms PER STATUSLINE REFRESH when autoloop is active.
+        #
+        # Iter-30 replaces all three with:
+        #   - 1 TSV-batched jq reading both heartbeat fields at once
+        #   - gdate +%s%6N for now_us (~3ms cold start vs python3's ~30-50ms)
+        # Cumulative: ~10-15ms — a 3-7× speedup on this block.
+        #
+        # Matches the iter-25/26 pattern and the iter-28
+        # python3-now-us-replacement applied to session-bind.sh.
         hb_age="?"
         drift_flag=""
         if [ -n "$state_dir" ] && [ -f "$state_dir/heartbeat.json" ]; then
-            last_us=$(jq -r '.last_wake_us // 0' "$state_dir/heartbeat.json" 2>/dev/null)
-            now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
-            if [ "${last_us:-0}" -gt 0 ]; then
+            IFS=$'\t' read -r last_us drift <<< "$(
+                jq -r '"\(.last_wake_us // 0)\t\(.cwd_drift_detected // false)"' "$state_dir/heartbeat.json" 2>/dev/null \
+                    || printf '0\tfalse'
+            )"
+            now_us=$(gdate +%s%6N 2>/dev/null || python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
+            if [ "${last_us:-0}" -gt 0 ] && [ "${now_us:-0}" -gt 0 ]; then
                 hb_age=$(( (now_us - last_us) / 1000000 ))
             fi
-            drift=$(jq -r '.cwd_drift_detected // false' "$state_dir/heartbeat.json" 2>/dev/null)
             [ "$drift" = "true" ] && drift_flag=" ${RED}⚠ cwd-drift${RESET}"
         fi
 
