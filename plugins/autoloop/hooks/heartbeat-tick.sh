@@ -99,8 +99,16 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$PAYLOAD" ] && PAYLOAD='{}'
 
-SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id // ""' 2>/dev/null || echo "")
-PAYLOAD_CWD=$(echo "$PAYLOAD" | jq -r '.cwd // ""' 2>/dev/null || echo "")
+# Perf (iter-25 hot-path-jq-batching): one jq invocation extracts BOTH fields
+# instead of two sequential spawns. Saves ~50ms cold-start on macOS per call.
+# TSV output decoded by bash `read` builtin (no second subprocess needed).
+# The trailing-tab fallback `printf '\t'` guarantees `read` always sees two
+# columns even when jq fails or PAYLOAD lacks the fields — so SESSION_ID/CWD
+# default to empty strings rather than carrying stale values from the prior tick.
+IFS=$'\t' read -r SESSION_ID PAYLOAD_CWD <<< "$(
+  echo "$PAYLOAD" | jq -r '"\(.session_id // "")\t\(.cwd // "")"' 2>/dev/null \
+    || printf '\t'
+)"
 
 # Back-compat fallback: env var (DEPRECATED — see top-of-file comment)
 if [ -z "$SESSION_ID" ]; then
@@ -182,28 +190,34 @@ if [ -z "$MATCHING_LOOP" ] || [ "$MATCHING_LOOP" = "" ]; then
   exit 0
 fi
 
-# Decode the matching loop from JSON
-MATCHING_LOOP_ID=$(echo "$MATCHING_LOOP" | jq -r '.loop_id' 2>/dev/null) || {
+# Step 5+6: Decode loop_id + ownership + generation in ONE jq invocation.
+#
+# Perf (iter-25 hot-path-jq-batching): the original code spawned 3 separate
+# jq processes here (one per field), each paying a ~50ms cold-start tax on
+# macOS. Batched extraction via TSV reduces to a single spawn. The five
+# fields below are the entire MATCHING_LOOP surface this hook reads — also
+# eagerly grabs state_dir + contract_path so the later Step 7.5 block can
+# skip its two extra spawns.
+#
+# Failure mode: if jq dies (e.g., MATCHING_LOOP isn't valid JSON), the
+# fallback printf yields four tabs → all five vars become empty strings →
+# the OWNER_SESSION_ID check below exits 0 cleanly (no-op tick). Same
+# graceful degradation as the original per-field _log_error path, just
+# without the per-field error message granularity.
+IFS=$'\t' read -r MATCHING_LOOP_ID OWNER_SESSION_ID REGISTRY_GENERATION STATE_DIR CONTRACT_PATH <<< "$(
+  echo "$MATCHING_LOOP" | jq -r '"\(.loop_id // "")\t\(.owner_session_id // "")\t\(.generation // 0)\t\(.state_dir // "")\t\(.contract_path // "")"' 2>/dev/null \
+    || printf '\t\t0\t\t'
+)"
+
+if [ -z "$MATCHING_LOOP_ID" ]; then
   _log_error "Failed to extract loop_id from matching loop" 1
   exit 0
-}
-
-# Step 5: Verify owner_session_id matches CLAUDE_SESSION_ID
-OWNER_SESSION_ID=$(echo "$MATCHING_LOOP" | jq -r '.owner_session_id // ""' 2>/dev/null) || {
-  _log_error "Failed to extract owner_session_id from matching loop" 1
-  exit 0
-}
+fi
 
 if [ "$OWNER_SESSION_ID" != "$SESSION_ID" ]; then
   # Different session owns this loop; no-op (don't tick another session's heartbeat)
   exit 0
 fi
-
-# Step 6: Check generation match
-REGISTRY_GENERATION=$(echo "$MATCHING_LOOP" | jq -r '.generation // 0' 2>/dev/null) || {
-  _log_error "Failed to extract generation from matching loop" 1
-  exit 0
-}
 
 # Read current heartbeat
 HB=$(read_heartbeat "$MATCHING_LOOP_ID" 2>/dev/null || echo "{}") || {
@@ -211,20 +225,20 @@ HB=$(read_heartbeat "$MATCHING_LOOP_ID" 2>/dev/null || echo "{}") || {
   HB="{}"
 }
 
-HB_GENERATION=$(echo "$HB" | jq -r '.generation // 0' 2>/dev/null) || {
-  _log_error "Failed to extract generation from heartbeat" 1
-  exit 0
-}
+# Step 6+7 prep: batch-extract heartbeat fields (generation + iteration) in
+# ONE jq spawn. Perf (iter-25 hot-path-jq-batching): the original code did
+# two separate `jq -r` calls on $HB, each ~50ms cold-start on macOS. The
+# iteration field is consumed below in Step 7's increment.
+IFS=$'\t' read -r HB_GENERATION CURRENT_ITERATION <<< "$(
+  echo "$HB" | jq -r '"\(.generation // 0)\t\(.iteration // 0)"' 2>/dev/null \
+    || printf '0\t0'
+)"
 
 # If generation mismatch: this session has been reclaimed
 if [ "$HB_GENERATION" != "$REGISTRY_GENERATION" ]; then
-  # Write a superseded event to revision-log
-  STATE_DIR=$(echo "$MATCHING_LOOP" | jq -r '.state_dir // ""' 2>/dev/null) || {
-    _log_error "Failed to extract state_dir from matching loop" 1
-    exit 0
-  }
-
-  if [ -d "$STATE_DIR/revision-log" ]; then
+  # Perf (iter-25 hot-path-jq-batching): STATE_DIR already extracted above in
+  # the batched MATCHING_LOOP decode; no extra jq spawn needed here.
+  if [ -n "$STATE_DIR" ] && [ -d "$STATE_DIR/revision-log" ]; then
     SUPERSEDED_FILE="$STATE_DIR/revision-log/superseded-$(date +%s%N).json"
     {
       jq -n \
@@ -240,20 +254,16 @@ if [ "$HB_GENERATION" != "$REGISTRY_GENERATION" ]; then
   exit 0
 fi
 
-# Step 7: Increment iteration and write heartbeat
-CURRENT_ITERATION=$(echo "$HB" | jq -r '.iteration // 0' 2>/dev/null) || {
-  _log_error "Failed to extract iteration from heartbeat" 1
-  exit 0
-}
-
+# Step 7: Increment iteration counter (already decoded by the batched HB jq above).
 NEW_ITERATION=$((CURRENT_ITERATION + 1))
 
 # Step 7.5 (BIND-03 prep): capture bound_cwd from existing heartbeat BEFORE
 # write_heartbeat overwrites the file. write_heartbeat replaces the entire
 # JSON object (no field-level merge), so any drift state we want to preserve
 # across ticks must be re-applied below via jq merge after the rewrite.
-STATE_DIR=$(echo "$MATCHING_LOOP" | jq -r '.state_dir // ""' 2>/dev/null || echo "")
-CONTRACT_PATH=$(echo "$MATCHING_LOOP" | jq -r '.contract_path // ""' 2>/dev/null || echo "")
+#
+# Perf (iter-25 hot-path-jq-batching): STATE_DIR + CONTRACT_PATH already
+# extracted above in the batched MATCHING_LOOP decode; two jq spawns saved.
 HB_FILE="$STATE_DIR/heartbeat.json"
 PRE_BOUND_CWD=""
 if [ -n "$STATE_DIR" ] && [ -f "$HB_FILE" ]; then
