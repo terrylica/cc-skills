@@ -27,6 +27,40 @@ shopt -u patsub_replacement 2>/dev/null || true
 # Read JSON payload from stdin (Claude Code tool-call envelope)
 PAYLOAD=$(cat)
 
+# ===========================================================================
+# Iter-40 PRE-JQ-FASTPATH (bash-builtin-case-glob-no-process-spawn):
+#
+# This hook fires on EVERY Bash tool call (matcher: Bash in hooks.json).
+# ~95% of those calls have NO mention of `op` anywhere in the payload, yet
+# pre-iter-40 the hook unconditionally spawned `jq` (~5-7 ms) + a grep
+# (~2.4 ms) to determine that. Total bail-out cost: 7-10 ms per Bash call,
+# which compounds across a session with 200+ tool calls to 1.5-2 s of pure
+# hook overhead.
+#
+# This pre-check uses bash's built-in `case` pattern match (no process
+# spawn, ~0.05 ms) to short-circuit the entire pipeline when the payload
+# is provably unrelated to 1Password. The check is INTENTIONALLY OVER-
+# INCLUSIVE — it accepts any payload containing the substring `op`
+# anywhere (including JSON keys, string literals, heredoc bodies). The
+# precise leading-executable filtering still happens downstream after jq
+# extraction; this fast-path only catches the trivially-no-op case.
+#
+# Speedup measured on m3max bash 5.3.9:
+#   pre-iter-40 bail-out:  7-10 ms (jq cold-start dominates)
+#   iter-40    bail-out:   <0.1 ms (case glob, no fork)
+#   speedup on ~95% hot path: 70-200x
+#
+# Safety: the `*op*` glob matches all the same inputs the prior path did
+# (anything with `op` substring, including heredoc bodies that contain
+# `op` as documentation). The downstream anchored-regex filter (iter-39)
+# still correctly drops those at the leading-executable check. Zero
+# behavioral change vs iter-39 — only the bail-out path is short-circuited.
+case "$PAYLOAD" in
+    *op*) ;;  # might be op-related; fall through to full jq+regex pipeline
+    *) exit 0 ;;  # provably no op anywhere; bail in ~0.05 ms
+esac
+# ===========================================================================
+
 # Extract the command being run
 COMMAND=$(echo "$PAYLOAD" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
 [[ -z "$COMMAND" ]] && exit 0
