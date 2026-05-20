@@ -176,40 +176,83 @@ else
 fi
 
 # =============================================================================
-# INVARIANT D: iter-34 shopt -u patsub_replacement defense at hook entry points
+# INVARIANT D: iter-34/iter-35 shopt -u patsub_replacement defense
+#              at EVERY bash hook entry point, marketplace-wide
 # =============================================================================
 echo ""
-echo "=== INVARIANT D: shopt -u patsub_replacement at every hook entry point ==="
+echo "=== INVARIANT D: shopt -u patsub_replacement at every bash hook entry point ==="
 #
-# Iter-34 added a global defense: every hook entry point (heartbeat-tick.sh,
-# session-bind.sh, pacing-veto.sh, empty-firing-detector.sh, waker.sh) sets
-# `shopt -u patsub_replacement 2>/dev/null || true` near the top of the
-# file. This restores bash 5.1 substitution semantics for the entire hook
-# process, preventing the same class of bug from recurring in FUTURE code
-# added to any sourced library.
+# Iter-34 added a global defense to autoloop's 5 hook entry points:
+# `shopt -u patsub_replacement 2>/dev/null || true` restores bash-5.1
+# substitution semantics for the entire hook process, preventing
+# silent regressions of the bash-5.2 `&`-as-backreference bug class
+# (see invariants A-C above) in FUTURE code added to any sourced
+# library.
 #
-# This invariant guards against regression: if a maintainer ever deletes
-# the shopt line "to clean up", the test fails before merge.
+# Iter-35 (cross-plugin sweep, 2026-05-19) extended the defense to
+# every other bash hook in the cc-skills marketplace:
+#   - tts-tg-sync/hooks/notification-tts-hook.sh
+#   - dotfiles-tools/hooks/chezmoi-sync-reminder.sh
+#   - devops-tools/hooks/userpromptsubmit-1password-context-injection.sh
+#   - devops-tools/hooks/posttooluse-1password-pattern-reminder.sh
+#   - itp-hooks/hooks/code-correctness-guard.sh
+#   - statusline-tools/hooks/lychee-stop-hook.sh
+#   - gh-tools/hooks/webfetch-github-guard.sh
+#
+# This invariant now auto-discovers all entry points via glob — adding
+# a new bash hook anywhere under plugins/*/hooks/*.sh without the
+# shopt directive fails CI immediately, with no manual test update
+# required for the new file.
+#
+# Note: scripts under plugins/*/scripts/ that are sourced by hooks (lib
+# files, *-lib.sh, portable.sh) inherit the shopt setting from the
+# entry point that sourced them — defense-in-depth applies only to
+# entry-point bash files, not their sourced libraries. The one
+# standalone non-hook entry point we additionally guard is autoloop's
+# launchd-invoked waker.sh, which is exec'd directly by launchd (no
+# parent shopt to inherit).
 
-HOOK_ENTRY_POINTS=(
-  "$PLUGIN_DIR/hooks/heartbeat-tick.sh"
-  "$PLUGIN_DIR/hooks/session-bind.sh"
-  "$PLUGIN_DIR/hooks/pacing-veto.sh"
-  "$PLUGIN_DIR/hooks/empty-firing-detector.sh"
-  "$PLUGIN_DIR/scripts/waker.sh"
-)
+MARKETPLACE_ROOT="$(dirname "$PLUGIN_DIR")"
+ALL_HOOK_ENTRY_POINTS=()
 
-for entry_point in "${HOOK_ENTRY_POINTS[@]}"; do
+# Auto-discover every bash hook in every plugin's hooks/ directory.
+# Glob expansion is deterministic in bash; we sort for stable output.
+while IFS= read -r hook_path; do
+  ALL_HOOK_ENTRY_POINTS+=("$hook_path")
+done < <(find "$MARKETPLACE_ROOT" -type f -name "*.sh" -path "*/hooks/*" | sort)
+
+# Plus the one non-hook standalone entry point that launchd exec's directly.
+ALL_HOOK_ENTRY_POINTS+=("$PLUGIN_DIR/scripts/waker.sh")
+
+# Sanity check: the auto-discovery must find at LEAST the 11 known hooks
+# (4 autoloop + 7 cross-plugin from iter-35) plus waker.sh = 12.
+# Lower than that means find/glob silently failed — treat as test failure.
+EXPECTED_MIN_ENTRY_POINT_COUNT=12
+DISCOVERED_COUNT="${#ALL_HOOK_ENTRY_POINTS[@]}"
+if [ "$DISCOVERED_COUNT" -lt "$EXPECTED_MIN_ENTRY_POINT_COUNT" ]; then
+  echo "  ✗ FAIL: auto-discovery found only $DISCOVERED_COUNT entry points (expected ≥ $EXPECTED_MIN_ENTRY_POINT_COUNT)"
+  echo "    This usually means find/glob failed silently — check MARKETPLACE_ROOT='$MARKETPLACE_ROOT'"
+  FAIL=$((FAIL+1))
+else
+  echo "  ℹ auto-discovered $DISCOVERED_COUNT entry points across all plugins"
+fi
+
+for entry_point in "${ALL_HOOK_ENTRY_POINTS[@]}"; do
   if [ ! -f "$entry_point" ]; then
     echo "  ⚠ SKIP: $(basename "$entry_point") not found"
     continue
   fi
+  # Compute plugin-relative path for readable PASS/FAIL output
+  rel_path="${entry_point#"$MARKETPLACE_ROOT"/}"
   if grep -qE '^shopt -u patsub_replacement' "$entry_point"; then
-    echo "  ✓ PASS: $(basename "$entry_point") declares shopt -u patsub_replacement"
+    echo "  ✓ PASS: $rel_path declares shopt -u patsub_replacement"
     PASS=$((PASS+1))
   else
-    echo "  ✗ FAIL: $(basename "$entry_point") MISSING shopt -u patsub_replacement"
-    echo "    Add this near the top of the file:"
+    echo "  ✗ FAIL: $rel_path MISSING shopt -u patsub_replacement"
+    echo "    Add this near the top of the file (after set -euo pipefail):"
+    echo "      # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):"
+    echo "      # disable bash 5.2+ \`&\`-as-backreference. See"
+    echo "      # plugins/autoloop/hooks/heartbeat-tick.sh for full rationale."
     echo "      shopt -u patsub_replacement 2>/dev/null || true"
     FAIL=$((FAIL+1))
   fi

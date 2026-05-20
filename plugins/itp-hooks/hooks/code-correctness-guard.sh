@@ -21,6 +21,12 @@
 
 set -euo pipefail
 
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+# disable bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}.
+# See plugins/autoloop/hooks/heartbeat-tick.sh for full rationale +
+# upstream sources (bash maintainer + Arch pacman patch).
+shopt -u patsub_replacement 2>/dev/null || true
+
 # Read JSON input from Claude Code
 INPUT=$(cat)
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // ""' 2>/dev/null) || exit 0

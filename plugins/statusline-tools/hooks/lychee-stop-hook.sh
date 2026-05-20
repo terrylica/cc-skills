@@ -28,6 +28,11 @@
 # Use set -u for unbound variable checking, but no -e or pipefail
 set -u
 
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+# disable bash 5.2+ `&`-as-backreference. See
+# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale.
+shopt -u patsub_replacement 2>/dev/null || true
+
 # Verbose error logging for Claude Code
 log_error() {
     :
