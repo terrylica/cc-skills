@@ -8,20 +8,38 @@ KEEP="${KEEP_VERSIONS:-3}"
 
 echo "Pruning cache (keeping last $KEEP versions, current v$CURRENT)..."
 
+# iter-45 SC2045 + ((VAR+=1)) defensive consistency (2026-05-20):
+# - Replaced `for PLUGIN in $(ls -1 "$CACHE_DIR")` with bash native glob
+#   iteration. SC2045 — iterating `ls` output mangles names with whitespace
+#   or shell-special chars. Glob `"$CACHE_DIR"/*/` handles them safely.
+# - Added `|| true` to ((COUNT+=1)) and ((PRUNED+=1)) per the iter-32/36
+#   cross-plugin sweep convention. Both counters start at 0 and only
+#   increment, so the new-value-as-exit-code hazard is dormant here — but
+#   the guard preserves consistency with the marketplace-wide sweep so a
+#   future refactor doesn't silently introduce the bug.
 PRUNED=0
-for PLUGIN in $(ls -1 "$CACHE_DIR" 2>/dev/null); do
-    PLUGIN_DIR="$CACHE_DIR/$PLUGIN"
-    [[ -d "$PLUGIN_DIR" ]] || continue
-    # Sort semver descending; "local" sorts as non-semver and is filtered out below
+for PLUGIN_DIR in "$CACHE_DIR"/*/; do
+    [[ -d "$PLUGIN_DIR" ]] || continue  # handle empty-glob fallback
+    PLUGIN=$(basename "$PLUGIN_DIR")
+    # Sort semver descending; "local" sorts as non-semver and is filtered out below.
+    # shellcheck disable=SC2010
+    # SC2010 false positive: this `ls | grep -E ^semver` is INTENTIONAL —
+    # we need regex-based version filtering, which bash globs cannot
+    # express. Switching to a pure-glob `*.[0-9]*` would match non-semver
+    # patterns. The grep+regex form is the correct tool.
     VERSIONS=$(ls -1 "$PLUGIN_DIR" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+' | sort -rV)
     COUNT=0
     while IFS= read -r VERSION; do
         [[ -z "$VERSION" ]] && continue
-        ((COUNT+=1))
+        ((COUNT+=1)) || true  # iter-45 defensive ((VAR+=N)) guard
         if [[ $COUNT -gt $KEEP && "$VERSION" != "$CURRENT" ]]; then
             echo "  Removing $PLUGIN/$VERSION"
-            rm -rf "$PLUGIN_DIR/$VERSION"
-            ((PRUNED+=1))
+            # iter-45 SC2115 rm-rf-slash safety: ${VAR:?} aborts the script
+            # if PLUGIN_DIR or VERSION is somehow empty (the existing `[ -d ]`
+            # and `[ -z ]` guards SHOULD catch this, but defense-in-depth
+            # for an rm -rf is cheap insurance vs catastrophic data loss).
+            rm -rf "${PLUGIN_DIR:?PLUGIN_DIR_must_be_set}/${VERSION:?VERSION_must_be_set}"
+            ((PRUNED+=1)) || true  # iter-45 defensive ((VAR+=N)) guard
         fi
     done <<< "$VERSIONS"
 done

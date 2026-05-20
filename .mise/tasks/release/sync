@@ -83,13 +83,17 @@ for plugin_source in "$MARKETPLACE_DIR/plugins"/*/; do
     [[ -d "$plugin_source" ]] || continue
     plugin_name=$(basename "$plugin_source")
     plugin_target="$CACHE_DIR/$plugin_name/$VERSION"
-    # Replace just this version's dir (idempotent re-runs of sync)
-    rm -rf "$plugin_target"
+    # Replace just this version's dir (idempotent re-runs of sync).
+    # iter-45 SC2115 rm-rf-slash safety: ${VAR:?} aborts the script if
+    # CACHE_DIR, plugin_name, or VERSION is somehow empty. Catastrophic
+    # data-loss insurance for the release pipeline's most sensitive site
+    # (this rm runs every release on every plugin's cache directory).
+    rm -rf "${CACHE_DIR:?CACHE_DIR_must_be_set}/${plugin_name:?plugin_name_must_be_set}/${VERSION:?VERSION_must_be_set}"
     mkdir -p "$plugin_target"
     [[ -d "$plugin_source/skills" ]] && cp -r "$plugin_source/skills" "$plugin_target/"
     [[ -d "$plugin_source/hooks" ]] && cp -r "$plugin_source/hooks" "$plugin_target/"
     [[ -f "$plugin_source/plugin.json" ]] && cp "$plugin_source/plugin.json" "$plugin_target/"
-    ((CACHE_COUNT+=1))
+    ((CACHE_COUNT+=1)) || true  # iter-45 defensive ((VAR+=N)) guard
 done
 echo "  ✓ Cache populated: $CACHE_COUNT plugin(s) at v$VERSION (older versions preserved)"
 
