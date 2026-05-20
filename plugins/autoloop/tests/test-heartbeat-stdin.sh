@@ -18,6 +18,10 @@ mkdir -p "$HOME/.claude/loops"
 export CLAUDE_LOOPS_REGISTRY="$HOME/.claude/loops/registry.json"
 export PROVENANCE_GLOBAL_DIR="$HOME/.claude/loops"
 export PROVENANCE_GLOBAL_FILE="$PROVENANCE_GLOBAL_DIR/global-provenance.jsonl"
+# Iter-27: disable tool-burst-tick-deduplication throttle (test 2 validates
+# cwd-drift via a second tick fired immediately after the first — that
+# second tick is exactly what the throttle is designed to skip).
+export AUTOLOOP_TICK_DEDUP_INTERVAL_US=0
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 PASS=0

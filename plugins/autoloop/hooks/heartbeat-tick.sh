@@ -26,6 +26,33 @@ LOOPS_DIR="${HOME}/.claude/loops"
 REGISTRY_PATH="${CLAUDE_LOOPS_REGISTRY:-$LOOPS_DIR/registry.json}"
 HOOK_ERRORS_LOG="$LOOPS_DIR/.hook-errors.log"
 
+# ===== Iter-27: tool-burst-tick-deduplication throttle =====
+#
+# Why this exists: Claude Code fires PostToolUse on EVERY tool invocation. A
+# single user message can produce a burst of 5-20 tool calls (read+grep+edit
+# flurries) in tens of milliseconds. Pre-iter-27 each tool call paid the full
+# 130-165ms heartbeat-tick cost, so a 10-tool burst stacked ~1.5 SECONDS of
+# hook latency in front of the user's response.
+#
+# The throttle: when a tick fires within $AUTOLOOP_TICK_DEDUP_INTERVAL_US of
+# the previous successful tick (default 500_000 μs = 500ms), skip the entire
+# heavy hot path. The skipped tick costs ~5ms (one gdate + one cat + bash
+# arithmetic) instead of 130-165ms — a ~26× speedup on bursty workloads.
+#
+# Correctness: stuck-loop detection relies on heartbeat.last_wake_us
+# freshness. With a 500ms throttle the worst-case staleness latency increases
+# by ≤500ms — well within the 3×-expected_cadence reclaim threshold (the
+# tightest cadence is "continuous", which is interpreted as >60s). The
+# throttle is therefore semantically invisible to consumers.
+#
+# Tunable via env var (set to 0 to disable):
+AUTOLOOP_TICK_DEDUP_INTERVAL_US="${AUTOLOOP_TICK_DEDUP_INTERVAL_US:-500000}"
+
+# Throttle file lives in $TMPDIR/autoloop-tick-dedup-<session_id>.us. Keyed by
+# session_id so distinct Claude Code sessions don't interfere. Auto-cleaned
+# by the OS's tmp-reaper (no manual cleanup needed).
+AUTOLOOP_TICK_DEDUP_DIR="${AUTOLOOP_TICK_DEDUP_DIR:-${TMPDIR:-/tmp}/autoloop-tick-dedup}"
+
 # ===== Error handling: log and exit gracefully =====
 _log_error() {
   local cwd
@@ -51,6 +78,75 @@ _log_error() {
 }
 
 trap '_log_error "Unexpected error in heartbeat-tick hook" "$?"' ERR
+
+# =============================================================================
+# FAST PATH: tool-burst-tick-deduplication throttle gate (runs BEFORE lib sourcing)
+# =============================================================================
+# Why this block is ABOVE the library `source` statements:
+#   Sourcing registry-lib.sh + state-lib.sh + provenance-lib.sh costs ~10-15ms
+#   on macOS even when no functions are invoked (bash has to parse each file).
+#   When the throttle skips a tick we don't need any of those libraries — the
+#   skip decision only needs gdate + cat + bash builtins. Running the gate
+#   above the sources keeps the fast-path latency under ~12ms instead of ~25ms.
+#
+# What can fail before this gate without losing forensic logs:
+#   The ERR trap above already wraps everything up to _log_error, so if a
+#   regex match itself errors (highly unlikely under set -e but possible
+#   if PAYLOAD contains weird unicode that breaks the regex engine), the
+#   error is logged before exit.
+
+# Step 1: Read stdin JSON payload (modern Claude Code hook contract).
+# Use a bounded read to avoid blocking when stdin is closed.
+PAYLOAD=""
+if [ ! -t 0 ]; then
+  PAYLOAD=$(cat 2>/dev/null || echo "")
+fi
+[ -z "$PAYLOAD" ] && PAYLOAD='{}'
+
+# Step 1a (iter-27 tool-burst-tick-deduplication fast-path session-id extract):
+# Pre-iter-27 the PAYLOAD jq spawn was the very first work this hook did,
+# even when the entire tick would be deduplicated by the throttle below. By
+# extracting session_id with a pure-bash regex first (BASH_REMATCH, zero
+# subprocess spawns), the throttle gate can fire BEFORE jq starts. If the
+# regex misses (malformed JSON, no session_id), we fall through to the jq
+# decode below — so correctness is preserved.
+SESSION_ID_FAST=""
+PAYLOAD_CWD_FAST=""
+if [[ "$PAYLOAD" =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]]; then
+  SESSION_ID_FAST="${BASH_REMATCH[1]}"
+fi
+if [[ "$PAYLOAD" =~ \"cwd\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]]; then
+  PAYLOAD_CWD_FAST="${BASH_REMATCH[1]}"
+fi
+# env-var fallback for session_id (legacy contract; see top-of-file comment)
+[ -z "$SESSION_ID_FAST" ] && SESSION_ID_FAST="${CLAUDE_SESSION_ID:-}"
+
+# Step 1b (iter-27 throttle gate): if last successful tick fired less than
+# $AUTOLOOP_TICK_DEDUP_INTERVAL_US microseconds ago, exit immediately. Zero
+# jq spawns on this path — just one gdate + one `cat` of a tiny tmp file.
+# Setting AUTOLOOP_TICK_DEDUP_INTERVAL_US=0 disables the throttle entirely
+# (useful for tests that need deterministic per-tick semantics).
+if [ -n "$SESSION_ID_FAST" ] \
+   && [ "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" -gt 0 ] 2>/dev/null \
+   && command -v gdate >/dev/null 2>&1; then
+  _hbt_throttle_file="$AUTOLOOP_TICK_DEDUP_DIR/$SESSION_ID_FAST.us"
+  if [ -f "$_hbt_throttle_file" ]; then
+    _hbt_now_us=$(gdate +%s%6N 2>/dev/null || echo 0)
+    _hbt_last_us=$(cat "$_hbt_throttle_file" 2>/dev/null || echo 0)
+    if [ "$_hbt_now_us" -gt 0 ] 2>/dev/null && [ "$_hbt_last_us" -gt 0 ] 2>/dev/null; then
+      _hbt_elapsed_us=$((_hbt_now_us - _hbt_last_us))
+      if [ "$_hbt_elapsed_us" -ge 0 ] && [ "$_hbt_elapsed_us" -lt "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" ]; then
+        # Throttle hit — Claude Code tool burst is mid-flight. Skip the tick.
+        # Exits BEFORE library sourcing → ~12ms instead of ~25ms.
+        exit 0
+      fi
+    fi
+  fi
+fi
+
+# =============================================================================
+# SLOW PATH: throttle expired (or disabled). Now source the libraries.
+# =============================================================================
 
 # ===== Source library functions =====
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -90,25 +186,25 @@ export _PROV_AGENT="heartbeat-tick.sh"
 
 # ===== Main logic =====
 
-# Step 1: Read stdin JSON payload (modern Claude Code hook contract)
-# Use a bounded read to avoid blocking when stdin is closed (no Claude Code present).
-PAYLOAD=""
-if [ ! -t 0 ]; then
-  # stdin is connected to something (pipe/file). Read it.
-  PAYLOAD=$(cat 2>/dev/null || echo "")
-fi
-[ -z "$PAYLOAD" ] && PAYLOAD='{}'
-
 # Perf (iter-25 hot-path-jq-batching): one jq invocation extracts BOTH fields
 # instead of two sequential spawns. Saves ~50ms cold-start on macOS per call.
 # TSV output decoded by bash `read` builtin (no second subprocess needed).
 # The trailing-tab fallback `printf '\t'` guarantees `read` always sees two
 # columns even when jq fails or PAYLOAD lacks the fields — so SESSION_ID/CWD
 # default to empty strings rather than carrying stale values from the prior tick.
-IFS=$'\t' read -r SESSION_ID PAYLOAD_CWD <<< "$(
-  echo "$PAYLOAD" | jq -r '"\(.session_id // "")\t\(.cwd // "")"' 2>/dev/null \
-    || printf '\t'
-)"
+#
+# Perf (iter-27 jq-skip-if-regex-already-extracted): if the iter-27 bash
+# regex above already extracted both fields, don't spawn jq at all. Falls
+# back to jq only when the regex missed (malformed JSON, unexpected shape).
+if [ -n "$SESSION_ID_FAST" ] && [ -n "$PAYLOAD_CWD_FAST" ]; then
+  SESSION_ID="$SESSION_ID_FAST"
+  PAYLOAD_CWD="$PAYLOAD_CWD_FAST"
+else
+  IFS=$'\t' read -r SESSION_ID PAYLOAD_CWD <<< "$(
+    echo "$PAYLOAD" | jq -r '"\(.session_id // "")\t\(.cwd // "")"' 2>/dev/null \
+      || printf '\t'
+  )"
+fi
 
 # Back-compat fallback: env var (DEPRECATED — see top-of-file comment)
 if [ -z "$SESSION_ID" ]; then
@@ -369,6 +465,19 @@ if [ -n "$STATE_DIR" ] && [ -f "$HB_FILE" ] && [ -n "$CONTRACT_PATH" ]; then
         fi
         ;;
     esac
+  fi
+fi
+
+# Iter-27 tool-burst-tick-deduplication: record this successful tick's
+# timestamp so the throttle gate above can skip near-future bursts. Written
+# AFTER write_heartbeat succeeds (a failed tick shouldn't burn its throttle
+# window — the next call should still attempt the work).
+if [ -n "$SESSION_ID" ] && [ "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" -gt 0 ] 2>/dev/null \
+   && command -v gdate >/dev/null 2>&1; then
+  mkdir -p "$AUTOLOOP_TICK_DEDUP_DIR" 2>/dev/null || true
+  _hbt_now_us_end=$(gdate +%s%6N 2>/dev/null || echo "")
+  if [ -n "$_hbt_now_us_end" ]; then
+    echo "$_hbt_now_us_end" > "$AUTOLOOP_TICK_DEDUP_DIR/$SESSION_ID.us" 2>/dev/null || true
   fi
 fi
 
