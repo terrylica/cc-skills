@@ -1,3 +1,18 @@
+# [21.9.0](https://github.com/terrylica/cc-skills/compare/v21.8.3...v21.9.0) (2026-05-20)
+
+
+### Bug Fixes
+
+* **marketplace-wide:** iter-53 close out the final residual shellcheck warnings — marketplace is now ZERO shellcheck warnings (after iter-52 worktree cleanup unmasked the real count) ([169d142](https://github.com/terrylica/cc-skills/commit/169d14245b987c4b5d021bde712ae1811259720a)), closes [hi#impact](https://github.com/hi/issues/impact)
+
+
+### Features
+
+* **release:** iter-51 wire marketplace hook regression test runner into release:preflight gate — failing test BLOCKS tag publish ([bd389b1](https://github.com/terrylica/cc-skills/commit/bd389b14d3a29fc151d6c326c76fbabea8857741))
+* **tooling:** iter-50 mise task to auto-discover and run marketplace-wide hook regression tests via single command — `mise run test-marketplace-hook-regression-suite` ([eedaf91](https://github.com/terrylica/cc-skills/commit/eedaf91c7ffd5d7f9c501de6fd689d032ef7c52d))
+* **tooling:** iter-52 reproducible audit task for stale historical agent worktrees (4.3 GB reclaimed from this session's cleanup) ([9fce4f6](https://github.com/terrylica/cc-skills/commit/9fce4f6aff3dc79d8c3ba8a20177f1bff69ef84f))
+* **tooling:** iter-54 improve test-marketplace-hook-regression-suite failure-mode UX — capture per-test output to temp file, show FULL output on fail, compact 3-line summary on pass ([3b61723](https://github.com/terrylica/cc-skills/commit/3b61723d22de321b52bfe88019f7dcd49664b443))
+
 ## [21.8.3](https://github.com/terrylica/cc-skills/compare/v21.8.2...v21.8.3) (2026-05-20)
 
 
