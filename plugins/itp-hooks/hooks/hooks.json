@@ -169,8 +169,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
-            "timeout": 5000
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-parquet-duckdb-nudge.ts",
+            "timeout": 5000,
+            "description": "Nudge toward DuckDB for Parquet content analysis (soft, warn+allow)"
           }
         ]
       },
@@ -179,9 +180,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-parquet-duckdb-nudge.ts",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5000,
-            "description": "Nudge toward DuckDB for Parquet content analysis (soft, warn+allow)"
+            "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection — MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"
           }
         ]
       }
