@@ -52,7 +52,13 @@ echo "  ✓ Plugins validated"
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
 for f in plugins/*/skills/*/SKILL.md; do
-    SKILL_NAME=$(echo "$f" | sed 's|plugins/\(.*\)/skills/\(.*\)/SKILL.md|\1:\2|')
+    # Bash parameter expansion replaces former sed subshell (iter-71 SC2001
+    # fix): plugins/X/skills/Y/SKILL.md → X:Y in 3 steps without spawning
+    # a subprocess. Same semantics as the sed regex, faster (no fork/exec),
+    # and eliminates the shellcheck SC2001 style hint.
+    SKILL_PATH_BUFFER="${f#plugins/}"           # strip "plugins/" prefix → "X/skills/Y/SKILL.md"
+    SKILL_PATH_BUFFER="${SKILL_PATH_BUFFER%/SKILL.md}"  # strip "/SKILL.md" suffix → "X/skills/Y"
+    SKILL_NAME="${SKILL_PATH_BUFFER/\/skills\//:}"      # replace "/skills/" with ":" → "X:Y"
     # Top check: Self-Evolving or Self-Evolution in first 25 lines of body
     BODY_TOP=$(awk '/^---$/{n++; next} n>=2' "$f" | head -25 || true)
     if ! grep -qi "self-evolv" <<< "$BODY_TOP"; then
