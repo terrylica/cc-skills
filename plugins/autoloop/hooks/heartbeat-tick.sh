@@ -27,6 +27,23 @@
 
 set -euo pipefail
 
+# Iter-34 bash-5.2-patsub-replacement-defense:
+# Disable bash 5.2+'s `patsub_replacement` shell option so that `&` in
+# the REPLACEMENT field of ${VAR//PATTERN/REPLACEMENT} stays LITERAL
+# instead of expanding to "the matched pattern text". Bash 5.2 (Sept 2022)
+# enabled this sed-style backreference BY DEFAULT, silently breaking any
+# script that puts `&` in a substitution replacement — including XML-
+# escaped strings like `&amp;`, JSON-escaped strings like `\&`, query
+# strings, and URL fragments. The iter-33 plist-amp-backreference fix
+# patched the two known sites in launchd-lib.sh; this directive prevents
+# the entire class of bug from recurring in FUTURE code added to any
+# library this hook sources (registry-lib.sh, state-lib.sh, provenance-
+# lib.sh, hook-install-lib.sh). Source: bash maintainer + Arch Linux
+# pacman patch (Dec 2022) both recommend this as the upstream-blessed
+# workaround. `|| true` makes it a graceful no-op on bash <5.2 where the
+# option doesn't exist.
+shopt -u patsub_replacement 2>/dev/null || true
+
 # ===== Configuration =====
 LOOPS_DIR="${HOME}/.claude/loops"
 REGISTRY_PATH="${CLAUDE_LOOPS_REGISTRY:-$LOOPS_DIR/registry.json}"

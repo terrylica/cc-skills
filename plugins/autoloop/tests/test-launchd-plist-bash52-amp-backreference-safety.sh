@@ -176,6 +176,46 @@ else
 fi
 
 # =============================================================================
+# INVARIANT D: iter-34 shopt -u patsub_replacement defense at hook entry points
+# =============================================================================
+echo ""
+echo "=== INVARIANT D: shopt -u patsub_replacement at every hook entry point ==="
+#
+# Iter-34 added a global defense: every hook entry point (heartbeat-tick.sh,
+# session-bind.sh, pacing-veto.sh, empty-firing-detector.sh, waker.sh) sets
+# `shopt -u patsub_replacement 2>/dev/null || true` near the top of the
+# file. This restores bash 5.1 substitution semantics for the entire hook
+# process, preventing the same class of bug from recurring in FUTURE code
+# added to any sourced library.
+#
+# This invariant guards against regression: if a maintainer ever deletes
+# the shopt line "to clean up", the test fails before merge.
+
+HOOK_ENTRY_POINTS=(
+  "$PLUGIN_DIR/hooks/heartbeat-tick.sh"
+  "$PLUGIN_DIR/hooks/session-bind.sh"
+  "$PLUGIN_DIR/hooks/pacing-veto.sh"
+  "$PLUGIN_DIR/hooks/empty-firing-detector.sh"
+  "$PLUGIN_DIR/scripts/waker.sh"
+)
+
+for entry_point in "${HOOK_ENTRY_POINTS[@]}"; do
+  if [ ! -f "$entry_point" ]; then
+    echo "  ⚠ SKIP: $(basename "$entry_point") not found"
+    continue
+  fi
+  if grep -qE '^shopt -u patsub_replacement' "$entry_point"; then
+    echo "  ✓ PASS: $(basename "$entry_point") declares shopt -u patsub_replacement"
+    PASS=$((PASS+1))
+  else
+    echo "  ✗ FAIL: $(basename "$entry_point") MISSING shopt -u patsub_replacement"
+    echo "    Add this near the top of the file:"
+    echo "      shopt -u patsub_replacement 2>/dev/null || true"
+    FAIL=$((FAIL+1))
+  fi
+done
+
+# =============================================================================
 # Summary
 # =============================================================================
 echo ""
