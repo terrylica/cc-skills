@@ -39,25 +39,25 @@ run_test() {
     if echo "$result" | grep -q "permissionDecision.*deny"; then
       if echo "$result" | grep -q "$expected_pattern"; then
         echo -e "${GREEN}PASSED${NC}"
-        ((passed++))
+        ((passed++)) || true  # iter-36: ((VAR++)) returns OLD value 0 → set -e exits silently on first test
       else
         echo -e "${RED}FAILED${NC} (expected pattern not found: $expected_pattern)"
         echo "Got: $result"
-        ((failed++))
+        ((failed++)) || true  # iter-36: same ((VAR++)) gotcha
       fi
     else
       echo -e "${RED}FAILED${NC} (expected block but allowed)"
       echo "Got: $result"
-      ((failed++))
+      ((failed++)) || true  # iter-36
     fi
   else
     if echo "$result" | grep -q "permissionDecision.*deny"; then
       echo -e "${RED}FAILED${NC} (expected allow but blocked)"
       echo "Got: $result"
-      ((failed++))
+      ((failed++)) || true  # iter-36
     else
       echo -e "${GREEN}PASSED${NC}"
-      ((passed++))
+      ((passed++)) || true  # iter-36
     fi
   fi
 }
