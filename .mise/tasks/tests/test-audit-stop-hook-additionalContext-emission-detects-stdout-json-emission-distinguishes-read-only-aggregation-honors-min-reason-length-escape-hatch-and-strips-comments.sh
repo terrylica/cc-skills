@@ -16,24 +16,35 @@
 #   detection, false-positive on comments, or miss the OK-marker
 #   escape-hatch min-length enforcement.
 #
-# Coverage matrix (6 synthetic Stop-hook fixtures → 11 assertions):
+# Coverage matrix (8 synthetic event-terminal-hook fixtures → 16 assertions):
 #
-#   # | Fixture                                              | Classification          | Mechanism
-#   --|------------------------------------------------------|-------------------------|------------------------------
-#   01| Clean Stop hook (no additionalContext anywhere)     | CLEAN                   | grep finds no token
-#   02| Emits {additionalContext: "x"} via console.log       | EMISSION-VIOLATION      | grep finds token in code
-#   03| Only contains additionalContext in JSDoc comments    | CLEAN                   | comment-stripper removes it
-#   04| References additionalContext WITH valid OK marker    | WITH-OK-MARKER          | ≥10-char OK reason honored
-#   05| References additionalContext WITH too-short marker   | EMISSION-VIOLATION      | OK reason too short, rejected
-#   06| Orchestrator pattern: reads parsed.additionalContext | EMISSION-VIOLATION (no  | grep finds token in
-#      |   without OK marker (legitimate read-only use)     |   OK marker required)   |   non-comment code
+#   # | Fixture                                                   | Event type     | Classification          | Mechanism
+#   --|-----------------------------------------------------------|----------------|-------------------------|------------------------------
+#   01| Clean Stop hook (no additionalContext anywhere)          | Stop           | CLEAN                   | grep finds no token
+#   02| Emits {additionalContext: "x"} via console.log            | Stop           | EMISSION-VIOLATION      | grep finds token in code
+#   03| Only contains additionalContext in JSDoc comments         | Stop           | CLEAN                   | comment-stripper removes it
+#   04| References additionalContext WITH valid OK marker         | Stop           | WITH-OK-MARKER          | ≥10-char OK reason honored
+#   05| References additionalContext WITH too-short marker        | Stop           | EMISSION-VIOLATION      | OK reason too short, rejected
+#   06| Orchestrator pattern: reads parsed.additionalContext      | Stop           | EMISSION-VIOLATION      | grep finds token in
+#      |   without OK marker (legitimate read-only use)          |                | (no OK marker required) | non-comment code
+#   07| SubagentStop emits {additionalContext: "x"}               | SubagentStop   | EMISSION-VIOLATION      | iter-68 scope expansion catches
+#      |   (iter-68 expansion)                                    |                |                         | same-schema-as-Stop violation
+#   08| SessionEnd emits {additionalContext: "x"}                 | SessionEnd     | EMISSION-VIOLATION      | iter-68 scope expansion catches
+#      |   (iter-68 expansion — different schema rule:           |                |                         | empty-output-schema violation;
+#      |    SessionEndOK returns EMPTY output, no fields read)   |                |                         | diagnostic differentiated
 #
 # Plus assertions for:
-#   - Summary counts (CLEAN + WITH-OK-MARKER + EMISSION-VIOLATION)
-#   - Exit code (1 because fixtures #2, #5, #6 produce violations)
-#   - Per-fixture violation tag presence
+#   - Summary counts (CLEAN=2 + WITH-OK-MARKER=1 + EMISSION-VIOLATION=5; Total=8)
+#   - Per-event-type breakdown (iter-68 feature: Stop 6/3 + SubagentStop 1/1
+#     + SessionEnd 1/1 — verifies the audit attributes scans+violations
+#     correctly per event type)
+#   - SessionEnd-specific schema diagnostic mentions "SessionEndOK returns
+#     EMPTY output" (NOT the {decision, reason} rule that applies to
+#     Stop/SubagentStop) — verifies the case-statement schema branch works
+#   - Exit code (1 because fixtures #2, #5, #6, #7, #8 produce violations)
+#   - Per-fixture violation tag presence (#02, #04, #05, #06, #07, #08)
 #   - Diagnostic content (mentions iter-66 + GitHub #19115)
-#   - Clean-state re-run (remove violation fixtures, expect exit 0)
+#   - Clean-state re-run (remove all 5 violation fixtures, expect exit 0)
 #
 # Verbose filename encodes: WHAT (Stop-hook additionalContext audit),
 # WHICH detections (stdout emission), WHICH classifications (read-only
@@ -61,9 +72,12 @@ FAIL=0
 assert_pass() { echo "  ✓ PASS: $1"; PASS=$((PASS+1)); }
 assert_fail() { echo "  ✗ FAIL: $1"; FAIL=$((FAIL+1)); }
 
-# Helper: create a fixture plugin with a registered Stop hook + source content.
-create_stop_hook_fixture_plugin() {
-  local plugin_name="$1" source_filename="$2" source_content="$3"
+# Helper: create a fixture plugin with a registered event-terminal hook
+# + source content. Event type defaults to "Stop" for backward compat with
+# iter-67 fixtures (#01-#06); iter-68 fixtures (#07-#08) pass "SubagentStop"
+# or "SessionEnd" to exercise the expanded scope.
+create_event_terminal_hook_fixture_plugin() {
+  local plugin_name="$1" source_filename="$2" source_content="$3" event_type="${4:-Stop}"
   local hooks_dir="$FIXTURE_FLEET_ROOT/plugins/$plugin_name/hooks"
   mkdir -p "$hooks_dir"
   printf '%s\n' "$source_content" > "$hooks_dir/$source_filename"
@@ -71,7 +85,7 @@ create_stop_hook_fixture_plugin() {
   # SC2016 intentional: ${CLAUDE_PLUGIN_ROOT} must reach hooks.json literally.
   printf '%s\n' '{
   "hooks": {
-    "Stop": [{
+    "'"$event_type"'": [{
       "hooks": [{
         "type": "command",
         "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/'"$source_filename"'"
@@ -79,6 +93,13 @@ create_stop_hook_fixture_plugin() {
     }]
   }
 }' > "$hooks_dir/hooks.json"
+}
+
+# Backward-compatible alias for iter-67 fixtures (#01-#06) — they all use
+# event_type "Stop" implicitly. Keeping the historical name avoids touching
+# every existing fixture call site.
+create_stop_hook_fixture_plugin() {
+  create_event_terminal_hook_fixture_plugin "$1" "$2" "$3" "Stop"
 }
 
 # ---------------------------------------------------------------------------
@@ -137,7 +158,36 @@ if (parsed.additionalContext) {
 console.log("{}");'
 
 # ---------------------------------------------------------------------------
-# Run audit (expect exit 1 due to fixtures #2, #5, #6)
+# Iter-68 expansion fixtures: SubagentStop + SessionEnd silent-drop coverage
+# ---------------------------------------------------------------------------
+# Iter-67 scanned only Stop hooks. Iter-68 extended scope to the full
+# "additionalContext-silently-dropped" event-type trinity. Fixtures #07-#08
+# prove the expansion actually catches violations on the new event types
+# AND that the per-event-type breakdown attributes each violation correctly.
+
+# #07 EMISSION-VIOLATION (SubagentStop): SubagentStop hook emitting
+# additionalContext. Schema rule is the same as Stop (only {decision,
+# reason} read), so this should be flagged with a Stop-family diagnostic.
+create_event_terminal_hook_fixture_plugin "fixture07-subagentstop-hook-emits-additionalContext-violation" "subagentstop-violation.ts" \
+'#!/usr/bin/env bun
+// SubagentStop schema is same as Stop — additionalContext silently dropped.
+console.log(JSON.stringify({additionalContext: "subagent summary never reaches Claude"}));' \
+"SubagentStop"
+
+# #08 EMISSION-VIOLATION (SessionEnd): SessionEnd hook emitting
+# additionalContext. Schema rule is DIFFERENT — SessionEnd has empty
+# output (per Go type defs in CorridorSecurity/hookshot). Audit should
+# emit a SessionEnd-specific diagnostic mentioning the empty-output rule.
+create_event_terminal_hook_fixture_plugin "fixture08-sessionend-hook-emits-additionalContext-violation" "sessionend-violation.ts" \
+'#!/usr/bin/env bun
+// SessionEnd schema reads NOTHING — session is terminating, nothing
+// can be injected. Any output field, including additionalContext, is
+// silently dropped.
+console.log(JSON.stringify({additionalContext: "end-of-session summary never reaches anyone"}));' \
+"SessionEnd"
+
+# ---------------------------------------------------------------------------
+# Run audit (expect exit 1 due to fixtures #02, #05, #06, #07, #08 = 5)
 # ---------------------------------------------------------------------------
 echo ""
 echo "=== Running audit against synthetic fixture fleet (expect exit 1) ==="
@@ -158,34 +208,38 @@ clean_count=$(echo "$AUDIT_OUTPUT" | grep -oE 'CLEAN \(no additionalContext in c
 with_ok_count=$(echo "$AUDIT_OUTPUT" | grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1)
 violation_count=$(echo "$AUDIT_OUTPUT" | grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1)
 
-# Expected: 6 total, 2 clean (#1, #3), 1 with-ok (#4), 3 violations (#2, #5, #6)
-if [ "$total_scanned" = "6" ]; then
-  assert_pass "Total scanned = 6 (one fixture per scenario)"
+# Expected (iter-67 fixtures #01-#06 + iter-68 fixtures #07-#08):
+#   - Total scanned: 8  (6 Stop + 1 SubagentStop + 1 SessionEnd)
+#   - CLEAN:         2  (Stop fixtures #01, #03)
+#   - WITH-OK-MARKER: 1  (Stop fixture #04)
+#   - EMISSION-VIOLATION: 5  (Stop #02 #05 #06 + SubagentStop #07 + SessionEnd #08)
+if [ "$total_scanned" = "8" ]; then
+  assert_pass "Total scanned = 8 (6 Stop + 1 SubagentStop + 1 SessionEnd)"
 else
-  assert_fail "Total scanned = $total_scanned, expected 6"
+  assert_fail "Total scanned = $total_scanned, expected 8"
 fi
 
 if [ "$clean_count" = "2" ]; then
-  assert_pass "CLEAN count = 2 (fixtures #01 + #03)"
+  assert_pass "CLEAN count = 2 (Stop fixtures #01 + #03)"
 else
   assert_fail "CLEAN count = $clean_count, expected 2"
 fi
 
 if [ "$with_ok_count" = "1" ]; then
-  assert_pass "WITH-OK-MARKER count = 1 (fixture #04)"
+  assert_pass "WITH-OK-MARKER count = 1 (Stop fixture #04)"
 else
   assert_fail "WITH-OK-MARKER count = $with_ok_count, expected 1"
 fi
 
-if [ "$violation_count" = "3" ]; then
-  assert_pass "EMISSION-VIOLATION count = 3 (fixtures #02, #05, #06)"
+if [ "$violation_count" = "5" ]; then
+  assert_pass "EMISSION-VIOLATION count = 5 (Stop #02 #05 #06 + SubagentStop #07 + SessionEnd #08)"
 else
-  assert_fail "EMISSION-VIOLATION count = $violation_count, expected 3"
+  assert_fail "EMISSION-VIOLATION count = $violation_count, expected 5"
 fi
 
-# Per-fixture marker assertions
+# Per-fixture marker assertions (iter-67 set)
 if echo "$AUDIT_OUTPUT" | grep -q 'fixture02-stop-hook-emits-additionalContext-violation'; then
-  assert_pass "Fixture #02 (literal emission) reported in violation diagnostic"
+  assert_pass "Fixture #02 (literal Stop emission) reported in violation diagnostic"
 else
   assert_fail "Fixture #02 missing from violation diagnostic"
 fi
@@ -206,6 +260,47 @@ if echo "$AUDIT_OUTPUT" | grep -q 'fixture06-stop-hook-orchestrator-style-but-no
   assert_pass "Fixture #06 (orchestrator-style WITHOUT marker) correctly flagged — marker is required"
 else
   assert_fail "Fixture #06 missing — audit should require OK marker even for read-only patterns"
+fi
+
+# Iter-68 expansion assertions: SubagentStop + SessionEnd coverage
+if echo "$AUDIT_OUTPUT" | grep -q '(SubagentStop).*fixture07-subagentstop-hook-emits-additionalContext-violation'; then
+  assert_pass "Fixture #07 (SubagentStop emission) reported WITH SubagentStop event-type tag — iter-68 scope expansion working"
+else
+  assert_fail "Fixture #07 missing or missing (SubagentStop) tag — iter-68 scope expansion to SubagentStop FAILED"
+fi
+
+if echo "$AUDIT_OUTPUT" | grep -q '(SessionEnd).*fixture08-sessionend-hook-emits-additionalContext-violation'; then
+  assert_pass "Fixture #08 (SessionEnd emission) reported WITH SessionEnd event-type tag — iter-68 scope expansion working"
+else
+  assert_fail "Fixture #08 missing or missing (SessionEnd) tag — iter-68 scope expansion to SessionEnd FAILED"
+fi
+
+# Per-event-type breakdown assertions (iter-68 summary feature)
+if echo "$AUDIT_OUTPUT" | grep -qE 'Stop:[[:space:]]+6 scanned / 3 violations'; then
+  assert_pass "Per-event-type breakdown shows Stop: 6 scanned / 3 violations"
+else
+  assert_fail "Per-event-type breakdown for Stop missing or wrong counts"
+fi
+
+if echo "$AUDIT_OUTPUT" | grep -qE 'SubagentStop:[[:space:]]+1 scanned / 1 violations'; then
+  assert_pass "Per-event-type breakdown shows SubagentStop: 1 scanned / 1 violations"
+else
+  assert_fail "Per-event-type breakdown for SubagentStop missing or wrong counts"
+fi
+
+if echo "$AUDIT_OUTPUT" | grep -qE 'SessionEnd:[[:space:]]+1 scanned / 1 violations'; then
+  assert_pass "Per-event-type breakdown shows SessionEnd: 1 scanned / 1 violations"
+else
+  assert_fail "Per-event-type breakdown for SessionEnd missing or wrong counts"
+fi
+
+# SessionEnd-specific schema diagnostic — verifies the case statement
+# in the violation accumulator emits the empty-output rule (NOT the
+# {decision, reason} rule which applies to Stop/SubagentStop only).
+if echo "$AUDIT_OUTPUT" | grep -q 'SessionEndOK returns EMPTY output'; then
+  assert_pass "SessionEnd violation diagnostic mentions empty-output schema rule (NOT {decision, reason}) — iter-68 per-event-type diagnostic correctly differentiates"
+else
+  assert_fail "SessionEnd diagnostic missing 'SessionEndOK returns EMPTY output' phrase — case-statement schema differentiation failed"
 fi
 
 # ---------------------------------------------------------------------------
@@ -235,6 +330,9 @@ echo "=== Removing violation fixtures and re-running (expect exit 0) ==="
 rm -rf "$FIXTURE_FLEET_ROOT/plugins/fixture02-stop-hook-emits-additionalContext-violation"
 rm -rf "$FIXTURE_FLEET_ROOT/plugins/fixture05-stop-hook-with-too-short-ok-marker-violation"
 rm -rf "$FIXTURE_FLEET_ROOT/plugins/fixture06-stop-hook-orchestrator-style-but-no-ok-marker-required"
+# iter-68 violation fixtures (SubagentStop + SessionEnd):
+rm -rf "$FIXTURE_FLEET_ROOT/plugins/fixture07-subagentstop-hook-emits-additionalContext-violation"
+rm -rf "$FIXTURE_FLEET_ROOT/plugins/fixture08-sessionend-hook-emits-additionalContext-violation"
 
 set +e
 CLEAN_OUTPUT=$(AUDIT_REPO_ROOT_OVERRIDE="$FIXTURE_FLEET_ROOT" bash "$AUDIT_TASK" 2>&1)
