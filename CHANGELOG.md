@@ -1,3 +1,10 @@
+## [21.14.1](https://github.com/terrylica/cc-skills/compare/v21.14.0...v21.14.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** iter-66 stop-orchestrator silently-dropped additionalContext — route aggregated Stop-hook summary to stderr (transcript-visible) instead of stdout JSON which Claude Code ignores per official Stop-hook schema + add 1 new schema-correctness invariant lock test + update 2 existing tests + document in CLAUDE.md ([f0b493b](https://github.com/terrylica/cc-skills/commit/f0b493b046b1f0e9843885875ac678dd5cd15680)), closes [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#37559](https://github.com/terrylica/cc-skills/issues/37559)
+
 # [21.14.0](https://github.com/terrylica/cc-skills/compare/v21.13.2...v21.14.0) (2026-05-20)
 
 
