@@ -19,6 +19,39 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 PAYLOAD=$(cat)
 
+# ===========================================================================
+# Iter-41 PRE-JQ-FASTPATH-USERPROMPT-1PASSWORD-KEYWORD-SUBSTRING-SHORTCIRCUIT:
+#
+# This hook fires on EVERY UserPromptSubmit event. Pre-iter-41 it
+# unconditionally spawned jq (~5-7 ms) + tr (~1-2 ms) + grep (~2 ms) to
+# determine that ~95% of real-world prompts contain NO 1Password
+# keyword. Total bail-out cost: ~10 ms per prompt, compounding across a
+# multi-prompt session.
+#
+# This pre-check uses bash's built-in `case` pattern match (no process
+# spawn, ~0.05 ms) with `shopt -s nocasematch` for case-insensitive
+# substring detection. ~95% of prompts bail in <100 µs instead of ~10 ms.
+#
+# Safety: the fast-path is INTENTIONALLY OVER-INCLUSIVE (substring match,
+# not word-boundary match). Prompts that hit ANY of the substrings
+# `1password`, `1p`, `service account`, `sa token`, `claude automation`,
+# `op://`, `op item`, `op read`, `op vault`, `op list`, `op create`,
+# `op edit`, or `op delete` (in any case) fall through to the precise
+# downstream grep, which still uses the original \b-bounded regex to
+# correctly filter false positives like "1page" or "options" or "stop
+# item from running".
+#
+# Pattern follows iter-40's pre-jq-fastpath on posttooluse-1password-
+# pattern-reminder.sh — same idiom, different hook.
+
+shopt -s nocasematch
+case "$PAYLOAD" in
+    *1password*|*1p*|*service\ account*|*sa\ token*|*claude\ automation*|*op://*|*op\ item*|*op\ read*|*op\ vault*|*op\ list*|*op\ create*|*op\ edit*|*op\ delete*) ;;
+    *) shopt -u nocasematch; exit 0 ;;
+esac
+shopt -u nocasematch
+# ===========================================================================
+
 # Extract user prompt
 PROMPT=$(echo "$PAYLOAD" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
 [[ -z "$PROMPT" ]] && exit 0
@@ -27,7 +60,10 @@ PROMPT=$(echo "$PAYLOAD" | jq -r '.prompt // empty' 2>/dev/null) || exit 0
 # without being too noisy (e.g., "open" alone is not enough).
 LOWER=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
-# Keywords that should trigger the reminder
+# Keywords that should trigger the reminder. This is the PRECISE filter
+# (with \b word boundaries) — the fast-path above is intentionally over-
+# inclusive and forwards ambiguous matches (like "options" or "1page")
+# down here for the precise check.
 if ! echo "$LOWER" | grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edit|op delete|service account|sa token|claude automation vault|op://)\b'; then
     exit 0
 fi
