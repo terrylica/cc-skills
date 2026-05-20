@@ -94,35 +94,44 @@ fi
 echo "  ✓ Plugins validated"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4: plugin manifest validation (bun)"
 
-# Check 4b: Self-evolution sandwich (top reminder + bottom reflection on all skills)
+# Check 4b: Self-evolution sandwich (top reminder + bottom reflection on all skills).
+#
+# Iter-74 perf rewrite: replaces the iter-73-baseline 217-file ×
+# ~8-fork-exec-per-file storm (`awk` + `head` + `grep` + `grep` + `tail`
+# + `cut` + `wc` + `tr` per file = ~1736 forks total) with a single-pass
+# awk scanner that processes all SKILL.md files in one process and emits
+# TSV per-file audit records, then a single bash loop iterates the TSV
+# with parameter-expansion-only ops (no fork/exec) to compute diagnostics
+# and increment the violation counter. Iter-73 baseline: 2032ms / 20.6%
+# of preflight wall time. Iter-74 target: ~500ms (~75% reduction). The
+# scanner and its parity regression test:
+#   scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
+#   .mise/tasks/tests/test-skill-md-self-evolution-sandwich-single-pass-awk-scanner-parity-against-iter73-fork-storm-bash-loop-baseline.sh
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
-for f in plugins/*/skills/*/SKILL.md; do
-    # Bash parameter expansion replaces former sed subshell (iter-71 SC2001
-    # fix): plugins/X/skills/Y/SKILL.md → X:Y in 3 steps without spawning
-    # a subprocess. Same semantics as the sed regex, faster (no fork/exec),
-    # and eliminates the shellcheck SC2001 style hint.
-    SKILL_PATH_BUFFER="${f#plugins/}"           # strip "plugins/" prefix → "X/skills/Y/SKILL.md"
-    SKILL_PATH_BUFFER="${SKILL_PATH_BUFFER%/SKILL.md}"  # strip "/SKILL.md" suffix → "X/skills/Y"
-    SKILL_NAME="${SKILL_PATH_BUFFER/\/skills\//:}"      # replace "/skills/" with ":" → "X:Y"
-    # Top check: Self-Evolving or Self-Evolution in first 25 lines of body
-    BODY_TOP=$(awk '/^---$/{n++; next} n>=2' "$f" | head -25 || true)
-    if ! grep -qi "self-evolv" <<< "$BODY_TOP"; then
+SANDWICH_SCANNER_AWK_SCRIPT_PATH="$(dirname "$0")/../../../scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk"
+# Single awk invocation emits TSV: filename\thas_top_marker\tlast_post_exec_line\ttotal_lines
+while IFS=$'\t' read -r skill_md_filename has_self_evolving_marker last_post_execution_reflection_line total_line_count_for_file; do
+    # Convert "plugins/X/skills/Y/SKILL.md" → "X:Y" via parameter expansion
+    # only — no subshells, no fork/exec (preserves iter-71 SC2001 fix).
+    SKILL_PATH_BUFFER="${skill_md_filename#plugins/}"
+    SKILL_PATH_BUFFER="${SKILL_PATH_BUFFER%/SKILL.md}"
+    SKILL_NAME="${SKILL_PATH_BUFFER/\/skills\//:}"
+    # Top check: self-evolving marker must be present in first 25 body lines.
+    if [[ "$has_self_evolving_marker" -eq 0 ]]; then
         echo "  ✗ $SKILL_NAME: missing Self-Evolving reminder at top"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
     fi
-    # Bottom check: Post-Execution Reflection in last 15 lines
-    REF_LINE=$(grep -n "## Post-Execution Reflection" "$f" | tail -1 | cut -d: -f1 || true)
-    TOTAL=$(wc -l < "$f" | tr -d ' ')
-    if [[ -z "$REF_LINE" ]]; then
+    # Bottom check: Post-Execution Reflection must exist AND be within last 15 lines.
+    if [[ "$last_post_execution_reflection_line" -eq 0 ]]; then
         echo "  ✗ $SKILL_NAME: missing Post-Execution Reflection"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
-    elif [[ "$((TOTAL - REF_LINE))" -gt 15 ]]; then
+    elif [[ "$((total_line_count_for_file - last_post_execution_reflection_line))" -gt 15 ]]; then
         echo "  ✗ $SKILL_NAME: Post-Execution Reflection not at bottom"
         SANDWICH_ERRORS=$((SANDWICH_ERRORS + 1))
     fi
-done
+done < <(awk -f "$SANDWICH_SCANNER_AWK_SCRIPT_PATH" plugins/*/skills/*/SKILL.md)
 if [[ "$SANDWICH_ERRORS" -gt 0 ]]; then
     echo "  ✗ Self-evolution sandwich check failed ($SANDWICH_ERRORS issue(s))"
     exit 1
