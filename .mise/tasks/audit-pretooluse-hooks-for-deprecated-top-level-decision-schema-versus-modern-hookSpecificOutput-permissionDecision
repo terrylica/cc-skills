@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+#MISE description="Audit every plugins/*/hooks/pretooluse-*.{sh,ts,mjs,py} for the SILENT-FAILURE risk of using the DEPRECATED top-level 'decision: block|deny' schema instead of the MODERN 'hookSpecificOutput.permissionDecision' schema. Per the Claude Code v2.0.10+ spec, PreToolUse top-level decision/reason fields are deprecated — hooks using them silently FAIL TO BLOCK. Exits non-zero if any deprecated-schema PreToolUse hook is found (release:preflight gate candidate). Reports MODERN-CORRECT, HELPER-WRAPPED, NO-DECISION-EMITTED counts informationally."
+#
+# audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision
+#
+# Iter-60 self-explanatory-scaffolding audit — companion to iter-57's
+# async-eligibility audit. Background:
+#
+#   Claude Code added input-rewriting support in v2.0.10 (Oct 2025).
+#   The PreToolUse hook output schema was simultaneously restructured:
+#   the old top-level fields `decision: "block"|"deny"` + `reason` were
+#   DEPRECATED in favor of `hookSpecificOutput.permissionDecision` +
+#   `permissionDecisionReason`. Hooks using the deprecated schema on
+#   v2.0.10+ silently FAIL TO BLOCK — the tool runs as if the hook
+#   wasn't there.
+#
+#   This is a CLASSIC silent-failure category: the hook's source LOOKS
+#   correct (it returns SOME decision JSON), but Claude reads the wrong
+#   field name and proceeds. Forensics on a "didn't block" incident
+#   are hard without a dedicated audit because the hook AUTHOR sees
+#   their decision being emitted, just to /dev/null effectively.
+#
+# Classification (per PreToolUse hook script):
+#
+#   MODERN-CORRECT
+#     Emits `hookSpecificOutput.permissionDecision` (the v2.0.10+
+#     canonical schema). Safe.
+#
+#   HELPER-WRAPPED
+#     Calls one of the cc-skills helper functions from
+#     pretooluse-helpers.ts (deny, block, ask, allow, allowWithInput).
+#     Helpers emit the modern schema internally — verified by an
+#     additional check that helpers.ts itself emits MODERN-CORRECT.
+#     Safe.
+#
+#   NO-DECISION-EMITTED
+#     Doesn't emit any blocking decision (a "reminder" hook that just
+#     logs to stderr or writes to disk). Schema-irrelevant. Safe.
+#
+#   DEPRECATED-WARNING
+#     Emits top-level `decision: "block"|"deny"` AND does NOT use the
+#     `hookSpecificOutput` wrapper. Silent-failure risk on v2.0.10+.
+#     EXIT NON-ZERO — release:preflight should gate on this.
+#
+# Verbose name encodes WHAT it audits (PreToolUse hooks), WHICH gap
+# (deprecated vs modern schema), and provides both schema names in the
+# filename so grep-search finds it from any direction. Future
+# maintainers searching for "hookSpecificOutput", "permissionDecision",
+# "deprecated decision schema", or "PreToolUse schema" surface this
+# audit immediately.
+#
+# Re-run cadence:
+#   - Manual: `mise run audit-pretooluse-hooks-for-...`
+#   - Automatic: candidate for release:preflight (gate publish on
+#     DEPRECATED-WARNING). Iter-61 work.
+
+set -euo pipefail
+shopt -u patsub_replacement 2>/dev/null || true
+
+# REPO_ROOT defaults to the cc-skills working tree (resolved from this
+# task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
+# the audit against a synthetic-fixture fleet.
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  PreToolUse Hook Schema-Correctness Audit"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "→ Scanning plugins/*/hooks/pretooluse-* for deprecated vs modern schema"
+echo "→ Deprecated: top-level decision:'block'|'deny'  (silent-fail on v2.0.10+)"
+echo "→ Modern:     hookSpecificOutput.permissionDecision  (correct)"
+echo ""
+
+# Classification counters
+modern_correct_count=0
+helper_wrapped_count=0
+no_decision_emitted_count=0
+deprecated_warning_count=0
+total_pretooluse_hooks=0
+
+# Accumulators for structured report sections
+DEPRECATED_WARNING_LINES=""
+
+# Verify that pretooluse-helpers.ts (the canonical helper module) itself
+# uses the MODERN schema. If helpers.ts ever drifts to the deprecated
+# form, every HELPER-WRAPPED classification becomes a silent-fail risk.
+verify_helpers_module_uses_modern_schema() {
+  local helpers_path="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-helpers.ts"
+  if [ ! -f "$helpers_path" ]; then
+    # No helpers module → HELPER-WRAPPED classification can't apply; OK.
+    return 0
+  fi
+  if grep -qE 'hookSpecificOutput[[:space:]]*:|permissionDecision[[:space:]]*:' "$helpers_path" 2>/dev/null; then
+    return 0
+  else
+    echo "  ⚠  pretooluse-helpers.ts does NOT use hookSpecificOutput +"
+    echo "     permissionDecision — every HELPER-WRAPPED hook is at risk!"
+    echo "     Fix pretooluse-helpers.ts FIRST before relying on this audit."
+    return 1
+  fi
+}
+
+# Classify a single PreToolUse hook source file.
+classify_pretooluse_hook_schema() {
+  local hook_path="$1"
+
+  # Tier 1: does it use the canonical modern schema directly?
+  if grep -qE 'hookSpecificOutput|permissionDecision' "$hook_path" 2>/dev/null; then
+    echo "MODERN-CORRECT"
+    return
+  fi
+
+  # Tier 2: does it use deprecated top-level decision?
+  if grep -qE '"decision"[[:space:]]*:[[:space:]]*"(block|deny)"|decision:[[:space:]]*['"'"'"](block|deny)['"'"'"]' "$hook_path" 2>/dev/null; then
+    echo "DEPRECATED-WARNING"
+    return
+  fi
+
+  # Tier 3: does it call a known helper that wraps the modern schema?
+  if grep -qE '\b(deny|block|ask|allow|allowWithInput)\(' "$hook_path" 2>/dev/null; then
+    echo "HELPER-WRAPPED"
+    return
+  fi
+
+  # Tier 4: no blocking decision emission at all (reminder-only hook).
+  echo "NO-DECISION-EMITTED"
+}
+
+# Verify helpers module first.
+if ! verify_helpers_module_uses_modern_schema; then
+  echo ""
+  echo "  CRITICAL: helpers module regressed — fail audit immediately."
+  exit 2
+fi
+
+# Walk every PreToolUse hook source file. We scan files matching the
+# pretooluse-* naming convention (the canonical prefix for PreToolUse
+# event hooks across the marketplace).
+while IFS= read -r hook_path; do
+  [ -f "$hook_path" ] || continue
+  # Skip test files — they're test fixtures, not registered hooks.
+  case "$hook_path" in
+    *.test.ts|*.test.mjs|*.test.js|*.test.sh) continue ;;
+  esac
+  total_pretooluse_hooks=$((total_pretooluse_hooks + 1))
+
+  plugin_name="$(basename "$(dirname "$(dirname "$hook_path")")")"
+  hook_basename="$(basename "$hook_path")"
+
+  classification=$(classify_pretooluse_hook_schema "$hook_path")
+  case "$classification" in
+    MODERN-CORRECT)
+      modern_correct_count=$((modern_correct_count + 1))
+      ;;
+    HELPER-WRAPPED)
+      helper_wrapped_count=$((helper_wrapped_count + 1))
+      ;;
+    NO-DECISION-EMITTED)
+      no_decision_emitted_count=$((no_decision_emitted_count + 1))
+      ;;
+    DEPRECATED-WARNING)
+      deprecated_warning_count=$((deprecated_warning_count + 1))
+      DEPRECATED_WARNING_LINES+="  - $plugin_name/hooks/$hook_basename"$'\n'
+      DEPRECATED_WARNING_LINES+="      Issue: uses top-level decision:\"block\" instead of"$'\n'
+      DEPRECATED_WARNING_LINES+="             hookSpecificOutput.permissionDecision"$'\n'
+      DEPRECATED_WARNING_LINES+="      Fix:   wrap the decision in hookSpecificOutput object"$'\n'
+      DEPRECATED_WARNING_LINES+="             with hookEventName: \"PreToolUse\" and use"$'\n'
+      DEPRECATED_WARNING_LINES+="             permissionDecision: \"deny\" (not decision: \"block\")"$'\n'
+      ;;
+  esac
+done < <(find "$REPO_ROOT/plugins" -path '*/hooks/pretooluse-*' -type f 2>/dev/null | sort)
+
+# Emit the structured report.
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Schema Audit Summary"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Total PreToolUse hook source files scanned: $total_pretooluse_hooks"
+echo "  MODERN-CORRECT (direct hookSpecificOutput): $modern_correct_count"
+echo "  HELPER-WRAPPED (via helpers.ts):            $helper_wrapped_count"
+echo "  NO-DECISION-EMITTED (reminder-only):        $no_decision_emitted_count"
+echo "  DEPRECATED-WARNING (silent-fail risk):      $deprecated_warning_count"
+echo ""
+
+if [ "$deprecated_warning_count" -gt 0 ]; then
+  echo "─── DEPRECATED-WARNING ($deprecated_warning_count) — these hooks silently fail to block on v2.0.10+ ───"
+  printf "%s" "$DEPRECATED_WARNING_LINES"
+  echo ""
+  echo "═══════════════════════════════════════════════════════════════════════════"
+  echo "  EXITING NON-ZERO — release:preflight should gate on this."
+  echo "═══════════════════════════════════════════════════════════════════════════"
+  exit 1
+fi
+
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  ✓ All PreToolUse hooks use the MODERN schema. No silent-fail risk."
+echo "═══════════════════════════════════════════════════════════════════════════"
