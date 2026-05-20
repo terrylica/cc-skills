@@ -41,9 +41,11 @@ for PLUGIN in $PLUGIN_NAMES; do
         jq ".enabledPlugins[\"$PLUGIN_KEY\"] = true" "$SETTINGS_FILE" > /tmp/settings.json.tmp
         mv /tmp/settings.json.tmp "$SETTINGS_FILE"
         echo "  + Enabled new plugin: $PLUGIN_KEY"
-        ((ENABLED_COUNT++))
+        # iter-23 fix: see sync-commands-to-settings.sh — `((VAR++))` exits 1
+        # on first call under `set -euo pipefail`. Compound assignment fixes.
+        ((ENABLED_COUNT+=1))
     elif [[ "$CURRENT" == "true" ]]; then
-        ((ALREADY_ENABLED++))
+        ((ALREADY_ENABLED+=1))
     fi
     # If false, respect user's choice to disable
 done

@@ -14,8 +14,30 @@ VERSION=$(jq -r '.version' package.json)
 echo "Syncing version: v$VERSION"
 
 # Step 1: Update marketplace repo
+#
+# Iter-25 destructive-symlink-loop guard: when the marketplace path is a
+# symlink that resolves back to the SOURCE repo we're running from (the
+# `claude plugin marketplace add` default during development), the original
+# `git reset --hard $VERSION; git clean -fd` here would silently wipe every
+# uncommitted edit and untracked file in the source tree. This destroyed
+# the iter-23 scripts/sync-*.sh fix and the iter-25 heartbeat-tick perf
+# work each time it was tested, masquerading as a "file revert mystery"
+# across multiple debugging sessions. The fix: compare physical paths via
+# `cd … && pwd -P`; if they match, the marketplace is *already* on the
+# code we're editing — no fetch/reset needed, and the destructive ops MUST
+# be skipped.
 echo "→ Updating marketplace repo..."
-if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
+SOURCE_REPO_PHYS=$(cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" && pwd -P)
+MARKETPLACE_PHYS=""
+if [[ -d "$MARKETPLACE_DIR" ]]; then
+    MARKETPLACE_PHYS=$(cd "$MARKETPLACE_DIR" 2>/dev/null && pwd -P || echo "")
+fi
+
+if [[ -n "$MARKETPLACE_PHYS" && "$MARKETPLACE_PHYS" == "$SOURCE_REPO_PHYS" ]]; then
+    echo "  ⚠ Marketplace symlinks to source repo ($SOURCE_REPO_PHYS)"
+    echo "    Skipping git fetch/reset/clean — would wipe uncommitted operator work."
+    echo "    Marketplace state IS the source tree; nothing to sync."
+elif [[ -d "$MARKETPLACE_DIR/.git" ]]; then
     cd "$MARKETPLACE_DIR"
     git fetch origin --tags --quiet
     git reset --hard "v$VERSION" --quiet 2>/dev/null || git reset --hard origin/main --quiet
