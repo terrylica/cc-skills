@@ -113,6 +113,41 @@ mise run release:sync
 
 ## Preflight Gate Maintenance
 
+### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
+
+`.mise/tasks/release/preflight` ships with env-var-gated per-phase timing instrumentation. Default behavior is unchanged — no output, no measurable overhead. Set `PREFLIGHT_TIMING_PROFILE=1` in the environment to surface a `⧗ phase elapsed: Nms (label)` line after each visible `→` phase header, plus a whole-script total at the end. Useful when preflight feels slow and you want to know which phase dominates without spelunking through subprocess calls.
+
+```bash
+PREFLIGHT_TIMING_PROFILE=1 mise run release:preflight 2>&1 | grep '⧗'
+```
+
+#### Iter-73 baseline (machine: macOS arm64, M-series, mise bash 5.3.9)
+
+| Rank | Phase                                                 | ms   | % of preflight |
+| ---- | ----------------------------------------------------- | ---- | -------------- |
+| 1    | Check 4e: marketplace-wide hook regression suite      | 3819 | 38.7%          |
+| 2    | Check 4b: self-evolution sandwich (217 SKILL.md scan) | 2032 | 20.6%          |
+| 3    | Check 4h: INVERSE PreToolUse schema audit             | 863  | 8.7%           |
+| 4    | Check 4d: chronicle slicing (37 assertions)           | 650  | 6.6%           |
+| 5    | Check 4f: PreToolUse schema audit                     | 613  | 6.2%           |
+| 6    | Check 4j: additionalContext-pentad audit              | 491  | 5.0%           |
+| 7    | Check 4i: wildcard-matcher audit                      | 468  | 4.7%           |
+| 8    | Check 4g: pueue-wrap-guard ordering audit             | 435  | 4.4%           |
+| 9    | Check 4: plugin manifest validation (bun)             | 327  | 3.3%           |
+| 10   | Check 4c: hook registration sanity                    | 102  | 1.0%           |
+| 11   | Check 5: releasable commits since last tag            | 16   | 0.2%           |
+| —    | Whole-script total                                    | 9871 | 100%           |
+
+Top 2 phases account for **59% of preflight wall time** — these are the highest-leverage iter-74+ optimization targets.
+
+#### Iter-74+ optimization candidates (forensic notes for future iterations)
+
+- **Check 4e (38.7%)**: auto-discovered marketplace-wide hook regression suite. Currently 14 test files run serially. Candidate: parallel execution via `xargs -P` (estimated 1-2s savings; subject to bun startup parallelism and shared `/tmp` log file contention).
+- **Check 4b (20.6%)**: self-evolution sandwich check loops over 217 SKILL.md files spawning ~5 fork/execs each (awk + head + grep + cut + wc). Candidate: rewrite the per-file body as a single awk/bun script that processes all files in one process. Estimated ~1.5s savings (~2032ms → ~500ms).
+- **Check 4h (8.7%)**: INVERSE PreToolUse schema audit. ~860ms is justified for what it does (scanning all non-PreToolUse hooks for forbidden field usage). Lower-priority target; gate this against the iter-74+ planning to avoid premature optimization.
+
+The instrumentation is a permanent self-diagnosis tool — keep it shipped, default-off, so future iterations can capture before/after measurements to validate perf wins.
+
 ### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
 
 `.mise/tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
