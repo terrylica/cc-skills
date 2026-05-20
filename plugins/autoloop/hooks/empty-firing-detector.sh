@@ -35,28 +35,49 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$PAYLOAD" ] && exit 0
 
-SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id // ""' 2>/dev/null || echo "")
-TRANSCRIPT=$(echo "$PAYLOAD" | jq -r '.transcript_path // ""' 2>/dev/null || echo "")
+# Perf (iter-29 payload-decode-tsv-batch-empty-firing-detector): same TSV-
+# batched-jq pattern as iter-25/26/28 — one jq spawn instead of two. Saves
+# ~10ms cold-start per Stop hook firing.
+IFS=$'\t' read -r SESSION_ID TRANSCRIPT <<< "$(
+  echo "$PAYLOAD" | jq -r '"\(.session_id // "")\t\(.transcript_path // "")"' 2>/dev/null \
+    || printf '\t'
+)"
 
 [ -z "$TRANSCRIPT" ] && exit 0
 [ ! -f "$TRANSCRIPT" ] && exit 0
 
 # Count tool_use entries scoped to THIS session (defensive; transcript may
 # contain entries from prior session resumes after cwd-drift incidents).
+#
+# Perf (iter-29 transcript-tool-name-extraction-single-jq-streaming-pass):
+# Pre-iter-29 this loop spawned ONE jq process per transcript line — up to
+# 200 lines × ~7-10ms cold-start = ~1500-2000ms of pure jq overhead per
+# Stop hook firing (user-facing session-end latency).
+#
+# The replacement uses jq's native JSONL streaming: jq reads stdin line by
+# line by default (no `-s`), applies the filter to each, and emits one line
+# of output per matching entry. The bash loop then counts via the same
+# case statement, but with ZERO subprocess spawns inside the loop. Saves
+# ~199 jq cold-starts on a typical 200-line transcript.
+#
+# Also corrected: pre-iter-29 the filter embedded $SESSION_ID directly into
+# the jq string (`.sessionId == "'"$SESSION_ID"'"`). This relied on shell
+# quoting for safety — anyone who manages to inject `"` into SESSION_ID
+# (very unlikely given UUID validation upstream, but still) could escape
+# the filter. The `--arg sid` form is safer and clearer.
 SCHEDULE_WAKEUP_COUNT=0
 OTHER_TOOL_COUNT=0
-while IFS= read -r line; do
-  [ -z "$line" ] && continue
-  TOOL_NAME=$(echo "$line" | jq -r '
-    select(.message.content[0].type == "tool_use" and .sessionId == "'"$SESSION_ID"'") |
-    .message.content[0].name // ""
-  ' 2>/dev/null || echo "")
-  case "$TOOL_NAME" in
+TOOL_NAMES=$(tail -200 "$TRANSCRIPT" 2>/dev/null | jq -r --arg sid "$SESSION_ID" '
+  select(.message.content[0].type == "tool_use" and .sessionId == $sid) |
+  .message.content[0].name // ""
+' 2>/dev/null || echo "")
+while IFS= read -r tool_name; do
+  case "$tool_name" in
     "")              ;;
     "ScheduleWakeup") SCHEDULE_WAKEUP_COUNT=$((SCHEDULE_WAKEUP_COUNT + 1)) ;;
     *)                OTHER_TOOL_COUNT=$((OTHER_TOOL_COUNT + 1)) ;;
   esac
-done < <(tail -200 "$TRANSCRIPT" 2>/dev/null)
+done <<< "$TOOL_NAMES"
 
 # Empty firing: ScheduleWakeup called but no real work.
 # Wave 6.4: decision="flagged" — a Stop hook never blocks Claude Code (it

@@ -283,9 +283,59 @@ rotate_jsonl_if_large() {
   return 0
 }
 
+# mktemp_for_atomic_rename <dir> <name_prefix>
+#
+# Wraps `mktemp` in a form portable to both BSD (macOS) and GNU (Linux).
+# Returns a unique tempfile path in $dir suitable for the atomic-rename
+# pattern (write → mv to final name).
+#
+# Why this wrapper exists (iter-29 latent-race-condition fix):
+#
+#   The natural-looking pattern `mktemp -p "$DIR" prefix.XXXXXX.json`
+#   SILENTLY PRODUCES A LITERAL FILENAME ON MACOS BSD — `prefix.XXXXXX.json`
+#   with X's NOT expanded — because BSD mktemp only randomizes when X's are
+#   at the END of the template. Pre-iter-29 every single atomic-write site
+#   in autoloop (heartbeat.json, settings.json, registry.json, contract
+#   frontmatter rewrites, ...) used this broken form. The breakage was
+#   masked by single-process workloads: writes mv to the final name fast
+#   enough that the literal-named temp file didn't accumulate. Under
+#   concurrency (two sessions racing, hook-install retry colliding with
+#   session-bind, etc.) the writes would silently clobber each other's
+#   tempfiles mid-write.
+#
+#   The portable form `mktemp "$DIR/prefix.XXXXXX"` (X's at end, no
+#   trailing suffix) randomizes correctly on BOTH BSDs. The trailing
+#   suffix (`.json`) is dropped from the tempfile name because the file
+#   is immediately mv'd to the final name — its intermediate extension is
+#   irrelevant. The atomic-rename guarantee holds on both filesystems
+#   because mv within the same directory is rename(2), which POSIX
+#   mandates as atomic.
+#
+# Arguments:
+#   $1: dir (must exist and be writable)
+#   $2: name_prefix (no trailing dot or X's; this wrapper appends ".XXXXXX")
+#
+# Output:
+#   Absolute path to the freshly-created tempfile on stdout.
+#   Empty stdout (and non-zero exit) on failure.
+#
+# Exit code:
+#   0 on success; non-zero on mktemp failure (e.g. dir not writable).
+#
+# Example:
+#   temp=$(mktemp_for_atomic_rename "$state_dir" "heartbeat") || return 1
+#   echo "$content" > "$temp"
+#   mv "$temp" "$state_dir/heartbeat.json"
+mktemp_for_atomic_rename() {
+  local dir="$1"
+  local name_prefix="$2"
+  mktemp "$dir/${name_prefix}.XXXXXX"
+}
+
 # Export for sourcing.
 export -f is_valid_uuid is_valid_loop_id is_valid_slug is_valid_short_hash
 export -f is_valid_jq_simple_path is_session_id_real
 export -f log_validation_event
 export -f current_machine_id
 export -f rotate_jsonl_if_large
+export -f mktemp_for_atomic_rename
