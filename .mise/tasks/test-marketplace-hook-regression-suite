@@ -25,6 +25,20 @@ set -euo pipefail
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
 shopt -u patsub_replacement 2>/dev/null || true
 
+# Iter-75 recursion guard. The parity regression test for the parallel
+# runner (test-marketplace-hook-regression-suite-parallel-runner-iter75-
+# parity-against-iter50-sequential-baseline-and-iter54-fail-output-ux.sh)
+# lives in .mise/tasks/tests/ — which means THIS runner auto-discovers
+# and runs it. The parity test itself invokes THIS runner to verify
+# integration parity, which would cause infinite recursion without a
+# guard. Export this env var as a "I'm already inside the parent
+# invocation" sentinel so the parity test can skip the live-tier
+# integration assertion (its synthetic-tier still runs to exercise the
+# parallelism primitive). When invoked standalone (operator running the
+# parity test directly via bash), the env var is unset and the full
+# two-tier coverage exercises.
+export MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 echo "═══════════════════════════════════════════════════════════"
@@ -66,51 +80,131 @@ fi
 echo "→ Discovered ${#TEST_FILES[@]} test file(s)"
 echo ""
 
+# Iter-75 parallel-execution rewrite. Iter-74 baseline measurement
+# identified Check 4e (this suite) at 3870ms / 48.8% of preflight as the
+# top-1 wall-time bottleneck after iter-74 dropped Check 4b from 2032ms
+# to 73ms. Per-test forensic profile (warm, sequential):
+#
+#   ms     test (truncated)
+#   ----   -------------------------------------------------------------
+#   635    userpromptsubmit-1password-context-injection-prejq-fastpath
+#   429    posttooluse-1password-pattern-reminder-leading-executable
+#   406    audit-hooks-for-async-true-eligibility-eight-layers
+#   371    audit-stop-hook-additionalContext-emission-detection
+#   216    audit-non-pretooluse-hooks-wrong-field-detection
+#   <180   (remaining 10 tests)
+#   ----
+#   3324   sum
+#
+# Distribution is NOT Pareto-dominant — top 4 tests = 55.4% of suite
+# time. Parallelization is the correct lever. Theoretical lower bound
+# is the longest single test (~635ms = 5.2× speedup) since no further
+# bin-packing can shrink wall-time below the max-test runtime.
+#
+# Concurrency tool choice: GNU parallel would give the best output-
+# grouping semantics (`--group` buffers per-job stdout and emits
+# atomically), but is NOT installed by default on macOS / mise / brew
+# and would add a hard install dep. POSIX `xargs -P` is ubiquitous but
+# has no output-grouping — fatal for diagnosable test logs IF tests
+# wrote to stdout. We sidestep that by giving each test its OWN
+# per-test stdout-capture file (the iter-54 design), so xargs's lack
+# of `--group` doesn't matter: tests can run truly concurrently, each
+# writing to a distinct file, and the sequential aggregation phase
+# reads them back in stable sort order.
+#
+# Concurrency cap: defaults to 8 lanes (operator-tunable via
+# MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES). Detected core count on
+# this machine is 14; 8 lanes leaves enough headroom for the OS, IDE,
+# and any concurrent mise/release work. With 15 tests at 8 lanes and
+# longest-test = 635ms, expected wall-time ≈ 700-900ms (vs 3324ms
+# sequential = ~4× speedup).
+#
+# References:
+#   - https://www.gnu.org/software/parallel/parallel_alternatives.html
+#     (GNU parallel maintainers' alternatives doc — confirms xargs -P
+#     is acceptable when per-job output is captured separately)
+#   - iter-54 docs (full-output-on-FAIL, compact-on-PASS UX)
+#   - iter-74 docs/RELEASE.md iter-75+ candidate forensic notes
+MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES="${MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES:-8}"
+
+# Single per-run results directory holds one .stdout file + one .exit
+# file per test, keyed by test basename (test names are unique-by-design
+# in this marketplace — no collision risk). Deterministic key avoids
+# the random mktemp suffix that would prevent the post-pass aggregator
+# from locating each test's output.
+PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY=$(mktemp -d -t marketplace-hook-regression-suite-results.XXXXXX)
+trap 'rm -rf "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"' EXIT
+
 # Run each test, capture exit code, aggregate counts
 PASSED_TEST_FILES_COUNT=0
 FAILED_TEST_FILES_COUNT=0
 FAILED_TEST_FILES_LIST=()
 
+# Phase 1 — PARALLEL FAN-OUT. Each test runs concurrently in its own
+# bash subprocess, with stdout+stderr captured to a per-test file in
+# the shared results directory. The inline `bash -c` worker is tiny
+# (no shared bash functions needed) so we avoid the overhead of
+# exporting functions across processes. xargs ensures only N tests
+# run concurrently; the call blocks until ALL tests finish.
+# shellcheck disable=SC2016
+# SC2016 false positive: the $1 and $2 inside the single-quoted bash -c
+# body refer to the positional args passed to that NESTED bash, not to
+# the outer scope. Single-quoting is REQUIRED to defer their expansion
+# until xargs invokes the per-test bash subprocess.
+printf '%s\n' "${TEST_FILES[@]}" | \
+    xargs -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} bash -c '
+        single_test_file_path="$1"
+        per_run_results_dir="$2"
+        test_basename_for_stable_lookup="$(basename "$single_test_file_path" .sh)"
+        if bash "$single_test_file_path" \
+            > "$per_run_results_dir/$test_basename_for_stable_lookup.stdout" 2>&1; then
+            echo 0 > "$per_run_results_dir/$test_basename_for_stable_lookup.exit"
+        else
+            echo "$?" > "$per_run_results_dir/$test_basename_for_stable_lookup.exit"
+        fi
+    ' _ {} "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"
+
+# Phase 2 — SEQUENTIAL AGGREGATION. Iterate the original sorted test
+# list (deterministic order) and render each test's result. The iter-54
+# UX is preserved bit-for-bit: full output on FAIL, last-3-lines on
+# PASS. Aggregation happens AFTER all parallel jobs complete, so the
+# output stream is identical to the iter-50 sequential reference in
+# terms of ordering — only the run-time has changed.
 for test_file in "${TEST_FILES[@]}"; do
     # Compute repo-relative path for readable output
     relative_path="${test_file#"$REPO_ROOT"/}"
     test_name=$(basename "$test_file" .sh)
+    test_stdout_capture_file="$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY/$test_name.stdout"
+    test_exit_code_file="$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY/$test_name.exit"
 
     echo "─── $relative_path ───"
 
-    # Iter-54 failure-mode UX improvement: capture full output to a
-    # temp file, show compact summary on PASS (last 3 lines) and FULL
-    # output on FAIL (every line). Pre-iter-54 the runner piped every
-    # test through `tail -8` unconditionally, truncating critical
-    # failure context to fit the 8-line tail window. Operators were
-    # forced to re-run the failing test manually to see the full output.
-    #
-    # New behavior:
-    #   - PASS: show only the bottom 3 lines (the test's own pass/fail
-    #     summary block — enough for the operator to confirm the test
-    #     ran to completion)
-    #   - FAIL: show ENTIRE test output (no truncation) so the operator
-    #     can immediately see WHICH invariant failed and WHY, without
-    #     re-running the test
-    #
-    # The `mktemp -t` form is BSD/Linux portable. Cleanup is unconditional
-    # via the explicit `rm -f` at the end of each iteration (we don't use
-    # a trap because the trap would fire on every exit, not per-test).
-    test_output_capture_file=$(mktemp -t hook-regression-output.XXXXXX)
-    if bash "$test_file" >"$test_output_capture_file" 2>&1; then
+    # Defensive: if the parallel fan-out couldn't even create the per-
+    # test files (e.g. xargs aborted, disk full, results dir wiped),
+    # treat the test as FAILED rather than silently PASSing — this
+    # protects the release gate from missing-evidence false-greens.
+    if [[ ! -f "$test_exit_code_file" ]]; then
+        echo "  ✗ FILE-FAIL: $test_name (no exit-code file from parallel fan-out — likely xargs aborted before this test ran)"
+        FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
+        FAILED_TEST_FILES_LIST+=("$relative_path")
+        echo ""
+        continue
+    fi
+
+    captured_exit_code=$(cat "$test_exit_code_file")
+    if [[ "$captured_exit_code" == "0" ]]; then
         # PASS path: show compact summary (last 3 lines)
-        tail -3 "$test_output_capture_file"
+        tail -3 "$test_stdout_capture_file"
         echo "  ✓ FILE-PASS: $test_name"
         PASSED_TEST_FILES_COUNT=$((PASSED_TEST_FILES_COUNT + 1))
     else
         # FAIL path: show FULL output so the operator can diagnose
         # without re-running the test manually
-        cat "$test_output_capture_file"
-        echo "  ✗ FILE-FAIL: $test_name"
+        cat "$test_stdout_capture_file"
+        echo "  ✗ FILE-FAIL: $test_name (exit=$captured_exit_code)"
         FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
         FAILED_TEST_FILES_LIST+=("$relative_path")
     fi
-    rm -f "$test_output_capture_file"
     echo ""
 done
 
