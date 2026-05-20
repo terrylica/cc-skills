@@ -41,7 +41,15 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 readonly LOG_DIR="${PUSHOVER_LOG_DIR:-$HOME/.local/state/pushover}"
-readonly LOG_FILE="${LOG_DIR}/audit-$(/bin/date -u +%Y%m%d).jsonl"
+# iter-53 SC2155: split `readonly LOG_FILE=$(... cmd ...)` declare-from-assign.
+# The combined form masks the command-substitution exit code because
+# `readonly` returns 0 regardless of whether the substitution succeeded.
+# `date -u` essentially never fails, so this is defensive consistency
+# (matching iter-37's high-impact SC2155 sweep) rather than an active
+# hazard. The two-line split makes `date`'s exit code propagate via
+# set -e on a clock-skew-broken VM or other unusual failure mode.
+LOG_FILE="${LOG_DIR}/audit-$(/bin/date -u +%Y%m%d).jsonl"
+readonly LOG_FILE
 readonly MAX_BODY_CHARS=1024   # Pushover API limit (UTF-8)
 readonly MAX_TITLE_CHARS=250   # Pushover API limit
 
