@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+#MISE description="Survey .claude/worktrees/ for stale historical agent worktrees, reporting age in days + disk usage + main-divergence-summary per worktree. Identifies cleanup candidates (worktrees > AGE_THRESHOLD_DAYS old with no unique commits). Does NOT delete anything — pure read-only audit. Use periodically to prevent the iter-52-style 4.3-GB accumulation that built up across March-April agent sessions."
+#
+# list-stale-historical-agent-worktrees-with-age-and-disk-usage
+#
+# Iter-52 maintenance audit: surfaces stale agent worktrees in
+# .claude/worktrees/ that accumulate from past Agent tool invocations
+# and never get cleaned up. The April-May audit found 6 such worktrees
+# consuming 4.3 GB of disk, all branches 0 commits ahead of main (so
+# strictly safe to delete). This task makes the audit reproducible.
+#
+# Verbose filename per user "self-explanatory scaffolding" directive:
+# encodes WHAT is listed (stale historical agent worktrees), WHAT METRICS
+# are reported (age + disk usage), and WHAT IS NOT done (no deletion).
+#
+# Per cc-skills safety policy: this is a READ-ONLY audit. To clean up,
+# the operator runs `git worktree remove --force <path>` + `git branch
+# -D <branch>` explicitly. No automation of destructive operations.
+
+set -euo pipefail
+
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+shopt -u patsub_replacement 2>/dev/null || true
+
+# AGE_THRESHOLD_DAYS: worktrees older than this are flagged as "stale".
+# 30 days is the cc-skills convention for "anything inactive longer than
+# a typical sprint cycle is a cleanup candidate".
+AGE_THRESHOLD_DAYS="${WORKTREE_AGE_THRESHOLD_DAYS:-30}"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+WORKTREES_PARENT_DIR="$REPO_ROOT/.claude/worktrees"
+
+echo "═══════════════════════════════════════════════════════════"
+echo "  Stale Historical Agent Worktrees Audit"
+echo "═══════════════════════════════════════════════════════════"
+echo "  Threshold: > $AGE_THRESHOLD_DAYS days inactive"
+echo "  Parent dir: $WORKTREES_PARENT_DIR"
+echo ""
+
+if [ ! -d "$WORKTREES_PARENT_DIR" ]; then
+    echo "  ⊘ No .claude/worktrees/ directory — nothing to audit"
+    exit 0
+fi
+
+# Collect all worktrees registered with git (excludes the main repo)
+REGISTERED_WORKTREES=()
+while IFS= read -r worktree_path; do
+    # Skip the main repo (first line of git worktree list output)
+    [ "$worktree_path" = "$REPO_ROOT" ] && continue
+    REGISTERED_WORKTREES+=("$worktree_path")
+done < <(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}')
+
+if [ "${#REGISTERED_WORKTREES[@]}" -eq 0 ]; then
+    echo "  ✓ No additional worktrees registered (only main repo)"
+    exit 0
+fi
+
+# Total disk usage across all registered worktrees
+total_disk_kb=0
+stale_count=0
+fresh_count=0
+zero_ahead_count=0
+
+echo "  Found ${#REGISTERED_WORKTREES[@]} registered worktree(s):"
+echo ""
+
+printf "  %-50s %-12s %-15s %-25s\n" "WORKTREE_PATH" "AGE_DAYS" "DISK_USAGE" "DIVERGENCE_VS_MAIN"
+printf "  %-50s %-12s %-15s %-25s\n" "──────────────" "────────" "──────────" "──────────────────"
+
+for worktree_path in "${REGISTERED_WORKTREES[@]}"; do
+    # Relative-to-parent path for compact display
+    relative_path="${worktree_path#"$WORKTREES_PARENT_DIR"/}"
+    [ "$relative_path" = "$worktree_path" ] && relative_path="$worktree_path"
+
+    # Worktree age = days since mtime of the directory itself
+    if [ -d "$worktree_path" ]; then
+        mtime_epoch=$(stat -f%m "$worktree_path" 2>/dev/null || stat -c%Y "$worktree_path" 2>/dev/null || echo 0)
+        now_epoch=$(date +%s)
+        age_seconds=$((now_epoch - mtime_epoch))
+        age_days=$((age_seconds / 86400))
+
+        # Disk usage in KB (du -sk works on both macOS BSD and Linux GNU)
+        disk_kb=$(du -sk "$worktree_path" 2>/dev/null | awk '{print $1}')
+        total_disk_kb=$((total_disk_kb + disk_kb))
+
+        # Human-readable disk format
+        if [ "$disk_kb" -gt 1048576 ]; then
+            disk_human="$((disk_kb / 1048576)) GB"
+        elif [ "$disk_kb" -gt 1024 ]; then
+            disk_human="$((disk_kb / 1024)) MB"
+        else
+            disk_human="${disk_kb} KB"
+        fi
+    else
+        age_days="?"
+        disk_human="missing"
+    fi
+
+    # Branch divergence vs main
+    branch=$(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | \
+             awk -v wt="$worktree_path" 'BEGIN{f=0} /^worktree /{if($2==wt){f=1; next}else{f=0}} f && /^branch /{sub("refs/heads/",""); print $2; exit}')
+
+    if [ -n "$branch" ]; then
+        ahead=$(git -C "$REPO_ROOT" rev-list --count "main..$branch" 2>/dev/null || echo "?")
+        behind=$(git -C "$REPO_ROOT" rev-list --count "$branch..main" 2>/dev/null || echo "?")
+        divergence="$ahead ahead, $behind behind"
+        [ "$ahead" = "0" ] && zero_ahead_count=$((zero_ahead_count + 1))
+    else
+        divergence="(no branch)"
+    fi
+
+    # Classify as stale or fresh
+    if [ "$age_days" != "?" ] && [ "$age_days" -gt "$AGE_THRESHOLD_DAYS" ]; then
+        stale_count=$((stale_count + 1))
+        marker="STALE"
+    else
+        fresh_count=$((fresh_count + 1))
+        marker="fresh"
+    fi
+
+    printf "  %-50s %-12s %-15s %-25s %s\n" "$relative_path" "$age_days" "$disk_human" "$divergence" "[$marker]"
+done
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "  Summary"
+echo "═══════════════════════════════════════════════════════════"
+
+# Total disk human format
+if [ "$total_disk_kb" -gt 1048576 ]; then
+    total_disk_human="$((total_disk_kb / 1048576)) GB"
+elif [ "$total_disk_kb" -gt 1024 ]; then
+    total_disk_human="$((total_disk_kb / 1024)) MB"
+else
+    total_disk_human="${total_disk_kb} KB"
+fi
+
+echo "  Total worktrees:                ${#REGISTERED_WORKTREES[@]}"
+echo "  Stale (> $AGE_THRESHOLD_DAYS days):       $stale_count"
+echo "  Fresh (≤ $AGE_THRESHOLD_DAYS days):       $fresh_count"
+echo "  Zero-commits-ahead-of-main:    $zero_ahead_count (strictly safe to delete)"
+echo "  Total disk usage:               $total_disk_human"
+
+if [ "$stale_count" -gt 0 ] || [ "$zero_ahead_count" -gt 0 ]; then
+    echo ""
+    echo "  To clean up a worktree manually:"
+    echo "    git worktree remove --force <path>"
+    echo "    git branch -D <branch>"
+    echo ""
+    echo "  Safe to delete: any worktree with '0 ahead' AND > $AGE_THRESHOLD_DAYS days old."
+fi
