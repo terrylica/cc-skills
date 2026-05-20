@@ -2,11 +2,52 @@
 #MISE description="Phase 1 of 5: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run."
 set -euo pipefail
 
+# Iter-73: Opt-in per-phase wall-clock timing instrumentation. Set
+# PREFLIGHT_TIMING_PROFILE=1 in the environment to emit "phase elapsed:
+# Nms" after each visible "→" phase header. Default behavior unchanged
+# (no output, no measurable overhead in the common case). Uses bash 5+
+# $EPOCHREALTIME for sub-second precision — preflight's shebang pins
+# bash so this is portable to macOS (where the system /bin/bash is 3.2
+# and lacks EPOCHREALTIME, but mise's bash is 5+). Iter-73 baseline
+# measurement (2026-05-20, machine: el01 / terryli MacBook Pro M2 Max):
+# preflight real time was 10.74s (4.34s user + 6.72s sys) — sys > user
+# indicates heavy fork/exec, primarily from the four mise-run audit
+# subprocess invocations (Checks 4d/4f/4g/4h/4i/4j). Per-phase data
+# captured under this instrumentation steers iter-74+ targeted opt
+# work (e.g. parallel execution candidates, cached-result reuse).
+# Loose-coupled phase-label argument is descriptive only; never
+# load-bearing for control flow.
+preflight_timing_phase_start_seconds_for_iter73_instrumentation=""
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME() {
+    if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]]; then
+        preflight_timing_phase_start_seconds_for_iter73_instrumentation="$EPOCHREALTIME"
+    fi
+}
+__preflight_timing_report_phase_elapsed_milliseconds() {
+    if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$preflight_timing_phase_start_seconds_for_iter73_instrumentation" ]]; then
+        local phase_label_for_per_phase_report="$1"
+        local end_seconds="$EPOCHREALTIME"
+        # Portable sub-second math via awk (no `bc`, no `python` dep).
+        local elapsed_milliseconds
+        elapsed_milliseconds=$(awk -v s="$preflight_timing_phase_start_seconds_for_iter73_instrumentation" -v e="$end_seconds" 'BEGIN { printf "%.0f", (e - s) * 1000 }')
+        echo "    ⧗ phase elapsed: ${elapsed_milliseconds}ms (${phase_label_for_per_phase_report})"
+    fi
+}
+
+# Whole-script timer: lets the operator confirm sum-of-phases ≈ wall-time
+# (sanity check for the per-phase instrumentation itself).
+preflight_timing_whole_script_start_seconds_for_iter73_instrumentation=""
+if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]]; then
+    preflight_timing_whole_script_start_seconds_for_iter73_instrumentation="$EPOCHREALTIME"
+    echo "    ⧗ PREFLIGHT_TIMING_PROFILE=1 — per-phase wall-clock instrumentation active"
+fi
+
 echo "═══════════════════════════════════════════════════════════"
 echo "  Phase 1: PREFLIGHT"
 echo "═══════════════════════════════════════════════════════════"
 
 # Check 1: Working directory clean
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking working directory..."
 if [[ -n "$(git status --porcelain)" ]]; then
     echo "  ✗ Working directory not clean"
@@ -14,8 +55,10 @@ if [[ -n "$(git status --porcelain)" ]]; then
     exit 1
 fi
 echo "  ✓ Working directory clean"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 1: working directory clean"
 
 # Check 2: GitHub authentication (token file check - no API calls to avoid process storms)
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking GitHub authentication..."
 if [[ -z "${GH_TOKEN:-}" ]]; then
     echo "  ✗ GH_TOKEN not set"
@@ -39,16 +82,20 @@ if [[ -n "${GH_ACCOUNT:-}" ]]; then
 else
     echo "  ⚠ GH_ACCOUNT not set - releasing with token from mise.toml"
 fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 2-3: GH_TOKEN + GH_ACCOUNT env"
 
 # Check 4: Plugin validation
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Validating plugins..."
 if ! bun scripts/validate-plugins.mjs 2>/dev/null; then
     echo "  ✗ Plugin validation failed"
     exit 1
 fi
 echo "  ✓ Plugins validated"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4: plugin manifest validation (bun)"
 
 # Check 4b: Self-evolution sandwich (top reminder + bottom reflection on all skills)
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
 for f in plugins/*/skills/*/SKILL.md; do
@@ -81,18 +128,22 @@ if [[ "$SANDWICH_ERRORS" -gt 0 ]]; then
     exit 1
 fi
 echo "  ✓ All skills have self-evolution sandwich (top + bottom)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4b: self-evolution sandwich (top+bottom) across all SKILL.md"
 
 # Check 4c: Hook registration sanity (post-incident regression catcher).
 # Catches: stale paths in settings.json, duplicate commands, SKIP_HOOK_SYNC
 # typos, plugin/skip-list/settings.json drift. See:
 # scripts/validate-hook-registration.sh for details.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 if ! bash "$(dirname "$0")/../../../scripts/validate-hook-registration.sh"; then
     exit 1
 fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registration sanity"
 
 # Check 4d: Chronicle slicing regression suite (37 assertions). Verifies the
 # release:chronicle phase picks the right JSONLs across boundary mtimes,
 # subagent recursion, brotli decompression, and visibility-gate parsing.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running chronicle slicing stress test..."
 if ! mise run release:test-chronicle-slicing >/tmp/chronicle-test.log 2>&1; then
     echo "  ✗ Chronicle slicing test FAILED — see /tmp/chronicle-test.log"
@@ -107,6 +158,7 @@ fi
 # actionable diagnostic (exactly what hit iter-69 Check 4j).
 PASS=$( { grep -oE '[0-9]+ passed' /tmp/chronicle-test.log || true; } | head -1 | awk '{print $1}' || echo 0)
 echo "  ✓ Chronicle slicing: ${PASS:-0} assertions passed"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4d: chronicle slicing regression suite (37 assertions)"
 
 # Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
 # the iter-50 mise task into the release gate. Auto-discovers every
@@ -114,6 +166,7 @@ echo "  ✓ Chronicle slicing: ${PASS:-0} assertions passed"
 # regressions in hooks BEFORE the release publishes a tag that would
 # deploy the broken behavior to operator Layer 3 caches (see iter-42
 # docs/HOOKS.md for the 3-layer cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running marketplace-wide hook regression suite..."
 if ! mise run test-marketplace-hook-regression-suite >/tmp/hook-regression-test.log 2>&1; then
     echo "  ✗ Hook regression suite FAILED — see /tmp/hook-regression-test.log"
@@ -124,6 +177,7 @@ fi
 HOOK_TESTS_PASSED=$( { grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
 HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log || true; } | head -1 | awk '{print $NF}' || echo 0)
 echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_TESTS_FAILED:-0} failed)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide hook regression suite"
 
 # Check 4f: PreToolUse schema-correctness audit (iter-60 gate). Per Claude
 # Code v2.0.10+ spec, PreToolUse top-level `decision: "block"|"deny"`
@@ -132,6 +186,7 @@ echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_T
 # if any deprecated-schema hook is found. Blocks tag publish so a
 # deprecated-schema PreToolUse regression cannot escape to Layer 3
 # operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running PreToolUse schema-correctness audit..."
 if ! mise run audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision >/tmp/pretooluse-schema-audit.log 2>&1; then
     echo "  ✗ PreToolUse schema audit FAILED — see /tmp/pretooluse-schema-audit.log"
@@ -143,6 +198,7 @@ SCHEMA_MODERN=$( { grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretoo
 SCHEMA_HELPER=$( { grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 SCHEMA_DEPRECATED=$( { grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ PreToolUse schema: ${SCHEMA_MODERN:-0} modern + ${SCHEMA_HELPER:-0} helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4f: PreToolUse schema-correctness audit (iter-60 gate)"
 
 # Check 4g: pueue-wrap-guard last-PreToolUse-entry ordering audit (iter-61
 # gate). Per GitHub #15897, when multiple PreToolUse hooks fire on the
@@ -156,6 +212,7 @@ echo "  ✓ PreToolUse schema: ${SCHEMA_MODERN:-0} modern + ${SCHEMA_HELPER:-0} 
 # registers pueue-wrap-guard and asserts it's the LAST PreToolUse
 # entry. Blocks tag publish so a regression cannot escape to Layer 3
 # operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running pueue-wrap-guard last-PreToolUse-entry ordering audit..."
 if ! mise run audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug >/tmp/pueue-wrap-guard-ordering-audit.log 2>&1; then
     echo "  ✗ Pueue-wrap-guard ordering audit FAILED — see /tmp/pueue-wrap-guard-ordering-audit.log"
@@ -166,6 +223,7 @@ fi
 ORDERING_OK=$( { grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 ORDERING_VIOLATION=$( { grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4g: pueue-wrap-guard last-entry ordering audit (iter-61 gate)"
 
 # Check 4h: INVERSE PreToolUse schema audit (iter-62 gate). Symmetric
 # companion to iter-60 Check 4f. Where Check 4f catches PreToolUse
@@ -181,6 +239,7 @@ echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATIO
 # is preventive: blocks tag publish so a future regression cannot
 # escape to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running INVERSE PreToolUse schema-correctness audit (non-PreToolUse hooks)..."
 if ! mise run audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events >/tmp/inverse-pretooluse-schema-audit.log 2>&1; then
     echo "  ✗ Inverse PreToolUse schema audit FAILED — see /tmp/inverse-pretooluse-schema-audit.log"
@@ -192,6 +251,7 @@ INV_CORRECT=$( { grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inv
 INV_NO_BLOCK=$( { grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 INV_WRONG=$( { grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4h: INVERSE PreToolUse schema audit (iter-62 gate)"
 
 # Check 4i: Wildcard-matcher audit (iter-65 gate). Scales iter-63 +
 # iter-64 perf forensic findings into preventive infrastructure.
@@ -207,6 +267,7 @@ echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-bl
 # justification reason ≥ 10 chars). Prevents perf regressions from
 # escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running wildcard-matcher audit (PreToolUse + PostToolUse hooks)..."
 if ! mise run audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation >/tmp/wildcard-matcher-audit.log 2>&1; then
     echo "  ✗ Wildcard-matcher audit FAILED — see /tmp/wildcard-matcher-audit.log"
@@ -218,6 +279,7 @@ WM_SCOPED=$( { grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-m
 WM_WITH_OK=$( { grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 WM_VIOL=$( { grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4i: wildcard-matcher audit (iter-65 gate)"
 
 # Check 4j: additionalContext-Silently-Dropped Pentad audit (iter-67 gate +
 # iter-68 trinity expansion + iter-69 pentad completion). Scales iter-66
@@ -260,6 +322,7 @@ echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-
 # each violation belongs to. Prevents silent-drop regressions from
 # escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running additionalContext-silently-dropped pentad audit (Stop/SubagentStop/SessionEnd/PreCompact/Notification)..."
 if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json >/tmp/stop-hook-additional-context-audit.log 2>&1; then
     echo "  ✗ Stop-hook additionalContext-emission audit FAILED — see /tmp/stop-hook-additional-context-audit.log"
@@ -278,8 +341,10 @@ SHAC_CLEAN=$( { grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-
 SHAC_OK=$( { grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)"
 
 # Check 5: Releasable commits exist
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 if [[ -n "$LATEST_TAG" ]]; then
@@ -289,6 +354,19 @@ if [[ -n "$LATEST_TAG" ]]; then
         exit 1
     fi
     echo "  ✓ Found $COMMITS commits since $LATEST_TAG"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 5: releasable commits since last tag"
+
+# Iter-73: emit whole-script wall-clock total to let operator sanity-check
+# sum-of-phases ≈ whole-script (the gap = per-call awk + bash function
+# overhead, which should be a few ms even at 12 phases).
+if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$preflight_timing_whole_script_start_seconds_for_iter73_instrumentation" ]]; then
+    preflight_timing_whole_script_end_seconds_for_iter73_instrumentation="$EPOCHREALTIME"
+    preflight_timing_whole_script_elapsed_milliseconds_for_iter73_instrumentation=$(awk \
+        -v s="$preflight_timing_whole_script_start_seconds_for_iter73_instrumentation" \
+        -v e="$preflight_timing_whole_script_end_seconds_for_iter73_instrumentation" \
+        'BEGIN { printf "%.0f", (e - s) * 1000 }')
+    echo "    ⧗ whole-script elapsed: ${preflight_timing_whole_script_elapsed_milliseconds_for_iter73_instrumentation}ms (preflight total)"
 fi
 
 echo ""
