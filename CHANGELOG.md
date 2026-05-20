@@ -1,3 +1,18 @@
+## [21.8.3](https://github.com/terrylica/cc-skills/compare/v21.8.2...v21.8.3) (2026-05-20)
+
+
+### Bug Fixes
+
+* **release:** iter-44 release-verifier false-positive on vendored Swift Package Manager commands/ directories — depth-2 mindepth/maxdepth + prune .build/node_modules/.venv/target/.git ([1a7e472](https://github.com/terrylica/cc-skills/commit/1a7e472791fbcfdf8d53aaeb7cd971632a3e691f))
+* **release:** iter-45 release-pipeline hygiene sweep — SC2045 (iterating ls output), SC2115 (delete-root-safety guards), and ((VAR+=N)) defensive consistency across verify/clean/sync mise tasks ([249fe02](https://github.com/terrylica/cc-skills/commit/249fe028af73e85c673963005312fca34debf239))
+* **release:** iter-48 release-pipeline hygiene sweep round 2 — postflight SC1083 git-upstream-ref false positive + test-chronicle-slicing SC2164 cd-without-exit-check (3 sites) + SC2188 intentional empty-file redirect ([bf8ee12](https://github.com/terrylica/cc-skills/commit/bf8ee12cba133fe9ec2ea9f8bf5fcb7b32c2c7a3))
+
+
+### Performance Improvements
+
+* **dotfiles-tools:** iter-46 chezmoi-sync-reminder.sh pre-jq-fastpath — move command-availability check BEFORE jq invocations (~120x speedup on no-chezmoi bail-out) ([72dc68d](https://github.com/terrylica/cc-skills/commit/72dc68d6e6d72873e0f9ab6909dee1c622ddaf44)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **dotfiles-tools:** iter-47 chezmoi-sync-reminder.sh plan-mode bash-builtin-substring-fastpath — replace jq permission_mode extraction with case-glob (~100x speedup, second pre-jq-fastpath layer on this hook after iter-46) ([7e8ef17](https://github.com/terrylica/cc-skills/commit/7e8ef178a271fee974effdfd880cd5c8afbf07ee))
+
 ## [21.8.2](https://github.com/terrylica/cc-skills/compare/v21.8.1...v21.8.2) (2026-05-20)
 
 
