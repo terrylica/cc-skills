@@ -202,6 +202,45 @@ WM_WITH_OK=$(grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wil
 WM_VIOL=$(grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
 
+# Check 4j: Stop-hook additionalContext-emission audit (iter-67 gate).
+# Scales iter-66 single-hook fix into preventive infrastructure. Per the
+# official Anthropic Claude Code Stop-hook schema (verbatim example in
+# GitHub #19115, also code.claude.com/docs/en/hooks), Stop and
+# SubagentStop hooks read ONLY {decision, reason} from stdout JSON —
+# any additionalContext field (top-level OR nested in
+# hookSpecificOutput) is silently dropped by Claude Code. From the hook
+# author's perspective the JSON looks valid; from Claude Code's
+# perspective the extra field doesn't exist.
+#
+# iter-66 forensic: itp-hooks stop-orchestrator was pre-iter-66 emitting
+# {additionalContext: <aggregated subhook summary>} to stdout JSON.
+# Claude Code parsed the JSON, found no decision field, treated the Stop
+# as "don't block", and silently ignored the additionalContext field
+# entirely. Subhook summaries from stop-markdown-lint, stop-ty-project-
+# check, and stop-hook-error-summary reached no one — operators got no
+# transcript visibility, Claude got no context. The fix routed the
+# summary to STDERR (transcript-visible via Ctrl-R) instead of
+# pretending stdout JSON would reach Claude.
+#
+# iter-67 audit walks every plugins/*/hooks/hooks.json that registers a
+# Stop hook, resolves the source file, strips JSDoc + line comments,
+# and blocks tag publish if any source references additionalContext in
+# non-comment code without an explicit STOP-HOOK-ADDITIONAL-CONTEXT-OK
+# source-comment escape hatch (with a justification reason ≥ 10 chars).
+# Prevents silent-drop regressions from escaping to Layer 3 operator
+# caches (see iter-42 docs/HOOKS.md for cache lifecycle).
+echo "→ Running Stop-hook additionalContext-emission audit..."
+if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json >/tmp/stop-hook-additional-context-audit.log 2>&1; then
+    echo "  ✗ Stop-hook additionalContext-emission audit FAILED — see /tmp/stop-hook-additional-context-audit.log"
+    tail -30 /tmp/stop-hook-additional-context-audit.log
+    exit 1
+fi
+SHAC_SCANNED=$(grep -oE 'Total registered Stop hooks scanned:[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
+SHAC_CLEAN=$(grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
+SHAC_OK=$(grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
+SHAC_VIOL=$(grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
+echo "  ✓ Stop-hook additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
