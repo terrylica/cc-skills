@@ -1,3 +1,10 @@
+## [21.17.6](https://github.com/terrylica/cc-skills/compare/v21.17.5...v21.17.6) (2026-05-20)
+
+
+### Performance Improvements
+
+* **release-gate:** iter-75 parallelize Check 4e marketplace-wide hook regression suite via xargs-P with per-test temp-file capture sidestepping output-grouping issue ([260fcfb](https://github.com/terrylica/cc-skills/commit/260fcfb051972ae5acb178930f82dcef5ae9f81e))
+
 ## [21.17.5](https://github.com/terrylica/cc-skills/compare/v21.17.4...v21.17.5) (2026-05-20)
 
 
