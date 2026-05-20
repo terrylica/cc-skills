@@ -1,3 +1,11 @@
+## [21.9.1](https://github.com/terrylica/cc-skills/compare/v21.9.0...v21.9.1) (2026-05-20)
+
+
+### Performance Improvements
+
+* **gh-tools:** iter-55 webfetch-github-guard pre-jq-fastpath — drop dead-weight TOOL_NAME jq parse + add github.com case-glob short-circuit (2.02x speedup, ~7.5ms saved per call) ([7eaf575](https://github.com/terrylica/cc-skills/commit/7eaf5751fcfdda845bea5dad996d0f6b6a14be8e)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **itp-hooks:** iter-56 code-correctness-guard Bash-branch early-exit jq batching — drop 2 of 3 jq spawns on exit-0 hot path (1.51x speedup, ~7.9ms saved per Bash call) ([225d47c](https://github.com/terrylica/cc-skills/commit/225d47c143a38d4cbfbf08a9147886cf2a394051))
+
 # [21.9.0](https://github.com/terrylica/cc-skills/compare/v21.8.3...v21.9.0) (2026-05-20)
 
 
