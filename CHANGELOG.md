@@ -1,3 +1,10 @@
+# [21.12.0](https://github.com/terrylica/cc-skills/compare/v21.11.0...v21.12.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-61 pueue-wrap-guard last-PreToolUse-entry ordering audit + 12-assertion regression + release:preflight Check 4g + fix live ordering violation ([1260118](https://github.com/terrylica/cc-skills/commit/12601189ba62f67b04b1025a8ba52099a8980837)), closes [#15897](https://github.com/terrylica/cc-skills/issues/15897) [#15897](https://github.com/terrylica/cc-skills/issues/15897) [#15897](https://github.com/terrylica/cc-skills/issues/15897) [#15897](https://github.com/terrylica/cc-skills/issues/15897)
+
 # [21.11.0](https://github.com/terrylica/cc-skills/compare/v21.10.2...v21.11.0) (2026-05-20)
 
 
