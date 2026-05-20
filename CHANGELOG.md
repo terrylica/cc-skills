@@ -1,3 +1,10 @@
+## [21.13.1](https://github.com/terrylica/cc-skills/compare/v21.13.0...v21.13.1) (2026-05-20)
+
+
+### Performance Improvements
+
+* **itp-hooks:** iter-63 narrow PreToolUse stdin-inlet-guard matcher from '*' to 'Bash' — eliminate ~12-17ms bun cold-start per non-Bash tool call + remove dead handler branches + add defensive non-Bash early-exit guard + 8-assertion regression test ([4b0a879](https://github.com/terrylica/cc-skills/commit/4b0a87992b79ce8b2aa60758ad49c2b73479787c)), closes [#2](https://github.com/terrylica/cc-skills/issues/2) [#3](https://github.com/terrylica/cc-skills/issues/3) [01-#04](https://github.com/01-/issues/04)
+
 # [21.13.0](https://github.com/terrylica/cc-skills/compare/v21.12.0...v21.13.0) (2026-05-20)
 
 
