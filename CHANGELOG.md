@@ -1,3 +1,10 @@
+# [21.10.0](https://github.com/terrylica/cc-skills/compare/v21.9.1...v21.10.0) (2026-05-20)
+
+
+### Features
+
+* **tooling:** iter-57 reproducible mise audit task to surface hooks eligible for Claude Code 2.1.0+ async:true (Jan 2026 feature) — surfaces 12 candidates via blocking-decision emission detection + applies async:true to telegram-notify-stop as proof of concept ([249aa4e](https://github.com/terrylica/cc-skills/commit/249aa4e48941cba03066f41f40b0ab58504503b1))
+
 ## [21.9.1](https://github.com/terrylica/cc-skills/compare/v21.9.0...v21.9.1) (2026-05-20)
 
 
