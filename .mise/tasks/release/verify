@@ -71,13 +71,41 @@ for PLUGIN_DIR in $(ls -d "$MARKETPLACE_DIR/plugins"/*/ 2>/dev/null); do
 done
 echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
 
-# Check 6: No legacy commands/ directories in marketplace
-echo "→ Checking for legacy commands/ directories..."
-LEGACY_DIRS=$(find "$MARKETPLACE_DIR/plugins" -type d -name 'commands' 2>/dev/null | wc -l | tr -d ' ')
-if [[ "$LEGACY_DIRS" -eq 0 ]]; then
-    echo "  ✓ No legacy commands/ dirs (migration complete)"
+# Check 6: No legacy commands/ directories at plugin-root level in marketplace
+#
+# iter-44 false-positive fix (2026-05-20): the prior `find $MARKETPLACE_DIR/plugins
+# -type d -name 'commands'` was unbounded-depth and matched any nested
+# `commands/` directory anywhere under the marketplace tree — including
+# Swift Package Manager build caches like:
+#   plugins/claude-tts-companion/.build/checkouts/swift-syntax/
+#     SwiftSyntaxDevUtils/Sources/swift-syntax-dev-utils/commands/
+# which is vendored Swift compiler source, NOT a cc-skills legacy commands
+# dir. The release verifier flagged it as a migration gap on every release.
+#
+# Legacy cc-skills commands directories ALWAYS live at depth=2 relative to
+# $MARKETPLACE_DIR/plugins — that is, as a direct child of a plugin
+# directory: $MARKETPLACE_DIR/plugins/<plugin-name>/commands/. We constrain
+# the find with -mindepth 2 -maxdepth 2 to look at EXACTLY that one level,
+# eliminating all nested matches.
+#
+# Belt-and-suspenders: also -prune away the most common vendored-package
+# directories (.build, node_modules, .venv, target, .git) before find
+# descends into them, so future verifier extensions inheriting this scan
+# don't repeat the same depth-explosion bug.
+echo "→ Checking for legacy commands/ directories (plugin-root level only, excludes vendored package dirs)..."
+LEGACY_PLUGIN_ROOT_COMMANDS_DIRS_COUNT=$(find "$MARKETPLACE_DIR/plugins" \
+    \( -type d -name '.build' -o \
+       -type d -name 'node_modules' -o \
+       -type d -name '.venv' -o \
+       -type d -name 'target' -o \
+       -type d -name '.git' \) -prune -o \
+    -mindepth 2 -maxdepth 2 -type d -name 'commands' -print 2>/dev/null \
+    | wc -l | tr -d ' ')
+if [[ "$LEGACY_PLUGIN_ROOT_COMMANDS_DIRS_COUNT" -eq 0 ]]; then
+    echo "  ✓ No legacy plugin-root commands/ dirs (migration complete)"
 else
-    echo "  ✗ Found $LEGACY_DIRS legacy commands/ dir(s) — run: find \$MARKETPLACE_DIR/plugins -type d -name commands"
+    echo "  ✗ Found $LEGACY_PLUGIN_ROOT_COMMANDS_DIRS_COUNT legacy plugin-root commands/ dir(s) — run:"
+    echo "      find \$MARKETPLACE_DIR/plugins -mindepth 2 -maxdepth 2 -type d -name commands"
 fi
 
 # Check 7: Commands synced from skills
