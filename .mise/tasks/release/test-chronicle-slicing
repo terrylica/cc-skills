@@ -22,8 +22,11 @@ PROJ_DIR="$TEST_HOME/.claude/projects/$ENCODED_REPO_PATH"
 mkdir -p "$PROJ_DIR"
 
 # Set up a fake git repo with tags at known dates.
+# iter-48 SC2164: cd-without-exit-check defensive consistency. If cd fails
+# (TEST_REPO somehow not creatable / not accessible), subsequent git
+# commands would run in the WRONG directory and contaminate the parent.
 mkdir -p "$TEST_REPO"
-cd "$TEST_REPO"
+cd "$TEST_REPO" || { echo "FATAL: cannot cd into $TEST_REPO" >&2; exit 1; }
 git init -q -b main
 git config user.email "stress@test"
 git config user.name "Stress Test"
@@ -114,7 +117,10 @@ mkbr "$PROJ_DIR/exclude-br-before.jsonl.br"    $T_DAY_BEFORE
 
 # 6. Empty / zero-byte JSONL — must still be picked if in window
 mkjsonl "$PROJ_DIR/include-empty.jsonl"        $T_HOUR_AFTER ""
-> "$PROJ_DIR/include-empty.jsonl"  # truly empty
+# iter-48 SC2188: redirection-without-command is intentional but unconventional;
+# `: > file` (colon-noop redirect) makes the intent explicit and silences the
+# warning. Both forms produce a zero-byte file.
+: > "$PROJ_DIR/include-empty.jsonl"  # truly empty (: is no-op)
 touch -t "$(date -r $T_HOUR_AFTER +%Y%m%d%H%M.%S 2>/dev/null || date -d "@$T_HOUR_AFTER" +%Y%m%d%H%M.%S)" "$PROJ_DIR/include-empty.jsonl"
 
 # 7. Single-line giant (no trailing newline)
@@ -269,7 +275,8 @@ SINCE=$(git -C "$TEST_REPO" log -1 --format=%ct v1.0.0)
 
 # Case D: First-release fallback (no prior tag).
 FRESH_REPO="$SANDBOX/fresh"
-mkdir -p "$FRESH_REPO" && cd "$FRESH_REPO"
+# iter-48 SC2164: cd-without-exit-check defensive consistency
+mkdir -p "$FRESH_REPO" && cd "$FRESH_REPO" || { echo "FATAL: cannot cd into $FRESH_REPO" >&2; exit 1; }
 git init -q -b main
 git -c user.email=x -c user.name=x commit -q --allow-empty -m "first commit"
 git tag v1.0.0 HEAD
@@ -280,7 +287,9 @@ else
     fail "first-release: unexpectedly found prior tag '$NO_PREV'"
 fi
 
-cd "$TEST_REPO"
+# iter-48 SC2164: cd-without-exit-check defensive consistency.
+# Returning to TEST_REPO for the next test case.
+cd "$TEST_REPO" || { echo "FATAL: cannot cd back into $TEST_REPO" >&2; exit 1; }
 
 echo
 echo "Visibility gate (parser only — no live API) ────────────"
