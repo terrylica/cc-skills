@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// STOP-HOOK-ADDITIONAL-CONTEXT-OK: orchestrator reads additionalContext from subhook stdout as internal aggregation protocol, then routes aggregated text to STDERR per iter-66 fix — NEVER emits additionalContext to its own stdout JSON (which Claude Code would silently drop per official Stop-hook schema). Verified by Case 9b regression test in test-stop-orchestrator.sh and by iter-67 marketplace-wide audit.
 /**
  * Stop hook orchestrator — runs the 5 itp-hooks Stop hooks in sequence
  * inside a single hook entry. Replaces 5 lines in the "Ran N stop hooks"
