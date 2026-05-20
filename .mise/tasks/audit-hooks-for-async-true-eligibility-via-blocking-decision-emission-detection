@@ -76,6 +76,7 @@ echo ""
 async_eligible_count=0
 async_candidate_with_caveat_count=0
 must_stay_sync_count=0
+must_stay_sync_input_rewriter_count=0
 already_async_count=0
 async_event_incompatible_count=0
 total_hooks=0
@@ -84,6 +85,7 @@ total_hooks=0
 ASYNC_ELIGIBLE_LINES=""
 ASYNC_CANDIDATE_LINES=""
 MUST_STAY_SYNC_LINES=""
+MUST_STAY_SYNC_INPUT_REWRITER_LINES=""
 ALREADY_ASYNC_LINES=""
 INCOMPATIBLE_LINES=""
 
@@ -159,6 +161,99 @@ classify_script_blocking_behavior() {
   if grep -qE '(^|[[:space:]])exit[[:space:]]+2([[:space:]]|$)' "$script_path" 2>/dev/null; then
     echo "BLOCKS_HARD"
     return
+  fi
+
+  # Layer 8 (iter-58 round 3): raw stdout → context-injection (PostToolUse/Stop only).
+  #
+  # The PostToolUse hook convention is: plain stdout becomes additionalContext
+  # in Claude's next-turn context (legacy form, predates iter-1 JSON wrapper).
+  # Any TS/JS hook calling `console.log(` (NOT `console.error(`, which goes
+  # to stderr and is debug-only) is emitting context to Claude.
+  #
+  # If async, that stdout is discarded — Claude never sees the reminder/hint.
+  # The hook becomes effectively a no-op from Claude's POV (side effects on
+  # disk may still happen, but the value-add of the hook is lost).
+  #
+  # Heuristic limitations:
+  #   - Only catches TS/JS (`console.log(`). Bash hooks using plain
+  #     `echo "text"` (not redirected to /dev/null or log file) are NOT
+  #     caught — would need semantic analysis to distinguish debug echo
+  #     from context-injection echo. Most bash hooks in this fleet use
+  #     `jq -n` to emit JSON or log to files, so this gap is rare.
+  #   - May false-positive on TS/JS hooks that console.log for genuine
+  #     debug (no harm — biases to safe MUST-STAY-SYNC).
+  #
+  # PreToolUse: raw stdout is NOT consumed as context (Layer 1-7 already
+  # cover all the JSON-output paths). Bash-style hooks may use stdout
+  # for hookSpecificOutput JSON which Layer 6 catches.
+  if [ "$event" = "PostToolUse" ] || [ "$event" = "Stop" ] || [ "$event" = "SessionStart" ]; then
+    if grep -qE 'console\.log\(' "$script_path" 2>/dev/null; then
+      echo "BLOCKS_REMINDER"
+      return
+    fi
+  fi
+
+  # Layer 7 (iter-58 round 2): hookSpecificOutput.additionalContext —
+  # PostToolUse context-injection.
+  #
+  # PostToolUse hooks can inject text into Claude's next-turn context via
+  # either:
+  #   - Modern: console.log(JSON.stringify({hookSpecificOutput:
+  #             {additionalContext: "text"}}))
+  #   - Legacy: console.log("text")  ← raw stdout is wrapped automatically
+  #
+  # Async hooks' stdout is discarded — Claude never sees the injected
+  # context. Treat as ASYNC-CANDIDATE-WITH-CAVEAT (delivery delayed by
+  # one turn vs lost entirely depends on Claude Code internals — operator
+  # judgement call). This detection is conservative: matches the literal
+  # `additionalContext` field which is the iter-1 canonical wrapper.
+  # Pure stdout-as-context (legacy form) is harder to distinguish from
+  # debug logging without semantic analysis — relies on Layer 1-5 misses
+  # cascading to NO_BLOCK and the operator manually inspecting before
+  # applying async:true.
+  if grep -qE 'additionalContext' "$script_path" 2>/dev/null; then
+    case "$event" in
+      PreToolUse) echo "BLOCKS_HARD" ;;
+      PostToolUse|Stop|SessionStart|Notification) echo "BLOCKS_REMINDER" ;;
+      *) echo "BLOCKS_HARD" ;;
+    esac
+    return
+  fi
+
+  # Layer 6 (iter-58): PreToolUse INPUT-REWRITING via hookSpecificOutput.updatedInput.
+  #
+  # Claude Code v2.0.10+ (Oct 2025) supports transparently rewriting a
+  # tool's parameters before execution via:
+  #   { "hookSpecificOutput": {
+  #       "hookEventName": "PreToolUse",
+  #       "permissionDecision": "allow",
+  #       "updatedInput": { ...replacement... } } }
+  # The rewrite MUST happen synchronously — otherwise the original tool
+  # call already fired by the time the hook returns its rewrite. This
+  # makes input-rewriting PreToolUse hooks fundamentally async-incompatible
+  # even though they don't emit a `deny()/block()/decision:block` signal
+  # (they emit `permissionDecision: "allow"` paired with `updatedInput`).
+  #
+  # cc-skills examples this layer catches:
+  #   - pretooluse-pueue-wrap-guard.ts (wraps `cargo bench` → pueue add;
+  #     injects OP_SERVICE_ACCOUNT_TOKEN — silent breakage if async)
+  #   - pretooluse-subprocess-stdin-inlet-guard.ts (uses allowWithInput()
+  #     helper to redirect stdin from /dev/null)
+  #
+  # Detection patterns (any one of these → input-rewriter):
+  #   - Literal `updatedInput` field name in source
+  #   - `allowWithInput(` helper-fn call (cc-skills convention export
+  #     from pretooluse-helpers.ts)
+  #   - `hookSpecificOutput` field name (PreToolUse output envelope —
+  #     only used when rewriting input or injecting additionalContext)
+  #
+  # PostToolUse cannot rewrite input (tool already executed) so this
+  # detection is only blocking on PreToolUse.
+  if [ "$event" = "PreToolUse" ]; then
+    if grep -qE 'updatedInput|allowWithInput\(|hookSpecificOutput' "$script_path" 2>/dev/null; then
+      echo "BLOCKS_HARD_INPUT_REWRITER"
+      return
+    fi
   fi
 
   echo "NO_BLOCK"
@@ -247,6 +342,10 @@ while IFS= read -r hooks_json; do
         must_stay_sync_count=$((must_stay_sync_count + 1))
         MUST_STAY_SYNC_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=$blocking_class)"$'\n'
         ;;
+      BLOCKS_HARD_INPUT_REWRITER)
+        must_stay_sync_input_rewriter_count=$((must_stay_sync_input_rewriter_count + 1))
+        MUST_STAY_SYNC_INPUT_REWRITER_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=rewrites tool input via hookSpecificOutput.updatedInput / allowWithInput — async would let the original input fire UNREWRITTEN)"$'\n'
+        ;;
       BLOCKS_REMINDER)
         async_candidate_with_caveat_count=$((async_candidate_with_caveat_count + 1))
         ASYNC_CANDIDATE_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=emits decision:block as reminder on PostToolUse — async loses immediate context-injection)"$'\n'
@@ -276,12 +375,13 @@ done < <(find "$REPO_ROOT/plugins" -name 'hooks.json' -type f 2>/dev/null | sort
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  Audit Summary"
 echo "═══════════════════════════════════════════════════════════════════════════"
-echo "  Total registered hooks scanned:         $total_hooks"
-echo "  ALREADY-ASYNC (no action needed):       $already_async_count"
-echo "  ASYNC-ELIGIBLE (clear win):             $async_eligible_count"
-echo "  ASYNC-CANDIDATE-WITH-CAVEAT (operator): $async_candidate_with_caveat_count"
-echo "  MUST-STAY-SYNC (blocking required):     $must_stay_sync_count"
-echo "  ASYNC-EVENT-INCOMPATIBLE:               $async_event_incompatible_count"
+echo "  Total registered hooks scanned:                 $total_hooks"
+echo "  ALREADY-ASYNC (no action needed):               $already_async_count"
+echo "  ASYNC-ELIGIBLE (clear win):                     $async_eligible_count"
+echo "  ASYNC-CANDIDATE-WITH-CAVEAT (operator):         $async_candidate_with_caveat_count"
+echo "  MUST-STAY-SYNC (blocking decision):             $must_stay_sync_count"
+echo "  MUST-STAY-SYNC-INPUT-REWRITER (iter-58 layer):  $must_stay_sync_input_rewriter_count"
+echo "  ASYNC-EVENT-INCOMPATIBLE:                       $async_event_incompatible_count"
 echo ""
 
 if [ "$already_async_count" -gt 0 ]; then
@@ -303,8 +403,14 @@ if [ "$async_candidate_with_caveat_count" -gt 0 ]; then
 fi
 
 if [ "$must_stay_sync_count" -gt 0 ]; then
-  echo "─── MUST-STAY-SYNC ($must_stay_sync_count) — do not change ───"
+  echo "─── MUST-STAY-SYNC ($must_stay_sync_count) — do not change (emits blocking decision) ───"
   printf "%s" "$MUST_STAY_SYNC_LINES"
+  echo ""
+fi
+
+if [ "$must_stay_sync_input_rewriter_count" -gt 0 ]; then
+  echo "─── MUST-STAY-SYNC-INPUT-REWRITER ($must_stay_sync_input_rewriter_count) — do not change (rewrites tool input pre-execution) ───"
+  printf "%s" "$MUST_STAY_SYNC_INPUT_REWRITER_LINES"
   echo ""
 fi
 
