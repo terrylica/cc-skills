@@ -130,6 +130,28 @@ SCHEMA_HELPER=$(grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretoolus
 SCHEMA_DEPRECATED=$(grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ PreToolUse schema: $SCHEMA_MODERN modern + $SCHEMA_HELPER helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
 
+# Check 4g: pueue-wrap-guard last-PreToolUse-entry ordering audit (iter-61
+# gate). Per GitHub #15897, when multiple PreToolUse hooks fire on the
+# same tool invocation, the LAST hook's hookSpecificOutput response
+# replaces earlier ones — including resetting updatedInput to undefined
+# when the last hook doesn't emit it. pretooluse-pueue-wrap-guard.ts
+# carries TWO load-bearing mutations: OP_SERVICE_ACCOUNT_TOKEN injection
+# and pueue command-wrapping. Both live in updatedInput.command. If
+# any later PreToolUse hook runs after pueue-wrap-guard, both mutations
+# get silently clobbered. The audit walks every hooks.json that
+# registers pueue-wrap-guard and asserts it's the LAST PreToolUse
+# entry. Blocks tag publish so a regression cannot escape to Layer 3
+# operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
+echo "→ Running pueue-wrap-guard last-PreToolUse-entry ordering audit..."
+if ! mise run audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug >/tmp/pueue-wrap-guard-ordering-audit.log 2>&1; then
+    echo "  ✗ Pueue-wrap-guard ordering audit FAILED — see /tmp/pueue-wrap-guard-ordering-audit.log"
+    tail -20 /tmp/pueue-wrap-guard-ordering-audit.log
+    exit 1
+fi
+ORDERING_OK=$(grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log | grep -oE '[0-9]+$' | head -1)
+ORDERING_VIOLATION=$(grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log | grep -oE '[0-9]+$' | head -1)
+echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
