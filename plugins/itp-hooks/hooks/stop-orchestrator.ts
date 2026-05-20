@@ -12,13 +12,44 @@
  *     orchestrator emits that (first match wins; reasons accumulate
  *     when multiple subhooks block).
  *   - `additionalContext` from multiple subhooks concatenates with
- *     blank-line separators.
+ *     blank-line separators and is written to STDERR (NOT stdout JSON).
+ *     See "iter-66 Stop-hook schema-correctness fix" below for why.
  *   - `stop-loop-stall-guard` is the only subhook that legitimately
  *     exits 2 (asyncRewake on detected stall). When it does, the
  *     orchestrator forwards exit 2 + its stderr verbatim — the
  *     orchestrator's own hook entry has `asyncRewake: true` so Claude
  *     Code does the async rewake exactly as before.
  *   - Other subhooks exiting non-zero are logged and treated as silent.
+ *
+ * iter-66 Stop-hook schema-correctness fix:
+ *   Per the official Anthropic Claude Code hook schema (verbatim
+ *   example at code.claude.com/docs/en/hooks, also documented in
+ *   GitHub issues #19115 and #37559), Stop and SubagentStop hooks
+ *   support ONLY {decision, reason} in their stdout JSON. Any
+ *   `additionalContext` field — top-level OR nested in
+ *   `hookSpecificOutput` — is read by NO field consumer in Claude
+ *   Code and is silently dropped. This is a different schema from
+ *   PostToolUse/UserPromptSubmit/SessionStart, where additionalContext
+ *   IS supported.
+ *
+ *   Pre-iter-66 the orchestrator emitted `{additionalContext: ...}`
+ *   to stdout believing Claude would see the aggregated subhook
+ *   summary. It did not — Claude Code parsed the JSON, found no
+ *   `decision` field, treated the Stop as "don't block", and ignored
+ *   the additionalContext field entirely. Subhook summaries reached
+ *   no one.
+ *
+ *   iter-66 routes the aggregated summary to STDERR instead. Stderr
+ *   is captured by Claude Code and shown in the hook output panel
+ *   (Ctrl-R transcript mode), so operators can still see what each
+ *   subhook reported. Claude itself does NOT see this on next-turn
+ *   context — but Claude wouldn't have seen it via the old stdout
+ *   route either; the old route was silently broken.
+ *
+ *   To inject context that Claude DOES see on next turn, a Stop hook
+ *   must use `decision: "block"` + `reason` (which prevents stopping
+ *   AND surfaces reason text to Claude). The orchestrator already
+ *   does this when any subhook emits `decision: "block"`.
  *
  * Test override: set `SUBHOOKS_DIR` to point at a directory of mock
  * subhooks (named identically). The harness uses this.
@@ -122,7 +153,10 @@ async function runSubHook(cfg: SubHookConfig, dir: string, payload: string): Pro
 interface AggregatedOutput {
   decision?: "block";
   reason?: string;
-  additionalContext?: string;
+  // Note: NO additionalContext field. Per iter-66 Stop-hook schema-
+  // correctness fix, aggregated subhook additionalContext is routed
+  // to stderr (transcript-visible) instead of stdout JSON — Claude
+  // Code's Stop-hook schema does not read additionalContext.
 }
 
 function parseJSONOrEmpty(text: string): Record<string, unknown> {
@@ -226,11 +260,27 @@ async function main() {
     aggregated.decision = "block";
     aggregated.reason = blockReasons.join("\n\n");
   }
+
+  // iter-66: aggregated additionalContext goes to STDERR, NOT into the
+  // stdout JSON object. Stop-hook schema (per official Anthropic docs)
+  // supports only {decision, reason} — any additionalContext field is
+  // silently ignored by Claude Code. Stderr is captured and shown in
+  // the hook output panel (Ctrl-R), so operators can still see subhook
+  // summaries. Claude does not see this on next-turn context — but
+  // Claude wouldn't have seen it via the old stdout route either; the
+  // pre-iter-66 behavior was silently broken.
   if (additionalContexts.length > 0) {
-    aggregated.additionalContext = additionalContexts.join("\n\n");
+    const summary = additionalContexts.join("\n\n");
+    process.stderr.write(
+      `[stop-orchestrator] Aggregated subhook summary (visible to operators via Ctrl-R; NOT injected into Claude's next-turn context — Stop-hook schema does not support additionalContext):\n${summary}\n`
+    );
   }
 
   // Empty object = silent allow. JSON.stringify({}) when nothing matters.
+  // Note: per iter-66, aggregated.additionalContext is NEVER set on this
+  // object — it would be silently dropped by Claude Code's Stop-hook
+  // schema. The `AggregatedOutput` type still includes the field for
+  // backward source-compat but it's unused in the emission path.
   process.stdout.write(JSON.stringify(aggregated));
 }
 
