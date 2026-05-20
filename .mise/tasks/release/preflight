@@ -249,11 +249,18 @@ if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-
     tail -30 /tmp/stop-hook-additional-context-audit.log
     exit 1
 fi
-SHAC_SCANNED=$(grep -oE 'Total registered Stop hooks scanned:[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
-SHAC_CLEAN=$(grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
-SHAC_OK=$(grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
-SHAC_VIOL=$(grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log | grep -oE '[0-9]+$' | head -1)
-echo "  ✓ Stop-hook additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
+# Loose-coupled summary grep — insulates preflight from audit-banner
+# phrasing evolution (iter-67 "Stop hooks", iter-68 same, iter-69 renamed
+# to "pentad-member hooks"). Iter-69 lesson: assertion greps should target
+# count semantics, not banner phrasing. Same fix applied to the regression
+# test in iter-69. The `|| true` and `|| echo 0` defenses ensure pipefail
+# can't abort preflight on empty grep results (e.g. when a future audit
+# rename breaks the regex — gate should report 0/?/? not crash).
+SHAC_SCANNED=$( { grep -oE 'Total registered [a-zA-Z -]+ scanned:[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SHAC_CLEAN=$( { grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SHAC_OK=$( { grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
 
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
