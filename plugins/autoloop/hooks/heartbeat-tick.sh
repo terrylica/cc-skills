@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# FILE-SIZE-OK — intentionally monolithic. This is the PostToolUse hook
+# entry point that fires on every Claude Code tool invocation; splitting it
+# into multiple files would add subprocess overhead (extra source / dispatch
+# layer) that defeats the iter-25/26/27 perf work (12→7 jq spawns, 165ms→13ms
+# fast path). The file is dense but the hot path is single-pass top-to-bottom
+# with clearly labeled FAST-PATH and SLOW-PATH sections.
 # heartbeat-tick.sh — PostToolUse hook for autoloop
 # Ticks the heartbeat for the current loop on each tool invocation.
 #
@@ -67,7 +73,7 @@ _log_error() {
   # Append JSON error record to log (best-effort)
   {
     jq -n \
-      --arg ts_us "$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo '0')" \
+      --arg ts_us "$(gdate +%s%6N 2>/dev/null || python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo '0')" \
       --arg cwd "$cwd" \
       --arg session "$session" \
       --arg error "$error_msg" \
@@ -394,14 +400,30 @@ fi
 # v2: mirror heartbeat into contract frontmatter (best-effort; registry+heartbeat
 # are SSoT). Failure here MUST NOT abort the loop tick — a stale frontmatter is
 # fine; an aborted heartbeat is not.
-if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_field >/dev/null 2>&1; then
+#
+# Perf (iter-28 batched-frontmatter-rewrite-single-awk-pass): pre-iter-28 this
+# block invoked set_contract_field FOUR times, each parsing+rewriting the
+# entire contract via its own awk+mktemp+mv cycle (~8-12ms each on macOS).
+# The batched variant takes all four (field, value) pairs in one awk pass.
+# Savings: ~25-35ms per slow-path tick. Same metachar-safe literal-prefix
+# match, same atomic mv semantics.
+if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_frontmatter_field_batch >/dev/null 2>&1; then
   _NOW_US=$(now_us 2>/dev/null || echo "")
   if [ -n "$_NOW_US" ]; then
-    set_contract_field "$CONTRACT_PATH" "last_heartbeat_us" "$_NOW_US" 2>/dev/null || true
+    set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+      "last_heartbeat_us" "$_NOW_US" \
+      "last_heartbeat_session_id" "\"$SESSION_ID\"" \
+      "iteration" "$NEW_ITERATION" \
+      "generation" "$REGISTRY_GENERATION" \
+      2>/dev/null || true
+  else
+    # no_us unavailable — omit last_heartbeat_us but still update the other 3
+    set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+      "last_heartbeat_session_id" "\"$SESSION_ID\"" \
+      "iteration" "$NEW_ITERATION" \
+      "generation" "$REGISTRY_GENERATION" \
+      2>/dev/null || true
   fi
-  set_contract_field "$CONTRACT_PATH" "last_heartbeat_session_id" "\"$SESSION_ID\"" 2>/dev/null || true
-  set_contract_field "$CONTRACT_PATH" "iteration" "$NEW_ITERATION" 2>/dev/null || true
-  set_contract_field "$CONTRACT_PATH" "generation" "$REGISTRY_GENERATION" 2>/dev/null || true
 fi
 
 # Step 8 (BIND-03): cwd-drift detection.
