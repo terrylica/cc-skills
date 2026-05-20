@@ -1,0 +1,328 @@
+#!/usr/bin/env bash
+#MISE description="Walk every plugins/*/hooks/hooks.json, inspect each registered hook script for blocking-decision emission (decision:block, decision:deny, permissionDecision:deny/ask), and classify each as ASYNC-ELIGIBLE, ASYNC-CANDIDATE-WITH-CAVEAT, MUST-STAY-SYNC, or ALREADY-ASYNC. Surfaces hooks that could move to Claude Code 2.1.0+ async:true (Jan 2026 feature) — non-blocking hooks let Claude continue without waiting for the hook to complete (notifications, logs, glossary sync, telemetry). Read-only audit; never mutates hooks.json. Re-run after any hook addition or modification to surface new candidates."
+#
+# audit-hooks-for-async-true-eligibility-via-blocking-decision-emission-detection
+#
+# Iter-57 self-explanatory-scaffolding audit (companion to iter-50's test
+# discovery + iter-52's worktree audit). Background:
+#
+#   - Claude Code 2.1.0+ (Jan 2026) added an `"async": true` field on
+#     hook entries in hooks.json. Async hooks run in the background;
+#     Claude does NOT wait for them to complete before proceeding to
+#     the next turn. This eliminates pre-execution wait time for
+#     side-effect-only hooks (notifications, logs, sync work).
+#
+#   - Web research (iter-57): in a 90-hook fleet, typically 15-20
+#     hooks (~17-22%) are async-eligible — predominantly PostToolUse
+#     and Stop hooks whose work is purely observability/side-effect
+#     and whose stdout JSON is never consumed by Claude.
+#
+#   - Async eligibility is determined by ONE invariant: does the hook
+#     ever emit a blocking decision that Claude must see synchronously?
+#     If yes → MUST-STAY-SYNC. If no → ASYNC-ELIGIBLE.
+#
+# Classification (per registered hook):
+#
+#   ASYNC-ELIGIBLE       — Script never emits decision:block, decision:deny,
+#                          permissionDecision:deny, permissionDecision:ask.
+#                          Pure side-effect (writes log, sends notification,
+#                          updates cache). Safe to mark async:true.
+#
+#   ASYNC-CANDIDATE-WITH-CAVEAT
+#                        — Script DOES emit decision:block, BUT the event
+#                          is PostToolUse and the block-payload is a
+#                          REMINDER/HINT (not a hard-fail) that loses
+#                          immediate-context-injection if async. Switching
+#                          to async means Claude only sees the reminder
+#                          on the turn AFTER the next turn (still useful,
+#                          but delayed). Operator decides.
+#
+#   MUST-STAY-SYNC       — Script emits a TRUE blocking signal
+#                          (permissionDecision:deny on PreToolUse, or
+#                          hard-fail decision:block). Async would defeat
+#                          the hook's purpose.
+#
+#   ALREADY-ASYNC        — Already has `"async": true` in hooks.json.
+#
+#   ASYNC-EVENT-INCOMPATIBLE
+#                        — Event type doesn't support async (e.g. some
+#                          UserPromptSubmit context-injection hooks).
+#
+# Verbose name per the user's self-explanatory-scaffolding directive:
+# encodes WHAT it audits (hooks), WHY (async:true eligibility), and HOW
+# (blocking-decision emission detection). Future maintainers searching
+# for "async hooks", "hook eligibility audit", or "blocking decision"
+# will find this task.
+#
+# Re-run cadence: after any new hook is added, after CLAUDE.md docs
+# change about hook decision semantics, and as a release:preflight gate
+# (potential iter-58 work — for now, manual `mise run` is fine).
+
+set -euo pipefail
+
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+shopt -u patsub_replacement 2>/dev/null || true
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Hook async:true Eligibility Audit"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "→ Scanning plugins/*/hooks/hooks.json across the marketplace"
+echo "→ Inspecting each registered hook script for blocking-decision emission"
+echo ""
+
+# Classification counters
+async_eligible_count=0
+async_candidate_with_caveat_count=0
+must_stay_sync_count=0
+already_async_count=0
+async_event_incompatible_count=0
+total_hooks=0
+
+# Accumulators for the structured report sections
+ASYNC_ELIGIBLE_LINES=""
+ASYNC_CANDIDATE_LINES=""
+MUST_STAY_SYNC_LINES=""
+ALREADY_ASYNC_LINES=""
+INCOMPATIBLE_LINES=""
+
+# Inspect a single hook script for blocking-decision emission.
+# Emits one of: BLOCKS_HARD / BLOCKS_REMINDER / NO_BLOCK / SCRIPT_MISSING
+#
+# Iter-57 v2 — hardened detection:
+#
+#   - Detects literal JSON: `"decision": "block"`, `"decision": "deny"`,
+#     `"permissionDecision": "deny"`, `"permissionDecision": "ask"`
+#     (both quote styles).
+#
+#   - Detects TypeScript/JavaScript helper-function calls from the
+#     pretooluse-helpers.ts pattern: `deny(...)`, `block(...)`, `ask(...)`.
+#     Tightened with word-boundary `\b` to avoid false positives on
+#     longer words like `denylist`. False positives still possible if a
+#     codebase has its own unrelated `deny()` function — biases toward
+#     MUST-STAY-SYNC which is the safe default.
+#
+#   - Detects legacy `process.exit(2)` (Node-only blocking-by-exit-code
+#     pattern), `process.exit(1)` is NOT a block (it's an error).
+#
+#   - Detects bash `exit 2` (analogous bash pattern for blocking via
+#     non-zero exit; some PreToolUse hooks use this).
+classify_script_blocking_behavior() {
+  local script_path="$1"
+  local event="$2"
+  if [ ! -f "$script_path" ]; then
+    echo "SCRIPT_MISSING"
+    return
+  fi
+
+  # Layer 1: literal JSON blocking decisions (any quote style).
+  if grep -qE '"permissionDecision"[[:space:]]*:[[:space:]]*"(deny|ask)"|permissionDecision:[[:space:]]*['"'"'"](deny|ask)['"'"'"]' "$script_path" 2>/dev/null; then
+    echo "BLOCKS_HARD"
+    return
+  fi
+
+  # Layer 2: helper-function calls (TS/JS). Word-boundary to avoid
+  # matching `denylist`, `blockchain`, etc. Single-line form: `deny(`,
+  # `block(`, `ask(`. The pretooluse-helpers.ts convention exports
+  # these as the canonical block-emitter API.
+  if grep -qE '\b(deny|block|ask)\(' "$script_path" 2>/dev/null; then
+    case "$event" in
+      PreToolUse) echo "BLOCKS_HARD" ;;
+      PostToolUse|Stop|SessionStart|Notification) echo "BLOCKS_REMINDER" ;;
+      *) echo "BLOCKS_HARD" ;;
+    esac
+    return
+  fi
+
+  # Layer 3: literal JSON decision:block (any quote style). On
+  # PreToolUse this is a hard block; on PostToolUse it's a soft
+  # visibility-only reminder.
+  if grep -qE '"decision"[[:space:]]*:[[:space:]]*"(block|deny)"|decision:[[:space:]]*['"'"'"](block|deny)['"'"'"]' "$script_path" 2>/dev/null; then
+    case "$event" in
+      PreToolUse) echo "BLOCKS_HARD" ;;
+      PostToolUse|Stop|SessionStart|Notification) echo "BLOCKS_REMINDER" ;;
+      *) echo "BLOCKS_HARD" ;;
+    esac
+    return
+  fi
+
+  # Layer 4: Node legacy block-by-exit-code-2 pattern.
+  if grep -qE 'process\.exit\(2\)' "$script_path" 2>/dev/null; then
+    echo "BLOCKS_HARD"
+    return
+  fi
+
+  # Layer 5: Bash legacy block-by-exit-code-2 pattern. Requires
+  # word-boundary precision — `exit 2` literal at start-of-line or
+  # after whitespace, not embedded in random text.
+  if grep -qE '(^|[[:space:]])exit[[:space:]]+2([[:space:]]|$)' "$script_path" 2>/dev/null; then
+    echo "BLOCKS_HARD"
+    return
+  fi
+
+  echo "NO_BLOCK"
+}
+
+# Resolve a hook command string from hooks.json → absolute path on disk.
+#
+# Iter-57 v2 — handles all observed command formats in the marketplace:
+#
+#   - "${CLAUDE_PLUGIN_ROOT}/hooks/foo.sh"            (plugin-relative)
+#   - "bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts"        (Bun-runner)
+#   - "node ${CLAUDE_PLUGIN_ROOT}/hooks/foo.mjs"      (Node-runner)
+#   - "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/foo.py"   (Python-runner)
+#   - "bash ${CLAUDE_PLUGIN_ROOT}/hooks/foo.sh"       (explicit bash)
+#   - "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/X/hooks/foo.ts"
+#                                                     (marketplace-path Stop hooks)
+#
+# Strips ALL known runner prefixes, then substitutes ${CLAUDE_PLUGIN_ROOT}
+# and $HOME. For marketplace-path commands, also rewrites the absolute
+# marketplace path to the working-tree path so the script can be read.
+resolve_hook_command_to_absolute_path() {
+  local raw_command="$1"
+  local plugin_root="$2"
+  local repo_root="$3"
+
+  # Strip leading runner prefix (one of: bun, node, python3, bash, sh).
+  # Use a regex anchored at start; covers each runner with one or more
+  # trailing spaces.
+  local stripped="$raw_command"
+  if [[ "$stripped" =~ ^(bun|node|python3|bash|sh)[[:space:]]+(.*)$ ]]; then
+    stripped="${BASH_REMATCH[2]}"
+  fi
+
+  # Substitute ${CLAUDE_PLUGIN_ROOT}.
+  stripped="${stripped//\$\{CLAUDE_PLUGIN_ROOT\}/$plugin_root}"
+  # Substitute $HOME.
+  stripped="${stripped//\$HOME/$HOME}"
+
+  # Rewrite marketplace install-path to working-tree path so we can
+  # actually read the source (the marketplace dir might or might not
+  # exist on this machine; the working tree always does).
+  local marketplace_prefix="$HOME/.claude/plugins/marketplaces/cc-skills"
+  stripped="${stripped/$marketplace_prefix/$repo_root}"
+
+  echo "$stripped"
+}
+
+# Walk every hooks.json file in the marketplace.
+while IFS= read -r hooks_json; do
+  plugin_dir="$(cd "$(dirname "$hooks_json")/.." && pwd)"
+  plugin_name="$(basename "$plugin_dir")"
+  plugin_hooks_dir="$(dirname "$hooks_json")"
+
+  # Iterate every event → matcher → hook entry. We use jq to flatten
+  # the nested structure into one line per hook for processing.
+  # Format per line: <event>\t<matcher>\t<async>\t<command>
+  while IFS=$'\t' read -r event matcher is_async command; do
+    [ -z "$event" ] && continue
+    total_hooks=$((total_hooks + 1))
+
+    # Resolve script path so we can inspect it.
+    script_abs="$(resolve_hook_command_to_absolute_path "$command" "$plugin_dir" "$REPO_ROOT")"
+    # Strip any trailing args (the command may include CLI flags).
+    script_abs="${script_abs%% *}"
+
+    # Determine current async status.
+    if [ "$is_async" = "true" ]; then
+      already_async_count=$((already_async_count + 1))
+      ALREADY_ASYNC_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>})"$'\n'
+      continue
+    fi
+
+    # UserPromptSubmit context-injection MUST stay sync — Claude needs
+    # the context BEFORE generating the response.
+    if [ "$event" = "UserPromptSubmit" ]; then
+      async_event_incompatible_count=$((async_event_incompatible_count + 1))
+      INCOMPATIBLE_LINES+="  - $plugin_name/$(basename "$script_abs") (event=UserPromptSubmit — context-injection needs sync)"$'\n'
+      continue
+    fi
+
+    # Inspect the script for blocking-decision emission.
+    blocking_class=$(classify_script_blocking_behavior "$script_abs" "$event")
+
+    case "$blocking_class" in
+      BLOCKS_HARD|SCRIPT_MISSING)
+        must_stay_sync_count=$((must_stay_sync_count + 1))
+        MUST_STAY_SYNC_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=$blocking_class)"$'\n'
+        ;;
+      BLOCKS_REMINDER)
+        async_candidate_with_caveat_count=$((async_candidate_with_caveat_count + 1))
+        ASYNC_CANDIDATE_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=emits decision:block as reminder on PostToolUse — async loses immediate context-injection)"$'\n'
+        ;;
+      NO_BLOCK)
+        async_eligible_count=$((async_eligible_count + 1))
+        ASYNC_ELIGIBLE_LINES+="  - $plugin_name/$(basename "$script_abs") (event=$event, matcher=${matcher/ANYMATCHER_SENTINEL/<any>}, reason=pure side-effect, no blocking decision)"$'\n'
+        ;;
+    esac
+  done < <(jq -r '
+    .hooks // {} | to_entries[] |
+    .key as $event |
+    (.value // [])[] |
+    (.matcher // "") as $matcher |
+    (.hooks // [])[] |
+    [
+      $event,
+      (if $matcher == "" then "ANYMATCHER_SENTINEL" else $matcher end),
+      (.async // false | tostring),
+      (.command // "")
+    ] |
+    @tsv
+  ' "$hooks_json" 2>/dev/null)
+done < <(find "$REPO_ROOT/plugins" -name 'hooks.json' -type f 2>/dev/null | sort)
+
+# Emit the structured report.
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Audit Summary"
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Total registered hooks scanned:         $total_hooks"
+echo "  ALREADY-ASYNC (no action needed):       $already_async_count"
+echo "  ASYNC-ELIGIBLE (clear win):             $async_eligible_count"
+echo "  ASYNC-CANDIDATE-WITH-CAVEAT (operator): $async_candidate_with_caveat_count"
+echo "  MUST-STAY-SYNC (blocking required):     $must_stay_sync_count"
+echo "  ASYNC-EVENT-INCOMPATIBLE:               $async_event_incompatible_count"
+echo ""
+
+if [ "$already_async_count" -gt 0 ]; then
+  echo "─── ALREADY-ASYNC ($already_async_count) ───"
+  printf "%s" "$ALREADY_ASYNC_LINES"
+  echo ""
+fi
+
+if [ "$async_eligible_count" -gt 0 ]; then
+  echo "─── ASYNC-ELIGIBLE ($async_eligible_count) — recommend adding \"async\": true ───"
+  printf "%s" "$ASYNC_ELIGIBLE_LINES"
+  echo ""
+fi
+
+if [ "$async_candidate_with_caveat_count" -gt 0 ]; then
+  echo "─── ASYNC-CANDIDATE-WITH-CAVEAT ($async_candidate_with_caveat_count) — operator judgement call ───"
+  printf "%s" "$ASYNC_CANDIDATE_LINES"
+  echo ""
+fi
+
+if [ "$must_stay_sync_count" -gt 0 ]; then
+  echo "─── MUST-STAY-SYNC ($must_stay_sync_count) — do not change ───"
+  printf "%s" "$MUST_STAY_SYNC_LINES"
+  echo ""
+fi
+
+if [ "$async_event_incompatible_count" -gt 0 ]; then
+  echo "─── ASYNC-EVENT-INCOMPATIBLE ($async_event_incompatible_count) — event-type forbids async ───"
+  printf "%s" "$INCOMPATIBLE_LINES"
+  echo ""
+fi
+
+echo "═══════════════════════════════════════════════════════════════════════════"
+echo "  Recommended next action:"
+if [ "$async_eligible_count" -gt 0 ]; then
+  echo "  → Review the ASYNC-ELIGIBLE list above and add \"async\": true to"
+  echo "    those entries in their respective plugins/*/hooks/hooks.json."
+  echo "    Each conversion is independent (one entry per commit recommended)."
+  echo "    Reference: Claude Code 2.1.0+ async hooks (Jan 2026 feature)."
+else
+  echo "  → No ASYNC-ELIGIBLE hooks found in this scan. All non-async hooks"
+  echo "    either emit blocking decisions or run on async-incompatible events."
+fi
+echo "═══════════════════════════════════════════════════════════════════════════"
