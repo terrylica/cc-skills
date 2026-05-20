@@ -530,7 +530,7 @@ format_muster_table() {
     printf "%-32s %-12s %-8s %-9s %-10s %-4s %-6s %-4s\n" \
       "$display_name" "$loop_id" "$session_id" "$status" "$last_wake_human" "$dead_time_ratio" "$staleness_flag" "$reclaim_candidate"
 
-    ((line_count++))
+    ((line_count++)) || true  # iter-36: ((VAR++)) returns OLD value as exit code; without || true, set -e exits on first iteration when line_count=0
   done
 
   # If no loops, print a self-nudging zero-state instead of just an empty

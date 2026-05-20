@@ -193,14 +193,14 @@ for i in {0..9}; do
   CANDIDATE=$(is_reclaim_candidate "$LOOP_ID" "$HOME/.claude/loops/registry.json")
 
   if [ "$CANDIDATE" = "yes" ]; then
-    ((RECLAIM_CANDIDATES++))
+    ((RECLAIM_CANDIDATES++)) || true  # iter-36: ((VAR++)) returns OLD value; without || true, set -e exits when VAR=0
     # Should only be reclaim candidates if i is odd (stale)
     if [ $((i % 2)) -ne 1 ]; then
       echo "✗ FAIL: Loop $i (active) incorrectly marked as reclaim candidate"
       ((FAIL+=1))
     fi
   elif [ "$CANDIDATE" = "owner_alive" ]; then
-    ((ACTIVE_LOOPS++))
+    ((ACTIVE_LOOPS++)) || true  # iter-36: same ((VAR++)) set-e exit guard
     # Should only be active if i is even
     if [ $((i % 2)) -ne 0 ]; then
       echo "✗ FAIL: Loop $i (stale) incorrectly marked as active"
@@ -242,7 +242,7 @@ for i in {0..9}; do
   if [ -f "$STATE_DIR/heartbeat.json" ]; then
     if ! jq empty "$STATE_DIR/heartbeat.json" 2>/dev/null; then
       echo "✗ Heartbeat corruption in loop $i"
-      ((HEARTBEAT_ERRORS++))
+      ((HEARTBEAT_ERRORS++)) || true  # iter-36: ((VAR++)) set-e exit-1 guard
     fi
   fi
 done
