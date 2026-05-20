@@ -202,15 +202,23 @@ WM_WITH_OK=$(grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wil
 WM_VIOL=$(grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
 
-# Check 4j: Stop-hook additionalContext-emission audit (iter-67 gate).
-# Scales iter-66 single-hook fix into preventive infrastructure. Per the
-# official Anthropic Claude Code Stop-hook schema (verbatim example in
-# GitHub #19115, also code.claude.com/docs/en/hooks), Stop and
-# SubagentStop hooks read ONLY {decision, reason} from stdout JSON —
-# any additionalContext field (top-level OR nested in
-# hookSpecificOutput) is silently dropped by Claude Code. From the hook
-# author's perspective the JSON looks valid; from Claude Code's
-# perspective the extra field doesn't exist.
+# Check 4j: Stop / SubagentStop / SessionEnd additionalContext-emission
+# audit (iter-67 gate + iter-68 scope expansion). Scales iter-66 single-
+# hook fix into preventive infrastructure across the full trinity of
+# event-terminal hook types where additionalContext is silently dropped:
+#
+#   - Stop hooks: per official Anthropic schema (GitHub #19115, also
+#     code.claude.com/docs/en/hooks), read ONLY {decision, reason} —
+#     any additionalContext (top-level OR nested) is silently dropped.
+#   - SubagentStop hooks (iter-68 expansion): same schema as Stop per
+#     code.claude.com/docs/en/hooks ("SubagentStop hooks use the same
+#     decision control format as Stop hooks"). Marketplace has 0 today;
+#     preventive gate catches future regressions.
+#   - SessionEnd hooks (iter-68 expansion): per Go type definitions in
+#     CorridorSecurity/hookshot (pkg.go.dev/github.com/CorridorSecurity/
+#     hookshot/claude), SessionEndOK returns EMPTY output — SessionEnd
+#     cannot inject ANY context (session is terminating). Marketplace
+#     has 0 today; preventive gate catches future regressions.
 #
 # iter-66 forensic: itp-hooks stop-orchestrator was pre-iter-66 emitting
 # {additionalContext: <aggregated subhook summary>} to stdout JSON.
@@ -222,14 +230,16 @@ echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-
 # summary to STDERR (transcript-visible via Ctrl-R) instead of
 # pretending stdout JSON would reach Claude.
 #
-# iter-67 audit walks every plugins/*/hooks/hooks.json that registers a
-# Stop hook, resolves the source file, strips JSDoc + line comments,
-# and blocks tag publish if any source references additionalContext in
-# non-comment code without an explicit STOP-HOOK-ADDITIONAL-CONTEXT-OK
-# source-comment escape hatch (with a justification reason ≥ 10 chars).
-# Prevents silent-drop regressions from escaping to Layer 3 operator
-# caches (see iter-42 docs/HOOKS.md for cache lifecycle).
-echo "→ Running Stop-hook additionalContext-emission audit..."
+# Audit walks every plugins/*/hooks/hooks.json that registers a Stop,
+# SubagentStop, or SessionEnd hook, resolves the source file, strips
+# JSDoc + line comments, and blocks tag publish if any source references
+# additionalContext in non-comment code without an explicit
+# STOP-HOOK-ADDITIONAL-CONTEXT-OK source-comment escape hatch (≥ 10-char
+# justification reason). Per-event-type breakdown shows which hook type
+# each violation belongs to. Prevents silent-drop regressions from
+# escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
+# cache lifecycle).
+echo "→ Running Stop/SubagentStop/SessionEnd additionalContext-emission audit..."
 if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json >/tmp/stop-hook-additional-context-audit.log 2>&1; then
     echo "  ✗ Stop-hook additionalContext-emission audit FAILED — see /tmp/stop-hook-additional-context-audit.log"
     tail -30 /tmp/stop-hook-additional-context-audit.log
