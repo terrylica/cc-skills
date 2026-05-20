@@ -20,7 +20,12 @@ rotate_log() {
 
     if [ -f "$log_file" ]; then
         mv "$log_file" "${log_file}.$(date +%s)"
-        # Keep only last N logs
+        # Keep only last N logs.
+        # shellcheck disable=SC2012
+        # SC2012 false-positive: ls -t (mtime-sort) is the right tool here —
+        # find does NOT sort by mtime in a portable, single-pass way on all
+        # platforms (would require a second `sort -k` pass + stat parsing).
+        # The glob `${log_file}.*` is the safety boundary; ls is just sorting.
         ls -t "${log_file}."* 2>/dev/null | tail -n +$((keep_count + 1)) | xargs rm -f 2>/dev/null || true
     fi
 }
@@ -142,25 +147,21 @@ fi
 if [[ "$REASON" == "startup" ]]; then
     EMOJI="🚀"
     STATUS="Started"
-    PRIORITY="normal"
     PUSHOVER_SOUND="cosmic"
     PUSHOVER_PRIORITY=0
 elif [[ "$REASON" == "code_change" ]]; then
     EMOJI="🔄"
     STATUS="Restarted (code change)"
-    PRIORITY="normal"
     PUSHOVER_SOUND="bike"
     PUSHOVER_PRIORITY=0
 elif [[ "$REASON" == "crash" ]]; then
     EMOJI="💥"
     STATUS="Restarted (crash)"
-    PRIORITY="high"
     PUSHOVER_SOUND="siren"
     PUSHOVER_PRIORITY=1  # High priority, bypasses quiet hours
 else
     EMOJI="⚠️"
     STATUS="Restarted ($REASON)"
-    PRIORITY="normal"
     PUSHOVER_SOUND="cosmic"
     PUSHOVER_PRIORITY=0
 fi
@@ -289,7 +290,16 @@ Time: $TIMESTAMP
 PID: $PID
 Exit: $EXIT_CODE"
 
-    # Add file change info if available (strip HTML tags for Pushover)
+    # Add file change info if available (strip HTML tags for Pushover).
+    # shellcheck disable=SC2001
+    # SC2001 false-positive: bash's ${VAR//pattern/replacement} uses GLOB
+    # patterns, not regex. The shellcheck-suggested replacement `${VAR//<*>/}`
+    # would be GREEDY (matches `<a>foo<b>` as one match from first `<` to
+    # last `>`), which is a behavioral regression vs the original sed regex
+    # `<[^>]*>` (non-greedy via negated character class). The non-greedy
+    # semantics require either `shopt -s extglob` + `<*([^>])>` (changes
+    # script-wide glob behavior, risky) or keeping the sed pipeline. The
+    # sed form is the correct tool here.
     if [[ -n "$CHANGED_FILES" ]]; then
         CHANGED_FILES_PLAIN=$(echo "$CHANGED_FILES" | sed 's/<[^>]*>//g')
         PUSHOVER_MESSAGE="$PUSHOVER_MESSAGE

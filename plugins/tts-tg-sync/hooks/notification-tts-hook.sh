@@ -51,9 +51,9 @@ case "$NOTIFICATION_TYPE" in
         NOTIF_DIR="$HOME/.claude/notifications"
         mkdir -p "$NOTIF_DIR"
         
-        # Extract project name from CWD
-        PROJECT=$(basename "$CWD" 2>/dev/null || echo "unknown")
-        
+        # iter-53 SC2034: removed unused PROJECT variable. Was set via
+        # `PROJECT=$(basename "$CWD")` but never read — the downstream
+        # Python heredoc references $CWD directly, not $PROJECT.
         /usr/bin/python3 -c "
 import json, sys, os
 from datetime import datetime, timezone
