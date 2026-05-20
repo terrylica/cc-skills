@@ -33,17 +33,33 @@ echo "════════════════════════�
 echo "→ Auto-discovering tests at plugins/*/hooks/tests/test-*.sh"
 echo ""
 
-# Discover all test files in test directories under any plugin's hooks/
-# directory. Glob is bash-native, no `find` subprocess. Sort for stable
-# output and reproducible test order.
+# Discover all test files at TWO well-known paths:
+#
+#   1. plugins/*/hooks/tests/test-*.sh
+#      Per-plugin hook regression tests (iter-50 original convention).
+#
+#   2. .mise/tasks/tests/test-*.sh
+#      Repo-level infrastructure tests for mise tasks themselves —
+#      added iter-59 so the async-eligibility audit task (and any
+#      future load-bearing mise task) can have discoverable regression
+#      coverage. Plugin-scope tests don't belong here because the audit
+#      task lives outside any single plugin's scope.
+#
+# Sort for stable output and reproducible test order across both
+# discovery paths.
 TEST_FILES=()
 while IFS= read -r test_file; do
     [ -f "$test_file" ] && TEST_FILES+=("$test_file")
-done < <(find "$REPO_ROOT/plugins" -path '*/hooks/tests/test-*.sh' -type f 2>/dev/null | sort)
+done < <({
+    find "$REPO_ROOT/plugins" -path '*/hooks/tests/test-*.sh' -type f 2>/dev/null
+    find "$REPO_ROOT/.mise/tasks/tests" -maxdepth 1 -name 'test-*.sh' -type f 2>/dev/null
+} | sort)
 
 if [ "${#TEST_FILES[@]}" -eq 0 ]; then
-    echo "⚠  No tests found matching plugins/*/hooks/tests/test-*.sh"
-    echo "   Add tests following this naming convention to have them auto-discovered."
+    echo "⚠  No tests found at either discovery path:"
+    echo "   - plugins/*/hooks/tests/test-*.sh   (per-plugin hook tests)"
+    echo "   - .mise/tasks/tests/test-*.sh       (infrastructure mise-task tests)"
+    echo "   Add tests following these naming conventions to have them auto-discovered."
     exit 0
 fi
 
