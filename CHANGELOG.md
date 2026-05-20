@@ -1,3 +1,10 @@
+## [21.17.1](https://github.com/terrylica/cc-skills/compare/v21.17.0...v21.17.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **release-gate:** iter-70 harden all preflight Check 4d/4e/4f/4g/4h/4i grep extractions against brittle-banner-grep recurrence — applies the iter-69 c75e6915 defensive pattern uniformly + documents the anti-pattern + maintenance rule in docs/RELEASE.md ([fe65e29](https://github.com/terrylica/cc-skills/commit/fe65e297b5d2250b654687195b67f422d9b86980))
+
 # [21.17.0](https://github.com/terrylica/cc-skills/compare/v21.16.0...v21.17.0) (2026-05-20)
 
 
