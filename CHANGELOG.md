@@ -1,3 +1,10 @@
+## [21.13.2](https://github.com/terrylica/cc-skills/compare/v21.13.1...v21.13.2) (2026-05-20)
+
+
+### Performance Improvements
+
+* **itp-hooks:** iter-64 narrow PostToolUse subprocess-orphan-cleanup matcher from '*' to 'Bash' — eliminate ~12-17ms CPU+battery waste per non-Bash tool call + 7-assertion regression test locks iter-57 async:true + iter-64 matcher invariants ([2689254](https://github.com/terrylica/cc-skills/commit/2689254963ecc105b32ec6474c316ef033be28e2))
+
 ## [21.13.1](https://github.com/terrylica/cc-skills/compare/v21.13.0...v21.13.1) (2026-05-20)
 
 
