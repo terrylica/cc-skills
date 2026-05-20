@@ -25,7 +25,11 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOOK_UNDER_TEST="$SCRIPT_DIR/posttooluse-1password-pattern-reminder.sh"
+# iter-40 layout: this test file lives in plugins/devops-tools/hooks/tests/
+# (moved from hooks/ so the plugin validator's `plugins/*/hooks/*.{sh,...}`
+# glob does NOT misclassify it as a Claude Code hook). The hook under
+# test is one directory up at plugins/devops-tools/hooks/.
+HOOK_UNDER_TEST="$SCRIPT_DIR/../posttooluse-1password-pattern-reminder.sh"
 
 if [ ! -x "$HOOK_UNDER_TEST" ]; then
   echo "FATAL: hook not executable: $HOOK_UNDER_TEST" >&2
