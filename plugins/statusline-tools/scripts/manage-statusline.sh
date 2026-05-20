@@ -81,7 +81,13 @@ ensure_settings_file() {
 backup_settings() {
     local backup_dir="${HOME}/.claude/backups"
     mkdir -p "$backup_dir"
-    local backup_file="${backup_dir}/settings.json.$(date +%Y%m%d-%H%M%S).bak"
+    # iter-37 SC2155: split declare-from-assign so `date` failure (extremely
+    # rare but possible on a clock-skew-broken VM) propagates instead of
+    # being masked. Hygiene fix — current bash makes date essentially never
+    # fail, but the pattern protects against future refactors that swap in
+    # a more failure-prone timestamp source.
+    local backup_file
+    backup_file="${backup_dir}/settings.json.$(date +%Y%m%d-%H%M%S).bak"
     cp "$SETTINGS_FILE" "$backup_file"
     log_info "Backup created: $backup_file"
 }
