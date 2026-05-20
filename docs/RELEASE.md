@@ -111,6 +111,44 @@ mise run release:clean
 mise run release:sync
 ```
 
+## Preflight Gate Maintenance
+
+### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
+
+`.mise/tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
+
+#### Forensic case
+
+iter-69 first ship attempt: extended pentad audit shipped with renamed banner. Preflight Check 4j called the audit, audit exited 0 (no violations), but downstream banner-grep returned empty → pipefail → preflight aborted at "Running additionalContext-silently-dropped pentad audit..." with `[release:preflight] ERROR task failed` and no further diagnostic. Fixed in commit c75e6915.
+
+#### Defensive pattern (iter-70 uniformity)
+
+All preflight grep extractions use this pattern:
+
+```bash
+VAR=$( { grep -oE 'PATTERN' file || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+echo "  ✓ Result: ${VAR:-0}"
+```
+
+Three layers of defense:
+
+1. **`{ grep ... || true; }`** — first grep always exits 0; swallows pipefail when banner phrasing changes.
+2. **`|| echo 0`** — full-pipeline fallback; defends against any downstream pipeline failure (e.g. malformed log file).
+3. **`${VAR:-0}`** — interpolation default; reports `0` rather than empty string if everything upstream produces no output.
+
+#### Why this matters
+
+Without defenses, a future audit rename ANYWHERE in the marketplace can crash preflight with zero diagnostic, blocking releases until an operator manually bisects the bash. With defenses, the gate gracefully degrades to `0` reporting and the human-readable summary line still emits — operators see "Pueue-wrap-guard ordering: 0 ok (0 violations)" instead of "ERROR task failed".
+
+#### Maintenance rule for future audit changes
+
+When extending an audit's scope and renaming its summary banner, you MUST update **both** sites coherently in the same commit:
+
+- `.mise/tasks/tests/test-audit-*.sh` grep (regression test)
+- `.mise/tasks/release/preflight` grep (release gate)
+
+The defensive pattern above reduces the blast radius if you forget — but the only way to ensure the gate keeps reporting accurate counts is coherent dual-site updates.
+
 ## Key Files
 
 | File                                | Purpose                        |
