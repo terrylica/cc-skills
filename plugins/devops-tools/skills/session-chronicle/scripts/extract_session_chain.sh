@@ -72,12 +72,12 @@ for session_id in $SESSION_IDS; do
 
     echo "  Archived: $session_id"
     echo "    Lines: $LINE_COUNT"
-    echo "    Original: $(numfmt --to=iec $FILE_SIZE 2>/dev/null || echo "${FILE_SIZE}B")"
-    echo "    Compressed: $(numfmt --to=iec $COMPRESSED_SIZE 2>/dev/null || echo "${COMPRESSED_SIZE}B")"
+    echo "    Original: $(numfmt --to=iec "$FILE_SIZE" 2>/dev/null || echo "${FILE_SIZE}B")"
+    echo "    Compressed: $(numfmt --to=iec "$COMPRESSED_SIZE" 2>/dev/null || echo "${COMPRESSED_SIZE}B")"
 
-    ((TOTAL_SESSIONS++))
-    ((TOTAL_LINES += LINE_COUNT))
-    ((TOTAL_BYTES += COMPRESSED_SIZE))
+    ((TOTAL_SESSIONS++)) || true  # iter-36: ((VAR++)) returns OLD value 0 → exit 1 under set -e on first iteration
+    ((TOTAL_LINES += LINE_COUNT)) || true  # iter-36: ((VAR += N)) returns NEW value; if NEW==0 → exit 1
+    ((TOTAL_BYTES += COMPRESSED_SIZE)) || true  # iter-36: same NEW-value-as-exit-code hazard
   else
     echo "  WARNING: Session not found: $session_id" >&2
   fi

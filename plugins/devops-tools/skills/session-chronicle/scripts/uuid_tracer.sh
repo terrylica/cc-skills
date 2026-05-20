@@ -90,7 +90,7 @@ trace_chain() {
       }' >> "$chain_file"
 
     uuid="$parent_uuid"
-    ((depth++))
+    ((depth++)) || true  # iter-36: ((VAR++)) returns OLD value 0 on first loop → set -e exits silently (this is THE iter-32 gotcha class)
   done
 
   # Output complete chain
