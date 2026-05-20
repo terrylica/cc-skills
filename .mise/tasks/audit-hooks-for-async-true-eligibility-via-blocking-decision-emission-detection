@@ -63,7 +63,12 @@ set -euo pipefail
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
 shopt -u patsub_replacement 2>/dev/null || true
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# REPO_ROOT defaults to the cc-skills working tree (resolved from this
+# task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
+# the audit against a synthetic-fixture fleet (iter-59 regression test
+# uses this to assert each detection layer's classification on a known-
+# constructed corpus).
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  Hook async:true Eligibility Audit"
@@ -163,23 +168,38 @@ classify_script_blocking_behavior() {
     return
   fi
 
-  # Layer 8 (iter-58 round 3): raw stdout → context-injection (PostToolUse/Stop only).
+  # Layer 8 (iter-58 round 3, extended iter-59): raw stdout →
+  # context-injection (PostToolUse/Stop only).
   #
-  # The PostToolUse hook convention is: plain stdout becomes additionalContext
-  # in Claude's next-turn context (legacy form, predates iter-1 JSON wrapper).
-  # Any TS/JS hook calling `console.log(` (NOT `console.error(`, which goes
-  # to stderr and is debug-only) is emitting context to Claude.
+  # The PostToolUse hook convention is: plain stdout becomes
+  # additionalContext in Claude's next-turn context (legacy form,
+  # predates iter-1 JSON wrapper). The Node/Bun console-method routing
+  # to file descriptors:
   #
-  # If async, that stdout is discarded — Claude never sees the reminder/hint.
-  # The hook becomes effectively a no-op from Claude's POV (side effects on
-  # disk may still happen, but the value-add of the hook is lost).
+  #   console.log(...)   → fd 1 (stdout) → consumed as context
+  #   console.info(...)  → fd 1 (stdout) → consumed as context (iter-59)
+  #   console.warn(...)  → fd 2 (stderr) → debug only, not consumed
+  #   console.error(...) → fd 2 (stderr) → debug only, not consumed
+  #
+  # If async, fd 1 output is discarded — Claude never sees the
+  # reminder/hint. The hook becomes effectively a no-op from Claude's
+  # POV (disk side-effects may still happen, but the hook's value-add
+  # is lost).
   #
   # Heuristic limitations:
-  #   - Only catches TS/JS (`console.log(`). Bash hooks using plain
-  #     `echo "text"` (not redirected to /dev/null or log file) are NOT
-  #     caught — would need semantic analysis to distinguish debug echo
-  #     from context-injection echo. Most bash hooks in this fleet use
-  #     `jq -n` to emit JSON or log to files, so this gap is rare.
+  #   - Only catches TS/JS `console.log(`/`console.info(`. Bash hooks
+  #     using plain `echo "text"` (not redirected to /dev/null or log
+  #     file) are NOT caught — would need semantic analysis to
+  #     distinguish debug echo from context-injection echo. Most bash
+  #     hooks in this fleet use `jq -n` to emit JSON or log to files,
+  #     so this gap is rare.
+  #   - `process.stdout.write(` is NOT caught because some hooks (e.g.
+  #     stop-cron-gc.ts) use it to emit the literal "{}" no-op success
+  #     signal — catching it would false-positive into MUST-STAY-SYNC
+  #     when the hook genuinely is async-safe. Tradeoff biases toward
+  #     accepting the rare misclassification of a hook that uses
+  #     process.stdout.write for real content (operator inspects before
+  #     applying async:true anyway).
   #   - May false-positive on TS/JS hooks that console.log for genuine
   #     debug (no harm — biases to safe MUST-STAY-SYNC).
   #
@@ -187,7 +207,7 @@ classify_script_blocking_behavior() {
   # cover all the JSON-output paths). Bash-style hooks may use stdout
   # for hookSpecificOutput JSON which Layer 6 catches.
   if [ "$event" = "PostToolUse" ] || [ "$event" = "Stop" ] || [ "$event" = "SessionStart" ]; then
-    if grep -qE 'console\.log\(' "$script_path" 2>/dev/null; then
+    if grep -qE 'console\.(log|info)\(' "$script_path" 2>/dev/null; then
       echo "BLOCKS_REMINDER"
       return
     fi
