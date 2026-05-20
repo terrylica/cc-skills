@@ -1,3 +1,10 @@
+# [21.14.0](https://github.com/terrylica/cc-skills/compare/v21.13.2...v21.14.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-65 marketplace-wide wildcard-matcher audit — preventive gate scaling iter-63 + iter-64 perf forensic findings into structural enforcement + 11-assertion regression test caught BSD-grep portability bug + release:preflight Check 4i ([c96da5d](https://github.com/terrylica/cc-skills/commit/c96da5dcf52894fb973f409bcb3c093909fa1cce)), closes [#01](https://github.com/terrylica/cc-skills/issues/01) [#02](https://github.com/terrylica/cc-skills/issues/02) [#03](https://github.com/terrylica/cc-skills/issues/03) [#04](https://github.com/terrylica/cc-skills/issues/04) [#05](https://github.com/terrylica/cc-skills/issues/05) [#3](https://github.com/terrylica/cc-skills/issues/3)
+
 ## [21.13.2](https://github.com/terrylica/cc-skills/compare/v21.13.1...v21.13.2) (2026-05-20)
 
 
