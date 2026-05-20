@@ -1,21 +1,47 @@
 #!/usr/bin/env bun
 // @ts-nocheck — Bun subprocess APIs (.on() on ReadableStream) not in bun-types
 /**
- * PostToolUse hook: Subprocess Orphan Cleanup
+ * PostToolUse hook: Bash Subprocess Orphan Cleanup
  *
- * Problem: Even with stdin disconnection, orphaned/zombie processes can remain
- * holding references to TTY file descriptors, causing future suspensions.
+ * Problem: Even with PreToolUse stdin disconnection, orphaned/zombie
+ * subprocesses spawned by Bash can remain holding TTY file descriptors,
+ * causing future suspensions.
  *
- * Solution: After ANY tool execution, scan for and clean up:
- * - Orphaned child processes
+ * Solution: After Bash tool execution, scan for and clean up:
+ * - Orphaned child processes (ppid === Claude Code's pid)
  * - Zombie processes
  * - Processes holding TTY references
  * - Detached but still-running background jobs
  *
- * Coverage: ALL tools (runs after Bash, Read, Write, LSP, Code, Git, etc.)
+ * Coverage (post iter-64 matcher narrowing): Bash tool calls only.
+ *
+ * iter-57 perf optimization: registered with async:true so the orphan
+ * scan does not block Claude Code's continuation. The async tag means
+ * the bun cold-start cost doesn't block the model, but it still
+ * consumes CPU/battery per invocation.
+ *
+ * iter-64 perf optimization: hooks.json matcher narrowed from "*" to
+ * "Bash". Previously the hook ran after EVERY tool call (Read, Glob,
+ * Grep, Edit, Write, Task, mcp__*, WebSearch, etc.) — but only Bash
+ * spawns the subprocess class that can orphan. Read/Glob/Grep are
+ * in-process; Edit/Write trigger PostToolUse formatter hooks (ty,
+ * biome, oxlint, tsgo) but those use Bun.spawnSync (synchronously
+ * awaited) so their subprocesses cannot orphan past the tool call
+ * boundary. Narrowing eliminates ~12-17ms of wasted CPU+battery per
+ * non-Bash call. Twin of iter-63's PreToolUse matcher narrowing on
+ * pretooluse-subprocess-stdin-inlet-guard.ts.
+ *
+ * If a future tool category emerges that spawns long-lived
+ * subprocesses (hypothetically: a Python REPL tool or persistent
+ * MCP server adapter), widen the hooks.json matcher to include it.
+ * The hook itself is tool-agnostic — it scans by ppid, not by
+ * tool_name — so no source-code changes would be needed for that
+ * widening, only the matcher in hooks.json.
  *
  * Reference: GitHub Issues #11898, #12507, #13598
- * Related: pretooluse-subprocess-stdin-inlet-guard.ts (prevention)
+ * Related: pretooluse-subprocess-stdin-inlet-guard.ts (prevention twin;
+ *          iter-63 narrowed its matcher to "Bash" with the same
+ *          reasoning).
  */
 
 import { Subprocess } from "bun";
