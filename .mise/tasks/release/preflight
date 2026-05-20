@@ -112,6 +112,24 @@ HOOK_TESTS_PASSED=$(grep -oE 'Test files PASSED:[[:space:]]+[0-9]+' /tmp/hook-re
 HOOK_TESTS_FAILED=$(grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook-regression-test.log | head -1 | awk '{print $NF}')
 echo "  ✓ Hook regression: $HOOK_TESTS_PASSED test files passed (${HOOK_TESTS_FAILED:-0} failed)"
 
+# Check 4f: PreToolUse schema-correctness audit (iter-60 gate). Per Claude
+# Code v2.0.10+ spec, PreToolUse top-level `decision: "block"|"deny"`
+# is DEPRECATED — hooks using it silently FAIL TO BLOCK. The audit
+# scans every plugins/*/hooks/pretooluse-* source and exits non-zero
+# if any deprecated-schema hook is found. Blocks tag publish so a
+# deprecated-schema PreToolUse regression cannot escape to Layer 3
+# operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
+echo "→ Running PreToolUse schema-correctness audit..."
+if ! mise run audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision >/tmp/pretooluse-schema-audit.log 2>&1; then
+    echo "  ✗ PreToolUse schema audit FAILED — see /tmp/pretooluse-schema-audit.log"
+    tail -20 /tmp/pretooluse-schema-audit.log
+    exit 1
+fi
+SCHEMA_MODERN=$(grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+SCHEMA_HELPER=$(grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+SCHEMA_DEPRECATED=$(grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log | grep -oE '[0-9]+$' | head -1)
+echo "  ✓ PreToolUse schema: $SCHEMA_MODERN modern + $SCHEMA_HELPER helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
+
 # Check 5: Releasable commits exist
 echo "→ Checking for releasable commits..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
