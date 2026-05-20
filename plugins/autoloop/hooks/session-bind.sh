@@ -43,7 +43,7 @@ _log_error() {
   local exit_code="${2:-1}"
   mkdir -p "$LOOPS_DIR" 2>/dev/null || true
   jq -n \
-    --arg ts_us "$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo '0')" \
+    --arg ts_us "$(gdate +%s%6N 2>/dev/null || python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo '0')" \
     --arg cwd "$cwd" \
     --arg error "$error_msg" \
     --arg exit_code "$exit_code" \
@@ -82,9 +82,15 @@ export _PROV_AGENT="session-bind.sh"
 PAYLOAD=$(cat 2>/dev/null || echo '{}')
 [ -z "$PAYLOAD" ] && PAYLOAD='{}'
 
-SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id // ""' 2>/dev/null || echo "")
-PAYLOAD_CWD=$(echo "$PAYLOAD" | jq -r '.cwd // ""' 2>/dev/null || echo "")
-SOURCE=$(echo "$PAYLOAD" | jq -r '.source // "unknown"' 2>/dev/null || echo "unknown")
+# Perf (iter-28 payload-decode-tsv-batch): pre-iter-28 we spawned THREE
+# separate jq processes for the three PAYLOAD fields — each ~7-10ms cold
+# start on macOS. Mirrors the iter-25 heartbeat-tick.sh fix: one jq with
+# TSV output, bash `read` builtin splits the columns. ~20ms saved on every
+# SessionStart (user-facing first-impression latency).
+IFS=$'\t' read -r SESSION_ID PAYLOAD_CWD SOURCE <<< "$(
+  echo "$PAYLOAD" | jq -r '"\(.session_id // "")\t\(.cwd // "")\t\(.source // "unknown")"' 2>/dev/null \
+    || printf '\t\tunknown'
+)"
 
 # Empty session_id is fatal for binding (but not an error — could be running
 # outside Claude Code via direct invocation in tests).
@@ -206,18 +212,28 @@ if [ -z "$MATCHES" ]; then
 fi
 
 # ===== Per-match binding decision =====
-NOW_US=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo "0")
+#
+# Perf (iter-28 python3-now-us-replacement): pre-iter-28 NOW_US used the
+# python3 cold-start trick (~30-50ms on macOS for `import time`). state-lib's
+# now_us() prefers gdate (~3ms cold start) and falls back to python3 only
+# when gdate is missing — so this is strictly faster everywhere gdate exists,
+# same speed where it doesn't.
+NOW_US=$(now_us 2>/dev/null || echo "0")
 
 while IFS= read -r match; do
   [ -z "$match" ] && continue
 
-  LOOP_ID=$(echo "$match" | jq -r '.loop_id // ""')
-  OWNER_SID=$(echo "$match" | jq -r '.owner_session_id // ""')
-  OWNER_PID=$(echo "$match" | jq -r '.owner_pid // ""')
-  GEN=$(echo "$match" | jq -r '.generation // 0')
-  LAST_UPDATED_US=$(echo "$match" | jq -r '.owner_start_time_us // 0')
-  CONTRACT_PATH=$(echo "$match" | jq -r '.contract_path // ""')
-  STORED_ROOT=$(echo "$match" | jq -r '.created_at_cwd // ""')
+  # Perf (iter-28 match-decode-tsv-batch): pre-iter-28 decoded SEVEN fields
+  # via seven jq invocations. Each was a ~7-10ms cold-start (~50-70ms per
+  # match). With N loops matched (typically 1, sometimes 2), this stacked
+  # quickly on SessionStart. One TSV-batched jq + bash `read` = 1 spawn.
+  # Same fallback pattern as the iter-26 MATCHING_LOOP decode in
+  # heartbeat-tick.sh — if jq dies, empty defaults via `printf` keep `read`
+  # happy and OWNER_SID="" cases below handle the empty-fields branch.
+  IFS=$'\t' read -r LOOP_ID OWNER_SID OWNER_PID GEN LAST_UPDATED_US CONTRACT_PATH STORED_ROOT <<< "$(
+    echo "$match" | jq -r '"\(.loop_id // "")\t\(.owner_session_id // "")\t\(.owner_pid // "")\t\(.generation // 0)\t\(.owner_start_time_us // 0)\t\(.contract_path // "")\t\(.created_at_cwd // "")"' 2>/dev/null \
+      || printf '\t\t\t0\t0\t\t'
+  )"
 
   # Wave 6 telemetry: capture path-hierarchy provenance so post-mortem
   # sessions can reconstruct exactly why a bind decision was made.
@@ -239,11 +255,15 @@ while IFS= read -r match; do
       if update_loop_field "$LOOP_ID" ".owner_session_id" "\"$SESSION_ID\"" 2>/dev/null; then
         update_loop_field "$LOOP_ID" ".owner_start_time_us" "\"$NOW_US\"" 2>/dev/null || true
         # v2: mirror owner_session_id + created_in_session into contract frontmatter
-        # (best-effort; registry is SSoT)
-        if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_field >/dev/null 2>&1; then
-          set_contract_field "$CONTRACT_PATH" "owner_session_id" "\"$SESSION_ID\"" 2>/dev/null || true
-          set_contract_field "$CONTRACT_PATH" "owner_started_us" "$NOW_US" 2>/dev/null || true
-          # created_in_session: only if pending-bind placeholder present
+        # (best-effort; registry is SSoT).
+        #
+        # Perf (iter-28 batched-frontmatter-rewrite-single-awk-pass): pre-iter-28
+        # this block did 2-3 sequential set_contract_field calls; now collapsed
+        # into one set_contract_frontmatter_field_batch call (1 awk + 1 mktemp +
+        # 1 mv). The created_in_session line still requires a peek-first read
+        # (only set when pending-bind placeholder present) — done via a single
+        # awk read that exits as soon as the field is found, so it's cheap.
+        if [ -n "$CONTRACT_PATH" ] && [ -f "$CONTRACT_PATH" ] && command -v set_contract_frontmatter_field_batch >/dev/null 2>&1; then
           local_created_session=$(awk '
             NR == 1 && /^---/ { in_fm = 1; next }
             in_fm && /^---/ { exit }
@@ -251,7 +271,19 @@ while IFS= read -r match; do
           ' "$CONTRACT_PATH" 2>/dev/null)
           case "$local_created_session" in
             ""|"<bound by session-bind hook on first SessionStart>"|"\"\""|"pending-bind")
-              set_contract_field "$CONTRACT_PATH" "created_in_session" "\"$SESSION_ID\"" 2>/dev/null || true
+              # All 3 fields in one batched rewrite.
+              set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+                "owner_session_id" "\"$SESSION_ID\"" \
+                "owner_started_us" "$NOW_US" \
+                "created_in_session" "\"$SESSION_ID\"" \
+                2>/dev/null || true
+              ;;
+            *)
+              # created_in_session already set to a real value; preserve it.
+              set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+                "owner_session_id" "\"$SESSION_ID\"" \
+                "owner_started_us" "$NOW_US" \
+                2>/dev/null || true
               ;;
           esac
         fi
