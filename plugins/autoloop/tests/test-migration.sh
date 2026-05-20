@@ -80,7 +80,7 @@ extract_body() {
 }
 BODY_BEFORE=$(extract_body "$CONTRACT_PATH")
 echo "✓ Created fixture contract at $CONTRACT_PATH"
-((PASS++))
+((PASS+=1))
 
 echo ""
 echo "Test 2: First init_state_dir call derives loop_id"
@@ -89,28 +89,28 @@ echo "Test 2: First init_state_dir call derives loop_id"
 LOOP_ID=$(derive_loop_id "$CONTRACT_PATH")
 if [[ "$LOOP_ID" =~ ^[0-9a-f]{12}$ ]]; then
   echo "✓ loop_id derived: $LOOP_ID"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Invalid loop_id format: $LOOP_ID"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Call init_state_dir (should add loop_id to frontmatter)
 if init_state_dir "$LOOP_ID" "$CONTRACT_PATH" 2>/dev/null; then
   echo "✓ init_state_dir succeeded"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: init_state_dir failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Verify loop_id is now in frontmatter
 if grep -q "^loop_id: $LOOP_ID" "$CONTRACT_PATH"; then
   echo "✓ loop_id added to frontmatter: $LOOP_ID"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: loop_id not found in frontmatter"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -119,14 +119,14 @@ echo "Test 3: Contract body unchanged (only frontmatter mutated)"
 BODY_AFTER=$(extract_body "$CONTRACT_PATH")
 if [ "$BODY_BEFORE" = "$BODY_AFTER" ]; then
   echo "✓ Contract body unchanged"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Contract body was modified"
   echo "Before:"
   echo "$BODY_BEFORE"
   echo "After:"
   echo "$BODY_AFTER"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -135,30 +135,30 @@ echo "Test 4: Idempotency - second init_state_dir call"
 # Call init_state_dir again
 if init_state_dir "$LOOP_ID" "$CONTRACT_PATH" 2>/dev/null; then
   echo "✓ Second init_state_dir succeeded (idempotent)"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Second init_state_dir failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Count occurrences of loop_id line in frontmatter (should be exactly 1)
 LOOP_ID_COUNT=$(grep -c "^loop_id:" "$CONTRACT_PATH" || echo 0)
 if [ "$LOOP_ID_COUNT" -eq 1 ]; then
   echo "✓ No duplicate loop_id lines (count: $LOOP_ID_COUNT)"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Multiple or no loop_id lines found (count: $LOOP_ID_COUNT)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Verify body is still unchanged
 BODY_AFTER_2=$(extract_body "$CONTRACT_PATH")
 if [ "$BODY_BEFORE" = "$BODY_AFTER_2" ]; then
   echo "✓ Contract body still unchanged after second call"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Contract body changed on second call"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -177,18 +177,18 @@ if [ -f "$HOME/.claude/loops/registry.json" ]; then
 
     if [ "$HAS_LOOP_ID" = "yes" ] && [ "$HAS_CONTRACT" = "yes" ] && [ "$HAS_STATE_DIR" = "yes" ] && [ "$HAS_GENERATION" = "yes" ]; then
       echo "✓ Registry entry created with all essential fields"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: Registry entry missing fields (loop_id=$HAS_LOOP_ID, contract=$HAS_CONTRACT, state_dir=$HAS_STATE_DIR, generation=$HAS_GENERATION)"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "✗ FAIL: Registry entry not found or empty"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "⚠ SKIP: Registry file not created (expected if registry not required)"
-  ((PASS++))
+  ((PASS+=1))
 fi
 
 echo ""
