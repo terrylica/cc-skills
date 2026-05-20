@@ -1,3 +1,10 @@
+## [21.17.5](https://github.com/terrylica/cc-skills/compare/v21.17.4...v21.17.5) (2026-05-20)
+
+
+### Performance Improvements
+
+* **release-gate:** iter-74 single-pass awk scanner replaces 217-file × 8-fork-exec storm in preflight Check 4b (self-evolution sandwich) ([0bbe228](https://github.com/terrylica/cc-skills/commit/0bbe228df7fff042c4609c69180c845a8c0bd215)), closes [#2](https://github.com/terrylica/cc-skills/issues/2)
+
 ## [21.17.4](https://github.com/terrylica/cc-skills/compare/v21.17.3...v21.17.4) (2026-05-20)
 
 
