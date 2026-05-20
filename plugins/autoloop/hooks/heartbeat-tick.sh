@@ -109,16 +109,38 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$PAYLOAD" ] && PAYLOAD='{}'
 
-# Step 1a (iter-27 tool-burst-tick-deduplication fast-path session-id extract):
+# Step 1a (iter-27 tool-burst-tick-deduplication fast-path session-id extract,
+# iter-32 throttle-key-uuid-shape-required hardening):
+#
 # Pre-iter-27 the PAYLOAD jq spawn was the very first work this hook did,
 # even when the entire tick would be deduplicated by the throttle below. By
 # extracting session_id with a pure-bash regex first (BASH_REMATCH, zero
-# subprocess spawns), the throttle gate can fire BEFORE jq starts. If the
-# regex misses (malformed JSON, no session_id), we fall through to the jq
-# decode below — so correctness is preserved.
+# subprocess spawns), the throttle gate can fire BEFORE jq starts.
+#
+# Iter-32 hardening: the iter-27 regex `"session_id":"([^"]+)"` matches the
+# FIRST occurrence of `session_id` in the JSON — which can be a NESTED field
+# like `tool_input.session_id` if the JSON serializer emits it before the
+# top-level key. Claude Code's current PostToolUse payload puts session_id
+# first so the bug was masked in production, but the latent failure mode is
+# real: a future payload-order change would silently break the throttle
+# (write would write the correct UUID's throttle file, read would search by
+# the WRONG nested key, so throttle would NEVER hit → every tick goes slow
+# path with no error).
+#
+# The iter-32 fix REQUIRES the captured value to look like a UUID
+# (8-4-4-4-12 lowercase hex). Claude Code session_ids are UUIDs; nested
+# session_id values inside tool_input would almost never be UUID-shaped
+# (they're typically integer task IDs, file paths, or string handles).
+# When the nested value is non-UUID, the regex engine skips past it and
+# matches the next `"session_id":"..."` whose value IS UUID-shaped — which
+# is the top-level field.
+#
+# Defense in depth: if the regex matches but the value isn't UUID-shaped,
+# the regex won't match at all and we fall through to the jq decode below,
+# so correctness is preserved (just at the cost of one jq spawn).
 SESSION_ID_FAST=""
 PAYLOAD_CWD_FAST=""
-if [[ "$PAYLOAD" =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]]; then
+if [[ "$PAYLOAD" =~ \"session_id\"[[:space:]]*:[[:space:]]*\"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\" ]]; then
   SESSION_ID_FAST="${BASH_REMATCH[1]}"
 fi
 if [[ "$PAYLOAD" =~ \"cwd\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]]; then
@@ -132,10 +154,19 @@ fi
 # jq spawns on this path — just one gdate + one `cat` of a tiny tmp file.
 # Setting AUTOLOOP_TICK_DEDUP_INTERVAL_US=0 disables the throttle entirely
 # (useful for tests that need deterministic per-tick semantics).
-if [ -n "$SESSION_ID_FAST" ] \
+#
+# Iter-32 throttle-key-read-write-symmetric-fix: define _hbt_throttle_key
+# ONCE here and reuse it for both the gate-read below AND the end-of-script
+# write at line ~525. Pre-iter-32 the read used $SESSION_ID_FAST while the
+# write used $SESSION_ID — a hidden asymmetry that silently broke the
+# throttle whenever the bash regex extracted a different value than jq.
+# Now the key is computed exactly once; both sides use the same variable.
+_hbt_throttle_key="$SESSION_ID_FAST"
+
+if [ -n "$_hbt_throttle_key" ] \
    && [ "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" -gt 0 ] 2>/dev/null \
    && command -v gdate >/dev/null 2>&1; then
-  _hbt_throttle_file="$AUTOLOOP_TICK_DEDUP_DIR/$SESSION_ID_FAST.us"
+  _hbt_throttle_file="$AUTOLOOP_TICK_DEDUP_DIR/$_hbt_throttle_key.us"
   if [ -f "$_hbt_throttle_file" ]; then
     _hbt_now_us=$(gdate +%s%6N 2>/dev/null || echo 0)
     _hbt_last_us=$(cat "$_hbt_throttle_file" 2>/dev/null || echo 0)
@@ -494,12 +525,20 @@ fi
 # timestamp so the throttle gate above can skip near-future bursts. Written
 # AFTER write_heartbeat succeeds (a failed tick shouldn't burn its throttle
 # window — the next call should still attempt the work).
-if [ -n "$SESSION_ID" ] && [ "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" -gt 0 ] 2>/dev/null \
+#
+# Iter-32 throttle-key-read-write-symmetric-fix: $_hbt_throttle_key was
+# computed once at the top of the script (next to the throttle gate). Reuse
+# the SAME variable here so read and write are textually identical — no
+# possibility of one side updating while the other doesn't. Fall back to
+# $SESSION_ID if the iter-27 bash regex missed (e.g. malformed PAYLOAD or
+# a non-UUID session_id that fails the iter-32 UUID-shape check).
+[ -z "${_hbt_throttle_key:-}" ] && _hbt_throttle_key="$SESSION_ID"
+if [ -n "$_hbt_throttle_key" ] && [ "$AUTOLOOP_TICK_DEDUP_INTERVAL_US" -gt 0 ] 2>/dev/null \
    && command -v gdate >/dev/null 2>&1; then
   mkdir -p "$AUTOLOOP_TICK_DEDUP_DIR" 2>/dev/null || true
   _hbt_now_us_end=$(gdate +%s%6N 2>/dev/null || echo "")
   if [ -n "$_hbt_now_us_end" ]; then
-    echo "$_hbt_now_us_end" > "$AUTOLOOP_TICK_DEDUP_DIR/$SESSION_ID.us" 2>/dev/null || true
+    echo "$_hbt_now_us_end" > "$AUTOLOOP_TICK_DEDUP_DIR/$_hbt_throttle_key.us" 2>/dev/null || true
   fi
 fi
 
