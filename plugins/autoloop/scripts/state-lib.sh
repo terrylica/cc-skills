@@ -299,7 +299,7 @@ loop_id: '"$loop_id" "$contract_path" || true
   return 0
 }
 
-# write_heartbeat <loop_id> <session_id> <iteration> [contract_path]
+# write_heartbeat <loop_id> <session_id> <iteration> [contract_path] [state_dir_hint] [contract_path_hint] [generation_hint]
 # Atomically writes heartbeat.json to the loop's state directory.
 # Uses mktemp + mv for atomic write (defends pitfall #3: cross-filesystem rename).
 # Captures current registry generation and stamps it in the heartbeat.
@@ -309,6 +309,21 @@ loop_id: '"$loop_id" "$contract_path" || true
 #   $2: session_id (loop session identifier)
 #   $3: iteration (iteration number, integer)
 #   $4 (optional): contract_path (if not in standard location; defaults to derived from registry)
+#   $5 (optional, iter-26): state_dir_hint — caller-provided state_dir already
+#       extracted from the registry. When non-empty, write_heartbeat skips the
+#       registry read entirely for state_dir resolution. heartbeat-tick.sh
+#       passes the value it already TSV-batched out of MATCHING_LOOP, removing
+#       2 jq spawns from the hot path.
+#   $6 (optional, iter-26): contract_path_hint — same purpose as $5 but for the
+#       contract-disappeared check. Without it write_heartbeat still has to read
+#       the registry to know what contract to look for.
+#   $7 (optional, iter-26): generation_hint — same purpose. Without it
+#       write_heartbeat still has to read the registry to capture the current
+#       generation. heartbeat-tick.sh's MATCHING_LOOP decode already has this.
+#
+# When ALL three hints ($5, $6, $7) are supplied, write_heartbeat performs ZERO
+# registry reads and the hot path drops to 1 jq spawn (the final `jq -n` that
+# constructs the heartbeat JSON). This is the iter-26 fast path.
 #
 # Output:
 #   None on success; error messages to stderr on failure
@@ -323,11 +338,16 @@ loop_id: '"$loop_id" "$contract_path" || true
 #
 # Example:
 #   write_heartbeat "a1b2c3d4e5f6" "session_123456_abc def" 1
+#   # iter-26 zero-registry-read fast path:
+#   write_heartbeat "$LID" "$SID" "$IT" "" "$STATE_DIR" "$CONTRACT_PATH" "$GENERATION"
 write_heartbeat() {
   local loop_id="$1"
   local session_id="$2"
   local iteration="$3"
   local contract_path="${4:-}"
+  local state_dir_hint="${5:-}"
+  local contract_path_hint="${6:-}"
+  local generation_hint="${7:-}"
 
   # Validate loop_id format
   if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
@@ -335,7 +355,65 @@ write_heartbeat() {
     return 1
   fi
 
-  # Determine state_dir: if contract_path provided, use it; otherwise read from registry
+  # Iter-26 perf (write-heartbeat-registry-read-collapse):
+  # Pre-iter-26 this function called read_registry_entry THREE times for the
+  # same loop_id — once for state_dir (line ~358), once for contract_path
+  # (line ~393), once for generation (line ~434). Each read_registry_entry
+  # spawns 2 jq processes (read_registry's `jq .` + select), so we paid
+  # ~6 jq cold-starts (~42ms on macOS) for redundant reads of the same row.
+  # Iter-26 collapses this into one read_registry_entry call and one
+  # TSV-batched jq extraction of all three fields. Saves ~4 jq spawns and
+  # ~28ms per write_heartbeat call. Since heartbeat-tick.sh fires on every
+  # Claude Code tool invocation, this is the highest-leverage hot path.
+  #
+  # Zero-registry-read fast path (iter-26): when caller already has the
+  # three fields from a prior batched extract (e.g. heartbeat-tick.sh's
+  # MATCHING_LOOP decode), all three *_hint params are non-empty and the
+  # entire registry read is skipped — the hot path drops to a single
+  # `jq -n` for the heartbeat JSON construction.
+  local _wh_state_dir _wh_contract_path _wh_generation
+  if [ -n "$state_dir_hint" ] && [ -n "$generation_hint" ]; then
+    # Fast path: caller pre-extracted everything we need. contract_path_hint
+    # may legitimately be empty (legacy entries without it), so we only gate
+    # on state_dir + generation. Skip both the source and the read entirely.
+    _wh_state_dir="$state_dir_hint"
+    _wh_contract_path="$contract_path_hint"
+    _wh_generation="$generation_hint"
+  else
+    local registry_lib_dir
+    registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Source registry-lib once (idempotent — sourcing under set -e is fine
+    # because the lib uses guard-style declarations).
+    if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
+      # shellcheck source=/dev/null
+      source "$registry_lib_dir/registry-lib.sh" 2>/dev/null || {
+        echo "ERROR: write_heartbeat: cannot source registry-lib.sh" >&2
+        return 1
+      }
+    fi
+
+    # Read the registry entry ONCE. Even when contract_path was supplied we
+    # still want generation + contract_path-for-disappearance-check, so a
+    # single read is always justified.
+    local _wh_entry
+    if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
+      _wh_entry=$(read_registry_entry "$loop_id" 2>/dev/null) || _wh_entry="{}"
+    else
+      _wh_entry="{}"
+    fi
+
+    # TSV-batched extraction of all three fields in a single jq spawn.
+    # The trailing `printf '\t\t0'` fallback keeps `read` happy if jq dies
+    # so state_dir + contract_path become empty and generation becomes "0".
+    IFS=$'\t' read -r _wh_state_dir _wh_contract_path _wh_generation <<< "$(
+      echo "$_wh_entry" | jq -r '"\(.state_dir // "")\t\(.contract_path // "")\t\(.generation // 0)"' 2>/dev/null \
+        || printf '\t\t0'
+    )"
+  fi
+
+  # Determine state_dir: caller-supplied contract_path takes precedence;
+  # otherwise use registry entry's state_dir.
   local state_dir
   if [ -n "$contract_path" ]; then
     if ! state_dir=$(state_dir_path "$loop_id" "$contract_path"); then
@@ -343,36 +421,15 @@ write_heartbeat() {
       return 1
     fi
   else
-    # Try to read state_dir from registry
-    local registry_lib_dir
-    registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-    if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
-      # shellcheck source=/dev/null
-      source "$registry_lib_dir/registry-lib.sh" 2>/dev/null || {
-        echo "ERROR: write_heartbeat: cannot source registry-lib.sh" >&2
-        return 1
-      }
-
-      local entry
-      entry=$(read_registry_entry "$loop_id" 2>/dev/null) || {
-        echo "ERROR: write_heartbeat: failed to read registry entry" >&2
-        return 1
-      }
-
-      if [ "$entry" = "{}" ] || [ -z "$entry" ]; then
+    if [ -z "$_wh_state_dir" ]; then
+      if [ "$_wh_entry" = "{}" ]; then
         echo "ERROR: write_heartbeat: loop_id not found in registry" >&2
-        return 1
-      fi
-
-      state_dir=$(echo "$entry" | jq -r '.state_dir // empty' 2>/dev/null) || {
+      else
         echo "ERROR: write_heartbeat: failed to extract state_dir from registry entry" >&2
-        return 1
-      }
-    else
-      echo "ERROR: write_heartbeat: cannot locate registry-lib.sh" >&2
+      fi
       return 1
     fi
+    state_dir="$_wh_state_dir"
   fi
 
   # Ensure state_dir exists
@@ -386,35 +443,29 @@ write_heartbeat() {
   # the registry entry + state_dir survive but the loop is unmoored — every
   # subsequent heartbeat would tick happily on a contract that no longer
   # exists. Detect and refuse the write so tinker can surface RED.
-  local registry_lib_dir
-  registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
-    local _entry _cp
-    _entry=$(read_registry_entry "$loop_id" 2>/dev/null) || _entry="{}"
-    _cp=$(echo "$_entry" | jq -r '.contract_path // ""' 2>/dev/null)
-    if [ -n "$_cp" ] && [ ! -f "$_cp" ]; then
-      echo "ERROR: write_heartbeat: contract file '$_cp' has disappeared (likely git restore / git clean / rm). Halting heartbeat for loop '$loop_id'. Run /autoloop:triage to recover." >&2
-      # Best-effort: emit a provenance event for forensics. Tolerated if
-      # provenance-lib isn't loaded.
-      if command -v emit_provenance >/dev/null 2>&1; then
-        emit_provenance "$loop_id" "contract_disappeared" \
-          "contract_path=$_cp" 2>/dev/null || true
-      fi
-      # Best-effort: append a notification entry so consumers (statusline,
-      # SwiftBar) surface the dead loop proactively. Same opt-out env var
-      # as Wave 5 A2 (AUTOLOOP_NO_NOTIFY=1).
-      if [ -z "${AUTOLOOP_NO_NOTIFY:-}" ]; then
-        local _notif="$HOME/.claude/loops/.notifications.jsonl"
-        local _ts_us
-        _ts_us=$(now_us 2>/dev/null || echo "0")
-        jq -nc --arg ts_us "$_ts_us" --arg loop_id "$loop_id" \
-          --arg path "$_cp" \
-          --arg msg "contract file disappeared (likely git restore or manual rm)" \
-          '{ts_us: $ts_us, loop_id: $loop_id, kind: "contract_disappeared", message: $msg, contract_path: $path}' \
-          >> "$_notif" 2>/dev/null || true
-      fi
-      return 1
+  # Iter-26: contract_path already extracted above; no separate jq spawn.
+  if [ -n "$_wh_contract_path" ] && [ ! -f "$_wh_contract_path" ]; then
+    echo "ERROR: write_heartbeat: contract file '$_wh_contract_path' has disappeared (likely git restore / git clean / rm). Halting heartbeat for loop '$loop_id'. Run /autoloop:triage to recover." >&2
+    # Best-effort: emit a provenance event for forensics. Tolerated if
+    # provenance-lib isn't loaded.
+    if command -v emit_provenance >/dev/null 2>&1; then
+      emit_provenance "$loop_id" "contract_disappeared" \
+        "contract_path=$_wh_contract_path" 2>/dev/null || true
     fi
+    # Best-effort: append a notification entry so consumers (statusline,
+    # SwiftBar) surface the dead loop proactively. Same opt-out env var
+    # as Wave 5 A2 (AUTOLOOP_NO_NOTIFY=1).
+    if [ -z "${AUTOLOOP_NO_NOTIFY:-}" ]; then
+      local _notif="$HOME/.claude/loops/.notifications.jsonl"
+      local _ts_us
+      _ts_us=$(now_us 2>/dev/null || echo "0")
+      jq -nc --arg ts_us "$_ts_us" --arg loop_id "$loop_id" \
+        --arg path "$_wh_contract_path" \
+        --arg msg "contract file disappeared (likely git restore or manual rm)" \
+        '{ts_us: $ts_us, loop_id: $loop_id, kind: "contract_disappeared", message: $msg, contract_path: $path}' \
+        >> "$_notif" 2>/dev/null || true
+    fi
+    return 1
   fi
 
   # Get current timestamp in microseconds
@@ -424,16 +475,8 @@ write_heartbeat() {
     return 1
   fi
 
-  # Read current generation from registry
-  local generation="0"
-  local registry_lib_dir
-  registry_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-  if [ -f "$registry_lib_dir/registry-lib.sh" ]; then
-    local entry
-    entry=$(read_registry_entry "$loop_id" 2>/dev/null) || entry="{}"
-    generation=$(echo "$entry" | jq -r '.generation // 0' 2>/dev/null) || generation="0"
-  fi
+  # Iter-26: generation already extracted from the batched read above.
+  local generation="$_wh_generation"
 
   # Create temporary file in state_dir (same filesystem — pitfall #3 defense)
   local temp_file
@@ -483,13 +526,19 @@ write_heartbeat() {
   return 0
 }
 
-# read_heartbeat <loop_id> [contract_path]
+# read_heartbeat <loop_id> [contract_path] [state_dir_hint]
 # Reads the heartbeat.json from a loop's state directory.
 # Returns JSON content on success, or {} if file doesn't exist (fail-graceful).
 #
 # Arguments:
 #   $1: loop_id (12 hex characters)
 #   $2 (optional): contract_path (for state_dir derivation if needed)
+#   $3 (optional, iter-26): state_dir_hint — caller-provided state_dir already
+#       known from upstream extraction (e.g. heartbeat-tick.sh's MATCHING_LOOP
+#       decode). When non-empty, read_heartbeat skips the registry read+select+
+#       state_dir-extract chain (3 jq spawns saved on every Claude Code tool
+#       invocation). Use this whenever the caller already paid for the
+#       registry round-trip.
 #
 # Output:
 #   Heartbeat JSON object, or {} if not found
@@ -500,9 +549,12 @@ write_heartbeat() {
 # Example:
 #   hb=$(read_heartbeat "a1b2c3d4e5f6")
 #   iteration=$(echo "$hb" | jq -r '.iteration // 0')
+#   # iter-26 zero-registry-read fast path:
+#   hb=$(read_heartbeat "$LID" "" "$STATE_DIR_FROM_MATCHING_LOOP")
 read_heartbeat() {
   local loop_id="$1"
   local contract_path="${2:-}"
+  local state_dir_hint="${3:-}"
 
   # Validate loop_id format
   if ! [[ "$loop_id" =~ ^[0-9a-f]{12}$ ]]; then
@@ -510,9 +562,14 @@ read_heartbeat() {
     return 0
   fi
 
-  # Determine state_dir
+  # Determine state_dir. Three sources in priority order:
+  #   1. state_dir_hint (iter-26 zero-registry-read fast path)
+  #   2. contract_path → state_dir_path() (one rev-parse, no jq)
+  #   3. registry lookup (legacy slow path: 3 jq spawns)
   local state_dir
-  if [ -n "$contract_path" ]; then
+  if [ -n "$state_dir_hint" ]; then
+    state_dir="$state_dir_hint"
+  elif [ -n "$contract_path" ]; then
     if ! state_dir=$(state_dir_path "$loop_id" "$contract_path"); then
       echo "{}"
       return 0

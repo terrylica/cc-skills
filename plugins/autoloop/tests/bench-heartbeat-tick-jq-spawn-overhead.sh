@@ -46,8 +46,20 @@ if [ ! -x "$HOOK_PATH" ]; then
 fi
 
 # ===== Build fixtures (isolated registry + heartbeat for this bench) =====
-BENCH_TMP=$(mktemp -d -t autoloop-bench-XXXXXX)
-trap 'rm -rf "$BENCH_TMP"' EXIT
+#
+# Iter-26: realpath-normalize BENCH_TMP. On macOS `mktemp -d -t` returns
+# `/tmp/autoloop-bench-XXXX` but heartbeat-tick.sh's session-bind logic
+# realpath-resolves cwd to `/private/tmp/autoloop-bench-XXXX`. Without
+# normalization the bench fixture's `bound_cwd` (literal /tmp/...) mismatches
+# the observed cwd (/private/tmp/...) and the cwd-drift detector fires on
+# every iteration — adding 4-5 jq spawns per tick and a provenance-write
+# that wouldn't happen in production (where session-bind.sh records
+# `bound_cwd` via the same `pwd -P` normalization). Pinning the fixture to
+# the canonical path makes the bench measure the steady-state hot path
+# instead of the rare drift path.
+BENCH_TMP_RAW=$(mktemp -d -t autoloop-bench-XXXXXX)
+BENCH_TMP=$(cd "$BENCH_TMP_RAW" && pwd -P)
+trap 'rm -rf "$BENCH_TMP_RAW"' EXIT
 
 BENCH_LOOPS_DIR="$BENCH_TMP/loops"
 BENCH_STATE_DIR="$BENCH_TMP/state"
@@ -55,7 +67,13 @@ BENCH_REGISTRY="$BENCH_LOOPS_DIR/registry.json"
 BENCH_HEARTBEAT="$BENCH_STATE_DIR/heartbeat.json"
 BENCH_CONTRACT="$BENCH_TMP/CONTRACT.md"
 BENCH_SESSION_ID="bench-session-$(date +%s)"
-BENCH_LOOP_ID="bench00000000"
+# Loop IDs MUST be 12 hex chars — write_heartbeat validates with ^[0-9a-f]{12}$
+# and bails on the first non-hex char. Pre-iter-26 bench used "bench00000000"
+# ('n' is not hex), so write_heartbeat always failed → bench measured the
+# ERROR path latency, not the steady-state hot path. The constant below is
+# the literal hex of "bench" minus the 'n', then padded with zeros: still
+# self-explanatory ("bench" prefix), now also valid as a loop_id.
+BENCH_LOOP_ID="bec0deadbeef"
 
 mkdir -p "$BENCH_LOOPS_DIR" "$BENCH_STATE_DIR/revision-log"
 touch "$BENCH_CONTRACT"
@@ -208,7 +226,16 @@ jq -n \
   --arg hook_path "$HOOK_PATH" \
   '{
     benchmark: "heartbeat-tick-jq-spawn-overhead",
-    iter25_baseline_target: { jq_spawn_count_per_tick: 7, median_wall_ms_target: 70 },
+    historical_baselines: {
+      pre_iter25_error_path_observed:        { jq_spawn_count_per_tick: 13, median_wall_ms: 82,  note: "BENCH_LOOP_ID=bench00000000 had non-hex chars → write_heartbeat bailed on loop_id validation. Numbers reflect the failure path, not steady state. Discovered + fixed in iter-26 by changing to bec0deadbeef." },
+      post_iter25_error_path_observed:       { jq_spawn_count_per_tick: 7,  median_wall_ms: 68,  note: "Same failure-path measurement after iter-25 hot-path-jq-batching refactor." },
+      pre_iter26_steady_state_actual:        { jq_spawn_count_per_tick: 12, median_wall_ms: 92,  note: "After fixing the bench loop_id to be valid hex, the bench correctly measured the SUCCESS path. The iter-25 perf claim of -24% was therefore against the wrong baseline." }
+    },
+    iter26_target: {
+      jq_spawn_count_per_tick: 7,
+      median_wall_ms: 60,
+      note: "iter-26 write-heartbeat-registry-read-collapse + read-heartbeat-state-dir-hint + write-heartbeat-zero-registry-read-fast-path. heartbeat-tick.sh now extracts STATE_DIR + CONTRACT_PATH + REGISTRY_GENERATION once from MATCHING_LOOP and passes them as hints to read_heartbeat + write_heartbeat — saving 5 jq spawns vs. iter-25."
+    },
     measured: {
       iterations: $iterations,
       jq_spawn_count_per_tick: $jq_spawn_count_per_tick,
