@@ -232,16 +232,17 @@ main() {
     SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")" && pwd)"
     local SUPERTONIC_SPEAK="$SCRIPT_DIR/tts_supertonic_speak.py"
 
-    local USE_SUPERTONIC=false
-    if [[ -f "$SUPERTONIC_SPEAK" ]] && command -v uv >/dev/null 2>&1 && \
-       [[ -d "$HOME/.cache/supertonic2/onnx" ]]; then
-        USE_SUPERTONIC=true
-        debug_log "Supertonic M3 available"
-    else
+    # iter-53 SC2034: removed dead USE_SUPERTONIC variable. The if/else
+    # acts as a presence-check guard (the else branch exits the script),
+    # so the variable was set but never read. Refactored to drop the
+    # variable while preserving the guard semantics exactly.
+    if [[ ! -f "$SUPERTONIC_SPEAK" ]] || ! command -v uv >/dev/null 2>&1 || \
+       [[ ! -d "$HOME/.cache/supertonic2/onnx" ]]; then
         debug_log "Supertonic not available — Kokoro-only policy, no macOS say fallback"
         notify "TTS Error" "Supertonic not available. Use Kokoro server via tts_kokoro.sh"
         exit 1
     fi
+    debug_log "Supertonic M3 available"
 
     # Strip markdown from full content
     clipboard_content=$(strip_markdown "$clipboard_content")
