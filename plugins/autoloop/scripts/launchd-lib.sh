@@ -45,12 +45,23 @@ plist_label() {
 #   0 always
 xmlescape() {
   local str="$1"
-  # Replace & first (it's used in other replacements)
+  # Iter-33 bash-5.2-amp-backreference-aware xmlescape:
+  # Bash 5.2+ added sed-style `&` backreference in `${VAR//PATTERN/REPLACEMENT}` —
+  # any `&` in the replacement string is reinterpreted as "the matched
+  # pattern text". Pre-iter-33 this function used `${str//</&lt;}` which
+  # produced `<lt;` (the `&` got replaced by the matched `<`). The bug
+  # was silent for years because (a) the affected test was masked by the
+  # `((VAR++))` gotcha iter-32 fixed, and (b) the common path doesn't
+  # contain XML special chars, so the substitution flowed through OK.
+  # Replace `&` to `&amp;` first; this case is safe because PATTERN=`&`
+  # so the `&` backreference happens to expand to `&` (idempotent).
   str="${str//&/&amp;}"
-  str="${str//</&lt;}"
-  str="${str//>/&gt;}"
-  str="${str//\"/&quot;}"
-  str="${str//\'/&apos;}"
+  # For PATTERN=`<` / `>` / `"` / `'`, escape the `&` in the replacement
+  # as `\&` so it stays literal. Otherwise `&lt;` becomes `<lt;`, etc.
+  str="${str//</\&lt;}"
+  str="${str//>/\&gt;}"
+  str="${str//\"/\&quot;}"
+  str="${str//\'/\&apos;}"
   echo "$str"
 }
 
@@ -227,13 +238,30 @@ RUNNER_END
     return 1
   fi
 
-  # Escape paths for XML
+  # Escape paths for XML.
+  #
+  # Iter-33 plist-amp-backreference-fix: xmlescape produces strings
+  # containing `&amp;`/`&lt;`/`&gt;` which embed LITERAL `&` characters.
+  # Bash 5.2+ added sed-style `&` backreference in `${VAR//PATTERN/REPLACEMENT}` —
+  # any `&` in the replacement value is reinterpreted as "the matched
+  # placeholder text" instead of staying literal. Without this fix, a
+  # state_dir like `path&special<>` produced a plist with
+  # `pathSTATE_DIR_PLACEHOLDERamp;...` wedged into the path (because
+  # each `&` in the xmlescape output was substituted back to the matched
+  # PLACEHOLDER token). The fix: post-process xmlescape's output to escape
+  # any literal `&` as `\&` (bash 5.2+ pattern-subst's literal-& escape).
+  # Tested by test-launchd-plist.sh Test 9 (special XML characters); this
+  # test was silently EXITING before iter-32's `((VAR++))` sweep, hiding
+  # the bug for an unknown duration.
   local escaped_state_dir
   escaped_state_dir=$(xmlescape "$state_dir")
+  escaped_state_dir="${escaped_state_dir//&/\\&}"
   local escaped_runner_file
   escaped_runner_file=$(xmlescape "$runner_file")
+  escaped_runner_file="${escaped_runner_file//&/\\&}"
   local escaped_label
   escaped_label=$(xmlescape "$label")
+  escaped_label="${escaped_label//&/\\&}"
 
   # Build plist content
   local plist_content

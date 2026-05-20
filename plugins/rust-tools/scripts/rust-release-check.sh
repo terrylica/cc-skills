@@ -29,9 +29,9 @@ for arg in "$@"; do
 done
 
 # ─── Helpers ─────────────────────────────────────────────────────────
-pass() { ((PASS++)); echo "  ✓ $1"; }
-fail() { ((FAIL++)); echo "  ✗ $1"; }
-warn() { ((WARN++)); echo "  ⚠ $1 (advisory)"; }
+pass() { ((PASS+=1)); echo "  ✓ $1"; }
+fail() { ((FAIL+=1)); echo "  ✗ $1"; }
+warn() { ((WARN+=1)); echo "  ⚠ $1 (advisory)"; }
 skip() { echo "  - $1 (skipped: not installed)"; }
 
 has_cmd() { command -v "$1" >/dev/null 2>&1; }
