@@ -29,6 +29,11 @@
 
 set -euo pipefail
 
+# Iter-34 bash-5.2-patsub-replacement-defense (see heartbeat-tick.sh for
+# full rationale): disable bash 5.2+ `&`-as-backreference in pattern
+# substitution. `|| true` makes it a graceful no-op on bash <5.2.
+shopt -u patsub_replacement 2>/dev/null || true
+
 # ===== Configuration =====
 LOOPS_DIR="${HOME}/.claude/loops"
 REGISTRY_PATH="${CLAUDE_LOOPS_REGISTRY:-$LOOPS_DIR/registry.json}"
