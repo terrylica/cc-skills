@@ -3,13 +3,13 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "*",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
             "timeout": 5000,
-            "description": "Universal stdin inlet guard - disconnects subprocess stdin for ALL tools"
+            "description": "Bash subprocess stdin inlet guard — pre-disconnects stdin via < /dev/null wrap on Bash invocations (iter-63 narrowed matcher from `*` to `Bash`: only Bash spawns the subprocess class with TTY-contention risk; non-Bash tools (Read/Glob/Grep/Edit/Write/mcp__*) save ~12-17ms cold-start each)"
           }
         ]
       },
