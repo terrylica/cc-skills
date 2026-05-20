@@ -80,7 +80,10 @@ ensure_settings_file() {
 backup_settings() {
     local backup_dir="${HOME}/.claude/backups"
     mkdir -p "$backup_dir"
-    local backup_file="${backup_dir}/settings.json.$(date +%Y%m%d-%H%M%S).bak"
+    # iter-37 SC2155: split declare-from-assign. See manage-statusline.sh
+    # for full rationale — `date` exit code masked by `local` otherwise.
+    local backup_file
+    backup_file="${backup_dir}/settings.json.$(date +%Y%m%d-%H%M%S).bak"
     cp "$SETTINGS_FILE" "$backup_file"
     log_info "Backup created: $backup_file"
 }

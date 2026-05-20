@@ -26,7 +26,12 @@ trace_chain() {
   local current_session="${2:-}"
   local depth=0
   local max_depth=200
-  local chain_file=$(mktemp)
+  # iter-37 SC2155: split declare-from-assign so mktemp's exit code propagates
+  # under set -e. Combined `local chain_file=$(mktemp)` silently swallows mktemp
+  # failure (TMPDIR unwritable, ulimit hit) — chain_file="" then `>> ""` later
+  # is a runtime error that nukes the function mid-trace with no diagnostic.
+  local chain_file
+  chain_file=$(mktemp)
 
   while [[ -n "$uuid" && "$uuid" != "null" && $depth -lt $max_depth ]]; do
     local found=false
@@ -60,11 +65,17 @@ trace_chain() {
       break
     fi
 
-    # Extract metadata
-    local parent_uuid=$(echo "$entry" | jq -r '.parentUuid // empty')
-    local timestamp=$(echo "$entry" | jq -r '.timestamp // empty')
-    local type=$(echo "$entry" | jq -r '.type // empty')
-    local session_id=$(basename "$current_session" .jsonl)
+    # iter-37 SC2155: split declare-from-assign on each jq call so that if the
+    # JSON in $entry is malformed, jq's non-zero exit propagates via set -e
+    # instead of being silently masked by `local`'s always-zero exit code.
+    # Pre-iter-37: malformed JSON → empty parent_uuid → while-loop exits next
+    # iteration cleanly → chain silently truncated at unknown depth with no
+    # diagnostic emitted.
+    local parent_uuid timestamp type session_id
+    parent_uuid=$(echo "$entry" | jq -r '.parentUuid // empty')
+    timestamp=$(echo "$entry" | jq -r '.timestamp // empty')
+    type=$(echo "$entry" | jq -r '.type // empty')
+    session_id=$(basename "$current_session" .jsonl)
 
     # Determine if this is a tool_use
     local tool_name=""

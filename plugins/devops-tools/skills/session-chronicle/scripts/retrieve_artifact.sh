@@ -70,10 +70,16 @@ echo "✓ 1Password: Signed in"
 echo ""
 echo "=== Loading Credentials ==="
 
-# Load credentials from 1Password
-export AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
-export AWS_DEFAULT_REGION="$AWS_REGION"
+# iter-37 SC2155: split declare-from-assign on `export VAR=$(op read ...)`.
+# Combined form masks `op read` failures (vault access denied, item missing,
+# network error) because `export` returns 0 even when the command sub failed.
+# Pre-iter-37: silent op failure → empty AWS_ACCESS_KEY_ID → downstream
+# `aws sts get-caller-identity` returns a cryptic "Unable to locate
+# credentials" error far from the actual root cause (1Password fetch failed).
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
+AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
+AWS_DEFAULT_REGION="$AWS_REGION"
 
 echo "✓ AWS credentials loaded from 1Password"
 
