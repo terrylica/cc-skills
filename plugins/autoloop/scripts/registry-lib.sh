@@ -236,7 +236,11 @@ _with_registry_lock() {
   fi
 
   # Create temp file in same directory (defends pitfall #3: cross-filesystem rename)
-  temp_file=$(mktemp -p "$loops_dir" registry.XXXXXX.json) || {
+  # iter-29 BSD-portable mktemp: see portable.sh::mktemp_for_atomic_rename
+  # for the full rationale (BSD mktemp doesn't expand XXXXXX when followed by
+  # a suffix → previous form created literal `registry.XXXXXX.json` files
+  # that would collide under concurrency).
+  temp_file=$(mktemp_for_atomic_rename "$loops_dir" "registry") || {
     echo "ERROR: _with_registry_lock: mktemp failed" >&2
     return 1
   }

@@ -38,14 +38,39 @@ if [ ! -t 0 ]; then
 fi
 [ -z "$PAYLOAD" ] && exit 0
 
-TOOL_NAME=$(echo "$PAYLOAD" | jq -r '.tool_name // ""' 2>/dev/null || echo "")
+# Perf (iter-29 non-schedulewakeup-bash-regex-fast-path): pacing-veto.sh
+# fires on EVERY PreToolUse — Read, Edit, Bash, Grep, etc. — but only does
+# work for ScheduleWakeup. Pre-iter-29 we paid ~10ms of jq cold-start for
+# tool_name extraction on every single tool call just to immediately exit
+# for non-ScheduleWakeup. The bash regex below extracts tool_name with
+# ZERO subprocess spawns; if it's not ScheduleWakeup we exit before jq.
+# For a typical interactive session (100+ tool calls), this saves ~1s of
+# cumulative PreToolUse latency. Mirrors the iter-27 heartbeat-tick.sh
+# bash-regex extraction (same BASH_REMATCH pattern, same correctness
+# fallback: if regex misses, the jq decode below runs and catches it).
+if [[ "$PAYLOAD" =~ \"tool_name\"[[:space:]]*:[[:space:]]*\"([^\"]+)\" ]]; then
+  TOOL_NAME_FAST="${BASH_REMATCH[1]}"
+  if [ "$TOOL_NAME_FAST" != "ScheduleWakeup" ]; then
+    exit 0
+  fi
+fi
+
+# Perf (iter-29 payload-decode-tsv-batch-pacing-veto): pre-iter-29 we also
+# spawned three more jq processes for delaySeconds / reason / session_id
+# AFTER the tool_name check passed. One TSV-batched jq + bash `read`
+# decodes all four in a single spawn. Same TSV-fallback-via-printf pattern
+# from iter-25/26 in heartbeat-tick.sh.
+IFS=$'\t' read -r TOOL_NAME DELAY REASON SESSION_ID <<< "$(
+  echo "$PAYLOAD" | jq -r '"\(.tool_name // "")\t\(.tool_input.delaySeconds // 0)\t\(.tool_input.reason // "")\t\(.session_id // "")"' 2>/dev/null \
+    || printf '\t0\t\t'
+)"
+
+# Defense-in-depth: jq-decoded TOOL_NAME may differ from the regex's if the
+# regex matched the wrong key in a malformed payload. Trust jq for the
+# final decision.
 if [ "$TOOL_NAME" != "ScheduleWakeup" ]; then
   exit 0
 fi
-
-DELAY=$(echo "$PAYLOAD" | jq -r '.tool_input.delaySeconds // 0' 2>/dev/null || echo 0)
-REASON=$(echo "$PAYLOAD" | jq -r '.tool_input.reason // ""' 2>/dev/null || echo "")
-SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id // ""' 2>/dev/null || echo "")
 
 # Sanitize delay to integer
 case "$DELAY" in
