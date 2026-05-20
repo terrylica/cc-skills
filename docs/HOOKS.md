@@ -12,6 +12,13 @@ Claude Code hooks intercept tool calls at three lifecycle points:
 | `PostToolUse` | After tool executes         | Yes        | Verification, sync reminders |
 | `Stop`        | When Claude stops executing | No         | Session metrics, cleanup     |
 
+<!-- # SSoT-OK: This file documents the upstream Claude Code runtime bug
+     reported in GitHub #55889 and references the affected upstream
+     version. Those upstream version strings are NOT this marketplace's
+     SSoT — they're external citations. The literal "# SSoT-OK" string
+     above is the escape-hatch marker that pretooluse-version-guard.mjs
+     greps for to allow upstream version mentions in this file. -->
+
 ## Hook Output Visibility (Critical)
 
 **PostToolUse hooks**: Output is only visible to Claude when JSON contains `"decision": "block"`.
@@ -29,6 +36,28 @@ Claude Code hooks intercept tool calls at three lifecycle points:
 jq -n --arg reason "[HOOK] Your message" '{decision: "block", reason: $reason}'
 exit 0
 ```
+
+### Runtime Bash-Matcher Context-Channel Silent Drop (GitHub #55889 — OPEN as of 2026-05-18)
+
+**Affected upstream Claude Code versions**: the `v2.1.123` regression of [#19432](https://github.com/anthropics/claude-code/issues/19432) — broader scope per the followup issue.
+
+**Symptom**: For PreToolUse and PostToolUse hooks registered with `matcher: "Bash"`, **all three documented context-injection channels are silently dropped**:
+
+| Channel                                | Outcome in affected versions |
+| -------------------------------------- | ---------------------------- |
+| `hookSpecificOutput.additionalContext` | dropped                      |
+| top-level `systemMessage`              | dropped                      |
+| plain stdout (text, not JSON)          | dropped                      |
+
+The hook scripts execute correctly. The JSON output is well-formed. The harness receives the response (verified via diagnostic stdin-tracing). But none of it surfaces in the model's view of the tool result. **Other `hookSpecificOutput` fields still work**: `permissionDecision: "deny"` blocks correctly; `permissionDecisionReason` reaches the model on deny.
+
+**Operator impact in this marketplace**: 26+ PostToolUse hooks (1Password reminder, ty-check, oxlint, biome, glossary-sync, etc.) register on the Bash matcher and emit reminders via plain stdout. On the affected Claude Code versions, those reminders may be silently dropped — operators see nothing in the transcript even though the hooks fire correctly.
+
+**Confirmed workaround (verified in the affected version)**: `SessionStart` hook with `additionalContext` reliably injects context (the model's first response in a fresh session correctly references the injected reminder). For per-tool-call context that can't be expressed at session start, there's no current workaround beyond waiting for the upstream Claude Code regression to be fixed.
+
+**Diagnosis check**: If a PostToolUse Bash hook in this marketplace appears to be "not firing" (no reminder visible to Claude), verify the hook actually executes (check `/tmp/<plugin>-<hook>-debug.log` or equivalent) before assuming the hook code is broken. The hook is likely running correctly — the runtime is dropping its output.
+
+**Forensic source**: [GitHub #55889](https://github.com/anthropics/claude-code/issues/55889) (filed 2026-05-03, OPEN, last updated 2026-05-18 — track this issue for fix availability).
 
 ## PreToolUse Hook Patterns
 
