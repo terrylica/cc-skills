@@ -697,6 +697,132 @@ set_contract_field() {
   return 0
 }
 
+# set_contract_frontmatter_field_batch <contract_path> <field1> <value1> [<field2> <value2> ...]
+#
+# Iter-28 batched-frontmatter-rewrite-single-awk-pass:
+#
+# The single-field `set_contract_field` above does one awk pass per call. The
+# autoloop hot path (heartbeat-tick.sh) and SessionStart path (session-bind.sh)
+# both update 3-4 frontmatter fields per invocation — pre-iter-28 that meant
+# 3-4 SEPARATE awk processes, each parsing the entire frontmatter and writing
+# a mktemp+mv cycle. On macOS each awk cold-start is ~3-5ms; with mktemp+mv+
+# parse+write the total per-update was ~8-12ms, so 4 fields ≈ 32-48ms.
+#
+# This batched variant takes any number of (field, value) pairs and rewrites
+# the frontmatter in ONE awk pass. The awk script keeps an ordered map of
+# pending fields, replaces lines as it walks the frontmatter, and inserts any
+# unseen fields before the closing `---`. Same metachar-safe literal-prefix
+# match as the singular `set_contract_field`. Cost: 1 awk + 1 mktemp + 1 mv,
+# regardless of pair count. Savings on heartbeat-tick.sh slow path: ~25-35ms.
+#
+# Arguments:
+#   $1: contract_path (must exist and be a regular file)
+#   $2..$N: alternating field/value pairs (must be an even count of additional args)
+#
+# Constraints:
+#   - Field names MUST NOT contain '='. (No autoloop field name does; YAML
+#     key names with '=' are pathological anyway.)
+#   - Values MAY contain '=' (we split on the FIRST '=' only in awk).
+#   - Values are written verbatim — quote them yourself if they should be
+#     YAML strings (see examples).
+#
+# Atomicity: single mktemp + mv (same defends as set_contract_field — pitfall #3).
+# Best-effort: returns 0 on any I/O failure; never blocks the calling hook.
+#
+# Example (heartbeat-tick.sh slow path):
+#   set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+#     "last_heartbeat_us" "$NOW_US" \
+#     "last_heartbeat_session_id" "\"$SESSION_ID\"" \
+#     "iteration" "$NEW_ITERATION" \
+#     "generation" "$REGISTRY_GENERATION"
+#
+# Example (session-bind.sh bind_first):
+#   set_contract_frontmatter_field_batch "$CONTRACT_PATH" \
+#     "owner_session_id" "\"$SESSION_ID\"" \
+#     "owner_started_us" "$NOW_US" \
+#     "created_in_session" "\"$SESSION_ID\""
+set_contract_frontmatter_field_batch() {
+  local contract_path="$1"
+  shift
+
+  if [ ! -f "$contract_path" ]; then
+    return 0
+  fi
+  # Need at least one (field, value) pair.
+  if [ $# -lt 2 ]; then
+    return 0
+  fi
+
+  # Encode pairs as newline-separated "field=value" lines. Awk reads the
+  # blob via ENVIRON to avoid -v escaping landmines.
+  local pairs=""
+  while [ $# -ge 2 ]; do
+    pairs="${pairs}${1}=${2}"$'\n'
+    shift 2
+  done
+
+  local tmp
+  tmp=$(mktemp "${contract_path}.XXXXXX") 2>/dev/null || return 0
+
+  AUTOLOOP_FRONTMATTER_BATCH_PAIRS="$pairs" awk '
+    BEGIN {
+      raw = ENVIRON["AUTOLOOP_FRONTMATTER_BATCH_PAIRS"]
+      n = split(raw, lines, "\n")
+      ordered_n = 0
+      for (i = 1; i <= n; i++) {
+        if (lines[i] == "") continue
+        eq = index(lines[i], "=")
+        if (eq == 0) continue
+        k = substr(lines[i], 1, eq - 1)
+        v = substr(lines[i], eq + 1)
+        kv[k] = v
+        ordered_n++
+        ordered[ordered_n] = k
+        seen[k] = 0
+      }
+    }
+    NR == 1 && /^---[[:space:]]*$/ { in_fm = 1; print; next }
+    in_fm && /^---[[:space:]]*$/ {
+      # Reached closing ---: emit any fields we did not see in the frontmatter
+      # body. Preserves caller-supplied order.
+      for (i = 1; i <= ordered_n; i++) {
+        k = ordered[i]
+        if (!seen[k]) {
+          print k ": " kv[k]
+        }
+      }
+      in_fm = 0; print; next
+    }
+    in_fm {
+      for (i = 1; i <= ordered_n; i++) {
+        k = ordered[i]
+        if (seen[k]) continue
+        prefix = k ":"
+        plen = length(prefix)
+        if (substr($0, 1, plen) == prefix) {
+          rest = substr($0, plen + 1)
+          # Boundary check: char after colon must be whitespace or EOL —
+          # same metachar-safe pattern as set_contract_field.
+          if (rest == "" || rest ~ /^[[:space:]]/) {
+            print k ": " kv[k]
+            seen[k] = 1
+            next
+          }
+        }
+      }
+    }
+    { print }
+  ' "$contract_path" > "$tmp" 2>/dev/null || { rm -f "$tmp"; return 0; }
+
+  if [ ! -s "$tmp" ]; then
+    rm -f "$tmp"
+    return 0
+  fi
+
+  mv "$tmp" "$contract_path" 2>/dev/null || { rm -f "$tmp"; return 0; }
+  return 0
+}
+
 # init_contract_frontmatter_v2 <contract_path> <loop_id> <state_dir>
 # Populate the immutable birth-record fields of a v2 contract.
 # Idempotent: only writes fields that are missing — never overwrites existing
@@ -1204,6 +1330,7 @@ export -f init_state_dir
 export -f write_heartbeat
 export -f read_heartbeat
 export -f set_contract_field
+export -f set_contract_frontmatter_field_batch
 export -f init_contract_frontmatter_v2
 export -f slugify
 export -f compute_short_hash
