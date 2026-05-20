@@ -1,3 +1,10 @@
+# [21.11.0](https://github.com/terrylica/cc-skills/compare/v21.10.2...v21.11.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-60 PreToolUse schema-correctness audit + 7-assertion regression test + release:preflight Check 4f gate against deprecated top-level decision schema ([bc2e5cb](https://github.com/terrylica/cc-skills/commit/bc2e5cb508d8ca4693e09f18fd8288be92f944bf)), closes [#01](https://github.com/terrylica/cc-skills/issues/01) [#02](https://github.com/terrylica/cc-skills/issues/02) [#03](https://github.com/terrylica/cc-skills/issues/03) [#04](https://github.com/terrylica/cc-skills/issues/04) [#05](https://github.com/terrylica/cc-skills/issues/05)
+
 ## [21.10.2](https://github.com/terrylica/cc-skills/compare/v21.10.1...v21.10.2) (2026-05-20)
 
 ## [21.10.1](https://github.com/terrylica/cc-skills/compare/v21.10.0...v21.10.1) (2026-05-20)
