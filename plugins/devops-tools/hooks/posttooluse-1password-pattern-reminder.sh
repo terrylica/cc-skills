@@ -31,9 +31,31 @@ PAYLOAD=$(cat)
 COMMAND=$(echo "$PAYLOAD" | jq -r '.tool_input.command // empty' 2>/dev/null) || exit 0
 [[ -z "$COMMAND" ]] && exit 0
 
-# Fast-path: skip if no `op` token in command. Word-boundary aware to avoid
-# matching "open", "stop", "loop", etc.
-if ! echo "$COMMAND" | grep -qE '(^|[[:space:];|&(])op([[:space:]]|$)'; then
+# Fast-path: skip unless `op` is the LEADING EXECUTABLE of the command —
+# i.e., the first token after any optional environment-variable prefix
+# (e.g., `FOO=bar op ...`). Anchored at `^` so that `op` appearing inside
+# argument strings, heredoc bodies, comments, or quoted blocks does NOT
+# trigger the reminder.
+#
+# Iter-39 false-positive fix (2026-05-20): the prior regex
+#   '(^|[[:space:];|&(])op([[:space:]]|$)'
+# matched `op` after ANY whitespace, which falsely matched commit-message
+# heredocs like:
+#   git commit -m "$(cat <<'EOF' ... use `op read` to fetch ... EOF)"
+# Two iter-37 and iter-38 commits hit this bug back-to-back. Anchoring the
+# regex at `^` eliminates the false positive while keeping all true-positive
+# cases (`op read`, `OP_SA_TOKEN=foo op read`, etc.) covered.
+#
+# Regression-tested by:
+#   test-posttooluse-1password-pattern-reminder-only-fires-when-op-is-leading-executable-not-heredoc-text.sh
+#
+# Word-boundary at the end (`[[:space:]]|$`) still prevents matching `open`,
+# `optical`, etc. that start with the literal letters `op`.
+#
+# Perf note: the anchored regex is O(1) for the common no-match case (most
+# Bash tool calls are NOT op), vs the prior pattern's O(n) scan over the
+# full command body. Win is measurable for long commit messages.
+if ! echo "$COMMAND" | grep -qE '^([A-Za-z_][A-Za-z0-9_]*=\S*[[:space:]]+)*op([[:space:]]|$)'; then
     exit 0
 fi
 
