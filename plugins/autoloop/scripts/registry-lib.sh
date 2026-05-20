@@ -63,7 +63,14 @@ derive_loop_id() {
 #   registry=$(read_registry)
 #   count=$(echo "$registry" | jq '.loops | length')
 read_registry() {
-  local registry_path="${1:-$HOME/.claude/loops/registry.json}"
+  # Iter-26: honor CLAUDE_LOOPS_REGISTRY env var as the default. heartbeat-tick.sh
+  # already does this at the top level, but write_heartbeat → read_registry_entry
+  # → read_registry chains used to hardcode $HOME — so the env-var override
+  # bypassed all internal reads. The bench script and any test fixture that
+  # exports CLAUDE_LOOPS_REGISTRY now sees consistent behavior across the
+  # whole call graph. The explicit $1 override still wins for unit tests that
+  # want to pin a specific path regardless of env.
+  local registry_path="${1:-${CLAUDE_LOOPS_REGISTRY:-$HOME/.claude/loops/registry.json}}"
   local empty_registry='{"loops": [], "schema_version": 1}'
 
   # Check if file exists

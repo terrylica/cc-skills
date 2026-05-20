@@ -219,19 +219,32 @@ if [ "$OWNER_SESSION_ID" != "$SESSION_ID" ]; then
   exit 0
 fi
 
-# Read current heartbeat
-HB=$(read_heartbeat "$MATCHING_LOOP_ID" 2>/dev/null || echo "{}") || {
+# Read current heartbeat.
+#
+# Perf (iter-26 read-heartbeat-state-dir-hint): pass STATE_DIR (already
+# extracted from the batched MATCHING_LOOP decode above) so read_heartbeat
+# skips its registry round-trip. Saves 3 jq spawns (read_registry's `jq .`
+# + select + state_dir extract) on every Claude Code tool invocation.
+HB=$(read_heartbeat "$MATCHING_LOOP_ID" "" "$STATE_DIR" 2>/dev/null || echo "{}") || {
   # Gracefully handle read_heartbeat failure
   HB="{}"
 }
 
-# Step 6+7 prep: batch-extract heartbeat fields (generation + iteration) in
-# ONE jq spawn. Perf (iter-25 hot-path-jq-batching): the original code did
-# two separate `jq -r` calls on $HB, each ~50ms cold-start on macOS. The
-# iteration field is consumed below in Step 7's increment.
-IFS=$'\t' read -r HB_GENERATION CURRENT_ITERATION <<< "$(
-  echo "$HB" | jq -r '"\(.generation // 0)\t\(.iteration // 0)"' 2>/dev/null \
-    || printf '0\t0'
+# Step 6+7+7.5 prep: batch-extract heartbeat fields (generation + iteration
+# + bound_cwd) in ONE jq spawn.
+#
+# Perf (iter-25 hot-path-jq-batching): the original code did two separate
+# `jq -r` calls on $HB, each ~50ms cold-start on macOS. The iteration field
+# is consumed below in Step 7's increment.
+#
+# Perf (iter-26 fold-pre-bound-cwd-into-hb-batch): bound_cwd used to be
+# extracted in a separate `jq -r '.bound_cwd // ""' "$HB_FILE"` invocation
+# below in Step 7.5 — but $HB is loaded above via `read_heartbeat`, which is
+# the same content as $HB_FILE at that point (we haven't written yet). One
+# extra TSV column makes that 4th jq spawn vanish.
+IFS=$'\t' read -r HB_GENERATION CURRENT_ITERATION PRE_BOUND_CWD <<< "$(
+  echo "$HB" | jq -r '"\(.generation // 0)\t\(.iteration // 0)\t\(.bound_cwd // "")"' 2>/dev/null \
+    || printf '0\t0\t'
 )"
 
 # If generation mismatch: this session has been reclaimed
@@ -264,14 +277,20 @@ NEW_ITERATION=$((CURRENT_ITERATION + 1))
 #
 # Perf (iter-25 hot-path-jq-batching): STATE_DIR + CONTRACT_PATH already
 # extracted above in the batched MATCHING_LOOP decode; two jq spawns saved.
+# Perf (iter-26 fold-pre-bound-cwd-into-hb-batch): PRE_BOUND_CWD already
+# extracted in the Step 6+7 HB batch above; one more jq spawn saved.
 HB_FILE="$STATE_DIR/heartbeat.json"
-PRE_BOUND_CWD=""
-if [ -n "$STATE_DIR" ] && [ -f "$HB_FILE" ]; then
-  PRE_BOUND_CWD=$(jq -r '.bound_cwd // ""' "$HB_FILE" 2>/dev/null || echo "")
-fi
 
-# Call write_heartbeat to atomically write new heartbeat
-if ! write_heartbeat "$MATCHING_LOOP_ID" "$SESSION_ID" "$NEW_ITERATION" 2>/dev/null; then
+# Call write_heartbeat to atomically write new heartbeat.
+#
+# Perf (iter-26 write-heartbeat-zero-registry-read-fast-path): pass the
+# already-extracted STATE_DIR + CONTRACT_PATH + REGISTRY_GENERATION as hints
+# so write_heartbeat skips its registry round-trip entirely. heartbeat-tick
+# already paid for the registry read via the MATCHING_LOOP batched decode
+# (line ~207 above); duplicating that read inside write_heartbeat costs 3
+# more jq spawns (~21ms on macOS) for no new information.
+if ! write_heartbeat "$MATCHING_LOOP_ID" "$SESSION_ID" "$NEW_ITERATION" "" \
+      "$STATE_DIR" "$CONTRACT_PATH" "$REGISTRY_GENERATION" 2>/dev/null; then
   _log_error "Failed to write heartbeat for loop $MATCHING_LOOP_ID" 1
   exit 0
 fi
