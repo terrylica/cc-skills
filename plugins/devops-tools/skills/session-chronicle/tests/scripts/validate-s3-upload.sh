@@ -4,9 +4,14 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# iter-38 SC2034: removed unused SCRIPT_DIR declaration (dead since script
+# inception — never referenced anywhere in the file)
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+# iter-38 SC2064: single quotes so $TEMP_DIR expands at SIGNAL time, not
+# at trap-registration time. Pre-iter-38: if TEMP_DIR were ever reassigned
+# between this line and EXIT, the trap would rm the OLD path and leave the
+# NEW one stale. Also quoted "$TEMP_DIR" to handle spaces in paths.
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 echo "=== S3 Upload/Download Validation ==="
 
@@ -16,10 +21,15 @@ S3_BUCKET="eonlabs-findings"
 S3_TEST_PREFIX="sessions-validation-test"
 TEST_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-# Load credentials
-export AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
-export AWS_DEFAULT_REGION="us-west-2"
+# iter-38 SC2155 (iter-37 leftover): split declare-from-assign on
+# `export VAR=$(op read ...)`. Test-scripts/ path was filtered out of
+# iter-37's audit so this leftover slipped through. Same hazard:
+# silent op-read failure → empty AWS creds → cryptic "Unable to locate
+# credentials" 15-60 min later.
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+AWS_ACCESS_KEY_ID=$(op read "op://$OP_VAULT/$OP_ITEM_ID/access key id")
+AWS_SECRET_ACCESS_KEY=$(op read "op://$OP_VAULT/$OP_ITEM_ID/secret access key")
+AWS_DEFAULT_REGION="us-west-2"
 
 # Verify AWS identity
 IDENTITY=$(aws sts get-caller-identity --output json 2>&1)

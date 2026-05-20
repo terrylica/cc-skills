@@ -5,9 +5,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-FIXTURE_DIR="$SCRIPT_DIR/../fixtures"
+# iter-38 SC2034: removed unused FIXTURE_DIR declaration (dead since script
+# inception — SCRIPT_DIR is used on line 16, FIXTURE_DIR never referenced)
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+# iter-38 SC2064: single quotes so $TEMP_DIR expands at signal time
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 echo "=== Extract Session Chain Validation ==="
 

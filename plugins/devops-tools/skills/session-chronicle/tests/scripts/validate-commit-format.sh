@@ -18,7 +18,8 @@ echo "✓ generate_commit_message.sh: Found"
 
 # Generate commit message with mock data
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+# iter-38 SC2064: single quotes so $TEMP_DIR expands at signal time
+trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Create mock manifest
 cat > "$TEMP_DIR/manifest.json" << 'MANIFEST'
