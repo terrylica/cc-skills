@@ -16,6 +16,15 @@ TEST_REPO=""
 export HOME="$TEST_HOME"
 export CLAUDE_LOOPS_REGISTRY="$TEST_HOME/.claude/loops/registry.json"
 
+# Iter-27: disable the tool-burst-tick-deduplication throttle for this test
+# suite. HOOK-05.1 (idempotent double-tick → iteration=2) and HOOK-04 (per-
+# tick latency budget) both validate per-call semantics that the throttle
+# intentionally relaxes (it skips ticks within 500ms of the previous one).
+# Real-world tool-burst dedup is exercised in a dedicated bench
+# (bench-heartbeat-tick-tool-burst-deduplication-fastpath.sh) where the
+# skipped-path semantics ARE the point of the measurement.
+export AUTOLOOP_TICK_DEDUP_INTERVAL_US=0
+
 # shellcheck disable=SC2329
 cleanup() {
   rm -rf "$TEST_HOME"
