@@ -10,6 +10,11 @@
 
 set -euo pipefail
 
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
+# disable bash 5.2+ `&`-as-backreference. See
+# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale.
+shopt -u patsub_replacement 2>/dev/null || true
+
 # Read JSON payload from stdin
 PAYLOAD=$(cat)
 

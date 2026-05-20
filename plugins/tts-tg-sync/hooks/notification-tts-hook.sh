@@ -6,6 +6,14 @@
 # notification_type values: permission_prompt, idle_prompt, auth_success, elicitation_dialog
 
 set -euo pipefail
+
+# Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep): disable
+# bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}. See
+# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale + upstream
+# sources (bash maintainer + Arch pacman patch). `|| true` makes it a
+# graceful no-op on bash <5.2.
+shopt -u patsub_replacement 2>/dev/null || true
+
 export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/opt/homebrew/bin:$PATH"
 
 LOG="/tmp/notification-tts-hook.log"
