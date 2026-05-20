@@ -1,3 +1,10 @@
+# [21.16.0](https://github.com/terrylica/cc-skills/compare/v21.15.0...v21.16.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-68 extend iter-67 Stop-hook additionalContext audit to also cover SubagentStop + SessionEnd hooks — closes iter-67 deferred SubagentStop item + adds SessionEnd preventive coverage with empty-output-schema diagnostic + per-event-type breakdown in summary + 6 new regression assertions ([f196b47](https://github.com/terrylica/cc-skills/commit/f196b476a4a7dc78b34c00205b730870a0246497)), closes [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#19115](https://github.com/terrylica/cc-skills/issues/19115) [#07](https://github.com/terrylica/cc-skills/issues/07) [#08](https://github.com/terrylica/cc-skills/issues/08) [01-#06](https://github.com/01-/issues/06)
+
 # [21.15.0](https://github.com/terrylica/cc-skills/compare/v21.14.1...v21.15.0) (2026-05-20)
 
 
