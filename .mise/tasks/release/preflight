@@ -202,23 +202,27 @@ WM_WITH_OK=$(grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wil
 WM_VIOL=$(grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log | grep -oE '[0-9]+$' | head -1)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
 
-# Check 4j: Stop / SubagentStop / SessionEnd additionalContext-emission
-# audit (iter-67 gate + iter-68 scope expansion). Scales iter-66 single-
-# hook fix into preventive infrastructure across the full trinity of
-# event-terminal hook types where additionalContext is silently dropped:
+# Check 4j: additionalContext-Silently-Dropped Pentad audit (iter-67 gate +
+# iter-68 trinity expansion + iter-69 pentad completion). Scales iter-66
+# single-hook fix into preventive infrastructure across the full pentad of
+# event types where additionalContext is silently dropped:
 #
 #   - Stop hooks: per official Anthropic schema (GitHub #19115, also
-#     code.claude.com/docs/en/hooks), read ONLY {decision, reason} —
-#     any additionalContext (top-level OR nested) is silently dropped.
-#   - SubagentStop hooks (iter-68 expansion): same schema as Stop per
+#     code.claude.com/docs/en/hooks), read ONLY {decision:'block', reason}
+#     — any additionalContext (top-level OR nested) silently dropped.
+#   - SubagentStop hooks (iter-68): same schema as Stop per
 #     code.claude.com/docs/en/hooks ("SubagentStop hooks use the same
-#     decision control format as Stop hooks"). Marketplace has 0 today;
-#     preventive gate catches future regressions.
-#   - SessionEnd hooks (iter-68 expansion): per Go type definitions in
+#     decision control format as Stop hooks"). Marketplace 0; preventive.
+#   - SessionEnd hooks (iter-68): per Go type definitions in
 #     CorridorSecurity/hookshot (pkg.go.dev/github.com/CorridorSecurity/
 #     hookshot/claude), SessionEndOK returns EMPTY output — SessionEnd
-#     cannot inject ANY context (session is terminating). Marketplace
-#     has 0 today; preventive gate catches future regressions.
+#     cannot inject ANY context (session terminating). Marketplace 0.
+#   - PreCompact hooks (iter-69): same {decision:'block', reason} schema
+#     family as Stop. Common use: pre-compaction transcript backup via
+#     async:true (Jan 2026 feature). Marketplace 0.
+#   - Notification hooks (iter-69): purely informational, NO decision
+#     capability ("Exit Code 2 Behavior: N/A — stderr to user only").
+#     Subtypes: permission_prompt, idle_prompt, auth_success. Marketplace 0.
 #
 # iter-66 forensic: itp-hooks stop-orchestrator was pre-iter-66 emitting
 # {additionalContext: <aggregated subhook summary>} to stdout JSON.
@@ -239,7 +243,7 @@ echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-
 # each violation belongs to. Prevents silent-drop regressions from
 # escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
-echo "→ Running Stop/SubagentStop/SessionEnd additionalContext-emission audit..."
+echo "→ Running additionalContext-silently-dropped pentad audit (Stop/SubagentStop/SessionEnd/PreCompact/Notification)..."
 if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json >/tmp/stop-hook-additional-context-audit.log 2>&1; then
     echo "  ✗ Stop-hook additionalContext-emission audit FAILED — see /tmp/stop-hook-additional-context-audit.log"
     tail -30 /tmp/stop-hook-additional-context-audit.log
