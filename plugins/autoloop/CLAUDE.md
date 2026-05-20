@@ -15,6 +15,7 @@
 - [Library Scripts](#library-scripts)
 - [6 Catastrophic Pitfalls](#6-catastrophic-pitfalls--phase-ownership)
 - [Troubleshooting Playbook](#troubleshooting-playbook)
+- [Performance & Operator Knobs](#performance--operator-knobs-iter-25-through-iter-31-work)
 - [Deferred to V2](#deferred-to-v2)
 
 ---
@@ -485,6 +486,63 @@ source "$PLUGIN_ROOT/scripts/hook-install-lib.sh"
 install_hook
 # Restart Claude Code; next tool invocation fires the hook
 ```
+
+---
+
+## Performance & Operator Knobs (iter-25 through iter-31 work)
+
+The autoloop hot paths (`heartbeat-tick.sh` PostToolUse, `session-bind.sh` SessionStart, `pacing-veto.sh` PreToolUse, `empty-firing-detector.sh` Stop, `waker.sh` launchd timer) were aggressively optimized in iters 25-31 using one consistent idiom: TSV-batched jq decoding instead of N-times-`jq -r`. Each iteration's named optimization is searchable via `git log --oneline --all | grep -E 'iter-(2[5-9]|3[01])'`.
+
+### Cumulative measured deltas (m3max, jq-1.7.1-apple)
+
+| Hot path                                                   | Pre-iter-25  | After iter-31    | Speedup         |
+| ---------------------------------------------------------- | ------------ | ---------------- | --------------- |
+| PostToolUse heartbeat-tick (throttled fast path)           | ~165ms       | **~13ms / 0 jq** | **12.7×**       |
+| PostToolUse heartbeat-tick (slow path)                     | ~165ms       | ~130ms           | 1.27×           |
+| PreToolUse pacing-veto (non-ScheduleWakeup, ~95% of tools) | ~10ms        | **~5ms / 0 jq**  | 2×              |
+| SessionStart session-bind (with autoloop registered)       | ~100-150ms   | ~30-50ms         | 2-3×            |
+| Stop empty-firing-detector (200-line transcript)           | ~1500-2000ms | **~10-15ms**     | **100-200×**    |
+| Statusline render (autoloop active, autoloop+input blocks) | ~440-500ms   | ~370-415ms       | 1.2×            |
+| Launchd waker.sh per fire                                  | ~80-100ms    | ~40-50ms         | 2×              |
+| Atomic-write race window (mktemp BSD bug)                  | unbounded    | **zero**         | correctness fix |
+
+### Operator-tunable env vars
+
+These knobs let operators trade a small amount of staleness latency for big steady-state savings, or pin behavior for testing. All are read at hook-fire time — no restart needed.
+
+| Env var                           | Default                             | Effect                                                                                                                                                                                                                                                                                |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTOLOOP_TICK_DEDUP_INTERVAL_US` | `500000` (500 ms)                   | Iter-27 throttle: skip `heartbeat-tick.sh` work if a successful tick fired within this many microseconds. Set to `0` to disable entirely (tests that depend on per-call semantics do this — see `test-heartbeat-hook.sh` line 16). Larger values trade staleness for fewer FS writes. |
+| `AUTOLOOP_TICK_DEDUP_DIR`         | `$TMPDIR/autoloop-tick-dedup`       | Iter-27 throttle file directory. Cleaned by the OS tmp-reaper automatically. Override only for test isolation (the throttle bench does this).                                                                                                                                         |
+| `CLAUDE_LOOPS_REGISTRY`           | `$HOME/.claude/loops/registry.json` | Registry SSoT path. The whole call graph (heartbeat-tick → write_heartbeat → read_registry → ...) honors this env var as of iter-26. Override for test/bench fixtures that need isolated registry state.                                                                              |
+| `SESSION_BIND_STALE_THRESHOLD_S`  | `3600` (1 h)                        | session-bind.sh `stale_owner_detected` window. Owners whose `owner_pid` is dead AND whose last update is older than this threshold are reported (no auto-reclaim — surfaced for `tinker`).                                                                                            |
+| `AUTOLOOP_NO_NOTIFY`              | _(unset)_                           | If set, suppresses Wave 5 A2 notification writes from `write_heartbeat`'s contract-disappeared path (`~/.claude/loops/.notifications.jsonl`). Useful in noisy automation runs.                                                                                                        |
+
+### Bench scripts (run before/after a perf-touching refactor)
+
+All under `plugins/autoloop/tests/`. Each writes a JSON report to `/tmp/<bench-name>-<epoch>.json`. Names encode what the bench measures so a future maintainer can find the right one by topic.
+
+```bash
+# Slow-path (throttle off): jq spawn count + median wall-clock for the full
+# PostToolUse heartbeat-tick.sh code path. 100 iterations default.
+bash plugins/autoloop/tests/bench-heartbeat-tick-jq-spawn-overhead.sh
+
+# Fast-path (throttle on): wall-clock of the iter-27 dedup gate. Must report
+# 0 jq spawns per throttled tick — that's the iter-27 invariant. 100 default.
+bash plugins/autoloop/tests/bench-heartbeat-tick-tool-burst-deduplication-fastpath.sh
+```
+
+Output JSON keys are stable across iters so external scripts can diff them.
+
+### How to detect a regression
+
+Run both benches and compare against the table above:
+
+- **`jq_spawn_count_per_tick` in the slow-path bench MUST be ≤ 7** (iter-26 target).
+- **`jq_spawn_count_per_throttled_tick` in the fast-path bench MUST be 0** (iter-27 invariant).
+- Wall-clock targets are softer (vary per machine) but median should not regress >2× from the iter-31 numbers above.
+
+A future PR that breaks either invariant indicates either (a) a new jq spawn leaked above the throttle gate, or (b) the iter-26 batched-decode pattern was un-collapsed. Both are recoverable by reverting the offending hunk; both ARE caught by the bench scripts but NOT by the bats/unit tests (the unit tests verify behavior, the benches verify perf).
 
 ---
 

@@ -53,9 +53,15 @@ _invariant_check_spawn() {
     return 1
   fi
 
+  # Perf (iter-31 waker-invariant-state-dir-contract-path-tsv-batch): same
+  # iter-26 batched-decode pattern — 2 jq spawns → 1 TSV jq. Saves
+  # ~10-15ms on every _invariant_check_spawn entry; this helper is called
+  # once per waker.sh fire (per launchd timer tick per loop).
   local state_dir contract_path
-  state_dir=$(echo "$entry" | jq -r '.state_dir // ""' 2>/dev/null)
-  contract_path=$(echo "$entry" | jq -r '.contract_path // ""' 2>/dev/null)
+  IFS=$'\t' read -r state_dir contract_path <<< "$(
+    echo "$entry" | jq -r '"\(.state_dir // "")\t\(.contract_path // "")"' 2>/dev/null \
+      || printf '\t'
+  )"
   state_dir="${state_dir%/}"
 
   # (b) Heartbeat-from-cwd — proof of life from inside the contract dir.
@@ -71,12 +77,22 @@ _invariant_check_spawn() {
     return 1
   fi
 
-  # (c) bound_cwd matches contract_dir
+  # (c) bound_cwd matches contract_dir.
+  #
   # Wave 6.2: canonicalize via realpath so the equality check below speaks
   # the same encoding as heartbeat-tick.sh (which now writes a canonical
   # bound_cwd) and session-bind.sh (which already canonicalizes CWD).
-  local bound_cwd contract_dir
-  bound_cwd=$(jq -r '.bound_cwd // ""' "$hb_file" 2>/dev/null)
+  #
+  # Perf (iter-31 waker-heartbeat-tsv-batch): pre-iter-31 we read bound_cwd
+  # and cwd_drift_detected via two SEPARATE jq invocations on the same
+  # heartbeat.json file (lines 85 + 115 below). Each ~7-10ms cold-start.
+  # One TSV-batched jq + bash `read` decodes both at once. Saves ~10ms per
+  # _invariant_check_spawn call. Same iter-26/30 pattern.
+  local bound_cwd drift_flag contract_dir
+  IFS=$'\t' read -r bound_cwd drift_flag <<< "$(
+    jq -r '"\(.bound_cwd // "")\t\(.cwd_drift_detected // false)"' "$hb_file" 2>/dev/null \
+      || printf '\tfalse'
+  )"
   contract_dir=$(cd "$(dirname "$contract_path")" 2>/dev/null && pwd -P) || \
     contract_dir=$(dirname "$contract_path")
   if [ -z "$bound_cwd" ]; then
@@ -105,8 +121,7 @@ _invariant_check_spawn() {
       bound_cwd="$bound_cwd" contract_dir="$contract_dir" 2>/dev/null || true
     return 1
   fi
-  local drift_flag
-  drift_flag=$(jq -r '.cwd_drift_detected // false' "$hb_file" 2>/dev/null)
+  # drift_flag already extracted via TSV batch above
   if [ "$drift_flag" = "true" ]; then
     if command -v emit_provenance >/dev/null 2>&1; then
       emit_provenance "$loop_id" "spawn_refused_cwd_drift_flagged" \
@@ -190,22 +205,34 @@ main() {
     exit 0
   fi
 
-  # Extract needed fields from entry
-  local state_dir
-  state_dir=$(echo "$entry" | jq -r '.state_dir // empty' 2>/dev/null) || state_dir=""
+  # Extract needed fields from entry.
+  #
+  # Perf (iter-31 waker-entry-tsv-batch-decode): pre-iter-31 this block
+  # spawned FOUR separate `jq -r` invocations on the same $entry JSON —
+  # one per field. Each ~7-10ms cold-start on macOS, so ~30-40ms of jq
+  # overhead PER WAKER FIRE. waker.sh runs from launchd at the
+  # StartInterval cadence (configurable per loop; common values 60-3600s).
+  # At a 60s cadence with 5 active loops in the registry, that's
+  # 5 × 60 fires/hour × 40ms = ~12 seconds of CPU per hour just on this
+  # block alone.
+  #
+  # One TSV-batched jq + bash `read` decodes all four at once. Same
+  # iter-26 pattern from heartbeat-tick.sh's MATCHING_LOOP decode.
+  # Trailing-tab fallback via printf keeps `read` happy if jq fails so
+  # all four vars default to safe values (state_dir="" triggers exit
+  # below; expected_cadence="1500" matches the pre-iter-31 default;
+  # owner_pid="" / owner_session_id="" pass through cleanly into
+  # downstream checks).
+  local state_dir expected_cadence owner_pid owner_session_id
+  IFS=$'\t' read -r state_dir expected_cadence owner_pid owner_session_id <<< "$(
+    echo "$entry" | jq -r '"\(.state_dir // "")\t\(.expected_cadence_seconds // 1500)\t\(.owner_pid // "")\t\(.owner_session_id // "")"' 2>/dev/null \
+      || printf '\t1500\t\t'
+  )"
+
   if [ -z "$state_dir" ]; then
     echo "ERROR: waker.sh: no state_dir in entry for loop_id '$loop_id'" >&2
     exit 0
   fi
-
-  local expected_cadence
-  expected_cadence=$(echo "$entry" | jq -r '.expected_cadence_seconds // 1500' 2>/dev/null) || expected_cadence="1500"
-
-  local owner_pid
-  owner_pid=$(echo "$entry" | jq -r '.owner_pid // empty' 2>/dev/null) || owner_pid=""
-
-  local owner_session_id
-  owner_session_id=$(echo "$entry" | jq -r '.owner_session_id // empty' 2>/dev/null) || owner_session_id=""
 
   # Step 2: Verify owner alive
   local owner_status
