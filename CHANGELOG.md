@@ -1,3 +1,10 @@
+## [21.17.4](https://github.com/terrylica/cc-skills/compare/v21.17.3...v21.17.4) (2026-05-20)
+
+
+### Performance Improvements
+
+* **release-gate:** iter-73 opt-in per-phase wall-clock timing instrumentation for release:preflight gate self-diagnosis ([132d98d](https://github.com/terrylica/cc-skills/commit/132d98d332a361f1e390339d8190ed7346419d0d))
+
 ## [21.17.3](https://github.com/terrylica/cc-skills/compare/v21.17.2...v21.17.3) (2026-05-20)
 
 ## [21.17.2](https://github.com/terrylica/cc-skills/compare/v21.17.1...v21.17.2) (2026-05-20)
