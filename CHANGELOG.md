@@ -1,3 +1,10 @@
+## [21.17.2](https://github.com/terrylica/cc-skills/compare/v21.17.1...v21.17.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* **release-gate:** iter-71 deferred-items sweep — SC2001 preflight fix + GitHub [#55889](https://github.com/terrylica/cc-skills/issues/55889) HOOKS.md operator-awareness doc + iter-69 audit header refined with confirmed 2026 event-type research ([7247fc9](https://github.com/terrylica/cc-skills/commit/7247fc913e5c9382f078e6381c2adbc17f587639)), closes [#19432](https://github.com/terrylica/cc-skills/issues/19432)
+
 ## [21.17.1](https://github.com/terrylica/cc-skills/compare/v21.17.0...v21.17.1) (2026-05-20)
 
 
