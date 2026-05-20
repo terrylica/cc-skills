@@ -38,10 +38,10 @@ RESULT=$(enumerate_loops 2>&1 || true)
 
 if [ -z "$RESULT" ]; then
   echo "✓ PASS: Empty registry returns no lines"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Empty registry should return empty output, got: $RESULT"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -58,10 +58,10 @@ OUTPUT=$(bash -c "
 if echo "$OUTPUT" | grep -q "No autoloop loops registered" && \
    echo "$OUTPUT" | grep -q "/autoloop:start"; then
   echo "✓ PASS: Empty input prints zero-state nudge (Wave 5 A5)"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected zero-state nudge with /autoloop:start hint, got: $OUTPUT"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -77,10 +77,10 @@ RESULT=$(human_relative_time "$PAST_30S")
 
 if [[ "$RESULT" =~ ^30s\ ago$ ]]; then
   echo "✓ PASS: 30s ago → '$RESULT'"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected '30s ago', got: '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -93,10 +93,10 @@ RESULT=$(human_relative_time "$PAST_2M")
 
 if [[ "$RESULT" =~ ^2m\ ago$ ]]; then
   echo "✓ PASS: 120s ago → '$RESULT'"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected '2m ago', got: '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -109,10 +109,10 @@ RESULT=$(human_relative_time "$PAST_1H")
 
 if [[ "$RESULT" =~ ^1h\ ago$ ]]; then
   echo "✓ PASS: 3600s ago → '$RESULT'"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected '1h ago', got: '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -125,10 +125,10 @@ RESULT=$(human_relative_time "$PAST_1D")
 
 if [[ "$RESULT" =~ ^1d\ ago$ ]]; then
   echo "✓ PASS: 86400s ago → '$RESULT'"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected '1d ago', got: '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -139,10 +139,10 @@ echo "========================================"
 RESULT=$(human_relative_time "")
 if [ "$RESULT" = "—" ]; then
   echo "✓ PASS: Empty timestamp → '—'"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected '—', got: '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -182,7 +182,7 @@ REGISTRY=$(jq -n --argjson entry "$ENTRY_JSON" '{loops: [$entry], schema_version
 echo "$REGISTRY" > "$TEST_HOME/.claude/loops/registry.json"
 
 echo "✓ PASS: Created test loop entry"
-((PASS++))
+((PASS+=1))
 
 echo ""
 echo "========================================"
@@ -193,20 +193,20 @@ ENUMERATION=$(enumerate_loops "$TEST_HOME/.claude/loops/registry.json")
 
 if echo "$ENUMERATION" | jq -e '.loop_id == "a1b2c3d4e5f6"' >/dev/null 2>&1; then
   echo "✓ PASS: enumerate_loops returned loop entry with correct loop_id"
-  ((PASS++))
+  ((PASS+=1))
 
   # Verify status field
   STATUS=$(echo "$ENUMERATION" | jq -r '.status')
   if [ "$STATUS" = "ACTIVE" ]; then
     echo "✓ PASS: Status is ACTIVE (owner alive, fresh heartbeat)"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: Expected status=ACTIVE, got: $STATUS"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "✗ FAIL: enumerate_loops did not return loop entry"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -220,10 +220,10 @@ RATIO=$(compute_dead_time_ratio "$LOOP_ID" "$TEST_HOME/.claude/loops/registry.js
 # But we'll just check it's a valid float between 0 and 1
 if [[ "$RATIO" =~ ^0\.[0-9]{2}$ ]]; then
   echo "✓ PASS: dead_time_ratio is valid float: $RATIO"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: dead_time_ratio invalid format: $RATIO"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -235,18 +235,18 @@ OUTPUT=$(enumerate_loops "$TEST_HOME/.claude/loops/registry.json" | format_muste
 
 if echo "$OUTPUT" | grep -q "LOOP_ID"; then
   echo "✓ PASS: Table has header row"
-  ((PASS++))
+  ((PASS+=1))
 
   if echo "$OUTPUT" | grep -q "a1b2c3d4e5f6"; then
     echo "✓ PASS: Table includes loop_id"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: loop_id not in table output"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "✗ FAIL: Table header missing"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -258,10 +258,10 @@ CANDIDATE=$(is_reclaim_candidate_v2 "$LOOP_ID" "$TEST_HOME/.claude/loops/registr
 
 if [ "$CANDIDATE" = "no" ]; then
   echo "✓ PASS: Fresh, alive owner → not a reclaim candidate"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected 'no', got: $CANDIDATE"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -289,10 +289,10 @@ CANDIDATE=$(is_reclaim_candidate_v2 "$LOOP_ID" "$TEST_HOME/.claude/loops/registr
 
 if [ "$CANDIDATE" = "yes" ]; then
   echo "✓ PASS: Dead owner → reclaim candidate"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected 'yes', got: $CANDIDATE"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -308,10 +308,10 @@ CANDIDATE=$(is_reclaim_candidate_v2 "$LOOP_ID" "$TEST_HOME/.claude/loops/registr
 
 if [ "$CANDIDATE" = "yes" ]; then
   echo "✓ PASS: Dead owner + old state_dir → reclaim candidate"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected 'yes', got: $CANDIDATE"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -344,18 +344,18 @@ while IFS= read -r line; do
     continue
   fi
   if echo "$line" | jq . >/dev/null 2>&1; then
-    ((PARSE_COUNT++))
+    ((PARSE_COUNT+=1))
   else
-    ((PARSE_FAIL++))
+    ((PARSE_FAIL+=1))
   fi
 done <<< "$JSONL"
 
 if [ "$PARSE_FAIL" -eq 0 ] && [ "$PARSE_COUNT" -gt 0 ]; then
   echo "✓ PASS: All $PARSE_COUNT lines are valid JSON"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: $PARSE_FAIL lines failed to parse as JSON"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""

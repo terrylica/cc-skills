@@ -77,7 +77,7 @@ EOF
 LOOP_ID=$(derive_loop_id "$CONTRACT_PATH")
 if ! init_state_dir "$LOOP_ID" "$CONTRACT_PATH" 2>/dev/null; then
   echo "✗ FAIL: init_state_dir failed"
-  ((FAIL++))
+  ((FAIL+=1))
   exit 1
 fi
 
@@ -96,7 +96,7 @@ cat > "$STATE_DIR/heartbeat.json" <<EOF
 EOF
 
 echo "✓ Setup: Registered single loop with ID $LOOP_ID"
-((PASS++))
+((PASS+=1))
 
 echo ""
 echo "Test 1: Lock acquisition and serialization"
@@ -104,10 +104,10 @@ echo "Test 1: Lock acquisition and serialization"
 # Test that acquire_owner_lock succeeds when no lock held
 if acquire_owner_lock "$LOOP_ID" 2>/dev/null; then
   echo "✓ First acquire_owner_lock succeeded"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: First acquire_owner_lock failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Test that attempting to acquire again fails (different fd in same shell won't work due to open fd)
@@ -117,10 +117,10 @@ release_owner_lock "$LOOP_ID" 2>/dev/null || true
 # Acquire again (should succeed since released)
 if acquire_owner_lock "$LOOP_ID" 2>/dev/null; then
   echo "✓ Reacquire after release succeeded"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Reacquire after release failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 # Release for next tests
@@ -135,14 +135,14 @@ DEAD_START_TIME_US=$((NOW_US - 10000000000))
 
 if ! update_loop_field "$LOOP_ID" ".owner_pid" "$DEAD_PID" 2>/dev/null; then
   echo "✗ FAIL: Failed to update owner_pid to dead value"
-  ((FAIL++))
+  ((FAIL+=1))
 else
   if ! update_loop_field "$LOOP_ID" ".owner_start_time_us" "$DEAD_START_TIME_US" 2>/dev/null; then
     echo "✗ FAIL: Failed to update start_time_us"
-    ((FAIL++))
+    ((FAIL+=1))
   else
     echo "✓ Simulated dead owner (PID: $DEAD_PID)"
-    ((PASS++))
+    ((PASS+=1))
   fi
 fi
 
@@ -152,10 +152,10 @@ echo "Test 3: Verify is_reclaim_candidate detects dead owner"
 CANDIDATE=$(is_reclaim_candidate "$LOOP_ID" "$HOME/.claude/loops/registry.json")
 if [ "$CANDIDATE" = "yes" ]; then
   echo "✓ Loop correctly identified as reclaim candidate"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Loop not identified as reclaim candidate (status: $CANDIDATE)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -166,7 +166,7 @@ OLD_GENERATION=$(echo "$BEFORE_ENTRY" | jq -r '.generation // 0')
 
 if reclaim_loop "$LOOP_ID" --reason "owner_dead" 2>/dev/null; then
   echo "✓ reclaim_loop succeeded"
-  ((PASS++))
+  ((PASS+=1))
 
   # Read new entry
   AFTER_ENTRY=$(jq ".loops[] | select(.loop_id == \"$LOOP_ID\")" "$HOME/.claude/loops/registry.json" 2>/dev/null)
@@ -176,23 +176,23 @@ if reclaim_loop "$LOOP_ID" --reason "owner_dead" 2>/dev/null; then
   # Verify generation incremented
   if [ "$NEW_GENERATION" -eq $((OLD_GENERATION + 1)) ]; then
     echo "✓ Generation incremented ($OLD_GENERATION -> $NEW_GENERATION)"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: Generation not incremented ($OLD_GENERATION -> $NEW_GENERATION)"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 
   # Verify owner_pid updated to current process
   if [ "$NEW_OWNER_PID" = "$$" ]; then
     echo "✓ owner_pid updated to current process ($$)"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: owner_pid not updated (expected $$, got $NEW_OWNER_PID)"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "✗ FAIL: reclaim_loop failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""

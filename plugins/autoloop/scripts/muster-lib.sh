@@ -309,16 +309,27 @@ enumerate_loops() {
     return 0
   fi
 
-  # Iterate over each loop and emit a status line
+  # Iterate over each loop and emit a status line.
+  #
+  # Perf (iter-32 muster-per-loop-tsv-batch-decode): pre-iter-32 this inner
+  # loop spawned 5 separate `jq -r` invocations per registry entry (lines
+  # 317-321). For a fleet of N loops, that's 5N jq cold-starts (~50-70ms
+  # per N at ~10ms each). At N=10 loops, ~500-700ms of pure jq overhead
+  # PER `/autoloop:muster` invocation. The 6th jq spawn for
+  # owner_start_time_us inside the pending-bind branch (line 344) brings
+  # the worst-case-per-loop to 6 spawns.
+  #
+  # Iter-32 collapses to ONE TSV-batched jq + bash `read` — 6 fields in
+  # one spawn. The owner_start_time_us is now extracted up-front and the
+  # pending-bind branch uses the pre-extracted value (saving a 6th spawn).
+  # Same iter-26/30 pattern. Trailing-tab fallback via printf keeps `read`
+  # happy on jq failure so all 6 vars default to safe values.
   echo "$registry" | jq -r '.loops[] | @json' 2>/dev/null | while read -r loop_json; do
-    local loop_id session_id started_at_us expected_cadence state_dir
-
-    # Extract fields from loop entry
-    loop_id=$(echo "$loop_json" | jq -r '.loop_id // empty' 2>/dev/null)
-    session_id=$(echo "$loop_json" | jq -r '.owner_session_id // empty' 2>/dev/null)
-    started_at_us=$(echo "$loop_json" | jq -r '.started_at_us // empty' 2>/dev/null)
-    expected_cadence=$(echo "$loop_json" | jq -r '.expected_cadence_seconds // 1500' 2>/dev/null)
-    state_dir=$(echo "$loop_json" | jq -r '.state_dir // empty' 2>/dev/null)
+    local loop_id session_id started_at_us expected_cadence state_dir owner_start_us
+    IFS=$'\t' read -r loop_id session_id started_at_us expected_cadence state_dir owner_start_us <<< "$(
+      echo "$loop_json" | jq -r '"\(.loop_id // "")\t\(.owner_session_id // "")\t\(.started_at_us // "")\t\(.expected_cadence_seconds // 1500)\t\(.state_dir // "")\t\(.owner_start_time_us // "")"' 2>/dev/null \
+        || printf '\t\t\t1500\t\t'
+    )"
 
     # Derive session_id prefix (first 8 chars) if full session_id available
     local session_prefix
@@ -340,12 +351,16 @@ enumerate_loops() {
         # the same field heal-self.sh uses as its staleness clock, so muster's
         # "PENDING-BIND-STUCK" threshold and heal-self's "ready to archive"
         # threshold both read from the same authoritative timestamp.
-        local owner_start_us
-        owner_start_us=$(echo "$loop_json" | jq -r '.owner_start_time_us // empty' 2>/dev/null)
+        #
+        # Perf (iter-32 muster-pending-bind-uses-pre-extracted-owner-start-us):
+        # owner_start_us is now pre-extracted in the TSV batch above, so this
+        # branch doesn't pay an extra jq cold-start. python3 also replaced
+        # by now_us() (~3ms gdate vs ~30-50ms python startup on macOS) —
+        # same pattern as iter-28 session-bind.sh python3-now-us-replacement.
         if [ -n "$owner_start_us" ]; then
-          local now_us age_s
-          now_us=$(python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
-          age_s=$(( (now_us - owner_start_us) / 1000000 ))
+          local muster_now_us age_s
+          muster_now_us=$(now_us 2>/dev/null || echo 0)
+          age_s=$(( (muster_now_us - owner_start_us) / 1000000 ))
           if [ "$age_s" -gt 300 ]; then
             status="PENDING-BIND-STUCK"  # >5min pending — surfacing this matters
           else
