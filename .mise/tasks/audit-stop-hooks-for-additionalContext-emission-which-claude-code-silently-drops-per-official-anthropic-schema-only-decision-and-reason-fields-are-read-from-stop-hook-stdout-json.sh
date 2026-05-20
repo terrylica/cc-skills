@@ -93,13 +93,51 @@
 #     - PreToolUse / PostToolUse — hookSpecificOutput.additionalContext
 #       (caveat: GitHub #55889 documents v2.1.123 regression where Bash
 #       matcher silently drops all 3 context channels; that's a runtime
-#       bug, not a schema bug — out of scope for this static audit)
+#       bug, not a schema bug — out of scope for this static audit. See
+#       docs/HOOKS.md "Runtime Bash-Matcher Context-Channel Silent Drop"
+#       section for operator-facing guidance on the bug.)
 #     - UserPromptSubmit / SessionStart — hookSpecificOutput.additional-
-#       Context + plain stdout both reach Claude
-#     - Newer 2026 events (UserPromptExpansion, PostToolBatch,
-#       PostToolUseFailure, ConfigChange) — accept decision:"block"
-#       but their additionalContext support requires per-event
-#       verification; out of scope for iter-69 (would need iter-70+).
+#       Context + plain stdout both reach Claude.
+#     - UserPromptExpansion (iter-71 verified) — joined with
+#       UserPromptSubmit and SessionStart as the 3 events where stdout
+#       is added directly to Claude's context. Per official Anthropic
+#       docs (code.claude.com/docs/en/hooks), this is the documented
+#       3-event "stdout-reaches-context" cohort.
+#     - PostToolBatch (iter-71 verified) — additionalContext appears
+#       "next to the tool result" per the official Anthropic docs.
+#       NOT a silent-drop event.
+#     - PostToolUseFailure (iter-71 verified) — documented schema
+#       shape: { "hookSpecificOutput": { "hookEventName":
+#       "PostToolUseFailure", "additionalContext": "..." } }. NOT a
+#       silent-drop event.
+#
+#   2026 event-type landscape note (iter-71 research, May 2026 v2.1.141+):
+#     The full 27-event 2026 set includes many newer event types not
+#     yet covered by this audit: SubagentStart, StopFailure, PostCompact,
+#     Setup, PermissionRequest, PermissionDenied, InstructionsLoaded,
+#     CwdChanged, FileChanged, WorktreeCreate, WorktreeRemove,
+#     ConfigChange, TeammateIdle, TaskCreated, TaskCompleted, Elicitation,
+#     ElicitationResult. Their additionalContext support varies:
+#       • Setup: documented as supporting additionalContext for context
+#         injection (cannot block; observability-only with context).
+#       • PostCompact: likely mirrors PreCompact (decision:"block" only)
+#         — silent-drop candidate but unverified.
+#       • SubagentStart: likely mirrors SubagentStop (decision:"block"
+#         only) — silent-drop candidate but unverified.
+#       • StopFailure: likely mirrors Stop (decision:"block" only) —
+#         silent-drop candidate but unverified.
+#       • ConfigChange: ambiguous — official docs do not enumerate
+#         event-specific output fields. Verification deferred.
+#       • TeammateIdle / TaskCreated / TaskCompleted / InstructionsLoaded
+#         / CwdChanged / FileChanged / WorktreeCreate / WorktreeRemove
+#         / PermissionRequest / PermissionDenied / Elicitation* —
+#         observability-or-lifecycle events; additionalContext support
+#         unverified.
+#     Marketplace currently has 0 hooks of any of these newer event
+#     types. A future iter-72+ extending the pentad → heptad+ would
+#     verify schemas (likely against official Anthropic docs + the
+#     CorridorSecurity/hookshot Go type defs) before adding event
+#     types to the jq filter and case-statement diagnostic branches.
 #
 # What this audit checks:
 #
