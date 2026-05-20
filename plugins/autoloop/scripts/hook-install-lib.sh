@@ -12,6 +12,20 @@
 
 set -euo pipefail
 
+# iter-29 BSD-portable mktemp pattern (applies to all 8 atomic-rename sites
+# in this file):
+#
+# Every `temp_file=$(mktemp "$claude_dir/settings.XXXXXX")` below uses the
+# BSD+GNU portable mktemp form (X's at END of template, no trailing suffix).
+# Pre-iter-29 the broken `mktemp -p "$claude_dir" settings.XXXXXX.json`
+# form produced LITERAL `settings.XXXXXX.json` filenames on macOS BSD
+# (bsdmktemp only expands X's at the very end of the template). Concurrent
+# install/uninstall would silently overwrite each other's tempfiles. The
+# fixed form drops the `.json` intermediate extension — irrelevant because
+# the tempfile is immediately mv'd to `settings.json` (atomic rename within
+# the same directory; POSIX guarantees rename(2) atomicity). See
+# portable.sh::mktemp_for_atomic_rename for the full rationale.
+
 # _capture_jq_stderr_to <var-name>
 # Internal: allocate a tempfile for jq stderr capture and assign its path
 # to the named variable. Caller is responsible for `rm -f "$<var>"` on
@@ -383,7 +397,7 @@ install_hook_impl() {
 
   # Create or update settings.json
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || {
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || {
     echo "ERROR: install_hook_impl: mktemp failed" >&2
     return 1
   }
@@ -591,7 +605,7 @@ uninstall_hook_impl() {
 
   # Create temp file
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || {
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || {
     echo "ERROR: uninstall_hook_impl: mktemp failed" >&2
     return 1
   }
@@ -691,7 +705,7 @@ install_session_bind_impl() {
   fi
 
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || {
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || {
     echo "ERROR: install_session_bind_impl: mktemp failed" >&2
     return 1
   }
@@ -815,7 +829,7 @@ uninstall_session_bind_impl() {
   rm -f "$jq_stderr_file"
 
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || return 1
 
   if ! echo "$new_settings" >"$temp_file"; then
     rm -f "$temp_file"
@@ -917,7 +931,7 @@ install_pacing_veto_impl() {
   fi
 
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || return 1
 
   # Matcher restricted to ScheduleWakeup tool — cheaper than running on every tool call.
   local new_settings
@@ -1012,7 +1026,7 @@ uninstall_pacing_veto_impl() {
   }
   rm -f "$jq_stderr_file"
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || return 1
   if ! echo "$new_settings" >"$temp_file"; then
     rm -f "$temp_file"
     return 1
@@ -1101,7 +1115,7 @@ install_empty_firing_impl() {
   fi
 
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || return 1
 
   local new_settings
   local jq_stderr_file
@@ -1185,7 +1199,7 @@ uninstall_empty_firing_impl() {
   rm -f "$jq_stderr_file"
 
   local temp_file
-  temp_file=$(mktemp -p "$claude_dir" settings.XXXXXX.json) || return 1
+  temp_file=$(mktemp "$claude_dir/settings.XXXXXX") || return 1
   if ! echo "$new_settings" >"$temp_file"; then rm -f "$temp_file"; return 1; fi
   sync || true
   mv "$temp_file" "$settings_path" || { rm -f "$temp_file"; return 1; }

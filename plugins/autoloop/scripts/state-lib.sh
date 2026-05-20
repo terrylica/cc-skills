@@ -480,7 +480,12 @@ write_heartbeat() {
 
   # Create temporary file in state_dir (same filesystem — pitfall #3 defense)
   local temp_file
-  temp_file=$(mktemp -p "$state_dir" heartbeat.XXXXXX.json) || {
+  # iter-29 BSD-portable mktemp: BSD mktemp doesn't expand XXXXXX when the
+  # template ends in `.json` — see portable.sh::mktemp_for_atomic_rename for
+  # the full rationale. Use the `mktemp "$DIR/PREFIX.XXXXXX"` form (X's at
+  # end, no trailing suffix). The intermediate `.json` extension is dropped
+  # because the file is immediately mv'd to `heartbeat.json` below.
+  temp_file=$(mktemp "$state_dir/heartbeat.XXXXXX") || {
     echo "ERROR: write_heartbeat: mktemp failed in '$state_dir'" >&2
     return 1
   }
