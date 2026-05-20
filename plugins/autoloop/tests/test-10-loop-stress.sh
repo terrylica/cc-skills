@@ -99,7 +99,7 @@ EOF
   # Initialize state directory (auto-registers in registry)
   if ! init_state_dir "$LOOP_ID" "$CONTRACT_PATH" 2>/dev/null; then
     echo "✗ FAIL: init_state_dir failed for loop $i"
-    ((FAIL++))
+    ((FAIL+=1))
     continue
   fi
 
@@ -150,21 +150,21 @@ HBJSON
 done
 
 echo "✓ Created 10 contracts (5 active, 5 stale) across 3 repos"
-((PASS++))
+((PASS+=1))
 
 echo ""
 echo "Test 2: Registry file is valid JSON"
 
 if [ ! -f "$HOME/.claude/loops/registry.json" ]; then
   echo "✗ FAIL: Registry file not created"
-  ((FAIL++))
+  ((FAIL+=1))
 else
   if jq empty "$HOME/.claude/loops/registry.json" 2>/dev/null; then
     echo "✓ Registry.json is valid JSON"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: Registry.json is malformed"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 fi
 
@@ -174,10 +174,10 @@ echo "Test 3: Enumerate loops - all 10 appear in registry"
 REGISTERED_COUNT=$(jq '.loops | length' "$HOME/.claude/loops/registry.json" 2>/dev/null || echo 0)
 if [ "$REGISTERED_COUNT" -eq 10 ]; then
   echo "✓ All 10 loops registered (count: $REGISTERED_COUNT)"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Expected 10 loops, found $REGISTERED_COUNT"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -197,24 +197,24 @@ for i in {0..9}; do
     # Should only be reclaim candidates if i is odd (stale)
     if [ $((i % 2)) -ne 1 ]; then
       echo "✗ FAIL: Loop $i (active) incorrectly marked as reclaim candidate"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   elif [ "$CANDIDATE" = "owner_alive" ]; then
     ((ACTIVE_LOOPS++))
     # Should only be active if i is even
     if [ $((i % 2)) -ne 0 ]; then
       echo "✗ FAIL: Loop $i (stale) incorrectly marked as active"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   fi
 done
 
 if [ "$RECLAIM_CANDIDATES" -eq 5 ] && [ "$ACTIVE_LOOPS" -eq 5 ]; then
   echo "✓ Correct split: 5 stale (reclaim candidates), 5 active"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Unexpected split (reclaim: $RECLAIM_CANDIDATES, active: $ACTIVE_LOOPS, expected 5/5)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -224,10 +224,10 @@ echo "Test 5: Registry integrity after stress (single valid JSON)"
 FINAL_COUNT=$(jq '.loops | length' "$HOME/.claude/loops/registry.json" 2>/dev/null || echo 0)
 if [ "$FINAL_COUNT" -eq 10 ]; then
   echo "✓ Registry integrity maintained (final count: $FINAL_COUNT)"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Registry corruption detected (final count: $FINAL_COUNT, expected 10)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -249,10 +249,10 @@ done
 
 if [ "$HEARTBEAT_ERRORS" -eq 0 ]; then
   echo "✓ All 10 heartbeat.json files are valid JSON"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Found $HEARTBEAT_ERRORS heartbeat corruption issues"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""

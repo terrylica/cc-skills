@@ -44,10 +44,10 @@ echo "========================================"
 LABEL=$(plist_label "a1b2c3d4e5f6")
 if [ "$LABEL" = "com.user.claude.loop.a1b2c3d4e5f6" ]; then
   echo "✓ PASS: plist_label returns correct format"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: plist_label returned '$LABEL'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -57,10 +57,10 @@ echo "========================================"
 
 if ! plist_label "invalid" >/dev/null 2>&1; then
   echo "✓ PASS: plist_label rejects invalid loop_id"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: plist_label should reject invalid loop_id"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -81,14 +81,14 @@ if generate_plist "a1b2c3d4e5f6" "$TEST_STATE_DIR" "$STUB_WAKER" "300" 2>/dev/nu
   PLIST_FILE="$TEST_STATE_DIR/waker.plist"
   if [ -f "$PLIST_FILE" ]; then
     echo "✓ PASS: generate_plist creates plist file"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: plist file not created"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "✗ FAIL: generate_plist failed"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -100,12 +100,12 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   PLIST_FILE="$TEST_STATE_DIR/waker.plist"
   if plutil -lint "$PLIST_FILE" >/dev/null 2>&1; then
     echo "✓ PASS: plist passes plutil -lint validation"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: plist fails plutil -lint validation"
     echo "Plist content:"
     cat "$PLIST_FILE"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   # On non-macOS, use xmllint as a fallback validator
@@ -113,10 +113,10 @@ else
   if command -v xmllint >/dev/null 2>&1; then
     if xmllint --noout "$PLIST_FILE" 2>/dev/null; then
       echo "✓ PASS: plist passes xmllint validation (macOS skipped)"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: plist fails xmllint validation"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "[SKIP] xmllint not available; cannot validate plist on non-macOS"
@@ -131,10 +131,10 @@ echo "========================================"
 PLIST_FILE="$TEST_STATE_DIR/waker.plist"
 if grep -q '<string>com\.user\.claude\.loop\.a1b2c3d4e5f6</string>' "$PLIST_FILE"; then
   echo "✓ PASS: plist contains correct Label"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: plist does not contain correct Label"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -154,13 +154,13 @@ if grep -q "<string>$RUNNER_FILE</string>" "$PLIST_FILE" \
   && [ -x "$RUNNER_FILE" ] \
   && grep -q "exec \"$STUB_WAKER\" \"a1b2c3d4e5f6\"" "$RUNNER_FILE"; then
   echo "✓ PASS: plist references runner; runner exec's waker with loop_id"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: plist/runner contract broken"
   echo "  plist references runner string?  $(grep -c "<string>$RUNNER_FILE</string>" "$PLIST_FILE")"
   echo "  runner exists & executable?      $([ -x "$RUNNER_FILE" ] && echo yes || echo no)"
   echo "  runner exec's waker w/ loop_id?  $(grep -c "exec \"$STUB_WAKER\" \"a1b2c3d4e5f6\"" "$RUNNER_FILE" 2>/dev/null || echo 0)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -170,10 +170,10 @@ echo "========================================"
 
 if grep -q '<key>StartInterval</key>' "$PLIST_FILE" && grep -q '<integer>300</integer>' "$PLIST_FILE"; then
   echo "✓ PASS: plist contains correct StartInterval"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: plist does not contain correct StartInterval"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -195,21 +195,21 @@ if generate_plist "b2c3d4e5f6a7" "$TEST_STATE_DIR_SPACES" "$STUB_WAKER_SPACES" "
   if [[ "$(uname -s)" == "Darwin" ]]; then
     if plutil -lint "$PLIST_FILE_SPACES" >/dev/null 2>&1; then
       echo "✓ PASS: plist with spaces in path passes plutil -lint"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: plist with spaces fails plutil -lint"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "[SKIP] plutil not available; testing with xmllint"
     if command -v xmllint >/dev/null 2>&1 && xmllint --noout "$PLIST_FILE_SPACES" 2>/dev/null; then
       echo "✓ PASS: plist with spaces passes xmllint"
-      ((PASS++))
+      ((PASS+=1))
     fi
   fi
 else
   echo "✗ FAIL: generate_plist failed with spaces in path"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -231,17 +231,17 @@ if generate_plist "c3d4e5f6a7b8" "$TEST_STATE_DIR_SPECIAL" "$STUB_WAKER_SPECIAL"
   if [[ "$(uname -s)" == "Darwin" ]]; then
     if plutil -lint "$PLIST_FILE_SPECIAL" >/dev/null 2>&1; then
       echo "✓ PASS: plist with special characters passes plutil -lint"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: plist with special characters fails plutil -lint"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "[SKIP] plutil not available"
   fi
 else
   echo "✗ FAIL: generate_plist failed with special characters"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -264,17 +264,17 @@ if generate_plist "d4e5f6a7b8c9" "$TEST_STATE_DIR_LONG" "$STUB_WAKER_LONG" "600"
   if [[ "$(uname -s)" == "Darwin" ]]; then
     if plutil -lint "$PLIST_FILE_LONG" >/dev/null 2>&1; then
       echo "✓ PASS: plist with long path passes plutil -lint"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: plist with long path fails plutil -lint"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "[SKIP] plutil not available"
   fi
 else
   echo "✗ FAIL: generate_plist failed with long path"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -304,32 +304,32 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
       # Check if plist is loaded
       if [ "$(is_plist_loaded "e5f6a7b8c9d0")" = "yes" ]; then
         echo "✓ PASS: load_plist successful and is_plist_loaded confirms"
-        ((PASS++))
+        ((PASS+=1))
 
         # Now unload and verify
         if unload_plist "e5f6a7b8c9d0" "$TEST_STATE_DIR_LOAD" 2>/dev/null; then
           if [ "$(is_plist_loaded "e5f6a7b8c9d0")" = "no" ]; then
             echo "✓ PASS: unload_plist successful and is_plist_loaded confirms unload"
-            ((PASS++))
+            ((PASS+=1))
           else
             echo "✗ FAIL: is_plist_loaded still shows loaded after unload"
-            ((FAIL++))
+            ((FAIL+=1))
           fi
         else
           echo "✗ FAIL: unload_plist failed"
-          ((FAIL++))
+          ((FAIL+=1))
         fi
       else
         echo "✗ FAIL: is_plist_loaded shows not loaded after load_plist"
-        ((FAIL++))
+        ((FAIL+=1))
       fi
     else
       echo "✗ FAIL: load_plist failed"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "✗ FAIL: generate_plist failed for load test"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "[SKIP] load/unload tests require macOS; skipped on $(uname -s)"
@@ -353,14 +353,14 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
     # Try to unload without loading first (should succeed idempotently)
     if unload_plist "f6a7b8c9d0e1" "$TEST_STATE_DIR_UNLOAD" 2>/dev/null; then
       echo "✓ PASS: unload_plist on non-loaded plist is idempotent"
-      ((PASS++))
+      ((PASS+=1))
     else
       echo "✗ FAIL: unload_plist failed on non-loaded plist"
-      ((FAIL++))
+      ((FAIL+=1))
     fi
   else
     echo "✗ FAIL: generate_plist failed"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "[SKIP] unload idempotency test requires macOS"
@@ -391,10 +391,10 @@ INVALID_END
 
   if ! load_plist "a1b2c3d4e5f6" "$TEST_STATE_DIR_INVALID" 2>/dev/null; then
     echo "✓ PASS: load_plist rejects invalid plist"
-    ((PASS++))
+    ((PASS+=1))
   else
     echo "✗ FAIL: load_plist should reject invalid plist"
-    ((FAIL++))
+    ((FAIL+=1))
   fi
 else
   echo "[SKIP] invalid plist test requires macOS"
@@ -408,10 +408,10 @@ echo "========================================"
 RESULT=$(is_plist_loaded "nonexist01")
 if [ "$RESULT" = "no" ]; then
   echo "✓ PASS: is_plist_loaded returns 'no' for non-existent loop_id"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: is_plist_loaded should return 'no', got '$RESULT'"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -422,10 +422,10 @@ echo "========================================"
 RESULT=$(is_plist_loaded "invalid_id")
 if [ "$RESULT" = "no" ]; then
   echo "✓ PASS: is_plist_loaded returns 'no' for invalid loop_id"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: is_plist_loaded should return 'no' for invalid format"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""

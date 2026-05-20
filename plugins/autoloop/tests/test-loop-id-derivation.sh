@@ -43,11 +43,11 @@ ID5=$(derive_loop_id "$TEST_FILE")
 
 if [ "$ID1" = "$ID2" ] && [ "$ID2" = "$ID3" ] && [ "$ID3" = "$ID4" ] && [ "$ID4" = "$ID5" ]; then
   echo "✓ PASS: All 5 calls return identical loop_id"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Loop IDs not deterministic"
   echo "  IDs: $ID1 | $ID2 | $ID3 | $ID4 | $ID5"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -57,10 +57,10 @@ echo "========================================"
 
 if [[ "$ID1" =~ ^[0-9a-f]{12}$ ]]; then
   echo "✓ PASS: Loop ID is exactly 12 hexadecimal characters: $ID1"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Loop ID format invalid: $ID1"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -87,10 +87,10 @@ done
 
 if [ "$COLLISION_COUNT" -eq 0 ]; then
   echo "✓ PASS: 10 distinct paths produced 10 unique IDs"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Found $COLLISION_COUNT collisions"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -108,12 +108,12 @@ ID_SYMLINK=$(derive_loop_id "$SYMLINK_FILE")
 
 if [ "$ID_TARGET" = "$ID_SYMLINK" ]; then
   echo "✓ PASS: Symlink and target resolve to same ID"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Symlink and target have different IDs"
   echo "  Target:  $ID_TARGET"
   echo "  Symlink: $ID_SYMLINK"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -127,10 +127,10 @@ derive_loop_id "$NONEXISTENT" >/dev/null 2>&1 || EXIT_CODE=$?
 
 if [ "$EXIT_CODE" -eq 1 ]; then
   echo "✓ PASS: Nonexistent path returns exit code 1"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Nonexistent path returned exit code $EXIT_CODE (expected 1)"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
@@ -147,10 +147,10 @@ ID_ABSOLUTE=$(derive_loop_id "$TEMP_DIR/contract.md")
 
 if [ "$ID_RELATIVE" = "$ID_ABSOLUTE" ]; then
   echo "✓ PASS: Same path resolves consistently"
-  ((PASS++))
+  ((PASS+=1))
 else
   echo "✗ FAIL: Inconsistent ID derivation"
-  ((FAIL++))
+  ((FAIL+=1))
 fi
 
 echo ""
