@@ -154,10 +154,18 @@ MOCK="$TMP/case3"
 setup_mocks "$MOCK" silent block-reason silent block-reason silent
 run_case "two block-reasons → both reasons in output" 0 'error-summary.*markdown-lint|markdown-lint.*error-summary' "$MOCK"
 
-# Case 4: additionalContext from one subhook → forwarded
+# Case 4: additionalContext from one subhook → aggregated to STDERR (NOT stdout JSON)
+# iter-66: Stop hooks officially support only {decision, reason} in stdout JSON
+# per Anthropic spec — additionalContext is silently ignored by Claude Code.
+# Orchestrator routes aggregated subhook additionalContext to stderr (transcript-
+# visible via Ctrl-R) instead of pretending it reaches Claude via stdout JSON.
+# Test assertion: the LITERAL subhook text ("ctx from <hook>") must appear
+# somewhere in combined stdout+stderr (verifies aggregation works), AND the
+# stdout JSON must NOT contain a JSON "additionalContext" key (verifies the
+# silent-drop bug is fixed).
 MOCK="$TMP/case4"
 setup_mocks "$MOCK" silent silent context silent silent
-run_case "additionalContext forwarded" 0 '"additionalContext"' "$MOCK"
+run_case "additionalContext from subhook → text appears in stderr (iter-66)" 0 'ctx from stop-ty-project-check' "$MOCK"
 
 # Case 5: loop-stall-guard exit 2 → orchestrator exits 2 (asyncRewake path)
 MOCK="$TMP/case5"
@@ -170,10 +178,14 @@ MOCK="$TMP/case6"
 setup_mocks "$MOCK" exit2 silent silent silent silent
 run_case "subprocess-cleanup exit 2 → swallowed (orch exit 0)" 0 '^\{\}' "$MOCK"
 
-# Case 7: crash isolation — one subhook crashes, others still run
+# Case 7: crash isolation — one subhook crashes, others still aggregate to stderr.
+# iter-66: post-fix, aggregated subhook text is in STDERR (not stdout JSON).
+# Crash isolation invariant: subprocess-cleanup crash does NOT prevent ty-check's
+# context from being aggregated. Assertion: "ctx from stop-ty-project-check"
+# must appear in combined stdout+stderr despite the crash.
 MOCK="$TMP/case7"
 setup_mocks "$MOCK" crash silent context silent silent
-run_case "crash isolation — context still aggregated" 0 '"additionalContext"' "$MOCK"
+run_case "crash isolation — surviving subhook context still aggregated to stderr (iter-66)" 0 'ctx from stop-ty-project-check' "$MOCK"
 
 # Case 8: bad JSON output is treated as silent (no parse failure)
 MOCK="$TMP/case8"
@@ -193,6 +205,27 @@ else
     FAILED_CASES+=("empty stdin")
 fi
 
+
+# Case 9b: iter-66 schema-correctness invariant — orchestrator STDOUT JSON
+# must NEVER contain a "additionalContext" field. Per the official Anthropic
+# Stop-hook schema (verbatim example in GitHub #19115), Stop hooks support
+# only {decision, reason} in stdout JSON. Any additionalContext field would
+# be silently dropped by Claude Code. The orchestrator routes aggregated
+# subhook additionalContext to stderr instead. This test asserts the bug
+# from iter-66 cannot recur.
+MOCK="$TMP/case9b"
+setup_mocks "$MOCK" silent silent context context context
+stdout_9b=$(env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" \
+    <<<'{"transcript_path":"/tmp/x.jsonl","session_id":"s","cwd":"/tmp"}' 2>/dev/null)
+if ! grep -qE '"additionalContext"' <<<"$stdout_9b"; then
+    echo "  PASS: iter-66 schema-correctness — stdout JSON contains NO additionalContext key"
+    PASSES=$((PASSES + 1))
+else
+    echo "  FAIL: iter-66 schema-correctness — stdout JSON still contains additionalContext key"
+    echo "         stdout was: $stdout_9b"
+    FAILS=$((FAILS + 1))
+    FAILED_CASES+=("iter-66 schema-correctness — additionalContext silent-drop bug recurred")
+fi
 
 # Case 10: stop_hook_active loop guard — even with a block-emitting
 # subhook, the orchestrator must exit silently when stop_hook_active=true.

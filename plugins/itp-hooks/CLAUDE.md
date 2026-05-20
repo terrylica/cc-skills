@@ -51,11 +51,21 @@ This plugin provides PreToolUse and PostToolUse hooks that enforce development s
 
 ### Stop Hooks
 
-| Hook                         | Purpose                                                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit                                                              |
-| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited, --python-version 3.13)                           |
-| `stop-loop-stall-guard.ts`   | **asyncRewake** — detects autoloop firings that ended without a waker and forces the model to wake and schedule one |
+| Hook                         | Purpose                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit (visible to operators via stderr, see iter-66 schema note below) |
+| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited, --python-version 3.13)                               |
+| `stop-loop-stall-guard.ts`   | **asyncRewake** — detects autoloop firings that ended without a waker and forces the model to wake and schedule one     |
+
+### iter-66 Stop-hook schema-correctness note
+
+Per the official Anthropic Claude Code hook schema (verbatim example documented in [GitHub issue #19115](https://github.com/anthropics/claude-code/issues/19115) and the official docs at code.claude.com/docs/en/hooks), **Stop and SubagentStop hooks support only `{decision, reason}` in their stdout JSON**. Any `additionalContext` field — top-level OR nested in `hookSpecificOutput` — is read by NO field consumer in Claude Code and is silently dropped.
+
+This is a different schema from PostToolUse / UserPromptSubmit / SessionStart, where `hookSpecificOutput.additionalContext` IS supported.
+
+**Implication for itp-hooks Stop subhooks**: `stop-markdown-lint.ts`, `stop-ty-project-check.ts`, and `stop-hook-error-summary.ts` each emit `{additionalContext: "summary"}` to their stdout. The `stop-orchestrator.ts` aggregates these — pre-iter-66 it then re-emitted `{additionalContext: aggregated}` to its own stdout, where Claude Code silently dropped it. **iter-66 routes the aggregated summary to stderr** (transcript-visible via Ctrl-R), so operators can still see subhook summaries during debugging. Claude itself does NOT see these on next-turn context — but it never did via the broken stdout route either.
+
+If a future subhook needs to inject context that Claude actually reads, the orchestrator must instead emit `{decision: "block", reason: "<context as instruction>"}`, which keeps Claude running and surfaces the reason as a system reminder. This is reserved for **truly critical** findings (currently only `stop-loop-stall-guard.ts` uses this path via `asyncRewake`).
 
 ## Autoloop Stall Guard
 
