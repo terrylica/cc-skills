@@ -1,3 +1,10 @@
+# [21.13.0](https://github.com/terrylica/cc-skills/compare/v21.12.0...v21.13.0) (2026-05-20)
+
+
+### Features
+
+* **release-gate:** iter-62 inverse PreToolUse schema audit — preventive gate against permissionDecision misuse on PostToolUse/Stop/UserPromptSubmit/SessionStart/SessionEnd hooks + 12-assertion regression + release:preflight Check 4h ([d363e55](https://github.com/terrylica/cc-skills/commit/d363e55540b811e5b0808617eec408e2420a5f9b)), closes [fix#1](https://github.com/fix/issues/1) [#3](https://github.com/terrylica/cc-skills/issues/3) [#6](https://github.com/terrylica/cc-skills/issues/6) [#2](https://github.com/terrylica/cc-skills/issues/2) [#4](https://github.com/terrylica/cc-skills/issues/4) [#5](https://github.com/terrylica/cc-skills/issues/5) [#7](https://github.com/terrylica/cc-skills/issues/7)
+
 # [21.12.0](https://github.com/terrylica/cc-skills/compare/v21.11.0...v21.12.0) (2026-05-20)
 
 
