@@ -62,18 +62,39 @@ for test_file in "${TEST_FILES[@]}"; do
 
     echo "─── $relative_path ───"
 
-    # Run test with `bash` (not exec) so we capture exit code without
-    # affecting the parent shell's $?. Pipe through tail -5 for compact
-    # output — each test's verbose-named filename already tells the
-    # operator WHAT was tested.
-    if bash "$test_file" 2>&1 | tail -8; then
+    # Iter-54 failure-mode UX improvement: capture full output to a
+    # temp file, show compact summary on PASS (last 3 lines) and FULL
+    # output on FAIL (every line). Pre-iter-54 the runner piped every
+    # test through `tail -8` unconditionally, truncating critical
+    # failure context to fit the 8-line tail window. Operators were
+    # forced to re-run the failing test manually to see the full output.
+    #
+    # New behavior:
+    #   - PASS: show only the bottom 3 lines (the test's own pass/fail
+    #     summary block — enough for the operator to confirm the test
+    #     ran to completion)
+    #   - FAIL: show ENTIRE test output (no truncation) so the operator
+    #     can immediately see WHICH invariant failed and WHY, without
+    #     re-running the test
+    #
+    # The `mktemp -t` form is BSD/Linux portable. Cleanup is unconditional
+    # via the explicit `rm -f` at the end of each iteration (we don't use
+    # a trap because the trap would fire on every exit, not per-test).
+    test_output_capture_file=$(mktemp -t hook-regression-output.XXXXXX)
+    if bash "$test_file" >"$test_output_capture_file" 2>&1; then
+        # PASS path: show compact summary (last 3 lines)
+        tail -3 "$test_output_capture_file"
         echo "  ✓ FILE-PASS: $test_name"
         PASSED_TEST_FILES_COUNT=$((PASSED_TEST_FILES_COUNT + 1))
     else
+        # FAIL path: show FULL output so the operator can diagnose
+        # without re-running the test manually
+        cat "$test_output_capture_file"
         echo "  ✗ FILE-FAIL: $test_name"
         FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
         FAILED_TEST_FILES_LIST+=("$relative_path")
     fi
+    rm -f "$test_output_capture_file"
     echo ""
 done
 
