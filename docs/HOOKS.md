@@ -124,6 +124,129 @@ Hooks defined in plugin `hooks.json` must be synced to `~/.claude/settings.json`
 ./scripts/sync-hooks-to-settings.sh
 ```
 
+## Hook Source Edits Don't Take Effect Until Next Tagged Release (3-Layer Versioned Cache Lifecycle)
+
+<!-- SSoT-OK: this section references SemVer placeholders as documentation patterns, not as code configuration. -->
+
+**Empirical discovery, iter-42 (2026-05-20)**: when you `git commit` a fix to a hook source file, the running Claude Code session does NOT immediately pick up the change — and frequently NEITHER does the next session. The hook continues to behave as before for hours-to-days. This section explains why and how to work around it.
+
+### The 3-Layer Cache Architecture
+
+cc-skills hooks travel through three independent storage layers on the operator's machine. Claude Code reads from the deepest layer; your `git push` only updates the shallowest:
+
+```
+LAYER 1: WORKING DIRECTORY                                                 ┐
+  /Users/<you>/eon/cc-skills/plugins/<plugin>/hooks/<hook>.sh              │ your edits live here
+                                                                            │ git push → GitHub remote
+                                                                            ┘
+                              │
+                              │ (next tagged release via semantic-release CI)
+                              ▼
+LAYER 2: MARKETPLACE MIRROR                                                ┐
+  ~/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<hook>.sh│ pulled from GitHub main
+                                                                            │ tracks the latest source
+                                                                            ┘
+                              │
+                              │ (Claude Code plugin runtime sees new tag)
+                              ▼
+LAYER 3: VERSIONED CACHE — what Claude Code ACTUALLY loads at fire time    ┐
+  ~/.claude/plugins/cache/cc-skills/<plugin>/<vX.Y.Z>/hooks/<hook>.sh      │ keyed by SemVer tag
+  ~/.claude/plugins/cache/cc-skills/<plugin>/<vX.Y.Z-1>/hooks/<hook>.sh    │ historical versions
+  ~/.claude/plugins/cache/cc-skills/<plugin>/<vX.Y.Z-2>/hooks/<hook>.sh    │ retained for rollback
+                                                                            ┘
+```
+
+The `${CLAUDE_PLUGIN_ROOT}` variable resolves to the LAYER 3 path at hook fire time, NOT the LAYER 1 or LAYER 2 path. This is why source edits committed at LAYER 1 don't change runtime behavior — Claude Code reads the cached snapshot at the most recent SemVer tag, not the working-directory source.
+
+### Symptom Pattern
+
+The PostToolUse output from a hook keeps showing the OLD behavior even though:
+
+- Your fix is committed to `main`
+- `git log` shows your commit
+- `cat plugins/<plugin>/hooks/<hook>.sh` at Layer 1 shows the fix
+- `cat ~/.claude/plugins/marketplaces/.../hooks/<hook>.sh` at Layer 2 shows the fix
+- BUT `cat ~/.claude/plugins/cache/.../<latest-tag>/hooks/<hook>.sh` at Layer 3 shows the OLD source
+
+Until semantic-release publishes a new tag, Layer 3 stays frozen at the pre-fix snapshot.
+
+### When Does the Cache Refresh?
+
+The versioned cache refreshes when ALL of the following happen in sequence:
+
+1. `git push` to `main` with a Conventional Commit message that triggers semantic-release (`fix:`, `feat:`, `perf:`, breaking change). `docs:` / `chore:` / `test:` do NOT trigger a release.
+2. semantic-release CI runs and publishes a new tag.
+3. The operator's Claude Code plugin runtime polls the marketplace, sees the new version, and downloads it to a new versioned cache directory.
+4. The operator restarts Claude Code OR invokes `/reload-plugins` in the active session.
+
+Steps 3 and 4 are operator-side; they don't happen automatically when you push.
+
+### Workarounds During Active Development
+
+For development workflows where you want hook edits to take effect immediately without cutting a release:
+
+**A. Manual cache overwrite (fast feedback loop, single-version)**:
+
+```bash
+# After editing the source at LAYER 1:
+PLUGIN=<plugin-name>
+HOOK=<hook-filename>
+LATEST_VERSION=$(ls -1 ~/.claude/plugins/cache/cc-skills/$PLUGIN/ | sort -V | tail -1)
+cp plugins/$PLUGIN/hooks/$HOOK \
+   ~/.claude/plugins/cache/cc-skills/$PLUGIN/$LATEST_VERSION/hooks/$HOOK
+# Then in your active Claude Code session, run /reload-plugins (or restart)
+```
+
+This overwrites Layer 3 with your Layer 1 edits without going through a release. Effective immediately on next hook fire. WARNING: any cache eviction or version-poll refresh will revert this overlay — re-apply if the hook stops behaving as expected.
+
+**B. Symlink the cached hook to the working copy (persistent across reloads, until next release)**:
+
+```bash
+PLUGIN=<plugin-name>
+HOOK=<hook-filename>
+LATEST_VERSION=$(ls -1 ~/.claude/plugins/cache/cc-skills/$PLUGIN/ | sort -V | tail -1)
+ln -sf "$(pwd)/plugins/$PLUGIN/hooks/$HOOK" \
+       "$HOME/.claude/plugins/cache/cc-skills/$PLUGIN/$LATEST_VERSION/hooks/$HOOK"
+```
+
+Every edit at Layer 1 is now reflected in Layer 3 immediately. WARNING: the next tagged release will replace the symlink with a regular file copy of the new tag's source.
+
+**C. Cut a release**:
+
+```bash
+mise run release:full   # full release pipeline, including marketplace publish
+```
+
+The canonical path. Use this when you have a stable batch of changes ready to ship.
+
+### Diagnosis Recipe — "My Hook Fix Isn't Working"
+
+When a hook behaves like an old version despite a fresh source edit:
+
+```bash
+PLUGIN=<plugin-name>
+HOOK=<hook-filename>
+MARKER='<your-fix-marker-string>'
+
+# 1. Confirm Layer 1 has your edit
+grep -c "$MARKER" plugins/$PLUGIN/hooks/$HOOK
+
+# 2. Confirm Layer 2 (marketplace mirror) has your edit
+grep -c "$MARKER" \
+  ~/.claude/plugins/marketplaces/cc-skills/plugins/$PLUGIN/hooks/$HOOK
+
+# 3. Check Layer 3 (versioned cache — what Claude Code actually runs)
+for d in ~/.claude/plugins/cache/cc-skills/$PLUGIN/*/; do
+  echo "$(basename "$d"): $(grep -c "$MARKER" "$d/hooks/$HOOK") fix markers"
+done
+
+# 4. Check the latest tag — your fix reaches Layer 3 only after a new tag publishes
+git tag --sort=-creatordate | head -1
+git log --oneline "$(git describe --tags --abbrev=0)..HEAD" --grep "$MARKER"
+```
+
+If Layer 1 + Layer 2 have your fix but Layer 3 does not, the diagnosis is a pending-release lag, not a bug in your fix.
+
 ## Testing Hooks
 
 ### Manual Testing
@@ -209,7 +332,7 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 | `productivity-tools` | PreToolUse                    | Calendar event management           |
 | `gmail-commander`    | Stop                          | Bot lifecycle management            |
 | `calcom-commander`   | Stop                          | Bot lifecycle management            |
-| `tts-tg-sync`  | Stop                          | TTS/bot process cleanup             |
+| `tts-tg-sync`        | Stop                          | TTS/bot process cleanup             |
 
 ## Related ADRs
 
