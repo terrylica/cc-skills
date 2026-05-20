@@ -33,6 +33,12 @@ fi
 
 # Check 3: Unpushed commits
 echo "→ Checking for unpushed commits..."
+# iter-48 SC1083 false-positive: `@{u}` is Git's UPSTREAM-BRANCH reference
+# syntax (the configured upstream tracking branch). ShellCheck flags the
+# `{` and `}` as literal-brace expansion problems because it doesn't know
+# Git ref syntax. The expression is correct as-is: `git log @{u}..HEAD`
+# means "log commits between upstream and HEAD". Disable per-line.
+# shellcheck disable=SC1083
 UNPUSHED=$(git log --oneline @{u}..HEAD 2>/dev/null || echo "")
 if [[ -n "$UNPUSHED" ]]; then
     echo "  ✗ Unpushed commits:"
