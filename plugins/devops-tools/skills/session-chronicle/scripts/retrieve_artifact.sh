@@ -123,7 +123,7 @@ for br_file in "$OUTPUT_DIR"/*.br; do
     output_file="${br_file%.br}"
     echo "  Decompressing: $(basename "$br_file")"
     brotli -d -o "$output_file" "$br_file"
-    ((DECOMPRESSED++))
+    ((DECOMPRESSED++)) || true  # iter-36: ((VAR++)) returns OLD value 0 → exit 1 under set -e on first iteration
   fi
 done
 

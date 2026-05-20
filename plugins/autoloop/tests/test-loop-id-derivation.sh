@@ -79,7 +79,7 @@ for _ in {1..9}; do
   # Check if ID already exists in list
   if [[ " ${ID_LIST[*]} " =~ ' '$ID' ' ]]; then
     echo "✗ COLLISION DETECTED: ID $ID"
-    ((COLLISION_COUNT++))
+    ((COLLISION_COUNT++)) || true  # iter-36: avoid set-e exit-1 from ((VAR++)) returning OLD value 0
   else
     ID_LIST+=("$ID")
   fi
