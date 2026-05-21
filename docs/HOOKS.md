@@ -403,6 +403,24 @@ The forensic baseline above can be reproduced (and regression-watched) via:
 mise run profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor
 ```
 
+### Orchestration-candidacy ranker (iter-81)
+
+The companion ranking tool identifies WHICH hook groupings yield the highest savings if combined into an iter-66-style orchestrator:
+
+```bash
+mise run audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor
+```
+
+Reads every `plugins/*/hooks/hooks.json`, groups PreToolUse entries by exact matcher signature, and ranks each group by `(group_size - 1) × 44ms` estimated savings. Live marketplace finding as of iter-81:
+
+| Rank | Plugin    | Matcher       | Group size | Savings if combined |
+| ---- | --------- | ------------- | ---------- | ------------------- |
+| 1    | itp-hooks | `Write\|Edit` | 8          | 308 ms              |
+| 2    | itp-hooks | `Bash`        | 8          | 308 ms              |
+| 3    | gh-tools  | `Bash`        | 2          | 44 ms               |
+
+Combining the top 2 groups would save **616 ms per Write/Edit and per Bash invocation respectively** — the highest-leverage edit-time perf opportunity in the marketplace. Architectural template: `plugins/itp-hooks/hooks/stop-orchestrator.ts` (iter-66).
+
 The task discovers every `plugins/*/hooks/pretooluse-*.{ts,mjs}` hook, profiles each over N=5 runs with median aggregation, flags HIGH-OVERHEAD outliers (>50ms median), and prints the optimization-strategy guidance table above. Use it to:
 
 - Catch new-hook regressions before a hook lands (any hook >50 ms median needs investigation)
