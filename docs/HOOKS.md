@@ -1298,9 +1298,56 @@ Iter-104 established the canonical truncation helper `truncateHookOutputToStayBe
 
 **Iter-106+ candidates**:
 
-1. Extract `truncateHookOutputToStayBelowClaudeFileSpilloverThreshold` to a dedicated shared-lib file (eliminate iter-105 cross-lib import pattern)
+1. Extract `truncateHookOutputToStayBelowClaudeFileSpilloverThreshold` to a dedicated shared-lib file (eliminate iter-105 cross-lib import pattern) — **delivered in iter-106 below**
 2. Add new unbounded-source PostToolUse classifiers to the cohort enumeration as they land
 3. Promote audit gate from informational (Check 4q) to strict (block release) once iter-106 helper-extraction is done
+
+### Iter-106: Truncation-helper canonical home relocated to dedicated cross-Pre/PostToolUse shared lib (eliminates iter-105 cross-lib import awkwardness)
+
+Iter-105 documented a deferred follow-up: extract the truncation helper from the PostToolUse contract lib to a dedicated cross-Pre/PostToolUse shared lib once additional cross-Pre/PostToolUse helpers emerged. Iter-106 delivers that extraction even before more helpers materialize — the iter-105 cross-lib import (PreToolUse vale-claude-md-guard importing from the PostToolUse contract lib) was the single most awkward shape in the iter-104/iter-105 helper chain, and eliminating it now establishes the shared-lib pattern for future cross-Pre/PostToolUse helpers.
+
+**File layout transition**:
+
+| File                                                                                                               | Iter-104 / iter-105 role                        | Iter-106 role                                                            |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `lib/posttooluse-subhook-contract-...-iter93.ts`                                                                   | Canonical home for the helper (literal exports) | Transitive re-exports only (backward-compat bridge for iter-104-era API) |
+| `lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts` | (did not exist)                                 | **NEW canonical home — holds the 3 literal exports + design rationale**  |
+
+**Iter-106 invariants enforced by audit task**:
+
+1. The shared-lib file exists at the documented path
+2. The shared lib holds the literal `export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER`, `export const HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_...`, and `export function truncateHookOutputToStayBelowClaudeFileSpilloverThreshold` definitions
+3. The PostToolUse contract lib has been reduced to `export { ... } from "./shared-truncation-helper-..."` re-exports (NOT duplicate `export const` definitions) — verifies no source-of-truth duplication
+4. All 8 iter-105 cohort hooks import the helper from the iter-106 shared-lib canonical home (NOT from the PostToolUse contract lib's re-export bridge, even though that bridge remains available for external consumers)
+5. The threshold value remains `9000` (unchanged from iter-104 baseline — verified at the iter-106 canonical home)
+6. The iter-105 marketplace-wide invariant audit continues to pass (no regression on the helper-consumption invariant during the relocation)
+
+**Cross-lib import pattern ELIMINATED**: `pretooluse-vale-claude-md-guard.ts` now imports the helper directly from `./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts` instead of `./lib/posttooluse-subhook-contract-...iter93.ts`. The cross-lib import that iter-105 documented as "currently pragmatic; refactor when more cross-Pre/PostToolUse helpers emerge" is gone.
+
+**Backward-compatibility contract**: the PostToolUse contract lib re-exports all 3 helper symbols via `export { MAX_..., HOOK_OUTPUT_..., truncate... } from "./shared-truncation-helper-..."`. Any external consumer (audit tasks, regression tests, documentation, vendored downstream code) that referenced the iter-104 import-source continues to resolve correctly through the transitive re-export. **Iter-104 API surface stability preserved**.
+
+**Preventive infrastructure**:
+
+- **Audit task**: `.mise/tasks/audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness.sh` — verifies the 3 iter-106 invariants (file exists + literal exports + cohort hooks import from canonical home)
+- **Preflight gate**: Check 4r (informational, parallel to Check 4n/4o/4p/4q)
+- **Regression test**: `.mise/tasks/tests/test-iter106-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-shared-lib-with-eight-cohort-hooks-importing-directly-and-backward-compat-re-exports-preserved.sh` — 7 assertions
+- **Updated iter-104 + iter-105 tests**: file-location assumptions in the iter-104 + iter-105 tests rewritten to read from the iter-106 canonical home (where the literal definitions now live)
+
+**Defense-in-depth synthesis (iter-106 adds the canonical-home invariant on top of iter-105's marketplace cohort invariant)**:
+
+1. iter-66/93: stdout JSON schema correctness — additionalContext-silently-dropped audit
+2. iter-94: Bun.spawn async invariant — no spawnSync in orchestrator subhooks
+3. iter-96: timeout-aware additional_context surface — operator-visibility defense
+4. iter-98/99: console.log raw-text emission audit — silent-drop preventive gate
+5. iter-104: 10K-character file-spillover threshold defense (single-hook fix)
+6. iter-105: marketplace-wide invariant for unbounded-emission hook classifiers + aggregation-site sum-overflow defense
+7. **iter-106 (this iter)**: canonical-home invariant — the truncation helper lives in a dedicated cross-Pre/PostToolUse shared lib; cross-lib import awkwardness eliminated; backward-compat re-exports preserved
+
+**Iter-107+ candidates**:
+
+1. Extract the iter-95 async-spawn helper (`executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail`) to the cross-Pre/PostToolUse shared-lib home if PreToolUse classifiers adopt async subprocess execution (currently the helper lives in `lib/posttooluse-subhook-async-subprocess-execution-...-iter95.ts`, which would create the same cross-lib pattern iter-106 just eliminated)
+2. Add a shared escape-hatch-marker detection helper (`// MARKER-NAME-OK: <reason>`) that all per-classifier opt-out comments converge on — each hook currently rolls its own variant; a shared helper would standardize the marker grammar + same-line vs. preceding-3-lines window semantics
+3. Promote the iter-105 + iter-106 audits from informational (Check 4q + 4r) to strict-block once a marketplace-wide refactor pass establishes the invariants as universally true (current iter-105 + iter-106 cohort = 8 hooks; the strict promotion should wait until cohort scope is documented to be EXHAUSTIVE rather than just CURRENT)
 
 Sources for iter-104 web research:
 
