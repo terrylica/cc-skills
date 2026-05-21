@@ -234,22 +234,29 @@ ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
 
 **Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
 
-## Conventional-Commits Operator Toolkit Index (iter-150 → iter-158 arc)
+## Conventional-Commits Operator Toolkit Index (iter-150 → iter-167 arc)
 
-The cc-skills conventional-commits arc ships **7 operator-facing tools** across the full commit lifecycle, plus a **polyglot pre-commit framework manifest** for cross-repo distribution. Run `mise run commits` (no subcommand) for the in-terminal cheatsheet. The index below is the canonical reference.
+The cc-skills conventional-commits arc ships **11 operator-facing tools** across the full commit lifecycle (subject grammar, length conformance, semver-bump preview, breaking-change detection, concrete next-version resolution, multi-commit release-window aggregation, self-diagnosis doctor), plus a **polyglot pre-commit framework manifest** for cross-repo distribution. Run `mise run commits` (no subcommand) for the in-terminal cheatsheet. The index below is the canonical reference.
 
-| Lifecycle stage              |     Iter | Tool                                           | Purpose                                                                                                        |
-| ---------------------------- | -------: | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **VIEW**                     | iter-150 | `mise run release:history`                     | Awk soft-wrap renderer for verbose subjects                                                                    |
-| **DETECT**                   | iter-151 | Preflight Check 4l (auto)                      | Long-subject overlay classifier, informational                                                                 |
-| **HEALTH SUMMARY**           | iter-152 | `mise run commits:health`                      | 5-panel operator dashboard                                                                                     |
-| **HEALTH SUMMARY (AI)**      | iter-155 | `mise run commits:health --json`               | Machine-readable dashboard, stable iter155_schema_version=1                                                    |
-| **PRE-COMMIT ADVISE**        | iter-153 | `mise run commits:advise -- "<subj>"`          | Dry-run classifier before committing                                                                           |
-| **PRE-COMMIT ADVISE (AI)**   | iter-153 | `mise run commits:advise --json -- "<subj>"`   | Machine-readable advisor, stable iter153_schema_version=1                                                      |
-| **PRE-COMMIT ADVISE (gate)** | iter-153 | `mise run commits:advise --strict -- "<subj>"` | Exit non-zero on silent-fail-class violations                                                                  |
-| **PRE-COMMIT AUTO-DETECT**   | iter-154 | `mise run commits:advise` (no args, TTY)       | Reads `.git/COMMIT_EDITMSG` during editor-launched commit                                                      |
-| **COMMIT-MSG HOOK (auto)**   | iter-157 | `mise run commits:install-hook`                | Install `.git/hooks/commit-msg` running --strict on every commit. Uninstall: `mise run commits:uninstall-hook` |
-| **PRE-COMMIT FRAMEWORK**     | iter-158 | `.pre-commit-hooks.yaml` at repo root          | Polyglot consumers add cc-skills as a hook source in their `.pre-commit-config.yaml`. See snippet below.       |
+| Lifecycle stage                 |     Iter | Tool                                            | Purpose                                                                                                                     |
+| ------------------------------- | -------: | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **VIEW**                        | iter-150 | `mise run release:history`                      | Awk soft-wrap renderer for verbose subjects                                                                                 |
+| **DETECT**                      | iter-151 | Preflight Check 4l (auto)                       | Long-subject overlay classifier, informational                                                                              |
+| **HEALTH SUMMARY**              | iter-152 | `mise run commits:health`                       | 5-panel operator dashboard                                                                                                  |
+| **HEALTH SUMMARY (AI)**         | iter-155 | `mise run commits:health --json`                | Machine-readable dashboard, stable iter155_schema_version=1                                                                 |
+| **PRE-COMMIT ADVISE**           | iter-153 | `mise run commits:advise -- "<subj>"`           | Dry-run classifier before committing                                                                                        |
+| **PRE-COMMIT ADVISE (AI)**      | iter-153 | `mise run commits:advise --json -- "<subj>"`    | Machine-readable advisor, stable iter153_schema_version=1                                                                   |
+| **PRE-COMMIT ADVISE (gate)**    | iter-153 | `mise run commits:advise --strict -- "<subj>"`  | Exit non-zero on silent-fail-class violations                                                                               |
+| **PRE-COMMIT AUTO-DETECT**      | iter-154 | `mise run commits:advise` (no args, TTY)        | Reads `.git/COMMIT_EDITMSG` during editor-launched commit                                                                   |
+| **PRE-COMMIT (body-aware)**     | iter-162 | `mise run commits:advise --message-file <path>` | Full multi-line message — OR's iter-162 §13 BREAKING CHANGE footer detection with subject `!` marker                        |
+| **SEMVER-BUMP PREVIEW**         | iter-161 | (overlay on every `commits:advise` invocation)  | Maps {type, breaking marker} → MAJOR/MINOR/PATCH/NONE per cc-skills .releaserc.yml                                          |
+| **NEXT-VERSION PREVIEW**        | iter-164 | (overlay on every `commits:advise` invocation)  | Resolves iter-161 bump label to concrete next version (e.g. `vCUR → vNEXT`) via semver.org §2 increment rules               |
+| **PENDING-RELEASE PREVIEW**     | iter-165 | `mise run commits:pending-release`              | Aggregates iter-161 bump labels across ALL commits since most-recent tag → reports next release version + triggering commit |
+| **PENDING-RELEASE (AI)**        | iter-165 | `mise run commits:pending-release --json`       | Machine-readable aggregate preview, stable iter165_schema_version=1                                                         |
+| **TOOLKIT SELF-DIAGNOSIS**      | iter-160 | `mise run commits:status`                       | 15-check brew-doctor-style health report (structural validity + functional correctness + end-to-end chain probes)           |
+| **TOOLKIT SELF-DIAGNOSIS (AI)** | iter-160 | `mise run commits:status --json`                | Machine-readable doctor output, stable iter160_schema_version=1                                                             |
+| **COMMIT-MSG HOOK (auto)**      | iter-157 | `mise run commits:install-hook`                 | Install `.git/hooks/commit-msg` running --strict on every commit. Uninstall: `mise run commits:uninstall-hook`              |
+| **PRE-COMMIT FRAMEWORK**        | iter-158 | `.pre-commit-hooks.yaml` at repo root           | Polyglot consumers add cc-skills as a hook source in their `.pre-commit-config.yaml`. See snippet below.                    |
 
 **Going-forward convention** (iter-150 industry-standard adoption): subject ≤50 chars hard target, ≤72 chars hard cap; body wrapped at 72 chars per line; blank line separates subject from body. Canonical spec: [conventionalcommits.org](https://www.conventionalcommits.org/) + [cbea.ms/git-commit](https://cbea.ms/git-commit/).
 
@@ -274,7 +281,13 @@ Then run `pre-commit install --hook-type commit-msg` once. The pre-commit framew
 
 **Empirical adoption signal**: First iter-152 dashboard run against actual cc-skills HEAD post-iter-155 shows median subject length dropped from **177.5 → 37.5 chars (-79%)** and conformance rose from **50% → 70% (+20pp)** between previous-10 and current-10 windows. Verdict: **IMPROVING**.
 
-For deep dives into each tool's design contract, see the iter-150 through iter-158 subsections below.
+**Quality + performance improvements (iter-163, iter-166, iter-167)** — non-operator-visible iterations that strengthen the toolkit's safety net and runtime characteristics:
+
+- **iter-163** doctor coverage extension #1 — adds 3 CRITICAL checks (iter-161 lib + iter-162 lib + iter-153→iter-161→iter-162 footer-form end-to-end probe). Closes the silent-regression gap where missing/broken libs would not surface (advisor soft-fails to "UNAVAILABLE" preview).
+- **iter-166** doctor coverage extension #2 — adds 3 more CRITICAL checks (iter-164 lib + iter-165 aggregator script + iter-153→iter-161→iter-164→iter-165 chain probe using a `mktemp -d` synthetic git repo via `ITER165_REPO_ROOT_OVERRIDE`). Brings the doctor's `critical_passed` counter to 13.
+- **iter-167** single-batched-git-log-fan-in perf optimization — replaces iter-165's 2N+1-fork pattern (1 SHA list + 2 git logs per commit) with one `git log --format='%H%x00%s%x00%b%x00'` invocation parsed via NUL-delimited bash `read`. Empirically measured ≈**5.17× speedup at N=50** (1184ms baseline median → 228ms optimized median; 956ms absolute time saved). ASCII NUL is safe because git tree objects cannot contain NUL bytes (per `git-pretty-formats(1)` `%x00` specifier). Reproducible benchmark: `bash .mise/tasks/tests/test-iter167-*.sh`.
+
+For deep dives into each tool's design contract, see the iter-150 through iter-167 subsections below.
 
 ## Operator-Facing Release-History Readable View (iter-150)
 
