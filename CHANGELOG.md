@@ -1,3 +1,10 @@
+# [21.48.0](https://github.com/terrylica/cc-skills/compare/v21.47.0...v21.48.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-117 inject auto-generated table-of-contents with github-flavored-markdown-anchor-links into iter-113-reference-doc-generator emitting top-of-doc quick-navigation section listing all 20 registered markers grouped by lifecycle-layer and sorted alphabetically closing the third operator-discoverability gap in the iter-107-through-iter-117-arc ([1c36818](https://github.com/terrylica/cc-skills/commit/1c368188eae42426af9498c8803bbf4983449770)), closes [iter-107-throu#iter-117-arc](https://github.com/iter-107-throu/issues/iter-117-arc) [#144](https://github.com/terrylica/cc-skills/issues/144)
+
 # [21.47.0](https://github.com/terrylica/cc-skills/compare/v21.46.0...v21.47.0) (2026-05-21)
 
 
