@@ -104,6 +104,7 @@ import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-op
 import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygiene-guard.ts";
 import { classifyPyiStubGuardForOrchestrator } from "./pretooluse-pyi-stub-guard.ts";
 import { classifyNativeBinaryGuardForOrchestrator } from "./pretooluse-native-binary-guard.ts";
+import { classifyValeClaudeMdGuardForOrchestrator } from "./pretooluse-vale-claude-md-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -164,6 +165,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyFileSizeGuardForOrchestrator,
     description:
       "Blocks Write/Edit operations that would produce files exceeding the per-extension line-count threshold (default 1000 lines, configurable via .claude/file-size-guard.json). Iter-84 first inlined subhook; does sync fs.readFileSync for Edit operations (~1-2ms typical).",
+  },
+  {
+    name: "vale-claude-md-guard",
+    timeoutMs: 12000,
+    classify: classifyValeClaudeMdGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on CLAUDE.md files with vale lint warning-or-error findings (terminology config at ~/.claude/.vale.ini). Iter-91 inlined (FINAL SUBHOOK — completes the iter-84→iter-91 PreToolUse Write|Edit migration arc). Heaviest classifier in the registry: spawns external `vale` subprocess against a tempfile holding the proposed content. Typical wall-clock: 100-300ms. timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines without spurious AbortSignal.timeout() trips. Registry position LAST per lightest-first rule — Edit-path scope-to-changed-lines (±3-line buffer) heuristic preserved. Algorithm encoded in `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator` (re-exported as `classifyValeClaudeMdGuardForOrchestrator` for symmetric naming with sibling subhooks).",
   },
 ];
 
