@@ -1,3 +1,10 @@
+# [21.36.0](https://github.com/terrylica/cc-skills/compare/v21.35.0...v21.36.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks,dotfiles-tools,rust-tools:** iter-101 marketplace-wide matcher-hygiene audit scales iter-100 single-orchestrator MultiEdit-broadening fix to a marketplace invariant + applies 6 fixes across 3 plugins closing 8 silent-bypass-MultiEdit gaps + wires preflight Check 4o + iter-101 regression test ([282d7df](https://github.com/terrylica/cc-skills/commit/282d7df3c25b8d49946922e303aac44442c68798))
+
 # [21.35.0](https://github.com/terrylica/cc-skills/compare/v21.34.0...v21.35.0) (2026-05-21)
 
 
