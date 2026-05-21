@@ -762,6 +762,52 @@ The audit task discovers every PostToolUse hooks.json entry marketplace-wide, re
 - **macOS BSD grep does NOT support `\s` shorthand** for whitespace in ERE mode — use `[[:space:]]` POSIX bracket-class. Iter-92 test initially failed with `grep -E '^\s*\[C\]'` returning 0 matches; the fix was to switch to `^[[:space:]]*\[C\]`.
 - **The 17-hook marketplace count exceeds iter-88's 9-hook projection** because the discovery walks every plugin's `hooks.json`, not just `itp-hooks/hooks/hooks.json`. The corrected savings projection for Path B (orchestrator inlining of ALL marketplace PostToolUse hooks): `(17 - 1) × 17ms ≈ 272ms per Write/Edit` (vs iter-88's optimistic 136ms based on itp-hooks-only count).
 
+### Iter-93: PostToolUse edit-time orchestrator kick-off — **Path B (Orchestrator Inlining) STARTED, 1/15 inlined**
+
+Iter-93 is the **first concrete step of Path B** after the iter-92 audit ruled out Path A (async:true sweep) for 15 of 17 marketplace PostToolUse hooks. It mirrors iter-84's PreToolUse arc kick-off, but with a critical contract difference: **multi-aggregation semantics** instead of first-deny-short-circuit.
+
+**The new PostToolUseSubhookContract** (separate file from the iter-84 PreToolUse contract, `lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`):
+
+| Field                          | PreToolUse (iter-84)                            | PostToolUse (iter-93)                                         |
+| ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------- |
+| Decision discriminant          | `"allow" \| "deny" \| "ask"`                    | `"noop" \| "additional_context"`                              |
+| Orchestrator iteration policy  | Serial, first-non-allow short-circuits          | Parallel via `Promise.all`, **runs all subhooks**             |
+| Aggregation                    | None — single decision wins                     | Delimiter-joined into one consolidated reason                 |
+| Wire emission                  | `permissionDecision: "allow"\|"deny"\|"ask"`    | `{decision: "block", reason}` JSON                            |
+| Silent-pass shape              | Single allow JSON                               | Empty stdout (exit 0) when ALL subhooks return noop           |
+| File I/O allowed on no-op path | NO (Edit-path scope-to-changed-lines exception) | YES (PostToolUse fires AFTER side effects durable)            |
+| Typical timeoutMs              | 3000-5000ms                                     | 4000-8000ms (heavier subhooks: ty, tsgo, oxlint, biome, vale) |
+
+The wire-emission row is the load-bearing distinction: PostToolUse cannot use `permissionDecision` (silently dropped per iter-66 schema — the tool already ran by the time the hook fires). The documented Anthropic-schema mechanism for **context injection** on PostToolUse is `{decision: "block", reason}` — the keyword "block" is a misnomer here; it's how Claude surfaces the reason as a system reminder NEXT to the tool result (synchronous timing required — see iter-92).
+
+**Iter-93 deliverables**:
+
+1. **PostToolUseSubhookContract** type-defined with the discriminated-union decision shape and a precise `PostToolUseSubhookRegistryEntry` interface mirroring iter-84's PreToolUse equivalent
+2. **`posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts`** — the new orchestrator that:
+   - Runs ALL registered subhooks in parallel via `Promise.all` (no short-circuit — multi-aggregation invariant)
+   - Wraps each classifier in `AbortSignal.timeout()` cooperative-cancellation race (mirrors iter-87 PreToolUse pattern)
+   - Try/catch-isolates each classifier (errors → fail-open `noop`)
+   - Aggregates non-empty `additional_context` payloads via a delimiter-joined section
+   - Emits ONE consolidated `{decision: "block", reason: aggregate}` JSON — or NOTHING when every subhook returns `noop` (preserves legacy silent-allow semantics)
+3. **`posttooluse-ty-type-check.ts` refactored to dual-mode** (orchestrator-imported + standalone-CLI via `import.meta.main` guard): exports `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (precise algorithm-encoding name) AND `classifyTyTypeCheckForPostToolUseOrchestrator` (symmetric-naming alias for sibling-subhook consistency — same dual-export pattern iter-89/90/91 established)
+4. **hooks.json rewiring**: the standalone `posttooluse-ty-type-check.ts` Write|Edit PostToolUse entry is replaced by the orchestrator entry (timeout 15000ms, generous to accommodate the multi-subhook aggregation as the registry grows in iter-94+)
+5. **Iter-93 regression test** ([16 assertions, all pass](../.mise/tasks/tests/test-posttooluse-edit-time-orchestrator-iter93-ty-python-type-check-inlined-as-first-context-injecting-subhook-with-multi-aggregation-additional-context-merging-kicks-off-path-b-replacing-iter89-ruled-out-async-true-strategy.sh)):
+   - Cases 1a-c: contract discriminated-union shape + registry interface + helper exist
+   - Cases 2a-b: orchestrator uses `Promise.all` (parallel multi-aggregation, NOT first-deny-short-circuit) + has aggregator function
+   - Cases 3a-b: orchestrator emits `{decision:'block'}` (Anthropic-schema PostToolUse context-injection) and does NOT emit `permissionDecision` (which PostToolUse silently drops)
+   - Case 4: registry inlines ≥1 subhook (iter-93 starting state)
+   - Case 5: non-Python write (.txt) → silent noop + exit 0 (O(1) extension filter fastpath)
+   - Cases 6a-b: standalone backward-compat via `import.meta.main` guard
+   - Case 7: dual-export naming-drift acknowledgement pattern
+   - Cases 8a-b: hooks.json wires orchestrator (NOT standalone) under Write|Edit
+   - Case 9: orchestrator uses `AbortSignal.timeout()` (iter-87 community-standard cooperative cancellation)
+   - Case 10: orchestrator header documents iter-92 correction of iter-89 strict-dominance claim (forensic traceability)
+6. **Iter-92 regression test updated** to acknowledge that `ty-type-check` is now inlined into the orchestrator — the test now accepts EITHER form (standalone OR orchestrator-via-import) as satisfying the `[C] CONTEXT-INJECTING` invariant. This decouples the iter-92 audit-task regression from the in-progress iter-93+ migration arc's future state.
+
+**Iter-93 forensic note: 17ms × 14 = 238ms savings (final-state projection)**. After all 15 context-injecting PostToolUse hooks inline into the orchestrator, projected savings are `(15-1) × 17ms ≈ 238ms` per Write/Edit (using iter-87's empirically-corrected per-subhook cost). Combined with the iter-91 PreToolUse arc's ~119ms savings, total cold-start reduction per Write/Edit reaches **~357ms** — meaningful but smaller than iter-89's optimistic strict-dominance projection. The 1 confirmed `[S]` PURE-SIDE-EFFECT hook (`posttooluse-subprocess-orphan-cleanup.ts`) can independently get `async: true` outside the orchestrator path.
+
+**Iter-93 architectural-symmetry surfacing**: the two orchestrators (iter-84 PreToolUse + iter-93 PostToolUse) deliberately use DIFFERENT iteration models because their wire-emission contracts differ — first-deny-short-circuit is correct for PreToolUse (a single deny is decisive), parallel-all is correct for PostToolUse (every additional_context payload contributes signal Claude needs). Future maintainers should resist the temptation to "unify" them via a single base class — the asymmetry encodes a real schema-level constraint.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

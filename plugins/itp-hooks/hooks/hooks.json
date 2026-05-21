@@ -214,9 +214,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-ty-type-check.ts",
-            "timeout": 5000,
-            "description": "ty type checker - runs on every .py file edit (4.7ms incremental)"
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
+            "timeout": 15000,
+            "description": "Iter-93 PostToolUse edit-time orchestrator — kicks off the PostToolUse Write|Edit consolidation arc (analogous to iter-84→iter-91 PreToolUse arc) with MULTI-AGGREGATION semantics (runs ALL subhooks, merges non-noop additional_context payloads into one consolidated decision:block reason). First inlined subhook: ty-type-check (other 14 context-injecting PostToolUse hooks queued for iter-94+). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       },

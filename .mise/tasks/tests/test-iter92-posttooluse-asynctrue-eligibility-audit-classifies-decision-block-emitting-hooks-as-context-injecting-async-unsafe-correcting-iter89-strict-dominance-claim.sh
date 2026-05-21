@@ -44,11 +44,19 @@ else
     assert_fails "Case 2: only ${discovered_hook_count} hooks discovered (expected ≥15)"
 fi
 
-# ─── Case 3: ty-type-check.ts classified as CONTEXT-INJECTING [C] ─────────────
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-ty-type-check.ts"; then
-    assert_passes "Case 3a: posttooluse-ty-type-check.ts classified as [C] CONTEXT-INJECTING"
+# ─── Case 3: orchestrator-or-standalone ty-type-check classified as CONTEXT-INJECTING [C] ───
+# Iter-93 update: ty-type-check was inlined into the iter-93 PostToolUse
+# orchestrator. The audit task scans hooks.json (not the orchestrator's
+# import graph), so ty-type-check no longer appears as a top-level entry —
+# but the orchestrator IS classified as [C] CONTEXT-INJECTING because it
+# emits the same {decision:"block", reason} JSON aggregating ty's output.
+# Either form (standalone OR orchestrator) satisfies the invariant that the
+# ty type-checking pathway gets [C] coverage. This decouples the iter-92
+# test from the iter-93+ migration arc's future state.
+if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-ty-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+    assert_passes "Case 3a: ty-type-checking pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-93 orchestrator that inlines it)"
 else
-    assert_fails "Case 3a: ty-type-check missing [C] classification"
+    assert_fails "Case 3a: ty-type-checking pathway missing [C] classification (neither standalone nor iter-93 orchestrator entry found)"
 fi
 if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-tsgo-type-check.ts"; then
     assert_passes "Case 3b: posttooluse-tsgo-type-check.ts classified as [C] CONTEXT-INJECTING"

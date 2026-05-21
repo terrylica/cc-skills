@@ -1,0 +1,268 @@
+#!/usr/bin/env bun
+/**
+ * PostToolUse Edit-Time Orchestrator — iter-93 kick-off of the PostToolUse
+ * Write|Edit consolidation arc (analogous to iter-84 → iter-91 PreToolUse
+ * arc, but with MULTI-AGGREGATION semantics instead of first-deny-short-
+ * circuit).
+ *
+ * Why a separate orchestrator from the PreToolUse one:
+ *
+ *   1. PostToolUse decision schema cannot deny — only `{decision: "block",
+ *      reason}` is honored as a context-injection mechanism (iter-66
+ *      forensic finding + iter-92 audit). So the orchestrator MUST NOT
+ *      short-circuit on first non-noop; it must RUN ALL subhooks and merge
+ *      their additional_context payloads into ONE consolidated reason.
+ *
+ *   2. PostToolUse subhooks are typically heavier than PreToolUse ones —
+ *      they may spawn ty/tsgo/oxlint/biome/vale subprocesses. Per-subhook
+ *      timeouts are correspondingly more generous (4000-8000ms typical vs
+ *      3000-5000ms PreToolUse).
+ *
+ *   3. PostToolUse subhooks fire AFTER the tool's side effects are durable,
+ *      so they MAY perform read-only filesystem operations on the
+ *      just-written file. The PreToolUse contract forbids file I/O on
+ *      `allow` paths (Edit-path scope-to-changed-lines is the exception).
+ *
+ * Why this orchestrator exists (motivation distinct from `async: true`):
+ *
+ *   The iter-89 firing originally proposed `async: true` (Anthropic's
+ *   Jan-2026 flag) as a strict-dominant alternative to orchestrator
+ *   inlining for PostToolUse (filename-encoded as `corrects-iter89-async-
+ *   true-strict-dominance-claim` for forensic traceability). Iter-92's web research + classifier audit ruled that
+ *   strategy OUT for 15 of 17 marketplace PostToolUse hooks because async
+ *   hooks cannot reliably inject `additionalContext` next-to-tool-result
+ *   (the model advances before the hook finishes — see Anthropic timing
+ *   semantics in docs/HOOKS.md).
+ *
+ *   Path B (orchestrator inlining, this file) is the only viable strategy
+ *   for the 15 [C] CONTEXT-INJECTING hooks. The 1 confirmed [S] PURE-
+ *   SIDE-EFFECT hook can independently get `async: true` (out of scope
+ *   here).
+ *
+ *   Cold-start savings projection (final-state, after migrating all 15
+ *   context-injecting hooks): (15-1) × 17ms = ~238ms per Write/Edit, on
+ *   top of the iter-91 PreToolUse arc's ~119ms savings = ~357ms total
+ *   per-tool-call cold-start reduction.
+ *
+ * Contract enforcement:
+ *
+ *   Every registered subhook MUST conform to PostToolUseSubhookContract
+ *   (pure async classifier, AbortSignal.timeout() cooperative cancellation,
+ *   internal try/catch crash isolation). See
+ *   `lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`.
+ *
+ * Iter-93 starting state: 1 subhook (ty-type-check) inlined; 14 remaining
+ * context-injecting PostToolUse hooks queued for iter-94+ migration.
+ */
+
+import type {
+  PostToolUseInput,
+  PostToolUseSubhookDecision,
+  PostToolUseSubhookRegistryEntry,
+} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import { POSTTOOLUSE_SUBHOOK_NOOP_DECISION } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Subhook registry — order matters (aggregation order in the reason)
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Unlike the PreToolUse orchestrator's lightest-first deny-wins ordering,
+// the PostToolUse orchestrator runs ALL subhooks regardless of individual
+// results — so registry order affects ONLY the visual order of subhook
+// contributions inside the aggregated reason. Lightest-first is still
+// preferred (cheaper subhooks finish sooner → orchestrator wall-clock
+// closer to the slowest subhook, not the sum) but it does not change
+// semantic outcome.
+
+const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookRegistryEntry[] = [
+  {
+    name: "ty-type-check",
+    timeoutMs: 5000,
+    classify: classifyTyTypeCheckForPostToolUseOrchestrator,
+    description:
+      "Runs `ty check <file> --python-version 3.13 --output-format concise` after every Write/Edit of a .py/.pyi file. ~4.7ms incremental (60x faster than mypy → hook-viable). Iter-93 first inlined PostToolUse subhook (kicks off the iter-93+ PostToolUse Write|Edit consolidation arc analogous to iter-84→iter-91 PreToolUse arc). Lightest-first registry position: FIRST (cheap O(1) extension+venv filter pre-empts the ty subprocess spawn). Surfaces install reminder once per session if `which ty` fails. Algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (re-exported as `classifyTyTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks).",
+  },
+];
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Per-subhook execution with cooperative timeout + crash isolation
+// ══════════════════════════════════════════════════════════════════════════
+
+interface PostToolUseSubhookExecutionResult {
+  name: string;
+  decision: PostToolUseSubhookDecision;
+  elapsedMs: number;
+  timedOut: boolean;
+  errored: boolean;
+  errorMessage?: string;
+}
+
+/**
+ * Convert an AbortSignal into a rejecting promise that fires when the
+ * signal aborts. Used by the orchestrator to race a classifier against
+ * AbortSignal.timeout(). Hoisted to module scope (closure-free) per the
+ * oxlint consistent-function-scoping rule. Mirrors the iter-87 PreToolUse
+ * orchestrator's helper of the same shape.
+ */
+async function awaitAbortSignalAsPostToolUseTimeoutSentinelPromiseRejection(
+  signal: AbortSignal,
+): Promise<never> {
+  return new Promise<never>((_resolve, reject) => {
+    signal.addEventListener(
+      "abort",
+      () => {
+        reject(signal.reason);
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Execute one subhook with cooperative timeout + crash isolation.
+ *
+ * - Timeout: AbortSignal.timeout(timeoutMs) races against the classifier.
+ *   On timeout, returns a fail-open `noop` decision with `timedOut: true`.
+ * - Crash: try/catch wraps the classifier (classifiers SHOULD catch their
+ *   own errors per contract, but this is belt-and-suspenders). On error,
+ *   returns a fail-open `noop` decision with `errored: true`.
+ */
+async function executeSinglePostToolUseSubhookWithCooperativeAbortSignalTimeoutAndCrashIsolation(
+  entry: PostToolUseSubhookRegistryEntry,
+  input: PostToolUseInput,
+): Promise<PostToolUseSubhookExecutionResult> {
+  const startNanos = process.hrtime.bigint();
+  const timeoutSignal = AbortSignal.timeout(entry.timeoutMs);
+
+  try {
+    const decision: PostToolUseSubhookDecision = await Promise.race([
+      entry.classify(input),
+      awaitAbortSignalAsPostToolUseTimeoutSentinelPromiseRejection(timeoutSignal),
+    ]);
+    const elapsedMs = Number(process.hrtime.bigint() - startNanos) / 1_000_000;
+    return { name: entry.name, decision, elapsedMs, timedOut: false, errored: false };
+  } catch (raw: unknown) {
+    const elapsedMs = Number(process.hrtime.bigint() - startNanos) / 1_000_000;
+    const isTimeoutDomException =
+      raw instanceof DOMException && raw.name === "TimeoutError";
+    if (isTimeoutDomException) {
+      return {
+        name: entry.name,
+        decision: POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
+        elapsedMs,
+        timedOut: true,
+        errored: false,
+      };
+    }
+    const errorMessage = raw instanceof Error ? raw.message : String(raw);
+    return {
+      name: entry.name,
+      decision: POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
+      elapsedMs,
+      timedOut: false,
+      errored: true,
+      errorMessage,
+    };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Aggregator: merge non-noop subhook decisions into ONE reason string
+// ══════════════════════════════════════════════════════════════════════════
+
+const POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER = "\n\n──────────────────────\n\n";
+
+/**
+ * Fold every additional_context subhook contribution into one aggregated
+ * reason string, separated by a visual delimiter so Claude sees each
+ * subhook's section labeled. If no subhook contributed (every result was
+ * `noop`), returns `null` to signal "emit nothing".
+ */
+function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonString(
+  results: readonly PostToolUseSubhookExecutionResult[],
+): string | null {
+  const contributingSections: string[] = [];
+  for (const result of results) {
+    if (result.decision.kind === "additional_context") {
+      contributingSections.push(result.decision.message);
+    }
+  }
+  if (contributingSections.length === 0) return null;
+  return contributingSections.join(
+    POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER,
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Main entry — stdin → registry iteration → aggregation → stdout JSON
+// ══════════════════════════════════════════════════════════════════════════
+
+async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
+  let inputText = "";
+  for await (const chunk of Bun.stdin.stream()) {
+    inputText += new TextDecoder().decode(chunk);
+  }
+
+  let parsedInput: PostToolUseInput;
+  try {
+    parsedInput = JSON.parse(inputText) as PostToolUseInput;
+  } catch {
+    // Malformed stdin → silent allow (orchestrator never blocks on parse error)
+    process.exit(0);
+  }
+
+  // Iter-93 invariant: run ALL subhooks (no short-circuit). Use Promise.all
+  // to parallelize — each subhook is internally isolated by try/catch, and
+  // AbortSignal.timeout() bounds each one's wall-clock independently. The
+  // orchestrator's total wall-clock is therefore close to the slowest
+  // subhook, not the sum.
+  const subhookResults = await Promise.all(
+    POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY.map((entry) =>
+      executeSinglePostToolUseSubhookWithCooperativeAbortSignalTimeoutAndCrashIsolation(
+        entry,
+        parsedInput,
+      ),
+    ),
+  );
+
+  // Operator-visible diagnostics on stderr (transcript-visible via Ctrl-R,
+  // not Claude-visible). Mirrors iter-66's stop-orchestrator stderr-routing
+  // pattern for non-decision-block summaries.
+  for (const result of subhookResults) {
+    if (result.timedOut) {
+      console.error(
+        `[posttooluse-edit-time-orchestrator] subhook ${result.name} TIMED OUT after ${result.elapsedMs.toFixed(1)}ms (timeoutMs=${POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY.find((e) => e.name === result.name)?.timeoutMs}) — treating as noop (fail-open)`,
+      );
+    } else if (result.errored) {
+      console.error(
+        `[posttooluse-edit-time-orchestrator] subhook ${result.name} ERRORED in ${result.elapsedMs.toFixed(1)}ms: ${result.errorMessage} — treating as noop (fail-open)`,
+      );
+    }
+  }
+
+  const aggregatedReasonOrNull =
+    aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonString(subhookResults);
+
+  if (aggregatedReasonOrNull === null) {
+    // No subhook contributed context → silent allow (legacy behavior)
+    process.exit(0);
+  }
+
+  // Emit ONE consolidated decision:block JSON. The `decision: "block"`
+  // keyword is the documented Anthropic-schema mechanism for PostToolUse
+  // context-injection — it surfaces the reason as a Claude-visible system
+  // reminder, NOT a tool rejection. (Tool has already run by the time
+  // PostToolUse fires.)
+  console.log(JSON.stringify({ decision: "block", reason: aggregatedReasonOrNull }));
+  process.exit(0);
+}
+
+if (import.meta.main) {
+  runPostToolUseEditTimeOrchestratorMain().catch((error: unknown) => {
+    console.error(
+      `[posttooluse-edit-time-orchestrator] top-level error (fail-open): ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(0);
+  });
+}
