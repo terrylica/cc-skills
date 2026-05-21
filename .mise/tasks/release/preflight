@@ -35,15 +35,36 @@ __preflight_timing_mark_phase_start_using_EPOCHREALTIME() {
 __preflight_timing_report_phase_elapsed_milliseconds() {
     if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$preflight_timing_phase_start_seconds_for_iter73_instrumentation" ]]; then
         local phase_label_for_per_phase_report="$1"
+        # Iter-137: optional third arg `parallel_execution_bucket_label_for_wall_clock_attribution_awareness`
+        # marks the phase as part of a concurrent execution batch (e.g.,
+        # "iter134-audit-batch" for Checks 4f-4v which run in parallel via
+        # iter-134's xargs -P pre-warm). Empty/unset = sequential phase
+        # whose elapsed-ms directly adds to total preflight wall-clock.
+        # Non-empty = parallel-batch member whose elapsed-ms is HIDDEN
+        # behind the slowest sibling's elapsed-ms (wall-clock is bounded
+        # by max, not sum). Iter-130 ranking output surfaces this distinction
+        # so operators iterating on perf don't waste effort optimizing a
+        # non-slowest parallel-batch member (saves CPU but NOT wall-clock).
+        local parallel_execution_bucket_label_for_wall_clock_attribution_awareness="${2:-}"
         local end_seconds="$EPOCHREALTIME"
         # Portable sub-second math via awk (no `bc`, no `python` dep).
         local elapsed_milliseconds
         elapsed_milliseconds=$(awk -v s="$preflight_timing_phase_start_seconds_for_iter73_instrumentation" -v e="$end_seconds" 'BEGIN { printf "%.0f", (e - s) * 1000 }')
-        echo "    ⧗ phase elapsed: ${elapsed_milliseconds}ms (${phase_label_for_per_phase_report})"
+        # Iter-137: emit bucket label inline for the per-phase report too,
+        # so operators reading the "⧗ phase elapsed" lines mid-stream see
+        # the parallel-batch attribution without scrolling to end-of-script.
+        if [[ -n "$parallel_execution_bucket_label_for_wall_clock_attribution_awareness" ]]; then
+            echo "    ⧗ phase elapsed: ${elapsed_milliseconds}ms (${phase_label_for_per_phase_report})  [parallel: ${parallel_execution_bucket_label_for_wall_clock_attribution_awareness}]"
+        else
+            echo "    ⧗ phase elapsed: ${elapsed_milliseconds}ms (${phase_label_for_per_phase_report})"
+        fi
         # Iter-130: append to accumulator for end-of-script top-N ranking.
         # TAB-separated so sort -rn -k1 works correctly even when phase labels
         # contain spaces (they always do — labels are human-readable strings).
-        iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary+=("${elapsed_milliseconds}"$'\t'"${phase_label_for_per_phase_report}")
+        # Iter-137: third TAB-separated field is the parallel-bucket label
+        # (empty for sequential phases). The end-of-script ranking awk
+        # script displays "[parallel: BUCKET]" for non-empty third fields.
+        iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary+=("${elapsed_milliseconds}"$'\t'"${phase_label_for_per_phase_report}"$'\t'"${parallel_execution_bucket_label_for_wall_clock_attribution_awareness}")
     fi
 }
 
@@ -222,14 +243,55 @@ __iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_des
     fi
     local top_n_threshold_for_slowest_check_ranking_display="${ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY:-5}"
     echo ""
-    echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_check_ranking_display} slowest preflight checks (iter-130 bottleneck ranking) ───"
+    echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_check_ranking_display} slowest preflight checks (iter-130 bottleneck ranking, iter-137 parallelism-aware) ───"
     # Sort -rn -k1 (descending by first TAB-separated field, numeric).
     # printf '%s\n' joined with implicit "\n" gives one record per line.
+    # Iter-137: third TAB-separated field is the parallel-bucket label
+    # (empty for sequential phases). Render "[parallel: BUCKET]" suffix
+    # when non-empty so operators see the parallelization context.
     printf '%s\n' "${iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
         | sort -rn -k1 \
         | head -n "${top_n_threshold_for_slowest_check_ranking_display}" \
-        | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
+        | awk -F'\t' '{
+            if ($3 != "") {
+                printf "      %2d. %6d ms  %s  [parallel: %s]\n", NR, $1, $2, $3
+            } else {
+                printf "      %2d. %6d ms  %s\n", NR, $1, $2
+            }
+        }'
     echo "    ⧗ (override count via ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=N)"
+    # Iter-137 wall-clock-attribution hint: enumerate distinct parallel
+    # buckets and surface the SLOWEST member of each (= critical path).
+    # Operators see "phases in [parallel: BUCKET] run concurrently —
+    # wall-clock is bounded by the slowest member only" so they don't
+    # waste effort optimizing a non-critical-path member.
+    local -A iter137_max_elapsed_ms_per_parallel_execution_bucket=()
+    local -A iter137_slowest_member_label_per_parallel_execution_bucket=()
+    local timing_record current_elapsed_ms current_label current_bucket
+    for timing_record in "${iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}"; do
+        current_bucket=$(echo "$timing_record" | cut -f3)
+        if [[ -z "$current_bucket" ]]; then
+            continue
+        fi
+        current_elapsed_ms=$(echo "$timing_record" | cut -f1)
+        current_label=$(echo "$timing_record" | cut -f2)
+        # Track the slowest (= critical-path) member per bucket.
+        if [[ -z "${iter137_max_elapsed_ms_per_parallel_execution_bucket[$current_bucket]:-}" ]] || \
+           [[ "$current_elapsed_ms" -gt "${iter137_max_elapsed_ms_per_parallel_execution_bucket[$current_bucket]}" ]]; then
+            iter137_max_elapsed_ms_per_parallel_execution_bucket[$current_bucket]=$current_elapsed_ms
+            iter137_slowest_member_label_per_parallel_execution_bucket[$current_bucket]=$current_label
+        fi
+    done
+    if [[ "${#iter137_max_elapsed_ms_per_parallel_execution_bucket[@]}" -gt 0 ]]; then
+        echo ""
+        echo "    ⧗ NOTE (iter-137 wall-clock attribution): phases marked [parallel: BUCKET] run"
+        echo "      concurrently — wall-clock is bounded by the SLOWEST member only (= critical path)."
+        echo "      Optimizing a non-slowest member saves CPU but NOT wall-clock. Critical paths:"
+        local current_bucket_for_critical_path_report
+        for current_bucket_for_critical_path_report in "${!iter137_max_elapsed_ms_per_parallel_execution_bucket[@]}"; do
+            echo "        - ${current_bucket_for_critical_path_report}: ${iter137_max_elapsed_ms_per_parallel_execution_bucket[$current_bucket_for_critical_path_report]}ms  ←  ${iter137_slowest_member_label_per_parallel_execution_bucket[$current_bucket_for_critical_path_report]}"
+        done
+    fi
 }
 
 # Whole-script timer: lets the operator confirm sum-of-phases ≈ wall-time
@@ -415,7 +477,7 @@ SCHEMA_MODERN=$( { grep -oE 'MODERN-CORRECT[^:]*:[[:space:]]+[0-9]+' /tmp/pretoo
 SCHEMA_HELPER=$( { grep -oE 'HELPER-WRAPPED[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 SCHEMA_DEPRECATED=$( { grep -oE 'DEPRECATED-WARNING[^:]*:[[:space:]]+[0-9]+' /tmp/pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ PreToolUse schema: ${SCHEMA_MODERN:-0} modern + ${SCHEMA_HELPER:-0} helper-wrapped (${SCHEMA_DEPRECATED:-0} deprecated)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4f: PreToolUse schema-correctness audit (iter-60 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4f: PreToolUse schema-correctness audit (iter-60 gate)" "iter134-audit-batch"
 
 # Check 4g: pueue-wrap-guard last-PreToolUse-entry ordering audit (iter-61
 # gate). Per GitHub #15897, when multiple PreToolUse hooks fire on the
@@ -440,7 +502,7 @@ fi
 ORDERING_OK=$( { grep -oE 'ORDERING-OK[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 ORDERING_VIOLATION=$( { grep -oE 'ORDERING-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/pueue-wrap-guard-ordering-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Pueue-wrap-guard ordering: ${ORDERING_OK:-0} ok (${ORDERING_VIOLATION:-0} violations)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4g: pueue-wrap-guard last-entry ordering audit (iter-61 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4g: pueue-wrap-guard last-entry ordering audit (iter-61 gate)" "iter134-audit-batch"
 
 # Check 4h: INVERSE PreToolUse schema audit (iter-62 gate). Symmetric
 # companion to iter-60 Check 4f. Where Check 4f catches PreToolUse
@@ -468,7 +530,7 @@ INV_CORRECT=$( { grep -oE 'SCHEMA-CORRECT-FOR-EVENT:[[:space:]]+[0-9]+' /tmp/inv
 INV_NO_BLOCK=$( { grep -oE 'NO-BLOCKING-EMITTED[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 INV_WRONG=$( { grep -oE 'WRONG-FIELD-SILENT-FAIL[^:]*:[[:space:]]+[0-9]+' /tmp/inverse-pretooluse-schema-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Inverse schema: ${INV_CORRECT:-0} correct + ${INV_NO_BLOCK:-0} no-block (${INV_WRONG:-0} wrong-field silent-fails)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4h: INVERSE PreToolUse schema audit (iter-62 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4h: INVERSE PreToolUse schema audit (iter-62 gate)" "iter134-audit-batch"
 
 # Check 4i: Wildcard-matcher audit (iter-65 gate). Scales iter-63 +
 # iter-64 perf forensic findings into preventive infrastructure.
@@ -496,7 +558,7 @@ WM_SCOPED=$( { grep -oE 'SCOPED-MATCHER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-m
 WM_WITH_OK=$( { grep -oE 'WILDCARD-WITH-OK-MARKER[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 WM_VIOL=$( { grep -oE 'WILDCARD-VIOLATION[^:]*:[[:space:]]+[0-9]+' /tmp/wildcard-matcher-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Wildcard-matcher: ${WM_SCOPED:-0} scoped + ${WM_WITH_OK:-0} with-ok-marker (${WM_VIOL:-0} violations)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4i: wildcard-matcher audit (iter-65 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4i: wildcard-matcher audit (iter-65 gate)" "iter134-audit-batch"
 
 # Check 4j: additionalContext-Silently-Dropped Pentad audit (iter-67 gate +
 # iter-68 trinity expansion + iter-69 pentad completion). Scales iter-66
@@ -558,7 +620,7 @@ SHAC_CLEAN=$( { grep -oE 'CLEAN \(no additionalContext in code\):[[:space:]]+[0-
 SHAC_OK=$( { grep -oE 'WITH-OK-MARKER \(justified internal usage\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-9]+' /tmp/stop-hook-additional-context-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)" "iter134-audit-batch"
 
 # Check 4k: Iter-77 hook-source L3-stripped-path audit. Acts on the
 # iter-76 cache-populator-filter forensic discovery (docs/HOOKS.md): the
@@ -583,7 +645,7 @@ L3SP_VIOL_FOUND=$( { grep -oE 'L3-stripped-path references found:[[:space:]]+[0-
 L3SP_WITH_OK=$( { grep -oE 'With LAYER3-STRIPPED-PATH-OK escape hatch:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 L3SP_UNJUSTIFIED=$( { grep -oE 'Unjustified violations \(silent-fail risk\):[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
 echo "  ✓ L3-stripped-path: ${L3SP_SCANNED:-0} files scanned (${L3SP_VIOL_FOUND:-0} refs found, ${L3SP_WITH_OK:-0} with-ok-marker, ${L3SP_UNJUSTIFIED:-0} unjustified)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path audit (iter-77 gate)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path audit (iter-77 gate)" "iter134-audit-batch"
 
 # Check 4l: Iter-82 conventional-commits-conformance validator. Acts on
 # the iter-77/80/81 silent-release-skip forensic finding: compound
@@ -609,7 +671,7 @@ if [[ "${CCC_COMPOUND:-0}" -gt 0 ]] || [[ "${CCC_MISSING_TYPE:-0}" -gt 0 ]]; the
 else
     echo "  ✓ Conventional-commits: ${CCC_SCANNED:-0} scanned, all conformant"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4l: conventional-commits-conformance validator (iter-82 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4l: conventional-commits-conformance validator (iter-82 gate; informational)" "iter134-audit-batch"
 
 # Check 4m: Iter-86 PreToolUse-orchestrator subhook-contract static checker.
 # Statically verifies every file in plugins/itp-hooks/hooks/ that exports a
@@ -636,7 +698,7 @@ if [[ "${SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS:-0}" -gt 0 ]] || [[ "${SUBHOO
 else
     echo "  ✓ Subhook contract: ${SUBHOOK_CONTRACT_FILES_SCANNED:-0} scanned, all conform to PreToolUseSubhookContract"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4m: subhook-contract static checker (iter-86 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4m: subhook-contract static checker (iter-86 gate; informational)" "iter134-audit-batch"
 
 # Check 4n: Iter-99 marketplace-wide silent-context-drop audit. Scales the
 # iter-98 single-hook fix to a marketplace invariant. Per the iter-66/93
@@ -666,7 +728,7 @@ if [[ "${POSTTOOLUSE_SILENT_DROP_VIOLATIONS:-0}" -gt 0 ]]; then
 else
     echo "  ✓ Silent-context-drop audit: ${POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED:-0} hooks scanned, 0 violations"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse silent-context-drop audit (iter-99 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse silent-context-drop audit (iter-99 gate; informational)" "iter134-audit-batch"
 
 # Check 4o: Iter-101 marketplace-wide matcher-hygiene audit. Scales the
 # iter-100 single-orchestrator MultiEdit-matcher-broadening fix to a
@@ -697,7 +759,7 @@ if [[ "${MATCHER_HYGIENE_VIOLATIONS:-0}" -gt 0 ]]; then
 else
     echo "  ✓ Matcher-hygiene audit: ${MATCHER_HYGIENE_HOOKS_DISCOVERED:-0} hooks.json files scanned, 0 violations"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostToolUse matcher-hygiene audit (iter-101 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostToolUse matcher-hygiene audit (iter-101 gate; informational)" "iter134-audit-batch"
 
 # Check 4p: Iter-103 marketplace-wide NotebookEdit applicability audit.
 # Per 2026 Anthropic canonical recommendation, the file-edit tool quadruple
@@ -723,7 +785,7 @@ NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'APPLICABLE \(high-value 
 NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'POTENTIALLY-APPLICABLE \(conditional value\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
 NOTEBOOKEDIT_HONORING_MATCHER_COUNT=$( { grep -oE '[0-9]+ matchers currently include NotebookEdit' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '^[0-9]+' | head -1 || echo 0)
 echo "  ✓ NotebookEdit applicability audit: ${NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT:-0} APPLICABLE + ${NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT:-0} POTENTIALLY-APPLICABLE classifiers surfaced (current marketplace coverage: ${NOTEBOOKEDIT_HONORING_MATCHER_COUNT:-0} matchers honor NotebookEdit)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit applicability audit (iter-103 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit applicability audit (iter-103 gate; informational)" "iter134-audit-batch"
 
 # Check 4q: Iter-105 marketplace-wide truncation-helper invariant audit.
 # Scales the iter-104 single-hook fix (vale-claude-md.ts wraps emissions
@@ -747,7 +809,7 @@ else
     TRUNCATION_HELPER_MISSING_COUNT=$( { grep -oE 'AUDIT FAILED — [0-9]+ of [0-9]+ cohort hooks missing' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
     echo "  ⚠ Truncation-helper audit: ${TRUNCATION_HELPER_MISSING_COUNT}/${TRUNCATION_HELPER_COHORT_COUNT} cohort hooks missing canonical wrap (see /tmp/iter105-truncation-helper-audit.log)"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helper invariant audit (iter-105 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helper invariant audit (iter-105 gate; informational)" "iter134-audit-batch"
 
 # Check 4r: Iter-106 truncation-helper canonical-home invariant audit.
 # Verifies the iter-104/iter-105 truncation helper has been relocated to its
@@ -770,7 +832,7 @@ if grep -q 'AUDIT PASSED' /tmp/iter106-canonical-home-audit.log 2>/dev/null; the
 else
     echo "  ⚠ Iter-106 canonical-home audit: FAILED (see /tmp/iter106-canonical-home-audit.log)"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4r: truncation-helper canonical-home audit (iter-106 gate; informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4r: truncation-helper canonical-home audit (iter-106 gate; informational)" "iter134-audit-batch"
 
 # Check 4s: Iter-107 escape-hatch-marker detection inventory audit.
 # Iter-110 promoted to STRICT-BLOCK mode: closes the iter-107 → iter-109
@@ -791,7 +853,7 @@ fi
 ITER110_MIGRATED_COUNT=$( { grep -oE 'Migrated to shared helper:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
 ITER110_COHORT_SIZE=$( { grep -oE 'Canonical cohort size:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
 echo "  ✓ Escape-hatch invariant: ${ITER110_MIGRATED_COUNT:-0} hooks migrated / ${ITER110_COHORT_SIZE:-0} canonical cohort (iter-110 STRICT)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection invariant audit (iter-110 STRICT-BLOCK)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection invariant audit (iter-110 STRICT-BLOCK)" "iter134-audit-batch"
 
 # Check 4t: Iter-111 producer-side escape-hatch-marker typo-detection audit.
 #
@@ -838,7 +900,7 @@ if [[ "${ITER111_UNREGISTERED_COUNT:-0}" -gt 0 ]]; then
     exit 1
 fi
 echo "  ✓ Iter-111 producer-marker registry: 0 unregistered markers across ${ITER111_REGISTERED_COUNT:-0} known tokens (iter-115 STRICT)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-115 STRICT-BLOCK)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-115 STRICT-BLOCK)" "iter134-audit-batch"
 
 # Check 4u: Iter-113 registry-to-docs drift detector.
 #
@@ -864,7 +926,7 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     exit 1
 fi
 echo "  ✓ Iter-113 operator-facing escape-hatch-marker reference doc is in sync with iter-111+iter-114 canonical registries (iter-115 STRICT)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-115 STRICT-BLOCK)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-115 STRICT-BLOCK)" "iter134-audit-batch"
 
 # Check 4v: Iter-121 canonical-registry stale-description audit (INFORMATIONAL).
 #
@@ -900,7 +962,7 @@ if [[ "${ITER121_STALE_HITS:-0}" -gt 0 ]]; then
 else
     echo "  ✓ Iter-121 stale-description audit: 0 unmoored descriptions across ${ITER121_TOTAL_ENTRIES_AUDITED:-?} audited entries (informational)"
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4v: stale-description audit (iter-121 informational)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4v: stale-description audit (iter-121 informational)" "iter134-audit-batch"
 
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
