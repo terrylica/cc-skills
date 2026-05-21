@@ -19,6 +19,7 @@ ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER153_ADVISOR_DEFAULT_HUMAN_READABLE_MOD
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER153_ADVISOR_JSON_STRICT_AI_AGENT_AUTOMATION_MODE=250  # measured median 53ms × 4.7 headroom
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER152_COMMITS_HEALTH_FIVE_PANEL_DASHBOARD=300  # measured median 61ms × 4.9 headroom (slowest absolute in toolkit; iter-175+ candidate for iter-167 batched-git-log perf treatment)
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER165_PENDING_RELEASE_AGGREGATOR_POST_ITER167_OPTIMIZATION=200  # measured median 36ms × 5.5 headroom (already iter-167-optimized; regression here means iter-167 NUL-delim fan-in broke)
+ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1500  # measured median 530ms × 2.8 headroom (operator-facing, runs 15 timed health checks; iter-177 replaced perl Time::HiRes with bash 5+ EPOCHREALTIME zero-fork builtin saving ~135ms; cap is intentionally tighter (2.8x not 4-5x) since this is the slowest absolute script in the toolkit and any further sub-linear-scaling check addition deserves an explicit baseline re-pin)
 
 ITER174_TOTAL_ASSERTIONS_EVALUATED=0
 ITER174_TOTAL_ASSERTIONS_FAILED=0
@@ -83,6 +84,7 @@ ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150
 ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh' -type f | head -1)
 ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-operator-facing-pre-commit-dry-run-advisor-*.sh' -type f | head -1)
 ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-aggregator-*.sh' -type f | head -1)
+ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh' -type f | head -1)
 
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
     "A1: iter-150 renderer (occasional, N=10 commits)" \
@@ -108,6 +110,11 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     "A5: iter-165 pending-release aggregator (every release:preflight, post-iter-167)" \
     "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER165_PENDING_RELEASE_AGGREGATOR_POST_ITER167_OPTIMIZATION" \
     bash "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH"
+
+iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
+    "A6: iter-160 doctor 15-check self-diagnosis (operator-facing, post-iter-177)" \
+    "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION" \
+    bash "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH"
 
 # ─── Group B: structural invariant on the harness itself ────────────────────
 echo ""
