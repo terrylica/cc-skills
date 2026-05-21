@@ -1,3 +1,10 @@
+# [21.65.0](https://github.com/terrylica/cc-skills/compare/v21.64.3...v21.65.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-157 commit-msg hook ([224614f](https://github.com/terrylica/cc-skills/commit/224614fb6823a2ebdbdf9d704743833a982a3ad1))
+
 ## [21.64.3](https://github.com/terrylica/cc-skills/compare/v21.64.2...v21.64.3) (2026-05-21)
 
 ## [21.64.2](https://github.com/terrylica/cc-skills/compare/v21.64.1...v21.64.2) (2026-05-21)
