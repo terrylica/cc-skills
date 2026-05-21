@@ -1,3 +1,10 @@
+# [21.32.0](https://github.com/terrylica/cc-skills/compare/v21.31.2...v21.32.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-96 PostToolUse orchestrator 5/15 (vale-claude-md inlined) + timeout-aware additional_context closes silent-false-negative gap + Bun.stdin.text() one-shot read replaces stream loop across all 6 entry points + maxBuffer right-sized 8MiB→256KiB so runaway subprocess output surfaces earlier as hook diagnostic ([6e94ab1](https://github.com/terrylica/cc-skills/commit/6e94ab1feba5621c724bc6424302787110daa51e))
+
 ## [21.31.2](https://github.com/terrylica/cc-skills/compare/v21.31.1...v21.31.2) (2026-05-21)
 
 ## [21.31.1](https://github.com/terrylica/cc-skills/compare/v21.31.0...v21.31.1) (2026-05-21)
