@@ -34,7 +34,13 @@ import {
   isPlanMode,
   createHookLogger,
   trackHookError,
+  type PreToolUseInput,
 } from "./pretooluse-helpers.ts";
+import {
+  ALLOW_DECISION,
+  denyDecision,
+  type PreToolUseSubhookDecision,
+} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
 // ============================================================================
 // Configuration
@@ -154,7 +160,7 @@ function gitFirstCommitAgeMs(filePath: string): number | null {
     if (r.status !== 0 || !r.stdout.trim()) return null;
     const lines = r.stdout.trim().split("\n");
     const oldest = parseInt(lines[lines.length - 1], 10);
-    if (isNaN(oldest)) return null;
+    if (Number.isNaN(oldest)) return null;
     return Date.now() - oldest * 1000;
   } catch {
     return null;
@@ -200,20 +206,32 @@ function applyEdit(
 }
 
 // ============================================================================
-// Main
+// Pure classifier (iter-84 orchestrator-inlineable contract)
 // ============================================================================
 
 const logger = createHookLogger("FILE-SIZE-GUARD");
 
-async function main(): Promise<void> {
-  const input = await parseStdinOrAllow("FILE-SIZE-GUARD");
-  if (!input) return;
-
+/**
+ * Pure classifier conforming to PreToolUseSubhookClassifierFunction.
+ *
+ * Same logic as the standalone main() below, but factored out so the
+ * iter-84 `pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts`
+ * can call it directly without subprocess-spawning this file (which would
+ * cost a full bun cold-start per Write|Edit and defeat the orchestrator's
+ * purpose).
+ *
+ * MUST NOT call allow()/deny() or touch stdin/stdout. Returns a decision
+ * object that the caller (standalone main OR orchestrator) translates to
+ * the appropriate Claude Code response.
+ */
+export async function classifyFileSizeGuardForOrchestrator(
+  input: PreToolUseInput,
+): Promise<PreToolUseSubhookDecision> {
   const { tool_name, tool_input } = input;
 
   // Only check Write and Edit tools
   if (tool_name !== "Write" && tool_name !== "Edit") {
-    return allow();
+    return ALLOW_DECISION;
   }
 
   // Skip in plan mode
@@ -227,16 +245,16 @@ async function main(): Promise<void> {
       tool_name,
       trace_id: input.tool_use_id,
     });
-    return allow();
+    return ALLOW_DECISION;
   }
 
   const filePath = tool_input.file_path;
-  if (!filePath) return allow();
+  if (!filePath) return ALLOW_DECISION;
 
   const config = loadConfig();
 
   // Check exclusions
-  if (isExcluded(config, filePath)) return allow();
+  if (isExcluded(config, filePath)) return ALLOW_DECISION;
 
   // Get the proposed content
   let proposedContent: string;
@@ -249,7 +267,7 @@ async function main(): Promise<void> {
     const newString = (tool_input.new_string as string) || "";
 
     if (!existsSync(filePath)) {
-      return allow(); // New file via Edit — unusual but allow
+      return ALLOW_DECISION; // New file via Edit — unusual but allow
     }
 
     const existing = readFileSync(filePath, "utf8");
@@ -258,7 +276,7 @@ async function main(): Promise<void> {
 
   // Check escape hatch
   if (hasEscapeComment(proposedContent, config.escapeComment)) {
-    return allow();
+    return ALLOW_DECISION;
   }
 
   const lineCount = proposedContent.split("\n").length;
@@ -266,14 +284,14 @@ async function main(): Promise<void> {
 
   // Under warn threshold — allow
   if (lineCount <= thresholds.warn) {
-    return allow();
+    return ALLOW_DECISION;
   }
 
   const ext = getExtension(filePath);
   const fileName = filePath.split("/").pop() || filePath;
 
   if (lineCount > thresholds.block) {
-    // Above block threshold — ask with strong language
+    // Above block threshold — deny with guidance
     const reason = [
       `[FILE-SIZE-GUARD] ${fileName} would be ${lineCount} lines (threshold: ${thresholds.block} for ${ext || "default"})`,
       "",
@@ -293,14 +311,40 @@ async function main(): Promise<void> {
       `Current: ${lineCount} lines | Warn: ${thresholds.warn} | Block: ${thresholds.block}`,
     ].join("\n");
 
-    return deny(reason);
+    return denyDecision(reason);
   }
 
   // Between warn and block — allow through (PostToolUse reminder handles soft notification for code files)
-  return allow();
+  return ALLOW_DECISION;
 }
 
-main().catch((err) => {
-  trackHookError("pretooluse-file-size-guard", err instanceof Error ? err.message : String(err));
-  allow(); // Fail-open
-});
+// ============================================================================
+// Standalone main (backward-compat for direct invocation from hooks.json)
+// ============================================================================
+
+async function main(): Promise<void> {
+  const input = await parseStdinOrAllow("FILE-SIZE-GUARD");
+  if (!input) return;
+
+  const decision = await classifyFileSizeGuardForOrchestrator(input);
+
+  switch (decision.kind) {
+    case "deny":
+      return deny(decision.reason ?? "(no reason given)");
+    case "ask":
+      // file-size-guard doesn't currently use ask; treat as deny for safety
+      return deny(decision.reason ?? "(no reason given)");
+    default:
+      return allow();
+  }
+}
+
+// Only run main() when this file is invoked directly (bun pretooluse-file-size-guard.ts),
+// not when the orchestrator imports the classifier function. import.meta.main is true
+// only for the entry-point script.
+if (import.meta.main) {
+  main().catch((err) => {
+    trackHookError("pretooluse-file-size-guard", err instanceof Error ? err.message : String(err));
+    allow(); // Fail-open
+  });
+}

@@ -406,6 +406,37 @@ Iter-83 web research confirms strategy #1 above is the convergent 2026 best-prac
 
 These independent practitioners converged on the same insight that iter-80's measurement crystallized: bun spawn count, not in-hook logic, dominates edit-time hook overhead. Future iter-83+ work building the actual PreToolUse orchestrator follows a well-trodden community path.
 
+### Iter-84: PreToolUse edit-time orchestrator (in-process inlining, not subprocess)
+
+Iter-84 ships the actual orchestrator at [`plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts`](../plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts).
+
+**Architectural pattern that diverges from iter-66 stop-orchestrator**: iter-66 subprocess-spawned each Stop subhook for crash isolation. That works for Stop hooks (fire once per turn). For PreToolUse Write|Edit (fires on every Write/Edit tool call), subprocess-spawning each subhook would still pay 1 bun cold-start per subhook → zero savings versus the pre-iter-84 baseline.
+
+The only way to actually realize the 308ms-per-call savings projected by the iter-81 ranker is to **inline** subhooks as imported async classifier functions running inside the orchestrator's single bun process. The subhook contract at [`lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts`](../plugins/itp-hooks/hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts) enforces this:
+
+- Pure async function (`PreToolUseSubhookClassifierFunction`) returning a `PreToolUseSubhookDecision` object — no stdin read, no stdout write, no `process.exit`
+- Per-subhook cooperative timeout via `Promise.race` + Symbol sentinel (no subprocess to SIGKILL — runaway classifiers fail-open to `allow` and are logged to stderr)
+- Per-subhook `try/catch` wrap — thrown errors fail-open and are tracked via `trackHookError`
+- First-deny-wins aggregation: deterministic registry-order iteration, short-circuits on first `deny` or `ask`
+
+**Belt-and-suspenders deny defense** (iter-78 / [GitHub #37210](https://github.com/anthropics/claude-code/issues/37210)): when a subhook denies, the orchestrator emits THREE deny signals concurrently — stdout JSON `permissionDecision: "deny"`, stderr diagnostic line, and `process.exit(2)` — to survive the documented Edit-tool stdout-JSON-deny-ignored bug.
+
+**Iter-84 registry contents (proof-of-concept)**: only `file-size-guard` is inlined. The `pretooluse-file-size-guard.ts` file was refactored to export a pure `classifyFileSizeGuardForOrchestrator(input)` function while keeping its standalone `main()` (guarded by `import.meta.main`) for direct invocation backward-compat. The standalone `hooks.json` entry for file-size-guard was removed in the same commit; the orchestrator now owns the file-size check for Write|Edit.
+
+**Iter-85+ migration plan** (one subhook per iter, lightest-first to de-risk):
+
+1. iter-85 — version-guard
+2. iter-86 — hoisted-deps-guard
+3. iter-87 — gpu-optimization-guard
+4. iter-88 — mise-hygiene-guard
+5. iter-89 — pyi-stub-guard
+6. iter-90 — native-binary-guard
+7. iter-91 — vale-claude-md-guard
+
+Final state: 1 orchestrator entry for Write|Edit instead of 8 entries, saving (8-1) × 44 = 308ms per Write|Edit call.
+
+**Regression coverage**: [`.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-...-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh`](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter84-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh) — 10 assertions covering the non-Write/Edit fastpath, under-threshold allow, over-threshold belt-and-suspenders deny (stdout + stderr + exit 2), escape-hatch honoring, and standalone-classifier backward-compat (reason text without orchestrator prefix).
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
