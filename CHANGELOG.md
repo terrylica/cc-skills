@@ -1,3 +1,15 @@
+## [21.77.1](https://github.com/terrylica/cc-skills/compare/v21.77.0...v21.77.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **iter-180:** unescape EPOCHREALTIME in #MISE description TOML header ([c1307d9](https://github.com/terrylica/cc-skills/commit/c1307d9df637a2b5ccf62df1190869841469987e)), closes [#MISE](https://github.com/terrylica/cc-skills/issues/MISE) [#MISE](https://github.com/terrylica/cc-skills/issues/MISE)
+
+
+### Performance Improvements
+
+* **iter-180:** EPOCHREALTIME dogfood in iter-174 perf-baseline harness ([e514a8d](https://github.com/terrylica/cc-skills/commit/e514a8d48bd14101a06a9b11afca4ccb5f8b8890))
+
 # [21.77.0](https://github.com/terrylica/cc-skills/compare/v21.76.0...v21.77.0) (2026-05-21)
 
 
