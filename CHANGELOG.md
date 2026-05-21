@@ -1,3 +1,10 @@
+# [21.35.0](https://github.com/terrylica/cc-skills/compare/v21.34.0...v21.35.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-100 MILESTONE — orchestrator matcher broadened Write|Edit → Write|Edit|MultiEdit per 2026 Anthropic + community best-practice web research + canonical tool-name allow-set hoisted to contract lib (drift prevention) + iter-99 audit scope refined to exclude lib helpers ([693a680](https://github.com/terrylica/cc-skills/commit/693a680996a4dd2269e186671c19ff99124da8e6)), closes [#60993](https://github.com/terrylica/cc-skills/issues/60993)
+
 # [21.34.0](https://github.com/terrylica/cc-skills/compare/v21.33.1...v21.34.0) (2026-05-21)
 
 
