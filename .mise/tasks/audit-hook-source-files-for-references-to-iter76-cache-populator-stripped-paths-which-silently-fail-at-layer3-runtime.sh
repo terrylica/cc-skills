@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-77 preventive audit gate. Scans every hook source file (hooks.json + hooks/**/*.{sh,mjs,ts,py,js}) for references to \${CLAUDE_PLUGIN_ROOT}/<segment>/ where <segment> is NOT in the iter-76 cache-populator allowlist {hooks, skills, commands, agents, plugin.json}. Such references resolve to L3-stripped subtrees at hook fire time and silently fail (the file does not exist in the versioned operator cache even though it exists in the marketplace mirror). Catches regressions BEFORE release publishes a tag that would deploy a broken hook to operator Layer 3 caches. SUBCOMMANDS - default (scan all hooks); --verbose (show full file:line:content per violation); --escape-hatch-marker (show recognized escape-hatch marker syntax)."
+#MISE description="Iter-77 preventive audit gate scanning every hook source file for references to plugin-root-level subtrees NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json) which silently fail at L3 runtime. Default scans all hooks; --verbose shows per-violation context; --escape-hatch-marker shows the LAYER3-STRIPPED-PATH-OK marker syntax."
 
 # Iter-77 preventive audit gate for the iter-76 cache-populator-filter
 # forensic finding. Documented in docs/HOOKS.md "Iter-76 Cache-Populator-
