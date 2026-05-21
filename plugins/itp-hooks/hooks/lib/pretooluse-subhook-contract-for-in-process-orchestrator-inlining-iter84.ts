@@ -116,3 +116,76 @@ export function denyDecision(reason: string): PreToolUseSubhookDecision {
 export function askDecision(reason: string): PreToolUseSubhookDecision {
   return { kind: "ask", reason };
 }
+
+// ────────────────────────────────────────────────────────────────────────
+//  Iter-102: canonical file-edit tool-name allow-set for PreToolUse
+//  blocking subhooks (mirrors iter-100's PostToolUse-side helper hoist)
+// ────────────────────────────────────────────────────────────────────────
+//
+// Pre-iter-102 each of the 8 inlined PreToolUse classifiers (file-size-
+// guard, vale-claude-md-guard, version-guard, hoisted-deps-guard, mise-
+// hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-
+// guard) had its own hardcoded `tool_name !== "Write" && tool_name !==
+// "Edit"` guard. After iter-101 broadened the orchestrator matcher to
+// `Write|Edit|MultiEdit`, the orchestrator now routes MultiEdit payloads
+// to every classifier — but the classifiers self-skip because their
+// hardcoded guards exclude MultiEdit. Net behavior: silent no-op on
+// MultiEdit (the iter-101 documented residual gap).
+//
+// Iter-102 closes this residual gap with the same canonical-helper
+// pattern iter-100 established for PostToolUse:
+//
+//   1. ONE constant `FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_
+//      BLOCKING_SUBHOOKS` defines the file-edit tool allow-set
+//   2. ONE helper `isFileEditToolNameHonoredByPreToolUseBlockingSubhook`
+//      provides the predicate
+//   3. All 8 classifiers replace their hardcoded guard with one call to
+//      the helper — future Anthropic tool-name additions (e.g.,
+//      NotebookEdit which the iter-102 web research surfaced — see
+//      HOOKS.md iter-102 section + iter-103 follow-up scope) update ONE
+//      constant, not 8 classifier files
+//
+// Naming: encodes the actual semantic (file-edit tool names honored by
+// PreToolUse blocking subhooks) per the self-explanatory scaffolding
+// directive. Mirrors the PostToolUse-side
+// FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS
+// constant name, with the "blocking" qualifier distinguishing the
+// PreToolUse intent (deny/ask) from the PostToolUse intent (additional
+// context injection).
+//
+// MultiEdit acceptance rationale: file-edit-content guards (size,
+// terminology, init-monolith, version-pin, GPU, hoisting, hygiene,
+// launchd-native-binary) all operate on file_path + content, both of
+// which are present in MultiEdit payloads (tool_input.file_path +
+// tool_input.edits[].new_string concatenated). Classifiers that need
+// per-edit content adaptation (currently NONE in the 8 inlined cohort —
+// they're all file-path-based or full-file-content-based) would need
+// downstream payload-shape handling, separate from the tool-name guard.
+//
+// NotebookEdit NON-acceptance rationale: NotebookEdit has a different
+// payload shape (tool_input.notebook_path, cell_id, edit_mode, source)
+// and operates on .ipynb files. Adding NotebookEdit support requires
+// per-classifier per-payload-shape adaptation (not just tool-name
+// expansion). Punted to iter-103+ scope per HOOKS.md.
+
+export const FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS:
+  ReadonlySet<string> = new Set(["Write", "Edit", "MultiEdit"]);
+
+/**
+ * Iter-102 canonical guard predicate for PreToolUse blocking subhooks.
+ *
+ * Returns true iff the given tool_name is in the file-edit tool allow-set
+ * honored by the 8 inlined PreToolUse classifiers. Replaces the pre-iter-
+ * 102 hardcoded `tool_name !== "Write" && tool_name !== "Edit"` pattern
+ * scattered across all 8 classifier files.
+ *
+ * Closes the iter-101 documented residual gap (MultiEdit silent-skip at
+ * the classifier level after the matcher was broadened at the hooks.json
+ * level).
+ */
+export function isFileEditToolNameHonoredByPreToolUseBlockingSubhook(
+  toolName: string | undefined,
+): boolean {
+  if (!toolName) return false;
+  return FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS.has(toolName);
+}

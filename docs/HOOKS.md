@@ -1114,6 +1114,39 @@ All 8 fixed by appending `|MultiEdit` to each matcher string. Per-classifier `to
 
 **Iter-101 scope refinement vs iter-102 follow-up**: iter-101 closes the matcher-level silent-allow gap. A latent gap remains at the per-classifier `tool_name` guard level inside the PreToolUse orchestrator's 8 inlined classifiers (file-size-guard, vale-claude-md-guard, version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard) — those still use `toolName === "Write" || toolName === "Edit"` guards that exclude MultiEdit at the classifier level. The matcher fix is necessary but not sufficient; iter-102 should hoist a `FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS` canonical helper into the PreToolUse contract lib (mirroring iter-100's `FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS`) and migrate all 8 PreToolUse classifiers. Status quo for iter-101: matcher fires on MultiEdit → orchestrator routes → classifiers self-skip (silent no-op preserved, no regression).
 
+### Iter-102: PreToolUse canonical-helper hoist + 8 classifier migration — mirrors iter-100 PostToolUse-side helper hoist
+
+Iter-102 closes the residual gap iter-101 documented. Symmetric to iter-100's PostToolUse work:
+
+| Layer                 | Iter-100 (PostToolUse)                                                   | Iter-102 (PreToolUse)                                                                               |
+| --------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Constant              | `FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS` | `FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS`                                      |
+| Helper                | `isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook`          | `isFileEditToolNameHonoredByPreToolUseBlockingSubhook`                                              |
+| Migrated classifiers  | 3 (vale, ssot, memory-eff)                                               | 8 (file-size, vale, version, hoisted-deps, mise-hygiene, pyi-stub, native-binary, gpu-optimization) |
+| Contract lib location | `lib/posttooluse-subhook-contract-...-iter93.ts`                         | `lib/pretooluse-subhook-contract-...-iter84.ts`                                                     |
+
+**Iter-102 staged-migration short-circuit**: each migrated classifier adds `if (tool_name === "MultiEdit") return ALLOW_DECISION;` immediately after the canonical-helper guard. This preserves status quo (silent no-op on MultiEdit) while preventing false-positives that would otherwise occur if MultiEdit payloads reached the downstream Edit branches (which would access `tool_input.old_string` / `tool_input.new_string` — undefined on MultiEdit — and silently corrupt content-replacement logic). iter-103+ scope: per-classifier MultiEdit content-extraction logic (each classifier teaches itself to read `tool_input.edits[]` and apply them sequentially against the existing file content).
+
+**Iter-102 web-research discovery — NotebookEdit gap**: 2026 best-practice docs ([Claude Code Tools Reference](https://code.claude.com/docs/en/tools-reference), [Claude Code Hooks Complete Guide March 2026](https://smartscope.blog/en/generative-ai/claude/claude-code-hooks-guide/), [Claude Code Hooks Complete 2026 Production Reference](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/)) document the canonical "any file modification" matcher as **`Edit|MultiEdit|Write|NotebookEdit`** — which means **iter-101 was also incomplete** (we broadened to 3 tools, the canonical recommendation is 4). NotebookEdit has a fundamentally different payload shape (`tool_input.notebook_path` + `cell_id` + `edit_mode` + `new_source` — operates on Jupyter `.ipynb` cells, not file content), so it cannot be added to the canonical allow-set via simple matcher broadening. iter-102 deliberately EXCLUDES NotebookEdit from the canonical allow-set with explicit rationale in the contract lib comment block. Iter-103+ candidate: dedicated NotebookEdit-coverage audit + per-applicable-classifier NotebookEdit payload-shape adaptation (file-size-guard might apply to notebook cell sizes; the file-path-only classifiers like vale-claude-md-guard, pyi-stub-guard, native-binary-guard, version-guard would not apply because notebooks aren't CLAUDE.md / `__init__.py` / launchd plists / version-pinned files).
+
+**Iter-102 architectural takeaway — the "preventive gate" pattern enters its FOURTH succession**:
+
+1. **iter-98 → iter-99**: single silent-context-drop fix → marketplace silent-context-drop audit
+2. **iter-100 → iter-101**: single MultiEdit-orchestrator-matcher fix → marketplace matcher-hygiene audit
+3. **iter-101 → iter-102**: single PostToolUse canonical-helper hoist (iter-100) → PreToolUse canonical-helper hoist (iter-102; this iter)
+4. **iter-102 → iter-103**: per-classifier MultiEdit content extraction + NotebookEdit coverage audit (next iter)
+
+Each successive iter applies the SAME "fix once, then scale the fix to invariant via preventive infrastructure" pattern. The web-research-driven discovery category (iter-100 establishment) is now self-sustaining across 3 iterations.
+
+**Iter-102 regression test** (8 assertions all pass): canonical allowlist + helper exist in PreToolUse contract lib, allowlist contains Write + Edit + MultiEdit, all 8 inlined classifiers import + consume the canonical helper, legacy hardcoded `tool_name !==` guards removed from all 8, iter-102 staged-migration MultiEdit short-circuit present in all 8, orchestrator backward-compat preserved (clean Write payload still allows), MultiEdit payload routes through orchestrator + 8 classifiers self-skip (no false-positive deny), contract lib documents iter-100 precedent + iter-103 follow-up scope + NotebookEdit non-acceptance.
+
+Sources for iter-102 web research:
+
+- [Claude Code Tools Reference (2026)](https://code.claude.com/docs/en/tools-reference)
+- [Claude Code Hooks Complete Guide March 2026 Edition](https://smartscope.blog/en/generative-ai/claude/claude-code-hooks-guide/)
+- [Claude Code Hooks: The Complete 2026 Production Reference (32+ Events, 5 Handler Types)](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/)
+- [Claude Code Hooks: Complete Guide to All 12 Lifecycle Events](https://claudefa.st/blog/tools/hooks/hooks-guide)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

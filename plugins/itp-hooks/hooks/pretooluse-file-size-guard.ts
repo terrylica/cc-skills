@@ -39,6 +39,7 @@ import {
 import {
   ALLOW_DECISION,
   denyDecision,
+  isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
@@ -229,8 +230,19 @@ export async function classifyFileSizeGuardForOrchestrator(
 ): Promise<PreToolUseSubhookDecision> {
   const { tool_name, tool_input } = input;
 
-  // Only check Write and Edit tools
-  if (tool_name !== "Write" && tool_name !== "Edit") {
+  // Iter-102: route through canonical contract helper (closes the iter-101
+  // documented residual gap — pre-iter-102 the hardcoded equality check
+  // excluded MultiEdit even after iter-101 broadened the matcher).
+  if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(tool_name)) {
+    return ALLOW_DECISION;
+  }
+  // Iter-102 staged-migration short-circuit: MultiEdit payload-shape
+  // adaptation (extracting proposed final content from tool_input.edits[]
+  // applied sequentially) is iter-103+ per-classifier work. Until then,
+  // MultiEdit returns ALLOW to preserve status quo and prevent false-
+  // positive violations from the downstream Edit branch accessing
+  // undefined tool_input.old_string / tool_input.new_string fields.
+  if (tool_name === "MultiEdit") {
     return ALLOW_DECISION;
   }
 
