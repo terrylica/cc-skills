@@ -60,21 +60,38 @@ ITER174_TOTAL_ASSERTIONS_EVALUATED=0
 ITER174_TOTAL_ASSERTIONS_FAILED=0
 
 # Compute the median wall-clock in milliseconds across N trials of an arbitrary
-# command. Uses perl Time::HiRes for nanosecond-precision timing. Sorts the
-# trials, takes the middle element (median for odd N). Robust against single-
-# trial cold-start jitter, GC pauses, and macOS launchd thermal throttle.
-# The function takes a command + args (no label parameter; the caller emits
-# its own scenario label in the comparison verdict).
-iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_perl_time_hires_nanosecond_precision() {
+# command. Uses bash 5+ ${EPOCHREALTIME} zero-fork builtin (microsecond
+# resolution per Chet Ramey 2018 RFE) with graceful perl Time::HiRes fallback
+# for bash<5. Sorts the trials, takes the middle element (median for odd N).
+# Robust against single-trial cold-start jitter, GC pauses, and macOS launchd
+# thermal throttle. The function takes a command + args (no label parameter;
+# the caller emits its own scenario label in the comparison verdict).
+#
+# Iter-180 dogfood of iter-177 pattern: previously 2 perl forks per trial ×
+# N=5 trials × 6 scenarios = 60 perl forks per `commits:perf-baseline`
+# invocation, contributing ~300ms of harness self-overhead. Replacing with
+# ${EPOCHREALTIME} builtin reads eliminates the entire fork cost on bash 5+.
+# Meta-recursive: the perf-baseline tool now eats its own perf-optimization
+# dogfood (the very pattern it pins iter-160 doctor against).
+iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older() {
     local each_trial_elapsed_ms_array=()
     local each_trial_iteration_counter
-    local before_invocation_ns_clock after_invocation_ns_clock elapsed_ms_for_this_single_trial
+    local before_invocation_epoch_realtime after_invocation_epoch_realtime elapsed_ms_for_this_single_trial
     for each_trial_iteration_counter in $(seq 1 "$ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION"); do
         : "trial=${each_trial_iteration_counter}"  # name the loop variable in body to satisfy shellcheck SC2034 + document intent
-        before_invocation_ns_clock=$(perl -MTime::HiRes=time -e 'printf "%.0f", time() * 1e9')
-        "$@" >/dev/null 2>&1 || true
-        after_invocation_ns_clock=$(perl -MTime::HiRes=time -e 'printf "%.0f", time() * 1e9')
-        elapsed_ms_for_this_single_trial=$(awk -v b="$before_invocation_ns_clock" -v a="$after_invocation_ns_clock" 'BEGIN { printf "%.0f", (a-b)/1e6 }')
+        # ${EPOCHREALTIME} format: "<seconds>.<microseconds>" decimal string
+        # (e.g. "1779392001.883482"). awk handles the float subtraction since
+        # bash arithmetic is integer-only. Iter-180 zero-fork dogfood.
+        if (( BASH_VERSINFO[0] >= 5 )); then
+            before_invocation_epoch_realtime="$EPOCHREALTIME"
+            "$@" >/dev/null 2>&1 || true
+            after_invocation_epoch_realtime="$EPOCHREALTIME"
+        else
+            before_invocation_epoch_realtime=$(perl -MTime::HiRes=time -e 'printf "%.6f", time()')
+            "$@" >/dev/null 2>&1 || true
+            after_invocation_epoch_realtime=$(perl -MTime::HiRes=time -e 'printf "%.6f", time()')
+        fi
+        elapsed_ms_for_this_single_trial=$(awk -v b="$before_invocation_epoch_realtime" -v a="$after_invocation_epoch_realtime" 'BEGIN { printf "%.0f", (a-b)*1000 }')
         each_trial_elapsed_ms_array+=("$elapsed_ms_for_this_single_trial")
     done
     local sorted_trials_newline_separated
@@ -94,7 +111,7 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     shift 2
     ITER174_TOTAL_ASSERTIONS_EVALUATED=$((ITER174_TOTAL_ASSERTIONS_EVALUATED + 1))
     local observed_median_wall_clock_ms
-    observed_median_wall_clock_ms=$(iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_perl_time_hires_nanosecond_precision "$@")
+    observed_median_wall_clock_ms=$(iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older "$@")
     # Extract canonical scenario id (the "A1"/"A2"/... prefix before the colon)
     # so JSON consumers get a stable identifier independent of the human-readable
     # description suffix (which may evolve across iters).

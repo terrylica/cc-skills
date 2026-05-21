@@ -249,6 +249,19 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       baseline harness extended in iter-177 with A6 assertion gating
       iter-160 at 1500ms cap. Empirical: 665ms → 528ms (~20% reduction).
 
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-180 iter-174 perf-baseline harness EPOCHREALTIME zero-fork dogfood${ITER156_ANSI_COLOR_RESET}
+      — meta-recursive application of the iter-177 pattern to the
+      iter-174 perf-baseline harness's OWN per-trial timing wrapper.
+      Pre-iter-180 the harness designed to DETECT regressions in other
+      scripts still used 2 \`perl -MTime::HiRes\` forks per trial × N=5
+      trials × 6 scenarios = 60 perl forks per \`commits:perf-baseline\`
+      invocation, contributing ≈300ms of harness self-overhead. The
+      perf-baseline tool now eats its own perf-optimization dogfood
+      (the very iter-177 pattern it pins iter-160 doctor against).
+      Graceful \`perl -MTime::HiRes\` fallback for bash<5. Empirical:
+      3.51s → 3.33s harness wall-clock (~5% reduction; ~90ms user-mode
+      CPU saved from perl-fork elimination per the time(1) breakdown).
+
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── POLYGLOT (iter-158, iter-159) — pre-commit framework integration ───${ITER156_ANSI_COLOR_RESET}
 
   Other repos using the pre-commit framework can consume cc-skills WITHOUT
