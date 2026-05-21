@@ -1436,6 +1436,76 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-116: Reverse-search registry accessor spanning iter-111 + iter-114 — operator workflow "what marker opts out of THIS hook/audit-task?"
+
+Iter-116 closes the operator-discoverability gap of the FORWARD direction (marker → consumer was covered by the iter-113 reference doc; consumer → marker required table-scanning until iter-116). Operators now answer the reverse question with one CLI invocation:
+
+```
+$ mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \
+    plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+✓ Found 1 escape-hatch marker for consumer:
+    plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+
+  Marker:                 FILE-SIZE-OK
+  Lifecycle layer:        RUNTIME-HOOK (iter-111; consumed at every Write/Edit/Bash tool invocation)
+  Consumer hook:          plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+  Case sensitivity:       CASE_SENSITIVE
+  Window semantics:       FILE_WIDE
+  Reason policy:          Bare marker accepted (no reason required)
+  What it does:           Allow a file to exceed file-size-guard's per-extension warn/block thresholds. …
+  Example:
+  # FILE-SIZE-OK
+```
+
+**Architecture**
+
+The accessor is a JOINT cross-registry helper (not a method on either registry) because:
+
+- Each registry's TypeScript shape encodes consumer-type-specific fields (`consumerHookSourceFileRelativePath` on iter-111 vs `consumerAuditTaskSourceFileRelativePath` on iter-114) — coupling either registry to the other would force callers to import both even when only one is needed.
+- The joint accessor bridges the two via a DISCRIMINATED-UNION return shape (`originatingRegistryLifecycleLayerTag: "RUNTIME_HOOK_ITER111" | "AUDIT_TASK_ITER114"`) that preserves lifecycle-layer provenance — callers can branch on the tag to access layer-specific fields (e.g., `windowSemanticsModeDeclaredAtConsumerCallSite` only exists on runtime-hook entries).
+
+File: `plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts`
+
+**Exports**
+
+| Symbol                                                                                                                                 | Purpose                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `EscapeHatchMarkerReverseSearchHitWithRegistryProvenanceTag` (type)                                                                    | Discriminated-union shape encoding `RUNTIME_HOOK_ITER111` vs `AUDIT_TASK_ITER114`       |
+| `lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSourceFileRelativePathAcrossBothRegistries(consumerSourceFileRelativePath)` | Returns array of hits (multi-marker consumers return ≥2; unknown path returns `[]`)     |
+| `listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically()`                                             | Returns sorted list of every registered consumer path (used by CLI's unknown-path hint) |
+| `renderSingleReverseSearchHitAsHumanReadableTerminalBlock(hit)`                                                                        | Renders a single hit as a 9-line human-readable terminal block                          |
+
+**CLI exit-code policy**
+
+| Exit | Meaning                                                                             |
+| ---- | ----------------------------------------------------------------------------------- |
+| 0    | ≥1 marker found and printed                                                         |
+| 1    | usage error (`--help`, missing arg)                                                 |
+| 2    | path is well-formed but no markers target it; "Hint:" lists all 19 registered paths |
+
+**Multi-marker handling**
+
+Multi-marker consumers (e.g., `pretooluse-cargo-tty-guard.ts` honors both `CARGO-TTY-SKIP` and `CARGO-TTY-WRAP`) return ≥2 hits — verified by the iter-116 regression test Case 3.
+
+**Regression test (`test-iter116-…-returns-correct-marker-set-for-each-consumer-path.sh`)**
+
+| Case | What it verifies                                                                                                         |
+| ---- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1    | Accessor file exists with all 4 documented exports                                                                       |
+| 2    | Single-marker runtime-hook reverse-lookup returns 1 hit with `RUNTIME_HOOK_ITER111` provenance                           |
+| 3    | Multi-marker reverse-lookup on cargo-tty-guard returns exactly 2 hits (SKIP + WRAP) both runtime-hook                    |
+| 4    | Audit-task reverse-lookup returns ≥1 hit with `AUDIT_TASK_ITER114` provenance                                            |
+| 5    | Unknown consumer path returns empty array AND `listAllDistinctConsumerSourceFileRelativePaths…` returns ≥15 paths sorted |
+| 6    | Operator-facing mise task exists + executable + exits 0 with marker output on known consumer                             |
+| 7    | Operator-facing mise task exits 2 with "Hint:" + "distinct consumer paths" guidance on unknown path                      |
+| 8    | Operator-facing mise task exits 1 with usage + exit-code documentation on `--help`                                       |
+
+All 8 cases pass. Marketplace regression suite: **50/50** (up from 49; iter-116 test auto-discovered).
+
+**Iter-117+ candidates (queued by the regression test)**
+
+- Audit task verifying every entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) and `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field — catches stale descriptions after a hook/task rename without a paired registry blurb update
+
 ### Iter-115: Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 registry-to-docs drift detector) from informational to STRICT-BLOCK
 
 Iter-115 closes the strict-promotion candidate identified at the end of iter-114: now that both marker registries are stabilized (12 runtime + 8 audit-task entries) and the on-disk operator-facing reference doc is byte-identical to the registry-derived output, the two informational checks become release-blockers. The escape-hatch-marker preflight triplet (4s + 4t + 4u) is now uniformly enforced across all three lifecycle dimensions.
