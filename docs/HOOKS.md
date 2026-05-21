@@ -1085,6 +1085,35 @@ Sources for iter-100 web research:
 - [DEV Community: Claude Code Hooks Complete Guide with 20+ Ready-to-Use Examples (2026)](https://dev.to/lukaszfryc/claude-code-hooks-complete-guide-with-20-ready-to-use-examples-2026-dcg)
 - [Claude Code Hooks: From Linting to Hardened AI Workflows](https://thomas-wiegold.com/blog/claude-code-hooks/)
 
+### Iter-101: marketplace-wide matcher-hygiene audit — scales iter-100 single-orchestrator fix to a marketplace invariant
+
+Iter-100 fixed the MultiEdit coverage gap in **one** PostToolUse orchestrator. Iter-101 asks: how many OTHER hooks across the marketplace silently allow MultiEdit through? Built `audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` to scan every `plugins/*/hooks/hooks.json` and surface PreToolUse/PostToolUse matcher entries that include `Write` or `Edit` token but NOT `MultiEdit`.
+
+**Audit findings on first run** (8 violations across 3 plugins):
+
+| Plugin         | Event       | Matcher (pre-iter-101)                | Hook                                                       | Severity                                                                                                         |
+| -------------- | ----------- | ------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| itp-hooks      | PreToolUse  | `Write\|Edit`                         | `pretooluse-edit-time-orchestrator-...iter66-precedent.ts` | **CRITICAL** — entire iter-84→iter-91 PreToolUse orchestrator (8 inlined subhooks) silently no-op'd on MultiEdit |
+| itp-hooks      | PreToolUse  | `Bash\|Write\|Edit`                   | `pretooluse-process-storm-guard.mjs`                       | High — fork-bomb content in MultiEdit payloads bypassed                                                          |
+| itp-hooks      | PostToolUse | `Bash\|Write\|Edit`                   | `posttooluse-reminder.ts`                                  | Medium — PUEUE/UV reminders missed on MultiEdit                                                                  |
+| itp-hooks      | PostToolUse | `Bash\|Write\|Edit`                   | `code-correctness-guard.sh`                                | High — silent-failure detection bypassed on MultiEdit                                                            |
+| itp-hooks      | PostToolUse | `Write\|Edit`                         | `posttooluse-glossary-sync.ts`                             | Medium — GLOSSARY.md MultiEdits skipped sync                                                                     |
+| itp-hooks      | PostToolUse | `Write\|Edit`                         | `posttooluse-terminology-sync.ts`                          | Medium — terminology drift undetected on MultiEdit                                                               |
+| dotfiles-tools | PostToolUse | `Edit\|Write`                         | `chezmoi-sync-reminder.sh`                                 | Medium — chezmoi-managed dotfile MultiEdits silently skipped                                                     |
+| rust-tools     | PostToolUse | `Read\|Glob\|Grep\|Bash\|Edit\|Write` | `posttooluse-rust-sota-reminder.ts`                        | Low — Rust SOTA reminder skipped MultiEdit                                                                       |
+
+All 8 fixed by appending `|MultiEdit` to each matcher string. Per-classifier `tool_name` guards inside individual classifiers may still exclude MultiEdit (future iter-102 candidate: PreToolUse-side canonical-helper hoist mirroring iter-100's PostToolUse work). Iter-101 closes the matcher-level silent-allow gap; downstream classifier behavior either correctly handles MultiEdit (orchestrator route) or silently no-ops (status quo preserved).
+
+**Escape hatch**: `MATCHER-NO-MULTIEDIT-OK: <reason ≥ 10 chars>` in the hook's `description` field for explicitly-justified MultiEdit exclusions (0 current uses; 100% of surfaced violations were unjustified).
+
+**Wired into preflight as Check 4o** (informational, parallel to Check 4n iter-99 silent-context-drop + Check 4m iter-94 spawnSync). Future iters may flip to `--strict` once the marketplace stabilizes.
+
+**Iter-101 regression test** (10 assertions all pass): audit-task existence, live-marketplace passes clean post-fixes (10 hooks.json files scanned, 29 matcher tuples checked), fixture-based detection of `Write|Edit` + `Bash|Write|Edit` + reversed-order `Edit|Write` (token-membership detection is order-independent), `MATCHER-NO-MULTIEDIT-OK` escape hatch honored per-inner-hook (not per-matcher), `Bash`/`Read`/`WebFetch|WebSearch`-only matchers correctly skipped (no false-positives on non-edit tools), all 6 marketplace broadenings verified present in the actual hooks.json files (2 standalone + 4 itp-hooks; 0 residual itp-hooks gaps).
+
+**Iter-101 architectural takeaway — the "preventive gate" pattern is now applied twice in succession**. iter-100 fixed one hook; iter-101 fixed the entire marketplace and built the preventive infrastructure. This is the same iter-98→iter-99 pattern (single fix → marketplace audit + preflight gate) applied to the iter-100 discovery — establishing that the "preventive gate" workflow is the **default response** to any web-research-driven discovery, not a one-off exception. Future web-research-driven iters should automatically generate audit-gate companion work in the next iteration.
+
+**Iter-101 scope refinement vs iter-102 follow-up**: iter-101 closes the matcher-level silent-allow gap. A latent gap remains at the per-classifier `tool_name` guard level inside the PreToolUse orchestrator's 8 inlined classifiers (file-size-guard, vale-claude-md-guard, version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard) — those still use `toolName === "Write" || toolName === "Edit"` guards that exclude MultiEdit at the classifier level. The matcher fix is necessary but not sufficient; iter-102 should hoist a `FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS` canonical helper into the PreToolUse contract lib (mirroring iter-100's `FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS`) and migrate all 8 PreToolUse classifiers. Status quo for iter-101: matcher fires on MultiEdit → orchestrator routes → classifiers self-skip (silent no-op preserved, no regression).
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
