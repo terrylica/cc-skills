@@ -18,6 +18,15 @@ set -euo pipefail
 # Loose-coupled phase-label argument is descriptive only; never
 # load-bearing for control flow.
 preflight_timing_phase_start_seconds_for_iter73_instrumentation=""
+# Iter-130 enhancement: accumulator for the top-N-slowest-checks-ranked-by-
+# elapsed-milliseconds-descending bottleneck summary. Each per-phase timing
+# call appends a TAB-separated "elapsed_ms\tphase_label" record; the
+# end-of-script summary sort -rn -k1's this array to surface the top 5.
+# Workflow: iter-124 → iter-129 perf-optimization campaign demonstrated that
+# operators iterating on preflight perf must visually scan 25+ "⧗" lines to
+# find the next bottleneck. This accumulator removes that manual scan.
+declare -a iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary=()
+
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME() {
     if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]]; then
         preflight_timing_phase_start_seconds_for_iter73_instrumentation="$EPOCHREALTIME"
@@ -31,7 +40,35 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
         local elapsed_milliseconds
         elapsed_milliseconds=$(awk -v s="$preflight_timing_phase_start_seconds_for_iter73_instrumentation" -v e="$end_seconds" 'BEGIN { printf "%.0f", (e - s) * 1000 }')
         echo "    ⧗ phase elapsed: ${elapsed_milliseconds}ms (${phase_label_for_per_phase_report})"
+        # Iter-130: append to accumulator for end-of-script top-N ranking.
+        # TAB-separated so sort -rn -k1 works correctly even when phase labels
+        # contain spaces (they always do — labels are human-readable strings).
+        iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary+=("${elapsed_milliseconds}"$'\t'"${phase_label_for_per_phase_report}")
     fi
+}
+
+# Iter-130: top-N-slowest-checks bottleneck ranking summary. Invoked at
+# end-of-script when PREFLIGHT_TIMING_PROFILE=1 is set. Sorts the
+# per-phase accumulator by elapsed-ms descending and prints the top N
+# (default: 5) so operators iterating on preflight perf see the next
+# bottleneck WITHOUT manually scanning all "⧗" lines.
+__iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_descending_bottleneck_summary() {
+    if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" != "1" ]]; then
+        return 0
+    fi
+    if [[ "${#iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -eq 0 ]]; then
+        return 0
+    fi
+    local top_n_threshold_for_slowest_check_ranking_display="${ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY:-5}"
+    echo ""
+    echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_check_ranking_display} slowest preflight checks (iter-130 bottleneck ranking) ───"
+    # Sort -rn -k1 (descending by first TAB-separated field, numeric).
+    # printf '%s\n' joined with implicit "\n" gives one record per line.
+    printf '%s\n' "${iter130_per_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
+        | sort -rn -k1 \
+        | head -n "${top_n_threshold_for_slowest_check_ranking_display}" \
+        | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
+    echo "    ⧗ (override count via ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=N)"
 }
 
 # Whole-script timer: lets the operator confirm sum-of-phases ≈ wall-time
@@ -719,6 +756,10 @@ if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$preflight_timing_who
         'BEGIN { printf "%.0f", (e - s) * 1000 }')
     echo "    ⧗ whole-script elapsed: ${preflight_timing_whole_script_elapsed_milliseconds_for_iter73_instrumentation}ms (preflight total)"
 fi
+
+# Iter-130: emit top-N-slowest-checks ranking summary so operators see
+# the next perf-optimization target without manually scanning all "⧗" lines.
+__iter130_emit_top_n_slowest_preflight_checks_ranked_by_elapsed_milliseconds_descending_bottleneck_summary
 
 echo ""
 echo "✓ All preflight checks passed"
