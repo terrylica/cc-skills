@@ -20,6 +20,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
@@ -119,8 +120,12 @@ tsgo is ~30x faster than tsc (~170ms full project check) — fast enough to run 
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
+    // Iter-105: defense-in-depth against Claude's 10K-character hook-output
+    // file-spillover threshold (filteredDiagnosticLines.join can be unbounded).
     return buildPostToolUseAdditionalContextDecision(
-      `[TSGO] Type errors in ${basename(filePath)}:\n\n${filteredDiagnosticLines.join("\n")}`,
+      truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+        `[TSGO] Type errors in ${basename(filePath)}:\n\n${filteredDiagnosticLines.join("\n")}`,
+      ),
     );
   } catch {
     return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;

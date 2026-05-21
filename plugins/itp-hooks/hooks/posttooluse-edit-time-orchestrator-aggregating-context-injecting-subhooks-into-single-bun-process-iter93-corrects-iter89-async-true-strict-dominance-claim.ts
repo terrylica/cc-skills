@@ -63,6 +63,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
 import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsgo-type-check.ts";
@@ -345,12 +346,25 @@ async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
     process.exit(0);
   }
 
+  // Iter-105: defense-in-depth against Claude's 10K-character hook-output
+  // file-spillover threshold AT THE AGGREGATION SITE. Even when each
+  // individual subhook's contribution stays under the iter-104 per-classifier
+  // cap (via truncateHookOutputToStayBelowClaudeFileSpilloverThreshold at
+  // the emission site), the sum of N subhook contributions plus the
+  // conditional [orchestrator-subhook:<name>] provenance prefix overhead
+  // can still exceed 10K when ≥3 subhooks each contribute ~3K. The
+  // aggregator MUST itself apply the truncation guard to the consolidated
+  // output as the absolute last line of defense.
+  const safelyTruncatedAggregatedReason = truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+    aggregatedReasonOrNull,
+  );
+
   // Emit ONE consolidated decision:block JSON. The `decision: "block"`
   // keyword is the documented Anthropic-schema mechanism for PostToolUse
   // context-injection — it surfaces the reason as a Claude-visible system
   // reminder, NOT a tool rejection. (Tool has already run by the time
   // PostToolUse fires.)
-  console.log(JSON.stringify({ decision: "block", reason: aggregatedReasonOrNull }));
+  console.log(JSON.stringify({ decision: "block", reason: safelyTruncatedAggregatedReason }));
   process.exit(0);
 }
 

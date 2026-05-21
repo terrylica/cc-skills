@@ -517,6 +517,30 @@ NOTEBOOKEDIT_HONORING_MATCHER_COUNT=$( { grep -oE '[0-9]+ matchers currently inc
 echo "  ✓ NotebookEdit applicability audit: ${NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT:-0} APPLICABLE + ${NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT:-0} POTENTIALLY-APPLICABLE classifiers surfaced (current marketplace coverage: ${NOTEBOOKEDIT_HONORING_MATCHER_COUNT:-0} matchers honor NotebookEdit)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit applicability audit (iter-103 gate; informational)"
 
+# Check 4q: Iter-105 marketplace-wide truncation-helper invariant audit.
+# Scales the iter-104 single-hook fix (vale-claude-md.ts wraps emissions
+# via truncateHookOutputToStayBelowClaudeFileSpilloverThreshold against
+# Claude's 10K-character hook-output file-spillover threshold) to a
+# marketplace invariant covering all 8 classifier-with-emission hooks
+# (vale-claude-md + ty + tsgo + oxlint + biome + ssot-principles +
+# pretooluse-vale-claude-md-guard + PostToolUse orchestrator aggregation).
+# Informational by default — future iters may flip to --strict once the
+# helper is hoisted to a dedicated shared-lib file (iter-106+ candidate).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-105 truncation-helper marketplace invariant audit (informational)..."
+if ! mise run audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix >/tmp/iter105-truncation-helper-audit.log 2>&1; then
+    echo "  ⚠ Truncation-helper audit exited non-zero (informational only — not blocking release)"
+fi
+TRUNCATION_HELPER_COHORT_COUNT=$( { grep -oE 'Cohort discovered:[[:space:]]+[0-9]+' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+TRUNCATION_HELPER_PASSING_COUNT=$( { grep -oE 'AUDIT PASSED — all [0-9]+ cohort hooks' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+if [[ "${TRUNCATION_HELPER_PASSING_COUNT:-0}" == "${TRUNCATION_HELPER_COHORT_COUNT:-0}" ]] && [[ "${TRUNCATION_HELPER_COHORT_COUNT:-0}" -gt 0 ]]; then
+    echo "  ✓ Truncation-helper audit: ${TRUNCATION_HELPER_PASSING_COUNT}/${TRUNCATION_HELPER_COHORT_COUNT} cohort hooks wrap via canonical helper"
+else
+    TRUNCATION_HELPER_MISSING_COUNT=$( { grep -oE 'AUDIT FAILED — [0-9]+ of [0-9]+ cohort hooks missing' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+    echo "  ⚠ Truncation-helper audit: ${TRUNCATION_HELPER_MISSING_COUNT}/${TRUNCATION_HELPER_COHORT_COUNT} cohort hooks missing canonical wrap (see /tmp/iter105-truncation-helper-audit.log)"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helper invariant audit (iter-105 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
