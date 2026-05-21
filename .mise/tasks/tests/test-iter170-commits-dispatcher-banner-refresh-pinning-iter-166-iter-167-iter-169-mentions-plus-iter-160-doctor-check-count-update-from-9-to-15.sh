@@ -56,8 +56,8 @@ echo ""
 echo "GROUP B (2 assertions): arc range header + MISE description reflect iter-169 state"
 
 iter170_assert_substring_present_in_dispatcher_with_human_readable_label \
-    "B1: dispatcher header advertises 'iter-150 → iter-169 arc' (was 'iter-150 → iter-165 arc' pre-iter-170; 4 iterations stale)" \
-    "(iter-150 → iter-169 arc)"
+    "B1: dispatcher header advertises 'iter-150 → iter-178 arc' (iter-178 banner refresh; earlier pins were iter-165 → iter-169 → iter-178 as the arc grew)" \
+    "(iter-150 → iter-178 arc)"
 
 iter170_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B2: MISE description references 'iter-150-through-iter-169' (discoverable via 'mise tasks' enumeration)" \
@@ -96,8 +96,8 @@ echo ""
 echo "GROUP E (5 assertions): new QUALITY + PERFORMANCE section added with iter-166/167/169 mentions"
 
 iter170_assert_substring_present_in_dispatcher_with_human_readable_label \
-    "E1: QUALITY + PERFORMANCE section header present (lists iter-163, iter-166, iter-167, iter-169 as non-operator-visible hardening work)" \
-    "QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169)"
+    "E1: QUALITY + PERFORMANCE section header present (iter-178 banner refresh extended the cohort list to include iter-175/176/177 perf-optimization entries)" \
+    "QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169, iter-175, iter-176, iter-177)"
 
 iter170_assert_substring_present_in_dispatcher_with_human_readable_label \
     "E2: iter-166 doctor extension #2 entry mentions 'critical_passed counter 10 → 13' bump" \

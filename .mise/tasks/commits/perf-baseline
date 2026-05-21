@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Iter-178 operator-facing wall-clock perf-baseline regression harness for the iter-150 → iter-177 conventional-commits operator toolkit. Thin discoverability wrapper that delegates to the iter-174 harness at .mise/tasks/tests/. Runs N=5 trials per toolkit script (iter-150 renderer, iter-153 advisor default + --json --strict, iter-152 dashboard, iter-165 aggregator, iter-160 doctor), takes median wall-clock, compares against pinned 3× headroom baseline caps. Operator use case: 'I just edited iter-152, did I regress perf?' Answer in one command. Industry-standard regression-detection pattern (matches the brew bench / criterion.rs / pytest-benchmark family). Closes the iter-178 audit-surfaced discoverability gap where the iter-174 harness was invocable only via the 160-char .mise/tasks/tests/test-iter174-… filename — undiscoverable in 'mise tasks ls'. Mirrors the iter-160 commits:status dispatcher delegation pattern (exec into the canonical harness, no logic duplication, single source of truth preserved). Exit 0 if all caps respected, exit 1 if any toolkit script regressed past its 3× headroom cap. Usage: mise run commits:perf-baseline."
+set -euo pipefail
+
+ITER178_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/.mise/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+
+if [[ ! -x "$ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-174 perf-baseline harness not found or not executable at:" >&2
+    echo "    $ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+exec "$ITER178_PERF_BASELINE_HARNESS_ABSOLUTE_PATH" "$@"
