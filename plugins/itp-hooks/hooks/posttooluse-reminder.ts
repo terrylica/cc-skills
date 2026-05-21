@@ -21,6 +21,27 @@ import { join, basename } from "path";
 import { execSync } from "child_process";
 import { homedir } from "os";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+// Iter-112: route the SETPROCTITLE-OK escape-hatch detection through the
+// iter-107 canonical helper rather than a raw `fileContent.includes()`
+// substring check. Closes the iter-111 registry-consistency gap and
+// expands the iter-110 canonical cohort from 8 → 9 (this hook becomes
+// the ninth member). Behavior-preserving: pre-iter-112 used
+// `fileContent.includes("# SETPROCTITLE-OK")` which required the literal
+// `# ` comment prefix; iter-112 routes through
+// `hasFileWideEscapeHatchMarkerInContent` in CASE_SENSITIVE mode (pure
+// substring match on `SETPROCTITLE-OK`), which (a) accepts `// `, `<!-- `,
+// or no comment prefix as well, matching the UPPER-KEBAB-CASE-never-collides
+// substring convention used by the other 8 cohort members, and (b) the
+// iter-111 registry entry already documents this mode pairing as the
+// canonical declaration. The pre-iter-112 leading-`#` requirement was
+// incidental to the implementation (never documented as a constraint),
+// so widening the prefix tolerance is operator-friendly.
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+
+const SETPROCTITLE_REMINDER_ESCAPE_HATCH_CONFIGURATION_REGISTERED_IN_ITER111_CANONICAL_REGISTRY = {
+  markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
+  caseSensitivityMode: "CASE_SENSITIVE" as const,
+};
 
 // --- Types ---
 
@@ -490,8 +511,15 @@ function checkSetproctitle(filePath: string, content?: string): string | null {
   // Already has setproctitle — nothing to do
   if (/setproctitle/.test(fileContent)) return null;
 
-  // Escape hatch
-  if (fileContent.includes("# SETPROCTITLE-OK")) return null;
+  // Escape hatch (iter-112: routed through the iter-107 canonical helper).
+  if (
+    hasFileWideEscapeHatchMarkerInContent(
+      fileContent,
+      SETPROCTITLE_REMINDER_ESCAPE_HATCH_CONFIGURATION_REGISTERED_IN_ITER111_CANONICAL_REGISTRY,
+    )
+  ) {
+    return null;
+  }
 
   // --- Detect service/daemon patterns ---
   const SERVICE_PATTERNS: [RegExp, string][] = [

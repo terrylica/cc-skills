@@ -272,7 +272,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). NOTE: as of iter-111 this marker is detected by `posttooluse-reminder.ts` via a raw `.includes()` substring check, NOT yet via the iter-107 canonical helper. Iter-112+ candidate: migrate the consumer call site to `hasFileWideEscapeHatchMarkerInContent(...)` for behavioral consistency with the other 11 registry entries.",
+        "Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes(\"# SETPROCTITLE-OK\")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.",
     },
     {
       markerNameTokenIncludingSuffix: "SSoT-OK",

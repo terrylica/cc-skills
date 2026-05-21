@@ -113,6 +113,11 @@ declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
     "plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs"
     "plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts"
     "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
+    # Iter-112 addition: posttooluse-reminder.ts migrated its SETPROCTITLE-OK
+    # detection from raw `fileContent.includes("# SETPROCTITLE-OK")` to the
+    # iter-107 canonical helper, closing the iter-111-surfaced registry-
+    # consistency gap. Cohort grows from 8 → 9 members.
+    "plugins/itp-hooks/hooks/posttooluse-reminder.ts"
 )
 
 declare -a MIGRATED_HOOKS_USING_SHARED_HELPER=()
