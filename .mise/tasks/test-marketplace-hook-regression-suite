@@ -151,8 +151,21 @@ FAILED_TEST_FILES_LIST=()
 # body refer to the positional args passed to that NESTED bash, not to
 # the outer scope. Single-quoting is REQUIRED to defer their expansion
 # until xargs invokes the per-test bash subprocess.
+# BSD-xargs-portability hardening (iter-90 forensic finding): macOS BSD
+# `xargs -I {}` has a default `-S` (replacement-string size) limit of
+# 255 bytes per assembled invocation. When the iter-90 test filename
+# (`test-pretooluse-edit-time-orchestrator-iter90-...verified.sh`,
+# 233 chars) was added to the marketplace test corpus, the assembled
+# command per invocation grew to ~280 chars (path prefix + filename +
+# bash body + output dir), exceeding 255 and triggering
+# `xargs: command line cannot be assembled, too long`. The fix sets
+# -S 16384 (16 KB) which is well above the GNU-xargs equivalent default
+# while still being safely below ARG_MAX (~1 MB on macOS). This is a
+# PORTABILITY hardening, not a workaround — GNU xargs (Linux) defaults
+# to a much higher limit and was never affected; macOS BSD users were
+# silently exposed to a "longer test filenames break the runner" cliff.
 printf '%s\n' "${TEST_FILES[@]}" | \
-    xargs -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} bash -c '
+    xargs -S 16384 -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} bash -c '
         single_test_file_path="$1"
         per_run_results_dir="$2"
         test_basename_for_stable_lookup="$(basename "$single_test_file_path" .sh)"

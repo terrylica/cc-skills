@@ -103,6 +103,7 @@ import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-de
 import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-optimization-guard.ts";
 import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygiene-guard.ts";
 import { classifyPyiStubGuardForOrchestrator } from "./pretooluse-pyi-stub-guard.ts";
+import { classifyNativeBinaryGuardForOrchestrator } from "./pretooluse-native-binary-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -142,6 +143,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyPyiStubGuardForOrchestrator,
     description:
       "Blocks Write/Edit on Python `__init__.py` / `__init__.pyi` files that contain top-level class/def/decorator definitions (PEP 561 + clean-package-structure: init files MUST be thin re-export layers, definitions belong in dedicated modules). Iter-89 inlined; O(1) `__init__.py`/`__init__.pyi` filename-suffix fastpath skips all non-init Python writes. Algorithm encoded in `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator` (re-exported as `classifyPyiStubGuardForOrchestrator` for symmetric naming with sibling subhooks). Escape hatch: `# INIT-MONOLITH-OK` comment in content. Re-export-dominated-write heuristic exempts files where ≥70% of meaningful lines are imports.",
+  },
+  {
+    name: "native-binary-guard",
+    timeoutMs: 4000,
+    classify: classifyNativeBinaryGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on macOS launchd-related files (under ~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) that introduce shell scripts or plist `<string>/bin/bash</string>` / `<string>...something.sh</string>` ProgramArguments references. Forces compiled native binaries (Swift preferred) so launchd services show proper names in System Settings > Login Items instead of a generic 'bash' entry. Iter-90 inlined; O(1) launchd-directory-substring fastpath replaces the standalone-mode raw-stdin keyword prefilter (cheaper because orchestrator already JSON-parsed the input). Algorithm encoded in `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator` (re-exported as `classifyNativeBinaryGuardForOrchestrator` for symmetric naming). Iter-15 fix preserved: Edit may target a region NOT containing `BASH-LAUNCHD-OK` marker but the file on disk has it — async fs.readFile via Bun.file() honors the file-wide opt-out. Escape hatch: `# BASH-LAUNCHD-OK` (or `<!-- BASH-LAUNCHD-OK -->` in plists).",
   },
   {
     name: "gpu-optimization-guard",
