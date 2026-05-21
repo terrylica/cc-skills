@@ -119,12 +119,36 @@ echo ""
 # writing to a distinct file, and the sequential aggregation phase
 # reads them back in stable sort order.
 #
-# Concurrency cap: defaults to 8 lanes (operator-tunable via
-# MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES). Detected core count on
-# this machine is 14; 8 lanes leaves enough headroom for the OS, IDE,
-# and any concurrent mise/release work. With 15 tests at 8 lanes and
-# longest-test = 635ms, expected wall-time ≈ 700-900ms (vs 3324ms
-# sequential = ~4× speedup).
+# Concurrency cap: ADAPTIVE per-host (operator-tunable via
+# MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES). When unset, default is
+# clamp(sysctl_hw_ncpu - 4, 4, 12) — i.e., leave 4 cores for OS+IDE,
+# but never go below 4 or above 12. The iter-128 perf-win below is
+# motivated by an empirical bottleneck-analysis with three-rep medians:
+#
+#   Sweep across lane counts on 14-core M-series host (57 tests):
+#     lanes=8  → 3.75 s wall-clock median  (pre-iter-128 baseline)
+#     lanes=10 → 3.09 s wall-clock median  (-660 ms vs lanes=8)
+#     lanes=12 → 3.23 s wall-clock median  (bun-spawn contention shows)
+#     lanes=14 → 2.89 s wall-clock median  (no OS/IDE headroom — unsafe)
+#
+#   Sweet spot is lanes=10:
+#     - 660 ms saved vs pre-iter-128 (~18% reduction in Check 4e)
+#     - 4-core headroom protects parent mise/IDE responsiveness during
+#       the parallel fan-out
+#     - lanes=12 shows non-monotonic regression due to bun's ~12-17ms
+#       cold-start floor (measured by iter-80) hitting process-scheduling
+#       contention with longest-test critical path
+#     - lanes=14 is only 200ms faster than lanes=10 — not worth losing
+#       the OS+IDE headroom for
+#
+# Why floor=4: protect low-end laptops (Intel MacBook Air with 2-core
+# hyperthreaded = 4 logical cores) from degenerate lanes=1 sequential
+# fallback that would make the suite 4× slower.
+#
+# Why ceiling=12: above 12 lanes the marginal speedup is offset by bun
+# process scheduling contention (measured non-monotonic regression at
+# lanes=12 vs lanes=10 above). Operators on >16-core hosts who want to
+# experimentally push lanes higher can set the env var explicitly.
 #
 # References:
 #   - https://www.gnu.org/software/parallel/parallel_alternatives.html
@@ -132,7 +156,22 @@ echo ""
 #     is acceptable when per-job output is captured separately)
 #   - iter-54 docs (full-output-on-FAIL, compact-on-PASS UX)
 #   - iter-74 docs/RELEASE.md iter-75+ candidate forensic notes
-MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES="${MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES:-8}"
+#   - iter-128 forensic notes (this comment) — adaptive lane sizing
+__iter128_compute_adaptive_marketplace_hook_regression_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_avoiding_bun_cold_start_contention_plateau_at_twelve_lanes() {
+    local detected_host_cpu_count
+    # macOS BSD: sysctl -n hw.ncpu; Linux GNU: nproc.
+    detected_host_cpu_count=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 8)
+    local recommended_lane_count=$((detected_host_cpu_count - 4))
+    # Clamp to [4, 12]. See header comment for empirical justification
+    # (three-rep median sweep on 14-core M-series host).
+    if [[ "$recommended_lane_count" -lt 4 ]]; then
+        recommended_lane_count=4
+    elif [[ "$recommended_lane_count" -gt 12 ]]; then
+        recommended_lane_count=12
+    fi
+    echo "$recommended_lane_count"
+}
+MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES="${MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES:-$(__iter128_compute_adaptive_marketplace_hook_regression_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_avoiding_bun_cold_start_contention_plateau_at_twelve_lanes)}"
 
 # Single per-run results directory holds one .stdout file + one .exit
 # file per test, keyed by test basename (test names are unique-by-design
