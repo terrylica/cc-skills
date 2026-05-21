@@ -270,6 +270,28 @@ the verbose-naming directive optimizes for>
 
 Existing iter-144-through-iter-149 history is preserved as-is; the iter-150 renderer provides a band-aid readable view rather than rewriting history. Future iters from iter-151 onward should adopt the convention.
 
+### Preflight self-enforcement of the 72-char hard cap (iter-151)
+
+The iter-82 conventional-commits validator (run as preflight `Check 4l`) was extended in iter-151 to add a sixth classification bucket: `LONG-SUBJECT-EXCEEDS-ITER150-72-CHAR-HARD-CAP`. Conformant commits whose subject exceeds 72 chars are counted as an **informational overlay** — they do not block strict-mode release (semantic-release parses any subject length identically and the existing iter-144-149 history would all fail), but they surface as a labelled diagnostic block during every preflight run with a per-commit measured-char-count, an explanatory paragraph, and a cross-reference to `mise run release:history` for viewing the existing long-subject history readably.
+
+The overlay-not-replacement design means a single commit can simultaneously belong to the standard-conformant bucket (which it does for semantic-release purposes) AND the long-subject overlay bucket (which surfaces the readability defect). The strict-mode blocking total formula is unchanged:
+
+```
+total_violations_blocking_strict_mode = compound_prefix + missing_type
+```
+
+Long-subject overlay violations do NOT contribute to strict-mode blocking. This is the only practical enforcement point per the cc-skills Local-First CI/CD Policy (no GitHub Actions for linting); commitlint's `header-max-length=72` rule would normally enforce this in CI but cannot be wired here.
+
+To see the overlay output:
+
+```bash
+mise run audit-recent-git-commit-messages-...
+# or via the preflight wrapper:
+mise run release:preflight    # Check 4l informational output
+```
+
+Regression pin: `.mise/tasks/tests/test-iter151-...sh` (19 assertions across 6 groups covering structural validity, scaffolding declarations, length-measurement wiring, summary/diagnostic output, informational-only design invariant, and functional smoke test against the actual cc-skills repo).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
