@@ -1,3 +1,16 @@
+## [21.54.2](https://github.com/terrylica/cc-skills/compare/v21.54.1...v21.54.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **tests:** iter-126 followup wrap iter-113-test-case-7-doc-mutation-window-with-same-shared-fcntl-flock-as-iter-115-and-iter-117 because-iter-113-also-mutates-canonical-on-disk-escape-hatch-marker-reference-md-via-trap-restored-synthetic-DRIFT-mutation-injection-creating-second-race-window-against-iter-117-case-6-no-drift-check ([787c9e1](https://github.com/terrylica/cc-skills/commit/787c9e1364983e9c4a9a186c3df8df4ffa40316c))
+* **tests:** iter-126 serialize iter-115-synthetic-doc-mutation-window against iter-117-canonical-doc-read via shared-fcntl-flock-file-descriptor-locked-at-fixed-tmp-path eliminating xargs-P-parallel-suite-race-where-iter-117-case-6-drift-check-fires-inside-iter-115-case-5-mutation-window-producing-spurious-DRIFT-exit-1-on-test-that-passes-standalone ([f0a456b](https://github.com/terrylica/cc-skills/commit/f0a456bf7086f49eff7901ddea976bc3b40e60c1))
+
+
+### Performance Improvements
+
+* **preflight:** iter-125 bound seven plugins-tree-walking-find descents at marketplace-canonical -mindepth-3-maxdepth-3 plugins-slash-plugin-slash-hooks-slash-file-depth eliminating unbounded recursion into skills-scripts-references-node_modules subtrees yielding 3-7x per-audit speedup and approximately 2.4-second-aggregate-preflight-saving across iter-61-pueue-wrap-guard iter-62-non-pretooluse-schema iter-65-wildcard-matcher iter-67-stop-additionalContext-pentad iter-99-raw-stdout iter-101-multiedit-matcher iter-103-notebookedit-applicability audits ([4659dc9](https://github.com/terrylica/cc-skills/commit/4659dc9be2fcac81ab7f0427bd4e79a46b296d12))
+
 ## [21.54.1](https://github.com/terrylica/cc-skills/compare/v21.54.0...v21.54.1) (2026-05-21)
 
 
