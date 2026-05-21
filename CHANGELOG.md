@@ -1,3 +1,5 @@
+## [21.40.2](https://github.com/terrylica/cc-skills/compare/v21.40.1...v21.40.2) (2026-05-21)
+
 ## [21.40.1](https://github.com/terrylica/cc-skills/compare/v21.40.0...v21.40.1) (2026-05-21)
 
 # [21.40.0](https://github.com/terrylica/cc-skills/compare/v21.39.0...v21.40.0) (2026-05-21)
