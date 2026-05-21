@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Iter-153 pre-commit dry-run advisor. Classifies a proposed conventional-commit subject through the iter-82/iter-151 grammar BEFORE committing, fills the industry gap where commitlint/conventional-pre-commit/commitizen all run blocking at commit-msg stage with no advisor/dry-run mode. Default: human-readable verdict (measured length, classification, type recognition, scope, breaking flag, iter-150 50/72 conformance, violations, remediation hints). --json flag emits machine-readable JSON for AI-agent automation pipelines (parallel to iter-119 --json mode on iter-116 CLI). --strict flag exits non-zero on silent-fail-class violations (COMPOUND-PREFIX, MISSING-TYPE) but preserves the iter-151 informational-only invariant for long-subject overlay even in strict mode. Bash-native zero-external-dependency per cc-skills Local-First CI/CD Policy. Usage: mise run commits:advise -- '<proposed subject>' or mise run commits:advise --json -- '<subject>' or mise run commits:advise --strict -- '<subject>'."
+set -euo pipefail
+
+# This task is a thin shim delegating to the iter-153 advisor script.
+# Kept as a separate file (vs inline bash) so the advisor can also be
+# invoked directly outside the mise context (e.g., from operator shell
+# functions, editor pre-commit hooks, or CI dry-runs).
+ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
+
+if [[ ! -x "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-153 advisor not found or not executable at:" >&2
+    echo "    $ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+# Forward all args verbatim (the advisor parses --json/--strict/-- itself).
+exec "$ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH" "$@"
