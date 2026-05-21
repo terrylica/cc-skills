@@ -88,6 +88,29 @@
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
+# ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
+# Empirically verified iter-171 audit probe finding: bash ${#var} returns
+# CHARACTER count under UTF-8 locales (en_*.UTF-8, C.UTF-8) but BYTE count
+# under C/POSIX locale.
+#
+# This advisor's iter-151 conventional-commits 50/72-rule classifier reads
+# ITER153_CLASSIFIED_MEASURED_LENGTH_IN_CHARS="${#proposed_subject_input}"
+# (line 275). Under C locale, a CJK subject like "feat: 修复编码问题XYZ"
+# (15 visible characters, 30 UTF-8 bytes) would mis-report length=30 →
+# false-positive ≥72-char hard-cap classification + false-positive
+# SILENT_FAIL_RISK verdict in --strict mode. This would silently reject
+# valid CJK commit messages at the iter-157 commit-msg hook surface.
+#
+# Force UTF-8 locale at script entry. Override empty/unset/C/POSIX
+# explicitly because C and POSIX always byte-count regardless of operator
+# intent (typically a CI-runner misconfiguration, not a deliberate
+# byte-counting choice — Conventional Commits §5 specifies CHARACTER-counting
+# semantics for subject length). Operator can opt INTO any other UTF-8
+# locale (en_CA.UTF-8, C.UTF-8, zh_CN.UTF-8, etc.) which we respect verbatim.
+case "${LC_ALL:-}" in
+    ""|C|POSIX) export LC_ALL=en_US.UTF-8 ;;
+esac
+
 # ─── Constants reused from iter-82/iter-151 (single source of truth) ─────────
 # Recognized conventional-commits types per cc-skills .releaserc.yml.
 # Update this if the upstream validator's recognized-type list changes.
