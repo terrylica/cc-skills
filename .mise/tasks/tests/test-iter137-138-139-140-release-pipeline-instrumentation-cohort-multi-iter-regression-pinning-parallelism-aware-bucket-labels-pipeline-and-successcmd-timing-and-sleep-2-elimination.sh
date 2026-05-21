@@ -60,6 +60,16 @@ REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/preflight"
 RELEASE_FULL_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/full"
 RELEASERC_YML_ABSOLUTE_PATH="$REPO_ROOT/.releaserc.yml"
+# Iter-142: the iter-140 successCmd-internals instrumentation was EXTRACTED from
+# the .releaserc.yml YAML literal heredoc into an external script to resolve the
+# lodash-template-vs-bash-default-value-parameter-expansion syntax conflict
+# (lodash JS-eval'd `${RELEASE_TIMING_PROFILE:-0}` and bombed v21.58.2's
+# post-release verification block). The iter-140 helpers/wrappers/instrumentation
+# now live in the script below; assertions that previously searched .releaserc.yml
+# for these symbols now search the extracted script instead. The extraction is a
+# pure code-relocation refactor that preserves behavior — invariants hold, just
+# in a different file — so iter-141 source-fingerprints still bind tightly.
+ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION="$REPO_ROOT/scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
 CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/tests/test-chronicle-slicing-37-assertion-stress-test-against-boundary-mtimes-jsonl-vs-brotli-subagent-recursion-and-visibility-gate-parsing.sh"
 LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH="$REPO_ROOT/.mise/tasks/release/test-chronicle-slicing"
 
@@ -102,6 +112,10 @@ echo "════════════════════════�
 preflight_script_source="$(cat "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH")"
 release_full_orchestrator_source="$(cat "$RELEASE_FULL_ORCHESTRATOR_ABSOLUTE_PATH")"
 releaserc_yml_source="$(cat "$RELEASERC_YML_ABSOLUTE_PATH")"
+# Iter-142: iter-140 helpers were relocated from .releaserc.yml YAML literal
+# into the extracted post-release verification script. Iter-140.D1-D8 assertions
+# now read this source instead of releaserc_yml_source.
+iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions="$(cat "$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION")"
 
 echo ""
 echo "── ITER-137: iter-130 ranking is parallelism-aware (bucket labels + critical-path NOTE) ──"
@@ -271,60 +285,63 @@ __iter141_assert_substring_present \
 echo ""
 echo "── ITER-140: successCmd per-step instrumentation + sleep-2 elimination forensic pin ──"
 
-# 4.A: per-step start/end helpers defined in YAML literal
+# 4.A: per-step start/end helpers defined in extracted script (iter-142 relocated
+# from .releaserc.yml YAML literal heredoc to scripts/iter142-...sh — same
+# invariants, new location.)
 __iter141_assert_substring_present \
-    "Iter-140.D1: __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture helper defined in .releaserc.yml YAML literal" \
-    "$releaserc_yml_source" \
+    "Iter-140.D1: __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture helper defined in iter-142 extracted post-release verification script" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "__iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture"
 
 __iter141_assert_substring_present \
-    "Iter-140.D2: __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture helper defined" \
-    "$releaserc_yml_source" \
+    "Iter-140.D2: __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture helper defined in iter-142 extracted script" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "__iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture"
 
 # 4.B: timing record accumulator array
 __iter141_assert_substring_present \
-    "Iter-140.D3: per-step timing record accumulator array exists" \
-    "$releaserc_yml_source" \
+    "Iter-140.D3: per-step timing record accumulator array exists in iter-142 extracted script" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary"
 
 # 4.C: ITER140 top-N override env-var
 __iter141_assert_substring_present \
-    "Iter-140.D4: ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY operator-tunable override exists" \
-    "$releaserc_yml_source" \
+    "Iter-140.D4: ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY operator-tunable override exists in iter-142 extracted script" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY"
 
 # 4.D: end-of-block top-N ranking renders sort -rn pipeline (mirrors iter-130 / iter-139)
 __iter141_assert_substring_present \
-    "Iter-140.D5: end-of-block top-N ranking uses sort -rn -k1 | head -n N | awk pipeline (mirrors iter-130/139 ranking format)" \
-    "$releaserc_yml_source" \
+    "Iter-140.D5: end-of-block top-N ranking uses sort -rn -k1 | head -n N | awk pipeline (mirrors iter-130/139 ranking format) in iter-142 extracted script" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "sort -rn -k1"
 
 # 4.E: 6 functional steps wrapped (Step 1, 2, 4, 5, 6, 7 — Step 3 is the eliminated sleep)
-iter140_step_wrap_callsite_count=$(echo "$releaserc_yml_source" | grep -cF '__iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture')
+iter140_step_wrap_callsite_count=$(echo "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" | grep -cF '__iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture')
 # Subtract 1 for the function definition itself.
 iter140_step_wrap_callsite_count=$((iter140_step_wrap_callsite_count - 1))
 if [[ "$iter140_step_wrap_callsite_count" -ge 6 ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Iter-140.D6: 6 successCmd steps wrapped with timing helper ($iter140_step_wrap_callsite_count call-sites; Steps 1, 2, 4, 5, 6, 7 — Step 3 is the eliminated sleep)"
+    echo "  ✓ PASS: Iter-140.D6: 6 successCmd steps wrapped with timing helper ($iter140_step_wrap_callsite_count call-sites; Steps 1, 2, 4, 5, 6, 7 — Step 3 is the eliminated sleep) in iter-142 extracted script"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✗ FAIL: Iter-140.D6: step-wrap call-site count below threshold (expected ≥6, got $iter140_step_wrap_callsite_count)"
+    echo "  ✗ FAIL: Iter-140.D6: step-wrap call-site count below threshold (expected ≥6, got $iter140_step_wrap_callsite_count) in iter-142 extracted script"
 fi
 
 # 4.F: FORENSIC PIN — Step 3 sleep-2 ELIMINATED
 # This is the load-bearing assertion preventing iter-140's perf win from
 # regressing. A future maintainer reintroducing `sleep 2` (e.g., thinking
 # it's needed for cache propagation) would silently burn 2s/release.
+# Iter-142: assertion now scans the extracted script (not .releaserc.yml).
 __iter141_assert_substring_absent \
-    "Iter-140.D7: FORENSIC PIN — the literal 'sleep 2' ABSENT from successCmd block (iter-140 elimination invariant)" \
-    "$releaserc_yml_source" \
-    "        sleep 2"
+    "Iter-140.D7: FORENSIC PIN — the literal 'sleep 2' ABSENT from iter-142 extracted post-release verification script (iter-140 elimination invariant)" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
+    $'\nsleep 2\n'
 
 # 4.G: ELIMINATED-by-iter-140 stub comment exists where sleep 2 used to be
 __iter141_assert_substring_present \
-    "Iter-140.D8: 'Step 3: ELIMINATED by iter-140' stub comment exists (explains why sleep 2 was removed)" \
-    "$releaserc_yml_source" \
+    "Iter-140.D8: 'Step 3: ELIMINATED by iter-140' stub comment exists in iter-142 extracted script (explains why sleep 2 was removed)" \
+    "$iter142_extracted_post_release_verification_script_source_for_iter140_helper_assertions" \
     "Step 3: ELIMINATED by iter-140"
 
 # ─── Summary ─────────────────────────────────────────────────────────────
