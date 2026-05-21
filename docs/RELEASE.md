@@ -234,6 +234,42 @@ ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
 
 **Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
 
+## Operator-Facing Release-History Readable View (iter-150)
+
+Run `mise run release:history` to render `git log` with awk-based soft-wrap of the verbose iter-N commit subjects to terminal-width with proper indentation and color. Addresses the operator-readability problem caused by the kebab-cased verbose conventional-commit subjects in the iter-144-through-iter-149 cohort (754–1078 chars per subject on one line — unreadable in `git log --oneline`, GitHub UI lists, and code-review tools).
+
+```bash
+# Default: last 10 commits, 80-col wrap
+mise run release:history
+
+# Custom run count + wrap width
+ITER150_COMMIT_COUNT_TO_DISPLAY=20 ITER150_SOFT_WRAP_COLUMN_WIDTH=120 mise run release:history
+
+# Pass extra git-log args after `--`
+mise run release:history -- main~30..HEAD
+```
+
+### Going-forward commit-subject convention (iter-150 acknowledgement)
+
+The /loop verbose-self-explanatory directive explicitly enumerates **identifiers** (file/function/class/variable/constant/test/benchmark names) — it does NOT mandate verbose git commit SUBJECTS. The industry-standard [conventional-commits specification](https://www.conventionalcommits.org/) 50/72 rule applies:
+
+- Subject ≤ 50 chars hard cap (≤ 72 chars soft cap) — for `git log --oneline` scanability
+- Body wrapped at 72 chars per line — for full detail
+- Blank line separates subject from body
+
+Going-forward iters should use **short subject + verbose body**, e.g.:
+
+```
+perf(release): iter-N <short hyphenated descriptive headline>
+
+<verbose multi-paragraph body with full forensic detail,
+wrapped at 72 chars per line — searchable via `git log --grep`
+which matches body text too, preserving the searchability
+the verbose-naming directive optimizes for>
+```
+
+Existing iter-144-through-iter-149 history is preserved as-is; the iter-150 renderer provides a band-aid readable view rather than rewriting history. Future iters from iter-151 onward should adopt the convention.
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
