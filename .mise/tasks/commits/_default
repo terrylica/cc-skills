@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-169 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-178 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -154,7 +154,23 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — 
       Same checks, machine-readable JSON output with stable
       iter160_schema_version=1 for AI-agent automation pipelines.
 
-${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169) — non-operator-visible work hardening the toolkit ───${ITER156_ANSI_COLOR_RESET}
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness) — operator-discoverable perf regression check ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline${ITER156_ANSI_COLOR_RESET}
+      Empirical wall-clock perf-baseline regression harness for the
+      iter-150 → iter-177 toolkit. Runs N=5 trials per script, takes
+      median, compares against pinned 3× headroom baseline caps. Catches
+      order-of-magnitude regressions (e.g., 41ms → 250ms on the iter-153
+      hot path). Six scripts gated: iter-150 renderer, iter-153 advisor
+      default + --json --strict, iter-152 dashboard, iter-165 aggregator,
+      iter-160 doctor. Exit 0 if all caps respected, exit 1 if any
+      script regressed. Industry-standard regression-detection pattern
+      (matches brew bench, criterion.rs, pytest-benchmark family).
+      Iter-178 closed the discoverability gap where the underlying
+      iter-174 harness was invocable only via a 160-char .mise/tasks/
+      tests/ filename — undiscoverable in 'mise tasks ls' output.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169, iter-175, iter-176, iter-177) — non-operator-visible work hardening the toolkit ───${ITER156_ANSI_COLOR_RESET}
 
   These iterations have no new operator-facing CLI commands but
   meaningfully strengthen the toolkit's safety net and runtime
@@ -193,6 +209,31 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       pre-iter-167's 1184ms-at-N=50 latency would have meaningfully
       slowed preflight; post-iter-167's 228ms median is negligible
       vs. ~10-second preflight total.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-175 iter-152 default-mode batched-git-log fan-in${ITER156_ANSI_COLOR_RESET} —
+      collapses 4 redundant per-panel \`git log\` forks (panels
+      2/3/4/5) into a single up-front 2N-commit invocation cached in
+      a bash variable and fanned in via stdin redirection. Mirrors
+      the iter-167 pattern applied to iter-165. Empirical median win:
+      79ms → 56ms (≈29% reduction at N=10).
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-176 iter-153 hot-path BASH_SOURCE-relative lib paths${ITER156_ANSI_COLOR_RESET}
+      — replaces 4 redundant \$(git rev-parse --show-toplevel) command
+      substitutions in the iter-153 lib-resolve block with a single
+      BASH_SOURCE-relative anchor (zero subprocess forks). Critical
+      because iter-153 fires on EVERY \`git commit\` via the iter-157
+      commit-msg hook. Each git fork measured at ~10ms on macOS arm64;
+      iter-174 perf-baseline harness confirmed 41ms → 23ms (~44%
+      reduction) on the advisor default mode hot path.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-177 iter-160 doctor zero-fork timing via bash 5 EPOCHREALTIME${ITER156_ANSI_COLOR_RESET}
+      — replaces \`perl -MTime::HiRes\` subprocess forks in the per-check
+      timing wrapper (2 forks × 15 checks = 30 perl forks contributing
+      ≈240ms overhead) with the bash 5+ \${EPOCHREALTIME} builtin
+      (zero subprocess forks, microsecond resolution per Chet Ramey
+      2018 RFE). Graceful perl fallback for bash<5. iter-174 perf-
+      baseline harness extended in iter-177 with A6 assertion gating
+      iter-160 at 1500ms cap. Empirical: 665ms → 528ms (~20% reduction).
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── POLYGLOT (iter-158, iter-159) — pre-commit framework integration ───${ITER156_ANSI_COLOR_RESET}
 
