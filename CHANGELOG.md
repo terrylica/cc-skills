@@ -1,3 +1,10 @@
+## [21.54.5](https://github.com/terrylica/cc-skills/compare/v21.54.4...v21.54.5) (2026-05-21)
+
+
+### Performance Improvements
+
+* **preflight:** iter-129 bound-iter-77-L3-stripped-path-audit-hook-source-file-find-at-mindepth-3-and-maxdepth-4-covering-both-canonical-hooks-slash-file-and-hooks-slash-lib-or-tests-slash-file-depths-eliminating-unbounded-recursion-into-skills-scripts-references-node_modules-and-ruff-cache-subtrees ([9a2a2aa](https://github.com/terrylica/cc-skills/commit/9a2a2aa95d7432a531e63c771f6aa8e6c6eb301b))
+
 ## [21.54.4](https://github.com/terrylica/cc-skills/compare/v21.54.3...v21.54.4) (2026-05-21)
 
 
