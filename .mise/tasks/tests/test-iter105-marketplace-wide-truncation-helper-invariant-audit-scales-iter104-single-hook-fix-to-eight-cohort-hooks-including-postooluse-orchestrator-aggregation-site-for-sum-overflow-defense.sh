@@ -70,16 +70,19 @@ else
     assert_fails "Case 3: only $case3_to_case10_hooks_consuming_helper_count/8 cohort hooks consume the canonical helper"
 fi
 
-# ─── Case 4: cross-lib import works (PreToolUse hook imports from PostToolUse lib) ──
-# The pretooluse-vale-claude-md-guard.ts is the canonical example: a
-# PreToolUse classifier that imports the truncation helper from the
-# PostToolUse contract lib (semantically shared per iter-104 design).
+# ─── Case 4: PreToolUse hook imports helper from the iter-106 shared-lib home ──
+# Iter-106 update: the iter-105 design had pretooluse-vale-claude-md-guard.ts
+# cross-importing the helper from the PostToolUse contract lib. Iter-106
+# eliminated that awkwardness by extracting the helper to a dedicated cross-
+# Pre/PostToolUse shared lib. This assertion now verifies the iter-106
+# canonical-home invariant: the PreToolUse classifier imports the helper from
+# the shared lib (NOT from the PostToolUse contract lib).
 PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-vale-claude-md-guard.ts"
 if grep -q "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold" "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH" && \
-   grep -q 'from "./lib/posttooluse-subhook-contract' "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH"; then
-    assert_passes "Case 4: cross-lib import works (pretooluse-vale-claude-md-guard imports truncation helper from PostToolUse contract lib)"
+   grep -q 'from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106' "$PRETOOLUSE_VALE_GUARD_ABSOLUTE_PATH"; then
+    assert_passes "Case 4: pretooluse-vale-claude-md-guard imports truncation helper from the iter-106 dedicated shared-lib home (cross-lib awkwardness eliminated)"
 else
-    assert_fails "Case 4: cross-lib import pattern broken or missing from pretooluse-vale-claude-md-guard"
+    assert_fails "Case 4: pretooluse-vale-claude-md-guard does NOT import helper from the iter-106 shared-lib canonical home"
 fi
 
 # ─── Case 5: PostToolUse orchestrator aggregation site wraps the consolidated reason ──
@@ -113,14 +116,18 @@ assert_passes "Case 6: positive-path detection verified via Case 2 + Case 3 (liv
 
 # ─── Case 7: helper constant + signature unchanged from iter-104 baseline ────
 # Verify backward compatibility — iter-104 established the helper signature
-# (single string in, string out, threshold = 9000). Iter-105 must NOT break
-# the API even though it expands the consumer set.
-POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
-case7_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
+# (single string in, string out, threshold = 9000). Iter-105 expanded the
+# consumer set; iter-106 relocated the canonical home to a dedicated shared
+# lib. The threshold value MUST remain 9000 across all relocations.
+# Iter-106 update: the literal `export const ...` definition now lives in the
+# shared-lib file; the PostToolUse contract lib re-exports it for backward
+# compat. We verify the constant at its iter-106 canonical home.
+SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
+case7_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
 if [[ "$case7_threshold_value" == "9000" ]]; then
-    assert_passes "Case 7: iter-104 helper threshold + signature preserved (MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000)"
+    assert_passes "Case 7: iter-104 helper threshold + signature preserved across iter-105/iter-106 relocations (MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000 in iter-106 shared-lib canonical home)"
 else
-    assert_fails "Case 7: helper threshold modified from iter-104 baseline (value = $case7_threshold_value)"
+    assert_fails "Case 7: helper threshold modified from iter-104 baseline (value = $case7_threshold_value in iter-106 shared-lib home)"
 fi
 
 # ─── Case 8: cohort count matches iter-105 scope (8 hooks) ──────────────────
