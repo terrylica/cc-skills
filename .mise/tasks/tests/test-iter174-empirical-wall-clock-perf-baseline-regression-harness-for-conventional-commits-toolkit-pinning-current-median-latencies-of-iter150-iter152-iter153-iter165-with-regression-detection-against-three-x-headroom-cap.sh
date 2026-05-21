@@ -147,11 +147,53 @@ iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdo
 iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "GROUP A (5 assertions): each conventional-commits toolkit script median ≤ pinned baseline cap"
 
 # Resolve script absolute paths (already cd'd to repo root above).
+#
+# Iter-181 fail-fast precondition: each `find ... | head -1` can return empty
+# if a measured script was renamed, moved, or deleted. Pre-iter-181 the empty
+# path propagated into `bash ""` which fails silently with execve error in
+# ~1ms — well under the 100-1500ms caps. The trial loop's `|| true` swallowed
+# the failure and the harness REPORTED PASS for a script that did not even
+# run. This is silent-failure-class: false confidence with no operator
+# signal. Iter-181 closes the gap by gating each resolved path through a
+# precondition check that exits non-zero with operator-visible diagnostic
+# pointing to the expected glob before any trial loop executes.
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern() {
+    local human_readable_script_label="$1"
+    local resolved_absolute_path_or_empty_string_from_find="$2"
+    local expected_glob_pattern_for_operator_diagnostic="$3"
+    if [[ -z "$resolved_absolute_path_or_empty_string_from_find" ]]; then
+        echo "  ✗ iter-181 fail-fast: ${human_readable_script_label} script path resolved to EMPTY" >&2
+        echo "    expected glob: ${expected_glob_pattern_for_operator_diagnostic}" >&2
+        echo "    likely cause:  script was renamed, moved, or deleted since iter-174 was pinned" >&2
+        echo "    remediation:   update the find pattern in this harness OR restore the script" >&2
+        exit 2
+    fi
+    if [[ ! -x "$resolved_absolute_path_or_empty_string_from_find" ]]; then
+        echo "  ✗ iter-181 fail-fast: ${human_readable_script_label} script at '${resolved_absolute_path_or_empty_string_from_find}' is NOT executable (chmod +x)" >&2
+        echo "    expected glob: ${expected_glob_pattern_for_operator_diagnostic}" >&2
+        exit 2
+    fi
+}
+
 ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log-renderer-*.sh' -type f | head -1)
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
+    "iter-150 renderer" "$ITER174_ITER150_RENDERER_ABSOLUTE_PATH" "scripts/iter150-readable-git-log-renderer-*.sh"
+
 ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh' -type f | head -1)
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
+    "iter-152 dashboard" "$ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH" "scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh"
+
 ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-operator-facing-pre-commit-dry-run-advisor-*.sh' -type f | head -1)
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
+    "iter-153 advisor" "$ITER174_ITER153_ADVISOR_ABSOLUTE_PATH" "scripts/iter153-operator-facing-pre-commit-dry-run-advisor-*.sh"
+
 ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-aggregator-*.sh' -type f | head -1)
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
+    "iter-165 aggregator" "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH" "scripts/iter165-pending-release-aggregator-*.sh"
+
 ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh' -type f | head -1)
+iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
+    "iter-160 doctor" "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH" "scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh"
 
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
     "A1: iter-150 renderer (occasional, N=10 commits)" \
