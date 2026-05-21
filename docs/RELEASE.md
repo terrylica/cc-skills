@@ -423,6 +423,74 @@ The auto-detect reads the first non-comment non-empty line per the git commit me
 
 Two-line subject convention demonstrated: this commit's headline is 41 chars (well under 50-char target).
 
+### Shared JSON-Escape Library + Iter-152 Dashboard `--json` Mode (iter-155)
+
+Iter-155 is an architectural refactor extending the conventional-commits arc with cross-script SSoT and AI-agent dashboard parity:
+
+**Architectural debt eliminated**: iter-154's pure-bash RFC 8259 JSON escape function was a genuinely reusable utility locked inside the iter-153 advisor script. Iter-155 extracts it to a shared library at `scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh` and refactors iter-153 to source it with zero behavior change (iter-153 + iter-154 regression tests both still pass).
+
+**File-size pressure relief**: iter-153 advisor shrank from 554 lines to 499 lines (back under the 500-line warn threshold), removing the FILE-SIZE-OK suppression marker.
+
+**AI-agent dashboard surface**: iter-152 dashboard gains a `--json` mode sourcing the same shared library — closes the symmetrical gap that iter-153 filled for the advisor:
+
+```bash
+# Default: human-readable 5-panel dashboard
+mise run commits:health
+
+# NEW (iter-155): machine-readable JSON for AI agents and jq pipelines
+mise run commits:health --json | jq .panel_5_recent_vs_previous_window_trend_signal.verdict
+```
+
+**Stable JSON schema** (`iter155_schema_version: 1`) covers 4 of the 5 panels (Panel 1 readable view is delegated to iter-150 renderer + omitted from JSON by design):
+
+```json
+{
+  "iter155_schema_version": 1,
+  "iter152_commits_health_dashboard_machine_readable_output": true,
+  "window_size_commits": 10,
+  "thresholds": { "hard_target_chars": 50, "hard_cap_chars": 72 },
+  "panel_2_subject_length_distribution_histogram": {
+    "total_commits_in_window": 10,
+    "le_50_hard_target": 6,
+    "51_to_72_hard_cap": 0,
+    "73_to_100_mild_over_cap": 1,
+    "101_to_200_verbose_naming_era": 0,
+    "201_to_500_heavy_verbose": 0,
+    "501_to_1000_extreme": 1,
+    "over_1000_iter144_149_outlier_territory": 2
+  },
+  "panel_3_worst_offenders_top_n_by_char_count": [
+    { "sha": "...", "length_chars": 1078, "subject": "..." }
+  ],
+  "panel_4_conventional_commits_type_distribution": {
+    "feat": 3,
+    "perf": 2,
+    "chore": 5
+  },
+  "panel_5_recent_vs_previous_window_trend_signal": {
+    "sufficient_history_for_trend_signal": true,
+    "current_window_p50_median_chars": 37.5,
+    "previous_window_p50_median_chars": 177.5,
+    "current_window_conformance_rate_pct": 70,
+    "previous_window_conformance_rate_pct": 50,
+    "verdict": "IMPROVING"
+  }
+}
+```
+
+**Empirical confirmation** (first smoke test against actual cc-skills HEAD): the iter-150 convention adoption continues improving — median subject length dropped from 177.5 → 37.5 chars (-79%), conformance rate rose from 50% → 70%. Verdict: **IMPROVING**.
+
+**Regression pin**: 17 assertions across 6 groups in `test-iter155-...sh`:
+
+- Group A (3): shared lib structurally valid
+- Group B (3): canonical function name + LIBRARY_LOADED_SENTINEL + RFC 8259 § 7 citation
+- Group C (2): iter-153 advisor sources lib (SSoT integration)
+- Group D (4): iter-152 dashboard sources lib + parses `--json` + declares JSON-renderer + invokes escape
+- Group E (3): functional JSON parse + all 5 panel keys present + stable schema version
+- Group F (2): **zero-behavior-change invariant** — iter-153 (24/24) and iter-154 (16/16) regression tests both still pass
+
+Subject: `refactor(release): iter-155 shared JSON-escape lib` (49 chars, under iter-150 50-char target).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
