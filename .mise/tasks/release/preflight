@@ -565,21 +565,25 @@ fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4r: truncation-helper canonical-home audit (iter-106 gate; informational)"
 
 # Check 4s: Iter-107 escape-hatch-marker detection inventory audit.
-# Enumerates hand-rolled escape-hatch-marker detection patterns across
-# itp-hooks/ source files + reports which hooks have migrated to the
-# iter-107 canonical shared helper vs. which still use hand-rolled regex
-# + window-lookup loops. Informational — never blocks release. Future
-# iters (108+) migrate the remaining hand-rolled consumers; promote to
-# --strict once marketplace fully migrated.
+# Iter-110 promoted to STRICT-BLOCK mode: closes the iter-107 → iter-109
+# migration arc by enforcing two release-blocking invariants:
+#   1. NO hand-rolled escape-hatch-marker regex detection in any hook
+#      (detected via regex-pattern heuristic — catches new hook authors
+#      bypassing the canonical shared helper)
+#   2. ALL 8 canonical cohort members (curated list in the audit task)
+#      MUST import the iter-107 shared helper (catches silent removal
+#      of a previously-migrated helper consumption)
+# A non-zero exit from this audit BLOCKS the release.
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-echo "→ Running iter-107 escape-hatch-marker detection inventory audit (informational)..."
-if ! mise run audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper >/tmp/iter107-escape-hatch-inventory-audit.log 2>&1; then
-    echo "  ⚠ Escape-hatch inventory audit exited non-zero (informational only — not blocking release)"
+echo "→ Running iter-107/iter-110 escape-hatch-marker detection invariant audit (STRICT-BLOCK)..."
+if ! mise run audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper >/tmp/iter110-escape-hatch-strict-audit.log 2>&1; then
+    echo "  ✗ ESCAPE-HATCH AUDIT FAILED (iter-110 STRICT-BLOCK) — see /tmp/iter110-escape-hatch-strict-audit.log"
+    exit 1
 fi
-ITER107_MIGRATED_COUNT=$( { grep -oE 'Migrated to shared helper:[[:space:]]+[0-9]+' /tmp/iter107-escape-hatch-inventory-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-ITER107_HAND_ROLLED_COUNT=$( { grep -oE 'Still hand-rolled:[[:space:]]+[0-9]+' /tmp/iter107-escape-hatch-inventory-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-echo "  ✓ Escape-hatch inventory: ${ITER107_MIGRATED_COUNT:-0} migrated to shared helper / ${ITER107_HAND_ROLLED_COUNT:-0} still hand-rolled (informational)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection inventory audit (iter-107 gate; informational)"
+ITER110_MIGRATED_COUNT=$( { grep -oE 'Migrated to shared helper:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+ITER110_COHORT_SIZE=$( { grep -oE 'Canonical cohort size:[[:space:]]+[0-9]+' /tmp/iter110-escape-hatch-strict-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+echo "  ✓ Escape-hatch invariant: ${ITER110_MIGRATED_COUNT:-0} hooks migrated / ${ITER110_COHORT_SIZE:-0} canonical cohort (iter-110 STRICT)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection invariant audit (iter-110 STRICT-BLOCK)"
 
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
