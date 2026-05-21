@@ -1,3 +1,10 @@
+# [21.26.0](https://github.com/terrylica/cc-skills/compare/v21.25.0...v21.26.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-88 inline mise-hygiene-guard into PreToolUse orchestrator (5th subhook) + surface PostToolUse Write|Edit orchestration candidate (9 hooks → 1, ~136ms additional savings projected per iter-87 empirical 17ms/spawn) + harden iter-87 test against future subhook-count regressions ([3b77b07](https://github.com/terrylica/cc-skills/commit/3b77b07f609062d7d38f0a8ea1a90c99caef28b1)), closes [#96](https://github.com/terrylica/cc-skills/issues/96)
+
 # [21.25.0](https://github.com/terrylica/cc-skills/compare/v21.24.0...v21.25.0) (2026-05-21)
 
 
