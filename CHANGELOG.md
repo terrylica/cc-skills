@@ -1,3 +1,10 @@
+# [21.55.0](https://github.com/terrylica/cc-skills/compare/v21.54.5...v21.55.0) (2026-05-21)
+
+
+### Features
+
+* **preflight:** iter-130 add-top-n-slowest-preflight-checks-ranked-by-elapsed-milliseconds-descending-bottleneck-summary-at-end-of-preflight-timing-profile-run-eliminating-operator-manual-scan-of-25-plus-per-phase-elapsed-lines-to-find-next-perf-optimization-target ([6abe14a](https://github.com/terrylica/cc-skills/commit/6abe14a4dae2d2cd08381f71c830a7a7c729ff50))
+
 ## [21.54.5](https://github.com/terrylica/cc-skills/compare/v21.54.4...v21.54.5) (2026-05-21)
 
 
