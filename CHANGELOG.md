@@ -1,3 +1,10 @@
+## [21.31.1](https://github.com/terrylica/cc-skills/compare/v21.31.0...v21.31.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **itp-hooks:** iter-94 PostToolUse orchestrator 2/15 (tsgo inlined) + async Bun.spawn refactor — corrects iter-93 spawnSync parallelism-defeat anti-pattern surfaced by adversarial audit; adds static audit + microbenchmark + provenance-prefix aggregator (Bun.spawnSync inside Promise.all yields ZERO OS-level parallelism per Bun docs + 2026 community guidance) ([535eea9](https://github.com/terrylica/cc-skills/commit/535eea942c13f67b0c175eb043908d36a5248a6c))
+
 # [21.31.0](https://github.com/terrylica/cc-skills/compare/v21.30.0...v21.31.0) (2026-05-21)
 
 
