@@ -194,17 +194,22 @@ else
     assert_fails "Case 5: AbortSignal timeout broken; exit=$case5_exit stdout=$case5_stdout"
 fi
 
-# ─── Case 6: subhook-contract audit task still reports clean state on 4 subhooks
+# ─── Case 6: subhook-contract audit task still reports clean state with ≥4 subhooks ─
+# Iter-88 hardening: extract live count instead of hardcoding "4" so this test
+# survives future subhook migrations (iter-89 pyi-stub, iter-90 native-binary,
+# iter-91 vale-claude-md). The invariant is "≥4 conformant subhooks" — iter-87
+# inlined the 4th (gpu-optimization-guard), and subsequent iters only grow the count.
 set +e
 case6_stdout=$(bash "$SUBHOOK_CONTRACT_AUDIT_TASK_PATH" 2>&1)
 set -e
 
-if [[ "$case6_stdout" == *'Total subhook files scanned:                  4'* ]]; then
-    assert_passes "Case 6a: audit task discovers all 4 inlined subhooks"
+case6_subhook_count_extracted=$(echo "$case6_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+if [[ "${case6_subhook_count_extracted:-0}" -ge 4 ]]; then
+    assert_passes "Case 6a: audit task discovers ≥4 inlined subhooks (gpu-optimization-guard inlined; found ${case6_subhook_count_extracted})"
 else
-    assert_fails "Case 6a: subhook count not 4; got=$case6_stdout"
+    assert_fails "Case 6a: subhook count ${case6_subhook_count_extracted} < 4"
 fi
-if [[ "$case6_stdout" == *'All 4 subhook files conform to the PreToolUseSubhookContract'* ]]; then
+if [[ "$case6_stdout" == *'subhook files conform to the PreToolUseSubhookContract'* ]]; then
     assert_passes "Case 6b: audit task reports clean state (gpu-optimization-guard.ts conforms)"
 else
     assert_fails "Case 6b: clean state not reported"
