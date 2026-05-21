@@ -1,3 +1,10 @@
+## [21.33.1](https://github.com/terrylica/cc-skills/compare/v21.33.0...v21.33.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **itp-hooks:** iter-98 PostToolUse orchestrator 7/15 (memory-efficiency-reminder inlined) + FIX long-standing silent context-drop bug (raw console.log → JSON {decision:block,reason}) + hoist once-per-session gate-file helper to shared lib + race-safe atomic O_EXCL replaces unguarded existsSync+writeFileSync ([9c5c165](https://github.com/terrylica/cc-skills/commit/9c5c165c1bf406c638cc02813985c682da5620ac))
+
 # [21.33.0](https://github.com/terrylica/cc-skills/compare/v21.32.0...v21.33.0) (2026-05-21)
 
 
