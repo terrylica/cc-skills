@@ -45,6 +45,7 @@ import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
@@ -237,7 +238,7 @@ export async function classifyValeTerminologyConformanceOnEditedClaudeMdFileForP
       ? ` (scoped to changed lines ${editedLineRange.start}-${editedLineRange.end})`
       : "";
 
-    const reason = `[VALE] Found ${errorCount} errors, ${warningCount} warnings, ${suggestionCount} suggestions in ${basename(filePath)}${scopeNote}:
+    const unboundedRawReason = `[VALE] Found ${errorCount} errors, ${warningCount} warnings, ${suggestionCount} suggestions in ${basename(filePath)}${scopeNote}:
 
 ${issueLines}
 
@@ -245,6 +246,17 @@ ${issueLines}
 1. Fix terminology automatically (use acronyms: ITH, TMAEG, MCOT, NAV, CV, dbps)
 2. Keep expanded form if this is a definition (Terminology table)
 3. Ask user which terms to expand/contract`;
+
+    // Iter-104: defend against Claude's 10,000-character hook-output
+    // file-spillover threshold. Vale on a heavily-CLAUDE.md-edited file can
+    // emit 50-200+ findings; the issueLines concatenation is unbounded in
+    // scopedIssues.length. Without this guard, large vale runs would silently
+    // file-spill the diagnostic content — Claude would see a preview stub,
+    // never the actual findings. The truncation helper appends an explicit
+    // marker so Claude knows there may be additional unseen issues.
+    const reason = truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+      unboundedRawReason,
+    );
 
     return buildPostToolUseAdditionalContextDecision(reason);
   } catch {

@@ -1200,6 +1200,76 @@ Sources for iter-103 web research:
 - [anthropics/claude-code Issue #46013 — cell_id in IDE selection context](https://github.com/anthropics/claude-code/issues/46013)
 - [Claude Code System Prompts — NotebookEdit tool description (Piebald-AI)](https://github.com/Piebald-AI/claude-code-system-prompts/blob/main/system-prompts/tool-description-notebookedit.md)
 
+### Iter-104: hook-output-size-cap canonical truncation helper — defends against Claude's 10,000-character file-spillover threshold
+
+Adversarial web research surfaced a previously-undiscovered silent-context-degradation hazard documented in the official 2026 Anthropic Claude Code hook docs:
+
+> "Hook output strings, including additionalContext, systemMessage, and plain stdout, are capped at 10,000 characters. Output that exceeds this limit is saved to a file and replaced with a preview and file path, the same way large tool results are handled."
+
+— [Claude Code Hooks Reference (2026)](https://code.claude.com/docs/en/hooks)
+
+**The silent-degradation mechanism**: when a hook emits output >10K chars, Claude only sees the preview stub, NOT the full content. The file containing the full diagnostic is written to the operator's machine — Claude's sandbox cannot follow the file path. The classifier may believe it gave Claude actionable context, but Claude actually receives a truncated stub with an unfollowable file path. Net effect: the subhook's diagnostic intelligence is **silently lost**, the same failure mode as iter-66/98's silent context-drop but via a different mechanism (size cap instead of schema mismatch).
+
+**Worst-offender classifiers** (highest output-volume risk):
+
+| Classifier                                   | Output-growth dimension            | Realistic worst-case                          |
+| -------------------------------------------- | ---------------------------------- | --------------------------------------------- |
+| `posttooluse-vale-claude-md.ts` (iter-104 ★) | N vale findings per CLAUDE.md edit | 50-200+ findings; ~5-20K chars                |
+| `posttooluse-ty-type-check.ts`               | N ty diagnostics per `.py` edit    | Variable; can exceed 10K on multi-error edits |
+| `posttooluse-tsgo-type-check.ts`             | N tsgo errors per `.ts` edit       | Same                                          |
+| `posttooluse-oxlint-check.ts`                | N oxlint findings per JS/TS edit   | Same                                          |
+| `posttooluse-biome-lint.ts`                  | N biome findings per JS/TS edit    | Same                                          |
+| `posttooluse-ssot-principles.ts`             | N ast-grep anti-pattern findings   | Bounded by ast-grep result count              |
+| `pretooluse-vale-claude-md-guard.ts`         | Vale findings on proposed content  | Same dimension as PostToolUse vale            |
+
+Iter-104 establishes the canonical truncation helper in the PostToolUse contract lib + applies it to the highest-risk classifier (`posttooluse-vale-claude-md.ts`, observed empirically to produce 50-200+ findings on a single CLAUDE.md edit). Iter-105+ scope = marketplace audit + apply to remaining 6 unbounded-output classifiers. Mirrors the iter-100 single-hook-fix-then-marketplace-scale pattern.
+
+**Canonical helper API** (hoisted into [`lib/posttooluse-subhook-contract-...-iter93.ts`](../plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts)):
+
+```typescript
+export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000;
+
+export function truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+  rawOutput: string,
+): string {
+  if (rawOutput.length <= MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER) {
+    return rawOutput;  // fast-path: small reasons returned verbatim
+  }
+  // Over-threshold: truncate + append Claude-actionable marker
+  return rawOutput.slice(0, budget) + HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_...;
+}
+```
+
+**Design rationale**:
+
+1. **9000-char threshold** = 1000-char safety margin below Anthropic-documented 10000 spillover cap (room for the marker suffix without overflow into spillover)
+2. **Fast-path return-verbatim** for ≤9000 chars preserves zero overhead in the dominant case (most reasons are 100-500 chars)
+3. **Truncation marker is Claude-actionable**: explicitly cites the 10K threshold (so Claude knows WHY content was truncated), points to operator transcript via Ctrl-R (so Claude knows WHERE the full content exists), and prefixes a `Claude:` instruction (so Claude knows what to DO — act on visible findings, assume more may exist of the same kind)
+
+**Iter-104 regression test** (8 assertions all pass): canonical constant + helper exist in contract lib, threshold = 9000 with 1000-char safety margin documented, marker suffix is Claude-actionable (cites 10K threshold + Ctrl-R + Claude:-prefixed instruction), vale-claude-md.ts first-adopter imports + applies helper, fast-path return-verbatim semantics preserved (small reasons unchanged + NO marker appended), over-threshold input truncated to ≤9000 chars + Claude-actionable marker appended (no silent file-spillover), vale-claude-md.ts emission site wraps unbounded reason in helper BEFORE passing to `buildPostToolUseAdditionalContextDecision`, contract lib documents Anthropic-docs citation + iter-105 follow-up + worst-offender list.
+
+**Iter-104 architectural takeaway — adds a 5th silent-context-degradation defense layer**:
+
+1. iter-66/93: PostToolUse stdout must be JSON (not raw text) — schema-level defense
+2. iter-95: conditional `[orchestrator-subhook: <name>]` provenance prefix only when ≥2 sections contribute — UX-level defense
+3. iter-96: timeout-aware additional_context surface — operator-visibility defense
+4. iter-98/99: console.log raw-text emission audit — silent-drop preventive gate
+5. **iter-104 (this iter)**: 10K-character file-spillover threshold defense — silent-size-truncation preventive layer
+
+Each layer addresses a DIFFERENT failure mode at a different defense depth. The cumulative effect: every hook emission path now has guards against the 5 known silent-context-degradation mechanisms.
+
+**Iter-105 follow-up scope**: marketplace audit + apply truncation helper to the remaining 6 unbounded-output classifiers (ty, tsgo, oxlint, biome, ssot-principles, pretooluse-vale). The PostToolUse orchestrator's aggregated reason — which concatenates ALL contributing subhook messages — is itself at higher risk than any single classifier and should also adopt the helper at the aggregation site (multiple medium-size messages can sum past 10K).
+
+Sources for iter-104 web research:
+
+- [Claude Code Hooks Reference (2026) — output size cap documented](https://code.claude.com/docs/en/hooks)
+- [Claude Code Hooks: The Complete 2026 Production Reference — 32+ events, 5 handler types, exit code semantics](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/)
+- [Claude Code Best Practices: Official and Community-Tested Guide 2026 — deny reason actionability patterns](https://thepromptshelf.dev/blog/claude-code-best-practices-2026/)
+- [Hooks in Claude Code (Gaurav Negi, Medium) — self-correcting feedback loop architecture](https://medium.com/@negi.gaurav2/hooks-in-claude-code-718cb145214a)
+- [Claude Code Hook Control Flow (Steve Kinney) — exit code vs JSON signaling tradeoffs](https://stevekinney.com/courses/ai-development/claude-code-hook-control-flow)
+- [Bun 1.3 Cold Start Benchmarks — 8-15ms vs Node.js 200ms (PkgPulse Blog)](https://www.pkgpulse.com/blog/bun-vs-nodejs-npm-runtime-speed-2026)
+- [Claude Code Hooks Mastery (disler) — community-validated hook patterns](https://github.com/disler/claude-code-hooks-mastery)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

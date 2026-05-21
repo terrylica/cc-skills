@@ -239,3 +239,87 @@ export function isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(
   if (!toolName) return false;
   return FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS.has(toolName);
 }
+
+// ────────────────────────────────────────────────────────────────────────
+//  Iter-104: Hook-output size cap (Claude-visible 10,000-character file-
+//  spillover threshold per 2026 Anthropic schema docs)
+// ────────────────────────────────────────────────────────────────────────
+//
+// Per 2026 Anthropic Claude Code hook docs surfaced by iter-104 adversarial
+// web research:
+//
+//   "Hook output strings, including additionalContext, systemMessage, and
+//    plain stdout, are capped at 10,000 characters. Output that exceeds
+//    this limit is saved to a file and replaced with a preview and file
+//    path, the same way large tool results are handled."
+//
+// Source: https://code.claude.com/docs/en/hooks
+//
+// The silent-degradation hazard: when a hook emits output >10K chars,
+// Claude only sees the preview, NOT the full content. The classifier may
+// believe it gave Claude actionable context but Claude actually sees a
+// truncated stub with a file path it cannot read (the file is on the
+// operator's machine; Claude's sandbox cannot follow). Net effect: the
+// subhook's diagnostic intelligence is LOST.
+//
+// Worst-offender hooks (highest output-volume risk):
+//   - posttooluse-vale-claude-md.ts   — emits N vale findings per CLAUDE.md edit
+//   - posttooluse-ty-type-check.ts    — emits N ty diagnostics per .py edit
+//   - posttooluse-tsgo-type-check.ts  — emits N tsgo errors per .ts edit
+//   - posttooluse-oxlint-check.ts     — emits N oxlint findings per JS/TS edit
+//   - posttooluse-biome-lint.ts       — emits N biome findings per JS/TS edit
+//   - posttooluse-ssot-principles.ts  — emits N ast-grep anti-pattern findings
+//   - pretooluse-vale-claude-md-guard.ts — emits vale findings on proposed content
+//
+// Iter-104 establishes the canonical truncation pattern; the first
+// adopter is posttooluse-vale-claude-md.ts (highest finding-count
+// observed empirically — CLAUDE.md files often trigger 50-200 vale
+// suggestions on a single edit). Iter-105+ scope: marketplace-wide audit
+// + apply to remaining 6 lint/type-check classifiers.
+//
+// Naming: `MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER`
+// encodes the SEMANTIC INVARIANT (Claude-visible threshold, beyond which
+// output gets silent-spilled to a file Claude can't follow). The 9000
+// value provides a 1000-char safety margin below the documented 10000
+// threshold (room for the truncation-marker suffix without overflow).
+
+export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000;
+
+export const HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS =
+  "\n\n[... output truncated to stay below Claude's 10,000-character hook-output file-spillover threshold; full diagnostic content remains available in the operator transcript via Ctrl-R. Claude: act on the visible findings above; assume there may be additional unseen issues of the same kind ...]";
+
+/**
+ * Iter-104 canonical truncation helper for hook outputs that risk exceeding
+ * Claude's 10,000-character file-spillover threshold.
+ *
+ * Per 2026 Anthropic Claude Code hook docs, any hook output (additionalContext,
+ * systemMessage, deny-reason, decision-reason, plain stdout) >10K chars gets
+ * SILENTLY replaced with a preview + filesystem-path reference. Claude only
+ * sees the preview; the full content is written to a file the Claude sandbox
+ * cannot access. The hook author's intended diagnostic intelligence is LOST.
+ *
+ * This helper guards against that silent context-degradation by:
+ *   - Returning the input verbatim if already under the safe threshold
+ *   - Otherwise: truncating to (safe_threshold - marker_length) chars + appending
+ *     the marker so Claude EXPLICITLY KNOWS truncation occurred AND that there
+ *     may be additional findings beyond what's visible (preserves classifier's
+ *     diagnostic credibility instead of silently lying about completeness)
+ *
+ * Use at every hook emission site where the output could grow with input size
+ * (lint findings, type errors, vale warnings, AST-pattern matches, etc.).
+ */
+export function truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+  rawOutput: string,
+): string {
+  if (rawOutput.length <= MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER) {
+    return rawOutput;
+  }
+  const markerLength =
+    HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS.length;
+  const truncationBudgetForContent =
+    MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER - markerLength;
+  return (
+    rawOutput.slice(0, truncationBudgetForContent) +
+    HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS
+  );
+}
