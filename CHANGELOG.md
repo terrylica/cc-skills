@@ -1,3 +1,10 @@
+## [21.77.2](https://github.com/terrylica/cc-skills/compare/v21.77.1...v21.77.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **iter-181:** fail-fast preconditions close silent-failure in iter-174 ([efb21a3](https://github.com/terrylica/cc-skills/commit/efb21a3fe3d7ad68b9c97a04074fa342905c20f8))
+
 ## [21.77.1](https://github.com/terrylica/cc-skills/compare/v21.77.0...v21.77.1) (2026-05-21)
 
 
