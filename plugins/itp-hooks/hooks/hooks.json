@@ -114,6 +114,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
+            "timeout": 5000,
+            "description": "Iter-78 edit-time companion to iter-77 release-time Check 4k — blocks edits that introduce references to ${CLAUDE_PLUGIN_ROOT}/<segment>/ where <segment> is NOT in the cache-populator allowlist {hooks, skills, commands, agents, plugin.json}; belt-and-suspenders defense (stdout JSON deny + stderr diagnostic + exit 2) per GitHub #37210"
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
