@@ -597,23 +597,40 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-mar
 # would otherwise be ignored by every consumer hook, and the operator would
 # wonder why their "escape hatch" doesn't actually escape.
 #
-# Iter-111 informational only (never blocks). Iter-112+ candidate for
-# strict-promotion once the AUDIT-marker family is also registered.
+# Iter-111: introduced as informational (never blocked).
+# Iter-114: extended the producer-marker layer with a parallel AUDIT-TASK
+# marker registry (8 entries) covering the second lifecycle layer, so the
+# marker-coverage gap that previously prevented strict-promotion is closed.
+# Iter-115: PROMOTED TO STRICT-BLOCK. The audit reaches a stable 0-unregistered
+# state at HEAD; any new unregistered token (a typo OR an intentional new
+# marker that hasn't been registered in iter-111 OR iter-114) now fails
+# release until either the token is fixed (typo path) or registered
+# (legitimate-new-marker path).
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-echo "→ Running iter-111 producer-side escape-hatch-marker typo audit (informational)..."
+echo "→ Running iter-111 producer-side escape-hatch-marker typo audit (iter-115 STRICT-BLOCK)..."
 if ! mise run audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry >/tmp/iter111-producer-marker-typo-audit.log 2>&1; then
-    echo "  ⚠ Iter-111 audit ran but reported a non-zero status — see /tmp/iter111-producer-marker-typo-audit.log"
-    echo "    (Informational only — release continues.)"
-else
-    ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-    ITER111_REGISTERED_COUNT=$( { grep -oE 'parsed [0-9]+ registered markers' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
-    if [[ "${ITER111_UNREGISTERED_COUNT:-0}" -gt 0 ]]; then
-        echo "  ⚠ Iter-111 audit: ${ITER111_UNREGISTERED_COUNT} unregistered producer marker(s) — potential typos (informational; not blocking)"
-    else
-        echo "  ✓ Iter-111 producer-marker registry: 0 unregistered markers across ${ITER111_REGISTERED_COUNT:-0} known tokens (clean)"
-    fi
+    echo "  ✗ ITER-111 PRODUCER-MARKER TYPO AUDIT FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter111-producer-marker-typo-audit.log"
+    echo "    Fix paths:"
+    echo "      A. If the token is a typo: correct it in the producer file"
+    echo "      B. If the token is a legitimate new marker: register it in the"
+    echo "         appropriate canonical registry (iter-111 for runtime-hook"
+    echo "         markers, iter-114 for audit-task markers) and re-run"
+    echo "         mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+    exit 1
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-111 informational)"
+ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+ITER111_REGISTERED_COUNT=$( { grep -oE 'parsed [0-9]+ registered markers' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+if [[ "${ITER111_UNREGISTERED_COUNT:-0}" -gt 0 ]]; then
+    # Defensive: the audit task itself exits 0 even when unregistered tokens
+    # are found (it reports informationally regardless), so re-check the
+    # parsed count and fail explicitly if any unregistered marker exists.
+    # This keeps strict-block semantics intact even if the audit task's
+    # exit-code policy changes in the future.
+    echo "  ✗ ITER-111 PRODUCER-MARKER TYPO AUDIT FAILED (iter-115 STRICT-BLOCK) — ${ITER111_UNREGISTERED_COUNT} unregistered token(s)"
+    exit 1
+fi
+echo "  ✓ Iter-111 producer-marker registry: 0 unregistered markers across ${ITER111_REGISTERED_COUNT:-0} known tokens (iter-115 STRICT)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-115 STRICT-BLOCK)"
 
 # Check 4u: Iter-113 registry-to-docs drift detector.
 #
@@ -625,18 +642,21 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side es
 # the SSoT is broken and operators consulting the doc would see stale
 # information.
 #
-# Iter-113 informational only. Iter-114+ candidate for strict-promotion
-# alongside the iter-111 AUDIT-marker family registry expansion.
+# Iter-113: introduced as informational.
+# Iter-114: extended doc generator to render TWO catalogs (runtime + audit).
+# Iter-115: PROMOTED TO STRICT-BLOCK alongside Check 4t. Drift is now a
+# release blocker — operators reading the auto-generated reference doc must
+# never see stale information that conflicts with the canonical registry SSoT.
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-echo "→ Running iter-113 registry-to-docs drift detector (informational)..."
+echo "→ Running iter-113 registry-to-docs drift detector (iter-115 STRICT-BLOCK)..."
 if ! mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry --check >/tmp/iter113-doc-drift-detector.log 2>&1; then
-    echo "  ⚠ Iter-113 doc-drift detector found drift — see /tmp/iter113-doc-drift-detector.log"
+    echo "  ✗ ITER-113 REGISTRY-TO-DOCS DRIFT DETECTOR FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter113-doc-drift-detector.log"
     echo "    Fix: mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
-    echo "    (Informational only — release continues.)"
-else
-    echo "  ✓ Iter-113 operator-facing escape-hatch-marker reference doc is in sync with iter-111 canonical registry"
+    echo "    (then commit the regenerated docs/marketplace-escape-hatch-marker-reference.md alongside the registry change)"
+    exit 1
 fi
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-113 informational)"
+echo "  ✓ Iter-113 operator-facing escape-hatch-marker reference doc is in sync with iter-111+iter-114 canonical registries (iter-115 STRICT)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-115 STRICT-BLOCK)"
 
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
