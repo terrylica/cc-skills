@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-160 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-161 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -65,6 +65,18 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise${ITER156_ANSI_COLOR_RESET}    (no args, in interactive terminal)
       Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
       during an editor-launched git commit flow.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (iter-161) — what version bump will land? ───${ITER156_ANSI_COLOR_RESET}
+
+  All four ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}commits:advise${ITER156_ANSI_COLOR_RESET} invocation forms above now include the iter-161
+  semver-bump preview overlay: maps the {type, breaking-change marker}
+  pair to the actual MAJOR/MINOR/PATCH/NONE bump that semantic-release
+  will apply per cc-skills .releaserc.yml release rules. Closes the
+  conventional-commits ecosystem advisor gap — commitlint, commitizen,
+  and conventional-pre-commit all stop at grammar conformance and never
+  preview the bump. Available in both human-readable and --json modes;
+  --json embeds a nested iter161_semver_bump_preview object with stable
+  iter161_schema_version=1 for AI-agent automation pipelines.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
 
