@@ -601,6 +601,55 @@ The PostToolUse contract differs from `PreToolUseSubhookContract` in TWO ways: (
 
 **Iter-87 regression-test hardening** (forensic finding from iter-88 marketplace suite run): the iter-87 test originally hardcoded `subhook count = 4`, which broke when iter-88 inlined the 5th. The iter-87 test was refactored to use the same live-extraction pattern the iter-88 test was written with from day one (`grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+'` + `-ge` numeric comparison). All future iter migrations will not break iter-87.
 
+### Iter-89: pyi-stub-guard migration + naming-drift remediation + async:true architectural-alternative surfaced for task #96
+
+Iter-89 ships THREE concurrent deliverables: (1) sixth subhook inlined into the PreToolUse orchestrator (pyi-stub-guard, saving ~17ms per Write/Edit per iter-87's empirical correction), (2) **filename-vs-algorithm naming-drift remediation** — the source file was historically called `pretooluse-pyi-stub-guard.ts` and its CLAUDE.md row claimed ".pyi stub file signature validation", but the actual algorithm validates `__init__.py` AND `__init__.pyi` files contain no top-level definitions (thin re-export layer enforcement per PEP 561 + clean-package-structure), and (3) **async:true architectural-alternative surfaced for task #96** — the 2026 Anthropic feature release (Jan 2026) of the `async: true` hook flag means task #96's PostToolUse Write|Edit "9-hooks → 1-orchestrator consolidation" plan should EVALUATE async:true as a competing path before committing.
+
+**(1) Sixth subhook inlined — pyi-stub-guard**
+
+- `pretooluse-pyi-stub-guard.ts` refactored to export `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator()` — a precise algorithm-encoding name per the user's "verbose, specific, searchable, distinctive names" rule — plus a backward-compat alias `classifyPyiStubGuardForOrchestrator` to maintain symmetric naming with the 5-subhook migration cohort (`classify<FilenamePrefix>ForOrchestrator`).
+- 1-policy logic preserved: scan Write/Edit payload of `__init__.py`/`__init__.pyi` for top-level `class`/`def`/decorator definitions; honor `# INIT-MONOLITH-OK` escape-hatch; apply re-export-dominated heuristic (≥70% imports) only to Write payloads (Edit's partial new_string makes the ratio meaningless).
+- Detection helpers factored into pure functions with verbose searchable names: `findTopLevelDefinitionViolationsInPythonInitFileContent`, `classifyPythonInitFilePathSuffix`, `isLikelyReExportDominatedInitPyFileWriteContent`, `lineDefinesExemptInitPyBoilerplateFunction`, `buildInitFileMonolithRefactoringGuidance`.
+- Standalone `main()` preserved under `import.meta.main` for direct CLI backward-compat.
+- Registry insertion position: AFTER `mise-hygiene-guard` and BEFORE `gpu-optimization-guard` (lightest-first ordering — pyi-stub-guard's O(1) `__init__.py`/`__init__.pyi` filename-suffix `endsWith()` fastpath is cheaper than gpu-optimization-guard's `.py` + PyTorch-pattern regex scan).
+- `hooks.json` standalone `pyi-stub-guard` Write|Edit entry removed; orchestrator description updated to list the 6 inlined subhooks + cite iter-89 Bun 1.3 single-digit-ms cold-start web research finding.
+
+**(2) Filename-vs-algorithm naming-drift remediation**
+
+The source file `pretooluse-pyi-stub-guard.ts` is misnamed — the algorithm has nothing to do with `.pyi` stub signature validation. It validates that Python `__init__.py` AND `__init__.pyi` files are thin re-export layers (no top-level definitions). The historical itp-hooks CLAUDE.md row repeated this misdescription. Iter-89 acknowledges this dual-naming reality without breaking backward compat: the **precise** algorithm-encoding name is `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator` (the actual algorithm: detect top-level Python definition monoliths in **init** files), and the **symmetric-naming** alias `classifyPyiStubGuardForOrchestrator` exists solely for cohort consistency. The CLAUDE.md row was rewritten to describe the actual algorithm. A future iter can rename the source file when convenient (no urgency since the descriptive name is now correct everywhere it's read).
+
+**(3) async:true architectural-alternative for task #96 (PostToolUse Write|Edit orchestration)**
+
+Iter-89 web research surfaced a critical 2026 development: Anthropic released `async: true` for hooks in January 2026 ([Claude Code Hooks: Complete 2026 Production Reference, The Prompt Shelf](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/)). This flag makes a hook **non-blocking** — Claude proceeds with execution while the hook runs in the background. For PostToolUse (which cannot deny by schema anyway), `async: true` provides ZERO-BLOCKING runtime cost without requiring any orchestrator refactor.
+
+This means task #96's "9 PostToolUse Write|Edit hooks → 1 orchestrator, ~136ms savings" plan must FIRST evaluate two competing paths:
+
+| Architecture                      | Implementation cost                                                                                       | Runtime cost reduction                   | Schema compatibility                                                                                                           | Maintenance complexity                                                        |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| **Path A: async:true sweep**      | LOW — add `"async": true` to existing 9 hooks.json entries                                                | ZERO blocking cost (Claude doesn't wait) | All 9 are already deny-incompatible per iter-66 schema (PostToolUse reads only `{decision: "block", reason}`) — async-eligible | LOW — preserves current 1:1 hook isolation, no contract design                |
+| **Path B: orchestrator inlining** | HIGH — design PostToolUseSubhookContract, build orchestrator analog, refactor 9 hooks to pure classifiers | ~136ms per Write/Edit                    | Same schema constraints + need to aggregate `additionalContext` outputs                                                        | HIGH — every PostToolUse hook becomes coupled to the orchestrator's lifecycle |
+
+The async:true path is strictly dominant on every dimension. Task #96 has been updated (description field) to require evaluating async:true first; the orchestrator path should only proceed if async:true is found inapplicable for specific hooks (e.g., hooks that must serialize their effects across Write|Edit boundaries within a session, which is rare).
+
+This finding ALSO retroactively validates the iter-84 PreToolUse orchestrator decision: PreToolUse MUST block (can deny edits) so async:true is NOT a viable path for the Write|Edit registry — orchestrator inlining is correct for PreToolUse but likely WRONG for PostToolUse.
+
+**Web research citations** (Sources: [Claude Code Hooks Complete 2026 Production Reference, The Prompt Shelf](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/) | [Claude Code Best Practices, Clarista](https://www.clarista.io/blog/claude-code-best-practices) | [Bun vs Node.js Performance, PkgPulse](https://www.pkgpulse.com/blog/bun-vs-nodejs-2026)):
+
+- "Add `async: true` to run hooks in the background without blocking Claude's execution. Released by Anthropic in January 2026."
+- "HTTP hooks let you send hook events to a web server instead of running a local script... This opens up use cases that were previously awkward or impossible with command hooks, such as remote validation services that enforce team-wide policies." (Surfaces a third architectural alternative — long-lived HTTP server holding shared state — for task #96's evaluation.)
+- "Bun 1.3 starts in about 8ms to 15ms" — validates iter-87's empirical ~17ms per-saved-subhook correction over iter-80's ~44ms estimate.
+
+**Regression coverage** ([14 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter89-pyi-stub-guard-inlined-init-file-top-level-definition-monolith-detection-plus-postooluse-async-true-vs-orchestration-architecture-decision-surfaced.sh)):
+
+- Cases 1a-d: orchestrator denies `__init__.py` with top-level `class Foo:` via pyi-stub-guard attribution with belt-and-suspenders + exit 2
+- Cases 2a-b: `__init__.pyi` with top-level `def` denied with stricter PEP 561 guidance
+- Case 3: non-init Python file (`models.py`) → allow (O(1) suffix fastpath skip)
+- Case 4: `# INIT-MONOLITH-OK` escape-hatch honored → allow
+- Case 5: re-export-dominated Write (≥70% imports) → allow (heuristic exempts incidental annotations)
+- Cases 6a-b: standalone backward-compat preserved (no orchestrator prefix in reason)
+- Cases 7a-b: subhook-contract audit discovers ≥6 conforming subhooks (live-extraction pattern)
+- Case 8: dual-export naming-drift acknowledgement verified (file exports BOTH precise algorithm name AND symmetric-naming alias)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
