@@ -1,3 +1,10 @@
+# [21.76.0](https://github.com/terrylica/cc-skills/compare/v21.75.8...v21.76.0) (2026-05-21)
+
+
+### Features
+
+* **iter-178:** discoverable commits:perf-baseline mise task wrapper ([97c4188](https://github.com/terrylica/cc-skills/commit/97c418885e982161ef69b5f0af1633772554dab4))
+
 ## [21.75.8](https://github.com/terrylica/cc-skills/compare/v21.75.7...v21.75.8) (2026-05-21)
 
 
