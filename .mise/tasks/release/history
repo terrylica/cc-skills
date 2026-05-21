@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Render readable cc-skills release history. Operator-facing wrapper around `git log` that uses awk to soft-wrap the verbose iter-144-through-iter-149 conventional-commit subjects (754-1078 chars each) to terminal-width with proper indentation and color, addressing the readability problem caused by the /loop verbose-self-explanatory directive being (mis)applied to commit subjects (it targets file/function/var/constant/test/benchmark NAMES, not git commit subjects per industry-standard conventional-commits 50/72 rule). Default: last 10 commits, 80-col wrap. Tunables: ITER150_COMMIT_COUNT_TO_DISPLAY (default 10), ITER150_SOFT_WRAP_COLUMN_WIDTH (default 80), ITER150_CONTINUATION_INDENT (default 8). Pass extra git-log args after `--`, e.g.: `mise run release:history -- main~20..HEAD`."
+set -euo pipefail
+
+# This task is a thin shim that delegates to the iter-150 renderer script.
+# Kept as a separate file (vs inline bash) so the renderer can also be
+# invoked directly outside the mise context (e.g., from CI logs, ad-hoc
+# operator review, or aliased into the operator's shell rc).
+ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter150-readable-git-log-renderer-with-awk-based-soft-wrap-of-verbose-conventional-commit-subjects-to-eighty-column-terminal-width-with-color-decorations-and-indentation-for-operator-readability.sh"
+
+if [[ ! -x "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-150 renderer not found or not executable at:" >&2
+    echo "    $ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+# Forward all args verbatim (the renderer parses `--` for git-log passthrough).
+exec "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" "$@"
