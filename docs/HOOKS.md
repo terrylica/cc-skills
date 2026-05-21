@@ -1436,6 +1436,68 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-119: `--json` output mode for iter-116 reverse-search CLI — machine-readable structured output for jq pipelines and automation
+
+Iter-119 adds a `--json` flag to the iter-116 reverse-search CLI. When set, the CLI emits a single JSON document to stdout (instead of human-readable terminal blocks) suitable for piping to `jq`, feeding into downstream scripts, or building dashboards. Exit codes are unchanged (`0`/`1`/`2`) so automation can branch on either the exit code OR the JSON shape.
+
+**Three JSON output shapes**
+
+| Branch                | JSON shape                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Found                 | `{status: "found", consumerSourceFileRelativePath, markers: [{lifecycleLayer, registryProvenanceTag, …full entry}]}`                              |
+| Not-found / typo      | `{status: "not-found", consumerSourceFileRelativePath, didYouMean: [{path, levenshteinDistance}, …], allRegisteredConsumerSourceFilePaths: null}` |
+| Not-found / unrelated | `{status: "not-found", consumerSourceFileRelativePath, didYouMean: null, allRegisteredConsumerSourceFilePaths: [...]}`                            |
+
+The discriminated-union from iter-116 (`originatingRegistryLifecycleLayerTag: "RUNTIME_HOOK_ITER111" | "AUDIT_TASK_ITER114"`) is preserved as both:
+
+- A short string-valued `lifecycleLayer` field (`"runtime-hook"` or `"audit-task"`) for easy jq filtering
+- The original `registryProvenanceTag` for downstream consumers needing the original TypeScript-side tag
+
+The iter-118 "plausible typo vs unrelated query" decision is encoded directly in the JSON shape — `didYouMean` is non-null XOR `allRegisteredConsumerSourceFilePaths` is non-null — so downstream consumers can branch on JSON structure without re-running the ⌊queryLen/3⌋ threshold check.
+
+**Example workflows**
+
+```bash
+# What marker opts out of file-size-guard?
+$ mise run lookup-...-iter116-... --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts \
+    | jq -r '.markers[].markerNameTokenIncludingSuffix'
+FILE-SIZE-OK
+
+# Count markers per lifecycle layer (aggregate across all known consumers)
+$ for path in $(...listAll registered paths...); do
+    mise run lookup-...-iter116-... --json "$path" | jq -r '.markers[].lifecycleLayer'
+  done | sort | uniq -c
+
+# In CI: fail if any consumer has stale description (programmatic check)
+$ mise run lookup-...-iter116-... --json some/path.ts \
+    | jq -e '.markers[].humanReadableEscapeHatchDescriptionForOperatorDocumentation | contains("file-size-guard")'
+```
+
+**Routing contract**
+
+- JSON emitted to **stdout** so pipelines work without `2>&1` rewriting
+- **stderr is empty** in --json mode (regression-test Case 5 asserts this)
+- Human-readable mode (no flag) is preserved byte-for-byte — the `--json` flag is purely additive
+
+**Regression test (`test-iter119-…-piping-to-jq-works.sh`)**
+
+| Case | What it verifies                                                                                                                                  |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `--json` flag is documented in `--help` usage message with jq pipeline example                                                                    |
+| 2    | `--json` on known consumer: status=found, 1 marker = FILE-SIZE-OK, lifecycleLayer=runtime-hook, parseable by jq                                   |
+| 3    | `--json` on plausible typo: status=not-found, didYouMean[3] sorted ascending, top=intended path dist=1, allRegisteredConsumerSourceFilePaths=null |
+| 4    | `--json` on unrelated query: status=not-found, didYouMean=null, allRegisteredConsumerSourceFilePaths populated                                    |
+| 5    | JSON goes to stdout; stderr is empty (pipe-to-jq contract intact)                                                                                 |
+| 6    | Exit codes unchanged (`0`/`1`/`2`) — automation can branch on either exit code OR JSON                                                            |
+| 7    | Human-readable mode (no `--json`) preserved unchanged — flag is purely additive                                                                   |
+
+All 7 cases pass. Marketplace regression suite: **53/53** (up from 52).
+
+**Iter-120+ queue**
+
+- **Stale-description audit** (task #144 — deferred since iter-117): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` field mentions a hook/task name consistent with declared consumer-path. Wire as preflight Check 4v informational.
+- **Basename-substring search mode**: operators who know only the consumer's short name (e.g., `file-size-guard`) but not the full path should get useful results without iter-118's Levenshtein threshold rejecting them (basename-only queries differ from full paths by ≥23 chars — the missing `plugins/itp-hooks/hooks/` prefix — and exceed the ⌊queryLen/3⌋ threshold).
+
 ### Iter-118: Levenshtein-edit-distance-ranked "Did you mean?" fuzzy-match suggestion in iter-116 CLI unknown-path branch — operator typo correction
 
 Iter-118 enhances the iter-116 reverse-search CLI's unknown-path branch with the industry-standard "Did you mean?" pattern (mirrors `git`, `cargo`, `kubectl`). When an operator types a consumer source file path that doesn't match any registered consumer, the CLI now computes Levenshtein edit distance from the operator query to each of the 19 registered paths, ranks ascending, and surfaces the top-3 closest matches IF the closest one is within a typo-plausibility threshold. Unrelated queries (no shared structure with any registered path) deterministically fall back to the iter-116 full-list display rather than misleadingly suggesting three random-looking paths.
