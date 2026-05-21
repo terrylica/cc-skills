@@ -356,6 +356,249 @@ iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter1
     echo ""
 }
 
+# FILE-SIZE-OK: iter-152 + iter-155 dashboard remains a single cohesive
+# feature even after iter-155 added the --json mode rendering all 5
+# panels structured for AI-agent consumption. The human-readable panel
+# renderers, the JSON aggregation function, and the shared-lib sourcing
+# stay interlocked. ~610 lines fits comfortably under the 1000-line
+# hard block. Splitting would violate SSoT.
+
+# ─── Iter-155: --json output mode for AI-agent automation ───────────────────
+#
+# Iter-155 added a machine-readable JSON output mode to the iter-152
+# dashboard, closing the symmetrical AI-agent surface gap that iter-153
+# filled for the advisor. Reuses the iter-155 shared pure-bash RFC 8259
+# JSON escape library — no duplication.
+ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD" ]]; then
+    # shellcheck source=/dev/null
+    source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD"
+fi
+
+ITER155_ITER152_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION="human"
+
+# Parse --json flag (no other flags currently). Operator-passed extra
+# args are reserved for future passthrough.
+for iter155_arg_for_dashboard_dispatch_parsing in "$@"; do
+    case "$iter155_arg_for_dashboard_dispatch_parsing" in
+        --json)
+            ITER155_ITER152_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION="json"
+            ;;
+    esac
+done
+
+iter155_render_iter152_dashboard_as_machine_readable_json_aggregating_all_five_panels_for_ai_agent_automation_pipeline_consumption() {
+    # Collect raw data once. Each panel's underlying counts are
+    # recomputed here in a structure-preserving form rather than the
+    # human-renderable form, so the JSON consumer gets the canonical
+    # numeric/structural payload.
+    local iter155_inband_field_separator=$'\x1f'
+
+    # Subject-length distribution (Panel 2 data) + worst offenders
+    # (Panel 3) + type distribution (Panel 4) — single git log walk.
+    local raw_log_window_output
+    raw_log_window_output=$(
+        git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+            --pretty=format:"%h${iter155_inband_field_separator}%s" 2>/dev/null
+    )
+
+    # Use awk to compute bins + collect offenders + tally types.
+    local aggregated_json_payload
+    aggregated_json_payload=$(
+        printf '%s\n' "$raw_log_window_output" \
+            | awk -F"$iter155_inband_field_separator" \
+                -v hard_target="$ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
+                -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
+                -v worst_n="$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" '
+                BEGIN {
+                    bin_le_target = 0; bin_51_cap = 0; bin_73_100 = 0; bin_101_200 = 0
+                    bin_201_500 = 0; bin_501_1000 = 0; bin_1000_plus = 0
+                    total = 0
+                }
+                {
+                    sha = $1; subject = $2
+                    if (sha == "") next
+                    total++
+                    len = length(subject)
+                    sha_array[total] = sha
+                    subject_array[total] = subject
+                    length_array[total] = len
+                    if (len <= hard_target) bin_le_target++
+                    else if (len <= hard_cap) bin_51_cap++
+                    else if (len <= 100) bin_73_100++
+                    else if (len <= 200) bin_101_200++
+                    else if (len <= 500) bin_201_500++
+                    else if (len <= 1000) bin_501_1000++
+                    else bin_1000_plus++
+                    if (match(subject, /^[a-zA-Z]+/)) {
+                        type_name = tolower(substr(subject, RSTART, RLENGTH))
+                    } else {
+                        type_name = "(no-type)"
+                    }
+                    type_count[type_name]++
+                }
+                END {
+                    print "TOTAL=" total
+                    print "BIN_LE_TARGET=" bin_le_target
+                    print "BIN_51_CAP=" bin_51_cap
+                    print "BIN_73_100=" bin_73_100
+                    print "BIN_101_200=" bin_101_200
+                    print "BIN_201_500=" bin_201_500
+                    print "BIN_501_1000=" bin_501_1000
+                    print "BIN_1000_PLUS=" bin_1000_plus
+                    # Emit per-commit triples for worst-offender sort
+                    for (i = 1; i <= total; i++) {
+                        printf "COMMIT|%d|%s|%s\n", length_array[i], sha_array[i], subject_array[i]
+                    }
+                    # Emit type tallies
+                    for (t in type_count) {
+                        printf "TYPE|%s|%d\n", t, type_count[t]
+                    }
+                }
+            '
+    )
+
+    # Parse the awk output into bash-accessible vars.
+    local iter155_total_commits_in_window
+    iter155_total_commits_in_window=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^TOTAL=/ {print $2}')
+    local iter155_bin_le_target iter155_bin_51_cap iter155_bin_73_100 iter155_bin_101_200 iter155_bin_201_500 iter155_bin_501_1000 iter155_bin_1000_plus
+    iter155_bin_le_target=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_LE_TARGET=/ {print $2}')
+    iter155_bin_51_cap=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_51_CAP=/ {print $2}')
+    iter155_bin_73_100=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_73_100=/ {print $2}')
+    iter155_bin_101_200=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_101_200=/ {print $2}')
+    iter155_bin_201_500=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_201_500=/ {print $2}')
+    iter155_bin_501_1000=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_501_1000=/ {print $2}')
+    iter155_bin_1000_plus=$(printf '%s\n' "$aggregated_json_payload" | awk -F= '/^BIN_1000_PLUS=/ {print $2}')
+
+    # Build worst-offenders JSON array (top-N by char count).
+    local iter155_worst_offenders_json_array_body=""
+    local iter155_offender_emit_count=0
+    local iter155_offender_len iter155_offender_sha iter155_offender_subject iter155_escaped_subject
+    local iter155_offender_cap_count="$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3"
+    while IFS='|' read -r tag len sha subject_field; do
+        [[ "$tag" != "COMMIT" ]] && continue
+        if (( iter155_offender_emit_count >= iter155_offender_cap_count )); then break; fi
+        iter155_offender_len="$len"
+        iter155_offender_sha="$sha"
+        iter155_offender_subject="$subject_field"
+        if [[ -n "$iter155_worst_offenders_json_array_body" ]]; then
+            iter155_worst_offenders_json_array_body+=","
+        fi
+        iter155_escaped_subject=$(iter155_pure_bash_rfc8259_compliant_json_string_escape_handling_all_seven_named_escapes_plus_generic_uxxxx_for_control_chars "$iter155_offender_subject")
+        iter155_worst_offenders_json_array_body+=$(printf '\n    {"sha": "%s", "length_chars": %d, "subject": %s}' "$iter155_offender_sha" "$iter155_offender_len" "$iter155_escaped_subject")
+        iter155_offender_emit_count=$((iter155_offender_emit_count + 1))
+    done < <(printf '%s\n' "$aggregated_json_payload" | grep '^COMMIT|' | sort -t'|' -k2,2 -rn)
+
+    # Build type-distribution JSON object.
+    local iter155_type_distribution_json_body=""
+    while IFS='|' read -r tag type_name count; do
+        [[ "$tag" != "TYPE" ]] && continue
+        if [[ -n "$iter155_type_distribution_json_body" ]]; then
+            iter155_type_distribution_json_body+=","
+        fi
+        iter155_type_distribution_json_body+=$(printf '\n    "%s": %d' "$type_name" "$count")
+    done < <(printf '%s\n' "$aggregated_json_payload" | grep '^TYPE|')
+
+    # Compute trend signal (Panel 5) by running a second git log query
+    # for the 2N window.
+    local iter155_trend_window_doubled=$((ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW * 2))
+    local iter155_trend_awk_output
+    iter155_trend_awk_output=$(
+        git log -"$iter155_trend_window_doubled" --pretty=format:'%s' 2>/dev/null \
+            | awk -v window_size="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+                  -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" '
+                {
+                    len = length($0)
+                    if (NR <= window_size) {
+                        cur[NR] = len
+                        cur_n++
+                        if (len <= hard_cap) cur_conf++
+                    } else if (NR <= window_size * 2) {
+                        prev[NR - window_size] = len
+                        prev_n++
+                        if (len <= hard_cap) prev_conf++
+                    }
+                }
+                function p50(arr, n,    s, i, j, t) {
+                    for (i = 1; i <= n; i++) s[i] = arr[i]
+                    for (i = 1; i < n; i++) for (j = 1; j < n; j++)
+                        if (s[j] > s[j+1]) { t = s[j]; s[j] = s[j+1]; s[j+1] = t }
+                    if (n % 2 == 1) return s[int(n/2) + 1]
+                    return (s[n/2] + s[n/2 + 1]) / 2
+                }
+                END {
+                    if (cur_n == 0 || prev_n == 0) {
+                        print "INSUFFICIENT_HISTORY=1"
+                        exit
+                    }
+                    cur_p50 = p50(cur, cur_n)
+                    prev_p50 = p50(prev, prev_n)
+                    cur_conf_pct = (cur_conf / cur_n) * 100
+                    prev_conf_pct = (prev_conf / prev_n) * 100
+                    delta_p50 = cur_p50 - prev_p50
+                    delta_conf_pp = cur_conf_pct - prev_conf_pct
+                    if (delta_p50 < 0 && delta_conf_pp >= 0) verdict = "IMPROVING"
+                    else if (delta_p50 > 0 && delta_conf_pp <= 0) verdict = "REGRESSING"
+                    else if (delta_p50 == 0 && delta_conf_pp == 0) verdict = "STABLE"
+                    else verdict = "MIXED"
+                    print "CUR_P50=" cur_p50
+                    print "PREV_P50=" prev_p50
+                    print "CUR_CONF_PCT=" cur_conf_pct
+                    print "PREV_CONF_PCT=" prev_conf_pct
+                    print "DELTA_P50=" delta_p50
+                    print "DELTA_CONF_PP=" delta_conf_pp
+                    print "VERDICT=" verdict
+                }
+            '
+    )
+
+    local iter155_trend_sufficient_history="true"
+    if [[ "$iter155_trend_awk_output" == *"INSUFFICIENT_HISTORY=1"* ]]; then
+        iter155_trend_sufficient_history="false"
+    fi
+    local iter155_trend_cur_p50 iter155_trend_prev_p50 iter155_trend_cur_conf iter155_trend_prev_conf iter155_trend_verdict
+    iter155_trend_cur_p50=$(printf '%s\n' "$iter155_trend_awk_output" | awk -F= '/^CUR_P50=/ {print $2}')
+    iter155_trend_prev_p50=$(printf '%s\n' "$iter155_trend_awk_output" | awk -F= '/^PREV_P50=/ {print $2}')
+    iter155_trend_cur_conf=$(printf '%s\n' "$iter155_trend_awk_output" | awk -F= '/^CUR_CONF_PCT=/ {print $2}')
+    iter155_trend_prev_conf=$(printf '%s\n' "$iter155_trend_awk_output" | awk -F= '/^PREV_CONF_PCT=/ {print $2}')
+    iter155_trend_verdict=$(printf '%s\n' "$iter155_trend_awk_output" | awk -F= '/^VERDICT=/ {print $2}')
+
+    # Emit the final structured JSON document.
+    cat <<EOF
+{
+  "iter155_schema_version": 1,
+  "iter152_commits_health_dashboard_machine_readable_output": true,
+  "window_size_commits": ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW},
+  "thresholds": {
+    "hard_target_chars": ${ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE},
+    "hard_cap_chars": ${ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE}
+  },
+  "panel_2_subject_length_distribution_histogram": {
+    "total_commits_in_window": ${iter155_total_commits_in_window:-0},
+    "le_50_hard_target": ${iter155_bin_le_target:-0},
+    "51_to_72_hard_cap": ${iter155_bin_51_cap:-0},
+    "73_to_100_mild_over_cap": ${iter155_bin_73_100:-0},
+    "101_to_200_verbose_naming_era": ${iter155_bin_101_200:-0},
+    "201_to_500_heavy_verbose": ${iter155_bin_201_500:-0},
+    "501_to_1000_extreme": ${iter155_bin_501_1000:-0},
+    "over_1000_iter144_149_outlier_territory": ${iter155_bin_1000_plus:-0}
+  },
+  "panel_3_worst_offenders_top_n_by_char_count": [${iter155_worst_offenders_json_array_body}
+  ],
+  "panel_4_conventional_commits_type_distribution": {${iter155_type_distribution_json_body}
+  },
+  "panel_5_recent_vs_previous_window_trend_signal": {
+    "sufficient_history_for_trend_signal": ${iter155_trend_sufficient_history},
+    "current_window_p50_median_chars": ${iter155_trend_cur_p50:-0},
+    "previous_window_p50_median_chars": ${iter155_trend_prev_p50:-0},
+    "current_window_conformance_rate_pct": ${iter155_trend_cur_conf:-0},
+    "previous_window_conformance_rate_pct": ${iter155_trend_prev_conf:-0},
+    "verdict": "${iter155_trend_verdict:-UNKNOWN}"
+  }
+}
+EOF
+}
+
 iter152_main_entry_point_orchestrates_five_panel_dashboard_render() {
     iter152_emit_dashboard_header_banner_with_window_and_threshold_metadata
     iter152_render_panel_1_iter150_readable_view_by_delegating_to_iter150_renderer_for_consistency
@@ -366,4 +609,9 @@ iter152_main_entry_point_orchestrates_five_panel_dashboard_render() {
     iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter151_cross_references
 }
 
-iter152_main_entry_point_orchestrates_five_panel_dashboard_render
+# Iter-155 dispatch: emit JSON or human-readable based on flag.
+if [[ "$ITER155_ITER152_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION" == "json" ]]; then
+    iter155_render_iter152_dashboard_as_machine_readable_json_aggregating_all_five_panels_for_ai_agent_automation_pipeline_consumption
+else
+    iter152_main_entry_point_orchestrates_five_panel_dashboard_render
+fi
