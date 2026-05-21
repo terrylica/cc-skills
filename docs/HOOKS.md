@@ -1436,6 +1436,73 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-117: Inject auto-generated table of contents with GitHub-Flavored-Markdown anchor links at top of reference doc — operator quick-navigation across 20 marker sections
+
+Iter-117 closes the third operator-discoverability gap in this arc:
+
+| Direction                       | Pre-iter-117 workflow                       | Post-iter-117 workflow                                                                                           |
+| ------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Forward** (marker → details)  | iter-113 generated doc (section per marker) | Same — but now reachable in 1 click from TOC                                                                     |
+| **Reverse** (consumer → marker) | iter-116 CLI lookup                         | Same — CLI continues to handle the consumer-path → marker direction                                              |
+| **Quick scan** (any → list)     | Scroll through 385 lines OR Cmd-F the doc   | Top-of-doc Quick navigation lists all 20 markers grouped by lifecycle layer, alphabetical, anchor-link clickable |
+
+The reference doc is auto-generated, so the TOC must also be auto-generated to preserve the iter-115 STRICT-BLOCK drift-detection invariant. The iter-117 enhancement adds a TOC-generation function to the iter-113 renderer that runs INSIDE the existing idempotency boundary — re-running the generator on an unchanged registry still produces byte-identical output, so Check 4u stays green.
+
+**GitHub-Flavored-Markdown anchor link normalization**
+
+The TOC needs anchor-link fragments that exactly match what GitHub computes when rendering H2 headings. The normalization algorithm is encoded in the precisely-named function `computeGitHubFlavoredMarkdownAnchorLinkFragmentFromHeadingTextStrippingBackticksAndParensAndLowercasingAndConvertingSpacesToHyphens`:
+
+| Heading text                                | Normalized anchor                   | Why                                                  |
+| ------------------------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| `` ## `FILE-SIZE-OK` ``                     | `#file-size-ok`                     | Backticks stripped, lowercased                       |
+| `` ## `SSoT-OK` ``                          | `#ssot-ok`                          | Mixed-case grandfathered marker lowercased correctly |
+| ``## `ESCAPE-HATCH-AUDIT-OK` (audit-task)`` | `#escape-hatch-audit-ok-audit-task` | Parens stripped, space → hyphen                      |
+
+The function name encodes the exact algorithm so future maintainers don't have to reverse-engineer the regex when GitHub eventually changes the rules.
+
+**TOC structure**
+
+```markdown
+## Quick navigation
+
+Jump directly to any of the 20 registered markers below. Markers are listed
+alphabetically within each lifecycle layer.
+
+**Runtime-hook markers** (12; consumed by Pre/PostToolUse hooks via iter-107
+helper on every Write/Edit/Bash invocation):
+
+- [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
+- [`CARGO-TTY-SKIP`](#cargo-tty-skip)
+- ...
+- [`SSoT-OK`](#ssot-ok)
+
+**Audit-task markers** (8; consumed by `.mise/` audit tasks once per
+release-preflight):
+
+- [`ESCAPE-HATCH-AUDIT-OK`](#escape-hatch-audit-ok-audit-task)
+- ...
+- [`WILDCARD-MATCHER-OK`](#wildcard-matcher-ok-audit-task)
+```
+
+**Regression test (`test-iter117-…-grouped-by-lifecycle-layer-and-sorted-alphabetically.sh`)**
+
+| Case | What it verifies                                                                                             |
+| ---- | ------------------------------------------------------------------------------------------------------------ |
+| 1    | `## Quick navigation` section exists between preamble blockquote and `## Purpose` (top-of-doc positioning)   |
+| 2    | TOC contains all 12 runtime-hook marker entries in GFM list syntax                                           |
+| 3    | TOC contains all 8 audit-task marker entries                                                                 |
+| 4    | GitHub anchor normalization correct on 4 probe tokens including SSoT-OK mixed-case + audit-task suffix shape |
+| 5    | TOC runtime-hook entries are in alphabetical order matching iter-111 registry sort                           |
+| 6    | `--check` still passes after TOC injection (idempotency invariant preserved)                                 |
+| 7    | Every TOC anchor link target exists as an actual H2 heading (no dangling links)                              |
+
+All 7 cases pass. Marketplace regression suite: **51/51** (up from 50; iter-117 test auto-discovered).
+
+**Iter-118+ candidates queued in the regression test**
+
+- Stale-description audit (deferred from iter-117 in favor of this higher-leverage usability win): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) and `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field. Wire as Check 4v informational.
+- Fuzzy-match suggestion in the iter-116 reverse-search CLI's unknown-path hint: when an operator types a path with a typo, compute Levenshtein distance against the 19 registered paths and surface the top-3 closest matches as "Did you mean?" suggestions instead of dumping the full list.
+
 ### Iter-116: Reverse-search registry accessor spanning iter-111 + iter-114 — operator workflow "what marker opts out of THIS hook/audit-task?"
 
 Iter-116 closes the operator-discoverability gap of the FORWARD direction (marker → consumer was covered by the iter-113 reference doc; consumer → marker required table-scanning until iter-116). Operators now answer the reverse question with one CLI invocation:

@@ -9,6 +9,36 @@
 > mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry
 > ```
 
+## Quick navigation
+
+Jump directly to any of the 20 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+
+**Runtime-hook markers** (12; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+
+- [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
+- [`CARGO-TTY-SKIP`](#cargo-tty-skip)
+- [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
+- [`CWD-DELETE-OK`](#cwd-delete-ok)
+- [`FILE-SIZE-OK`](#file-size-ok)
+- [`INIT-MONOLITH-OK`](#init-monolith-ok)
+- [`INLINE-IGNORE-OK`](#inline-ignore-ok)
+- [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
+- [`PROCESS-STORM-OK`](#process-storm-ok)
+- [`PUEUE-LOCAL-OK`](#pueue-local-ok)
+- [`SETPROCTITLE-OK`](#setproctitle-ok)
+- [`SSoT-OK`](#ssot-ok)
+
+**Audit-task markers** (8; consumed by `.mise/` audit tasks once per release-preflight):
+
+- [`ESCAPE-HATCH-AUDIT-OK`](#escape-hatch-audit-ok-audit-task)
+- [`HOOK-OUTPUT-SIZE-CAP-OK`](#hook-output-size-cap-ok-audit-task)
+- [`MATCHER-NO-MULTIEDIT-OK`](#matcher-no-multiedit-ok-audit-task)
+- [`ORDERING-OK`](#ordering-ok-audit-task)
+- [`POSTTOOLUSE-RAW-STDOUT-OK`](#posttooluse-raw-stdout-ok-audit-task)
+- [`SPAWN-SYNC-OK`](#spawn-sync-ok-audit-task)
+- [`STOP-HOOK-ADDITIONAL-CONTEXT-OK`](#stop-hook-additional-context-ok-audit-task)
+- [`WILDCARD-MATCHER-OK`](#wildcard-matcher-ok-audit-task)
+
 ## Purpose
 
 The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by .mise/ release-preflight audit tasks via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.
