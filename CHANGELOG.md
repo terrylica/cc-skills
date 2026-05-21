@@ -1,3 +1,10 @@
+# [21.37.0](https://github.com/terrylica/cc-skills/compare/v21.36.0...v21.37.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-102 PreToolUse canonical tool-name allow-set helper hoisted to contract lib + 8 inlined classifiers migrated to consume helper (mirrors iter-100 PostToolUse-side hoist) + iter-103+ NotebookEdit follow-up scope surfaced by 2026 web-research ([94aa82d](https://github.com/terrylica/cc-skills/commit/94aa82d442e14aeaec133e1edad50b15b61c670e))
+
 # [21.36.0](https://github.com/terrylica/cc-skills/compare/v21.35.0...v21.36.0) (2026-05-21)
 
 
