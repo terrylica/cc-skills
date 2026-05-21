@@ -1,3 +1,10 @@
+# [21.29.0](https://github.com/terrylica/cc-skills/compare/v21.28.0...v21.29.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-91 inline vale-claude-md-guard into PreToolUse orchestrator (8th and FINAL subhook — completes the iter-84 to iter-91 PreToolUse Write|Edit migration arc) + consolidate iter-90 doc additions silently lost in formatter pass + introduce iter-91 arc-completion empirical-savings summary tables + jq-based hooks.json invariant assertions replace BSD-grep-ERE brittleness ([8c1f164](https://github.com/terrylica/cc-skills/commit/8c1f16450dcce619870b180311494a68e575163d)), closes [#96](https://github.com/terrylica/cc-skills/issues/96) [#96](https://github.com/terrylica/cc-skills/issues/96)
+
 # [21.28.0](https://github.com/terrylica/cc-skills/compare/v21.27.0...v21.28.0) (2026-05-21)
 
 
