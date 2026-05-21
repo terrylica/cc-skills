@@ -629,7 +629,7 @@ This means task #96's "9 PostToolUse Write|Edit hooks → 1 orchestrator, ~136ms
 | **Path A: async:true sweep**      | LOW — add `"async": true` to existing 9 hooks.json entries                                                | ZERO blocking cost (Claude doesn't wait) | All 9 are already deny-incompatible per iter-66 schema (PostToolUse reads only `{decision: "block", reason}`) — async-eligible | LOW — preserves current 1:1 hook isolation, no contract design                |
 | **Path B: orchestrator inlining** | HIGH — design PostToolUseSubhookContract, build orchestrator analog, refactor 9 hooks to pure classifiers | ~136ms per Write/Edit                    | Same schema constraints + need to aggregate `additionalContext` outputs                                                        | HIGH — every PostToolUse hook becomes coupled to the orchestrator's lifecycle |
 
-The async:true path is strictly dominant on every dimension. Task #96 has been updated (description field) to require evaluating async:true first; the orchestrator path should only proceed if async:true is found inapplicable for specific hooks (e.g., hooks that must serialize their effects across Write|Edit boundaries within a session, which is rare).
+**⚠️ ITER-92 RETROACTIVE CORRECTION**: the above "strict-dominant" claim was **WRONG**. Iter-92 web research (see iter-92 section below) and the per-hook marketplace audit revealed that PostToolUse hooks **DO** inject context via `{decision: "block", reason}` JSON for the self-correction feedback loop (e.g., type-check errors that Claude reads and fixes). Async:true makes those hooks fire-and-forget, which means **Claude advances without seeing the feedback**. 15 of 17 audited PostToolUse hooks marketplace-wide are CONTEXT-INJECTING (decision:block-emitting or additionalContext-emitting) and therefore NOT async-safe. The iter-92 audit task automates this classification and locks in the corrected analysis as a release-preflight gate candidate.
 
 This finding ALSO retroactively validates the iter-84 PreToolUse orchestrator decision: PreToolUse MUST block (can deny edits) so async:true is NOT a viable path for the Write|Edit registry — orchestrator inlining is correct for PreToolUse but likely WRONG for PostToolUse.
 
@@ -717,6 +717,50 @@ Per iter-87 empirical microbenchmark: ~17ms saved per inlined subhook. Final-sta
 - Cases 8-9: standalone `import.meta.main` guard + dual-export naming preserved
 
 **Iter-91 dev-time forensic finding (silent doc-truncation)**: a subset of the iter-90 HOOKS.md changes were silently lost between my edit and the iter-90 commit (the commit's `--stat` showed only 2 HOOKS.md lines changed despite a much larger intended addition). The most plausible cause is a formatter or PostToolUse hook that touched HOOKS.md and reverted the larger section. The iter-91 edit re-asserts both the iter-90 section AND the iter-91 arc-completion content as a single consolidated write, with the doc-history record relying on this iter-91 commit rather than iter-90's. Future iters should consider adding a HOOKS.md "section drift" audit that warns if iter-N's docs are missing from the file when iter-(N+1) starts.
+
+### Iter-92: PostToolUse async:true eligibility audit — RETROACTIVELY CORRECTS iter-89's "Path A strict-dominance" claim
+
+Iter-92 is the **first project in the post-arc PostToolUse orchestration phase** AND the **adversarial correction** of an architectural claim iter-89/iter-91 made without sufficient research.
+
+**Background**: iter-89 web research surfaced Anthropic's Jan-2026 `async: true` hook flag and concluded — based on the schema reasoning that "PostToolUse cannot deny per iter-66 schema, therefore all 9 PostToolUse Write|Edit hooks are async-eligible by definition" — that Path A (async:true sweep) was **strictly dominant** over Path B (orchestrator inlining) on every dimension. Task #96 was redirected to start with a Path A sweep. **Iter-92 proves this claim was wrong on 15 of 17 audited PostToolUse hooks marketplace-wide.**
+
+**Iter-92 corrected analysis** (sources: [code.claude.com/docs/en/hooks](https://code.claude.com/docs/en/hooks), [claudefa.st March-2026 reference](https://claudefa.st/blog/tools/hooks/hooks-guide), [reading.sh async-hooks deep-dive](https://reading.sh/claude-code-async-hooks-what-they-are-and-when-to-use-them-61b21cd71aad)):
+
+> "An async PostToolUse hook **cannot reliably inject `additionalContext` next to the tool result**, since the model will have already advanced before the hook finishes. The documented timing — PreToolUse, PostToolUse, PostToolUseFailure, and PostToolBatch place additionalContext next to the tool result — **assumes synchronous completion**. The async flag is therefore intended for side effects like logs, notifications, and backups, **not for the self-correction feedback loop**, which requires the hook to complete before Claude's next model request."
+
+The schema-reasoning argument iter-89 used was incomplete: PostToolUse CAN'T DENY but it CAN INJECT CONTEXT via `{decision: "block", reason}` or `additionalContext`. **Context injection requires synchronous completion just as much as deny does.** Type checkers (`ty`, `tsgo`, `oxlint`, `biome`) and reminder hooks both rely on this same-turn timing — making any of them async breaks the feedback loop that lets Claude self-correct without operator intervention.
+
+**Iter-92 eligibility-classifier task** (`audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh`):
+
+The audit task discovers every PostToolUse hooks.json entry marketplace-wide, resolves `${CLAUDE_PLUGIN_ROOT}` to the absolute plugin-root path, strips `bun`/`node` prefixes, dedupes the script paths, then classifies each by output pattern:
+
+| Verdict | Pattern detected                                                                | Async-safety        | Marketplace count (iter-92 baseline) |
+| ------- | ------------------------------------------------------------------------------- | ------------------- | ------------------------------------ |
+| `[C]`   | emits `decision: "block"` JSON OR `additionalContext`                           | ASYNC-UNSAFE        | **15 of 17 (88%)**                   |
+| `[M]`   | emits unstructured stdout (could be operator-visible OR Claude-system-reminder) | NEEDS-MANUAL-REVIEW | 1                                    |
+| `[S]`   | no stdout output detected (pure file/network side effects only)                 | ASYNC-SAFE          | 1                                    |
+
+**Corrected architecture decision for task #96** (now embedded in the audit task's summary output for operator visibility):
+
+- **Path A (async:true sweep)**: RULED OUT for 15 of 17 hooks. Viable for the 1 confirmed pure-side-effect hook only (and only after the audit's classification has been peer-reviewed for that specific hook).
+- **Path B (orchestrator inlining)**: viable for ALL hooks — preserves the synchronous `decision: "block"` context-injection contract. Requires building a `PostToolUseSubhookContract` analog to the iter-84 PreToolUse contract; the contract's decision type collapses to `{kind: "noop"} | {kind: "additional_context", message}` since `deny`/`ask` are not honored on PostToolUse per the iter-66 schema findings.
+- **Path C (HTTP hooks long-lived server)**: viable but requires server-lifecycle management; SOTA 2026 pattern surfaced by iter-89 research. Best suited for hooks that need shared in-process state (caches, loaded ML models). Out of scope for the current PostToolUse 9-hook registry which doesn't have shared state.
+
+**Iter-92 regression test** ([12 assertions, all pass](../.mise/tasks/tests/test-iter92-posttooluse-asynctrue-eligibility-audit-classifies-decision-block-emitting-hooks-as-context-injecting-async-unsafe-correcting-iter89-strict-dominance-claim.sh)):
+
+- Case 1: audit exits 0 (informational; never blocks release pipeline)
+- Case 2: ≥15 PostToolUse hooks discovered marketplace-wide (found 17)
+- Cases 3a-d: 4 type-check / lint hooks (`ty`, `tsgo`, `oxlint`, `biome`) all classified as `[C]` context-injecting
+- Case 4: at least one `additionalContext`-emitting hook flagged (e.g., `rust-sota-reminder`)
+- Cases 5a-c: explicit iter-89 strict-dominance correction banner present; Path A explicitly RULED OUT; Path B recommended as viable replacement
+- Case 6: NO PreToolUse hooks leak into PostToolUse audit (event-type filter correctness)
+- Case 7: context-injecting count >> pure-side-effect count (validates iter-92 finding that Path A is broadly inapplicable)
+
+**Iter-92 dev-time forensic findings** (defense-in-depth scaffolding for future audit-task authors):
+
+- **`[C]` / `[S]` verdict-tags are OVERLOADED**: per-hook lines AND the summary-totals line both start with these tags. Per-hook lines look like `[C] [NOT-CURRENTLY-ASYNC] posttooluse-X.ts` (no trailing count). Summary lines uniquely include the verdict-name + parenthetical + colon-followed-by-count (e.g., `[C] CONTEXT-INJECTING (decision:block or additionalContext):  15  →`). Test assertions on summary numbers must anchor on the parenthetical-plus-colon pattern, not on the tag alone — anchoring on the tag matches per-hook lines first and `head -1` extracts the wrong line.
+- **macOS BSD grep does NOT support `\s` shorthand** for whitespace in ERE mode — use `[[:space:]]` POSIX bracket-class. Iter-92 test initially failed with `grep -E '^\s*\[C\]'` returning 0 matches; the fix was to switch to `^[[:space:]]*\[C\]`.
+- **The 17-hook marketplace count exceeds iter-88's 9-hook projection** because the discovery walks every plugin's `hooks.json`, not just `itp-hooks/hooks/hooks.json`. The corrected savings projection for Path B (orchestrator inlining of ALL marketplace PostToolUse hooks): `(17 - 1) × 17ms ≈ 272ms per Write/Edit` (vs iter-88's optimistic 136ms based on itp-hooks-only count).
 
 ### Self-measurement tool
 
