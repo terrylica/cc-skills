@@ -222,6 +222,29 @@ PREFLIGHT_TIMING_PROFILE=1 \
   mise run release:preflight 2>&1 | tail -15
 ```
 
+#### `ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=N` (iter-140)
+
+Override count for the iter-140 post-release `successCmd` per-step bottleneck ranking emitted when `RELEASE_TIMING_PROFILE=1`. Default 5. Mirrors `ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY` + `ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY` at the deepest instrumentation level — `successCmd` step internals INSIDE Phase 2 (semantic-release).
+
+Iter-140 also eliminated a hardcoded `sleep 2` between the `claude --print` plugin-update trigger and the cache-verify step. Net save: ~2000ms per release. The cache-verify step already handles the "cache not yet populated" graceful-degrade branch with a "may need session restart" warning, so the unconditional 2s wait had no functional benefit.
+
+```bash
+# Surface top 7 (= all) successCmd steps with their elapsed-ms
+RELEASE_TIMING_PROFILE=1 \
+  ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=7 \
+  mise run release:full 2>&1 | grep -E '(⧗|successCmd)'
+```
+
+The seven instrumented steps (in execution order):
+
+1. marketplace-clone git-fetch-tags + git-reset-hard-to-vN + plugin.json version-confirmation
+2. **claude --print /plugin update cc-skills subprocess-bootstrap** (suspected dominant cost — full Claude Code instance bootstrap for one slash command; iter-141+ optimization candidate)
+3. (Step 3 ELIMINATED by iter-140 — was `sleep 2`)
+4. plugin-cache version-verification
+5. sync-hooks-to-settings.sh invocation
+6. hook-files-in-cache validation (jq-empty across all plugin cache directories)
+7. jsDelivr-CDN-purge + tagged-URL-smoke-test loop over plugins/html-showcase/assets/\*
+
 #### `RELEASE_TIMING_PROFILE=1` (iter-139)
 
 Surface per-phase wall-clock timing for the **entire 7-phase release pipeline** (preflight → presync → version → sync → verify → chronicle → postflight). Mirrors the iter-73/130 preflight-internal pattern at the pipeline level. Default off — release output unchanged. When set:
