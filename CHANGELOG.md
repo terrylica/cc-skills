@@ -1,3 +1,10 @@
+# [21.62.0](https://github.com/terrylica/cc-skills/compare/v21.61.0...v21.62.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-151 72-char subject overlay ([bf6fba3](https://github.com/terrylica/cc-skills/commit/bf6fba3207d961bff78ce041b131c7f391e5c8c1))
+
 # [21.61.0](https://github.com/terrylica/cc-skills/compare/v21.60.2...v21.61.0) (2026-05-21)
 
 
