@@ -112,27 +112,62 @@ ITER153_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE=72
 ITER153_OUTPUT_MODE_HUMAN_READABLE_OR_JSON_FOR_AI_AGENT_CONSUMPTION="human"
 ITER153_STRICT_MODE_EXIT_NONZERO_ON_SILENT_FAIL_CLASS_VIOLATIONS=0
 ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY=""
+# Iter-162: full multi-line commit-message body captured separately from
+# the subject line. Used to detect Conventional Commits §13 BREAKING
+# CHANGE footer tokens that signal a MAJOR bump without the subject `!`
+# marker. Populated by --message-file flag or the iter-154 COMMIT_EDITMSG
+# auto-detect (extended to capture body).
+# shellcheck disable=SC2034  # populated and consumed in iter-162 block further down
+ITER162_PROPOSED_COMMIT_MULTILINE_BODY_FOR_FOOTER_TOKEN_DETECTION_OR_EMPTY_WHEN_SUBJECT_ONLY_INPUT_MODE=""
 
 iter153_print_usage_help_text_and_exit_with_code_two() {
     cat <<'EOF'
 Usage: commits:advise [--json] [--strict] -- "<proposed subject>"
    or: echo "<subject>" | commits:advise [--json] [--strict] --
+   or: commits:advise [--json] [--strict] --message-file <path>
 
 Pre-commit dry-run advisor. Classifies a proposed conventional-commit
 subject through the iter-82/iter-151 grammar without committing.
 
 Modes:
-  --json     Emit machine-readable JSON for AI-agent automation.
-  --strict   Exit non-zero on silent-fail-class violations (COMPOUND-
-             PREFIX or MISSING-TYPE). Long-subject overlay remains
-             informational even in --strict mode.
+  --json              Emit machine-readable JSON for AI-agent automation.
+  --strict            Exit non-zero on silent-fail-class violations
+                      (COMPOUND-PREFIX or MISSING-TYPE). Long-subject
+                      overlay remains informational even in --strict mode.
+  --message-file PATH Read full multi-line commit message from PATH.
+                      First non-comment non-empty line = subject, rest =
+                      body. Enables iter-162 BREAKING CHANGE footer-token
+                      detection (Conventional Commits §13). Used by the
+                      iter-157 commit-msg hook to forward COMMIT_EDITMSG.
 
 Examples:
   commits:advise -- "feat(release): iter-153 short subject"
   commits:advise --json -- "feat: foo" | jq .verdict
   commits:advise --strict -- "feat(scope)+docs: bad compound prefix"
+  commits:advise --strict --message-file .git/COMMIT_EDITMSG
 EOF
     exit 2
+}
+
+# Iter-162: helper to split a multi-line commit-message file into
+# (subject, body) tuple per the git commit-message convention.
+#   - Subject = FIRST non-comment non-blank line (matches iter-157
+#     extraction logic)
+#   - Body    = ALL non-comment lines AFTER the subject (preserves
+#     blank lines for footer-token detection per the §13 spec which
+#     requires "one blank line after the body" for footers).
+iter162_split_commit_message_file_into_subject_line_and_remaining_multiline_body_per_git_commit_message_convention() {
+    local commit_message_file_absolute_path="$1"
+    awk -v subject_line_already_emitted=0 '
+        /^[[:space:]]*#/ { next }
+        subject_line_already_emitted == 0 && /^[[:space:]]*$/ { next }
+        subject_line_already_emitted == 0 {
+            print > "/dev/stderr"
+            subject_line_already_emitted = 1
+            next
+        }
+        { print }
+    ' "$commit_message_file_absolute_path"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -143,6 +178,25 @@ while [[ $# -gt 0 ]]; do
             ;;
         --strict)
             ITER153_STRICT_MODE_EXIT_NONZERO_ON_SILENT_FAIL_CLASS_VIOLATIONS=1
+            shift
+            ;;
+        --message-file)
+            shift
+            if [[ $# -eq 0 ]] || [[ ! -f "$1" ]]; then
+                echo "Error: --message-file requires a readable file path argument" >&2
+                iter153_print_usage_help_text_and_exit_with_code_two
+            fi
+            ITER162_PROPOSED_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH_FOR_FULL_MULTILINE_INPUT_INCLUDING_BODY="$1"
+            # awk emits subject on stderr (so we can capture it separately)
+            # and body on stdout. Bash's process substitution + temp file
+            # avoids the stderr/stdout-cross-channel gymnastics.
+            ITER162_PROPOSED_COMMIT_MULTILINE_BODY_FOR_FOOTER_TOKEN_DETECTION_OR_EMPTY_WHEN_SUBJECT_ONLY_INPUT_MODE=$(
+                iter162_split_commit_message_file_into_subject_line_and_remaining_multiline_body_per_git_commit_message_convention \
+                    "$ITER162_PROPOSED_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH_FOR_FULL_MULTILINE_INPUT_INCLUDING_BODY" \
+                    2>/tmp/iter162-subject-line-tmpfile-$$
+            )
+            ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY=$(cat /tmp/iter162-subject-line-tmpfile-$$)
+            rm -f /tmp/iter162-subject-line-tmpfile-$$
             shift
             ;;
         --help|-h)
@@ -195,6 +249,14 @@ if [[ -z "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" ]]; then
         )
         if [[ -n "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" ]]; then
             echo "  ⧗ iter-154 auto-detect: read subject from .git/COMMIT_EDITMSG" >&2
+            # Iter-162 extension: also capture multi-line body (everything
+            # after the subject line, comments stripped) so the iter-162
+            # footer-token detector can scan for BREAKING CHANGE: trailers.
+            ITER162_PROPOSED_COMMIT_MULTILINE_BODY_FOR_FOOTER_TOKEN_DETECTION_OR_EMPTY_WHEN_SUBJECT_ONLY_INPUT_MODE=$(
+                iter162_split_commit_message_file_into_subject_line_and_remaining_multiline_body_per_git_commit_message_convention \
+                    "$ITER154_GIT_COMMIT_EDITMSG_FILE_ABSOLUTE_PATH" \
+                    2>/dev/null
+            )
         fi
     fi
 fi
@@ -311,8 +373,25 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
     if [[ -n "$ITER153_CLASSIFIED_EXTRACTED_OPTIONAL_SCOPE_OR_EMPTY" ]]; then
         printf "  scope:                  %s\n" "$ITER153_CLASSIFIED_EXTRACTED_OPTIONAL_SCOPE_OR_EMPTY"
     fi
-    if [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "true" ]]; then
-        printf "  breaking change:        ✓ yes (! suffix detected)\n"
+    # Iter-162: OR the subject `!` marker with the body footer-token
+    # detection (Conventional Commits §13 dual-signal coverage). Compute
+    # the unified breaking-change boolean + source label once so both
+    # the diagnostic-display block below and the iter-161 classifier
+    # call site below get the same answer.
+    local iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token="$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+    local iter162_unified_breaking_change_signal_source_human_readable_label_for_diagnostic_display=""
+    if [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "true" ]] \
+       && [[ "$ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE" == "true" ]]; then
+        iter162_unified_breaking_change_signal_source_human_readable_label_for_diagnostic_display="both ! subject suffix AND ${ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED} body footer-token detected"
+    elif [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "true" ]]; then
+        iter162_unified_breaking_change_signal_source_human_readable_label_for_diagnostic_display="! suffix detected in subject"
+    elif [[ "$ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE" == "true" ]]; then
+        iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token="true"
+        iter162_unified_breaking_change_signal_source_human_readable_label_for_diagnostic_display="iter-162 ${ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED} body footer-token detected (no ! in subject)"
+    fi
+
+    if [[ "$iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token" == "true" ]]; then
+        printf "  breaking change:        ✓ yes (%s)\n" "$iter162_unified_breaking_change_signal_source_human_readable_label_for_diagnostic_display"
     fi
     echo ""
     echo "  iter-150 50/72-rule conformance:"
@@ -333,7 +412,15 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
     if declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null 2>&1; then
         iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules \
             "$ITER153_CLASSIFIED_EXTRACTED_CONVENTIONAL_COMMIT_TYPE_OR_EMPTY" \
-            "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+            "$iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token"
+        # Iter-162: when breaking was detected via BODY FOOTER (not subject
+        # `!`), the iter-161-emitted rationale incorrectly cites the `!`
+        # marker. Override with an accurate body-footer rationale that
+        # references the actual signal source per Conventional Commits §13.
+        if [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "false" ]] \
+           && [[ "$ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE" == "true" ]]; then
+            ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN="${ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED} footer-token in body → MAJOR bump per conventional-commits §13 (iter-162 detected body-form breaking signal, no ! in subject)"
+        fi
         echo "  iter-161 semver-bump preview (per cc-skills .releaserc.yml):"
         case "$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES" in
             MAJOR) printf "    ⚠ MAJOR bump — breaking-change release\n" ;;
@@ -407,6 +494,34 @@ if [[ -f "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH" ]]; then
     source "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH"
 fi
 
+# Iter-162 BREAKING-CHANGE footer-token detector shared lib — sourced
+# for body-aware breaking-change detection per Conventional Commits §13.
+# Closes the iter-161 correctness defect where footer-form breaking
+# changes (no subject `!` marker) were mis-predicted MINOR. Soft-fail
+# if missing.
+ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter162-conventional-commits-breaking-change-footer-token-detector-applying-uppercase-required-and-blank-line-separator-rules-per-conventional-commits-v1-section-13-and-semantic-release-commit-analyzer-default-angular-preset-behavior.sh"
+if [[ -f "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH"
+fi
+
+# Iter-162: invoke footer-token detector against the multi-line body
+# captured via --message-file (or iter-154 auto-detect, extended below).
+# Result is OR'd with the subject `!` marker before being handed to the
+# iter-161 bump classifier so both signaling paths produce the same
+# correct MAJOR bump preview.
+# shellcheck disable=SC2034  # consumed downstream by iter-161 classifier-call site + renderers
+ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE="false"
+# shellcheck disable=SC2034  # consumed downstream by renderers for diagnostic display
+ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED=""
+if declare -F iter162_detect_conventional_commits_breaking_change_footer_token_at_start_of_any_line_in_commit_message_body_per_section_13_uppercase_required_rule_and_angular_preset_plural_synonym_acceptance >/dev/null 2>&1 \
+   && [[ -n "$ITER162_PROPOSED_COMMIT_MULTILINE_BODY_FOR_FOOTER_TOKEN_DETECTION_OR_EMPTY_WHEN_SUBJECT_ONLY_INPUT_MODE" ]]; then
+    iter162_detect_conventional_commits_breaking_change_footer_token_at_start_of_any_line_in_commit_message_body_per_section_13_uppercase_required_rule_and_angular_preset_plural_synonym_acceptance \
+        "$ITER162_PROPOSED_COMMIT_MULTILINE_BODY_FOR_FOOTER_TOKEN_DETECTION_OR_EMPTY_WHEN_SUBJECT_ONLY_INPUT_MODE"
+    ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE="$ITER162_DETECTED_BREAKING_CHANGE_FOOTER_TOKEN_AT_START_OF_LINE_IN_BODY_BOOLEAN"
+    ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED="$ITER162_DETECTED_BREAKING_CHANGE_FOOTER_TOKEN_VARIANT_FOR_DIAGNOSTIC_RATIONALE_OR_EMPTY_IF_NOT_DETECTED"
+fi
+
 iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency() {
     # Iter-154 backward-compat shim. Delegates to the iter-155 canonical
     # shared-lib implementation, preserving the iter-154 regression-test
@@ -454,6 +569,22 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     local json_escaped_subject_for_safe_embedding
     json_escaped_subject_for_safe_embedding=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY")
 
+    # Iter-162: OR subject `!` marker with body footer-token detection
+    # for the full Conventional Commits §13 dual-signal coverage. Compute
+    # a unified breaking-change boolean + signal-source label that both
+    # the iter-161 classifier and the JSON output use.
+    local iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token_for_json="$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+    local iter162_breaking_change_signal_source_for_json="none"
+    if [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "true" ]] \
+       && [[ "$ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE" == "true" ]]; then
+        iter162_breaking_change_signal_source_for_json="both_subject_bang_marker_and_body_footer_token"
+    elif [[ "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN" == "true" ]]; then
+        iter162_breaking_change_signal_source_for_json="subject_bang_marker"
+    elif [[ "$ITER162_BODY_FOOTER_TOKEN_DETECTED_BOOLEAN_FOR_OR_INTO_SUBJECT_BANG_MARKER_FOR_FULL_CONVENTIONAL_COMMITS_SECTION_13_BREAKING_CHANGE_SIGNAL_COVERAGE" == "true" ]]; then
+        iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token_for_json="true"
+        iter162_breaking_change_signal_source_for_json="body_footer_token"
+    fi
+
     # Iter-161 semver-bump preview — compute label + rationale and emit
     # as a nested object with its own stable schema version. Soft-fail
     # if classifier lib is unavailable (emit explicit null sentinel).
@@ -462,12 +593,24 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     if declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null 2>&1; then
         iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules \
             "$ITER153_CLASSIFIED_EXTRACTED_CONVENTIONAL_COMMIT_TYPE_OR_EMPTY" \
-            "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+            "$iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token_for_json"
         iter161_bump_label_for_json="$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES"
-        iter161_bump_rationale_for_json="$ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN"
+        # Iter-162: override the iter-161-emitted rationale when the
+        # breaking signal came from BODY FOOTER rather than subject `!`.
+        if [[ "$iter162_breaking_change_signal_source_for_json" == "body_footer_token" ]]; then
+            iter161_bump_rationale_for_json="${ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED} footer-token in body → MAJOR bump per conventional-commits §13 (iter-162 detected body-form breaking signal, no ! in subject)"
+        else
+            iter161_bump_rationale_for_json="$ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN"
+        fi
     fi
     local iter161_bump_rationale_json_escaped
     iter161_bump_rationale_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$iter161_bump_rationale_for_json")
+
+    # Iter-162: emit body-footer-token variant (BREAKING CHANGE: vs
+    # BREAKING-CHANGE: vs BREAKING CHANGES:) and JSON-escape the value
+    # for safe embedding.
+    local iter162_body_footer_token_variant_json_escaped
+    iter162_body_footer_token_variant_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED")
 
     cat <<EOF
 {
@@ -478,7 +621,9 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
   "type": "${ITER153_CLASSIFIED_EXTRACTED_CONVENTIONAL_COMMIT_TYPE_OR_EMPTY}",
   "type_recognized": ${ITER153_CLASSIFIED_TYPE_RECOGNIZED_IN_SEMREL_CANONICAL_SET_BOOLEAN},
   "scope": "${ITER153_CLASSIFIED_EXTRACTED_OPTIONAL_SCOPE_OR_EMPTY}",
-  "breaking": ${ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN},
+  "breaking": ${iter162_unified_breaking_change_boolean_after_or_of_subject_bang_marker_and_body_footer_token_for_json},
+  "iter162_breaking_change_signal_source": "${iter162_breaking_change_signal_source_for_json}",
+  "iter162_body_footer_token_variant": ${iter162_body_footer_token_variant_json_escaped},
   "iter150_5072_rule_conformance": {
     "under_50_char_hard_target": ${ITER153_CLASSIFIED_UNDER_50_CHAR_HARD_TARGET_BOOLEAN},
     "under_72_char_hard_cap": ${ITER153_CLASSIFIED_UNDER_72_CHAR_HARD_CAP_BOOLEAN}
