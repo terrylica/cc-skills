@@ -69,6 +69,7 @@ import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-t
 import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxlint-check.ts";
 import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome-lint.ts";
 import { classifyValeClaudeMdForPostToolUseOrchestrator } from "./posttooluse-vale-claude-md.ts";
+import { classifySsotPrinciplesForPostToolUseOrchestrator } from "./posttooluse-ssot-principles.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -117,6 +118,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifyValeClaudeMdForPostToolUseOrchestrator,
     description:
       "Runs `vale --output=JSON` on edited CLAUDE.md files (informational only — terminology violation visibility, not blocking). Iter-96 fifth inlined PostToolUse subhook (5/15 in arc). PostToolUse twin to the iter-91 PreToolUse vale-claude-md-guard (which BLOCKS before edit); this one INFORMS after edit. Walks up from edited file directory looking for .vale.ini, falls back to ~/.claude/.vale.ini (cwd-agnostic). Edit-path line scoping ±3-line buffer prevents pre-existing-issue spam. Heaviest classifier in the registry: spawns external `vale` subprocess (100-300ms typical). timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines. Algorithm encoded in `classifyValeTerminologyConformanceOnEditedClaudeMdFileForPostToolUseOrchestrator` (re-exported as `classifyValeClaudeMdForPostToolUseOrchestrator` for symmetric naming).",
+  },
+  {
+    name: "ssot-principles",
+    timeoutMs: 3000,
+    classify: classifySsotPrinciplesForPostToolUseOrchestrator,
+    description:
+      "Surfaces a SSoT/DI principles reminder ONCE PER SESSION on the first eligible code-file Write/Edit (.py/.ts/.tsx/.js/.jsx/.rs/.go/.java/.kt/.rb; test files excluded). Runs `ast-grep scan --json` to append any anti-pattern findings (hardcoded defaults, direct env-var reads, etc.) to the static reminder text. Iter-97 SIXTH inlined PostToolUse subhook (6/15 in arc) and FIRST migration that creates real Promise.all parallel fan-out — overlaps with ty (.py), tsgo + oxlint + biome (.ts/.tsx), and oxlint + biome (.js/.jsx). Iter-97 also remediates three adversarial-audit findings vs the pre-iter-97 standalone hook: (a) latent /tmp temp-file race — pre-iter-97 wrote proposed content to a fixed scratch path under /tmp keyed only by file-extension suffix, so two concurrent sessions writing the same extension would corrupt each other's scan buffer; iter-97 scans filePath directly per PostToolUse invariant (file is on disk by the time we run); (b) shell-spawn overhead — pre-iter-97 used `bun $` template literal (shell parse cost ~5-10ms); iter-97 uses iter-95 shared `executeBunSubprocessAsync...` helper (`Bun.spawn` direct); (c) no cooperative timeout — pre-iter-97 had no AbortSignal bound; iter-97 inherits the shared helper's 2000ms timeout + 256KiB maxBuffer guardrail. Algorithm encoded in `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator` (re-exported as `classifySsotPrinciplesForPostToolUseOrchestrator` for symmetric naming).",
   },
 ];
 
