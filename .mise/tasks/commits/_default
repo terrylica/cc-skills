@@ -21,6 +21,27 @@ cat <<EOF
   ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-178 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── ITER-185 SUMMARY INDEX (one-line operator-facing invocation guide; scroll for full sections below) ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run release:history${ITER156_ANSI_COLOR_RESET}           readable awk-soft-wrapped git log render
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health [--json]${ITER156_ANSI_COLOR_RESET}   5-panel dashboard (length, type, trend)
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise -- "<subj>"${ITER156_ANSI_COLOR_RESET}  pre-commit advisor + semver bump preview
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --json${ITER156_ANSI_COLOR_RESET}     same, AI-agent machine-readable mode
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --strict${ITER156_ANSI_COLOR_RESET}   same, exits non-zero on silent-fail risk
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
+                                       iter-162 body-aware footer-token reader
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release [--json]${ITER156_ANSI_COLOR_RESET}
+                                       aggregate next-release preview across HEAD
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status [--json]${ITER156_ANSI_COLOR_RESET}   15-check brew-doctor-style self-diagnosis
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:install-hook${ITER156_ANSI_COLOR_RESET}      install iter-153 as git commit-msg hook
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}    remove cc-skills-managed hook
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline [--json]${ITER156_ANSI_COLOR_RESET}
+                                       iter-174 perf regression check (hyperfine +
+                                       pytest-benchmark-style JSON envelope per
+                                       iter-179/182/183/184)
+
+  Scroll down for full descriptions + tunables + jq pipe examples.
+
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run release:history${ITER156_ANSI_COLOR_RESET}
