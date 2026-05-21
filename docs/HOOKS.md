@@ -650,6 +650,74 @@ This finding ALSO retroactively validates the iter-84 PreToolUse orchestrator de
 - Cases 7a-b: subhook-contract audit discovers ≥6 conforming subhooks (live-extraction pattern)
 - Case 8: dual-export naming-drift acknowledgement verified (file exports BOTH precise algorithm name AND symmetric-naming alias)
 
+### Iter-90: native-binary-guard migration + PreToolUse additionalContext silent-drop NON-USE audit + BSD-xargs portability hardening
+
+Iter-90 shipped THREE concurrent deliverables: 7th subhook inlined (native-binary-guard, dual-export pattern with `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator`); marketplace-wide PreToolUse `additionalContext` silent-drop NON-USE audit per [GitHub #15664](https://github.com/anthropics/claude-code/issues/15664) — emission-pattern grep (not prose-comment) confirms ZERO classifiers emit the silently-dropped field; and a **BSD-xargs portability fix** (`xargs -S 16384`) for the iter-75 parallel test runner that was silently exposed to a long-test-filename cliff (macOS BSD `xargs -I {}` defaults to a 255-byte replacement-string size, which iter-90's verbose test filename — 280 chars per invocation — just barely exceeded; GNU xargs on Linux was never affected). All preserved across iter-91.
+
+### Iter-91: vale-claude-md-guard migration — **PreToolUse Write|Edit migration arc COMPLETE (8/8)**
+
+Iter-91 is the **arc-completion milestone**. The final remaining standalone Write|Edit subhook (`vale-claude-md-guard`) was inlined into the orchestrator, ending the iter-84 → iter-91 PreToolUse Write|Edit migration arc.
+
+**Final orchestrator registry state (lightest-first deny-wins order)**:
+
+| Position | Subhook                  | Inlined in | Fastpath complexity                | Heaviest operation                               |
+| -------- | ------------------------ | ---------- | ---------------------------------- | ------------------------------------------------ |
+| 1        | `version-guard`          | iter-85    | O(1) markdown-ext + path filter    | regex content scan                               |
+| 2        | `hoisted-deps-guard`     | iter-86    | O(1) filename-suffix               | `git rev-parse` subprocess (pyproject.toml only) |
+| 3        | `mise-hygiene-guard`     | iter-88    | O(1) filename allowlist + ignore   | secrets-pattern regex                            |
+| 4        | `pyi-stub-guard`         | iter-89    | O(1) `__init__.py`/`.pyi` suffix   | top-level definition scan                        |
+| 5        | `native-binary-guard`    | iter-90    | O(1) launchd-dir substring         | `Bun.file().text()` for iter-15 fix              |
+| 6        | `gpu-optimization-guard` | iter-87    | O(1) `.py` ext + test-file pattern | PyTorch training-script regex scan               |
+| 7        | `file-size-guard`        | iter-84    | O(1) tool_name + ext               | sync `fs.readFileSync()` for Edit                |
+| 8        | `vale-claude-md-guard`   | iter-91    | O(1) `CLAUDE.md` endsWith          | external `vale` subprocess (100-300ms typical)   |
+
+**Architectural arc summary (iter-84 → iter-91)**:
+
+| Iter        | Subhook migrated         | Cumulative inlined     |
+| ----------- | ------------------------ | ---------------------- |
+| iter-84     | file-size-guard          | 1/8                    |
+| iter-85     | version-guard            | 2/8                    |
+| iter-86     | hoisted-deps-guard       | 3/8                    |
+| iter-87     | gpu-optimization-guard   | 4/8                    |
+| iter-88     | mise-hygiene-guard       | 5/8                    |
+| iter-89     | pyi-stub-guard           | 6/8                    |
+| iter-90     | native-binary-guard      | 7/8                    |
+| **iter-91** | **vale-claude-md-guard** | **8/8 (arc COMPLETE)** |
+
+Per iter-87 empirical microbenchmark: ~17ms saved per inlined subhook. Final-state savings = `(N_subhooks - 1) × 17` = (8-1) × 17 = **~119ms per Write|Edit tool call** (vs iter-81's optimistic 308ms projection, corrected by iter-87 empirical re-measurement; iter-89 web research independently corroborated this via 2026 Bun 1.3 8-15ms cold-start benchmarks).
+
+**Architectural artifacts that survived the arc** (preserved for the next orchestration project — task #96 PostToolUse):
+
+1. `PreToolUseSubhookContract` — pure-function classifier protocol.
+2. `executeSubhookWithCooperativeTimeoutAndCrashIsolation()` — `Promise.race` against `AbortSignal.timeout()` with try/catch fail-open allow.
+3. `emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo()` — triple deny-defense per GH #37210.
+4. **Dual-export naming-drift acknowledgement pattern** (iter-89/90/91): `classify<PreciseAlgorithmEncodingName>ForOrchestrator` for algorithm clarity + `classify<FilenamePrefix>ForOrchestrator` alias for cohort symmetry.
+5. **Subhook-contract static checker** (iter-86) — preventive release-preflight gate against contract violations.
+6. **Marketplace-wide PreToolUse additionalContext silent-drop NON-USE audit** (iter-90 per GH #15664) — emission-pattern grep that ignores prose-comment mentions.
+7. **BSD-xargs portability hardening** (iter-90) — `xargs -S 16384` so the iter-75 parallel test runner survives arbitrarily long verbose test filenames.
+8. **Empirical re-measurement discipline** (iter-87) — iter-80's 44ms cold-start projection corrected to 17ms by independent microbenchmark.
+
+**iter-91-specific deliverables**:
+
+- `pretooluse-vale-claude-md-guard.ts` refactored to export `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator()` + alias `classifyValeClaudeMdGuardForOrchestrator()`.
+- Detection helpers with verbose searchable names: `synthesizeEditApplicationResult`, `runValeAgainstProposedContentTempfileAndParseJsonFindings`, `filterValeFindingsBySeverityInclusionThreshold`, `formatValeFindingsForOperatorDisplay`.
+- Edit-path scope-to-changed-lines (±3 buffer) heuristic preserved.
+- Registry `timeoutMs: 12000` (generous — vale typically 100-300ms, headroom for slow-disk machines).
+- hooks.json now contains **exactly ONE** `Write|Edit` matcher (the orchestrator) — verified via jq.
+
+**iter-91 regression test** ([13 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter91-vale-claude-md-guard-inlined-completes-8-of-8-pretooluse-write-edit-migration-arc-with-empirical-119ms-savings-projection.sh)):
+
+- Case 1: non-CLAUDE.md write → allow (suffix fastpath)
+- Cases 2a-b: orchestrator imports + registers vale classifier
+- Cases 3a-b: standalone backward-compat (no orchestrator prefix)
+- Cases 4a-b: subhook-contract audit discovers ≥8 conforming subhooks (FINAL arc state)
+- Case 5: PreToolUse `additionalContext` silent-drop NON-USE invariant holds across ALL 8 inlined subhooks
+- Cases 6a-b: hooks.json has exactly 1 Write|Edit matcher + 0 standalone vale references (jq-based — **iter-91 dev-time finding**: BSD grep ERE handling of `\|` is implementation-defined and produced spurious matches; jq is the correct tool for JSON inspection)
+- Case 7: orchestrator description records iter-91 arc-completion milestone
+- Cases 8-9: standalone `import.meta.main` guard + dual-export naming preserved
+
+**Iter-91 dev-time forensic finding (silent doc-truncation)**: a subset of the iter-90 HOOKS.md changes were silently lost between my edit and the iter-90 commit (the commit's `--stat` showed only 2 HOOKS.md lines changed despite a much larger intended addition). The most plausible cause is a formatter or PostToolUse hook that touched HOOKS.md and reverted the larger section. The iter-91 edit re-asserts both the iter-90 section AND the iter-91 arc-completion content as a single consolidated write, with the doc-history record relying on this iter-91 commit rather than iter-90's. Future iters should consider adding a HOOKS.md "section drift" audit that warns if iter-N's docs are missing from the file when iter-(N+1) starts.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
