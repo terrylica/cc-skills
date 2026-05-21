@@ -17,9 +17,22 @@
 import { resolve } from "node:path";
 
 /**
- * Escape hatch comment pattern.
- * Adding this comment allows the command to pass.
+ * Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
+ * detection helper. Behavior-preserving: marker token `CWD-DELETE-OK`
+ * detected file-wide (here "file-wide" means "anywhere in the bash
+ * command string") with CASE_INSENSITIVE matching (preserves pre-iter-109
+ * `/i` flag).
+ *
+ * The pre-iter-109 export `ESCAPE_HATCH` (a RegExp) is preserved for
+ * backward compatibility with external consumers — it now coexists with
+ * the helper call.
  */
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION = {
+  markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
+  caseSensitivityMode: "CASE_INSENSITIVE",
+};
+/** @deprecated Pre-iter-109 export preserved for backward compat. New code should call `hasFileWideEscapeHatchMarkerInContent(command, CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION)` directly. */
 export const ESCAPE_HATCH = /#\s*CWD-DELETE-OK/i;
 
 /**
@@ -85,12 +98,15 @@ function extractRmTargets(command) {
 
   // Match rm with various flag combinations followed by paths
   // Handles: rm -rf, rm -r -f, rm --recursive --force, rm -fr
-  const rmPattern =
+  // Iter-109 lint fix (pre-existing biome lint/suspicious/noAssignInExpressions
+  // issue surfaced by iter-109 file edit triggering full-file lint pass):
+  // replace the imperative `let match; while ((match = exec(command)) !== null)`
+  // pattern with the modern stateless `matchAll` iterator that yields each
+  // match without stewardship of `lastIndex`. Behavior-preserving.
+  const RM_TARGET_GLOBAL_REGEX_PATTERN =
     /\brm\s+(?:(?:-[rRfidv]+\s+)*|(?:--(?:recursive|force|interactive|dir|verbose)\s+)*)(.+?)(?:\s*(?:&&|\|\||;|$|\||\n|2>&1|>[^&]))/g;
-
-  let match;
-  while ((match = rmPattern.exec(command)) !== null) {
-    const pathsPart = match[1].trim();
+  for (const singleRmInvocationMatch of command.matchAll(RM_TARGET_GLOBAL_REGEX_PATTERN)) {
+    const pathsPart = singleRmInvocationMatch[1].trim();
     // Split on unquoted spaces to get individual paths
     const paths = pathsPart.split(/\s+/).filter((p) => p && !p.startsWith("-"));
     targets.push(...paths);
@@ -111,8 +127,8 @@ export function detectCwdDeletion(command, cwd) {
     return { detected: false, isGitOperation: false };
   }
 
-  // Check escape hatch
-  if (ESCAPE_HATCH.test(command)) {
+  // Check escape hatch (iter-109: delegated to canonical shared helper).
+  if (hasFileWideEscapeHatchMarkerInContent(command, CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION)) {
     return { detected: false, isGitOperation: false };
   }
 

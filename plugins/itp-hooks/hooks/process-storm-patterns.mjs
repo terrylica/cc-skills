@@ -117,9 +117,24 @@ export const PATTERNS = {
 };
 
 /**
- * Escape hatch comment pattern.
- * Adding this comment to a line or file allows the pattern to pass.
+ * Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
+ * detection helper. Behavior-preserving: marker token `PROCESS-STORM-OK`
+ * detected file-wide with CASE_INSENSITIVE matching (preserves pre-iter-109
+ * `/i` flag — operators who relied on lowercase `# process-storm-ok` still
+ * see their markers honored). Iter-108 helper extension added the
+ * `caseSensitivityMode` knob exactly for this kind of legacy compatibility.
+ *
+ * The pre-iter-109 export `ESCAPE_HATCH` (a RegExp) is preserved for
+ * backward compatibility with any external consumers (e.g., the
+ * process-storm-patterns.test.mjs regression test) — it now lazily computes
+ * the same matching the helper does, but external imports continue to work.
  */
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION = {
+  markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
+  caseSensitivityMode: "CASE_INSENSITIVE",
+};
+/** @deprecated Pre-iter-109 export preserved for backward compat. New code should call `hasFileWideEscapeHatchMarkerInContent(content, PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION)` directly. */
 export const ESCAPE_HATCH = /#\s*PROCESS-STORM-OK/i;
 
 /**
@@ -157,8 +172,8 @@ export const DEFAULT_CONFIG = {
 export function detectPatterns(content, enabledCategories = DEFAULT_CONFIG.categories) {
   const findings = [];
 
-  // Check escape hatch first
-  if (ESCAPE_HATCH.test(content)) {
+  // Check escape hatch first (iter-109: delegated to canonical shared helper).
+  if (hasFileWideEscapeHatchMarkerInContent(content, PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION)) {
     return [];
   }
 

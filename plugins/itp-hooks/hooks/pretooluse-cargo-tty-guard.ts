@@ -40,11 +40,30 @@ const CARGO_COMMANDS = /^\s*cargo\s+(bench|test|build|run|check)\b/i;
  */
 const ALREADY_DETACHED = /(?:^|\s)nohup\s|>\s*\/dev\/null|<\s*\/dev\/null|\btmux\s|\bscreen\s|>\s*\/tmp\//i;
 
-/** Opt-out escape hatch */
-const SKIP_COMMENT = /# *CARGO-TTY-SKIP/i;
-
-/** Opt-in escape hatch */
-const FORCE_WRAP_COMMENT = /# *CARGO-TTY-WRAP/i;
+// Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
+// detection helper. Behavior-preserving: BOTH markers (opt-out SKIP and
+// opt-in WRAP) detected file-wide with CASE_INSENSITIVE matching (preserves
+// pre-iter-109 `/i` flag on both regexes). This is the first hook in the
+// iter-107+ migration cohort to use TWO marker configurations — proves the
+// helper composes cleanly for multi-marker hooks.
+import {
+  hasFileWideEscapeHatchMarkerInContent,
+  type EscapeHatchMarkerDetectionConfiguration,
+} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const CARGO_TTY_GUARD_OPT_OUT_SKIP_ESCAPE_HATCH_CONFIGURATION: Pick<
+  EscapeHatchMarkerDetectionConfiguration,
+  "markerNameTokenIncludingSuffix" | "caseSensitivityMode"
+> = {
+  markerNameTokenIncludingSuffix: "CARGO-TTY-SKIP",
+  caseSensitivityMode: "CASE_INSENSITIVE",
+};
+const CARGO_TTY_GUARD_OPT_IN_FORCE_WRAP_ESCAPE_HATCH_CONFIGURATION: Pick<
+  EscapeHatchMarkerDetectionConfiguration,
+  "markerNameTokenIncludingSuffix" | "caseSensitivityMode"
+> = {
+  markerNameTokenIncludingSuffix: "CARGO-TTY-WRAP",
+  caseSensitivityMode: "CASE_INSENSITIVE",
+};
 
 /**
  * Detect if cargo command needs TTY protection.
@@ -62,11 +81,11 @@ function isUnsafeBackground(command: string): boolean {
   // Already detached or wrapped
   if (ALREADY_DETACHED.test(command)) return false;
 
-  // Explicit opt-out
-  if (SKIP_COMMENT.test(command)) return false;
+  // Explicit opt-out (iter-109: delegated to canonical shared helper).
+  if (hasFileWideEscapeHatchMarkerInContent(command, CARGO_TTY_GUARD_OPT_OUT_SKIP_ESCAPE_HATCH_CONFIGURATION)) return false;
 
-  // Explicit force wrap
-  if (FORCE_WRAP_COMMENT.test(command)) return true;
+  // Explicit force wrap (iter-109: delegated to canonical shared helper).
+  if (hasFileWideEscapeHatchMarkerInContent(command, CARGO_TTY_GUARD_OPT_IN_FORCE_WRAP_ESCAPE_HATCH_CONFIGURATION)) return true;
 
   // NOW: Wrap ALL cargo commands (foreground and background) for TTY protection
   // This prevents cargo from opening /dev/tty directly, which bypasses stdin redirect
