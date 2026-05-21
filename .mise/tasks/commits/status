@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Iter-160 operator-facing commits arc self-diagnosis task. Answers 'is my cc-skills conventional-commits toolkit working RIGHT NOW?' in one command — the brew-doctor/npm-doctor/mise-doctor industry-standard pattern adapted for the iter-150 through iter-158 commits arc. Performs 9 health checks across structural validity, functional correctness, and operator setup state, with per-check wall-clock latency reporting. Default mode emits human-readable ANSI-colored report. --json mode emits machine-readable structured output with stable iter160_schema_version=1 for AI-agent automation pipelines (mirrors iter-153/iter-155 pattern). Severity tiers per OWASP/npm/react-doctor 2026 conventions: CRITICAL checks gate exit code (default 0/1), WARNING checks are informational, INFO surfaces performance observations. Usage: mise run commits:status [--json]."
+set -euo pipefail
+
+ITER160_STATUS_TASK_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-checking-each-iter150-through-iter158-tool-for-presence-executability-and-functional-correctness-with-per-check-wall-clock-latency-reporting-and-json-mode.sh"
+
+if [[ ! -x "$ITER160_STATUS_TASK_SCRIPT_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-160 self-diagnosis task not found or not executable at:" >&2
+    echo "    $ITER160_STATUS_TASK_SCRIPT_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+exec "$ITER160_STATUS_TASK_SCRIPT_ABSOLUTE_PATH" "$@"
