@@ -377,6 +377,32 @@ L3SP_UNJUSTIFIED=$( { grep -oE 'Unjustified violations \(silent-fail risk\):[[:s
 echo "  ✓ L3-stripped-path: ${L3SP_SCANNED:-0} files scanned (${L3SP_VIOL_FOUND:-0} refs found, ${L3SP_WITH_OK:-0} with-ok-marker, ${L3SP_UNJUSTIFIED:-0} unjustified)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path audit (iter-77 gate)"
 
+# Check 4l: Iter-82 conventional-commits-conformance validator. Acts on
+# the iter-77/80/81 silent-release-skip forensic finding: compound
+# prefixes like "feat(scope)+docs:" land on main but produce NO
+# version-bump tag because @semantic-release/commit-analyzer's regex
+# does not match them. INFORMATIONAL only (does not block) because
+# legacy violations exist on main and gating would require destructive
+# rebase. Operators see compound-prefix violations BEFORE the next
+# release rather than after a stranded commit.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-82 conventional-commits-conformance validator (informational)..."
+if ! mise run audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes >/tmp/iter82-conventional-commits-conformance.log 2>&1; then
+    echo "  ⚠ Validator exited non-zero (informational only — not blocking release)"
+fi
+# Loose-coupled defensive grep (per iter-70 brittle-banner hardening).
+CCC_SCANNED=$( { grep -oE 'Total commits scanned:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+CCC_CONFORMANT=$( { grep -oE 'Standard-conformant:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+CCC_COMPOUND=$( { grep -oE 'Compound-prefix violations \(silent-fail\):[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+CCC_MISSING_TYPE=$( { grep -oE 'Missing-type / unrecognized-type violations:[[:space:]]+[0-9]+' /tmp/iter82-conventional-commits-conformance.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+if [[ "${CCC_COMPOUND:-0}" -gt 0 ]] || [[ "${CCC_MISSING_TYPE:-0}" -gt 0 ]]; then
+    echo "  ⚠ Conventional-commits: ${CCC_SCANNED:-0} scanned, ${CCC_CONFORMANT:-0} conformant, ${CCC_COMPOUND:-0} compound-prefix violation(s), ${CCC_MISSING_TYPE:-0} missing-type violation(s)"
+    echo "    (each compound-prefix commit is silently skipped by semantic-release — use clean type(scope): prefixes going forward)"
+else
+    echo "  ✓ Conventional-commits: ${CCC_SCANNED:-0} scanned, all conformant"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4l: conventional-commits-conformance validator (iter-82 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
