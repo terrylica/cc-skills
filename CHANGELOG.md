@@ -1,3 +1,10 @@
+# [21.69.0](https://github.com/terrylica/cc-skills/compare/v21.68.0...v21.69.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-161 semver-bump preview ([93a273d](https://github.com/terrylica/cc-skills/commit/93a273d9502cb3cb75bec88d6f6322937f854d3e))
+
 # [21.68.0](https://github.com/terrylica/cc-skills/compare/v21.67.0...v21.68.0) (2026-05-21)
 
 
