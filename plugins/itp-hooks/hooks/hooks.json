@@ -216,29 +216,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93→iter-94 PostToolUse edit-time orchestrator (2/15 subhooks inlined: ty-type-check + tsgo-type-check). MULTI-AGGREGATION semantics: runs ALL subhooks in parallel via Promise.all, merges non-noop additional_context payloads into ONE consolidated decision:block reason with per-section [orchestrator-subhook: <name>] provenance prefix. Iter-94 critical perf correction: every classifier MUST use Bun.spawn (async) — Bun.spawnSync defeats Promise.all parallelism by blocking the event loop (per Bun docs + 2026 community guidance). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-oxlint-check.ts",
-            "timeout": 5000,
-            "description": "oxlint correctness checker - runs on every .ts/.tsx/.js/.jsx file edit (~50ms)"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-biome-lint.ts",
-            "timeout": 5000,
-            "description": "biome lint - complementary JS/TS checks (useConst, noDoubleEquals, node: protocol)"
+            "description": "Iter-93→iter-95 PostToolUse edit-time orchestrator (4/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint). MULTI-AGGREGATION semantics: runs ALL subhooks in parallel via Promise.all, merges non-noop additional_context payloads into ONE consolidated decision:block reason; iter-95 conditional-provenance-prefix: emits `[orchestrator-subhook: <name>]` per section ONLY when ≥2 sections contribute (single-section case is prefix-free, matching legacy standalone-hook UX). Iter-95 hoists shared async-spawn + install-reminder gate-file helpers into lib/ to prevent drift across 4+ classifier copies. Iter-94 critical perf invariant: every classifier MUST use Bun.spawn (async) — Bun.spawnSync defeats Promise.all parallelism by blocking the event loop (per Bun docs + 2026 community guidance). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       }

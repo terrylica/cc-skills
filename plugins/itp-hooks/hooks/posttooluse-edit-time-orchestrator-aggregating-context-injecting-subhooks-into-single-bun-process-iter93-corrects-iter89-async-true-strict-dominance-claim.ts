@@ -63,6 +63,8 @@ import type {
 import { POSTTOOLUSE_SUBHOOK_NOOP_DECISION } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
 import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsgo-type-check.ts";
+import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxlint-check.ts";
+import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome-lint.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -90,6 +92,20 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifyTsgoTypeCheckForPostToolUseOrchestrator,
     description:
       "Runs `tsgo --noEmit` after every Write/Edit of a .ts/.tsx file. tsgo is the native Go TypeScript compiler (~170ms full project check). Iter-94 second inlined PostToolUse subhook (2/15 in the iter-93+ migration arc). Async Bun.spawn from day one (no spawnSync legacy). Project-scoped: walks up to find the nearest tsconfig.json directory and runs from there, then filters output to errors referencing the edited file's tsconfig-relative path (avoids basename collisions when two index.ts files live in different project subdirs). Lightest-first registry position: SECOND (cheap O(1) .ts/.tsx extension filter pre-empts the tsgo subprocess spawn). Algorithm encoded in `classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator` (re-exported as `classifyTsgoTypeCheckForPostToolUseOrchestrator` for symmetric naming).",
+  },
+  {
+    name: "oxlint-check",
+    timeoutMs: 5000,
+    classify: classifyOxlintCheckForPostToolUseOrchestrator,
+    description:
+      "Runs `oxlint -D correctness -D suspicious` after every Write/Edit of a .ts/.tsx/.js/.jsx/.mjs/.cjs/.mts/.cts file. oxlint is the Oxc Rust-based linter (~40-65ms typical). Iter-95 third inlined PostToolUse subhook (3/15 in the iter-93+ migration arc). Async Bun.spawn from day one via the iter-95 shared lib helpers (`executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail`). Only the correctness + suspicious categories enabled — these catch RUNTIME bugs (const reassignment, duplicate keys, debugger statements) rather than style preferences (which belong in config-level enforcement). Algorithm encoded in `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator` (re-exported as `classifyOxlintCheckForPostToolUseOrchestrator`).",
+  },
+  {
+    name: "biome-lint",
+    timeoutMs: 5000,
+    classify: classifyBiomeLintForPostToolUseOrchestrator,
+    description:
+      "Runs `biome lint <file>` after every Write/Edit of a JS/TS file (~40-80ms). Iter-95 fourth inlined PostToolUse subhook (4/15 in arc). Async Bun.spawn from day one via the iter-95 shared lib helpers. COMPLEMENTARY-TO-OXLINT (not a replacement): catches rules oxlint misses with default config — useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAnyLet, noAssignInExpressions. Suppresses 6 noisy rules via --skip (noExplicitAny, useNodejsImportProtocol, noUnusedVariables, noNonNullAssertion, useTemplate, noUnusedImports) that caused 67% false-positive rate on real codebases. Algorithm encoded in `classifyBiomeComplementaryToOxlintLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator` (re-exported as `classifyBiomeLintForPostToolUseOrchestrator`).",
   },
 ];
 
@@ -183,36 +199,52 @@ const POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER = "\n\n──
 
 /**
  * Fold every additional_context subhook contribution into one aggregated
- * reason string, separated by a visual delimiter so Claude sees each
- * subhook's section. Each section is prefixed with a registry-name header
- * line (iter-94 usability enhancement: when multiple type checkers fire on
- * the same .ts edit, Claude could previously only distinguish contributors
- * by their internal `[TY]` / `[TSGO]` etc. tags — those weren't guaranteed
- * to be present or distinctive. The explicit `[from: registry-name]` line
- * surfaces orchestration provenance unambiguously). If no subhook
- * contributed (every result was `noop`), returns `null` to signal
- * "emit nothing".
+ * reason string, with provenance prefix CONDITIONALLY applied:
  *
- * Provenance-prefix invariant: every aggregated section is preceded by a
- * line of the shape `[orchestrator-subhook: <registry.name>]` so operators
- * grepping for which subhook contributed which finding can pivot directly
- * from the aggregated reason to the source file via the registry name.
+ *   - When ONLY ONE subhook contributes (e.g., only ty fired on a .py
+ *     edit), the aggregator emits the subhook's message verbatim — no
+ *     `[orchestrator-subhook: <name>]` prefix. Claude sees the same
+ *     unchanged content as the legacy standalone-hook era, preserving
+ *     UX continuity for the single-subhook case.
+ *
+ *   - When TWO OR MORE subhooks contribute (e.g., tsgo + oxlint + biome
+ *     all fire on a .ts edit), the aggregator prefixes every section
+ *     with `[orchestrator-subhook: <registry.name>]` so Claude can
+ *     unambiguously attribute findings to subhooks. Delimiter-joined.
+ *
+ * Iter-95 usability refinement of iter-94's unconditional-prefix design:
+ * the prefix added noise to the common single-subhook case (a .py edit
+ * only triggers ty; a .py file is irrelevant to the JS/TS subhooks).
+ * Conditional emission resolves that without giving up the multi-subhook
+ * provenance signal.
+ *
+ * If no subhook contributed (every result was `noop`), returns `null`
+ * to signal "emit nothing".
  */
-function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixPerSection(
+function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixOnlyWhenMultipleSectionsContribute(
   results: readonly PostToolUseSubhookExecutionResult[],
 ): string | null {
-  const contributingSections: string[] = [];
-  for (const result of results) {
-    if (result.decision.kind === "additional_context") {
-      contributingSections.push(
-        `[orchestrator-subhook: ${result.name}]\n${result.decision.message}`,
-      );
-    }
-  }
-  if (contributingSections.length === 0) return null;
-  return contributingSections.join(
-    POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER,
+  // Two-pass: first count contributing sections, then format based on count.
+  // (One-pass with array-then-conditional-prefix would also work but is
+  // less explicit about the algorithm's conditional invariant.)
+  const contributingResults = results.filter(
+    (result) => result.decision.kind === "additional_context",
   );
+
+  if (contributingResults.length === 0) return null;
+
+  const shouldEmitProvenancePrefix = contributingResults.length >= 2;
+
+  const renderedSections = contributingResults.map((result) => {
+    // narrow: contributingResults is filtered to additional_context only
+    if (result.decision.kind !== "additional_context") return "";
+    const messageBody = result.decision.message;
+    return shouldEmitProvenancePrefix
+      ? `[orchestrator-subhook: ${result.name}]\n${messageBody}`
+      : messageBody;
+  });
+
+  return renderedSections.join(POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -263,7 +295,7 @@ async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
   }
 
   const aggregatedReasonOrNull =
-    aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixPerSection(
+    aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixOnlyWhenMultipleSectionsContribute(
       subhookResults,
     );
 
