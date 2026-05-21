@@ -1,3 +1,10 @@
+# [21.54.0](https://github.com/terrylica/cc-skills/compare/v21.53.0...v21.54.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-123 add unified operator-facing lookup CLI auto-detecting query shape via slash-presence-and-upper-kebab-case-marker-regex-and-grandfathered-SSoT-OK-token heuristic dispatching to iter-116 reverse-search OR iter-122 forward-search backend eliminating operator's direction-choice burden with operator-override --direction=forward-or-reverse-or-auto flag and jq-based JSON envelope wrapping dispatched-backend-response with classifier-rationale-and-routing-decision metadata ([09589a8](https://github.com/terrylica/cc-skills/commit/09589a8aa4ba2b1857d0f25f99e6ed952e6121e7))
+
 # [21.53.0](https://github.com/terrylica/cc-skills/compare/v21.52.0...v21.53.0) (2026-05-21)
 
 
