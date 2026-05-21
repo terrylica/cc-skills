@@ -1,3 +1,16 @@
+# [21.67.0](https://github.com/terrylica/cc-skills/compare/v21.66.0...v21.67.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **release:** iter-158 manifest language=script ([7e9d3a9](https://github.com/terrylica/cc-skills/commit/7e9d3a9130912b412dfabbb5bce5aff93eaab756))
+* **test:** iter-151 F2 synthetic fixture ([240ee39](https://github.com/terrylica/cc-skills/commit/240ee39e967d6c6dc71e100f6b0b7cac50a45da5))
+
+
+### Features
+
+* **release:** iter-159 empirical harness ([88b5655](https://github.com/terrylica/cc-skills/commit/88b565572a9086f5e1e5c35de1d8ab5180c3a155))
+
 # [21.66.0](https://github.com/terrylica/cc-skills/compare/v21.65.0...v21.66.0) (2026-05-21)
 
 
