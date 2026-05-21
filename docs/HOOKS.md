@@ -1359,6 +1359,54 @@ Sources for iter-104 web research:
 - [Bun 1.3 Cold Start Benchmarks — 8-15ms vs Node.js 200ms (PkgPulse Blog)](https://www.pkgpulse.com/blog/bun-vs-nodejs-npm-runtime-speed-2026)
 - [Claude Code Hooks Mastery (disler) — community-validated hook patterns](https://github.com/disler/claude-code-hooks-mastery)
 
+### Iter-107: Shared escape-hatch-marker detection helper + iter-78 migration as proof of integration
+
+Iter-106 documented a follow-up iter-107 candidate: a shared escape-hatch-marker detection helper that all per-classifier opt-out comments converge on. Iter-107 delivers that helper as the SECOND cross-Pre/PostToolUse shared lib (after iter-106's truncation helper), with the iter-78 layer3-stripped-path-guard migrated as proof-of-integration.
+
+**Pre-iter-107 marketplace state**: every hook with an escape-hatch comment rolled its own detection logic — a regex literal (varying grammar) plus (for window-scoped variants) a hand-coded preceding-window lookup loop. Iter-107 web research ([Anthropic Claude Code hook docs 2026](https://code.claude.com/docs/en/hooks), Anthropic GitHub issue #20259, community-validated patterns) confirmed there is NO official Claude Code escape-hatch convention. The marketplace inherited the drift:
+
+| Marker                               | Hook                                                                     | Window semantics                     | Reason policy          |
+| ------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------ | ---------------------- |
+| `# BASH-LAUNCHD-OK`                  | `pretooluse-native-binary-guard.ts`                                      | FILE_WIDE (`<!-- -->` also)          | none                   |
+| `# SSoT-OK`                          | `pretooluse-version-guard.ts`                                            | FILE_WIDE                            | none                   |
+| `# INLINE-IGNORE-OK`                 | `pretooluse-inline-ignore-guard.ts`                                      | SAME_LINE_ONLY                       | none                   |
+| `# CWD-DELETE-OK`                    | `pretooluse-cwd-deletion-guard.ts`                                       | FILE_WIDE                            | none                   |
+| `# PROCESS-STORM-OK`                 | `pretooluse-process-storm-guard.mjs`                                     | FILE_WIDE                            | none                   |
+| `# FILE-SIZE-OK`                     | `pretooluse-file-size-guard.ts`                                          | FILE_WIDE                            | none                   |
+| `# LAYER3-STRIPPED-PATH-OK: …`       | `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` (iter-107 ★) | SAME_LINE_OR_PRECEDING_N_LINES (N=3) | ≥10 chars after `:`    |
+| `// CARGO-TTY-SKIP` / `-WRAP`        | `pretooluse-cargo-tty-guard.ts`                                          | FILE_WIDE                            | none                   |
+| `// STOP-HOOK-ADDITIONAL-CONTEXT-OK` | `stop-orchestrator.ts`                                                   | SAME_LINE_ONLY                       | ≥10 chars (informally) |
+
+**Iter-107 canonical helper** at `plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`:
+
+- `EscapeHatchMarkerWindowSemanticsMode`: enum with the 3 documented modes (`SAME_LINE_ONLY` | `SAME_LINE_OR_PRECEDING_N_LINES` | `FILE_WIDE`)
+- `EscapeHatchMarkerDetectionConfiguration`: per-call config (marker token + window mode + optional preceding-N-lines count + optional reason-policy gate in characters)
+- `detectEscapeHatchMarkerCoveringTargetSourceLine(allSourceLines, targetLineZeroBasedIndex, configuration)`: per-line scoping
+- `hasFileWideEscapeHatchMarkerInContent(contentBlob, configuration)`: convenience wrapper for the file-wide case (saves a `content.split("\n")` when caller doesn't already have lines)
+
+**Comment-style-agnostic** via UPPER-KEBAB-CASE convention: marker names like `BASH-LAUNCHD-OK`, `LAYER3-STRIPPED-PATH-OK`, `INLINE-IGNORE-OK` never collide with code identifiers, so substring-matching is safe across `#`, `//`, `<!-- -->`, and any other comment shape.
+
+**Iter-78 migration as proof-of-integration**: the iter-78 layer3-stripped-path-guard's hand-rolled regex literal + 3-line preceding-window lookup loop replaced by a single helper call configured from a per-hook configuration object. Behavior-preserving: iter-78 regression test still passes 7/7. The migration commit demonstrates the canonical migration pattern for future hooks.
+
+**Preventive infrastructure**:
+
+- **Audit task**: `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` — enumerates hand-rolled marker detection patterns + reports migrated vs. hand-rolled counts
+- **Preflight gate**: Check 4s (informational, parallel to Check 4n/4o/4p/4q/4r)
+- **Regression test**: 8 assertions including 4 programmatic API probes (`SAME_LINE_ONLY` mode, `SAME_LINE_OR_PRECEDING_N_LINES` with N-line window boundary, `FILE_WIDE` + convenience wrapper, ≥10-char reason policy gate)
+- **Marketplace regression suite**: 44/44 PASS (was 43/43 before iter-107 test added)
+
+**Iter-108+ migration roadmap** (one hook per iter, behavior-preserving):
+
+1. `pretooluse-file-size-guard.ts` (FILE_WIDE, `# FILE-SIZE-OK`)
+2. `pretooluse-version-guard.ts` (FILE_WIDE, `# SSoT-OK`)
+3. `pretooluse-native-binary-guard.ts` (FILE_WIDE, `# BASH-LAUNCHD-OK` / `<!-- BASH-LAUNCHD-OK -->`)
+4. `pretooluse-process-storm-guard.mjs` (FILE_WIDE, `# PROCESS-STORM-OK`)
+5. `pretooluse-cwd-deletion-guard.ts` (FILE_WIDE, `# CWD-DELETE-OK`)
+6. `pretooluse-inline-ignore-guard.ts` (SAME_LINE_ONLY, `// INLINE-IGNORE-OK`)
+7. `pretooluse-cargo-tty-guard.ts` (FILE_WIDE, `// CARGO-TTY-SKIP` / `-WRAP`)
+
+Once all migrations land, promote the iter-107 inventory audit from informational (Check 4s) to strict-block.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
