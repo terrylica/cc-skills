@@ -215,12 +215,25 @@ printf '%s\n' "${TEST_FILES[@]}" | \
         single_test_file_path="$1"
         per_run_results_dir="$2"
         test_basename_for_stable_lookup="$(basename "$single_test_file_path" .sh)"
+        # Iter-131: capture per-test wall-clock to sidecar `.elapsed_ms` file
+        # using bash 5+ $EPOCHREALTIME. Cost is sub-millisecond (no fork)
+        # so we always write — the opt-in iter-131 top-N-slowest-tests
+        # summary at end-of-aggregation reads these files when
+        # MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N
+        # is set. Default behavior unchanged.
+        iter131_per_test_wall_clock_start_seconds_for_ranked_bottleneck_summary="$EPOCHREALTIME"
         if bash "$single_test_file_path" \
             > "$per_run_results_dir/$test_basename_for_stable_lookup.stdout" 2>&1; then
             echo 0 > "$per_run_results_dir/$test_basename_for_stable_lookup.exit"
         else
             echo "$?" > "$per_run_results_dir/$test_basename_for_stable_lookup.exit"
         fi
+        iter131_per_test_wall_clock_end_seconds_for_ranked_bottleneck_summary="$EPOCHREALTIME"
+        # Portable sub-second math via awk (same primitive as iter-73 preflight).
+        awk -v s="$iter131_per_test_wall_clock_start_seconds_for_ranked_bottleneck_summary" \
+            -v e="$iter131_per_test_wall_clock_end_seconds_for_ranked_bottleneck_summary" \
+            "BEGIN { printf \"%.0f\", (e - s) * 1000 }" \
+            > "$per_run_results_dir/$test_basename_for_stable_lookup.elapsed_ms"
     ' _ {} "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"
 
 # Phase 2 — SEQUENTIAL AGGREGATION. Iterate the original sorted test
@@ -285,6 +298,46 @@ if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
     echo "    bash <test-file-path>"
     exit 1
 fi
+
+# Iter-131: opt-in top-N-slowest-tests ranking summary. Mirrors iter-130's
+# preflight bottleneck-ranking pattern: operators iterating on test perf
+# see WHICH tests dominate the wall-clock without instrumenting each
+# manually. Off by default to preserve bit-for-bit output for CI/release
+# gate consumers; opt in with
+#   MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N
+# Workflow motivation: iter-128's adaptive-parallel-lanes work surfaced
+# the question "which individual tests are slowest?" and the only way to
+# answer was bespoke per-test profiling. Iter-131 makes that data routine.
+__iter131_emit_top_n_slowest_marketplace_hook_regression_tests_ranked_by_wall_clock_milliseconds_descending_bottleneck_summary() {
+    local top_n_threshold_for_slowest_test_ranking_display="${MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY:-0}"
+    if [[ "$top_n_threshold_for_slowest_test_ranking_display" == "0" ]]; then
+        return 0
+    fi
+    if [[ ! -d "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY" ]]; then
+        return 0
+    fi
+    # Build TAB-separated "elapsed_ms<TAB>test_basename" records from the
+    # .elapsed_ms sidecars written by the parallel worker above.
+    local elapsed_ms_sidecar_file_path test_basename elapsed_ms_value
+    local -a per_test_timing_records_for_ranking=()
+    for elapsed_ms_sidecar_file_path in "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"/*.elapsed_ms; do
+        [[ -f "$elapsed_ms_sidecar_file_path" ]] || continue
+        test_basename=$(basename "$elapsed_ms_sidecar_file_path" .elapsed_ms)
+        elapsed_ms_value=$(cat "$elapsed_ms_sidecar_file_path")
+        per_test_timing_records_for_ranking+=("${elapsed_ms_value}"$'\t'"${test_basename}")
+    done
+    if [[ "${#per_test_timing_records_for_ranking[@]}" -eq 0 ]]; then
+        return 0
+    fi
+    echo ""
+    echo "  ⧗ ─── Top ${top_n_threshold_for_slowest_test_ranking_display} slowest tests (iter-131 marketplace-suite bottleneck ranking) ───"
+    printf '%s\n' "${per_test_timing_records_for_ranking[@]}" \
+        | sort -rn -k1 \
+        | head -n "${top_n_threshold_for_slowest_test_ranking_display}" \
+        | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
+    echo "  ⧗ (override count via MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N)"
+}
+__iter131_emit_top_n_slowest_marketplace_hook_regression_tests_ranked_by_wall_clock_milliseconds_descending_bottleneck_summary
 
 echo ""
 echo "  ✓ All marketplace hook regression tests PASSED"
