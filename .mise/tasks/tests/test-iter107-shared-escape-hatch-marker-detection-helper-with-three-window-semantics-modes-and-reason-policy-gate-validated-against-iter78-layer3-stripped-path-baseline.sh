@@ -213,6 +213,42 @@ if (caseSensitive_lowercaseMarker_strict === false && caseSensitive_lowercaseMar
   console.log(\`PROBE-9-FAIL: lower-strict=\${caseSensitive_lowercaseMarker_strict} lower-lenient=\${caseSensitive_lowercaseMarker_lenient} upper-strict=\${caseSensitive_uppercaseMarker_strict}\`);
 }
 
+// Probe 10 (iter-110): multi-marker composition — the same hook can call the
+// helper with TWO different marker configurations (opt-out + opt-in), each
+// matching independently. Documented by iter-109's cargo-tty-guard migration
+// (CARGO-TTY-SKIP opt-out + CARGO-TTY-WRAP opt-in). Verifies the helper has
+// no hidden global state and each call is independent.
+const optOutConfig_skipMarker = {
+  markerNameTokenIncludingSuffix: "FOO-TTY-SKIP",
+  caseSensitivityMode: "CASE_INSENSITIVE" as const,
+};
+const optInConfig_wrapMarker = {
+  markerNameTokenIncludingSuffix: "FOO-TTY-WRAP",
+  caseSensitivityMode: "CASE_INSENSITIVE" as const,
+};
+const commandWithOptOutOnly = "cargo bench --bench foo & # FOO-TTY-SKIP";
+const commandWithOptInOnly = "cargo bench --bench foo # FOO-TTY-WRAP";
+const commandWithNeither = "cargo bench --bench foo &";
+const multiMarker_optOutDetectsSkip = hasFileWideEscapeHatchMarkerInContent(commandWithOptOutOnly, optOutConfig_skipMarker);
+const multiMarker_optOutMissesWrap = hasFileWideEscapeHatchMarkerInContent(commandWithOptInOnly, optOutConfig_skipMarker);
+const multiMarker_optInDetectsWrap = hasFileWideEscapeHatchMarkerInContent(commandWithOptInOnly, optInConfig_wrapMarker);
+const multiMarker_optInMissesSkip = hasFileWideEscapeHatchMarkerInContent(commandWithOptOutOnly, optInConfig_wrapMarker);
+const multiMarker_neitherMatches_skip = hasFileWideEscapeHatchMarkerInContent(commandWithNeither, optOutConfig_skipMarker);
+const multiMarker_neitherMatches_wrap = hasFileWideEscapeHatchMarkerInContent(commandWithNeither, optInConfig_wrapMarker);
+if (
+  multiMarker_optOutDetectsSkip === true &&
+  multiMarker_optOutMissesWrap === false &&
+  multiMarker_optInDetectsWrap === true &&
+  multiMarker_optInMissesSkip === false &&
+  multiMarker_neitherMatches_skip === false &&
+  multiMarker_neitherMatches_wrap === false
+) {
+  console.log("PROBE-10-PASS: multi-marker composition works (helper has no hidden global state; SKIP and WRAP markers match independently per cargo-tty-guard iter-109 pattern)");
+} else {
+  allTestsPassed = false;
+  console.log(\`PROBE-10-FAIL: skip-detects-skip=\${multiMarker_optOutDetectsSkip} skip-misses-wrap=\${multiMarker_optOutMissesWrap} wrap-detects-wrap=\${multiMarker_optInDetectsWrap} wrap-misses-skip=\${multiMarker_optInMissesSkip} neither-skip=\${multiMarker_neitherMatches_skip} neither-wrap=\${multiMarker_neitherMatches_wrap}\`);
+}
+
 if (!allTestsPassed) {
   process.exit(1);
 }
@@ -251,6 +287,12 @@ if [[ "$probe_output" == *"PROBE-9-PASS"* ]]; then
     assert_passes "Case 9 (iter-108): caseSensitivityMode default CASE_SENSITIVE rejects lowercase; CASE_INSENSITIVE accepts lowercase (legacy /i compatibility for hooks being migrated from hand-rolled /i regexes)"
 else
     assert_fails "Case 9: caseSensitivityMode mode-switch broken (probe exit=$probe_exit_code, output=$probe_output)"
+fi
+
+if [[ "$probe_output" == *"PROBE-10-PASS"* ]]; then
+    assert_passes "Case 10 (iter-110): multi-marker composition works (helper has no hidden global state; SKIP and WRAP markers match independently — documents iter-109's cargo-tty-guard pattern as an API contract)"
+else
+    assert_fails "Case 10: multi-marker composition broken (probe exit=$probe_exit_code, output=$probe_output)"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────
