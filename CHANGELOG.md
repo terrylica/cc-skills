@@ -1,3 +1,10 @@
+## [21.74.1](https://github.com/terrylica/cc-skills/compare/v21.74.0...v21.74.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release:** iter-167 batched git log fan-in 5x ([5e45922](https://github.com/terrylica/cc-skills/commit/5e45922f948d5b7de16c4d231ff7da2a2745da4b))
+
 # [21.74.0](https://github.com/terrylica/cc-skills/compare/v21.73.0...v21.74.0) (2026-05-21)
 
 
