@@ -1,3 +1,15 @@
+# [21.66.0](https://github.com/terrylica/cc-skills/compare/v21.65.0...v21.66.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **test:** iter-157 docs assertion future-proof ([5e23d81](https://github.com/terrylica/cc-skills/commit/5e23d81e66ef32021b76d5d048cdac0e3ee14ea0))
+
+
+### Features
+
+* **release:** iter-158 pre-commit framework ([b3728e3](https://github.com/terrylica/cc-skills/commit/b3728e31872d8eedb798197b97807dff507d45e1))
+
 # [21.65.0](https://github.com/terrylica/cc-skills/compare/v21.64.3...v21.65.0) (2026-05-21)
 
 
