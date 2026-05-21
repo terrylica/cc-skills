@@ -1,3 +1,10 @@
+## [21.58.4](https://github.com/terrylica/cc-skills/compare/v21.58.3...v21.58.4) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release:** iter-143 apply-four-community-validated-semantic-release-github-plugin-config-optimizations-disabling-per-commit-search-issues-api-storm-and-three-unused-release-comment-features-targeting-the-thirty-point-nine-second-phase-2-semantic-release-wall-clock-which-iter-142-empirical-data-from-RELEASE_TIMING_PROFILE-equals-one-instrumentation-pinpointed-as-the-dominant-sixty-seven-percent-of-pipeline-total-with-the-post-release-successcmd-block-revealed-to-cost-only-2300-milliseconds-not-the-suspected-ten-to-fifteen-seconds-meaning-the-actual-twenty-eight-seconds-of-phase-2-lives-inside-semantic-release-internals-where-the-online-research-documented-bottleneck-is-the-success-step-getting-search-issues-api-call-per-resolved-commit-to-comment-on-prs-and-issues-which-cc-skills-does-not-use-because-it-uses-tag-driven-iter-N-releases-not-PR-driven-releases-also-disables-failcomment-which-auto-opens-github-issues-on-release-failure-not-needed-since-iter-139-RELEASE_TIMING_PROFILE-emits-local-logs-and-releasedlabels-which-applies-released-label-to-resolved-prs-not-needed-since-cc-skills-uses-tag-as-ssot-release-tracking-and-addreleases-which-injects-previous-releases-link-block-into-each-release-notes-page-not-needed-since-changelog-md-already-links-inter-version-diffs-monotonically-cited-semantic-release-github-issues-542-867-2204-as-community-validation-of-the-search-issues-api-storm-bottleneck-claim ([66f6586](https://github.com/terrylica/cc-skills/commit/66f6586dc0bbf1850193a4930f646a84aae69215)), closes [semantic-release/github#542](https://github.com/semantic-release/github/issues/542) [#867](https://github.com/terrylica/cc-skills/issues/867)
+
 ## [21.58.3](https://github.com/terrylica/cc-skills/compare/v21.58.2...v21.58.3) (2026-05-21)
 
 
