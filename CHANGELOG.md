@@ -1,3 +1,10 @@
+# [21.27.0](https://github.com/terrylica/cc-skills/compare/v21.26.0...v21.27.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-89 inline pyi-stub-guard into PreToolUse orchestrator (6th subhook) + remediate filename-vs-algorithm naming drift via dual-export pattern + surface async:true (Jan-2026 Anthropic flag) as architectural-alternative for task [#96](https://github.com/terrylica/cc-skills/issues/96) PostToolUse consolidation before committing to full orchestrator ([816cae1](https://github.com/terrylica/cc-skills/commit/816cae1e1dac612226c9d9232a557ebca01db709))
+
 # [21.26.0](https://github.com/terrylica/cc-skills/compare/v21.25.0...v21.26.0) (2026-05-21)
 
 
