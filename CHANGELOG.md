@@ -1,3 +1,10 @@
+# [21.25.0](https://github.com/terrylica/cc-skills/compare/v21.24.0...v21.25.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-87 inline gpu-optimization-guard into PreToolUse orchestrator + AbortSignal.timeout refactor replacing iter-84 Symbol-sentinel + empirical microbenchmark correcting iter-80 cold-start projection from 44ms to 17ms per saved subhook ([efaa385](https://github.com/terrylica/cc-skills/commit/efaa385a746b33fef230b74843ea3f1b70d8d782))
+
 # [21.24.0](https://github.com/terrylica/cc-skills/compare/v21.23.0...v21.24.0) (2026-05-21)
 
 
