@@ -298,6 +298,57 @@ git log --oneline "$(git describe --tags --abbrev=0)..HEAD" --grep "$MARKER"
 
 If Layer 1 + Layer 2 have your fix but Layer 3 does not, the diagnosis is a pending-release lag, not a bug in your fix.
 
+### Iter-76 Algorithmic Drift Detector (Companion Tool to the Hand-Typed Recipe)
+
+The hand-typed recipe above probes one hook at a time and relies on operator-chosen marker strings. Iter-76 ships an algorithmic content-hash-based detector that scans EVERY plugin and reports L2-vs-L3 divergence per plugin without needing markers:
+
+```bash
+# Default: per-plugin summary across all plugins, filtered to cache-populator-kept paths
+mise run audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis
+
+# Focus on a single plugin
+... --check-plugin <plugin-name>
+
+# Per-file divergence list for each STALE plugin
+... --verbose
+
+# Forensic mode: include cache-populator's documented benign omissions
+# (CLAUDE.md, README.md, docs/, scripts/, tests/, templates/, schemas/)
+... --all-divergences
+```
+
+Exit code 0 if all plugins FRESH or NOT-CACHED; exit code 1 if any STALE-CACHE detected — gates CI scripts that want to fail on operator-cache drift.
+
+### Iter-76 Cache-Populator-Filter Forensic Finding
+
+**Discovered while building the iter-76 drift detector**: Claude Code's plugin cache populator (L2→L3) does NOT copy the plugin source tree verbatim. It keeps ONLY these subtrees at the plugin root:
+
+| Path                       | Cached at Layer 3? | Purpose                         |
+| -------------------------- | ------------------ | ------------------------------- |
+| `plugin.json`              | YES                | Plugin manifest                 |
+| `hooks/**` (recursive)     | YES                | Executable hooks + their assets |
+| `skills/**` (recursive)    | YES                | SKILL.md + skill resources      |
+| `commands/**` (recursive)  | YES                | Slash-command definitions       |
+| `agents/**` (recursive)    | YES                | Sub-agent definitions           |
+| `CLAUDE.md`                | NO                 | Dev-time per-plugin docs        |
+| `README.md`                | NO                 | Install/usage docs              |
+| `docs/**`                  | NO                 | Design docs                     |
+| `scripts/**`               | NO                 | Helper scripts (dev-time)       |
+| `tests/**`                 | NO                 | Regression tests                |
+| `templates/**`             | NO                 | Templates (consumed dev-time)   |
+| `schemas/**`               | NO                 | JSON schemas                    |
+| `LICENSE` / `CHANGELOG.md` | NO                 | Distribution metadata           |
+
+**Operator-impact implications**:
+
+1. If your hook references `${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh` it WILL FAIL at runtime — `scripts/` is stripped from L3. Either move helper scripts under `hooks/` (which IS cached) or invoke them via absolute path from the marketplace mirror.
+
+2. SKILL.md is cached, but skill-internal `references/` subdirs under `skills/<skill>/references/` ARE cached (because they're under `skills/**`). So skill references work.
+
+3. Plugin-root-level `CLAUDE.md` files (added in 2026 for self-explanatory scaffolding) ARE NOT cached. They're discoverable only from L2 (marketplace mirror), not L3. This is intentional — CLAUDE.md is for human + AI dev-context, not for runtime invocation.
+
+The drift detector defaults to filtering by cached-subtree-only paths so the operator sees only **actionable** drift (hook/skill/command/agent content divergence). Use `--all-divergences` to surface the full L2-vs-L3 delta when you suspect the cache populator's filter rules have changed in a Claude Code update.
+
 ## Testing Hooks
 
 ### Manual Testing
