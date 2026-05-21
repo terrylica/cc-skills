@@ -119,17 +119,20 @@ else
     assert_fails "Case 5: ${additional_context_emission_violations_count} of 8 PreToolUse subhook(s) emit additionalContext — silent-drop hazard"
 fi
 
-# ─── Case 6: hooks.json contains exactly ONE Write|Edit orchestrator entry ────
-# After arc completion, the only Write|Edit matcher should be the orchestrator.
-# Use jq (NOT grep) for reliable JSON inspection — BSD grep ERE handling of
-# `\|` is implementation-defined and produced spurious matches in iter-91 dev.
-# (iter-78 layer3-stripped-path-guard uses Write|Edit|MultiEdit which is a
-# DIFFERENT matcher value and must not be confused with Write|Edit.)
-case6_write_edit_matcher_count=$(jq '[.hooks.PreToolUse[] | .matcher] | map(select(. == "Write|Edit")) | length' "$HOOKS_JSON_PATH")
-if [[ "$case6_write_edit_matcher_count" == "1" ]]; then
-    assert_passes "Case 6a: hooks.json now contains exactly 1 Write|Edit matcher (the orchestrator) — all 7 standalone Write|Edit entries removed across iter-84→iter-91"
+# ─── Case 6: hooks.json contains exactly ONE file-edit orchestrator entry ────
+# After arc completion, the only file-edit-matcher entry should be the
+# orchestrator. Iter-101 broadened the orchestrator matcher from "Write|Edit"
+# to "Write|Edit|MultiEdit" per the marketplace-wide matcher-hygiene audit
+# (closing the iter-100 MultiEdit-coverage-gap discovery). The semantic
+# invariant — exactly one orchestrator entry, with no residual standalone
+# subhook entries — is preserved by matching on COMMAND substring (the
+# orchestrator binary's unique filename suffix) rather than the matcher
+# string itself, decoupling this test from future matcher broadenings.
+case6_orchestrator_entry_count=$(jq '[.hooks.PreToolUse[] | select(.hooks[].command | test("pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent"))] | length' "$HOOKS_JSON_PATH")
+if [[ "$case6_orchestrator_entry_count" == "1" ]]; then
+    assert_passes "Case 6a: hooks.json contains exactly 1 PreToolUse orchestrator entry (matcher-string-decoupled check; iter-101 broadened to Write|Edit|MultiEdit per matcher-hygiene audit)"
 else
-    assert_fails "Case 6a: expected 1 Write|Edit matcher, found ${case6_write_edit_matcher_count} — standalone subhooks may not all be removed"
+    assert_fails "Case 6a: expected 1 orchestrator entry, found ${case6_orchestrator_entry_count} — standalone subhooks may not all be removed"
 fi
 case6_vale_standalone_remnant_count=$(jq -r '[.hooks.PreToolUse[] | select(.hooks[].command | test("pretooluse-vale-claude-md-guard"))] | length' "$HOOKS_JSON_PATH")
 if [[ "$case6_vale_standalone_remnant_count" == "0" ]]; then

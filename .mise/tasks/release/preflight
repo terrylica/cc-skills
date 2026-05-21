@@ -460,6 +460,37 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse silent-context-drop audit (iter-99 gate; informational)"
 
+# Check 4o: Iter-101 marketplace-wide matcher-hygiene audit. Scales the
+# iter-100 single-orchestrator MultiEdit-matcher-broadening fix to a
+# marketplace invariant. Per 2026 Anthropic + community best-practice web
+# research surfaced during iter-100 adversarial audit, Claude's MultiEdit
+# tool call (tool_input.edits[] shape) is DISTINCT from Write/Edit. Any
+# PreToolUse/PostToolUse matcher of the form `Write|Edit` (or any subset
+# containing Write or Edit but NOT MultiEdit) silently bypasses MultiEdit
+# tool calls — the hook never fires for that input class. Iter-101
+# discovered 8 such gaps across 3 plugins (itp-hooks: PreToolUse
+# orchestrator + process-storm-guard + 2 PostToolUse multi-hook entries;
+# dotfiles-tools: chezmoi-sync-reminder; rust-tools: rust-sota-reminder)
+# and fixed all of them. The audit now stands guard preventively.
+# Escape hatch: `MATCHER-NO-MULTIEDIT-OK: <reason ≥ 10 chars>` in the
+# hook's description field for explicitly-justified MultiEdit exclusions.
+# Informational by default — future iters may flip to --strict.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-101 PreToolUse/PostToolUse matcher-hygiene marketplace audit (informational)..."
+if ! mise run audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant >/tmp/iter101-matcher-hygiene-audit.log 2>&1; then
+    echo "  ⚠ Matcher-hygiene audit exited non-zero (informational only — not blocking release)"
+    echo "    (each violation indicates a hook whose matcher silently bypasses Claude's MultiEdit tool calls — see /tmp/iter101-matcher-hygiene-audit.log)"
+fi
+# Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
+MATCHER_HYGIENE_HOOKS_DISCOVERED=$( { grep -oE 'hooks.json files discovered across marketplace:[[:space:]]+[0-9]+' /tmp/iter101-matcher-hygiene-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+MATCHER_HYGIENE_VIOLATIONS=$( { grep -oE 'AUDIT FAILED — [0-9]+ matcher coverage gap' /tmp/iter101-matcher-hygiene-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+if [[ "${MATCHER_HYGIENE_VIOLATIONS:-0}" -gt 0 ]]; then
+    echo "  ⚠ Matcher-hygiene audit: ${MATCHER_HYGIENE_HOOKS_DISCOVERED:-0} hooks.json files scanned, ${MATCHER_HYGIENE_VIOLATIONS:-0} violation(s)"
+else
+    echo "  ✓ Matcher-hygiene audit: ${MATCHER_HYGIENE_HOOKS_DISCOVERED:-0} hooks.json files scanned, 0 violations"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostToolUse matcher-hygiene audit (iter-101 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
