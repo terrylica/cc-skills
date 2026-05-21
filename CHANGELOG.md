@@ -1,3 +1,10 @@
+# [21.51.0](https://github.com/terrylica/cc-skills/compare/v21.50.0...v21.51.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-120 add case-insensitive basename-substring search step bridging gap between iter-116-exact-path-match and iter-118-levenshtein-fuzzy-match for operators who type only the consumer's short name like file-size-guard without the plugins-itp-hooks-hooks prefix that levenshtein threshold rejects ([52528d6](https://github.com/terrylica/cc-skills/commit/52528d6399ca3bb4bdca7b47e7a93da5c9b71674)), closes [#2](https://github.com/terrylica/cc-skills/issues/2) [#144](https://github.com/terrylica/cc-skills/issues/144)
+
 # [21.50.0](https://github.com/terrylica/cc-skills/compare/v21.49.0...v21.50.0) (2026-05-21)
 
 
