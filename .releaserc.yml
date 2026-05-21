@@ -54,7 +54,39 @@ plugins:
   # Belt-and-suspenders: ensures push happens even in --no-ci mode
   - - "@semantic-release/exec"
     - successCmd: "/usr/bin/env bash -c 'git push --follow-tags origin main && git update-index --refresh && echo ✓ Git index refreshed'"
-  - "@semantic-release/github"
+  # Iter-143: explicit @semantic-release/github config to skip the four
+  # community-documented bottleneck features that target cc-skills's non-use-cases:
+  #
+  #   1. successComment:false — disables the per-resolved-commit
+  #      `GET /search/issues?q=repo:...+type:pr+is:merged+<sha>` API storm
+  #      that the plugin runs to comment on PRs/issues fixed by the release.
+  #      cc-skills uses tag-driven releases with iter-N descriptive commits
+  #      (not PR-driven), so there are no resolved PRs/issues to comment on.
+  #      This is the documented dominant slow-down in the success step
+  #      (semantic-release/github#542, #867, #2204) — disabling it skips
+  #      the search-issues API path entirely.
+  #
+  #   2. failComment:false — disables auto-opening a GitHub issue when the
+  #      release fails. cc-skills surfaces failures via local release-pipeline
+  #      logs + the iter-139 RELEASE_TIMING_PROFILE ranking instead.
+  #
+  #   3. releasedLabels:false — disables applying a `released` label to
+  #      resolved PRs/issues. cc-skills doesn't use issue-tagging for release
+  #      tracking — the tag itself + GitHub release page is the SSoT.
+  #
+  #   4. addReleases:false — disables injecting "previous releases" link
+  #      block into each release notes page. With v21.58.x semver climbing
+  #      monotonically and CHANGELOG.md already linking inter-version diffs,
+  #      this back-reference list adds noise without information value.
+  #
+  # All four flags are LOAD-BEARING for performance; reintroducing any of them
+  # would re-add API-call cost. iter-143 regression test pins their presence
+  # to forbid silent revert in future config edits.
+  - - "@semantic-release/github"
+    - successComment: false
+      failComment: false
+      releasedLabels: false
+      addReleases: false
   # Post-release: Auto-update local plugin and verify cache
   # Fully automated - no manual intervention required
   #
