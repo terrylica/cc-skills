@@ -71,7 +71,37 @@ plugins:
         CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
         MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
 
+        # Iter-140: per-successCmd-step EPOCHREALTIME timing instrumentation
+        # gated on RELEASE_TIMING_PROFILE=1. Mirrors the iter-139 pipeline-level
+        # pattern at the next-deeper structural level: where iter-139 measures
+        # each `mise run release:X` phase, iter-140 measures each of the seven
+        # post-release successCmd steps (marketplace-update, claude-plugin-trigger,
+        # cache-verify, hooks-sync, hooks-verify, jsDelivr-purge-and-smoke-test,
+        # final-summary). Unlocks data-driven optimization of the post-release
+        # block which iter-139 measured as part of the dominant Phase 2 (30.9s,
+        # 70% of release wall-clock). Per-step ranking emitted end-of-block.
+        __iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary=()
+        __iter140_current_post_release_successcmd_step_start_seconds_using_epochrealtime=""
+        __iter140_current_post_release_successcmd_step_human_readable_label=""
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture() {
+            __iter140_current_post_release_successcmd_step_human_readable_label="$1"
+            if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]]; then
+                __iter140_current_post_release_successcmd_step_start_seconds_using_epochrealtime="$EPOCHREALTIME"
+            fi
+        }
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture() {
+            if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$__iter140_current_post_release_successcmd_step_start_seconds_using_epochrealtime" ]]; then
+                local end_seconds="$EPOCHREALTIME"
+                local elapsed_ms
+                elapsed_ms=$(awk -v s="$__iter140_current_post_release_successcmd_step_start_seconds_using_epochrealtime" -v e="$end_seconds" 'BEGIN { printf "%.0f", (e - s) * 1000 }')
+                echo "  ⧗ successCmd-step elapsed: ${elapsed_ms}ms (${__iter140_current_post_release_successcmd_step_human_readable_label})"
+                __iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary+=("${elapsed_ms}"$'\t'"${__iter140_current_post_release_successcmd_step_human_readable_label}")
+            fi
+        }
+
         # Step 1: Update marketplace git repo (source of truth)
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 1: marketplace-clone git-fetch-tags + git-reset-hard-to-vN + plugin.json version-confirmation"
         echo "→ Step 1: Updating marketplace repo..."
         if [[ -d "$MARKETPLACE_DIR/.git" ]]; then
           cd "$MARKETPLACE_DIR"
@@ -87,8 +117,17 @@ plugins:
         else
           echo "  ⚠ Marketplace repo not found at $MARKETPLACE_DIR"
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
         # Step 2: Trigger Claude Code plugin update
+        # Iter-140 cost-watch: this step bootstraps a full claude subprocess
+        # just to fire one slash command. Empirical data from iter-140
+        # instrumentation will confirm whether this is the dominant cost
+        # inside the successCmd block (suspected ~10-15s); iter-141+
+        # candidate is to replace this with a direct cache-invalidation
+        # primitive if so.
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 2: claude --print /plugin update cc-skills subprocess-bootstrap (bootstraps full Claude Code instance for one slash command)"
         echo "→ Step 2: Triggering Claude Code plugin update..."
         if command -v claude &>/dev/null; then
           # Use claude in non-interactive mode to update plugin
@@ -97,11 +136,20 @@ plugins:
         else
           echo "  ⚠ Claude Code not found in PATH, skipping automatic update"
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
-        # Step 3: Wait briefly for cache to populate
-        sleep 2
+        # Step 3: ELIMINATED by iter-140.
+        # Previously: `sleep 2` (hardcoded 2-second wait for cache to populate
+        # before Step 4 verification). Iter-140 removed because Step 4 already
+        # handles graceful degrade — if the cache hasn't populated by the time
+        # verification runs, it reports "may need session restart" (existing
+        # branch). The unconditional 2-second wait was burning operator
+        # wall-clock for no functional benefit. Net save: 2000ms per release
+        # (4-5% of the post-release successCmd block; ~0.5% of pipeline).
 
         # Step 4: Verify cache has new version
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 4: plugin-cache version-verification (ls $CACHE_DIR/<plugin>/$VERSION presence check + graceful-degrade fallback to latest-cached comparison)"
         echo "→ Step 3: Verifying plugin cache..."
         if [[ -d "$CACHE_DIR" ]]; then
           # Find any plugin directory to check versions
@@ -117,8 +165,11 @@ plugins:
             fi
           fi
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
         # Step 5: Sync hooks to settings.json (auto-install new hooks)
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 5: sync-hooks-to-settings.sh invocation (auto-install new hooks into ~/.claude/settings.json from marketplace)"
         echo "→ Step 4: Syncing hooks to settings.json..."
         SYNC_SCRIPT="$MARKETPLACE_DIR/scripts/sync-hooks-to-settings.sh"
         if [[ -x "$SYNC_SCRIPT" ]]; then
@@ -126,8 +177,11 @@ plugins:
         else
           echo "  ⚠ Hook sync script not found at $SYNC_SCRIPT"
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
         # Step 6: Verify hook files in cache (for plugins with hooks)
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 6: hook-files-in-cache validation (jq-empty per hooks.json across all plugin cache directories — verify all hooks.json files parse as valid JSON)"
         echo "→ Step 5: Verifying hook files..."
         HOOKS_VERIFIED=0
         HOOKS_MISSING=0
@@ -150,8 +204,11 @@ plugins:
         if [[ $HOOKS_MISSING -gt 0 ]]; then
           echo "  ⚠ Hook issues found: $HOOKS_MISSING plugin(s)"
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
         # Step 7: jsDelivr CDN purge + smoke-test for html-showcase kernel CSS
+        __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+            "Step 7: jsDelivr-CDN-purge + tagged-URL-smoke-test loop over plugins/html-showcase/assets/* (curl purge.jsdelivr.net @main + curl cdn.jsdelivr.net @vN for each asset)"
         # Auto-discovers CDN-served assets via the html-showcase plugin's
         # assets/ directory. Adding new files there picks them up on the
         # next release with zero config change here.
@@ -197,10 +254,27 @@ plugins:
             echo "  ⚠ Smoke-test: $SMOKE_FAIL asset(s) not yet propagated (transient; jsDelivr usually catches up within 60s)"
           fi
         fi
+        __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
         # Step 8: Final summary
         echo ""
         echo "═══════════════════════════════════════════════════════════"
         echo "  ✓ Post-release verification complete for v$VERSION"
         echo "═══════════════════════════════════════════════════════════"
+
+        # Iter-140: emit top-N slowest successCmd steps ranking when
+        # RELEASE_TIMING_PROFILE=1. Mirrors iter-130/139 ranking pattern at
+        # the deepest structural level (successCmd internals). Unlocks
+        # data-driven iter-141+ optimization of whichever step dominates
+        # (suspected: Step 2 claude --print subprocess-bootstrap).
+        if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]] && [[ "${#__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -gt 0 ]]; then
+            __iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display="${ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY:-5}"
+            echo ""
+            echo "  ⧗ ─── Top ${__iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display} slowest successCmd steps (iter-140 post-release-block bottleneck ranking) ───"
+            printf '%s\n' "${__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
+                | sort -rn -k1 \
+                | head -n "${__iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display}" \
+                | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
+            echo "  ⧗ (override count via ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY=N)"
+        fi
         VERIFY_PLUGIN_EOF
