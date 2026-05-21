@@ -1,3 +1,10 @@
+# [21.28.0](https://github.com/terrylica/cc-skills/compare/v21.27.0...v21.28.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-90 inline native-binary-guard into PreToolUse orchestrator (7th subhook, migration arc now 7/8) + marketplace-wide PreToolUse additionalContext silent-drop NON-USE audit per GitHub [#15664](https://github.com/terrylica/cc-skills/issues/15664) + BSD-xargs portability hardening for iter-75 parallel test runner (long test-filename cliff fix) ([a70340c](https://github.com/terrylica/cc-skills/commit/a70340ca273e17ba55962aeb634c3606ac3fe53d))
+
 # [21.27.0](https://github.com/terrylica/cc-skills/compare/v21.26.0...v21.27.0) (2026-05-21)
 
 
