@@ -183,6 +183,36 @@ if (reasonGated_bareMarker === false && reasonGated_shortReason === false && rea
   console.log(\`PROBE-8-FAIL: bare=\${reasonGated_bareMarker} short=\${reasonGated_shortReason} valid=\${reasonGated_validReason}\`);
 }
 
+// Probe 9 (iter-108): caseSensitivityMode CASE_SENSITIVE default rejects
+// lowercase, CASE_INSENSITIVE accepts lowercase.
+const caseSensitive_lowercaseMarker_strict = hasFileWideEscapeHatchMarkerInContent(
+  "# foo-ok\\n",
+  {
+    markerNameTokenIncludingSuffix: "FOO-OK",
+    caseSensitivityMode: "CASE_SENSITIVE",
+  },
+);
+const caseSensitive_lowercaseMarker_lenient = hasFileWideEscapeHatchMarkerInContent(
+  "# foo-ok\\n",
+  {
+    markerNameTokenIncludingSuffix: "FOO-OK",
+    caseSensitivityMode: "CASE_INSENSITIVE",
+  },
+);
+const caseSensitive_uppercaseMarker_strict = hasFileWideEscapeHatchMarkerInContent(
+  "# FOO-OK\\n",
+  {
+    markerNameTokenIncludingSuffix: "FOO-OK",
+    caseSensitivityMode: "CASE_SENSITIVE",
+  },
+);
+if (caseSensitive_lowercaseMarker_strict === false && caseSensitive_lowercaseMarker_lenient === true && caseSensitive_uppercaseMarker_strict === true) {
+  console.log("PROBE-9-PASS: caseSensitivityMode CASE_SENSITIVE rejects lowercase; CASE_INSENSITIVE accepts lowercase; uppercase always accepted");
+} else {
+  allTestsPassed = false;
+  console.log(\`PROBE-9-FAIL: lower-strict=\${caseSensitive_lowercaseMarker_strict} lower-lenient=\${caseSensitive_lowercaseMarker_lenient} upper-strict=\${caseSensitive_uppercaseMarker_strict}\`);
+}
+
 if (!allTestsPassed) {
   process.exit(1);
 }
@@ -215,6 +245,12 @@ if [[ "$probe_output" == *"PROBE-8-PASS"* ]]; then
     assert_passes "Case 8: ≥10-char reason policy gate enforces correctly (rejects bare marker, rejects short reason, accepts ≥10-char reason)"
 else
     assert_fails "Case 8: reason-policy gate broken (probe exit=$probe_exit_code, output=$probe_output)"
+fi
+
+if [[ "$probe_output" == *"PROBE-9-PASS"* ]]; then
+    assert_passes "Case 9 (iter-108): caseSensitivityMode default CASE_SENSITIVE rejects lowercase; CASE_INSENSITIVE accepts lowercase (legacy /i compatibility for hooks being migrated from hand-rolled /i regexes)"
+else
+    assert_fails "Case 9: caseSensitivityMode mode-switch broken (probe exit=$probe_exit_code, output=$probe_output)"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────
