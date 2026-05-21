@@ -1,3 +1,10 @@
+## [21.75.6](https://github.com/terrylica/cc-skills/compare/v21.75.5...v21.75.6) (2026-05-21)
+
+
+### Performance Improvements
+
+* **iter-175:** batched-git-log fan-in for iter-152 default mode ([42d779d](https://github.com/terrylica/cc-skills/commit/42d779d5ecc2e8bd6f31813f432aeb5ccb9efaef))
+
 ## [21.75.5](https://github.com/terrylica/cc-skills/compare/v21.75.4...v21.75.5) (2026-05-21)
 
 ## [21.75.4](https://github.com/terrylica/cc-skills/compare/v21.75.3...v21.75.4) (2026-05-21)
