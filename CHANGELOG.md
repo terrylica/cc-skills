@@ -1,3 +1,10 @@
+# [21.73.0](https://github.com/terrylica/cc-skills/compare/v21.72.0...v21.73.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-165 pending-release aggregator ([d72c48a](https://github.com/terrylica/cc-skills/commit/d72c48a721181ca343e5e4993928cb43310e04c7))
+
 # [21.72.0](https://github.com/terrylica/cc-skills/compare/v21.71.0...v21.72.0) (2026-05-21)
 
 
