@@ -102,6 +102,7 @@ import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.
 import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-deps-guard.ts";
 import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-optimization-guard.ts";
 import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygiene-guard.ts";
+import { classifyPyiStubGuardForOrchestrator } from "./pretooluse-pyi-stub-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -134,6 +135,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyMiseHygieneGuardForOrchestrator,
     description:
       "Blocks mise.toml Write/Edit that violates 2 hygiene policies: (1) secrets (api keys, tokens, passwords) detected in shared mise.toml [should be in .mise.local.toml instead], (2) line count exceeds 100 [suggests hub-spoke refactoring with [task_config].includes]. Iter-88 inlined; O(1) filename-allowlist + ignore-list fastpath skips non-mise.toml writes (including the intentionally-secret-bearing .mise.local.toml).",
+  },
+  {
+    name: "pyi-stub-guard",
+    timeoutMs: 3000,
+    classify: classifyPyiStubGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on Python `__init__.py` / `__init__.pyi` files that contain top-level class/def/decorator definitions (PEP 561 + clean-package-structure: init files MUST be thin re-export layers, definitions belong in dedicated modules). Iter-89 inlined; O(1) `__init__.py`/`__init__.pyi` filename-suffix fastpath skips all non-init Python writes. Algorithm encoded in `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator` (re-exported as `classifyPyiStubGuardForOrchestrator` for symmetric naming with sibling subhooks). Escape hatch: `# INIT-MONOLITH-OK` comment in content. Re-export-dominated-write heuristic exempts files where ≥70% of meaningful lines are imports.",
   },
   {
     name: "gpu-optimization-guard",
