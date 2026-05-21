@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # FILE-SIZE-OK: iter-160 doctor is a single-file brew-doctor-style
-# diagnostic tool with 12 sequential health checks (iter-150 → iter-162
-# coverage post-iter-163 extension). Splitting the file would fragment
-# the check sequence across multiple files and hurt operator readability
-# — the linear top-to-bottom progression IS the design. ~590 lines fits
-# comfortably under the 1000-line hard block. Reviewed iter-163.
+# diagnostic tool with 15 sequential health checks (iter-150 → iter-165
+# coverage post-iter-163 + iter-166 extensions). Splitting the file would
+# fragment the check sequence across multiple files and hurt operator
+# readability — the linear top-to-bottom progression IS the design.
+# ~700 lines fits comfortably under the 1000-line hard block. Reviewed
+# iter-163, iter-166.
 #
 # iter-160 operator-facing commits arc self-diagnosis task.
 #
@@ -503,7 +504,132 @@ else
 fi
 rm -f "$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH"
 
-# ─── Check 12: pre-commit binary available for iter-158 polyglot path (WARN) ─
+# ─── Check 12: iter-164 SemVer next-version resolver shared lib (CRITICAL) ──
+#
+# Iter-166 coverage extension. Parallel to iter-163's iter-161 lib check.
+# The iter-153 advisor SOURCES this lib at runtime to compute the
+# concrete next-version string from the iter-161 bump label + current
+# git tag. The iter-165 aggregator ALSO sources it. If the lib is
+# missing or the canonical resolver function is undefined, both
+# consumers soft-fail (advisor degrades to empty "next version" line,
+# aggregator emits empty next_version field) — silent breakage the
+# pre-iter-166 doctor would not have caught.
+
+ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter164-semver-next-version-resolver-applying-iter161-bump-label-to-parsed-major-minor-patch-components-of-current-git-describe-tag-per-semver-org-specification-section-2-increment-rules.sh"
+if [[ -f "$ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "source '$ITER166_ITER164_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules >/dev/null"
+    iter166_iter164_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter166_iter164_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter166_iter164_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter164_semver_next_version_resolver_library" \
+            "iter-164 SemVer next-version resolver shared library sources cleanly + exports canonical function" \
+            "critical" "pass" "$iter166_iter164_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter164_semver_next_version_resolver_library" \
+            "iter-164 next-version resolver library" \
+            "critical" "fail" "$iter166_iter164_ms" \
+            "library failed to source or canonical resolver function missing"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter164_semver_next_version_resolver_library" \
+        "iter-164 next-version resolver library" \
+        "critical" "fail" "0" "library missing"
+fi
+
+# ─── Check 13: iter-165 pending-release aggregator script (CRITICAL) ────────
+#
+# Iter-166 coverage extension. iter-165 is the operator's entry point
+# for "what does my next release look like?" — and unlike a lib (which
+# is sourced by a wrapper), iter-165 is an executable consumer in its
+# own right. We verify: file exists, is executable, bash -n passes,
+# and `--help` runs cleanly (no missing dependency surfaces).
+
+ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+if [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "bash -n '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --help >/dev/null 2>&1"
+    iter166_iter165_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter166_iter165_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter166_iter165_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter165_pending_release_aggregator_script" \
+            "iter-165 pending-release aggregator script passes bash -n + --help runs cleanly" \
+            "critical" "pass" "$iter166_iter165_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter165_pending_release_aggregator_script" \
+            "iter-165 pending-release aggregator script" \
+            "critical" "fail" "$iter166_iter165_ms" \
+            "script failed bash -n syntax check or --help invocation (likely missing shared-lib dependency)"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter165_pending_release_aggregator_script" \
+        "iter-165 pending-release aggregator script" \
+        "critical" "fail" "0" "script missing or not executable"
+fi
+
+# ─── Check 14: iter-153→iter-161→iter-164→iter-165 end-to-end probe (CRITICAL)
+#
+# Iter-166 end-to-end chain probe — parallel to iter-163's iter-153→
+# iter-161→iter-162 probe but exercising the OTHER half of the wiring:
+# iter-165 aggregator → iter-161 classifier → iter-164 resolver. Builds
+# a throwaway temp git repo with one tagged baseline + one synthetic
+# `feat:` commit, runs iter-165 in --json mode against it via
+# ITER165_REPO_ROOT_OVERRIDE, and asserts the aggregator emits both
+# aggregate_bump_label=MINOR AND next_version=v1.1.0. This probe fails
+# CRITICAL if any link regresses: iter-165 stops sourcing iter-161,
+# iter-161 stops mapping feat→MINOR, iter-165 stops sourcing iter-164,
+# iter-164 stops applying §2 increment rules, or iter-165's --json
+# emission breaks.
+
+ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH=$(mktemp -d -t iter166-end-to-end-aggregator-probe-XXXXXX)
+iter166_end_to_end_aggregator_probe_setup_exit_code=0
+(
+    cd "$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH"
+    git init -q
+    git config user.email "iter166-doctor-probe@example.com"
+    git config user.name "iter166-doctor-probe"
+    git commit --allow-empty -q -m "baseline before tag"
+    git tag v1.0.0
+    git commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
+) >/dev/null 2>&1 || iter166_end_to_end_aggregator_probe_setup_exit_code=$?
+
+if [[ "$iter166_end_to_end_aggregator_probe_setup_exit_code" -ne 0 ]]; then
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter166_end_to_end_aggregator_chain_probe" \
+        "iter-166 end-to-end iter-153→iter-161→iter-164→iter-165 chain probe" \
+        "critical" "fail" "0" "could not set up synthetic temp git repo for probe"
+elif [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json 2>/dev/null | grep -q '\"aggregate_bump_label_per_semver_precedence\": \"MINOR\"' && cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json 2>/dev/null | grep -q '\"next_version\": \"v1.1.0\"'"
+    iter166_end_to_end_aggregator_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter166_end_to_end_aggregator_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter166_end_to_end_aggregator_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter166_end_to_end_aggregator_chain_probe" \
+            "iter-166 end-to-end iter-153→iter-161→iter-164→iter-165 chain probe (synthetic feat → MINOR + v1.1.0)" \
+            "critical" "pass" "$iter166_end_to_end_aggregator_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter166_end_to_end_aggregator_chain_probe" \
+            "iter-166 end-to-end aggregator chain probe" \
+            "critical" "fail" "$iter166_end_to_end_aggregator_ms" \
+            "synthetic feat fixture failed to produce MINOR aggregate + v1.1.0 next-version — chain wiring regressed (iter-165→iter-161 or iter-165→iter-164 broken)"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter166_end_to_end_aggregator_chain_probe" \
+        "iter-166 end-to-end aggregator chain probe" \
+        "critical" "fail" "0" "iter-165 aggregator not executable — cannot run end-to-end probe"
+fi
+rm -rf "$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH"
+
+# ─── Check 15: pre-commit binary available for iter-158 polyglot path (WARN) ─
 
 if command -v pre-commit >/dev/null 2>&1; then
     ITER160_PRE_COMMIT_BINARY_VERSION_STRING_TRIMMED=$(pre-commit --version 2>&1 | head -1)
