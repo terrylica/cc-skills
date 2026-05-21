@@ -1,3 +1,10 @@
+# [21.49.0](https://github.com/terrylica/cc-skills/compare/v21.48.0...v21.49.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-118 add levenshtein-edit-distance-ranked did-you-mean fuzzy-match suggestion to iter-116 reverse-search cli unknown-path branch replacing blanket 19-path dump with top-3 closest-matches when operator typed path within one-third-of-query-length edit-distance threshold mirroring industry-standard git-cargo-kubectl typo-correction pattern ([90310c5](https://github.com/terrylica/cc-skills/commit/90310c5b76f9d9df2cd28431507759c856084011)), closes [#144](https://github.com/terrylica/cc-skills/issues/144)
+
 # [21.48.0](https://github.com/terrylica/cc-skills/compare/v21.47.0...v21.48.0) (2026-05-21)
 
 
