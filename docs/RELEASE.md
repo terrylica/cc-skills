@@ -253,9 +253,40 @@ MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES=8 \
   mise run test-marketplace-hook-regression-suite
 ```
 
+#### `ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES=N` (iter-134)
+
+Override the parallel-lane count for the **preflight audit fan-out** (Checks 4f-4v). **Default is adaptive**: same `clamp(sysctl_hw_ncpu - 4, 4, 12)` heuristic as iter-128's marketplace-suite (see above). Iter-134 introduces the parallel pre-warm that compresses ~2603ms of sequential audit work into ~510ms wall-clock (longest single audit caps the Phase-A blocking wait) — a **~30% reduction in total preflight wall-clock** (~7000ms → ~4900ms on a 14-core M-series host).
+
+The 17 parallelized audits are independent kebab-case scans of the marketplace and share no mutable state, so the same iter-128 sweet-spot calibration applies. Override when benchmarking or running on a CI host with different CPU topology.
+
+```bash
+# Override audit-pre-warm lane count (different from MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES above)
+ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES=8 mise run release:preflight
+```
+
+#### `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1` (iter-134)
+
+Opt-out escape hatch for the iter-134 audit pre-warm. **Default off** — audits run in parallel via xargs -P. When set to `1`, the pre-warm forces `-P 1` (serial execution through xargs), preserving the sidecar contract while reverting to pre-iter-134 sequential timing. Use when diagnosing audit-suite issues where parallel-stdout ordering could confuse the per-check post-processing.
+
+```bash
+# Force serial audit execution (diagnostic only — costs ~2s wall-clock)
+ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 \
+  PREFLIGHT_TIMING_PROFILE=1 \
+  mise run release:preflight 2>&1 | grep '⧗'
+```
+
 #### `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1` (iter-132)
 
 Opt-in flag for the iter-132 regression test's preflight-integration tier. Default off — the test's standalone mode runs Tier 1 (source-fingerprint, ~50ms) + Tier 2.B (iter-131 suite integration, ~3s) but skips Tier 2.A (iter-130 preflight integration, ~7s) to keep the regression test fast in the common case. Enable when you're specifically iterating on the iter-130 preflight-summary feature.
+
+#### `ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1` (iter-135)
+
+Opt-in flag for the iter-135 regression test's serial-mode-opt-out integration tier. Default off — the test's standalone mode runs Tier 1 (source-fingerprint, ~50ms) + Tier 2.A-D (parallel-mode integration, ~5s) but skips Tier 2.E (serial-mode opt-out integration, ~6s) to keep the regression test fast in the common case. Enable when specifically validating the `ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1` escape hatch.
+
+```bash
+ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1 \
+  bash .mise/tasks/tests/test-iter134-parallel-fan-out-preflight-audit-subprocesses-*.sh
+```
 
 ```bash
 ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 \
