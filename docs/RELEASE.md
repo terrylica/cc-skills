@@ -234,28 +234,31 @@ ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
 
 **Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
 
-## Conventional-Commits Operator Toolkit Index (iter-150 → iter-156 arc)
+## Conventional-Commits Operator Toolkit Index (iter-150 → iter-157 arc)
 
-The cc-skills conventional-commits arc ships **5 operator-facing tools** across the full commit lifecycle. Run `mise run commits` (no subcommand) for the in-terminal cheatsheet. The index below is the canonical reference.
+The cc-skills conventional-commits arc ships **6 operator-facing tools** across the full commit lifecycle. Run `mise run commits` (no subcommand) for the in-terminal cheatsheet. The index below is the canonical reference.
 
-| Lifecycle stage              |     Iter | Tool                                           | Purpose                                                     |
-| ---------------------------- | -------: | ---------------------------------------------- | ----------------------------------------------------------- |
-| **VIEW**                     | iter-150 | `mise run release:history`                     | Awk soft-wrap renderer for verbose subjects                 |
-| **DETECT**                   | iter-151 | Preflight Check 4l (auto)                      | Long-subject overlay classifier, informational              |
-| **HEALTH SUMMARY**           | iter-152 | `mise run commits:health`                      | 5-panel operator dashboard                                  |
-| **HEALTH SUMMARY (AI)**      | iter-155 | `mise run commits:health --json`               | Machine-readable dashboard, stable iter155_schema_version=1 |
-| **PRE-COMMIT ADVISE**        | iter-153 | `mise run commits:advise -- "<subj>"`          | Dry-run classifier before committing                        |
-| **PRE-COMMIT ADVISE (AI)**   | iter-153 | `mise run commits:advise --json -- "<subj>"`   | Machine-readable advisor, stable iter153_schema_version=1   |
-| **PRE-COMMIT ADVISE (gate)** | iter-153 | `mise run commits:advise --strict -- "<subj>"` | Exit non-zero on silent-fail-class violations               |
-| **PRE-COMMIT AUTO-DETECT**   | iter-154 | `mise run commits:advise` (no args, TTY)       | Reads `.git/COMMIT_EDITMSG` during editor-launched commit   |
+| Lifecycle stage              |     Iter | Tool                                           | Purpose                                                                                                        |
+| ---------------------------- | -------: | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **VIEW**                     | iter-150 | `mise run release:history`                     | Awk soft-wrap renderer for verbose subjects                                                                    |
+| **DETECT**                   | iter-151 | Preflight Check 4l (auto)                      | Long-subject overlay classifier, informational                                                                 |
+| **HEALTH SUMMARY**           | iter-152 | `mise run commits:health`                      | 5-panel operator dashboard                                                                                     |
+| **HEALTH SUMMARY (AI)**      | iter-155 | `mise run commits:health --json`               | Machine-readable dashboard, stable iter155_schema_version=1                                                    |
+| **PRE-COMMIT ADVISE**        | iter-153 | `mise run commits:advise -- "<subj>"`          | Dry-run classifier before committing                                                                           |
+| **PRE-COMMIT ADVISE (AI)**   | iter-153 | `mise run commits:advise --json -- "<subj>"`   | Machine-readable advisor, stable iter153_schema_version=1                                                      |
+| **PRE-COMMIT ADVISE (gate)** | iter-153 | `mise run commits:advise --strict -- "<subj>"` | Exit non-zero on silent-fail-class violations                                                                  |
+| **PRE-COMMIT AUTO-DETECT**   | iter-154 | `mise run commits:advise` (no args, TTY)       | Reads `.git/COMMIT_EDITMSG` during editor-launched commit                                                      |
+| **COMMIT-MSG HOOK (auto)**   | iter-157 | `mise run commits:install-hook`                | Install `.git/hooks/commit-msg` running --strict on every commit. Uninstall: `mise run commits:uninstall-hook` |
 
 **Going-forward convention** (iter-150 industry-standard adoption): subject ≤50 chars hard target, ≤72 chars hard cap; body wrapped at 72 chars per line; blank line separates subject from body. Canonical spec: [conventionalcommits.org](https://www.conventionalcommits.org/) + [cbea.ms/git-commit](https://cbea.ms/git-commit/).
 
 **Shared library**: All AI-agent JSON outputs share a single pure-bash RFC 8259 escape function at `scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh` (iter-155 SSoT). No python3 dependency.
 
+**Iter-157 industry-standard automation**: The commit-msg hook installer is the cc-skills counterpart to commitlint's husky integration and `compilerla/conventional-pre-commit`. It uses the natural git workflow (`commit-msg` for validation, per 2026 best practices) and is fail-OPEN by default if the cc-skills repo isn't reachable (won't block commits in a broken environment). Set `ITER157_COMMIT_MSG_HOOK_FAIL_MODE_ON_ADVISOR_NOT_FOUND=closed` for hard-dependency semantics. Bypass for emergencies: `git commit --no-verify` (per the cc-skills policy: only when explicitly necessary).
+
 **Empirical adoption signal**: First iter-152 dashboard run against actual cc-skills HEAD post-iter-155 shows median subject length dropped from **177.5 → 37.5 chars (-79%)** and conformance rose from **50% → 70% (+20pp)** between previous-10 and current-10 windows. Verdict: **IMPROVING**.
 
-For deep dives into each tool's design contract, see the iter-150 through iter-155 subsections below.
+For deep dives into each tool's design contract, see the iter-150 through iter-157 subsections below.
 
 ## Operator-Facing Release-History Readable View (iter-150)
 
