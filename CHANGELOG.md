@@ -1,3 +1,10 @@
+# [21.43.0](https://github.com/terrylica/cc-skills/compare/v21.42.0...v21.43.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-112 migrate posttooluse-reminder.ts SETPROCTITLE-OK detection from raw fileContent.includes substring check to iter-107 canonical shared escape-hatch-marker helper closing the iter-111-surfaced registry-consistency gap and expanding the iter-110 canonical cohort from 8 to 9 members with widened operator-friendly comment-prefix tolerance as a usability side-benefit ([6d2212f](https://github.com/terrylica/cc-skills/commit/6d2212fcda8c5059e477da8ec5e4c1c31dee2d2b))
+
 # [21.42.0](https://github.com/terrylica/cc-skills/compare/v21.41.0...v21.42.0) (2026-05-21)
 
 
