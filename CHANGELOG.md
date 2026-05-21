@@ -1,3 +1,10 @@
+# [21.19.0](https://github.com/terrylica/cc-skills/compare/v21.18.1...v21.19.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-78 ship edit-time PreToolUse companion to iter-77 release-time Check 4k for L3-stripped-path prevention with belt-and-suspenders GitHub [#37210](https://github.com/terrylica/cc-skills/issues/37210) defense ([461b7ad](https://github.com/terrylica/cc-skills/commit/461b7ad62b92744fa9ba512d6bba394a20d4a1d6))
+
 ## [21.18.1](https://github.com/terrylica/cc-skills/compare/v21.18.0...v21.18.1) (2026-05-21)
 
 
