@@ -325,6 +325,26 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
     fi
     echo ""
 
+    # Iter-161 semver-bump preview overlay — surfaces the actual
+    # MAJOR/MINOR/PATCH/NONE version bump cc-skills' semantic-release
+    # will apply per .releaserc.yml. Closes the conventional-commits
+    # ecosystem advisor gap (commitlint/commitizen/conventional-pre-
+    # commit stop at grammar conformance, never preview the bump).
+    if declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null 2>&1; then
+        iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules \
+            "$ITER153_CLASSIFIED_EXTRACTED_CONVENTIONAL_COMMIT_TYPE_OR_EMPTY" \
+            "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+        echo "  iter-161 semver-bump preview (per cc-skills .releaserc.yml):"
+        case "$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES" in
+            MAJOR) printf "    ⚠ MAJOR bump — breaking-change release\n" ;;
+            MINOR) printf "    + MINOR bump — new feature release\n" ;;
+            PATCH) printf "    · PATCH bump — patch release\n" ;;
+            NONE)  printf "    ⊘ NO BUMP — semantic-release will SKIP this commit\n" ;;
+        esac
+        printf "    rationale: %s\n" "$ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN"
+        echo ""
+    fi
+
     # Verdict
     if [[ "$ITER153_CLASSIFIED_SILENT_FAIL_CLASS_VIOLATION_PRESENT_BOOLEAN" == "true" ]]; then
         echo "  ✗ verdict: SILENT-FAIL RISK (semantic-release will skip this commit)"
@@ -378,6 +398,15 @@ if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH" ]]; then
     source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH"
 fi
 
+# Iter-161 semver-bump classifier shared lib — sourced for pre-commit
+# MAJOR/MINOR/PATCH/NONE preview against cc-skills .releaserc.yml bump
+# rules. Soft-fail if missing (degrades to no-preview, never blocks).
+ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter161-semantic-release-version-bump-classifier-mapping-conventional-commit-type-and-breaking-change-marker-to-the-actual-major-minor-patch-bump-per-cc-skills-releaserc-yml-bump-rules-for-pre-commit-preview-overlay.sh"
+if [[ -f "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$ITER161_SHARED_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH"
+fi
+
 iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency() {
     # Iter-154 backward-compat shim. Delegates to the iter-155 canonical
     # shared-lib implementation, preserving the iter-154 regression-test
@@ -425,6 +454,21 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     local json_escaped_subject_for_safe_embedding
     json_escaped_subject_for_safe_embedding=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY")
 
+    # Iter-161 semver-bump preview — compute label + rationale and emit
+    # as a nested object with its own stable schema version. Soft-fail
+    # if classifier lib is unavailable (emit explicit null sentinel).
+    local iter161_bump_label_for_json="UNAVAILABLE"
+    local iter161_bump_rationale_for_json="iter-161 semver-bump-classifier shared lib not loaded"
+    if declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null 2>&1; then
+        iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules \
+            "$ITER153_CLASSIFIED_EXTRACTED_CONVENTIONAL_COMMIT_TYPE_OR_EMPTY" \
+            "$ITER153_CLASSIFIED_BREAKING_CHANGE_INDICATOR_BOOLEAN"
+        iter161_bump_label_for_json="$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES"
+        iter161_bump_rationale_for_json="$ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN"
+    fi
+    local iter161_bump_rationale_json_escaped
+    iter161_bump_rationale_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$iter161_bump_rationale_for_json")
+
     cat <<EOF
 {
   "iter153_schema_version": 1,
@@ -441,6 +485,11 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
   },
   "silent_fail_class_violation_present": ${ITER153_CLASSIFIED_SILENT_FAIL_CLASS_VIOLATION_PRESENT_BOOLEAN},
   "verdict": "${verdict_label}",
+  "iter161_semver_bump_preview": {
+    "iter161_schema_version": 1,
+    "bump_label_per_cc_skills_releaserc_yml_rules": "${iter161_bump_label_for_json}",
+    "rationale": ${iter161_bump_rationale_json_escaped}
+  },
   "thresholds": {
     "hard_target_chars": ${ITER153_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE},
     "hard_cap_chars": ${ITER153_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE}
