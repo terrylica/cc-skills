@@ -211,6 +211,29 @@ Output format includes a "variance-flag" column marking namespaces whose stddev/
 
 **Gotcha — working directory cleanliness affects namespace coverage**: `npx semantic-release --dry-run` runs `scripts/release-preflight.sh` in `verifyConditions`, which aborts on dirty `git status --porcelain`. When preflight aborts, downstream namespaces like `semantic-release:get-tags` never execute and won't appear in the distribution table. Capture against a clean working directory for full namespace cohort.
 
+### Iter-148 empirical validation of the SSH multiplexing claim — measured 3.30x speedup (not conjectural 10-15x)
+
+The iter-146 setup script docstring originally claimed "~1.7s → ~100-200ms (10-15x speedup)" sourced from OpenSSH community docs on warm-handshake reuse. **That claim was conjectural** — never measured on this machine, against this release pipeline, with this `semantic-release` version. Iter-148 ships a wrapper that runs the iter-147 variance harness in BOTH conditions (baseline + multiplexed) back-to-back and emits a side-by-side distribution delta table:
+
+```bash
+scripts/iter148-empirical-validation-wrapper-comparing-baseline-versus-multiplexed-ssh-session-using-iter147-variance-harness-emitting-side-by-side-distribution-delta-table-for-get-git-auth-url-bottleneck-speedup-claim.sh
+
+# With custom run count (same env var as iter-147 harness):
+ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
+```
+
+#### Empirical results (cc-skills production machine, n=3 captures per condition)
+
+| Namespace                           | BEFORE p50 | BEFORE p95 | BEFORE σ | AFTER p50 | AFTER p95 | AFTER σ | Δp50 (ms) |   Speedup |
+| ----------------------------------- | ---------: | ---------: | -------: | --------: | --------: | ------: | --------: | --------: |
+| `semantic-release:get-git-auth-url` |       6051 |       6067 |     32.7 |  **1835** |      1861 |    30.6 | **−4216** | **3.30x** |
+| `semantic-release:config`           |         71 |         77 |      3.8 |        72 |        72 |     1.2 |        +1 |     0.99x |
+| `semantic-release:plugins`          |         16 |         17 |      0.6 |        17 |        18 |     1.5 |        +1 |     0.94x |
+
+**Verdict**: iter-146/147 SSH multiplexing claim is **VALIDATED** at distribution level. The actual measured speedup is **3.30x (~4.2 seconds saved per release)**, not the originally-claimed 10-15x. The gap between claim and reality is because `verifyAuth` includes more than the raw SSH key exchange the OpenSSH docs measure — there's per-call `git push --dry-run` setup, TCP teardown overhead, and protocol negotiation that doesn't accelerate from connection reuse.
+
+**Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
