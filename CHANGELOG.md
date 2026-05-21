@@ -1,3 +1,10 @@
+## [21.54.3](https://github.com/terrylica/cc-skills/compare/v21.54.2...v21.54.3) (2026-05-21)
+
+
+### Performance Improvements
+
+* **preflight:** iter-127 bound two-remaining-unbounded-find-plugins-tree-walking-descents-at-marketplace-canonical-mindepth-and-maxdepth-bounded-depth-pattern eliminating iter-125-batch-missed-iter-60-pretooluse-schema-audit-Check-4f-pretooluse-asterisk-find-and-iter-50-marketplace-hook-regression-suite-Check-4e-test-asterisk-sh-find-saving-approximately-600-to-660-milliseconds-aggregate-per-preflight-invocation ([e56a66b](https://github.com/terrylica/cc-skills/commit/e56a66be68b14cd0929bf77bf0d3e27ae9eb70c6))
+
 ## [21.54.2](https://github.com/terrylica/cc-skills/compare/v21.54.1...v21.54.2) (2026-05-21)
 
 
