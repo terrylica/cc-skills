@@ -1147,6 +1147,59 @@ Sources for iter-102 web research:
 - [Claude Code Hooks: The Complete 2026 Production Reference (32+ Events, 5 Handler Types)](https://thepromptshelf.dev/blog/claude-code-hooks-complete-reference-2026/)
 - [Claude Code Hooks: Complete Guide to All 12 Lifecycle Events](https://claudefa.st/blog/tools/hooks/hooks-guide)
 
+### Iter-103: NotebookEdit applicability audit + per-classifier matrix — preventive infrastructure for the 4-tool canonical quadruple
+
+Iter-102 surfaced the canonical 2026 file-edit tool quadruple `Edit|MultiEdit|Write|NotebookEdit`. Iter-103 scales that discovery to the per-classifier level via a marketplace-wide **NotebookEdit applicability audit** that produces a curated SSoT matrix.
+
+**Key dichotomy — file-path-suffix vs content-pattern classifiers**:
+
+| Category                  | Example classifiers                                                                                                                                                             | NotebookEdit applicability                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File-path-suffix          | vale-claude-md, hoisted-deps (pyproject.toml), mise-hygiene, pyi-stub (`__init__.py`), native-binary (plists), glossary-sync (GLOSSARY.md), terminology-sync, readme-pypi-links | **NOT-APPLICABLE** — notebooks (.ipynb) never match these suffixes                                                                                             |
+| Content-pattern           | version-guard (hardcoded version regex), gpu-optimization-guard (PyTorch patterns), ssot-principles (ast-grep DI), memory-efficiency-reminder                                   | **APPLICABLE** — patterns occur identically in notebook cell source as in `.py`/`.ts` files                                                                    |
+| Content-pattern (partial) | file-size-guard (per-cell vs per-file semantic mismatch), inline-ignore-guard, fake-data-guard, iter78-L3-stripped-path                                                         | **POTENTIALLY-APPLICABLE** — semantic decisions per-hook                                                                                                       |
+| Language-tool-specific    | ty (`.py`/`.pyi`), tsgo (`.ts`/`.tsx`), oxlint, biome                                                                                                                           | **NOT-APPLICABLE-VIA-NOTEBOOKEDIT** — underlying tool requires `.py`/`.ts` file extension; notebook code path is `nbqa` / Jupyter MCP server, not NotebookEdit |
+
+**Audit results on first run**: 4 APPLICABLE + 4 POTENTIALLY-APPLICABLE + 15 NOT-APPLICABLE classifiers across the marketplace. Current marketplace coverage: **0** matchers honor NotebookEdit (baseline state — iter-104+ starts gradual broadening for the 4 APPLICABLE cohort).
+
+**Community-validated 2026 cautions** (informational deferral signal — iter-103 audit cites all three):
+
+1. **NotebookEdit insert-positioning bug** ([anthropics/claude-code#18538](https://github.com/anthropics/claude-code/issues/18538)) — cells inserted at position 0 instead of after `cell_id`
+2. **Git-diff noise + format-revert war with JupyterLab** ([ReviewNB blog](https://www.reviewnb.com/claude-code-with-jupyter-notebooks)) — NotebookEdit writes cell source as single JSON string; every edit shows as a whole-cell rewrite that reverts the moment JupyterLab saves
+3. **Community recommendation**: use the **Jupyter MCP server** (kernel-aware, executes cells, reads outputs) instead of NotebookEdit for serious notebook workflows
+
+Per these cautions, iter-103 is **deliberately INFORMATIONAL** (never blocks release). Iter-104+ per-hook broadening decisions evaluate three factors:
+
+1. Is per-cell enforcement semantically meaningful vs per-file? (e.g., file-size-guard threshold applies to FILE size, not cell size — likely punted)
+2. Is upstream NotebookEdit stability sufficient? (insert-bug, diff noise still open as of 2026-05)
+3. Is the canonical Jupyter MCP server path preferable? (community-recommended workaround for production notebook workflows)
+
+**Audit wired into preflight as Check 4p** (informational, parallel to Check 4n iter-99 silent-context-drop + Check 4o iter-101 matcher-hygiene). Future iters MAY add `--strict` mode once iter-104+ per-classifier adaptation lands.
+
+**Iter-103 regression test** (9 assertions all pass): audit-task existence + executability, audit always exits 0 (informational), per-classifier matrix produces expected counts (4 APPLICABLE: version-guard + gpu-optimization-guard + ssot-principles + memory-efficiency-reminder; ≥12 NOT-APPLICABLE file-path-suffix hooks correctly excluded), all 4 APPLICABLE classifiers appear in detailed-rationale section, all 3 community-validated cautions cited (insert-bug + git-diff noise + Jupyter MCP recommendation), iter-104+ deferred-scope rationale present (payload-shape adaptation + iter-104 follow-up scope), live marketplace baseline state verified (0 matchers honor NotebookEdit), discrimination categories present (file-path-suffix vs content-pattern dichotomy).
+
+**Iter-103 architectural takeaway — "preventive gate" pattern in 5th succession + introduces the INFORMATIONAL-ONLY variant**:
+
+1. iter-98 → iter-99: silent-context-drop fix → marketplace silent-context-drop audit (blocking via exit code)
+2. iter-100 → iter-101: MultiEdit-orchestrator-matcher fix → marketplace matcher-hygiene audit (blocking via exit code)
+3. iter-101 → iter-102: PostToolUse canonical-helper hoist → PreToolUse canonical-helper hoist
+4. iter-102 → iter-103: NotebookEdit web-research discovery → marketplace applicability audit (**INFORMATIONAL ONLY** — never blocks; per-classifier matrix as SSoT)
+5. iter-103 → iter-104: per-classifier NotebookEdit payload-shape adaptation for the 4 APPLICABLE cohort (next iter, conditional on upstream stability)
+
+The iter-103 informational-only variant is a NEW preventive-gate sub-pattern. When the underlying surfaced concern requires per-hook nuanced decisions (not a universal invariant), the audit's role shifts from "block recurrence" to "surface the matrix + document the decision pattern." This is appropriate when:
+
+- Per-hook applicability is heterogeneous (file-path-suffix vs content-pattern classifiers)
+- Upstream stability concerns make universal broadening premature
+- Multiple valid adaptation paths exist (e.g., NotebookEdit direct adaptation vs Jupyter MCP server alternative)
+
+Sources for iter-103 web research:
+
+- [Claude Code Tools Reference (2026) — NotebookEdit payload spec](https://code.claude.com/docs/en/tools-reference)
+- [Claude Code + Jupyter Notebooks Finally Work Well (ReviewNB)](https://www.reviewnb.com/claude-code-with-jupyter-notebooks)
+- [anthropics/claude-code Issue #18538 — NotebookEdit insert-positioning bug](https://github.com/anthropics/claude-code/issues/18538)
+- [anthropics/claude-code Issue #46013 — cell_id in IDE selection context](https://github.com/anthropics/claude-code/issues/46013)
+- [Claude Code System Prompts — NotebookEdit tool description (Piebald-AI)](https://github.com/Piebald-AI/claude-code-system-prompts/blob/main/system-prompts/tool-description-notebookedit.md)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
