@@ -178,7 +178,7 @@ Hooks defined in plugin `hooks.json` must be synced to `~/.claude/settings.json`
 
 ## Hook Source Edits Don't Take Effect Until Next Tagged Release (3-Layer Versioned Cache Lifecycle)
 
-<!-- SSoT-OK: this section references SemVer placeholders as documentation patterns, not as code configuration. -->
+<!-- # SSoT-OK: this section references SemVer placeholders as documentation patterns, not as code configuration. -->
 
 **Empirical discovery, iter-42 (2026-05-20)**: when you `git commit` a fix to a hook source file, the running Claude Code session does NOT immediately pick up the change — and frequently NEITHER does the next session. The hook continues to behave as before for hours-to-days. This section explains why and how to work around it.
 
