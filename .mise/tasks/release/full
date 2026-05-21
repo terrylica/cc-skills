@@ -79,6 +79,71 @@ if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]]; then
     echo "    ⧗ RELEASE_TIMING_PROFILE=1 — per-phase wall-clock instrumentation active (iter-139)"
 fi
 
+# ─── ITER-147: env-var-scoped SSH ControlMaster opt-in for this release run ─────
+# Complementary to iter-146's ~/.ssh/config-modifying setup script. Iter-146
+# refuses to auto-modify ~/.ssh/config when a conflicting Host github.com block
+# already exists (e.g., when an operator has IdentityFile pins for anti-key-leak
+# defense). On THIS operator's machine the iter-146 setup script correctly
+# refused to modify the existing block with `IdentityFile ~/.ssh/id_ed25519_terrylica`
+# + `IdentitiesOnly yes` (anti-tainora-leak invariant from 2026-05-19).
+#
+# Iter-147 ships a complementary, non-invasive lever:
+#
+#   RELEASE_SSH_MULTIPLEXING_ENABLED=1 — exports GIT_SSH_COMMAND with
+#   `-o ControlMaster=auto -o ControlPath=~/.ssh/controlmasters/%r@%h:%p
+#    -o ControlPersist=10m` for the duration of THIS release pipeline only.
+#
+# Differences from iter-146:
+#
+#   - Zero modification of ~/.ssh/config. The operator's IdentityFile pin
+#     + IdentitiesOnly directives are preserved untouched.
+#
+#   - Process-tree-scoped: GIT_SSH_COMMAND is only set inside `mise run release:full`.
+#     Spawned bash subprocesses inherit it; bash exit unsets it. Other
+#     terminal sessions, cron jobs, IDE git operations, etc. are unaffected.
+#
+#   - Self-cleaning: ControlMaster sockets auto-expire after the 10-minute
+#     ControlPersist TTL (or sooner if the parent ssh process exits and no
+#     other ssh references the socket). The ~/.ssh/controlmasters/ directory
+#     stays put as a mode-0700 host for future sessions.
+#
+#   - Same target as iter-146: the semantic-release `get-git-auth-url` step
+#     calls `verifyAuth` which runs `git push --dry-run --no-verify <repo>
+#     HEAD:<branch>` — this is the SSH-handshake-dominated network round-trip
+#     measured by iter-144 at ~1.5-6s (high variance — exactly the kind of
+#     thing the iter-147 variance harness above quantifies). Connection
+#     multiplexing reduces warm-handshake cost to ~100-200ms.
+#
+# Safety:
+#
+#   - Idempotent dir create (mkdir -p) + correct 0700 perms (chmod 700) —
+#     same invariants as iter-146 setup script.
+#
+#   - Only activates when operator explicitly sets the opt-in env var. No
+#     surprise SSH multiplexing for operators who didn't ask for it.
+#
+#   - Empirical first release in any 10-min window still pays full
+#     handshake cost (no cached session to reuse). Subsequent calls benefit.
+#
+# To validate the speedup empirically, capture a fresh dry-run and compare
+# `semantic-release:get-git-auth-url` p50 BEFORE and AFTER:
+#
+#   # before
+#   ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
+#     scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+#   # after (env-var on)
+#   RELEASE_SSH_MULTIPLEXING_ENABLED=1 GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=$HOME/.ssh/controlmasters/%r@%h:%p -o ControlPersist=10m" \\
+#     ITER147_VARIANCE_PROFILE_RUN_COUNT=5 \\
+#     scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+if [[ "${RELEASE_SSH_MULTIPLEXING_ENABLED:-0}" == "1" ]]; then
+    ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION="$HOME/.ssh/controlmasters"
+    mkdir -p "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION"
+    chmod 700 "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION"
+    export GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/%r@%h:%p -o ControlPersist=10m"
+    echo "    ⧗ RELEASE_SSH_MULTIPLEXING_ENABLED=1 — GIT_SSH_COMMAND set for this release-pipeline process tree (iter-147)"
+    echo "      ControlPath=$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/%r@%h:%p, ControlPersist=10m"
+fi
+
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║  cc-skills Full Release Workflow                          ║"
