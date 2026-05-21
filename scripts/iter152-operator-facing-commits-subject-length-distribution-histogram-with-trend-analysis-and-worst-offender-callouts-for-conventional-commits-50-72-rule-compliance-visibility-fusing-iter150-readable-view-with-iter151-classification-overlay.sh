@@ -88,18 +88,10 @@ set -euo pipefail
 # ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
 # Empirically verified iter-171 audit probe finding: bash ${#var} returns
 # CHARACTER count under UTF-8 locales (en_*.UTF-8, C.UTF-8) but BYTE count
-# under C/POSIX locale. Same correctness boundary applies to awk length()
-# only when invoked via gawk; macOS BWK awk length() always byte-counts
-# regardless of locale (known limitation — affects the 4 awk length() call
-# sites in this script; candidate for iter-172+ refactor to use wc -m or
-# gawk explicitly).
-#
-# Without this guard, a CJK commit subject like "feat: 修复编码问题XYZ" (15
-# visible characters, 30 UTF-8 bytes) would mis-categorize into the wrong
-# histogram bin under awk length() byte-counting — e.g., a 67-char CJK
-# subject (134 bytes) would false-positive trigger the ≥72-char hard-cap
-# warning bin. Bash ${#var} consumers (the worst-offender callouts) report
-# the WRONG length in operator-facing output unless this guard is set.
+# under C/POSIX locale. Without this guard, a CJK commit subject like
+# "feat: 修复编码问题XYZ" (15 visible characters, 27 UTF-8 bytes) would
+# mis-classify length=27 under bash ${#var} in C locale — affecting the
+# worst-offender callouts and any other bash-level length consumer.
 #
 # Force UTF-8 locale at script entry. Override empty/unset/C/POSIX
 # explicitly because C and POSIX always byte-count regardless of operator
@@ -110,6 +102,35 @@ set -euo pipefail
 case "${LC_ALL:-}" in
     ""|C|POSIX) export LC_ALL=en_US.UTF-8 ;;
 esac
+# ─── ITER-172 AWK length() BYTE-COUNTING REMEDIATION (iter-171 follow-up) ────
+# The iter-171 guard above only fixes bash ${#var}; awk length() remained
+# byte-counting under both macOS BWK awk (regardless of locale) and gawk
+# (under C locale). Iter-172 closes this gap via two complementary moves:
+#
+#   1. Each char-counting awk pipeline is prefixed with LC_ALL=C, scoping
+#      back to the byte-level locale ONLY for that single awk invocation,
+#      so the byte-range regex [\200-\277] correctly matches UTF-8
+#      continuation bytes by byte VALUE rather than being mis-interpreted
+#      as a Unicode codepoint range (which BWK awk silently mis-handles
+#      under UTF-8 locale and gawk rejects with "invalid range endpoint").
+#
+#   2. Inline awk function iter172_count_visible_chars_by_subtracting_rfc3629_
+#      continuation_bytes(text) implements RFC 3629 UTF-8 byte-pattern char
+#      counting: byte_len(text) minus count_of_bytes_matching([\200-\277]).
+#      Per RFC 3629, only continuation bytes (bit pattern 10xxxxxx, byte
+#      range 0x80-0xBF) cannot start a Unicode character; subtracting their
+#      count from byte length yields the visible character count for any
+#      valid UTF-8 input including CJK (3-byte), emoji (4-byte), and Latin
+#      diaeresis (2-byte) categories.
+#
+# This pair-up preserves iter-171's UTF-8-locale bash semantics OUTSIDE awk
+# while flipping to the byte-locale INSIDE awk just long enough to count
+# characters portably across awk dialects without depending on gawk's
+# locale-aware length() (which is not present on macOS by default).
+#
+# Affected call sites: 6 awk length() invocations across panels 2/3/5 +
+# --json aggregate + --json trend, all rewritten to use the iter172
+# inline-defined function.
 
 ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER152_REPO_ROOT"
@@ -169,14 +190,22 @@ iter152_render_panel_2_subject_length_distribution_histogram_with_50_72_rule_anc
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 2: Subject-length distribution histogram (bins per 50/72 rule) ───${ITER152_ANSI_COLOR_RESET}"
 
     # Single awk pass over git log subjects → bin counts → ASCII bars.
+    # iter-172 LC_ALL=C envelope: required for the RFC 3629 byte-range
+    # regex [\200-\277] to match UTF-8 continuation bytes by byte value.
     git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" --pretty=format:'%s' 2>/dev/null \
-        | awk \
+        | LC_ALL=C awk \
             -v hard_target="$ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v bar_max_width="$ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS" '
+            function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                byte_length_of_text_in_locale_native_units = length(text)
+                copy_of_text_for_gsub_mutation = text
+                count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+            }
             {
                 total_subjects_observed_in_window++
-                subject_length_in_chars = length($0)
+                subject_length_in_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($0)
                 if (subject_length_in_chars <= hard_target) {
                     bin_count_le_hard_target++
                 } else if (subject_length_in_chars <= hard_cap) {
@@ -232,14 +261,30 @@ iter152_render_panel_3_worst_offender_callouts_top_n_by_char_count_so_operators_
     echo ""
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 3: Worst offenders (top ${ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3} by char count) ───${ITER152_ANSI_COLOR_RESET}"
 
+    # iter-172 LC_ALL=C envelope on BOTH awk stages so worst-offender sort key + truncate-for-display threshold are char-aware.
     git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" --pretty=format:'%h|%s' 2>/dev/null \
-        | awk -F'|' '{ subject_text = $0; sub(/^[^|]*\|/, "", subject_text); printf "%d|%s|%s\n", length(subject_text), $1, subject_text }' \
+        | LC_ALL=C awk -F'|' '
+            function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                byte_length_of_text_in_locale_native_units = length(text)
+                copy_of_text_for_gsub_mutation = text
+                count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+            }
+            { subject_text = $0; sub(/^[^|]*\|/, "", subject_text); printf "%d|%s|%s\n", iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(subject_text), $1, subject_text }' \
         | sort -rn \
         | head -"$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" \
-        | awk -F'|' '{
+        | LC_ALL=C awk -F'|' '
+            function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                byte_length_of_text_in_locale_native_units = length(text)
+                copy_of_text_for_gsub_mutation = text
+                count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+            }
+            {
             subject_text = $0
             sub(/^[^|]*\|[^|]*\|/, "", subject_text)
-            truncated_for_display = (length(subject_text) > 70) ? substr(subject_text, 1, 70) "…" : subject_text
+            # Note: substr() remains byte-based; iter-173+ candidate for char-aware truncation.
+            truncated_for_display = (iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(subject_text) > 70) ? substr(subject_text, 1, 70) "…" : subject_text
             printf "  - %s  (%d chars)  %s\n", $2, $1, truncated_for_display
         }'
 }
@@ -306,16 +351,23 @@ iter152_render_panel_5_recent_vs_previous_window_trend_signal_with_improving_or_
     # Pull 2x window: first N is current, next N is previous.
     local total_window_size_doubled=$((ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW * 2))
 
+    # iter-172 LC_ALL=C envelope for trend-signal char-counting correctness.
     git log -"$total_window_size_doubled" --pretty=format:'%s' 2>/dev/null \
-        | awk \
+        | LC_ALL=C awk \
             -v window_size="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
             -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v ansi_green="$ITER152_ANSI_COLOR_GREEN_FOR_IMPROVING_SIGNAL" \
             -v ansi_red="$ITER152_ANSI_COLOR_RED_FOR_REGRESSING_SIGNAL" \
             -v ansi_yellow="$ITER152_ANSI_COLOR_YELLOW_FOR_MIXED_SIGNAL" \
             -v ansi_reset="$ITER152_ANSI_COLOR_RESET" '
+            function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                byte_length_of_text_in_locale_native_units = length(text)
+                copy_of_text_for_gsub_mutation = text
+                count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+            }
             {
-                subject_length_chars = length($0)
+                subject_length_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($0)
                 if (NR <= window_size) {
                     current_window_subject_lengths_array[NR] = subject_length_chars
                     current_window_subject_count++
@@ -395,7 +447,15 @@ iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter1
 # dashboard, closing the symmetrical AI-agent surface gap that iter-153
 # filled for the advisor. Reuses the iter-155 shared pure-bash RFC 8259
 # JSON escape library — no duplication.
-ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+# Iter-172 path-resolution fix: resolve the iter-155 shared lib via this
+# script's own directory (BASH_SOURCE-relative) rather than via runtime
+# git-rev-parse-show-toplevel, which would otherwise resolve to the
+# AUDIT_REPO_ROOT_OVERRIDE synthetic tempdir during test invocations (where
+# scripts/lib/ does not exist). BASH_SOURCE[0] is stable across cd-into-
+# AUDIT_REPO_ROOT_OVERRIDE because it captures the script's filesystem
+# location, not the runtime working directory.
+ITER172_ITER152_SCRIPT_OWN_DIRECTORY_FOR_BASH_SOURCE_RELATIVE_LIB_PATH_RESOLUTION="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD="$ITER172_ITER152_SCRIPT_OWN_DIRECTORY_FOR_BASH_SOURCE_RELATIVE_LIB_PATH_RESOLUTION/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
 if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD" ]]; then
     # shellcheck source=/dev/null
     source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER152_DASHBOARD"
@@ -432,10 +492,16 @@ iter155_render_iter152_dashboard_as_machine_readable_json_aggregating_all_five_p
     local aggregated_json_payload
     aggregated_json_payload=$(
         printf '%s\n' "$raw_log_window_output" \
-            | awk -F"$iter155_inband_field_separator" \
+            | LC_ALL=C awk -F"$iter155_inband_field_separator" \
                 -v hard_target="$ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
                 -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
                 -v worst_n="$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" '
+                function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                    byte_length_of_text_in_locale_native_units = length(text)
+                    copy_of_text_for_gsub_mutation = text
+                    count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                    return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+                }
                 BEGIN {
                     bin_le_target = 0; bin_51_cap = 0; bin_73_100 = 0; bin_101_200 = 0
                     bin_201_500 = 0; bin_501_1000 = 0; bin_1000_plus = 0
@@ -445,7 +511,7 @@ iter155_render_iter152_dashboard_as_machine_readable_json_aggregating_all_five_p
                     sha = $1; subject = $2
                     if (sha == "") next
                     total++
-                    len = length(subject)
+                    len = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(subject)
                     sha_array[total] = sha
                     subject_array[total] = subject
                     length_array[total] = len
@@ -531,10 +597,16 @@ iter155_render_iter152_dashboard_as_machine_readable_json_aggregating_all_five_p
     local iter155_trend_awk_output
     iter155_trend_awk_output=$(
         git log -"$iter155_trend_window_doubled" --pretty=format:'%s' 2>/dev/null \
-            | awk -v window_size="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+            | LC_ALL=C awk -v window_size="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
                   -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" '
+                function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                    byte_length_of_text_in_locale_native_units = length(text)
+                    copy_of_text_for_gsub_mutation = text
+                    count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                    return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+                }
                 {
-                    len = length($0)
+                    len = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($0)
                     if (NR <= window_size) {
                         cur[NR] = len
                         cur_n++
