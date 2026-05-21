@@ -50,7 +50,7 @@
  * GitHub Issue: https://github.com/terrylica/cc-skills/issues/28
  */
 
-import { existsSync, mkdirSync, openSync, closeSync, constants } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, extname, dirname } from "node:path";
 import type {
   PostToolUseInput,
@@ -60,13 +60,23 @@ import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
-import { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+import {
+  executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
+  tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName,
+} from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Constants
 // ══════════════════════════════════════════════════════════════════════════
 
-const SSOT_PRINCIPLES_ONCE_PER_SESSION_REMINDER_GATE_DIRECTORY = "/tmp/.claude-ssot-principles-reminder";
+// Iter-98: gate-file directory namespace is now constructed by the shared
+// `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`
+// helper (gate dir = `/tmp/.claude-${reminderName}-reminder`). The classifier
+// only supplies the reminder name; the on-disk gate path stays at
+// `/tmp/.claude-ssot-principles-reminder/${sessionId}.reminded`, identical
+// to iter-97 — backward-compat preserved at the filesystem layer.
+const SSOT_PRINCIPLES_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE = "ssot-principles";
+
 const AST_GREP_SSOT_RULES_PROJECT_DIRECTORY_ABSOLUTE_PATH = join(
   dirname(import.meta.path),
   "ast-grep-ssot",
@@ -99,52 +109,17 @@ const TEST_FILE_PATH_PATTERNS_EXCLUDED_FROM_SSOT_SCAN: readonly RegExp[] = [
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
-//  Once-per-session gate (atomic O_EXCL)
+//  Once-per-session gate (delegated to iter-98 shared helper)
 // ══════════════════════════════════════════════════════════════════════════
-
-/**
- * Atomically claim the once-per-session SSoT-principles reminder gate file
- * via O_CREAT | O_EXCL. Returns `true` if THIS call won the create race
- * (we should surface the reminder), `false` if the reminder was already
- * surfaced this session OR the filesystem operation failed.
- *
- * Race-safe at the POSIX layer — if two concurrent Write|Edit calls hit
- * this classifier within the same Claude session (extremely unlikely given
- * single-threaded orchestrator dispatch, but defended against
- * nonetheless), exactly one wins the gate and surfaces the reminder.
- *
- * Iter-97: kept local to this file rather than hoisted to the iter-95
- * shared lib because the existing
- * `tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName`
- * is semantically "install reminder" (different `/tmp/.claude-${toolName}-install-reminder`
- * directory namespace). Generalizing it would require either renaming
- * (breaking change to existing iter-95 helpers) or duplicating
- * (helper-drift risk). Premature generalization avoided — when iter-98
- * inlines `posttooluse-memory-efficiency-reminder.ts` (which has the same
- * once-per-session-reminder shape), iter-98 will be the right moment to
- * hoist a `tryAtomicallyClaimOncePerSessionReminderGateFileForReminderByName`
- * helper to the shared lib.
- */
-function tryAtomicallyClaimOncePerSessionSsotPrinciplesReminderGateFile(
-  sessionId: string,
-): boolean {
-  try {
-    mkdirSync(SSOT_PRINCIPLES_ONCE_PER_SESSION_REMINDER_GATE_DIRECTORY, { recursive: true });
-  } catch {
-    return false;
-  }
-  const gateFilePath = join(
-    SSOT_PRINCIPLES_ONCE_PER_SESSION_REMINDER_GATE_DIRECTORY,
-    `${sessionId}.reminded`,
-  );
-  try {
-    const fd = openSync(gateFilePath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL);
-    closeSync(fd);
-    return true;
-  } catch {
-    return false; // Lost the race or filesystem error; either way, no reminder
-  }
-}
+//
+// Iter-98 hoist: the iter-97-era local
+// `tryAtomicallyClaimOncePerSessionSsotPrinciplesReminderGateFile` helper
+// has been REMOVED in favor of the shared
+// `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName`
+// at lib/posttooluse-subhook-async-subprocess-execution-and-once-per-
+// session-reminder-gate-file-helpers-iter95.ts. The on-disk gate path is
+// identical (`/tmp/.claude-ssot-principles-reminder/${sessionId}.reminded`)
+// so existing sessions are NOT re-reminded after the upgrade.
 
 // ══════════════════════════════════════════════════════════════════════════
 //  ast-grep findings
@@ -319,7 +294,12 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
     }
 
     const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown";
-    if (!tryAtomicallyClaimOncePerSessionSsotPrinciplesReminderGateFile(sessionId)) {
+    if (
+      !tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName(
+        SSOT_PRINCIPLES_REMINDER_NAME_FOR_ONCE_PER_SESSION_GATE_FILE_NAMESPACE,
+        sessionId,
+      )
+    ) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
