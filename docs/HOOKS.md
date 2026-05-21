@@ -1436,6 +1436,63 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-115: Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 registry-to-docs drift detector) from informational to STRICT-BLOCK
+
+Iter-115 closes the strict-promotion candidate identified at the end of iter-114: now that both marker registries are stabilized (12 runtime + 8 audit-task entries) and the on-disk operator-facing reference doc is byte-identical to the registry-derived output, the two informational checks become release-blockers. The escape-hatch-marker preflight triplet (4s + 4t + 4u) is now uniformly enforced across all three lifecycle dimensions.
+
+**The promotion delta**
+
+| Check | Lifecycle dimension | Pre-iter-115 (informational)                                       | Post-iter-115 (STRICT-BLOCK)                                      |
+| ----- | ------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| 4s    | CONSUMER side       | STRICT (iter-110 promoted)                                         | STRICT (unchanged)                                                |
+| 4t    | PRODUCER side       | `echo "(Informational only — release continues.)"` + always exit 0 | `exit 1` on `ITER111_UNREGISTERED_COUNT > 0`                      |
+| 4u    | OPERATOR-DOCS side  | `echo "(Informational only — release continues.)"` + always exit 0 | `exit 1` on drift between on-disk doc and registry-derived output |
+
+**What this guarantees at release time**
+
+After iter-115, NO commit can reach `main` if any of the following hold:
+
+- A producer file mentions a marker token that is not registered in iter-111 OR iter-114 (typo or unregistered new marker — Check 4t)
+- The on-disk `docs/marketplace-escape-hatch-marker-reference.md` is out of sync with the registries — either the registry was edited without regenerating the doc, or the doc was hand-edited without updating the registry (Check 4u)
+- A consumer hook in the canonical cohort fails to route its marker detection through the iter-107 helper (Check 4s, unchanged from iter-110)
+
+**Strict-promotion preconditions verified pre-iter-115**
+
+The promotion ran ONLY after confirming a clean baseline:
+
+| Precondition                               | State                                                       |
+| ------------------------------------------ | ----------------------------------------------------------- |
+| iter-111 producer-typo audit on clean repo | 0 unregistered tokens across 12 registered runtime markers  |
+| iter-114 audit-task registry coverage      | 8/8 baseline entries (`AUDIT-OK`, `WILDCARD-MATCHER-OK`, …) |
+| iter-113 generator `--check` on clean repo | exit 0, "no drift" reported                                 |
+| Marketplace regression suite               | 48/48 PASS pre-iter-115                                     |
+
+**Operator-facing fix paths embedded in preflight**
+
+Both STRICT-BLOCK stanzas emit the same operator-readable fix guidance as the informational versions did — the only behavioral delta is `exit 1` instead of "continues". Fix paths:
+
+- Check 4t unregistered token: (A) fix the typo in the producer file, OR (B) register a legitimate new marker in the appropriate canonical registry, OR (C) rename a test fixture to `FOO-` / `BAR-` / `BAZ-` / `QUX-` (audit ignores those families)
+- Check 4u doc drift: re-run `mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry` and commit the regenerated doc atomically with the registry edit
+
+**Regression test (`test-iter115-…-strict-block-now-fail-release-on-synthetic-mutation.sh`)**
+
+| Case | What it verifies                                                                                               |
+| ---- | -------------------------------------------------------------------------------------------------------------- |
+| 1    | Preflight declares both Check 4t + 4u as `iter-115 STRICT-BLOCK` with `exit 1` paths (rollback-detection)      |
+| 2    | Synthetic unregistered marker injected into a producer file produces the `AUDIT FOUND N` signal                |
+| 3    | The preflight wrapper's `grep -oE 'AUDIT FOUND [0-9]+' \| grep -oE '[0-9]+'` extraction yields ≥1 on injection |
+| 4    | The same extraction pipeline yields 0 on a clean baseline (no false-positive release blocks)                   |
+| 5    | iter-113 generator `--check` exits non-zero AND emits `DRIFT` on injected doc mutation                         |
+| 6    | iter-113 generator `--check` exits zero AND emits `no drift` on restored baseline                              |
+| 7    | Preflight references both audit task + generator task via their exact `mise run` task-name basenames           |
+
+All 7 cases pass. Marketplace regression suite: **49/49** (up from 48; iter-115 test auto-discovered).
+
+**Iter-116+ candidates documented inline in the regression test**
+
+- Add a reverse-search registry accessor `lookupCanonicalRegistryEntryByConsumerHookOrAuditTaskSourceFileRelativePath` (suppression-target → marker discovery, across BOTH registries) — enables operator workflow "I want to opt out of THIS hook/task, what marker do I write?" without table-scanning the doc
+- Add an audit task verifying every entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` references the actual hook/task it suppresses (no stale descriptions after a hook rename)
+
 ### Iter-114: Second parallel canonical registry for AUDIT-TASK escape-hatch markers + iter-113 doc generator extended to render both lifecycle layers
 
 Iter-114 closes the marker-coverage gap left by iter-111 (which covered only RUNTIME-HOOK markers). The marketplace now has two parallel canonical registries, mirroring two distinct lifecycle layers:
