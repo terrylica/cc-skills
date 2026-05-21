@@ -157,10 +157,8 @@ export const classifyTyTypeCheckForPostToolUseOrchestrator =
 // ══════════════════════════════════════════════════════════════════════════
 
 async function runStandaloneCliMain(): Promise<void> {
-  let inputText = "";
-  for await (const chunk of Bun.stdin.stream()) {
-    inputText += new TextDecoder().decode(chunk);
-  }
+  // Iter-96: Bun.stdin.text() one-shot read (2026 idiomatic API)
+  const inputText = await Bun.stdin.text();
 
   let input: PostToolUseInput;
   try {

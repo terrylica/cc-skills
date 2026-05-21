@@ -60,11 +60,15 @@ import type {
   PostToolUseSubhookDecision,
   PostToolUseSubhookRegistryEntry,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
-import { POSTTOOLUSE_SUBHOOK_NOOP_DECISION } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import {
+  POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
+  buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility,
+} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
 import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsgo-type-check.ts";
 import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxlint-check.ts";
 import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome-lint.ts";
+import { classifyValeClaudeMdForPostToolUseOrchestrator } from "./posttooluse-vale-claude-md.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -107,6 +111,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     description:
       "Runs `biome lint <file>` after every Write/Edit of a JS/TS file (~40-80ms). Iter-95 fourth inlined PostToolUse subhook (4/15 in arc). Async Bun.spawn from day one via the iter-95 shared lib helpers. COMPLEMENTARY-TO-OXLINT (not a replacement): catches rules oxlint misses with default config — useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAnyLet, noAssignInExpressions. Suppresses 6 noisy rules via --skip (noExplicitAny, useNodejsImportProtocol, noUnusedVariables, noNonNullAssertion, useTemplate, noUnusedImports) that caused 67% false-positive rate on real codebases. Algorithm encoded in `classifyBiomeComplementaryToOxlintLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator` (re-exported as `classifyBiomeLintForPostToolUseOrchestrator`).",
   },
+  {
+    name: "vale-claude-md",
+    timeoutMs: 12000,
+    classify: classifyValeClaudeMdForPostToolUseOrchestrator,
+    description:
+      "Runs `vale --output=JSON` on edited CLAUDE.md files (informational only — terminology violation visibility, not blocking). Iter-96 fifth inlined PostToolUse subhook (5/15 in arc). PostToolUse twin to the iter-91 PreToolUse vale-claude-md-guard (which BLOCKS before edit); this one INFORMS after edit. Walks up from edited file directory looking for .vale.ini, falls back to ~/.claude/.vale.ini (cwd-agnostic). Edit-path line scoping ±3-line buffer prevents pre-existing-issue spam. Heaviest classifier in the registry: spawns external `vale` subprocess (100-300ms typical). timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines. Algorithm encoded in `classifyValeTerminologyConformanceOnEditedClaudeMdFileForPostToolUseOrchestrator` (re-exported as `classifyValeClaudeMdForPostToolUseOrchestrator` for symmetric naming).",
+  },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -147,10 +158,19 @@ async function awaitAbortSignalAsPostToolUseTimeoutSentinelPromiseRejection(
  * Execute one subhook with cooperative timeout + crash isolation.
  *
  * - Timeout: AbortSignal.timeout(timeoutMs) races against the classifier.
- *   On timeout, returns a fail-open `noop` decision with `timedOut: true`.
+ *   Iter-96 change: on timeout, returns a TIMEOUT-AWARE additional_context
+ *   decision (NOT a silent noop) — so Claude sees that the check was
+ *   attempted-but-aborted, not silently-passed. Per Anthropic's 2026
+ *   operator-visibility best practice, surfacing diagnostic context via
+ *   additionalContext (not stderr) keeps Claude in the loop and avoids
+ *   the silent-false-negative hazard documented in
+ *   "The Silent Failure Mode in Claude Code Hooks Every Dev Should Know
+ *   About" community guidance.
  * - Crash: try/catch wraps the classifier (classifiers SHOULD catch their
  *   own errors per contract, but this is belt-and-suspenders). On error,
- *   returns a fail-open `noop` decision with `errored: true`.
+ *   returns a fail-open `noop` decision with `errored: true` — these are
+ *   real bugs the operator must investigate via stderr; we don't want
+ *   buggy classifiers spamming Claude.
  */
 async function executeSinglePostToolUseSubhookWithCooperativeAbortSignalTimeoutAndCrashIsolation(
   entry: PostToolUseSubhookRegistryEntry,
@@ -173,7 +193,10 @@ async function executeSinglePostToolUseSubhookWithCooperativeAbortSignalTimeoutA
     if (isTimeoutDomException) {
       return {
         name: entry.name,
-        decision: POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
+        decision: buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility(
+          entry.name,
+          entry.timeoutMs,
+        ),
         elapsedMs,
         timedOut: true,
         errored: false,
@@ -252,10 +275,12 @@ function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStr
 // ══════════════════════════════════════════════════════════════════════════
 
 async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
-  let inputText = "";
-  for await (const chunk of Bun.stdin.stream()) {
-    inputText += new TextDecoder().decode(chunk);
-  }
+  // Iter-96: migrate from Bun.stdin.stream() + manual TextDecoder loop to
+  // Bun.stdin.text() — the 2026 idiomatic one-shot API. Decoding happens
+  // in native code (no userspace TextDecoder cost), and the chunk-coalescing
+  // bugs documented in Bun GitHub #7500 / #11553 / #3255 (for stdin.stream())
+  // are bypassed entirely.
+  const inputText = await Bun.stdin.text();
 
   let parsedInput: PostToolUseInput;
   try {

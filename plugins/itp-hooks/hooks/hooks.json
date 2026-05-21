@@ -162,11 +162,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-vale-claude-md.ts",
-            "timeout": 5000
-          },
-          {
-            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-glossary-sync.ts",
             "timeout": 5000
           },
@@ -216,7 +211,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93→iter-95 PostToolUse edit-time orchestrator (4/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint). MULTI-AGGREGATION semantics: runs ALL subhooks in parallel via Promise.all, merges non-noop additional_context payloads into ONE consolidated decision:block reason; iter-95 conditional-provenance-prefix: emits `[orchestrator-subhook: <name>]` per section ONLY when ≥2 sections contribute (single-section case is prefix-free, matching legacy standalone-hook UX). Iter-95 hoists shared async-spawn + install-reminder gate-file helpers into lib/ to prevent drift across 4+ classifier copies. Iter-94 critical perf invariant: every classifier MUST use Bun.spawn (async) — Bun.spawnSync defeats Promise.all parallelism by blocking the event loop (per Bun docs + 2026 community guidance). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+            "description": "Iter-93→iter-96 PostToolUse edit-time orchestrator (5/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements: (a) timeout-aware additional_context — when a subhook times out the orchestrator surfaces an operator-visible attempted-but-aborted message via additional_context, replacing the silent fail-open false-negative documented in 2026 community 'silent failure mode' guidance; (b) Bun.stdin.text() one-shot read replaces stdin.stream() loop (idiomatic 2026 API, decoding in native code); (c) maxBuffer right-sized from 8MiB to 256KiB so runaway subprocess output surfaces earlier. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       }
