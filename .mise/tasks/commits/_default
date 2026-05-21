@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-162 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-164 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -66,7 +66,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-
       Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
       during an editor-launched git commit flow.
 
-${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (iter-161, iter-162 body-aware) — what version bump will land? ───${ITER156_ANSI_COLOR_RESET}
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (iter-161, iter-162 body-aware, iter-164 concrete next-version) ───${ITER156_ANSI_COLOR_RESET}
 
   All four ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}commits:advise${ITER156_ANSI_COLOR_RESET} invocation forms above now include the iter-161
   semver-bump preview overlay: maps the {type, breaking-change marker}
@@ -88,6 +88,18 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
       hook to forward .git/COMMIT_EDITMSG. JSON mode adds the
       iter162_breaking_change_signal_source field with canonical values:
       none / subject_bang_marker / body_footer_token / both.
+
+  Iter-164 concrete next-version preview: resolves the iter-161 bump
+  LABEL into the actual NEXT VERSION NUMBER by applying semver.org §2
+  increment rules to the current \`git describe --tags\` tag. Human
+  output adds a line like \`next version: v21.71.0 → v21.72.0\` directly
+  below the bump-label line. --json embeds a nested
+  iter164_next_version_preview object with stable iter164_schema_version=1
+  + current_git_tag + next_version + resolution_rationale. Closes the
+  "MINOR bump means what version exactly?" gap that the bump-label-only
+  preview leaves open. Pure-bash — no \`semantic-release --dry-run\`
+  invocation needed (saves the multi-second push-permission verify cost
+  per the 2026 semantic-release FAQ).
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
 
