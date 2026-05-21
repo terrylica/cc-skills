@@ -1,3 +1,10 @@
+# [21.42.0](https://github.com/terrylica/cc-skills/compare/v21.41.0...v21.42.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-111 introduce marketplace-wide PRODUCER-side escape-hatch-marker canonical registry plus typo-detection audit complementing iter-110 consumer-side invariant plus drop-deprecated-ESCAPE_HATCH-regex-exports-now-that-zero-external-consumers-remain cleanup ([59ab961](https://github.com/terrylica/cc-skills/commit/59ab961c4949820ef3359f8f30c4da4114ff6254))
+
 # [21.41.0](https://github.com/terrylica/cc-skills/compare/v21.40.4...v21.41.0) (2026-05-21)
 
 
