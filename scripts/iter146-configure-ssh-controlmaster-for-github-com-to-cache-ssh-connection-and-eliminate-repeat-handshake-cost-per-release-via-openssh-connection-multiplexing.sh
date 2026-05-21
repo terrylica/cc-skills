@@ -39,12 +39,23 @@
 #     - Diffie-Hellman / curve25519 key exchange (most expensive — CPU bound)
 #     - SSH user authentication (signature verification)
 #
-#   Empirical cost-reduction:
-#     - Cold SSH connection: ~1500-1800ms (full handshake)
-#     - Warm ControlMaster reuse: ~50-150ms (just connection accept)
+#   EMPIRICAL COST REDUCTION (iter-148 measurement, n=3 per condition,
+#   cc-skills production machine, semantic-release v25.0.2):
 #
-#   This makes semantic-release's verifyAuth call ~10-15x faster on every
-#   release AFTER the first connection in any 10-minute window.
+#     - `semantic-release:get-git-auth-url` BEFORE multiplexing: 6051ms p50
+#     - `semantic-release:get-git-auth-url` AFTER multiplexing:  1835ms p50
+#     - Net savings: 4216ms per call (3.30x speedup)
+#
+#   Note: the original docstring claim of "10-15x speedup" was conjectural,
+#   sourced from OpenSSH community docs that measure raw SSH key exchange.
+#   The actual `verifyAuth` time inside semantic-release also includes
+#   per-call `git push --dry-run` setup, TCP teardown, and protocol
+#   negotiation that do not accelerate from connection reuse — bringing
+#   the real-world speedup down to 3.30x. Still a substantial improvement;
+#   the iter-146 optimization is empirically validated and worth shipping.
+#   Methodology: iter-148 wrapper (scripts/iter148-...sh) ran the iter-147
+#   variance harness in BOTH baseline and multiplexed conditions back-to-back
+#   and rendered side-by-side distribution delta.
 #
 # Configuration applied to `~/.ssh/config`:
 #

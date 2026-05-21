@@ -142,6 +142,74 @@ if [[ "${RELEASE_SSH_MULTIPLEXING_ENABLED:-0}" == "1" ]]; then
     export GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/%r@%h:%p -o ControlPersist=10m"
     echo "    ⧗ RELEASE_SSH_MULTIPLEXING_ENABLED=1 — GIT_SSH_COMMAND set for this release-pipeline process tree (iter-147)"
     echo "      ControlPath=$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/%r@%h:%p, ControlPersist=10m"
+
+    # ─── ITER-149: PRE-WARM the SSH ControlMaster session BEFORE any pipeline-phase
+    # SSH operation runs, so the in-pipeline `git push --dry-run` verifyAuth call
+    # in Phase 2 gets the WARM-handshake cost (~1.8s per iter-148 measurement),
+    # not the COLD-handshake cost (~6.0s per iter-148 BEFORE-condition baseline).
+    #
+    # WHY THIS IS NEEDED (gap the iter-147 block above leaves open):
+    #
+    #   The iter-147 block above only EXPORTS `GIT_SSH_COMMAND`. It does NOT
+    #   create a cached SSH session. The first SSH operation in the pipeline
+    #   (Phase 2 verifyAuth) is the one that creates the cached session — and
+    #   thus the FIRST verifyAuth call pays the full cold handshake (~6.0s),
+    #   regardless of how many SSH operations come later in the pipeline.
+    #   The multiplexing benefit only kicks in for the SECOND+ SSH ops.
+    #
+    #   iter-148 measured this empirically: the harness's first-run get-git-auth-url
+    #   was always slower than subsequent runs in the warm cohort. The iter-148
+    #   wrapper pre-warmed BEFORE the AFTER-cohort measurement to eliminate this
+    #   bias — that pre-warm pattern is the right thing for the production
+    #   release pipeline too.
+    #
+    # PATTERN (lifted from
+    # `scripts/iter148-empirical-validation-wrapper-...sh`):
+    #
+    #   `ssh -T -o BatchMode=yes -o ControlMaster=auto -o ControlPath=...
+    #        -o ControlPersist=10m git@github.com`
+    #
+    #   - `-T` disables pseudo-TTY allocation (we just want auth + session
+    #     creation, not a shell).
+    #   - `-o BatchMode=yes` makes it non-interactive — if auth would prompt
+    #     (e.g., MFA / key passphrase), the command fails fast instead of
+    #     hanging the release pipeline.
+    #   - `timeout 10` budget — GitHub typically responds in <1s; 10s is
+    #     pessimistic-but-bounded.
+    #   - GitHub closes the connection immediately after auth (replies "Hi
+    #     <user>! You've successfully authenticated, but GitHub does not
+    #     provide shell access."), so the foreground ssh call returns
+    #     quickly. The ControlMaster session socket persists per `ControlPersist=10m`.
+    #
+    # EXPECTED EMPIRICAL IMPACT (per iter-148 measurement):
+    #
+    #   Pre-warm itself: ~1.5-2s (cold handshake during pre-warm)
+    #   Saved on first in-pipeline SSH op: ~4.2s (6.0s cold → 1.8s warm)
+    #   Net per release: ~2.2-2.7s saved when knob is on
+    #
+    #   Additional benefit: ALL in-pipeline SSH ops (verifyAuth +
+    #   @semantic-release/git push + successCmd push) get warm cost,
+    #   compounding the savings across the 3-4 SSH calls in a release.
+    echo "    ⧗ ITER-149: pre-warming ControlMaster session to github.com (10s budget) so verifyAuth pays warm cost..."
+    iter149_release_pipeline_ssh_controlmaster_prewarm_to_github_com_to_pay_cold_handshake_upfront() {
+        # Run inline; on success, GitHub sends "Hi <user>!..." then closes.
+        # On failure (no key, no network), `|| true` keeps the pipeline going
+        # — release will still work, just without the iter-149 prewarm benefit.
+        # shellcheck disable=SC2086  # timeout takes int seconds, not a quoted string
+        timeout 10 ssh \
+            -T \
+            -o BatchMode=yes \
+            -o ControlMaster=auto \
+            -o ControlPath="$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/%r@%h:%p" \
+            -o ControlPersist=10m \
+            git@github.com 2>&1 | head -1 || true
+    }
+    iter149_release_pipeline_ssh_controlmaster_prewarm_to_github_com_to_pay_cold_handshake_upfront
+    if [[ -S "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION/git@github.com:22" ]]; then
+        echo "    ✓ ITER-149: cached ControlMaster session active at git@github.com:22 — in-pipeline SSH ops will pay WARM cost"
+    else
+        echo "    ⚠ ITER-149: pre-warm did not create a cached session socket (auth issue? network?) — release will proceed but pay cold SSH cost"
+    fi
 fi
 
 echo ""
