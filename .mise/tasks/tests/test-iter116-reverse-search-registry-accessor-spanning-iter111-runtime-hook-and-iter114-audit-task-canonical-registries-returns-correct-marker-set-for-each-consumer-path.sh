@@ -16,7 +16,15 @@ ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-e
 KNOWN_SINGLE_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
 KNOWN_MULTI_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts"
 KNOWN_AUDIT_TASK_CONSUMER_PATH=".mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
-UNKNOWN_CONSUMER_PATH_GUARANTEED_NEVER_TO_APPEAR_IN_EITHER_REGISTRY="plugins/itp-hooks/hooks/this-consumer-path-is-deliberately-bogus-for-iter116-test.ts"
+# Use a path with NO shared prefix with any registered consumer path so
+# the unknown-path branch deterministically lands in the full-list-dump
+# fallback (Levenshtein distance to every registered path exceeds the
+# iter-118 ⌊queryLen/3⌋ threshold, so the Did-you-mean branch is skipped).
+# Previously this used "plugins/itp-hooks/hooks/..." which shares ≥23
+# chars with every runtime-hook consumer path — that prefix overlap kept
+# the distance below threshold and the iter-118 fuzzy-match correctly
+# routed it to the Did-you-mean branch, breaking this test's assumption.
+UNKNOWN_CONSUMER_PATH_GUARANTEED_NEVER_TO_APPEAR_IN_EITHER_REGISTRY="zzz/xyz/qqq-iter116-totally-unrelated-bogus-path-with-no-shared-prefix.aaa"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -180,13 +188,20 @@ set +e
 UNKNOWN_CONSUMER_TASK_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$UNKNOWN_CONSUMER_PATH_GUARANTEED_NEVER_TO_APPEAR_IN_EITHER_REGISTRY" 2>&1)
 UNKNOWN_CONSUMER_TASK_EXIT_CODE=$?
 set -e
+# Iter-118 update: the unknown-path branch now has TWO output shapes —
+# (a) "Did you mean?" top-3 ranked suggestions when the query is within
+#     ⌊queryLen/3⌋ Levenshtein edits of a registered path
+# (b) full-list dump (current case — query has no shared prefix with any
+#     registered path, so distance exceeds threshold and we fall back)
+# This Case 7 deliberately exercises branch (b) by using the unrelated
+# query declared above. Match assertions accordingly.
 if [[ "$UNKNOWN_CONSUMER_TASK_EXIT_CODE" -eq 2 ]] && \
    [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"No registered escape-hatch markers"* ]] && \
-   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Hint:"* ]] && \
-   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"distinct consumer paths"* ]]; then
-    assert_passes "Case 7: iter-116 task exits 2 with 'No registered markers' + 'Hint:' + 'distinct consumer paths' guidance on unknown consumer path"
+   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Hint: query is not close to any registered path"* ]] && \
+   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Showing all 19 registered consumer paths"* ]]; then
+    assert_passes "Case 7: iter-116 task exits 2 with 'No registered markers' + iter-118 fallback hint (query unrelated to every registered path, top-rank distance exceeds ⌊queryLen/3⌋ threshold so full-list dump is shown)"
 else
-    assert_fails "Case 7: iter-116 task on unknown path failed to emit expected hint or wrong exit code (exit=$UNKNOWN_CONSUMER_TASK_EXIT_CODE)"
+    assert_fails "Case 7: iter-116 task on unrelated unknown path failed to emit expected fallback hint or wrong exit code (exit=$UNKNOWN_CONSUMER_TASK_EXIT_CODE)"
 fi
 
 # ─── Case 8: operator-facing mise task on --help ─────────────────────────

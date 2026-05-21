@@ -151,6 +151,157 @@ export function listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistri
 }
 
 /**
+ * Iter-118 Levenshtein edit-distance computation between two strings —
+ * standard 2-row dynamic-programming implementation. Used to rank
+ * registered consumer paths by similarity to the operator-supplied
+ * (likely-typo'd) query string when the iter-116 CLI hits the
+ * unknown-path branch. Memory: O(min(a, b)); time: O(a × b).
+ *
+ * Function name encodes "Levenshtein edit distance" — standard
+ * industry-terminology algorithm name — so future maintainers can
+ * confirm the algorithm without reading the body.
+ */
+export function computeLevenshteinEditDistanceBetweenTwoStrings(
+  stringA: string,
+  stringB: string,
+): number {
+  if (stringA === stringB) return 0;
+  if (stringA.length === 0) return stringB.length;
+  if (stringB.length === 0) return stringA.length;
+
+  // Two-row DP: only the previous row + current row are needed.
+  // Using Array.from instead of `new Array(n)` because the latter trips
+  // the oxlint unicorn/no-new-array rule (single-integer-arg constructor
+  // is ambiguous between "sparse array of length n" and "1-element array
+  // containing the integer").
+  let previousRowOfEditDistances = Array.from<number>({
+    length: stringB.length + 1,
+  });
+  for (
+    let columnIndex = 0;
+    columnIndex <= stringB.length;
+    columnIndex += 1
+  ) {
+    previousRowOfEditDistances[columnIndex] = columnIndex;
+  }
+  let currentRowOfEditDistances = Array.from<number>({
+    length: stringB.length + 1,
+  }).fill(0);
+
+  for (
+    let rowIndex = 1;
+    rowIndex <= stringA.length;
+    rowIndex += 1
+  ) {
+    currentRowOfEditDistances[0] = rowIndex;
+    for (
+      let columnIndex = 1;
+      columnIndex <= stringB.length;
+      columnIndex += 1
+    ) {
+      const substitutionCost =
+        stringA[rowIndex - 1] === stringB[columnIndex - 1] ? 0 : 1;
+      currentRowOfEditDistances[columnIndex] = Math.min(
+        currentRowOfEditDistances[columnIndex - 1] + 1, // insertion
+        previousRowOfEditDistances[columnIndex] + 1, // deletion
+        previousRowOfEditDistances[columnIndex - 1] + substitutionCost, // substitution
+      );
+    }
+    [previousRowOfEditDistances, currentRowOfEditDistances] = [
+      currentRowOfEditDistances,
+      previousRowOfEditDistances,
+    ];
+  }
+
+  return previousRowOfEditDistances[stringB.length];
+}
+
+/**
+ * Iter-118 ranking shape: a registered consumer path paired with its
+ * Levenshtein edit distance from the operator-supplied query.
+ */
+export interface RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery {
+  readonly consumerSourceFileRelativePath: string;
+  readonly levenshteinEditDistanceFromOperatorSuppliedQuery: number;
+}
+
+/**
+ * Iter-118 ranking function: compute Levenshtein distance from the
+ * operator-supplied query to every registered consumer path, sort
+ * ascending, and return the top-K matches. Used by the iter-116 CLI
+ * to surface a "Did you mean?" suggestion instead of dumping the
+ * full 19-path list when the operator typed a path with a typo.
+ *
+ * Caller is responsible for applying any relative-distance threshold
+ * to decide whether the suggestions are meaningful enough to display
+ * (vs falling back to the full list because the query is unrelated to
+ * any registered path).
+ */
+export function rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches(
+  operatorSuppliedQueryConsumerSourceFileRelativePath: string,
+  topKClosestMatchesToReturn: number,
+): ReadonlyArray<RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery> {
+  const allRegisteredConsumerPaths =
+    listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically();
+  const allRankedCandidates: RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery[] =
+    allRegisteredConsumerPaths.map((registeredConsumerPath) => ({
+      consumerSourceFileRelativePath: registeredConsumerPath,
+      levenshteinEditDistanceFromOperatorSuppliedQuery:
+        computeLevenshteinEditDistanceBetweenTwoStrings(
+          operatorSuppliedQueryConsumerSourceFileRelativePath,
+          registeredConsumerPath,
+        ),
+    }));
+  // Sort ascending by edit distance (closest matches first). Ties are
+  // broken by alphabetical path order via the upstream sort, which is
+  // stable in Array.prototype.toSorted.
+  const sortedRankedCandidates = allRankedCandidates.toSorted(
+    (
+      candidateA: RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery,
+      candidateB: RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery,
+    ) =>
+      candidateA.levenshteinEditDistanceFromOperatorSuppliedQuery -
+      candidateB.levenshteinEditDistanceFromOperatorSuppliedQuery,
+  );
+  return sortedRankedCandidates.slice(0, topKClosestMatchesToReturn);
+}
+
+/**
+ * Iter-118 threshold predicate: given the top-ranked candidate's edit
+ * distance and the operator-supplied query length, decide whether the
+ * candidate is close enough to display as a "Did you mean?" suggestion.
+ *
+ * The threshold is a fraction of the query length (default 1/3) — a
+ * candidate within ⌊queryLength / 3⌋ edits is considered "plausibly a
+ * typo of the intended path". Anything further is considered an
+ * unrelated query, and the caller should fall back to displaying the
+ * full registered-paths list rather than misleading the operator with
+ * three random-looking suggestions.
+ *
+ * The fraction is documented as part of the function name so it can't
+ * silently change without a rename.
+ */
+export function isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOneThirdOfQueryLengthAsThreshold(
+  topRankedCandidateLevenshteinDistance: number,
+  operatorSuppliedQueryLength: number,
+): boolean {
+  // For very short queries (e.g., "x"), allow up to 2 edits — otherwise
+  // floor(1/3) = 0 and we'd reject every imperfect match. For longer
+  // queries the fractional bound is more useful (typo in ≤33% of chars).
+  const minimumAbsoluteAllowedEditDistanceForVeryShortQueries = 2;
+  const fractionalAllowedEditDistanceBasedOnOneThirdOfQueryLength = Math.floor(
+    operatorSuppliedQueryLength / 3,
+  );
+  const effectiveAllowedEditDistance = Math.max(
+    minimumAbsoluteAllowedEditDistanceForVeryShortQueries,
+    fractionalAllowedEditDistanceBasedOnOneThirdOfQueryLength,
+  );
+  return (
+    topRankedCandidateLevenshteinDistance <= effectiveAllowedEditDistance
+  );
+}
+
+/**
  * Render a single reverse-search hit as a multi-line human-readable
  * block for terminal display by the iter-116 mise task. Encodes the
  * lifecycle-layer tag explicitly so operators see which kind of

@@ -87,6 +87,8 @@ import {
   lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSourceFileRelativePathAcrossBothRegistries,
   listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically,
   renderSingleReverseSearchHitAsHumanReadableTerminalBlock,
+  rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches,
+  isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOneThirdOfQueryLengthAsThreshold,
 } from "$ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH";
 
 const operatorSuppliedConsumerSourceFileRelativePath = "$OPERATOR_SUPPLIED_CONSUMER_SOURCE_FILE_RELATIVE_PATH";
@@ -100,17 +102,53 @@ if (reverseSearchHits.length === 0) {
   console.error(
     \`✗ No registered escape-hatch markers target this consumer path:\\n    \${operatorSuppliedConsumerSourceFileRelativePath}\\n\`,
   );
-  const distinctRegisteredConsumerPaths =
-    listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically();
-  console.error(
-    \`  Hint: \${distinctRegisteredConsumerPaths.length} distinct consumer paths are currently registered\\n  across the iter-111 + iter-114 canonical registries:\\n\`,
-  );
-  for (const distinctRegisteredConsumerPath of distinctRegisteredConsumerPaths) {
-    console.error(\`    - \${distinctRegisteredConsumerPath}\`);
+
+  // Iter-118: rank registered paths by Levenshtein edit distance from the
+  // operator-supplied query and surface the top-3 closest matches as a
+  // "Did you mean?" hint when at least one is within the ⌊queryLen / 3⌋
+  // edit-distance threshold (operator likely typo'd a real path). When
+  // the top candidate is further than the threshold the query is treated
+  // as unrelated to any registered path and we fall back to the iter-116
+  // full-list display (less misleading than surfacing three random-
+  // looking suggestions).
+  const ITER118_TOP_K_CLOSEST_MATCHES_TO_SHOW_AS_DID_YOU_MEAN_SUGGESTIONS = 3;
+  const topRankedCandidates =
+    rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches(
+      operatorSuppliedConsumerSourceFileRelativePath,
+      ITER118_TOP_K_CLOSEST_MATCHES_TO_SHOW_AS_DID_YOU_MEAN_SUGGESTIONS,
+    );
+  const topCandidateIsCloseEnoughToBeAPlausibleOperatorTypo =
+    topRankedCandidates.length > 0 &&
+    isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOneThirdOfQueryLengthAsThreshold(
+      topRankedCandidates[0].levenshteinEditDistanceFromOperatorSuppliedQuery,
+      operatorSuppliedConsumerSourceFileRelativePath.length,
+    );
+
+  if (topCandidateIsCloseEnoughToBeAPlausibleOperatorTypo) {
+    console.error(
+      \`  Did you mean (top-\${topRankedCandidates.length} closest match\${topRankedCandidates.length === 1 ? "" : "es"} by Levenshtein edit distance)?\\n\`,
+    );
+    for (const rankedCandidate of topRankedCandidates) {
+      console.error(
+        \`    [\${rankedCandidate.levenshteinEditDistanceFromOperatorSuppliedQuery} edit\${rankedCandidate.levenshteinEditDistanceFromOperatorSuppliedQuery === 1 ? "" : "s"}] \${rankedCandidate.consumerSourceFileRelativePath}\`,
+      );
+    }
+    console.error(
+      \`\\n  If none of these match, the consumer may not yet be registered. Add an entry to:\\n    - Runtime hooks: plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\n    - Audit tasks:  plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts\`,
+    );
+  } else {
+    const distinctRegisteredConsumerPaths =
+      listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically();
+    console.error(
+      \`  Hint: query is not close to any registered path (top match has \${topRankedCandidates[0]?.levenshteinEditDistanceFromOperatorSuppliedQuery ?? "n/a"} edit distance, threshold ⌊queryLen / 3⌋). Showing all \${distinctRegisteredConsumerPaths.length} registered consumer paths:\\n\`,
+    );
+    for (const distinctRegisteredConsumerPath of distinctRegisteredConsumerPaths) {
+      console.error(\`    - \${distinctRegisteredConsumerPath}\`);
+    }
+    console.error(
+      \`\\n  If your consumer is genuinely registered but the path differs significantly, check the\\n  spelling against the list above. If the consumer is NOT yet registered, add an entry to\\n  the appropriate canonical registry (see paths above).\`,
+    );
   }
-  console.error(
-    \`\\n  If your consumer is genuinely registered but the path differs (e.g., basename match\\n  but wrong directory), check spelling against the list above. If the consumer is NOT\\n  yet registered, add an entry to the appropriate canonical registry:\\n    - Runtime hooks: plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\n    - Audit tasks:  plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts\`,
-  );
   process.exit(2);
 }
 
