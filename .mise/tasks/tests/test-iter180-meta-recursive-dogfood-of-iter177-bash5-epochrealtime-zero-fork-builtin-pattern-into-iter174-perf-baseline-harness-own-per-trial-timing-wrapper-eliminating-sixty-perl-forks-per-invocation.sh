@@ -45,8 +45,8 @@ echo ""
 echo "GROUP A (2 assertions): timing function renamed to encode bash5 EPOCHREALTIME zero-fork builtin idiom with perl Time::HiRes graceful fallback"
 
 iter180_assert_substring_present_in_harness_with_human_readable_label \
-    "A1: timing function name encodes bash5_epochrealtime_zero_fork_builtin idiom" \
-    "iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older"
+    "A1: timing function name encodes bash5_epochrealtime_zero_fork_builtin idiom (suffix-pin absorbs iter-183 function rename)" \
+    "bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older"
 
 ITER180_TOTAL_ASSERTIONS_EVALUATED=$((ITER180_TOTAL_ASSERTIONS_EVALUATED + 1))
 if ! grep -qF "iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_perl_time_hires_nanosecond_precision" "$ITER180_ITER174_HARNESS_ABSOLUTE_PATH"; then

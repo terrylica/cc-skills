@@ -249,6 +249,27 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       baseline harness extended in iter-177 with A6 assertion gating
       iter-160 at 1500ms cap. Empirical: 665ms → 528ms (~20% reduction).
 
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-183 hyperfine-parity per-scenario {mean, stddev, min, max, trials[]} stats${ITER156_ANSI_COLOR_RESET}
+      — multi-perspective adversarial audit (web-validated against
+      hyperfine + pytest-benchmark 2026 baseline) found the iter-179
+      per-scenario record emitted only median_ms + cap_ms + headroom +
+      verdict. Industry standard from hyperfine emits mean + stddev +
+      median + min + max + times[] array — the latter being "the most
+      valuable field for sophisticated regression detection" because
+      AI agents and CI pipelines can re-derive any percentile /
+      bootstrap CI / non-parametric test downstream. Pre-iter-183 the
+      cc-skills envelope LACKED this: when a future iter ships a
+      REGRESS verdict, the operator could not distinguish "one-off
+      jitter spike" from "sustained degradation" without re-running.
+      Iter-183 closes the gap additively (iter174_schema_version stays
+      at 1; older consumers ignore unknown fields). Each per-scenario
+      record now also includes iter183_mean_ms + iter183_stddev_ms +
+      iter183_min_ms + iter183_max_ms + iter183_trial_wall_clock_
+      times_ms array preserving invocation order (so first-trial cold-
+      cache spikes are diagnosable). Pure-bash stats math via awk for
+      float division + sqrt; sample-stddev formula (N-1 denominator)
+      per small-N statistical best-practice.
+
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-182 pytest-benchmark-style measurement-context metadata in JSON envelope${ITER156_ANSI_COLOR_RESET}
       — multi-perspective adversarial audit (web-validated against
       pytest-benchmark / criterion.rs / hyperfine 2026 baseline) found
