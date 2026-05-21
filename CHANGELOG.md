@@ -1,3 +1,10 @@
+# [21.61.0](https://github.com/terrylica/cc-skills/compare/v21.60.2...v21.61.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-150 readable-git-log-renderer + commit-subject convention shift ([8e9fdf8](https://github.com/terrylica/cc-skills/commit/8e9fdf8da30b8add00cbdfd52336bf4662a8c808)), closes [iter-144-throu#iter-149](https://github.com/iter-144-throu/issues/iter-149) [iter-144-throu#iter-149](https://github.com/iter-144-throu/issues/iter-149) [iter-144-throu#iter-149](https://github.com/iter-144-throu/issues/iter-149) [iter-144-throu#iter-149](https://github.com/iter-144-throu/issues/iter-149)
+
 ## [21.60.2](https://github.com/terrylica/cc-skills/compare/v21.60.1...v21.60.2) (2026-05-21)
 
 
