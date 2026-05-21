@@ -835,6 +835,52 @@ That meant the iter-93 orchestrator's `Promise.all` over N subhooks yielded **ze
 
 **Iter-94 architectural takeaway**: the orchestrator's iteration model is correct only if the subhook classifiers respect the iteration model's contract. `Promise.all` parallelism requires async classifiers; mixing in `spawnSync` is a silent contract violation that defeats the whole optimization. The static audit + microbenchmark + dual-classifier shared helper together lock in the invariant for all future iter-95+ migrations.
 
+### Iter-95: PostToolUse arc progress — oxlint + biome inlined (4/15) + shared lib/ helpers + conditional provenance prefix + empirical-parallelism benchmark
+
+Iter-95 is a **2-subhook migration + a DRY refactor + a usability refinement + an empirical perf confirmation**, surfaced by the iter-95 adversarial multi-perspective audit. The audit found three issues:
+
+**Issue 1 (DRY)**: the iter-94 async-spawn helper + the install-reminder gate-file pattern were duplicated verbatim across `ty-type-check` + `tsgo-type-check`. With iter-95 inlining oxlint + biome (3rd + 4th subhooks), we'd have FOUR copies of the same helpers and drift between them would silently undermine the iter-94 async-Bun.spawn invariant. Iter-95 hoists everything into `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`:
+
+| Helper                                                                                                    | Purpose                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail` | Single source of truth for async subprocess execution. Iter-95 enhancement: adds a `maxBuffer` safety net (8MiB default, per [Bun docs](https://bun.com/docs/api/spawn) guidance) so a runaway linter producing hundreds of MB of diagnostics is killed before exhausting orchestrator memory |
+| `tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName`                                    | O_EXCL atomic gate-file creation, race-safe even when N classifiers concurrently detect missing-binary                                                                                                                                                                                        |
+| `drainBunSubprocessReadableStreamToUtf8TextSwallowingErrors`                                              | Idiomatic `new Response(stream).text()` drain                                                                                                                                                                                                                                                 |
+| `DEFAULT_SUBPROCESS_OUTPUT_MAX_BUFFER_BYTES_PER_BUN_DOCS_SAFETY_NET = 8 * 1024 * 1024`                    | The exported constant — operators tuning this for high-output linters override via the optional `maxBufferBytes` option                                                                                                                                                                       |
+
+**Issue 2 (usability — conditional provenance prefix)**: iter-94 unconditionally prefixed every aggregated section with `[orchestrator-subhook: <name>]`. For the common single-subhook case (a `.py` edit only triggers `ty`), the prefix was noise. Iter-95 renames the aggregator to `aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixOnlyWhenMultipleSectionsContribute` and emits the prefix ONLY when ≥2 sections contribute. Single-section payloads now match the legacy standalone-hook UX. Multi-section payloads still get unambiguous provenance.
+
+**Issue 3 (empirical confirmation gap)**: iter-94's microbenchmark deliberately fed non-existent files so subhooks short-circuited via existsSync/tsconfig-presence — that measured only the bun cold-start floor, not the parallelism gain. Iter-95 adds a second benchmark variant (`benchmark-posttooluse-orchestrator-real-subprocess-firing-with-actual-typescript-file-empirically-confirms-async-bun-spawn-parallelism-gain-iter95.sh`) that creates a REAL `.ts` file in a tsconfig-rooted dir so multiple subprocesses (tsgo + oxlint + biome) actually fire. Empirical median wall-clock on dev hardware (Apple Silicon M1 Max, 2026-05-21):
+
+| Payload                         | Median wall-clock | Notes                                                                                                |
+| ------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| non-applicable .txt             | 19.28 ms          | bun cold-start + orchestrator overhead only (all 4 subhooks short-circuit via O(1) extension filter) |
+| REAL .ts in tsconfig-rooted dir | 70.53 ms          | tsgo + oxlint + biome subprocesses fire CONCURRENTLY via Bun.spawn                                   |
+
+The delta is **~51 ms** — much less than the SUM of individual tool times (~150-200 ms if serialized via Bun.spawnSync). Empirical confirmation that the iter-94 async refactor is working: `wall-clock ≈ MAX(subhook_i)`, not SUM. If a future regression reintroduces spawnSync, the static audit (iter-94) catches it statically AND this benchmark catches it empirically.
+
+**Iter-95 deliverables**:
+
+1. **Shared lib module** at `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts` with 4 helpers + 1 constant. Imported by all 4 inlined classifiers.
+2. **`posttooluse-ty-type-check.ts` + `posttooluse-tsgo-type-check.ts`** refactored to import from the shared lib (iter-94 inline copies removed).
+3. **`posttooluse-oxlint-check.ts`** migrated as 3rd subhook. Precise name: `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator` (the "correctness + suspicious" qualifier captures the actual rules enabled; "OnEditedJavaScriptOrTypeScriptFile" qualifies the input scope). Alias: `classifyOxlintCheckForPostToolUseOrchestrator`.
+4. **`posttooluse-biome-lint.ts`** migrated as 4th subhook. Precise name: `classifyBiomeComplementaryToOxlintLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator` (the "ComplementaryToOxlint" qualifier captures the design contract: biome runs ALONGSIDE oxlint, not as a replacement — catches useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAnyLet, noAssignInExpressions which oxlint's default rule set misses). Alias: `classifyBiomeLintForPostToolUseOrchestrator`. Also: the 6 highest-noise biome rules are explicitly named in the constant `BIOME_LINT_RULES_SUPPRESSED_AT_HOOK_TIME_BECAUSE_TOO_NOISY_FOR_REAL_CODEBASES`.
+5. **Orchestrator aggregator** renamed to `aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixOnlyWhenMultipleSectionsContribute` — the boolean `shouldEmitProvenancePrefix` makes the conditional invariant explicit.
+6. **`hooks.json` rewiring**: standalone oxlint + biome entries removed; orchestrator description bumped to 4/15.
+7. **Empirical-parallelism benchmark task** with median-of-N=5 across real-subprocess-firing .ts payload.
+8. **Iter-95 regression test** (14 assertions all pass): shared lib helper exports correct surface, ALL 4 classifiers import from shared lib (DRY invariant), registry ≥4 entries, dual-export naming present for oxlint + biome, hooks.json no longer wires standalone oxlint/biome, iter-94 static audit STILL passes (no spawnSync regression in any of the 4 classifiers), aggregator renamed + shouldEmitProvenancePrefix present, all 4 classifiers retain import.meta.main standalone guards, benchmark task runs to completion.
+9. **iter-92 + iter-94 regression tests** updated for migration-arc decoupling (accept EITHER standalone OR orchestrator-via-import; threshold lowered from ≥15 to ≥10 PostToolUse hooks marketplace-wide as more subhooks consolidate).
+
+**Iter-95 architectural-symmetry observation**: with 4 type-checkers/linters now inlined, the orchestrator's `Promise.all` parallelism becomes load-bearing. The shared lib + static audit + empirical benchmark together form a **3-layer regression defense**:
+
+| Layer | Defense                             | Catches                                                            |
+| ----- | ----------------------------------- | ------------------------------------------------------------------ |
+| 1     | Compile-time (static audit)         | New classifiers using `Bun.spawnSync`                              |
+| 2     | Test-time (iter-95 regression test) | Classifiers not importing from shared lib (DRY drift)              |
+| 3     | Runtime (empirical benchmark)       | Wall-clock regressing from MAX → SUM if (1) and (2) miss something |
+
+This locks in the iter-94 invariant for the rest of the iter-93+ migration arc.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
