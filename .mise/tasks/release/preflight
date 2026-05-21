@@ -430,6 +430,36 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4m: subhook-contract static checker (iter-86 gate; informational)"
 
+# Check 4n: Iter-99 marketplace-wide silent-context-drop audit. Scales the
+# iter-98 single-hook fix to a marketplace invariant. Per the iter-66/93
+# forensic finding + Anthropic PostToolUse schema docs, plain-text stdout
+# from PostToolUse hooks is rendered into the operator transcript (Ctrl-R
+# visible) but NEVER delivered to Claude's next-turn context. The only two
+# Claude-visible PostToolUse stdout schemas are:
+#   (1) {decision:"block", reason:"..."} JSON
+#   (2) {hookSpecificOutput:{hookEventName:"PostToolUse", additionalContext:"..."}} JSON
+# This audit catches the silent-drop pattern preventively in TypeScript
+# PostToolUse hooks (console.log of template-literal / string-literal —
+# bypasses BOTH valid schemas). Escape hatch: `// POSTTOOLUSE-RAW-STDOUT-OK:
+# <reason ≥ 10 chars>` on same-line or within 3 preceding lines for
+# explicitly operator-only intent.
+# Informational by default — future iters may flip to --strict.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-99 PostToolUse silent-context-drop marketplace audit (informational)..."
+if ! mise run audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context >/tmp/iter99-posttooluse-silent-context-drop-audit.log 2>&1; then
+    echo "  ⚠ Silent-context-drop audit exited non-zero (informational only — not blocking release)"
+    echo "    (each violation indicates a PostToolUse hook whose reminder Claude never sees — see /tmp/iter99-posttooluse-silent-context-drop-audit.log)"
+fi
+# Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
+POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED=$( { grep -oE 'PostToolUse TypeScript hooks discovered across marketplace:[[:space:]]+[0-9]+' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+POSTTOOLUSE_SILENT_DROP_VIOLATIONS=$( { grep -oE 'AUDIT FAILED — [0-9]+ silent-context-drop' /tmp/iter99-posttooluse-silent-context-drop-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+if [[ "${POSTTOOLUSE_SILENT_DROP_VIOLATIONS:-0}" -gt 0 ]]; then
+    echo "  ⚠ Silent-context-drop audit: ${POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED:-0} hooks scanned, ${POSTTOOLUSE_SILENT_DROP_VIOLATIONS:-0} violation(s)"
+else
+    echo "  ✓ Silent-context-drop audit: ${POSTTOOLUSE_SILENT_DROP_HOOKS_DISCOVERED:-0} hooks scanned, 0 violations"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse silent-context-drop audit (iter-99 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
