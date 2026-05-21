@@ -1,3 +1,10 @@
+# [21.50.0](https://github.com/terrylica/cc-skills/compare/v21.49.0...v21.50.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-119 add --json output mode flag to iter-116 reverse-search cli emitting single machine-readable json document to stdout encoding iter-118-plausible-typo-vs-unrelated-query decision directly in json shape so downstream jq pipelines and automation can branch on json structure without re-running the one-third-of-query-length levenshtein-distance threshold check ([55a963b](https://github.com/terrylica/cc-skills/commit/55a963b4e89987b554f8bde49766c555ed5e992c)), closes [#144](https://github.com/terrylica/cc-skills/issues/144)
+
 # [21.49.0](https://github.com/terrylica/cc-skills/compare/v21.48.0...v21.49.0) (2026-05-21)
 
 
