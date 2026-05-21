@@ -72,6 +72,20 @@ ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_
 ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR=0
 ITER183_LATEST_BENCHMARK_SCENARIO_PER_TRIAL_WALL_CLOCK_TIMES_MS_ARRAY_FOR_AI_AGENT_TO_RECOMPUTE_ANY_PERCENTILE=()
 
+# ─── ITER-184 OUTLIER WARNING SURFACE (hyperfine + pytest-benchmark heuristics) ─
+# Web research (2026) confirmed hyperfine ships two canonical heuristics —
+# outlier detection (background-process interference) + first-run-cold-cache
+# detection — and pytest-benchmark emits BOTH StdDev outlier count AND IQR
+# outlier count simultaneously for richer diagnosis ("If StdDev outliers ≫ IQR
+# outliers → distribution is roughly clean but has a heavy tail; if both high
+# → genuine multi-modal or unstable").
+#
+# Iter-184 closes the canonical-warning-surface gap so AI agents and CI
+# pipelines parsing the iter-179 envelope don't each re-derive different
+# thresholds and disagree on whether a regression is "noisy" or "real".
+# Populated per-scenario by the iter174_measure_... function.
+ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT=()
+
 # Compute statistics across N trials of an arbitrary command. Uses bash 5+
 # ${EPOCHREALTIME} zero-fork builtin (microsecond resolution per Chet Ramey
 # 2018 RFE) with graceful perl Time::HiRes fallback for bash<5. The function
@@ -155,6 +169,55 @@ iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochr
     # Per-trial array (unsorted, preserves invocation order — relevant for
     # detecting JIT warmup / cold-cache effects in trial 1 vs later trials).
     ITER183_LATEST_BENCHMARK_SCENARIO_PER_TRIAL_WALL_CLOCK_TIMES_MS_ARRAY_FOR_AI_AGENT_TO_RECOMPUTE_ANY_PERCENTILE=("${each_trial_elapsed_ms_array[@]}")
+
+    # ─── Iter-184 outlier warning detection (3 canonical heuristics) ──────
+    # Per hyperfine + pytest-benchmark 2026 baseline:
+    #   1. first_trial_cold_cache_spike — trials[0] > median × 1.5
+    #      (hyperfine's "first run was significantly slower" heuristic;
+    #       catches OS page-cache / dyld-cache / shell-startup warmup)
+    #   2. high_relative_stddev_indicating_unstable_measurement — stddev > median × 0.25
+    #      (>25% relative stddev floor; for N=5 sample-stddev this is a
+    #       conservative threshold above which CI gates should re-run rather
+    #       than declare regression)
+    #   3. tukey_iqr_outlier_runs_detected — ≥1 trial outside [Q1-1.5×IQR, Q3+1.5×IQR]
+    #      (pytest-benchmark's robust IQR-based outlier definition; for N=5
+    #       sorted trials Q1=sorted[1], Q3=sorted[3] zero-indexed)
+    #
+    # Pure-bash + awk math. Empty array means "clean signal, no warnings".
+    ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT=()
+
+    # Heuristic 1: first-trial cold-cache spike.
+    local first_trial_value_unsorted_invocation_order="${each_trial_elapsed_ms_array[0]}"
+    local first_trial_cold_cache_threshold_ms_at_one_point_five_times_median
+    first_trial_cold_cache_threshold_ms_at_one_point_five_times_median=$(awk -v m="$middle_trial_value" 'BEGIN { printf "%.0f", m * 1.5 }')
+    if (( first_trial_value_unsorted_invocation_order > first_trial_cold_cache_threshold_ms_at_one_point_five_times_median )); then
+        ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT+=("first_trial_cold_cache_spike_per_hyperfine_heuristic_two")
+    fi
+
+    # Heuristic 2: high relative stddev (>25% of median).
+    local high_relative_stddev_threshold_ms_at_one_quarter_of_median
+    high_relative_stddev_threshold_ms_at_one_quarter_of_median=$(awk -v m="$middle_trial_value" 'BEGIN { printf "%.0f", m * 0.25 }')
+    if (( sample_standard_deviation_in_milliseconds > high_relative_stddev_threshold_ms_at_one_quarter_of_median )); then
+        ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT+=("high_relative_stddev_indicating_unstable_measurement_per_hyperfine_practice")
+    fi
+
+    # Heuristic 3: Tukey IQR-fence outliers (robust to single-run contamination).
+    # For N=5 sorted trials (1-indexed sed lookup): sorted[2]=Q1, sorted[4]=Q3.
+    local first_quartile_value_q1 third_quartile_value_q3 interquartile_range_iqr
+    first_quartile_value_q1=$(echo "$sorted_trials_newline_separated" | sed -n '2p')
+    third_quartile_value_q3=$(echo "$sorted_trials_newline_separated" | sed -n '4p')
+    interquartile_range_iqr=$(( third_quartile_value_q3 - first_quartile_value_q1 ))
+    local lower_tukey_fence_for_iqr_outlier_detection upper_tukey_fence_for_iqr_outlier_detection
+    lower_tukey_fence_for_iqr_outlier_detection=$(awk -v q1="$first_quartile_value_q1" -v iqr="$interquartile_range_iqr" 'BEGIN { printf "%.0f", q1 - 1.5 * iqr }')
+    upper_tukey_fence_for_iqr_outlier_detection=$(awk -v q3="$third_quartile_value_q3" -v iqr="$interquartile_range_iqr" 'BEGIN { printf "%.0f", q3 + 1.5 * iqr }')
+    local each_trial_for_tukey_outlier_scan
+    for each_trial_for_tukey_outlier_scan in "${each_trial_elapsed_ms_array[@]}"; do
+        if (( each_trial_for_tukey_outlier_scan < lower_tukey_fence_for_iqr_outlier_detection )) || \
+           (( each_trial_for_tukey_outlier_scan > upper_tukey_fence_for_iqr_outlier_detection )); then
+            ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT+=("tukey_iqr_outlier_runs_detected_per_pytest_benchmark_robust_definition")
+            break  # one warning code per scenario is enough — count detail lives in raw trials[]
+        fi
+    done
 }
 
 # Run a single benchmark scenario: measure median + iter-183 hyperfine-parity
@@ -201,16 +264,31 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
         iter183_per_trial_times_ms_json_array_body+="${each_trial_value_for_json_array_assembly}"
     done
 
+    # Build iter-184 outlier-warnings JSON string array (empty if clean signal).
+    # Each warning is a stable canonical code string per hyperfine + pytest-
+    # benchmark heuristic naming so AI agents can dispatch on exact match.
+    local iter184_outlier_warnings_json_array_body=""
+    local each_warning_code_for_json_array_assembly
+    for each_warning_code_for_json_array_assembly in "${ITER184_LATEST_BENCHMARK_SCENARIO_OUTLIER_WARNINGS_ARRAY_FOR_AI_AGENT_SIGNAL_QUALITY_ASSESSMENT[@]}"; do
+        if [[ -n "$iter184_outlier_warnings_json_array_body" ]]; then
+            iter184_outlier_warnings_json_array_body+=", "
+        fi
+        iter184_outlier_warnings_json_array_body+="\"${each_warning_code_for_json_array_assembly}\""
+    done
+
     # Append a JSON-safe scenario record for --json mode final-envelope emission.
     # Labels are ASCII-only by convention so no escape lib needed; substring the
     # description down to a JSON-safe shape (strip embedded double-quotes
     # defensively even though current labels contain none).
     # Iter-183: added mean_ms + stddev_ms + min_ms + max_ms + trial_wall_clock_
-    # times_ms_array (hyperfine + pytest-benchmark per-scenario stats parity)
-    # additively — iter174_schema_version stays at 1, older consumers ignore
-    # unknown fields.
+    # times_ms_array (hyperfine + pytest-benchmark per-scenario stats parity).
+    # Iter-184: added iter184_outlier_warnings array with canonical warning
+    # codes from hyperfine + pytest-benchmark heuristics so AI agents can
+    # dispatch on stable strings rather than re-derive thresholds.
+    # All additive — iter174_schema_version stays at 1, older consumers ignore
+    # unknown fields per JSON-best-practice.
     local iter179_json_safe_description_with_double_quotes_stripped_defensively="${iter179_human_readable_description_after_canonical_id_prefix//\"/}"
-    ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"iter183_mean_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC}, \"iter183_stddev_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING}, \"iter183_min_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC}, \"iter183_max_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR}, \"iter183_trial_wall_clock_times_ms_for_ai_agent_to_recompute_any_percentile\": [${iter183_per_trial_times_ms_json_array_body}], \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
+    ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"iter183_mean_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC}, \"iter183_stddev_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING}, \"iter183_min_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC}, \"iter183_max_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR}, \"iter183_trial_wall_clock_times_ms_for_ai_agent_to_recompute_any_percentile\": [${iter183_per_trial_times_ms_json_array_body}], \"iter184_outlier_warnings_per_hyperfine_and_pytest_benchmark_canonical_heuristics_for_ai_agent_signal_quality_assessment\": [${iter184_outlier_warnings_json_array_body}], \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
 }
 
 iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean ""
