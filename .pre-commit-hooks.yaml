@@ -19,9 +19,17 @@
 #
 # Spec reference: https://pre-commit.com/#new-hooks
 #
-# `language: system` means pre-commit uses the operator's bash from PATH
-# rather than provisioning a private interpreter, which is the right choice
-# for our shellcheck-clean bash-native implementation.
+# `language: script` is the correct choice for shipping a bash script ALONGSIDE
+# the hook repo (per the official spec). With `language: script`, pre-commit
+# resolves `entry` as a RELATIVE PATH within the cloned hook repo's root and
+# invokes the file directly (uses its shebang). It executes the file from the
+# cloned cache, NOT from the operator's $PATH.
+#
+# Iter-159 empirically validated this: an earlier draft used `language: system`,
+# which treats `entry` as a $PATH-resolvable command — pre-commit could not
+# locate `scripts/iter158-...sh` because the cloned cache is not on $PATH. The
+# iter-159 end-to-end harness caught the bug before it reached upstream
+# consumers of the manifest.
 
 - id: cc-skills-commits-advise-commit-msg
   name: "iter-153 advisor: validate conventional-commit subject (cc-skills)"
@@ -33,7 +41,7 @@
     long-subject overlay remains informational even in strict mode (does
     not block commits).
   entry: scripts/iter158-pre-commit-framework-entry-point-script-locating-iter153-advisor-via-bash-source-relative-path-resolution-for-consumption-by-polyglot-pre-commit-framework-from-its-hidden-cached-clone-of-cc-skills.sh
-  language: system
+  language: script
   stages: [commit-msg]
   pass_filenames: true
   always_run: false
