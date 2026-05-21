@@ -59,6 +59,13 @@ import {
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
+// Iter-105: cross-lib import of the canonical truncation helper from the
+// PostToolUse contract lib. The helper is pure string truncation against
+// Claude's 10K-character hook-output file-spillover threshold and is
+// semantically shared across both PreToolUse + PostToolUse paths (per
+// iter-104 design rationale). Iter-106+ candidate: extract to a dedicated
+// shared lib file once more cross-Pre/PostToolUse helpers emerge.
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 
 // ============================================================================
 // Configuration
@@ -286,13 +293,23 @@ export async function classifyValeTerminologyConformanceOnClaudeMdGuardForOrches
     ? ` (scoped to changed lines ${editLineRange.start}-${editLineRange.end})`
     : "";
 
-  const denyReason = [
+  const denyReasonUnbounded = [
     `[VALE-CLAUDE-MD-GUARD] Found ${inScopeFindings.length} terminology issue(s) in ${claudeMdFileName}${editScopeAnnotation}:`,
     "",
     formatValeFindingsForOperatorDisplay(inScopeFindings),
     "",
     "Fix the issues before saving. Check ~/.claude/docs/GLOSSARY.md for correct terminology.",
   ].join("\n");
+
+  // Iter-105: defense-in-depth against Claude's 10K-character hook-output
+  // file-spillover threshold. inScopeFindings count is unbounded — a
+  // heavily-edited CLAUDE.md can trigger 50-200+ findings producing 10K+
+  // chars. Cross-lib import of the canonical truncation helper from the
+  // PostToolUse contract lib (helper is pure string truncation, semantically
+  // shared across both Pre/PostToolUse paths per iter-104 design).
+  const denyReason = truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+    denyReasonUnbounded,
+  );
 
   return VALE_CLAUDE_MD_GUARD_ENFORCEMENT_MODE === "deny"
     ? denyDecision(denyReason)

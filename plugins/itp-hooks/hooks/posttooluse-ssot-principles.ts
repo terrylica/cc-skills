@@ -59,6 +59,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
@@ -322,10 +323,14 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
       (f) => !/SSoT-OK/.test(f.text),
     );
 
+    // Iter-105: defense-in-depth against Claude's 10K-character file-spillover threshold
+    // (astGrepFindings count is unbounded per edited file).
     return buildPostToolUseAdditionalContextDecision(
-      buildSsotPrinciplesReminderMessageWithAstGrepFindingsAppended(
-        findingsExcludingPerLineEscapeHatch,
-        filePath,
+      truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+        buildSsotPrinciplesReminderMessageWithAstGrepFindingsAppended(
+          findingsExcludingPerLineEscapeHatch,
+          filePath,
+        ),
       ),
     );
   } catch {

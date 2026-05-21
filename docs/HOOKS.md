@@ -1260,6 +1260,48 @@ Each layer addresses a DIFFERENT failure mode at a different defense depth. The 
 
 **Iter-105 follow-up scope**: marketplace audit + apply truncation helper to the remaining 6 unbounded-output classifiers (ty, tsgo, oxlint, biome, ssot-principles, pretooluse-vale). The PostToolUse orchestrator's aggregated reason — which concatenates ALL contributing subhook messages — is itself at higher risk than any single classifier and should also adopt the helper at the aggregation site (multiple medium-size messages can sum past 10K).
 
+### Iter-105: Marketplace-wide truncation-helper invariant (scales iter-104 single-hook fix to 8 cohort hooks + aggregation-site sum-overflow defense)
+
+Iter-104 established the canonical truncation helper `truncateHookOutputToStayBelowClaudeFileSpilloverThreshold` and applied it to the highest-risk single classifier (posttooluse-vale-claude-md.ts). Iter-105 scales the protection marketplace-wide and adds a new defense layer at the aggregation site.
+
+**Iter-105 cohort (8 hooks, all wrapped via canonical helper)**:
+
+| Cohort hook                                                  | Unbounded source                                         | Iter     |
+| ------------------------------------------------------------ | -------------------------------------------------------- | -------- |
+| `posttooluse-vale-claude-md.ts`                              | N vale findings on CLAUDE.md edit (50-200+, ~5-20K)      | iter-104 |
+| `posttooluse-ty-type-check.ts`                               | ty diagnostic stream per .py/.pyi edit                   | iter-105 |
+| `posttooluse-tsgo-type-check.ts`                             | tsgo diagnostic stream per project check                 | iter-105 |
+| `posttooluse-oxlint-check.ts`                                | oxlint correctness+suspicious findings                   | iter-105 |
+| `posttooluse-biome-lint.ts`                                  | biome complementary-rules findings                       | iter-105 |
+| `posttooluse-ssot-principles.ts`                             | ast-grep anti-pattern matches (multi-language fan-out)   | iter-105 |
+| `pretooluse-vale-claude-md-guard.ts` (cross-lib import)      | vale findings on proposed CLAUDE.md content              | iter-105 |
+| `posttooluse-orchestrator (...iter93...)` (aggregation site) | concatenation of ALL subhook reasons + provenance prefix | iter-105 |
+
+**New defense layer — aggregation-site sum-overflow defense**: even when each subhook stays under 10K individually (via iter-104+iter-105 per-classifier wrap), the PostToolUse orchestrator concatenates N contributions + per-section `[orchestrator-subhook: <name>]` provenance prefix into ONE consolidated `{decision: "block", reason: aggregate}` JSON. The sum can exceed 10K. The orchestrator now applies the canonical helper to the aggregated reason as the absolute last line of defense before emitting the decision JSON.
+
+**Cross-lib import pattern**: `pretooluse-vale-claude-md-guard.ts` imports the helper from the PostToolUse contract lib (`./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`). The helper is pure string truncation, semantically shared across PreToolUse + PostToolUse paths per iter-104 design rationale. **Iter-106+ candidate**: extract to a dedicated shared-lib file once more cross-Pre/PostToolUse helpers emerge. Currently pragmatic single-source-of-truth approach.
+
+**Preventive infrastructure**:
+
+- **Audit task**: `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` — curated 8-hook cohort + per-hook static-grep for canonical-helper import + usage.
+- **Preflight gate**: Check 4q (informational, parallel to Check 4n/4o/4p — iter-99 silent-context-drop, iter-101 matcher-hygiene, iter-103 NotebookEdit applicability matrix).
+- **Regression test**: `.mise/tasks/tests/test-iter105-marketplace-wide-truncation-helper-invariant-audit-scales-iter104-single-hook-fix-to-eight-cohort-hooks-including-postooluse-orchestrator-aggregation-site-for-sum-overflow-defense.sh` — 8 assertions including cross-lib import works + orchestrator aggregation site wraps + iter-104 helper threshold (`MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000`) unchanged + cohort count = 8.
+
+**Defense-in-depth synthesis (iter-105 expands to 6-layer marketplace stack)**:
+
+1. iter-66/93: stdout JSON schema correctness — additionalContext-silently-dropped audit
+2. iter-94: Bun.spawn async invariant — no spawnSync in orchestrator subhooks
+3. iter-96: timeout-aware additional_context surface — operator-visibility defense
+4. iter-98/99: console.log raw-text emission audit — silent-drop preventive gate
+5. iter-104: 10K-character file-spillover threshold defense (single-hook fix) — silent-size-truncation preventive layer
+6. **iter-105 (this iter)**: marketplace-wide invariant for unbounded-emission hook classifiers + aggregation-site sum-overflow defense
+
+**Iter-106+ candidates**:
+
+1. Extract `truncateHookOutputToStayBelowClaudeFileSpilloverThreshold` to a dedicated shared-lib file (eliminate iter-105 cross-lib import pattern)
+2. Add new unbounded-source PostToolUse classifiers to the cohort enumeration as they land
+3. Promote audit gate from informational (Check 4q) to strict (block release) once iter-106 helper-extraction is done
+
 Sources for iter-104 web research:
 
 - [Claude Code Hooks Reference (2026) — output size cap documented](https://code.claude.com/docs/en/hooks)
