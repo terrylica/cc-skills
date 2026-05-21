@@ -292,6 +292,43 @@ mise run release:preflight    # Check 4l informational output
 
 Regression pin: `.mise/tasks/tests/test-iter151-...sh` (19 assertions across 6 groups covering structural validity, scaffolding declarations, length-measurement wiring, summary/diagnostic output, informational-only design invariant, and functional smoke test against the actual cc-skills repo).
 
+### Operator-Facing Commits Health Dashboard (iter-152)
+
+The iter-150 (VIEW) → iter-151 (DETECT) usability arc closes with iter-152's consolidated operator-facing dashboard `mise run commits:health`, which fuses both prior layers plus new aggregations into a single short-named entry point. Five panels:
+
+1. **Panel 1 — Readable view**: delegates to the iter-150 awk-based soft-wrap renderer (single source of truth for readable rendering; no logic duplication).
+2. **Panel 2 — Subject-length distribution histogram**: ASCII bar chart with bins anchored on the conventional-commits 50/72 industry rule — ≤50 (hard target), 51-72 (hard cap), 73-100 (mild over-cap), 101-200 (verbose-naming-era), 201-500 (heavy), 501-1000 (extreme), 1000+ (iter-144-149 outlier territory).
+3. **Panel 3 — Worst offenders**: top-N (default 3) commits by char count with sha + measured length + truncated subject preview, so operators can target attention precisely.
+4. **Panel 4 — Conventional-commits type distribution**: per-type count + ASCII bar across the 11 canonical sem-rel types (feat/fix/perf/chore/docs/refactor/test/build/ci/style/revert), giving visibility into release-cadence drivers.
+5. **Panel 5 — Trend signal**: compares the current N-commit window against the previous N-commit window on two axes — median (p50) subject length and ≤72-cap conformance rate — and emits one of four verdicts: **IMPROVING** / **REGRESSING** / **STABLE** / **MIXED**.
+
+**Why p50 not mean**: the iter-144-iter-149 cohort produced 754-1078 char outliers that would dominate any mean-based signal. The median is robust against these extremes — operators see the _typical_ commit shape, not the worst.
+
+**Empirical proof iter-150 is working**: First smoke test against actual cc-skills `HEAD~10..HEAD` vs `HEAD~20..HEAD~10` showed:
+
+- Median subject length: previous=177 chars → current=40 chars (Δ -77.5%)
+- ≤72-cap conformance rate: previous=50% → current=60% (Δ +10pp)
+- **Verdict: IMPROVING** (shorter subjects, higher conformance)
+
+The convention adoption is empirically working — the dashboard surfaces it.
+
+**Operator usage**:
+
+```bash
+# Default: last 10 commits vs previous 10
+mise run commits:health
+
+# Custom window size
+ITER152_COMMIT_COUNT_TO_ANALYZE=20 mise run commits:health
+
+# Stricter project: cap at 50 chars instead of 72
+ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 mise run commits:health
+```
+
+**Tunables** (all with `ITER152_` prefix for namespace clarity): `COMMIT_COUNT_TO_ANALYZE` (default 10), `SUBJECT_HARD_CAP_THRESHOLD_CHARS` (default 72), `SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (default 50), `HISTOGRAM_BAR_WIDTH` (default 20 cols), `WORST_OFFENDER_CALLOUT_COUNT` (default 3).
+
+Regression pin: `.mise/tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, mise wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
