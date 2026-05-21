@@ -1,3 +1,10 @@
+## [21.75.3](https://github.com/terrylica/cc-skills/compare/v21.75.2...v21.75.3) (2026-05-21)
+
+
+### Bug Fixes
+
+* **iter-172:** close awk length() byte-counting gap in iter-152 ([60d33a7](https://github.com/terrylica/cc-skills/commit/60d33a79fdf5e9410818306c618c85c568aa84ef))
+
 ## [21.75.2](https://github.com/terrylica/cc-skills/compare/v21.75.1...v21.75.2) (2026-05-21)
 
 
