@@ -226,9 +226,78 @@ function renderSingleAuditTaskMarkerSection(markerNameTokenIncludingSuffix: stri
   ].join("\\n");
 }
 
+// Iter-117 GitHub-Flavored-Markdown anchor link computation function. Matches
+// the algorithm GitHub applies when rendering H2 headings into clickable
+// anchor links — lowercase, strip everything except letters/digits/hyphens/
+// spaces, then space → hyphen. Specifically tuned for our heading shapes:
+//   ## \`BASH-LAUNCHD-OK\`                       → #bash-launchd-ok
+//   ## \`ESCAPE-HATCH-AUDIT-OK\` (audit-task)   → #escape-hatch-audit-ok-audit-task
+//   ## \`SSoT-OK\`                              → #ssot-ok  (mixed-case
+//                                                  grandfathered marker)
+// Function name encodes the precise normalization algorithm so future
+// maintainers don't have to reverse-engineer the regex.
+function computeGitHubFlavoredMarkdownAnchorLinkFragmentFromHeadingTextStrippingBackticksAndParensAndLowercasingAndConvertingSpacesToHyphens(
+  headingTextWithBackticksAndParens: string,
+): string {
+  return headingTextWithBackticksAndParens
+    .toLowerCase()
+    // Strip every character except letters, digits, whitespace, and hyphens.
+    // Backticks, parens, periods, etc. all become empty. This matches
+    // GitHub's actual anchor-link normalization.
+    .replace(/[^a-z0-9\\s-]/g, "")
+    // Collapse all whitespace runs into single hyphens.
+    .trim()
+    .replace(/\\s+/g, "-");
+}
+
+function renderTableOfContentsForOperatorQuickNavigationAcrossAllRegisteredMarkersGroupedByLifecycleLayer(
+  sortedRuntimeHookMarkerTokens: ReadonlyArray<string>,
+  sortedAuditTaskMarkerTokens: ReadonlyArray<string>,
+): ReadonlyArray<string> {
+  const tableOfContentsLines: string[] = [
+    "## Quick navigation",
+    "",
+    \`Jump directly to any of the \${sortedRuntimeHookMarkerTokens.length + sortedAuditTaskMarkerTokens.length} registered markers below. Markers are listed alphabetically within each lifecycle layer.\`,
+    "",
+    \`**Runtime-hook markers** (\${sortedRuntimeHookMarkerTokens.length}; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):\`,
+    "",
+  ];
+  for (const runtimeHookMarkerToken of sortedRuntimeHookMarkerTokens) {
+    const anchorLinkFragment =
+      computeGitHubFlavoredMarkdownAnchorLinkFragmentFromHeadingTextStrippingBackticksAndParensAndLowercasingAndConvertingSpacesToHyphens(
+        runtimeHookMarkerToken,
+      );
+    tableOfContentsLines.push(\`- [\\\`\${runtimeHookMarkerToken}\\\`](#\${anchorLinkFragment})\`);
+  }
+  tableOfContentsLines.push("");
+  tableOfContentsLines.push(
+    \`**Audit-task markers** (\${sortedAuditTaskMarkerTokens.length}; consumed by \\\`.mise/\\\` audit tasks once per release-preflight):\`,
+  );
+  tableOfContentsLines.push("");
+  for (const auditTaskMarkerToken of sortedAuditTaskMarkerTokens) {
+    // Audit-task section headings include the \` (audit-task)\` suffix —
+    // anchor link must encode the suffix too.
+    const anchorLinkFragment =
+      computeGitHubFlavoredMarkdownAnchorLinkFragmentFromHeadingTextStrippingBackticksAndParensAndLowercasingAndConvertingSpacesToHyphens(
+        \`\${auditTaskMarkerToken} (audit-task)\`,
+      );
+    tableOfContentsLines.push(
+      \`- [\\\`\${auditTaskMarkerToken}\\\`](#\${anchorLinkFragment})\`,
+    );
+  }
+  tableOfContentsLines.push("");
+  return tableOfContentsLines;
+}
+
 function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
   const sortedMarkerTokens = listAllCanonicalRegistryMarkerNameTokensSortedAlphabetically();
   const sortedAuditTaskMarkerTokens = listAllAuditTaskCanonicalRegistryMarkerNameTokensSortedAlphabetically();
+
+  const tableOfContentsLines =
+    renderTableOfContentsForOperatorQuickNavigationAcrossAllRegisteredMarkersGroupedByLifecycleLayer(
+      sortedMarkerTokens,
+      sortedAuditTaskMarkerTokens,
+    );
 
   const documentPreamble = [
     "# Marketplace Escape-Hatch Marker Reference",
@@ -242,6 +311,7 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "> mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry",
     "> \\\`\\\`\\\`",
     "",
+    ...tableOfContentsLines,
     "## Purpose",
     "",
     "The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by .mise/ release-preflight audit tasks via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.",
