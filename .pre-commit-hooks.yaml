@@ -1,0 +1,40 @@
+# Pre-commit framework manifest (iter-158).
+#
+# Makes the cc-skills conventional-commits arc consumable by the polyglot
+# pre-commit framework (https://pre-commit.com). Operators add:
+#
+#   repos:
+#     - repo: https://github.com/terrylica/cc-skills
+#       rev: v21.66.0  # or any tagged release
+#       hooks:
+#         - id: cc-skills-commits-advise-commit-msg
+#
+# in their own .pre-commit-config.yaml, then run:
+#
+#   pre-commit install --hook-type commit-msg
+#
+# After that, every `git commit` runs the iter-153 advisor --strict on the
+# proposed subject line, rejecting silent-fail-class violations
+# (COMPOUND-PREFIX, MISSING-TYPE) before they reach the repository history.
+#
+# Spec reference: https://pre-commit.com/#new-hooks
+#
+# `language: system` means pre-commit uses the operator's bash from PATH
+# rather than provisioning a private interpreter, which is the right choice
+# for our shellcheck-clean bash-native implementation.
+
+- id: cc-skills-commits-advise-commit-msg
+  name: "iter-153 advisor: validate conventional-commit subject (cc-skills)"
+  description: >-
+    Validates the proposed commit subject through the iter-82/iter-151
+    grammar in iter-153 --strict mode. Rejects COMPOUND-PREFIX (e.g.,
+    'feat(scope)+docs:') and MISSING-TYPE (e.g., 'just fix the thing')
+    violations that semantic-release silently skips. The iter-150 50/72
+    long-subject overlay remains informational even in strict mode (does
+    not block commits).
+  entry: scripts/iter158-pre-commit-framework-entry-point-script-locating-iter153-advisor-via-bash-source-relative-path-resolution-for-consumption-by-polyglot-pre-commit-framework-from-its-hidden-cached-clone-of-cc-skills.sh
+  language: system
+  stages: [commit-msg]
+  pass_filenames: true
+  always_run: false
+  minimum_pre_commit_version: "2.10.0"
