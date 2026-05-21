@@ -154,6 +154,21 @@ fi
 ORIGINAL_DOC_BACKUP_FILE=$(mktemp -t iter113-original-doc-XXXXXX.md)
 trap 'cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; rm -f "$FIRST_RUN_OUTPUT_FILE" "$SECOND_RUN_OUTPUT_FILE" "$ORIGINAL_DOC_BACKUP_FILE"' EXIT
 
+# Iter-126 fix: acquire shared mutation-window flock before mutating the
+# canonical on-disk doc. Without this, the iter-117 Case 6 --check (which
+# reads the same canonical doc to verify the no-drift idempotency invariant)
+# fires concurrently under xargs -P parallelism (iter-75 parallel-suite
+# runner) and observes the synthetic mutation as spurious DRIFT exit=1.
+# Lock-file path is shared with test-iter115*.sh and test-iter117*.sh. See
+# iter-126 commit for full forensic analysis.
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
+' 9 <&9
+
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ORIGINAL_DOC_BACKUP_FILE"
 echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
 echo "SYNTHETIC DRIFT MUTATION INJECTED BY ITER113 REGRESSION TEST CASE 7 — SHOULD BE RESTORED BY TRAP" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
@@ -165,6 +180,9 @@ set -e
 
 # Restore the original doc immediately so subsequent test cases see clean state
 cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+
+# Iter-126 release the mutation-window flock now that on-disk doc is back to canonical state.
+exec 9<&-
 
 if [[ "$drift_check_exit_code" != "0" ]] && [[ "$drift_check_output" == *"DRIFT"* ]]; then
     assert_passes "Case 7: drift-detection correctly fails (exit=$drift_check_exit_code, reports DRIFT) when on-disk doc is mutated"
