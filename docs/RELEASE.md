@@ -329,6 +329,67 @@ ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 mise run commits:health
 
 Regression pin: `.mise/tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, mise wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
 
+### Pre-Commit Dry-Run Advisor (iter-153)
+
+The iter-150 → iter-151 → iter-152 arc closed post-commit visibility, but operators still only learned about violations AFTER committing (at release-time preflight). Iter-153 closes that gap with `mise run commits:advise` — a pre-commit dry-run advisor that classifies a proposed subject through the iter-82/iter-151 grammar BEFORE the commit lands.
+
+**Web research finding (2026-05)**: Web search confirmed this also fills a gap in the broader conventional-commits ecosystem. All industry tools — [commitlint](https://www.nouvelayes.com/blog/enforce-commit-standards-commitlint-husky-commit-msg), [conventional-pre-commit](https://github.com/compilerla/conventional-pre-commit), [conventional-precommit-linter](https://github.com/espressif/conventional-precommit-linter), [commitizen](https://commitizen-tools.github.io/commitizen/tutorials/auto_check/) — run **blocking** at the commit-msg stage with no advisor/dry-run mode, and none emit machine-readable JSON for AI-agent automation.
+
+**Three operational modes**:
+
+```bash
+# Default: human-readable verdict
+mise run commits:advise -- "feat(release): iter-153 short subject"
+
+# --json: machine-readable for AI agents and jq pipelines (parallel to iter-119 --json on iter-116 CLI)
+mise run commits:advise --json -- "feat: foo" | jq .verdict
+
+# --strict: exit non-zero on silent-fail-class only (iter-151 informational-only invariant preserved)
+mise run commits:advise --strict -- "feat(scope)+docs: bad compound"
+```
+
+**Four verdict classifications**:
+
+| Verdict                                 | Trigger                   |   Exit code (default / `--strict`) |
+| --------------------------------------- | ------------------------- | ---------------------------------: |
+| `COMMIT_READY`                          | No violations             |                              0 / 0 |
+| `COMMIT_READY_WITH_READABILITY_WARNING` | Conformant but >72 chars  | 0 / 0 (informational per iter-151) |
+| `SILENT_FAIL_RISK` (COMPOUND-PREFIX)    | `feat(scope)+docs:` etc.  |                              0 / 1 |
+| `SILENT_FAIL_RISK` (MISSING-TYPE)       | No recognized type prefix |                              0 / 1 |
+
+**Single source of truth invariant**: the advisor reuses the iter-82/iter-151 classification grammar — same recognized types array (the 11 sem-rel canonical), same compound-prefix regex, same iter-150 50/72-char thresholds. Changes to the upstream validator automatically flow to the advisor through shared invariants in script.
+
+**Stable JSON schema** (`iter153_schema_version: 1`) for AI agents:
+
+```json
+{
+  "iter153_schema_version": 1,
+  "subject": "feat(release)!: breaking change subject",
+  "measured_length_chars": 39,
+  "classification": "STANDARD-CONFORMANT",
+  "type": "feat",
+  "type_recognized": true,
+  "scope": "release",
+  "breaking": true,
+  "iter150_5072_rule_conformance": {
+    "under_50_char_hard_target": true,
+    "under_72_char_hard_cap": true
+  },
+  "silent_fail_class_violation_present": false,
+  "verdict": "COMMIT_READY",
+  "thresholds": { "hard_target_chars": 50, "hard_cap_chars": 72 }
+}
+```
+
+**Remediation hints** surface for each silent-fail-class subtype:
+
+- COMPOUND-PREFIX → "use a single type per commit, mention secondary scopes in the BODY"
+- MISSING-TYPE → "prefix the subject with one of the recognized types: feat fix perf revert docs chore style refactor test build ci"
+
+Regression pin: `.mise/tasks/tests/test-iter153-...sh` (24 assertions across 6 groups covering structural validity, SSoT grammar reuse, 4-way verdict classification, --json stable schema, --strict gating semantics with iter-151 informational-only invariant preservation, and scope/breaking/remediation extraction).
+
+The **iter-150 → iter-151 → iter-152 → iter-153 arc** now spans the full conventional-commits lifecycle: **VIEW** (iter-150) → **DETECT** (iter-151) → **HEALTH SUMMARY** (iter-152) → **PRE-COMMIT ADVISE** (iter-153).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
