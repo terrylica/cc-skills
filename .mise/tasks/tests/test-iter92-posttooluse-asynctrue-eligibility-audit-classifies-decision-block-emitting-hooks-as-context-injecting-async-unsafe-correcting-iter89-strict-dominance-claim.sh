@@ -58,10 +58,13 @@ if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-ty-typ
 else
     assert_fails "Case 3a: ty-type-checking pathway missing [C] classification (neither standalone nor iter-93 orchestrator entry found)"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-tsgo-type-check.ts"; then
-    assert_passes "Case 3b: posttooluse-tsgo-type-check.ts classified as [C] CONTEXT-INJECTING"
+# Iter-94 update: tsgo-type-check was inlined into the iter-93 PostToolUse
+# orchestrator. Same decoupling pattern as Case 3a — accept EITHER the
+# standalone OR the orchestrator entry as satisfying the [C] invariant.
+if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-tsgo-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+    assert_passes "Case 3b: tsgo-type-checking pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-93/94 orchestrator that inlines it)"
 else
-    assert_fails "Case 3b: tsgo-type-check missing [C] classification"
+    assert_fails "Case 3b: tsgo-type-checking pathway missing [C] classification (neither standalone nor iter-93/94 orchestrator entry found)"
 fi
 if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-oxlint-check.ts"; then
     assert_passes "Case 3c: posttooluse-oxlint-check.ts classified as [C] CONTEXT-INJECTING"
