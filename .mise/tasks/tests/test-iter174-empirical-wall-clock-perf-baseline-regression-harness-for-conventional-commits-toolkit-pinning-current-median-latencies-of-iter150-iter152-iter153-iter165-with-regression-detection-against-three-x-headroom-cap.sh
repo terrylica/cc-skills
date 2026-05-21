@@ -59,21 +59,39 @@ ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1
 ITER174_TOTAL_ASSERTIONS_EVALUATED=0
 ITER174_TOTAL_ASSERTIONS_FAILED=0
 
-# Compute the median wall-clock in milliseconds across N trials of an arbitrary
-# command. Uses bash 5+ ${EPOCHREALTIME} zero-fork builtin (microsecond
-# resolution per Chet Ramey 2018 RFE) with graceful perl Time::HiRes fallback
-# for bash<5. Sorts the trials, takes the middle element (median for odd N).
-# Robust against single-trial cold-start jitter, GC pauses, and macOS launchd
-# thermal throttle. The function takes a command + args (no label parameter;
-# the caller emits its own scenario label in the comparison verdict).
+# ─── ITER-183 PER-SCENARIO STATS GLOBALS (hyperfine + pytest-benchmark parity) ─
+# Populated by the iter174_measure_... function before returning. The scenario
+# function reads these to build the JSON record. Globals (not function return
+# value via stdout) are used because command substitution `$(func)` runs the
+# function in a subshell — local assignments wouldn't propagate. By the time
+# the scenario function emits its JSON record, these reflect the latest call.
+ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEDIAN_MS_FOR_PINNED_BASELINE_CAP_COMPARISON_PRESERVED_FROM_ITER174=0
+ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC=0
+ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING=0
+ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC=0
+ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR=0
+ITER183_LATEST_BENCHMARK_SCENARIO_PER_TRIAL_WALL_CLOCK_TIMES_MS_ARRAY_FOR_AI_AGENT_TO_RECOMPUTE_ANY_PERCENTILE=()
+
+# Compute statistics across N trials of an arbitrary command. Uses bash 5+
+# ${EPOCHREALTIME} zero-fork builtin (microsecond resolution per Chet Ramey
+# 2018 RFE) with graceful perl Time::HiRes fallback for bash<5. The function
+# takes a command + args (no label parameter; the caller emits its own
+# scenario label in the comparison verdict).
 #
 # Iter-180 dogfood of iter-177 pattern: previously 2 perl forks per trial ×
 # N=5 trials × 6 scenarios = 60 perl forks per `commits:perf-baseline`
 # invocation, contributing ~300ms of harness self-overhead. Replacing with
 # ${EPOCHREALTIME} builtin reads eliminates the entire fork cost on bash 5+.
-# Meta-recursive: the perf-baseline tool now eats its own perf-optimization
+# Meta-recursive: the perf-baseline tool eats its own perf-optimization
 # dogfood (the very pattern it pins iter-160 doctor against).
-iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older() {
+#
+# Iter-183 hyperfine-parity extension: in addition to median (preserved for
+# pinned-baseline-cap comparison), the function now computes mean, stddev,
+# min, max, and exposes the raw per-trial array. AI agents and CI pipelines
+# can re-derive any percentile / bootstrap CI / non-parametric test
+# downstream — the same pattern hyperfine emits via its times[] array which
+# is "the most valuable field for sophisticated regression detection".
+iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older() {
     local each_trial_elapsed_ms_array=()
     local each_trial_iteration_counter
     local before_invocation_epoch_realtime after_invocation_epoch_realtime elapsed_ms_for_this_single_trial
@@ -94,24 +112,68 @@ iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_ep
         elapsed_ms_for_this_single_trial=$(awk -v b="$before_invocation_epoch_realtime" -v a="$after_invocation_epoch_realtime" 'BEGIN { printf "%.0f", (a-b)*1000 }')
         each_trial_elapsed_ms_array+=("$elapsed_ms_for_this_single_trial")
     done
+
+    # Sort trials ascending for median + min + max extraction.
     local sorted_trials_newline_separated
     sorted_trials_newline_separated=$(printf '%s\n' "${each_trial_elapsed_ms_array[@]}" | sort -n)
-    local median_index_zero_based middle_trial_value
-    median_index_zero_based=$(( (ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION + 1) / 2 ))
-    middle_trial_value=$(echo "$sorted_trials_newline_separated" | sed -n "${median_index_zero_based}p")
-    printf "%s" "$middle_trial_value"
+
+    # Median: middle element of sorted array (N is odd by ITER174_NUMBER...
+    # = 5 default; if N were even we'd average the two middle elements but
+    # we pin N odd to keep median computation simple + sample-robust).
+    local median_index_one_based middle_trial_value
+    median_index_one_based=$(( (ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION + 1) / 2 ))
+    middle_trial_value=$(echo "$sorted_trials_newline_separated" | sed -n "${median_index_one_based}p")
+
+    # Min/max: first and last elements of sorted array.
+    local minimum_observed_trial_value maximum_observed_trial_value
+    minimum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | head -1)
+    maximum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | tail -1)
+
+    # Mean + stddev: awk handles the float division + sqrt since bash is
+    # integer-only. Stddev uses sample formula (N-1 denominator) per the
+    # statistics-of-small-N best-practice; for N=5 the unbiased estimator
+    # is more honest about the noise floor than population stddev (N).
+    local arithmetic_mean_in_milliseconds sample_standard_deviation_in_milliseconds
+    arithmetic_mean_in_milliseconds=$(printf '%s\n' "${each_trial_elapsed_ms_array[@]}" | awk '
+        { sum += $1; count++ }
+        END { printf "%.0f", sum / count }
+    ')
+    sample_standard_deviation_in_milliseconds=$(printf '%s\n' "${each_trial_elapsed_ms_array[@]}" | awk -v mean="$arithmetic_mean_in_milliseconds" '
+        { sum_of_squared_deviations += ($1 - mean) * ($1 - mean); count++ }
+        END {
+            if (count <= 1) { printf "0"; }
+            else { printf "%.0f", sqrt(sum_of_squared_deviations / (count - 1)) }
+        }
+    ')
+
+    # Populate iter-183 globals for the scenario function to read.
+    ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEDIAN_MS_FOR_PINNED_BASELINE_CAP_COMPARISON_PRESERVED_FROM_ITER174="$middle_trial_value"
+    ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC="$arithmetic_mean_in_milliseconds"
+    ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING="$sample_standard_deviation_in_milliseconds"
+    ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC="$minimum_observed_trial_value"
+    ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR="$maximum_observed_trial_value"
+    # Per-trial array (unsorted, preserves invocation order — relevant for
+    # detecting JIT warmup / cold-cache effects in trial 1 vs later trials).
+    ITER183_LATEST_BENCHMARK_SCENARIO_PER_TRIAL_WALL_CLOCK_TIMES_MS_ARRAY_FOR_AI_AGENT_TO_RECOMPUTE_ANY_PERCENTILE=("${each_trial_elapsed_ms_array[@]}")
 }
 
-# Run a single benchmark scenario: measure median, compare to cap, emit PASS/REGRESS.
-# In human mode prints the canonical text line; in --json mode appends a
-# structured record to the iter-179 per-scenario accumulator (silent to stdout).
+# Run a single benchmark scenario: measure median + iter-183 hyperfine-parity
+# full stats, compare median to cap, emit PASS/REGRESS verdict. In human mode
+# prints the canonical text line (median only; per-trial detail kept JSON-only
+# to avoid noisy operator output); in --json mode appends a structured record
+# (median + mean + stddev + min + max + raw trials[] + cap + verdict) to the
+# iter-179 per-scenario accumulator (silent to stdout).
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict() {
     local human_readable_scenario_label="$1"
     local pinned_baseline_cap_milliseconds="$2"
     shift 2
     ITER174_TOTAL_ASSERTIONS_EVALUATED=$((ITER174_TOTAL_ASSERTIONS_EVALUATED + 1))
-    local observed_median_wall_clock_ms
-    observed_median_wall_clock_ms=$(iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older "$@")
+    # Invoke directly (NOT via $()) so the iter-183 stats globals populated by
+    # the function survive into this caller's scope. Command substitution would
+    # run the function in a subshell, dropping all global assignments.
+    iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older "$@"
+    local observed_median_wall_clock_ms="$ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEDIAN_MS_FOR_PINNED_BASELINE_CAP_COMPARISON_PRESERVED_FROM_ITER174"
+
     # Extract canonical scenario id (the "A1"/"A2"/... prefix before the colon)
     # so JSON consumers get a stable identifier independent of the human-readable
     # description suffix (which may evolve across iters).
@@ -129,12 +191,26 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
         iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms > cap=${pinned_baseline_cap_milliseconds}ms (REGRESSION: $((iter179_headroom_or_overage_percentage_signed * -1))% over cap)"
         ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
     fi
+    # Build comma-separated raw-trials JSON array body from the iter-183 global.
+    local iter183_per_trial_times_ms_json_array_body=""
+    local each_trial_value_for_json_array_assembly
+    for each_trial_value_for_json_array_assembly in "${ITER183_LATEST_BENCHMARK_SCENARIO_PER_TRIAL_WALL_CLOCK_TIMES_MS_ARRAY_FOR_AI_AGENT_TO_RECOMPUTE_ANY_PERCENTILE[@]}"; do
+        if [[ -n "$iter183_per_trial_times_ms_json_array_body" ]]; then
+            iter183_per_trial_times_ms_json_array_body+=", "
+        fi
+        iter183_per_trial_times_ms_json_array_body+="${each_trial_value_for_json_array_assembly}"
+    done
+
     # Append a JSON-safe scenario record for --json mode final-envelope emission.
     # Labels are ASCII-only by convention so no escape lib needed; substring the
     # description down to a JSON-safe shape (strip embedded double-quotes
     # defensively even though current labels contain none).
+    # Iter-183: added mean_ms + stddev_ms + min_ms + max_ms + trial_wall_clock_
+    # times_ms_array (hyperfine + pytest-benchmark per-scenario stats parity)
+    # additively — iter174_schema_version stays at 1, older consumers ignore
+    # unknown fields.
     local iter179_json_safe_description_with_double_quotes_stripped_defensively="${iter179_human_readable_description_after_canonical_id_prefix//\"/}"
-    ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
+    ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"iter183_mean_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC}, \"iter183_stddev_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING}, \"iter183_min_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC}, \"iter183_max_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR}, \"iter183_trial_wall_clock_times_ms_for_ai_agent_to_recompute_any_percentile\": [${iter183_per_trial_times_ms_json_array_body}], \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
 }
 
 iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean ""
