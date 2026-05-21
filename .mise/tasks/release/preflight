@@ -409,25 +409,22 @@ if ! bash "$(dirname "$0")/../../../scripts/validate-hook-registration.sh"; then
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registration sanity"
 
-# Check 4d: Chronicle slicing regression suite (37 assertions). Verifies the
-# release:chronicle phase picks the right JSONLs across boundary mtimes,
-# subagent recursion, brotli decompression, and visibility-gate parsing.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
-echo "→ Running chronicle slicing stress test..."
-if ! mise run release:test-chronicle-slicing >/tmp/chronicle-test.log 2>&1; then
-    echo "  ✗ Chronicle slicing test FAILED — see /tmp/chronicle-test.log"
-    tail -20 /tmp/chronicle-test.log
-    exit 1
-fi
-# Loose-coupled defensive grep — see iter-70 "brittle-banner-grep
-# hardening" lesson in docs/HOOKS.md. The `|| true` swallows pipefail
-# when the audit banner phrasing evolves; `|| echo 0` provides a safe
-# fallback if the downstream awk pipeline fails. Without these defenses,
-# a future banner rename would silently abort the gate with no
-# actionable diagnostic (exactly what hit iter-69 Check 4j).
-PASS=$( { grep -oE '[0-9]+ passed' /tmp/chronicle-test.log || true; } | head -1 | awk '{print $1}' || echo 0)
-echo "  ✓ Chronicle slicing: ${PASS:-0} assertions passed"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4d: chronicle slicing regression suite (37 assertions)"
+# Check 4d: ABSORBED into Check 4e by iter-138.
+# The chronicle-slicing 37-assertion regression test was relocated from
+# .mise/tasks/release/test-chronicle-slicing to .mise/tasks/tests/test-
+# chronicle-slicing-*.sh so the iter-50/iter-75 marketplace-hook-regression-
+# suite auto-discovers it. Result: chronicle-slicing now runs INSIDE Check 4e's
+# xargs -P parallel batch (concurrent with the ~1135ms longest test rather
+# than after it, so no wall-clock increase to Check 4e), and the previous
+# Check 4d sequential 670ms is fully eliminated from preflight (~14% reduction
+# in total preflight wall-clock from ~4958ms to ~4288ms). The chronicle test's
+# 37 assertions are still verified pre-tag-publish (Check 4e fails on any
+# member-test failure) — the iter-50 marketplace runner aggregates and reports
+# any failure with full per-test stdout.
+#
+# Operators previously running `mise run release:test-chronicle-slicing`
+# can now invoke `bash .mise/tasks/tests/test-chronicle-slicing-*.sh` (the
+# file is auto-executable; same script content).
 
 # Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
 # the iter-50 mise task into the release gate. Auto-discovers every
