@@ -1,3 +1,10 @@
+# [21.52.0](https://github.com/terrylica/cc-skills/compare/v21.51.0...v21.52.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-121 add canonical-registry stale-description audit detecting operator-doc-drift via discriminating-hyphen-segment-extraction algorithm verifying description references at least one marker-or-consumer-basename segment as case-insensitive substring with stoplist filtering of universal-marker-suffix-tokens-OK-SKIP-WRAP plus generic-basename-prefixes-pretooluse-posttooluse-audit-guard-marketplace plus iter-NNN-iteration-suffix-tokens spanning iter-111-runtime-hook and iter-114-audit-task registries wired as preflight Check 4v informational ([c0349d5](https://github.com/terrylica/cc-skills/commit/c0349d5bfd527dc6a0161ed5d4871776690794aa))
+
 # [21.51.0](https://github.com/terrylica/cc-skills/compare/v21.50.0...v21.51.0) (2026-05-21)
 
 
