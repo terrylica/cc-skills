@@ -59,13 +59,15 @@ import {
   isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
-// Iter-105: cross-lib import of the canonical truncation helper from the
-// PostToolUse contract lib. The helper is pure string truncation against
+// Iter-106: import the canonical truncation helper from its DEDICATED shared-
+// lib home (relocated from the PostToolUse contract lib where iter-104/105
+// pragmatically hosted it). The helper is pure string truncation against
 // Claude's 10K-character hook-output file-spillover threshold and is
-// semantically shared across both PreToolUse + PostToolUse paths (per
-// iter-104 design rationale). Iter-106+ candidate: extract to a dedicated
-// shared lib file once more cross-Pre/PostToolUse helpers emerge.
-import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+// semantically symmetric across PreToolUse + PostToolUse paths — neither
+// contract lib is its semantic home. Iter-106 eliminates the iter-105 cross-
+// lib import awkwardness by establishing the shared lib as the canonical
+// origin point for all cross-Pre/PostToolUse helpers.
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
 
 // ============================================================================
 // Configuration

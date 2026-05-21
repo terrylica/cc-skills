@@ -45,8 +45,11 @@ import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
-  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+// Iter-106: import from the dedicated cross-Pre/PostToolUse shared lib (the
+// helper's canonical home as of iter-106; relocated from the PostToolUse
+// contract lib where iter-104 pragmatically introduced it).
+import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
 import { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
 // --- Constants ---

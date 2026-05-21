@@ -541,6 +541,29 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helper invariant audit (iter-105 gate; informational)"
 
+# Check 4r: Iter-106 truncation-helper canonical-home invariant audit.
+# Verifies the iter-104/iter-105 truncation helper has been relocated to its
+# iter-106 canonical home (a dedicated cross-Pre/PostToolUse shared lib that
+# eliminates the iter-105 cross-lib import awkwardness where pretooluse-vale-
+# claude-md-guard imported from the PostToolUse contract lib). Confirms (1)
+# the shared-lib file exists and holds literal exports, (2) PostToolUse
+# contract lib re-exports for backward compat (no duplicate definitions),
+# (3) all 8 iter-105 cohort hooks import the helper from the shared-lib
+# canonical home. Informational — parallel to Check 4n/4o/4p/4q. Future iters
+# may promote to --strict once the iter-105 + iter-106 invariants land as
+# universally true across a marketplace-wide refactor pass.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-106 truncation-helper canonical-home audit (informational)..."
+if ! mise run audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness >/tmp/iter106-canonical-home-audit.log 2>&1; then
+    echo "  ⚠ Canonical-home audit exited non-zero (informational only — not blocking release)"
+fi
+if grep -q 'AUDIT PASSED' /tmp/iter106-canonical-home-audit.log 2>/dev/null; then
+    echo "  ✓ Iter-106 canonical-home audit: PASSED (helper at iter-106 shared-lib canonical home; PostToolUse contract lib re-exports for backward compat)"
+else
+    echo "  ⚠ Iter-106 canonical-home audit: FAILED (see /tmp/iter106-canonical-home-audit.log)"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4r: truncation-helper canonical-home audit (iter-106 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."

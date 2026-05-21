@@ -6,10 +6,20 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+# Iter-104-original location (now a re-export bridge per iter-106). Kept as a
+# variable because Case 1 still verifies the symbol's presence here via the
+# backward-compat re-export — that re-export is the contract by which the
+# iter-104 API surface remains stable for external consumers.
 POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts"
+# Iter-106 canonical home for the iter-104 helper + constant + marker suffix.
+# Iter-106 relocated the literal `export const` / `export function` definitions
+# to a dedicated cross-Pre/PostToolUse shared lib to eliminate the iter-105
+# cross-lib import awkwardness. Cases that inspect literal source text (Cases
+# 2, 3, 8) read FROM this shared-lib location.
+ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts"
 VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts"
 
-for required_file in "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" "$VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH"; do
+for required_file in "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" "$VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH"; do
     if [[ ! -f "$required_file" ]]; then
         echo "FAIL: required file not found: $required_file"
         exit 1
@@ -35,9 +45,12 @@ else
 fi
 
 # ─── Case 2: helper threshold constant is 9000 (1000-char margin below 10K) ──
-case2_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
+# Iter-106 update: the literal `export const ...` definition moved to the
+# iter-106 shared lib; the PostToolUse contract lib only re-exports. Inspect
+# the canonical home for the literal value.
+case2_threshold_value=$(grep -E "^export const MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | grep -oE '[0-9]+' | head -1 || echo "?")
 if [[ "$case2_threshold_value" == "9000" ]]; then
-    assert_passes "Case 2: threshold constant = 9000 chars (1000-char safety margin below Anthropic-documented 10000 spillover threshold)"
+    assert_passes "Case 2: threshold constant = 9000 chars (1000-char safety margin below Anthropic-documented 10000 spillover threshold) — verified at iter-106 shared-lib canonical home"
 else
     assert_fails "Case 2: threshold constant = $case2_threshold_value, expected 9000"
 fi
@@ -46,7 +59,8 @@ fi
 # The marker text MUST be Claude-actionable: explain WHY truncation happened
 # (10K threshold), WHERE the full content is (operator transcript via Ctrl-R),
 # and WHAT Claude should do (act on visible findings, assume more may exist).
-case3_marker_block=$(awk '/HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS/,/;/' "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" | head -5)
+# Iter-106 update: the literal marker constant moved to the iter-106 shared lib.
+case3_marker_block=$(awk '/^export const HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_OF_CONTEXT_LOSS/,/;$/' "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" | head -5)
 case3_has_threshold_cite=0
 case3_has_ctrl_r_cite=0
 case3_has_claude_action=0
@@ -160,9 +174,15 @@ fi
 case8_has_anthropic_cite=0
 case8_has_iter105_followup=0
 case8_has_worst_offender_list=0
-grep -q "code.claude.com/docs/en/hooks" "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && case8_has_anthropic_cite=1
-grep -qi "iter-105" "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && case8_has_iter105_followup=1
-grep -q "Worst-offender" "$POSTTOOLUSE_CONTRACT_LIB_ABSOLUTE_PATH" && case8_has_worst_offender_list=1
+# Iter-106 update: design rationale comments moved to the iter-106 shared-lib
+# canonical home along with the literal definitions. Inspect there.
+grep -q "code.claude.com/docs/en/hooks" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" && case8_has_anthropic_cite=1
+grep -qi "iter-105" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" && case8_has_iter105_followup=1
+# Iter-106: shared lib documents the marketplace cohort via "Marketplace cohort
+# hooks" header (replaces iter-104's "Worst-offender hooks" framing — same
+# semantic content, more precise naming now that iter-105 generalized the cohort).
+{ grep -q "Worst-offender" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH" || \
+  grep -q "Marketplace cohort hooks" "$ITER106_SHARED_TRUNCATION_LIB_ABSOLUTE_PATH"; } && case8_has_worst_offender_list=1
 if [[ "$case8_has_anthropic_cite" == "1" ]] && [[ "$case8_has_iter105_followup" == "1" ]] && [[ "$case8_has_worst_offender_list" == "1" ]]; then
     assert_passes "Case 8: contract lib documents Anthropic-docs citation + iter-105 follow-up + worst-offender list"
 else
