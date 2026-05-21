@@ -75,26 +75,34 @@ set -euo pipefail
 # ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
 # Empirically verified iter-171 audit probe finding: bash ${#var} returns
 # CHARACTER count under UTF-8 locales (en_*.UTF-8, C.UTF-8) but BYTE count
-# under C/POSIX locale. Same correctness boundary applies to awk length()
-# only when invoked via gawk; macOS BWK awk length() always byte-counts
-# regardless of locale (known limitation, candidate for iter-172+ refactor).
-#
-# Without this guard, a CJK commit subject like "feat: 修复编码问题XYZ" (15
-# visible characters, 30 UTF-8 bytes) would mis-render through this awk
-# renderer's soft-wrap boundary at the 80-column threshold — wrapping at
-# byte 80 ≈ character 40 for typical CJK density, much more aggressive than
-# the operator expects. CI runners that inherit LC_ALL=C from systemd-defaults
-# would trigger this silent over-wrap.
+# under C/POSIX locale. Without this guard, bash-level character counting
+# would be locale-dependent and silently incorrect on CI runners with
+# LC_ALL=C inherited from systemd defaults.
 #
 # Force UTF-8 locale at script entry. Override empty/unset/C/POSIX
-# explicitly because C and POSIX always byte-count regardless of operator
-# intent (typically a CI-runner misconfiguration, not a deliberate
-# byte-counting choice — Conventional Commits §5 specifies CHARACTER-counting
+# explicitly (Conventional Commits §5 specifies CHARACTER-counting
 # semantics for subject length). Operator can opt INTO any other UTF-8
 # locale (en_CA.UTF-8, C.UTF-8, zh_CN.UTF-8, etc.) which we respect verbatim.
 case "${LC_ALL:-}" in
     ""|C|POSIX) export LC_ALL=en_US.UTF-8 ;;
 esac
+# ─── ITER-173 AWK SOFT-WRAP-BOUNDARY UTF-8 CORRECTNESS (iter-172 follow-up) ──
+# iter-171's bash guard above does not fix awk length() byte-counting
+# inside this renderer's soft-wrap-boundary detection. Without iter-173,
+# a CJK commit subject like "feat: 修复编码问题XYZ" (15 visible characters,
+# 27 UTF-8 bytes) would wrap aggressively at byte 80 ≈ character 30 for
+# typical CJK density (3 bytes per char), much earlier than the operator
+# expects under the 80-column terminal width contract.
+#
+# Iter-173 closes this gap by applying the iter-172 pattern (LC_ALL=C
+# envelope on the awk invocation + inline RFC 3629 char-count function)
+# to the 3 subject-text-related length() call sites inside the soft-wrap
+# boundary algorithm. Result: soft-wrap boundary is now measured in
+# VISIBLE CHARACTERS rather than bytes, matching operator intuition for
+# CJK / emoji / Latin diaeresis subjects.
+#
+# After iter-173 the iter-150 → iter-152 → iter-153 conventional-commits
+# operator toolkit is fully UTF-8-correct end-to-end.
 
 ITER150_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER150_REPO_ROOT"
@@ -164,10 +172,13 @@ iter150_render_git_log_with_awk_based_soft_wrap_of_long_conventional_commit_subj
     # delimiting and never appears in human-authored text.
     local iter150_inband_field_separator_unicode_information_separator_one=$'\x1f'
 
+    # iter-173 LC_ALL=C envelope: scopes awk back to byte-level locale so
+    # the inline iter172 RFC 3629 char-count function's [\200-\277] byte
+    # range regex matches UTF-8 continuation bytes by byte value.
     git log \
         --pretty=format:"%h${iter150_inband_field_separator_unicode_information_separator_one}%ai${iter150_inband_field_separator_unicode_information_separator_one}%D${iter150_inband_field_separator_unicode_information_separator_one}%s" \
         "${iter150_extra_git_log_args_passed_through_verbatim_to_git[@]}" \
-        | awk \
+        | LC_ALL=C awk \
             -F"$iter150_inband_field_separator_unicode_information_separator_one" \
             -v soft_wrap_column_width="$ITER150_DEFAULT_SOFT_WRAP_COLUMN_WIDTH_FOR_TERMINAL_READABILITY" \
             -v continuation_indent_chars="$ITER150_DEFAULT_CONTINUATION_LINE_HANGING_INDENT_CHARACTERS_FOR_VISUAL_WRAP_AFFORDANCE" \
@@ -217,17 +228,30 @@ iter150_render_git_log_with_awk_based_soft_wrap_of_long_conventional_commit_subj
                 gsub(/-/, " ", input_string)
                 return input_string
             }
+            function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
+                # iter-173 reuse of the iter-172 RFC 3629 byte-pattern char-count
+                # function: returns byte_length(text) minus count of UTF-8
+                # continuation bytes (regex [\200-\277] matches byte range
+                # 0x80-0xBF under LC_ALL=C). Per RFC 3629, only continuation
+                # bytes (10xxxxxx pattern) cannot start a Unicode character;
+                # subtracting their count yields visible character count for
+                # any valid UTF-8 input (CJK 3-byte, emoji 4-byte, etc).
+                byte_length_of_text_in_locale_native_units = length(text)
+                copy_of_text_for_gsub_mutation = text
+                count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
+                return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
+            }
             function iter150_soft_wrap_long_string_on_word_boundaries_to_target_width(input_string, target_wrap_width, emit_continuation_indent_flag,    word_array, word_count_in_array, accumulated_line_being_built_buffer, word_position_in_array_walker, candidate_next_word_to_append, accumulated_plus_next_word_string) {
                 word_count_in_array = split(input_string, word_array, " ")
                 accumulated_line_being_built_buffer = ""
                 for (word_position_in_array_walker = 1; word_position_in_array_walker <= word_count_in_array; word_position_in_array_walker++) {
                     candidate_next_word_to_append = word_array[word_position_in_array_walker]
-                    if (length(accumulated_line_being_built_buffer) == 0) {
+                    if (iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(accumulated_line_being_built_buffer) == 0) {
                         accumulated_plus_next_word_string = candidate_next_word_to_append
                     } else {
                         accumulated_plus_next_word_string = accumulated_line_being_built_buffer " " candidate_next_word_to_append
                     }
-                    if (length(accumulated_plus_next_word_string) <= target_wrap_width) {
+                    if (iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(accumulated_plus_next_word_string) <= target_wrap_width) {
                         accumulated_line_being_built_buffer = accumulated_plus_next_word_string
                     } else {
                         # Flush the current accumulated line and start a new one
@@ -244,7 +268,7 @@ iter150_render_git_log_with_awk_based_soft_wrap_of_long_conventional_commit_subj
                     }
                 }
                 # Final line.
-                if (length(accumulated_line_being_built_buffer) > 0) {
+                if (iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(accumulated_line_being_built_buffer) > 0) {
                     if (emit_continuation_indent_flag) {
                         printf "%s%s\n", continuation_indent_string, accumulated_line_being_built_buffer
                     } else {
