@@ -99,6 +99,7 @@ import type {
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 import { classifyFileSizeGuardForOrchestrator } from "./pretooluse-file-size-guard.ts";
 import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.ts";
+import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-deps-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -117,6 +118,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyVersionGuardForOrchestrator,
     description:
       "Blocks Write/Edit on markdown files that introduce hardcoded version strings (semver, calver, pre-release tags) outside CHANGELOG/HISTORY/ADR/planning paths. Forces use of <version> placeholder pattern (SSoT discipline). Iter-85 inlined; fast O(1) extension+path filter pre-empts the regex scan on non-markdown files.",
+  },
+  {
+    name: "hoisted-deps-guard",
+    timeoutMs: 4000,
+    classify: classifyHoistedDepsGuardForOrchestrator,
+    description:
+      "Blocks pyproject.toml Write/Edit that violates any of 3 monorepo policies: (1) root-only pyproject.toml [except maturin PyO3 crates that must co-locate with Cargo.toml], (2) [tool.uv.sources] paths escaping git root, (3) [dependency-groups] in sub-packages. Iter-86 inlined; O(1) filename-suffix fastpath skips non-pyproject.toml writes, then spawns git rev-parse subprocess only for actual pyproject.toml edits.",
   },
   {
     name: "file-size-guard",

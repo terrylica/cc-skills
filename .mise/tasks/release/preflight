@@ -403,6 +403,33 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4l: conventional-commits-conformance validator (iter-82 gate; informational)"
 
+# Check 4m: Iter-86 PreToolUse-orchestrator subhook-contract static checker.
+# Statically verifies every file in plugins/itp-hooks/hooks/ that exports a
+# classify*ForOrchestrator function: (a) the classifier function body MUST
+# NOT contain process.exit/process.stdout.write/process.stdin/console.log
+# calls (pure-function discipline — orchestrator owns I/O), AND (b) the
+# file MUST gate its standalone main() under `if (import.meta.main)` so
+# importing the classifier from the orchestrator does NOT double-execute
+# main(). Addresses the iter-85 adversarial-audit's HIGH FOOTGUNs #1+#2.
+# Informational by default; future iters may flip to --strict once all
+# inlined subhooks have stable contracts.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-86 PreToolUse-orchestrator subhook-contract static checker (informational)..."
+if ! mise run audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main >/tmp/iter86-orchestrator-subhook-contract-static-check.log 2>&1; then
+    echo "  ⚠ Subhook-contract static checker exited non-zero (informational only — not blocking release)"
+fi
+# Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
+SUBHOOK_CONTRACT_FILES_SCANNED=$( { grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS=$( { grep -oE 'Files missing import\.meta\.main guard:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS=$( { grep -oE 'Files with forbidden I/O in classifier body:[[:space:]]+[0-9]+' /tmp/iter86-orchestrator-subhook-contract-static-check.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+if [[ "${SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS:-0}" -gt 0 ]] || [[ "${SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS:-0}" -gt 0 ]]; then
+    echo "  ⚠ Subhook contract: ${SUBHOOK_CONTRACT_FILES_SCANNED:-0} scanned, ${SUBHOOK_CONTRACT_MISSING_GUARD_VIOLATIONS:-0} missing-guard violation(s), ${SUBHOOK_CONTRACT_FORBIDDEN_IO_VIOLATIONS:-0} forbidden-I/O violation(s)"
+    echo "    (each violation can silently break the orchestrator dual-mode contract — see /tmp/iter86-orchestrator-subhook-contract-static-check.log)"
+else
+    echo "  ✓ Subhook contract: ${SUBHOOK_CONTRACT_FILES_SCANNED:-0} scanned, all conform to PreToolUseSubhookContract"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4m: subhook-contract static checker (iter-86 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."

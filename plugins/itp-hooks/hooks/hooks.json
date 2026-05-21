@@ -38,16 +38,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-hoisted-deps-guard.mjs",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-gpu-optimization-guard.ts",
             "timeout": 5000
           }
@@ -80,7 +70,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
             "timeout": 15000,
-            "description": "Iter-84/85 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the ~44ms bun cold-start (measured iter-80) across the registry instead of paying it N times. Per iter-81 ranker, final-state savings = (8-1) × 44 = 308ms per Write|Edit. Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, file-size-guard. Iter-86+ migrates remaining Write|Edit subhooks (hoisted-deps, gpu-optimization, mise-hygiene, pyi-stub, native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler per iter-85 audit."
+            "description": "Iter-84/85/86 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the ~44ms bun cold-start (measured iter-80) across the registry instead of paying it N times. Per iter-81 ranker, final-state savings = (8-1) × 44 = 308ms per Write|Edit. Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, file-size-guard. Iter-87+ migrates remaining Write|Edit subhooks (gpu-optimization, mise-hygiene, pyi-stub, native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler per iter-85 audit. Subhook contract violations gated preventively by iter-86 audit task (audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh)."
           }
         ]
       },
