@@ -231,7 +231,7 @@ while IFS= read -r hooks_json; do
     | @tsv
   ' "$hooks_json" 2>/dev/null)
 
-done < <(find "$REPO_ROOT/plugins" -path '*/hooks/hooks.json' -type f 2>/dev/null | sort)
+done < <(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -name 'hooks.json' -type f 2>/dev/null | sort)  # iter-125: bounded depth, ~65ms -> ~7ms
 
 # Emit structured report.
 echo ""

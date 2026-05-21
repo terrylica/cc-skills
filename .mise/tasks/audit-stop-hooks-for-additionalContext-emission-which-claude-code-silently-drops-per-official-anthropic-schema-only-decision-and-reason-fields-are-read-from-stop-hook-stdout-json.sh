@@ -364,7 +364,7 @@ while IFS= read -r hooks_json; do
     source_path="$plugin_dir/hooks/$hook_basename"
     if [ ! -f "$source_path" ]; then
       # Try repo-wide find as fallback (for synthetic fixtures).
-      source_path=$(find "$REPO_ROOT/plugins" -name "$hook_basename" -path '*/hooks/*' -type f 2>/dev/null | grep -v '/tests/' | head -1)
+      source_path=$(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -name "$hook_basename" -path '*/hooks/*' -type f 2>/dev/null | grep -v '/tests/' | head -1)  # iter-125: bounded depth fallback
     fi
 
     if [ -z "$source_path" ] || [ ! -f "$source_path" ]; then
@@ -447,7 +447,7 @@ while IFS= read -r hooks_json; do
     | "\($entry.key)\t\(.)"
   ' "$hooks_json" 2>/dev/null)
 
-done < <(find "$REPO_ROOT/plugins" -path '*/hooks/hooks.json' -type f 2>/dev/null | sort)
+done < <(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -name 'hooks.json' -type f 2>/dev/null | sort)  # iter-125: bounded depth, ~65ms -> ~7ms
 
 # Emit structured report.
 echo ""

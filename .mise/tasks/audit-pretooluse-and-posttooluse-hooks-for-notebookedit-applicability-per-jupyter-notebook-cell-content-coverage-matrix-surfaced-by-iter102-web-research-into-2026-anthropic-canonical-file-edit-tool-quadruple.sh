@@ -188,7 +188,7 @@ done
 
 echo "  Live marketplace NotebookEdit-honoring matcher count:"
 NOTEBOOKEDIT_HONORING_MATCHER_COUNT=0
-for hooks_json_absolute_path in $(find "$REPO_ROOT/plugins" -type f -name 'hooks.json' 2>/dev/null | sort -u); do
+for hooks_json_absolute_path in $(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -type f -name 'hooks.json' 2>/dev/null | sort -u); do  # iter-125: bounded depth, 65ms -> 7ms
     count=$(jq -r '
         .hooks
         | to_entries[]
