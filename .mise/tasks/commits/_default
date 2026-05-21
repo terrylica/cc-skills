@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-157 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-159 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -77,6 +77,27 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — 
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}
       Remove cc-skills-managed hook + restore most recent backup.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── POLYGLOT (iter-158, iter-159) — pre-commit framework integration ───${ITER156_ANSI_COLOR_RESET}
+
+  Other repos using the pre-commit framework can consume cc-skills WITHOUT
+  cloning it locally. Add to their .pre-commit-config.yaml:
+
+    default_install_hook_types: [pre-commit, commit-msg]
+    repos:
+      - repo: https://github.com/terrylica/cc-skills
+        rev: <latest-cc-skills-tag>
+        hooks:
+          - id: cc-skills-commits-advise-commit-msg
+
+  Then: pre-commit install --hook-type commit-msg
+
+  Iter-159 empirically validated this end-to-end against the real
+  pre-commit framework binary (4/4 subject variants pass: REJECT
+  COMPOUND-PREFIX + MISSING-TYPE, ACCEPT STANDARD-CONFORMANT + feat!:
+  breaking-change). The iter-159 harness caught and fixed iter-158's
+  language=system → language=script bug before any upstream consumer
+  could be affected.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── CONVENTION (iter-150 going-forward standard) ───${ITER156_ANSI_COLOR_RESET}
 
