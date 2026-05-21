@@ -1,3 +1,10 @@
+## [21.60.2](https://github.com/terrylica/cc-skills/compare/v21.60.1...v21.60.2) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release:** iter-149 pre-warm-the-openssh-controlmaster-session-to-github-com-at-release-full-mise-task-entry-point-when-release-ssh-multiplexing-enabled-knob-is-set-so-the-first-phase-2-semantic-release-verifyauth-git-push-dry-run-invocation-gets-the-warm-1-point-8-second-handshake-cost-empirically-measured-by-iter-148-not-the-cold-6-point-0-second-handshake-cost-empirically-measured-by-iter-148-saving-4216-milliseconds-on-the-first-ssh-op-of-every-release-where-the-knob-is-on-by-paying-the-cold-handshake-cost-once-upfront-during-the-multiplexing-block-execution-via-the-iter-148-proven-prewarm-pattern-of-timeout-10-ssh-dash-T-batchmode-yes-controlmaster-auto-controlpath-controlpersist-10m-against-git-at-github-com-lifted-from-the-iter-148-empirical-validation-wrapper-into-the-production-release-pipeline-plus-replace-the-iter-146-conjectural-10x-to-15x-speedup-docstring-claim-sourced-from-openssh-community-docs-on-raw-key-exchange-with-the-iter-148-empirically-measured-3-point-30-x-speedup-truth-since-real-world-verifyauth-includes-more-than-raw-ssh-handshake ([4cff9af](https://github.com/terrylica/cc-skills/commit/4cff9af5da2a664a57590990c300d2213a8cfb66))
+
 ## [21.60.1](https://github.com/terrylica/cc-skills/compare/v21.60.0...v21.60.1) (2026-05-21)
 
 
