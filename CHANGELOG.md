@@ -1,3 +1,11 @@
+## [21.75.2](https://github.com/terrylica/cc-skills/compare/v21.75.1...v21.75.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **iter-171:** drop backslash-dollar-hash-var literal from TOML ([0ea4b57](https://github.com/terrylica/cc-skills/commit/0ea4b57de64850b50c4c3e0cfd9f1cd6ff839eba))
+* **iter-171:** harden iter-150/152/153 against C/POSIX locale ([72ce64f](https://github.com/terrylica/cc-skills/commit/72ce64f6fabd71adf65646cccf58b8f3fb12c47d))
+
 ## [21.75.1](https://github.com/terrylica/cc-skills/compare/v21.75.0...v21.75.1) (2026-05-21)
 
 # [21.75.0](https://github.com/terrylica/cc-skills/compare/v21.74.2...v21.75.0) (2026-05-21)
