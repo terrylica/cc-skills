@@ -100,6 +100,7 @@ import type {
 import { classifyFileSizeGuardForOrchestrator } from "./pretooluse-file-size-guard.ts";
 import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.ts";
 import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-deps-guard.ts";
+import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-optimization-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -127,6 +128,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
       "Blocks pyproject.toml Write/Edit that violates any of 3 monorepo policies: (1) root-only pyproject.toml [except maturin PyO3 crates that must co-locate with Cargo.toml], (2) [tool.uv.sources] paths escaping git root, (3) [dependency-groups] in sub-packages. Iter-86 inlined; O(1) filename-suffix fastpath skips non-pyproject.toml writes, then spawns git rev-parse subprocess only for actual pyproject.toml edits.",
   },
   {
+    name: "gpu-optimization-guard",
+    timeoutMs: 4000,
+    classify: classifyGpuOptimizationGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on Python PyTorch training scripts missing mandatory GPU optimizations (AMP, torch.compile, DataLoader num_workers/pin_memory, auto-batch-size, cudnn.benchmark, device availability check). Iter-87 inlined; O(1) .py extension + test-file filename fastpath pre-empts the PyTorch training-script regex scan, then async loads .claude/gpu-optimization-guard.json config only when training script is detected.",
+  },
+  {
     name: "file-size-guard",
     timeoutMs: 4500,
     classify: classifyFileSizeGuardForOrchestrator,
@@ -148,6 +156,30 @@ interface SubhookExecutionResult {
   errorMessage?: string;
 }
 
+/**
+ * Convert an AbortSignal into a rejecting promise that fires when the signal
+ * aborts. Used by the orchestrator to race a classifier against
+ * AbortSignal.timeout(). Hoisted to module scope (closure-free) per the
+ * oxlint consistent-function-scoping rule.
+ *
+ * Iter-87 design: AbortSignal.timeout() is the 2026 community-standard
+ * primitive for promise cancellation (Node 17.3+, Bun 1.0+, native Web
+ * Platform API). It rejects with a DOMException named "TimeoutError" so
+ * the caller distinguishes timeout-rejections from classifier-thrown errors
+ * via the standard `.name` property.
+ */
+async function awaitAbortSignalAsTimeoutSentinelPromiseRejection(
+  signal: AbortSignal,
+): Promise<never> {
+  return await new Promise<never>((_, reject) => {
+    if (signal.aborted) {
+      reject(signal.reason);
+      return;
+    }
+    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+  });
+}
+
 async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
   entry: PreToolUseSubhookRegistryEntry,
   input: PreToolUseInput,
@@ -155,38 +187,40 @@ async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
   const startTimeMs = Date.now();
   const failOpenAllow: PreToolUseSubhookDecision = { kind: "allow" };
 
-  // Promise.race the classifier against a cooperative timeout. The
-  // classifier itself is not killable from outside (no subprocess); this
-  // timeout is a *signaling* mechanism so the orchestrator can move on
-  // and log the laggard. The classifier may still be running in the
-  // background until bun exits.
+  // Iter-87 refactor: idiomatic AbortSignal.timeout() pattern replaces the
+  // iter-84 Symbol-sentinel + raw setTimeout. AbortSignal.timeout() is the
+  // 2026 community-standard primitive for promise cancellation (Node 17.3+,
+  // Bun 1.0+, native Web Platform API). It auto-creates an AbortSignal that
+  // fires its `abort` event after timeoutMs with a `TimeoutError` DOMException
+  // as the reason — no manual setTimeout bookkeeping, no Symbol-sentinel
+  // type gymnastics, and the abort signal is composable with fetch() and
+  // other AbortSignal-aware APIs in case future subhooks adopt them.
   //
-  // Sentinel Symbol distinguishes timeout from any legitimate decision
-  // value; async/await wrapper functions (no floating promise chains)
-  // keep rejection paths observable per the JS-silent-failure linter.
-  const TIMEOUT_SENTINEL: unique symbol = Symbol("orchestrator-cooperative-timeout");
-  type TimeoutSentinel = typeof TIMEOUT_SENTINEL;
+  // The cooperative-timeout semantic is unchanged: classifiers still cannot
+  // be forcibly killed (no subprocess); the AbortSignal merely tells the
+  // orchestrator to move on and log the laggard, while the classifier's
+  // promise continues running until bun exits.
 
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-
-  async function awaitSubhookClassifierResolution(): Promise<PreToolUseSubhookDecision> {
-    return await entry.classify(input);
-  }
-
-  async function awaitCooperativeTimeoutWindow(): Promise<TimeoutSentinel> {
-    return await new Promise<TimeoutSentinel>((resolve) => {
-      timeoutHandle = setTimeout(() => resolve(TIMEOUT_SENTINEL), entry.timeoutMs);
-    });
-  }
+  const cooperativeTimeoutAbortSignal = AbortSignal.timeout(entry.timeoutMs);
 
   try {
-    const raceResult: PreToolUseSubhookDecision | TimeoutSentinel = await Promise.race([
-      awaitSubhookClassifierResolution(),
-      awaitCooperativeTimeoutWindow(),
+    const decision: PreToolUseSubhookDecision = await Promise.race([
+      entry.classify(input),
+      awaitAbortSignalAsTimeoutSentinelPromiseRejection(cooperativeTimeoutAbortSignal),
     ]);
-    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
 
-    if (raceResult === TIMEOUT_SENTINEL) {
+    return {
+      name: entry.name,
+      decision,
+      elapsedMs: Date.now() - startTimeMs,
+      timedOut: false,
+      errored: false,
+    };
+  } catch (err) {
+    // AbortSignal.timeout() rejects with a DOMException named "TimeoutError".
+    // Detect via the standard `.name` property rather than instanceof checks
+    // (which can be fragile across realms in some runtimes).
+    if (err instanceof Error && err.name === "TimeoutError") {
       return {
         name: entry.name,
         decision: failOpenAllow,
@@ -195,15 +229,6 @@ async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
         errored: false,
       };
     }
-    return {
-      name: entry.name,
-      decision: raceResult,
-      elapsedMs: Date.now() - startTimeMs,
-      timedOut: false,
-      errored: false,
-    };
-  } catch (err) {
-    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
     const errorMessage = err instanceof Error ? err.message : String(err);
     return {
       name: entry.name,

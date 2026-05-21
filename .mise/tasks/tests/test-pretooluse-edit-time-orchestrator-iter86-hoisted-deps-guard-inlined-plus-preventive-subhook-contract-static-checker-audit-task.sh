@@ -114,12 +114,16 @@ set +e
 case4_stdout=$(bash "$SUBHOOK_CONTRACT_AUDIT_TASK_PATH" 2>&1)
 set -e
 
-if [[ "$case4_stdout" == *'Total subhook files scanned:                  3'* ]]; then
-    assert_passes "Case 4a: audit task discovers all 3 inlined subhooks"
+# Iter-87 hardening: accept ANY subhook count ≥3 (registry monotonically grows
+# as iter-N+ migrations land; hardcoding the count broke when iter-87 added
+# the 4th subhook). Extract the live count and assert lower-bound + clean state.
+case4_subhook_count_extracted=$(echo "$case4_stdout" | grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
+if [[ "${case4_subhook_count_extracted:-0}" -ge 3 ]]; then
+    assert_passes "Case 4a: audit task discovers ≥3 inlined subhooks (found ${case4_subhook_count_extracted})"
 else
-    assert_fails "Case 4a: subhook count not 3; output=$case4_stdout"
+    assert_fails "Case 4a: subhook count ${case4_subhook_count_extracted} < 3; output=$case4_stdout"
 fi
-if [[ "$case4_stdout" == *'All 3 subhook files conform to the PreToolUseSubhookContract'* ]]; then
+if [[ "$case4_stdout" == *'subhook files conform to the PreToolUseSubhookContract'* ]]; then
     assert_passes "Case 4b: audit task reports clean state on production subhooks"
 else
     assert_fails "Case 4b: contract-clean state not reported"
