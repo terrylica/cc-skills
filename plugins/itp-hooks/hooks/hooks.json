@@ -88,8 +88,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-file-size-guard.ts",
-            "timeout": 5000
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
+            "timeout": 15000,
+            "description": "Iter-84 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the ~44ms bun cold-start (measured iter-80) across the registry instead of paying it N times. Per iter-81 ranker, final-state savings = (8-1) × 44 = 308ms per Write|Edit. Inlined subhooks (registry-order, first-deny-wins): file-size-guard. Iter-85+ migrates remaining Write|Edit subhooks (version-guard, hoisted-deps, gpu-optimization, mise-hygiene, pyi-stub, native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny defense per GH #37210 / iter-78."
           }
         ]
       },
