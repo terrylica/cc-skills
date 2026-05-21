@@ -1,3 +1,10 @@
+# [21.70.0](https://github.com/terrylica/cc-skills/compare/v21.69.0...v21.70.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-162 footer-breaking detect ([6e70272](https://github.com/terrylica/cc-skills/commit/6e702721f24f401c12fdb8df26ef8f0e93267d36))
+
 # [21.69.0](https://github.com/terrylica/cc-skills/compare/v21.68.0...v21.69.0) (2026-05-21)
 
 
