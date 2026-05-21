@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Iter-157 idempotent installer for the cc-skills commit-msg git hook in the current repo. Copies a thin shim into .git/hooks/commit-msg that delegates to the iter-153 advisor in --strict mode — automatic rejection of COMPOUND-PREFIX and MISSING-TYPE silent-fail-class violations at commit time, no operator discipline required. Industry-standard pattern per commitlint/conventional-pre-commit/commitizen. Pre-existing non-cc-skills hooks are backed up to commit-msg.backup-iter157-<unix-timestamp> for safe rollback. Re-runs are idempotent no-ops when the hook is already current. Uninstall via 'mise run commits:uninstall-hook' (restores most recent backup automatically)."
+set -euo pipefail
+
+ITER157_INSTALLER_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
+
+if [[ ! -x "$ITER157_INSTALLER_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-157 installer not found or not executable at:" >&2
+    echo "    $ITER157_INSTALLER_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+exec "$ITER157_INSTALLER_ABSOLUTE_PATH" install

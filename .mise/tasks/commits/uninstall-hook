@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#MISE description="Iter-157 uninstaller for the cc-skills commit-msg git hook. Removes the cc-skills-managed hook from .git/hooks/commit-msg and, if a commit-msg.backup-iter157-* file exists from a prior install, restores the most recent one. Refuses to touch hooks that lack the cc-skills sentinel marker (safe against accidentally removing third-party hooks). Mirrors the install path from 'mise run commits:install-hook'."
+set -euo pipefail
+
+ITER157_INSTALLER_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
+
+if [[ ! -x "$ITER157_INSTALLER_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-157 installer not found or not executable at:" >&2
+    echo "    $ITER157_INSTALLER_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+exec "$ITER157_INSTALLER_ABSOLUTE_PATH" uninstall
