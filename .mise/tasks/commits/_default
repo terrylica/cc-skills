@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-161 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-162 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -66,7 +66,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-
       Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
       during an editor-launched git commit flow.
 
-${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (iter-161) — what version bump will land? ───${ITER156_ANSI_COLOR_RESET}
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (iter-161, iter-162 body-aware) — what version bump will land? ───${ITER156_ANSI_COLOR_RESET}
 
   All four ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}commits:advise${ITER156_ANSI_COLOR_RESET} invocation forms above now include the iter-161
   semver-bump preview overlay: maps the {type, breaking-change marker}
@@ -77,6 +77,17 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
   preview the bump. Available in both human-readable and --json modes;
   --json embeds a nested iter161_semver_bump_preview object with stable
   iter161_schema_version=1 for AI-agent automation pipelines.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
+      Iter-162 body-aware extension: reads the FULL multi-line commit
+      message (subject + body), then detects Conventional Commits §13
+      BREAKING-CHANGE footer-tokens (BREAKING CHANGE:, BREAKING-CHANGE:,
+      BREAKING CHANGES:) in the body. OR'd with the subject \`!\` marker
+      so footer-form breaking changes correctly preview as MAJOR (not
+      mis-predicted MINOR). Used internally by the iter-157 commit-msg
+      hook to forward .git/COMMIT_EDITMSG. JSON mode adds the
+      iter162_breaking_change_signal_source field with canonical values:
+      none / subject_bang_marker / body_footer_token / both.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
 
