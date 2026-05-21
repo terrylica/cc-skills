@@ -1,3 +1,10 @@
+## [21.64.1](https://github.com/terrylica/cc-skills/compare/v21.64.0...v21.64.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **release:** iter-154 advisor JSON escape ([3b6b00e](https://github.com/terrylica/cc-skills/commit/3b6b00e9c62161c3f3464a216a51a58e7aa467ef))
+
 # [21.64.0](https://github.com/terrylica/cc-skills/compare/v21.63.0...v21.64.0) (2026-05-21)
 
 
