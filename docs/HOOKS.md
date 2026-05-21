@@ -1436,6 +1436,75 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-112: Migrate posttooluse-reminder.ts SETPROCTITLE-OK detection to iter-107 canonical helper — closes iter-111-surfaced registry-consistency gap + expands iter-110 cohort 8 → 9 + widens comment-prefix tolerance
+
+Iter-112 closes the registry-consistency gap that iter-111's typo-detection audit surfaced on its first live run: `posttooluse-reminder.ts` consumed the `SETPROCTITLE-OK` marker via raw `fileContent.includes("# SETPROCTITLE-OK")` substring check rather than through the iter-107 canonical helper. Iter-111 registered the marker (closing the producer-side audit gap) but flagged the consumer-side migration as iter-112+ scope. Iter-112 delivers it.
+
+**What changed in the consumer**
+
+Pre-iter-112 (`posttooluse-reminder.ts:494`):
+
+```typescript
+if (fileContent.includes("# SETPROCTITLE-OK")) return null;
+```
+
+Post-iter-112:
+
+```typescript
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+
+const SETPROCTITLE_REMINDER_ESCAPE_HATCH_CONFIGURATION_REGISTERED_IN_ITER111_CANONICAL_REGISTRY =
+  {
+    markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
+    caseSensitivityMode: "CASE_SENSITIVE" as const,
+  };
+
+if (
+  hasFileWideEscapeHatchMarkerInContent(
+    fileContent,
+    SETPROCTITLE_REMINDER_ESCAPE_HATCH_CONFIGURATION_REGISTERED_IN_ITER111_CANONICAL_REGISTRY,
+  )
+) {
+  return null;
+}
+```
+
+**Side benefit: widened comment-prefix tolerance**
+
+The pre-iter-112 raw-substring check required the literal `#` prefix. Post-iter-112 the helper does pure substring matching, so operators can now use ANY of these and the marker is honored:
+
+- `# SETPROCTITLE-OK` (shell-style — pre-iter-112 only form)
+- `// SETPROCTITLE-OK` (TypeScript/JavaScript)
+- `<!-- SETPROCTITLE-OK -->` (HTML/plist)
+- `SETPROCTITLE-OK` (no prefix at all — bare token)
+
+This matches the UPPER-KEBAB-CASE-never-collides convention used by the other 8 cohort members and is the operator-friendly default. The pre-iter-112 leading-`#` requirement was incidental to the implementation, never documented as a constraint, so widening tolerance is a pure usability win.
+
+**Cohort growth (8 → 9)**
+
+| Iter     | Cohort size | Latest addition                                                           |
+| -------- | ----------- | ------------------------------------------------------------------------- |
+| iter-107 | 1           | iter-78 layer3-stripped-path guard                                        |
+| iter-108 | 3           | + version-guard + inline-ignore-guard                                     |
+| iter-109 | 7           | + native-binary + process-storm + cwd-deletion + cargo-tty (multi-marker) |
+| iter-110 | 8           | + file-size-guard (config-string pattern → helper)                        |
+| iter-112 | **9**       | + **posttooluse-reminder (SETPROCTITLE — raw .includes → helper)**        |
+
+**Iter-112 regression validation**
+
+| Gate                                                              | Status                                         |
+| ----------------------------------------------------------------- | ---------------------------------------------- |
+| Iter-112 regression test (6 cases including widened-prefix probe) | 6/6 PASS                                       |
+| Iter-110 STRICT-BLOCK audit                                       | PASS (9/9 cohort migrated)                     |
+| Iter-111 producer-marker typo audit                               | PASS (0 unregistered / 12 registered)          |
+| Marketplace regression suite                                      | **46/46 PASS** (iter-112 test auto-discovered) |
+
+**Iter-113+ candidates**
+
+1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `.mise/` audit tasks rather than runtime hooks — `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`). Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
+2. Promote iter-111 audit (preflight Check 4t) from informational to STRICT-BLOCK once the AUDIT-marker family is also registered.
+3. Build a registry-to-documentation generator that emits operator-facing `escape-hatch-marker-reference.md` from the iter-111 registry — single source of truth for "how do I opt out of hook X".
+
 ### Iter-111: Marketplace-wide PRODUCER-side escape-hatch-marker canonical registry + typo-detection audit + `@deprecated ESCAPE_HATCH` cleanup
 
 Iter-111 introduces the second half of the escape-hatch consolidation arc's invariant pair. Iter-110 closed the CONSUMER-side invariant ("every consumer hook must route through the iter-107 canonical helper"); iter-111 introduces the PRODUCER-side invariant ("every producer-side marker token operators write must be recognized by some consumer hook").
