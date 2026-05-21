@@ -193,6 +193,37 @@ ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH=$(mktemp -t iter115-doc-backup-XXXXXX.m
 # Extend trap to also restore the doc on exit
 trap 'cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" 2>/dev/null; cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; rm -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"' EXIT
 
+# Iter-126 fix for iter-115↔iter-117 cross-test race condition under xargs -P
+# parallelism (iter-75 parallel-suite runner). Case 5 below mutates the
+# canonical on-disk doc transiently to verify the drift detector blocks
+# release; the iter-117 Case 6 test reads --check on the same canonical
+# on-disk doc to verify the no-drift idempotency invariant. When the two
+# tests fire concurrently, iter-117 Case 6 fires inside iter-115 Case 5's
+# mutation window and observes the synthetic mutation, producing a spurious
+# DRIFT exit=1 from a test that passes standalone.
+#
+# Fix: wrap the mutation+check+restore window in flock against a fixed
+# lock-file path. iter-117 Case 6 acquires the same lock, so the two tests
+# serialize without affecting overall suite parallelism (only these two
+# tests block on the shared lock). Lock-file path is process-shared at
+# /tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock
+# — verbose and self-explanatory so future maintainers grepping for
+# "iter-126" or "doc-mutation-window-serialization" find the rationale.
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+# Acquire exclusive lock for the mutation+check+restore atomic window.
+# Use Python's fcntl.flock as the portable cross-Mac/Linux shell primitive
+# (macOS BSD lacks the GNU `flock` CLI util; Python's fcntl module is
+# always available since 1.x). The lock is bound to fd 9 and released
+# automatically when fd 9 closes (i.e., when the test process exits) OR
+# when we explicitly release it after the restore.
+python3 -c '
+import fcntl, sys, os
+fd = int(sys.argv[1])
+fcntl.flock(fd, fcntl.LOCK_EX)
+' 9 <&9
+
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
 echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
 echo "ITER115 REGRESSION TEST CASE 5 SYNTHETIC DOC MUTATION — verifying --check exits non-zero (restored by trap)" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
@@ -204,6 +235,10 @@ set -e
 
 # Restore immediately so subsequent cases (and the rest of the test suite) see clean state
 cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+
+# Iter-126 release the mutation-window flock now that on-disk doc is back to canonical state.
+# Closing fd 9 releases the lock; subsequent parallel readers (iter-117 Case 6) can proceed.
+exec 9<&-
 
 if [[ "$ITER113_DRIFT_CHECK_EXIT_CODE_WITH_SYNTHETIC_DOC_MUTATION" -ne 0 ]] && \
    [[ "$ITER113_DRIFT_CHECK_OUTPUT_WITH_SYNTHETIC_DOC_MUTATION" == *"DRIFT"* ]]; then
