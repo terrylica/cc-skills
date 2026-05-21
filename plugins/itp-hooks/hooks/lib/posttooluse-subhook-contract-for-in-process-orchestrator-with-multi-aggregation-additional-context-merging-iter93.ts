@@ -111,6 +111,37 @@ export type PostToolUseSubhookDecision =
   | { kind: "additional_context"; message: string };
 
 /**
+ * Iter-96 helper: build a TIMEOUT-AWARE additional_context decision so Claude
+ * sees that a subhook was ATTEMPTED-BUT-ABORTED (cooperative timeout fired
+ * before the subprocess could complete), not silently-passed. Default behavior
+ * in iter-93/94/95 was to fail-open with `noop` on timeout — that's a silent
+ * false-negative: Claude assumes the type-check/lint passed. Per Anthropic's
+ * 2026 operator-visibility best practice, `additionalContext` is the
+ * documented surface for diagnostic information that Claude should see.
+ *
+ * The orchestrator wires this in
+ * `executeSinglePostToolUseSubhookWithCooperativeAbortSignalTimeoutAndCrashIsolation`
+ * — when the timeout fires, instead of returning `noop`, it returns this
+ * subhook-self-describing additional_context with a tightly-scoped message.
+ * The aggregator then folds the timeout-section in with any other contributing
+ * sections (and applies the iter-95 conditional provenance prefix).
+ *
+ * Iter-96 invariant: the timeout message MUST be operator-actionable. It
+ * MUST tell Claude what was attempted (subhook name + tool), why it didn't
+ * complete (timed out — not crashed), and the suggested next step
+ * (manually verify) — in ≤200 chars so the aggregate reason doesn't blow up.
+ */
+export function buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility(
+  subhookName: string,
+  timeoutMs: number,
+): PostToolUseSubhookDecision {
+  return {
+    kind: "additional_context",
+    message: `[${subhookName}] timed out after ${timeoutMs}ms — check was attempted but aborted before completion. Manually verify by running the standalone hook (bun plugins/itp-hooks/hooks/posttooluse-${subhookName}.ts) if this file looks risky.`,
+  };
+}
+
+/**
  * The pure classifier function that every PostToolUse subhook exports.
  *
  * Contract:

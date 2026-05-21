@@ -881,6 +881,35 @@ The delta is **~51 ms** — much less than the SUM of individual tool times (~15
 
 This locks in the iter-94 invariant for the rest of the iter-93+ migration arc.
 
+### Iter-96: PostToolUse arc progress — vale-claude-md inlined (5/15) + Bun.stdin.text() one-shot migration + timeout-aware additional_context + maxBuffer right-sized
+
+Iter-96 is a **5th-subhook migration + 3 audit-driven refinements** of the iter-93→iter-95 architecture. The iter-96 adversarial audit surfaced three high-leverage issues plus one natural-next-migration target:
+
+**Issue 1 (silent false-negative on timeout)**. Iter-93/94/95 fail-open `noop` on subhook timeout. The 2026 community guidance [`The Silent Failure Mode in Claude Code Hook Every Dev Should Know About`](https://thinkingthroughcode.medium.com/the-silent-failure-mode-in-claude-code-hook-every-dev-should-know-about-0466f139c19f) plus the [Anthropic operator-visibility best practice](https://code.claude.com/docs/en/hooks) — "Use `additionalContext` (not stderr) to surface diagnostic information back to Claude" — converged on the fix: when a subhook times out, the orchestrator now emits a TIMEOUT-AWARE `additional_context` decision via the new contract helper `buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility(subhookName, timeoutMs)`. Claude sees "type-check timed out — manually verify" instead of assuming the check passed. The helper's invariants:
+
+- Operator-actionable message (subhook name + tool + suggested manual-verify command)
+- ≤200 chars so aggregate reason doesn't blow up
+- Fold-compatible with the iter-95 conditional-prefix aggregator
+
+**Issue 2 (stdin reader: stream → text)**. Iter-93/94/95 used `Bun.stdin.stream()` + manual `TextDecoder` loop — sub-optimal per [Bun docs](https://bun.com/guides/process/stdin). The 2026 idiomatic one-shot read is `await Bun.stdin.text()`: decoding happens in native code (no userspace TextDecoder cost), and the chunk-coalescing bugs documented in [Bun #7500](https://github.com/oven-sh/bun/issues/7500) / [#11553](https://github.com/oven-sh/bun/issues/11553) / [#3255](https://github.com/oven-sh/bun/issues/3255) (all affecting `stdin.stream()`) are bypassed entirely. Iter-96 migrates the orchestrator + ALL 5 classifier standalone-CLI mains (6 entry points total).
+
+**Issue 3 (maxBuffer right-sizing)**. Iter-95 set `maxBuffer = 8 MiB` as a Node-parity default. Real-world type-checker/linter output is ≤50 KB typical, ≤200 KB pathological. 8 MiB was overkill. Iter-96 tightens to **256 KiB** so runaway subprocess output (e.g., a misconfigured linter spamming stack-traces) surfaces earlier as a hook diagnostic rather than silently consuming orchestrator memory. The exported constant `DEFAULT_SUBPROCESS_OUTPUT_MAX_BUFFER_BYTES_PER_BUN_DOCS_SAFETY_NET` keeps the algorithm intent encoded in the name.
+
+**Migration target (vale-claude-md as 5th subhook)**. PostToolUse twin to the iter-91 PreToolUse `vale-claude-md-guard` — different semantic (PreToolUse BLOCKS, PostToolUse INFORMS) but same vale subprocess invocation. Dual-export naming: `classifyValeTerminologyConformanceOnEditedClaudeMdFileForPostToolUseOrchestrator` (precise: encodes that this checks TERMINOLOGY CONFORMANCE, not grammar/spelling) + alias `classifyValeClaudeMdForPostToolUseOrchestrator`. Registry `timeoutMs: 12000ms` (heaviest classifier; vale spawns ~100-300ms typical wall-clock).
+
+**Iter-96 deliverables**:
+
+1. **Contract enhancement** at `lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`: new `buildPostToolUseTimeoutAwareAdditionalContextDecisionForOperatorVisibility` helper.
+2. **Shared lib enhancement** at `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`: maxBuffer constant tightened from `8 * 1024 * 1024` to `256 * 1024`.
+3. **Orchestrator update**: imports + uses the timeout-aware helper in the abort-error branch (replaces silent fail-open noop). Stdin reader migrated to `Bun.stdin.text()`.
+4. **5 classifier mains**: ty, tsgo, oxlint, biome, and the new vale-claude-md — all standalone-CLI mains migrated to `Bun.stdin.text()`.
+5. **`posttooluse-vale-claude-md.ts` rewritten** with the iter-95 shared-lib pattern: async Bun.spawn, dual-export naming, import.meta.main guard preserved.
+6. **`hooks.json` rewiring**: standalone vale-claude-md entry removed from its shared PostToolUse Write|Edit array (leaving glossary-sync + terminology-sync intact); orchestrator description bumped to 5/15 with the iter-96 enhancements summarized.
+7. **Iter-96 regression test** (13 assertions all pass): vale dual-export naming, registry ≥5 entries, ALL 6 entry points migrated to Bun.stdin.text(), maxBuffer = 256KiB, timeout-aware helper exists + imported, iter-94 static audit still passes (5 classifiers scanned cleanly), hooks.json clean, ALL 5 classifiers retain `import.meta.main`, orchestrator silent-noop on .txt, orchestrator description records 5/15.
+8. **Final marketplace state**: 33/33 hook regression tests pass; 37/37 plugins valid.
+
+**Iter-96 architectural takeaway**: iter-96 closes the "silent failure" gap that the iter-93/94/95 design left open. The iter-94 static audit defends against `Bun.spawnSync` regression. The iter-95 shared-lib defends against DRY drift. The iter-96 timeout-aware additionalContext closes the **operator-visibility gap**: silent fail-open is no longer the worst-case outcome of a subhook running over its budget — Claude is informed and can choose to manually verify. The 3-layer regression defense (compile-time static audit + test-time DRY check + runtime parallelism benchmark) plus the iter-96 timeout-visibility surface comprise a **4-layer correctness defense** for the iter-93+ orchestrator architecture.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

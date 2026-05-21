@@ -40,11 +40,16 @@ import { join } from "node:path";
 
 /**
  * Default maxBuffer (per Bun docs guidance — bounds runaway subprocess
- * output to prevent OOM). 8 MiB matches Node.js child_process default for
- * familiar behavior. Subhooks needing different bounds can override via
- * the optional `maxBufferBytes` option.
+ * output to prevent OOM). 256 KiB right-sized for type-checker/linter
+ * output (iter-96 audit: 8 MiB Node-parity default was overkill; real-world
+ * type-checker output is ≤50 KB typical, ≤200 KB even for pathological
+ * cases like 1000-error projects). Tightening to 256 KiB surfaces
+ * unexpected output growth (e.g., a misconfigured linter spamming
+ * stack-traces) earlier as a hook diagnostic rather than silently
+ * consuming orchestrator memory. Subhooks needing different bounds can
+ * override via the optional `maxBufferBytes` option.
  */
-export const DEFAULT_SUBPROCESS_OUTPUT_MAX_BUFFER_BYTES_PER_BUN_DOCS_SAFETY_NET = 8 * 1024 * 1024;
+export const DEFAULT_SUBPROCESS_OUTPUT_MAX_BUFFER_BYTES_PER_BUN_DOCS_SAFETY_NET = 256 * 1024;
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Async stream drain (consume Bun ReadableStream to UTF-8 string)
