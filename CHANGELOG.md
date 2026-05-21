@@ -1,3 +1,11 @@
+## [21.18.1](https://github.com/terrylica/cc-skills/compare/v21.18.0...v21.18.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **link-tools)+feat(release-gate:** iter-77 fix L3-stripped-path silent-fail in link-tools + ship preventive Check 4k audit gate scaling iter-76 cache-populator forensic discovery ([a6c73be](https://github.com/terrylica/cc-skills/commit/a6c73be0e0d9ae545baa72348ebeb2fd64aef038))
+* **release-gate:** iter-77 TOML escape fix in audit task MISE description header ([a5e444d](https://github.com/terrylica/cc-skills/commit/a5e444def4727758c85ff2c3df90e2fe47abd855))
+
 # [21.18.0](https://github.com/terrylica/cc-skills/compare/v21.17.6...v21.18.0) (2026-05-21)
 
 
