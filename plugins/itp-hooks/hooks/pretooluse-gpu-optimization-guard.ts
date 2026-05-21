@@ -1,6 +1,9 @@
 #!/usr/bin/env bun
+// FILE-SIZE-OK: 525 lines preserves 6-check policy logic + per-check
+// suggestion text; iter-87 refactor extracted classifier without adding
+// new bloat (was 538 lines pre-refactor).
 /**
- * PreToolUse Hook: GPU Optimization Guard (MANDATORY ENFORCEMENT)
+ * PreToolUse Hook: GPU Optimization Guard (iter-87 orchestrator-inlined)
  *
  * PHILOSOPHY: Parameter-free optimization over magic numbers
  *
@@ -32,6 +35,15 @@
  *
  * BYPASS: # gpu-optimization-bypass: <reason>
  *
+ * Iter-87 dual-use contract (mirrors iter-85/86 migrations):
+ *   - Standalone CLI mode (preserved for backward-compat + direct testing):
+ *     `bun pretooluse-gpu-optimization-guard.ts < payload.json` runs main()
+ *     under `import.meta.main` guard.
+ *   - Orchestrator-inlined mode (NEW owner of the Write|Edit hooks.json slot):
+ *     The orchestrator imports `classifyGpuOptimizationGuardForOrchestrator`
+ *     and invokes it directly in the single bun process — no per-subhook
+ *     bun cold-start cost. Conforms to PreToolUseSubhookContract.
+ *
  * @see https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.BatchSizeFinder.html
  * @see https://huggingface.co/docs/accelerate/v0.11.0/en/memory
  * @see https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
@@ -43,7 +55,13 @@ import {
   allow,
   deny,
   createHookLogger,
+  type PreToolUseInput,
 } from "./pretooluse-helpers.ts";
+import {
+  ALLOW_DECISION,
+  denyDecision,
+  type PreToolUseSubhookDecision,
+} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
 const logger = createHookLogger("gpu-optimization-guard");
 
@@ -51,19 +69,19 @@ const logger = createHookLogger("gpu-optimization-guard");
 // Configuration
 // =============================================================================
 
-interface GuardConfig {
+interface GpuOptimizationGuardConfig {
   enabled: boolean;
-  minBatchSize: number;           // Block if batch_size < this
-  requireAMP: boolean;            // Require AMP for training loops
-  requireTorchCompile: boolean;   // Require torch.compile for PyTorch 2.0+
-  requireDataLoaderOptim: boolean; // Require num_workers, pin_memory
-  filePatterns: string[];         // Files to check (glob patterns)
-  excludePatterns: string[];      // Files to skip
+  minBatchSize: number;
+  requireAMP: boolean;
+  requireTorchCompile: boolean;
+  requireDataLoaderOptim: boolean;
+  filePatterns: string[];
+  excludePatterns: string[];
 }
 
-const DEFAULT_CONFIG: GuardConfig = {
+const DEFAULT_GPU_OPTIMIZATION_GUARD_CONFIG: GpuOptimizationGuardConfig = {
   enabled: true,
-  minBatchSize: 64,              // Reasonable minimum for modern GPUs
+  minBatchSize: 64,
   requireAMP: true,
   requireTorchCompile: true,
   requireDataLoaderOptim: true,
@@ -71,11 +89,12 @@ const DEFAULT_CONFIG: GuardConfig = {
   excludePatterns: ["**/test_*.py", "**/*_test.py", "**/conftest.py"],
 };
 
-async function loadConfig(projectDir: string | undefined): Promise<GuardConfig> {
-  const config = { ...DEFAULT_CONFIG };
+async function loadGpuOptimizationGuardConfigWithProjectAndGlobalFallback(
+  projectDir: string | undefined,
+): Promise<GpuOptimizationGuardConfig> {
+  const config = { ...DEFAULT_GPU_OPTIMIZATION_GUARD_CONFIG };
   const home = Bun.env.HOME || "";
 
-  // Try project-level config
   if (projectDir) {
     const projectConfig = `${projectDir}/.claude/gpu-optimization-guard.json`;
     const file = Bun.file(projectConfig);
@@ -93,7 +112,6 @@ async function loadConfig(projectDir: string | undefined): Promise<GuardConfig> 
     }
   }
 
-  // Try global config
   const globalConfig = `${home}/.claude/gpu-optimization-guard.json`;
   const globalFile = Bun.file(globalConfig);
   if (await globalFile.exists()) {
@@ -113,83 +131,51 @@ async function loadConfig(projectDir: string | undefined): Promise<GuardConfig> 
 }
 
 // =============================================================================
-// Detection Patterns
+// Detection Patterns (pure regex; no I/O)
 // =============================================================================
 
-interface Finding {
+interface GpuOptimizationFinding {
   category: string;
   severity: "error" | "warn" | "info";
   message: string;
   suggestion: string;
 }
 
-/**
- * Check for explicit bypass comment
- */
-function hasBypassComment(content: string): boolean {
+function hasGpuOptimizationBypassComment(content: string): boolean {
   return /# gpu-optimization-bypass:/.test(content);
 }
 
-/**
- * Detect if this is a PyTorch training script (not just imports)
- */
 function isPyTorchTrainingScript(content: string): boolean {
-  // Must have torch import
-  if (!/import\s+torch|from\s+torch/.test(content)) {
-    return false;
-  }
+  if (!/import\s+torch|from\s+torch/.test(content)) return false;
 
-  // Must have training indicators
   const trainingIndicators = [
-    /\.backward\(\)/,           // Loss backpropagation
-    /\.step\(\)/,               // Optimizer step
-    /nn\.Module/,               // Model definition
-    /DataLoader/,               // Data loading
-    /\.train\(\)/,              // Training mode
-    /for\s+.*\s+in\s+.*loader/, // Training loop
-    /epoch/i,                   // Epoch iteration
+    /\.backward\(\)/,
+    /\.step\(\)/,
+    /nn\.Module/,
+    /DataLoader/,
+    /\.train\(\)/,
+    /for\s+.*\s+in\s+.*loader/,
+    /epoch/i,
   ];
-
   return trainingIndicators.some((pattern) => pattern.test(content));
 }
 
-/**
- * Check for batch size optimization patterns
- *
- * PARAMETER-FREE APPROACH: Instead of magic numbers like "batch_size >= 64",
- * we require one of these automatic batch size optimization patterns:
- *
- * 1. PyTorch Lightning: Tuner.scale_batch_size() or BatchSizeFinder
- * 2. Hugging Face Accelerate: @find_executable_batch_size decorator
- * 3. Manual binary search: find_optimal_batch_size pattern
- * 4. Gradient accumulation: accumulation_steps pattern
- *
- * @see https://lightning.ai/docs/pytorch/stable/api/lightning.pytorch.callbacks.BatchSizeFinder.html
- * @see https://huggingface.co/docs/accelerate/v0.11.0/en/memory
- */
-function checkBatchSize(content: string, config: GuardConfig): Finding | null {
-  // Check if this is GPU training code
+function checkBatchSizeAutoTuningAdoption(
+  content: string,
+  config: GpuOptimizationGuardConfig,
+): GpuOptimizationFinding | null {
   const hasGPU = /\.cuda\(\)|\.to\(\s*["']cuda["']|device\s*=\s*["']cuda/.test(content);
   const hasTrainingLoop = /\.backward\(\)|for\s+.*\s+in\s+.*loader/i.test(content);
-
   if (!hasGPU || !hasTrainingLoop) return null;
 
-  // Check for automatic batch size optimization patterns (PREFERRED)
   const hasAutoBatchSize =
-    // PyTorch Lightning
     /scale_batch_size|BatchSizeFinder|auto_scale_batch_size/.test(content) ||
-    // Hugging Face Accelerate
     /find_executable_batch_size|auto_find_batch_size/.test(content) ||
-    // Manual binary search pattern
     /find_optimal_batch_size|binary.*search.*batch|batch.*binary.*search/i.test(content) ||
-    // Gradient accumulation (effective large batch)
     /accumulation_steps|gradient_accumulation|accum_iter/i.test(content) ||
-    // Explicit bypass
     /# ?batch.*(ok|tuned|optimal|tested)/i.test(content);
-
   if (hasAutoBatchSize) return null;
 
-  // Check for hardcoded small batch sizes
   const batchSizeMatch = content.match(/batch_size\s*[=:]\s*(\d+)/);
   if (batchSizeMatch) {
     const batchSize = parseInt(batchSizeMatch[1], 10);
@@ -232,7 +218,6 @@ function checkBatchSize(content: string, config: GuardConfig): Finding | null {
     }
   }
 
-  // Even if batch_size is large, suggest auto-tuning for optimal GPU utilization
   if (batchSizeMatch && !hasAutoBatchSize) {
     return {
       category: "batch_size",
@@ -249,14 +234,9 @@ function checkBatchSize(content: string, config: GuardConfig): Finding | null {
   return null;
 }
 
-/**
- * Check for missing cudnn.benchmark (important for conv-heavy models)
- */
-function checkCudnnBenchmark(content: string): Finding | null {
-  // Only check if this looks like a CNN/conv model
+function checkCudnnBenchmarkEnabledForConvolutionalModelsOnGpu(content: string): GpuOptimizationFinding | null {
   const hasConv = /nn\.Conv|Conv2d|Conv1d|conv_|convolution/i.test(content);
   const hasGPU = /\.cuda\(\)|\.to\(\s*["']cuda["']|device\s*=\s*["']cuda/.test(content);
-
   if (!hasConv || !hasGPU) return null;
 
   const hasBenchmark = /cudnn\.benchmark\s*=\s*True/.test(content);
@@ -275,28 +255,19 @@ function checkCudnnBenchmark(content: string): Finding | null {
   return null;
 }
 
-/**
- * Check for missing AMP (Automatic Mixed Precision)
- *
- * AMP is required when ALL of these are present:
- * - GPU usage (cuda device)
- * - Backpropagation (.backward())
- * - Optimizer step (.step())
- */
-function checkAMP(content: string, config: GuardConfig): Finding | null {
+function checkAutomaticMixedPrecisionAdoptionInGpuTrainingLoop(
+  content: string,
+  config: GpuOptimizationGuardConfig,
+): GpuOptimizationFinding | null {
   if (!config.requireAMP) return null;
 
-  // Check for GPU training (all three must be present)
   const hasGPU = /\.cuda\(\)|\.to\(\s*["']cuda["']|\.to\(\s*device\)|device\s*=\s*["']cuda/.test(content);
   const hasBackward = /\.backward\(\)/.test(content);
   const hasOptimizerStep = /optimizer\.step\(\)|\.step\(\)/.test(content);
-
   const isGPUTraining = hasGPU && hasBackward && hasOptimizerStep;
-
   if (!isGPUTraining) return null;
 
-  const hasAMP =
-    /autocast|GradScaler|torch\.amp|torch\.cuda\.amp/.test(content);
+  const hasAMP = /autocast|GradScaler|torch\.amp|torch\.cuda\.amp/.test(content);
   const hasAMPComment = /# ?(AMP|mixed precision|autocast).*disabled/i.test(content);
 
   if (!hasAMP && !hasAMPComment) {
@@ -317,20 +288,15 @@ function checkAMP(content: string, config: GuardConfig): Finding | null {
   return null;
 }
 
-/**
- * Check for missing torch.compile (PyTorch 2.0+)
- *
- * Only applies to GPU training - torch.compile provides biggest gains on CUDA.
- * CPU training can benefit too, but it's not mandatory.
- */
-function checkTorchCompile(content: string, config: GuardConfig): Finding | null {
+function checkTorchCompileAdoptionForPyTorchTwoPlusGpuModels(
+  content: string,
+  config: GpuOptimizationGuardConfig,
+): GpuOptimizationFinding | null {
   if (!config.requireTorchCompile) return null;
 
-  // Only check for GPU training (torch.compile is most impactful on GPU)
   const hasGPU = /\.cuda\(\)|\.to\(\s*["']cuda["']|device\s*=\s*["']cuda/.test(content);
   if (!hasGPU) return null;
 
-  // Has model creation but no torch.compile
   const hasModel = /nn\.Module|model\s*=/.test(content);
   const hasTorchCompile = /torch\.compile/.test(content);
   const hasCompileComment = /# ?(torch\.compile|compile).*disabled/i.test(content);
@@ -349,18 +315,16 @@ function checkTorchCompile(content: string, config: GuardConfig): Finding | null
   return null;
 }
 
-/**
- * Check for suboptimal DataLoader configuration
- */
-function checkDataLoader(content: string, config: GuardConfig): Finding | null {
+function checkDataLoaderHasNumWorkersAndPinMemoryConfigured(
+  content: string,
+  config: GpuOptimizationGuardConfig,
+): GpuOptimizationFinding | null {
   if (!config.requireDataLoaderOptim) return null;
 
-  // Has DataLoader but missing optimizations
   const dataLoaderMatch = content.match(/DataLoader\s*\([^)]+\)/gs);
   if (!dataLoaderMatch) return null;
 
   const findings: string[] = [];
-
   for (const match of dataLoaderMatch) {
     if (!/num_workers\s*=/.test(match)) {
       findings.push("num_workers not set (default 0 = main process only)");
@@ -388,11 +352,7 @@ function checkDataLoader(content: string, config: GuardConfig): Finding | null {
   return null;
 }
 
-/**
- * Check for hardcoded device without availability check
- */
-function checkDeviceHardcoding(content: string): Finding | null {
-  // device = "cuda" without torch.cuda.is_available()
+function checkCudaDeviceHardcodingWithoutAvailabilityFallback(content: string): GpuOptimizationFinding | null {
   const hasHardcodedCuda = /device\s*=\s*["']cuda["']/.test(content);
   const hasAvailabilityCheck = /torch\.cuda\.is_available\(\)/.test(content);
 
@@ -409,85 +369,94 @@ function checkDeviceHardcoding(content: string): Finding | null {
 }
 
 // =============================================================================
-// Main Hook Logic
+// Pure classifier (iter-87 orchestrator-inlineable contract)
 // =============================================================================
 
-async function main(): Promise<void> {
-  const input = await parseStdinOrAllow("gpu-optimization-guard");
-  if (!input) return;
-
+/**
+ * Pure classifier conforming to PreToolUseSubhookClassifierFunction.
+ *
+ * Identical 6-check policy logic to the pre-iter-87 main() body, but
+ * factored out so the orchestrator can invoke it without subprocess-spawning
+ * this file (which would defeat the orchestrator's ~44ms cold-start saving).
+ *
+ * Short-circuit order (early-exits cheap → expensive):
+ *   1. tool_name not Write/Edit → ALLOW
+ *   2. file_path not .py → ALLOW (O(1) extension check)
+ *   3. test file → ALLOW (filename pattern)
+ *   4. # gpu-optimization-bypass comment → ALLOW
+ *   5. Not a PyTorch training script → ALLOW (regex scan)
+ *   6. config.enabled == false → ALLOW
+ *   7. Run all 6 checks; collect findings
+ *   8. No findings → ALLOW; else DENY with formatted multi-section message
+ *
+ * MUST NOT call allow()/deny() or touch stdin/stdout/process.exit.
+ */
+export async function classifyGpuOptimizationGuardForOrchestrator(
+  input: PreToolUseInput,
+): Promise<PreToolUseSubhookDecision> {
   const toolName = input.tool_name || "";
   if (toolName !== "Write" && toolName !== "Edit") {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
-  const filePath = input.tool_input?.file_path || "";
-  const content = input.tool_input?.content || input.tool_input?.new_string || "";
+  const filePath = (input.tool_input?.file_path as string) || "";
+  const content = ((input.tool_input?.content as string) || (input.tool_input?.new_string as string) || "");
 
   // Only check Python files
   if (!filePath.endsWith(".py")) {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
   // Skip test files
   const fileName = basename(filePath);
   if (fileName.startsWith("test_") || fileName.endsWith("_test.py") || fileName === "conftest.py") {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
   // Check for explicit bypass comment
-  if (hasBypassComment(content)) {
+  if (hasGpuOptimizationBypassComment(content)) {
     logger.debug("Bypass comment found, allowing", { file: fileName });
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
-  // Only check if it looks like a PyTorch training script
+  // Only check PyTorch training scripts
   if (!isPyTorchTrainingScript(content)) {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
   // Load configuration
   const projectDir = input.cwd || dirname(filePath);
-  const config = await loadConfig(projectDir);
-
+  const config = await loadGpuOptimizationGuardConfigWithProjectAndGlobalFallback(projectDir);
   if (!config.enabled) {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
   // Run all checks
-  const findings: Finding[] = [];
+  const findings: GpuOptimizationFinding[] = [];
 
-  const batchCheck = checkBatchSize(content, config);
+  const batchCheck = checkBatchSizeAutoTuningAdoption(content, config);
   if (batchCheck) findings.push(batchCheck);
 
-  const ampCheck = checkAMP(content, config);
+  const ampCheck = checkAutomaticMixedPrecisionAdoptionInGpuTrainingLoop(content, config);
   if (ampCheck) findings.push(ampCheck);
 
-  const compileCheck = checkTorchCompile(content, config);
+  const compileCheck = checkTorchCompileAdoptionForPyTorchTwoPlusGpuModels(content, config);
   if (compileCheck) findings.push(compileCheck);
 
-  const dataLoaderCheck = checkDataLoader(content, config);
+  const dataLoaderCheck = checkDataLoaderHasNumWorkersAndPinMemoryConfigured(content, config);
   if (dataLoaderCheck) findings.push(dataLoaderCheck);
 
-  const deviceCheck = checkDeviceHardcoding(content);
+  const deviceCheck = checkCudaDeviceHardcodingWithoutAvailabilityFallback(content);
   if (deviceCheck) findings.push(deviceCheck);
 
-  const cudnnCheck = checkCudnnBenchmark(content);
+  const cudnnCheck = checkCudnnBenchmarkEnabledForConvolutionalModelsOnGpu(content);
   if (cudnnCheck) findings.push(cudnnCheck);
 
-  // No issues found
   if (findings.length === 0) {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
-  // Format findings
+  // Format deny reason with three severity sections
   const errors = findings.filter((f) => f.severity === "error");
   const warnings = findings.filter((f) => f.severity === "warn");
   const infos = findings.filter((f) => f.severity === "info");
@@ -500,14 +469,12 @@ async function main(): Promise<void> {
       message += `- ${f.message}\n  → ${f.suggestion}\n\n`;
     }
   }
-
   if (warnings.length > 0) {
     message += "**WARNINGS** (significant performance impact):\n";
     for (const f of warnings) {
       message += `- ${f.message}\n  → ${f.suggestion}\n\n`;
     }
   }
-
   if (infos.length > 0) {
     message += "**SUGGESTIONS** (recommended optimizations):\n";
     for (const f of infos) {
@@ -528,16 +495,33 @@ Example: batch_size=32 on RTX 4090 = 61 hours; batch_size=256 + AMP = 8 hours.
     warnings: warnings.length,
   });
 
-  // MANDATORY: Use "deny" (hard block) for errors, "ask" for warnings only
-  if (errors.length > 0) {
-    deny(message);
-  } else {
-    // Only warnings/info - still deny but could be configured to ask
-    deny(message);
+  return denyDecision(message);
+}
+
+// =============================================================================
+// Standalone main (backward-compat for direct CLI invocation)
+// =============================================================================
+
+async function main(): Promise<void> {
+  const input = await parseStdinOrAllow("gpu-optimization-guard");
+  if (!input) return;
+
+  const decision = await classifyGpuOptimizationGuardForOrchestrator(input);
+  switch (decision.kind) {
+    case "deny":
+      return deny(decision.reason ?? "(no reason given)");
+    case "ask":
+      return deny(decision.reason ?? "(no reason given)");
+    default:
+      return allow();
   }
 }
 
-main().catch((e) => {
-  logger.error("Hook crashed", { error: e instanceof Error ? e.message : String(e) });
-  allow(); // Fail safely
-});
+// import.meta.main is true only for the entry-point script; when the orchestrator
+// imports classifyGpuOptimizationGuardForOrchestrator, this branch does NOT fire.
+if (import.meta.main) {
+  main().catch((e) => {
+    logger.error("Hook crashed", { error: e instanceof Error ? e.message : String(e) });
+    allow();
+  });
+}

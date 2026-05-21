@@ -469,7 +469,7 @@ A multi-perspective adversarial audit of the iter-84 orchestrator surfaced three
 - Large multi-version deny payload arrives intact on stdout (drain-before-exit verification)
 - Registry-order invariant: version-guard wins over file-size-guard when BOTH would deny (lightest-first ordering)
 
-Final state after iter-85: 6 standalone Write|Edit hooks.json entries remain (iter-86→iter-91 targets), each migration unlocks the next +44ms savings.
+Final state after iter-85: 6 standalone Write|Edit hooks.json entries remain (iter-86→iter-91 targets), each migration unlocks the next +44ms savings (iter-87 microbenchmark later corrected this to **+17ms** per saved subhook — see iter-87 section below).
 
 ### Iter-86: hoisted-deps-guard migration + preventive subhook-contract static checker
 
@@ -512,6 +512,58 @@ Wired into `release:preflight` as Check 4m (informational), with loose-coupled d
 - GitHub #37210 (Edit-tool stdout-JSON deny ignored) confirmed STILL OPEN as of May 2026 — belt-and-suspenders defense remains correct
 - AbortController is the idiomatic 2026 pattern for promise cancellation (vs iter-84's Symbol-sentinel + setTimeout). Candidate refactor for iter-87+ orchestrator hardening
 - Claude Code's hook event schema has expanded post-iter-69 pentad to ~27 events (claudefa.st 2026) — iter-87+ should preventively audit new event types like ConfigChange and PostToolBatch
+
+### Iter-87: gpu-optimization-guard migration + AbortSignal.timeout refactor + empirical cold-start savings benchmark
+
+Iter-87 ships THREE concurrent deliverables, the third of which **empirically corrects** the iter-80/iter-81 savings projection.
+
+**(1) Fourth subhook inlined — gpu-optimization-guard**
+
+- `pretooluse-gpu-optimization-guard.ts` (already `.ts`) refactored to export `classifyGpuOptimizationGuardForOrchestrator()`
+- 6-check policy preserved (auto-batch-size, AMP, torch.compile, DataLoader optim, device-availability, cudnn.benchmark)
+- `main()` gated under `import.meta.main` (standalone CLI backward-compat)
+- Standalone `hooks.json` entry REMOVED
+- Registry now `[version-guard, hoisted-deps-guard, gpu-optimization-guard, file-size-guard]` (4 inlined)
+
+**(2) AbortSignal.timeout() replaces Symbol-sentinel + raw setTimeout (iter-86 web-research follow-up)**
+
+The iter-84 cooperative-timeout used a unique `Symbol` sentinel + manual `setTimeout` to race the classifier against an in-process timer. Iter-87 refactor adopts the idiomatic 2026 `AbortSignal.timeout(ms)` Web Platform API:
+
+| Aspect            | Iter-84 (Symbol + setTimeout)                                               | Iter-87 (AbortSignal.timeout)                                                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timer primitive   | `setTimeout(() => resolve(SENTINEL), ms)`                                   | `AbortSignal.timeout(ms)`                                                                                                                                     |
+| Race semantics    | `Promise.race([classifier, timer])` returning union of decision \| sentinel | `Promise.race([classifier, abortRejection(signal)])` rejecting with `TimeoutError` DOMException                                                               |
+| Timeout detection | `raceResult === TIMEOUT_SENTINEL` (identity)                                | `err instanceof Error && err.name === "TimeoutError"` (standard Web Platform discriminator)                                                                   |
+| Composability     | Custom Symbol type leaks into return-type union                             | AbortSignal composes with `fetch()` and other AbortSignal-aware APIs (future subhooks can use the same signal for HTTP cancellation, file-handle abort, etc.) |
+| Idiomaticity      | Bespoke pattern, hard to grep for                                           | Recognizable standard library usage; documented across Node/Bun/Deno/browsers                                                                                 |
+
+Cooperative-timeout semantic unchanged: classifiers still cannot be forcibly killed (no subprocess); AbortSignal merely signals the orchestrator to move on and log the laggard.
+
+**(3) Empirical microbenchmark CORRECTS iter-80/iter-81 savings projection** ([benchmark task](../.mise/tasks/benchmark-pretooluse-edit-time-orchestrator-amortized-bun-cold-start-savings-curve-versus-pre-orchestration-baseline-per-iter81-ranker-projection.sh))
+
+The benchmark measures wall-clock latency of:
+
+- **Target A**: pre-orchestration baseline = sum of 4 sequential standalone `bun <subhook>` spawns
+- **Target B**: orchestrator path = 1 `bun <orchestrator>` spawn invoking 4 inlined classifiers
+- **Empirical savings** = A − B, compared against iter-81's predicted `(N-1) × 44ms`
+
+**Findings from first empirical run** (smoke run, 7 iterations, 2 warmup):
+
+- Target A median: **72 ms** (4 standalone bun spawns)
+- Target B median: **20 ms** (1 orchestrator spawn)
+- Empirical savings: **52 ms** (vs iter-81 projection of 132 ms)
+- **Effective per-saved-subhook cost: ~17 ms** (not the iter-80 ~44 ms)
+
+This **confirms iter-86's web-research hypothesis**: the iter-80 ~44ms measurement was inflated by stdin+JSON-parse + classifier-execution overhead, not pure bun cold-start. Community 8-15ms benchmarks (byteiota.com, PkgPulse 2026) were closer to truth. **Iter-91 final-state savings projection is now ~119ms per Write|Edit, not 308ms.** Still a meaningful win, but 2.6× smaller than originally projected. The orchestrator-as-architecture is correct; the magnitude needed empirical correction.
+
+**Regression coverage** ([12 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter87-gpu-optimization-guard-inlined-plus-abortsignal-timeout-refactor-replacing-symbol-sentinel.sh)):
+
+- Cases 1a-e: gpu-optimization-guard inlined → deny PyTorch training script (batch-size + AMP policies fire) with belt-and-suspenders + exit 2
+- Case 2: `# gpu-optimization-bypass` comment honored
+- Case 3: non-PyTorch Python script falls through (fastpath)
+- Cases 4a-b: standalone backward-compat (no orchestrator prefix in reason)
+- Case 5: `AbortSignal.timeout()` fires `TimeoutError` after ~200ms via inline harness with hanging classifier (validates the refactor's cooperative-timeout correctness)
+- Cases 6a-b: subhook-contract audit task reports 4 conforming subhooks
 
 ### Self-measurement tool
 
