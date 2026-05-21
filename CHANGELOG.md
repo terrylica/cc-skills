@@ -1,3 +1,10 @@
+# [21.21.0](https://github.com/terrylica/cc-skills/compare/v21.20.0...v21.21.0) (2026-05-21)
+
+
+### Features
+
+* **release-gate:** iter-83 wire iter-82 conventional-commits validator into preflight as Check 4l (informational) + cite Feb-2026 community-validation of orchestrator pattern ([0ec6308](https://github.com/terrylica/cc-skills/commit/0ec6308ad559666f40ada51bfd41f4b4d225edcb))
+
 # [21.20.0](https://github.com/terrylica/cc-skills/compare/v21.19.1...v21.20.0) (2026-05-21)
 
 
