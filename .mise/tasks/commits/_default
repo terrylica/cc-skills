@@ -154,7 +154,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — 
       Same checks, machine-readable JSON output with stable
       iter160_schema_version=1 for AI-agent automation pipelines.
 
-${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness) — operator-discoverable perf regression check ───${ITER156_ANSI_COLOR_RESET}
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness, iter-179 --json dual-mode) — operator-discoverable perf regression check ───${ITER156_ANSI_COLOR_RESET}
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline${ITER156_ANSI_COLOR_RESET}
       Empirical wall-clock perf-baseline regression harness for the
@@ -169,6 +169,20 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (i
       Iter-178 closed the discoverability gap where the underlying
       iter-174 harness was invocable only via a 160-char .mise/tasks/
       tests/ filename — undiscoverable in 'mise tasks ls' output.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline --json${ITER156_ANSI_COLOR_RESET}
+      Same regression check, machine-readable JSON envelope for AI-agent
+      and CI-pipeline consumption (no regex-parsing of human-readable
+      text required). Stable iter174_schema_version=1 contract with
+      per-scenario {id, description, median_ms, cap_ms,
+      headroom_pct_signed, verdict} records + aggregate summary
+      {total_evaluated, total_failed, total_passed, overall_verdict}.
+      Pipe to jq:
+        \`mise run commits:perf-baseline --json | jq .summary.overall_verdict\`
+        \`mise run commits:perf-baseline --json | jq '.results[] | select(.verdict == "REGRESS")'\`
+      Iter-179 dual-mode addition closes the AI-agent surface gap parallel
+      to what iter-155 / iter-160 --json modes filled for the dashboard +
+      doctor.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169, iter-175, iter-176, iter-177) — non-operator-visible work hardening the toolkit ───${ITER156_ANSI_COLOR_RESET}
 
