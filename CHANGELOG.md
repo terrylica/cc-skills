@@ -1,3 +1,10 @@
+# [21.39.0](https://github.com/terrylica/cc-skills/compare/v21.38.0...v21.39.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-104 hook-output-size-cap canonical truncation helper hoisted to PostToolUse contract lib + applied to vale-claude-md classifier as first adopter against Claude's 10000-character file-spillover threshold + iter-105+ marketplace scope documented ([014ca98](https://github.com/terrylica/cc-skills/commit/014ca989e9fd8a79bd0d65166e6dadbe1f3928bc))
+
 # [21.38.0](https://github.com/terrylica/cc-skills/compare/v21.37.0...v21.38.0) (2026-05-21)
 
 
