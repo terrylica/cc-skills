@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Iter-152 operator-facing commits:health dashboard fusing iter-150 readable view + iter-151 classification + new aggregations (subject-length-distribution histogram with bins per the conventional-commits 50/72 rule, worst-offender top-3 callouts by char count, conventional-commits type distribution across the 11 canonical types, recent-vs-previous N-commit-window trend signal computing median subject length and ≤72-cap conformance rate with improving/regressing/stable/mixed verdict). Single short-name entry point closes the iter-150 (VIEW) → iter-151 (DETECT) → iter-152 (HEALTH SUMMARY) usability arc. Default: last 10 commits, compared against the previous 10. Tunables: ITER152_COMMIT_COUNT_TO_ANALYZE (default 10), ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS (default 72), ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS (default 50), ITER152_HISTOGRAM_BAR_WIDTH (default 20), ITER152_WORST_OFFENDER_CALLOUT_COUNT (default 3)."
+set -euo pipefail
+
+# This task is a thin shim delegating to the iter-152 renderer script.
+# Kept as a separate file (vs inline bash) so the renderer can also be
+# invoked directly outside the mise context.
+ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel)/scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
+
+if [[ ! -x "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" ]]; then
+    echo "  ✗ iter-152 renderer not found or not executable at:" >&2
+    echo "    $ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" >&2
+    exit 2
+fi
+
+exec "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" "$@"
