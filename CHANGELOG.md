@@ -1,3 +1,10 @@
+# [21.53.0](https://github.com/terrylica/cc-skills/compare/v21.52.0...v21.53.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-122 add operator-facing forward-search CLI symmetric complement to iter-116 reverse-search resolving marker-name-token to consumer-path-and-description via five-step fallback chain exact-case-sensitive then exact-case-insensitive then marker-substring then iter-118-levenshtein-did-you-mean then full-list-dump with iter-119-parallel json mode emitting matchType discriminator across exact and exact-case-insensitive and marker-substring and not-found-with-did-you-mean shapes spanning iter111-runtime-hook and iter114-audit-task canonical registries ([5693900](https://github.com/terrylica/cc-skills/commit/5693900d5ab7f27a80725551e946561f4d7b2234))
+
 # [21.52.0](https://github.com/terrylica/cc-skills/compare/v21.51.0...v21.52.0) (2026-05-21)
 
 
