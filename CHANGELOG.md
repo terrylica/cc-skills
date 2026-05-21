@@ -1,3 +1,10 @@
+# [21.41.0](https://github.com/terrylica/cc-skills/compare/v21.40.4...v21.41.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-110 close iter-107 escape-hatch consolidation arc by migrating last config-string-based consumer file-size-guard plus promoting marketplace inventory audit from informational to STRICT-BLOCK with curated 8-cohort completeness assertion plus multi-marker composition probe documenting iter-109 cargo-tty-guard pattern as helper API contract ([c7fc8ac](https://github.com/terrylica/cc-skills/commit/c7fc8acd929bb31bc91dc0aa115ed2311076ef55))
+
 ## [21.40.4](https://github.com/terrylica/cc-skills/compare/v21.40.3...v21.40.4) (2026-05-21)
 
 ## [21.40.3](https://github.com/terrylica/cc-skills/compare/v21.40.2...v21.40.3) (2026-05-21)
