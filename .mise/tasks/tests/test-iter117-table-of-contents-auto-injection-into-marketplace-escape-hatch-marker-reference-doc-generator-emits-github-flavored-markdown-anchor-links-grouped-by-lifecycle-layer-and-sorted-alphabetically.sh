@@ -154,10 +154,32 @@ else
 fi
 
 # ─── Case 6: idempotency — TOC injection doesn't break --check ───────────
+#
+# Iter-126: acquire the shared mutation-window flock before reading the
+# on-disk doc via --check. The iter-115 Case 5 regression test transiently
+# mutates the same canonical on-disk doc to verify the drift-detector
+# blocks release on synthetic doc corruption. Without the flock, this
+# test fires concurrently inside iter-115's mutation window under xargs -P
+# parallelism (iter-75 parallel suite runner) and observes the synthetic
+# drift as a spurious DRIFT exit=1. The flock serializes the two tests on
+# the shared on-disk doc without sacrificing overall suite parallelism.
+# See test-iter115*.sh for the matching lock acquisition site.
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
+' 9 <&9
+
 set +e
 DRIFT_CHECK_OUTPUT=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
 DRIFT_CHECK_EXIT_CODE=$?
 set -e
+
+# Iter-126 release the mutation-window flock now that on-disk doc has been read.
+exec 9<&-
+
 if [[ "$DRIFT_CHECK_EXIT_CODE" -eq 0 ]] && [[ "$DRIFT_CHECK_OUTPUT" == *"no drift"* ]]; then
     assert_passes "Case 6: --check passes after TOC injection (idempotency invariant intact — registry-derived output still byte-identical to on-disk doc)"
 else
