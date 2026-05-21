@@ -81,6 +81,42 @@ export type EscapeHatchMarkerWindowSemanticsMode =
   | "FILE_WIDE";
 
 // ────────────────────────────────────────────────────────────────────────
+//  Case-sensitivity mode (iter-108 extension)
+// ────────────────────────────────────────────────────────────────────────
+//
+// Iter-107 baseline assumed strict UPPER-KEBAB-CASE marker convention (e.g.,
+// `BASH-LAUNCHD-OK`, `LAYER3-STRIPPED-PATH-OK`). Iter-108 audit of the
+// pre-existing marketplace hand-rolled regexes surfaced that several hooks
+// historically used `/i` (case-insensitive matching) — process-storm-guard
+// (`/#\s*PROCESS-STORM-OK/i`), cwd-deletion-guard (`/#\s*CWD-DELETE-OK/i`),
+// native-binary-guard (`/[#/]\s*BASH-LAUNCHD-OK/i`), cargo-tty-guard
+// (`/# *CARGO-TTY-SKIP/i` + `/# *CARGO-TTY-WRAP/i`). Behavior-preserving
+// migrations of those hooks require case-insensitive matching at the helper
+// level. Iter-108 adds the `caseSensitivityMode` knob:
+//
+//   - CASE_SENSITIVE (DEFAULT): strict UPPER-KEBAB-CASE marker. `# foo-ok`
+//     does NOT suppress when configured marker is `FOO-OK`. Aligns with the
+//     marketplace convention going forward.
+//
+//   - CASE_INSENSITIVE: legacy compatibility. Lowercase, mixed-case, or any
+//     casing matches. Use ONLY when migrating a hook that historically used
+//     `/i` so the migration is behavior-preserving.
+//
+// Note on the version-guard marker: `SSoT-OK` is mixed-case (Single Source
+// of Truth) and intentionally NOT UPPER-KEBAB-CASE. Hook authors writing
+// the literal string `# SSoT-OK` in their content will continue to match
+// the configured marker token `SSoT-OK` regardless of mode (substring
+// match against the literal). Mode only matters when the operator types a
+// DIFFERENT casing than the configured token (e.g., `# SSOT-OK` or
+// `# ssot-ok`). Most marketplace hooks tolerate this divergence loosely
+// via `/i`, but iter-108+ migrations default to strict because operators
+// are expected to copy/paste the canonical token from documentation.
+
+export type EscapeHatchMarkerCaseSensitivityMode =
+  | "CASE_SENSITIVE"
+  | "CASE_INSENSITIVE";
+
+// ────────────────────────────────────────────────────────────────────────
 //  Configuration shape
 // ────────────────────────────────────────────────────────────────────────
 
@@ -88,7 +124,8 @@ export interface EscapeHatchMarkerDetectionConfiguration {
   /**
    * The marker token, INCLUDING the conventional `-OK` (or `-SKIP` / `-WRAP`)
    * suffix. Example: `"BASH-LAUNCHD-OK"`, `"LAYER3-STRIPPED-PATH-OK"`,
-   * `"CARGO-TTY-SKIP"`. Case-sensitive: marketplace convention is UPPER-KEBAB-CASE.
+   * `"CARGO-TTY-SKIP"`. Marketplace convention is UPPER-KEBAB-CASE; case
+   * sensitivity controlled by `caseSensitivityMode`.
    */
   markerNameTokenIncludingSuffix: string;
   /** One of the 3 documented window-semantics modes. See enum docs. */
@@ -109,6 +146,14 @@ export interface EscapeHatchMarkerDetectionConfiguration {
    * that don't enforce a reason.
    */
   requireMinimumReasonCharacterCountAfterColonOrZeroForOptional?: number;
+  /**
+   * Iter-108 extension: case-sensitivity policy. Defaults to `CASE_SENSITIVE`
+   * which aligns with the marketplace UPPER-KEBAB-CASE marker convention.
+   * Set to `CASE_INSENSITIVE` ONLY when migrating a hook that historically
+   * used `/i` so the migration is behavior-preserving. New hooks should
+   * leave this unset (defaults to strict).
+   */
+  caseSensitivityMode?: EscapeHatchMarkerCaseSensitivityMode;
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -138,14 +183,23 @@ function buildEscapeHatchMarkerRegexForConfiguration(
   );
   const minimumReasonCharacterCount =
     configuration.requireMinimumReasonCharacterCountAfterColonOrZeroForOptional ?? 0;
+  // Iter-108: case-sensitivity mode controls the `/i` flag on the
+  // compiled regex. Default CASE_SENSITIVE aligns with marketplace
+  // UPPER-KEBAB-CASE convention; CASE_INSENSITIVE preserves legacy
+  // /i behavior for hooks being migrated from hand-rolled regexes.
+  const regexFlags =
+    (configuration.caseSensitivityMode ?? "CASE_SENSITIVE") === "CASE_INSENSITIVE"
+      ? "i"
+      : "";
   if (minimumReasonCharacterCount <= 0) {
-    return new RegExp(escapedMarkerToken);
+    return new RegExp(escapedMarkerToken, regexFlags);
   }
   // Mirror iter-78 grammar exactly: <MARKER>:\s*[^\s].{(N-1),}
   // (first non-whitespace char + N-1 more chars = ≥N chars of reason)
   const reasonContinuationCount = Math.max(0, minimumReasonCharacterCount - 1);
   return new RegExp(
     `${escapedMarkerToken}:\\s*[^\\s].{${reasonContinuationCount},}`,
+    regexFlags,
   );
 }
 

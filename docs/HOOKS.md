@@ -1397,15 +1397,42 @@ Iter-106 documented a follow-up iter-107 candidate: a shared escape-hatch-marker
 
 **Iter-108+ migration roadmap** (one hook per iter, behavior-preserving):
 
-1. `pretooluse-file-size-guard.ts` (FILE_WIDE, `# FILE-SIZE-OK`)
-2. `pretooluse-version-guard.ts` (FILE_WIDE, `# SSoT-OK`)
-3. `pretooluse-native-binary-guard.ts` (FILE_WIDE, `# BASH-LAUNCHD-OK` / `<!-- BASH-LAUNCHD-OK -->`)
-4. `pretooluse-process-storm-guard.mjs` (FILE_WIDE, `# PROCESS-STORM-OK`)
-5. `pretooluse-cwd-deletion-guard.ts` (FILE_WIDE, `# CWD-DELETE-OK`)
-6. `pretooluse-inline-ignore-guard.ts` (SAME_LINE_ONLY, `// INLINE-IGNORE-OK`)
-7. `pretooluse-cargo-tty-guard.ts` (FILE_WIDE, `// CARGO-TTY-SKIP` / `-WRAP`)
+1. `pretooluse-file-size-guard.ts` (FILE_WIDE, `# FILE-SIZE-OK`) — pending
+2. `pretooluse-version-guard.ts` (FILE_WIDE, `# SSoT-OK`) — **MIGRATED iter-108 ✓**
+3. `pretooluse-native-binary-guard.ts` (FILE_WIDE, `# BASH-LAUNCHD-OK` / `<!-- BASH-LAUNCHD-OK -->`) — pending (requires `caseSensitivityMode: "CASE_INSENSITIVE"` since the pre-existing regex used `/i`)
+4. `pretooluse-process-storm-guard.mjs` (FILE_WIDE, `# PROCESS-STORM-OK`) — pending (requires `caseSensitivityMode: "CASE_INSENSITIVE"`)
+5. `pretooluse-cwd-deletion-guard.ts` (FILE_WIDE, `# CWD-DELETE-OK`) — pending (requires `caseSensitivityMode: "CASE_INSENSITIVE"`)
+6. `pretooluse-inline-ignore-guard.ts` (SAME_LINE_ONLY, `// INLINE-IGNORE-OK`) — **MIGRATED iter-108 ✓**
+7. `pretooluse-cargo-tty-guard.ts` (FILE_WIDE, `// CARGO-TTY-SKIP` / `-WRAP`) — pending (two markers per hook; requires `caseSensitivityMode: "CASE_INSENSITIVE"`)
 
 Once all migrations land, promote the iter-107 inventory audit from informational (Check 4s) to strict-block.
+
+### Iter-108: Helper case-sensitivity extension + 2 migrations (version-guard FILE_WIDE + inline-ignore-guard SAME_LINE_ONLY)
+
+Iter-108 extends the iter-107 canonical helper with a new `caseSensitivityMode` configuration option AND migrates the first 2 hooks from the iter-107 roadmap. The case-sensitivity extension was forced by an iter-108 adversarial audit finding: 4 of the 7 roadmap hooks (`native-binary-guard`, `process-storm-guard`, `cwd-deletion-guard`, `cargo-tty-guard`) historically used `/i` (case-insensitive matching) in their hand-rolled regexes. The iter-107 helper baseline was strict UPPER-KEBAB-CASE — sufficient for iter-78's `LAYER3-STRIPPED-PATH-OK` but a silent BEHAVIOR-CHANGE risk for any case-insensitive migration.
+
+**Iter-108 helper extension**:
+
+| New config field      | Values                                 | Default          | Migration use case                                                  |
+| --------------------- | -------------------------------------- | ---------------- | ------------------------------------------------------------------- |
+| `caseSensitivityMode` | `CASE_SENSITIVE` \| `CASE_INSENSITIVE` | `CASE_SENSITIVE` | Set to `CASE_INSENSITIVE` ONLY when migrating a hook that used `/i` |
+
+The default aligns with the marketplace UPPER-KEBAB-CASE convention going forward. New hooks should leave the field unset (defaults to strict). Existing hooks being migrated set the field explicitly to preserve pre-iter-108 behavior.
+
+**Iter-108 migrations**:
+
+| Hook                                | Window mode      | Marker token       | Case mode        | Notes                                                                                            |
+| ----------------------------------- | ---------------- | ------------------ | ---------------- | ------------------------------------------------------------------------------------------------ |
+| `pretooluse-version-guard.ts`       | `FILE_WIDE`      | `SSoT-OK`          | `CASE_SENSITIVE` | Mixed-case marker (Single-Source-of-Truth abbreviated). Pre-iter-108 `/#\s*SSoT-OK/` was strict. |
+| `pretooluse-inline-ignore-guard.ts` | `SAME_LINE_ONLY` | `INLINE-IGNORE-OK` | `CASE_SENSITIVE` | Pre-iter-108 `/INLINE-IGNORE-OK/` was strict. Per-line scoping is by design.                     |
+
+Both migrations are behavior-preserving — the iter-107 + iter-78 regression tests still pass + the full marketplace suite is 44/44.
+
+**Iter-108 regression test enhancement**: added a new Case 9 probe to the iter-107 regression test that exercises `caseSensitivityMode`: lowercase marker `# foo-ok` with `CASE_SENSITIVE` does NOT match configured token `FOO-OK`; same lowercase with `CASE_INSENSITIVE` DOES match; uppercase always matches under both modes. Marketplace regression suite: 44/44 PASS (iter-107 test extended to 9 assertions, no new files added).
+
+**Iter-109+ migration roadmap** (the remaining 5 hooks):
+
+The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
 ### Self-measurement tool
 
