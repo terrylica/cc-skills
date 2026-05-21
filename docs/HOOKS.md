@@ -1436,6 +1436,64 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-120: Case-insensitive basename-substring search bridges the gap between iter-116 exact-path-match and iter-118 Levenshtein fuzzy-match — operator workflow "what marker opts out of file-size-guard?"
+
+Iter-120 closes the final operator-discoverability gap surfaced by iter-119's adversarial review. Operators who type just the short name of a consumer (e.g., `file-size-guard` or `cargo`) previously fell through iter-118's `⌊queryLen/3⌋` Levenshtein threshold to the unhelpful full-list dump because the basename-only query lacks the `plugins/itp-hooks/hooks/` prefix that accounts for ~35 of the 54 chars in the full path. Iter-120 adds an intermediate basename-substring step that catches this case.
+
+**Four-step fallback chain (new step #2)**
+
+| Step | Strategy                                  | Iteration        | Trigger                                                              |
+| ---- | ----------------------------------------- | ---------------- | -------------------------------------------------------------------- |
+| 1    | Exact-path-match                          | iter-116 default | Query matches a registered consumer path verbatim                    |
+| 2    | **Basename-substring (case-insensitive)** | **iter-120 NEW** | Query has no `/` AND a registered path's basename contains the query |
+| 3    | Levenshtein "Did you mean?" top-3         | iter-118         | Top-ranked candidate within ⌊queryLen/3⌋ edits                       |
+| 4    | Full-list dump                            | iter-116 default | All above failed (truly-unrelated query)                             |
+
+**Skip condition for step 2**: when the query contains a `/`, the operator clearly meant a fully-qualified path, so basename-substring is bypassed and iter-118 Levenshtein/full-list handle it. This preserves iter-118's typo-correction behavior for path-shaped queries.
+
+**Live example**
+
+```
+$ mise run lookup-...-iter116-... file-size-guard
+✓ No exact path match for "file-size-guard", but found 1 consumer
+  whose basename contains your query (case-insensitive):
+
+  plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+
+  Marker:                 FILE-SIZE-OK
+  Lifecycle layer:        RUNTIME-HOOK (iter-111; …)
+  Consumer hook:          plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+  ...
+```
+
+**JSON shape extension**
+
+`--json` mode now emits a `matchType` field discriminating between `"exact"` (iter-116 default) and `"basename-substring"` (iter-120 NEW). Existing JSON consumers checking `status === "found"` continue to work unchanged; new consumers can branch on `matchType` to disambiguate the resolution path.
+
+| matchType            | JSON shape (additional fields beyond `status: "found"`)                           |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `exact`              | `consumerSourceFileRelativePath` + `markers[]`                                    |
+| `basename-substring` | `operatorSuppliedQueryString` + `matchingConsumerSourceFilePaths[]` + `markers[]` |
+
+**Regression test (`test-iter120-…-without-full-path-prefix.sh`)**
+
+| Case | What it verifies                                                                                                       |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1    | Accessor function `findAllRegistered…BasenameContainsQuery…CaseInsensitively` exported                                 |
+| 2    | Short-name `file-size` returns intended path                                                                           |
+| 3    | Case-insensitive (`FILE-SIZE` == `file-size`); unrelated query returns empty                                           |
+| 4    | CLI catches short-name `file-size-guard` via basename-substring; does NOT fall through to Levenshtein                  |
+| 5    | CLI skips basename-substring when query contains `/` (slash-containing query routes to iter-118 Levenshtein/full-list) |
+| 6    | `--json` on basename query: `matchType=basename-substring` + `matchingConsumerSourceFilePaths` + `markers`             |
+| 7    | `--json` on exact match: `matchType=exact` (symmetric with `basename-substring`)                                       |
+| 8    | iter-118 Levenshtein NOT regressed — still fires on plausible-typo full-path query                                     |
+
+All 8 cases pass. Marketplace regression suite: **54/54** (up from 53).
+
+**Iter-121+ queue**
+
+- **Stale-description audit** (task #144 — deferred since iter-117): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field. Wire as preflight Check 4v informational.
+
 ### Iter-119: `--json` output mode for iter-116 reverse-search CLI — machine-readable structured output for jq pipelines and automation
 
 Iter-119 adds a `--json` flag to the iter-116 reverse-search CLI. When set, the CLI emits a single JSON document to stdout (instead of human-readable terminal blocks) suitable for piping to `jq`, feeding into downstream scripts, or building dashboards. Exit codes are unchanged (`0`/`1`/`2`) so automation can branch on either the exit code OR the JSON shape.

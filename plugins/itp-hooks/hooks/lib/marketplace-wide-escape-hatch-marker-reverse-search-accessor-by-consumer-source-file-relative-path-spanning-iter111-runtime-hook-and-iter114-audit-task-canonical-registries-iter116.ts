@@ -267,6 +267,60 @@ export function rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFro
 }
 
 /**
+ * Iter-120 basename-substring search: returns every registered consumer
+ * path whose BASENAME (segment after the final '/') contains the
+ * operator-supplied query string, compared case-insensitively. Bridges
+ * the gap between exact-path-match (current iter-116 behavior) and
+ * iter-118 Levenshtein fuzzy-match.
+ *
+ * Operator workflow this closes:
+ *
+ *   $ # I want to opt out of file-size-guard. What marker?
+ *   $ # If I type just "file-size-guard" iter-118 rejects (distance
+ *   $ # exceeds floor(queryLen/3) threshold because the full path is
+ *   $ # plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts — 54 chars
+ *   $ # of difference, threshold 6).
+ *   $ # Iter-120 basename-substring catches this: query "file-size-guard"
+ *   $ # is contained in basename "pretooluse-file-size-guard.ts" -> match.
+ *
+ * The caller is responsible for deciding WHEN to invoke this function
+ * (typically: only when exact-path-match has failed AND the query
+ * doesn't already contain a '/' — a query with a slash is presumably
+ * a fully-qualified-but-typo'd path, better served by iter-118
+ * Levenshtein than basename-substring).
+ *
+ * Case-insensitivity is fixed at the function level rather than
+ * configurable: operators don't think in case-sensitive terms for
+ * file basenames, and the iter-111/iter-114 registries currently use
+ * UPPER-KEBAB-CASE marker tokens but lowercase-kebab-case file paths
+ * — so case-folding is the only sensible default.
+ */
+export function findAllRegisteredConsumerSourceFilePathsWhoseBasenameContainsQueryStringCaseInsensitively(
+  operatorSuppliedQueryStringToMatchAgainstBasenames: string,
+): ReadonlyArray<string> {
+  const operatorSuppliedQueryStringNormalizedToLowercase =
+    operatorSuppliedQueryStringToMatchAgainstBasenames.toLowerCase();
+  const allRegisteredConsumerPaths =
+    listAllDistinctConsumerSourceFileRelativePathsAcrossBothRegistriesSortedAlphabetically();
+  return allRegisteredConsumerPaths.filter(
+    (registeredConsumerPath: string) => {
+      // Extract basename = everything after the final '/'. If there is
+      // no '/' in the registered path (none of the current 19 entries
+      // have this shape, but defensive code costs nothing), the whole
+      // path counts as the basename.
+      const finalSlashIndex = registeredConsumerPath.lastIndexOf("/");
+      const registeredConsumerPathBasename =
+        finalSlashIndex === -1
+          ? registeredConsumerPath
+          : registeredConsumerPath.slice(finalSlashIndex + 1);
+      return registeredConsumerPathBasename
+        .toLowerCase()
+        .includes(operatorSuppliedQueryStringNormalizedToLowercase);
+    },
+  );
+}
+
+/**
  * Iter-118 threshold predicate: given the top-ranked candidate's edit
  * distance and the operator-supplied query length, decide whether the
  * candidate is close enough to display as a "Did you mean?" suggestion.
