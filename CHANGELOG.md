@@ -1,3 +1,10 @@
+# [21.31.0](https://github.com/terrylica/cc-skills/compare/v21.30.0...v21.31.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-93 PostToolUse edit-time orchestrator kick-off — Path B (orchestrator inlining) started after iter-92 ruled out Path A (async:true); ty-type-check inlined as first of 15 context-injecting subhooks with new multi-aggregation contract (Promise.all parallel + delimiter-joined additional_context merging vs PreToolUse first-deny-short-circuit) ([7f18e31](https://github.com/terrylica/cc-skills/commit/7f18e31ebd22d2cb05a6390db0f4ffcfd128573c))
+
 # [21.30.0](https://github.com/terrylica/cc-skills/compare/v21.29.0...v21.30.0) (2026-05-21)
 
 
