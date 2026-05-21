@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * PostToolUse hook: ty type checker (iter-93 dual-mode: standalone CLI +
- * orchestrator-imported classifier).
+ * orchestrator-imported classifier; iter-94 async-Bun.spawn refactor).
  *
  * Runs `ty check <file>` after every Write/Edit of a .py/.pyi file.
  * ty is ~60x faster than mypy (4.7ms incremental) so it's hook-viable.
@@ -17,20 +17,39 @@
  *
  * ─── Iter-93 architectural change ─────────────────────────────────────────
  *
- * This file now exports `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator`
+ * This file exports `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator`
  * (the precise algorithm-encoding name) and a symmetric-naming alias
  * `classifyTyTypeCheckForPostToolUseOrchestrator`. The orchestrator
- * (`posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts`)
  * imports the classifier so all PostToolUse subhooks share one bun
  * cold-start instead of N. Standalone-CLI invocation is preserved via the
- * `import.meta.main` guard at the bottom — direct `bun posttooluse-ty-type-check.ts`
- * still works for testing or operators running the hook by hand.
+ * `import.meta.main` guard at the bottom.
  *
- * Iter-93 motivation: iter-92 audit ruled out `async: true` for
- * context-injecting hooks (15 of 17 marketplace PostToolUse hooks) because
- * async hooks cannot reliably inject `additionalContext` next-to-tool-result.
- * The orchestrator inlining strategy (Path B) is the only viable
- * consolidation for this cohort.
+ * ─── Iter-94 performance correction (Bun.spawnSync → Bun.spawn) ──────────
+ *
+ * Iter-93 inherited the legacy synchronous `Bun.spawnSync` from the
+ * pre-orchestrator standalone hook. That was a self-inflicted parallelism
+ * defeat: per Bun's official documentation + 2026 community guidance, ANY
+ * `Bun.spawnSync` invocation halts the entire JS event loop until the
+ * subprocess exits, so wrapping it in `Promise.all` yields ZERO actual
+ * parallelism — N subhooks each calling `Bun.spawnSync(ty)` would
+ * serialize at the OS level even though the orchestrator iterates them
+ * "in parallel" at the JS level.
+ *
+ * Iter-94 swaps to `Bun.spawn` (async): N subhooks spawned concurrently
+ * via `Promise.all` truly overlap at the OS level (posix_spawn(3) lets
+ * the kernel schedule them across cores), and the orchestrator's
+ * wall-clock approaches the SLOWEST subhook instead of the SUM. Empirical
+ * confirmation lives in the iter-94 microbenchmark task. The
+ * `AbortSignal.timeout()` cooperative-cancellation primitive used by the
+ * orchestrator now actually fires the subprocess kill (Bun.spawn honors
+ * the `signal` option natively; spawnSync ignored it because the call
+ * never yields back to the event loop where the abort would observe).
+ *
+ * Static audit task (iter-94)
+ * `audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh`
+ * prevents regression — any classifier imported by the iter-93 orchestrator
+ * that uses `Bun.spawnSync(` will fail the audit (informational gate;
+ * release:preflight Check 4n candidate).
  */
 
 import { mkdirSync, openSync, closeSync, constants, existsSync, writeFileSync } from "node:fs";
@@ -49,6 +68,137 @@ import {
 const TY_INSTALL_REMINDER_PER_SESSION_GATE_DIRECTORY = "/tmp/.claude-ty-install-reminder";
 const PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF = "/tmp/.claude-ty-edits";
 const MAX_TYPE_CHECK_DIAGNOSTIC_LINES_BEFORE_TRUNCATION = 30;
+const TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS = 4000;
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Helpers — async subprocess execution with AbortSignal cooperative timeout
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Async drain of a Bun ReadableStream into a UTF-8 string. The orchestrator-
+ * imported path must NEVER block on subprocess I/O, so we use `Response(stream).text()`
+ * which is the idiomatic 2026 Bun pattern for fully consuming a process stream.
+ * Mirrors the Bun docs example for `Bun.spawn` stdout reading.
+ */
+async function drainBunSubprocessStreamToUtf8Text(
+  stream: ReadableStream<Uint8Array> | undefined,
+): Promise<string> {
+  if (!stream) return "";
+  try {
+    return await new Response(stream).text();
+  } catch {
+    return "";
+  }
+}
+
+interface AsyncSubprocessExecutionResult {
+  exitCode: number | null;
+  stdoutText: string;
+  stderrText: string;
+  spawnFailed: boolean;
+  timedOut: boolean;
+}
+
+/**
+ * Spawn a subprocess asynchronously with AbortSignal-driven cooperative
+ * cancellation. Returns ONE structured result object capturing the four
+ * possible outcomes (clean exit, non-zero exit, spawn-failed-to-start,
+ * timed-out). Never throws — every error path collapses to a flagged result.
+ *
+ * Why this helper exists: every PostToolUse type-checker classifier shares
+ * the same spawn pattern (run external binary, capture stdout/stderr,
+ * respect orchestrator timeout, fail-open on every error). Centralizing
+ * it prevents drift between sibling subhook classifiers.
+ */
+async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain(
+  argv: readonly string[],
+  options: {
+    cwd?: string;
+    timeoutMs: number;
+  },
+): Promise<AsyncSubprocessExecutionResult> {
+  const abortSignal = AbortSignal.timeout(options.timeoutMs);
+  try {
+    const subprocess = Bun.spawn(argv, {
+      cwd: options.cwd,
+      stdout: "pipe",
+      stderr: "pipe",
+      signal: abortSignal,
+    });
+
+    // Drain stdout + stderr CONCURRENTLY with the .exited promise so we
+    // don't deadlock waiting for the process to flush.
+    const [stdoutText, stderrText] = await Promise.all([
+      drainBunSubprocessStreamToUtf8Text(subprocess.stdout as ReadableStream<Uint8Array> | undefined),
+      drainBunSubprocessStreamToUtf8Text(subprocess.stderr as ReadableStream<Uint8Array> | undefined),
+    ]);
+    await subprocess.exited;
+
+    return {
+      exitCode: subprocess.exitCode,
+      stdoutText: stdoutText.trim(),
+      stderrText: stderrText.trim(),
+      spawnFailed: false,
+      timedOut: false,
+    };
+  } catch (raw: unknown) {
+    // Two failure modes collapse here:
+    //   1. Binary not in PATH — Bun.spawn throws on posix_spawn ENOENT
+    //   2. AbortSignal.timeout() fired — subprocess was killed mid-execution
+    const isAbortError = raw instanceof DOMException && raw.name === "AbortError";
+    return {
+      exitCode: null,
+      stdoutText: "",
+      stderrText: raw instanceof Error ? raw.message : String(raw),
+      spawnFailed: !isAbortError,
+      timedOut: isAbortError,
+    };
+  }
+}
+
+/**
+ * Atomically create the ty-install-reminder gate file. Returns true if THIS
+ * call won the create race (we should surface the reminder), false if the
+ * reminder was already surfaced this session (silent noop).
+ *
+ * Race-safe because `O_CREAT | O_EXCL` is atomic at the POSIX layer — if
+ * multiple PostToolUse subhooks all detect missing-binary at once
+ * (e.g., ty + tsgo + oxlint + biome all uninstalled), only ONE wins the
+ * gate. The losers see EEXIST and treat as "already reminded".
+ */
+function tryAtomicallyClaimTyInstallReminderOncePerSessionGateFile(sessionId: string): boolean {
+  try {
+    mkdirSync(TY_INSTALL_REMINDER_PER_SESSION_GATE_DIRECTORY, { recursive: true });
+  } catch {
+    return false;
+  }
+  const gateFile = join(
+    TY_INSTALL_REMINDER_PER_SESSION_GATE_DIRECTORY,
+    `${sessionId}-ty-install.reminded`,
+  );
+  try {
+    const fd = openSync(gateFile, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL);
+    closeSync(fd);
+    return true;
+  } catch {
+    return false; // Lost the race or filesystem error; either way, no reminder
+  }
+}
+
+function touchPythonEditGateFileForStopHookHandoffSwallowingAllFilesystemErrors(
+  sessionId: string,
+): void {
+  try {
+    mkdirSync(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, { recursive: true });
+    writeFileSync(
+      join(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, `${sessionId}.edited`),
+      "",
+      { flag: "w" },
+    );
+  } catch {
+    // Gate file failure is non-critical — continue
+  }
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Pure classifier (orchestrator-imported)
@@ -83,34 +233,25 @@ export async function classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchest
     // Check file exists (may have been deleted between Write/Edit and hook)
     if (!existsSync(filePath)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
-    // Check if ty is installed
-    const tyResolvedPathCheck = Bun.spawnSync(["which", "ty"], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    // Touch the gate file BEFORE running ty so the Stop hook fires its
+    // project-wide check even if ty errors and we early-return.
+    const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown";
+    touchPythonEditGateFileForStopHookHandoffSwallowingAllFilesystemErrors(sessionId);
 
-    if (tyResolvedPathCheck.exitCode !== 0) {
-      // ty not installed — surface a once-per-session install reminder
-      const sessionId = input.session_id || "unknown";
-      const gateFile = join(
-        TY_INSTALL_REMINDER_PER_SESSION_GATE_DIRECTORY,
-        `${sessionId}-ty-install.reminded`,
+    // Run ty check ASYNC via Bun.spawn — does NOT block the event loop, so
+    // the orchestrator's Promise.all genuinely overlaps multiple subhooks.
+    const tyExecutionResult =
+      await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain(
+        ["ty", "check", filePath, "--python-version", "3.13", "--output-format", "concise"],
+        { timeoutMs: TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS },
       );
 
-      try {
-        mkdirSync(TY_INSTALL_REMINDER_PER_SESSION_GATE_DIRECTORY, { recursive: true });
-      } catch {
+    // Spawn-failed-to-start (ENOENT — ty not in PATH) → surface install reminder
+    if (tyExecutionResult.spawnFailed) {
+      const sessionIdForGate = input.session_id || "unknown";
+      if (!tryAtomicallyClaimTyInstallReminderOncePerSessionGateFile(sessionIdForGate)) {
         return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
       }
-
-      try {
-        const fd = openSync(gateFile, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL);
-        closeSync(fd);
-      } catch {
-        // Already reminded this session
-        return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
-      }
-
       return buildPostToolUseAdditionalContextDecision(
         `[TY] Python type checker not installed. Install for instant type checking after every .py edit:
 
@@ -120,44 +261,21 @@ ty is 60x faster than mypy (4.7ms incremental) — fast enough to run on every e
       );
     }
 
-    // Run ty check on the edited file with --python-version 3.13 and concise output
-    const tyCheckSubprocessResult = Bun.spawnSync(
-      ["ty", "check", filePath, "--python-version", "3.13", "--output-format", "concise"],
-      {
-        stdout: "pipe",
-        stderr: "pipe",
-        timeout: 4000, // 4s budget within 5s hook timeout
-      },
-    );
-
-    // Touch gate file to signal Stop hook that Python files were edited
-    try {
-      mkdirSync(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, { recursive: true });
-      const sessionId = input.session_id || process.env.CLAUDE_SESSION_ID || "unknown";
-      writeFileSync(
-        join(PYTHON_EDIT_GATE_DIRECTORY_FOR_STOP_HOOK_HANDOFF, `${sessionId}.edited`),
-        "",
-        { flag: "w" },
-      );
-    } catch {
-      // Gate file failure is non-critical — continue
-    }
+    // Timeout / abort → silent noop (orchestrator already logged the timeout to stderr)
+    if (tyExecutionResult.timedOut) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
     // Exit codes 2 (config error) and 101 (internal bug): treat as ty issue, not type error
-    if (tyCheckSubprocessResult.exitCode === 2 || tyCheckSubprocessResult.exitCode === 101) {
+    if (tyExecutionResult.exitCode === 2 || tyExecutionResult.exitCode === 101) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
     // Clean exit = no type errors
-    if (tyCheckSubprocessResult.exitCode === 0) {
+    if (tyExecutionResult.exitCode === 0) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
     // Collect output (ty writes to stdout in concise mode)
-    const tyStdoutText = tyCheckSubprocessResult.stdout?.toString().trim() || "";
-    const tyStderrText = tyCheckSubprocessResult.stderr?.toString().trim() || "";
-    const tyOutputTextForOperator = tyStdoutText || tyStderrText;
-
+    const tyOutputTextForOperator = tyExecutionResult.stdoutText || tyExecutionResult.stderrText;
     if (!tyOutputTextForOperator) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
     // Parse concise output: count errors vs warnings
@@ -204,9 +322,7 @@ export const classifyTyTypeCheckForPostToolUseOrchestrator =
 
 /**
  * Standalone entry — reads stdin, calls the classifier, emits the legacy
- * `{decision: "block", reason}` JSON when appropriate. Preserved so direct
- * `bun posttooluse-ty-type-check.ts` invocation still works (for testing or
- * operators running the hook by hand).
+ * `{decision: "block", reason}` JSON when appropriate.
  */
 async function runStandaloneCliMain(): Promise<void> {
   let inputText = "";
@@ -229,9 +345,6 @@ async function runStandaloneCliMain(): Promise<void> {
   process.exit(0);
 }
 
-// `import.meta.main` is true ONLY when this file is run directly via bun.
-// When the orchestrator imports this module, `import.meta.main` is false,
-// so the standalone CLI never executes during orchestrator inlining.
 if (import.meta.main) {
   runStandaloneCliMain().catch(() => {
     process.exit(0);

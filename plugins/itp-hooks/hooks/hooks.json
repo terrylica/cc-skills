@@ -216,18 +216,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93 PostToolUse edit-time orchestrator — kicks off the PostToolUse Write|Edit consolidation arc (analogous to iter-84→iter-91 PreToolUse arc) with MULTI-AGGREGATION semantics (runs ALL subhooks, merges non-noop additional_context payloads into one consolidated decision:block reason). First inlined subhook: ty-type-check (other 14 context-injecting PostToolUse hooks queued for iter-94+). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-tsgo-type-check.ts",
-            "timeout": 5000,
-            "description": "tsgo type checker - runs on every .ts/.tsx file edit (~170ms project check)"
+            "description": "Iter-93→iter-94 PostToolUse edit-time orchestrator (2/15 subhooks inlined: ty-type-check + tsgo-type-check). MULTI-AGGREGATION semantics: runs ALL subhooks in parallel via Promise.all, merges non-noop additional_context payloads into ONE consolidated decision:block reason with per-section [orchestrator-subhook: <name>] provenance prefix. Iter-94 critical perf correction: every classifier MUST use Bun.spawn (async) — Bun.spawnSync defeats Promise.all parallelism by blocking the event loop (per Bun docs + 2026 community guidance). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       },

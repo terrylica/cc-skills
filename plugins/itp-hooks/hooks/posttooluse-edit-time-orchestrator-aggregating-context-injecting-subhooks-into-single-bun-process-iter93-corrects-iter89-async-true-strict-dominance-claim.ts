@@ -62,6 +62,7 @@ import type {
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { POSTTOOLUSE_SUBHOOK_NOOP_DECISION } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
+import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsgo-type-check.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -81,7 +82,14 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     timeoutMs: 5000,
     classify: classifyTyTypeCheckForPostToolUseOrchestrator,
     description:
-      "Runs `ty check <file> --python-version 3.13 --output-format concise` after every Write/Edit of a .py/.pyi file. ~4.7ms incremental (60x faster than mypy → hook-viable). Iter-93 first inlined PostToolUse subhook (kicks off the iter-93+ PostToolUse Write|Edit consolidation arc analogous to iter-84→iter-91 PreToolUse arc). Lightest-first registry position: FIRST (cheap O(1) extension+venv filter pre-empts the ty subprocess spawn). Surfaces install reminder once per session if `which ty` fails. Algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (re-exported as `classifyTyTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks).",
+      "Runs `ty check <file> --python-version 3.13 --output-format concise` after every Write/Edit of a .py/.pyi file. ~4.7ms incremental (60x faster than mypy → hook-viable). Iter-93 first inlined PostToolUse subhook (kicks off the iter-93+ PostToolUse Write|Edit consolidation arc analogous to iter-84→iter-91 PreToolUse arc). Iter-94 refactor: spawnSync → Bun.spawn (async) so the orchestrator's Promise.all actually achieves OS-level parallelism with sibling subhooks (per Bun docs + 2026 community guidance — spawnSync inside Promise.all yields ZERO parallelism because it blocks the event loop). Lightest-first registry position: FIRST (cheap O(1) extension+venv filter pre-empts the ty subprocess spawn). Surfaces install reminder once per session on ENOENT from posix_spawn. Algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (re-exported as `classifyTyTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks).",
+  },
+  {
+    name: "tsgo-type-check",
+    timeoutMs: 5000,
+    classify: classifyTsgoTypeCheckForPostToolUseOrchestrator,
+    description:
+      "Runs `tsgo --noEmit` after every Write/Edit of a .ts/.tsx file. tsgo is the native Go TypeScript compiler (~170ms full project check). Iter-94 second inlined PostToolUse subhook (2/15 in the iter-93+ migration arc). Async Bun.spawn from day one (no spawnSync legacy). Project-scoped: walks up to find the nearest tsconfig.json directory and runs from there, then filters output to errors referencing the edited file's tsconfig-relative path (avoids basename collisions when two index.ts files live in different project subdirs). Lightest-first registry position: SECOND (cheap O(1) .ts/.tsx extension filter pre-empts the tsgo subprocess spawn). Algorithm encoded in `classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator` (re-exported as `classifyTsgoTypeCheckForPostToolUseOrchestrator` for symmetric naming).",
   },
 ];
 
@@ -176,16 +184,29 @@ const POSTTOOLUSE_ORCHESTRATOR_AGGREGATED_REASON_SECTION_DELIMITER = "\n\n──
 /**
  * Fold every additional_context subhook contribution into one aggregated
  * reason string, separated by a visual delimiter so Claude sees each
- * subhook's section labeled. If no subhook contributed (every result was
- * `noop`), returns `null` to signal "emit nothing".
+ * subhook's section. Each section is prefixed with a registry-name header
+ * line (iter-94 usability enhancement: when multiple type checkers fire on
+ * the same .ts edit, Claude could previously only distinguish contributors
+ * by their internal `[TY]` / `[TSGO]` etc. tags — those weren't guaranteed
+ * to be present or distinctive. The explicit `[from: registry-name]` line
+ * surfaces orchestration provenance unambiguously). If no subhook
+ * contributed (every result was `noop`), returns `null` to signal
+ * "emit nothing".
+ *
+ * Provenance-prefix invariant: every aggregated section is preceded by a
+ * line of the shape `[orchestrator-subhook: <registry.name>]` so operators
+ * grepping for which subhook contributed which finding can pivot directly
+ * from the aggregated reason to the source file via the registry name.
  */
-function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonString(
+function aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixPerSection(
   results: readonly PostToolUseSubhookExecutionResult[],
 ): string | null {
   const contributingSections: string[] = [];
   for (const result of results) {
     if (result.decision.kind === "additional_context") {
-      contributingSections.push(result.decision.message);
+      contributingSections.push(
+        `[orchestrator-subhook: ${result.name}]\n${result.decision.message}`,
+      );
     }
   }
   if (contributingSections.length === 0) return null;
@@ -242,7 +263,9 @@ async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
   }
 
   const aggregatedReasonOrNull =
-    aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonString(subhookResults);
+    aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixPerSection(
+      subhookResults,
+    );
 
   if (aggregatedReasonOrNull === null) {
     // No subhook contributed context → silent allow (legacy behavior)
