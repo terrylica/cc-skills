@@ -109,6 +109,7 @@ import {
   renderSingleReverseSearchHitAsHumanReadableTerminalBlock,
   rankAllRegisteredConsumerSourceFilePathsByLevenshteinDistanceFromOperatorSuppliedQueryAndReturnTopKClosestMatches,
   isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOneThirdOfQueryLengthAsThreshold,
+  findAllRegisteredConsumerSourceFilePathsWhoseBasenameContainsQueryStringCaseInsensitively,
 } from "$ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH";
 
 const operatorSuppliedConsumerSourceFileRelativePath = "$OPERATOR_SUPPLIED_CONSUMER_SOURCE_FILE_RELATIVE_PATH";
@@ -124,6 +125,73 @@ const reverseSearchHits =
   lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSourceFileRelativePathAcrossBothRegistries(
     operatorSuppliedConsumerSourceFileRelativePath,
   );
+
+// Iter-120: when exact-path-match fails, BEFORE running iter-118
+// Levenshtein fuzzy-match, attempt basename-substring search. Catches
+// the "operator typed only the short name" case (e.g., "file-size-guard"
+// or "cargo-tty") that iter-118's floor(queryLen/3) threshold rejects
+// because the basename is far shorter than the full path. Skip this
+// step when the query contains a '/' — the operator clearly meant a
+// fully-qualified path, so iter-118 Levenshtein is the right tool.
+const operatorQueryContainsSlashIndicatingFullyQualifiedPathRatherThanBasenameQuery =
+  operatorSuppliedConsumerSourceFileRelativePath.includes("/");
+const basenameSubstringMatches =
+  reverseSearchHits.length === 0 &&
+  !operatorQueryContainsSlashIndicatingFullyQualifiedPathRatherThanBasenameQuery
+    ? findAllRegisteredConsumerSourceFilePathsWhoseBasenameContainsQueryStringCaseInsensitively(
+        operatorSuppliedConsumerSourceFileRelativePath,
+      )
+    : [];
+
+if (basenameSubstringMatches.length > 0) {
+  // Iter-120 basename-substring success branch. Resolve each matching
+  // path to its full marker set so the operator sees the complete
+  // suppression options for the consumer they were searching for.
+  const allHitsFoundViaBasenameSubstring = basenameSubstringMatches.flatMap(
+    (matchingConsumerPath) =>
+      lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSourceFileRelativePathAcrossBothRegistries(
+        matchingConsumerPath,
+      ),
+  );
+
+  if (ITER119_JSON_OUTPUT_MODE_REQUESTED_BY_OPERATOR) {
+    const machineReadableBasenameMatchJsonDocument = {
+      status: "found",
+      matchType: "basename-substring",
+      operatorSuppliedQueryString:
+        operatorSuppliedConsumerSourceFileRelativePath,
+      matchingConsumerSourceFilePaths: basenameSubstringMatches,
+      markers: allHitsFoundViaBasenameSubstring.map((reverseSearchHit) => ({
+        lifecycleLayer:
+          reverseSearchHit.originatingRegistryLifecycleLayerTag ===
+          "RUNTIME_HOOK_ITER111"
+            ? "runtime-hook"
+            : "audit-task",
+        registryProvenanceTag:
+          reverseSearchHit.originatingRegistryLifecycleLayerTag,
+        ...reverseSearchHit.matchedRegistryEntry,
+      })),
+    };
+    console.log(JSON.stringify(machineReadableBasenameMatchJsonDocument, null, 2));
+    process.exit(0);
+  }
+
+  console.log(
+    \`✓ No exact path match for "\${operatorSuppliedConsumerSourceFileRelativePath}", but found \${basenameSubstringMatches.length} consumer\${basenameSubstringMatches.length === 1 ? "" : "s"} whose basename contains your query (case-insensitive):\\n\`,
+  );
+  for (const matchingConsumerPath of basenameSubstringMatches) {
+    console.log(\`  \${matchingConsumerPath}\`);
+  }
+  console.log("");
+  for (let basenameHitIndex = 0; basenameHitIndex < allHitsFoundViaBasenameSubstring.length; basenameHitIndex++) {
+    const reverseSearchHit = allHitsFoundViaBasenameSubstring[basenameHitIndex];
+    console.log(renderSingleReverseSearchHitAsHumanReadableTerminalBlock(reverseSearchHit));
+    if (basenameHitIndex < allHitsFoundViaBasenameSubstring.length - 1) {
+      console.log("");
+    }
+  }
+  process.exit(0);
+}
 
 if (reverseSearchHits.length === 0) {
   // Iter-118: rank registered paths by Levenshtein edit distance from the
@@ -207,14 +275,16 @@ if (reverseSearchHits.length === 0) {
 }
 
 if (ITER119_JSON_OUTPUT_MODE_REQUESTED_BY_OPERATOR) {
-  // Iter-119 JSON-found branch. Each hit is normalized into a flat shape
-  // that preserves the iter-116 discriminated-union lifecycle-layer tag
-  // alongside the full registry entry. Downstream consumers can branch
-  // on the lifecycleLayer field (string-valued: "runtime-hook" or
-  // "audit-task") without unpacking the discriminated-union TypeScript
-  // shape.
+  // Iter-119 JSON-found branch (now iter-120 enhanced with matchType).
+  // Each hit is normalized into a flat shape that preserves the iter-116
+  // discriminated-union lifecycle-layer tag alongside the full registry
+  // entry. Downstream consumers can branch on the lifecycleLayer field
+  // (string-valued: "runtime-hook" or "audit-task") and the matchType
+  // field ("exact" | "basename-substring") without unpacking the
+  // discriminated-union TypeScript shape.
   const machineReadableFoundJsonDocument = {
     status: "found",
+    matchType: "exact",
     consumerSourceFileRelativePath:
       operatorSuppliedConsumerSourceFileRelativePath,
     markers: reverseSearchHits.map((reverseSearchHit) => ({
