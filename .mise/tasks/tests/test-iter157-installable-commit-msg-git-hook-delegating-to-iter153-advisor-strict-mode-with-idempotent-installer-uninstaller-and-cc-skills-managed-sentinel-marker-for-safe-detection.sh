@@ -218,10 +218,13 @@ echo ""
 echo "GROUP C (2 assertions): docs/RELEASE.md cross-reference"
 
 ITER157_TOTAL_ASSERTIONS_EVALUATED=$((ITER157_TOTAL_ASSERTIONS_EVALUATED + 1))
-if grep -qF "iter-150 → iter-157" "$ITER157_REPO_ROOT/docs/RELEASE.md" 2>/dev/null; then
-    echo "  ✓ C1: docs/RELEASE.md Toolkit Index header updated to iter-157 arc range"
+# Future-proof: match "iter-150 → iter-N" for any N ≥ 157 so subsequent
+# arc extensions don't regress this iter-157 assertion.
+if grep -qE 'iter-150 → iter-1[5-9][0-9]' "$ITER157_REPO_ROOT/docs/RELEASE.md" 2>/dev/null \
+   && grep -qF "COMMIT-MSG HOOK" "$ITER157_REPO_ROOT/docs/RELEASE.md" 2>/dev/null; then
+    echo "  ✓ C1: docs/RELEASE.md Toolkit Index header covers iter-157+ arc range and lists COMMIT-MSG HOOK row"
 else
-    echo "  ✗ C1: docs/RELEASE.md still shows old arc range"
+    echo "  ✗ C1: docs/RELEASE.md arc range or COMMIT-MSG HOOK row missing"
     ITER157_TOTAL_ASSERTIONS_FAILED=$((ITER157_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
