@@ -1,3 +1,10 @@
+# [21.44.0](https://github.com/terrylica/cc-skills/compare/v21.43.0...v21.44.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-113 introduce deterministic registry-to-docs generator emitting operator-facing marketplace-escape-hatch-marker-reference.md from iter-111 canonical registry as single source of truth plus byte-identical idempotency invariant plus drift-detection preflight check 4u closing the operator-discoverability gap left by iter-111 ([4de00d2](https://github.com/terrylica/cc-skills/commit/4de00d2925ecdd4e6eaf1f9559c9d3b2432daff1))
+
 # [21.43.0](https://github.com/terrylica/cc-skills/compare/v21.42.0...v21.43.0) (2026-05-21)
 
 
