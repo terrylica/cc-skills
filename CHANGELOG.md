@@ -1,3 +1,10 @@
+# [21.46.0](https://github.com/terrylica/cc-skills/compare/v21.45.0...v21.46.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-115 promote release-preflight check 4t iter-111 producer-side escape-hatch-marker typo audit and check 4u iter-113 registry-to-docs drift detector from informational to strict-block now that both canonical marker registries are stabilized at 12-runtime-plus-8-audit-task entries closing the strict-promotion candidate documented at end of iter-114 ([b52a992](https://github.com/terrylica/cc-skills/commit/b52a9929615fde32f6bc8f1faa5b068d8514dc82))
+
 # [21.45.0](https://github.com/terrylica/cc-skills/compare/v21.44.0...v21.45.0) (2026-05-21)
 
 
