@@ -1,3 +1,10 @@
+# [21.80.0](https://github.com/terrylica/cc-skills/compare/v21.79.0...v21.80.0) (2026-05-21)
+
+
+### Features
+
+* **iter-184:** canonical outlier-warning surface in JSON envelope ([da7b81e](https://github.com/terrylica/cc-skills/commit/da7b81eddc82ec290bd72356bc249825e2151209)), closes [#481](https://github.com/terrylica/cc-skills/issues/481)
+
 # [21.79.0](https://github.com/terrylica/cc-skills/compare/v21.78.0...v21.79.0) (2026-05-21)
 
 
