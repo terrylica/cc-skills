@@ -1,3 +1,15 @@
+# [21.71.0](https://github.com/terrylica/cc-skills/compare/v21.70.0...v21.71.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **release:** iter-163 test parallel-safe Group E ([2f24404](https://github.com/terrylica/cc-skills/commit/2f24404dfdc4bb8ec2687a7fcf58d23e8d3d1b38))
+
+
+### Features
+
+* **release:** iter-163 doctor covers 161-162 ([ddd80a9](https://github.com/terrylica/cc-skills/commit/ddd80a954a39bcfa2d7f6a114f26d65726dd8068))
+
 # [21.70.0](https://github.com/terrylica/cc-skills/compare/v21.69.0...v21.70.0) (2026-05-21)
 
 
