@@ -1,3 +1,10 @@
+## [21.57.1](https://github.com/terrylica/cc-skills/compare/v21.57.0...v21.57.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **preflight:** iter-138 absorb-chronicle-slicing-37-assertion-regression-test-into-marketplace-hook-regression-suite-auto-discovery-by-relocating-it-from-dot-mise-tasks-release-test-chronicle-slicing-to-dot-mise-tasks-tests-test-chronicle-slicing-thirty-seven-assertion-stress-test-against-boundary-mtimes-jsonl-vs-brotli-subagent-recursion-and-visibility-gate-parsing-dot-sh-eliminating-the-previous-sequential-check-4d-six-hundred-seventy-ms-cost-from-preflight-while-incurring-zero-wall-clock-increase-to-check-4e-because-the-chronicle-test-runs-concurrent-with-the-eleven-hundred-thirty-five-ms-longest-marketplace-test-inside-xargs-p-parallel-batch-net-fourteen-percent-preflight-wall-clock-reduction-from-four-thousand-nine-hundred-fifty-eight-ms-to-four-thousand-two-hundred-eighty-eight-ms-also-unifies-the-regression-test-discovery-convention-to-a-single-glob-pattern ([60f43b1](https://github.com/terrylica/cc-skills/commit/60f43b1a6a5c6da11b0486c5d19258a6e284055c))
+
 # [21.57.0](https://github.com/terrylica/cc-skills/compare/v21.56.3...v21.57.0) (2026-05-21)
 
 
