@@ -189,11 +189,16 @@ else
     assert_fails "Case 9: orchestrator misbehaved on .txt; exit=$case9_exit stdout='${case9_stdout:0:200}'"
 fi
 
-# ─── Case 10: orchestrator description bumped to 5/15 ─────────────────────────
-if jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -qE '5/15 subhooks inlined'; then
-    assert_passes "Case 10: hooks.json orchestrator description records 5/15 milestone + iter-96 enhancements"
+# ─── Case 10: orchestrator description records iter-96 milestone or later ─────
+# Forward-compat relaxation: assert progress is AT LEAST 5/15 (iter-96
+# milestone) rather than EXACTLY 5/15. Later iterations bumping the count
+# (iter-97 → 6/15, iter-98 → 7/15, etc.) must not regress this test.
+case10_inlined_count=$(jq -r '.hooks.PostToolUse[].hooks[] | select(.command | test("posttooluse-edit-time-orchestrator-aggregating")) | .description' "$HOOKS_JSON_ABSOLUTE_PATH" 2>/dev/null | grep -oE '[0-9]+/15 subhooks inlined' | head -1 | grep -oE '^[0-9]+' || echo 0)
+case10_inlined_count=${case10_inlined_count:-0}
+if [[ "${case10_inlined_count}" -ge 5 ]]; then
+    assert_passes "Case 10: hooks.json orchestrator description records iter-96 milestone or later (5/15 baseline reached; current ${case10_inlined_count}/15)"
 else
-    assert_fails "Case 10: orchestrator description not updated to 5/15"
+    assert_fails "Case 10: orchestrator description progress regressed below iter-96 baseline (5/15); found ${case10_inlined_count}/15"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
