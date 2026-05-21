@@ -115,5 +115,12 @@ esac
 # (COMPOUND-PREFIX, MISSING-TYPE) while keeping the iter-150 50/72 long-subject
 # overlay informational. The advisor prints its own verdict + remediation
 # banner to stderr; we just forward the exit code.
+#
+# Iter-162: switched from `-- "$SUBJECT_LINE"` to `--message-file
+# "$COMMIT_MSG_FILE"` so the advisor can see the FULL multi-line commit
+# message (subject + body) and apply iter-162 BREAKING-CHANGE footer-
+# token detection per Conventional Commits §13. The advisor still
+# extracts the subject internally via the same first-non-comment-non-
+# blank-line convention this hook used.
 
-exec "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" --strict -- "$ITER157_PROPOSED_SUBJECT_LINE"
+exec "$ITER157_ITER153_ADVISOR_ABSOLUTE_PATH" --strict --message-file "$ITER157_COMMIT_MSG_FILE_ABSOLUTE_PATH"
