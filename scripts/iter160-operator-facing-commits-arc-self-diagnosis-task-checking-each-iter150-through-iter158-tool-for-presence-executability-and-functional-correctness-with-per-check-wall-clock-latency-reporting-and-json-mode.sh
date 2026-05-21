@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# FILE-SIZE-OK: iter-160 doctor is a single-file brew-doctor-style
+# diagnostic tool with 12 sequential health checks (iter-150 → iter-162
+# coverage post-iter-163 extension). Splitting the file would fragment
+# the check sequence across multiple files and hurt operator readability
+# — the linear top-to-bottom progression IS the design. ~590 lines fits
+# comfortably under the 1000-line hard block. Reviewed iter-163.
 #
 # iter-160 operator-facing commits arc self-diagnosis task.
 #
@@ -392,7 +398,112 @@ else
         "critical" "fail" "0" "manifest missing at $ITER160_ITER158_MANIFEST_ABSOLUTE_PATH"
 fi
 
-# ─── Check 9: pre-commit binary available for iter-158 polyglot path (WARN) ─
+# ─── Check 9: iter-161 semver-bump classifier shared lib (CRITICAL) ─────────
+#
+# Iter-163 coverage extension: the iter-153 advisor SOURCES this lib at
+# runtime to compute the MAJOR/MINOR/PATCH/NONE bump preview. If the
+# lib is missing or the canonical classifier function is undefined, the
+# advisor soft-fails (degrades to "UNAVAILABLE" preview) — which means
+# the iter-160 doctor previously reported TOOLKIT_HEALTHY even though
+# the advisor's semver-bump preview feature was silently broken. Iter-
+# 163 closes this silent-regression gap by adding direct verification.
+
+ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter161-semantic-release-version-bump-classifier-mapping-conventional-commit-type-and-breaking-change-marker-to-the-actual-major-minor-patch-bump-per-cc-skills-releaserc-yml-bump-rules-for-pre-commit-preview-overlay.sh"
+if [[ -f "$ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "source '$ITER163_ITER161_SEMVER_BUMP_CLASSIFIER_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter161_classify_semantic_release_version_bump_from_conventional_commit_type_and_breaking_change_marker_against_cc_skills_releaserc_yml_release_rules >/dev/null"
+    iter163_iter161_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter163_iter161_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter163_iter161_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter161_semver_bump_classifier_library" \
+            "iter-161 semver-bump classifier shared library sources cleanly + exports canonical function" \
+            "critical" "pass" "$iter163_iter161_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter161_semver_bump_classifier_library" \
+            "iter-161 semver-bump classifier library" \
+            "critical" "fail" "$iter163_iter161_ms" \
+            "library failed to source or canonical classifier function missing"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter161_semver_bump_classifier_library" \
+        "iter-161 semver-bump classifier library" \
+        "critical" "fail" "0" "library missing"
+fi
+
+# ─── Check 10: iter-162 BREAKING-CHANGE footer detector lib (CRITICAL) ──────
+
+ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter162-conventional-commits-breaking-change-footer-token-detector-applying-uppercase-required-and-blank-line-separator-rules-per-conventional-commits-v1-section-13-and-semantic-release-commit-analyzer-default-angular-preset-behavior.sh"
+if [[ -f "$ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "source '$ITER163_ITER162_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && declare -F iter162_detect_conventional_commits_breaking_change_footer_token_at_start_of_any_line_in_commit_message_body_per_section_13_uppercase_required_rule_and_angular_preset_plural_synonym_acceptance >/dev/null"
+    iter163_iter162_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter163_iter162_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter163_iter162_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter162_breaking_change_footer_detector_library" \
+            "iter-162 BREAKING-CHANGE footer-token detector library sources cleanly + exports canonical function" \
+            "critical" "pass" "$iter163_iter162_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter162_breaking_change_footer_detector_library" \
+            "iter-162 footer detector library" \
+            "critical" "fail" "$iter163_iter162_ms" \
+            "library failed to source or canonical detector function missing"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter162_breaking_change_footer_detector_library" \
+        "iter-162 footer detector library" \
+        "critical" "fail" "0" "library missing"
+fi
+
+# ─── Check 11: iter-153 → iter-161 → iter-162 end-to-end chain probe (CRITICAL)
+#
+# Iter-163 end-to-end chain probe: structural lib checks (9, 10) prove
+# each lib loads in isolation, but DON'T prove the iter-153 advisor
+# correctly wires them together. This probe runs a synthetic
+# --message-file fixture (subject `feat: foo` + body footer `BREAKING
+# CHANGE: bar`) through the real advisor and asserts the iter-161 bump
+# label is MAJOR — the exact value iter-162 footer detection enables.
+# If any link in the chain regresses (iter-153 stops sourcing iter-161
+# or iter-162, iter-153 stops OR'ing the footer flag, iter-161 stops
+# accepting boolean input, iter-162 stops emitting the correct
+# variant), this probe fails CRITICAL.
+
+ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH=$(mktemp -t iter163-end-to-end-chain-probe-XXXXXX)
+printf 'feat: synthetic iter-163 probe subject\n\nthis is a body explaining the change.\n\nBREAKING CHANGE: synthetic body footer for chain probe\n' \
+    > "$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH"
+
+ITER163_END_TO_END_PROBE_EXPECTED_BUMP_LABEL_FROM_INTACT_ITER153_TO_ITER161_TO_ITER162_CHAIN="MAJOR"
+if [[ -x "$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
+    iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
+        bash -c "\"$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH\" --json --message-file \"$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH\" 2>/dev/null | grep -q '\"bump_label_per_cc_skills_releaserc_yml_rules\": \"$ITER163_END_TO_END_PROBE_EXPECTED_BUMP_LABEL_FROM_INTACT_ITER153_TO_ITER161_TO_ITER162_CHAIN\"'"
+    iter163_end_to_end_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
+    iter163_end_to_end_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
+    if [[ "$iter163_end_to_end_exit" -eq 0 ]]; then
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter163_end_to_end_advisor_chain_probe" \
+            "iter-163 end-to-end iter-153→iter-161→iter-162 chain probe (synthetic footer-form fixture → MAJOR)" \
+            "critical" "pass" "$iter163_end_to_end_ms"
+    else
+        iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+            "iter163_end_to_end_advisor_chain_probe" \
+            "iter-163 end-to-end advisor chain probe" \
+            "critical" "fail" "$iter163_end_to_end_ms" \
+            "synthetic footer-form fixture failed to produce MAJOR bump — chain wiring regressed"
+    fi
+else
+    iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
+        "iter163_end_to_end_advisor_chain_probe" \
+        "iter-163 end-to-end advisor chain probe" \
+        "critical" "fail" "0" "iter-153 advisor not executable"
+fi
+rm -f "$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH"
+
+# ─── Check 12: pre-commit binary available for iter-158 polyglot path (WARN) ─
 
 if command -v pre-commit >/dev/null 2>&1; then
     ITER160_PRE_COMMIT_BINARY_VERSION_STRING_TRIMMED=$(pre-commit --version 2>&1 | head -1)
