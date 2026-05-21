@@ -1,3 +1,10 @@
+# [21.30.0](https://github.com/terrylica/cc-skills/compare/v21.29.0...v21.30.0) (2026-05-21)
+
+
+### Features
+
+* **release-gate:** iter-92 PostToolUse async:true eligibility audit task + regression test + RETROACTIVE correction of iter-89's 'Path A strict-dominance' claim (15 of 17 marketplace-wide PostToolUse hooks proven async-UNSAFE because they emit decision:block or additionalContext for self-correction feedback loop) ([3b595cc](https://github.com/terrylica/cc-skills/commit/3b595ccad3356fad3e0b3f1bde6b855dbddb2dfd)), closes [#96](https://github.com/terrylica/cc-skills/issues/96) [#100](https://github.com/terrylica/cc-skills/issues/100) [#100](https://github.com/terrylica/cc-skills/issues/100)
+
 # [21.29.0](https://github.com/terrylica/cc-skills/compare/v21.28.0...v21.29.0) (2026-05-21)
 
 
