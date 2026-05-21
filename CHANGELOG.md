@@ -1,3 +1,10 @@
+## [21.19.1](https://github.com/terrylica/cc-skills/compare/v21.19.0...v21.19.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release-gate:** iter-79 replace fork-storm in Check 4f + 4h with shared single-pass awk classifier (iter-74 pattern applied to schema-correctness audits) ([604529e](https://github.com/terrylica/cc-skills/commit/604529e7241a5395c8ca7e66d1aeb379a1f06901))
+
 # [21.19.0](https://github.com/terrylica/cc-skills/compare/v21.18.1...v21.19.0) (2026-05-21)
 
 
