@@ -395,6 +395,17 @@ Three strategies, ordered by leverage:
 | 2. AOT-compile hooks via `bun build --compile`                                                           | medium               | ~few ms per hook                      | Marginal, composable with #1                                       |
 | 3. Within-hook fastpath (raw-stdin substring check before JSON parse)                                    | low                  | ~5-8 ms per hook on bail-out paths    | Useful but marginal — savings hard-capped by bun-startup floor     |
 
+### Community-validation of the orchestrator direction (iter-83 web research)
+
+Iter-83 web research confirms strategy #1 above is the convergent 2026 best-practice in the broader Claude Code community:
+
+- **[claude-code-workflow-orchestration](https://github.com/barkain/claude-code-workflow-orchestration)** consolidated 3 hooks into 1 Python script with a "stub orchestrator" pattern: ~1.1KB stub injected at SessionStart, full orchestrator (~7.5KB) loaded only on first delegation. Same architecture as iter-66 `stop-orchestrator.ts` but applied to SessionStart, saving ~6.6K tokens.
+- **[Morph LLM's Claude Code as Orchestrator (2026)](https://www.morphllm.com/claude-orchestrator)** documents the 12 lifecycle hook events and identifies PreToolUse/PostToolUse + SubagentStart/SubagentStop as the highest-leverage consolidation targets.
+- **[Boris Cherny's own setup](https://www.clarista.io/blog/claude-code-best-practices)** (Claude Code's creator) uses `bun run format` as a PostToolUse hook, validating the Bun-first hook language policy in the cc-skills marketplace.
+- **[Obvious Works 2026 architecture guide](https://www.obviousworks.ch/en/designing-claude-md-right-the-2026-architecture-that-finally-makes-claude-code-work/)** flags Hooks + Skills + Multi-session as the three load-bearing systems that distinguish "experienced teams from amateur users by end of Q2 2026."
+
+These independent practitioners converged on the same insight that iter-80's measurement crystallized: bun spawn count, not in-hook logic, dominates edit-time hook overhead. Future iter-83+ work building the actual PreToolUse orchestrator follows a well-trodden community path.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
