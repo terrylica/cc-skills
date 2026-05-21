@@ -40,17 +40,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
             "timeout": 15000,
-            "description": "Iter-84/85/86/87/88/89 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching the community 8-15ms benchmarks surfaced by iter-86 web research and Bun 1.3 single-digit-ms cold-start range surfaced by iter-89 web research). Per iter-87 empirical re-projection, final-state savings ≈ (8-1) × 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, gpu-optimization-guard, file-size-guard. Iter-90+ migrates remaining Write|Edit subhooks (native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout — idiomatic 2026 Web Platform API pattern). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task."
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-native-binary-guard.ts",
-            "timeout": 5000
+            "description": "Iter-84/85/86/87/88/89/90 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching the community 8-15ms benchmarks surfaced by iter-86 web research and Bun 1.3 single-digit-ms cold-start range surfaced by iter-89 web research). Per iter-87 empirical re-projection, final-state savings ≈ (8-1) × 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard, file-size-guard. Iter-91 migrates the final Write|Edit subhook (vale-claude-md-guard) to complete the 8/8 PreToolUse migration arc. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout — idiomatic 2026 Web Platform API pattern). PreToolUse additionalContext silent-drop NON-USE invariant verified marketplace-wide (iter-90 audit per GitHub #15664). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task."
           }
         ]
       },
