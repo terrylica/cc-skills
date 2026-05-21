@@ -38,16 +38,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-gpu-optimization-guard.ts",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-mise-hygiene-guard.ts",
             "timeout": 5000
           }
@@ -70,7 +60,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
             "timeout": 15000,
-            "description": "Iter-84/85/86 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the ~44ms bun cold-start (measured iter-80) across the registry instead of paying it N times. Per iter-81 ranker, final-state savings = (8-1) × 44 = 308ms per Write|Edit. Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, file-size-guard. Iter-87+ migrates remaining Write|Edit subhooks (gpu-optimization, mise-hygiene, pyi-stub, native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler per iter-85 audit. Subhook contract violations gated preventively by iter-86 audit task (audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh)."
+            "description": "Iter-84/85/86/87 in-process orchestrator: combines multiple Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching the community 8-15ms benchmarks surfaced by iter-86 web research). Per iter-87 empirical re-projection, final-state savings ≈ (8-1) × 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, gpu-optimization-guard, file-size-guard. Iter-88+ migrates remaining Write|Edit subhooks (mise-hygiene, pyi-stub, native-binary, vale-claude-md) one per iter. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout — idiomatic 2026 Web Platform API pattern). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task."
           }
         ]
       },
