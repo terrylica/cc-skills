@@ -1,3 +1,10 @@
+# [21.38.0](https://github.com/terrylica/cc-skills/compare/v21.37.0...v21.38.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-103 marketplace-wide NotebookEdit applicability audit + per-classifier matrix (file-path-suffix vs content-pattern dichotomy) + wires preflight Check 4p as INFORMATIONAL-ONLY preventive-gate variant + iter-103 regression test ([32f0dcc](https://github.com/terrylica/cc-skills/commit/32f0dcc17400b8b4b61d9a49278ffe1630817aca)), closes [hi#value](https://github.com/hi/issues/value) [anthropics/claude-code#18538](https://github.com/anthropics/claude-code/issues/18538)
+
 # [21.37.0](https://github.com/terrylica/cc-skills/compare/v21.36.0...v21.37.0) (2026-05-21)
 
 
