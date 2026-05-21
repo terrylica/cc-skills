@@ -188,8 +188,24 @@ function isExcluded(config: GuardConfig, filePath: string): boolean {
   return false;
 }
 
+// Iter-110: migrated to the iter-107 canonical shared escape-hatch-marker
+// detection helper. Closes the iter-107 → iter-109 migration arc by
+// converting the last hand-rolled escape-hatch consumer (config-string-
+// based, not regex-literal-based — which is why earlier iters' inventory
+// audit didn't flag this hook). Behavior-preserving: the pre-iter-110
+// implementation was `content.includes(escapeComment)`, which is exactly
+// what the helper's CASE_SENSITIVE mode does (pure substring match).
+// Distinguishing feature of file-size-guard: the marker token is loaded
+// at runtime from per-project config (default "FILE-SIZE-OK", overridable
+// via .claude/file-size-guard.json), so the marker is supplied via the
+// classifier's `config.escapeComment` field rather than a hardcoded
+// configuration object at module load time.
+import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 function hasEscapeComment(content: string, escapeComment: string): boolean {
-  return content.includes(escapeComment);
+  return hasFileWideEscapeHatchMarkerInContent(content, {
+    markerNameTokenIncludingSuffix: escapeComment,
+    caseSensitivityMode: "CASE_SENSITIVE",
+  });
 }
 
 /**

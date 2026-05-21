@@ -1430,9 +1430,69 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 **Iter-108 regression test enhancement**: added a new Case 9 probe to the iter-107 regression test that exercises `caseSensitivityMode`: lowercase marker `# foo-ok` with `CASE_SENSITIVE` does NOT match configured token `FOO-OK`; same lowercase with `CASE_INSENSITIVE` DOES match; uppercase always matches under both modes. Marketplace regression suite: 44/44 PASS (iter-107 test extended to 9 assertions, no new files added).
 
+**Iter-110 (arc-complete) update**: file-size-guard migrated, audit promoted to STRICT-BLOCK, marketplace fully consolidated. See iter-110 section below.
+
 **Iter-109+ migration roadmap** (the remaining 5 hooks):
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
+
+### Iter-110: Close iter-107 → iter-109 escape-hatch consolidation arc with file-size-guard migration + audit STRICT-BLOCK promotion + multi-marker probe
+
+Iter-110 closes the iter-107 → iter-109 migration arc by delivering the final 3 pieces:
+
+**1. file-size-guard migration (the last hand-rolled consumer)**
+
+`pretooluse-file-size-guard.ts` was the last marketplace hook with hand-rolled escape-hatch detection, but its implementation used a CONFIG-STRING pattern (`content.includes(config.escapeComment)` where `escapeComment` is loaded at runtime from `.claude/file-size-guard.json`) rather than a regex literal. This kept it invisible to the iter-107 inventory audit's regex-literal heuristic (catching it would require a different scan). Iter-110 migrates by routing `hasEscapeComment(content, escapeComment)` through `hasFileWideEscapeHatchMarkerInContent(content, { markerNameTokenIncludingSuffix: escapeComment, caseSensitivityMode: "CASE_SENSITIVE" })` — behavior-preserving since `content.includes` IS what the helper's CASE_SENSITIVE mode does internally. The distinguishing feature of file-size-guard (operator-overridable marker token via per-project config) composes cleanly because the helper accepts arbitrary marker tokens at runtime.
+
+**2. Audit promoted from informational to STRICT-BLOCK**
+
+The iter-107 inventory audit was informational since its introduction (intentional — gave operators a one-iter visibility window before enforcement). Iter-110 promotes to STRICT-BLOCK with TWO release-blocking invariants:
+
+| Invariant                                                                                                    | Catches                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| (1) NO hand-rolled escape-hatch-marker regex detection in any hook source file                               | A new hook author bypassing the canonical shared helper (heuristic: `ESCAPE_HATCH=` or `/MARKER-OK/` regex literal) |
+| (2) ALL 8 canonical cohort members import the iter-107 shared helper (curated list in the audit task source) | Silent removal of a previously-migrated helper consumption (e.g., a refactor that accidentally drops the import)    |
+
+The curated 8-cohort list is now the SSoT for marketplace escape-hatch consumers and lives at the top of the audit task script. When a new hook adds an escape-hatch comment, the discipline is: (a) migrate to the shared helper at authorship time + (b) add to the curated cohort.
+
+**3. Multi-marker probe (Case 10) added to the iter-107 regression test**
+
+Iter-109's cargo-tty-guard migration introduced the first multi-marker pattern (one hook calling the helper with TWO different marker configurations: `CARGO-TTY-SKIP` opt-out + `CARGO-TTY-WRAP` opt-in). Iter-110 adds Case 10 to the iter-107 regression test that probes this pattern programmatically — verifies the helper has no hidden global state and each call is independent (`SKIP` marker matches command with `SKIP` only; `WRAP` marker matches command with `WRAP` only; neither marker matches command with neither). Documents the multi-marker pattern as an explicit API contract.
+
+**Marketplace state after iter-110 (FINAL — arc complete)**:
+
+| Hook                                                        | Marker(s)                             | Window mode                      | Case mode          | Migrated iter  |
+| ----------------------------------------------------------- | ------------------------------------- | -------------------------------- | ------------------ | -------------- |
+| `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` | `LAYER3-STRIPPED-PATH-OK`             | `SAME_LINE_OR_PRECEDING_N_LINES` | `CASE_SENSITIVE`   | iter-107       |
+| `pretooluse-version-guard.ts`                               | `SSoT-OK`                             | `FILE_WIDE`                      | `CASE_SENSITIVE`   | iter-108       |
+| `pretooluse-inline-ignore-guard.ts`                         | `INLINE-IGNORE-OK`                    | `SAME_LINE_ONLY`                 | `CASE_SENSITIVE`   | iter-108       |
+| `pretooluse-native-binary-guard.ts`                         | `BASH-LAUNCHD-OK`                     | `FILE_WIDE`                      | `CASE_INSENSITIVE` | iter-109       |
+| `process-storm-patterns.mjs`                                | `PROCESS-STORM-OK`                    | `FILE_WIDE`                      | `CASE_INSENSITIVE` | iter-109       |
+| `cwd-deletion-patterns.mjs`                                 | `CWD-DELETE-OK`                       | `FILE_WIDE`                      | `CASE_INSENSITIVE` | iter-109       |
+| `pretooluse-cargo-tty-guard.ts`                             | `CARGO-TTY-SKIP` + `CARGO-TTY-WRAP`   | `FILE_WIDE`                      | `CASE_INSENSITIVE` | iter-109       |
+| `pretooluse-file-size-guard.ts`                             | `FILE-SIZE-OK` (operator-overridable) | `FILE_WIDE`                      | `CASE_SENSITIVE`   | **iter-110 ★** |
+
+**Iter-110 regression validation**:
+
+- iter-107 regression test extended to 10 assertions (Case 10 multi-marker probe added); 10/10 PASS
+- iter-110 strict-mode audit: PASSED — 8/8 canonical cohort migrated, 0 hand-rolled detections
+- preflight Check 4s upgraded from informational to STRICT-BLOCK (audit non-zero exit now fails preflight)
+- Marketplace regression suite: 44/44 PASS
+
+**Iter-107 → iter-110 arc summary** (the escape-hatch consolidation arc, complete):
+
+| Iter     | Deliverable                                                                                                                  | Net change                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| iter-107 | Canonical shared helper + 3 window-semantics modes + reason-policy gate + iter-78 migration as proof-of-integration + audit  | 1 hook migrated; audit informational                      |
+| iter-108 | `caseSensitivityMode` extension + version-guard FILE_WIDE + inline-ignore-guard SAME_LINE_ONLY                               | 3 hooks migrated; audit still informational               |
+| iter-109 | Batch-migrate 4 CASE_INSENSITIVE consumers (native-binary, process-storm, cwd-deletion, cargo-tty 2-marker) + biome side-fix | 7 hooks migrated; audit still informational               |
+| iter-110 | file-size-guard migration + audit STRICT-BLOCK promotion + multi-marker probe                                                | **8/8 hooks migrated; audit enforced as release blocker** |
+
+**Iter-111+ candidates** (post-arc):
+
+1. Drop `@deprecated` legacy `ESCAPE_HATCH` regex constants from `process-storm-patterns.mjs` + `cwd-deletion-patterns.mjs` once the `process-storm-patterns.test.mjs` consumers migrate to import the helper directly.
+2. Extract the iter-95 async-spawn helper (`executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail`) to a third dedicated shared-lib file IF PreToolUse classifiers adopt async subprocess execution (preventive — same iter-106 awkwardness pattern).
+3. Cross-plugin sweep: scan plugins OUTSIDE itp-hooks for any hand-rolled escape-hatch patterns that should also migrate to the canonical helper (e.g., other plugins that ship hooks with opt-out comments).
 
 ### Iter-109: Batch-migrate 4 CASE_INSENSITIVE consumers + surface pre-existing biome lint bug as iter-109 side-effect cleanup
 
