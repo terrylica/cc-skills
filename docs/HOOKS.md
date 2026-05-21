@@ -1494,6 +1494,59 @@ All 8 cases pass. Marketplace regression suite: **54/54** (up from 53).
 
 - **Stale-description audit** (task #144 — deferred since iter-117): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field. Wire as preflight Check 4v informational.
 
+### Iter-121: Stale-description audit — catches operator-doc drift when a hook/audit-task is renamed but the registry's human-readable description still references the OLD name
+
+Iter-121 closes the final undocumented gap in the iter-111/iter-114 canonical-registry hardening arc. Pre-iter-121, neither Check 4t (iter-111 producer-typo audit) nor Check 4u (iter-113 doc-drift detector) cross-checked description-text content against entry identity — both only verified spelling and byte-identical regeneration. An operator renaming `pretooluse-file-size-guard.ts` → `pretooluse-file-size-and-line-count-guard.ts` who updated `consumerHookSourceFileRelativePath` but forgot to update `humanReadableEscapeHatchDescriptionForOperatorDocumentation` would land a description body that contradicts its own consumer-path heading in the regenerated reference doc.
+
+**Algorithm: discriminating-hyphen-segment mention invariant**
+
+For every entry across BOTH canonical registries (12 iter-111 runtime-hook + 8 iter-114 audit-task = 20 baseline entries):
+
+| Step | Action                                                                                                                                                                                                                                                                                                      |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Extract marker discriminating segments: split `markerNameTokenIncludingSuffix` by `-`, lowercase, drop universal suffix stoplist `{OK, SKIP, WRAP}`                                                                                                                                                         |
+| 2    | Extract basename discriminating segments: basename of consumer-path → strip extension → split by `-` → drop generic-prefix stoplist (`pretooluse`, `posttooluse`, `audit`, `guard`, `patterns`, `marketplace`, `wide`, `canonical`, `registry`, `cross`, `mise`, …) → drop iter-NNN iteration-suffix tokens |
+| 3    | Build candidate-substring set: raw segments + adjacent-pair kebab-case joins (`file-size`, `bash-launchd`, `spawn-sync`) — adjacent-only, not all C(n,2) pairs, to keep the set linear in segment count                                                                                                     |
+| 4    | Verify description (lowercased) contains AT LEAST ONE candidate substring. NONE → stale-description candidate hit                                                                                                                                                                                           |
+
+The "at least one" threshold (not "all segments") preserves descriptive freedom — operators may paraphrase, reference adjacent concepts, focus on policy domain — while still catching the unmoored case where the description references NEITHER the marker NOR the consumer basename in any form.
+
+**Why the stoplists?**
+
+`{OK, SKIP, WRAP}` appears in every marker; `{pretooluse, posttooluse, audit, guard, marketplace, wide, canonical, registry, …}` appears in many basenames; `iter111`, `iter114`, `iter78` change when audits are re-iterated. Requiring any of these in a description proves nothing about that specific entry's grounding.
+
+**Algorithm library — separated from audit for testability**
+
+The extraction logic lives at `plugins/itp-hooks/hooks/lib/iter121-stale-description-audit-algorithm-discriminating-hyphen-segment-extraction-from-marker-or-consumer-source-file-basename.ts`. Both the audit script and the regression test import the SAME extractors, so the test can exercise the algorithm against synthetic fixtures (well-grounded description → match; deliberately-unmoored description → null) without needing to monkey-patch either canonical registry.
+
+**Wiring: preflight Check 4v (INFORMATIONAL on iter-121)**
+
+Iter-121 wires the audit as **informational only** (never blocks release). Reports findings so operators can fix them before iter-122+ promotes the audit to STRICT-BLOCK once baseline-clean state is verified across a few release cycles. Same lifecycle pattern as iter-110 (Check 4s) and iter-115 (Check 4t/4u): introduce as informational → bake → promote to strict-block.
+
+**Regression test (`test-iter121-…-fires-on-synthetic-mismatch.sh`) — 8 cases**
+
+| Case | What it verifies                                                                                                                                                                   |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Algorithm library exports all 3 documented extraction functions (marker, basename, top-level predicate)                                                                            |
+| 2    | Marker extractor drops `{OK, SKIP, WRAP}` suffix stoplist; keeps `file`/`size`/`cargo`/`tty` discriminators                                                                        |
+| 3    | Basename extractor drops generic-prefix (`pretooluse`/`guard`/`ts`) AND iter-NNN suffix (`iter78`); keeps `layer3`/`stripped`/`path` discriminators                                |
+| 4    | Candidate-substring builder includes raw segments + adjacent-pair kebab-case joins (`file-size`, `bash-launchd`); intentionally excludes non-adjacent pairs (`bash-ok`)            |
+| 5    | Top-level predicate returns matched candidate for well-grounded synthetic description AND returns null for deliberately-unmoored synthetic description (the signal-to-noise hinge) |
+| 6    | Audit script passes on 20-entry canonical baseline (12 iter-111 + 8 iter-114) with 0 stale-description hits                                                                        |
+| 7    | Audit narrative correctly explains the discriminating-segment-grounded passing criterion                                                                                           |
+| 8    | Audit exits 0 on baseline (iter-121 informational mode — never blocks release; iter-122+ will promote)                                                                             |
+
+All 8 cases pass. Marketplace regression suite: **55/55** (up from 54).
+
+**Adversarial issue caught mid-flight**
+
+The first audit smoke-test reported `121 entries audited, 121 hits` — suspicious because the registry has only 20 entries, and "121" matched the iteration number. Root cause: the shell-side parsing pipeline `grep -oE 'ITER121_AUDIT_TOTAL_ENTRIES_AUDITED_…=[0-9]+' | grep -oE '[0-9]+' | head -1` greedily matched the literal `121` inside the variable name itself rather than the value after `=`. Fixed by anchoring on the equals sign via `awk -F= '/^ITER121_…=/ {print $2; exit}'`. This is a parsing fragility worth remembering for future audits whose variable names embed iteration numbers — the `[0-9]+` grep token has no anchor distinguishing "iteration in name" from "count value".
+
+**Iter-122+ queue**
+
+- **Promote iter-121 audit from informational to STRICT-BLOCK**: remove the unconditional `exit 0` tail after baseline-clean state is verified across a few release cycles. Same lifecycle pattern as iter-115 promoted iter-111/iter-113.
+- **Extend the audit to ALSO verify the marker name token itself is mentioned somewhere in the description**: currently only the discriminating-segment slice (`file`/`size`/`spawn`/`sync`) is checked; literal marker token mention (`FILE-SIZE-OK`/`SPAWN-SYNC-OK`) would catch a different class of drift where the description discusses the policy domain but never names the marker operators have to type.
+
 ### Iter-119: `--json` output mode for iter-116 reverse-search CLI — machine-readable structured output for jq pipelines and automation
 
 Iter-119 adds a `--json` flag to the iter-116 reverse-search CLI. When set, the CLI emits a single JSON document to stdout (instead of human-readable terminal blocks) suitable for piping to `jq`, feeding into downstream scripts, or building dashboards. Exit codes are unchanged (`0`/`1`/`2`) so automation can branch on either the exit code OR the JSON shape.
