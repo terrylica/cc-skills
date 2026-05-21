@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-156 default-when-no-subcommand dispatcher for the commits namespace. Prints a compact operator-facing index of the iter-150-through-iter-165 conventional-commits arc toolkit: tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict, with iter-161 bump preview + iter-162 footer detection + iter-164 next-version), commits:pending-release (iter-165 aggregate next-release preview across all unreleased commits since most recent tag), commits:status (iter-160 12-check self-diagnosis), commits:install-hook (iter-157 git commit-msg hook). Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in `mise tasks` output."
+#MISE description="Iter-156 default-when-no-subcommand dispatcher for the commits namespace (iter-170 banner refresh). Prints a compact operator-facing index of the iter-150-through-iter-169 conventional-commits arc toolkit: tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict, with iter-161 bump preview + iter-162 footer detection + iter-164 next-version), commits:pending-release (iter-165 aggregate next-release preview across all unreleased commits since most recent tag, iter-167 single-batched-git-log-fan-in 5.17x perf optimization), commits:status (iter-160 15-check brew-doctor-style self-diagnosis: 13 CRITICAL + 2 WARNING per iter-163 + iter-166 coverage extensions), commits:install-hook (iter-157 git commit-msg hook). Iter-169 release:preflight informational pending-release preview surfaces next-version prediction at top of Phase 1. Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in mise tasks output."
 set -euo pipefail
 
 # ANSI color codes — gracefully degrade to plain text when stdout is not a TTY.
@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-165 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-169 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -139,16 +139,60 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — self-diagnosis of the entire commits toolkit ───${ITER156_ANSI_COLOR_RESET}
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status${ITER156_ANSI_COLOR_RESET}
-      9-check self-diagnosis across iter-150 → iter-158 tools:
+      15-check self-diagnosis across iter-150 → iter-167 tools (13
+      CRITICAL + 2 WARNING per iter-163 + iter-166 coverage extensions):
       structural validity, functional correctness, hook-install state,
-      pre-commit-framework binary availability. Per-check wall-clock
-      latency reporting. Industry-standard brew-doctor/npm-doctor
-      pattern. Exit 0 if toolkit healthy; exit 1 if CRITICAL check
-      fails.
+      pre-commit-framework binary availability, iter-161/162/164/165
+      shared-lib presence + canonical-function exports, plus two
+      end-to-end advisor chain probes (iter-163 footer-form → MAJOR,
+      iter-166 synthetic-feat → MINOR + v1.1.0 in a mktemp -d temp git
+      repo via ITER165_REPO_ROOT_OVERRIDE). Per-check wall-clock latency
+      reporting. Industry-standard brew-doctor/npm-doctor pattern.
+      Exit 0 if toolkit healthy; exit 1 if CRITICAL check fails.
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status --json${ITER156_ANSI_COLOR_RESET}
       Same checks, machine-readable JSON output with stable
       iter160_schema_version=1 for AI-agent automation pipelines.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (iter-163, iter-166, iter-167, iter-169) — non-operator-visible work hardening the toolkit ───${ITER156_ANSI_COLOR_RESET}
+
+  These iterations have no new operator-facing CLI commands but
+  meaningfully strengthen the toolkit's safety net and runtime
+  characteristics. Listed here so operators know what changed under
+  the hood between version bumps.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-163 doctor coverage extension #1${ITER156_ANSI_COLOR_RESET} — added 3 CRITICAL checks
+      to commits:status: iter-161 lib + iter-162 lib + end-to-end
+      iter-153→iter-161→iter-162 footer-form chain probe. Closes the
+      silent-regression gap where missing libs would degrade advisor
+      to soft-fail "UNAVAILABLE" preview without surfacing.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-166 doctor coverage extension #2${ITER156_ANSI_COLOR_RESET} — added 3 more CRITICAL
+      checks (iter-164 lib + iter-165 aggregator script + iter-153→
+      iter-161→iter-164→iter-165 chain probe via mktemp -d synthetic
+      git repo). Bumps doctor critical_passed counter 10 → 13.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-167 single-batched-git-log-fan-in perf optimization${ITER156_ANSI_COLOR_RESET} —
+      replaces iter-165 aggregator's 2N+1-fork pattern (1 SHA list +
+      2 git logs per commit) with one git log --format='%H%x00%s%x00%b%x00'
+      invocation parsed via NUL-delimited bash read. Empirically
+      measured ≈5.17× speedup at N=50 (1184ms baseline median → 228ms
+      optimized median, 956ms saved per invocation). ASCII NUL safe
+      because git tree objects cannot contain NUL bytes (per
+      git-pretty-formats(1) %x00 specifier). Reproducible benchmark:
+      \`bash .mise/tasks/tests/test-iter167-*.sh\`.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-169 release:preflight pending-release informational preview${ITER156_ANSI_COLOR_RESET}
+      — splices iter-165 aggregator into release:preflight as new
+      Check 3b (between Check 2-3 GH auth and Check 4 plugin
+      validation). Operator now sees "next release version: vCUR →
+      vNEXT" at top of Phase 1 BEFORE the multi-second heavy lint +
+      audit checks fire — can Ctrl-C early if pending-release window
+      is empty/wrong, saves the multi-minute pipeline cost when there
+      is nothing releasable. Deferred until post-iter-167 because
+      pre-iter-167's 1184ms-at-N=50 latency would have meaningfully
+      slowed preflight; post-iter-167's 228ms median is negligible
+      vs. ~10-second preflight total.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── POLYGLOT (iter-158, iter-159) — pre-commit framework integration ───${ITER156_ANSI_COLOR_RESET}
 
