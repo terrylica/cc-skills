@@ -429,6 +429,25 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
             NONE)  printf "    ⊘ NO BUMP — semantic-release will SKIP this commit\n" ;;
         esac
         printf "    rationale: %s\n" "$ITER161_CLASSIFIED_BUMP_RATIONALE_HUMAN_READABLE_EXPLAINING_WHY_THIS_BUMP_LABEL_WAS_CHOSEN"
+
+        # Iter-164 next-version preview — resolves the iter-161 bump
+        # label into a concrete next-version-number string (e.g.,
+        # "v21.71.0 → v21.72.0") by applying semver.org §2 increment
+        # rules to the current git tag. Pure-bash, no semantic-release
+        # --dry-run invocation needed. Soft-fail to no-preview if lib
+        # is unavailable.
+        if declare -F iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules >/dev/null 2>&1; then
+            iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules \
+                "$ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION" \
+                "$ITER161_CLASSIFIED_SEMVER_BUMP_LABEL_PER_RELEASERC_YML_BUMP_RULES"
+            if [[ -n "$ITER164_RESOLVED_NEXT_SEMVER_VERSION_STRING_AFTER_APPLYING_BUMP_LABEL_TO_CURRENT_TAG" ]]; then
+                printf "    next version: %s → %s\n" \
+                    "$ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION" \
+                    "$ITER164_RESOLVED_NEXT_SEMVER_VERSION_STRING_AFTER_APPLYING_BUMP_LABEL_TO_CURRENT_TAG"
+            elif [[ -n "$ITER164_NEXT_VERSION_RESOLUTION_RATIONALE_FOR_HUMAN_READABLE_DISPLAY_EXPLAINING_INPUT_TAG_AND_BUMP_APPLICATION" ]]; then
+                printf "    next version: %s\n" "$ITER164_NEXT_VERSION_RESOLUTION_RATIONALE_FOR_HUMAN_READABLE_DISPLAY_EXPLAINING_INPUT_TAG_AND_BUMP_APPLICATION"
+            fi
+        fi
         echo ""
     fi
 
@@ -504,6 +523,28 @@ if [[ -f "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH" ]];
     # shellcheck source=/dev/null
     source "$ITER162_SHARED_BREAKING_CHANGE_FOOTER_DETECTOR_LIB_ABSOLUTE_PATH"
 fi
+
+# Iter-164 SemVer next-version resolver shared lib — sourced for
+# concrete-next-version-number preview (e.g., "v21.71.0 → v21.72.0")
+# applied AFTER iter-161 emits the bump label. Closes the operator
+# question "what version exactly?" without paying the cost of
+# semantic-release --dry-run (push-perm verify + full git history +
+# multi-second runtime per the 2026 semantic-release FAQ). Soft-fail
+# if missing.
+ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter164-semver-next-version-resolver-applying-iter161-bump-label-to-parsed-major-minor-patch-components-of-current-git-describe-tag-per-semver-org-specification-section-2-increment-rules.sh"
+if [[ -f "$ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$ITER164_SHARED_SEMVER_NEXT_VERSION_RESOLVER_LIB_ABSOLUTE_PATH"
+fi
+
+# Iter-164: detect current git tag once at advisor startup so both
+# renderers (human + JSON) can show concrete next-version preview.
+# Uses `git describe --tags --abbrev=0` — the most recent reachable
+# annotated/lightweight tag from HEAD, matching what semantic-release
+# uses as the baseline for its release-window scan. Empty string if no
+# tag exists yet (graceful — iter-164 resolver handles missing-tag).
+# shellcheck disable=SC2034  # consumed by both renderers further down
+ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
 # Iter-162: invoke footer-token detector against the multi-line body
 # captured via --message-file (or iter-154 auto-detect, extended below).
@@ -612,6 +653,24 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     local iter162_body_footer_token_variant_json_escaped
     iter162_body_footer_token_variant_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER162_BODY_FOOTER_TOKEN_DETECTED_VARIANT_FOR_HUMAN_READABLE_RATIONALE_DISPLAY_OR_EMPTY_IF_NOT_DETECTED")
 
+    # Iter-164: resolve concrete next-version preview by applying the
+    # iter-161 bump label to the current git tag. Emit nested object
+    # with stable iter164_schema_version=1 + current/next/rationale
+    # fields. Soft-fail to UNAVAILABLE label if resolver lib missing.
+    local iter164_resolved_next_version_for_json="UNAVAILABLE"
+    local iter164_resolution_rationale_for_json="iter-164 next-version resolver lib not loaded"
+    if declare -F iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules >/dev/null 2>&1; then
+        iter164_compute_concrete_next_semver_version_string_by_applying_bump_label_to_parsed_components_of_current_git_tag_per_semver_org_specification_section_2_increment_rules \
+            "$ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION" \
+            "$iter161_bump_label_for_json"
+        iter164_resolved_next_version_for_json="$ITER164_RESOLVED_NEXT_SEMVER_VERSION_STRING_AFTER_APPLYING_BUMP_LABEL_TO_CURRENT_TAG"
+        iter164_resolution_rationale_for_json="$ITER164_NEXT_VERSION_RESOLUTION_RATIONALE_FOR_HUMAN_READABLE_DISPLAY_EXPLAINING_INPUT_TAG_AND_BUMP_APPLICATION"
+    fi
+    local iter164_current_tag_json_escaped iter164_next_version_json_escaped iter164_resolution_rationale_json_escaped
+    iter164_current_tag_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION")
+    iter164_next_version_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$iter164_resolved_next_version_for_json")
+    iter164_resolution_rationale_json_escaped=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$iter164_resolution_rationale_for_json")
+
     cat <<EOF
 {
   "iter153_schema_version": 1,
@@ -634,6 +693,12 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     "iter161_schema_version": 1,
     "bump_label_per_cc_skills_releaserc_yml_rules": "${iter161_bump_label_for_json}",
     "rationale": ${iter161_bump_rationale_json_escaped}
+  },
+  "iter164_next_version_preview": {
+    "iter164_schema_version": 1,
+    "current_git_tag": ${iter164_current_tag_json_escaped},
+    "next_version": ${iter164_next_version_json_escaped},
+    "resolution_rationale": ${iter164_resolution_rationale_json_escaped}
   },
   "thresholds": {
     "hard_target_chars": ${ITER153_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE},
