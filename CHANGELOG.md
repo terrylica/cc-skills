@@ -1,3 +1,10 @@
+# [21.47.0](https://github.com/terrylica/cc-skills/compare/v21.46.0...v21.47.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-116 ship cross-registry reverse-search accessor spanning iter-111-runtime-hook and iter-114-audit-task canonical registries plus operator-facing mise task lookup-escape-hatch-marker-by-consumer-source-file-relative-path closing the consumer-to-marker direction of the operator-discoverability matrix left open after iter-113-and-iter-114-forward-doc-generator ([e9fd421](https://github.com/terrylica/cc-skills/commit/e9fd421653548c36fc1308e73f98fe9580704d02))
+
 # [21.46.0](https://github.com/terrylica/cc-skills/compare/v21.45.0...v21.46.0) (2026-05-21)
 
 
