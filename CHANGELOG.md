@@ -1,3 +1,10 @@
+# [21.34.0](https://github.com/terrylica/cc-skills/compare/v21.33.1...v21.34.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-99 marketplace-wide preventive audit for the iter-98 silent-context-drop pattern in PostToolUse TypeScript hooks + wire into preflight as Check 4n (informational gate, parallel to iter-94 spawnSync audit + iter-67 Stop-hook additionalContext audit) ([588cea3](https://github.com/terrylica/cc-skills/commit/588cea31b5d34e689d3681f7b6cd91443f6ec34e))
+
 ## [21.33.1](https://github.com/terrylica/cc-skills/compare/v21.33.0...v21.33.1) (2026-05-21)
 
 
