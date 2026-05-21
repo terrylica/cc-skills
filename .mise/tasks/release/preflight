@@ -47,6 +47,153 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
     fi
 }
 
+# Iter-134: parallel fan-out of preflight Checks 4f-4v audit subprocesses.
+# Iter-130 instrumentation revealed Checks 4f-4v collectively consumed
+# ~2603ms wall-clock (sum), max single ~374ms (Check 4k iter-77 L3-stripped-
+# path audit). All 17 audits are 100% independent: each scans the marketplace,
+# writes to its own /tmp/<audit-key>.log path, and emits a one-line summary
+# parsed via loose-coupled defensive grep. Zero cross-dependencies; zero
+# shared mutable state. Same parallelization invariant the iter-75 marketplace
+# regression suite exploited.
+#
+# Design (mirrors iter-75 marketplace-suite + iter-131 elapsed_ms sidecar):
+#
+#   Phase A (PRE-WARM, pre-Check-4f): xargs -P spawns all 17 audit-task
+#     mise-runs concurrently. Each worker writes:
+#       /tmp/<key>.log          ← captured stdout+stderr (existing path)
+#       /tmp/<key>.exit         ← captured exit code (sidecar)
+#       /tmp/<key>.elapsed_ms   ← per-audit wall-clock (sidecar, iter-131 pattern)
+#     Phase A blocks until ALL audits complete.
+#
+#   Phase B (sequential, Checks 4f-4v inline): each existing check block runs
+#     UNCHANGED post-processing (defensive-grep banner extracts), but replaces
+#     the inline `if ! mise run X > /tmp/X.log 2>&1; then` with
+#     `if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file X; then`
+#     (reads /tmp/X.exit instead of re-running the audit). The per-check
+#     iter-130 timing report is preserved bit-for-bit by seeding the phase
+#     start time backwards from the externally-captured elapsed_ms sidecar.
+#
+# Adaptive lane count (operator-tunable via ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES):
+# default clamp(sysctl_hw_ncpu - 4, 4, 12), same heuristic as iter-128's
+# marketplace-suite adaptive sizing. Floors at 4 for low-end laptops; ceilings
+# at 12 to avoid the bun-cold-start contention plateau measured in iter-128.
+# The 17 audits are non-bun-spawning shell scripts so the plateau may differ,
+# but the same clamp is safe.
+#
+# Opt-out: ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 forces -P 1 (serial
+# through xargs), preserving the sidecar contract. Use when diagnosing
+# audit-suite issues where parallelism could confuse output ordering.
+#
+# Per-audit metadata as TAB-separated records keyed by the existing log path
+# basename (without .log extension). Format: <log_sidecar_key>\t<mise_task_name>\t<extra_cli_args>
+# The third field handles Check 4u's `--check` flag (only audit with extra args).
+iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename=(
+    "pretooluse-schema-audit	audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision	"
+    "pueue-wrap-guard-ordering-audit	audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug	"
+    "inverse-pretooluse-schema-audit	audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events	"
+    "wildcard-matcher-audit	audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation	"
+    "stop-hook-additional-context-audit	audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json	"
+    "iter77-l3-stripped-path-audit	audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime	"
+    "iter82-conventional-commits-conformance	audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes	"
+    "iter86-orchestrator-subhook-contract-static-check	audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main	"
+    "iter99-posttooluse-silent-context-drop-audit	audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context	"
+    "iter101-matcher-hygiene-audit	audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant	"
+    "iter103-notebookedit-applicability-audit	audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple	"
+    "iter105-truncation-helper-audit	audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix	"
+    "iter106-canonical-home-audit	audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness	"
+    "iter110-escape-hatch-strict-audit	audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper	"
+    "iter111-producer-marker-typo-audit	audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry	"
+    "iter113-doc-drift-detector	generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry	--check"
+    "iter121-stale-description-audit	audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries	"
+)
+
+__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic() {
+    local detected_host_cpu_count
+    detected_host_cpu_count=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 8)
+    local recommended_lane_count=$((detected_host_cpu_count - 4))
+    # Clamp to [4, 12]. Same iter-128 empirical sweet-spot range.
+    if [[ "$recommended_lane_count" -lt 4 ]]; then
+        recommended_lane_count=4
+    elif [[ "$recommended_lane_count" -gt 12 ]]; then
+        recommended_lane_count=12
+    fi
+    # Opt-out for diagnostics: ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1
+    # forces -P 1 (serial through xargs), preserving the sidecar contract.
+    if [[ "${ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION:-0}" == "1" ]]; then
+        recommended_lane_count=1
+    fi
+    echo "$recommended_lane_count"
+}
+
+__iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per_audit_log_exit_and_elapsed_ms_sidecar_capture() {
+    local lane_count
+    lane_count="${ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES:-$(__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic)}"
+    # BSD-xargs hardening: -S 16384 to handle long mise task names (some
+    # exceed 200 chars + the bash worker body). Same iter-90 hardening
+    # pattern as the marketplace-suite runner.
+    # shellcheck disable=SC2016
+    # SC2016 false positive: $1 inside single-quoted bash -c body refers to
+    # the positional arg passed to the NESTED bash, not the outer scope.
+    printf '%s\n' "${iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename[@]}" | \
+        xargs -S 16384 -P "$lane_count" -I {} bash -c '
+            tab_separated_metadata_record="$1"
+            audit_log_sidecar_key="$(echo "$tab_separated_metadata_record" | cut -f1)"
+            audit_mise_task_name="$(echo "$tab_separated_metadata_record" | cut -f2)"
+            audit_extra_cli_args="$(echo "$tab_separated_metadata_record" | cut -f3)"
+            audit_wall_clock_start_seconds_for_elapsed_ms_sidecar_capture="$EPOCHREALTIME"
+            if mise run "$audit_mise_task_name" $audit_extra_cli_args > "/tmp/$audit_log_sidecar_key.log" 2>&1; then
+                echo 0 > "/tmp/$audit_log_sidecar_key.exit"
+            else
+                echo "$?" > "/tmp/$audit_log_sidecar_key.exit"
+            fi
+            audit_wall_clock_end_seconds_for_elapsed_ms_sidecar_capture="$EPOCHREALTIME"
+            awk -v s="$audit_wall_clock_start_seconds_for_elapsed_ms_sidecar_capture" \
+                -v e="$audit_wall_clock_end_seconds_for_elapsed_ms_sidecar_capture" \
+                "BEGIN { printf \"%.0f\", (e - s) * 1000 }" \
+                > "/tmp/$audit_log_sidecar_key.elapsed_ms"
+        ' _ {}
+}
+
+__iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file() {
+    local audit_log_sidecar_key="$1"
+    local exit_code_sidecar_file="/tmp/$audit_log_sidecar_key.exit"
+    if [[ ! -f "$exit_code_sidecar_file" ]]; then
+        # Defensive: pre-warm couldn't produce sidecar (xargs aborted, disk
+        # full, etc.). Treat as failure so the gate doesn't false-green on
+        # missing evidence. Same iter-75 marketplace-suite defensive pattern.
+        return 1
+    fi
+    local captured_exit_code
+    captured_exit_code=$(cat "$exit_code_sidecar_file")
+    [[ "$captured_exit_code" == "0" ]]
+}
+
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file() {
+    # Preserves iter-130 bottleneck-ranking accuracy across parallel pre-warm:
+    # seeds preflight_timing_phase_start_seconds backwards by the externally-
+    # captured elapsed-ms so the subsequent
+    # __preflight_timing_report_phase_elapsed_milliseconds call reports the
+    # correct per-audit wall-clock (the time the audit actually took in Phase A),
+    # NOT the trivial post-processing time after the parallel pre-warm.
+    local audit_log_sidecar_key="$1"
+    if [[ "${PREFLIGHT_TIMING_PROFILE:-0}" != "1" ]]; then
+        return 0
+    fi
+    local elapsed_ms_sidecar_file="/tmp/$audit_log_sidecar_key.elapsed_ms"
+    if [[ ! -f "$elapsed_ms_sidecar_file" ]]; then
+        # Fall back to current EPOCHREALTIME so the timing helper reports ~0ms
+        # rather than a wild stale value. Better-than-nothing graceful degrade.
+        preflight_timing_phase_start_seconds_for_iter73_instrumentation="$EPOCHREALTIME"
+        return 0
+    fi
+    local externally_captured_audit_elapsed_ms
+    externally_captured_audit_elapsed_ms=$(cat "$elapsed_ms_sidecar_file")
+    preflight_timing_phase_start_seconds_for_iter73_instrumentation=$(awk \
+        -v e="$EPOCHREALTIME" \
+        -v ms="$externally_captured_audit_elapsed_ms" \
+        'BEGIN { printf "%.6f", e - (ms / 1000) }')
+}
+
 # Iter-130: top-N-slowest-checks bottleneck ranking summary. Invoked at
 # end-of-script when PREFLIGHT_TIMING_PROFILE=1 is set. Sorts the
 # per-phase accumulator by elapsed-ms descending and prints the top N
@@ -225,6 +372,16 @@ HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook
 echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_TESTS_FAILED:-0} failed)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide hook regression suite"
 
+# Iter-134: Phase A — parallel fan-out of all 17 marketplace audits (Checks
+# 4f-4v). Each audit's mise-run subprocess writes its existing /tmp/<key>.log
+# path plus iter-134 sidecars (.exit, .elapsed_ms). The subsequent Check 4f-4v
+# inline blocks become non-blocking exit-code checks that read sidecars instead
+# of re-running the audit. Compresses ~2.6s of sequential audit work into
+# ~370ms (longest single audit caps wall-clock; iter-128 lane-clamp heuristic
+# avoids contention plateau). Saves ~2.2s of preflight wall-clock (~22%
+# reduction in total preflight time).
+__iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per_audit_log_exit_and_elapsed_ms_sidecar_capture
+
 # Check 4f: PreToolUse schema-correctness audit (iter-60 gate). Per Claude
 # Code v2.0.10+ spec, PreToolUse top-level `decision: "block"|"deny"`
 # is DEPRECATED — hooks using it silently FAIL TO BLOCK. The audit
@@ -232,9 +389,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide
 # if any deprecated-schema hook is found. Blocks tag publish so a
 # deprecated-schema PreToolUse regression cannot escape to Layer 3
 # operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file pretooluse-schema-audit
 echo "→ Running PreToolUse schema-correctness audit..."
-if ! mise run audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision >/tmp/pretooluse-schema-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file pretooluse-schema-audit; then
     echo "  ✗ PreToolUse schema audit FAILED — see /tmp/pretooluse-schema-audit.log"
     tail -20 /tmp/pretooluse-schema-audit.log
     exit 1
@@ -258,9 +415,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4f: PreToolUse schem
 # registers pueue-wrap-guard and asserts it's the LAST PreToolUse
 # entry. Blocks tag publish so a regression cannot escape to Layer 3
 # operator caches (see iter-42 docs/HOOKS.md for cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file pueue-wrap-guard-ordering-audit
 echo "→ Running pueue-wrap-guard last-PreToolUse-entry ordering audit..."
-if ! mise run audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug >/tmp/pueue-wrap-guard-ordering-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file pueue-wrap-guard-ordering-audit; then
     echo "  ✗ Pueue-wrap-guard ordering audit FAILED — see /tmp/pueue-wrap-guard-ordering-audit.log"
     tail -20 /tmp/pueue-wrap-guard-ordering-audit.log
     exit 1
@@ -285,9 +442,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4g: pueue-wrap-guard
 # is preventive: blocks tag publish so a future regression cannot
 # escape to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file inverse-pretooluse-schema-audit
 echo "→ Running INVERSE PreToolUse schema-correctness audit (non-PreToolUse hooks)..."
-if ! mise run audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events >/tmp/inverse-pretooluse-schema-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file inverse-pretooluse-schema-audit; then
     echo "  ✗ Inverse PreToolUse schema audit FAILED — see /tmp/inverse-pretooluse-schema-audit.log"
     tail -20 /tmp/inverse-pretooluse-schema-audit.log
     exit 1
@@ -313,9 +470,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4h: INVERSE PreToolU
 # justification reason ≥ 10 chars). Prevents perf regressions from
 # escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file wildcard-matcher-audit
 echo "→ Running wildcard-matcher audit (PreToolUse + PostToolUse hooks)..."
-if ! mise run audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation >/tmp/wildcard-matcher-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file wildcard-matcher-audit; then
     echo "  ✗ Wildcard-matcher audit FAILED — see /tmp/wildcard-matcher-audit.log"
     tail -20 /tmp/wildcard-matcher-audit.log
     exit 1
@@ -368,9 +525,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4i: wildcard-matcher
 # each violation belongs to. Prevents silent-drop regressions from
 # escaping to Layer 3 operator caches (see iter-42 docs/HOOKS.md for
 # cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file stop-hook-additional-context-audit
 echo "→ Running additionalContext-silently-dropped pentad audit (Stop/SubagentStop/SessionEnd/PreCompact/Notification)..."
-if ! mise run audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json >/tmp/stop-hook-additional-context-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file stop-hook-additional-context-audit; then
     echo "  ✗ Stop-hook additionalContext-emission audit FAILED — see /tmp/stop-hook-additional-context-audit.log"
     tail -30 /tmp/stop-hook-additional-context-audit.log
     exit 1
@@ -399,9 +556,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContex
 # fallback) and ships this gate to prevent recurrence. Blocks tag
 # publish so a regression cannot escape to Layer 3 operator caches
 # (see iter-42 docs/HOOKS.md for cache lifecycle).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter77-l3-stripped-path-audit
 echo "→ Running iter-77 L3-stripped-path audit (hook source code)..."
-if ! mise run audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime >/tmp/iter77-l3-stripped-path-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter77-l3-stripped-path-audit; then
     echo "  ✗ L3-stripped-path audit FAILED — see /tmp/iter77-l3-stripped-path-audit.log"
     tail -25 /tmp/iter77-l3-stripped-path-audit.log
     exit 1
@@ -422,9 +579,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path
 # legacy violations exist on main and gating would require destructive
 # rebase. Operators see compound-prefix violations BEFORE the next
 # release rather than after a stranded commit.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter82-conventional-commits-conformance
 echo "→ Running iter-82 conventional-commits-conformance validator (informational)..."
-if ! mise run audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes >/tmp/iter82-conventional-commits-conformance.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter82-conventional-commits-conformance; then
     echo "  ⚠ Validator exited non-zero (informational only — not blocking release)"
 fi
 # Loose-coupled defensive grep (per iter-70 brittle-banner hardening).
@@ -450,9 +607,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4l: conventional-com
 # main(). Addresses the iter-85 adversarial-audit's HIGH FOOTGUNs #1+#2.
 # Informational by default; future iters may flip to --strict once all
 # inlined subhooks have stable contracts.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter86-orchestrator-subhook-contract-static-check
 echo "→ Running iter-86 PreToolUse-orchestrator subhook-contract static checker (informational)..."
-if ! mise run audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main >/tmp/iter86-orchestrator-subhook-contract-static-check.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter86-orchestrator-subhook-contract-static-check; then
     echo "  ⚠ Subhook-contract static checker exited non-zero (informational only — not blocking release)"
 fi
 # Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
@@ -481,9 +638,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4m: subhook-contract
 # <reason ≥ 10 chars>` on same-line or within 3 preceding lines for
 # explicitly operator-only intent.
 # Informational by default — future iters may flip to --strict.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter99-posttooluse-silent-context-drop-audit
 echo "→ Running iter-99 PostToolUse silent-context-drop marketplace audit (informational)..."
-if ! mise run audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context >/tmp/iter99-posttooluse-silent-context-drop-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter99-posttooluse-silent-context-drop-audit; then
     echo "  ⚠ Silent-context-drop audit exited non-zero (informational only — not blocking release)"
     echo "    (each violation indicates a PostToolUse hook whose reminder Claude never sees — see /tmp/iter99-posttooluse-silent-context-drop-audit.log)"
 fi
@@ -512,9 +669,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4n: PostToolUse sile
 # Escape hatch: `MATCHER-NO-MULTIEDIT-OK: <reason ≥ 10 chars>` in the
 # hook's description field for explicitly-justified MultiEdit exclusions.
 # Informational by default — future iters may flip to --strict.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter101-matcher-hygiene-audit
 echo "→ Running iter-101 PreToolUse/PostToolUse matcher-hygiene marketplace audit (informational)..."
-if ! mise run audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant >/tmp/iter101-matcher-hygiene-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter101-matcher-hygiene-audit; then
     echo "  ⚠ Matcher-hygiene audit exited non-zero (informational only — not blocking release)"
     echo "    (each violation indicates a hook whose matcher silently bypasses Claude's MultiEdit tool calls — see /tmp/iter101-matcher-hygiene-audit.log)"
 fi
@@ -542,9 +699,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostT
 # Iter-104+ scope: per-classifier NotebookEdit payload-shape adaptation
 # for the APPLICABLE cohort (version-guard, gpu-optimization-guard, ssot-
 # principles, memory-efficiency-reminder).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter103-notebookedit-applicability-audit
 echo "→ Running iter-103 NotebookEdit applicability marketplace audit (informational)..."
-if ! mise run audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple >/tmp/iter103-notebookedit-applicability-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter103-notebookedit-applicability-audit; then
     echo "  ⚠ NotebookEdit applicability audit exited non-zero (informational only — never blocks release)"
 fi
 # Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
@@ -563,9 +720,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit app
 # pretooluse-vale-claude-md-guard + PostToolUse orchestrator aggregation).
 # Informational by default — future iters may flip to --strict once the
 # helper is hoisted to a dedicated shared-lib file (iter-106+ candidate).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter105-truncation-helper-audit
 echo "→ Running iter-105 truncation-helper marketplace invariant audit (informational)..."
-if ! mise run audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix >/tmp/iter105-truncation-helper-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter105-truncation-helper-audit; then
     echo "  ⚠ Truncation-helper audit exited non-zero (informational only — not blocking release)"
 fi
 TRUNCATION_HELPER_COHORT_COUNT=$( { grep -oE 'Cohort discovered:[[:space:]]+[0-9]+' /tmp/iter105-truncation-helper-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
@@ -589,9 +746,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4q: truncation-helpe
 # canonical home. Informational — parallel to Check 4n/4o/4p/4q. Future iters
 # may promote to --strict once the iter-105 + iter-106 invariants land as
 # universally true across a marketplace-wide refactor pass.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter106-canonical-home-audit
 echo "→ Running iter-106 truncation-helper canonical-home audit (informational)..."
-if ! mise run audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness >/tmp/iter106-canonical-home-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter106-canonical-home-audit; then
     echo "  ⚠ Canonical-home audit exited non-zero (informational only — not blocking release)"
 fi
 if grep -q 'AUDIT PASSED' /tmp/iter106-canonical-home-audit.log 2>/dev/null; then
@@ -611,9 +768,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4r: truncation-helpe
 #      MUST import the iter-107 shared helper (catches silent removal
 #      of a previously-migrated helper consumption)
 # A non-zero exit from this audit BLOCKS the release.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter110-escape-hatch-strict-audit
 echo "→ Running iter-107/iter-110 escape-hatch-marker detection invariant audit (STRICT-BLOCK)..."
-if ! mise run audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper >/tmp/iter110-escape-hatch-strict-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter110-escape-hatch-strict-audit; then
     echo "  ✗ ESCAPE-HATCH AUDIT FAILED (iter-110 STRICT-BLOCK) — see /tmp/iter110-escape-hatch-strict-audit.log"
     exit 1
 fi
@@ -643,9 +800,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-mar
 # marker that hasn't been registered in iter-111 OR iter-114) now fails
 # release until either the token is fixed (typo path) or registered
 # (legitimate-new-marker path).
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter111-producer-marker-typo-audit
 echo "→ Running iter-111 producer-side escape-hatch-marker typo audit (iter-115 STRICT-BLOCK)..."
-if ! mise run audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry >/tmp/iter111-producer-marker-typo-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter111-producer-marker-typo-audit; then
     echo "  ✗ ITER-111 PRODUCER-MARKER TYPO AUDIT FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter111-producer-marker-typo-audit.log"
     echo "    Fix paths:"
     echo "      A. If the token is a typo: correct it in the producer file"
@@ -684,9 +841,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side es
 # Iter-115: PROMOTED TO STRICT-BLOCK alongside Check 4t. Drift is now a
 # release blocker — operators reading the auto-generated reference doc must
 # never see stale information that conflicts with the canonical registry SSoT.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter113-doc-drift-detector
 echo "→ Running iter-113 registry-to-docs drift detector (iter-115 STRICT-BLOCK)..."
-if ! mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry --check >/tmp/iter113-doc-drift-detector.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter113-doc-drift-detector; then
     echo "  ✗ ITER-113 REGISTRY-TO-DOCS DRIFT DETECTOR FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter113-doc-drift-detector.log"
     echo "    Fix: mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
     echo "    (then commit the regenerated docs/marketplace-escape-hatch-marker-reference.md alongside the registry change)"
@@ -715,9 +872,9 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs
 # Iter-121: INFORMATIONAL only — never blocks release. Reports findings so
 # operators can address them before iter-122+ promotes the audit to
 # STRICT-BLOCK once baseline coverage is verified across a few releases.
-__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter121-stale-description-audit
 echo "→ Running iter-121 canonical-registry stale-description audit (informational)..."
-if ! mise run audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries >/tmp/iter121-stale-description-audit.log 2>&1; then
+if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter121-stale-description-audit; then
     echo "  ⚠ Iter-121 stale-description audit infrastructure failure — see /tmp/iter121-stale-description-audit.log"
     # Infrastructure failure (bun crash, missing registry, etc.) is non-blocking
     # in iter-121's informational mode. Iter-122+ will tighten this.
