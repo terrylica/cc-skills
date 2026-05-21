@@ -62,6 +62,8 @@ SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Generator lives at .mise/tasks/<this-script>.sh; repo root is two levels up.
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
+# shellcheck disable=SC2034  # used by parameter expansion inside the renderer heredoc below; shellcheck does not trace through heredoc bodies.
+ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
 OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 
 INVOCATION_MODE="${1:-write}"
@@ -85,6 +87,11 @@ if [[ ! -f "$ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH" ]]; then
     echo "    $ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH"
     exit 1
 fi
+if [[ ! -f "$ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH" ]]; then
+    echo "✗ iter-114 audit-task marker registry not found:"
+    echo "    $ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH"
+    exit 1
+fi
 
 # ════════════════════════════════════════════════════════════════════════
 # The renderer is a small TypeScript program executed via bun. Writing it
@@ -100,6 +107,10 @@ import {
   MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY,
   listAllCanonicalRegistryMarkerNameTokensSortedAlphabetically,
 } from "$ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH";
+import {
+  MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY,
+  listAllAuditTaskCanonicalRegistryMarkerNameTokensSortedAlphabetically,
+} from "$ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH";
 
 function emitMarkdownTableHeaderRowAndSeparatorRow(): string {
   return [
@@ -168,8 +179,56 @@ function renderSingleMarkerSection(markerNameTokenIncludingSuffix: string): stri
   ].join("\\n");
 }
 
+function renderSingleAuditTaskMarkerSection(markerNameTokenIncludingSuffix: string): string {
+  const entry = MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY.find(
+    (candidateEntry) =>
+      candidateEntry.markerNameTokenIncludingSuffix === markerNameTokenIncludingSuffix,
+  );
+  if (entry === undefined) {
+    throw new Error(\`audit-task registry lookup failed for marker token: \${markerNameTokenIncludingSuffix}\`);
+  }
+
+  const reasonPolicyHumanReadable =
+    entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional === 0
+      ? "Bare marker accepted (no reason required)"
+      : \`Reason required after colon — minimum \${entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional} characters\`;
+
+  const exampleCommentForm =
+    entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional === 0
+      ? \`# \${entry.markerNameTokenIncludingSuffix}\`
+      : \`# \${entry.markerNameTokenIncludingSuffix}: explain the deliberate exception to this release-blocking invariant in at least \${entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional} characters\`;
+
+  return [
+    \`## \\\`\${entry.markerNameTokenIncludingSuffix}\\\` (audit-task)\`,
+    "",
+    emitMarkdownTableHeaderRowAndSeparatorRow(),
+    emitMarkdownTableValueRowFromFieldNameAndFieldValue(
+      "Consumer audit task",
+      \`\\\`\${entry.consumerAuditTaskSourceFileRelativePath}\\\`\`,
+    ),
+    emitMarkdownTableValueRowFromFieldNameAndFieldValue(
+      "Case-sensitivity mode",
+      \`\\\`\${entry.caseSensitivityModeDeclaredAtConsumerCallSite}\\\`\`,
+    ),
+    emitMarkdownTableValueRowFromFieldNameAndFieldValue(
+      "Reason policy",
+      reasonPolicyHumanReadable,
+    ),
+    "",
+    \`**What it does**: \${entry.releaseInvariantSuppressedDescriptionForOperatorDocumentation}\`,
+    "",
+    "**Example usage**:",
+    "",
+    "\\\`\\\`\\\`",
+    exampleCommentForm,
+    "\\\`\\\`\\\`",
+    "",
+  ].join("\\n");
+}
+
 function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
   const sortedMarkerTokens = listAllCanonicalRegistryMarkerNameTokensSortedAlphabetically();
+  const sortedAuditTaskMarkerTokens = listAllAuditTaskCanonicalRegistryMarkerNameTokensSortedAlphabetically();
 
   const documentPreamble = [
     "# Marketplace Escape-Hatch Marker Reference",
@@ -185,7 +244,7 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "",
     "## Purpose",
     "",
-    "Every consumer hook in the marketplace honors an escape-hatch marker comment that lets operators opt out of the hook's enforcement on a per-file (or per-line) basis. This document catalogs every legitimate marker token with its consumer hook, case-sensitivity policy, window-semantics policy, and operator-readable description.",
+    "The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by .mise/ release-preflight audit tasks via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.",
     "",
     "## How to use this reference",
     "",
@@ -200,11 +259,22 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "- **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.",
     "- **iter-113 informational** (release preflight Check 4u): the on-disk \\\`docs/marketplace-escape-hatch-marker-reference.md\\\` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.",
     "",
-    \`## Marker catalog (\${sortedMarkerTokens.length} registered markers)\`,
+    \`## Runtime-hook marker catalog (\${sortedMarkerTokens.length} registered markers consumed by iter-107 shared helper)\`,
+    "",
+    "These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.",
     "",
   ];
 
   const renderedMarkerSections = sortedMarkerTokens.map(renderSingleMarkerSection);
+
+  const auditTaskCatalogPreamble = [
+    \`## Audit-task marker catalog (\${sortedAuditTaskMarkerTokens.length} registered markers consumed by .mise/ release-preflight audit tasks)\`,
+    "",
+    "These markers are honored by .mise/ audit tasks at release-preflight time — they opt a specific source file out of a release-blocking marketplace-wide invariant check. Detection runs ONCE per release (not on every tool invocation). Audit markers commonly require a ≥10-character reason after a colon because legitimate exceptions to release-blocking invariants demand justification.",
+    "",
+  ];
+
+  const renderedAuditTaskMarkerSections = sortedAuditTaskMarkerTokens.map(renderSingleAuditTaskMarkerSection);
 
   const documentPostamble = [
     "## Marketplace UPPER-KEBAB-CASE convention",
@@ -230,6 +300,8 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
   return [
     ...documentPreamble,
     ...renderedMarkerSections,
+    ...auditTaskCatalogPreamble,
+    ...renderedAuditTaskMarkerSections,
     ...documentPostamble,
   ].join("\\n");
 }

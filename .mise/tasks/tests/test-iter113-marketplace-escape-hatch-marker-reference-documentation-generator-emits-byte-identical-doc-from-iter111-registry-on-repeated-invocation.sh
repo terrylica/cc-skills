@@ -85,7 +85,7 @@ else
     assert_fails "Case 4: idempotency broken — consecutive runs differ"
 fi
 
-# ─── Case 5: on-disk doc renders all baseline markers in alphabetical order ─
+# ─── Case 5: on-disk doc renders all baseline RUNTIME markers in alphabetical order ─
 # Extraction strategy: use awk with backtick as field separator to pull
 # marker names from headings of the form `## ${BACKTICK}MARKER${BACKTICK}`.
 # This is cleaner than a grep|sed combo with nested backticks (which the
@@ -96,7 +96,17 @@ fi
 # (Note: the comment is intentionally phrased to avoid a leading-word
 # `# shellcheck ...` shape, which would otherwise trip SC1072/SC1073 on
 # the line below as a malformed directive.)
-ON_DISK_MARKER_HEADING_ORDER=$(awk -F '`' '/^## `/ {print $2}' "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")
+#
+# Iter-114 amendment: the doc now contains TWO catalogs (runtime-hook
+# markers + audit-task markers). Runtime headings have form
+# `## ${BACKTICK}MARKER${BACKTICK}` while audit headings have form
+# `## ${BACKTICK}MARKER${BACKTICK} (audit-task)`. The awk pattern below
+# anchors to a trailing backtick at end-of-line to match RUNTIME headings
+# only — audit headings have the ` (audit-task)` suffix and are filtered
+# out. This isolates the iter-113-scope alphabetical-order check to the
+# runtime registry; iter-114's regression test independently validates
+# the audit-task catalog's alphabetical order.
+ON_DISK_MARKER_HEADING_ORDER=$(awk -F '`' '/^## `[^`]+`$/ {print $2}' "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")
 EXPECTED_ALPHABETICAL_ORDER=$(printf '%s\n' "${ITER111_BASELINE_MARKER_TOKENS[@]}" | sort)
 
 if [[ "$ON_DISK_MARKER_HEADING_ORDER" == "$EXPECTED_ALPHABETICAL_ORDER" ]]; then
@@ -113,7 +123,11 @@ EXPECTED_HEADER_SECTIONS=(
     "## Purpose"
     "## How to use this reference"
     "## Marketplace invariants (audit-enforced)"
-    "## Marker catalog"
+    # Iter-114 amendment: the single "## Marker catalog" header was split into
+    # two distinct catalogs — runtime-hook markers (iter-111) and audit-task
+    # markers (iter-114). Test now expects both section headers.
+    "## Runtime-hook marker catalog"
+    "## Audit-task marker catalog"
     "## Marketplace UPPER-KEBAB-CASE convention"
     "## Adding a new marker"
     "## Related documentation"
