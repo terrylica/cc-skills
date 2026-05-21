@@ -615,6 +615,29 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-111 informational)"
 
+# Check 4u: Iter-113 registry-to-docs drift detector.
+#
+# Verifies that the on-disk operator-facing reference doc
+#   docs/marketplace-escape-hatch-marker-reference.md
+# is in sync with the iter-111 canonical registry source. Drift here means
+# either (a) someone edited the registry without regenerating the doc, or
+# (b) someone hand-edited the doc without updating the registry. Either way
+# the SSoT is broken and operators consulting the doc would see stale
+# information.
+#
+# Iter-113 informational only. Iter-114+ candidate for strict-promotion
+# alongside the iter-111 AUDIT-marker family registry expansion.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-113 registry-to-docs drift detector (informational)..."
+if ! mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry --check >/tmp/iter113-doc-drift-detector.log 2>&1; then
+    echo "  ⚠ Iter-113 doc-drift detector found drift — see /tmp/iter113-doc-drift-detector.log"
+    echo "    Fix: mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+    echo "    (Informational only — release continues.)"
+else
+    echo "  ✓ Iter-113 operator-facing escape-hatch-marker reference doc is in sync with iter-111 canonical registry"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-113 informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
