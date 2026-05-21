@@ -1,3 +1,10 @@
+## [21.75.7](https://github.com/terrylica/cc-skills/compare/v21.75.6...v21.75.7) (2026-05-21)
+
+
+### Performance Improvements
+
+* **iter-176:** hoist iter-153 lib paths via BASH_SOURCE ([4b8df9b](https://github.com/terrylica/cc-skills/commit/4b8df9becc557e58b0c5ad15d1c351cd9c768307))
+
 ## [21.75.6](https://github.com/terrylica/cc-skills/compare/v21.75.5...v21.75.6) (2026-05-21)
 
 
