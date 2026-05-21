@@ -92,7 +92,12 @@ shopt -u patsub_replacement 2>/dev/null || true
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+# AUDIT_TASK_OWN_REPO_ROOT — always resolved from BASH_SOURCE, never
+# overridden. The shared awk scanner travels with the audit task, not
+# with the scanned fleet.
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$AUDIT_TASK_OWN_REPO_ROOT}"
 
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  Non-PreToolUse Hook Schema-Correctness Audit (inverse of iter-60)"
@@ -172,28 +177,85 @@ verify_pretooluse_helpers_module_scope || exit 2
 # scope is: posttooluse-*, stop-*, userpromptsubmit-*, sessionstart-*,
 # sessionend-* — the canonical prefixes for these event categories
 # across the marketplace.
-while IFS= read -r hook_path; do
-  [ -f "$hook_path" ] || continue
-  # Skip test files — they're test fixtures, not registered hooks.
-  case "$hook_path" in
-    *.test.ts|*.test.mjs|*.test.js|*.test.sh) continue ;;
-  esac
-  total_non_pretooluse_hooks=$((total_non_pretooluse_hooks + 1))
+# Iter-79 perf-win: replaces the iter-62 baseline per-file `grep -qE`
+# fork storm (~4 forks × 24 files = ~96 forks, ~787ms) with a SINGLE
+# awk-scanner process invocation. The shared scanner at
+# `scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk`
+# emits TSV classification flags per file; this audit applies the
+# iter-62 tier-order interpretation (asymmetric to Check 4f — here
+# permissionDecision is the SILENT-FAIL indicator, not the canonical
+# schema). Estimated drop: 787ms → ~271ms.
+HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH="$AUDIT_TASK_OWN_REPO_ROOT/scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk"
+if [ ! -f "$HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH" ]; then
+  echo ""
+  echo "  CRITICAL: shared awk scanner not found at:"
+  echo "  $HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH"
+  echo "  (iter-79 perf-win prerequisite)"
+  exit 2
+fi
 
+# Collect every non-PreToolUse hook source file path, excluding test
+# fixtures. The find pattern matches the iter-62 baseline exactly.
+mapfile -t non_pretooluse_hook_source_files_to_classify_via_awk_scanner < <(
+  find "$REPO_ROOT/plugins" \
+       \( -path '*/hooks/posttooluse-*' \
+       -o -path '*/hooks/stop-*' \
+       -o -path '*/hooks/userpromptsubmit-*' \
+       -o -path '*/hooks/sessionstart-*' \
+       -o -path '*/hooks/sessionend-*' \) \
+       -type f 2>/dev/null \
+    | grep -Ev '\.test\.(ts|mjs|js|sh)$' \
+    | sort
+)
+
+# Run the awk scanner ONCE over all collected files.
+if [ "${#non_pretooluse_hook_source_files_to_classify_via_awk_scanner[@]}" -gt 0 ]; then
+  classifier_tsv_output_for_non_pretooluse_hook_set=$(
+    awk -f "$HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH" \
+      "${non_pretooluse_hook_source_files_to_classify_via_awk_scanner[@]}"
+  )
+else
+  classifier_tsv_output_for_non_pretooluse_hook_set=""
+fi
+
+# Post-process: apply the iter-62 tier-order interpretation. NOTE:
+# unlike Check 4f, here permissionDecision is the SILENT-FAIL flag
+# (PreToolUse-only field appearing on a non-PreToolUse hook).
+while IFS=$'\t' read -r \
+    hook_path \
+    has_permissionDecision_pretooluse_only_field \
+    _has_hookSpecificOutput_wrapper \
+    has_deprecated_top_level_decision_block_or_deny \
+    _has_modern_pretooluse_helper_function_call \
+    has_additionalContext_informational_field \
+    has_posttooluse_helpers_module_import; do
+  [ -z "$hook_path" ] && continue
+  total_non_pretooluse_hooks=$((total_non_pretooluse_hooks + 1))
   plugin_name="$(basename "$(dirname "$(dirname "$hook_path")")")"
   hook_basename="$(basename "$hook_path")"
 
-  # Determine the event from the filename prefix for diagnostic clarity.
   event_name="UNKNOWN"
   case "$hook_basename" in
-    posttooluse-*)     event_name="PostToolUse" ;;
-    stop-*)            event_name="Stop" ;;
+    posttooluse-*)      event_name="PostToolUse" ;;
+    stop-*)             event_name="Stop" ;;
     userpromptsubmit-*) event_name="UserPromptSubmit" ;;
-    sessionstart-*)    event_name="SessionStart" ;;
-    sessionend-*)      event_name="SessionEnd" ;;
+    sessionstart-*)     event_name="SessionStart" ;;
+    sessionend-*)       event_name="SessionEnd" ;;
   esac
 
-  classification=$(classify_non_pretooluse_hook_schema "$hook_path")
+  # Iter-62 tier-order classification:
+  if [ "$has_permissionDecision_pretooluse_only_field" = "1" ]; then
+    classification=WRONG-FIELD-SILENT-FAIL
+  elif [ "$has_deprecated_top_level_decision_block_or_deny" = "1" ]; then
+    classification=SCHEMA-CORRECT-FOR-EVENT
+  elif [ "$has_additionalContext_informational_field" = "1" ]; then
+    classification=SCHEMA-CORRECT-FOR-EVENT
+  elif [ "$has_posttooluse_helpers_module_import" = "1" ]; then
+    classification=HELPER-WRAPPED
+  else
+    classification=NO-BLOCKING-EMITTED
+  fi
+
   case "$classification" in
     SCHEMA-CORRECT-FOR-EVENT)
       schema_correct_count=$((schema_correct_count + 1))
@@ -218,13 +280,7 @@ while IFS= read -r hook_path; do
       WRONG_FIELD_LINES+="             hookSpecificOutput.additionalContext instead."$'\n'
       ;;
   esac
-done < <(find "$REPO_ROOT/plugins" \
-            \( -path '*/hooks/posttooluse-*' \
-            -o -path '*/hooks/stop-*' \
-            -o -path '*/hooks/userpromptsubmit-*' \
-            -o -path '*/hooks/sessionstart-*' \
-            -o -path '*/hooks/sessionend-*' \) \
-            -type f 2>/dev/null | sort)
+done <<< "$classifier_tsv_output_for_non_pretooluse_hook_set"
 
 # Emit the structured report.
 echo "═══════════════════════════════════════════════════════════════════════════"
