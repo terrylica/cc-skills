@@ -1494,6 +1494,89 @@ All 8 cases pass. Marketplace regression suite: **54/54** (up from 53).
 
 - **Stale-description audit** (task #144 — deferred since iter-117): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field. Wire as preflight Check 4v informational.
 
+### Iter-123: Unified lookup CLI — auto-detects query shape and dispatches to iter-116 reverse OR iter-122 forward, eliminating the operator's direction-choice burden
+
+Iter-123 caps the iter-107 → iter-122 escape-hatch-marker reference arc with a single operator entry point that auto-detects whether the query is a marker name or a consumer path, then dispatches to the right backend. Pre-iter-123 operators had to remember which of two >130-character mise task names corresponded to which lookup direction — the two names differ only by `reverse-search-accessor` vs `forward-search-accessor` plus noun ordering, error-prone in shell completion.
+
+**Classification rules (top-to-bottom precedence)**
+
+| Rule | Predicate                                                       | Decision                                      |
+| ---- | --------------------------------------------------------------- | --------------------------------------------- |
+| 1    | Query contains `/`                                              | `REVERSE_SEARCH_ITER116_CONFIDENT` (path)     |
+| 2    | Query matches `^[A-Z][A-Z0-9-]*-(OK\|SKIP\|WRAP)$` strict regex | `FORWARD_SEARCH_ITER122_CONFIDENT` (marker)   |
+| 3    | Query is `SSoT-OK` (grandfathered mixed-case)                   | `FORWARD_SEARCH_ITER122_CONFIDENT` (marker)   |
+| 4    | Anything else (no slash, not canonical marker shape)            | `AMBIGUOUS_TRY_FORWARD_THEN_FALLBACK_REVERSE` |
+
+The strict UPPER-KEBAB-CASE regex stays strict (no weakening to accept `SSoT`). The single grandfathered mixed-case marker is handled via an explicit set so the regex minimizes false-positives.
+
+**Live example**
+
+```
+$ mise run lookup-...-iter123-... file-size-guard
+ⓘ Routing: auto-detect classifier: query has no '/' AND does not match strict canonical-marker shape
+  → AMBIGUOUS → trying iter-122 forward-search first; falling back to iter-116 reverse-search if forward returns nothing
+
+→ Attempting forward search first (iter-122) ...
+✗ No canonical registry entry matches the marker token: file-size-guard
+ⓘ Forward search returned no hits; falling back to reverse search (iter-116) ...
+✓ No exact path match for "file-size-guard", but found 1 consumer whose basename contains your query:
+    plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+  ...
+```
+
+The routing rationale is printed BEFORE the dispatched-backend output, making the auto-detect decision transparent rather than magic. Operators who want to bypass auto-detect can pass `--direction=forward|reverse`.
+
+**JSON envelope shape**
+
+`--json` mode wraps the dispatched backend's response in an `iter123UnifiedLookupEnvelope`:
+
+```json
+{
+  "iter123UnifiedLookupEnvelope": {
+    "operatorSuppliedQuery": "FILE-SIZE-OK",
+    "classifiedDispatchDirectionTag": "FORWARD_SEARCH_ITER122_CONFIDENT",
+    "classifierRationale": "query matches canonical UPPER-KEBAB-CASE-with-OK/SKIP/WRAP-suffix marker shape ...",
+    "effectiveDispatchDirection": "forward",
+    "effectiveRoutingRationale": "auto-detect classifier: ...",
+    "dispatchedBackend": "iter122-forward-search"
+  },
+  "dispatchedBackendResponse": { ... iter-122 forward-search JSON payload unchanged ... }
+}
+```
+
+The wrapping uses `jq` (not `bun -e` cross-language interpolation, which silently dropped variables — caught by shellcheck SC2034 during mid-flight adversarial review).
+
+**Backward compatibility**
+
+The iter-116 and iter-122 CLIs remain available as explicit-direction escape hatches. Operators who want explicit direction with the unified CLI can pass `--direction=forward` or `--direction=reverse`. Bad values like `--direction=sideways` are rejected with exit 1 and the diagnostic `invalid --direction value: ... (expected forward|reverse|auto)`.
+
+**Regression test (`test-iter123-unified-lookup-cli-auto-detects-query-shape-...-fallback-reverse.sh`) — 10 cases**
+
+| Case | What it verifies                                                                                                                  |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Classifier lib exports canonical regex + grandfathered set + classification function                                              |
+| 2    | Slash query → `REVERSE_SEARCH_ITER116_CONFIDENT` (Rule 1)                                                                         |
+| 3    | UPPER-KEBAB-CASE marker → `FORWARD_SEARCH_ITER122_CONFIDENT` (Rule 2 regex)                                                       |
+| 4    | Grandfathered `SSoT-OK` → `FORWARD_SEARCH_ITER122_CONFIDENT` (Rule 3 set, not regex)                                              |
+| 5    | Ambiguous `file-size-guard` → `AMBIGUOUS_TRY_FORWARD_THEN_FALLBACK_REVERSE` (Rule 4 fallthrough)                                  |
+| 6    | CLI auto-routes slash query to iter-116 reverse-search; rationale visible                                                         |
+| 7    | CLI auto-routes marker query to iter-122 forward-search; rationale visible                                                        |
+| 8    | Ambiguous `file-size-guard` tries forward first (no-hit), falls back to reverse, resolves via iter-120 basename-substring         |
+| 9    | `--direction=forward\|reverse` overrides bypass auto-detect; `--direction=sideways` rejected (exit 1) with diagnostic             |
+| 10   | `--json` wraps backend response in `iter123UnifiedLookupEnvelope` with all 5 metadata fields + nested `dispatchedBackendResponse` |
+
+All 10 cases pass. Marketplace regression suite: **57/57** (up from 56).
+
+**Adversarial issue caught mid-flight**
+
+The initial JSON-envelope wrapping attempted to use `bun -e "..."` with `\`\$VAR\``cross-language interpolation — shellcheck SC2034 flagged the bash temp vars as unused. Root cause: inside a bash double-quoted string,`\$VAR`is escaped to literal`$VAR`rather than bash-interpolated, so the value never reaches the bun script. The variable was unused as bash saw it AND the bun script was reading an unset JS variable. Fixed by switching to`jq --arg`for the envelope construction — proper JSON manipulation, no fragile cross-language string passing. A second SC2168 caught`local`used inside a`case` branch at script-level (not in a function); replaced with bare assignments.
+
+**Iter-124+ queue**
+
+- **Broaden scope beyond escape-hatch-marker reference ecosystem**: the iter-107 → iter-123 arc has reached operator-facing maturity. Next adversarial-audit iteration should look elsewhere in the codebase for usability + performance gaps.
+- **Promote iter-121 stale-description audit to STRICT-BLOCK** after baseline-clean state confirmed across a few release cycles
+- **Consider deprecating direct iter-116/iter-122 CLI invocation** in favor of iter-123 unified entry point (after operators adopt the new task name)
+
 ### Iter-122: Forward-search CLI — operator workflow "I see `# FOO-OK` in source code, what does this marker do?" — symmetric complement to the iter-116 reverse-search
 
 Iter-122 closes the symmetric direction gap that iter-116 + iter-118 + iter-119 + iter-120 left open. Iter-116 resolved one direction:
