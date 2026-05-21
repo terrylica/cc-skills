@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-155 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-157 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -65,6 +65,18 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise${ITER156_ANSI_COLOR_RESET}    (no args, in interactive terminal)
       Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
       during an editor-launched git commit flow.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:install-hook${ITER156_ANSI_COLOR_RESET}
+      Install the iter-153 advisor as a .git/hooks/commit-msg hook in
+      the current repo. After install, every \`git commit\` automatically
+      runs --strict classification and rejects silent-fail-class
+      violations (COMPOUND-PREFIX, MISSING-TYPE) — no operator
+      discipline required. Idempotent; backs up existing hooks.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}
+      Remove cc-skills-managed hook + restore most recent backup.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── CONVENTION (iter-150 going-forward standard) ───${ITER156_ANSI_COLOR_RESET}
 
