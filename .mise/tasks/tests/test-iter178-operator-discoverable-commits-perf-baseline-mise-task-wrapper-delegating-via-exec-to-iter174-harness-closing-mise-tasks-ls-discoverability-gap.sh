@@ -111,9 +111,9 @@ echo ""
 echo "GROUP D (3 assertions): iter-156 dispatcher banner refresh — mentions iter-178 commits:perf-baseline + arc range bump"
 
 iter178_assert_substring_present_in_file \
-    "D1: iter-156 dispatcher has PERFORMANCE BENCHMARK section header citing iter-178" \
+    "D1: iter-156 dispatcher has PERFORMANCE BENCHMARK section header citing iter-178 (iter-179 extended the header to mention --json dual-mode)" \
     "$ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH" \
-    "PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness)"
+    "PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness"
 
 iter178_assert_substring_present_in_file \
     "D2: iter-156 dispatcher includes 'mise run commits:perf-baseline' invocation line" \
