@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * PreToolUse hook: mise.toml Hygiene Guard
+ * PreToolUse hook: mise.toml Hygiene Guard (iter-88 orchestrator-inlined)
  *
  * Enforces two critical mise.toml hygiene rules:
  * 1. Line count limit (~100 lines) - suggests hub-spoke refactoring
@@ -14,6 +14,15 @@
  *
  * ADR: /docs/adr/2026-02-04-mise-hygiene-guard.md
  * ADR: /docs/adr/2026-02-05-plan-mode-detection-hooks.md
+ *
+ * Iter-88 dual-use contract (mirrors iter-85/86/87 migrations):
+ *   - Standalone CLI mode (preserved for backward-compat + direct testing):
+ *     `bun pretooluse-mise-hygiene-guard.ts < payload.json` runs main()
+ *     under `import.meta.main` guard.
+ *   - Orchestrator-inlined mode (NEW owner of the Write|Edit hooks.json slot):
+ *     The orchestrator imports `classifyMiseHygieneGuardForOrchestrator`
+ *     and invokes it directly in the single bun process. Conforms to
+ *     PreToolUseSubhookContract.
  */
 
 import {
@@ -23,13 +32,19 @@ import {
   isPlanMode,
   createHookLogger,
   trackHookError,
+  type PreToolUseInput,
 } from "./pretooluse-helpers.ts";
+import {
+  ALLOW_DECISION,
+  denyDecision,
+  type PreToolUseSubhookDecision,
+} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-const CONFIG = {
+const MISE_HYGIENE_GUARD_CONFIG = {
   // Line count threshold for hub-spoke suggestion
   maxLines: 100,
 
@@ -50,7 +65,7 @@ const CONFIG = {
     /\b(database|db)[_-]?(password|pwd)\s*=\s*["'][^"']+["']/i,
     /\bencryption[_-]?key\s*=\s*["'][^"']+["']/i,
     /\bsigning[_-]?key\s*=\s*["'][^"']+["']/i,
-  ],
+  ] as const,
 
   // Safe patterns - these reference external sources, not hardcoded secrets
   safePatterns: [
@@ -61,29 +76,29 @@ const CONFIG = {
     /\{\{\s*cache\s*\(/i, // Cached external command
     /op:\/\//i, // 1Password URI
     /doppler\s+secrets/i, // Doppler reference
-  ],
+  ] as const,
 
   // Files to check
-  targetFiles: ["mise.toml", ".mise.toml"],
+  targetFiles: ["mise.toml", ".mise.toml"] as const,
 
   // Files to ignore (these are meant for local/secrets)
-  ignoreFiles: ["mise.local.toml", ".mise.local.toml"],
-};
+  ignoreFiles: ["mise.local.toml", ".mise.local.toml"] as const,
+} as const;
 
 // ============================================================================
 // Types
 // ============================================================================
 
-interface SecretFinding {
+interface SecretFindingInMiseTomlContent {
   line: number;
   content: string;
   pattern: string;
 }
 
-interface HygieneResult {
+interface MiseTomlHygieneAnalysisResult {
   lineCount: number;
-  exceedsLimit: boolean;
-  secretFindings: SecretFinding[];
+  exceedsLineCountLimit: boolean;
+  secretFindings: SecretFindingInMiseTomlContent[];
   taskCount: number;
 }
 
@@ -91,31 +106,28 @@ interface HygieneResult {
 // Detection Functions
 // ============================================================================
 
-/**
- * Check if content contains a safe pattern (external reference)
- */
-function containsSafePattern(line: string): boolean {
-  return CONFIG.safePatterns.some((pattern) => pattern.test(line));
+/** Check if a single line contains a safe external-reference pattern. */
+function lineContainsKnownSafeExternalReferencePattern(line: string): boolean {
+  return MISE_HYGIENE_GUARD_CONFIG.safePatterns.some((pattern) => pattern.test(line));
 }
 
-/**
- * Detect secrets in content
- */
-function detectSecrets(content: string): SecretFinding[] {
-  const findings: SecretFinding[] = [];
+/** Detect secrets in mise.toml content, line-by-line with safe-pattern filtering. */
+function detectSecretLiteralsInMiseTomlContent(content: string): SecretFindingInMiseTomlContent[] {
+  const findings: SecretFindingInMiseTomlContent[] = [];
   const lines = content.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (!line) continue;
 
     // Skip comments
     if (line.trim().startsWith("#")) continue;
 
     // Skip if line contains safe pattern (external reference)
-    if (containsSafePattern(line)) continue;
+    if (lineContainsKnownSafeExternalReferencePattern(line)) continue;
 
     // Check each secret pattern
-    for (const pattern of CONFIG.secretPatterns) {
+    for (const pattern of MISE_HYGIENE_GUARD_CONFIG.secretPatterns) {
       if (pattern.test(line)) {
         findings.push({
           line: i + 1,
@@ -130,51 +142,42 @@ function detectSecrets(content: string): SecretFinding[] {
   return findings;
 }
 
-/**
- * Count tasks in content
- */
-function countTasks(content: string): number {
-  // Match [tasks.xxx] or [tasks."xxx:yyy"]
+/** Count [tasks.*] sections via regex match. */
+function countMiseTaskSections(content: string): number {
   const taskMatches = content.match(/\[tasks\.["']?[^\]]+["']?\]/g);
   return taskMatches?.length || 0;
 }
 
-/**
- * Analyze mise.toml content for hygiene issues
- */
-function analyzeContent(content: string): HygieneResult {
+/** Analyze full mise.toml content for hygiene issues. */
+function analyzeMiseTomlContentForHygieneViolations(content: string): MiseTomlHygieneAnalysisResult {
   const lines = content.split("\n");
   const lineCount = lines.length;
-  const secretFindings = detectSecrets(content);
-  const taskCount = countTasks(content);
+  const secretFindings = detectSecretLiteralsInMiseTomlContent(content);
+  const taskCount = countMiseTaskSections(content);
 
   return {
     lineCount,
-    exceedsLimit: lineCount > CONFIG.maxLines,
+    exceedsLineCountLimit: lineCount > MISE_HYGIENE_GUARD_CONFIG.maxLines,
     secretFindings,
     taskCount,
   };
 }
 
-/**
- * Check if file path is a target mise.toml file
- */
-function isTargetFile(filePath: string): boolean {
+/** Check if file path is a target mise.toml file (and NOT a local ignore-file). */
+function isTargetMiseTomlFileNotLocalIgnoreFile(filePath: string): boolean {
   const fileName = filePath.split("/").pop() || "";
 
   // Ignore local files (they're meant for secrets)
-  if (CONFIG.ignoreFiles.includes(fileName)) {
+  if ((MISE_HYGIENE_GUARD_CONFIG.ignoreFiles as readonly string[]).includes(fileName)) {
     return false;
   }
 
-  return CONFIG.targetFiles.includes(fileName);
+  return (MISE_HYGIENE_GUARD_CONFIG.targetFiles as readonly string[]).includes(fileName);
 }
 
-/**
- * Generate hub-spoke refactoring suggestion
- */
-function generateHubSpokeSuggestion(): string {
-  const suggestions: string[] = [
+/** Build the hub-spoke refactoring suggestion text shown in deny reasons. */
+function buildHubSpokeRefactoringSuggestionText(): string {
+  return [
     "",
     "**Recommended hub-spoke structure:**",
     "```",
@@ -202,17 +205,15 @@ function generateHubSpokeSuggestion(): string {
     'run = "cargo test"',
     "```",
     "",
-    `Reference: https://mise.jdx.dev/tasks/task-configuration.html`,
-  ];
-
-  return suggestions.join("\n");
+    "Reference: https://mise.jdx.dev/tasks/task-configuration.html",
+  ].join("\n");
 }
 
-/**
- * Generate secrets migration suggestion
- */
-function generateSecretsSuggestion(findings: SecretFinding[]): string {
-  const suggestions: string[] = [
+/** Build the secrets-migration suggestion text shown in deny reasons. */
+function buildSecretsMigrationToMiseLocalTomlSuggestionText(
+  findings: SecretFindingInMiseTomlContent[],
+): string {
+  return [
     "",
     "**Move secrets to .mise.local.toml:**",
     "",
@@ -240,30 +241,45 @@ function generateSecretsSuggestion(findings: SecretFinding[]): string {
     "**Detected secrets:**",
     ...findings.map((f) => `  Line ${f.line}: ${f.content}`),
     "",
-    `Reference: https://mise.jdx.dev/configuration.html`,
-  ];
-
-  return suggestions.join("\n");
+    "Reference: https://mise.jdx.dev/configuration.html",
+  ].join("\n");
 }
 
 // ============================================================================
-// Main Hook Logic
+// Pure classifier (iter-88 orchestrator-inlineable contract)
 // ============================================================================
 
 const logger = createHookLogger("MISE-HYGIENE");
 
-async function main(): Promise<void> {
-  const input = await parseStdinOrAllow("MISE-HYGIENE");
-  if (!input) return;
-
+/**
+ * Pure classifier conforming to PreToolUseSubhookClassifierFunction.
+ *
+ * Identical 2-policy logic to the pre-iter-88 main() body, but factored
+ * out so the orchestrator can invoke it without subprocess-spawning this
+ * file (which would defeat the orchestrator's ~17ms empirical cold-start
+ * saving — iter-87 microbenchmark).
+ *
+ * Short-circuit order (cheap → expensive):
+ *   1. tool_name not Write/Edit → ALLOW
+ *   2. plan mode → ALLOW
+ *   3. file is not mise.toml or is .mise.local.toml → ALLOW
+ *   4. no content → ALLOW
+ *   5. secrets detected → DENY (highest-priority block)
+ *   6. Write + line count > 100 → DENY (hub-spoke suggestion)
+ *   7. all clean → ALLOW
+ *
+ * MUST NOT call allow()/deny() or touch stdin/stdout/process.exit.
+ */
+export async function classifyMiseHygieneGuardForOrchestrator(
+  input: PreToolUseInput,
+): Promise<PreToolUseSubhookDecision> {
   const { tool_name, tool_input } = input;
 
-  // Only check Write and Edit tools
   if (tool_name !== "Write" && tool_name !== "Edit") {
-    return allow();
+    return ALLOW_DECISION;
   }
 
-  // Skip in plan mode - planning phase should not be blocked
+  // Skip in plan mode
   const planContext = isPlanMode(input, { checkPermission: true, checkPath: true });
   if (planContext.inPlanMode) {
     logger.debug("Skipping mise hygiene check in plan mode", {
@@ -272,55 +288,75 @@ async function main(): Promise<void> {
       trace_id: input.tool_use_id,
       reason: planContext.reason,
     });
-    return allow();
+    return ALLOW_DECISION;
   }
 
-  const filePath = tool_input.file_path;
-  if (!filePath || !isTargetFile(filePath)) {
-    return allow();
+  const filePath = tool_input?.file_path;
+  if (!filePath || !isTargetMiseTomlFileNotLocalIgnoreFile(filePath)) {
+    return ALLOW_DECISION;
   }
 
   // Get content to analyze
-  const content = tool_input.content || tool_input.new_string;
+  const content = (tool_input?.content as string) || (tool_input?.new_string as string);
   if (!content) {
-    return allow();
+    return ALLOW_DECISION;
   }
 
-  // For Edit tool, we only have partial content - need full file analysis
-  // For now, analyze what we have
-  const result = analyzeContent(content);
+  const result = analyzeMiseTomlContentForHygieneViolations(content);
 
-  // Check for secrets (highest priority - block immediately)
+  // POLICY 1: Secrets detected → DENY (highest priority)
   if (result.secretFindings.length > 0) {
     const message = [
-      `[MISE-HYGIENE] Secrets detected in mise.toml`,
+      "[MISE-HYGIENE] Secrets detected in mise.toml",
       "",
       `Found ${result.secretFindings.length} potential secret(s) that should NOT be committed.`,
-      `mise.toml is meant to be shared; secrets belong in .mise.local.toml (gitignored).`,
-      generateSecretsSuggestion(result.secretFindings),
+      "mise.toml is meant to be shared; secrets belong in .mise.local.toml (gitignored).",
+      buildSecretsMigrationToMiseLocalTomlSuggestionText(result.secretFindings),
     ].join("\n");
-
-    return deny(message);
+    return denyDecision(message);
   }
 
-  // Check line count (for Write tool with full content)
-  if (tool_name === "Write" && result.exceedsLimit) {
+  // POLICY 2: Line count exceeded on Write → DENY with hub-spoke suggestion
+  // (Only for Write tool, since Edit only gives partial content.)
+  if (tool_name === "Write" && result.exceedsLineCountLimit) {
     const message = [
-      `[MISE-HYGIENE] mise.toml exceeds ${CONFIG.maxLines} lines (${result.lineCount} lines)`,
+      `[MISE-HYGIENE] mise.toml exceeds ${MISE_HYGIENE_GUARD_CONFIG.maxLines} lines (${result.lineCount} lines)`,
       "",
-      `Large mise.toml files become hard to maintain. Consider hub-spoke refactoring:`,
-      `- Keep [env], [tools], [task_config] in root mise.toml (hub)`,
-      `- Move [tasks.*] to .mise/tasks/*.toml files (spokes)`,
-      generateHubSpokeSuggestion(),
+      "Large mise.toml files become hard to maintain. Consider hub-spoke refactoring:",
+      "- Keep [env], [tools], [task_config] in root mise.toml (hub)",
+      "- Move [tasks.*] to .mise/tasks/*.toml files (spokes)",
+      buildHubSpokeRefactoringSuggestionText(),
     ].join("\n");
-
-    return deny(message);
+    return denyDecision(message);
   }
 
-  return allow();
+  return ALLOW_DECISION;
 }
 
-main().catch((err) => {
-  trackHookError("pretooluse-mise-hygiene-guard", err instanceof Error ? err.message : String(err));
-  allow(); // Fail-open: don't block on errors
-});
+// ============================================================================
+// Standalone main (backward-compat for direct CLI invocation)
+// ============================================================================
+
+async function main(): Promise<void> {
+  const input = await parseStdinOrAllow("MISE-HYGIENE");
+  if (!input) return;
+
+  const decision = await classifyMiseHygieneGuardForOrchestrator(input);
+  switch (decision.kind) {
+    case "deny":
+      return deny(decision.reason ?? "(no reason given)");
+    case "ask":
+      return deny(decision.reason ?? "(no reason given)");
+    default:
+      return allow();
+  }
+}
+
+// import.meta.main is true only for the entry-point script; when the orchestrator
+// imports classifyMiseHygieneGuardForOrchestrator, this branch does NOT fire.
+if (import.meta.main) {
+  main().catch((err: unknown) => {
+    trackHookError("pretooluse-mise-hygiene-guard", err instanceof Error ? err.message : String(err));
+    allow();
+  });
+}
