@@ -1,7 +1,83 @@
 #!/usr/bin/env bash
 #MISE description="Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
-#MISE depends=["release:preflight"]
 set -euo pipefail
+
+# Iter-139: RELEASE_TIMING_PROFILE opt-in pipeline-level wall-clock instrumentation.
+# Mirrors the iter-73 PREFLIGHT_TIMING_PROFILE pattern at one structural level up:
+# where iter-73 measures per-check timing INSIDE the preflight script, iter-139
+# measures per-phase timing ACROSS the seven-phase release orchestrator that
+# wraps preflight + presync + version + sync + verify + chronicle + postflight.
+#
+# Operators set RELEASE_TIMING_PROFILE=1 to surface where the ~45-55s release
+# wall-clock actually goes. Without this instrumentation the pipeline is
+# opaque — operators iterating on release perf have no data to guide them
+# (the preflight is heavily instrumented, but the OTHER ~90% of release time
+# was previously invisible). Same iter-73 "instrument first, then optimize"
+# discipline that unlocked iter-74 through iter-138's preflight wall-clock
+# reduction from ~10.74s to ~4.5s (~58% cumulative).
+#
+# Output shape:
+#   - Per-phase: "    ⧗ release-phase elapsed: Nms (phase-label)" emitted
+#     after each phase completes, inline with phase boundary banners.
+#   - End-of-script: top-N ranking sorted descending by elapsed-ms, mirroring
+#     iter-130's preflight ranking. Default N=5; operator-tunable via
+#     ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY.
+#
+# Removed the previous `#MISE depends=["release:preflight"]` declaration so
+# preflight runs INSIDE the orchestrator script body where it can be wrapped
+# by the timing capture. Functionally identical to the depends-based invocation
+# (mise wires both up the same way) — the explicit-call form just lets the
+# iter-139 instrumentation see the preflight wall-clock too.
+__iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary=()
+
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking() {
+    local human_readable_release_phase_label_for_per_phase_report="$1"
+    shift
+    local release_phase_invocation_argv=("$@")
+    if [[ "${RELEASE_TIMING_PROFILE:-0}" != "1" ]]; then
+        "${release_phase_invocation_argv[@]}"
+        return $?
+    fi
+    local release_phase_start_seconds_using_epochrealtime="$EPOCHREALTIME"
+    local release_phase_invocation_exit_code=0
+    "${release_phase_invocation_argv[@]}" || release_phase_invocation_exit_code=$?
+    local release_phase_end_seconds_using_epochrealtime="$EPOCHREALTIME"
+    local release_phase_elapsed_milliseconds
+    release_phase_elapsed_milliseconds=$(awk \
+        -v s="$release_phase_start_seconds_using_epochrealtime" \
+        -v e="$release_phase_end_seconds_using_epochrealtime" \
+        'BEGIN { printf "%.0f", (e - s) * 1000 }')
+    echo "    ⧗ release-phase elapsed: ${release_phase_elapsed_milliseconds}ms (${human_readable_release_phase_label_for_per_phase_report})"
+    __iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary+=(
+        "${release_phase_elapsed_milliseconds}"$'\t'"${human_readable_release_phase_label_for_per_phase_report}"
+    )
+    return $release_phase_invocation_exit_code
+}
+
+__iter139_emit_top_n_slowest_release_phases_ranked_by_elapsed_milliseconds_descending_bottleneck_summary() {
+    if [[ "${RELEASE_TIMING_PROFILE:-0}" != "1" ]]; then
+        return 0
+    fi
+    if [[ "${#__iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -eq 0 ]]; then
+        return 0
+    fi
+    local top_n_threshold_for_slowest_release_phase_ranking_display="${ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY:-5}"
+    echo ""
+    echo "    ⧗ ─── Top ${top_n_threshold_for_slowest_release_phase_ranking_display} slowest release phases (iter-139 pipeline-level bottleneck ranking) ───"
+    printf '%s\n' "${__iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" \
+        | sort -rn -k1 \
+        | head -n "${top_n_threshold_for_slowest_release_phase_ranking_display}" \
+        | awk -F'\t' '{ printf "      %2d. %6d ms  %s\n", NR, $1, $2 }'
+    echo "    ⧗ (override count via ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY=N)"
+    echo "    ⧗ (set PREFLIGHT_TIMING_PROFILE=1 too for the iter-130 per-check sub-ranking inside Phase 1)"
+}
+
+# Whole-pipeline timer. Mirrors the iter-73 whole-script timer in preflight.
+release_timing_profile_whole_pipeline_start_seconds_using_epochrealtime=""
+if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]]; then
+    release_timing_profile_whole_pipeline_start_seconds_using_epochrealtime="$EPOCHREALTIME"
+    echo "    ⧗ RELEASE_TIMING_PROFILE=1 — per-phase wall-clock instrumentation active (iter-139)"
+fi
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"
@@ -9,31 +85,62 @@ echo "║  cc-skills Full Release Workflow                          ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 
+# Phase 1: Preflight (explicitly invoked rather than via `depends=` so iter-139
+# instrumentation can wrap it; functionally identical to a mise dep).
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 1: preflight (sixty test files + seventeen audits parallel-pre-warm + plugin manifest validation)" \
+    mise run release:preflight
+
 # Phase 1.5: Pre-sync
 # Mirrors current HEAD to ~/.claude so the live environment reflects
 # pending plugin changes BEFORE semantic-release runs. Idempotent with
 # Phase 3 post-sync; skips gracefully if local commits are unpushed.
-mise run release:presync
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 1.5: presync (mirror current HEAD to live ~/.claude marketplace clone)" \
+    mise run release:presync
 
 # Phase 2: Version
-mise run release:version
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 2: version (semantic-release commit-analyzer + version-bump + changelog + git-tag + GitHub-release + jsDelivr-CDN-purge)" \
+    mise run release:version
 
 # Phase 3: Sync
-mise run release:sync
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 3: sync (post-release marketplace clone update + hook installation + cache population + jsDelivr smoke-test)" \
+    mise run release:sync
 
 # Phase 4: Verify
-mise run release:verify
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 4: verify (cross-validate marketplace.json + plugin manifests + installed cache + enabled-plugins state for drift)" \
+    mise run release:verify
 
 # Phase 4.5: Session Chronicle (PRIVATE REPOS ONLY)
 # Bundles sanitized session JSONLs from the previous-release window into a
 # tarball attached to the GitHub release. Skips silently for public repos.
-mise run release:chronicle
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 4.5: chronicle (sanitize-and-bundle session JSONLs from previous-release window; SKIPPED on public repos)" \
+    mise run release:chronicle
 
 # Phase 5: Postflight
-mise run release:postflight
+__iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
+    "Phase 5: postflight (lockfile-drift + working-directory-clean + all-commits-pushed-to-remote validation)" \
+    mise run release:postflight
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"
 echo "║  ✓ Release workflow complete!                             ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
+
+# Iter-139: emit whole-pipeline wall-clock total + top-N bottleneck ranking
+# so operators can confirm sum-of-phases ≈ whole-pipeline and see which
+# phase to attack next.
+if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]] && [[ -n "$release_timing_profile_whole_pipeline_start_seconds_using_epochrealtime" ]]; then
+    release_timing_profile_whole_pipeline_end_seconds_using_epochrealtime="$EPOCHREALTIME"
+    release_timing_profile_whole_pipeline_elapsed_milliseconds=$(awk \
+        -v s="$release_timing_profile_whole_pipeline_start_seconds_using_epochrealtime" \
+        -v e="$release_timing_profile_whole_pipeline_end_seconds_using_epochrealtime" \
+        'BEGIN { printf "%.0f", (e - s) * 1000 }')
+    echo "    ⧗ whole-pipeline elapsed: ${release_timing_profile_whole_pipeline_elapsed_milliseconds}ms (release:full total)"
+fi
+__iter139_emit_top_n_slowest_release_phases_ranked_by_elapsed_milliseconds_descending_bottleneck_summary

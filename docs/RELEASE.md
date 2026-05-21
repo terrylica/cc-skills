@@ -222,6 +222,29 @@ PREFLIGHT_TIMING_PROFILE=1 \
   mise run release:preflight 2>&1 | tail -15
 ```
 
+#### `RELEASE_TIMING_PROFILE=1` (iter-139)
+
+Surface per-phase wall-clock timing for the **entire 7-phase release pipeline** (preflight → presync → version → sync → verify → chronicle → postflight). Mirrors the iter-73/130 preflight-internal pattern at the pipeline level. Default off — release output unchanged. When set:
+
+- Emits `⧗ release-phase elapsed: Nms (Phase X: label)` after each phase completes
+- Emits a `Top N slowest release phases` end-of-pipeline bottleneck-ranking summary (default N=5)
+- Emits the whole-pipeline total for sum-of-phases vs wall-clock sanity check
+- Compatible with `PREFLIGHT_TIMING_PROFILE=1` — set both for full per-check + per-phase visibility
+
+```bash
+# Profile a release end-to-end with both pipeline-level + preflight-internal timing
+RELEASE_TIMING_PROFILE=1 \
+  PREFLIGHT_TIMING_PROFILE=1 \
+  mise run release:full 2>&1 | grep -E '(⧗|✓ Release)'
+
+# Top 7 slowest phases (i.e., the full pipeline)
+RELEASE_TIMING_PROFILE=1 \
+  ITER139_TOP_N_SLOWEST_RELEASE_PHASES_TO_DISPLAY=7 \
+  mise run release:full
+```
+
+Use when iterating on the ~45-55s post-preflight portion of release wall-clock. Iter-138 cut preflight from ~10.74s to ~4.5s; iter-139 unblocks the same data-driven approach for the OTHER ~90% of release time.
+
 #### `MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N` (iter-131)
 
 Surface per-test wall-clock ranking in the marketplace hook regression suite output. Default unset (no ranking section emitted; output bit-for-bit identical to pre-iter-131 for CI consumers). When set to a positive integer N:
