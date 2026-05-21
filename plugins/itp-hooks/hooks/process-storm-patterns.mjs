@@ -124,18 +124,17 @@ export const PATTERNS = {
  * see their markers honored). Iter-108 helper extension added the
  * `caseSensitivityMode` knob exactly for this kind of legacy compatibility.
  *
- * The pre-iter-109 export `ESCAPE_HATCH` (a RegExp) is preserved for
- * backward compatibility with any external consumers (e.g., the
- * process-storm-patterns.test.mjs regression test) — it now lazily computes
- * the same matching the helper does, but external imports continue to work.
+ * Iter-111: dropped the @deprecated `export const ESCAPE_HATCH = /.../i;`
+ * regex literal — verified zero external consumers via marketplace-wide
+ * grep (the test file's unused-import was cleaned up in the same iter).
+ * The canonical detection path is now the helper call below; no
+ * grandfathered raw-regex API surface remains.
  */
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 const PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION = {
   markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
   caseSensitivityMode: "CASE_INSENSITIVE",
 };
-/** @deprecated Pre-iter-109 export preserved for backward compat. New code should call `hasFileWideEscapeHatchMarkerInContent(content, PROCESS_STORM_GUARD_ESCAPE_HATCH_CONFIGURATION)` directly. */
-export const ESCAPE_HATCH = /#\s*PROCESS-STORM-OK/i;
 
 /**
  * Default configuration for process storm guard.
