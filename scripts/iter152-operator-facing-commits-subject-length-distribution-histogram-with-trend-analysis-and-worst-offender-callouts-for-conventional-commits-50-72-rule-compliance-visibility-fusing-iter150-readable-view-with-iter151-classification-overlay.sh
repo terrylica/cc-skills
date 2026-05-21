@@ -131,6 +131,42 @@ esac
 # Affected call sites: 6 awk length() invocations across panels 2/3/5 +
 # --json aggregate + --json trend, all rewritten to use the iter172
 # inline-defined function.
+#
+# ─── ITER-175 BATCHED-GIT-LOG-FAN-IN PERF OPTIMIZATION FOR DEFAULT MODE ──────
+# Pre-iter-175 the default human-readable mode invoked `git log` FOUR
+# separate times — once per panel-2 / panel-3 / panel-4 / panel-5 awk
+# pipeline — at progressively wider windows (N / N / N / 2N commits).
+# Each invocation forks git+walks the commit-DAG redundantly. On a small
+# cc-skills repo at N=10 this costs ≈10-20ms of redundant fork+walk;
+# on a 1000-commit repo the redundant cost scales linearly.
+#
+# Iter-175 applies the iter-167 batched-git-log-fan-in pattern (originally
+# proven on iter-165 pending-release aggregator with ≈4.5× speedup) by:
+#
+#   1. Issuing ONE `git log -2N --pretty=format:'%h<SEP>%s'` invocation
+#      up-front (sufficient for all four downstream panel consumers since
+#      panel-5 trend-window is the widest at 2N commits).
+#
+#   2. Caching raw output in a single bash variable keyed by the iter-155
+#      in-band field separator (U+001F INFORMATION SEPARATOR ONE — same
+#      separator already used by iter-155 --json mode).
+#
+#   3. Each panel awk pipeline now consumes the cached batch via stdin
+#      redirection (`<<<"$batch"` + `head -N` filter) rather than spawning
+#      its own redundant `git log` fork. Pipeline logic + LC_ALL=C envelope
+#      + iter172 char-count function are all preserved verbatim — only
+#      the data-source upstream changes.
+#
+# Performance model: 4 git-log forks → 1 git-log fork (75% subprocess
+# reduction). Empirical measurement methodology pinned by iter-174 perf-
+# baseline harness; iter-175 commit message documents observed median
+# improvement against the iter-174-pinned 300ms baseline cap.
+#
+# Affected call sites: panel-2 (line ~195), panel-3 (line ~265), panel-4
+# (line ~296), panel-5 (line ~355) — all four `git log` invocations
+# replaced with `printf '%s\n' "\$batched_output" | head -N | …`. The
+# --json mode aggregate + trend git-log invocations are left as-is since
+# they already use a single-call-per-window pattern (no fan-in win).
 
 ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER152_REPO_ROOT"
@@ -158,6 +194,27 @@ else
     ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS=""
     ITER152_ANSI_COLOR_RESET=""
 fi
+
+# ─── Iter-175 batched-git-log fan-in: single git invocation feeds all four ──
+# downstream default-mode panels (2/3/4/5) replacing 4 redundant git forks.
+# In-band field separator is U+001F INFORMATION SEPARATOR ONE — same as the
+# --json mode aggregate already uses, and never appears in human-authored
+# commit subjects.
+ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE=$'\x1f'
+ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE=""
+
+iter175_fan_in_single_git_log_invocation_collecting_two_n_commits_with_sha_and_subject_fields_for_all_four_downstream_default_mode_panel_consumers() {
+    # Issue ONE git-log fork covering the widest panel-5 trend window (2N
+    # commits). Output is cached in a script-scoped bash variable; each
+    # panel function consumes a `head -N` (or full 2N) slice via stdin
+    # redirection rather than spawning its own redundant `git log` fork.
+    local iter175_total_window_size_for_widest_consumer_panel_five_trend_signal_doubled=$((ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW * 2))
+    ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE=$(
+        git log -"$iter175_total_window_size_for_widest_consumer_panel_five_trend_signal_doubled" \
+            --pretty=format:"%h${ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE}%s" \
+            2>/dev/null
+    )
+}
 
 # ─── Panel renderers ────────────────────────────────────────────────────────
 
@@ -192,8 +249,12 @@ iter152_render_panel_2_subject_length_distribution_histogram_with_50_72_rule_anc
     # Single awk pass over git log subjects → bin counts → ASCII bars.
     # iter-172 LC_ALL=C envelope: required for the RFC 3629 byte-range
     # regex [\200-\277] to match UTF-8 continuation bytes by byte value.
-    git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" --pretty=format:'%s' 2>/dev/null \
+    # iter-175 batched-fan-in: consume cached batch (sha<SEP>subject pairs);
+    # take subject field via $2 — replaces redundant `git log -N` fork.
+    printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
+        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
         | LC_ALL=C awk \
+            -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
             -v hard_target="$ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v bar_max_width="$ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS" '
@@ -205,7 +266,7 @@ iter152_render_panel_2_subject_length_distribution_histogram_with_50_72_rule_anc
             }
             {
                 total_subjects_observed_in_window++
-                subject_length_in_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($0)
+                subject_length_in_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($2)
                 if (subject_length_in_chars <= hard_target) {
                     bin_count_le_hard_target++
                 } else if (subject_length_in_chars <= hard_cap) {
@@ -262,15 +323,20 @@ iter152_render_panel_3_worst_offender_callouts_top_n_by_char_count_so_operators_
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 3: Worst offenders (top ${ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3} by char count) ───${ITER152_ANSI_COLOR_RESET}"
 
     # iter-172 LC_ALL=C envelope on BOTH awk stages so worst-offender sort key + truncate-for-display threshold are char-aware.
-    git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" --pretty=format:'%h|%s' 2>/dev/null \
-        | LC_ALL=C awk -F'|' '
+    # iter-175 batched-fan-in: consume cached batch (sha<SEP>subject pairs);
+    # parse with the iter-175 separator instead of bare '|' so subjects
+    # containing literal '|' chars are preserved verbatim — replaces
+    # redundant `git log -N` fork.
+    printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
+        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        | LC_ALL=C awk -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" '
             function iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(text,    byte_length_of_text_in_locale_native_units, copy_of_text_for_gsub_mutation, count_of_utf8_continuation_bytes_found) {
                 byte_length_of_text_in_locale_native_units = length(text)
                 copy_of_text_for_gsub_mutation = text
                 count_of_utf8_continuation_bytes_found = gsub(/[\200-\277]/, "", copy_of_text_for_gsub_mutation)
                 return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
             }
-            { subject_text = $0; sub(/^[^|]*\|/, "", subject_text); printf "%d|%s|%s\n", iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes(subject_text), $1, subject_text }' \
+            { printf "%d|%s|%s\n", iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($2), $1, $2 }' \
         | sort -rn \
         | head -"$ITER152_DEFAULT_NUMBER_OF_WORST_OFFENDERS_TO_CALL_OUT_IN_PANEL_3" \
         | LC_ALL=C awk -F'|' '
@@ -293,12 +359,15 @@ iter152_render_panel_4_conventional_commits_type_distribution_across_canonical_e
     echo ""
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 4: Conventional-commits type distribution ───${ITER152_ANSI_COLOR_RESET}"
 
-    git log -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" --pretty=format:'%s' 2>/dev/null \
-        | awk -v bar_max_width="$ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS" '
+    # iter-175 batched-fan-in: consume cached batch via $2 subject field.
+    printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
+        | head -"$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
+        | awk -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
+              -v bar_max_width="$ITER152_DEFAULT_HISTOGRAM_BAR_MAX_WIDTH_IN_TERMINAL_COLUMNS" '
             {
                 total++
-                if (match($0, /^[a-zA-Z]+/)) {
-                    extracted_type = tolower(substr($0, RSTART, RLENGTH))
+                if (match($2, /^[a-zA-Z]+/)) {
+                    extracted_type = tolower(substr($2, RSTART, RLENGTH))
                     type_count_by_name[extracted_type]++
                 } else {
                     type_count_by_name["(no-type)"]++
@@ -348,12 +417,14 @@ iter152_render_panel_5_recent_vs_previous_window_trend_signal_with_improving_or_
     echo ""
     echo "${ITER152_ANSI_COLOR_CYAN_FOR_PANEL_HEADERS}─── Panel 5: Trend (current ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW} commits vs previous ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW}) ───${ITER152_ANSI_COLOR_RESET}"
 
-    # Pull 2x window: first N is current, next N is previous.
-    local total_window_size_doubled=$((ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW * 2))
-
     # iter-172 LC_ALL=C envelope for trend-signal char-counting correctness.
-    git log -"$total_window_size_doubled" --pretty=format:'%s' 2>/dev/null \
+    # iter-175 batched-fan-in: the cached batch already covers the widest
+    # 2N-commit window, so panel-5 consumes the whole cache via $2 subject
+    # field (no `head` filter — needs full 2N rows) — replaces redundant
+    # `git log -2N` fork.
+    printf '%s\n' "$ITER175_BATCHED_GIT_LOG_RAW_OUTPUT_ACROSS_TWO_N_COMMITS_WITH_SHA_AND_SUBJECT_FIELDS_SEPARATED_BY_INFORMATION_SEPARATOR_ONE_FOR_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
         | LC_ALL=C awk \
+            -F"$ITER175_IN_BAND_FIELD_SEPARATOR_UNICODE_INFORMATION_SEPARATOR_ONE_FOR_BATCHED_GIT_LOG_FAN_IN_TO_PANELS_TWO_THROUGH_FIVE" \
             -v window_size="$ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW" \
             -v hard_cap="$ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE" \
             -v ansi_green="$ITER152_ANSI_COLOR_GREEN_FOR_IMPROVING_SIGNAL" \
@@ -367,7 +438,7 @@ iter152_render_panel_5_recent_vs_previous_window_trend_signal_with_improving_or_
                 return byte_length_of_text_in_locale_native_units - count_of_utf8_continuation_bytes_found
             }
             {
-                subject_length_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($0)
+                subject_length_chars = iter172_count_visible_chars_by_subtracting_rfc3629_continuation_bytes($2)
                 if (NR <= window_size) {
                     current_window_subject_lengths_array[NR] = subject_length_chars
                     current_window_subject_count++
@@ -700,6 +771,10 @@ EOF
 iter152_main_entry_point_orchestrates_five_panel_dashboard_render() {
     iter152_emit_dashboard_header_banner_with_window_and_threshold_metadata
     iter152_render_panel_1_iter150_readable_view_by_delegating_to_iter150_renderer_for_consistency
+    # iter-175 fan-in: prime the cached 2N-commit batch ONCE so panels
+    # 2/3/4/5 consume it via stdin redirection instead of each spawning
+    # its own redundant `git log` fork.
+    iter175_fan_in_single_git_log_invocation_collecting_two_n_commits_with_sha_and_subject_fields_for_all_four_downstream_default_mode_panel_consumers
     iter152_render_panel_2_subject_length_distribution_histogram_with_50_72_rule_anchored_bins
     iter152_render_panel_3_worst_offender_callouts_top_n_by_char_count_so_operators_can_target_attention
     iter152_render_panel_4_conventional_commits_type_distribution_across_canonical_eleven_types
