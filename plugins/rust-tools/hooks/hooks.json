@@ -3,7 +3,7 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Read|Glob|Grep|Bash|Edit|Write",
+        "matcher": "Read|Glob|Grep|Bash|Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
