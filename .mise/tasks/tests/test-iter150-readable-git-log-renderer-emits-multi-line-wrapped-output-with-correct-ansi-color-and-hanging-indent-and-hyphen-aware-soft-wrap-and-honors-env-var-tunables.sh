@@ -83,9 +83,9 @@ echo ""
 echo "GROUP B (5 assertions): Renderer implementation pins critical invariants"
 
 iter150_assert_substring_present_in_file \
-    "B1: renderer uses awk per CLAUDE.md Terminal-text-unwrapping awk-only principle" \
+    "B1: renderer uses awk per CLAUDE.md Terminal-text-unwrapping awk-only principle (matches both bare 'awk' and iter-173 'LC_ALL=C awk' envelope forms via the awk-with-line-continuation invariant signature)" \
     "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH" \
-    "| awk"
+    "awk \\"
 
 iter150_assert_substring_present_in_file \
     "B2: renderer honors ITER150_COMMIT_COUNT_TO_DISPLAY env-var tunable" \
