@@ -1,3 +1,10 @@
+# [21.40.0](https://github.com/terrylica/cc-skills/compare/v21.39.0...v21.40.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-105 marketplace-wide truncation-helper invariant audit scales iter-104 single-hook fix to 8 cohort hooks + PostToolUse orchestrator aggregation-site sum-overflow defense + cross-lib import from PreToolUse vale-claude-md-guard ([4d1d60c](https://github.com/terrylica/cc-skills/commit/4d1d60c0c0e6ad03729f42557daa277f4ce2080d))
+
 # [21.39.0](https://github.com/terrylica/cc-skills/compare/v21.38.0...v21.39.0) (2026-05-21)
 
 
