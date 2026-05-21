@@ -1,3 +1,10 @@
+# [21.18.0](https://github.com/terrylica/cc-skills/compare/v21.17.6...v21.18.0) (2026-05-21)
+
+
+### Features
+
+* **operator-tooling:** iter-76 ship 3-layer-versioned-cache drift detector + forensic discovery of cache-populator filter rules ([1372bf6](https://github.com/terrylica/cc-skills/commit/1372bf6ce6012a4c5b30a9bf2321e9db041550e0))
+
 ## [21.17.6](https://github.com/terrylica/cc-skills/compare/v21.17.5...v21.17.6) (2026-05-20)
 
 
