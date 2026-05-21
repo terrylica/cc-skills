@@ -365,7 +365,55 @@ Both gates use the SAME allowlist (`{hooks, skills, commands, agents, plugin.jso
 1. **Edit-time** catches the violation at the moment of authorship — fastest feedback, lowest cost to fix. Belt-and-suspenders defense (stdout JSON `permissionDecision: "deny"` + stderr diagnostic + `exit 2`) per [GitHub issue #37210](https://github.com/anthropics/claude-code/issues/37210), which documents that PreToolUse `deny` is honored for Write but ignored for Edit on some Claude Code versions. Stderr + exit 2 still hard-blocks even when stdout JSON is silently dropped.
 2. **Release-time** catches anything that snuck past the edit-time gate (external edits, agent-bypassed sessions, hook-disabled sessions, copy-pasted code from L2 docs). Final guarantee before the tag publishes.
 
-**Performance budget**: edit-time hook uses pre-JSON-parse fastpath — if raw stdin lacks the `CLAUDE_PLUGIN_ROOT` substring, hook short-circuits to `allow` in <1ms. Cost is paid only on edits that actually reference the plugin root.
+**Performance budget**: edit-time hook uses pre-JSON-parse fastpath — but the savings are bounded by the bun-cold-start floor (~44ms). See "Edit-Time Hook Overhead Cost Model" below.
+
+## Edit-Time Hook Overhead Cost Model (iter-80 Forensic Finding)
+
+The iter-39 / iter-40 / iter-41 / iter-55 / iter-56 "pre-JSON-parse fastpath" pattern was previously documented as "~70-200x speedup on bail-out paths". Iter-80 forensic measurement REVISES that claim with a more accurate cost model.
+
+### Measured baseline (representative non-applicable payload)
+
+| Hook category                                                             | Median latency over 5 runs |
+| ------------------------------------------------------------------------- | -------------------------- |
+| bun cold-start no-op (only emits `permissionDecision: "allow"` JSON)      | **44 ms**                  |
+| Real PreToolUse hook WITH pre-JSON-parse fastpath, non-applicable payload | ~38-44 ms                  |
+| Real PreToolUse hook WITHOUT fastpath, non-applicable payload             | ~39-52 ms                  |
+
+### What this means
+
+1. **bun process spawn dominates** edit-time hook overhead. Real-hook logic adds only ~0-8 ms beyond the bun-cold-start floor on bail-out paths.
+2. **Within-hook fastpath savings are at most ~8 ms per hook** — NOT the "~70-200x speedup" previously documented. The pattern is still defensible for hooks that would otherwise pay a `jq` subprocess on every invocation (where jq adds ~15-50 ms), but the speedup ratio is bounded by bun's startup cost regardless of how trivial the in-hook fastpath check becomes.
+3. **Aggregate worst-case sequential-firing overhead** for the cc-skills marketplace's current 22 PreToolUse hooks: **~884 ms** (every hook firing on a single Write/Edit). In practice each matcher narrows scope so actual per-edit overhead is lower — but the lower bound for N hooks firing is `N × ~44 ms`.
+
+### Implication: to meaningfully reduce edit-time hook overhead, REDUCE THE BUN SPAWN COUNT
+
+Three strategies, ordered by leverage:
+
+| Strategy                                                                                                 | Effort               | Savings                               | Notes                                                              |
+| -------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------- | ------------------------------------------------------------------ |
+| 1. PreToolUse orchestrator (combine N subhooks into 1 bun process — iter-66 stop-orchestrator precedent) | high (architectural) | ~`(N-1) × 44 ms` for N combined hooks | Saves ~352 ms across the 10-hook Write\|Edit chain if all combined |
+| 2. AOT-compile hooks via `bun build --compile`                                                           | medium               | ~few ms per hook                      | Marginal, composable with #1                                       |
+| 3. Within-hook fastpath (raw-stdin substring check before JSON parse)                                    | low                  | ~5-8 ms per hook on bail-out paths    | Useful but marginal — savings hard-capped by bun-startup floor     |
+
+### Self-measurement tool
+
+The forensic baseline above can be reproduced (and regression-watched) via:
+
+```bash
+mise run profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor
+```
+
+The task discovers every `plugins/*/hooks/pretooluse-*.{ts,mjs}` hook, profiles each over N=5 runs with median aggregation, flags HIGH-OVERHEAD outliers (>50ms median), and prints the optimization-strategy guidance table above. Use it to:
+
+- Catch new-hook regressions before a hook lands (any hook >50 ms median needs investigation)
+- Decide whether a planned new hook needs a fastpath (probably not — the savings are marginal)
+- Verify the bun-startup-cost-floor claim if Anthropic changes the bun runtime
+
+### Why pre-jq-fastpath is still worth it (the cases where the perf model differs)
+
+The pre-JSON-parse fastpath documented in iter-39/40/41/55/56 was for hooks that called **`jq`** for stdin parsing instead of `JSON.parse`. `jq` is a subprocess (~15-50 ms additional fork-exec on each invocation), so checking a raw-stdin substring with bash's `case` builtin BEFORE the `jq` call DOES yield the documented "~70-200x speedup" — but the speedup is measured against the `jq` subprocess cost, not against the bun-cold-start floor (which doesn't apply to bash hooks).
+
+For TypeScript / `.mjs` hooks that use `Bun.stdin.text()` + `JSON.parse`, the fastpath helps but the savings cap at ~8 ms per hook because bun startup dominates.
 
 ## Testing Hooks
 
