@@ -990,6 +990,47 @@ Both helpers atomic via `O_CREAT | O_EXCL`; both fail-closed on filesystem error
 
 **Iter-98 architectural takeaway**: iter-92's `[M] MIXED` classifier bucket is not a "review later" deferral — it is an **active finding** worth digging into. The memory-efficiency-reminder silent-drop bug had been undetected through iter-92 → iter-97 because static pattern-matching can't distinguish "deliberately operator-only" (correct use of raw stdout for transcript visibility) from "accidentally Claude-invisible" (broken context-injection masquerading as a working reminder). The bug required adversarial multi-perspective audit (reading the hook's intent vs reading the Anthropic schema docs vs running the hook and observing what Claude actually saw) to surface. The fix delivers what the hook always intended: Claude-visible context every session, not transcript-only operator visibility.
 
+### Iter-99: marketplace-wide preventive audit for the silent-context-drop pattern + Check 4n preflight gate
+
+Iter-98 closed the single-hook silent-context-drop bug in `posttooluse-memory-efficiency-reminder.ts`. Iter-99 **scales the fix to a marketplace invariant** by building a preventive static audit task — directly parallel to how iter-94 turned the iter-93 single-classifier async-spawn fix into the marketplace-wide spawnSync-regression gate.
+
+**The two valid Claude-visible PostToolUse stdout schemas**. Iter-99 documents that PostToolUse hooks have TWO accepted Claude-visible stdout schemas, not one. Pre-iter-99 the iter-66/93 forensic finding only emphasized the `{decision: "block", reason}` schema; iter-99 adds the `hookSpecificOutput.additionalContext` schema discovered in `rust-tools/hooks/posttooluse-rust-sota-reminder.ts` (which cites ADR `2025-12-17-posttooluse-hook-visibility.md` updated 2026-05-19).
+
+| Schema                                                                           | Used by                                                                                                                          |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `{decision: "block", reason: "..."}`                                             | iter-93+ orchestrator + 7 inlined subhooks + bash `posttooluse-1password-pattern-reminder.sh` + bash `code-correctness-guard.sh` |
+| `{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: "..."}}` | `rust-tools/hooks/posttooluse-rust-sota-reminder.ts`                                                                             |
+
+Anything else on stdout (raw template-literal text, raw string-literal text, arbitrary plain output) is **silently dropped** by Claude Code — operator-transcript-visible only (Ctrl-R).
+
+**The preventive audit**. The new task `audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh`:
+
+- Discovers every `plugins/*/hooks/posttooluse-*.{ts,mjs}` (17 hooks at iter-99 time).
+- Flags `console.log(\`...\`)` template-literal emissions (the iter-98 incident shape).
+- Flags `console.log("...")` and `console.log('...')` plain-string emissions (alternative raw-text shapes).
+- Allows `console.log(JSON.stringify(...))` (the audit regex `console\.log\((\`|"|')`does not match a`J` first-character argument).
+- Allows `console.log(variableName)` — too hard to statically verify variable contents always hold JSON; trust author + escape hatch if needed.
+- Skips JSDoc continuation lines (`^\s*\*`) and `//` line-comments — prose mentions of the bad pattern don't false-positive.
+- Honors `// POSTTOOLUSE-RAW-STDOUT-OK: <reason ≥ 10 chars>` escape hatch on the same line or within the 3 preceding lines, for explicitly-operator-only intent.
+
+**Marketplace state at iter-99**: 17 PostToolUse TypeScript hooks scanned, **0 violations**. iter-98's fix was confirmed the unique instance of the silent-drop pattern across the marketplace.
+
+**Wired into release preflight as Check 4n** (informational gate alongside iter-86's Check 4m subhook-contract checker). The gate will visibly warn operators when a future hook accidentally introduces the silent-drop pattern, without blocking release.
+
+**Iter-99 regression test** (11 assertions all pass): audit-task existence, live-marketplace passes clean (17 hooks), detection regex catches iter-98 incident shape + double-quoted + single-quoted variants, JSDoc + line-comment prose mentions correctly skipped (no false-positives), same-line + 3-line preceding-window escape hatches honored, `JSON.stringify`-wrapped emissions NOT flagged, end-to-end fixture-injection (a synthesized bad-pattern hook placed inside `plugins/` triggers audit failure and is reported in the output).
+
+**Iter-99 architectural takeaway — the "preventive gate" pattern**. iter-98 fixed one hook; iter-99 prevents the entire class of bug from recurring across the marketplace. This mirrors several prior iterations:
+
+| Iter  | Single-hook fix                         | Marketplace-wide preventive gate                                            |
+| ----- | --------------------------------------- | --------------------------------------------------------------------------- |
+| 63→65 | stdin-inlet-guard matcher narrowed      | iter-65 wildcard-matcher audit                                              |
+| 66→67 | stop-orchestrator additionalContext fix | iter-67 Stop-hook additionalContext-emission audit (extended in iter-68/69) |
+| 77→78 | link-tools L3-stripped-path silent-fail | iter-78 edit-time L3 audit + iter-77 release-time Check 4k                  |
+| 93→94 | ty-type-check spawnSync→spawn migration | iter-94 marketplace-wide no-spawnSync audit                                 |
+| 98→99 | memory-efficiency-reminder silent-drop  | **iter-99 marketplace-wide silent-context-drop audit (this iteration)**     |
+
+The pattern: **single-instance fix in iter-N → marketplace-wide static audit + preflight gate in iter-N+1**. Each gate is informational by default (warns without blocking) and may be flipped to `--strict` once the marketplace baseline stabilizes. The cumulative effect is a growing set of **schema-correctness gates** that prevent recurrence of bugs the marketplace has already discovered and fixed.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
