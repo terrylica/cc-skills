@@ -113,10 +113,15 @@ else
 fi
 
 ITER158_TOTAL_ASSERTIONS_EVALUATED=$((ITER158_TOTAL_ASSERTIONS_EVALUATED + 1))
-if [[ "$ITER158_MANIFEST_FIELD_PROBE_OUTPUT" == *"language=system"* ]]; then
-    echo "  ✓ B4: manifest declares language=system (uses operator's bash, no provisioning)"
+# Note: corrected from `language=system` to `language=script` in iter-159 —
+# pre-commit's `language: script` resolves the entry as a RELATIVE PATH within
+# the cloned hook repo, which is the correct semantics for shipping a bash
+# script alongside the manifest. `language: system` would have tried to
+# resolve the entry on $PATH and silently failed at runtime.
+if [[ "$ITER158_MANIFEST_FIELD_PROBE_OUTPUT" == *"language=script"* ]]; then
+    echo "  ✓ B4: manifest declares language=script (correct: resolves entry as path in cloned hook repo)"
 else
-    echo "  ✗ B4: manifest language field is wrong or missing"
+    echo "  ✗ B4: manifest language field is wrong or missing (must be 'script' per iter-159 empirical fix)"
     ITER158_TOTAL_ASSERTIONS_FAILED=$((ITER158_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
