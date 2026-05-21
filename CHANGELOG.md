@@ -1,3 +1,10 @@
+# [21.22.0](https://github.com/terrylica/cc-skills/compare/v21.21.0...v21.22.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-84 ship PreToolUse edit-time orchestrator combining Write|Edit subhooks into single bun process (file-size-guard inlined as first subhook, framework ready for iter-85+ migration of remaining 7 subhooks) ([ee8adaf](https://github.com/terrylica/cc-skills/commit/ee8adafaea8f78b687d2e30324e7148ed6404ae1)), closes [#37210](https://github.com/terrylica/cc-skills/issues/37210)
+
 # [21.21.0](https://github.com/terrylica/cc-skills/compare/v21.20.0...v21.21.0) (2026-05-21)
 
 
