@@ -1494,6 +1494,108 @@ All 8 cases pass. Marketplace regression suite: **54/54** (up from 53).
 
 - **Stale-description audit** (task #144 — deferred since iter-117): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with the declared consumer-path field. Wire as preflight Check 4v informational.
 
+### Iter-122: Forward-search CLI — operator workflow "I see `# FOO-OK` in source code, what does this marker do?" — symmetric complement to the iter-116 reverse-search
+
+Iter-122 closes the symmetric direction gap that iter-116 + iter-118 + iter-119 + iter-120 left open. Iter-116 resolved one direction:
+
+> "I want to opt out of THIS consumer hook — what marker do I write?" → reverse-search by consumer-path
+
+Iter-122 resolves the symmetric forward direction:
+
+> "I'm reading source code and saw `# CARGO-TTY-SKIP`. What does this marker do, and which consumer hook recognizes it?" → forward-search by marker-name-token
+
+Pre-iter-122 operators had three slow paths: table-scan the 385-line operator-facing reference doc, grep the iter-111/iter-114 registry source files, or read the consumer hook source to learn what the marker does. Iter-122 ships a single mise task that resolves the lookup in one command.
+
+**Five-step fallback chain (mirrors iter-116's four-step chain with one addition)**
+
+| Step | Strategy                               | Trigger                                                             |
+| ---- | -------------------------------------- | ------------------------------------------------------------------- |
+| 1    | Exact case-sensitive match             | Query matches a registered marker token verbatim                    |
+| 2    | **Exact case-insensitive match (NEW)** | Operator typed lowercase or mixed-case (`file-size-ok`)             |
+| 3    | Marker-substring (case-insensitive)    | Partial recall (`TTY` → `CARGO-TTY-SKIP` + `CARGO-TTY-WRAP`)        |
+| 4    | Levenshtein "Did you mean?" top-3      | Plausible typo (`FIEL-SIZE-OK` → `FILE-SIZE-OK`, distance 2)        |
+| 5    | Full-list dump                         | Truly-unrelated query (top Levenshtein candidate exceeds threshold) |
+
+Step 2 (case-insensitive exact match) is the only addition beyond iter-116's chain shape. It's possible because marker-name canonical casing is **UPPER-KEBAB-CASE** (an enforceable convention) — iter-116 consumer paths have no canonical-case convention so the equivalent step is N/A.
+
+**Live examples**
+
+```
+$ mise run lookup-...-iter122... FILE-SIZE-OK
+✓ Found 1 canonical registry entry/entries for marker:
+    FILE-SIZE-OK
+
+  Marker:                 FILE-SIZE-OK
+  Lifecycle layer:        RUNTIME-HOOK (iter-111; consumed at every Write/Edit/Bash tool invocation)
+  Consumer hook:          plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+  Case sensitivity:       CASE_SENSITIVE
+  Window semantics:       FILE_WIDE
+  Reason policy:          Bare marker accepted (no reason required)
+  What it does:           Allow a file to exceed file-size-guard's per-extension warn/block thresholds...
+  Example:
+  # FILE-SIZE-OK
+
+$ mise run lookup-...-iter122... TTY
+✓ No exact match for "TTY", but found 2 markers whose token contains your query (case-insensitive):
+
+  CARGO-TTY-SKIP
+  CARGO-TTY-WRAP
+...
+
+$ mise run lookup-...-iter122... FIEL-SIZE-OK
+✗ No canonical registry entry matches the marker token: FIEL-SIZE-OK
+  Did you mean (top-3 closest matches by Levenshtein edit distance)?
+    [2 edits] FILE-SIZE-OK
+    [8 edits] ORDERING-OK
+    [8 edits] SPAWN-SYNC-OK
+```
+
+**JSON shape**
+
+| matchType                                           | JSON fields beyond `status` + `operatorSuppliedQuery`                |
+| --------------------------------------------------- | -------------------------------------------------------------------- |
+| `exact`                                             | `matchingMarkers[]`                                                  |
+| `exact-case-insensitive`                            | `matchingMarkers[]`                                                  |
+| `marker-substring`                                  | `matchingMarkerNameTokens[]` + `matchingMarkers[]`                   |
+| `not-found` + `didYouMean!=null`                    | `didYouMean[]` (top-3 Levenshtein candidates) — typo-correction case |
+| `not-found` + `allRegisteredMarkerNameTokens!=null` | full marker list — truly-unrelated case                              |
+
+`didYouMean` and `allRegisteredMarkerNameTokens` are XOR-encoded in the JSON shape (one is null when the other is populated), so downstream consumers can branch without re-running the Levenshtein threshold check.
+
+**Architectural note: separate lib file**
+
+Iter-122 ships a sibling lib next to iter-116's reverse-search-accessor rather than extending it:
+
+| Lib file                                                                          | Direction                         |
+| --------------------------------------------------------------------------------- | --------------------------------- |
+| `lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-...-iter116.ts` | consumer-path → marker (iter-116) |
+| `lib/marketplace-wide-escape-hatch-marker-forward-search-accessor-...-iter122.ts` | marker → consumer-path (iter-122) |
+
+Adding forward-direction functions to a file named `...reverse-search-accessor...` would create a naming mismatch. The iter-118 Levenshtein helper (`computeLevenshteinEditDistanceBetweenTwoStrings`) is reused as-is via import — it's algorithm-level generic and doesn't care whether the strings are file paths or marker tokens.
+
+**Regression test (`test-iter122-forward-search-cli-...-spanning-exact-case-sensitive-and-case-insensitive-and-marker-substring-and-levenshtein-and-full-list.sh`)**
+
+| Case | What it verifies                                                                                                                            |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Forward-search accessor lib exports all 6 documented functions                                                                              |
+| 2    | Step 1 exact case-sensitive resolves `FILE-SIZE-OK` to iter-111 runtime-hook entry                                                          |
+| 3    | Step 2 case-insensitive resolves lowercase `file-size-ok` to canonical `FILE-SIZE-OK` (with disambiguation narrative)                       |
+| 4    | Step 3 marker-substring resolves `TTY` to BOTH `CARGO-TTY-SKIP` + `CARGO-TTY-WRAP` (multi-hit forward lookup)                               |
+| 5    | Step 4 Levenshtein fires on `FIEL-SIZE-OK` typo, proposes `FILE-SIZE-OK` distance 2                                                         |
+| 6    | Step 5 full-list dump emits when query unrelated to every registered marker                                                                 |
+| 7    | `--json` mode emits all four matchType discriminators correctly                                                                             |
+| 8    | Exit-code contract (0/2/1) intact across all 5 fallback paths                                                                               |
+| 9    | Cross-registry parity — audit-task marker `SPAWN-SYNC-OK` from iter-114 registry resolves with `lifecycleLayer=audit-task`                  |
+| 10   | Renderer emits well-formed terminal block with all 8 fields (Marker/Lifecycle/Consumer/Case-sensitivity/Window/Reason/What-it-does/Example) |
+
+All 10 cases pass. Marketplace regression suite: **56/56** (up from 55).
+
+**Iter-123+ queue**
+
+- **Bidirectional operator-workflow docs**: side-by-side examples + decision tree ("do I know the marker name OR the consumer path?") in HOOKS.md and the auto-generated reference doc
+- **Unified `lookup` CLI** that auto-detects whether the operator query is a marker name (UPPER-KEBAB-CASE shape) or a consumer path (contains `/`) and dispatches to the right backend — removes the iter-116-vs-iter-122 dispatch decision from the operator
+- **Promote iter-121 stale-description audit to STRICT-BLOCK** once a few release cycles confirm baseline-clean state
+
 ### Iter-121: Stale-description audit — catches operator-doc drift when a hook/audit-task is renamed but the registry's human-readable description still references the OLD name
 
 Iter-121 closes the final undocumented gap in the iter-111/iter-114 canonical-registry hardening arc. Pre-iter-121, neither Check 4t (iter-111 producer-typo audit) nor Check 4u (iter-113 doc-drift detector) cross-checked description-text content against entry identity — both only verified spelling and byte-identical regeneration. An operator renaming `pretooluse-file-size-guard.ts` → `pretooluse-file-size-and-line-count-guard.ts` who updated `consumerHookSourceFileRelativePath` but forgot to update `humanReadableEscapeHatchDescriptionForOperatorDocumentation` would land a description body that contradicts its own consumer-path heading in the regenerated reference doc.
