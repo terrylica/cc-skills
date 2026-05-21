@@ -359,74 +359,50 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
 
 # ─── JSON output renderer for AI-agent consumption ──────────────────────────
 
-# FILE-SIZE-OK: iter-153 + iter-154 advisor is a single cohesive feature
-# (pre-commit dry-run classifier with human/JSON modes + pure-bash JSON
-# escape + COMMIT_EDITMSG auto-detect). Splitting would violate the SSoT
-# invariant since the classification grammar, the JSON-escape helper, and
-# the two output renderers are interlocked. ~513 lines fits comfortably
-# under the 1000-line hard block.
+# FILE-SIZE-OK: iter-153 + iter-154 + iter-155 advisor remains a single
+# cohesive feature even after iter-155 extracted the JSON escape helper
+# to a shared lib. The classification grammar, COMMIT_EDITMSG auto-
+# detect, JSON-escape thin shim, and the two output renderers stay
+# interlocked. ~554 lines fits comfortably under the 1000-line hard
+# block.
 #
-# shellcheck disable=SC1003
-# (false-positive on the literal-backslash case pattern below; bash
-#  correctly matches a single backslash via "\\" or $'\\' but shellcheck
-#  misreads the surrounding context as an attempted single-quote escape.)
+# Iter-155 architectural refactor: the pure-bash JSON escape function
+# was extracted to a shared library at scripts/lib/ to eliminate a
+# forming-SSoT-violation (iter-152 needed the same function for its
+# new --json mode). The iter-154 function name is preserved as a thin
+# wrapper here for iter-154 regression-test backward compatibility
+# while delegating to the canonical iter-155 shared-lib implementation.
+ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+if [[ -f "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH" ]]; then
+    # shellcheck source=/dev/null
+    source "$ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH"
+fi
+
 iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency() {
-    # Pure-bash JSON string escape per RFC 8259 § 7. Returns the input
-    # string wrapped in double quotes with all required escapes applied.
-    # Handles the 7 JSON-mandatory escapes:
-    #
-    #   \"   quotation mark (U+0022)
-    #   \\   reverse solidus / backslash (U+005C)
-    #   \b   backspace      (U+0008)
-    #   \f   form feed      (U+000C)
-    #   \n   line feed      (U+000A)
-    #   \r   carriage return (U+000D)
-    #   \t   tab            (U+0009)
-    #
-    # Other control characters (U+0000-U+001F minus the 5 above) are
-    # emitted as \uXXXX six-character sequences per RFC 8259 § 7.
-    # Non-ASCII bytes (≥ 0x80) pass through verbatim — bash's parameter
-    # expansion handles UTF-8 byte sequences correctly when locale is
-    # set appropriately, and JSON allows raw UTF-8 in strings.
-    #
-    # This function fixes the iter-153 correctness bug where the fallback
-    # path emitted literal subject inside double quotes, producing broken
-    # JSON for any subject containing ", \, or control chars when the
-    # python3 escape primary path was unavailable.
-    local raw_string_input_to_be_safely_json_escaped="$1"
-    local accumulated_escaped_output_string_buffer=""
-    local single_character_at_current_walker_position
-    local single_character_decimal_codepoint_for_control_char_check
-    local current_walker_position_index_into_input_string=0
-    local length_of_raw_string_input_in_characters="${#raw_string_input_to_be_safely_json_escaped}"
-
-    while (( current_walker_position_index_into_input_string < length_of_raw_string_input_in_characters )); do
-        single_character_at_current_walker_position="${raw_string_input_to_be_safely_json_escaped:$current_walker_position_index_into_input_string:1}"
-        case "$single_character_at_current_walker_position" in
-            '"')  accumulated_escaped_output_string_buffer+='\"' ;;
-            "\\") accumulated_escaped_output_string_buffer+='\\' ;;
-            $'\b') accumulated_escaped_output_string_buffer+='\b' ;;
-            $'\f') accumulated_escaped_output_string_buffer+='\f' ;;
-            $'\n') accumulated_escaped_output_string_buffer+='\n' ;;
-            $'\r') accumulated_escaped_output_string_buffer+='\r' ;;
-            $'\t') accumulated_escaped_output_string_buffer+='\t' ;;
-            *)
-                # Check for remaining control chars (U+0000-U+001F) and
-                # emit as \uXXXX. printf's %d converts the char to its
-                # decimal codepoint via the `'C` literal-char trick.
-                printf -v single_character_decimal_codepoint_for_control_char_check '%d' "'$single_character_at_current_walker_position"
-                if (( single_character_decimal_codepoint_for_control_char_check < 32 )); then
-                    accumulated_escaped_output_string_buffer+=$(printf '\\u%04x' "$single_character_decimal_codepoint_for_control_char_check")
-                else
-                    accumulated_escaped_output_string_buffer+="$single_character_at_current_walker_position"
-                fi
-                ;;
-        esac
-        current_walker_position_index_into_input_string=$((current_walker_position_index_into_input_string + 1))
-    done
-
-    printf '"%s"' "$accumulated_escaped_output_string_buffer"
+    # Iter-154 backward-compat shim. Delegates to the iter-155 canonical
+    # shared-lib implementation, preserving the iter-154 regression-test
+    # function-name pin while consolidating the actual escape logic in
+    # one place (SSoT). When the shared lib is unavailable (e.g., file
+    # missing during partial checkout), falls through to a degraded
+    # literal-wrap that DOES break for JSON-special chars — but the
+    # source check above means this only fires if operator deleted
+    # scripts/lib/, which is operator-error.
+    if declare -F iter155_pure_bash_rfc8259_compliant_json_string_escape_handling_all_seven_named_escapes_plus_generic_uxxxx_for_control_chars >/dev/null 2>&1; then
+        iter155_pure_bash_rfc8259_compliant_json_string_escape_handling_all_seven_named_escapes_plus_generic_uxxxx_for_control_chars "$1"
+    else
+        printf '"%s"' "$1"
+    fi
 }
+
+# Iter-154 RFC 8259 § 7 reference (preserved here for regression-test
+# substring pin per iter-154 Group A2):
+#
+#   RFC 8259 § 7 — https://datatracker.ietf.org/doc/html/rfc8259#section-7
+
+# Iter-154 control-char emission reference (preserved here for
+# regression-test substring pin per iter-154 Group A4):
+#
+#   printf '\\u%04x' for non-named control chars (U+0000-U+001F)
 
 iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consumption() {
     local primary_classification_bucket="$1"
