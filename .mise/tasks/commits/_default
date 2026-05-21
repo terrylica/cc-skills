@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-156 default-when-no-subcommand dispatcher for the commits namespace. Prints a compact operator-facing index of the iter-150-through-iter-155 conventional-commits arc toolkit: 5 tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict). Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the 5 arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in `mise tasks` output."
+#MISE description="Iter-156 default-when-no-subcommand dispatcher for the commits namespace. Prints a compact operator-facing index of the iter-150-through-iter-165 conventional-commits arc toolkit: tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict, with iter-161 bump preview + iter-162 footer detection + iter-164 next-version), commits:pending-release (iter-165 aggregate next-release preview across all unreleased commits since most recent tag), commits:status (iter-160 12-check self-diagnosis), commits:install-hook (iter-157 git commit-msg hook). Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in `mise tasks` output."
 set -euo pipefail
 
 # ANSI color codes — gracefully degrade to plain text when stdout is not a TTY.
@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-164 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-165 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -100,6 +100,29 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
   preview leaves open. Pure-bash — no \`semantic-release --dry-run\`
   invocation needed (saves the multi-second push-permission verify cost
   per the 2026 semantic-release FAQ).
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PENDING-RELEASE PREVIEW (iter-165) — aggregate across all unreleased commits ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release${ITER156_ANSI_COLOR_RESET}
+      Walks every commit between the most recent git tag and HEAD,
+      classifies each via iter-161 + iter-162, takes the maximum bump
+      per SemVer precedence (MAJOR > MINOR > PATCH > NONE) — exactly
+      how semantic-release/commit-analyzer aggregates a multi-commit
+      release window — and resolves the aggregate bump label to the
+      concrete next version via iter-164. Closes the gap between iter-153
+      single-commit advisor and the operator's day-end question: "what
+      does my NEXT release actually contain?". Pure-bash, sub-second
+      alternative to heavyweight \`semantic-release --dry-run\` (which
+      verifies push permissions, needs fetch-depth=0, takes multi-seconds
+      per the 2026 sem-rel FAQ).
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release --json${ITER156_ANSI_COLOR_RESET}
+      Same data, machine-readable JSON for AI-agent automation. Stable
+      iter165_schema_version=1. Includes per-commit bump breakdown
+      array + bump histogram + triggering-commit short SHA + nested
+      iter164_next_version_preview object. Pipe to jq:
+        \`mise run commits:pending-release --json | jq .aggregate_bump_label_per_semver_precedence\`
+        \`mise run commits:pending-release --json | jq .iter164_next_version_preview.next_version\`
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
 

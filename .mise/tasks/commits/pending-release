@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Iter-165 pending-release aggregator. Walks every commit between the most recent git tag and HEAD, classifies each via iter-161 {type, breaking-marker} → bump-label rules (with iter-162 body-footer detection OR'd into subject ! marker), takes the maximum bump per SemVer precedence (MAJOR > MINOR > PATCH > NONE) — exactly how semantic-release/commit-analyzer aggregates a multi-commit release window — and resolves the aggregate bump label to the concrete next version via iter-164. Closes the gap between iter-153's single-commit advisor and the operator's day-end question: \"what will my NEXT release actually contain?\" Pure-bash, sub-second alternative to heavyweight semantic-release --dry-run (which per the 2026 sem-rel FAQ verifies push permissions, requires fetch-depth=0 git history, and runs multi-second). Human + --json modes with stable iter165_schema_version=1."
+set -euo pipefail
+
+ITER165_REPO_ROOT_FOR_TASK_DELEGATION="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+exec bash "$ITER165_REPO_ROOT_FOR_TASK_DELEGATION/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh" "$@"
