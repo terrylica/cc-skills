@@ -1,3 +1,15 @@
+# [21.57.0](https://github.com/terrylica/cc-skills/compare/v21.56.3...v21.57.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **iter135:** regex-defensive-trailing-head-1-on-check-4k-elapsed-ms-extraction-because-grep-oE-zero-to-nine-plus-matches-both-the-elapsed-ms-number-and-the-digit-4-in-check-4k-label-collapsing-to-multiline-output-which-bash-arithmetic-comparison-cannot-parse ([a734816](https://github.com/terrylica/cc-skills/commit/a734816b35e9e5721bde5f5a6c14e2bf19461c73))
+
+
+### Features
+
+* **preflight:** iter-137 make-iter-130-top-n-bottleneck-ranking-parallelism-aware-by-tagging-each-timing-record-with-an-optional-parallel-execution-bucket-label-for-wall-clock-attribution-awareness-rendering-bracket-parallel-bucket-suffix-in-per-phase-and-ranking-output-and-emitting-end-of-script-critical-path-hint-identifying-the-slowest-member-of-each-parallel-batch-which-is-the-only-member-whose-optimization-actually-reduces-wall-clock-closing-the-post-iter-134-usability-gap-where-operators-could-not-tell-which-ranking-entries-were-actionable-wall-clock-targets-versus-mere-cpu-side-effects ([9926457](https://github.com/terrylica/cc-skills/commit/99264575f7d9b825041101337fb015bbc890c17a))
+
 ## [21.56.3](https://github.com/terrylica/cc-skills/compare/v21.56.2...v21.56.3) (2026-05-21)
 
 
