@@ -167,8 +167,40 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Iter-154: COMMIT_EDITMSG auto-detect path.
+#
+# If we still have no subject AND we are in an interactive context
+# (stdin is a TTY, so the operator did not pipe a subject), look for
+# .git/COMMIT_EDITMSG — the file git uses for the editor-launched
+# commit flow. This closes the natural workflow loop: operator opens
+# editor → types subject → saves → BEFORE closing editor, runs
+# `mise run commits:advise` in another terminal → sees verdict on the
+# in-progress commit subject. The subject is the FIRST non-comment
+# non-empty line of the file per the git commit message convention.
+#
+# Only auto-detects if no `--` was passed; presence of `--` indicates
+# explicit operator intent to pass a subject (either via args or
+# stdin), so we should not surprise them by reaching into git state.
 if [[ -z "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" ]]; then
-    echo "Error: no proposed subject provided" >&2
+    ITER154_GIT_REPO_ROOT_FOR_COMMIT_EDITMSG_AUTO_DETECT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    ITER154_GIT_COMMIT_EDITMSG_FILE_ABSOLUTE_PATH="${ITER154_GIT_REPO_ROOT_FOR_COMMIT_EDITMSG_AUTO_DETECT}/.git/COMMIT_EDITMSG"
+    if [[ -n "$ITER154_GIT_REPO_ROOT_FOR_COMMIT_EDITMSG_AUTO_DETECT" ]] \
+       && [[ -f "$ITER154_GIT_COMMIT_EDITMSG_FILE_ABSOLUTE_PATH" ]] \
+       && [[ -t 0 ]]; then
+        # Read first non-comment non-empty line as the proposed subject.
+        ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY=$(
+            grep -v '^#' "$ITER154_GIT_COMMIT_EDITMSG_FILE_ABSOLUTE_PATH" \
+                | grep -v '^[[:space:]]*$' \
+                | head -1
+        )
+        if [[ -n "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" ]]; then
+            echo "  ⧗ iter-154 auto-detect: read subject from .git/COMMIT_EDITMSG" >&2
+        fi
+    fi
+fi
+
+if [[ -z "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" ]]; then
+    echo "Error: no proposed subject provided (and .git/COMMIT_EDITMSG auto-detect found nothing)" >&2
     iter153_print_usage_help_text_and_exit_with_code_two
 fi
 
@@ -327,6 +359,75 @@ iter153_emit_human_readable_verdict_with_classification_details_and_remediation_
 
 # ─── JSON output renderer for AI-agent consumption ──────────────────────────
 
+# FILE-SIZE-OK: iter-153 + iter-154 advisor is a single cohesive feature
+# (pre-commit dry-run classifier with human/JSON modes + pure-bash JSON
+# escape + COMMIT_EDITMSG auto-detect). Splitting would violate the SSoT
+# invariant since the classification grammar, the JSON-escape helper, and
+# the two output renderers are interlocked. ~513 lines fits comfortably
+# under the 1000-line hard block.
+#
+# shellcheck disable=SC1003
+# (false-positive on the literal-backslash case pattern below; bash
+#  correctly matches a single backslash via "\\" or $'\\' but shellcheck
+#  misreads the surrounding context as an attempted single-quote escape.)
+iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency() {
+    # Pure-bash JSON string escape per RFC 8259 § 7. Returns the input
+    # string wrapped in double quotes with all required escapes applied.
+    # Handles the 7 JSON-mandatory escapes:
+    #
+    #   \"   quotation mark (U+0022)
+    #   \\   reverse solidus / backslash (U+005C)
+    #   \b   backspace      (U+0008)
+    #   \f   form feed      (U+000C)
+    #   \n   line feed      (U+000A)
+    #   \r   carriage return (U+000D)
+    #   \t   tab            (U+0009)
+    #
+    # Other control characters (U+0000-U+001F minus the 5 above) are
+    # emitted as \uXXXX six-character sequences per RFC 8259 § 7.
+    # Non-ASCII bytes (≥ 0x80) pass through verbatim — bash's parameter
+    # expansion handles UTF-8 byte sequences correctly when locale is
+    # set appropriately, and JSON allows raw UTF-8 in strings.
+    #
+    # This function fixes the iter-153 correctness bug where the fallback
+    # path emitted literal subject inside double quotes, producing broken
+    # JSON for any subject containing ", \, or control chars when the
+    # python3 escape primary path was unavailable.
+    local raw_string_input_to_be_safely_json_escaped="$1"
+    local accumulated_escaped_output_string_buffer=""
+    local single_character_at_current_walker_position
+    local single_character_decimal_codepoint_for_control_char_check
+    local current_walker_position_index_into_input_string=0
+    local length_of_raw_string_input_in_characters="${#raw_string_input_to_be_safely_json_escaped}"
+
+    while (( current_walker_position_index_into_input_string < length_of_raw_string_input_in_characters )); do
+        single_character_at_current_walker_position="${raw_string_input_to_be_safely_json_escaped:$current_walker_position_index_into_input_string:1}"
+        case "$single_character_at_current_walker_position" in
+            '"')  accumulated_escaped_output_string_buffer+='\"' ;;
+            "\\") accumulated_escaped_output_string_buffer+='\\' ;;
+            $'\b') accumulated_escaped_output_string_buffer+='\b' ;;
+            $'\f') accumulated_escaped_output_string_buffer+='\f' ;;
+            $'\n') accumulated_escaped_output_string_buffer+='\n' ;;
+            $'\r') accumulated_escaped_output_string_buffer+='\r' ;;
+            $'\t') accumulated_escaped_output_string_buffer+='\t' ;;
+            *)
+                # Check for remaining control chars (U+0000-U+001F) and
+                # emit as \uXXXX. printf's %d converts the char to its
+                # decimal codepoint via the `'C` literal-char trick.
+                printf -v single_character_decimal_codepoint_for_control_char_check '%d' "'$single_character_at_current_walker_position"
+                if (( single_character_decimal_codepoint_for_control_char_check < 32 )); then
+                    accumulated_escaped_output_string_buffer+=$(printf '\\u%04x' "$single_character_decimal_codepoint_for_control_char_check")
+                else
+                    accumulated_escaped_output_string_buffer+="$single_character_at_current_walker_position"
+                fi
+                ;;
+        esac
+        current_walker_position_index_into_input_string=$((current_walker_position_index_into_input_string + 1))
+    done
+
+    printf '"%s"' "$accumulated_escaped_output_string_buffer"
+}
+
 iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consumption() {
     local primary_classification_bucket="$1"
     local verdict_label
@@ -340,13 +441,13 @@ iter153_emit_machine_readable_json_output_for_ai_agent_automation_pipeline_consu
     fi
 
     # Hand-rolled JSON to avoid jq dependency. Field set is the iter-153
-    # stable schema documented at the bottom of this script.
+    # stable schema documented at the bottom of this script. Iter-154
+    # replaced the previous Python3-dependent escape with a pure-bash
+    # function — the prior fallback path silently emitted broken JSON
+    # for any subject containing the 7 JSON-sensitive chars when
+    # Python3 was absent (correctness bug).
     local json_escaped_subject_for_safe_embedding
-    json_escaped_subject_for_safe_embedding=$(
-        printf '%s' "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY" \
-            | python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.stdin.read()))' 2>/dev/null \
-            || printf '%s' "\"$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY\""
-    )
+    json_escaped_subject_for_safe_embedding=$(iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency "$ITER153_PROPOSED_COMMIT_SUBJECT_TO_CLASSIFY")
 
     cat <<EOF
 {

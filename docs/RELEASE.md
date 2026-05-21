@@ -390,6 +390,39 @@ Regression pin: `.mise/tasks/tests/test-iter153-...sh` (24 assertions across 6 g
 
 The **iter-150 → iter-151 → iter-152 → iter-153 arc** now spans the full conventional-commits lifecycle: **VIEW** (iter-150) → **DETECT** (iter-151) → **HEALTH SUMMARY** (iter-152) → **PRE-COMMIT ADVISE** (iter-153).
 
+### Advisor Hardening — Pure-Bash JSON Escape + COMMIT_EDITMSG Auto-Detect (iter-154)
+
+Iter-154 fixes a **correctness bug** in iter-153 and adds a workflow-loop closer:
+
+**Correctness fix**: iter-153's `--json` mode used a `python3`-dependent escape with a silent-degrade fallback (`printf '%s' "\"$SUBJECT\""`) that produced **broken JSON** for any subject containing the 7 RFC 8259 § 7 special characters (`"`, `\`, `\b`, `\f`, `\n`, `\r`, `\t`) when python3 was absent. Iter-154 replaces this with a pure-bash escape function `iter154_json_escape_string_in_pure_bash_handling_all_seven_json_specification_special_characters_without_external_dependency` that handles all 7 named escapes plus generic `\uXXXX` for other control chars (U+0000-U+001F). No external dependencies; output round-trips correctly through any RFC 8259-compliant JSON parser.
+
+**Workflow closer**: When `commits:advise` is invoked with no subject argument AND stdin is a TTY (no piped input), iter-154 auto-detects `.git/COMMIT_EDITMSG` — the file git uses for editor-launched commit flow. This closes the natural workflow:
+
+```
+operator runs `git commit`
+    ↓
+editor opens with COMMIT_EDITMSG
+    ↓
+operator types subject + body
+    ↓
+saves (but does not exit editor)
+    ↓
+in another terminal: `mise run commits:advise`
+    ↓
+verdict emitted on the in-progress subject (no args needed)
+```
+
+The auto-detect reads the first non-comment non-empty line per the git commit message convention, and emits a stderr breadcrumb (`⧗ iter-154 auto-detect: read subject from .git/COMMIT_EDITMSG`) so operators see provenance. Guards on `[[ -t 0 ]]` (TTY) to avoid surprising piped-input operators who expected stdin.
+
+**Regression pin**: 16 assertions across 4 groups in `test-iter154-...sh`:
+
+- **Group A** (4): structural pin of pure-bash escape function + RFC 8259 citation + python3-dependency elimination + `\uXXXX` control-char handler
+- **Group B** (7): all 7 RFC 8259 special chars round-trip via independent python3 `json.loads` for parser-correctness verification
+- **Group C** (4): COMMIT_EDITMSG auto-detect structural pins (file reference, repo-root construction, TTY guard, non-comment line read)
+- **Group D** (1): trivial-input JSON output baseline regression check
+
+Two-line subject convention demonstrated: this commit's headline is 41 chars (well under 50-char target).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
