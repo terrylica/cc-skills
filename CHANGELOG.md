@@ -1,3 +1,10 @@
+# [21.33.0](https://github.com/terrylica/cc-skills/compare/v21.32.0...v21.33.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-97 PostToolUse orchestrator 6/15 (ssot-principles inlined) + FIRST real Promise.all parallel fan-out + latent /tmp temp-file race eliminated + shell-spawn overhead removed via iter-95 shared-lib helper ([fb22dd5](https://github.com/terrylica/cc-skills/commit/fb22dd5279bcc751d697491f6bf7ec351010129e))
+
 # [21.32.0](https://github.com/terrylica/cc-skills/compare/v21.31.2...v21.32.0) (2026-05-21)
 
 
