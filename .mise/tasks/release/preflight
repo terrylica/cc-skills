@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-#MISE description="Phase 1 of 5: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run."
+# FILE-SIZE-OK: release:preflight is a single-file linear top-to-bottom
+# health-check pipeline with 22+ sequential Check phases (Check 1 → Check
+# 4v). Splitting the file would fragment the check sequence across
+# multiple files and hurt operator readability — the visual top-to-bottom
+# progression IS the design (each check builds diagnostic context for the
+# next). Reviewed at iter-169 (pending-release preview splice). Mirrors
+# the iter-160 doctor's FILE-SIZE-OK rationale.
+#MISE description="Phase 1 of 5: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, iter-169 pending-release informational preview (next version + triggering commit, post-iter-167 ~228ms), plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run."
 set -euo pipefail
 
 # Iter-73: Opt-in per-phase wall-clock timing instrumentation. Set
@@ -343,6 +350,38 @@ else
     echo "  ⚠ GH_ACCOUNT not set - releasing with token from mise.toml"
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 2-3: GH_TOKEN + GH_ACCOUNT env"
+
+# Check 3b: ITER-169 PENDING-RELEASE INFORMATIONAL PREVIEW
+#
+# Surface the iter-165 aggregator output BEFORE the multi-second heavy lint
+# + audit checks fire. Operator now sees "next release version: vCUR → vNEXT"
+# (or "no pending commits" diagnostic) at the top of preflight rather than
+# discovering it minutes later in semantic-release's stderr. Cheap thanks to
+# iter-167's single-batched-git-log-fan-in optimization: ~228ms median at
+# N=50 worst case; typical pre-release is N=0-3 → <100ms wall-clock.
+#
+# Informational ONLY — does NOT gate preflight exit code. Even an empty
+# release window (aggregate=NONE → no version bump) is a legitimate pipeline
+# invocation (operator may explicitly want to re-run a successful release's
+# postflight artifacts, or testing the pipeline itself). semantic-release
+# will short-circuit later if no release commits exist; iter-169's role is
+# purely to surface the prediction up-front so the operator can abort early
+# (Ctrl-C) before paying the multi-minute pipeline cost when there's
+# nothing to release.
+#
+# Iter-169 preflight integration was deferred until after iter-167 because
+# pre-iter-167 the aggregator's 1184ms median at N=50 would have meaningfully
+# slowed preflight; post-iter-167's 228ms median is negligible vs. the
+# ~10-second preflight total.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME="$(dirname "$0")/../../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+if [[ -x "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" ]]; then
+    echo "→ Iter-169 pending-release preview (informational, post-iter-167 ~228ms at N=50):"
+    bash "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" 2>&1 | sed 's/^/    /' || true
+else
+    echo "  ⚠ Iter-165 aggregator not found at expected path — preview SKIPPED (preflight continues)"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 3b: iter-169 pending-release informational preview"
 
 # Check 4: Plugin validation
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
