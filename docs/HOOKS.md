@@ -910,6 +910,54 @@ Iter-96 is a **5th-subhook migration + 3 audit-driven refinements** of the iter-
 
 **Iter-96 architectural takeaway**: iter-96 closes the "silent failure" gap that the iter-93/94/95 design left open. The iter-94 static audit defends against `Bun.spawnSync` regression. The iter-95 shared-lib defends against DRY drift. The iter-96 timeout-aware additionalContext closes the **operator-visibility gap**: silent fail-open is no longer the worst-case outcome of a subhook running over its budget — Claude is informed and can choose to manually verify. The 3-layer regression defense (compile-time static audit + test-time DRY check + runtime parallelism benchmark) plus the iter-96 timeout-visibility surface comprise a **4-layer correctness defense** for the iter-93+ orchestrator architecture.
 
+### Iter-97: PostToolUse arc progress — ssot-principles inlined (6/15) + FIRST real Promise.all parallel fan-out + latent /tmp temp-file race eliminated + shell-spawn overhead removed
+
+Iter-97 is a **6th-subhook migration + 3 adversarial-audit remediations**. This iteration crosses a qualitative architectural threshold: **for the first time, the orchestrator's `Promise.all` parallelism is exercised by overlapping extension filters**, not just by cold-start amortization.
+
+**The parallelism-fan-out milestone**. Pre-iter-97, the 5 inlined classifiers had DISJOINT extension filters:
+
+| Classifier      | Extensions matched                           |
+| --------------- | -------------------------------------------- |
+| ty-type-check   | `.py`, `.pyi`                                |
+| tsgo-type-check | `.ts`, `.tsx`                                |
+| oxlint-check    | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
+| biome-lint      | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
+| vale-claude-md  | `.md` (only CLAUDE.md)                       |
+
+Note that even tsgo/oxlint/biome overlap on `.ts`/`.tsx`/`.js`/`.jsx` — but the cold-start savings dominated because the heavy work in each is a SUBPROCESS spawn (ty/tsgo/oxlint/biome/vale binaries) so `Promise.all` was already buying real wall-clock parallelism for those overlapping cases. Iter-97 adds `ssot-principles` which overlaps EVERYTHING `.py`/`.ts`/`.tsx`/`.js`/`.jsx`/`.rs`/`.go`/`.java`/`.kt`/`.rb`. Wall-clock measurement now structurally converges to MAX(subhook), not SUM(subhook) — the iter-93 design goal made empirical.
+
+**Audit-driven finding 1 (latent /tmp temp-file race)**. The pre-iter-97 `posttooluse-ssot-principles.ts` wrote proposed content to a FIXED scratch path under `/tmp` keyed only by the file-extension suffix (`/tmp/.claude-ssot-scan` + extname). Two concurrent Claude sessions writing the same extension would corrupt each other's scan buffer. Iter-97 fix: PostToolUse fires AFTER the tool executes, so the file IS on disk with new content by the time we run — scan `filePath` directly, eliminating the temp-file branch entirely. **No race possible.** This is the kind of subtle bug that adversarial audit + filesystem-concurrency-thinking finds before it bites in production.
+
+**Audit-driven finding 2 (shell-spawn overhead via `bun $` template literal)**. The pre-iter-97 implementation used Bun's `$` template literal:
+
+```typescript
+const result = await $`ast-grep scan ${filePath} --json`
+  .cwd(AST_GREP_RULES_DIR)
+  .quiet()
+  .nothrow();
+```
+
+This spawns a SHELL for argument parsing (~5-10 ms cost per call). Iter-97 migrates to the iter-95 shared helper `executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail` which uses `Bun.spawn` directly (no shell):
+
+- No shell parse overhead
+- Inherits the iter-96 256 KiB `maxBuffer` safety net (ast-grep's `--json` output is potentially huge for files with many findings)
+- Inherits `AbortSignal.timeout`-driven cooperative cancellation (the pre-iter-97 code had `.nothrow()` but NO timeout binding — a pathological ast-grep run could hang the entire orchestrator)
+
+**Audit-driven finding 3 (no cooperative timeout)**. Pre-iter-97 had no AbortSignal bound to the ast-grep call. Iter-97 inherits the shared helper's 2000 ms timeout (`AST_GREP_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS`).
+
+**Iter-97 deliverables**:
+
+1. **`posttooluse-ssot-principles.ts` rewritten** with the iter-95 shared-lib pattern: async Bun.spawn via shared helper, dual-export naming (`classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator` + alias `classifySsotPrinciplesForPostToolUseOrchestrator`), `import.meta.main` standalone-CLI guard preserved.
+2. **Latent /tmp temp-file race eliminated**: classifier scans `filePath` directly per PostToolUse invariant.
+3. **Shell-spawn overhead removed**: migrated from `bun $` template literal to direct `Bun.spawn` via shared helper.
+4. **Cooperative timeout bound**: 2000 ms `AbortSignal.timeout`.
+5. **Orchestrator update**: imports `classifySsotPrinciplesForPostToolUseOrchestrator`; registry has 6 entries (lightest-last position because once-per-session gate keeps actual work rare). Description bumped to 6/15.
+6. **`hooks.json` rewiring**: standalone ssot-principles entry removed (only via orchestrator import); orchestrator description records the iter-97 milestones.
+7. **Iter-97 regression test** (12 assertions all pass): dual-export naming, registry ≥6 entries, shared async-spawn helper imported, legacy `await $\`...\``emission absent, latent`/tmp/.claude-ssot-scan`scratch emission absent, iter-94 static audit still passes (6 classifiers scanned cleanly), hooks.json clean of standalone entry, orchestrator description records 6/15,`import.meta.main`standalone guard retained, all 7 entry points (orchestrator + 6 classifier mains) use`Bun.stdin.text()`, end-to-end`.py`edit fires ssot-principles via orchestrator and emits`decision:block` JSON.
+8. **Iter-94 static audit naturally scales**: now scans 6 classifiers, no spawnSync regression.
+
+**Iter-97 architectural takeaway**: the migration arc has now ACTUALLY exercised the parallel-fan-out machinery — every prior iteration was infrastructure or single-classifier work. The remaining 9 hooks to inline (posttooluse-reminder, code-correctness-guard, glossary-sync, terminology-sync, readme-pypi-links, calendar-reminder-sync, gh-issue-title-reminder, rust-sota-reminder, memory-efficiency-reminder) will each add more overlap surface. With ssot-principles' once-per-session gate adding negligible cost when already-claimed, the wall-clock budget for the orchestrator stays close to MAX(subhook) regardless of registry size. The iter-93+ architecture has reached **the milestone where its design assumption (Promise.all wall-clock ≈ MAX, not SUM) became empirically observable**.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
