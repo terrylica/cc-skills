@@ -91,11 +91,11 @@ relativePath.startsWith("..") || relativePath.startsWith("/");
 
 ### Files Modified
 
-| File                                | Change                               |
-| ----------------------------------- | ------------------------------------ |
-| `pretooluse-hoisted-deps-guard.mjs` | Added root-only + path escape checks |
-| `posttooluse-reminder.ts`           | Added path escape reminder as backup |
-| Unit tests                          | Added coverage for new patterns      |
+| File                               | Change                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| `pretooluse-hoisted-deps-guard.ts` | Added root-only + path escape checks (renamed from .mjs in iter-86, orchestrator-inlined) |
+| `posttooluse-reminder.ts`          | Added path escape reminder as backup                                                      |
+| Unit tests                         | Added coverage for new patterns                                                           |
 
 ### Hook Priority
 

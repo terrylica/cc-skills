@@ -471,6 +471,48 @@ A multi-perspective adversarial audit of the iter-84 orchestrator surfaced three
 
 Final state after iter-85: 6 standalone Write|Edit hooks.json entries remain (iter-86→iter-91 targets), each migration unlocks the next +44ms savings.
 
+### Iter-86: hoisted-deps-guard migration + preventive subhook-contract static checker
+
+Iter-86 lands two concurrent deliverables: (1) third subhook inlined into the orchestrator (hoisted-deps-guard, ~44ms saved per pyproject.toml Write/Edit), and (2) a preventive static checker that addresses the iter-85 adversarial-audit's HIGH FOOTGUNs #1 and #2 BEFORE future migrations can regress against the PreToolUseSubhookContract.
+
+**Subhook migration:**
+
+- `pretooluse-hoisted-deps-guard.mjs` → `.ts` (via `git mv` for history preservation)
+- Refactored 3-policy logic into pure `classifyHoistedDepsGuardForOrchestrator()` (POLICY 1 root-only pyproject.toml + maturin PyO3 carve-out, POLICY 2 [tool.uv.sources] path-escape detection, POLICY 3 sub-package [dependency-groups] block)
+- `main()` gated under `import.meta.main` (standalone CLI backward-compat)
+- Registry now lightest-first ordered: `[version-guard, hoisted-deps-guard, file-size-guard]`. hoisted-deps-guard's O(1) `endsWith("pyproject.toml")` filter pre-empts the `git rev-parse` subprocess on non-pyproject.toml writes
+- Existing `pretooluse-hoisted-deps-guard.test.mjs` updated to point at `.ts` (no logic changes)
+
+**Preventive subhook-contract static checker** ([`audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh`](../.mise/tasks/audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main.sh)):
+
+Statically scans every `plugins/itp-hooks/hooks/*.ts` file that exports a `classify*ForOrchestrator` function and enforces two contract checks:
+
+| Check                             | Rationale                                                                                                                                                  | Detection                                                                                                                                             |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import.meta.main` guard          | Standalone `main()` without the guard would silently re-execute when the orchestrator imports the classifier (top-level code runs on import)               | Greps for `^async function main(` declaration; if present, requires `if (import.meta.main)` somewhere in the file                                     |
+| Pure-classifier no-I/O discipline | Classifier MUST NOT call `process.exit/stdout.write/stdin/console.log` — orchestrator owns I/O, so contract violations cause double-emit or premature exit | Awk-based brace-depth scan from each `classify*ForOrchestrator` signature until matching close-brace; greps for forbidden I/O calls within that range |
+
+Two modes:
+
+- Default (informational): prints diagnostic per violation, exits 0 (visibility without blocking)
+- `--strict`: exits non-zero on any violation (release-gate use)
+
+Wired into `release:preflight` as Check 4m (informational), with loose-coupled defensive grep extraction per the iter-70 brittle-banner hardening pattern. Iter-87+ may flip to `--strict` once the contract stabilizes.
+
+**Regression coverage** ([`test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh`](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh)) — 14 assertions:
+
+- **Cases 1-2**: orchestrator denies sub-package pyproject.toml (POLICY 1 + POLICY 3 fixtures) with full belt-and-suspenders defense
+- **Case 3**: standalone `.ts` (renamed from `.mjs`) backward-compat without orchestrator prefix
+- **Case 4**: audit task reports clean state on the 3 inlined subhooks + `--strict` exits 0
+- **Case 5**: audit task DETECTS synthetic contract violations via `AUDIT_REPO_ROOT_OVERRIDE` fixture (missing-guard + forbidden-I/O detection + `--strict` exits non-zero)
+
+**Web-research context** (concurrent 2026 second-source check):
+
+- Bun cold-start is documented as 8-15ms in community benchmarks (byteiota.com, PkgPulse 2026), suggesting our iter-80 measurement of ~44ms may include payload-handling overhead. Worth re-profiling in iter-87+.
+- GitHub #37210 (Edit-tool stdout-JSON deny ignored) confirmed STILL OPEN as of May 2026 — belt-and-suspenders defense remains correct
+- AbortController is the idiomatic 2026 pattern for promise cancellation (vs iter-84's Symbol-sentinel + setTimeout). Candidate refactor for iter-87+ orchestrator hardening
+- Claude Code's hook event schema has expanded post-iter-69 pentad to ~27 events (claudefa.st 2026) — iter-87+ should preventively audit new event types like ConfigChange and PostToolBatch
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
