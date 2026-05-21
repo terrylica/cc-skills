@@ -63,10 +63,24 @@
 #     automation pipelines (CI dashboards, slack-bot release-notice
 #     generators, pre-release sanity checks).
 #
-#   - Sub-second on typical release windows (<50 commits). One
-#     `git log --reverse --format='%H'` + N `git log -1 --format=%s`
-#     + N `git log -1 --format=%b` invocations. For N=50 that's
-#     ~101 git-process forks but each is local-only and quick.
+#   - Sub-second on typical release windows. Iter-167 perf optimization:
+#     a single batched `git log --reverse --format='%H%x00%s%x00%b%x00'`
+#     invocation with NUL-byte field separator, parsed in pure bash via
+#     three consecutive `IFS= read -r -d ''` calls per record. Pre-iter-167
+#     used 2N+1 git invocations (1 SHA fetch + N subject + N body per
+#     commit); iter-167 collapses that to a single git fork regardless of N.
+#     Measured benchmark at N=50 synthetic commits (Apple Silicon M-series,
+#     macOS, bash 5.x): pre-iter-167 baseline 905-1404ms range with median
+#     ~1184ms wall-clock → post-iter-167 247-301ms range with median
+#     ~263ms, ≈4.5× speedup (921ms absolute time saved). Speedup scales
+#     linearly with N because the eliminated work was 2N fork+exec of git
+#     log -1; at small N (<5 commits) overhead is dominated by shared-lib
+#     sourcing and the speedup is less dramatic. See iter-167 benchmark
+#     task .mise/tasks/tests/benchmark-iter167-*.sh for reproducible
+#     measurement.
+#     ASCII NUL is safe because git tree objects cannot contain NUL bytes
+#     (git's own internal data structures use NUL as field separator —
+#     see git-pretty-formats(1) %x00 specifier).
 #
 # OUTPUT FORMAT (human, default):
 #
@@ -225,10 +239,30 @@ else
     ITER165_GIT_LOG_RANGE_SPECIFIER_FROM_TAG_EXCLUSIVE_TO_HEAD_INCLUSIVE="HEAD"
 fi
 
-mapfile -t ITER165_COLLECTED_COMMIT_SHA_ARRAY_OLDEST_FIRST_BETWEEN_CURRENT_TAG_AND_HEAD < <(
-    git log --reverse --format='%H' "$ITER165_GIT_LOG_RANGE_SPECIFIER_FROM_TAG_EXCLUSIVE_TO_HEAD_INCLUSIVE" 2>/dev/null || true
-)
-ITER165_TOTAL_COMMIT_COUNT_SINCE_MOST_RECENT_GIT_TAG=${#ITER165_COLLECTED_COMMIT_SHA_ARRAY_OLDEST_FIRST_BETWEEN_CURRENT_TAG_AND_HEAD[@]}
+# Iter-167 single-batched-git-log-fan-in perf optimization. Pre-iter-167
+# this used 2N+1 separate git log calls (one to collect SHAs + two per
+# commit for subject + body). At N=50 that benchmarked ~1184ms median.
+# Iter-167 collapses to a single git fork with NUL-byte field separators
+# parsed in pure bash via three IFS= read -r -d '' calls per record.
+# Measured at N=50: ~263ms median, ≈4.5× speedup (921ms absolute time
+# saved). The leading-newline strip on the SHA field handles git's
+# natural inter-record newline (git always emits \n between commits
+# regardless of --format spec).
+ITER167_BATCHED_GIT_LOG_PARSED_SHA_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR=()
+ITER167_BATCHED_GIT_LOG_PARSED_SUBJECT_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR=()
+ITER167_BATCHED_GIT_LOG_PARSED_BODY_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR=()
+while IFS= read -r -d '' iter167_each_record_sha_field_with_possible_leading_newline_from_git_inter_record_separator \
+   && IFS= read -r -d '' iter167_each_record_subject_field \
+   && IFS= read -r -d '' iter167_each_record_body_field; do
+    # Strip git's natural inter-record newline from leading edge of SHA
+    # (git appends \n after every record regardless of --format spec).
+    iter167_each_record_sha_field_with_possible_leading_newline_from_git_inter_record_separator="${iter167_each_record_sha_field_with_possible_leading_newline_from_git_inter_record_separator#$'\n'}"
+    ITER167_BATCHED_GIT_LOG_PARSED_SHA_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR+=("$iter167_each_record_sha_field_with_possible_leading_newline_from_git_inter_record_separator")
+    ITER167_BATCHED_GIT_LOG_PARSED_SUBJECT_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR+=("$iter167_each_record_subject_field")
+    ITER167_BATCHED_GIT_LOG_PARSED_BODY_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR+=("$iter167_each_record_body_field")
+done < <(git log --reverse --format='%H%x00%s%x00%b%x00' "$ITER165_GIT_LOG_RANGE_SPECIFIER_FROM_TAG_EXCLUSIVE_TO_HEAD_INCLUSIVE" 2>/dev/null || true)
+
+ITER165_TOTAL_COMMIT_COUNT_SINCE_MOST_RECENT_GIT_TAG=${#ITER167_BATCHED_GIT_LOG_PARSED_SHA_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR[@]}
 
 # ─── Step 3: classify each commit ────────────────────────────────────────────
 # Aggregation state — track maximum bump per SemVer precedence.
@@ -267,10 +301,13 @@ iter165_extract_conventional_commit_type_and_bang_marker_presence_from_subject_v
     fi
 }
 
-for iter165_each_commit_sha in "${ITER165_COLLECTED_COMMIT_SHA_ARRAY_OLDEST_FIRST_BETWEEN_CURRENT_TAG_AND_HEAD[@]}"; do
+for ((iter167_each_commit_array_index = 0; \
+      iter167_each_commit_array_index < ITER165_TOTAL_COMMIT_COUNT_SINCE_MOST_RECENT_GIT_TAG; \
+      iter167_each_commit_array_index++)); do
+    iter165_each_commit_sha="${ITER167_BATCHED_GIT_LOG_PARSED_SHA_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR[$iter167_each_commit_array_index]}"
     iter165_each_short_sha="${iter165_each_commit_sha:0:8}"
-    iter165_each_subject="$(git log -1 --format='%s' "$iter165_each_commit_sha")"
-    iter165_each_body="$(git log -1 --format='%b' "$iter165_each_commit_sha")"
+    iter165_each_subject="${ITER167_BATCHED_GIT_LOG_PARSED_SUBJECT_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR[$iter167_each_commit_array_index]}"
+    iter165_each_body="${ITER167_BATCHED_GIT_LOG_PARSED_BODY_ARRAY_OLDEST_FIRST_FROM_SINGLE_GIT_INVOCATION_VIA_NUL_FIELD_SEPARATOR[$iter167_each_commit_array_index]}"
 
     iter165_extract_conventional_commit_type_and_bang_marker_presence_from_subject_via_anchored_regex_capture_groups "$iter165_each_subject"
     iter165_each_type="$ITER165_EXTRACTED_TYPE_FROM_SUBJECT_OR_EMPTY_IF_NON_CONVENTIONAL"
