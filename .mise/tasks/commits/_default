@@ -18,7 +18,7 @@ fi
 cat <<EOF
 
 ═══════════════════════════════════════════════════════════════════════════════
-  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-159 arc)
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-160 arc)
 ═══════════════════════════════════════════════════════════════════════════════
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
@@ -77,6 +77,20 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — 
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}
       Remove cc-skills-managed hook + restore most recent backup.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — self-diagnosis of the entire commits toolkit ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status${ITER156_ANSI_COLOR_RESET}
+      9-check self-diagnosis across iter-150 → iter-158 tools:
+      structural validity, functional correctness, hook-install state,
+      pre-commit-framework binary availability. Per-check wall-clock
+      latency reporting. Industry-standard brew-doctor/npm-doctor
+      pattern. Exit 0 if toolkit healthy; exit 1 if CRITICAL check
+      fails.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status --json${ITER156_ANSI_COLOR_RESET}
+      Same checks, machine-readable JSON output with stable
+      iter160_schema_version=1 for AI-agent automation pipelines.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── POLYGLOT (iter-158, iter-159) — pre-commit framework integration ───${ITER156_ANSI_COLOR_RESET}
 
