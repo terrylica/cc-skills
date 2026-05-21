@@ -1,3 +1,10 @@
+# [21.23.0](https://github.com/terrylica/cc-skills/compare/v21.22.0...v21.23.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-85 inline version-guard into PreToolUse edit-time orchestrator + three audit-driven orchestrator hardenings (ask path belt-and-suspenders, stdout drain before exitCode=2, unhandledRejection fail-open) ([4c36290](https://github.com/terrylica/cc-skills/commit/4c36290ff25e6c27a148629a241fc58447ea0159))
+
 # [21.22.0](https://github.com/terrylica/cc-skills/compare/v21.21.0...v21.22.0) (2026-05-21)
 
 
