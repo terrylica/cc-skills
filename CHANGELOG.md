@@ -1,3 +1,10 @@
+# [21.78.0](https://github.com/terrylica/cc-skills/compare/v21.77.2...v21.78.0) (2026-05-21)
+
+
+### Features
+
+* **iter-182:** pytest-benchmark-style measurement-context in envelope ([7b0656b](https://github.com/terrylica/cc-skills/commit/7b0656b82c2580cf6b20781048f3e566626b5323))
+
 ## [21.77.2](https://github.com/terrylica/cc-skills/compare/v21.77.1...v21.77.2) (2026-05-21)
 
 
