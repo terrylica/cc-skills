@@ -1,3 +1,10 @@
+## [21.60.1](https://github.com/terrylica/cc-skills/compare/v21.60.0...v21.60.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release:** iter-148 empirically-validate-iter146-and-iter147-ssh-multiplexing-claim-at-distribution-level-via-back-to-back-baseline-versus-multiplexed-variance-capture-wrapper-around-iter147-harness-emitting-side-by-side-delta-table-with-speedup-ratio-column-and-validation-threshold-footer-proving-the-get-git-auth-url-bottleneck-speedup-is-3-point-30-x-empirically-measured-not-10-to-15-x-conjectural-as-originally-claimed-from-openssh-community-docs-on-warm-handshake-reuse-saving-4216-milliseconds-per-release-at-p50-with-stable-30-millisecond-stddev-in-both-before-and-after-distributions-confirming-the-speedup-is-signal-not-single-sample-variance-and-replacing-the-iter-146-conjectural-claim-in-docs-release-md-with-actual-empirical-data-table ([249b78a](https://github.com/terrylica/cc-skills/commit/249b78aa361f107650170411052fd723d4168d21))
+
 # [21.60.0](https://github.com/terrylica/cc-skills/compare/v21.59.1...v21.60.0) (2026-05-21)
 
 
