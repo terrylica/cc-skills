@@ -1,3 +1,10 @@
+# [21.72.0](https://github.com/terrylica/cc-skills/compare/v21.71.0...v21.72.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-164 next-version preview ([9d3e245](https://github.com/terrylica/cc-skills/commit/9d3e245608c05773d14f8d73e71905ca44a9e86b))
+
 # [21.71.0](https://github.com/terrylica/cc-skills/compare/v21.70.0...v21.71.0) (2026-05-21)
 
 
