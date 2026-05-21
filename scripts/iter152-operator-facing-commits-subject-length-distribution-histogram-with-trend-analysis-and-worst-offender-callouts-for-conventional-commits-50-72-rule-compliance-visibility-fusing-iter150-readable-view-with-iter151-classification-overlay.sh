@@ -85,6 +85,32 @@
 
 set -euo pipefail
 
+# ─── ITER-171 UTF-8 LOCALE INVARIANT GUARD FOR CHARACTER-COUNTING CORRECTNESS ─
+# Empirically verified iter-171 audit probe finding: bash ${#var} returns
+# CHARACTER count under UTF-8 locales (en_*.UTF-8, C.UTF-8) but BYTE count
+# under C/POSIX locale. Same correctness boundary applies to awk length()
+# only when invoked via gawk; macOS BWK awk length() always byte-counts
+# regardless of locale (known limitation — affects the 4 awk length() call
+# sites in this script; candidate for iter-172+ refactor to use wc -m or
+# gawk explicitly).
+#
+# Without this guard, a CJK commit subject like "feat: 修复编码问题XYZ" (15
+# visible characters, 30 UTF-8 bytes) would mis-categorize into the wrong
+# histogram bin under awk length() byte-counting — e.g., a 67-char CJK
+# subject (134 bytes) would false-positive trigger the ≥72-char hard-cap
+# warning bin. Bash ${#var} consumers (the worst-offender callouts) report
+# the WRONG length in operator-facing output unless this guard is set.
+#
+# Force UTF-8 locale at script entry. Override empty/unset/C/POSIX
+# explicitly because C and POSIX always byte-count regardless of operator
+# intent (typically a CI-runner misconfiguration, not a deliberate
+# byte-counting choice — Conventional Commits §5 specifies CHARACTER-counting
+# semantics for subject length). Operator can opt INTO any other UTF-8
+# locale (en_CA.UTF-8, C.UTF-8, zh_CN.UTF-8, etc.) which we respect verbatim.
+case "${LC_ALL:-}" in
+    ""|C|POSIX) export LC_ALL=en_US.UTF-8 ;;
+esac
+
 ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER152_REPO_ROOT"
 
