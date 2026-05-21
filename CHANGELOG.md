@@ -1,3 +1,10 @@
+# [21.77.0](https://github.com/terrylica/cc-skills/compare/v21.76.0...v21.77.0) (2026-05-21)
+
+
+### Features
+
+* **iter-179:** --json dual-mode for commits:perf-baseline AI agents ([949318f](https://github.com/terrylica/cc-skills/commit/949318f5f8d13599bc9d251c5b9bb65ae979e4c2))
+
 # [21.76.0](https://github.com/terrylica/cc-skills/compare/v21.75.8...v21.76.0) (2026-05-21)
 
 
