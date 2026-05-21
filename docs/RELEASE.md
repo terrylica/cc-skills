@@ -111,6 +111,66 @@ mise run release:clean
 mise run release:sync
 ```
 
+<!-- SSoT-OK: the following Phase-2-bottleneck section references HISTORICAL
+     release-tag names + forensic-finding tag IDs as immutable identifiers,
+     not the current cc-skills version (which lives in package.json /
+     plugin.json as the SSoT). Version-guard escape hatch per the iter-107
+     marker convention. The 5 tag IDs documented below are the load-bearing
+     forensic signature of iter-145's notes-backfill fix. -->
+
+## Phase 2 (semantic-release) Internal Bottleneck Breakdown — iter-144/145/146
+
+The release pipeline's **Phase 2 (`mise run release:version`, which runs semantic-release)** consumes ~30s of the typical ~45s release wall-clock (67%). Iter-144 instrumentation (`scripts/iter144-...py`) parses semantic-release's `DEBUG=semantic-release:*` stderr output to attribute cumulative milliseconds to each `semantic-release:<namespace>` subsystem, surfacing where the time actually goes.
+
+### How to measure
+
+```bash
+DEBUG=semantic-release:* npx semantic-release --dry-run --no-ci 2> /tmp/semrel-debug.log
+python3 scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py /tmp/semrel-debug.log
+```
+
+Operator-tunable Top-N count: set `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_TO_DISPLAY=N` (default 10). The parser emits TWO ranking dimensions:
+
+1. **`per debug-namespace`** (ACCURATE): every executed code path has its own namespace, no marker-based misattribution. This is the actionable target for further optimization.
+2. **`per plugin/lifecycle-step`** (LOADING-PHASE-ONLY): based on `options-for` markers in the debug log. Misattributes post-loading execution to the last loaded step (typically `@semantic-release/exec/fail`). Use dimension 1 for execution-phase attribution.
+
+### Known bottlenecks (iter-144 empirical findings — cc-skills @ 882 git tags, M-series mac)
+
+| Rank | Subsystem                           | ms    | What it does                                                          | Iter     |
+| ---- | ----------------------------------- | ----- | --------------------------------------------------------------------- | -------- |
+| 1    | `semantic-release:get-git-auth-url` | ~1700 | One `git push --dry-run --no-verify` round-trip to verify push access | iter-146 |
+| 2    | `semantic-release:get-tags`         | ~2300 | Walk all 882 tags + read all 877 sibling notes refs                   | iter-145 |
+| 3    | `semantic-release:config`           | ~140  | Load `.releaserc.yml` + plugin config resolution                      | —        |
+| 4    | `semantic-release:plugins`          | ~16   | Plugin loading + verifyConditions invocation                          | —        |
+| 5    | `semantic-release:git`              | ~15   | Internal git utility calls                                            | —        |
+| 6    | `semantic-release:get-commits`      | ~11   | List commits since last tag                                           | —        |
+
+### Iter-145 forensic finding (FIXED)
+
+Iter-144 surfaced **5 silent `JSON.parse` SyntaxError stack traces per release**, swallowed by the `catch (error) { debug(error); }` block at `semantic-release/lib/git.js:346`. Root cause: 5 historical tags (the v4.x + v5.1.x cohort cataloged in `scripts/iter145-...sh`) lacked attached notes in `refs/notes/semantic-release-*`. The `%N` format placeholder returned empty string for those tags; `line.trim().split("\t")` produced a single-element array; destructuring yielded `notePart = undefined`; `JSON.parse(undefined)` coerced to `JSON.parse("undefined")` which threw `"undefined" is not valid JSON`.
+
+Iter-145 fixed by backfilling canonical `{"channels":[null]}` notes attached to each tag's COMMIT (not tag object — annotated-tag-aware `tag^{commit}` dereferencing required). Verification: post-fix forensic count is 0.
+
+Re-run `scripts/iter145-fix-malformed-empty-semantic-release-notes-refs-...sh` on any new cc-skills clone to re-apply the local-only fix (notes refs are not pushed to remote in current config).
+
+### Iter-146 finding: `get-git-auth-url`'s `verifyAuth` algorithm
+
+`node_modules/semantic-release/lib/get-git-auth-url.js` line 91-93 ALWAYS runs `verifyAuth(repositoryUrl, branch, {cwd, env})` first, regardless of any token env vars. `verifyAuth` executes:
+
+```bash
+git push --dry-run --no-verify <repositoryUrl> HEAD:<branch>
+```
+
+This is a real network round-trip to GitHub doing SSH key exchange or HTTPS+TLS+token-handshake. ~1.7s per call on a warm-DNS connection from a residential US-west link. There is no documented `--skip-auth-verify` flag (semantic-release#2053 has been open since 2021 requesting this). The only operator-side leverage is to make the round-trip faster.
+
+### Iter-146 optional optimization: SSH ControlMaster connection multiplexing
+
+OpenSSH ControlMaster persists an authenticated SSH session for a configurable TTL. Once primed, subsequent SSH operations to the same host reuse the persistent connection, skipping key exchange (~1.5s saved per call).
+
+Operator opt-in setup: run `scripts/iter146-configure-ssh-controlmaster-for-github-com-...sh` (idempotent, backs up `~/.ssh/config`, scoped to `Host github.com` only). After applying, the next release's `verifyAuth` cost should drop from ~1.7s to ~100-200ms per call.
+
+**This is a per-developer-machine optimization** — not pushed to the repo, not enforced for collaborators. The setup script is provided as documentation + automation but operators must consciously opt in (modifies `~/.ssh/config`).
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
