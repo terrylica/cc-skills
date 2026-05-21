@@ -171,6 +171,46 @@ Operator opt-in setup: run `scripts/iter146-configure-ssh-controlmaster-for-gith
 
 **This is a per-developer-machine optimization** — not pushed to the repo, not enforced for collaborators. The setup script is provided as documentation + automation but operators must consciously opt in (modifies `~/.ssh/config`).
 
+### Iter-147 complementary optimization: env-var-scoped SSH multiplexing (no `~/.ssh/config` modification required)
+
+Iter-146's setup script refuses to modify `~/.ssh/config` when a pre-existing `Host github.com` block is detected from another source (e.g., operators with `IdentityFile` pins for anti-key-leak defense). Iter-147 ships a complementary, non-invasive lever for those operators:
+
+```bash
+# Enable env-var-scoped SSH ControlMaster for THIS release run only:
+RELEASE_SSH_MULTIPLEXING_ENABLED=1 mise run release:full
+```
+
+The release orchestrator exports `GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath=~/.ssh/controlmasters/%r@%h:%p -o ControlPersist=10m"` for the duration of the pipeline only, idempotently creates `~/.ssh/controlmasters/` with mode `0700`, and lets the process tree inherit the env var. Differences from iter-146:
+
+| Property                                       | Iter-146 (`~/.ssh/config` modification) | Iter-147 (`GIT_SSH_COMMAND` env var)    |
+| ---------------------------------------------- | --------------------------------------- | --------------------------------------- |
+| Persistence                                    | Permanent across all SSH operations     | Scoped to one `release:full` invocation |
+| Operator config touched                        | Yes (`~/.ssh/config` appended)          | No (only `~/.ssh/controlmasters/` dir)  |
+| Conflict with existing `Host github.com` block | Setup script refuses to modify          | Bypasses entirely — config untouched    |
+| Speedup target                                 | Same (`verifyAuth` 1.7s → ~100-200ms)   | Same                                    |
+| Reversibility                                  | Remove block from `~/.ssh/config`       | Unset env var (no state to undo)        |
+
+Both paths target the same `semantic-release:get-git-auth-url` bottleneck. Use iter-147's env-var path when your existing `~/.ssh/config` has `Host github.com` directives you don't want auto-modified.
+
+### Iter-147 variance-characterization harness (prevents single-sample-variance traps)
+
+The per-release wall-clock distribution is dominated by SSH-handshake and GitHub-API round-trip noise with standard deviation that can exceed the perf-delta of any single optimization. Single-sample BEFORE/AFTER comparisons (one measurement of the old version vs. one measurement of the new) routinely return misleading conclusions — both spurious "regressions" and spurious "speedups". To prevent future iter-NNN proposals from chasing these phantoms, iter-147 ships a back-to-back N-run capture-and-percentile harness:
+
+```bash
+# Default 5 back-to-back dry-run captures, per-namespace p50/p95/mean/stddev/min/max/range:
+uv run --python 3.13 scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+
+# Custom run count via ITER147_VARIANCE_PROFILE_RUN_COUNT (must be at least 2 — variance undefined for n=1):
+ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.13 scripts/iter147-...py
+
+# Replay existing /tmp/iter147-variance-profile-run-{i}.log without re-capturing (fast re-analysis):
+ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.13 scripts/iter147-...py
+```
+
+Output format includes a "variance-flag" column marking namespaces whose stddev/p50 ratio exceeds **0.20** — these are the namespaces where single-sample comparisons are unreliable, and any optimization targeting them must demonstrate distribution-level improvement (p50 or p95 shift across N samples), not point-sample improvement.
+
+**Gotcha — working directory cleanliness affects namespace coverage**: `npx semantic-release --dry-run` runs `scripts/release-preflight.sh` in `verifyConditions`, which aborts on dirty `git status --porcelain`. When preflight aborts, downstream namespaces like `semantic-release:get-tags` never execute and won't appear in the distribution table. Capture against a clean working directory for full namespace cohort.
+
 ## Preflight Gate Maintenance
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
