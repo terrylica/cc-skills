@@ -249,6 +249,25 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       baseline harness extended in iter-177 with A6 assertion gating
       iter-160 at 1500ms cap. Empirical: 665ms → 528ms (~20% reduction).
 
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-182 pytest-benchmark-style measurement-context metadata in JSON envelope${ITER156_ANSI_COLOR_RESET}
+      — multi-perspective adversarial audit (web-validated against
+      pytest-benchmark / criterion.rs / hyperfine 2026 baseline) found
+      that the iter-179 envelope lacked measurement-context provenance
+      that AI agents and CI pipelines tracking longitudinal regression
+      trends need. pytest-benchmark is the only major harness with
+      built-in machine_info + commit_info metadata; criterion.rs and
+      hyperfine LACK this — Bencher and other CI platforms explicitly
+      recommend wrapping them and layering metadata in sidecar files.
+      Iter-182 closes the gap inline (no sidecar required) and additively
+      (iter174_schema_version stays at 1 — older consumers ignore unknown
+      fields per JSON-best-practice). New \`iter182_measurement_context\`
+      block embeds: measurement_timestamp_iso8601_utc + host_machine_
+      uname_srm_for_baseline_hardware_context + bash_version_for_
+      epochrealtime_zero_fork_capability_context + epochrealtime_fast_
+      path_engaged_per_iter180_zero_fork_dogfood (bool) + git_commit_
+      sha_short_for_provenance_against_codebase_drift. Captured BEFORE
+      the trial loop so the timestamp marks measurement-start.
+
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-181 iter-174 fail-fast precondition checks (silent-failure-class fix)${ITER156_ANSI_COLOR_RESET}
       — adversarial audit caught a silent-failure-class bug in the
       iter-174 path-resolution block: \`find scripts -maxdepth 1 -name
