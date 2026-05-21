@@ -1,3 +1,10 @@
+## [21.58.1](https://github.com/terrylica/cc-skills/compare/v21.58.0...v21.58.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **release:** iter-140 instrument-post-release-successcmd-block-with-per-step-epochrealtime-wall-clock-timing-capture-gated-on-release-timing-profile-equals-one-mirroring-iter-139-pipeline-level-pattern-at-the-deepest-structural-level-which-is-the-seven-step-bash-script-embedded-in-dot-releaserc-dot-yml-successcmd-yaml-literal-plus-eliminate-the-hardcoded-sleep-two-between-claude-print-plugin-update-trigger-and-cache-verify-step-because-the-cache-verify-step-already-handles-cache-not-yet-populated-gracefully-with-the-may-need-session-restart-warning-branch-saving-two-thousand-milliseconds-per-release-with-zero-functional-regression-and-unlocking-data-driven-optimization-of-the-remaining-post-release-block-cost-where-the-suspected-dominant-step-is-step-two-claude-print-which-bootstraps-a-full-claude-code-instance-for-one-slash-command ([fff92ef](https://github.com/terrylica/cc-skills/commit/fff92efeff9689c3541d625e4c96881e9bd088ea))
+
 # [21.58.0](https://github.com/terrylica/cc-skills/compare/v21.57.1...v21.58.0) (2026-05-21)
 
 
