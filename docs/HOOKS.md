@@ -349,6 +349,24 @@ Exit code 0 if all plugins FRESH or NOT-CACHED; exit code 1 if any STALE-CACHE d
 
 The drift detector defaults to filtering by cached-subtree-only paths so the operator sees only **actionable** drift (hook/skill/command/agent content divergence). Use `--all-divergences` to surface the full L2-vs-L3 delta when you suspect the cache populator's filter rules have changed in a Claude Code update.
 
+### Iter-77 + Iter-78 Dual-Defense Architecture for L3-Stripped-Path Prevention
+
+The iter-76 forensic finding (above) drove two complementary preventive gates:
+
+| Layer        | Iter | Gate                                                                                      | Trigger                      | Outcome                                                                            |
+| ------------ | ---- | ----------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| Edit-time    | 78   | `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` (Write\|Edit\|MultiEdit)      | Operator typing now          | Hook denies the edit before the violating reference lands on disk                  |
+| Release-time | 77   | `audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths…sh` (4k) | `mise run release:preflight` | Audit blocks tag publish if any hook source file contains an unjustified reference |
+
+Both gates use the SAME allowlist (`{hooks, skills, commands, agents, plugin.json}`) and the SAME escape-hatch marker syntax (`LAYER3-STRIPPED-PATH-OK: <reason ≥ 10 chars>` on the same line OR within the three preceding lines).
+
+**Why two layers**:
+
+1. **Edit-time** catches the violation at the moment of authorship — fastest feedback, lowest cost to fix. Belt-and-suspenders defense (stdout JSON `permissionDecision: "deny"` + stderr diagnostic + `exit 2`) per [GitHub issue #37210](https://github.com/anthropics/claude-code/issues/37210), which documents that PreToolUse `deny` is honored for Write but ignored for Edit on some Claude Code versions. Stderr + exit 2 still hard-blocks even when stdout JSON is silently dropped.
+2. **Release-time** catches anything that snuck past the edit-time gate (external edits, agent-bypassed sessions, hook-disabled sessions, copy-pasted code from L2 docs). Final guarantee before the tag publishes.
+
+**Performance budget**: edit-time hook uses pre-JSON-parse fastpath — if raw stdin lacks the `CLAUDE_PLUGIN_ROOT` substring, hook short-circuits to `allow` in <1ms. Cost is paid only on edits that actually reference the plugin root.
+
 ## Testing Hooks
 
 ### Manual Testing
