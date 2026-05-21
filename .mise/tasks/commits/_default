@@ -249,6 +249,28 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       baseline harness extended in iter-177 with A6 assertion gating
       iter-160 at 1500ms cap. Empirical: 665ms → 528ms (~20% reduction).
 
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-184 canonical outlier-warning surface per hyperfine + pytest-benchmark heuristics${ITER156_ANSI_COLOR_RESET}
+      — iter-183 surfaced raw stats but AI agents and CI pipelines each
+      had to re-derive outlier thresholds and would disagree on whether
+      a regression is "noisy" or "real". Web research (2026) confirmed
+      hyperfine ships TWO canonical heuristics (outlier detection for
+      background-process interference + first-run-cold-cache detection
+      for OS page-cache warmup) and pytest-benchmark emits BOTH StdDev
+      outlier count AND IQR outlier count for richer diagnosis.
+      Iter-184 closes the canonical-warning-surface gap with a stable
+      iter184_outlier_warnings array per scenario containing up to 3
+      named warning codes:
+        (1) first_trial_cold_cache_spike_per_hyperfine_heuristic_two
+            when trials[0] > median × 1.5
+        (2) high_relative_stddev_indicating_unstable_measurement_per_
+            hyperfine_practice when stddev > median × 0.25
+        (3) tukey_iqr_outlier_runs_detected_per_pytest_benchmark_robust_
+            definition when ≥1 trial outside [Q1−1.5×IQR, Q3+1.5×IQR]
+      Empty array means clean signal. Schema stays at v1 (additive).
+      AI agents can now dispatch on stable strings rather than re-derive
+      thresholds. CI gates can decide "warn vs block" based on the code
+      set (e.g., cold-cache-only → re-run; multiple codes → real noise).
+
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-183 hyperfine-parity per-scenario {mean, stddev, min, max, trials[]} stats${ITER156_ANSI_COLOR_RESET}
       — multi-perspective adversarial audit (web-validated against
       hyperfine + pytest-benchmark 2026 baseline) found the iter-179
