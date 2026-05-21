@@ -70,6 +70,7 @@ import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxl
 import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome-lint.ts";
 import { classifyValeClaudeMdForPostToolUseOrchestrator } from "./posttooluse-vale-claude-md.ts";
 import { classifySsotPrinciplesForPostToolUseOrchestrator } from "./posttooluse-ssot-principles.ts";
+import { classifyMemoryEfficiencyReminderForPostToolUseOrchestrator } from "./posttooluse-memory-efficiency-reminder.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -118,6 +119,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifyValeClaudeMdForPostToolUseOrchestrator,
     description:
       "Runs `vale --output=JSON` on edited CLAUDE.md files (informational only — terminology violation visibility, not blocking). Iter-96 fifth inlined PostToolUse subhook (5/15 in arc). PostToolUse twin to the iter-91 PreToolUse vale-claude-md-guard (which BLOCKS before edit); this one INFORMS after edit. Walks up from edited file directory looking for .vale.ini, falls back to ~/.claude/.vale.ini (cwd-agnostic). Edit-path line scoping ±3-line buffer prevents pre-existing-issue spam. Heaviest classifier in the registry: spawns external `vale` subprocess (100-300ms typical). timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines. Algorithm encoded in `classifyValeTerminologyConformanceOnEditedClaudeMdFileForPostToolUseOrchestrator` (re-exported as `classifyValeClaudeMdForPostToolUseOrchestrator` for symmetric naming).",
+  },
+  {
+    name: "memory-efficiency-reminder",
+    timeoutMs: 1000,
+    classify: classifyMemoryEfficiencyReminderForPostToolUseOrchestrator,
+    description:
+      "Surfaces a once-per-session memory-efficiency reminder (zero-copy, pre-allocation, cache-locality, lazy-evaluation patterns) on the first eligible code-file Write/Edit (.py/.rs/.ts/.tsx/.js/.go/.java/.kt/.rb/.cpp/.c/.h/.zig; test files excluded). Iter-98 SEVENTH inlined PostToolUse subhook (7/15 in arc). Pure static reminder — NO subprocess spawn, NO ast-grep, only an atomic O_EXCL gate-claim filesystem operation. Registry placement BEFORE ssot-principles because once-per-session means most invocations are sub-ms gate-claim noops. Iter-98 ALSO FIXES A LONG-STANDING SILENT CONTEXT-DROP BUG: the pre-iter-98 standalone hook emitted the reminder via plain `console.log` (raw text — transcript-only, NOT Claude-visible per iter-66/93 forensic finding + Anthropic PostToolUse schema). The iter-92 async-eligibility audit had classified this hook as `[M] MIXED` (couldn't statically pattern-match the silent-drop), so the bug had been in plain sight without surfacing. Iter-98 orchestrator path emits a proper `additional_context` decision (Claude-visible system reminder via aggregated `{decision: block, reason}` JSON); standalone CLI now also emits JSON not raw text. Iter-98 ALSO hoists the once-per-session gate-file logic from the iter-97 ssot-principles local helper into shared lib `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName` — both classifiers now share one race-safe O_EXCL implementation. Algorithm encoded in `classifyMemoryEfficiencyBestPracticesReminderOncePerSessionForPostToolUseOrchestrator`; alias `classifyMemoryEfficiencyReminderForPostToolUseOrchestrator`.",
   },
   {
     name: "ssot-principles",

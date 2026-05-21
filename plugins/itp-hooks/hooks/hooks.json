@@ -187,20 +187,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-memory-efficiency-reminder.ts",
-            "timeout": 3000,
-            "description": "Memory efficiency reminder - zero-copy, pre-allocate, cache locality, lazy eval (once per session)"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93→iter-97 PostToolUse edit-time orchestrator (6/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone: FIRST migration that creates REAL Promise.all parallel fan-out — ssot-principles overlaps .py with ty AND .ts/.tsx/.js/.jsx with tsgo+oxlint+biome, so the orchestrator finally exercises its concurrent-spawn machinery (wall-clock ≈ MAX(subhook), not SUM). Iter-97 also remediated three adversarial-audit findings in the pre-iter-97 ssot-principles hook: latent /tmp temp-file race (fixed-path scratch buffer between concurrent sessions), shell-spawn overhead (bun $ template literal vs Bun.spawn direct), and absent cooperative-timeout binding. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+            "description": "Iter-93→iter-98 PostToolUse edit-time orchestrator (7/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements: (a) inlines memory-efficiency-reminder as 7th subhook — pure static reminder (no subprocess, no ast-grep, sub-ms gate-claim only); (b) FIXES A LONG-STANDING SILENT CONTEXT-DROP BUG in pre-iter-98 memory-efficiency-reminder which emitted plain console.log text (transcript-only, NOT Claude-visible per iter-66/93 forensic finding) — orchestrator path now emits proper additional_context wrapped in {decision:block,reason} JSON; (c) hoists the once-per-session gate-file logic from the iter-97 ssot-principles local helper into shared lib `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName` (DRY parallel to iter-95's async-spawn helper hoist). Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       }
