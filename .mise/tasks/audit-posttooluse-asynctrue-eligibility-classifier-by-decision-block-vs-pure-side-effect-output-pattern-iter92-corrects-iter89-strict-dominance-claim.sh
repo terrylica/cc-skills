@@ -61,6 +61,41 @@ done
 echo "  Total PostToolUse hook scripts discovered (after dedup): ${#POSTTOOLUSE_HOOK_FORENSIC_RECORDS_DEDUPED[@]}"
 echo ""
 
+# ---------- Iter-124 perf: pre-scan async-flag-by-hook-basename map ----------
+#
+# Pre-iter-124 the per-hook classifier (line ~73 below) re-ran a
+# `grep -rE … --include=hooks.json` against the entire plugins/ tree
+# ONCE PER HOOK to determine async-flag status. With N PostToolUse hooks
+# (currently 11) that meant N redundant tree-walks of the plugins/ tree.
+# Empirical iter-124 measurement: 11 sequential greps = 925ms — 40% of
+# the audit's 2.4s total runtime — for a lookup whose data is invariant
+# across the loop. Same iter-74 / iter-79 fork-storm anti-pattern.
+#
+# Iter-124 fix: single jq pass extracts (basename, async-flag) pairs from
+# every hooks.json file ONCE before the classifier loop, stores in a
+# basename-keyed bash associative array. Per-hook lookup becomes O(1)
+# hash-lookup instead of O(M) tree-walk where M = number of marketplace
+# hooks.json files.
+declare -A ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME=()
+while IFS= read -r hooks_json_path_for_async_flag_prescan; do
+    # Extract each PostToolUse entry's (async, command-basename) tuple.
+    # The `command` field looks like `bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts`
+    # — split on whitespace, take the last segment, split on `/`, take
+    # the basename. `async` defaults to false when absent.
+    while IFS=$'\t' read -r async_flag_value command_basename; do
+        [[ -z "$command_basename" ]] && continue
+        if [[ "$async_flag_value" == "true" ]]; then
+            ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$command_basename]="ALREADY-ASYNC"
+        elif [[ -z "${ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$command_basename]:-}" ]]; then
+            # First-seen-wins for the NOT-CURRENTLY-ASYNC default; if a
+            # later hooks.json entry has async:true for the same basename,
+            # the branch above will overwrite to ALREADY-ASYNC (treating
+            # any async:true marketplace-wide as authoritative).
+            ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$command_basename]="NOT-CURRENTLY-ASYNC"
+        fi
+    done < <(jq -r '.hooks.PostToolUse[]?.hooks[]? | "\(.async // false)\t\(.command | split("/") | .[-1] | split(" ") | .[0])"' "$hooks_json_path_for_async_flag_prescan" 2>/dev/null)
+done < <(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -name 'hooks.json' -type f 2>/dev/null)
+
 # ---------- Per-script async-eligibility classifier ----------
 classify_posttooluse_hook_for_async_true_safety_by_output_pattern() {
     local hook_script_absolute_path="$1"
@@ -68,13 +103,14 @@ classify_posttooluse_hook_for_async_true_safety_by_output_pattern() {
     local human_readable_classification_rationale=""
     local existing_async_flag_status=""
 
-    # Check if the hook already has async:true in its hooks.json entry
-    # (Look up by scanning ALL hooks.json files for this script path)
-    if grep -rE '"async"[[:space:]]*:[[:space:]]*true' "$REPO_ROOT/plugins" --include='hooks.json' 2>/dev/null | grep -F "$(basename "$hook_script_absolute_path")" >/dev/null 2>&1; then
-        existing_async_flag_status="ALREADY-ASYNC"
-    else
-        existing_async_flag_status="NOT-CURRENTLY-ASYNC"
-    fi
+    # Iter-124: O(1) hash-lookup instead of O(M) tree-walk per hook.
+    # Default to NOT-CURRENTLY-ASYNC for hooks whose basename isn't in
+    # the pre-scanned map (defensive — shouldn't happen since both the
+    # discovery loop above and the pre-scan walk the same hooks.json
+    # files, but tolerate it rather than crash on a stale entry).
+    local hook_basename
+    hook_basename=$(basename "$hook_script_absolute_path")
+    existing_async_flag_status="${ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$hook_basename]:-NOT-CURRENTLY-ASYNC}"
 
     # PATTERN 1: Hook emits `{decision: "block", reason: ...}` JSON
     #   → CONTEXT-INJECTING (Claude reads the reason for self-correction)
