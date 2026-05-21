@@ -1,3 +1,10 @@
+# [21.79.0](https://github.com/terrylica/cc-skills/compare/v21.78.0...v21.79.0) (2026-05-21)
+
+
+### Features
+
+* **iter-183:** hyperfine-parity per-scenario stats in JSON envelope ([e5e4224](https://github.com/terrylica/cc-skills/commit/e5e4224afd65fb07ce88f2a6c56e1a52a2fa8e63)), closes [#171](https://github.com/terrylica/cc-skills/issues/171)
+
 # [21.78.0](https://github.com/terrylica/cc-skills/compare/v21.77.2...v21.78.0) (2026-05-21)
 
 
