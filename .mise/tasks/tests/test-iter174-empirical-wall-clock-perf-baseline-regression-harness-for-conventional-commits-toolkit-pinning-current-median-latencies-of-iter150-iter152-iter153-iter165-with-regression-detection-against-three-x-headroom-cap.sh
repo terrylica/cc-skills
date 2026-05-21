@@ -195,6 +195,27 @@ ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-o
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-160 doctor" "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH" "scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh"
 
+# ─── ITER-182 MEASUREMENT-CONTEXT METADATA CAPTURE (pytest-benchmark-style) ─
+# Web research (2026) shows pytest-benchmark is the only major benchmark
+# harness with built-in machine_info + commit_info metadata. criterion.rs
+# and hyperfine LACK this — Bencher and other CI platforms explicitly
+# recommend wrapping them and layering metadata in sidecar files. Our
+# iter-179 envelope had the same gap. Iter-182 closes it inline, additively
+# (iter174_schema_version stays at 1; consumers of the older shape ignore
+# unknown fields per JSON-best-practice).
+#
+# Captured BEFORE the trial loop so the timestamp marks measurement-start.
+# Pure-bash construction; printf -v avoids subshell fork in capture path.
+ITER182_MEASUREMENT_TIMESTAMP_ISO8601_UTC_CAPTURED_AT_HARNESS_START_BEFORE_TRIAL_LOOP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+ITER182_HOST_MACHINE_UNAME_SRM_FOR_BASELINE_HARDWARE_CONTEXT=$(uname -srm 2>/dev/null || echo "unknown")
+ITER182_BASH_VERSION_FOR_EPOCHREALTIME_ZERO_FORK_CAPABILITY_CONTEXT="${BASH_VERSION:-unknown}"
+if (( BASH_VERSINFO[0] >= 5 )); then
+    ITER182_EPOCHREALTIME_FAST_PATH_ENGAGED_PER_ITER180_ZERO_FORK_DOGFOOD="true"
+else
+    ITER182_EPOCHREALTIME_FAST_PATH_ENGAGED_PER_ITER180_ZERO_FORK_DOGFOOD="false"
+fi
+ITER182_GIT_COMMIT_SHA_SHORT_FOR_PROVENANCE_AGAINST_CODEBASE_DRIFT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
     "A1: iter-150 renderer (occasional, N=10 commits)" \
     "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER150_RENDERER_DEFAULT_TEN_COMMITS" \
@@ -259,6 +280,13 @@ if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPT
   "iter174_schema_version": 1,
   "iter174_perf_baseline_regression_harness_machine_readable_output": true,
   "trials_per_script": ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION},
+  "iter182_measurement_context_for_ai_agent_and_ci_pipeline_longitudinal_regression_trend_tracking_per_pytest_benchmark_machine_info_pattern": {
+    "measurement_timestamp_iso8601_utc": "${ITER182_MEASUREMENT_TIMESTAMP_ISO8601_UTC_CAPTURED_AT_HARNESS_START_BEFORE_TRIAL_LOOP}",
+    "host_machine_uname_srm_for_baseline_hardware_context": "${ITER182_HOST_MACHINE_UNAME_SRM_FOR_BASELINE_HARDWARE_CONTEXT}",
+    "bash_version_for_epochrealtime_zero_fork_capability_context": "${ITER182_BASH_VERSION_FOR_EPOCHREALTIME_ZERO_FORK_CAPABILITY_CONTEXT}",
+    "epochrealtime_fast_path_engaged_per_iter180_zero_fork_dogfood": ${ITER182_EPOCHREALTIME_FAST_PATH_ENGAGED_PER_ITER180_ZERO_FORK_DOGFOOD},
+    "git_commit_sha_short_for_provenance_against_codebase_drift": "${ITER182_GIT_COMMIT_SHA_SHORT_FOR_PROVENANCE_AGAINST_CODEBASE_DRIFT}"
+  },
   "results": [${iter179_per_scenario_records_joined_by_commas_for_json_array_body}
   ],
   "summary": {
