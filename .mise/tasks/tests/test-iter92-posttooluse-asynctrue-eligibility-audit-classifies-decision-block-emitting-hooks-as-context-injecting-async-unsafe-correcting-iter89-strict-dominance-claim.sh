@@ -36,12 +36,17 @@ else
     assert_fails "Case 1: exit=$AUDIT_TASK_EXIT_CODE, expected 0"
 fi
 
-# ─── Case 2: ≥15 PostToolUse hooks discovered marketplace-wide ────────────────
+# ─── Case 2: ≥10 PostToolUse hooks discovered marketplace-wide ────────────────
+# Iter-95 update: the iter-92 audit scans hooks.json entries. As subhooks
+# inline into the orchestrator, the count of top-level entries decreases
+# (iter-93 absorbed 1, iter-94 absorbed 1, iter-95 absorbed 2 — net minus
+# 4 from iter-92's original 17). Threshold lowered to ≥10 so the assertion
+# stays valid through the rest of the iter-93+ migration arc.
 discovered_hook_count=$(echo "$AUDIT_TASK_OUTPUT_FULL" | grep -oE 'Total PostToolUse hooks scanned:[[:space:]]+[0-9]+' | grep -oE '[0-9]+$' | head -1 || echo 0)
-if [[ "${discovered_hook_count:-0}" -ge 15 ]]; then
-    assert_passes "Case 2: audit discovers ≥15 PostToolUse hooks marketplace-wide (found ${discovered_hook_count})"
+if [[ "${discovered_hook_count:-0}" -ge 10 ]]; then
+    assert_passes "Case 2: audit discovers ≥10 PostToolUse hooks marketplace-wide (found ${discovered_hook_count}; threshold lowered from 15 to 10 as migration arc absorbs subhooks)"
 else
-    assert_fails "Case 2: only ${discovered_hook_count} hooks discovered (expected ≥15)"
+    assert_fails "Case 2: only ${discovered_hook_count} hooks discovered (expected ≥10)"
 fi
 
 # ─── Case 3: orchestrator-or-standalone ty-type-check classified as CONTEXT-INJECTING [C] ───
@@ -66,15 +71,19 @@ if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-tsgo-t
 else
     assert_fails "Case 3b: tsgo-type-checking pathway missing [C] classification (neither standalone nor iter-93/94 orchestrator entry found)"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-oxlint-check.ts"; then
-    assert_passes "Case 3c: posttooluse-oxlint-check.ts classified as [C] CONTEXT-INJECTING"
+# Iter-95 update: oxlint + biome inlined into the iter-93+ PostToolUse
+# orchestrator. Accept EITHER form (standalone OR orchestrator-via-import)
+# as satisfying the [C] CONTEXT-INJECTING invariant — same migration-arc
+# decoupling pattern as Cases 3a/3b.
+if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-oxlint-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+    assert_passes "Case 3c: oxlint pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-95 orchestrator that inlines it)"
 else
-    assert_fails "Case 3c: oxlint-check missing [C] classification"
+    assert_fails "Case 3c: oxlint pathway missing [C] classification (neither standalone nor iter-95 orchestrator entry found)"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qF "posttooluse-biome-lint.ts"; then
-    assert_passes "Case 3d: posttooluse-biome-lint.ts classified as [C] CONTEXT-INJECTING"
+if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-biome-lint\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+    assert_passes "Case 3d: biome pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-95 orchestrator that inlines it)"
 else
-    assert_fails "Case 3d: biome-lint missing [C] classification"
+    assert_fails "Case 3d: biome pathway missing [C] classification (neither standalone nor iter-95 orchestrator entry found)"
 fi
 
 # ─── Case 4: at least 1 hook classified as additionalContext-emitting ─────────

@@ -1,165 +1,170 @@
 #!/usr/bin/env bun
 /**
- * PostToolUse hook: oxlint lint checker
+ * PostToolUse hook: oxlint correctness+suspicious lint checker — iter-95
+ * dual-mode (standalone CLI + orchestrator-imported classifier).
  *
  * Runs `oxlint -D correctness -D suspicious` after every Write/Edit of a
- * .ts/.tsx/.js/.jsx file. oxlint runs in ~40-65ms on single files so it's
- * hook-viable.
+ * .ts/.tsx/.js/.jsx/.mjs/.cjs/.mts/.cts file. oxlint is the Oxc Rust-based
+ * linter (~40-65ms on single files), hook-viable for every edit.
  *
- * If oxlint is not installed, shows a once-per-session install reminder.
+ * If oxlint is not installed, surfaces a once-per-session install reminder.
  *
- * Fail-open everywhere — every catch exits 0.
+ * Iter-95 architectural decisions (mirror the iter-94 tsgo conventions):
+ *   1. Async Bun.spawn from inception (no spawnSync legacy)
+ *   2. Dual-export naming-drift acknowledgement: precise algorithm-encoding
+ *      name `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`
+ *      (the categories are what differentiates this from a generic
+ *      "oxlint check" — correctness+suspicious are oxlint's two strictest
+ *      categories per the Oxc docs). Symmetric-naming alias:
+ *      `classifyOxlintCheckForPostToolUseOrchestrator`.
+ *   3. Shared lib/ helpers for async-spawn + install-reminder gate file
+ *   4. import.meta.main standalone guard preserves backward-compat
+ *
+ * Why correctness+suspicious (not all categories): these are the only
+ * oxlint categories that catch RUNTIME bugs (const reassignment, duplicate
+ * keys, debugger statements, etc.) — the rest are style preferences best
+ * handled by config-level enforcement, not hook-level rejection. Matches
+ * the iter-93+ context-injecting hook philosophy: surface bugs Claude
+ * should fix, don't surface style preferences.
  */
 
-import { mkdirSync, openSync, closeSync, constants } from "node:fs";
-import { join } from "node:path";
-
-// --- Types ---
-
-interface HookInput {
-  tool_name: string;
-  tool_input: {
-    file_path?: string;
-    content?: string;
-    old_string?: string;
-    new_string?: string;
-  };
-  session_id?: string;
-}
+import type {
+  PostToolUseInput,
+  PostToolUseSubhookDecision,
+} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import {
+  POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
+  buildPostToolUseAdditionalContextDecision,
+} from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import {
+  executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
+  tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName,
+} from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
 // --- Constants ---
 
-const GATE_DIR = "/tmp/.claude-oxlint-install-reminder";
+const JAVASCRIPT_TYPESCRIPT_EXTENSIONS_OXLINT_AND_BIOME_LINT_AT_HOOK_TIME: readonly string[] = [
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".mts",
+  ".cts",
+];
+const OXLINT_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS = 4000;
 
-// --- Utility ---
-
-function blockWithReminder(reason: string): void {
-  console.log(JSON.stringify({ decision: "block", reason }));
+function filePathHasJavaScriptOrTypeScriptExtensionLinterEligible(filePath: string): boolean {
+  return JAVASCRIPT_TYPESCRIPT_EXTENSIONS_OXLINT_AND_BIOME_LINT_AT_HOOK_TIME.some((ext) =>
+    filePath.endsWith(ext),
+  );
 }
 
-// --- Main ---
+// ══════════════════════════════════════════════════════════════════════════
+//  Pure classifier (orchestrator-imported)
+// ══════════════════════════════════════════════════════════════════════════
 
-async function main(): Promise<void> {
+export async function classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator(
+  input: PostToolUseInput,
+): Promise<PostToolUseSubhookDecision> {
+  try {
+    const filePath = input.tool_input?.file_path;
+    if (!filePath) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    // O(1) extension filter (lightest-first registry position)
+    if (!filePathHasJavaScriptOrTypeScriptExtensionLinterEligible(filePath)) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+    if (filePath.includes("/node_modules/")) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    const oxlintExecutionResult =
+      await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
+        [
+          "oxlint",
+          "-D", "correctness",
+          "-D", "suspicious",
+          "-A", "no-unused-vars",
+          "-A", "no-empty-file",
+          "-f", "unix",
+          filePath,
+        ],
+        { timeoutMs: OXLINT_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS },
+      );
+
+    if (oxlintExecutionResult.spawnFailed) {
+      const sessionId = input.session_id || "unknown";
+      if (
+        !tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName("oxlint", sessionId)
+      ) {
+        return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+      }
+      return buildPostToolUseAdditionalContextDecision(
+        `[OXLINT] JavaScript/TypeScript linter not installed. Install for instant correctness checking after every edit:
+
+  bun add -g oxlint
+
+oxlint runs in ~40-65ms — fast enough to run on every edit. Catches real bugs: const reassignment, duplicate keys, debugger statements, and more.`,
+      );
+    }
+
+    if (oxlintExecutionResult.timedOut) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    if (oxlintExecutionResult.exitCode === 0) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    const oxlintOutputTextForOperator =
+      oxlintExecutionResult.stdoutText || oxlintExecutionResult.stderrText;
+    if (!oxlintOutputTextForOperator) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    // Strip the summary line (e.g., "3 problems" or "Found 2 diagnostics")
+    // so Claude sees only the actionable per-line diagnostics.
+    const filteredDiagnosticLines = oxlintOutputTextForOperator
+      .split("\n")
+      .filter((line) => !line.match(/^Found \d+ diagnostic/) && !line.match(/^\d+ problem/));
+    const filteredDiagnosticOutput = filteredDiagnosticLines.join("\n").trim();
+
+    if (!filteredDiagnosticOutput) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    return buildPostToolUseAdditionalContextDecision(
+      `[OXLINT] Lint issues in ${filePath.split("/").pop()}:\n\n${filteredDiagnosticOutput}`,
+    );
+  } catch {
+    return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+  }
+}
+
+export const classifyOxlintCheckForPostToolUseOrchestrator =
+  classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator;
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Standalone CLI entry point
+// ══════════════════════════════════════════════════════════════════════════
+
+async function runStandaloneCliMain(): Promise<void> {
   let inputText = "";
   for await (const chunk of Bun.stdin.stream()) {
     inputText += new TextDecoder().decode(chunk);
   }
 
-  let input: HookInput;
+  let input: PostToolUseInput;
   try {
-    input = JSON.parse(inputText);
+    input = JSON.parse(inputText) as PostToolUseInput;
   } catch {
     process.exit(0);
   }
 
-  const filePath = input.tool_input?.file_path;
-  if (!filePath) {
-    process.exit(0);
-  }
-
-  // Only check JS/TS files (including ES module and CommonJS variants)
-  if (
-    !filePath.endsWith(".ts") &&
-    !filePath.endsWith(".tsx") &&
-    !filePath.endsWith(".js") &&
-    !filePath.endsWith(".jsx") &&
-    !filePath.endsWith(".mjs") &&
-    !filePath.endsWith(".cjs") &&
-    !filePath.endsWith(".mts") &&
-    !filePath.endsWith(".cts")
-  ) {
-    process.exit(0);
-  }
-
-  // Check if oxlint is installed
-  const oxlintCheck = Bun.spawnSync(["which", "oxlint"], {
-    stdout: "pipe",
-    stderr: "pipe",
-  });
-
-  if (oxlintCheck.exitCode !== 0) {
-    // oxlint not installed — show once-per-session install reminder
-    const sessionId = input.session_id || "unknown";
-    const gateFile = join(GATE_DIR, `${sessionId}-oxlint-install.reminded`);
-
-    try {
-      mkdirSync(GATE_DIR, { recursive: true });
-    } catch {
-      process.exit(0);
-    }
-
-    try {
-      const fd = openSync(
-        gateFile,
-        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL
-      );
-      closeSync(fd);
-    } catch {
-      // Already reminded this session
-      process.exit(0);
-    }
-
-    blockWithReminder(
-      `[OXLINT] JavaScript/TypeScript linter not installed. Install for instant correctness checking after every edit:
-
-  bun add -g oxlint
-
-oxlint runs in ~40-65ms — fast enough to run on every edit. Catches real bugs: const reassignment, duplicate keys, debugger statements, and more.`
+  const decision =
+    await classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator(
+      input,
     );
-    process.exit(0);
+
+  if (decision.kind === "additional_context") {
+    console.log(JSON.stringify({ decision: "block", reason: decision.message }));
   }
-
-  // Run oxlint on the edited file
-  const result = Bun.spawnSync(
-    [
-      "oxlint",
-      "-D", "correctness",
-      "-D", "suspicious",
-      "-A", "no-unused-vars",
-      "-A", "no-empty-file",
-      "-f", "unix",
-      filePath,
-    ],
-    {
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 4000, // 4s budget within 5s hook timeout
-    }
-  );
-
-  // Clean exit = no lint issues
-  if (result.exitCode === 0) {
-    process.exit(0);
-  }
-
-  // Collect output (oxlint writes to stdout in unix format)
-  const stdout = result.stdout?.toString().trim() || "";
-  const stderr = result.stderr?.toString().trim() || "";
-  const output = stdout || stderr;
-
-  if (!output) {
-    process.exit(0);
-  }
-
-  // Strip the summary line (e.g., "3 problems" or "Found 2 diagnostics")
-  const lines = output.split("\n").filter(
-    (line) =>
-      !line.match(/^Found \d+ diagnostic/) &&
-      !line.match(/^\d+ problem/)
-  );
-  const filteredOutput = lines.join("\n").trim();
-
-  if (!filteredOutput) {
-    process.exit(0);
-  }
-
-  blockWithReminder(
-    `[OXLINT] Lint issues in ${filePath.split("/").pop()}:
-
-${filteredOutput}`
-  );
+  process.exit(0);
 }
 
-main().catch(() => {
-  process.exit(0);
-});
+if (import.meta.main) {
+  runStandaloneCliMain().catch(() => {
+    process.exit(0);
+  });
+}

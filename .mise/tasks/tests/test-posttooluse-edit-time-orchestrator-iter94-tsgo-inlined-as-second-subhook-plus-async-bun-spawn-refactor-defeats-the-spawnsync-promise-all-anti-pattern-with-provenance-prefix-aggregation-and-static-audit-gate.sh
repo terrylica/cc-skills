@@ -113,16 +113,26 @@ if grep -q "orchestrator-subhook:" "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH
 else
     assert_fails "Case 7: provenance prefix missing — Claude cannot distinguish which subhook contributed which section"
 fi
-if grep -q "aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWithProvenancePrefixPerSection" "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH"; then
-    assert_passes "Case 7b: aggregator function renamed to encode provenance-prefix invariant"
+# Iter-95 update: aggregator function renamed from PerSection to
+# OnlyWhenMultipleSectionsContribute (conditional provenance prefix is now
+# the encoded invariant). Accept EITHER name as satisfying the
+# "function name encodes the provenance-prefix algorithm" invariant.
+if grep -qE "aggregatePostToolUseSubhookAdditionalContextMessagesIntoSingleReasonStringWith(ProvenancePrefixPerSection|ProvenancePrefixOnlyWhenMultipleSectionsContribute)" "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH"; then
+    assert_passes "Case 7b: aggregator function renamed to encode provenance-prefix invariant (iter-94 PerSection OR iter-95 OnlyWhenMultipleSectionsContribute)"
 else
     assert_fails "Case 7b: aggregator function name doesn't encode the provenance-prefix algorithm"
 fi
 
 # ─── Case 8: both classifiers use the async-spawn helper ──────────────────────
-if grep -q "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain" "$TY_TYPE_CHECK_ABSOLUTE_PATH" && \
-   grep -q "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH"; then
-    assert_passes "Case 8: both ty-type-check + tsgo-type-check use executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain helper (iter-94 shared pattern)"
+# Iter-95 update: helper renamed from
+#   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain
+# to
+#   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail
+# (encoded maxBuffer safety-net addition + made the concurrent drain
+# invariant explicit in the name). Accept EITHER name.
+if grep -qE "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAnd(StreamDrain|ConcurrentStreamDrainAndMaxBufferGuardrail)" "$TY_TYPE_CHECK_ABSOLUTE_PATH" && \
+   grep -qE "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAnd(StreamDrain|ConcurrentStreamDrainAndMaxBufferGuardrail)" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH"; then
+    assert_passes "Case 8: both ty + tsgo use the executeBunSubprocessAsync... helper (iter-94 inline or iter-95 shared-lib)"
 else
     assert_fails "Case 8: async-spawn helper pattern not consistent across both subhooks"
 fi
