@@ -1,3 +1,10 @@
+# [21.75.0](https://github.com/terrylica/cc-skills/compare/v21.74.2...v21.75.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-169 preflight pending-release preview ([8205678](https://github.com/terrylica/cc-skills/commit/82056789541a3155128e3de86cf17c47b9850cde))
+
 ## [21.74.2](https://github.com/terrylica/cc-skills/compare/v21.74.1...v21.74.2) (2026-05-21)
 
 ## [21.74.1](https://github.com/terrylica/cc-skills/compare/v21.74.0...v21.74.1) (2026-05-21)
