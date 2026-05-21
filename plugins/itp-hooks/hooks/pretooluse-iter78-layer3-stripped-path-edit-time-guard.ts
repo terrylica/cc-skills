@@ -37,6 +37,15 @@
  */
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+// Iter-107 migration: replace the hand-rolled escape-hatch detection
+// (regex + per-line preceding-window lookup loop) with the canonical
+// shared helper. Behavior-preserving — the iter-78 regex grammar
+// (marker + ≥10-char reason after colon) and window semantics (target
+// line + 3 preceding lines) are encoded as configuration here.
+import {
+  detectEscapeHatchMarkerCoveringTargetSourceLine,
+  type EscapeHatchMarkerDetectionConfiguration,
+} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 
 const HOOK_NAME = "iter78-layer3-stripped-path-edit-time-guard";
 
@@ -62,14 +71,19 @@ const LAYER_3_PRESERVED_PLUGIN_ROOT_SEGMENTS: ReadonlySet<string> = new Set([
 const PLUGIN_ROOT_REFERENCE_FIRST_SEGMENT_REGEX =
   /\$\{?CLAUDE_PLUGIN_ROOT\}?\/([A-Za-z0-9_.-]+)/g;
 
-// Escape-hatch marker regex. Reason must be at least 10 non-whitespace
-// characters after "LAYER3-STRIPPED-PATH-OK:".
-const ESCAPE_HATCH_MARKER_MIN_TEN_CHAR_REASON_REGEX =
-  /LAYER3-STRIPPED-PATH-OK:\s*[^\s].{9,}/;
-
-// Maximum preceding-line context window for escape-hatch lookup
-// (matches the iter-77 release-time audit exactly).
-const ESCAPE_HATCH_PRECEDING_LINE_LOOKBACK_WINDOW_LINE_COUNT = 3;
+// Iter-107: escape-hatch marker grammar + window semantics now expressed as
+// a configuration object consumed by the canonical shared helper
+// (replaces the hand-rolled regex literal + window-lookup loop). Behavior-
+// preserving: same marker token, same ≥10-char reason policy, same 3-line
+// preceding-window lookback as the iter-78 baseline + iter-77 release-time
+// audit.
+const ITER78_LAYER3_STRIPPED_PATH_ESCAPE_HATCH_CONFIGURATION: EscapeHatchMarkerDetectionConfiguration =
+  {
+    markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
+    windowSemanticsMode: "SAME_LINE_OR_PRECEDING_N_LINES",
+    precedingLineLookbackWindowLineCount: 3,
+    requireMinimumReasonCharacterCountAfterColonOrZeroForOptional: 10,
+  };
 
 // Literal "$" character extracted to a named constant so the operator-
 // facing denial message can render the documentation example
@@ -150,20 +164,15 @@ function detectLayer3StrippedPathReferencesInContentBlob(
       if (LAYER_3_PRESERVED_PLUGIN_ROOT_SEGMENTS.has(extractedFirstPathSegment)) {
         continue;
       }
-      // Build the escape-hatch lookup window: current line plus
-      // ESCAPE_HATCH_PRECEDING_LINE_LOOKBACK_WINDOW_LINE_COUNT lines
-      // before it.
-      const windowStartZeroBasedIndex = Math.max(
-        0,
-        currentLineZeroBasedIndex -
-          ESCAPE_HATCH_PRECEDING_LINE_LOOKBACK_WINDOW_LINE_COUNT,
-      );
-      const escapeHatchLookupWindowText = lines
-        .slice(windowStartZeroBasedIndex, currentLineZeroBasedIndex + 1)
-        .join("\n");
+      // Iter-107: delegate escape-hatch lookup to the canonical shared
+      // helper. Same window semantics + reason policy as the pre-iter-107
+      // hand-rolled implementation (3-line preceding lookback + ≥10-char
+      // reason after colon) — encoded as configuration above.
       if (
-        ESCAPE_HATCH_MARKER_MIN_TEN_CHAR_REASON_REGEX.test(
-          escapeHatchLookupWindowText,
+        detectEscapeHatchMarkerCoveringTargetSourceLine(
+          lines,
+          currentLineZeroBasedIndex,
+          ITER78_LAYER3_STRIPPED_PATH_ESCAPE_HATCH_CONFIGURATION,
         )
       ) {
         continue;
