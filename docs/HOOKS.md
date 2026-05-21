@@ -16,8 +16,9 @@ Claude Code hooks intercept tool calls at three lifecycle points:
      reported in GitHub #55889 and references the affected upstream
      version. Those upstream version strings are NOT this marketplace's
      SSoT — they're external citations. The literal "# SSoT-OK" string
-     above is the escape-hatch marker that pretooluse-version-guard.mjs
-     greps for to allow upstream version mentions in this file. -->
+     above is the escape-hatch marker that pretooluse-version-guard.ts
+     (renamed from .mjs in iter-85) greps for to allow upstream version
+     mentions in this file. -->
 
 ## Hook Output Visibility (Critical)
 
@@ -436,6 +437,39 @@ The only way to actually realize the 308ms-per-call savings projected by the ite
 Final state: 1 orchestrator entry for Write|Edit instead of 8 entries, saving (8-1) × 44 = 308ms per Write|Edit call.
 
 **Regression coverage**: [`.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-...-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh`](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter84-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh) — 10 assertions covering the non-Write/Edit fastpath, under-threshold allow, over-threshold belt-and-suspenders deny (stdout + stderr + exit 2), escape-hatch honoring, and standalone-classifier backward-compat (reason text without orchestrator prefix).
+
+### Iter-85: version-guard migration + audit-driven orchestrator hardening
+
+Iter-85 extends the iter-84 orchestrator with three concurrent deliverables:
+
+**(1) Second subhook inlined — version-guard**
+
+- `pretooluse-version-guard.mjs` was converted to `.ts` (via `git mv` for history preservation) and refactored to export `classifyVersionGuardForOrchestrator(input)` while keeping `main()` under the `import.meta.main` guard for standalone CLI backward-compat.
+- Standalone `hooks.json` entry REMOVED; orchestrator registry now owns the Write|Edit slot for version-guard.
+- Registry is now lightest-first ordered: `[version-guard, file-size-guard]`. Version-guard's O(1) `.md`-extension + path-exemption pre-filter runs BEFORE file-size-guard's sync `fs.readFileSync`, minimizing wasted work on first-deny-wins paths.
+- Net savings on this migration: ~44ms per Write|Edit call (one fewer bun cold-start per multi-hook iteration).
+
+**(2) Three audit-driven orchestrator hardenings**
+
+A multi-perspective adversarial audit of the iter-84 orchestrator surfaced three CRITICAL issues that iter-85 fixes:
+
+| Audit finding                                                                              | Fix                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ask` decision path missing belt-and-suspenders defense (only `deny` had stderr+exit2)     | Both `deny` AND `ask` now use the same defense via the unified `emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo()` function        |
+| `process.exit(2)` racing the kernel stdout-write buffer could truncate large deny payloads | Replaced with `process.exitCode = 2` + callback-form `process.stdout.write(json, () => resolve())` to drain naturally before bun's event loop terminates |
+| Bun's unhandledRejection logs but doesn't crash today — Node-default could change          | Installed `process.on("unhandledRejection", ...)` fail-open handler at module top-level                                                                  |
+
+**(3) Regression test for the audit fixes**
+
+`test-pretooluse-edit-time-orchestrator-iter85-version-guard-inlined-plus-belt-and-suspenders-ask-defense-plus-stdout-drain-before-exitcode-two.sh` — 10 assertions covering:
+
+- version-guard inlined classifier denies hardcoded markdown version with full belt-and-suspenders defense
+- CHANGELOG path exemption still honored through the orchestrator
+- Standalone `.ts` (refactored from `.mjs`) backward-compat — reason text WITHOUT orchestrator prefix (proves dual-mode contract)
+- Large multi-version deny payload arrives intact on stdout (drain-before-exit verification)
+- Registry-order invariant: version-guard wins over file-size-guard when BOTH would deny (lightest-first ordering)
+
+Final state after iter-85: 6 standalone Write|Edit hooks.json entries remain (iter-86→iter-91 targets), each migration unlocks the next +44ms savings.
 
 ### Self-measurement tool
 

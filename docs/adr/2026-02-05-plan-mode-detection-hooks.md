@@ -94,7 +94,7 @@ graph { flow: south; }
 **Modified files**:
 
 - `plugins/itp-hooks/hooks/pretooluse-helpers.ts` - Extended input types, re-exports
-- `plugins/itp-hooks/hooks/pretooluse-version-guard.mjs` - Uses plan mode detection
+- `plugins/itp-hooks/hooks/pretooluse-version-guard.ts` - Uses plan mode detection (iter-85: renamed from .mjs, orchestrator-inlined)
 - `plugins/itp-hooks/hooks/pretooluse-mise-hygiene-guard.ts` - Uses plan mode detection
 
 ### API
