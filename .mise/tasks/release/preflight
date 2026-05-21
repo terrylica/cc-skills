@@ -84,27 +84,39 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 # through xargs), preserving the sidecar contract. Use when diagnosing
 # audit-suite issues where parallelism could confuse output ordering.
 #
-# Per-audit metadata as TAB-separated records keyed by the existing log path
-# basename (without .log extension). Format: <log_sidecar_key>\t<mise_task_name>\t<extra_cli_args>
+# Per-audit metadata as PIPE-separated records keyed by the existing log path
+# basename (without .log extension). Format: <log_sidecar_key>|<mise_task_name>|<extra_cli_args>
 # The third field handles Check 4u's `--check` flag (only audit with extra args).
+#
+# IMPORTANT: PIPE delimiter `|` is REQUIRED (not TAB). BSD xargs (macOS) collapses
+# internal whitespace — including TABs — into single SPACE characters at the
+# `-I {}` substitution handoff. Empirically verified iter-134 forensic finding:
+# TAB-separated records caused `cut -f1` in the xargs bash worker to return the
+# FULL record (no TAB found post-collapse), triggering "File name too long"
+# errors when the resulting `/tmp/<key> <task>.elapsed_ms` path exceeded 255
+# bytes for the two longest audit task names (iter-103 NotebookEdit-applicability
+# at 207 chars + iter-105 truncation-helper at 220 chars). PIPE `|` is non-
+# whitespace and therefore preserved bit-for-bit by xargs across the BSD vs
+# GNU xargs portability boundary. Safe because audit task names are pure
+# kebab-case (lowercase letters, digits, hyphens) — `|` will NEVER appear.
 iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename=(
-    "pretooluse-schema-audit	audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision	"
-    "pueue-wrap-guard-ordering-audit	audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug	"
-    "inverse-pretooluse-schema-audit	audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events	"
-    "wildcard-matcher-audit	audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation	"
-    "stop-hook-additional-context-audit	audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json	"
-    "iter77-l3-stripped-path-audit	audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime	"
-    "iter82-conventional-commits-conformance	audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes	"
-    "iter86-orchestrator-subhook-contract-static-check	audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main	"
-    "iter99-posttooluse-silent-context-drop-audit	audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context	"
-    "iter101-matcher-hygiene-audit	audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant	"
-    "iter103-notebookedit-applicability-audit	audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple	"
-    "iter105-truncation-helper-audit	audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix	"
-    "iter106-canonical-home-audit	audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness	"
-    "iter110-escape-hatch-strict-audit	audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper	"
-    "iter111-producer-marker-typo-audit	audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry	"
-    "iter113-doc-drift-detector	generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry	--check"
-    "iter121-stale-description-audit	audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries	"
+    "pretooluse-schema-audit|audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision|"
+    "pueue-wrap-guard-ordering-audit|audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug|"
+    "inverse-pretooluse-schema-audit|audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events|"
+    "wildcard-matcher-audit|audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation|"
+    "stop-hook-additional-context-audit|audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json|"
+    "iter77-l3-stripped-path-audit|audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime|"
+    "iter82-conventional-commits-conformance|audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes|"
+    "iter86-orchestrator-subhook-contract-static-check|audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main|"
+    "iter99-posttooluse-silent-context-drop-audit|audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context|"
+    "iter101-matcher-hygiene-audit|audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant|"
+    "iter103-notebookedit-applicability-audit|audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple|"
+    "iter105-truncation-helper-audit|audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix|"
+    "iter106-canonical-home-audit|audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness|"
+    "iter110-escape-hatch-strict-audit|audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper|"
+    "iter111-producer-marker-typo-audit|audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry|"
+    "iter113-doc-drift-detector|generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry|--check"
+    "iter121-stale-description-audit|audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries|"
 )
 
 __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic() {
@@ -136,10 +148,12 @@ __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per
     # the positional arg passed to the NESTED bash, not the outer scope.
     printf '%s\n' "${iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_path_basename[@]}" | \
         xargs -S 16384 -P "$lane_count" -I {} bash -c '
-            tab_separated_metadata_record="$1"
-            audit_log_sidecar_key="$(echo "$tab_separated_metadata_record" | cut -f1)"
-            audit_mise_task_name="$(echo "$tab_separated_metadata_record" | cut -f2)"
-            audit_extra_cli_args="$(echo "$tab_separated_metadata_record" | cut -f3)"
+            pipe_separated_metadata_record="$1"
+            # Use cut -d"|" (PIPE delimiter). See array-definition header comment
+            # for the BSD-xargs-collapses-TAB-to-SPACE empirical forensic.
+            audit_log_sidecar_key="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f1)"
+            audit_mise_task_name="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f2)"
+            audit_extra_cli_args="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f3)"
             audit_wall_clock_start_seconds_for_elapsed_ms_sidecar_capture="$EPOCHREALTIME"
             if mise run "$audit_mise_task_name" $audit_extra_cli_args > "/tmp/$audit_log_sidecar_key.log" 2>&1; then
                 echo 0 > "/tmp/$audit_log_sidecar_key.exit"
