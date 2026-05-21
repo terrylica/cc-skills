@@ -64,6 +64,7 @@ import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
   tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName,
 } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+import { isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Constants
@@ -268,8 +269,9 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
   input: PostToolUseInput,
 ): Promise<PostToolUseSubhookDecision> {
   try {
-    const toolName = input.tool_name;
-    if (toolName !== "Write" && toolName !== "Edit") {
+    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
+    // (closes the MultiEdit coverage gap surfaced by web research).
+    if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(input.tool_name)) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 

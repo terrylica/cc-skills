@@ -208,3 +208,34 @@ export function buildPostToolUseAdditionalContextDecision(
 ): PostToolUseSubhookDecision {
   return { kind: "additional_context", message };
 }
+
+/**
+ * The set of tool names a file-edit-context-injecting subhook MUST treat as
+ * "this is a file-mutation tool whose effects I should classify". Iter-100
+ * expansion: previously only `Write` + `Edit` were honored by inlined
+ * classifiers' early-exit guards. The 2026 Anthropic best-practice (per
+ * the `Write|Edit|MultiEdit` recommended matcher in the official hook docs
+ * + community guides) is to ALSO honor `MultiEdit` — Claude uses MultiEdit
+ * when applying multiple Edits to one file in a single tool call, and a
+ * file-classifier missing MultiEdit silently skips entire classes of edits.
+ *
+ * Centralized here so future expansions (e.g., new file-mutation tools
+ * introduced by Anthropic) only require updating ONE set, not N classifier
+ * files — eliminates drift between the orchestrator's hooks.json matcher
+ * string and each classifier's tool-name early-exit guard.
+ */
+export const FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS: ReadonlySet<string> =
+  new Set(["Write", "Edit", "MultiEdit"]);
+
+/**
+ * Helper: returns true if the tool_name in a PostToolUse input is one of
+ * the file-edit tools a context-injecting subhook should classify. Use this
+ * in classifier early-exit guards instead of hand-rolling the equality
+ * check so the allow-set stays canonical.
+ */
+export function isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(
+  toolName: string | undefined,
+): boolean {
+  if (!toolName) return false;
+  return FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS.has(toolName);
+}

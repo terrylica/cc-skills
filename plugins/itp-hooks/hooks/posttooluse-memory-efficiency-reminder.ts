@@ -60,6 +60,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
@@ -156,8 +157,10 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
   input: PostToolUseInput,
 ): Promise<PostToolUseSubhookDecision> {
   try {
-    const toolName = input.tool_name;
-    if (toolName !== "Write" && toolName !== "Edit") {
+    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
+    // (replaces local Write||Edit equality; centralizes the allow-set so
+    // future Anthropic tool additions update ONE constant, not N classifiers).
+    if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(input.tool_name)) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 

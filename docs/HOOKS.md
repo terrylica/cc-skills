@@ -1031,6 +1031,60 @@ Anything else on stdout (raw template-literal text, raw string-literal text, arb
 
 The pattern: **single-instance fix in iter-N → marketplace-wide static audit + preflight gate in iter-N+1**. Each gate is informational by default (warns without blocking) and may be flipped to `--strict` once the marketplace baseline stabilizes. The cumulative effect is a growing set of **schema-correctness gates** that prevent recurrence of bugs the marketplace has already discovered and fixed.
 
+### Iter-100 MILESTONE: orchestrator matcher broadened Write|Edit → Write|Edit|MultiEdit (web-research-driven gap closure) + canonical tool-name allow-set helper hoisted to contract lib + iter-99 audit scope refined
+
+Iter-100 — the centennial iteration — closes a **matcher-coverage gap** in the iter-93+ orchestrator that web research into 2026 Anthropic + community best-practice surfaced. Pre-iter-100, the orchestrator + all 7 inlined classifiers honored only `Write` and `Edit`. The recommended 2026 matcher for file-edit PostToolUse hooks is `Write|Edit|MultiEdit` — Claude uses `MultiEdit` when applying multiple Edits to a single file in one tool call, and a classifier missing `MultiEdit` silently skips that entire class of input.
+
+**The coverage gap was empirically demonstrable.** Pre-iter-100 a MultiEdit payload returned empty stdout from the orchestrator. Post-iter-100 the orchestrator fires the expected subhooks with the iter-95 conditional `[orchestrator-subhook: <name>]` provenance prefix activated.
+
+**The fix is a one-line `hooks.json` matcher broadening + a per-classifier tool-name-guard refactor centralized via a new contract helper**:
+
+```typescript
+// lib/posttooluse-subhook-contract-...iter93.ts (iter-100 addition)
+
+export const FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS: ReadonlySet<string> =
+  new Set(["Write", "Edit", "MultiEdit"]);
+
+export function isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(
+  toolName: string | undefined,
+): boolean {
+  if (!toolName) return false;
+  return FILE_EDIT_TOOL_NAMES_HONORED_BY_POSTTOOLUSE_CONTEXT_INJECTING_SUBHOOKS.has(
+    toolName,
+  );
+}
+```
+
+Three classifiers (`vale-claude-md`, `ssot-principles`, `memory-efficiency-reminder`) had explicit hand-rolled `toolName !== "Write" && toolName !== "Edit"` guards — those were the silent-reject points for MultiEdit. They now import + call the canonical helper. The other 4 classifiers (`ty`, `tsgo`, `oxlint`, `biome`) check `file_path` + extension only without checking `tool_name`, so they worked natively on MultiEdit once the matcher broadened.
+
+**Why centralize the allow-set in the contract**: future Anthropic tool-name additions (a hypothetical `BatchEdit` or `ApplyDiff`) update ONE constant, not N classifier files. Eliminates the drift hazard where the orchestrator's hooks.json matcher string and each classifier's tool-name guard fall out of sync.
+
+**Per-tool MultiEdit-handling notes**:
+
+- `ty-type-check`, `tsgo-type-check`, `oxlint-check`, `biome-lint`: scan filePath + extension only. MultiEdit fires naturally — the file on disk reflects all edits applied.
+- `ssot-principles`, `memory-efficiency-reminder`: once-per-session reminders, fire on first eligible edit regardless of edit shape. MultiEdit fires naturally.
+- `vale-claude-md`: has Write (whole-file) vs Edit (changed-line-range) line-scoping logic. For MultiEdit it currently falls through to whole-file scan (same as Write). Acceptable baseline — slightly noisier output than per-edit line scoping but never silently drops violations. Future iter could compute MultiEdit-specific line ranges from the `edits[]` array.
+
+**Iter-99 audit scope refinement (companion improvement)**: pre-iter-100 the iter-99 audit's `find` glob scanned `*/hooks/lib/*` files alongside real PostToolUse hooks. These lib helpers are imported by classifiers but never run as PostToolUse entry points themselves. Iter-100 adds `-not -path '*/hooks/lib/*'` to the find — scope tightens from 17 files (15 real + 2 lib) to 15 real hooks. No semantic change (lib helpers had 0 emissions to start), but the audit scope is now precisely "files that actually run as PostToolUse-event entry points."
+
+**Iter-100 architectural takeaway — "matcher hygiene" as a category of preventive maintenance**. The iter-100 gap was discovered not by the existing static audits (no audit looked at matcher strings) but by **explicit web research into 2026 best-practice docs**. This establishes a fourth category alongside the three pre-existing surfacing mechanisms:
+
+| Surfacing mechanism            | Reads                                        | Example                                    |
+| ------------------------------ | -------------------------------------------- | ------------------------------------------ |
+| Static-pattern audit           | Marketplace source for known bad patterns    | iter-94 spawnSync, iter-99 silent-drop     |
+| Single-hook intent vs behavior | Hook intent vs what Claude actually receives | iter-98 memory-efficiency silent-drop      |
+| Web-research-driven            | 2026 Anthropic docs + community guides       | **iter-100 MultiEdit matcher (THIS ITER)** |
+| Schema-evolution watch         | GitHub issue forensic tracking               | iter-72 GitHub #60993 confirmation         |
+
+Iterations should rotate through all four categories. Iter-100 establishes the **web-research-driven** category as a first-class member of the rotation.
+
+Sources for iter-100 web research:
+
+- [Anthropic Claude Code Hooks Docs](https://code.claude.com/docs/en/hooks-guide)
+- [Claude Code Hooks Complete Guide (2026)](https://claudefa.st/blog/tools/hooks/hooks-guide)
+- [DEV Community: Claude Code Hooks Complete Guide with 20+ Ready-to-Use Examples (2026)](https://dev.to/lukaszfryc/claude-code-hooks-complete-guide-with-20-ready-to-use-examples-2026-dcg)
+- [Claude Code Hooks: From Linting to Hardened AI Workflows](https://thomas-wiegold.com/blog/claude-code-hooks/)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

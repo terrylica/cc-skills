@@ -44,6 +44,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 
@@ -177,7 +178,11 @@ export async function classifyValeTerminologyConformanceOnEditedClaudeMdFileForP
     const toolName = input.tool_name || "";
     const filePath = input.tool_input?.file_path || "";
 
-    if (toolName !== "Write" && toolName !== "Edit") return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    // Iter-100: honor Write|Edit|MultiEdit via canonical contract helper
+    // (closes the MultiEdit coverage gap surfaced by web research).
+    if (!isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook(toolName)) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
     if (!filePath.endsWith("CLAUDE.md")) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     if (!existsSync(filePath)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
