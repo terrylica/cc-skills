@@ -1,3 +1,10 @@
+# [21.64.0](https://github.com/terrylica/cc-skills/compare/v21.63.0...v21.64.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-153 pre-commit advisor ([7793b36](https://github.com/terrylica/cc-skills/commit/7793b366f4a9ee49b7e5557f0e0acccb6b9d1b46))
+
 # [21.63.0](https://github.com/terrylica/cc-skills/compare/v21.62.0...v21.63.0) (2026-05-21)
 
 
