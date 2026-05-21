@@ -73,9 +73,20 @@ mapfile -t POSTTOOLUSE_TYPESCRIPT_HOOK_ABSOLUTE_PATHS_TO_AUDIT < <(
     find "$REPO_ROOT/plugins" \
         -type f \
         \( -name 'posttooluse-*.ts' -o -name 'posttooluse-*.mjs' \) \
+        -not -path '*/hooks/lib/*' \
         2>/dev/null \
         | sort -u
 )
+
+# Iter-100 scope refinement: `*/hooks/lib/*` files are SHARED IMPLEMENTATION
+# DETAILS imported by classifiers, NOT PostToolUse hooks themselves. They
+# never emit to stdout (their exported helpers return values to callers).
+# Excluding them keeps the audit scope precise — only files that ACTUALLY
+# run as PostToolUse-event entry points get scanned. Pre-iter-100 the audit
+# scanned 17 files (including 2 lib helpers); post-iter-100 it scans ~15
+# real hooks. No semantic change — both audits surface 0 violations on the
+# current marketplace state — but the scope is tighter and future false-
+# positives on lib helpers cannot occur.
 
 echo "  PostToolUse TypeScript hooks discovered across marketplace: ${#POSTTOOLUSE_TYPESCRIPT_HOOK_ABSOLUTE_PATHS_TO_AUDIT[@]}"
 echo ""
