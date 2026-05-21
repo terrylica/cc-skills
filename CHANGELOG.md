@@ -1,3 +1,10 @@
+# [21.58.0](https://github.com/terrylica/cc-skills/compare/v21.57.1...v21.58.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-139 add-release-timing-profile-opt-in-pipeline-level-wall-clock-instrumentation-wrapping-each-of-the-seven-release-orchestrator-phases-with-epochrealtime-capture-emitting-per-phase-elapsed-ms-lines-inline-plus-end-of-pipeline-top-n-slowest-phases-bottleneck-ranking-mirroring-iter-73-and-iter-130-pattern-at-the-pipeline-level-unblocking-data-driven-optimization-of-the-forty-two-to-fifty-two-second-post-preflight-release-portion-that-was-previously-invisible-to-operators-plus-documenting-the-new-knob-in-docs-release-md-perf-knobs-reference ([9daa58d](https://github.com/terrylica/cc-skills/commit/9daa58d0870c6cfe17ac2f71c49b82ce6abd7f15)), closes [#MISE](https://github.com/terrylica/cc-skills/issues/MISE)
+
 ## [21.57.1](https://github.com/terrylica/cc-skills/compare/v21.57.0...v21.57.1) (2026-05-21)
 
 
