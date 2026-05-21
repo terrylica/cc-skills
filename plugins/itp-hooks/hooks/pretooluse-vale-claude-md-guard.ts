@@ -1,241 +1,325 @@
 #!/usr/bin/env bun
 /**
- * PreToolUse hook: Vale CLAUDE.md Guard
+ * PreToolUse hook: Vale CLAUDE.md Terminology Guard (iter-91 orchestrator-inlined — FINAL SUBHOOK OF MIGRATION ARC)
  *
- * ACTUALLY REJECTS Edit/Write on CLAUDE.md files if Vale finds issues.
- * Unlike PostToolUse hooks (visibility only), this PreToolUse hook
- * can truly block the tool execution before it happens.
+ * Rejects Edit/Write on `CLAUDE.md` files if `vale` lint (terminology config
+ * at `~/.claude/.vale.ini`) finds warning-or-error issues. For Edit, scopes
+ * to the changed-line range ± 3-line buffer so pre-existing issues elsewhere
+ * in the file don't false-positive.
  *
- * Flow:
- * 1. Intercept Edit/Write on CLAUDE.md files
- * 2. Get proposed content (content or apply edit to existing)
- * 3. Write to temp file
- * 4. Run Vale on temp file
- * 5. For Edit: only report issues on changed lines (± 3 line buffer)
- * 6. Return permissionDecision: "deny" if issues found on changed lines
+ * ════════════════════════════════════════════════════════════════════════
+ *  Iter-91: COMPLETES the iter-84 → iter-91 PreToolUse Write|Edit migration arc
+ * ════════════════════════════════════════════════════════════════════════
  *
- * Scoping: For Edit tool, only blocks on Vale issues affecting the lines
- * being changed. Pre-existing issues elsewhere in the file are ignored.
- * Write tool checks the entire file (all content is new).
+ * After this migration the orchestrator owns ALL 8 PreToolUse Write|Edit
+ * subhooks. Final-state empirical savings projection per iter-87
+ * microbenchmark: (8-1) × ~17ms = ~119ms per Write|Edit tool call (NOT
+ * iter-81's optimistic 308ms based on iter-80's inflated 44ms estimate).
  *
- * Pattern: PreToolUse with deny semantics (lifecycle-reference.md)
- * ADR: To be created if hook proves useful
+ * Vale is the heaviest classifier in the registry: it spawns the external
+ * `vale` subprocess and writes proposed content to a tempfile before
+ * linting. Wall-clock latency for vale on a typical CLAUDE.md is 100-300ms.
+ * The orchestrator's per-subhook cooperative timeout MUST be ≥10000ms for
+ * vale's registry entry to avoid spurious AbortSignal.timeout() trips on
+ * slow-disk machines.
+ *
+ * ════════════════════════════════════════════════════════════════════════
+ *  Iter-91 dual-use contract (mirrors iter-85/86/87/88/89/90 migrations):
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ *   - Standalone CLI mode (preserved for backward-compat + direct testing):
+ *     `bun pretooluse-vale-claude-md-guard.ts < payload.json` runs main()
+ *     under `import.meta.main` guard.
+ *   - Orchestrator-inlined mode (NEW owner of the Write|Edit hooks.json slot):
+ *     The orchestrator imports
+ *     `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator`
+ *     (with backward-compat alias `classifyValeClaudeMdGuardForOrchestrator`)
+ *     and invokes it directly in the single bun process.
+ *
+ * MUST NOT emit `hookSpecificOutput.additionalContext` per iter-90 GH #15664
+ * marketplace invariant.
  */
 
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { $ } from "bun";
-import { allow, deny, ask, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
+import {
+  allow,
+  deny,
+  ask,
+  parseStdinOrAllow,
+  trackHookError,
+  type PreToolUseInput,
+} from "./pretooluse-helpers.ts";
+import {
+  ALLOW_DECISION,
+  denyDecision,
+  askDecision,
+  type PreToolUseSubhookDecision,
+} from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
 // ============================================================================
-// CONFIGURATION
+// Configuration
 // ============================================================================
 
-const HOME = process.env.HOME || "";
-const VALE_INI = join(HOME, ".claude/.vale.ini");
+const VALE_CLAUDE_MD_GUARD_USER_HOME_DIRECTORY = process.env.HOME || "";
+const VALE_CLAUDE_MD_GUARD_VALE_INI_CONFIG_FILE_PATH = join(
+  VALE_CLAUDE_MD_GUARD_USER_HOME_DIRECTORY,
+  ".claude/.vale.ini",
+);
 
-// Mode: "deny" = hard block, "ask" = permission dialog
-const MODE: "deny" | "ask" = "deny"; // Hard block — Claude autonomously fixes terminology
+/** Hard block when issues found (Claude autonomously fixes terminology). */
+const VALE_CLAUDE_MD_GUARD_ENFORCEMENT_MODE: "deny" | "ask" = "deny";
 
-// Severity threshold: "error" = only errors, "warning" = warnings+errors
-const SEVERITY_THRESHOLD = "warning";
+/** "warning" includes warnings + errors; "error" includes errors only. */
+const VALE_CLAUDE_MD_GUARD_SEVERITY_INCLUSION_THRESHOLD: "warning" | "error" = "warning";
+
+/** Edit-scoping buffer: lines around the changed region also fall in-scope. */
+const VALE_CLAUDE_MD_GUARD_EDIT_LINE_RANGE_BUFFER_LINE_COUNT = 3;
 
 // ============================================================================
-// HELPERS
+// Types
 // ============================================================================
 
-interface EditResult {
+interface ValeLintFinding {
+  severity: string;
+  message: string;
+  line: number;
+}
+
+interface EditApplicationResult {
+  /** Synthesized post-edit content used as vale's input. */
   content: string;
-  /** 1-based line range of the changed region (with ± buffer) */
+  /** 1-based inclusive line range covering the changed region ± buffer, or null if old_string not found. */
   lineRange: { start: number; end: number } | null;
 }
 
+// ============================================================================
+// Pure helpers (no I/O dependencies on Claude Code hook framework)
+// ============================================================================
+
 /**
- * Apply an edit to existing content and compute the affected line range.
+ * Apply an Edit's `old_string` → `new_string` to existing on-disk content
+ * and compute the affected 1-based line range. If `old_string` isn't found,
+ * returns the original content and `lineRange: null` (caller's downstream
+ * vale lint should still proceed; Claude Code itself will error on the
+ * actual Edit tool invocation if old_string is missing).
  */
-function applyEdit(existing: string, oldString: string, newString: string): EditResult {
-  const BUFFER = 3;
-  const index = existing.indexOf(oldString);
-  if (index === -1) {
-    // Edit target not found - return original (let Claude handle the error)
-    return { content: existing, lineRange: null };
+function synthesizeEditApplicationResult(
+  existingFileContent: string,
+  oldStringToReplace: string,
+  newStringReplacement: string,
+): EditApplicationResult {
+  const matchOffset = existingFileContent.indexOf(oldStringToReplace);
+  if (matchOffset === -1) {
+    return { content: existingFileContent, lineRange: null };
   }
-
-  const content = existing.slice(0, index) + newString + existing.slice(index + oldString.length);
-
-  // Compute line range of the edit in the NEW content
-  const prefixLines = existing.slice(0, index).split("\n").length; // line where edit starts (1-based)
-  const newStringLines = newString.split("\n").length;
-  const editStart = Math.max(1, prefixLines - BUFFER);
-  const editEnd = prefixLines + newStringLines - 1 + BUFFER;
-
-  return { content, lineRange: { start: editStart, end: editEnd } };
+  const synthesizedContent =
+    existingFileContent.slice(0, matchOffset) +
+    newStringReplacement +
+    existingFileContent.slice(matchOffset + oldStringToReplace.length);
+  const oneBasedLineWhereEditStarts = existingFileContent.slice(0, matchOffset).split("\n").length;
+  const newStringLineCount = newStringReplacement.split("\n").length;
+  const lineRangeStart = Math.max(1, oneBasedLineWhereEditStarts - VALE_CLAUDE_MD_GUARD_EDIT_LINE_RANGE_BUFFER_LINE_COUNT);
+  const lineRangeEnd =
+    oneBasedLineWhereEditStarts +
+    newStringLineCount -
+    1 +
+    VALE_CLAUDE_MD_GUARD_EDIT_LINE_RANGE_BUFFER_LINE_COUNT;
+  return { content: synthesizedContent, lineRange: { start: lineRangeStart, end: lineRangeEnd } };
 }
 
 /**
- * Run Vale on content and return issues.
+ * Spawn `vale --output=JSON` against a tempfile containing the proposed
+ * content. Returns parsed findings (empty array if vale errors or no issues).
+ * The caller owns severity filtering and edit-range scoping.
  */
-async function runVale(content: string): Promise<{ severity: string; message: string; line: number }[]> {
-  // Create temp directory and file
-  const tempDir = mkdtempSync(join(tmpdir(), "vale-claude-md-"));
-  const tempFile = join(tempDir, "CLAUDE.md");
+async function runValeAgainstProposedContentTempfileAndParseJsonFindings(
+  proposedContent: string,
+): Promise<ValeLintFinding[]> {
+  const valeTempfileWorkingDirectory = mkdtempSync(join(tmpdir(), "vale-claude-md-guard-"));
+  const valeTempfilePath = join(valeTempfileWorkingDirectory, "CLAUDE.md");
 
   try {
-    writeFileSync(tempFile, content);
+    writeFileSync(valeTempfilePath, proposedContent);
 
-    // Run Vale with JSON output
-    const result = await $`vale --config=${VALE_INI} --output=JSON ${tempFile}`.quiet().nothrow();
+    // Vale exit codes: 0 = no issues, 1 = issues found (both expected); others = vale-internal error.
+    const valeSubprocessResult = await $`vale --config=${VALE_CLAUDE_MD_GUARD_VALE_INI_CONFIG_FILE_PATH} --output=JSON ${valeTempfilePath}`
+      .quiet()
+      .nothrow();
 
-    if (result.exitCode !== 0 && result.exitCode !== 1) {
-      // Vale error (not lint issues)
-      trackHookError("pretooluse-vale-claude-md-guard", `Vale failed: ${result.stderr.toString()}`);
+    if (valeSubprocessResult.exitCode !== 0 && valeSubprocessResult.exitCode !== 1) {
+      trackHookError(
+        "pretooluse-vale-claude-md-guard",
+        `Vale subprocess error (exit=${valeSubprocessResult.exitCode}): ${valeSubprocessResult.stderr.toString()}`,
+      );
       return [];
     }
 
-    const stdout = result.stdout.toString().trim();
-    if (!stdout) {
-      return [];
-    }
+    const valeStdoutText = valeSubprocessResult.stdout.toString().trim();
+    if (!valeStdoutText) return [];
 
-    // Parse Vale JSON output
-    const valeOutput = JSON.parse(stdout);
-
-    // Vale output is { "filepath": [issues] }
-    const issues: { severity: string; message: string; line: number }[] = [];
-    for (const [_file, fileIssues] of Object.entries(valeOutput)) {
-      if (Array.isArray(fileIssues)) {
-        for (const issue of fileIssues) {
-          issues.push({
-            severity: (issue as { Severity?: string }).Severity?.toLowerCase() || "warning",
-            message: (issue as { Message?: string }).Message || "Unknown issue",
-            line: (issue as { Line?: number }).Line || 0,
+    const valeJsonParsedOutput = JSON.parse(valeStdoutText) as Record<string, unknown>;
+    const accumulatedFindings: ValeLintFinding[] = [];
+    for (const [, perFileFindingsArray] of Object.entries(valeJsonParsedOutput)) {
+      if (Array.isArray(perFileFindingsArray)) {
+        for (const rawFinding of perFileFindingsArray) {
+          const findingRecord = rawFinding as { Severity?: string; Message?: string; Line?: number };
+          accumulatedFindings.push({
+            severity: findingRecord.Severity?.toLowerCase() || "warning",
+            message: findingRecord.Message || "Unknown issue",
+            line: findingRecord.Line || 0,
           });
         }
       }
     }
-
-    return issues;
+    return accumulatedFindings;
   } finally {
-    // Cleanup
     try {
-      unlinkSync(tempFile);
+      unlinkSync(valeTempfilePath);
     } catch {
       // Ignore cleanup errors
     }
   }
 }
 
-/**
- * Filter issues by severity threshold.
- */
-function filterBySeverity(issues: { severity: string; message: string; line: number }[], threshold: string): typeof issues {
-  if (threshold === "error") {
-    return issues.filter((i) => i.severity === "error");
-  }
-  // "warning" threshold includes warnings and errors
-  return issues.filter((i) => i.severity === "warning" || i.severity === "error");
+/** Filter vale findings by the configured severity inclusion threshold. */
+function filterValeFindingsBySeverityInclusionThreshold(
+  findings: ValeLintFinding[],
+  thresholdSeverity: "warning" | "error",
+): ValeLintFinding[] {
+  if (thresholdSeverity === "error") return findings.filter((f) => f.severity === "error");
+  return findings.filter((f) => f.severity === "warning" || f.severity === "error");
 }
 
-/**
- * Format issues for display.
- */
-function formatIssues(issues: { severity: string; message: string; line: number }[]): string {
-  return issues
-    .map((i) => `  Line ${i.line}: [${i.severity.toUpperCase()}] ${i.message}`)
+/** Format vale findings as a human-readable bulleted list for the deny message. */
+function formatValeFindingsForOperatorDisplay(findings: ValeLintFinding[]): string {
+  return findings
+    .map((f) => `  Line ${f.line}: [${f.severity.toUpperCase()}] ${f.message}`)
     .join("\n");
 }
 
 // ============================================================================
-// MAIN
+// Pure classifier (iter-91 orchestrator-inlineable contract)
 // ============================================================================
 
-async function main(): Promise<void> {
-  // Read JSON input from stdin
-  const input = await parseStdinOrAllow("vale-claude-md-guard");
-  if (!input) return;
+/**
+ * Pure classifier conforming to PreToolUseSubhookClassifierFunction.
+ *
+ * Short-circuit order (cheap → expensive):
+ *   1. tool_name not Write/Edit → ALLOW
+ *   2. file_path does NOT endsWith CLAUDE.md → ALLOW (O(1) suffix check)
+ *   3. ~/.claude/.vale.ini missing → ALLOW (no config = no enforcement)
+ *   4. Edit + existing file missing → ALLOW (can't validate edit)
+ *   5. Spawn vale subprocess (heaviest step) → DENY/ASK on findings
+ *
+ * MUST NOT call allow()/deny()/ask() or touch stdin/stdout/process.exit.
+ * MUST NOT emit `additionalContext` (silently dropped per iter-90 audit GH #15664).
+ */
+export async function classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator(
+  input: PreToolUseInput,
+): Promise<PreToolUseSubhookDecision> {
+  const { tool_name, tool_input } = input;
 
-  const toolName = input.tool_name || "";
-  const toolInput = input.tool_input || {};
-  const filePath = toolInput.file_path || "";
-
-  // Only process Edit/Write
-  if (toolName !== "Edit" && toolName !== "Write") {
-    allow();
-    return;
+  if (tool_name !== "Write" && tool_name !== "Edit") {
+    return ALLOW_DECISION;
   }
 
-  // Only process CLAUDE.md files
+  const filePath = (tool_input?.file_path as string) || "";
   if (!filePath.endsWith("CLAUDE.md")) {
-    allow();
-    return;
+    return ALLOW_DECISION;
   }
 
-  // Skip if Vale config doesn't exist
-  if (!existsSync(VALE_INI)) {
-    allow();
-    return;
+  if (!existsSync(VALE_CLAUDE_MD_GUARD_VALE_INI_CONFIG_FILE_PATH)) {
+    return ALLOW_DECISION;
   }
 
-  // Get the proposed content and edit line range
   let proposedContent: string;
   let editLineRange: { start: number; end: number } | null = null;
 
-  if (toolName === "Write") {
-    // Write: content is the full new content — check all lines
-    proposedContent = (toolInput.content as string) || "";
+  if (tool_name === "Write") {
+    proposedContent = (tool_input?.content as string) || "";
   } else {
-    // Edit: apply old_string -> new_string to existing content
-    const oldString = (toolInput.old_string as string) || "";
-    const newString = (toolInput.new_string as string) || "";
+    // Edit path
+    const oldString = (tool_input?.old_string as string) || "";
+    const newString = (tool_input?.new_string as string) || "";
 
     if (!existsSync(filePath)) {
-      // File doesn't exist, can't validate edit
-      allow();
-      return;
+      return ALLOW_DECISION;
     }
 
-    const existing = readFileSync(filePath, "utf8");
-    const editResult = applyEdit(existing, oldString, newString);
+    const existingFileContent = readFileSync(filePath, "utf8");
+    const editResult = synthesizeEditApplicationResult(existingFileContent, oldString, newString);
     proposedContent = editResult.content;
     editLineRange = editResult.lineRange;
   }
 
-  // Run Vale on proposed content
-  const allIssues = await runVale(proposedContent);
-  const severityFiltered = filterBySeverity(allIssues, SEVERITY_THRESHOLD);
+  const allValeFindings = await runValeAgainstProposedContentTempfileAndParseJsonFindings(proposedContent);
+  const severityFilteredFindings = filterValeFindingsBySeverityInclusionThreshold(
+    allValeFindings,
+    VALE_CLAUDE_MD_GUARD_SEVERITY_INCLUSION_THRESHOLD,
+  );
 
-  // For Edit: scope to changed lines only (skip pre-existing issues)
-  const issues = editLineRange
-    ? severityFiltered.filter((i) => i.line >= editLineRange!.start && i.line <= editLineRange!.end)
-    : severityFiltered;
+  // Edit-scoping: only report findings within the changed-line range ± buffer
+  const inScopeFindings = editLineRange
+    ? severityFilteredFindings.filter(
+        (f) => f.line >= editLineRange!.start && f.line <= editLineRange!.end,
+      )
+    : severityFilteredFindings;
 
-  if (issues.length === 0) {
-    allow();
-    return;
+  if (inScopeFindings.length === 0) {
+    return ALLOW_DECISION;
   }
 
-  // Format rejection message
-  const fileName = filePath.split("/").pop() || "CLAUDE.md";
-  const scopeNote = editLineRange
+  const claudeMdFileName = filePath.split("/").pop() || "CLAUDE.md";
+  const editScopeAnnotation = editLineRange
     ? ` (scoped to changed lines ${editLineRange.start}-${editLineRange.end})`
     : "";
-  const reason = `[VALE-CLAUDE-MD-GUARD] Found ${issues.length} terminology issue(s) in ${fileName}${scopeNote}:
 
-${formatIssues(issues)}
+  const denyReason = [
+    `[VALE-CLAUDE-MD-GUARD] Found ${inScopeFindings.length} terminology issue(s) in ${claudeMdFileName}${editScopeAnnotation}:`,
+    "",
+    formatValeFindingsForOperatorDisplay(inScopeFindings),
+    "",
+    "Fix the issues before saving. Check ~/.claude/docs/GLOSSARY.md for correct terminology.",
+  ].join("\n");
 
-Fix the issues before saving. Check ~/.claude/docs/GLOSSARY.md for correct terminology.`;
+  return VALE_CLAUDE_MD_GUARD_ENFORCEMENT_MODE === "deny"
+    ? denyDecision(denyReason)
+    : askDecision(denyReason);
+}
 
-  // Output based on mode
-  if (MODE === "deny") {
-    deny(reason);
-  } else {
-    ask(reason);
+/**
+ * Backward-compat alias for symmetric naming with sibling iter-84/85/86/87/88/89/90
+ * subhook cohort (`classify<FilenamePrefix>ForOrchestrator`). The precise
+ * algorithm-encoding name (`classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator`)
+ * is what should be read for understanding the actual policy.
+ */
+export const classifyValeClaudeMdGuardForOrchestrator = classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator;
+
+// ============================================================================
+// Standalone main (backward-compat for direct CLI invocation)
+// ============================================================================
+
+async function main(): Promise<void> {
+  const input = await parseStdinOrAllow("vale-claude-md-guard");
+  if (!input) return;
+
+  const decision = await classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator(input);
+  switch (decision.kind) {
+    case "deny":
+      return deny(decision.reason ?? "(no reason given)");
+    case "ask":
+      return ask(decision.reason ?? "(no reason given)");
+    default:
+      return allow();
   }
 }
 
-// Entry point
-main().catch((e) => {
-  trackHookError("pretooluse-vale-claude-md-guard", e instanceof Error ? e.message : String(e));
-  allow();
-});
+if (import.meta.main) {
+  main().catch((err: unknown) => {
+    trackHookError("pretooluse-vale-claude-md-guard", err instanceof Error ? err.message : String(err));
+    allow();
+  });
+}
