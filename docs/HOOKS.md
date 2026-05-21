@@ -565,6 +565,42 @@ This **confirms iter-86's web-research hypothesis**: the iter-80 ~44ms measureme
 - Case 5: `AbortSignal.timeout()` fires `TimeoutError` after ~200ms via inline harness with hanging classifier (validates the refactor's cooperative-timeout correctness)
 - Cases 6a-b: subhook-contract audit task reports 4 conforming subhooks
 
+### Iter-88: mise-hygiene-guard migration + PostToolUse Write|Edit orchestration candidate surfaced
+
+Iter-88 ships TWO concurrent deliverables: (1) fifth subhook inlined into the PreToolUse orchestrator (mise-hygiene-guard, saving ~17ms per Write/Edit per iter-87's empirical correction), and (2) forensic adversarial-audit finding surfaced as task #96 — the PostToolUse Write|Edit registry currently runs **9 separate hooks.json entries spawning 12 bun subprocesses on every code edit**, the largest remaining orchestration candidate in the marketplace (~136ms additional savings projected when consolidated).
+
+**(1) Fifth subhook inlined — mise-hygiene-guard**
+
+- `pretooluse-mise-hygiene-guard.ts` (already `.ts`) refactored to export `classifyMiseHygieneGuardForOrchestrator()` — a pure async classifier conforming to `PreToolUseSubhookContract`. The existing 2-policy logic (secrets detection + line count >100 → hub-spoke suggestion) is now factored into pure detection helpers (`detectSecretLiteralsInMiseTomlContent`, `analyzeMiseTomlContentForHygieneViolations`, `isTargetMiseTomlFileNotLocalIgnoreFile`) that the classifier composes. Standalone `main()` is preserved under `import.meta.main` for direct CLI invocation backward-compat.
+- Registry insertion position: AFTER `hoisted-deps-guard` and BEFORE `gpu-optimization-guard` (lightest-first ordering — the mise-hygiene fastpath does an O(1) filename suffix + ignore-list check, cheaper than gpu-optimization-guard's PyTorch-pattern regex scan but slightly more expensive than hoisted-deps-guard's pyproject.toml suffix check).
+- `hooks.json` standalone `mise-hygiene-guard` Write|Edit entry removed; orchestrator description updated to list `mise-hygiene-guard` in its inlined-subhooks roster.
+- Registry now `[version-guard, hoisted-deps-guard, mise-hygiene-guard, gpu-optimization-guard, file-size-guard]` (5 inlined; 3 remaining: pyi-stub-guard, native-binary-guard, vale-claude-md-guard).
+
+**(2) PostToolUse Write|Edit orchestration candidate surfaced — next ~136ms savings target**
+
+The iter-88 adversarial audit enumerated `hooks.json` PostToolUse entries via `jq` and discovered the new orchestration leader after the iter-84→iter-91 PreToolUse arc completes. Current state (per `jq '.hooks.PostToolUse'`):
+
+| Metric                                                | Value                                     |
+| ----------------------------------------------------- | ----------------------------------------- |
+| Distinct PostToolUse hooks.json entries (Write\|Edit) | 9                                         |
+| Bun subprocesses spawned per code edit                | 12 (some entries chain ≥2 hooks)          |
+| Projected savings if consolidated to single process   | 8 × ~17ms = **~136ms per Write/Edit**     |
+| Schema constraint vs PreToolUse                       | PostToolUse cannot `deny` (informational) |
+| Required new contract                                 | `PostToolUseSubhookContract` analog       |
+
+The PostToolUse contract differs from `PreToolUseSubhookContract` in TWO ways: (a) the decision type collapses to `{kind: "noop"} | {kind: "additional_context", message}` since `deny`/`ask` are not honored on PostToolUse per the iter-66 schema findings, and (b) the orchestrator MUST aggregate `additionalContext` from multiple subhooks into a single stdout payload (vs PreToolUse's first-deny-short-circuit). This is queued as **task #96** (iter-92+, scheduled after the iter-89/90/91 PreToolUse migrations complete to avoid contract-design churn).
+
+**Regression coverage** ([13 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter88-mise-hygiene-guard-inlined-secrets-detection-and-line-count-policy-paths-plus-postooluse-orchestration-candidate-surfaced.sh)):
+
+- Cases 1a-d: orchestrator denies `mise.toml` with hardcoded `API_KEY` via `mise-hygiene-guard` subhook attribution with belt-and-suspenders deny + exit 2 (POLICY 1 — secrets detection)
+- Case 2: `.mise.local.toml` ignore-list honored (secrets allowed there by design)
+- Case 3: safe-pattern external references (`{{ op_read(...) }}`, `{{ read_file(...) }}`) → allow (the safe-pattern filter pre-empts the secrets regex)
+- Cases 4a-c: oversized `mise.toml` (>100 lines) denies with hub-spoke refactoring guidance + exit 2 (POLICY 2 — line count)
+- Cases 5a-b: standalone `pretooluse-mise-hygiene-guard.ts` still works for direct CLI invocation, with NO orchestrator prefix in deny reason (backward-compat)
+- Cases 6a-b: subhook-contract audit task discovers ≥5 conforming subhooks (live-extraction pattern, not hardcoded count — survives future iter-89/90/91 additions)
+
+**Iter-87 regression-test hardening** (forensic finding from iter-88 marketplace suite run): the iter-87 test originally hardcoded `subhook count = 4`, which broke when iter-88 inlined the 5th. The iter-87 test was refactored to use the same live-extraction pattern the iter-88 test was written with from day one (`grep -oE 'Total subhook files scanned:[[:space:]]+[0-9]+'` + `-ge` numeric comparison). All future iter migrations will not break iter-87.
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:

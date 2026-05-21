@@ -101,6 +101,7 @@ import { classifyFileSizeGuardForOrchestrator } from "./pretooluse-file-size-gua
 import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.ts";
 import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-deps-guard.ts";
 import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-optimization-guard.ts";
+import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygiene-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -126,6 +127,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyHoistedDepsGuardForOrchestrator,
     description:
       "Blocks pyproject.toml Write/Edit that violates any of 3 monorepo policies: (1) root-only pyproject.toml [except maturin PyO3 crates that must co-locate with Cargo.toml], (2) [tool.uv.sources] paths escaping git root, (3) [dependency-groups] in sub-packages. Iter-86 inlined; O(1) filename-suffix fastpath skips non-pyproject.toml writes, then spawns git rev-parse subprocess only for actual pyproject.toml edits.",
+  },
+  {
+    name: "mise-hygiene-guard",
+    timeoutMs: 3000,
+    classify: classifyMiseHygieneGuardForOrchestrator,
+    description:
+      "Blocks mise.toml Write/Edit that violates 2 hygiene policies: (1) secrets (api keys, tokens, passwords) detected in shared mise.toml [should be in .mise.local.toml instead], (2) line count exceeds 100 [suggests hub-spoke refactoring with [task_config].includes]. Iter-88 inlined; O(1) filename-allowlist + ignore-list fastpath skips non-mise.toml writes (including the intentionally-secret-bearing .mise.local.toml).",
   },
   {
     name: "gpu-optimization-guard",
