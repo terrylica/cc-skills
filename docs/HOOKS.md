@@ -1436,6 +1436,58 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-113: Registry-to-docs generator emitting operator-facing `docs/marketplace-escape-hatch-marker-reference.md` from the iter-111 canonical registry as SSoT
+
+Iter-113 closes the operator-discoverability gap left by iter-111: the canonical producer-marker registry was a TypeScript SSoT readable by static-analysis tools but NOT by operators browsing the repo. Iter-113 introduces a deterministic markdown rendering of the registry that is committed to git and kept in sync with the source via a drift-detection check.
+
+**Why operators need this**
+
+Pre-iter-113, an operator asking "what marker do I write to suppress the `file-size-guard` for this one file?" had to either (a) grep the marketplace for usage examples, (b) read the iter-111 registry TypeScript source, or (c) read the hook source itself. None of those are discoverable from a github browser without prior knowledge of where to look.
+
+Post-iter-113, the answer is `docs/marketplace-escape-hatch-marker-reference.md` — a single artifact with every legitimate marker token, its consumer hook, case/window/reason policies, and example usage.
+
+**Idempotency invariant + drift detection**
+
+The generator is deterministic: re-running on an unchanged registry produces a byte-identical doc. This is what makes the iter-113 drift-detection check meaningful — any non-empty diff between the on-disk doc and the registry-derived output means SSoT divergence (either the registry was edited without regenerating the doc, OR the doc was hand-edited without updating the registry).
+
+**Three invocation modes**
+
+| Mode       | Behavior                                                                 | Use case                                   |
+| ---------- | ------------------------------------------------------------------------ | ------------------------------------------ |
+| `--write`  | Regenerate on-disk doc (default)                                         | Author workflow after editing the registry |
+| `--check`  | Diff registry-derived output against on-disk doc; exit non-zero on drift | CI / preflight (informational in iter-113) |
+| `--stdout` | Emit doc to stdout with no on-disk side effects                          | Manual inspection, pipe into pager, etc.   |
+
+**Preflight Check 4u wired (informational)**
+
+Complementary to iter-110's Check 4s (CONSUMER-side STRICT) and iter-111's Check 4t (PRODUCER-side informational). The three checks now form a triplet covering the full escape-hatch lifecycle:
+
+| Check | Side     | Mode          | Catches                                                               |
+| ----- | -------- | ------------- | --------------------------------------------------------------------- |
+| 4s    | CONSUMER | STRICT-BLOCK  | Hook bypasses canonical helper OR cohort member missing helper import |
+| 4t    | PRODUCER | Informational | Producer-side marker token not registered (potential typo)            |
+| 4u    | DOC SYNC | Informational | On-disk reference doc out of sync with registry SSoT                  |
+
+**Iter-113 regression validation (7 cases)**
+
+| Case | Verifies                                                                                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------ |
+| 1    | Generator task exists and is executable                                                                      |
+| 2    | `--check` mode passes against the on-disk committed doc                                                      |
+| 3    | `--stdout` mode emits non-empty doc with all 12 baseline marker sections                                     |
+| 4    | Idempotency — two consecutive runs produce byte-identical output (required for meaningful drift detection)   |
+| 5    | On-disk doc renders all 12 baseline markers in alphabetical order                                            |
+| 6    | On-disk doc contains all 8 expected non-catalog sections (preamble + purpose + how-to + invariants + ...)    |
+| 7    | Drift-detection correctly fails when the on-disk doc is mutated (synthetic-mutation probe with cleanup-trap) |
+
+All 7 cases pass. Marketplace regression suite: **47/47** (up from 46 in iter-112 — iter-113 test auto-discovered).
+
+**Iter-114+ candidates documented inline**
+
+1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `.mise/` audit tasks rather than runtime hooks): `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`. Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
+2. Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 doc-drift detector) from informational to STRICT-BLOCK once the AUDIT-marker family is also registered.
+3. Add a search-by-suppression-target accessor to the registry (`lookupCanonicalRegistryEntryByConsumerHookSourceFileRelativePath`) so operators can ask the registry "what marker suppresses this hook?" programmatically.
+
 ### Iter-112: Migrate posttooluse-reminder.ts SETPROCTITLE-OK detection to iter-107 canonical helper — closes iter-111-surfaced registry-consistency gap + expands iter-110 cohort 8 → 9 + widens comment-prefix tolerance
 
 Iter-112 closes the registry-consistency gap that iter-111's typo-detection audit surfaced on its first live run: `posttooluse-reminder.ts` consumed the `SETPROCTITLE-OK` marker via raw `fileContent.includes("# SETPROCTITLE-OK")` substring check rather than through the iter-107 canonical helper. Iter-111 registered the marker (closing the producer-side audit gap) but flagged the consumer-side migration as iter-112+ scope. Iter-112 delivers it.
