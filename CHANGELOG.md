@@ -1,3 +1,15 @@
+## [21.56.3](https://github.com/terrylica/cc-skills/compare/v21.56.2...v21.56.3) (2026-05-21)
+
+
+### Bug Fixes
+
+* **preflight:** iter-134-followup-replace-tab-record-separator-with-pipe-character-because-bsd-xargs-macos-collapses-internal-whitespace-including-tabs-into-single-space-at-the-replstr-substitution-handoff-breaking-cut-f1-field-extraction-in-the-parallel-pre-warm-bash-worker-for-the-two-longest-audit-task-names-iter103-notebookedit-applicability-207-chars-and-iter105-truncation-helper-220-chars-which-produced-filename-too-long-errors-when-the-collapsed-key-space-task-elapsed-ms-path-exceeded-the-macos-255-byte-filename-limit ([d2b0f01](https://github.com/terrylica/cc-skills/commit/d2b0f01c76391ce8f5158455c92211ee688cc850))
+
+
+### Performance Improvements
+
+* **preflight:** iter-134 parallel-fan-out-all-seventeen-marketplace-audit-subprocesses-via-xargs-p-with-per-audit-log-exit-and-elapsed-ms-sidecar-capture-compressing-2603ms-sequential-into-374ms-wall-clock-saving-2229ms-or-twenty-two-percent-of-total-preflight-time-mirroring-iter75-marketplace-suite-and-iter131-elapsed-ms-sidecar-patterns ([4884f91](https://github.com/terrylica/cc-skills/commit/4884f91c94cddfe05c1ff0b9eb8fc04edcc71b7b))
+
 ## [21.56.2](https://github.com/terrylica/cc-skills/compare/v21.56.1...v21.56.2) (2026-05-21)
 
 ## [21.56.1](https://github.com/terrylica/cc-skills/compare/v21.56.0...v21.56.1) (2026-05-21)
