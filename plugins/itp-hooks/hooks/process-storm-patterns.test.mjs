@@ -7,7 +7,11 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { detectPatterns, PATTERNS, ESCAPE_HATCH, DEFAULT_CONFIG } from "./process-storm-patterns.mjs";
+// Iter-111: dropped unused `ESCAPE_HATCH` import — the @deprecated raw-regex
+// export was preserved across iter-109 / iter-110 for backward compatibility
+// but had no actual test consumer (the suite exercises the helper indirectly
+// through `detectPatterns`, which delegates to the iter-107 canonical helper).
+import { detectPatterns, PATTERNS, DEFAULT_CONFIG } from "./process-storm-patterns.mjs";
 
 describe("Fork Bomb Patterns", () => {
   test("detects classic fork bomb :(){ :|:& };:", () => {

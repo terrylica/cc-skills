@@ -585,6 +585,36 @@ ITER110_COHORT_SIZE=$( { grep -oE 'Canonical cohort size:[[:space:]]+[0-9]+' /tm
 echo "  ✓ Escape-hatch invariant: ${ITER110_MIGRATED_COUNT:-0} hooks migrated / ${ITER110_COHORT_SIZE:-0} canonical cohort (iter-110 STRICT)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4s: escape-hatch-marker detection invariant audit (iter-110 STRICT-BLOCK)"
 
+# Check 4t: Iter-111 producer-side escape-hatch-marker typo-detection audit.
+#
+# Complementary to iter-110's CONSUMER-side invariant: while iter-110 enforces
+# that every consumer hook routes through the iter-107 canonical helper,
+# iter-111 enforces that every PRODUCER-side marker token (the `# FOO-OK`
+# comments operators write into their source files) is recognized by some
+# consumer hook — i.e., is registered in the iter-111 canonical registry.
+#
+# Catches the silent-fail typo class: `# PROCSS-STORM-OK` (missing first E)
+# would otherwise be ignored by every consumer hook, and the operator would
+# wonder why their "escape hatch" doesn't actually escape.
+#
+# Iter-111 informational only (never blocks). Iter-112+ candidate for
+# strict-promotion once the AUDIT-marker family is also registered.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-111 producer-side escape-hatch-marker typo audit (informational)..."
+if ! mise run audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry >/tmp/iter111-producer-marker-typo-audit.log 2>&1; then
+    echo "  ⚠ Iter-111 audit ran but reported a non-zero status — see /tmp/iter111-producer-marker-typo-audit.log"
+    echo "    (Informational only — release continues.)"
+else
+    ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+    ITER111_REGISTERED_COUNT=$( { grep -oE 'parsed [0-9]+ registered markers' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+    if [[ "${ITER111_UNREGISTERED_COUNT:-0}" -gt 0 ]]; then
+        echo "  ⚠ Iter-111 audit: ${ITER111_UNREGISTERED_COUNT} unregistered producer marker(s) — potential typos (informational; not blocking)"
+    else
+        echo "  ✓ Iter-111 producer-marker registry: 0 unregistered markers across ${ITER111_REGISTERED_COUNT:-0} known tokens (clean)"
+    fi
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4t: producer-side escape-hatch-marker typo audit (iter-111 informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."

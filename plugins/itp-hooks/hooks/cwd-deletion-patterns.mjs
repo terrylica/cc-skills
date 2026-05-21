@@ -23,17 +23,16 @@ import { resolve } from "node:path";
  * command string") with CASE_INSENSITIVE matching (preserves pre-iter-109
  * `/i` flag).
  *
- * The pre-iter-109 export `ESCAPE_HATCH` (a RegExp) is preserved for
- * backward compatibility with external consumers — it now coexists with
- * the helper call.
+ * Iter-111: dropped the @deprecated `export const ESCAPE_HATCH = /.../i;`
+ * regex literal — verified zero external consumers via marketplace-wide
+ * grep. The canonical detection path is now the helper call below; no
+ * grandfathered raw-regex API surface remains.
  */
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 const CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION = {
   markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
   caseSensitivityMode: "CASE_INSENSITIVE",
 };
-/** @deprecated Pre-iter-109 export preserved for backward compat. New code should call `hasFileWideEscapeHatchMarkerInContent(command, CWD_DELETION_GUARD_ESCAPE_HATCH_CONFIGURATION)` directly. */
-export const ESCAPE_HATCH = /#\s*CWD-DELETE-OK/i;
 
 /**
  * Normalize a path for comparison.

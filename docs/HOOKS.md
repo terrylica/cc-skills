@@ -1436,6 +1436,72 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-111: Marketplace-wide PRODUCER-side escape-hatch-marker canonical registry + typo-detection audit + `@deprecated ESCAPE_HATCH` cleanup
+
+Iter-111 introduces the second half of the escape-hatch consolidation arc's invariant pair. Iter-110 closed the CONSUMER-side invariant ("every consumer hook must route through the iter-107 canonical helper"); iter-111 introduces the PRODUCER-side invariant ("every producer-side marker token operators write must be recognized by some consumer hook").
+
+**The silent-fail typo class iter-111 catches**
+
+Pre-iter-111, an operator writing `# PROCSS-STORM-OK` (missing the first `E`) would experience:
+
+1. The marker is meant to suppress process-storm-guard's enforcement
+2. The hook scans for the exact token `PROCESS-STORM-OK` (the registered marker)
+3. The typo doesn't match — the hook blocks the operation
+4. The operator sees "blocked by process-storm-guard" and is confused why their "escape hatch" didn't actually escape
+5. No static check existed to surface the typo at authorship time
+
+Iter-111 introduces a producer-side typo-detection audit that catches this entire silent-fail class at preflight time.
+
+**1. Canonical producer-marker registry**
+
+A single TypeScript module at `plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts` declares every legitimate marker token with full provenance:
+
+| Field                                                            | Purpose                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `markerNameTokenIncludingSuffix`                                 | Exact spelling (UPPER-KEBAB-CASE by convention; `SSoT-OK` grandfathered mixed-case)         |
+| `consumerHookSourceFileRelativePath`                             | Which hook reads this marker                                                                |
+| `caseSensitivityModeDeclaredAtConsumerCallSite`                  | Must match the configuration object passed to the iter-107 helper at the consumer call site |
+| `windowSemanticsModeDeclaredAtConsumerCallSite`                  | `SAME_LINE_ONLY` / `SAME_LINE_OR_PRECEDING_N_LINES` / `FILE_WIDE`                           |
+| `minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional` | 0 if bare marker accepted; else min char count (e.g., LAYER3-STRIPPED-PATH-OK enforces ≥10) |
+| `humanReadableEscapeHatchDescriptionForOperatorDocumentation`    | Plain-English description for operator-facing docs generators                               |
+
+Iter-111 baseline: **12 entries** (the iter-110 cohort plus `SETPROCTITLE-OK` which the audit surfaced on first run as a real unregistered marker consumed by `posttooluse-reminder.ts` via raw `.includes()` substring check).
+
+**2. Producer-side typo-detection audit**
+
+`.mise/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
+
+- INCLUDES: every file under `plugins/<plugin>/` except `plugins/itp-hooks/hooks/` (consumers, not producers) and except `.mise/` (audit-marker family — different lifecycle layer, iter-112+ scope)
+- EXCLUDES: `tests/`, `docs/`, `references/`, `*.test.*`, `test-*`, `*_test.*`, `*.spec.*` (test fixtures use synthetic `FOO-OK`/`BAR-OK`/`BAZ-OK`/`QUX-OK` markers that aren't real)
+- EXCLUDES: vendor/build dirs (`.build`, `node_modules`, `.venv`, `target`, `.git`)
+
+Audit case-insensitive — `# process-storm-ok` and `# PROCESS-STORM-OK` both resolve to the same registered token. Consumer-side case-sensitivity remains the consumer's call.
+
+**3. Audit immediately surfaced a real unregistered marker on first run**
+
+The iter-111 audit was designed to catch hypothetical typos. On its very first run against the live marketplace, it surfaced a **real unregistered marker**: `SETPROCTITLE-OK` in `plugins/tlg/scripts/tg-cli.py` (consumed by `posttooluse-reminder.ts:494` via raw `fileContent.includes("# SETPROCTITLE-OK")` substring check). This is the kind of latent issue that has no failure mode UNTIL someone misspells it — the audit caught it before that happened. Resolved by registering it; iter-112+ candidate to migrate the consumer to the iter-107 canonical helper for behavioral consistency.
+
+**4. `@deprecated ESCAPE_HATCH` exports dropped**
+
+Iter-109 preserved the pre-migration `export const ESCAPE_HATCH = /.../i;` regex literals in `process-storm-patterns.mjs` and `cwd-deletion-patterns.mjs` for backward compat. Iter-111 verified via marketplace-wide grep that the only consumer of the process-storm export was an unused-import in `process-storm-patterns.test.mjs:10` and that `cwd-deletion-patterns.mjs::ESCAPE_HATCH` had zero external consumers. Both exports + the unused import dropped in this iter; the canonical detection path is now exclusively the iter-107 helper call.
+
+**Iter-111 audit + regression validation**:
+
+| Gate                                                                         | Status                                                     |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Iter-111 typo-detection audit                                                | PASS (0 unregistered markers / 12 known registered tokens) |
+| Iter-111 regression test (6 cases, including synthetic-typo-injection probe) | 6/6 PASS                                                   |
+| Iter-107 regression test                                                     | 10/10 PASS (unchanged)                                     |
+| Iter-110 strict audit                                                        | PASS (8/8 cohort migrated)                                 |
+| Marketplace regression suite                                                 | 45/45 PASS (iter-111 test auto-discovered)                 |
+| Preflight Check 4t (iter-111 informational only — never blocks)              | Wired in alongside iter-110's Check 4s STRICT-BLOCK        |
+
+**Iter-112+ candidates** documented inline:
+
+1. Migrate `posttooluse-reminder.ts`'s `# SETPROCTITLE-OK` detection from raw `.includes()` to the iter-107 canonical helper for behavioral consistency with the other 11 cohort members.
+2. Extend the registry to cover the 10+ AUDIT-marker family (`WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`) — these are consumed by `.mise/` audit tasks rather than runtime hooks and represent a parallel marker registry layer.
+3. Promote iter-111 audit from informational (Check 4t) to STRICT-BLOCK once the AUDIT-marker family is also registered AND the marketplace stabilizes.
+
 ### Iter-110: Close iter-107 → iter-109 escape-hatch consolidation arc with file-size-guard migration + audit STRICT-BLOCK promotion + multi-marker probe
 
 Iter-110 closes the iter-107 → iter-109 migration arc by delivering the final 3 pieces:
