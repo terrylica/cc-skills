@@ -1,3 +1,15 @@
+# [21.59.0](https://github.com/terrylica/cc-skills/compare/v21.58.4...v21.59.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **release:** iter-145 backfill-canonical-channels-null-semantic-release-notes-for-five-historical-tags-v4-9-0-v4-10-0-v5-1-0-v5-1-2-v5-1-4-via-annotated-tag-to-commit-dereferencing-eliminating-five-silent-JSON-parse-SyntaxError-stack-traces-per-release-discovered-by-iter144-debug-namespace-stderr-parser-forensic-finding ([9a1e4cc](https://github.com/terrylica/cc-skills/commit/9a1e4cc7a8e3146a1330f809d0357477a9a337de))
+
+
+### Features
+
+* **release:** iter-144 instrument-semantic-release-plugin-lifecycle-step-internals-via-DEBUG-namespace-stderr-output-parser-emitting-dual-dimension-top-N-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-attributed-to-each-debug-namespace-accurately-and-to-each-plugin-lifecycle-step-loading-phase-only-plus-forensic-count-of-silent-JSON-parse-SyntaxError-stack-traces-swallowed-by-getTagsNotes-catch-block ([4cc7fa7](https://github.com/terrylica/cc-skills/commit/4cc7fa7e9a01b5cecf3e474118dc36f7f0c1a529))
+
 ## [21.58.4](https://github.com/terrylica/cc-skills/compare/v21.58.3...v21.58.4) (2026-05-21)
 
 
