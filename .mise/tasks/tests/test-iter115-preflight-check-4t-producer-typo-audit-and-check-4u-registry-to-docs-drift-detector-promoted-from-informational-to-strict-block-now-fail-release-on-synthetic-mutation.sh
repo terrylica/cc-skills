@@ -261,19 +261,32 @@ else
     assert_fails "Case 6: post-restoration --check did NOT report clean state (exit=$ITER113_DRIFT_CHECK_EXIT_CODE_ON_RESTORED_BASELINE) — restoration may have failed OR generator is flaky"
 fi
 
-# ─── Case 7: preflight wraps both audit tasks via `mise run` invocations ───
+# ─── Case 7: preflight wraps both audit tasks (post-iter-134: via parallel pre-warm metadata array) ───
 #
-# The strict-promoted preflight stanzas invoke the audit tasks indirectly
-# via `mise run <task-name>`. Verify the task-name references match the
-# actual task file basenames so a future rename of either task file is
-# caught at test time, not at next preflight invocation.
+# The strict-promoted preflight stanzas invoke the audit tasks indirectly.
+# Pre-iter-134: inline `mise run <task-name>` invocations within each
+# Check 4t/4u block. Post-iter-134: TAB-separated records in
+# iter134_parallelizable_preflight_audit_metadata_records that the
+# Phase-A parallel pre-warm fan-out reads and dispatches to xargs -P
+# workers. Either form satisfies the underlying invariant: the audit
+# task name appears verbatim in the preflight script. Verify the
+# task-name references match the actual task file basenames so a future
+# rename of either task file is caught at test time, not at next
+# preflight invocation.
+#
+# Implementation: grep -qF on just the task name (no `mise run` prefix).
+# Task names are 90+ chars of discriminating kebab-case; the chance of
+# coincidental substring match in unrelated context is vanishingly low.
+# This grep matches both:
+#   - Legacy `mise run <task>` form (any remaining)
+#   - Post-iter-134 metadata-array TAB-separated record form
 
 EXPECTED_ITER111_MISE_TASK_NAME="audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry"
 EXPECTED_ITER113_MISE_TASK_NAME="generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
 
-if grep -qF "mise run $EXPECTED_ITER111_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" && \
-   grep -qF "mise run $EXPECTED_ITER113_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH"; then
-    assert_passes "Case 7: preflight references both iter-111 audit task + iter-113 generator task via their exact basenames (rename would fail this test)"
+if grep -qF "$EXPECTED_ITER111_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" && \
+   grep -qF "$EXPECTED_ITER113_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH"; then
+    assert_passes "Case 7: preflight references both iter-111 audit task + iter-113 generator task via their exact basenames (post-iter-134-aware: matches both legacy 'mise run <task>' form AND iter-134 parallel-pre-warm metadata-array record form; rename would fail this test)"
 else
     assert_fails "Case 7: preflight task-name references drift from actual task file basenames"
 fi
