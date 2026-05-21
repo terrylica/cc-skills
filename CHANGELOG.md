@@ -1,3 +1,10 @@
+# [21.81.0](https://github.com/terrylica/cc-skills/compare/v21.80.0...v21.81.0) (2026-05-21)
+
+
+### Features
+
+* **iter-185:** SUMMARY INDEX at top of dispatcher banner ([03fd490](https://github.com/terrylica/cc-skills/commit/03fd490ccd39bc930f47a1a9621069b6ae25f9a7)), closes [iter-178-throu#iter-185](https://github.com/iter-178-throu/issues/iter-185)
+
 # [21.80.0](https://github.com/terrylica/cc-skills/compare/v21.79.0...v21.80.0) (2026-05-21)
 
 
