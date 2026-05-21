@@ -1,3 +1,10 @@
+# [21.20.0](https://github.com/terrylica/cc-skills/compare/v21.19.1...v21.20.0) (2026-05-21)
+
+
+### Features
+
+* **release-gate:** iter-82 ship conventional-commits-conformance validator detecting compound type-scope prefixes that silently skip semantic-release version-bump ([6416d86](https://github.com/terrylica/cc-skills/commit/6416d86f226321bc2a377b23d89dc66f7a9388c6))
+
 ## [21.19.1](https://github.com/terrylica/cc-skills/compare/v21.19.0...v21.19.1) (2026-05-21)
 
 
