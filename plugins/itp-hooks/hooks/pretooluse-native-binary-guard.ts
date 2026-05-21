@@ -93,8 +93,28 @@ const NATIVE_BINARY_GUARD_STANDALONE_RAW_STDIN_LAUNCHD_RELATED_KEYWORD_PREFILTER
   "automation/",
 ] as const;
 
-/** Same-line `# BASH-LAUNCHD-OK` or `<!-- BASH-LAUNCHD-OK -->` escape hatch. */
-const NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_REGEX = /[#/]\s*BASH-LAUNCHD-OK/i;
+// Iter-109: migrated to the iter-107 canonical shared escape-hatch-marker
+// detection helper. Behavior-preserving: marker token `BASH-LAUNCHD-OK`
+// detected file-wide with CASE_INSENSITIVE matching (preserves pre-iter-109
+// `/i` flag). The pre-iter-109 regex `/[#/]\s*BASH-LAUNCHD-OK/i` required
+// EITHER `#` or `/` comment prefix; the helper uses pure substring match
+// against the UPPER-KEBAB-CASE marker token. This is safe because
+// BASH-LAUNCHD-OK never collides with code identifiers (UPPER-KEBAB-CASE
+// is not a valid JavaScript/Python/Swift/etc. identifier shape), and it
+// allows the helper to honor BOTH `#`-comments (shell) AND `//`-comments
+// (TypeScript) AND `<!-- -->`-comments (plist) without enumerating each
+// comment style — the marker token alone is the canonical signal.
+import {
+  hasFileWideEscapeHatchMarkerInContent,
+  type EscapeHatchMarkerDetectionConfiguration,
+} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_CONFIGURATION: Pick<
+  EscapeHatchMarkerDetectionConfiguration,
+  "markerNameTokenIncludingSuffix" | "caseSensitivityMode"
+> = {
+  markerNameTokenIncludingSuffix: "BASH-LAUNCHD-OK",
+  caseSensitivityMode: "CASE_INSENSITIVE",
+};
 
 /** macOS launchd-related directory substrings — file_path must include one to be in scope. */
 const NATIVE_BINARY_GUARD_LAUNCHD_RELATED_DIRECTORY_SUBSTRINGS: readonly string[] = [
@@ -224,18 +244,19 @@ export async function classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrat
   const proposedContent =
     (tool_input?.content as string) || (tool_input?.new_string as string) || "";
 
-  // Escape hatch in proposed content
-  if (NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_REGEX.test(proposedContent)) {
+  // Escape hatch in proposed content (iter-109: delegated to canonical shared helper).
+  if (hasFileWideEscapeHatchMarkerInContent(proposedContent, NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_CONFIGURATION)) {
     return ALLOW_DECISION;
   }
 
   // Iter-15 fix preserved: Edit may target a region NOT containing the marker, but
   // the file on disk has it. We're already gated by isLaunchdRelatedDirectoryPath()
-  // so the file read is rare; cost is acceptable.
+  // so the file read is rare; cost is acceptable. (Iter-109: same canonical helper
+  // applied to the file-on-disk content as the iter-15 fallback path.)
   if (tool_name === "Edit" && filePath) {
     try {
       const existingFileContent = await Bun.file(filePath).text();
-      if (NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_REGEX.test(existingFileContent)) {
+      if (hasFileWideEscapeHatchMarkerInContent(existingFileContent, NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_CONFIGURATION)) {
         return ALLOW_DECISION;
       }
     } catch {

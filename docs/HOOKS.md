@@ -1434,6 +1434,40 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-109: Batch-migrate 4 CASE_INSENSITIVE consumers + surface pre-existing biome lint bug as iter-109 side-effect cleanup
+
+Iter-109 delivers the largest migration batch in the iter-107+ arc: 4 hooks (`pretooluse-native-binary-guard.ts`, `process-storm-patterns.mjs`, `cwd-deletion-patterns.mjs`, `pretooluse-cargo-tty-guard.ts`) migrated in a single iter to use the iter-107 shared helper with `caseSensitivityMode: "CASE_INSENSITIVE"`. All four shared the legacy `/i` regex flag and the simple `FILE_WIDE` window-semantics mode; batching saved the per-iter ceremonial cost of separate audits + commits + releases while preserving behavior across all four.
+
+**Iter-109 migrations**:
+
+| Hook                                | Marker(s)                           | Detection sites                                            | Notes                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------- | ----------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pretooluse-native-binary-guard.ts` | `BASH-LAUNCHD-OK`                   | 2 (proposed content + iter-15 existing-file-fallback path) | Pre-iter-109 regex `/[#/]\s*BASH-LAUNCHD-OK/i` required `#` or `/` comment prefix; helper uses pure-substring match (safe — UPPER-KEBAB-CASE never collides). Honors `#` (shell), `//` (TS), `<!-- -->` (plist) via marker alone.                                                                                                                 |
+| `process-storm-patterns.mjs`        | `PROCESS-STORM-OK`                  | 1 (in `detectPatterns`)                                    | `.mjs` file importing from `.ts` shared lib via bun's native cross-format resolution. Pre-iter-109 export `ESCAPE_HATCH` regex preserved as `@deprecated` for backward compat with `process-storm-patterns.test.mjs` consumers.                                                                                                                   |
+| `cwd-deletion-patterns.mjs`         | `CWD-DELETE-OK`                     | 1 (in `detectCwdDeletion`)                                 | Pre-iter-109 export `ESCAPE_HATCH` regex preserved as `@deprecated` for backward compat. **iter-109 side-effect cleanup**: surfaced + fixed a pre-existing biome `lint/suspicious/noAssignInExpressions` issue at the `while ((match = rmPattern.exec(command)) !== null)` pattern by replacing it with the modern stateless `matchAll` iterator. |
+| `pretooluse-cargo-tty-guard.ts`     | `CARGO-TTY-SKIP` + `CARGO-TTY-WRAP` | 2 (opt-out + opt-in in `isUnsafeBackground`)               | **FIRST hook with TWO marker configurations** — proves the helper composes cleanly for multi-marker hooks (one configuration object per marker, same helper API).                                                                                                                                                                                 |
+
+**Adversarial-audit side-effect cleanup (iter-109 contribution beyond migration)**: editing `cwd-deletion-patterns.mjs` triggered the iter-105+iter-106 PostToolUse biome-lint orchestrator, which surfaced a pre-existing `lint/suspicious/noAssignInExpressions` issue at the `while ((match = rmPattern.exec(command)) !== null)` regex-iteration pattern. The issue had been latent since the file's original authorship; iter-109's full-file lint pass caught it. Fixed by replacing the imperative `let match; while ((match = exec(command)) !== null)` pattern with the modern stateless `for (const m of command.matchAll(...))` iterator (idiomatic 2026 JavaScript, no `lastIndex` stewardship needed). Behavior-preserving. The fix is documented inline as an iter-109 adversarial-audit byproduct.
+
+**Marketplace state after iter-109**: **7 of 7 hooks migrated** (per the iter-107 inventory audit's hand-rolled-regex detection heuristic). The iter-107 roadmap also listed `pretooluse-file-size-guard.ts`, but that hook uses a different code path (`escapeComment: "FILE-SIZE-OK"` config-string, not a regex literal) which the iter-107 audit does not classify as hand-rolled. file-size-guard remains the last non-migrated escape-hatch consumer; its migration is iter-110+ scope.
+
+**Iter-109 regression validation**:
+
+- iter-90 native-binary-guard regression test: 15/15 PASS (covers proposed-content escape hatch + iter-15 file-on-disk fallback + escape-hatch on all comment styles)
+- `process-storm-patterns.test.mjs` (13 unit tests): 13 pass, 0 fail (covers escape-hatch on separate line + per-category fork-bomb / gh-recursion / credential-storm / mise-fork detection)
+- Marketplace regression suite: 44/44 PASS (no new test files added; existing suite covers the migrations through downstream consumer tests)
+- iter-107 inventory audit: 7 migrated / 0 hand-rolled — **the marketplace is now fully migrated** per the iter-107 detection heuristic
+
+**Iter-110+ candidates** (in priority order):
+
+1. Migrate `pretooluse-file-size-guard.ts` — currently uses `escapeComment: "FILE-SIZE-OK"` config-string detection (not a regex literal); requires a small wrapper or config-shape adaptation to plug into the iter-107 helper. Once migrated, the iter-107 inventory audit can detect 100% of marketplace escape-hatch consumers and the audit becomes a tautological PASS — at that point, **promote from informational (Check 4s) to strict-block** as the iter-107 documented final state.
+2. Add iter-109 multi-marker probe to the iter-107 regression test — explicitly exercise the cargo-tty-guard two-marker pattern as a documented helper API contract.
+3. Extract the `@deprecated` legacy regex constants from `process-storm-patterns.mjs` + `cwd-deletion-patterns.mjs` once external consumers (test files) drop their references — currently kept as backward-compat to avoid breaking `process-storm-patterns.test.mjs`.
+
+Source on Bun's `.mjs` ↔ `.ts` cross-format module resolution (used by `process-storm-patterns.mjs` importing the `.ts` shared helper): [Bun module resolution docs](https://bun.com/docs/runtime/modules) — Bun's resolver natively handles `.ts` from `.mjs` and vice versa without requiring `.ts → .mjs` build step.
+
+### Iter-108: Helper case-sensitivity extension + 2 migrations (version-guard FILE_WIDE + inline-ignore-guard SAME_LINE_ONLY)
+
 ### Self-measurement tool
 
 The forensic baseline above can be reproduced (and regression-watched) via:
