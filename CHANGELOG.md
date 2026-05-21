@@ -1,3 +1,10 @@
+## [21.54.4](https://github.com/terrylica/cc-skills/compare/v21.54.3...v21.54.4) (2026-05-21)
+
+
+### Performance Improvements
+
+* **preflight:** iter-128 replace-marketplace-hook-regression-suite-constant-eight-lane-parallel-execution-default-with-host-adaptive-clamped-against-detected-cpu-count-minus-four-cores-headroom-bounded-between-four-floor-for-low-end-laptops-and-twelve-ceiling-to-avoid-bun-cold-start-contention-plateau ([aaf1fd5](https://github.com/terrylica/cc-skills/commit/aaf1fd58e9541c3a9bd9c51f9b0a88b024d5158d))
+
 ## [21.54.3](https://github.com/terrylica/cc-skills/compare/v21.54.2...v21.54.3) (2026-05-21)
 
 
