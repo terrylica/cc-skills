@@ -5,6 +5,41 @@ set -euo pipefail
 ITER174_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER174_REPO_ROOT"
 
+# ─── ITER-179 DUAL-MODE OUTPUT: HUMAN-READABLE DEFAULT OR --json FOR AI AGENTS ─
+# Pre-iter-179 the harness emitted only human-readable text. AI agents and CI
+# pipelines consuming the regression-detection output had to regex-parse the
+# "✓ A1: …median=Xms ≤ cap=Yms (Z% headroom unused)" lines — fragile against
+# future label/format changes. Iter-179 closes this dual-mode gap by emitting
+# a stable JSON envelope under --json (iter174_schema_version=1) while
+# preserving human-readable text under the default no-flag invocation.
+#
+# Mirrors the iter-152 dashboard / iter-153 advisor / iter-160 doctor /
+# iter-165 aggregator --json dual-mode pattern. Schema records per-scenario
+# {id, description, median_ms, cap_ms, headroom_pct, verdict} plus aggregate
+# {total_evaluated, total_failed, overall_verdict}. Pure-bash JSON
+# construction; labels are ASCII-only by convention so no escape lib needed.
+ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION="human"
+for iter179_arg_for_dispatch_parsing in "$@"; do
+    case "$iter179_arg_for_dispatch_parsing" in
+        --json)
+            ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION="json"
+            ;;
+    esac
+done
+
+# Accumulator arrays for --json mode (one entry per benchmark scenario).
+# In human mode these stay empty and the final-report block emits text.
+ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION=()
+
+# iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean:
+# centralizes the "echo conditionally" pattern so future scenario additions
+# stay parse-clean for --json consumers without per-call-site if-guards.
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean() {
+    if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION" == "human" ]]; then
+        echo "$@"
+    fi
+}
+
 # ─── Iter-174 empirical baseline pins (measured 2026-05-21 on local macOS arm64) ─
 # Methodology: 5-trial median measurement on each toolkit script. Caps are
 # 3x the measured median to give generous headroom for variance + legitimate
@@ -51,6 +86,8 @@ iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_perl_tim
 }
 
 # Run a single benchmark scenario: measure median, compare to cap, emit PASS/REGRESS.
+# In human mode prints the canonical text line; in --json mode appends a
+# structured record to the iter-179 per-scenario accumulator (silent to stdout).
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict() {
     local human_readable_scenario_label="$1"
     local pinned_baseline_cap_milliseconds="$2"
@@ -58,26 +95,39 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     ITER174_TOTAL_ASSERTIONS_EVALUATED=$((ITER174_TOTAL_ASSERTIONS_EVALUATED + 1))
     local observed_median_wall_clock_ms
     observed_median_wall_clock_ms=$(iter174_measure_median_wall_clock_in_milliseconds_across_n_trials_using_perl_time_hires_nanosecond_precision "$@")
+    # Extract canonical scenario id (the "A1"/"A2"/... prefix before the colon)
+    # so JSON consumers get a stable identifier independent of the human-readable
+    # description suffix (which may evolve across iters).
+    local iter179_canonical_scenario_id_extracted_from_human_readable_label="${human_readable_scenario_label%%:*}"
+    local iter179_human_readable_description_after_canonical_id_prefix="${human_readable_scenario_label#*: }"
+    local iter179_pass_or_regress_verdict_string
+    local iter179_headroom_or_overage_percentage_signed
     if (( observed_median_wall_clock_ms <= pinned_baseline_cap_milliseconds )); then
-        local headroom_percentage_unused
-        headroom_percentage_unused=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", 100 * (cap - obs) / cap }')
-        echo "  ✓ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms ≤ cap=${pinned_baseline_cap_milliseconds}ms (${headroom_percentage_unused}% headroom unused)"
+        iter179_pass_or_regress_verdict_string="PASS"
+        iter179_headroom_or_overage_percentage_signed=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", 100 * (cap - obs) / cap }')
+        iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✓ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms ≤ cap=${pinned_baseline_cap_milliseconds}ms (${iter179_headroom_or_overage_percentage_signed}% headroom unused)"
     else
-        local regression_percentage_over_cap
-        regression_percentage_over_cap=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", 100 * (obs - cap) / cap }')
-        echo "  ✗ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms > cap=${pinned_baseline_cap_milliseconds}ms (REGRESSION: ${regression_percentage_over_cap}% over cap)"
+        iter179_pass_or_regress_verdict_string="REGRESS"
+        iter179_headroom_or_overage_percentage_signed=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", -100 * (obs - cap) / cap }')
+        iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms > cap=${pinned_baseline_cap_milliseconds}ms (REGRESSION: $((iter179_headroom_or_overage_percentage_signed * -1))% over cap)"
         ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
     fi
+    # Append a JSON-safe scenario record for --json mode final-envelope emission.
+    # Labels are ASCII-only by convention so no escape lib needed; substring the
+    # description down to a JSON-safe shape (strip embedded double-quotes
+    # defensively even though current labels contain none).
+    local iter179_json_safe_description_with_double_quotes_stripped_defensively="${iter179_human_readable_description_after_canonical_id_prefix//\"/}"
+    ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
 }
 
-echo ""
-echo "═══════════════════════════════════════════════════════════════════════════════"
-echo "  ITER-174 EMPIRICAL WALL-CLOCK PERF-BASELINE REGRESSION HARNESS"
-echo "  ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} trials per script; median compared against pinned 3× headroom baseline caps"
-echo "═══════════════════════════════════════════════════════════════════════════════"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean ""
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "═══════════════════════════════════════════════════════════════════════════════"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ITER-174 EMPIRICAL WALL-CLOCK PERF-BASELINE REGRESSION HARNESS"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} trials per script; median compared against pinned 3× headroom baseline caps"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "═══════════════════════════════════════════════════════════════════════════════"
 
-echo ""
-echo "GROUP A (5 assertions): each conventional-commits toolkit script median ≤ pinned baseline cap"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean ""
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "GROUP A (5 assertions): each conventional-commits toolkit script median ≤ pinned baseline cap"
 
 # Resolve script absolute paths (already cd'd to repo root above).
 ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log-renderer-*.sh' -type f | head -1)
@@ -117,18 +167,56 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     bash "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH"
 
 # ─── Group B: structural invariant on the harness itself ────────────────────
-echo ""
-echo "GROUP B (1 assertion): harness self-pins the N-trial count constant (regression-detect on accidental N=1 sampling that would fail to compute median)"
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean ""
+iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "GROUP B (1 assertion): harness self-pins the N-trial count constant (regression-detect on accidental N=1 sampling that would fail to compute median)"
 
 ITER174_TOTAL_ASSERTIONS_EVALUATED=$((ITER174_TOTAL_ASSERTIONS_EVALUATED + 1))
 if (( ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION >= 3 )); then
-    echo "  ✓ B1: harness N-trial count = ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} (≥3 required for meaningful median; 5 is robust against single-trial cold-start jitter)"
+    iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✓ B1: harness N-trial count = ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} (≥3 required for meaningful median; 5 is robust against single-trial cold-start jitter)"
 else
-    echo "  ✗ B1: harness N-trial count = ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} (< 3; insufficient samples for median)"
+    iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ B1: harness N-trial count = ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION} (< 3; insufficient samples for median)"
     ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
 # ─── Final report ───────────────────────────────────────────────────────────
+if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION" == "json" ]]; then
+    # Emit canonical iter-179 JSON envelope. Per-scenario records were accumulated
+    # by each iter174_run_single_benchmark_scenario_... call into the array above.
+    iter179_overall_verdict_pass_or_regress_for_top_level_json_envelope_summary_field=$(( ITER174_TOTAL_ASSERTIONS_FAILED == 0 ? 0 : 1 ))
+    if (( iter179_overall_verdict_pass_or_regress_for_top_level_json_envelope_summary_field == 0 )); then
+        iter179_overall_verdict_string_for_envelope="PASS"
+    else
+        iter179_overall_verdict_string_for_envelope="REGRESS"
+    fi
+    iter179_per_scenario_records_joined_by_commas_for_json_array_body=""
+    for iter179_each_scenario_record in "${ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION[@]}"; do
+        if [[ -n "$iter179_per_scenario_records_joined_by_commas_for_json_array_body" ]]; then
+            iter179_per_scenario_records_joined_by_commas_for_json_array_body+=","
+        fi
+        iter179_per_scenario_records_joined_by_commas_for_json_array_body+=$'\n    '"$iter179_each_scenario_record"
+    done
+    cat <<EOF
+{
+  "iter174_schema_version": 1,
+  "iter174_perf_baseline_regression_harness_machine_readable_output": true,
+  "trials_per_script": ${ITER174_NUMBER_OF_WALL_CLOCK_TRIALS_PER_SCRIPT_FOR_MEDIAN_COMPUTATION},
+  "results": [${iter179_per_scenario_records_joined_by_commas_for_json_array_body}
+  ],
+  "summary": {
+    "total_evaluated": ${ITER174_TOTAL_ASSERTIONS_EVALUATED},
+    "total_failed": ${ITER174_TOTAL_ASSERTIONS_FAILED},
+    "total_passed": $((ITER174_TOTAL_ASSERTIONS_EVALUATED - ITER174_TOTAL_ASSERTIONS_FAILED)),
+    "overall_verdict": "${iter179_overall_verdict_string_for_envelope}"
+  }
+}
+EOF
+    if (( ITER174_TOTAL_ASSERTIONS_FAILED == 0 )); then
+        exit 0
+    else
+        exit 1
+    fi
+fi
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
 if (( ITER174_TOTAL_ASSERTIONS_FAILED == 0 )); then
