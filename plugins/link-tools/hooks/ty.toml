@@ -1,0 +1,37 @@
+# ty type checker configuration for link-tools/hooks/.
+#
+# Iter-77 added this config to silence false-positive `unresolved-import`
+# warnings on stop-link-check.py's ulid + tomli imports. Per the
+# inline-ignore-audit hook policy, library/tool limitations should be
+# suppressed at the config level (ty.toml [[overrides]]) rather than via
+# inline `# type: ignore` comments.
+#
+# Why the imports look unresolved to ty:
+#   stop-link-check.py is a uv-managed script with PEP 723 inline metadata
+#   (`# /// script` block) declaring its dependencies. The script is
+#   invoked via `uv run stop-link-check.py` which resolves deps lazily.
+#   ty's static analyzer cannot see PEP 723 inline metadata — it expects
+#   imports to resolve from the project's pyproject.toml / site-packages.
+#   The `ulid` (python-ulid package) and `tomli` (Python 3.10 fallback for
+#   the 3.11+ stdlib `tomllib`) imports therefore appear unresolved even
+#   though they DO resolve correctly at runtime.
+#
+# Why other ty rules remain active:
+#   We override ONLY the unresolved-import rule for these specific
+#   imports. All other ty diagnostics (undefined names, type mismatches,
+#   etc.) continue to apply with default severity.
+
+[environment]
+python-version = "3.13"
+
+[terminal]
+output-format = "concise"
+
+# Per-file override: suppress unresolved-import warnings for
+# stop-link-check.py only. Other Python files in this directory (if
+# added later) get default behavior.
+[[overrides]]
+include = ["stop-link-check.py"]
+
+[overrides.rules]
+unresolved-import = "ignore"

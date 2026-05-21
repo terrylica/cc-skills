@@ -352,6 +352,31 @@ SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-
 echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)"
 
+# Check 4k: Iter-77 hook-source L3-stripped-path audit. Acts on the
+# iter-76 cache-populator-filter forensic discovery (docs/HOOKS.md): the
+# Claude Code plugin cache populator strips any plugin-root-level
+# subtree NOT in {hooks, skills, commands, agents}. Hook source code
+# referencing ${CLAUDE_PLUGIN_ROOT}/<non-allowlisted-segment>/ resolves
+# to a missing file at L3 runtime and fails SILENTLY. Iter-77 found one
+# real instance (link-tools/hooks/stop-link-check.py's lychee.toml
+# fallback) and ships this gate to prevent recurrence. Blocks tag
+# publish so a regression cannot escape to Layer 3 operator caches
+# (see iter-42 docs/HOOKS.md for cache lifecycle).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-77 L3-stripped-path audit (hook source code)..."
+if ! mise run audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime >/tmp/iter77-l3-stripped-path-audit.log 2>&1; then
+    echo "  ✗ L3-stripped-path audit FAILED — see /tmp/iter77-l3-stripped-path-audit.log"
+    tail -25 /tmp/iter77-l3-stripped-path-audit.log
+    exit 1
+fi
+# Loose-coupled defensive grep (per iter-70 brittle-banner hardening).
+L3SP_SCANNED=$( { grep -oE 'Hook source files scanned:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+L3SP_VIOL_FOUND=$( { grep -oE 'L3-stripped-path references found:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+L3SP_WITH_OK=$( { grep -oE 'With LAYER3-STRIPPED-PATH-OK escape hatch:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+L3SP_UNJUSTIFIED=$( { grep -oE 'Unjustified violations \(silent-fail risk\):[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+echo "  ✓ L3-stripped-path: ${L3SP_SCANNED:-0} files scanned (${L3SP_VIOL_FOUND:-0} refs found, ${L3SP_WITH_OK:-0} with-ok-marker, ${L3SP_UNJUSTIFIED:-0} unjustified)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path audit (iter-77 gate)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."

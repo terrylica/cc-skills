@@ -55,13 +55,29 @@ def find_lychee_config(workspace: Path, plugin_root: Path) -> Path | None:
     1. {workspace}/.lycheerc.toml
     2. {workspace}/lychee.toml
     3. ~/.claude/.lycheerc.toml
-    4. ${CLAUDE_PLUGIN_ROOT}/config/lychee.toml
+    4. ${CLAUDE_PLUGIN_ROOT}/hooks/config/lychee.toml
+
+    Iter-77 fix for iter-76 cache-populator-filter forensic discovery: the
+    Claude Code plugin cache populator (L2 → L3) strips any plugin-root-
+    level directory NOT in {hooks, skills, commands, agents}. The original
+    fallback path (CLAUDE_PLUGIN_ROOT joined with a plugin-root-level
+    'config' directory — see git history of this file) resolved to an
+    L3-stripped directory at runtime — the file was missing from Layer 3
+    even though it existed in Layer 2 (marketplace mirror). The bundled
+    config was therefore silently unreachable from L3, breaking the
+    documented cascade chain.
+
+    Fix: relocate lychee.toml under the cached hooks/** subtree at
+    plugins/link-tools/hooks/config/lychee.toml. Path now resolves
+    correctly at L3 runtime. See docs/HOOKS.md "Iter-76 Cache-Populator-
+    Filter Forensic Finding" + iter-77 "Hook-Source L3-Stripped-Path
+    Audit Gate (Check 4k)" sections for the full forensic chain.
     """
     candidates = [
         workspace / ".lycheerc.toml",
         workspace / "lychee.toml",
         Path.home() / ".claude" / ".lycheerc.toml",
-        plugin_root / "config" / "lychee.toml",
+        plugin_root / "hooks" / "config" / "lychee.toml",
     ]
 
     for config in candidates:
@@ -97,6 +113,7 @@ def find_git_root(workspace: Path) -> Path | None:
             cwd=workspace,
             capture_output=True,
             text=True,
+            check=False,  # PLW1510 fix: returncode is inspected explicitly below
             timeout=5,
         )
         if result.returncode == 0:
@@ -174,7 +191,7 @@ def run_lychee(
     - errors: list[str] (error messages)
     """
     # Check if lychee is installed
-    if subprocess.run(["which", "lychee"], capture_output=True).returncode != 0:
+    if subprocess.run(["which", "lychee"], capture_output=True, check=False).returncode != 0:  # PLW1510 fix: explicit check=False — `which` returncode is the load-bearing signal
         return {
             "ran": False,
             "error_count": 0,
@@ -210,6 +227,7 @@ def run_lychee(
             text=True,
             timeout=60,
             env={**os.environ, "NO_COLOR": "1"},
+            check=False,  # PLW1510 fix: lychee exit code is parsed and reported (non-zero is expected when broken links found)
         )
 
         # Parse JSON output
