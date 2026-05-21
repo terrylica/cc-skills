@@ -234,6 +234,29 @@ ITER147_VARIANCE_PROFILE_RUN_COUNT=10 scripts/iter148-...sh
 
 **Distribution-level confidence**: Both conditions have σ ≈ 30ms (very stable — neither distribution flagged HIGH variance by the iter-147 σ/p50 > 0.20 trap detector). The 3.30x ratio is signal, not single-sample noise. Operator can confidently enable `RELEASE_SSH_MULTIPLEXING_ENABLED=1` or the iter-146 setup script knowing the speedup is empirically real.
 
+## Conventional-Commits Operator Toolkit Index (iter-150 → iter-156 arc)
+
+The cc-skills conventional-commits arc ships **5 operator-facing tools** across the full commit lifecycle. Run `mise run commits` (no subcommand) for the in-terminal cheatsheet. The index below is the canonical reference.
+
+| Lifecycle stage              |     Iter | Tool                                           | Purpose                                                     |
+| ---------------------------- | -------: | ---------------------------------------------- | ----------------------------------------------------------- |
+| **VIEW**                     | iter-150 | `mise run release:history`                     | Awk soft-wrap renderer for verbose subjects                 |
+| **DETECT**                   | iter-151 | Preflight Check 4l (auto)                      | Long-subject overlay classifier, informational              |
+| **HEALTH SUMMARY**           | iter-152 | `mise run commits:health`                      | 5-panel operator dashboard                                  |
+| **HEALTH SUMMARY (AI)**      | iter-155 | `mise run commits:health --json`               | Machine-readable dashboard, stable iter155_schema_version=1 |
+| **PRE-COMMIT ADVISE**        | iter-153 | `mise run commits:advise -- "<subj>"`          | Dry-run classifier before committing                        |
+| **PRE-COMMIT ADVISE (AI)**   | iter-153 | `mise run commits:advise --json -- "<subj>"`   | Machine-readable advisor, stable iter153_schema_version=1   |
+| **PRE-COMMIT ADVISE (gate)** | iter-153 | `mise run commits:advise --strict -- "<subj>"` | Exit non-zero on silent-fail-class violations               |
+| **PRE-COMMIT AUTO-DETECT**   | iter-154 | `mise run commits:advise` (no args, TTY)       | Reads `.git/COMMIT_EDITMSG` during editor-launched commit   |
+
+**Going-forward convention** (iter-150 industry-standard adoption): subject ≤50 chars hard target, ≤72 chars hard cap; body wrapped at 72 chars per line; blank line separates subject from body. Canonical spec: [conventionalcommits.org](https://www.conventionalcommits.org/) + [cbea.ms/git-commit](https://cbea.ms/git-commit/).
+
+**Shared library**: All AI-agent JSON outputs share a single pure-bash RFC 8259 escape function at `scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh` (iter-155 SSoT). No python3 dependency.
+
+**Empirical adoption signal**: First iter-152 dashboard run against actual cc-skills HEAD post-iter-155 shows median subject length dropped from **177.5 → 37.5 chars (-79%)** and conformance rose from **50% → 70% (+20pp)** between previous-10 and current-10 windows. Verdict: **IMPROVING**.
+
+For deep dives into each tool's design contract, see the iter-150 through iter-155 subsections below.
+
 ## Operator-Facing Release-History Readable View (iter-150)
 
 Run `mise run release:history` to render `git log` with awk-based soft-wrap of the verbose iter-N commit subjects to terminal-width with proper indentation and color. Addresses the operator-readability problem caused by the kebab-cased verbose conventional-commit subjects in the iter-144-through-iter-149 cohort (754–1078 chars per subject on one line — unreadable in `git log --oneline`, GitHub UI lists, and code-review tools).

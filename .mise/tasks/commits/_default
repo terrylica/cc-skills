@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+#MISE description="Iter-156 default-when-no-subcommand dispatcher for the commits namespace. Prints a compact operator-facing index of the iter-150-through-iter-155 conventional-commits arc toolkit: 5 tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict). Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the 5 arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in `mise tasks` output."
+set -euo pipefail
+
+# ANSI color codes — gracefully degrade to plain text when stdout is not a TTY.
+if [[ -t 1 ]]; then
+    ITER156_ANSI_COLOR_BOLD="$(printf '\033[1m')"
+    ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS="$(printf '\033[36m')"
+    ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS="$(printf '\033[32m')"
+    ITER156_ANSI_COLOR_RESET="$(printf '\033[0m')"
+else
+    ITER156_ANSI_COLOR_BOLD=""
+    ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS=""
+    ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS=""
+    ITER156_ANSI_COLOR_RESET=""
+fi
+
+cat <<EOF
+
+═══════════════════════════════════════════════════════════════════════════════
+  ${ITER156_ANSI_COLOR_BOLD}CC-SKILLS CONVENTIONAL-COMMITS OPERATOR TOOLKIT${ITER156_ANSI_COLOR_RESET}  (iter-150 → iter-155 arc)
+═══════════════════════════════════════════════════════════════════════════════
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run release:history${ITER156_ANSI_COLOR_RESET}
+      Awk-based soft-wrap renderer for verbose conventional-commit subjects.
+      Tunables: ITER150_COMMIT_COUNT_TO_DISPLAY (default 10),
+                ITER150_SOFT_WRAP_COLUMN_WIDTH (default 80).
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DETECT (iter-151) — preflight long-subject overlay classifier ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run audit-recent-git-commit-messages-...${ITER156_ANSI_COLOR_RESET}
+      (Runs automatically as Check 4l during release:preflight.)
+      Iter-151 extended the iter-82 validator with informational overlay
+      flagging conformant commits whose subject exceeds the iter-150
+      72-char industry hard cap.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── HEALTH SUMMARY (iter-152, with iter-155 --json) — 5-panel dashboard ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health${ITER156_ANSI_COLOR_RESET}
+      5-panel operator dashboard: readable view + length-distribution
+      histogram + worst-offender callouts + type distribution + trend
+      signal (IMPROVING/REGRESSING/STABLE/MIXED vs previous N-commit
+      window).
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health --json${ITER156_ANSI_COLOR_RESET}
+      Same data, machine-readable JSON for AI-agent automation. Stable
+      iter155_schema_version=1. Pipe to jq:
+        \`mise run commits:health --json | jq .panel_5_recent_vs_previous_window_trend_signal.verdict\`
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-153, with iter-154 hardening) — dry-run advisor ───${ITER156_ANSI_COLOR_RESET}
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise -- "<proposed subject>"${ITER156_ANSI_COLOR_RESET}
+      Classify a proposed conventional-commit subject BEFORE committing.
+      Verdict: COMMIT_READY / COMMIT_READY_WITH_READABILITY_WARNING /
+      SILENT_FAIL_RISK (COMPOUND-PREFIX or MISSING-TYPE).
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --json -- "<subject>"${ITER156_ANSI_COLOR_RESET}
+      Same advisor, machine-readable JSON for AI agents.
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --strict -- "<subject>"${ITER156_ANSI_COLOR_RESET}
+      Exit non-zero on silent-fail-class violations (manual gating mode).
+
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise${ITER156_ANSI_COLOR_RESET}    (no args, in interactive terminal)
+      Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
+      during an editor-launched git commit flow.
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── CONVENTION (iter-150 going-forward standard) ───${ITER156_ANSI_COLOR_RESET}
+
+  Conventional-commits 50/72 rule:
+    Subject: ≤50 chars hard target, ≤72 chars hard cap
+    Body:    wrapped at 72 chars per line, blank line separates subject
+
+  Canonical spec:    https://www.conventionalcommits.org/
+  Seven-rules essay: https://cbea.ms/git-commit/
+
+${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DEEP DIVE ───${ITER156_ANSI_COLOR_RESET}
+
+  Full operator documentation:
+    docs/RELEASE.md → "Conventional-Commits Operator Toolkit Index"
+    https://github.com/terrylica/cc-skills/blob/main/docs/RELEASE.md
+
+═══════════════════════════════════════════════════════════════════════════════
+
+EOF
