@@ -1,3 +1,10 @@
+# [21.45.0](https://github.com/terrylica/cc-skills/compare/v21.44.0...v21.45.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-114 introduce second parallel canonical registry covering AUDIT-TASK escape-hatch markers consumed by dot-mise audit tasks at release-preflight time plus extend iter-113 doc generator to render two distinct lifecycle layers in one operator-facing reference doc closing the marker-coverage gap left by iter-111 ([8434da8](https://github.com/terrylica/cc-skills/commit/8434da813bb69d528916637b558777090bc0afa8))
+
 # [21.44.0](https://github.com/terrylica/cc-skills/compare/v21.43.0...v21.44.0) (2026-05-21)
 
 
