@@ -491,6 +491,32 @@ else
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4o: PreToolUse/PostToolUse matcher-hygiene audit (iter-101 gate; informational)"
 
+# Check 4p: Iter-103 marketplace-wide NotebookEdit applicability audit.
+# Per 2026 Anthropic canonical recommendation, the file-edit tool quadruple
+# is `Edit|MultiEdit|Write|NotebookEdit`. NotebookEdit has a DIFFERENT
+# payload shape (notebook_path + cell_id + new_source + edit_mode)
+# operating on Jupyter .ipynb cells, NOT file content. This audit produces
+# a per-classifier applicability matrix surfacing hooks that SHOULD honor
+# NotebookEdit because their content patterns apply to notebook cell source
+# (e.g., hardcoded versions in version-guard, PyTorch GPU patterns in gpu-
+# optimization-guard). PURE INFORMATIONAL — community-validated 2026
+# NotebookEdit bugs (insert-positioning, git diff noise, Jupyter MCP server
+# recommendation) mean per-hook broadening is conditional, NOT universal.
+# Iter-104+ scope: per-classifier NotebookEdit payload-shape adaptation
+# for the APPLICABLE cohort (version-guard, gpu-optimization-guard, ssot-
+# principles, memory-efficiency-reminder).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-103 NotebookEdit applicability marketplace audit (informational)..."
+if ! mise run audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple >/tmp/iter103-notebookedit-applicability-audit.log 2>&1; then
+    echo "  ⚠ NotebookEdit applicability audit exited non-zero (informational only — never blocks release)"
+fi
+# Loose-coupled defensive grep extraction (iter-70 brittle-banner hardening pattern).
+NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'APPLICABLE \(high-value coverage gap\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT=$( { grep -oE 'POTENTIALLY-APPLICABLE \(conditional value\):[[:space:]]+[0-9]+' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
+NOTEBOOKEDIT_HONORING_MATCHER_COUNT=$( { grep -oE '[0-9]+ matchers currently include NotebookEdit' /tmp/iter103-notebookedit-applicability-audit.log || true; } | grep -oE '^[0-9]+' | head -1 || echo 0)
+echo "  ✓ NotebookEdit applicability audit: ${NOTEBOOKEDIT_APPLICABLE_CLASSIFIER_COUNT:-0} APPLICABLE + ${NOTEBOOKEDIT_POTENTIALLY_APPLICABLE_CLASSIFIER_COUNT:-0} POTENTIALLY-APPLICABLE classifiers surfaced (current marketplace coverage: ${NOTEBOOKEDIT_HONORING_MATCHER_COUNT:-0} matchers honor NotebookEdit)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4p: NotebookEdit applicability audit (iter-103 gate; informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
