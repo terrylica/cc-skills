@@ -36,6 +36,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
@@ -141,8 +142,15 @@ ty is 60x faster than mypy (4.7ms incremental) — fast enough to run on every e
         ? `[TY] ${tyErrorDiagnosticCount} error(s), ${tyWarningDiagnosticCount} warning(s) in ${editedFileBaseName}`
         : `[TY] ${tyWarningDiagnosticCount} warning(s) in ${editedFileBaseName}`;
 
+    // Iter-105: defense-in-depth against Claude's 10K-character hook-output
+    // file-spillover threshold. The classifier's own per-line truncation
+    // (MAX_TYPE_CHECK_DIAGNOSTIC_LINES_BEFORE_TRUNCATION) bounds line COUNT
+    // but not total CHARACTER count — a single very-long type error could
+    // still overflow. The canonical helper provides the absolute guarantee.
     return buildPostToolUseAdditionalContextDecision(
-      `${diagnosticSummaryLine}:\n\n${renderedDiagnostics}`,
+      truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+        `${diagnosticSummaryLine}:\n\n${renderedDiagnostics}`,
+      ),
     );
   } catch {
     return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;

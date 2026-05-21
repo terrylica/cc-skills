@@ -35,6 +35,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
@@ -124,8 +125,11 @@ oxlint runs in ~40-65ms — fast enough to run on every edit. Catches real bugs:
 
     if (!filteredDiagnosticOutput) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
+    // Iter-105: defense-in-depth against Claude's 10K-character file-spillover threshold.
     return buildPostToolUseAdditionalContextDecision(
-      `[OXLINT] Lint issues in ${filePath.split("/").pop()}:\n\n${filteredDiagnosticOutput}`,
+      truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+        `[OXLINT] Lint issues in ${filePath.split("/").pop()}:\n\n${filteredDiagnosticOutput}`,
+      ),
     );
   } catch {
     return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;

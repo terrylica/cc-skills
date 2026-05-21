@@ -39,6 +39,7 @@ import type {
 import {
   POSTTOOLUSE_SUBHOOK_NOOP_DECISION,
   buildPostToolUseAdditionalContextDecision,
+  truncateHookOutputToStayBelowClaudeFileSpilloverThreshold,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
@@ -148,8 +149,11 @@ Unique catches: useConst, noDoubleEquals, useNodejsImportProtocol, noImplicitAny
     const biomeOutputTextForOperator = biomeStderr || biomeExecutionResult.stdoutText;
     if (!biomeOutputTextForOperator) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
+    // Iter-105: defense-in-depth against Claude's 10K-character file-spillover threshold.
     return buildPostToolUseAdditionalContextDecision(
-      `[BIOME] Lint issues in ${filePath.split("/").pop()}:\n\n${biomeOutputTextForOperator}`,
+      truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(
+        `[BIOME] Lint issues in ${filePath.split("/").pop()}:\n\n${biomeOutputTextForOperator}`,
+      ),
     );
   } catch {
     return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
