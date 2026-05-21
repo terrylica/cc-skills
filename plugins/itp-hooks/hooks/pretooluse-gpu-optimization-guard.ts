@@ -60,6 +60,7 @@ import {
 import {
   ALLOW_DECISION,
   denyDecision,
+  isFileEditToolNameHonoredByPreToolUseBlockingSubhook,
   type PreToolUseSubhookDecision,
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 
@@ -395,7 +396,13 @@ export async function classifyGpuOptimizationGuardForOrchestrator(
   input: PreToolUseInput,
 ): Promise<PreToolUseSubhookDecision> {
   const toolName = input.tool_name || "";
-  if (toolName !== "Write" && toolName !== "Edit") {
+  // Iter-102: route through canonical contract helper (closes iter-101 residual gap).
+  if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(toolName)) {
+    return ALLOW_DECISION;
+  }
+  // Iter-102 staged-migration short-circuit: MultiEdit payload-shape
+  // adaptation is iter-103+ per-classifier work. Preserves status quo.
+  if (toolName === "MultiEdit") {
     return ALLOW_DECISION;
   }
 
