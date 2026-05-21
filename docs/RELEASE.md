@@ -200,6 +200,82 @@ After iter-75 flattened the distribution, the top-4 phases are within 1.9× of e
 
 The PREFLIGHT_TIMING_PROFILE=1 instrumentation has now validated two predicted perf wins end-to-end. Keep the knob shipped default-off; it will validate iter-76+ wins the same way.
 
+### Operator-Tunable Perf Knobs (iter-73 → iter-132 cumulative reference)
+
+Six operator-facing env-var knobs accumulated during the iter-73 → iter-132 perf+usability campaign. All default-off / sensible-default; opt in to surface diagnostic output or override built-in heuristics. Listed in order of common-use frequency.
+
+#### `PREFLIGHT_TIMING_PROFILE=1` (iter-73, enhanced iter-130)
+
+Surface per-phase wall-clock timing instrumentation during `mise run release:preflight`. Default off — preflight output is unchanged. When set:
+
+- Emits `⧗ phase elapsed: Nms (Check X: label)` line after each check
+- Emits whole-script total at end-of-script
+- **Iter-130 enhancement**: emits a `Top N slowest preflight checks` bottleneck-ranking summary at end-of-script (default N=5), so operators iterating on perf see the dominant cost without manually scanning all `⧗` lines
+
+```bash
+# Bare timing
+PREFLIGHT_TIMING_PROFILE=1 mise run release:preflight 2>&1 | grep '⧗'
+
+# Top 3 instead of default top 5
+PREFLIGHT_TIMING_PROFILE=1 \
+  ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=3 \
+  mise run release:preflight 2>&1 | tail -15
+```
+
+#### `MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=N` (iter-131)
+
+Surface per-test wall-clock ranking in the marketplace hook regression suite output. Default unset (no ranking section emitted; output bit-for-bit identical to pre-iter-131 for CI consumers). When set to a positive integer N:
+
+- Each test's wall-clock captured via `$EPOCHREALTIME` start/end + awk math in the xargs -P worker
+- Per-test elapsed-ms written to a sidecar `.elapsed_ms` file (sub-millisecond cost — no fork)
+- End-of-aggregation emits `Top N slowest tests` ranked-descending summary
+
+```bash
+# Surface top 5 slowest tests with their elapsed-ms
+MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=5 \
+  mise run test-marketplace-hook-regression-suite 2>&1 | tail -15
+```
+
+Useful when iterating on test perf — surfaces the bun-spawn-heavy orchestrator tests dominating wall-clock.
+
+#### `MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES=N` (iter-75, adaptive default iter-128)
+
+Override the parallel-lane count for the marketplace hook regression suite. **Default is adaptive**: `clamp(sysctl_hw_ncpu - 4, 4, 12)` — leaves 4-core headroom for OS+IDE, floors at 4 for low-end laptops, ceilings at 12 to avoid the bun-cold-start contention plateau measured at lanes=12 during iter-128 (lanes=10 is empirically the sweet spot on 14-core M-series; lanes=12 regressed 4-5%).
+
+- 4-core machines: 4 lanes (floor)
+- 8-core machines: 4 lanes
+- 14-core M-series: 10 lanes (sweet spot)
+- 16-core machines: 12 lanes (ceiling)
+
+```bash
+# Override to a specific count (e.g., for benchmarking or CI runners)
+MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES=8 \
+  mise run test-marketplace-hook-regression-suite
+```
+
+#### `ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1` (iter-132)
+
+Opt-in flag for the iter-132 regression test's preflight-integration tier. Default off — the test's standalone mode runs Tier 1 (source-fingerprint, ~50ms) + Tier 2.B (iter-131 suite integration, ~3s) but skips Tier 2.A (iter-130 preflight integration, ~7s) to keep the regression test fast in the common case. Enable when you're specifically iterating on the iter-130 preflight-summary feature.
+
+```bash
+ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 \
+  bash .mise/tasks/tests/test-iter130-and-iter131-bottleneck-ranking-summaries-*.sh
+```
+
+#### `AUDIT_REPO_ROOT_OVERRIDE=/path/to/synthetic/fixture/repo` (iter-62)
+
+Override the repo root scanned by audit tasks. Default unset — audits resolve their repo root from `$BASH_SOURCE` (their own location in the marketplace). Override when running an audit against a synthetic fixture fleet to verify it correctly detects (or doesn't detect) violations.
+
+```bash
+# Run iter-62 inverse-schema audit against a synthetic fixture
+AUDIT_REPO_ROOT_OVERRIDE=/tmp/fixture-fleet \
+  bash .mise/tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-...
+```
+
+#### `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1` (iter-75)
+
+**Not an operator knob** — set automatically by the marketplace regression suite runner when it invokes per-test bash workers. Tests that need to invoke the runner themselves (e.g., iter-75 parity test, iter-132 bottleneck-ranking test) check this guard and self-skip their inner-runner integration tier to prevent infinite recursion. Documented here for completeness.
+
 ### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
 
 `.mise/tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
