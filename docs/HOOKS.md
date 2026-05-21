@@ -1436,6 +1436,59 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-118: Levenshtein-edit-distance-ranked "Did you mean?" fuzzy-match suggestion in iter-116 CLI unknown-path branch — operator typo correction
+
+Iter-118 enhances the iter-116 reverse-search CLI's unknown-path branch with the industry-standard "Did you mean?" pattern (mirrors `git`, `cargo`, `kubectl`). When an operator types a consumer source file path that doesn't match any registered consumer, the CLI now computes Levenshtein edit distance from the operator query to each of the 19 registered paths, ranks ascending, and surfaces the top-3 closest matches IF the closest one is within a typo-plausibility threshold. Unrelated queries (no shared structure with any registered path) deterministically fall back to the iter-116 full-list display rather than misleadingly suggesting three random-looking paths.
+
+**Two-branch unknown-path UX**
+
+| Branch                            | Trigger                                                                              | What operator sees                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| "Did you mean?" top-3             | Top-ranked candidate distance ≤ ⌊queryLen / 3⌋ (plausible typo of a real path)       | 3 closest paths with `[N edit(s)]` annotation, sorted ascending     |
+| Full-list dump (iter-116 default) | Top-ranked candidate distance > threshold (query unrelated to every registered path) | All 19 registered consumer paths with a diagnostic distance message |
+
+**Threshold algorithm**
+
+`isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOneThirdOfQueryLengthAsThreshold(topDistance, queryLength)` — fractional bound of `⌊queryLength / 3⌋` with a floor of 2 for very short queries (otherwise floor(1/3 × shortQuery) = 0 would reject all imperfect matches on single-character paths). The "one third" fraction is documented as part of the function name so it can't silently change without a paired rename.
+
+**Levenshtein implementation**
+
+`computeLevenshteinEditDistanceBetweenTwoStrings(stringA, stringB)` — standard 2-row dynamic-programming implementation (memory: O(min(a, b)); time: O(a × b)). The function name encodes "Levenshtein edit distance" — standard industry terminology — so the algorithm is unambiguous without reading the body. Used at sub-millisecond cost per CLI invocation (19 registered paths × ~80 chars average = ~120K DP cell updates).
+
+**Live example**
+
+```
+$ mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \
+    plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts   # extra 's'
+✗ No registered escape-hatch markers target this consumer path:
+    plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts
+
+  Did you mean (top-3 closest matches by Levenshtein edit distance)?
+
+    [1 edit] plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+    [7 edits] plugins/itp-hooks/hooks/pretooluse-version-guard.ts
+    [8 edits] plugins/itp-hooks/hooks/pretooluse-pyi-stub-guard.ts
+```
+
+**Regression test (`test-iter118-…-when-operator-typed-path-close-to-a-registered-one.sh`)**
+
+| Case | What it verifies                                                                                                       |
+| ---- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1    | Accessor exports all 3 new iter-118 functions (Levenshtein DP + top-K ranker + threshold predicate)                    |
+| 2    | Levenshtein DP correct on textbook reference cases (`kitten`↔`sitting`=3, `abc`↔`abc`=0, empty↔`abc`=3, `abc`↔empty=3) |
+| 3    | Top-3 ranker returns intended path with distance 1 on synthetic single-edit typo; list sorted ascending                |
+| 4    | Threshold predicate accepts close typo (distance 1 ≤ ⌊queryLen/3⌋) and rejects unrelated query (distance 50 >)         |
+| 5    | CLI on plausible-typo input emits "Did you mean?" top-3 with `[1 edit]` for intended path; no fallback                 |
+| 6    | CLI on truly-unrelated input falls back to full-list display (no misleading suggestions)                               |
+| 7    | iter-118 enhancement does NOT regress the iter-116 happy-path (known-consumer lookup unchanged)                        |
+
+All 7 cases pass. Marketplace regression suite: **52/52** (up from 51). Iter-116 Case 7 was updated to use a no-shared-prefix unrelated path so it deterministically lands in the iter-118 fallback branch.
+
+**Iter-119+ candidates queued**
+
+- Stale-description audit (task #144 — deferred since iter-117 in favor of higher-leverage UX wins): verify every registry entry's `humanReadableEscapeHatchDescriptionForOperatorDocumentation` (iter-111) / `releaseInvariantSuppressedDescriptionForOperatorDocumentation` (iter-114) mentions a hook/task name consistent with declared consumer-path. Wire as preflight Check 4v informational.
+- JSON output mode for iter-116 CLI (`--json` flag): emit machine-readable output for piping to `jq` + downstream automation. The top-K ranking already has a structured shape (`RegisteredConsumerPathRankedByLevenshteinDistanceFromQuery`) so the JSON renderer is a thin wrapper over existing data.
+
 ### Iter-117: Inject auto-generated table of contents with GitHub-Flavored-Markdown anchor links at top of reference doc — operator quick-navigation across 20 marker sections
 
 Iter-117 closes the third operator-discoverability gap in this arc:
