@@ -1436,6 +1436,73 @@ Both migrations are behavior-preserving — the iter-107 + iter-78 regression te
 
 The 4 hooks that historically used `/i` will set `caseSensitivityMode: "CASE_INSENSITIVE"` to be behavior-preserving — operators who relied on the lenient matching continue to see their lowercase markers honored. Once all 5 remaining migrations land, the iter-107 inventory audit promotes from informational (Check 4s) to strict-block.
 
+### Iter-114: Second parallel canonical registry for AUDIT-TASK escape-hatch markers + iter-113 doc generator extended to render both lifecycle layers
+
+Iter-114 closes the marker-coverage gap left by iter-111 (which covered only RUNTIME-HOOK markers). The marketplace now has two parallel canonical registries, mirroring two distinct lifecycle layers:
+
+| Layer        | Consumer              | When                       | Registry                | Entries (iter-114 baseline) |
+| ------------ | --------------------- | -------------------------- | ----------------------- | --------------------------- |
+| RUNTIME-HOOK | Pre/PostToolUse hooks | Every Write/Edit/Bash      | iter-111 registry       | 12                          |
+| AUDIT-TASK   | `.mise/` audit tasks  | Once per release-preflight | iter-114 registry (NEW) | 8                           |
+
+**Why two registries instead of one polymorphic registry**
+
+Each registry's TypeScript shape encodes consumer-type-specific fields without polymorphism:
+
+- iter-111 entries declare `consumerHookSourceFileRelativePath` + `windowSemanticsModeDeclaredAtConsumerCallSite` (runtime hooks consume markers via the iter-107 helper, which has window-semantics)
+- iter-114 entries declare `consumerAuditTaskSourceFileRelativePath` (audit tasks consume markers via bash grep, which has no window-semantics — they grep the whole file)
+
+A single polymorphic registry would either lose type safety (`consumerSourceFileRelativePath` could refer to either kind) or require a discriminated union with a `markerCategory` field that complicates every iteration. The two-registry split is simpler.
+
+**Iter-114 baseline: 8 audit-task markers**
+
+| Marker                            | Consumer audit                         | Suppresses                                               |
+| --------------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| `ESCAPE-HATCH-AUDIT-OK`           | iter-110 escape-hatch invariant        | Cohort requirement for a specific hook                   |
+| `HOOK-OUTPUT-SIZE-CAP-OK`         | iter-105 unbounded-emission truncation | Truncation-helper wrap for a classifier                  |
+| `MATCHER-NO-MULTIEDIT-OK`         | iter-101 matcher-hygiene               | MultiEdit inclusion requirement on Write\|Edit matchers  |
+| `ORDERING-OK`                     | iter-61 pueue-wrap last-entry          | pueue-wrap-guard must-be-last invariant                  |
+| `POSTTOOLUSE-RAW-STDOUT-OK`       | iter-99 raw-stdout-emission            | Raw stdout in PostToolUse TypeScript hooks               |
+| `SPAWN-SYNC-OK`                   | iter-94 no-Bun.spawnSync               | spawnSync in PostToolUse orchestrator subhooks           |
+| `STOP-HOOK-ADDITIONAL-CONTEXT-OK` | iter-67/68/69 Stop-hook pentad         | additionalContext-emission in lifecycle-tail event hooks |
+| `WILDCARD-MATCHER-OK`             | iter-65 wildcard-matcher               | `*` or null matcher in Pre/PostToolUse hook entries      |
+
+Audit markers all require ≥10-character reason after the colon (release-blocking invariants demand justification).
+
+**Iter-113 doc generator extended**
+
+The iter-113 generator now imports BOTH registries and renders TWO distinct catalogs in `docs/marketplace-escape-hatch-marker-reference.md`:
+
+1. `## Runtime-hook marker catalog (12 registered markers consumed by iter-107 shared helper)`
+2. `## Audit-task marker catalog (8 registered markers consumed by .mise/ release-preflight audit tasks)`
+
+Operators get a single discoverable artifact (20 marker sections in alphabetical order within each catalog) covering both lifecycle layers. The doc-drift detection (preflight Check 4u) continues to work — it validates that the on-disk doc matches the registry-derived output regardless of which registry produced each section.
+
+**Iter-114 regression test (6 cases)**
+
+| Case | Verifies                                                                                             |
+| ---- | ---------------------------------------------------------------------------------------------------- |
+| 1    | iter-114 audit-task registry has all 4 documented exports                                            |
+| 2    | Registry contains all 8 iter-114 baseline audit markers                                              |
+| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `.mise/tasks/audit-*.sh` file |
+| 4    | iter-113 doc generator renders all 8 audit-task marker sections in dedicated audit-task catalog      |
+| 5    | Lookup-by-name helper resolves known marker with full field set; returns undefined for unknown       |
+| 6    | iter-113 generator idempotency invariant still holds with two-registry input (no drift on `--check`) |
+
+**Behavior-preserving end-to-end**
+
+- iter-114 regression: 6/6 PASS
+- iter-113 regression: 7/7 PASS (test updated to recognize two-catalog structure)
+- iter-110 STRICT audit: PASS (9/9 cohort migrated)
+- iter-111 producer-marker audit: PASS (0 unregistered)
+- Marketplace regression suite: **48/48 PASS** (iter-114 test auto-discovered, up from 47)
+
+**Iter-115+ candidates**
+
+1. Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 doc-drift detector) from informational to STRICT-BLOCK now that both marker families are formally registered
+2. Add reverse-search accessor `lookupCanonicalRegistryEntryByConsumerSourceFileRelativePath` spanning both registries (operators can ask "what marker suppresses hook/audit X?" programmatically)
+3. Extend the iter-111 producer-typo audit to scan `.mise/` files for audit-task-marker typos (currently the audit excludes `.mise/`); requires careful scope to avoid false-positives on the audit-task scripts that USE their own markers as documentation
+
 ### Iter-113: Registry-to-docs generator emitting operator-facing `docs/marketplace-escape-hatch-marker-reference.md` from the iter-111 canonical registry as SSoT
 
 Iter-113 closes the operator-discoverability gap left by iter-111: the canonical producer-marker registry was a TypeScript SSoT readable by static-analysis tools but NOT by operators browsing the repo. Iter-113 introduces a deterministic markdown rendering of the registry that is committed to git and kept in sync with the source via a drift-detection check.

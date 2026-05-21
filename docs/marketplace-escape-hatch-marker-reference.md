@@ -11,7 +11,7 @@
 
 ## Purpose
 
-Every consumer hook in the marketplace honors an escape-hatch marker comment that lets operators opt out of the hook's enforcement on a per-file (or per-line) basis. This document catalogs every legitimate marker token with its consumer hook, case-sensitivity policy, window-semantics policy, and operator-readable description.
+The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by .mise/ release-preflight audit tasks via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.
 
 ## How to use this reference
 
@@ -26,7 +26,9 @@ Every consumer hook in the marketplace honors an escape-hatch marker comment tha
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Marker catalog (12 registered markers)
+## Runtime-hook marker catalog (12 registered markers consumed by iter-107 shared helper)
+
+These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
 ## `BASH-LAUNCHD-OK`
 
@@ -230,6 +232,138 @@ Every consumer hook in the marketplace honors an escape-hatch marker comment tha
 
 ```
 # SSoT-OK
+```
+
+## Audit-task marker catalog (8 registered markers consumed by .mise/ release-preflight audit tasks)
+
+These markers are honored by .mise/ audit tasks at release-preflight time — they opt a specific source file out of a release-blocking marketplace-wide invariant check. Detection runs ONCE per release (not on every tool invocation). Audit markers commonly require a ≥10-character reason after a colon because legitimate exceptions to release-blocking invariants demand justification.
+
+## `ESCAPE-HATCH-AUDIT-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-110 STRICT-BLOCK escape-hatch-marker detection invariant for a specific hook source file. This invariant enforces that every consumer hook in the canonical cohort routes its marker detection through the iter-107 shared helper. Use this opt-out ONLY for a documented architectural exception (e.g., a future hook that must use bash-grep detection rather than the helper for performance-critical reasons in a verified hot path). Requires ≥10-character justification after the colon.
+
+**Example usage**:
+
+```
+# ESCAPE-HATCH-AUDIT-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `HOOK-OUTPUT-SIZE-CAP-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-105 marketplace-wide unbounded-emission truncation-helper invariant for a specific PreToolUse or PostToolUse hook classifier. The invariant enforces that every classifier wraps its decision-reason output through the iter-106 canonical truncation helper to stay below Claude's 10,000-character hook-output file-spillover threshold. Use this opt-out for classifiers whose reason emission is provably bounded by a smaller invariant (e.g., a 500-char fixed-format message). Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# HOOK-OUTPUT-SIZE-CAP-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `MATCHER-NO-MULTIEDIT-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-101 matcher-hygiene invariant for a specific hook entry. The invariant enforces that any hook matcher containing `Write|Edit` also includes `MultiEdit` (because MultiEdit is a distinct tool name in the Claude Code tool schema — pre-iter-100 hooks that matched `Write|Edit` silently skipped MultiEdit invocations). Use this opt-out for the rare hook that deliberately ignores MultiEdit (e.g., a hook that only operates on single-file Write operations and has no semantic for batch edits). Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# MATCHER-NO-MULTIEDIT-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `ORDERING-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-61 pueue-wrap-guard last-entry ordering invariant for a specific hook entry. The invariant enforces that `pretooluse-pueue-wrap-guard.ts` is the LAST PreToolUse Bash-matcher entry in any `hooks.json`, mitigating GitHub anthropics/claude-code#15897 (multi-hook updatedInput aggregation last-writer-wins bug). Use this opt-out only when a downstream PreToolUse hook MUST run after pueue-wrap-guard (rare). Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# ORDERING-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `POSTTOOLUSE-RAW-STDOUT-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-99 raw-stdout-emission invariant for a specific PostToolUse TypeScript hook. The invariant enforces that PostToolUse hooks emit ONLY decision-JSON to stdout (per the official Anthropic schema, non-JSON stdout from PostToolUse is silently dropped from Claude's context and only reaches operator transcripts). Use this opt-out for hooks that emit raw stdout INTENTIONALLY as transcript-only debug output (e.g., the iter-66 Stop-orchestrator stderr-aggregation path). Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# POSTTOOLUSE-RAW-STDOUT-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `SPAWN-SYNC-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-94 no-Bun.spawnSync invariant for a specific PostToolUse orchestrator subhook. The invariant enforces that classifiers inlined into the iter-93 PostToolUse multi-aggregation orchestrator use `Bun.spawn` (async) rather than `Bun.spawnSync` — the latter halts the JS event loop and defeats `Promise.all` parallelism (per Bun docs + 2026 community guidance). Use this opt-out for subhooks where a verified architectural constraint requires synchronous semantics. Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# SPAWN-SYNC-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `STOP-HOOK-ADDITIONAL-CONTEXT-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-67 / iter-68 / iter-69 Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext-emission silent-drop pentad invariant for a specific hook source file. The invariant enforces that the five lifecycle-tail event types emit ONLY {decision, reason} per the official Anthropic schema (additionalContext from these events is silently read by NO consumer and dropped from Claude's context). Use this opt-out for hooks that emit additionalContext INTENTIONALLY to make iter-66-style stderr-route output explicit. Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# STOP-HOOK-ADDITIONAL-CONTEXT-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
+```
+
+## `WILDCARD-MATCHER-OK` (audit-task)
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Opt out of the iter-65 wildcard-matcher invariant for a specific Pre/PostToolUse hook entry. The invariant enforces that no hook matcher is `*` or null (because wildcard matchers cold-start bun on every tool call, costing ~12-17ms CPU/latency per non-meaningful invocation — measured by the iter-80 bun-startup-floor profiler). Use this opt-out for hooks that legitimately need to fire on every tool call regardless of tool name (rare; usually a more specific matcher exists). Requires ≥10-character justification.
+
+**Example usage**:
+
+```
+# WILDCARD-MATCHER-OK: explain the deliberate exception to this release-blocking invariant in at least 10 characters
 ```
 
 ## Marketplace UPPER-KEBAB-CASE convention
