@@ -70,8 +70,11 @@ echo ""
 # shapes differ (echo + jq vs console.log + JSON.stringify).
 
 mapfile -t POSTTOOLUSE_TYPESCRIPT_HOOK_ABSOLUTE_PATHS_TO_AUDIT < <(
-    find "$REPO_ROOT/plugins" \
-        -type f \
+    # Iter-125 perf-win: -mindepth 3 -maxdepth 3 confines find to
+    # plugins/<plugin>/hooks/<file> depth, skipping descent into
+    # skills/, scripts/, references/, node_modules/, etc.
+    # ~226ms -> ~8ms for plugins/-rooted finds (28x speedup measured).
+    find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -type f \
         \( -name 'posttooluse-*.ts' -o -name 'posttooluse-*.mjs' \) \
         -not -path '*/hooks/lib/*' \
         2>/dev/null \
