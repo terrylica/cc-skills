@@ -1,3 +1,10 @@
+# [21.74.0](https://github.com/terrylica/cc-skills/compare/v21.73.0...v21.74.0) (2026-05-21)
+
+
+### Features
+
+* **release:** iter-166 doctor covers iter-164+165 ([a2d4608](https://github.com/terrylica/cc-skills/commit/a2d4608e8bc4b44e84b190cde2d3c0870ad3bdf9))
+
 # [21.73.0](https://github.com/terrylica/cc-skills/compare/v21.72.0...v21.73.0) (2026-05-21)
 
 
