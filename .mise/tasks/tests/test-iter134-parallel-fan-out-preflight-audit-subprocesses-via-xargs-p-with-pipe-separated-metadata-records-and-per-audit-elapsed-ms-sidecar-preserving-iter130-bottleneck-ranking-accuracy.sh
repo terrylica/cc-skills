@@ -251,10 +251,15 @@ else
     # If the seed helper broke, all Check 4f-4v would report ~1ms (just the
     # sidecar-read post-processing time). We verify that Check 4k (typically
     # the slowest single audit at ~370-510ms) reports >100ms.
+    # Regex defensive: `grep -oE '[0-9]+'` matches BOTH the elapsed-ms number
+    # AND the `4` in `Check 4k`. Trailing `head -1` extracts only the first
+    # (which is the elapsed-ms — the ranking line emits "Check 4k:" AFTER
+    # the "phase elapsed: NNNms" prefix). Don't simplify away the final head -1.
     iter135_check_4k_elapsed_ms_extracted=$(echo "$iter135_preflight_integration_output" \
         | grep -oE 'phase elapsed: [0-9]+ms \(Check 4k:' \
         | head -1 \
-        | grep -oE '[0-9]+')
+        | grep -oE '[0-9]+' \
+        | head -1)
     if [[ -n "$iter135_check_4k_elapsed_ms_extracted" ]] && [[ "$iter135_check_4k_elapsed_ms_extracted" -gt 100 ]]; then
         ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
         echo "  ✓ PASS: Tier 2.C1: Check 4k elapsed=${iter135_check_4k_elapsed_ms_extracted}ms (>100ms confirms iter-134 timing-seed preserves iter-130 accuracy)"
