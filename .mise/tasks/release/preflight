@@ -658,6 +658,42 @@ fi
 echo "  ✓ Iter-113 operator-facing escape-hatch-marker reference doc is in sync with iter-111+iter-114 canonical registries (iter-115 STRICT)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4u: registry-to-docs drift detector (iter-115 STRICT-BLOCK)"
 
+# Check 4v: Iter-121 canonical-registry stale-description audit (INFORMATIONAL).
+#
+# Catches the operator-doc-drift class where a hook or audit-task is renamed
+# (consumer-path field updated in the registry) but the human-readable
+# description still references the OLD name. Pre-iter-121 no audit caught
+# this: Check 4t (iter-111 producer-typo) only verifies marker spelling;
+# Check 4u (iter-113 doc-drift) only verifies byte-identical regeneration.
+# Neither cross-checks description ↔ consumer-path consistency.
+#
+# Algorithm: for each entry in the iter-111 RUNTIME-HOOK + iter-114 AUDIT-TASK
+# registries, extract discriminating hyphen-segments from the marker name
+# AND consumer basename, drop a stoplist of non-discriminating segments
+# (OK/SKIP/WRAP suffix tokens; pretooluse/posttooluse/audit/guard/marketplace
+# generic prefixes; iter-NNN iteration-suffix tokens), and verify the
+# description contains AT LEAST ONE discriminating-segment substring
+# (raw segment OR adjacent-pair kebab-case join, case-insensitive).
+#
+# Iter-121: INFORMATIONAL only — never blocks release. Reports findings so
+# operators can address them before iter-122+ promotes the audit to
+# STRICT-BLOCK once baseline coverage is verified across a few releases.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running iter-121 canonical-registry stale-description audit (informational)..."
+if ! mise run audit-iter121-canonical-registry-entry-description-references-discriminating-hyphen-segment-from-marker-or-consumer-basename-to-catch-stale-descriptions-after-hook-renames-spanning-iter111-and-iter114-registries >/tmp/iter121-stale-description-audit.log 2>&1; then
+    echo "  ⚠ Iter-121 stale-description audit infrastructure failure — see /tmp/iter121-stale-description-audit.log"
+    # Infrastructure failure (bun crash, missing registry, etc.) is non-blocking
+    # in iter-121's informational mode. Iter-122+ will tighten this.
+fi
+ITER121_TOTAL_ENTRIES_AUDITED=$( { awk '/audited [0-9]+ entries/ { for (i=1; i<=NF; i++) if ($i == "audited") { print $(i+1); exit } }' /tmp/iter121-stale-description-audit.log || true; } | head -1)
+ITER121_STALE_HITS=$( { grep -oE 'ITER-121 INFORMATIONAL FINDING: [0-9]+' /tmp/iter121-stale-description-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
+if [[ "${ITER121_STALE_HITS:-0}" -gt 0 ]]; then
+    echo "  ⚠ Iter-121 stale-description audit: ${ITER121_STALE_HITS} entry/entries with unmoored descriptions across ${ITER121_TOTAL_ENTRIES_AUDITED:-?} audited (informational; never blocks release)"
+else
+    echo "  ✓ Iter-121 stale-description audit: 0 unmoored descriptions across ${ITER121_TOTAL_ENTRIES_AUDITED:-?} audited entries (informational)"
+fi
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4v: stale-description audit (iter-121 informational)"
+
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
