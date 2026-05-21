@@ -57,10 +57,16 @@
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
-# REPO_ROOT defaults to the cc-skills working tree (resolved from this
-# task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
-# the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+# AUDIT_TASK_OWN_REPO_ROOT — the cc-skills working tree containing
+# this audit task itself. Always resolved from BASH_SOURCE, never
+# overridden. Used to locate the shared awk scanner script which
+# travels with the audit, not with the scanned fleet.
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# REPO_ROOT defaults to the cc-skills working tree. Override via
+# AUDIT_REPO_ROOT_OVERRIDE for testing the audit against a synthetic-
+# fixture fleet at a different location.
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$AUDIT_TASK_OWN_REPO_ROOT}"
 
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  PreToolUse Hook Schema-Correctness Audit"
@@ -135,18 +141,70 @@ fi
 # Walk every PreToolUse hook source file. We scan files matching the
 # pretooluse-* naming convention (the canonical prefix for PreToolUse
 # event hooks across the marketplace).
-while IFS= read -r hook_path; do
-  [ -f "$hook_path" ] || continue
-  # Skip test files — they're test fixtures, not registered hooks.
-  case "$hook_path" in
-    *.test.ts|*.test.mjs|*.test.js|*.test.sh) continue ;;
-  esac
-  total_pretooluse_hooks=$((total_pretooluse_hooks + 1))
+#
+# Iter-79 perf-win: replaces the iter-60 baseline per-file `grep -qE`
+# fork storm (~3 forks × 29 files = ~87 forks, ~842ms) with a SINGLE
+# awk-scanner process invocation. The shared scanner at
+# `scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk`
+# emits TSV classification flags per file; this audit applies the
+# iter-60 tier-order interpretation. Estimated drop: 842ms → ~155ms.
+HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH="$AUDIT_TASK_OWN_REPO_ROOT/scripts/hook-schema-correctness-classifier-single-pass-awk-scanner.awk"
+if [ ! -f "$HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH" ]; then
+  echo ""
+  echo "  CRITICAL: shared awk scanner not found at:"
+  echo "  $HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH"
+  echo "  (iter-79 perf-win prerequisite)"
+  exit 2
+fi
 
+# Collect every PreToolUse hook source file path, excluding test files
+# (which are fixtures, not registered hooks). The find pattern matches
+# the iter-60 baseline exactly.
+mapfile -t pretooluse_hook_source_files_to_classify_via_awk_scanner < <(
+  find "$REPO_ROOT/plugins" -path '*/hooks/pretooluse-*' -type f 2>/dev/null \
+    | grep -Ev '\.test\.(ts|mjs|js|sh)$' \
+    | sort
+)
+
+# Run the awk scanner ONCE over all collected files. The TSV output
+# format is documented in the scanner's header docstring; column
+# ordering must match the case-read below.
+if [ "${#pretooluse_hook_source_files_to_classify_via_awk_scanner[@]}" -gt 0 ]; then
+  classifier_tsv_output_for_pretooluse_hook_set=$(
+    awk -f "$HOOK_SCHEMA_CORRECTNESS_CLASSIFIER_AWK_SCANNER_PATH" \
+      "${pretooluse_hook_source_files_to_classify_via_awk_scanner[@]}"
+  )
+else
+  classifier_tsv_output_for_pretooluse_hook_set=""
+fi
+
+# Post-process: apply the iter-60 tier-order interpretation to each
+# file's classification flags.
+while IFS=$'\t' read -r \
+    hook_path \
+    has_permissionDecision_pretooluse_only_field \
+    has_hookSpecificOutput_wrapper \
+    has_deprecated_top_level_decision_block_or_deny \
+    has_modern_pretooluse_helper_function_call \
+    _has_additionalContext_informational_field \
+    _has_posttooluse_helpers_module_import; do
+  [ -z "$hook_path" ] && continue
+  total_pretooluse_hooks=$((total_pretooluse_hooks + 1))
   plugin_name="$(basename "$(dirname "$(dirname "$hook_path")")")"
   hook_basename="$(basename "$hook_path")"
 
-  classification=$(classify_pretooluse_hook_schema "$hook_path")
+  # Iter-60 tier-order classification (preserves first-match-wins semantics):
+  if [ "$has_permissionDecision_pretooluse_only_field" = "1" ] \
+    || [ "$has_hookSpecificOutput_wrapper" = "1" ]; then
+    classification=MODERN-CORRECT
+  elif [ "$has_deprecated_top_level_decision_block_or_deny" = "1" ]; then
+    classification=DEPRECATED-WARNING
+  elif [ "$has_modern_pretooluse_helper_function_call" = "1" ]; then
+    classification=HELPER-WRAPPED
+  else
+    classification=NO-DECISION-EMITTED
+  fi
+
   case "$classification" in
     MODERN-CORRECT)
       modern_correct_count=$((modern_correct_count + 1))
@@ -167,7 +225,7 @@ while IFS= read -r hook_path; do
       DEPRECATED_WARNING_LINES+="             permissionDecision: \"deny\" (not decision: \"block\")"$'\n'
       ;;
   esac
-done < <(find "$REPO_ROOT/plugins" -path '*/hooks/pretooluse-*' -type f 2>/dev/null | sort)
+done <<< "$classifier_tsv_output_for_pretooluse_hook_set"
 
 # Emit the structured report.
 echo "═══════════════════════════════════════════════════════════════════════════"
