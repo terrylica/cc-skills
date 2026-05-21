@@ -1,3 +1,10 @@
+# [21.24.0](https://github.com/terrylica/cc-skills/compare/v21.23.0...v21.24.0) (2026-05-21)
+
+
+### Features
+
+* **itp-hooks:** iter-86 inline hoisted-deps-guard into PreToolUse edit-time orchestrator + ship preventive subhook-contract static checker addressing iter-85 audit HIGH FOOTGUNs (release:preflight Check 4m, informational) ([d96234b](https://github.com/terrylica/cc-skills/commit/d96234b3033fb150053052efb65bbd0c5134899c)), closes [#1](https://github.com/terrylica/cc-skills/issues/1) [#2](https://github.com/terrylica/cc-skills/issues/2) [#37210](https://github.com/terrylica/cc-skills/issues/37210)
+
 # [21.23.0](https://github.com/terrylica/cc-skills/compare/v21.22.0...v21.23.0) (2026-05-21)
 
 
