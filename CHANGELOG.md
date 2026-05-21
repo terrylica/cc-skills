@@ -1,3 +1,10 @@
+## [21.54.1](https://github.com/terrylica/cc-skills/compare/v21.54.0...v21.54.1) (2026-05-21)
+
+
+### Performance Improvements
+
+* **itp-hooks:** iter-124 eliminate N-way redundant plugins-tree-walk grep-storm in iter-92 PostToolUse async-eligibility audit via one-time async-flag-status-by-hook-basename associative-map pre-scan replacing per-hook grep-rE invocations with O(1) hash-lookup yielding 7.3x audit speedup and 6.5x regression-test speedup and 28% marketplace-regression-suite wall-clock reduction ([1868dec](https://github.com/terrylica/cc-skills/commit/1868dec9aec8e33ec9e9afc2c556108973ce8335))
+
 # [21.54.0](https://github.com/terrylica/cc-skills/compare/v21.53.0...v21.54.0) (2026-05-21)
 
 
