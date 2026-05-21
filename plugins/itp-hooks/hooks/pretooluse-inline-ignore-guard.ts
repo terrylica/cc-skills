@@ -35,7 +35,23 @@ import {
 const PYTHON_EXTENSIONS = new Set([".py", ".pyi"]);
 const JS_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".mjs", ".jsx"]);
 
-const ESCAPE_HATCH = /INLINE-IGNORE-OK/;
+// Iter-108: migrated to the iter-107 canonical shared escape-hatch-marker
+// detection helper. Behavior-preserving: same SAME_LINE_ONLY semantics +
+// case-sensitive marker match as the pre-iter-108 `/INLINE-IGNORE-OK/`
+// regex. Distinct from FILE_WIDE markers (version-guard, file-size-guard,
+// etc.) — inline-ignore-guard suppresses ignores only on the EXACT line
+// where they appear, by design (per-line ignores require per-line opt-outs
+// so the operator's intent is visible at the source location).
+import {
+  detectEscapeHatchMarkerCoveringTargetSourceLine,
+  type EscapeHatchMarkerDetectionConfiguration,
+} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const INLINE_IGNORE_GUARD_SAME_LINE_ESCAPE_HATCH_CONFIGURATION: EscapeHatchMarkerDetectionConfiguration =
+  {
+    markerNameTokenIncludingSuffix: "INLINE-IGNORE-OK",
+    windowSemanticsMode: "SAME_LINE_ONLY",
+    caseSensitivityMode: "CASE_SENSITIVE",
+  };
 
 // Python inline ignore patterns
 const PYTHON_IGNORE_PATTERNS: RegExp[] = [
@@ -82,8 +98,18 @@ function findInlineIgnores(content: string, patterns: RegExp[]): IgnoreMatch[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Skip lines with escape hatch
-    if (ESCAPE_HATCH.test(line)) continue;
+    // Skip lines with escape hatch (iter-108: delegated to canonical shared
+    // helper — SAME_LINE_ONLY window semantics so the escape hatch suppresses
+    // ONLY the line where the marker appears, not subsequent lines).
+    if (
+      detectEscapeHatchMarkerCoveringTargetSourceLine(
+        lines,
+        i,
+        INLINE_IGNORE_GUARD_SAME_LINE_ESCAPE_HATCH_CONFIGURATION,
+      )
+    ) {
+      continue;
+    }
 
     for (const pattern of patterns) {
       if (pattern.test(line)) {

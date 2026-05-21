@@ -85,7 +85,26 @@ const HARDCODED_VERSION_DETECTION_REGEX_PATTERNS: readonly RegExp[] = [
 // ALLOWED PATTERNS & EXCLUDED PATHS
 // ============================================================================
 
-const SSOT_OK_ESCAPE_HATCH_COMMENT_DETECTION_REGEX = /#\s*SSoT-OK/;
+// Iter-108: migrated to the iter-107 canonical shared escape-hatch-marker
+// detection helper. Behavior-preserving: marker token `SSoT-OK` (mixed-case,
+// abbreviated from Single-Source-of-Truth) detected file-wide. Default
+// case-sensitivity mode matches the pre-iter-108 `/#\s*SSoT-OK/` regex
+// (no /i flag — case-sensitive). The `#` comment-prefix anchor from the
+// pre-iter-108 regex is dropped because the SSoT-OK marker token never
+// collides with code identifiers; substring match against the literal
+// token is safe and works equally for `#`-comments (.py, .toml, .yaml),
+// `//`-comments (.ts, .js, .rs, .go), and any other comment syntax.
+import {
+  hasFileWideEscapeHatchMarkerInContent,
+  type EscapeHatchMarkerDetectionConfiguration,
+} from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+const VERSION_GUARD_SSOT_OK_ESCAPE_HATCH_CONFIGURATION: Pick<
+  EscapeHatchMarkerDetectionConfiguration,
+  "markerNameTokenIncludingSuffix" | "caseSensitivityMode" | "requireMinimumReasonCharacterCountAfterColonOrZeroForOptional"
+> = {
+  markerNameTokenIncludingSuffix: "SSoT-OK",
+  caseSensitivityMode: "CASE_SENSITIVE",
+};
 
 // Paths where historical versions are OK
 const HARDCODED_VERSION_EXEMPT_FILE_PATH_REGEX_PATTERNS: readonly RegExp[] = [
@@ -179,8 +198,9 @@ export async function classifyVersionGuardForOrchestrator(
     return ALLOW_DECISION;
   }
 
-  // Early exit: Escape hatch comment present
-  if (SSOT_OK_ESCAPE_HATCH_COMMENT_DETECTION_REGEX.test(content)) {
+  // Early exit: Escape hatch comment present (iter-108: delegated to
+  // canonical shared helper; behavior-preserving file-wide marker scan).
+  if (hasFileWideEscapeHatchMarkerInContent(content, VERSION_GUARD_SSOT_OK_ESCAPE_HATCH_CONFIGURATION)) {
     return ALLOW_DECISION;
   }
 
