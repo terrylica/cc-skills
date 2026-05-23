@@ -24,6 +24,45 @@ import {
 type OAuth2Client = InstanceType<typeof auth.OAuth2>;
 
 /**
+ * Auto-bypass HTTP/HTTPS proxy for Google API hosts.
+ *
+ * The googleapis library uses gaxios → https-proxy-agent under the hood,
+ * which honors the NO_PROXY env var for host exclusion. Corporate proxies
+ * (Cloudflare WARP, mitmproxy, ITP local interceptors) often can't tunnel
+ * CONNECT to googleapis.com — Google's response surface returns a silent
+ * 502 with no message body, which the CLI used to render as a useless
+ * empty "Error:". To avoid that failure mode, we inject the Google API
+ * hosts into NO_PROXY at module load so Gmail traffic skips the proxy.
+ *
+ * Idempotent: only adds entries that aren't already present.
+ *
+ * Added 2026-05-22 in response to silent failures in dental-clinic project
+ * where HTTPS_PROXY=http://127.0.0.1:58124 (local interceptor) caused
+ * `gmail list` to print empty "Error:" and exit 1.
+ */
+function ensureGoogleApiProxyBypass(): void {
+  const httpsProxy = process.env.HTTPS_PROXY ?? process.env.https_proxy;
+  const httpProxy = process.env.HTTP_PROXY ?? process.env.http_proxy;
+  if (!httpsProxy && !httpProxy) return;
+
+  const current = process.env.NO_PROXY ?? process.env.no_proxy ?? "";
+  const currentLower = current.toLowerCase();
+  // The leading-dot form (".googleapis.com") tells https-proxy-agent to
+  // match the host AND all subdomains. Listing common Google auth hosts
+  // explicitly is belt-and-braces — both forms are honored.
+  const required = [".googleapis.com", ".google.com", "accounts.google.com", "oauth2.googleapis.com"];
+  const toAdd = required.filter(h => !currentLower.includes(h.toLowerCase()));
+  if (toAdd.length === 0) return;
+
+  const updated = current ? `${current},${toAdd.join(",")}` : toAdd.join(",");
+  process.env.NO_PROXY = updated;
+  process.env.no_proxy = updated;
+}
+
+// Run at module load — before any auth or API request.
+ensureGoogleApiProxyBypass();
+
+/**
  * Get path for cached app credentials
  */
 function getAppCredentialsPath(uuid?: string): string {

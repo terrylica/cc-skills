@@ -234,6 +234,21 @@ $GMAIL_CLI draft --to "user@example.com" --subject "Hello" --body "Message body"
 
 # Create a draft reply (threads into existing conversation)
 $GMAIL_CLI draft --to "user@example.com" --subject "Re: Hello" --body "Reply text" --reply-to <message_id>
+
+# Draft with body loaded from a file (multi-paragraph bodies are awkward via --body)
+$GMAIL_CLI draft --to "user@example.com" --subject "Report" --body-file ./email-body.txt
+
+# Draft with file attachments (--attach is repeatable; MIME type guessed from extension)
+$GMAIL_CLI draft --to "user@example.com" --subject "Q1 Report" \
+  --body-file ./email-body.txt \
+  --attach ./report.pdf \
+  --attach ./screenshot.png
+
+# Draft reply with both body-file and multiple attachments
+$GMAIL_CLI draft --to "user@example.com" --subject "Re: Project" \
+  --reply-to <message_id> \
+  --body-file ./reply.txt \
+  --attach ./diagram.pdf
 ```
 
 ## Inline Image Extraction
@@ -323,10 +338,12 @@ The `draft` command creates emails in your Gmail Drafts folder for review before
 
 - `--to` - Recipient email address
 - `--subject` - Email subject line
-- `--body` - Email body text
+- `--body` OR `--body-file` - Email body text (one of the two)
 
 **Optional:**
 
+- `--body-file` - Read body from a file instead of `--body`. Useful for multi-paragraph bodies that are awkward to pass on the shell. Mutually exclusive with `--body`; if both are passed, `--body` wins with a stderr warning.
+- `--attach` - File path to attach. **Repeatable** for multiple attachments. MIME type is guessed from extension (PDF, PNG, JPEG, DOCX, XLSX, ZIP, MD, JSON, etc. → mapped; unknown → `application/octet-stream`). Total message size ≤ 25 MB (Gmail limit; the CLI surfaces a 413 with a helpful hint if you exceed it).
 - `--from` - Sender email alias (auto-detected when replying, see Sender Alignment below)
 - `--reply-to` - Message ID to reply to (creates threaded reply with proper headers)
 - `--json` - Output draft details as JSON
@@ -434,10 +451,50 @@ Reference: <https://support.google.com/mail/answer/7190>
 
 ## Environment Variables
 
-| Variable         | Required | Description                                                         |
-| ---------------- | -------- | ------------------------------------------------------------------- |
-| `GMAIL_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials                           |
-| `GMAIL_OP_VAULT` | No       | 1Password vault (default: `Claude Automation` for service accounts) |
+| Variable         | Required | Description                                                                                                                                                                                       |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GMAIL_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials                                                                                                                                                         |
+| `GMAIL_OP_VAULT` | No       | 1Password vault (default: `Employee`)                                                                                                                                                             |
+| `HTTPS_PROXY`    | No       | Honored by the underlying `gaxios` library, BUT the CLI auto-injects `*.googleapis.com` into `NO_PROXY` at startup so corporate proxies don't break Gmail traffic. See "Proxy Auto-Bypass" below. |
+
+## Proxy Auto-Bypass for Google API Hosts
+
+If `HTTPS_PROXY` (or `HTTP_PROXY`) is set in the environment, the CLI automatically injects the following hosts into `NO_PROXY` at module load — **before any auth or API call is made**:
+
+- `.googleapis.com` (covers `gmail.googleapis.com`, `oauth2.googleapis.com`, etc.)
+- `.google.com`
+- `accounts.google.com`
+- `oauth2.googleapis.com`
+
+**Why this exists**: many corporate networks (Cloudflare WARP, mitmproxy local interceptors, ITP-style local proxies) can't tunnel CONNECT to Google API hosts. When the proxy fails, the response surface returns HTTP 502 with an empty error body — the googleapis library throws a gaxios error whose `.message` is empty, which used to render as a useless empty `Error:` in stderr.
+
+By force-bypassing the proxy for Google hosts, end-users with a corporate proxy can run the CLI without manually setting `NO_PROXY` or unsetting `HTTPS_PROXY` per-command.
+
+**Idempotent**: the injection only adds entries that aren't already present in `NO_PROXY`. If you've manually configured `NO_PROXY=.googleapis.com`, the CLI leaves it alone.
+
+**Diagnosing remaining proxy issues** (rare): if you still see HTTP 5xx errors, the CLI's new error formatter prints the full URL + response body + a hint. Check that `HTTPS_PROXY` was set BEFORE the CLI started (env-var detection is one-shot at module load).
+
+## Error Messages
+
+The CLI's top-level error handler renders unknown errors as structured messages with HTTP status, request URL, response body snippet, and a category-specific hint. Example for a 404 on a bogus draft ID:
+
+```
+Error: HTTP 404 Not Found DELETE https://gmail.googleapis.com/gmail/v1/users/me/drafts/r-doesnotexist123
+  body: {"error":{"code":404,"message":"Requested entity was not found.",...}}
+  hint: message / draft ID not found. List existing drafts with `gmail drafts` first.
+```
+
+Hint categories:
+
+| Status      | Hint                                                                                                                                                     |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 401         | Token expired/revoked. Delete `~/.claude/tools/gmail-tokens/$GMAIL_OP_UUID.json` to force re-auth.                                                       |
+| 403         | OAuth scope insufficient (drafts/attachments need `gmail.compose`) or Send As alias not configured.                                                      |
+| 404         | Message / draft ID not found. List existing drafts with `gmail drafts` first.                                                                            |
+| 413         | Attachment(s) exceed Gmail's 25 MB per-message limit. Split or use Drive links.                                                                          |
+| 502/503/504 | Gateway error — usually a proxy that can't tunnel to Google. The auto-bypass should prevent this; check that HTTPS_PROXY was set BEFORE the CLI started. |
+
+Network-layer errors (`ECONNREFUSED`, `ENOTFOUND`, etc.) are surfaced with their error code instead of the empty `Error:` of the prior implementation.
 
 ## Token Architecture
 

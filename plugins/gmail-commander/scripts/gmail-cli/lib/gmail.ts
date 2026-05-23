@@ -1,3 +1,11 @@
+// FILE-SIZE-OK: this file is the single Gmail API surface for the CLI —
+// list/search/read/export + draft create/list/update/delete + MIME builder
+// + image-attachment download. Splitting along those seams (e.g. into
+// gmail-read.ts / gmail-draft.ts / gmail-mime.ts) is a tracked follow-up;
+// for now we keep it monolithic so the public surface stays in one place
+// and the type imports don't fan out across files. Re-evaluate split when
+// this file approaches the 1000-line hard cap.
+
 /**
  * Gmail API client wrapper
  *
@@ -257,20 +265,21 @@ export async function searchEmails(client: gmail_v1.Gmail, options: SearchOption
 }
 
 /**
- * Read single email with full body
+ * Read single email with full body.
+ *
+ * Errors (404 for missing IDs, 401 for expired tokens, network failures)
+ * propagate to the CLI's top-level error handler where they're rendered
+ * with HTTP status + URL + actionable hint. Previously this function
+ * swallowed errors and returned null, which forced the CLI to render
+ * a generic "Email not found" regardless of the real cause.
  */
 export async function readEmail(client: gmail_v1.Gmail, messageId: string): Promise<Email | null> {
-  try {
-    const res = await client.users.messages.get({
-      userId: "me",
-      id: messageId,
-      format: "full",
-    });
-    return formatMessage(res.data, true);
-  } catch (err) {
-    console.error("Error reading email:", err);
-    return null;
-  }
+  const res = await client.users.messages.get({
+    userId: "me",
+    id: messageId,
+    format: "full",
+  });
+  return formatMessage(res.data, true);
 }
 
 /**
@@ -307,31 +316,144 @@ export async function exportEmails(
 }
 
 /**
- * Create RFC 2822 formatted email for Gmail API
+ * Guess MIME type from filename extension.
+ *
+ * Used by the attachment builder when callers don't specify a type
+ * explicitly. The lookup table covers the file types we expect to see in
+ * day-to-day clinical / engineering communication (PDFs, screenshots,
+ * spreadsheets, archives). Everything else falls back to the safe
+ * default `application/octet-stream`, which Gmail renders as a generic
+ * download attachment with no preview.
  */
-function createRawEmail(
+function guessMimeType(filename: string): string {
+  const ext = filename.toLowerCase().split(".").pop() ?? "";
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    gif: "image/gif",
+    webp: "image/webp",
+    svg: "image/svg+xml",
+    txt: "text/plain",
+    md: "text/markdown",
+    json: "application/json",
+    html: "text/html",
+    htm: "text/html",
+    csv: "text/csv",
+    xml: "application/xml",
+    zip: "application/zip",
+    gz: "application/gzip",
+    tar: "application/x-tar",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ppt: "application/vnd.ms-powerpoint",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    mp3: "audio/mpeg",
+    mp4: "video/mp4",
+    wav: "audio/wav",
+  };
+  return map[ext] ?? "application/octet-stream";
+}
+
+/**
+ * Encode a single attachment file as a multipart MIME part.
+ *
+ * Reads the file via Bun.file, base64-encodes the bytes, and wraps to
+ * the 76-character line limit required by RFC 2045 (some Gmail / older
+ * mail clients reject longer lines with a "format" error).
+ */
+async function buildAttachmentPart(filePath: string): Promise<string> {
+  const file = Bun.file(filePath);
+  if (!(await file.exists())) {
+    throw new Error(`Attachment not found: ${filePath}`);
+  }
+  const filename = basename(filePath);
+  const mimeType = guessMimeType(filename);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const b64 = bytes.toString("base64");
+  // RFC 2045 §6.8: base64 lines MUST be ≤ 76 chars
+  const wrapped = b64.match(/.{1,76}/g)?.join("\r\n") ?? b64;
+
+  // Quote the filename in case it contains spaces / commas.
+  const safeName = filename.replace(/"/g, '\\"');
+
+  return [
+    `Content-Type: ${mimeType}; name="${safeName}"`,
+    "Content-Transfer-Encoding: base64",
+    `Content-Disposition: attachment; filename="${safeName}"`,
+    "",
+    wrapped,
+  ].join("\r\n");
+}
+
+/**
+ * Build an RFC 2822 / 5322 formatted email and base64url-encode it for
+ * the Gmail API's `raw` field.
+ *
+ * Two shapes:
+ *   - No attachments → simple `text/plain` body, headers + blank line + body
+ *   - With attachments → `multipart/mixed` with one text/plain part and one
+ *     part per attachment file (base64-encoded)
+ *
+ * The async signature is required by attachment file reads. The no-
+ * attachment fast path still resolves in a single tick.
+ */
+async function buildRawMessage(
   to: string,
   subject: string,
   body: string,
-  inReplyTo?: string,
-  from?: string
-): string {
+  options: { inReplyTo?: string; from?: string; attachments?: string[] } = {}
+): Promise<string> {
+  const { inReplyTo, from, attachments } = options;
   const headers: string[] = [];
 
-  if (from) {
-    headers.push(`From: ${from}`);
-  }
-
+  if (from) headers.push(`From: ${from}`);
   headers.push(`To: ${to}`);
   headers.push(`Subject: ${subject}`);
-  headers.push("Content-Type: text/plain; charset=utf-8");
+  headers.push("MIME-Version: 1.0");
 
   if (inReplyTo) {
     headers.push(`In-Reply-To: ${inReplyTo}`);
+    // NOTE: References should ideally be the parent's References chain
+    // + the parent Message-ID. We mirror the legacy behavior here
+    // (References = In-Reply-To) for parity; deep-thread threading is
+    // a separate enhancement.
     headers.push(`References: ${inReplyTo}`);
   }
 
-  const email = headers.join("\r\n") + "\r\n\r\n" + body;
+  let mimeBody: string;
+  if (attachments && attachments.length > 0) {
+    // multipart/mixed: text body + N attachment parts
+    const boundary = `=_gmail_cli_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+    headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
+
+    const bodyPart = [
+      "Content-Type: text/plain; charset=utf-8",
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      body,
+    ].join("\r\n");
+
+    const attachmentParts = await Promise.all(
+      attachments.map((path) => buildAttachmentPart(path))
+    );
+
+    mimeBody = [
+      `--${boundary}`,
+      bodyPart,
+      ...attachmentParts.flatMap((p) => [`--${boundary}`, p]),
+      `--${boundary}--`,
+      "",
+    ].join("\r\n");
+  } else {
+    headers.push("Content-Type: text/plain; charset=utf-8");
+    mimeBody = body;
+  }
+
+  const email = headers.join("\r\n") + "\r\n\r\n" + mimeBody;
   return Buffer.from(email).toString("base64url");
 }
 
@@ -341,6 +463,13 @@ export interface DraftOptions {
   body: string;
   replyToMessageId?: string;
   from?: string;
+  /**
+   * Filesystem paths to attach to the email. Each becomes a separate
+   * MIME part in a multipart/mixed message. Mime type is guessed from
+   * the file extension; unknown extensions fall back to
+   * application/octet-stream.
+   */
+  attachments?: string[];
 }
 
 export interface DraftResult {
@@ -500,7 +629,11 @@ export async function createDraft(
   }
 
   const fromAddress = options.from ?? detectedFrom;
-  const raw = createRawEmail(options.to, options.subject, options.body, inReplyTo, fromAddress);
+  const raw = await buildRawMessage(options.to, options.subject, options.body, {
+    inReplyTo,
+    from: fromAddress,
+    attachments: options.attachments,
+  });
 
   const res = await client.users.drafts.create({
     userId: "me",
@@ -513,8 +646,8 @@ export async function createDraft(
   });
 
   return {
-    draftId: res.data.id!,
-    messageId: res.data.message?.id!,
+    draftId: res.data.id ?? "",
+    messageId: res.data.message?.id ?? "",
     threadId: res.data.message?.threadId ?? undefined,
     fromAddress: fromAddress,
     fromAutoDetected: !options.from && !!detectedFrom,
