@@ -400,14 +400,29 @@ async function buildAttachmentPart(filePath: string): Promise<string> {
  *
  * The async signature is required by attachment file reads. The no-
  * attachment fast path still resolves in a single tick.
+ *
+ * Threading (RFC 5322 §3.6.4):
+ *   - `inReplyTo` is the parent message's Message-ID, written as-is.
+ *   - `references` is the chain of ancestor Message-IDs, space-separated,
+ *     oldest first. Callers (see createDraft) construct this as the
+ *     parent's References header + " " + parent's Message-ID.
+ *   - If `inReplyTo` is provided but `references` is omitted, falls back
+ *     to References = In-Reply-To (the direct-reply degenerate case).
+ *     Deep-thread replies should always provide `references` to keep
+ *     mail clients' conversation view intact.
  */
 async function buildRawMessage(
   to: string,
   subject: string,
   body: string,
-  options: { inReplyTo?: string; from?: string; attachments?: string[] } = {}
+  options: {
+    inReplyTo?: string;
+    references?: string;
+    from?: string;
+    attachments?: string[];
+  } = {}
 ): Promise<string> {
-  const { inReplyTo, from, attachments } = options;
+  const { inReplyTo, references, from, attachments } = options;
   const headers: string[] = [];
 
   if (from) headers.push(`From: ${from}`);
@@ -417,11 +432,11 @@ async function buildRawMessage(
 
   if (inReplyTo) {
     headers.push(`In-Reply-To: ${inReplyTo}`);
-    // NOTE: References should ideally be the parent's References chain
-    // + the parent Message-ID. We mirror the legacy behavior here
-    // (References = In-Reply-To) for parity; deep-thread threading is
-    // a separate enhancement.
-    headers.push(`References: ${inReplyTo}`);
+    // Prefer the explicit References chain (built by createDraft to
+    // include the parent's full ancestor chain). Fall back to
+    // In-Reply-To only when the caller doesn't pass a chain — that's
+    // the direct-reply degenerate case where there's no deeper context.
+    headers.push(`References: ${references ?? inReplyTo}`);
   }
 
   let mimeBody: string;
@@ -579,21 +594,40 @@ export async function createDraft(
 ): Promise<DraftResult> {
   let threadId: string | undefined;
   let inReplyTo: string | undefined;
+  let references: string | undefined;
   let detectedFrom: string | undefined;
 
-  // If replying, get the original message's thread, Message-ID, and recipient headers
+  // If replying, get the original message's thread, Message-ID, References,
+  // and recipient headers
   if (options.replyToMessageId) {
     const original = await client.users.messages.get({
       userId: "me",
       id: options.replyToMessageId,
       format: "metadata",
-      metadataHeaders: ["Message-ID", "To", "Cc", "Delivered-To"],
+      metadataHeaders: ["Message-ID", "References", "To", "Cc", "Delivered-To"],
     });
     threadId = original.data.threadId ?? undefined;
     const msgIdHeader = original.data.payload?.headers?.find(
       (h) => h.name === "Message-ID"
     );
+    const refsHeader = original.data.payload?.headers?.find(
+      (h) => h.name === "References"
+    );
     inReplyTo = msgIdHeader?.value ?? undefined;
+
+    // Build the References chain per RFC 5322 §3.6.4. Two cases:
+    //   - parent IS the thread root (no References header itself) →
+    //     References = parent's Message-ID only
+    //   - parent has a References chain (mid-thread reply) →
+    //     References = parent's References + " " + parent's Message-ID
+    // Mail clients use this chain to render the conversation tree.
+    // Without it, deep replies appear to start a sibling thread in
+    // RFC-strict clients (Thunderbird, mutt, mail.app), even when the
+    // Gmail-specific threadId glues them together server-side.
+    const parentRefs = refsHeader?.value ?? "";
+    if (inReplyTo) {
+      references = parentRefs ? `${parentRefs} ${inReplyTo}` : inReplyTo;
+    }
 
     // Auto-detect sender: find which of our aliases the original was sent to
     if (!options.from) {
@@ -631,6 +665,7 @@ export async function createDraft(
   const fromAddress = options.from ?? detectedFrom;
   const raw = await buildRawMessage(options.to, options.subject, options.body, {
     inReplyTo,
+    references,
     from: fromAddress,
     attachments: options.attachments,
   });
