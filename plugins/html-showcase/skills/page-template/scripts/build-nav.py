@@ -96,6 +96,42 @@ NAV_END = "<!-- AUTO-NAV-END -->"
 LEGACY_FOOTER_START = "<!-- AUTO-NAV-FOOTER-START -->"
 LEGACY_FOOTER_END = "<!-- AUTO-NAV-FOOTER-END -->"
 
+# Iteration-page naming convention — `index_iter_<N>_<slug>.html`. When a
+# section has pages following this pattern, the integer N is the canonical
+# creation-order key (assigned monotonically the first time each page is
+# generated, robust to git clone resetting filesystem birthtimes). Pages
+# that don't match fall back to filesystem birthtime (macOS) or mtime
+# (Linux) — see `_creation_time()`.
+ITER_NUM_RE = re.compile(r"^index_iter_(\d+)_")
+
+
+def _iter_num(filename: str) -> int | None:
+    """Extract iter number as int from filename, or None if not an iter page."""
+    m = ITER_NUM_RE.match(filename)
+    return int(m.group(1)) if m else None
+
+
+def _creation_time(path: Path) -> datetime:
+    """Return creation time (birthtime on macOS), fallback to mtime elsewhere.
+
+    Why birthtime over mtime: rebuilds, find-replace passes, and CI
+    pipelines all touch mtime — using mtime would re-order the rail
+    every time anyone edited any page. Birthtime is set once at file
+    creation and never moves. macOS preserves it as `st_birthtime`;
+    Linux's ext4 has it via `statx` but Python's `os.stat` doesn't
+    expose it portably, so we fall back to mtime there.
+
+    NOTE: filesystem birthtime is reset on `git clone` (the new
+    inodes are created at clone time). For canonical cross-machine
+    ordering, prefer the `iter-N` numeric extraction in `_iter_num()`
+    when filenames follow the `index_iter_N_*.html` convention.
+    """
+    st = path.stat()
+    bt = getattr(st, "st_birthtime", None)
+    if bt is not None and bt > 0:
+        return datetime.fromtimestamp(bt)
+    return datetime.fromtimestamp(st.st_mtime)
+
 # Asset filenames written into the site root.
 AUTO_NAV_CSS_NAME = "auto-nav.css"
 AUTO_NAV_JS_NAME = "auto-nav.js"
@@ -148,6 +184,15 @@ def parse_html(path: Path) -> dict:
         "h1": html.unescape(_strip_tags(h1.group(1))) if h1 else None,
         "size_bytes": path.stat().st_size,
         "mtime": datetime.fromtimestamp(path.stat().st_mtime),
+        # Creation-order ordering — see _creation_time / _iter_num docstrings.
+        # `ctime` is filesystem birthtime (macOS) or mtime fallback (Linux);
+        # `iter_num` is the parsed N from `index_iter_N_*.html` (None if the
+        # filename doesn't match). The _sort_key in walk_site() prefers
+        # iter_num when present, ctime otherwise, so pages render in the
+        # order they were first authored — not the order they were last
+        # touched.
+        "ctime": _creation_time(path),
+        "iter_num": _iter_num(path.name),
     }
 
 
@@ -220,15 +265,36 @@ def walk_site(root: Path) -> tuple[dict | None, list[dict]]:
             pages.append(page)
         if not pages:
             continue
-        # Sort: top-level index.html first, then top-level alphabetical,
-        # then nested pages grouped by subdir (index-first within each).
+        # Sort: top-level index.html first, then top-level pages in
+        # CREATION ORDER (iter-N numeric when filename matches the
+        # `index_iter_N_*.html` convention; otherwise filesystem
+        # birthtime). Nested pages keep the original grouping
+        # (subdir + index-first + alphabetical) since iter-N is a
+        # top-level naming convention only.
+        #
+        # This fixes two bugs at once:
+        #   (a) lex-sort: `iter_10` < `iter_2` because '1' < '2' at
+        #       position 11. Fix: parse N as int.
+        #   (b) modified-time noise: any rebuild that touched mtime
+        #       re-ordered the rail. Fix: birthtime (st_birthtime)
+        #       which never moves after file creation.
         def _sort_key(pg: dict) -> tuple:
             rel = pg["section_relpath"]
             parts = rel.split("/")
             is_top = len(parts) == 1
             is_index = pg["filename"] == "index.html"
             if is_top:
-                return (0 if is_index else 1, "", pg["filename"])
+                if is_index:
+                    return (0, 0, 0, "")  # section index always first
+                iter_n = pg.get("iter_num")
+                if iter_n is not None:
+                    # iter-N pages: sort by N (chronological creation order)
+                    return (1, 0, iter_n, pg["filename"])
+                # Non-iter top-level page: sort by filesystem creation time.
+                # Fall back to filename within the same timestamp to keep
+                # ties deterministic across reruns.
+                return (1, 1, pg["ctime"].timestamp(), pg["filename"])
+            # Nested: group 2, then by subdir name, then index first within.
             subdir = parts[0]
             return (2, subdir, 0 if is_index else 1, pg["filename"])
         pages.sort(key=_sort_key)
@@ -260,12 +326,22 @@ def walk_site(root: Path) -> tuple[dict | None, list[dict]]:
 # RAIL ASSETS — auto-nav.css and auto-nav.js bodies
 # ----------------------------------------------------------------------
 
-# Light-mode rail that pairs with the showcase kernel (color-scheme: light).
-# Self-contained — does not depend on showcase.css tokens, so a repo can
-# adopt the rail without adopting the kernel.
+# Dark-by-default rail. The nav rail + the site-map page are always dark
+# regardless of the host page's theme — this is an intentional design
+# invariant (see CLAUDE.md → "Critical Invariants"). The rail is the
+# CONSTANT element across every page in the system, so it should look
+# identical whether the page it overlays is a light contractor showcase
+# or a dark telemetry dashboard.
+#
+# Palette anchor: slate-950 (#0f172a) for surfaces, slate-300 (#cbd5e1)
+# for body text, indigo-400 (#818cf8) for accents — matches the showcase
+# kernel's dark palette (assets/showcase.css has `color-scheme: dark`).
+#
+# Self-contained: does not depend on showcase.css tokens, so a repo can
+# adopt the rail without adopting the kernel and still get the dark look.
 AUTO_NAV_CSS_BODY = """\
 /* ----------------------------------------------------------------------
- * auto-nav.css — fixed-position navigation rail.
+ * auto-nav.css — fixed-position navigation rail (dark theme by default).
  *
  * Generated by build-nav.py. Edit the source string in build-nav.py and
  * re-run, OR edit this file directly knowing it will be overwritten on
@@ -273,6 +349,10 @@ AUTO_NAV_CSS_BODY = """\
  *
  * Pages get this rail injected automatically; the rail discovers
  * structure from the filesystem layout. No per-page configuration.
+ *
+ * THEME INVARIANT: this rail is ALWAYS dark, regardless of the host
+ * page's color scheme. The rail is the constant across every page;
+ * fix it once, never let it drift.
  * ---------------------------------------------------------------------- */
 
 /* ----- Reset for the rail itself (does not affect host page) ----- */
@@ -281,29 +361,33 @@ AUTO_NAV_CSS_BODY = """\
   box-sizing: border-box;
 }
 
-/* ----- Rail container (collapsed default; expanded when [open]) ----- */
+/* ----- Rail container (collapsed default; expanded when [open]) -----
+ * Single flat slate-950 surface (no gradient) so there's no perceived
+ * "brim" between the summary header and the rail body — the summary
+ * blends into the rail; only a subtle border-bottom separates them.
+ */
 .auto-nav-rail {
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
   width: 56px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  border-right: 1px solid #e2e8f0;
+  background: #0f172a;
+  border-right: 1px solid #334155;
   overflow: hidden;
   z-index: 9999;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 0.9rem;
-  color: #334155;
+  color: #cbd5e1;
   line-height: 1.45;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 0.25s ease;
-  color-scheme: light;
+  color-scheme: dark;
 }
 .auto-nav-rail[open] {
   width: var(--rail-width, 320px);
   overflow-y: auto;
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.08);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
 }
 
 /* ----- Body content shift via :has() — dynamic, no JS ----- *
@@ -342,22 +426,22 @@ body:has(.auto-nav-rail[open]) {
   content: "";
   width: 2px;
   height: 36px;
-  background: #94a3b8;
+  background: #475569;
   border-radius: 2px;
   opacity: 0.55;
   transition: background 0.12s ease, opacity 0.12s ease, height 0.15s ease;
 }
 .rail-resize-handle:hover::before,
 .rail-resize-handle.dragging::before {
-  background: #2563eb;
+  background: #818cf8;
   opacity: 1;
   height: 60px;
 }
 .rail-resize-handle:hover {
-  background: rgba(37, 99, 235, 0.10);
+  background: rgba(129, 140, 248, 0.18);
 }
 .rail-resize-handle.dragging {
-  background: rgba(37, 99, 235, 0.18);
+  background: rgba(129, 140, 248, 0.35);
 }
 /* Tooltip on hover — explains the dual gesture. */
 .rail-resize-handle:hover::after {
@@ -366,15 +450,15 @@ body:has(.auto-nav-rail[open]) {
   left: calc(100% + 8px);
   top: 50%;
   transform: translateY(-50%);
-  background: #ffffff;
-  color: #1e293b;
+  background: #1e293b;
+  color: #e2e8f0;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 0.75rem;
   white-space: nowrap;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #334155;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 .auto-nav-rail:not([open]) .rail-resize-handle { display: none; }
 .rail-resizing,
@@ -387,7 +471,10 @@ body:has(.auto-nav-rail[open]) {
   transition: none !important;
 }
 
-/* ----- Toggle (summary) — always visible at top-left ----- */
+/* ----- Toggle (summary) — always visible at top-left -----
+ * Same background as the rail body (#0f172a), only a 1px border-bottom
+ * for separation. Avoids a visible "brim" of contrasting color at top.
+ */
 .auto-nav-rail summary {
   display: flex;
   align-items: center;
@@ -396,8 +483,8 @@ body:has(.auto-nav-rail[open]) {
   padding: 0 18px;
   cursor: pointer;
   user-select: none;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -410,7 +497,7 @@ body:has(.auto-nav-rail[open]) {
   display: inline-block;
   width: 20px;
   text-align: center;
-  color: #475569;
+  color: #cbd5e1;
 }
 .auto-nav-rail[open] .rail-toggle-icon { transform: rotate(90deg); }
 .auto-nav-rail .rail-toggle-label {
@@ -418,15 +505,15 @@ body:has(.auto-nav-rail[open]) {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #475569;
+  color: #cbd5e1;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.15s ease 0.1s;
 }
 .auto-nav-rail[open] .rail-toggle-label { opacity: 1; }
-.auto-nav-rail summary:hover { background: #f1f5f9; }
+.auto-nav-rail summary:hover { background: #334155; }
 .auto-nav-rail summary:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid #818cf8;
   outline-offset: -2px;
 }
 
@@ -440,7 +527,7 @@ body:has(.auto-nav-rail[open]) {
 
 .rail-section {
   padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #1e293b;
 }
 .rail-section:last-child { border-bottom: none; }
 
@@ -450,12 +537,12 @@ body:has(.auto-nav-rail[open]) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: #94a3b8;
 }
 .rail-date {
   font-family: 'JetBrains Mono', 'Menlo', monospace;
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
@@ -467,7 +554,7 @@ body:has(.auto-nav-rail[open]) {
   display: block;
   padding: 7px 10px;
   margin: 1px 0;
-  color: #1d4ed8;
+  color: #c7d2fe;
   text-decoration: none;
   border-radius: 6px;
   word-wrap: break-word;
@@ -481,19 +568,19 @@ body:has(.auto-nav-rail[open]) {
               transform 0.12s ease;
 }
 .rail-link:hover {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1e3a8a;
-  border-left-color: #2563eb;
+  background: rgba(129, 140, 248, 0.12);
+  color: #e0e7ff;
+  border-left-color: #818cf8;
   transform: translateX(2px);
 }
 .rail-link.rail-current {
-  background: #2563eb;
+  background: #4f46e5;
   color: #ffffff;
   font-weight: 600;
-  border-left-color: #1e3a8a;
+  border-left-color: #c7d2fe;
 }
 .rail-link.rail-current:hover {
-  background: #1d4ed8;
+  background: #4338ca;
   transform: none;
 }
 .rail-link .rail-emoji {
@@ -510,20 +597,22 @@ body:has(.auto-nav-rail[open]) {
 }
 .rail-list li { margin: 0; }
 
-/* ----- Pagefind UI — light-themed to match the showcase kernel -----
+/* ----- Pagefind UI — dark-themed to match the rail -----
  * The Pagefind UI is mounted into <div id="auto-nav-search"> by
  * auto-nav.js (mountSearch). Pagefind exposes ~10 CSS custom properties
- * for theming; we override the few that matter for our light palette.
+ * for theming; we override them to match the rail's slate palette so
+ * search blends in instead of looking grafted-on. Variables documented
+ * at https://pagefind.app/docs/ui/#styling-the-ui.
  * If pagefind/pagefind-ui.css hasn't been generated yet, these rules
  * have nothing to bind to and are harmless.
  */
 .auto-nav-rail #auto-nav-search {
   --pagefind-ui-scale: 0.9;
-  --pagefind-ui-primary: #2563eb;
-  --pagefind-ui-text: #1e293b;
-  --pagefind-ui-background: #ffffff;
-  --pagefind-ui-border: #cbd5e1;
-  --pagefind-ui-tag: #f1f5f9;
+  --pagefind-ui-primary: #818cf8;
+  --pagefind-ui-text: #e2e8f0;
+  --pagefind-ui-background: #0f172a;
+  --pagefind-ui-border: #334155;
+  --pagefind-ui-tag: #1e293b;
   --pagefind-ui-border-width: 1px;
   --pagefind-ui-border-radius: 6px;
   --pagefind-ui-image-border-radius: 6px;
@@ -538,31 +627,54 @@ body:has(.auto-nav-rail[open]) {
   content: "Search index pending. Run scripts/site.sh nav <site> to enable.";
   display: block;
   padding: 8px 10px;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
+  background: #1e293b;
+  border: 1px dashed #334155;
   border-radius: 6px;
-  color: #64748b;
+  color: #94a3b8;
   font-size: 0.78rem;
   font-style: italic;
   line-height: 1.4;
 }
 .auto-nav-rail .pagefind-ui__search-input {
-  background: #f8fafc !important;
-  color: #1e293b !important;
-  border-color: #cbd5e1 !important;
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+  font-size: 0.9rem !important;
 }
 .auto-nav-rail .pagefind-ui__search-input::placeholder {
+  color: #64748b !important;
+}
+.auto-nav-rail .pagefind-ui__search-clear {
   color: #94a3b8 !important;
 }
-.auto-nav-rail .pagefind-ui__result {
-  border-color: #e2e8f0 !important;
+.auto-nav-rail .pagefind-ui__results {
+  font-size: 0.85rem;
 }
+.auto-nav-rail .pagefind-ui__result {
+  padding: 8px 6px !important;
+  border-bottom: 1px solid #1e293b !important;
+}
+.auto-nav-rail .pagefind-ui__result-title a,
 .auto-nav-rail .pagefind-ui__result-link {
-  color: #1d4ed8 !important;
+  color: #c7d2fe !important;
+}
+.auto-nav-rail .pagefind-ui__result-title a:hover,
+.auto-nav-rail .pagefind-ui__result-link:hover {
+  color: #e0e7ff !important;
+}
+.auto-nav-rail .pagefind-ui__result-excerpt {
+  color: #94a3b8 !important;
+  font-size: 0.78rem !important;
 }
 .auto-nav-rail .pagefind-ui__result-excerpt mark {
-  background: rgba(37, 99, 235, 0.18) !important;
-  color: inherit !important;
+  background: rgba(129, 140, 248, 0.25) !important;
+  color: #e0e7ff !important;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.auto-nav-rail .pagefind-ui__message {
+  color: #94a3b8 !important;
+  font-size: 0.78rem !important;
 }
 
 /* ----- Mobile: rail becomes a static top-of-page accordion ----- */
@@ -575,7 +687,7 @@ body:has(.auto-nav-rail[open]) {
     max-height: none;
     overflow: visible;
     border-right: none;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #334155;
     box-shadow: none;
     margin-bottom: 16px;
   }
@@ -1232,30 +1344,34 @@ def render_site_map(
 <script id="pagefind-ui-js" src="{PAGEFIND_UI_JS_REL}" defer></script>
 <script id="auto-nav-js" src="{AUTO_NAV_JS_NAME}?v={asset_version}" defer></script>
 <style>
-:root {{ color-scheme: light; }}
+/* THEME INVARIANT: site-map is ALWAYS dark, regardless of the host
+ * site's color scheme. Matches the nav rail palette (slate-950 surfaces,
+ * slate-300 text, indigo accents). See CLAUDE.md → "Critical Invariants".
+ */
+:root {{ color-scheme: dark; }}
 body {{ font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-       background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; line-height: 1.5; }}
-.container {{ max-width: 1100px; margin: 0 auto; background: #ffffff; padding: 36px;
-              border-radius: 8px; box-shadow: 0 2px 14px rgba(15, 23, 42, 0.06);
-              border: 1px solid #e2e8f0; }}
-h1 {{ border-bottom: 3px solid #2563eb; padding-bottom: 12px; color: #0f172a; }}
-.subtitle {{ color: #64748b; margin-bottom: 24px; font-style: italic; }}
-.section, .root {{ background: #f8fafc; border: 1px solid #e2e8f0;
-                    border-left: 4px solid #2563eb;
+       background: #0f172a; margin: 0; padding: 20px; color: #cbd5e1; line-height: 1.5; }}
+.container {{ max-width: 1100px; margin: 0 auto; background: #1e293b; padding: 36px;
+              border-radius: 8px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+              border: 1px solid #334155; }}
+h1 {{ border-bottom: 3px solid #818cf8; padding-bottom: 12px; color: #e2e8f0; }}
+.subtitle {{ color: #94a3b8; margin-bottom: 24px; font-style: italic; }}
+.section, .root {{ background: #0f172a; border: 1px solid #334155;
+                    border-left: 4px solid #818cf8;
                     padding: 14px 20px; margin: 12px 0; border-radius: 6px; }}
-.root {{ border-left-color: #10b981; background: #ecfdf5; }}
-.section h3, .root h3 {{ margin: 0 0 8px 0; color: #0f172a; }}
-.section .date {{ color: #94a3b8; font-size: 0.85em; font-weight: normal;
+.root {{ border-left-color: #34d399; background: #022c22; }}
+.section h3, .root h3 {{ margin: 0 0 8px 0; color: #e2e8f0; }}
+.section .date {{ color: #64748b; font-size: 0.85em; font-weight: normal;
                 font-family: 'Menlo', monospace; margin-left: 8px; }}
 .section ul, .root ul {{ margin: 6px 0 0 0; padding-left: 22px; }}
 .section li, .root li {{ margin: 3px 0; }}
-.section a, .root a {{ color: #1d4ed8; text-decoration: none; }}
-.section a:hover, .root a:hover {{ color: #1e3a8a; text-decoration: underline; }}
-.meta {{ color: #94a3b8; font-size: 0.82em; font-family: 'Menlo', monospace; margin-left: 6px; }}
-code {{ background: #f1f5f9; color: #0f172a; padding: 1px 6px; border-radius: 3px;
+.section a, .root a {{ color: #c7d2fe; text-decoration: none; }}
+.section a:hover, .root a:hover {{ color: #e0e7ff; text-decoration: underline; }}
+.meta {{ color: #64748b; font-size: 0.82em; font-family: 'Menlo', monospace; margin-left: 6px; }}
+code {{ background: #334155; color: #e2e8f0; padding: 1px 6px; border-radius: 3px;
        font-size: 0.9em; }}
-.footer {{ margin-top: 30px; color: #94a3b8; font-size: 0.82em; padding-top: 14px;
-           border-top: 1px solid #e2e8f0; }}
+.footer {{ margin-top: 30px; color: #64748b; font-size: 0.82em; padding-top: 14px;
+           border-top: 1px solid #334155; }}
 </style>
 </head>
 <body>
@@ -1314,8 +1430,9 @@ def main() -> int:
         help="Site root directory (default: current dir)",
     )
     parser.add_argument(
-        "--asset-version", default="4",
-        help="Cache-bust version appended to asset URLs (bump on rail asset changes)",
+        "--asset-version", default="5",
+        help="Cache-bust version appended to asset URLs (bump on rail asset changes). "
+             "v5 = dark-by-default rail + chronological iter-N sort (was v4 = light).",
     )
     args = parser.parse_args()
 

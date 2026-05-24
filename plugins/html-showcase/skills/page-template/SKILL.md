@@ -90,6 +90,21 @@ The auto-nav rail is _generated_, not hand-written. Its styling lives in
 between `<!-- AUTO-NAV-START -->` and `<!-- AUTO-NAV-END -->` markers in
 each page's `<body>`.
 
+The rail and the master `site-map.html` are **always dark** (slate-950
+surface, slate-300 text, indigo-400 accents), regardless of the host
+page's theme. The rail is the constant element across every page; pinning
+its theme keeps it visually stable whether the page it overlays is a
+light contractor showcase or a dark telemetry dashboard.
+
+Pages within a section render in **creation order**, not alphabetical:
+
+- `index.html` always first.
+- Pages following the `index_iter_<N>_<slug>.html` naming convention sort
+  by `N` numerically (so `iter_10` comes after `iter_9`, not after `iter_1`).
+- Other top-level pages sort by filesystem birthtime (`st_birthtime` on
+  macOS — never moved by edits or rebuilds).
+- Nested pages fall back to the original subdir + index-first + alpha grouping.
+
 The rail's runtime behavior:
 
 - **First load**: width auto-fits to the longest unwrapped link (uses
