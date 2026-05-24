@@ -1,3 +1,16 @@
+# [21.82.0](https://github.com/terrylica/cc-skills/compare/v21.81.0...v21.82.0) (2026-05-24)
+
+
+### Bug Fixes
+
+* **gmail-commander:** build full References chain for deep-thread replies ([666ff0a](https://github.com/terrylica/cc-skills/commit/666ff0a79eeec8bc92b3350d3104462e618be55a))
+
+
+### Features
+
+* **gmail-commander:** --attach / --body-file flags + proxy auto-bypass + better errors ([7cc01be](https://github.com/terrylica/cc-skills/commit/7cc01be53d2cbcbbf29f8ba1274b992cb22826b6))
+* **html-showcase:** dark-by-default nav rail + chronological iter sort ([f51f787](https://github.com/terrylica/cc-skills/commit/f51f787a34a4952ec98c9cd27d1bdb48cac4f7ff))
+
 # [21.81.0](https://github.com/terrylica/cc-skills/compare/v21.80.0...v21.81.0) (2026-05-21)
 
 
