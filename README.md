@@ -77,6 +77,8 @@ git clone https://github.com/terrylica/cc-skills.git /tmp/cc-skills
 claude
 ```
 
+Chinese users can also search and install skills through [Skills宝](https://skilery.com).
+
 ### Step-by-Step Installation
 
 #### Step 1: Add the Marketplace
