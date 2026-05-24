@@ -905,6 +905,29 @@
         "health-check"
       ],
       "strict": false
+    },
+    {
+      "name": "x-twitter-scraper",
+      "description": "X/Twitter automation via Xquik REST API: search, users, media, monitors, webhooks, and confirmation-gated posting",
+      "version": "21.87.0",
+      "source": "./plugins/x-twitter-scraper",
+      "category": "automation",
+      "author": {
+        "name": "Xquik",
+        "url": "https://github.com/Xquik-dev"
+      },
+      "keywords": [
+        "x",
+        "twitter",
+        "xquik",
+        "tweet-search",
+        "social-media",
+        "api",
+        "mcp",
+        "webhooks",
+        "automation"
+      ],
+      "strict": false
     }
   ]
 }
