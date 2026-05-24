@@ -78,7 +78,28 @@ re-read the principle, not to work around it.
 - **Sections sort by date prefix when available.** Slugs matching
   `YYYY-MM-DD-<rest>` trigger chronological newest-first ordering for ALL
   sections; mixed sets put dated sections first, then undated alphabetical.
-  Pages within a section sort `index.html` first, then alphabetical.
+- **Pages within a section sort in creation order, not alphabetical.**
+  `index.html` always renders first. Other top-level pages following the
+  `index_iter_<N>_<slug>.html` convention sort by `N` (integer, not lex —
+  so `iter_10` correctly comes after `iter_9`, not after `iter_1`). Pages
+  that don't follow the `iter` convention fall back to filesystem
+  birthtime (`st_birthtime` on macOS; `mtime` on Linux). Nested pages
+  group by subdir, then `index.html` first, then alphabetical. **Why
+  birthtime over mtime**: rebuilds, find-replace passes, and CI all
+  touch `mtime` — using it re-orders the rail every time anyone edits
+  anything. Birthtime is set once and never moves. **Why `iter-N` over
+  birthtime when available**: birthtime resets on `git clone` (new
+  inodes), so for cross-machine canonical ordering the `iter_N`
+  filename token is the durable signal.
+- **Nav rail + site-map are ALWAYS dark.** The rail's `auto-nav.css`
+  and the site-map's inline `<style>` both pin `color-scheme: dark` and
+  use the slate-950 / slate-300 / indigo-400 palette regardless of the
+  host page's theme. The rail is the _constant_ across every page in
+  the system, and inconsistent rail theming was reported as a real
+  user-facing bug (e.g., a dark dashboard page with a glaring white
+  rail). If you want a light variant of the rail in the future, gate
+  it on a class on the `<details>` element — never let "the page
+  happens to be light, so the rail follows" leak in.
 - **Cache-bust via `?v=N` only.** When the rail's CSS or JS body inside
   `build-nav.py` changes, bump `--asset-version` (default in the script).
   The browser sees a new URL and re-fetches; we don't rely on

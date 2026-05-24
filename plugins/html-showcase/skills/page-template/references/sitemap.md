@@ -84,21 +84,36 @@ The slug pattern `YYYY-MM-DD-<rest>` is detected automatically:
 - If **no** sections have date prefixes, sections sort alphabetically by
   slug.
 
-Within a section, pages sort in three groups:
+Within a section, pages sort by **creation order**, not by filename:
 
-1. Top-level `index.html` first (gets the 📋 badge)
-2. Top-level non-index pages alphabetically (📄 badge)
-3. Nested pages grouped by subdir, with each subdir's `index.html`
-   first, then alphabetical (📑 badge, indented)
+1. Top-level `index.html` first (gets the 📋 badge).
+2. Top-level pages following the `index_iter_<N>_<slug>.html` naming
+   convention sort by `N` numerically (📄 badge). Critically, this is
+   integer sort — so `iter_10` correctly comes after `iter_9`, not after
+   `iter_1` (which lex-sort would do because '1' < '2' at position 11).
+3. Top-level pages that don't follow the `iter` convention sort by
+   filesystem **birthtime** (`st_birthtime` on macOS; falls back to
+   `mtime` on Linux where birthtime is not portably exposed). 📄 badge.
+4. Nested pages grouped by subdir, with each subdir's `index.html`
+   first, then alphabetical (📑 badge, indented).
 
-So adding a new subdirectory to an existing section never disrupts the
-order of the existing top-level pages — the new content slots in below.
+**Why birthtime, not mtime**: every rebuild, lint pass, or find/replace
+across the section touches `mtime` — using it would re-order the rail
+every time someone edited anything. Birthtime is set once at file
+creation and never moves.
+
+**Why `iter-N` overrides birthtime when present**: birthtime is local
+to one filesystem. `git clone` creates new inodes with `birthtime =
+clone time`, so two collaborators see different orderings of the same
+content. The `iter_N` integer in the filename is the durable
+cross-machine signal — encode "what step is this" in the name, and the
+order survives every clone, mirror, and CI build.
 
 This matches the way most teams instinctively organize a site that grows
 over time (date-prefixed for journals/audits/post-mortems, plain slugs
-for evergreen content). If you need a different order — manual ordering,
-priority groups, etc. — that's a Stance 3 change to `build-nav.py`'s
-`walk_site()` function.
+for evergreen content, `iter_N` slugs for iterative experiments). If
+you need a different order — manual ordering, priority groups, etc. —
+that's a Stance 3 change to `build-nav.py`'s `walk_site()` function.
 
 ## What the rail contains
 
@@ -274,6 +289,19 @@ them. The index is generated artifact, not code — drift is harmless.
 
 ## Theming the rail
 
+**The rail is always dark.** Same goes for the master `site-map.html`.
+Both pin `color-scheme: dark` and use a slate-950 surface + slate-300
+text + indigo-400 accent palette regardless of the host page's theme.
+
+This is an intentional design invariant. The rail is the _constant_
+across every page in the system — a contractor showcase, a telemetry
+dashboard, a weekly digest, and a postmortem all overlay the same rail.
+If the rail's theme followed the page, then navigating between a light
+page and a dark page would flicker the rail; if the rail's theme was
+"whatever last loaded," then a user dropping into the middle of the site
+via a deep link would see arbitrary theming. Pinning dark is the only
+shape that delivers a consistent navigation surface.
+
 The rail's appearance lives entirely in `AUTO_NAV_CSS_BODY` inside
 `build-nav.py`. It's intentionally **not** part of the showcase kernel
 because:
@@ -282,15 +310,17 @@ because:
   with kernel components would muddy the kernel's role.
 - A repo can adopt the rail without adopting the kernel CSS (e.g., a
   legacy site with its own design system can drop in `build-nav.py` for
-  navigation only).
-- The rail uses dark/light values appropriate for an overlay surface,
-  which sometimes diverges from the page's content surface. Keeping
-  them separate avoids cascade fights.
+  navigation only) and still get the consistent dark rail.
+- The rail's overlay surface needs different visual weight than the
+  page's content surface — keeping them separate avoids cascade fights.
 
-If you need the rail in a different palette, edit `AUTO_NAV_CSS_BODY`
-and bump `--asset-version`. If you find yourself wanting the rail to
-inherit kernel tokens, that's a deliberate cross-cutting change — open a
-PR and discuss whether the rail should become a kernel component.
+If you genuinely need a light variant of the rail in the future (e.g.,
+embedding into a public marketing site whose brand mandates light
+navigation), do it by toggling a class on the `<details class="auto-nav-rail">`
+element and forking the CSS body under that class — **never** by letting
+the host page's `color-scheme` leak in, which is how rail-theme drift
+gets reintroduced. Bump `--asset-version` after any change so caches
+see the new URL.
 
 ## When NOT to use the rail
 
