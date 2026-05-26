@@ -441,9 +441,13 @@ REFERENCE: https://docs.astral.sh/uv/concepts/projects/dependencies/`;
 }
 
 /**
- * Check file size for code files (500-1000 lines = soft reminder).
- * PreToolUse hard-blocks >1000 lines; this covers the warn tier.
+ * Check file size for code files (1000-2000 lines = soft reminder).
+ * PreToolUse hard-blocks >2000 lines; this covers the warn tier.
  * Only code files — markdown excluded (docs are naturally long).
+ *
+ * Thresholds doubled 2026-05-26 (was 500/1000) to reduce reminder noise on
+ * legitimately large files like the in-process hook orchestrators that
+ * intentionally combine many subhook classifiers into one bun process.
  */
 function checkFileSizeReminder(filePath: string): string | null {
   const CODE_EXTENSIONS = new Set([
@@ -466,10 +470,10 @@ function checkFileSizeReminder(filePath: string): string | null {
   const content = readFileSync(filePath, "utf-8");
   const lineCount = content.split("\n").length;
 
-  const WARN = 500;
-  const BLOCK = 1000;
+  const WARN = 1000;
+  const BLOCK = 2000;
 
-  // Skip if under warn threshold or over block threshold (PreToolUse handles >1000)
+  // Skip if under warn threshold or over block threshold (PreToolUse handles >BLOCK)
   if (lineCount < WARN || lineCount > BLOCK) return null;
 
   // Skip if escape hatch present
