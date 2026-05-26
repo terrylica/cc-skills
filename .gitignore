@@ -18,6 +18,8 @@ dist/
 build/
 .build/
 __pycache__/
+*.bun-build
+.*.bun-build
 
 # Claude Code local session
 .claude/

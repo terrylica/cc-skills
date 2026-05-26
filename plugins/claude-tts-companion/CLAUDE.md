@@ -89,8 +89,6 @@ Live menubar control of the companion runs through SwiftBar plugins. The compani
 
 **Planned (Task #2)**: full SSE migration — companion exposes `/events`, a new streamable plugin replaces the polling shell plugin. Eliminates the 10 s refresh cadence and the per-refresh fork/exec overhead.
 
-<!-- GSD:project-start source:PROJECT.md -->
-
 ## Project
 
 **claude-tts-companion — Notification Intelligence Milestone**
@@ -108,9 +106,6 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - **Deploy**: `make` handles build + deploy + restart
 - **Python dependency**: Kokoro TTS server on port 8779 must remain (companion delegates English TTS)
 - **No breaking changes**: Telegram message format must stay compatible (users have muscle memory for buttons)
-<!-- GSD:project-end -->
-
-<!-- GSD:stack-start source:codebase/STACK.md -->
 
 ## Technology Stack
 
@@ -181,9 +176,6 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - Restart behavior: KeepAlive with NetworkState true, SuccessfulExit false (respawn on crash, not on clean exit)
 - Stderr logging: ASL/Console.app via launchd
 - Network dependency: Requires internet for Telegram long polling + MiniMax API
-<!-- GSD:stack-end -->
-
-<!-- GSD:conventions-start source:CONVENTIONS.md -->
 
 ## Conventions
 
@@ -298,9 +290,6 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - Actor-isolated properties accessed via `await` from other actors
 - Same-actor access is synchronous (no await needed)
 - Cross-actor calls explicit: `await ttsEngine.synthesize(...)`
-<!-- GSD:conventions-end -->
-
-<!-- GSD:architecture-start source:ARCHITECTURE.md -->
 
 ## Architecture
 
@@ -319,7 +308,7 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - Contains: NSApplication initialization, signal handling, run loop execution
 - Depends on: CompanionApp (core coordinator)
 - Used by: launchd via installed binary at `~/.local/bin/claude-tts-companion`
-- Purpose: Owns and wires all subsystems; single source of truth for component lifetimes
+- Purpose: Owns and wires all subsystems; SSoT for component lifetimes
 - Location: `Sources/CompanionCore/CompanionApp.swift`
 - Contains: Subsystem initialization order, start/shutdown orchestration, notification dispatch
 - Depends on: All lower layers (SettingsStore, SubtitlePanel, PlaybackManager, TTSEngine, etc.)
@@ -451,29 +440,3 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - HTTP server gracefully stops on shutdown via httpServer.stop()
 - Telegram bot stops via TelegramBot.stop()
 - All DispatchSource and timers canceled in shutdown flow
-<!-- GSD:architecture-end -->
-
-<!-- GSD:workflow-start source:GSD defaults -->
-
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-
-- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd:debug` for investigation and bug fixing
-- `/gsd:execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-
-<!-- GSD:workflow-end -->
-
-<!-- GSD:profile-start -->
-
-## Developer Profile
-
-> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
-> This section is managed by `generate-claude-profile` -- do not edit manually.
-
-<!-- GSD:profile-end -->
