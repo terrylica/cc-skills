@@ -10,11 +10,15 @@
  * - Edit: reads existing file, applies edit, counts resulting lines
  *
  * Thresholds (per-extension, configurable via .claude/file-size-guard.json):
- *   Default: warn >500 lines, block >1000 lines
- *   .rs:    warn >500, block >1000 (Rust — PyO3 bindings tend to bloat)
- *   .py:    warn >500, block >1000
- *   .ts:    warn >500, block >1000
- *   .md:    warn >800, block >1500 (docs are naturally longer)
+ *   Default: warn >1000 lines, block >2000 lines
+ *   .rs:    warn >1000, block >2000 (Rust — PyO3 bindings tend to bloat)
+ *   .py:    warn >1000, block >2000
+ *   .ts:    warn >1000, block >2000
+ *   .md:    warn >1600, block >3000 (docs are naturally longer)
+ *
+ *   Thresholds doubled 2026-05-26 (was 500/1000 default) to reduce
+ *   false-positive blocks on legitimately large hook orchestrators that
+ *   intentionally combine many subhook classifiers into one bun process.
  *
  * Escape hatches:
  *   - "# FILE-SIZE-OK" comment anywhere in file
@@ -64,18 +68,18 @@ interface GuardConfig {
 }
 
 const DEFAULT_CONFIG: GuardConfig = {
-  defaults: { warn: 500, block: 1000 },
+  defaults: { warn: 1000, block: 2000 },
   extensions: {
-    ".rs": { warn: 500, block: 1000 },
-    ".py": { warn: 500, block: 1000 },
-    ".ts": { warn: 500, block: 1000 },
-    ".tsx": { warn: 500, block: 1000 },
-    ".js": { warn: 500, block: 1000 },
-    ".jsx": { warn: 500, block: 1000 },
-    ".go": { warn: 500, block: 1000 },
-    ".md": { warn: 800, block: 1500 },
-    ".toml": { warn: 200, block: 500 },
-    ".json": { warn: 1000, block: 3000 },
+    ".rs": { warn: 1000, block: 2000 },
+    ".py": { warn: 1000, block: 2000 },
+    ".ts": { warn: 1000, block: 2000 },
+    ".tsx": { warn: 1000, block: 2000 },
+    ".js": { warn: 1000, block: 2000 },
+    ".jsx": { warn: 1000, block: 2000 },
+    ".go": { warn: 1000, block: 2000 },
+    ".md": { warn: 1600, block: 3000 },
+    ".toml": { warn: 400, block: 1000 },
+    ".json": { warn: 2000, block: 6000 },
   },
   excludes: [
     "*.generated.*",
