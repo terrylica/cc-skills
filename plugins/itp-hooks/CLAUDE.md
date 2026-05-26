@@ -280,11 +280,13 @@ The `pretooluse-file-size-guard.ts` hook prevents single-file bloat by checking 
 
 | Extension                  | Warn | Block |
 | -------------------------- | ---- | ----- |
-| `.rs`, `.py`, `.ts`, `.go` | 500  | 1000  |
-| `.md`                      | 800  | 1500  |
-| `.toml`                    | 200  | 500   |
-| `.json`                    | 1000 | 3000  |
-| Other                      | 500  | 1000  |
+| `.rs`, `.py`, `.ts`, `.go` | 1000 | 2000  |
+| `.md`                      | 1600 | 3000  |
+| `.toml`                    | 400  | 1000  |
+| `.json`                    | 2000 | 6000  |
+| Other                      | 1000 | 2000  |
+
+**History**: Doubled 2026-05-26 (was 500/1000 default) to reduce reminder noise and false-positive blocks on the iter-84 → iter-98 in-process hook orchestrators that intentionally combine many subhook classifiers into one bun process. The PostToolUse soft reminder in `posttooluse-reminder.ts` also moved to WARN=1000 / BLOCK=2000.
 
 ### Exclusions
 
