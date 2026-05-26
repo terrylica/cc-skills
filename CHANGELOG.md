@@ -1,3 +1,10 @@
+# [21.83.0](https://github.com/terrylica/cc-skills/compare/v21.82.1...v21.83.0) (2026-05-26)
+
+
+### Features
+
+* **itp-hooks:** double file-size thresholds for hook orchestrators ([00d03c2](https://github.com/terrylica/cc-skills/commit/00d03c2fec41b8e47c8399dc0df5cfa605d2148e))
+
 ## [21.82.1](https://github.com/terrylica/cc-skills/compare/v21.82.0...v21.82.1) (2026-05-26)
 
 # [21.82.0](https://github.com/terrylica/cc-skills/compare/v21.81.0...v21.82.0) (2026-05-24)
