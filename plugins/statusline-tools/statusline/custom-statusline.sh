@@ -323,7 +323,7 @@ if [ -n "$remote_url_raw" ]; then
 fi
 
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
-# include GSD milestone tags like v2.0/v2.1 that sort above semver releases).
+# include non-semver milestone tags like v2.0/v2.1 that sort above semver releases).
 # Tri-state: real release → version+age; API-says-no-release → ∅ rel; gh broken → ⌁ offline.
 # `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
 # pattern-match stderr to tell them apart instead of trusting exit code alone.
