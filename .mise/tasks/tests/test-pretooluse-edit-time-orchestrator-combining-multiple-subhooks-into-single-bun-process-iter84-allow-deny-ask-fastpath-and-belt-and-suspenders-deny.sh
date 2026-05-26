@@ -61,11 +61,12 @@ else
 fi
 
 # ─── Case 3: large Write over BLOCK threshold → belt-and-suspenders deny ──────
-# 1500-line .ts file (block threshold = 1000). Expect:
+# 2500-line .ts file (block threshold = 2000 since 2026-05-26 threshold doubling;
+# previously 1500-line fixture exceeded the old 1000 block but no longer). Expect:
 #   stdout: JSON with permissionDecision=deny + orchestrator prefix in reason
 #   stderr: diagnostic line containing "DENY from subhook=file-size-guard"
 #   exit code: 2
-case3_content=$(generate_n_repeated_lines_for_oversized_fixture 1500 "export const x = 1;" | tr "\n" "@")
+case3_content=$(generate_n_repeated_lines_for_oversized_fixture 2500 "export const x = 1;" | tr "\n" "@")
 case3_content_escaped=${case3_content//@/\\n}
 case3_payload_file=$(mktemp -t iter84-orch-test-case3.XXXXXX.json)
 trap 'rm -f "$case3_payload_file"' EXIT
@@ -114,7 +115,7 @@ else
 fi
 
 # ─── Case 4: FILE-SIZE-OK escape hatch in large file → allow ─────────────────
-case4_content_with_escape=$(printf "// FILE-SIZE-OK\n%s" "$(generate_n_repeated_lines_for_oversized_fixture 1500 "export const x = 1;" | tr "\n" "@")")
+case4_content_with_escape=$(printf "// FILE-SIZE-OK\n%s" "$(generate_n_repeated_lines_for_oversized_fixture 2500 "export const x = 1;" | tr "\n" "@")")
 case4_content_with_escape_escaped=${case4_content_with_escape//@/\\n}
 case4_payload_file=$(mktemp -t iter84-orch-test-case4.XXXXXX.json)
 trap 'rm -f "$case3_payload_file" "$case3_stderr_file" "$case4_payload_file"' EXIT
