@@ -18,10 +18,23 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 
 **MANDATORY**: Select and load the appropriate template before any research work.
 
+### URL-routing guard (check BEFORE picking a template)
+
+Some URLs do not belong in this skill at all. Route them out first:
+
+| URL pattern                                                 | Where it belongs                                                                                              |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `chatgpt.com/share/...`, `chat.openai.com/share/...`        | `Skill(gh-tools:research-archival)` — AI chat shares need identity-verified archival, not Firecrawl scraping. |
+| `g.co/gemini/share/...`, `gemini.google.com/share/...`      | `Skill(gh-tools:research-archival)` — same as above.                                                          |
+| `claude.ai/chat/...`, `claude.ai/share/...`                 | `Skill(gh-tools:research-archival)`.                                                                          |
+| Anything you'd reach via `WebFetch` against `chatgpt.com/*` | Don't try — Claude Code hard-blocks `chatgpt.com`. Use the archival skill above.                              |
+
+If the URL matched any row above, stop here and hand off. Templates A–E are for research-grade source material (arXiv, journals, blogs, search queries) — not for archiving AI chat transcripts.
+
 ### Template A — Single Firecrawl Search + Persist
 
 ```
-1. Health check — GET http://littleblack:3002/v1/health (fallback: test search)
+1. Health check — GET http://littleblack.tail0f299b.ts.net:3002/ (expect 200 + {"message":"Firecrawl API",...}; NEVER use /v1/health — it 404s)
 2. Execute search — POST /v1/search with query, limit, scrapeOptions
 3. Persist raw results — save each result page to docs/research/corpus/ with frontmatter
 4. Update corpus index — append entries to docs/research/corpus-index.jsonl
@@ -42,7 +55,7 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 ### Template C — Full Recursive Deep Research with Corpus
 
 ```
-1. Health check — verify Firecrawl reachable at littleblack:3002
+1. Health check — GET http://littleblack.tail0f299b.ts.net:3002/ (expect 200 + Firecrawl banner; NEVER /v1/health — it 404s)
 2. Initialize parameters — set breadth (default 4), depth (default 2), concurrency (default 2)
 3. Generate search queries — LLM generates N queries from topic + prior learnings
 4. Execute searches — Firecrawl /v1/search for each query via p-limit(concurrency)
@@ -85,13 +98,25 @@ Use when paper contains architecture diagrams, result plots, attention maps, or 
 
 **Instance**: Self-hosted on **littleblack** — Debian 12 (bookworm), kernel 6.1.0-31, hostname `kab`, login user `yca`, RTX 2080 Ti, 62 GiB RAM. No API key required for any Firecrawl endpoint.
 
-| Access path        | URL base                                    | When to use                                                               |
-| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------- |
-| Tailscale MagicDNS | `http://littleblack:3002`                   | **Preferred.** Works whenever the client is on the tailnet with MagicDNS. |
-| Tailscale FQDN     | `http://littleblack.tail0f299b.ts.net:3002` | When bare MagicDNS doesn't resolve (corporate DNS, split-horizon).        |
-| Tailscale IP       | `http://100.78.106.112:3002`                | Bypasses DNS entirely; stable while the tailnet device exists.            |
-| Same-LAN direct    | `http://192.168.1.67:3002`                  | Only when the client is on the Telus PureFibre LAN (`eno1` interface).    |
-| Legacy ZeroTier    | `http://172.25.236.1:3002`                  | Fragile fallback (`ztksetviym` interface). Prefer Tailscale.              |
+| Access path        | URL base                                    | When to use                                                                                  |
+| ------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Tailscale FQDN     | `http://littleblack.tail0f299b.ts.net:3002` | **Preferred.** Works on every tailnet-attached client regardless of MagicDNS resolver state. |
+| Tailscale IP       | `http://100.78.106.112:3002`                | Bypasses DNS entirely; stable while the tailnet device exists.                               |
+| Tailscale MagicDNS | `http://littleblack:3002`                   | Conditional — only when bare-name resolution works (see preflight below).                    |
+| Same-LAN direct    | `http://192.168.1.67:3002`                  | Only when the client is on the Telus PureFibre LAN (`eno1` interface).                       |
+| Legacy ZeroTier    | `http://172.25.236.1:3002`                  | Fragile fallback (`ztksetviym` interface). Prefer Tailscale.                                 |
+
+**MagicDNS preflight** (run before relying on bare `littleblack`):
+
+```bash
+# macOS — does the OS resolver know about the bare name?
+dscacheutil -q host -a name littleblack | grep -q '^ip_address'  && echo OK || echo MISSING
+
+# Cross-platform — does any path resolve?
+getent hosts littleblack 2>/dev/null || ping -c1 -W1 littleblack 2>&1 | head -1
+```
+
+If preflight returns `MISSING` / "cannot resolve", **use the FQDN row.** SSH happens to work because `~/.ssh/config` hard-codes the FQDN under the `Host littleblack` alias — that's an SSH-only shortcut, not a system-wide DNS facility. Bare `littleblack` over HTTP fails silently as `HTTP 000` when the resolver doesn't have it; the failure mode is invisible without `ping`/`dscacheutil`. Confirmed broken on `m3max` (this Mac) as of 2026-05-27.
 
 SSH (for ops, not API calls): `ssh littleblack` — defined in `~/.ssh/config` as `HostName littleblack.tail0f299b.ts.net`, `User yca`, `IdentityFile ~/.ssh/id_ed25519_zerotier_np`.
 
@@ -110,10 +135,17 @@ See [api-endpoint-reference.md](./references/api-endpoint-reference.md) for full
 
 ### Quick Examples
 
+Use the FQDN base URL — works on every tailnet-attached client regardless of MagicDNS resolver state. Pull from `$FIRECRAWL_BASE` env var if your project sets one, otherwise hard-code the FQDN:
+
+```typescript
+const FIRECRAWL_BASE =
+  process.env.FIRECRAWL_BASE ?? "http://littleblack.tail0f299b.ts.net:3002";
+```
+
 **Search** (returns multiple results with markdown):
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/search", {
+const res = await fetch(`${FIRECRAWL_BASE}/v1/search`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -128,7 +160,7 @@ const { data } = await res.json(); // data: [{ url, markdown, metadata }]
 **Scrape** (single URL):
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/scrape", {
+const res = await fetch(`${FIRECRAWL_BASE}/v1/scrape`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -161,13 +193,34 @@ try {
 
 ### Health Check
 
+> **There is no `/v1/health` endpoint on this Firecrawl build.** Probing it returns HTTP 404 (Express's HTML error page), which looks like a service-down signal but isn't. Use the root `/` endpoint, which returns HTTP 200 with `{"message":"Firecrawl API","documentation_url":"https://docs.firecrawl.dev"}`. Confirmed 2026-05-27 against ports 3002 / FQDN / IP.
+
 ```typescript
-// Quick health check before starting a research session
-const res = await fetch("http://littleblack:3002/v1/health");
-if (!res.ok)
+// Quick health check before starting a research session.
+// Uses the Tailscale FQDN — works regardless of MagicDNS resolver state.
+const FIRECRAWL_BASE = "http://littleblack.tail0f299b.ts.net:3002";
+const res = await fetch(`${FIRECRAWL_BASE}/`);
+if (!res.ok) {
   throw new Error(
-    "Firecrawl unhealthy — see self-hosted-operations.md and self-hosted-troubleshooting.md references",
+    `Firecrawl unreachable (${res.status}) — see self-hosted-operations.md and self-hosted-troubleshooting.md`,
   );
+}
+const banner = await res.json();
+if (banner.message !== "Firecrawl API") {
+  throw new Error(
+    `Unexpected root response: ${JSON.stringify(banner).slice(0, 200)}`,
+  );
+}
+```
+
+For a true end-to-end probe (proves the full search/scrape stack works, not just the HTTP listener), `POST /v1/scrape` against `https://example.com` and check `success: true`:
+
+```bash
+curl -s --max-time 15 -X POST \
+  "http://littleblack.tail0f299b.ts.net:3002/v1/scrape" \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com","formats":["markdown"]}' \
+  | python3 -c "import sys, json; d=json.load(sys.stdin); print('OK' if d.get('success') else 'FAIL')"
 ```
 
 ---
@@ -317,7 +370,7 @@ content_tokens_approx: 4200
 
 ## Section 5 — Self-Hosted Operations
 
-The Firecrawl instance runs on **littleblack** (Debian 12, RTX 2080 Ti, hostname `kab`). System uptime is in the 100+ day range; Firecrawl is stable on this host. No API key needed. For the full access matrix (Tailscale MagicDNS / FQDN / IP, same-LAN, legacy ZeroTier), see Section 1 "Instance" — Section 5 examples use bare `littleblack` (Tailscale MagicDNS), substitute any path from that table if MagicDNS isn't available.
+The Firecrawl instance runs on **littleblack** (Debian 12, RTX 2080 Ti, hostname `kab`). System uptime is in the 100+ day range; Firecrawl is stable on this host. No API key needed. For the full access matrix (Tailscale FQDN / IP / MagicDNS, same-LAN, legacy ZeroTier), see Section 1 "Instance". Section 5 examples use the **Tailscale FQDN** (`littleblack.tail0f299b.ts.net`) since it works on every tailnet-attached client regardless of resolver state — substitute any path from the Section 1 table when appropriate.
 
 | Port | Service           | Type   | Purpose                                            |
 | ---- | ----------------- | ------ | -------------------------------------------------- |
@@ -336,17 +389,44 @@ The Firecrawl instance runs on **littleblack** (Debian 12, RTX 2080 Ti, hostname
 | Other Cloudflare sites | 3004 | If 3003 gets a Cloudflare challenge           |
 
 ```bash
+BASE="http://littleblack.tail0f299b.ts.net"   # FQDN — works without MagicDNS
+
 # Standard scrape (port 3003 — JS rendering + save)
-curl "http://littleblack:3003/scrape?url=URL&name=NAME"
+curl "${BASE}:3003/scrape?url=URL&name=NAME"
 
 # Cloudflare bypass (port 3004)
-curl "http://littleblack:3004/scrape-cf?url=URL&name=NAME"
-
-# Health checks (no SSH required)
-curl -s --max-time 4 http://littleblack:3003/health
-curl -s --max-time 4 http://littleblack:3004/health
-curl -s --max-time 4 http://littleblack:8080/
+curl "${BASE}:3004/scrape-cf?url=URL&name=NAME"
 ```
+
+**Health probes** — none of these services expose a `/v1/health` or `/health` endpoint. Probe the root and inspect the response body for the service's identity string:
+
+```bash
+BASE="http://littleblack.tail0f299b.ts.net"
+
+# Port 3002 — Firecrawl API
+# Healthy: HTTP 200, body contains '"message":"Firecrawl API"'
+curl -s --max-time 4 "${BASE}:3002/" | grep -q '"Firecrawl API"' && echo "3002 OK" || echo "3002 DOWN"
+
+# Port 3003 — Scraper wrapper
+# Healthy: HTTP 400, body contains 'Usage: /scrape?url=' (service up, rejects missing params)
+curl -s --max-time 4 "${BASE}:3003/" | grep -q 'Usage: /scrape' && echo "3003 OK" || echo "3003 DOWN"
+
+# Port 3004 — Cloudflare bypass wrapper
+# Healthy: HTTP 200, body contains '"service":"cloudflare-bypass-scraper"'
+curl -s --max-time 4 "${BASE}:3004/" | grep -q 'cloudflare-bypass-scraper' && echo "3004 OK" || echo "3004 DOWN"
+
+# Port 8080 — Caddy
+# Healthy: HTTP 200 (directory listing)
+curl -s --max-time 4 -o /dev/null -w '%{http_code}\n' "${BASE}:8080/" | grep -q '^200$' && echo "8080 OK" || echo "8080 DOWN"
+
+# Real end-to-end probe — proves /v1/scrape works against a known-good URL
+curl -s --max-time 15 -X POST "${BASE}:3002/v1/scrape" \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com","formats":["markdown"]}' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if d.get('success') else 'FAIL')"
+```
+
+> **Do not** probe `/v1/health`, `/health`, or `/v0/health` on port 3002 — all three return HTTP 404 (Express's HTML error page), which looks like a service-down signal but isn't. Confirmed 2026-05-27.
 
 For architecture diagrams, health checks, recovery commands, and deployment details, see:
 
@@ -567,17 +647,17 @@ cat preamble-block.md "${ARXIV_ID}-pandoc.md" > "${ARXIV_ID}-with-macros.md"
 
 ## Anti-Patterns
 
-| #   | Anti-Pattern                                  | Why It Fails                                                                 | Correct Approach                                                                                                                                     |
-| --- | --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Using `@mendable/firecrawl-js` SDK            | `jiti` dynamic imports break in Bun                                          | Direct `fetch()` calls                                                                                                                               |
-| 2   | Searching paywalled sites without `waitFor`   | JS SPAs return empty shell                                                   | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                                 |
-| 3   | Setting depth > 5                             | Exponential query explosion, diminishing returns                             | Cap at depth 5 (`clampDepth()`)                                                                                                                      |
-| 4   | No timeout on `fetch()`                       | Hangs indefinitely on unreachable pages                                      | Always use `AbortController` with 15s timeout                                                                                                        |
-| 5   | Not trimming long page content                | Exceeds LLM context window                                                   | `trimToTokenLimit(text, 25_000)` per page                                                                                                            |
-| 6   | Aborting on partial failure                   | Loses all completed work                                                     | Log failures, continue with remaining queries                                                                                                        |
-| 7   | Not checking Firecrawl health first           | Wastes time on queries that all fail                                         | `GET /v1/health` or test search before starting                                                                                                      |
-| 8   | Saving only synthesis without raw originals   | Loses source material, prevents re-analysis                                  | Always persist raw Firecrawl markdown to corpus                                                                                                      |
-| 9   | Rewriting figure URLs to local relative paths | Relative paths like `./figures/x1.png` break on GitHub — images don't render | Keep absolute URLs inline in markdown body (`![Fig](https://arxiv.org/html/{id}/x1.png)`); catalog in frontmatter `figure_urls` list — see Section 6 |
+| #   | Anti-Pattern                                  | Why It Fails                                                                               | Correct Approach                                                                                                                                     |
+| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Using `@mendable/firecrawl-js` SDK            | `jiti` dynamic imports break in Bun                                                        | Direct `fetch()` calls                                                                                                                               |
+| 2   | Searching paywalled sites without `waitFor`   | JS SPAs return empty shell                                                                 | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                                 |
+| 3   | Setting depth > 5                             | Exponential query explosion, diminishing returns                                           | Cap at depth 5 (`clampDepth()`)                                                                                                                      |
+| 4   | No timeout on `fetch()`                       | Hangs indefinitely on unreachable pages                                                    | Always use `AbortController` with 15s timeout                                                                                                        |
+| 5   | Not trimming long page content                | Exceeds LLM context window                                                                 | `trimToTokenLimit(text, 25_000)` per page                                                                                                            |
+| 6   | Aborting on partial failure                   | Loses all completed work                                                                   | Log failures, continue with remaining queries                                                                                                        |
+| 7   | Probing `/v1/health` for health               | Returns HTTP 404 — endpoint doesn't exist; HTML 404 page looks like service-down but isn't | `GET /` against port 3002, check body contains `"Firecrawl API"`. See Section 1 Health Check.                                                        |
+| 8   | Saving only synthesis without raw originals   | Loses source material, prevents re-analysis                                                | Always persist raw Firecrawl markdown to corpus                                                                                                      |
+| 9   | Rewriting figure URLs to local relative paths | Relative paths like `./figures/x1.png` break on GitHub — images don't render               | Keep absolute URLs inline in markdown body (`![Fig](https://arxiv.org/html/{id}/x1.png)`); catalog in frontmatter `figure_urls` list — see Section 6 |
 
 ---
 
