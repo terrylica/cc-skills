@@ -1,3 +1,10 @@
+## [21.84.3](https://github.com/terrylica/cc-skills/compare/v21.84.2...v21.84.3) (2026-05-27)
+
+
+### Bug Fixes
+
+* complete Python 3.13 → 3.14 migration in remaining hooks + configs + docs ([f42ba49](https://github.com/terrylica/cc-skills/commit/f42ba49584785bd98148270ff694b5565bb16ecf))
+
 ## [21.84.2](https://github.com/terrylica/cc-skills/compare/v21.84.1...v21.84.2) (2026-05-27)
 
 
