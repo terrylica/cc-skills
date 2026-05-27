@@ -18,18 +18,21 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 
 **MANDATORY**: Select and load the appropriate template before any research work.
 
-### URL-routing guard (check BEFORE picking a template)
+### Intent routing — AI chat share URLs (chatgpt / gemini / claude)
 
-Some URLs do not belong in this skill at all. Route them out first:
+AI chat share URLs (`chatgpt.com/share/*`, `chat.openai.com/share/*`, `gemini.google.com/share/*`, `g.co/gemini/share/*`, `claude.ai/share/*`, `claude.ai/chat/*`) can be processed by **either** this skill or `Skill(gh-tools:research-archival)`. Pick by **intent**, not URL pattern:
 
-| URL pattern                                                 | Where it belongs                                                                                              |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `chatgpt.com/share/...`, `chat.openai.com/share/...`        | `Skill(gh-tools:research-archival)` — AI chat shares need identity-verified archival, not Firecrawl scraping. |
-| `g.co/gemini/share/...`, `gemini.google.com/share/...`      | `Skill(gh-tools:research-archival)` — same as above.                                                          |
-| `claude.ai/chat/...`, `claude.ai/share/...`                 | `Skill(gh-tools:research-archival)`.                                                                          |
-| Anything you'd reach via `WebFetch` against `chatgpt.com/*` | Don't try — Claude Code hard-blocks `chatgpt.com`. Use the archival skill above.                              |
+| Your intent                                                                        | Skill                               | Output                                                                         |
+| ---------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
+| One-off read / extract conversation text for analysis                              | **This skill** — port 3003 (Sec. 5) | Markdown file on Caddy; no frontmatter, no Issue, no provenance.               |
+| Long-term archive with identity verification, frontmatter, GitHub Issue cross-link | `Skill(gh-tools:research-archival)` | `docs/research/YYYY-MM-DD-{slug}-{type}.md` + issue with Discovery Provenance. |
+| Already have the file, just need to scrape extra content into the same corpus file | **This skill**                      | Append-mode workflow under your control.                                       |
 
-If the URL matched any row above, stop here and hand off. Templates A–E are for research-grade source material (arXiv, journals, blogs, search queries) — not for archiving AI chat transcripts.
+> **Both paths share the same Firecrawl backend.** `research-archival` calls Firecrawl too — it adds an archival layer on top. There is no scraping capability gap between the two; the difference is what happens to the bytes after they come back.
+
+**WebFetch limitation, regardless of intent**: Claude Code hard-blocks `WebFetch` against `chatgpt.com`. Use Firecrawl (this skill, any port) or Jina Reader instead. Verified 2026-05-27.
+
+**Empirical note** (2026-05-27): port 3003 successfully scrapes ChatGPT shares — `curl :3003/scrape?url=...&name=...` returned a 75 KB / 1,734-line markdown for a real ChatGPT share via the Caddy two-step pattern (see Section 5). Earlier guidance that said "route AI chat shares out" was overcautious and contradicted Section 5's port table.
 
 ### Template A — Single Firecrawl Search + Persist
 
@@ -388,14 +391,37 @@ The Firecrawl instance runs on **littleblack** (Debian 12, RTX 2080 Ti, hostname
 | Gemini/ChatGPT shares  | 3003 | Needs JS rendering (SPA)                      |
 | Other Cloudflare sites | 3004 | If 3003 gets a Cloudflare challenge           |
 
+**Two-step pattern** — port 3003 and 3004 do not return markdown directly. They scrape, save to Caddy-served storage, and return a JSON pointer. You then fetch the markdown from the returned Caddy URL. (Discovered 2026-05-27 — earlier snippets that ran a single `curl :3003/scrape?...` and treated the response body as the scraped content were silently wrong: that body is `{"url":"...","file":"..."}`, not markdown.)
+
 ```bash
 BASE="http://littleblack.tail0f299b.ts.net"   # FQDN — works without MagicDNS
+URL="https://chatgpt.com/share/<id>"          # or any JS-rendered page
+NAME="chatgpt-metric-stack-2026-05-27"        # slug — NO whitespace or special chars
 
-# Standard scrape (port 3003 — JS rendering + save)
-curl "${BASE}:3003/scrape?url=URL&name=NAME"
+# URL-encode the target (avoid Python's trailing newline — use end='')
+ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''), end='')" "$URL")
 
-# Cloudflare bypass (port 3004)
-curl "${BASE}:3004/scrape-cf?url=URL&name=NAME"
+# Step 1 — POST scrape request, get JSON pointer
+SCRAPE_JSON=$(curl -s --max-time 90 "${BASE}:3003/scrape?url=${ENC}&name=${NAME}")
+echo "$SCRAPE_JSON"
+# → {"url":"http://172.25.236.1:8080/<NAME>-<timestamp>.md","file":"<NAME>-<timestamp>.md"}
+
+# Step 2 — extract Caddy URL, rewrite host to FQDN (the JSON returns the legacy ZeroTier IP),
+# then fetch the actual markdown
+FILE=$(echo "$SCRAPE_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['file'])")
+curl -s --max-time 30 "${BASE}:8080/${FILE}" -o "/tmp/${FILE}"
+wc -c "/tmp/${FILE}"   # sanity-check that content actually arrived
+```
+
+> **The JSON response embeds the legacy ZeroTier IP** (`http://172.25.236.1:8080/...`) — do NOT follow that URL directly if ZeroTier isn't reachable from your client. Always reconstruct the Caddy URL using your preferred host base (`${BASE}:8080/${FILE}`), as shown above.
+
+**Shell-quoting trap** (`zsh`/`bash`): the `&` in `?url=X&name=Y` is fine inside double quotes, but if you splice `$(...)` command substitution mid-URL, any trailing newline from Python's `print()` becomes `%0A` in the encoded URL and the server rejects the malformed target silently. Always use `end=''` in the encoder or pipe through `tr -d '\n'`.
+
+**Cloudflare-bypass wrapper** (port 3004) follows the same POST → Caddy two-step:
+
+```bash
+curl -s --max-time 90 "${BASE}:3004/scrape-cf?url=${ENC}&name=${NAME}"
+# → same JSON shape; same Caddy GET to retrieve the markdown
 ```
 
 **Health probes** — none of these services expose a `/v1/health` or `/health` endpoint. Probe the root and inspect the response body for the service's identity string:
