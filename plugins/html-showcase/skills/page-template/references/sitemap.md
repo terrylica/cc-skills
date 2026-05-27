@@ -84,18 +84,38 @@ The slug pattern `YYYY-MM-DD-<rest>` is detected automatically:
 - If **no** sections have date prefixes, sections sort alphabetically by
   slug.
 
-Within a section, pages sort by **creation order**, not by filename:
+Within a section, pages sort **newest-first** with an explicit
+pinned-pages escape hatch. Tier order, top → bottom:
 
-1. Top-level `index.html` first (gets the 📋 badge).
-2. Top-level pages following the `index_iter_<N>_<slug>.html` naming
-   convention sort by `N` numerically (📄 badge). Critically, this is
-   integer sort — so `iter_10` correctly comes after `iter_9`, not after
-   `iter_1` (which lex-sort would do because '1' < '2' at position 11).
-3. Top-level pages that don't follow the `iter` convention sort by
-   filesystem **birthtime** (`st_birthtime` on macOS; falls back to
-   `mtime` on Linux where birthtime is not portably exposed). 📄 badge.
-4. Nested pages grouped by subdir, with each subdir's `index.html`
+1. The section's `index.html` (📋 badge — always first).
+2. **Pinned pages** — any page that contains `<!-- nav-pin -->`
+   (or `<!-- nav-pin: N -->` for an explicit priority where lower N
+   sorts higher) in its HTML body. Ties broken by descending iter-N,
+   then descending birthtime.
+3. **Unpinned `index_iter_<N>_<slug>.html` pages**, sorted
+   **descending by N** (iter_315 above iter_314 above iter_2 — integer
+   compare so `iter_10` correctly outranks `iter_2`). 📄 badge.
+4. **Other unpinned top-level pages**, sorted by filesystem
+   **birthtime descending** (newest first; `st_birthtime` on macOS,
+   falls back to `mtime` on Linux). 📄 badge.
+5. **Nested pages** — grouped by subdir, each subdir's `index.html`
    first, then alphabetical (📑 badge, indented).
+
+**Why newest-first by default**: when a campaign produces iter_1 →
+iter_N, the operator's most-pressing question is "what's the latest?"
+That page should sit at the top of the rail, not buried hundreds of
+entries down. The previous chronological-ascending default forced the
+user to scroll past stale work to reach the active edge.
+
+**Why a `<!-- nav-pin -->` HTML comment, not a sidecar file**: the
+marker lives WITH the page, so renaming, regenerating, or git-cloning
+the file never desynchronizes pin state from page identity. No
+manifest to keep in sync; no orphaned `.nav-pin` file to forget.
+Use it when one canonical page (a "researcher explainer" landing
+page, a glossary, a methodology charter) should stay at the top
+even when iter-999 ships next week. Use `<!-- nav-pin: 0 -->` for
+the primary anchor and `<!-- nav-pin: 1 -->`, `<!-- nav-pin: 2 -->`
+for secondary anchors to control their relative order.
 
 **Why birthtime, not mtime**: every rebuild, lint pass, or find/replace
 across the section touches `mtime` — using it would re-order the rail
@@ -112,8 +132,9 @@ order survives every clone, mirror, and CI build.
 This matches the way most teams instinctively organize a site that grows
 over time (date-prefixed for journals/audits/post-mortems, plain slugs
 for evergreen content, `iter_N` slugs for iterative experiments). If
-you need a different order — manual ordering, priority groups, etc. —
-that's a Stance 3 change to `build-nav.py`'s `walk_site()` function.
+you need a different order — manual ordering, priority groups beyond
+what pins cover, etc. — that's a Stance 3 change to `build-nav.py`'s
+`walk_site()` function.
 
 ## What the rail contains
 
@@ -301,6 +322,24 @@ page and a dark page would flicker the rail; if the rail's theme was
 "whatever last loaded," then a user dropping into the middle of the site
 via a deep link would see arbitrary theming. Pinning dark is the only
 shape that delivers a consistent navigation surface.
+
+**Pages themselves are free to pick any theme.** The AI authoring a
+page (dashboard, post-mortem, research explainer, contractor
+showcase) decides what visual register suits the content — light,
+dark, sepia, gradient, whatever. Pages do NOT need to coordinate
+with each other; only the rail is constrained. This deliberate
+asymmetry is what makes the system work: the navigation surface is
+predictable while the content surface is expressive.
+
+**The body gutter is part of the rail contract.** The rail injects
+`padding-left: 28px` (rail collapsed) / `40px` (rail open) plus
+`padding-right: 28px` and a clamped `max-width` on `<body>` via
+`!important`. Without the gutter, page content butts directly
+against the rail's right edge and the eye has nowhere to land
+between the two visual surfaces. The 28-40px buffer was added per
+user feedback 2026-05-26 (iter_315 PRESENTATION_REFACTOR). Pages
+declaring their own `body { padding: ... }` will be overridden;
+that's intentional — the buffer is non-negotiable.
 
 The rail's appearance lives entirely in `AUTO_NAV_CSS_BODY` inside
 `build-nav.py`. It's intentionally **not** part of the showcase kernel
