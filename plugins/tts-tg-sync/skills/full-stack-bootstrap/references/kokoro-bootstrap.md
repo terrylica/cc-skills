@@ -28,7 +28,7 @@ The installer uses `uv venv --python 3.14` to create the virtual environment. Th
 If Python 3.14 is not available, install it first:
 
 ```bash
-uv python install 3.13
+uv python install 3.14
 ```
 
 ## PyPI Dependencies
@@ -71,7 +71,7 @@ The installer writes a metadata file tracking the installation:
 {
   "mlx_audio": "<version>",
   "backend": "mlx",
-  "python": "3.13",
+  "python": "3.14",
   "model": "mlx-community/Kokoro-82M-bf16",
   "installed_at": "2026-02-28T00:00:00Z",
   "source": "kokoro-install.sh --install",

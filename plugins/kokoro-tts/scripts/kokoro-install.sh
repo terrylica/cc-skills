@@ -79,7 +79,7 @@ do_install() {
 {
   "mlx_audio": "${mlx_ver}",
   "backend": "mlx",
-  "python": "3.13",
+  "python": "3.14",
   "model": "mlx-community/Kokoro-82M-bf16",
   "installed_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "source": "kokoro-install.sh --install",
@@ -127,7 +127,7 @@ do_upgrade() {
 {
   "mlx_audio": "${mlx_ver}",
   "backend": "mlx",
-  "python": "3.13",
+  "python": "3.14",
   "model": "mlx-community/Kokoro-82M-bf16",
   "upgraded_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "source": "kokoro-install.sh --upgrade",

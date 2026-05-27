@@ -395,8 +395,7 @@ A patched entrypoint (`~/.claude/bin/mcp-shell-server-patched.py`) intercepts `a
     "args": [
       "--from",
       "mcp-shell-server",
-      "--python",
-      "3.13",
+      "--python", "3.14",
       "python",
       "/Users/terryli/.claude/bin/mcp-shell-server-patched.py"
     ],

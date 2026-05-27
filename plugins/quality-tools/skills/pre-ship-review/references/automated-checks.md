@@ -45,7 +45,7 @@ if ! command -v pyright &>/dev/null; then
 fi
 
 # Run on changed Python files only
-pyright --outputjson --pythonversion 3.13 $PY_FILES 2>/dev/null | \
+pyright --outputjson --pythonversion 3.14 $PY_FILES 2>/dev/null | \
   python3 -c "
 import json, sys
 data = json.load(sys.stdin)

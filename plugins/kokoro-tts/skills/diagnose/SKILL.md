@@ -18,7 +18,7 @@ Troubleshoot Kokoro TTS engine issues through systematic diagnostics.
 | Model not found    | Download incomplete | `ls ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/` | `kokoro-install.sh --install` to re-download |
 | Slow synthesis     | First-run warmup    | Time a test synthesis                                                 | Normal — subsequent runs use cached model    |
 | Not Apple Silicon  | Intel/Linux system  | `uname -m` != `arm64`                                                 | MLX-Audio requires Apple Silicon (M1+)       |
-| Wrong Python       | Not 3.13            | `~/.local/share/kokoro/.venv/bin/python --version`                    | Rebuild venv with `--uninstall && --install` |
+| Wrong Python       | Not 3.14            | `~/.local/share/kokoro/.venv/bin/python --version`                    | Rebuild venv with `--uninstall && --install` |
 | Server won't start | Port in use         | `lsof -i :8779`                                                       | Kill existing process or change port         |
 | No audio from CLI  | Empty text          | Check `--text` argument                                               | Provide non-empty text                       |
 

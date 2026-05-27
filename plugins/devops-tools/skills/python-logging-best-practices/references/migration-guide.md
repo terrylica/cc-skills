@@ -20,7 +20,7 @@ This guide covers migrating from `print()` statements to structured JSONL loggin
 ```python
 # PEP 723 inline script metadata
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.14"
 # dependencies = ["loguru", "orjson"]
 # ///
 ```

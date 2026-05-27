@@ -6,7 +6,7 @@
 | ----------- | ------------------------------------- | --------------------------------------------- | ---------------------------------------- |
 | `loguru`    | CLI tools, scripts, local services    | Zero-config, built-in rotation, great DX      | External dep, not schema-enforced        |
 | `structlog` | Production services, OTel integration | ContextVars, processor chains, OTel-native    | Steeper learning curve                   |
-| `stdlib`    | LaunchAgent daemons, zero-dep         | No dependencies, 3.13 `merge_extra`           | More boilerplate, no structured defaults |
+| `stdlib`    | LaunchAgent daemons, zero-dep         | No dependencies, 3.14 `merge_extra`           | More boilerplate, no structured defaults |
 | `Logfire`   | AI/LLM observability, Pydantic apps   | Built on OTel, token/cost tracking, SQL       | SaaS dependency, newer ecosystem         |
 | `Kern`      | Enterprise with compliance needs      | Strict JSON schema, crypto integrity, no deps | Newer, smaller community                 |
 | `Rich`      | Rich terminal apps                    | Beautiful output, syntax-highlighted traces   | Display only, not for structured logging |

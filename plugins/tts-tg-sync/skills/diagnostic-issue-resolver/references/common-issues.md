@@ -158,7 +158,7 @@ uname -m  # Should be arm64
 **Resolution Tree**:
 
 - Not arm64 --> MLX-Audio requires Apple Silicon (M1+). No Intel/Linux fallback.
-- Wrong Python version --> Must be 3.13. Rebuild venv: `kokoro-install.sh --uninstall && kokoro-install.sh --install`
+- Wrong Python version --> Must be 3.14. Rebuild venv: `kokoro-install.sh --uninstall && kokoro-install.sh --install`
 - MLX OK but still slow --> Check if other GPU-heavy processes are running, or if the model needs re-download
 
 ---

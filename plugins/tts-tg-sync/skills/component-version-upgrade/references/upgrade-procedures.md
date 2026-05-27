@@ -148,7 +148,7 @@ After any upgrade, `version.json` at `~/.local/share/kokoro/` should reflect cur
 {
   "mlx_audio": "0.3.x",
   "backend": "mlx",
-  "python": "3.13",
+  "python": "3.14",
   "model": "mlx-community/Kokoro-82M-bf16",
   "upgraded_at": "2026-02-28T00:00:00Z",
   "source": "kokoro-install.sh --upgrade",

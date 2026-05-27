@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.14"
 # dependencies = []
 # ///
 """Env-var coverage audit: cross-reference pydantic BaseSettings vs bare constants.
