@@ -1,3 +1,10 @@
+## [21.84.2](https://github.com/terrylica/cc-skills/compare/v21.84.1...v21.84.2) (2026-05-27)
+
+
+### Bug Fixes
+
+* **firecrawl-research-patterns:** reconcile URL-routing guard with port table ([18ef325](https://github.com/terrylica/cc-skills/commit/18ef32504032a626009d438e54e1e90bf30f48a7))
+
 ## [21.84.1](https://github.com/terrylica/cc-skills/compare/v21.84.0...v21.84.1) (2026-05-27)
 
 
