@@ -141,7 +141,7 @@ async def safe_codegen_with_validation(prompt: str, validation_harness: str) -> 
 
     try:
         proc = subprocess.run(
-            ["uv", "run", "--python", "3.13", "--with", "...required-deps...",
+            ["uv", "run", "--python", "3.14", "--with", "...required-deps...",
              "python", str(sandbox_path)],
             capture_output=True, text=True, timeout=60, check=False,
         )

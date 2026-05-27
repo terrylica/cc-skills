@@ -98,11 +98,11 @@ if command -v python3 >/dev/null 2>&1; then
   if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
     py_ver="$(python3 --version 2>&1 || echo unknown)"
     echo "✗ python3 is too old: ${py_ver}. Need Python 3.10 or newer." >&2
-    echo "  Install: brew install python@3.13  (or: mise use python@3.13)" >&2
+    echo "  Install: brew install python@3.14  (or: mise use python@3.14)" >&2
     exit 1
   fi
 else
-  echo "✗ python3 not on PATH. Install: brew install python@3.13" >&2
+  echo "✗ python3 not on PATH. Install: brew install python@3.14" >&2
   exit 1
 fi
 

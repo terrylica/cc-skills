@@ -72,7 +72,7 @@ ls .mise.toml mise.toml .mise/tasks/ 2>/dev/null
   mise Environment Status: cc-skills
 ═══════════════════════════════════════════
 
-Tools: node 25.0.0, bun 1.3.0, python 3.13
+Tools: node 25.0.0, bun 1.3.0, python 3.14
 Account: terrylica
 
 Tasks (32 total):

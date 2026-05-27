@@ -175,7 +175,7 @@ describe("BLOCK: conda", () => {
   it("should block conda create", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "conda create -n myenv python=3.13" },
+      tool_input: { command: "conda create -n myenv python=3.14" },
     });
     expectDeny(result, "uv venv");
   });
