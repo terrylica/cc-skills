@@ -161,6 +161,26 @@ H1_RE = re.compile(r"<h1[^>]*>(.*?)</h1>", re.IGNORECASE | re.DOTALL)
 TAG_STRIP_RE = re.compile(r"<[^>]+>")
 DATE_PREFIX_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)$")
 
+# Pin marker — place anywhere in the HTML body to pin a page to the top
+# of its section even when newer pages (or higher iter-N pages) are added
+# later. Two forms supported:
+#   <!-- nav-pin -->            → pinned with default priority 0
+#   <!-- nav-pin: 5 -->         → pinned with explicit priority 5
+# Lower priority numbers sort earlier within the pinned group, so a
+# canonical "section apex" page can be pinned with priority 0 and a
+# secondary anchor with priority 1, etc. Negative priorities are allowed
+# and sort before priority 0.
+#
+# Why a comment, not a filename convention: the user's mental model is
+# "this specific page should stay at top regardless of its iter-N or
+# birthtime" — the marker lives WITH the page so renaming, regenerating,
+# or git-cloning the file never desynchronizes pin state from page
+# identity. No sidecar file to lose; no manifest to keep in sync.
+NAV_PIN_RE = re.compile(
+    r"<!--\s*nav-pin(?:\s*:\s*(-?\d+))?\s*-->",
+    re.IGNORECASE,
+)
+
 
 def _strip_tags(s: str) -> str:
     return TAG_STRIP_RE.sub("", s).strip()
@@ -177,6 +197,13 @@ def parse_html(path: Path) -> dict:
     text = path.read_text(encoding="utf-8-sig", errors="replace")
     title = TITLE_RE.search(text)
     h1 = H1_RE.search(text)
+    # Pin marker — see NAV_PIN_RE docstring. Returns (priority, found?).
+    # priority defaults to 0 when the bare marker is used.
+    pin_match = NAV_PIN_RE.search(text)
+    pin_priority: int | None = None
+    if pin_match:
+        raw_priority = pin_match.group(1)
+        pin_priority = int(raw_priority) if raw_priority is not None else 0
     return {
         "path": path,
         "filename": path.name,
@@ -190,9 +217,18 @@ def parse_html(path: Path) -> dict:
         # filename doesn't match). The _sort_key in walk_site() prefers
         # iter_num when present, ctime otherwise, so pages render in the
         # order they were first authored — not the order they were last
-        # touched.
+        # touched. Default order is NEWEST-FIRST (descending iter-N /
+        # descending ctime) so a fresh iteration always appears at the
+        # top of its section without manual nav edits.
         "ctime": _creation_time(path),
         "iter_num": _iter_num(path.name),
+        # `pin_priority` is the parsed N from `<!-- nav-pin[: N] -->`, or
+        # None when the page is not pinned. Pinned pages float to the top
+        # of their section (just below the section index.html) regardless
+        # of iter-N or birthtime — the user's escape hatch for "this page
+        # is the canonical apex and should stay at top even when iter-999
+        # ships next week."
+        "pin_priority": pin_priority,
     }
 
 
@@ -265,19 +301,41 @@ def walk_site(root: Path) -> tuple[dict | None, list[dict]]:
             pages.append(page)
         if not pages:
             continue
-        # Sort: top-level index.html first, then top-level pages in
-        # CREATION ORDER (iter-N numeric when filename matches the
-        # `index_iter_N_*.html` convention; otherwise filesystem
-        # birthtime). Nested pages keep the original grouping
-        # (subdir + index-first + alphabetical) since iter-N is a
-        # top-level naming convention only.
+        # Sort tiers within a section (lower group = higher up in nav):
         #
-        # This fixes two bugs at once:
-        #   (a) lex-sort: `iter_10` < `iter_2` because '1' < '2' at
-        #       position 11. Fix: parse N as int.
-        #   (b) modified-time noise: any rebuild that touched mtime
-        #       re-ordered the rail. Fix: birthtime (st_birthtime)
-        #       which never moves after file creation.
+        #   group 0 — section index.html (always first)
+        #   group 1 — pinned pages (priority ascending, then newest-first
+        #             within same priority)
+        #   group 2 — unpinned top-level iter-N pages, NEWEST-FIRST
+        #             (descending N — iter_315 above iter_314 above …)
+        #   group 3 — unpinned top-level non-iter pages, NEWEST-FIRST
+        #             by filesystem birthtime
+        #   group 4 — nested pages, grouped by subdir then index-first
+        #             then alphabetical (nested ordering is alphabetical
+        #             because subsections don't carry the iter-N convention)
+        #
+        # USER FEEDBACK 2026-05-26: the default-presented order should
+        # surface the LATEST work without forcing a manual rebuild —
+        # iterations of a campaign accumulate at the top, and a pinned
+        # apex page stays anchored even when newer iterations land.
+        #
+        # Why descending iter-N: a campaign produces iter_1 → iter_2 →
+        # … and the operator's most-pressing question is "what's the
+        # latest?" — that page should sit at the top of the rail, not
+        # buried 300 entries down.
+        #
+        # Why descending birthtime for non-iter pages: same reason —
+        # newest = most-likely-relevant. Birthtime (not mtime) so that
+        # build-nav.py reruns and find-replace passes don't perturb the
+        # ordering.
+        #
+        # Why pins are an explicit tier above iter pages: even when 50
+        # newer iterations land, the user can keep ONE canonical page
+        # (e.g., the section's "researcher explainer" landing page) at
+        # the top by adding `<!-- nav-pin -->` to its body. The pin
+        # tier is bounded — only pages with the marker appear here —
+        # so the default "newest-first" experience is preserved for
+        # everything else.
         def _sort_key(pg: dict) -> tuple:
             rel = pg["section_relpath"]
             parts = rel.split("/")
@@ -285,18 +343,26 @@ def walk_site(root: Path) -> tuple[dict | None, list[dict]]:
             is_index = pg["filename"] == "index.html"
             if is_top:
                 if is_index:
-                    return (0, 0, 0, "")  # section index always first
+                    return (0, 0, 0, 0, "")  # section index always first
+                pin_priority = pg.get("pin_priority")
+                if pin_priority is not None:
+                    # Pinned pages: priority ascending; ties broken by
+                    # newest-first (descending iter-N when available,
+                    # descending ctime otherwise).
+                    iter_n = pg.get("iter_num")
+                    secondary = -iter_n if iter_n is not None else -pg["ctime"].timestamp()
+                    return (1, pin_priority, 0, secondary, pg["filename"])
                 iter_n = pg.get("iter_num")
                 if iter_n is not None:
-                    # iter-N pages: sort by N (chronological creation order)
-                    return (1, 0, iter_n, pg["filename"])
-                # Non-iter top-level page: sort by filesystem creation time.
-                # Fall back to filename within the same timestamp to keep
-                # ties deterministic across reruns.
-                return (1, 1, pg["ctime"].timestamp(), pg["filename"])
-            # Nested: group 2, then by subdir name, then index first within.
+                    # iter-N pages: descending N — newest iteration first.
+                    return (2, 0, 0, -iter_n, pg["filename"])
+                # Non-iter top-level page: newest birthtime first.
+                return (3, 0, 0, -pg["ctime"].timestamp(), pg["filename"])
+            # Nested: group 4, by subdir name, index first within subdir,
+            # then alphabetical (subsections rarely use the iter-N convention,
+            # so alphabetical is the least-surprising default).
             subdir = parts[0]
-            return (2, subdir, 0 if is_index else 1, pg["filename"])
+            return (4, subdir, 0 if is_index else 1, 0, pg["filename"])
         pages.sort(key=_sort_key)
         slug = section_dir.name
         m = DATE_PREFIX_RE.match(slug)
@@ -377,7 +443,13 @@ AUTO_NAV_CSS_BODY = """\
   overflow: hidden;
   z-index: 9999;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 0.9rem;
+  /* USER FEEDBACK 2026-05-26 (iter_315 PRESENTATION_REFACTOR):
+   * rail fonts were too large and butted content against the rail
+   * edge. Base rail font shrunk ~20% (0.9rem → 0.72rem) which
+   * cascades into .rail-h / .rail-date / .rail-link / Pagefind UI.
+   * Individual elements pin explicit sizes below — this base sets
+   * the inherited default for anything not pinned. */
+  font-size: 0.72rem;
   color: #cbd5e1;
   line-height: 1.45;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -391,16 +463,36 @@ AUTO_NAV_CSS_BODY = """\
 }
 
 /* ----- Body content shift via :has() — dynamic, no JS ----- *
- * Use margin-left, not padding-left, so 100%-width children measure
- * against the post-rail viewport instead of the full viewport.
+ * Uses margin-left for the rail offset, plus padding-left/right to give
+ * the page a visible breathing-room gutter against the rail edge AND
+ * the right viewport edge. Also clamps max-width so wide pages cannot
+ * push content under or past the rail when the rail is open and the
+ * remaining viewport is narrower than the page's declared max-width.
+ *
+ * USER FEEDBACK 2026-05-26 (iter_315 PRESENTATION_REFACTOR): previous
+ * CSS shifted body by margin-left only, which let page content butt
+ * directly against the rail edge with zero buffer. The 28-40px gutter
+ * gives the eye somewhere to land between the dark rail and the page
+ * content; the larger 40px applies when the rail is open (the visual
+ * weight is bigger so the gutter needs to grow with it).
+ *
+ * Both !important markers are deliberate: pages can declare their own
+ * `body { padding: ... }` and we still want the rail buffer to win.
  */
 body {
   margin-left: 56px !important;
-  padding-left: 0 !important;
-  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding-left: 28px !important;
+  padding-right: 28px !important;
+  max-width: calc(100vw - 56px) !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 body:has(.auto-nav-rail[open]) {
   margin-left: var(--rail-width, 320px) !important;
+  padding-left: 40px !important;
+  max-width: calc(100vw - var(--rail-width, 320px)) !important;
 }
 
 /* ----- Drag handle for user-resizable width (auto-nav.js wires it up) -----
@@ -492,7 +584,9 @@ body:has(.auto-nav-rail[open]) {
 }
 .auto-nav-rail summary::-webkit-details-marker { display: none; }
 .auto-nav-rail .rail-toggle-icon {
-  font-size: 1.25rem;
+  /* iter_315 refactor: 1.25rem → 1.05rem (~16% shrink) to match the
+   * reduced overall rail typography scale. */
+  font-size: 1.05rem;
   transition: transform 0.25s ease;
   display: inline-block;
   width: 20px;
@@ -502,7 +596,8 @@ body:has(.auto-nav-rail[open]) {
 .auto-nav-rail[open] .rail-toggle-icon { transform: rotate(90deg); }
 .auto-nav-rail .rail-toggle-label {
   font-weight: 600;
-  font-size: 0.78rem;
+  /* iter_315 refactor: 0.78rem → 0.65rem (~17% shrink). */
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #cbd5e1;
@@ -533,7 +628,8 @@ body:has(.auto-nav-rail[open]) {
 
 .rail-h {
   margin: 0 0 8px 4px;
-  font-size: 0.7rem;
+  /* iter_315 refactor: 0.7rem → 0.58rem (~17% shrink). */
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -541,7 +637,8 @@ body:has(.auto-nav-rail[open]) {
 }
 .rail-date {
   font-family: 'JetBrains Mono', 'Menlo', monospace;
-  font-size: 0.7rem;
+  /* iter_315 refactor: 0.7rem → 0.58rem (~17% shrink). */
+  font-size: 0.58rem;
   color: #64748b;
   font-weight: 500;
   letter-spacing: 0;
@@ -552,7 +649,9 @@ body:has(.auto-nav-rail[open]) {
 /* ----- Links — long titles wrap, no truncation ----- */
 .rail-link {
   display: block;
-  padding: 7px 10px;
+  /* iter_315 refactor: 7px 10px → 6px 10px (one px tighter vertically
+   * — denser link list reads better at the reduced font size). */
+  padding: 6px 10px;
   margin: 1px 0;
   color: #c7d2fe;
   text-decoration: none;
@@ -560,7 +659,8 @@ body:has(.auto-nav-rail[open]) {
   word-wrap: break-word;
   overflow-wrap: anywhere;
   hyphens: auto;
-  font-size: 0.86rem;
+  /* iter_315 refactor: 0.86rem → 0.7rem (~19% shrink). */
+  font-size: 0.7rem;
   line-height: 1.4;
   border-left: 2px solid transparent;
   transition: background 0.12s ease,
@@ -631,7 +731,8 @@ body:has(.auto-nav-rail[open]) {
   border: 1px dashed #334155;
   border-radius: 6px;
   color: #94a3b8;
-  font-size: 0.78rem;
+  /* iter_315 refactor: 0.78rem → 0.65rem to match shrunk rail scale. */
+  font-size: 0.65rem;
   font-style: italic;
   line-height: 1.4;
 }
@@ -639,7 +740,8 @@ body:has(.auto-nav-rail[open]) {
   background: #1e293b !important;
   color: #e2e8f0 !important;
   border-color: #334155 !important;
-  font-size: 0.9rem !important;
+  /* iter_315 refactor: 0.9rem → 0.75rem (~17% shrink). */
+  font-size: 0.75rem !important;
 }
 .auto-nav-rail .pagefind-ui__search-input::placeholder {
   color: #64748b !important;
@@ -648,7 +750,8 @@ body:has(.auto-nav-rail[open]) {
   color: #94a3b8 !important;
 }
 .auto-nav-rail .pagefind-ui__results {
-  font-size: 0.85rem;
+  /* iter_315 refactor: 0.85rem → 0.7rem to match rail-link scale. */
+  font-size: 0.7rem;
 }
 .auto-nav-rail .pagefind-ui__result {
   padding: 8px 6px !important;
@@ -664,7 +767,8 @@ body:has(.auto-nav-rail[open]) {
 }
 .auto-nav-rail .pagefind-ui__result-excerpt {
   color: #94a3b8 !important;
-  font-size: 0.78rem !important;
+  /* iter_315 refactor: 0.78rem → 0.65rem. */
+  font-size: 0.65rem !important;
 }
 .auto-nav-rail .pagefind-ui__result-excerpt mark {
   background: rgba(129, 140, 248, 0.25) !important;
@@ -674,7 +778,8 @@ body:has(.auto-nav-rail[open]) {
 }
 .auto-nav-rail .pagefind-ui__message {
   color: #94a3b8 !important;
-  font-size: 0.78rem !important;
+  /* iter_315 refactor: 0.78rem → 0.65rem. */
+  font-size: 0.65rem !important;
 }
 
 /* ----- Mobile: rail becomes a static top-of-page accordion ----- */
@@ -694,7 +799,12 @@ body:has(.auto-nav-rail[open]) {
   body,
   body:has(.auto-nav-rail[open]) {
     margin-left: 0 !important;
-    padding-left: 0 !important;
+    /* Mobile keeps a small symmetric gutter so text isn't flush with
+     * the viewport edges; matches the desktop gutter intent at a
+     * narrower scale. */
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    max-width: 100% !important;
   }
   .auto-nav-rail summary {
     position: static;
@@ -1348,29 +1458,37 @@ def render_site_map(
  * site's color scheme. Matches the nav rail palette (slate-950 surfaces,
  * slate-300 text, indigo accents). See CLAUDE.md → "Critical Invariants".
  */
+/* iter_315 PRESENTATION_REFACTOR: site-map typography tightened so the
+ * page reads as a dense reference index, not a billboard. Body baseline
+ * 0.92rem, h1 1.55rem, headings 1rem, list items 0.85em — every number
+ * deliberately under the showcase kernel's default sizes since the
+ * site-map's job is "fit hundreds of links on one screen scannably."
+ */
 :root {{ color-scheme: dark; }}
 body {{ font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-       background: #0f172a; margin: 0; padding: 20px; color: #cbd5e1; line-height: 1.5; }}
-.container {{ max-width: 1100px; margin: 0 auto; background: #1e293b; padding: 36px;
-              border-radius: 8px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
-              border: 1px solid #334155; }}
-h1 {{ border-bottom: 3px solid #818cf8; padding-bottom: 12px; color: #e2e8f0; }}
-.subtitle {{ color: #94a3b8; margin-bottom: 24px; font-style: italic; }}
-.section, .root {{ background: #0f172a; border: 1px solid #334155;
+       background: #0b1120; margin: 0; padding: 28px; color: #cbd5e1; line-height: 1.5;
+       font-size: 0.92rem; }}
+.container {{ max-width: 1100px; margin: 0 auto; background: #111c33; padding: 36px 44px;
+              border-radius: 8px; box-shadow: 0 2px 14px rgba(0, 0, 0, 0.4);
+              border: 1px solid #1e293b; }}
+h1 {{ border-bottom: 3px solid #818cf8; padding-bottom: 12px; color: #e0e7ff;
+       font-size: 1.55rem; }}
+.subtitle {{ color: #94a3b8; margin-bottom: 24px; font-style: italic; font-size: 0.85rem; }}
+.section, .root {{ background: #1e293b; border: 1px solid #334155;
                     border-left: 4px solid #818cf8;
                     padding: 14px 20px; margin: 12px 0; border-radius: 6px; }}
-.root {{ border-left-color: #34d399; background: #022c22; }}
-.section h3, .root h3 {{ margin: 0 0 8px 0; color: #e2e8f0; }}
-.section .date {{ color: #64748b; font-size: 0.85em; font-weight: normal;
+.root {{ border-left-color: #22c55e; background: #0f2f1f; }}
+.section h3, .root h3 {{ margin: 0 0 8px 0; color: #e2e8f0; font-size: 1rem; }}
+.section .date {{ color: #64748b; font-size: 0.7em; font-weight: normal;
                 font-family: 'Menlo', monospace; margin-left: 8px; }}
 .section ul, .root ul {{ margin: 6px 0 0 0; padding-left: 22px; }}
-.section li, .root li {{ margin: 3px 0; }}
+.section li, .root li {{ margin: 3px 0; font-size: 0.85em; }}
 .section a, .root a {{ color: #c7d2fe; text-decoration: none; }}
 .section a:hover, .root a:hover {{ color: #e0e7ff; text-decoration: underline; }}
-.meta {{ color: #64748b; font-size: 0.82em; font-family: 'Menlo', monospace; margin-left: 6px; }}
-code {{ background: #334155; color: #e2e8f0; padding: 1px 6px; border-radius: 3px;
-       font-size: 0.9em; }}
-.footer {{ margin-top: 30px; color: #64748b; font-size: 0.82em; padding-top: 14px;
+.meta {{ color: #64748b; font-size: 0.68em; font-family: 'Menlo', monospace; margin-left: 6px; }}
+code {{ background: #1e293b; color: #e2e8f0; padding: 1px 6px; border-radius: 3px;
+       font-size: 0.78em; }}
+.footer {{ margin-top: 30px; color: #64748b; font-size: 0.68em; padding-top: 14px;
            border-top: 1px solid #334155; }}
 </style>
 </head>
@@ -1384,7 +1502,9 @@ code {{ background: #334155; color: #e2e8f0; padding: 1px 6px; border-radius: 3p
     <div class="footer">
       Generated {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} by <code>build-nav.py</code>.
       Sections sort newest-first when slugs are <code>YYYY-MM-DD-…</code>; otherwise alphabetical.
-      Pages within a section: <code>index.html</code> first, then alphabetical.
+      Within a section: <code>index.html</code> first → <code>&lt;!-- nav-pin --&gt;</code>
+      pages → iter-N pages newest-first → other pages newest-first by birthtime →
+      nested pages alphabetical by subdir.
       All links are relative — works on <code>file://</code> and any static server.
       Drag the rail's right edge to resize; double-click to reset.
     </div>
@@ -1430,9 +1550,12 @@ def main() -> int:
         help="Site root directory (default: current dir)",
     )
     parser.add_argument(
-        "--asset-version", default="5",
+        "--asset-version", default="6",
         help="Cache-bust version appended to asset URLs (bump on rail asset changes). "
-             "v5 = dark-by-default rail + chronological iter-N sort (was v4 = light).",
+             "v6 = iter_315 PRESENTATION_REFACTOR — body gutter 28-40px, "
+             "rail typography shrunk ~20%% (literal percent, argparse-escaped), "
+             "site-map tightened, newest-first iter-N ordering, and "
+             "<!-- nav-pin --> marker support.",
     )
     args = parser.parse_args()
 
