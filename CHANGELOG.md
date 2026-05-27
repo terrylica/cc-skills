@@ -1,3 +1,10 @@
+## [21.84.1](https://github.com/terrylica/cc-skills/compare/v21.84.0...v21.84.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **firecrawl-research-patterns:** three broken-instruction bugs ([d88562f](https://github.com/terrylica/cc-skills/commit/d88562f0c235c6f0d1fcc249b9286b74ee7967b4))
+
 # [21.84.0](https://github.com/terrylica/cc-skills/compare/v21.83.0...v21.84.0) (2026-05-27)
 
 
