@@ -17,7 +17,7 @@ the TypeScript JSONL parser cannot extract:
   isSubagent       — true when this turn originates from a spawned Task agent
 
 Usage:
-  uv run --python 3.13 preprocess_session.py <session.jsonl>
+  uv run --python 3.14 preprocess_session.py <session.jsonl>
 """
 
 import json

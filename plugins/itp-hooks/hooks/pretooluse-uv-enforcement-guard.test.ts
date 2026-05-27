@@ -104,10 +104,10 @@ describe("BLOCK: pip install variants", () => {
     expectDeny(result);
   });
 
-  it("should block python3.13 -m pip install", () => {
+  it("should block python3.14 -m pip install", () => {
     const result = runHook({
       tool_name: "Bash",
-      tool_input: { command: "python3.13 -m pip install torch" },
+      tool_input: { command: "python3.14 -m pip install torch" },
     });
     expectDeny(result);
   });

@@ -41,7 +41,7 @@ done
 if command -v pymobiledevice3 &>/dev/null; then
   echo "pymobiledevice3: OK ($(command -v pymobiledevice3))"
 else
-  if uvx --python 3.13 --from pymobiledevice3 pymobiledevice3 --help &>/dev/null 2>&1; then
+  if uvx --python 3.14 --from pymobiledevice3 pymobiledevice3 --help &>/dev/null 2>&1; then
     echo "pymobiledevice3: OK (via uvx)"
   else
     echo "pymobiledevice3: MISSING"
@@ -60,17 +60,17 @@ echo "---"
 | `yt-dlp`          | `brew install yt-dlp`                                             |
 | `ffmpeg`          | `brew install ffmpeg`                                             |
 | `exiftool`        | `brew install exiftool`                                           |
-| `pymobiledevice3` | `uvx --python 3.13 --from pymobiledevice3 pymobiledevice3 --help` |
+| `pymobiledevice3` | `uvx --python 3.14 --from pymobiledevice3 pymobiledevice3 --help` |
 
 **Device check** (only after tools pass):
 
 ```bash
 # Check for connected iOS device
-pymobiledevice3 usbmux list 2>/dev/null || uvx --python 3.13 --from pymobiledevice3 pymobiledevice3 usbmux list
+pymobiledevice3 usbmux list 2>/dev/null || uvx --python 3.14 --from pymobiledevice3 pymobiledevice3 usbmux list
 
 # Check BookPlayer is installed
 pymobiledevice3 apps list --no-color 2>/dev/null | grep -i "audiobookplayer\|bookplayer" || \
-  uvx --python 3.13 --from pymobiledevice3 pymobiledevice3 apps list --no-color 2>/dev/null | grep -i "audiobookplayer\|bookplayer"
+  uvx --python 3.14 --from pymobiledevice3 pymobiledevice3 apps list --no-color 2>/dev/null | grep -i "audiobookplayer\|bookplayer"
 ```
 
 If no device found: ask user to connect iPhone via USB, unlock it, and tap "Trust This Computer".
@@ -162,7 +162,7 @@ exiftool -Title -Artist -Album "$M4A_FILE"
 M4A_FILE=$(ls "$WORK_DIR"/*.m4a | head -1)
 FILENAME=$(basename "$M4A_FILE")
 
-uvx --python 3.13 --from pymobiledevice3 python3 << 'PYEOF'
+uvx --python 3.14 --from pymobiledevice3 python3 << 'PYEOF'
 import sys
 from pathlib import Path
 from pymobiledevice3.lockdown import create_using_usbmux
@@ -212,7 +212,7 @@ pymobiledevice3 apps push com.tortugapower.audiobookplayer /path/to/file.m4a
 List BookPlayer's `/Documents/` directory to confirm the file arrived:
 
 ```bash
-uvx --python 3.13 --from pymobiledevice3 python3 << 'PYEOF'
+uvx --python 3.14 --from pymobiledevice3 python3 << 'PYEOF'
 from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.house_arrest import HouseArrestService
 
@@ -280,7 +280,7 @@ When modifying this skill, verify:
 - [ ] Phase 0 preflight catches all missing tools with correct install commands
 - [ ] Phase 4 uses Python API with `documents_only=True` (never CLI `apps push`)
 - [ ] No hardcoded paths — uses `$HOME`, `mktemp`, `command -v`, `create_using_usbmux()`
-- [ ] Python commands use `--python 3.13` (per global policy)
+- [ ] Python commands use `--python 3.14` (per global policy)
 - [ ] Anti-pattern warning is preserved in Phase 4
 
 ## Post-Execution Reflection

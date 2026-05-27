@@ -6,7 +6,7 @@ Detailed reference for the Kokoro TTS engine installation managed by `scripts/ko
 
 ```
 ~/.local/share/kokoro/          # XDG-compliant install directory
-├── .venv/                      # Python 3.13 venv (created by uv)
+├── .venv/                      # Python 3.14 venv (created by uv)
 │   └── bin/python              # Venv Python interpreter
 ├── kokoro_common.py            # Shared constants and synthesis core (SSoT)
 ├── tts_generate.py             # CLI script (copied from plugin bundle)
@@ -15,17 +15,17 @@ Detailed reference for the Kokoro TTS engine installation managed by `scripts/ko
 
 Model cache is stored separately at `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/` (HuggingFace default).
 
-## Python 3.13 via uv
+## Python 3.14 via uv
 
 <!-- SSoT-OK: kokoro-install.sh is the SSoT for the actual version pin -->
 
-The installer uses `uv venv --python 3.13` to create the virtual environment. This ensures:
+The installer uses `uv venv --python 3.14` to create the virtual environment. This ensures:
 
-- Python 3.13 is used consistently (per the global Python version policy)
+- Python 3.14 is used consistently (per the global Python version policy)
 - uv handles Python discovery and download if needed
 - The venv is isolated from system Python
 
-If Python 3.13 is not available, install it first:
+If Python 3.14 is not available, install it first:
 
 ```bash
 uv python install 3.13
@@ -95,7 +95,7 @@ This is used by `--health` checks and upgrade tracking.
 `kokoro-install.sh --health` runs 6 checks:
 
 1. Venv exists at `~/.local/share/kokoro/.venv`
-2. Python 3.13 executable is present
+2. Python 3.14 executable is present
 3. `mlx_audio` package is importable
 4. `kokoro_common.py` exists
 5. `tts_generate.py` exists

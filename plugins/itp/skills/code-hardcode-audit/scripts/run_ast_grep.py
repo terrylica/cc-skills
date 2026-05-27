@@ -5,7 +5,7 @@
 """ast-grep wrapper for AST-based hardcode detection.
 
 Usage:
-    uv run --python 3.13 --script run_ast_grep.py -- <path> [--output {json,text}]
+    uv run --python 3.14 --script run_ast_grep.py -- <path> [--output {json,text}]
 
 Detects hardcoded literals in assignments, function arguments, return values,
 URLs, and file paths using AST pattern matching (not regex).

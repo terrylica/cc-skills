@@ -59,13 +59,13 @@
 # USAGE:
 #
 #   # Default: 5 back-to-back runs.
-#   uv run --python 3.13 scripts/iter147-...py
+#   uv run --python 3.14 scripts/iter147-...py
 #
 #   # Custom run count:
-#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.13 scripts/iter147-...py
+#   ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-...py
 #
 #   # Replay existing logs without re-running (e.g., after a long capture):
-#   ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.13 scripts/iter147-...py
+#   ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-...py
 #
 # WORKING-DIRECTORY-CLEANLINESS GOTCHA:
 #

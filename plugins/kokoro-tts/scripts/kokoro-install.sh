@@ -43,9 +43,9 @@ do_install() {
     # Create directory
     mkdir -p "${KOKORO_DIR}"
 
-    # Create venv with Python 3.13
-    log "Creating Python 3.13 venv..."
-    uv venv --python 3.13 "${KOKORO_VENV}"
+    # Create venv with Python 3.14
+    log "Creating Python 3.14 venv..."
+    uv venv --python 3.14 "${KOKORO_VENV}"
 
     # Install MLX-Audio deps
     log "Installing MLX-Audio dependencies..."
@@ -155,7 +155,7 @@ do_health() {
 
     echo "=== Kokoro TTS Health Check ==="
     check "Venv exists"            "[[ -d '${KOKORO_VENV}' ]]"
-    check "Python 3.13 executable" "'${KOKORO_PYTHON}' --version 2>&1 | grep -q '3\\.13'"
+    check "Python 3.14 executable" "'${KOKORO_PYTHON}' --version 2>&1 | grep -q '3\\.13'"
     check "mlx_audio importable"   "'${KOKORO_PYTHON}' -c 'from mlx_audio.tts.utils import load_model'"
     check "kokoro_common.py"       "[[ -f '${KOKORO_DIR}/kokoro_common.py' ]]"
     check "tts_generate.py"        "[[ -f '${KOKORO_DIR}/tts_generate.py' ]]"

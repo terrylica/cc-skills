@@ -16,7 +16,7 @@ Run 6 health checks to verify the Kokoro TTS engine installation.
 | #   | Check            | Command                                                         |
 | --- | ---------------- | --------------------------------------------------------------- |
 | 1   | Venv exists      | `[[ -d ~/.local/share/kokoro/.venv ]]`                          |
-| 2   | Python 3.13      | `~/.local/share/kokoro/.venv/bin/python --version \| grep 3.13` |
+| 2   | Python 3.14      | `~/.local/share/kokoro/.venv/bin/python --version \| grep 3.13` |
 | 3   | mlx_audio import | `python -c "from mlx_audio.tts.utils import load_model"`        |
 | 4   | kokoro_common.py | `[[ -f ~/.local/share/kokoro/kokoro_common.py ]]`               |
 | 5   | tts_generate.py  | `[[ -f ~/.local/share/kokoro/tts_generate.py ]]`                |

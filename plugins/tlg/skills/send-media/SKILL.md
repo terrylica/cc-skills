@@ -15,7 +15,7 @@ Send files, photos, videos, voice notes, and documents from your personal Telegr
 Check session is **authorized** (not just that the file exists):
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 -c "
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 -c "
 import asyncio, os
 from telethon import TelegramClient
 async def c():
@@ -36,13 +36,13 @@ If `EXPIRED`, run `/tlg:setup` first (uses 3-step non-interactive auth pattern).
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Send a photo/image (auto-detected)
-uv run --python 3.13 "$SCRIPT" send-file @username /path/to/photo.jpg
+uv run --python 3.14 "$SCRIPT" send-file @username /path/to/photo.jpg
 
 # Send with caption
-uv run --python 3.13 "$SCRIPT" send-file -1003958083153 /path/to/image.png -c "Check this out"
+uv run --python 3.14 "$SCRIPT" send-file -1003958083153 /path/to/image.png -c "Check this out"
 
 # Force send as document (no preview)
-uv run --python 3.13 "$SCRIPT" send-file @username /path/to/image.png --document
+uv run --python 3.14 "$SCRIPT" send-file @username /path/to/image.png --document
 EOF
 ```
 
@@ -51,7 +51,7 @@ EOF
 When you need HTML-formatted captions or need to send multiple files in sequence, bypass `tg-cli.py` and use Telethon directly. This pattern was proven reliable:
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 

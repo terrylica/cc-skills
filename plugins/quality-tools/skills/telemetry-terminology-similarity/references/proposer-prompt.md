@@ -157,7 +157,7 @@ SCRIPT="$(find ~/.claude/plugins -path '*/telemetry-terminology-similarity/refer
 python3 -c "import re,glob; fields=set();
 [fields.add(m.group(1)) for f in glob.glob('**/*.rs', recursive=True)
  for m in re.finditer(r'^\s*(?:pub\s+)?([a-z][a-z0-9_]*)\s*:\s*[A-Z]', open(f).read(), re.MULTILINE)];
-print('\n'.join(sorted(fields)))" | uv run --python 3.13 "$SCRIPT" --json --canonical > analysis.json
+print('\n'.join(sorted(fields)))" | uv run --python 3.14 "$SCRIPT" --json --canonical > analysis.json
 
 # 2. Apply the proposer prompt (paste analysis.json into the template above)
 # The LLM produces a structured proposals.json

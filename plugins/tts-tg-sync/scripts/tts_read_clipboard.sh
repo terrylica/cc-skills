@@ -254,7 +254,7 @@ main() {
     debug_log "Using Supertonic M3 (speed: $TTS_SPEED)"
 
     echo "Speaking via Supertonic M3 (speed: $TTS_SPEED)"
-    if ! printf '%s' "$clipboard_content" | uv run --quiet --python 3.13 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>/dev/null; then
+    if ! printf '%s' "$clipboard_content" | uv run --quiet --python 3.14 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>/dev/null; then
         local exit_code=$?
         debug_log "Supertonic failed (exit code: $exit_code) — no fallback (Kokoro-only policy)"
         notify "TTS Error" "Supertonic synthesis failed (exit $exit_code)"

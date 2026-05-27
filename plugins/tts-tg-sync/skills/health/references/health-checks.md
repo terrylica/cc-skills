@@ -72,7 +72,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 **Remediation**:
 
 - Run `kokoro-install.sh --install` to install Kokoro from scratch.
-- Or manually: `cd ~/.local/share/kokoro && uv venv --python 3.13 .venv && uv pip install mlx-audio soundfile numpy`
+- Or manually: `cd ~/.local/share/kokoro && uv venv --python 3.14 .venv && uv pip install mlx-audio soundfile numpy`
 
 ---
 
@@ -97,7 +97,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 **Remediation**:
 
 - Reinstall: `uv pip install --python ~/.local/share/kokoro/.venv/bin/python mlx-audio`
-- Rebuild venv if Python version is wrong: delete `.venv` and recreate with Python 3.13.
+- Rebuild venv if Python version is wrong: delete `.venv` and recreate with Python 3.14.
 
 ---
 

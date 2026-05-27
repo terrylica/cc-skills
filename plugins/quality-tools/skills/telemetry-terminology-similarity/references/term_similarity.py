@@ -24,9 +24,9 @@ no opinions. The consuming AI agent applies its own domain judgment.
 
 Usage:
   # SSoT-OK: uv run handles PEP 723 inline deps
-  echo -e "trace_id\\ntraceId\\nrequest_id" | uv run --python 3.13 term_similarity.py
-  uv run --python 3.13 term_similarity.py --jsonl /path/to/telemetry.jsonl
-  uv run --python 3.13 term_similarity.py --top 30 field1 field2 field3
+  echo -e "trace_id\\ntraceId\\nrequest_id" | uv run --python 3.14 term_similarity.py
+  uv run --python 3.14 term_similarity.py --jsonl /path/to/telemetry.jsonl
+  uv run --python 3.14 term_similarity.py --top 30 field1 field2 field3
 """
 from __future__ import annotations
 

@@ -131,7 +131,7 @@ if __name__ == "__main__":
     main()
 ```
 
-Run with: `uv run --python 3.13 scripts/check-health.py https://example.com/health`
+Run with: `uv run --python 3.14 scripts/check-health.py https://example.com/health`
 
 #### TypeScript/Bun: Auto-Install
 

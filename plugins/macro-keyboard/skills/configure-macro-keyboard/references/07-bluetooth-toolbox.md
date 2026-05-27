@@ -109,7 +109,7 @@ Download path: <https://developer.apple.com/download/all/> → search "Additiona
 ### `bleak` (Python async BLE, via `uv run`)
 
 ```bash
-uv run --python 3.13 --with bleak python3 -c "
+uv run --python 3.14 --with bleak python3 -c "
 import asyncio
 from bleak import BleakScanner
 async def scan():
@@ -189,7 +189,7 @@ Before disconnecting USB-C:
 2. Open `bleak` scanning terminal ready to run:
 
    ```bash
-   uv run --python 3.13 --with bleak python3 -c "
+   uv run --python 3.14 --with bleak python3 -c "
    import asyncio
    from bleak import BleakScanner
    async def s():

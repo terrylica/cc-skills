@@ -22,16 +22,16 @@ Delete one or multiple messages from a chat. By default deletes for everyone.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Delete for everyone (default)
-uv run --python 3.13 "$SCRIPT" delete <chat> <message_id>
+uv run --python 3.14 "$SCRIPT" delete <chat> <message_id>
 
 # Delete multiple messages
-uv run --python 3.13 "$SCRIPT" delete <chat> 12345,12346,12347
+uv run --python 3.14 "$SCRIPT" delete <chat> 12345,12346,12347
 
 # Delete only for yourself
-uv run --python 3.13 "$SCRIPT" delete <chat> <message_id> --self-only
+uv run --python 3.14 "$SCRIPT" delete <chat> <message_id> --self-only
 
 # Find message IDs first
-uv run --python 3.13 "$SCRIPT" read <chat> -n 10
+uv run --python 3.14 "$SCRIPT" read <chat> -n 10
 EOF
 ```
 
