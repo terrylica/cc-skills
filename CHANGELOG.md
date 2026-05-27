@@ -1,3 +1,10 @@
+# [21.84.0](https://github.com/terrylica/cc-skills/compare/v21.83.0...v21.84.0) (2026-05-27)
+
+
+### Features
+
+* **html-showcase:** iter_315 newest-first + nav-pin + body gutter ([cc88563](https://github.com/terrylica/cc-skills/commit/cc8856350363072af90e40e8f4718a7fae251902))
+
 # [21.83.0](https://github.com/terrylica/cc-skills/compare/v21.82.1...v21.83.0) (2026-05-26)
 
 
