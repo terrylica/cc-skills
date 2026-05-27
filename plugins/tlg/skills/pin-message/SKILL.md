@@ -22,16 +22,16 @@ Pin or unpin messages in chats, groups, and channels.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Pin a message (with notification)
-uv run --python 3.13 "$SCRIPT" pin <chat> <message_id>
+uv run --python 3.14 "$SCRIPT" pin <chat> <message_id>
 
 # Pin silently (no notification)
-uv run --python 3.13 "$SCRIPT" pin <chat> <message_id> --silent
+uv run --python 3.14 "$SCRIPT" pin <chat> <message_id> --silent
 
 # Unpin a specific message
-uv run --python 3.13 "$SCRIPT" pin <chat> <message_id> --unpin
+uv run --python 3.14 "$SCRIPT" pin <chat> <message_id> --unpin
 
 # Unpin all messages
-uv run --python 3.13 "$SCRIPT" pin <chat> --unpin
+uv run --python 3.14 "$SCRIPT" pin <chat> --unpin
 EOF
 ```
 

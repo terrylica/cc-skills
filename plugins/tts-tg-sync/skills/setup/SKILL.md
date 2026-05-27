@@ -19,7 +19,7 @@ Full-stack bootstrap: Kokoro TTS engine, Telegram bot, BotFather token, secrets,
 | Bun         | Yes      | `bun --version`                         |
 | mise        | Yes      | `mise --version`                        |
 | uv          | Yes      | `uv --version`                          |
-| Python 3.13 | Yes      | `uv run --python 3.13 python --version` |
+| Python 3.14 | Yes      | `uv run --python 3.14 python --version` |
 | Homebrew    | Yes      | `brew --version`                        |
 
 ## Workflow
@@ -48,7 +48,7 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
 ```
 
-This creates a Python 3.13 venv at `~/.local/share/kokoro/`, installs MLX-Audio deps, downloads the Kokoro-82M-bf16 MLX model, and verifies MLX Metal acceleration.
+This creates a Python 3.14 venv at `~/.local/share/kokoro/`, installs MLX-Audio deps, downloads the Kokoro-82M-bf16 MLX model, and verifies MLX Metal acceleration.
 
 ### Step 3: BotFather Token
 

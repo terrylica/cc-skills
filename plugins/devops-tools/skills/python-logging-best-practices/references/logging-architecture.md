@@ -26,7 +26,7 @@ Need logging?
 │       └── Token tracking, cost monitoring, SQL on logs
 ├── Stdlib-only required?
 │   └── YES → RotatingFileHandler
-│       └── Python 3.13: LoggerAdapter.merge_extra=True
+│       └── Python 3.14: LoggerAdapter.merge_extra=True
 ├── Rich terminal output needed?
 │   └── YES → Rich + RichHandler
 │       └── Combine with structured file logging
@@ -131,7 +131,7 @@ handler = RotatingFileHandler(
 logging.getLogger().addHandler(handler)
 ```
 
-**Python 3.13 addition**: `LoggerAdapter` gained `merge_extra=True` — call-level extras merge with adapter extras instead of replacing them:
+**Python 3.14 addition**: `LoggerAdapter` gained `merge_extra=True` — call-level extras merge with adapter extras instead of replacing them:
 
 ```python
 adapter = logging.LoggerAdapter(logger, {"app": "my-app"}, merge_extra=True)

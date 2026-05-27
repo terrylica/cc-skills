@@ -23,16 +23,16 @@ Archive a complete Telegram channel/group/chat to NDJSON + downloaded media file
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Full dump: NDJSON + all media (photos, videos, documents)
-uv run --python 3.13 "$SCRIPT" dump @ChannelName ./output/ChannelName
+uv run --python 3.14 "$SCRIPT" dump @ChannelName ./output/ChannelName
 
 # NDJSON only (skip media downloads — much faster)
-uv run --python 3.13 "$SCRIPT" dump @ChannelName ./output/ChannelName --no-media
+uv run --python 3.14 "$SCRIPT" dump @ChannelName ./output/ChannelName --no-media
 
 # Dump by numeric chat ID
-uv run --python 3.13 "$SCRIPT" dump -1001234567890 ./output/MyChannel
+uv run --python 3.14 "$SCRIPT" dump -1001234567890 ./output/MyChannel
 
 # Use a different profile
-uv run --python 3.13 "$SCRIPT" -p missterryli dump @ChannelName ./output/ChannelName
+uv run --python 3.14 "$SCRIPT" -p missterryli dump @ChannelName ./output/ChannelName
 EOF
 ```
 

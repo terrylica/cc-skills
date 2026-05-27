@@ -58,7 +58,7 @@ Shared: Lock protocol, signal sound, NDJSON telemetry
 
 | Component         | Location                                        | Runtime                 |
 | ----------------- | ----------------------------------------------- | ----------------------- |
-| Kokoro TTS engine | `~/.local/share/kokoro/`                        | Python 3.13 (MLX-Audio) |
+| Kokoro TTS engine | `~/.local/share/kokoro/`                        | Python 3.14 (MLX-Audio) |
 | Telegram bot      | `~/.claude/automation/claude-telegram-sync/`    | Bun                     |
 | Shell scripts     | Plugin `scripts/` → symlinks in `~/.local/bin/` | Bash                    |
 | Shared library    | Plugin `scripts/lib/tts-common.sh`              | Bash                    |
@@ -73,7 +73,7 @@ Shared: Lock protocol, signal sound, NDJSON telemetry
 
 - macOS with Apple Silicon (M1+) for MLX Metal acceleration
 - Bun runtime
-- Python 3.13 via uv
+- Python 3.14 via uv
 - mise (environment management)
 - Homebrew
 

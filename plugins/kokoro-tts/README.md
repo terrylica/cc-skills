@@ -42,7 +42,7 @@ Local text-to-speech engine using MLX-Audio Kokoro-82M on Apple Silicon. Install
 
 ```
 ~/.local/share/kokoro/
-├── .venv/               Python 3.13 venv (uv)
+├── .venv/               Python 3.14 venv (uv)
 ├── kokoro_common.py     Synthesis SSoT
 ├── tts_generate.py      CLI tool (chunked streaming)
 ├── tts_server.py        HTTP server (OpenAI API)
@@ -53,14 +53,14 @@ Local text-to-speech engine using MLX-Audio Kokoro-82M on Apple Silicon. Install
 
 | Component   | Runtime                 | Purpose                       |
 | ----------- | ----------------------- | ----------------------------- |
-| MLX-Audio   | Python 3.13 (MLX Metal) | On-device TTS inference       |
-| HTTP server | Python 3.13             | OpenAI-compatible TTS API     |
-| CLI tool    | Python 3.13             | Shell-friendly WAV generation |
+| MLX-Audio   | Python 3.14 (MLX Metal) | On-device TTS inference       |
+| HTTP server | Python 3.14             | OpenAI-compatible TTS API     |
+| CLI tool    | Python 3.14             | Shell-friendly WAV generation |
 
 ## Requirements
 
 - macOS with Apple Silicon (M1+)
-- Python 3.13 via uv
+- Python 3.14 via uv
 - uv package manager
 - ~500 MB disk (venv + model cache)
 

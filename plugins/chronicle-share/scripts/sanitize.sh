@@ -153,7 +153,7 @@ fi
 
 # The upstream sanitizer's shebang uses uv — require it.
 if ! command -v uv >/dev/null 2>&1; then
-  err "uv is required to run the upstream sanitizer (its shebang: 'uv run --python 3.13')"
+  err "uv is required to run the upstream sanitizer (its shebang: 'uv run --python 3.14')"
   err "install with: brew install uv"
   exit 1
 fi

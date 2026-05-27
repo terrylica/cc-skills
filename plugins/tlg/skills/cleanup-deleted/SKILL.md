@@ -30,16 +30,16 @@ After the first pass, it re-scans for survivors and retries with method 3.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/cleanup_deleted.py"
 
 # Scan only (no deletions)
-uv run --python 3.13 "$SCRIPT" --dry-run
+uv run --python 3.14 "$SCRIPT" --dry-run
 
 # Clean all profiles
-uv run --python 3.13 "$SCRIPT"
+uv run --python 3.14 "$SCRIPT"
 
 # Clean specific profile
-uv run --python 3.13 "$SCRIPT" -p eon
+uv run --python 3.14 "$SCRIPT" -p eon
 
 # Clean multiple specific profiles
-uv run --python 3.13 "$SCRIPT" -p eon missterryli
+uv run --python 3.14 "$SCRIPT" -p eon missterryli
 EOF
 ```
 

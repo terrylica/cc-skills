@@ -22,13 +22,13 @@ List all chats, groups, and channels visible to your personal Telegram account.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Default profile
-uv run --python 3.13 "$SCRIPT" dialogs
+uv run --python 3.14 "$SCRIPT" dialogs
 
 # Specific profile
-uv run --python 3.13 "$SCRIPT" -p missterryli dialogs
+uv run --python 3.14 "$SCRIPT" -p missterryli dialogs
 
 # Filter results
-uv run --python 3.13 "$SCRIPT" dialogs | grep -i "search term"
+uv run --python 3.14 "$SCRIPT" dialogs | grep -i "search term"
 DIALOGS_EOF
 ```
 
@@ -42,10 +42,10 @@ grouped. No truncation.
 
 ```bash
 # Full text (default — recommended)
-uv run --python 3.13 "$SCRIPT" read <chat_id> -n 10
+uv run --python 3.14 "$SCRIPT" read <chat_id> -n 10
 
 # Short scan listing — truncate each body to N chars (\n flattened to "⏎")
-uv run --python 3.13 "$SCRIPT" read <chat_id> -n 50 --preview 200
+uv run --python 3.14 "$SCRIPT" read <chat_id> -n 50 --preview 200
 ```
 
 Use `--preview N` only when you're scanning many messages and want a
@@ -56,7 +56,7 @@ which forced repeated direct-Telethon escape hatches when content mattered).
 ### Account Info
 
 ```bash
-uv run --python 3.13 "$SCRIPT" whoami
+uv run --python 3.14 "$SCRIPT" whoami
 ```
 
 ## Output Format

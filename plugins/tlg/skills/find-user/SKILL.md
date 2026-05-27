@@ -22,16 +22,16 @@ Resolve usernames, phone numbers, or IDs to full user/chat profile information.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # By username
-uv run --python 3.13 "$SCRIPT" find-user @username
+uv run --python 3.14 "$SCRIPT" find-user @username
 
 # By user ID
-uv run --python 3.13 "$SCRIPT" find-user 2124832490
+uv run --python 3.14 "$SCRIPT" find-user 2124832490
 
 # By phone (must be in contacts)
-uv run --python 3.13 "$SCRIPT" find-user +16043008878
+uv run --python 3.14 "$SCRIPT" find-user +16043008878
 
 # Works for groups/channels too
-uv run --python 3.13 "$SCRIPT" find-user @channelname
+uv run --python 3.14 "$SCRIPT" find-user @channelname
 EOF
 ```
 

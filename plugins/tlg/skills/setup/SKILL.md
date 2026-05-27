@@ -51,7 +51,7 @@ STEP1_EOF
 **Step 2: Send verification code request (non-interactive)**
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, json, os
 from telethon import TelegramClient
 
@@ -76,7 +76,7 @@ Then use **AskUserQuestion** to get the verification code from the user.
 **Step 3: Complete auth with the code (non-interactive)**
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 
@@ -114,7 +114,7 @@ PYEOF
 Before any tlg operation, check if the session is still authorized:
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 

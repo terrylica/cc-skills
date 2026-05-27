@@ -23,7 +23,7 @@ Run a comprehensive 10-subsystem health check across the TTS engine, Telegram bo
 ## Requirements
 
 - Bun runtime (for bot process)
-- Python 3.13 with Kokoro venv at `~/.local/share/kokoro/.venv`
+- Python 3.14 with Kokoro venv at `~/.local/share/kokoro/.venv`
 - Telegram bot token in `~/.claude/.secrets/ccterrybot-telegram`
 - mise.toml configured in `~/.claude/automation/claude-telegram-sync/`
 

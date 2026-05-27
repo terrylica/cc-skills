@@ -9,7 +9,7 @@
 Installed via `pipx` — the skill's preflight installs/updates automatically.
 
 ```bash
-pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.13
+pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.14
 agent-reach install --env=auto
 agent-reach doctor
 ```

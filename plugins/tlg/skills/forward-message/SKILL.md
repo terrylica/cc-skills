@@ -22,13 +22,13 @@ Forward one or multiple messages between chats.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Forward single message
-uv run --python 3.13 "$SCRIPT" forward <from_chat> <message_id> <to_chat>
+uv run --python 3.14 "$SCRIPT" forward <from_chat> <message_id> <to_chat>
 
 # Forward multiple messages (comma-separated IDs)
-uv run --python 3.13 "$SCRIPT" forward 2124832490 471920,471921 90417581
+uv run --python 3.14 "$SCRIPT" forward 2124832490 471920,471921 90417581
 
 # Get message IDs first with read command
-uv run --python 3.13 "$SCRIPT" read <chat> -n 5
+uv run --python 3.14 "$SCRIPT" read <chat> -n 5
 EOF
 ```
 

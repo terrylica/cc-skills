@@ -70,7 +70,7 @@ Verify Kokoro is installed and healthy:
 kokoro-install.sh --health
 ```
 
-All 6 checks must pass (venv, Python 3.13, mlx_audio importable, kokoro_common.py, tts_generate.py, version.json).
+All 6 checks must pass (venv, Python 3.14, mlx_audio importable, kokoro_common.py, tts_generate.py, version.json).
 
 ### Phase 2: Text Selection
 

@@ -139,7 +139,7 @@ This guarantees the main context never gets permanently stuck.
 | Poll from main context      | Each poll injects output into the context window, burning ~50K tokens per check                                                       | Delegate polling to a subagent                                        |
 | Hardcoded `sleep` timeout   | Wastes time on fast completions, too short for slow ones                                                                              | Poll interval + max timeout                                           |
 | PID-only liveness check     | Cannot distinguish a hung process (PID alive, no progress) from a running one                                                         | Heartbeat file mtime — hung process stops touching the file           |
-| `uv run` masking stale venv | `uv run` has its own resolution that bypasses broken venv state; console scripts (pytest, ruff) have stale shebangs after repo rename | Run `uv sync --python 3.13 --extra dev` after any repo rename or move |
+| `uv run` masking stale venv | `uv run` has its own resolution that bypasses broken venv state; console scripts (pytest, ruff) have stale shebangs after repo rename | Run `uv sync --python 3.14 --extra dev` after any repo rename or move |
 
 ---
 
@@ -149,12 +149,12 @@ Run before entering any autonomous loop. If any check fails, fix before proceedi
 
 ```bash
 # 1. Python package importable?
-uv run --python 3.13 python -c "import your_package" \
-  || uv sync --python 3.13 --extra dev
+uv run --python 3.14 python -c "import your_package" \
+  || uv sync --python 3.14 --extra dev
 
 # 2. Console scripts have valid shebangs? (catches post-rename breakage)
-uv run --python 3.13 pytest --co -q tests/ 2>/dev/null \
-  || uv sync --python 3.13 --extra dev
+uv run --python 3.14 pytest --co -q tests/ 2>/dev/null \
+  || uv sync --python 3.14 --extra dev
 
 # 3. External service reachable?
 curl -sf "http://localhost:PORT/?query=SELECT+1" \
@@ -165,11 +165,11 @@ curl -sf "http://localhost:PORT/?query=SELECT+1" \
 
 | Symptom                                                         | Root Cause                                                       | Fix                                 |
 | --------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------- |
-| `ModuleNotFoundError` but `uv run python -c "import ..."` works | Stale venv — console script shebangs point to old repo path      | `uv sync --python 3.13 --extra dev` |
-| `bad interpreter: ...old-path/.venv/bin/python3`                | Same — `.venv/bin/pytest` shebang hardcoded pre-rename directory | `uv sync --python 3.13 --extra dev` |
+| `ModuleNotFoundError` but `uv run python -c "import ..."` works | Stale venv — console script shebangs point to old repo path      | `uv sync --python 3.14 --extra dev` |
+| `bad interpreter: ...old-path/.venv/bin/python3`                | Same — `.venv/bin/pytest` shebang hardcoded pre-rename directory | `uv sync --python 3.14 --extra dev` |
 | `pip show` says not found, `uv run` says installed              | `uv run` resolution bypasses venv pip metadata                   | `uv sync` reconciles both           |
 
-**Rule**: After any repo rename, directory move, or Python version change → always `uv sync --python 3.13 --extra dev` before running anything.
+**Rule**: After any repo rename, directory move, or Python version change → always `uv sync --python 3.14 --extra dev` before running anything.
 
 ## Post-Execution Reflection
 

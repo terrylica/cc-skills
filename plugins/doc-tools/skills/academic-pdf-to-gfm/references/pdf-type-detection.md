@@ -29,7 +29,7 @@ pdffonts paper.pdf
 ### Test 3: marker-pdf Smoke Test (1 minute)
 
 ```bash
-uv run --python 3.13 --with marker-pdf marker_single paper.pdf /tmp/marker-out --output_format markdown
+uv run --python 3.14 --with marker-pdf marker_single paper.pdf /tmp/marker-out --output_format markdown
 cat /tmp/marker-out/*.md | head -50
 ```
 

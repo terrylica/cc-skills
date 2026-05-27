@@ -22,16 +22,16 @@ Create groups, supergroups, or channels and optionally invite users.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Create supergroup (default)
-uv run --python 3.13 "$SCRIPT" create-group "My Group" --about "Group description"
+uv run --python 3.14 "$SCRIPT" create-group "My Group" --about "Group description"
 
 # Create with initial members
-uv run --python 3.13 "$SCRIPT" create-group "Project Chat" --users @user1 @user2
+uv run --python 3.14 "$SCRIPT" create-group "Project Chat" --users @user1 @user2
 
 # Create broadcast channel
-uv run --python 3.13 "$SCRIPT" create-group "Announcements" --type channel --about "Updates"
+uv run --python 3.14 "$SCRIPT" create-group "Announcements" --type channel --about "Updates"
 
 # Create legacy group (limited to ~200 members)
-uv run --python 3.13 "$SCRIPT" create-group "Small Team" --type group --users @teammate
+uv run --python 3.14 "$SCRIPT" create-group "Small Team" --type group --users @teammate
 EOF
 ```
 

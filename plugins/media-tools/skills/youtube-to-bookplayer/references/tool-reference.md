@@ -60,7 +60,7 @@ service.set_file_contents(f"/Documents/{filename}", file_data)
 **Run via uvx:**
 
 ```bash
-uvx --python 3.13 --from pymobiledevice3 python3 -c '
+uvx --python 3.14 --from pymobiledevice3 python3 -c '
 from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.house_arrest import HouseArrestService
 # ... script body

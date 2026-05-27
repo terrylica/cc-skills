@@ -99,7 +99,7 @@ async def _make_client(profile: str) -> TelegramClient:
             f"Error: Telegram session expired for profile '{profile}'.\n"
             f"Session file: {session_file}\n"
             f"Re-authenticate by running:  ! /tlg:setup\n"
-            f"Or interactively:  ! uv run --python 3.13 {__file__} auth {profile}",
+            f"Or interactively:  ! uv run --python 3.14 {__file__} auth {profile}",
             file=sys.stderr,
         )
         sys.exit(1)

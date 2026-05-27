@@ -22,13 +22,13 @@ Download photos, videos, documents, and other media from Telegram messages.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Step 1: Find message ID with media
-uv run --python 3.13 "$SCRIPT" read <chat> -n 10
+uv run --python 3.14 "$SCRIPT" read <chat> -n 10
 
 # Step 2: Download by message ID
-uv run --python 3.13 "$SCRIPT" download <chat> <message_id>
+uv run --python 3.14 "$SCRIPT" download <chat> <message_id>
 
 # Download to specific directory
-uv run --python 3.13 "$SCRIPT" download 2124832490 471931 -o ./downloads
+uv run --python 3.14 "$SCRIPT" download 2124832490 471931 -o ./downloads
 EOF
 ```
 

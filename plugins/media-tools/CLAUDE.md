@@ -21,7 +21,7 @@ All tools are installed via Homebrew or pip/uvx. The skill runs preflight checks
 | `yt-dlp`          | YouTube audio extraction                           | `brew install yt-dlp`                                             |
 | `ffmpeg`          | Audio format conversion (auto-invoked by yt-dlp)   | `brew install ffmpeg`                                             |
 | `exiftool`        | M4A metadata tagging (title, artist, album)        | `brew install exiftool`                                           |
-| `pymobiledevice3` | iOS device communication via USB (HouseArrest API) | `uvx --python 3.13 --from pymobiledevice3 pymobiledevice3 --help` |
+| `pymobiledevice3` | iOS device communication via USB (HouseArrest API) | `uvx --python 3.14 --from pymobiledevice3 pymobiledevice3 --help` |
 
 ## Critical: VendDocuments vs VendContainer
 
@@ -33,7 +33,7 @@ All tools are installed via Homebrew or pip/uvx. The skill runs preflight checks
 
 ## Conventions
 
-- **Python**: 3.13 only, via `uvx --python 3.13`
+- **Python**: 3.13 only, via `uvx --python 3.14`
 - **Temp files**: `mktemp -d` for working directories, cleaned up after success
 - **Device selection**: `create_using_usbmux()` auto-selects first connected device
 - **No hardcoded paths**: Use `$HOME`, `command -v`, auto-detection throughout

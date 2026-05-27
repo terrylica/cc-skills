@@ -198,13 +198,13 @@ The per-release wall-clock distribution is dominated by SSH-handshake and GitHub
 
 ```bash
 # Default 5 back-to-back dry-run captures, per-namespace p50/p95/mean/stddev/min/max/range:
-uv run --python 3.13 scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
+uv run --python 3.14 scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py
 
 # Custom run count via ITER147_VARIANCE_PROFILE_RUN_COUNT (must be at least 2 — variance undefined for n=1):
-ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.13 scripts/iter147-...py
+ITER147_VARIANCE_PROFILE_RUN_COUNT=10 uv run --python 3.14 scripts/iter147-...py
 
 # Replay existing /tmp/iter147-variance-profile-run-{i}.log without re-capturing (fast re-analysis):
-ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.13 scripts/iter147-...py
+ITER147_VARIANCE_PROFILE_REPLAY_FROM_EXISTING_LOGS=1 uv run --python 3.14 scripts/iter147-...py
 ```
 
 Output format includes a "variance-flag" column marking namespaces whose stddev/p50 ratio exceeds **0.20** — these are the namespaces where single-sample comparisons are unreliable, and any optimization targeting them must demonstrate distribution-level improvement (p50 or p95 shift across N samples), not point-sample improvement.

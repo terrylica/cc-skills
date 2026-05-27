@@ -93,7 +93,7 @@ All examples below assume `$SCRIPT` is set. When invoking from the cc-skills rep
 
 ```bash
 # SSoT-OK: uv run handles PEP 723 inline deps
-uv run --python 3.13 "$SCRIPT" \
+uv run --python 3.14 "$SCRIPT" \
   trace_id traceId request_id correlation_id \
   level severity log_level priority
 ```
@@ -112,40 +112,40 @@ for f in glob.glob('**/*.py', recursive=True):
         fields.add(m.group(1))
 for f in sorted(fields):
     print(f)
-" | uv run --python 3.13 "$SCRIPT"
+" | uv run --python 3.14 "$SCRIPT"
 ```
 
 ### Analyze from stdin (pipe from jq, etc.)
 
 ```bash
-head -1 telemetry.jsonl | jq -r 'keys[]' | uv run --python 3.13 "$SCRIPT"
+head -1 telemetry.jsonl | jq -r 'keys[]' | uv run --python 3.14 "$SCRIPT"
 ```
 
 ### Analyze a JSONL file's fields
 
 ```bash
-uv run --python 3.13 "$SCRIPT" --jsonl /path/to/telemetry.jsonl
+uv run --python 3.14 "$SCRIPT" --jsonl /path/to/telemetry.jsonl
 ```
 
 ### Compare two JSON schemas
 
 ```bash
-uv run --python 3.13 "$SCRIPT" --schema-a schema_v1.json --schema-b schema_v2.json
+uv run --python 3.14 "$SCRIPT" --schema-a schema_v1.json --schema-b schema_v2.json
 ```
 
 ### Control output size
 
 ```bash
-uv run --python 3.13 "$SCRIPT" --top 30 field1 field2 field3   # Top 30 pairs
-uv run --python 3.13 "$SCRIPT" --top 0 field1 field2 field3    # All pairs
-uv run --python 3.13 "$SCRIPT" --json field1 field2 field3     # JSON output
+uv run --python 3.14 "$SCRIPT" --top 30 field1 field2 field3   # Top 30 pairs
+uv run --python 3.14 "$SCRIPT" --top 0 field1 field2 field3    # All pairs
+uv run --python 3.14 "$SCRIPT" --json field1 field2 field3     # JSON output
 ```
 
 ### Lookup against canonical standards (OTel/OCSF/CloudEvents)
 
 ```bash
 # Anchor each field against 1,453 bundled canonical names from OTel + OCSF + CloudEvents
-uv run --python 3.13 "$SCRIPT" --canonical http_method http_status request_id severity
+uv run --python 3.14 "$SCRIPT" --canonical http_method http_status request_id severity
 ```
 
 Output adds a `=== CANONICAL ANCHORS ===` section showing the closest standard names per field. Useful for "should we rename to match an industry standard" decisions.
@@ -156,7 +156,7 @@ After running with `--json --canonical`, paste the output into [`references/prop
 
 ```bash
 # Phase 1: Score
-uv run --python 3.13 "$SCRIPT" --json --canonical [fields...] > analysis.json
+uv run --python 3.14 "$SCRIPT" --json --canonical [fields...] > analysis.json
 
 # Phase 2: Apply proposer prompt (paste analysis.json into the template)
 # The LLM produces structured proposals.json — review atomically

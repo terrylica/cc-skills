@@ -146,7 +146,7 @@ cat > /tmp/run.sh <<'EOF'
 set -euo pipefail
 export VAR="${VAR:-default}"
 cd /tmp
-exec uv run --python 3.13 --with numpy --with pandas python -u /tmp/script.py
+exec uv run --python 3.14 --with numpy --with pandas python -u /tmp/script.py
 EOF
 scp /tmp/run.sh bigblack:/tmp/
 ssh bigblack 'chmod +x /tmp/run.sh && ~/.local/bin/pueue add --group mygroup --label "job" -w /tmp -- /tmp/run.sh'

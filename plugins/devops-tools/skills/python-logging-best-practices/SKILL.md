@@ -39,7 +39,7 @@ Is it < 5 services on a single machine, < 1 event/sec?
 | **Lightweight** | Small systemd services, self-hosted, single operator | Zero deps, journald integration, minimal code | No severity filtering, no per-module control |
 | `loguru`        | CLI tools, scripts, local services                   | Zero-config, built-in rotation, great DX      | External dep, not truly schema-enforced      |
 | `structlog`     | Production services, OTel integration                | ContextVars, processor chains, OTel-native    | Steeper learning curve                       |
-| `stdlib`        | LaunchAgent daemons, zero-dep constraint             | No dependencies, Python 3.13 `merge_extra`    | More boilerplate, no structured defaults     |
+| `stdlib`        | LaunchAgent daemons, zero-dep constraint             | No dependencies, Python 3.14 `merge_extra`    | More boilerplate, no structured defaults     |
 | `Logfire`       | AI/LLM observability, Pydantic apps                  | Built on OTel, token/cost tracking, SQL       | SaaS dependency, newer ecosystem             |
 
 ---

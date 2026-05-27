@@ -10,7 +10,7 @@ This plugin manages the Telegram notification bot and iTerm2 tab focus integrati
 
 ## Conventions
 
-- **Runtime**: Bun for TypeScript, Python 3.13 for Kokoro, Bash for shell scripts
+- **Runtime**: Bun for TypeScript, Python 3.14 for Kokoro, Bash for shell scripts
 - **Paths**: XDG-compliant (`~/.local/share/kokoro/` for engine, `~/.local/state/launchd-logs/telegram-bot/` for launchd logs)
 - **Config SSoT**: `~/.claude/automation/claude-telegram-sync/mise.toml`
 - **Lock protocol**: `/tmp/kokoro-tts.lock` with 5s heartbeat, 30s stale threshold + pgrep defense

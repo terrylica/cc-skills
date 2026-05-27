@@ -36,7 +36,7 @@ if ! command -v agent-reach &>/dev/null; then
     echo "  MISSING  agent-reach CLI"
     echo "  Installing via pipx..."
     if command -v pipx &>/dev/null; then
-        pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.13 2>&1
+        pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.14 2>&1
         agent-reach install --env=auto 2>&1
         echo "  OK  agent-reach installed"
     else

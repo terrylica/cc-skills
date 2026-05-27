@@ -63,29 +63,29 @@ Single Python script using Telethon (MTProto client). Multi-profile support for 
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Messaging
-uv run --python 3.13 "$SCRIPT" send <to> "text"
-uv run --python 3.13 "$SCRIPT" send-file <to> /path/to/file [-c "caption"]
-uv run --python 3.13 "$SCRIPT" forward <from> <msg_ids> <to>
-uv run --python 3.13 "$SCRIPT" edit <chat> <msg_id> "new text"
-uv run --python 3.13 "$SCRIPT" delete <chat> <msg_ids>
-uv run --python 3.13 "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
-uv run --python 3.13 "$SCRIPT" mark-read <chat>
+uv run --python 3.14 "$SCRIPT" send <to> "text"
+uv run --python 3.14 "$SCRIPT" send-file <to> /path/to/file [-c "caption"]
+uv run --python 3.14 "$SCRIPT" forward <from> <msg_ids> <to>
+uv run --python 3.14 "$SCRIPT" edit <chat> <msg_id> "new text"
+uv run --python 3.14 "$SCRIPT" delete <chat> <msg_ids>
+uv run --python 3.14 "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
+uv run --python 3.14 "$SCRIPT" mark-read <chat>
 
 # Reading & Search
-uv run --python 3.13 "$SCRIPT" read <chat> [-n 10]
-uv run --python 3.13 "$SCRIPT" search "query" [--chat <chat>] [--from <user>]
-uv run --python 3.13 "$SCRIPT" dialogs
-uv run --python 3.13 "$SCRIPT" whoami
-uv run --python 3.13 "$SCRIPT" find-user @username
+uv run --python 3.14 "$SCRIPT" read <chat> [-n 10]
+uv run --python 3.14 "$SCRIPT" search "query" [--chat <chat>] [--from <user>]
+uv run --python 3.14 "$SCRIPT" dialogs
+uv run --python 3.14 "$SCRIPT" whoami
+uv run --python 3.14 "$SCRIPT" find-user @username
 
 # Media
-uv run --python 3.13 "$SCRIPT" download <chat> <msg_id> [-o /path]
+uv run --python 3.14 "$SCRIPT" download <chat> <msg_id> [-o /path]
 
 # Groups
-uv run --python 3.13 "$SCRIPT" create-group "Title" [--type supergroup|channel|group]
-uv run --python 3.13 "$SCRIPT" invite <group> @user1 @user2
-uv run --python 3.13 "$SCRIPT" kick <group> @user
-uv run --python 3.13 "$SCRIPT" members <group> [--admins] [--search "name"]
+uv run --python 3.14 "$SCRIPT" create-group "Title" [--type supergroup|channel|group]
+uv run --python 3.14 "$SCRIPT" invite <group> @user1 @user2
+uv run --python 3.14 "$SCRIPT" kick <group> @user
+uv run --python 3.14 "$SCRIPT" members <group> [--admins] [--search "name"]
 ```
 
 All commands accept `-p <profile>` (default: `eon`).

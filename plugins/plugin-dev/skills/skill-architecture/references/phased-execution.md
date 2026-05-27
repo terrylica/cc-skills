@@ -87,7 +87,7 @@ Use bracketed phase labels in TodoWrite templates for clarity and traceability:
 
 | Label         | Purpose                     | Example                                             |
 | ------------- | --------------------------- | --------------------------------------------------- |
-| `[Preflight]` | Prerequisite verification   | `[Preflight] Verify Python 3.13 installed`          |
+| `[Preflight]` | Prerequisite verification   | `[Preflight] Verify Python 3.14 installed`          |
 | `[Execute]`   | Core operation steps        | `[Execute] Install package dependencies`            |
 | `[Verify]`    | Outcome confirmation        | `[Verify] Service responds on port 8080`            |
 | `[Reflect]`   | Post-execution skill review | `[Reflect] Review execution for errors/friction`    |

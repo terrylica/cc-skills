@@ -13,7 +13,7 @@ Cal.com → Webhook POST → Cloud Run (webhook-relay) → Pushover API → Phon
 ```
 plugins/calcom-commander/scripts/webhook-relay/
 ├── main.py       ← Python HTTP server (stdlib only, no dependencies)
-└── Dockerfile    ← Python 3.13 slim container
+└── Dockerfile    ← Python 3.14 slim container
 ```
 
 ## Deploy to Cloud Run

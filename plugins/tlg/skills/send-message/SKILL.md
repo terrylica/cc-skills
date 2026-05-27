@@ -15,7 +15,7 @@ Send a message from your personal Telegram account (not a bot) via MTProto.
 Before sending, verify the session is **authorized** (not just that the file exists):
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 -c "
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 -c "
 import asyncio, os
 from telethon import TelegramClient
 async def c():
@@ -47,7 +47,7 @@ The Bruntwork group (`-1003958083153`) is a **supergroup with Topics**. All mess
 **Sending to a topic via tg-cli.py:** use the `--reply-to` flag with the topic's root_msg_id. See the Topic Registry section below for root_msg_id values.
 
 ```bash
-uv run --python 3.13 "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
+uv run --python 3.14 "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
 ```
 
 **Sending to a topic via Direct Telethon:**
@@ -85,18 +85,18 @@ Each continuation chunk gets a `<i>(Part N/M)</i>` header prepended so recipient
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Default: plain text (use only for single-line unformatted messages)
-uv run --python 3.13 "$SCRIPT" send @username "Hello"
+uv run --python 3.14 "$SCRIPT" send @username "Hello"
 
 # HTML formatting — the recommended default for any structured message
-uv run --python 3.13 "$SCRIPT" send --html -1003958083153 "<b>Bold header</b>
+uv run --python 3.14 "$SCRIPT" send --html -1003958083153 "<b>Bold header</b>
 
 Body with <code>inline code</code> and <a href='https://example.com'>a link</a>."
 
 # By chat ID (groups use negative IDs)
-uv run --python 3.13 "$SCRIPT" send -1003958083153 "Hello group"
+uv run --python 3.14 "$SCRIPT" send -1003958083153 "Hello group"
 
 # Specific profile
-uv run --python 3.13 "$SCRIPT" -p missterryli send @username "Hello"
+uv run --python 3.14 "$SCRIPT" -p missterryli send @username "Hello"
 SEND_EOF
 ```
 
@@ -107,7 +107,7 @@ SEND_EOF
 Direct Telethon is now only needed for cases `tg-cli.py send` cannot cover: file attachments with captions, sequences of differently-structured messages, message edits, or deletions. Long single-body messages are handled by `tg-cli.py send` auto-split.
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 
@@ -141,7 +141,7 @@ PYEOF
 ### Sending files with captions
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 
@@ -168,7 +168,7 @@ PYEOF
 ### Editing a previously sent message
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 

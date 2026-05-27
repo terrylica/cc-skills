@@ -10,7 +10,7 @@
  * 2. ty is installed
  * 3. CWD is a Python project (pyproject.toml or *.py files present)
  *
- * CRITICAL: Always runs with --python-version 3.13 (project policy: Python 3.13 ONLY).
+ * CRITICAL: Always runs with --python-version 3.14 (project policy: Python 3.14 ONLY).
  * Uses --exit-zero to prevent non-zero exit codes from failing the hook.
  *
  * Output: { additionalContext: "..." } for informational, non-blocking output.
@@ -83,7 +83,7 @@ function main(): void {
 
   // Run ty check on the entire project
   const result = Bun.spawnSync(
-    ["ty", "check", ".", "--output-format", "concise", "--python-version", "3.13", "--exit-zero"],
+    ["ty", "check", ".", "--output-format", "concise", "--python-version", "3.14", "--exit-zero"],
     {
       stdout: "pipe",
       stderr: "pipe",

@@ -5,7 +5,7 @@
 """Env-var coverage audit: cross-reference pydantic BaseSettings vs bare constants.
 
 Usage:
-    uv run --python 3.13 --script audit_env_coverage.py -- <path> [--output {json,text}]
+    uv run --python 3.14 --script audit_env_coverage.py -- <path> [--output {json,text}]
 
 Finds module-level constants and inline literals that lack env-var backing
 via pydantic BaseSettings. Reports coverage gaps.
