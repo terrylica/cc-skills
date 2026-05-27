@@ -22,16 +22,16 @@ Search messages globally across all chats or within a specific chat.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Global search (all chats)
-uv run --python 3.13 "$SCRIPT" search "search term" -n 20
+uv run --python 3.14 "$SCRIPT" search "search term" -n 20
 
 # Search in specific chat
-uv run --python 3.13 "$SCRIPT" search "keyword" --chat 2124832490
+uv run --python 3.14 "$SCRIPT" search "keyword" --chat 2124832490
 
 # Filter by sender
-uv run --python 3.13 "$SCRIPT" search "topic" --from @username
+uv run --python 3.14 "$SCRIPT" search "topic" --from @username
 
 # Combined: search in chat from specific sender
-uv run --python 3.13 "$SCRIPT" search "query" --chat @groupname --from @sender -n 10
+uv run --python 3.14 "$SCRIPT" search "query" --chat @groupname --from @sender -n 10
 EOF
 ```
 

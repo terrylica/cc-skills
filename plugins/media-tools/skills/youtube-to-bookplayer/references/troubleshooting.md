@@ -31,7 +31,7 @@ pymobiledevice3 usbmux list
 pymobiledevice3 apps list --no-color 2>/dev/null | grep -i bookplayer
 
 # Test HouseArrest access (Python)
-uvx --python 3.13 --from pymobiledevice3 python3 -c '
+uvx --python 3.14 --from pymobiledevice3 python3 -c '
 from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.house_arrest import HouseArrestService
 lockdown = create_using_usbmux()

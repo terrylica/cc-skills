@@ -16,14 +16,14 @@ A battle-tested workflow for converting academic/research PDF papers into GitHub
 
 ```bash
 # Step 1: Extract prose (best structure preservation)
-uv run --python 3.13 --with pymupdf4llm python3 -c "
+uv run --python 3.14 --with pymupdf4llm python3 -c "
 import pymupdf4llm
 md = pymupdf4llm.to_markdown('paper.pdf')
 open('paper-raw.md', 'w').write(md)
 "
 
 # Step 2: Extract images
-uv run --python 3.13 --with pymupdf python3 references/extract-images.py paper.pdf
+uv run --python 3.14 --with pymupdf python3 references/extract-images.py paper.pdf
 
 # Step 3: Validate math before pushing
 node references/validate-math.mjs paper.md

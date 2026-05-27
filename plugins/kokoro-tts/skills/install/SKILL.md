@@ -6,7 +6,7 @@ allowed-tools: Read, Bash, Glob, AskUserQuestion
 
 # Install Kokoro TTS
 
-Install the Kokoro TTS engine: Apple Silicon verification, Python 3.13 venv, MLX-Audio dependencies, model download, and verification synthesis.
+Install the Kokoro TTS engine: Apple Silicon verification, Python 3.14 venv, MLX-Audio dependencies, model download, and verification synthesis.
 
 > **Platform**: macOS Apple Silicon (M1+) only. Fails fast on Intel/Linux.
 
@@ -18,7 +18,7 @@ Install the Kokoro TTS engine: Apple Silicon verification, Python 3.13 venv, MLX
 | ------------- | -------- | -------------------- |
 | Apple Silicon | Yes      | `uname -m` = `arm64` |
 | uv            | Yes      | `uv --version`       |
-| Python 3.13   | Yes      | `uv python list`     |
+| Python 3.14   | Yes      | `uv python list`     |
 
 ## Workflow
 
@@ -42,7 +42,7 @@ bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
 This performs:
 
 1. Verifies Apple Silicon (fails fast on Intel/Linux)
-2. Creates Python 3.13 venv at `~/.local/share/kokoro/.venv` via uv
+2. Creates Python 3.14 venv at `~/.local/share/kokoro/.venv` via uv
 3. Installs MLX-Audio dependencies (mlx-audio, soundfile, numpy)
 4. Copies `kokoro_common.py`, `tts_generate.py` from plugin bundle
 5. Downloads Kokoro-82M-bf16 MLX model from HuggingFace

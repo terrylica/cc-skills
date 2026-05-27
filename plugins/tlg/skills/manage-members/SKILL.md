@@ -22,19 +22,19 @@ Invite, kick, and list members in groups and channels.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Invite users
-uv run --python 3.13 "$SCRIPT" invite <group> @user1 @user2
+uv run --python 3.14 "$SCRIPT" invite <group> @user1 @user2
 
 # Kick a user
-uv run --python 3.13 "$SCRIPT" kick <group> @username
+uv run --python 3.14 "$SCRIPT" kick <group> @username
 
 # List all members
-uv run --python 3.13 "$SCRIPT" members <group>
+uv run --python 3.14 "$SCRIPT" members <group>
 
 # List admins only
-uv run --python 3.13 "$SCRIPT" members <group> --admins
+uv run --python 3.14 "$SCRIPT" members <group> --admins
 
 # Search members by name
-uv run --python 3.13 "$SCRIPT" members <group> --search "Terry"
+uv run --python 3.14 "$SCRIPT" members <group> --search "Terry"
 EOF
 ```
 

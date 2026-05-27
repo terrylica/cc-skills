@@ -150,7 +150,7 @@ Performance improvement: ~10-30% faster for frequently-called functions.
 
 ## Free-Threaded Python (0.25+)
 
-Python 3.13t (free-threaded, no GIL) support:
+Python 3.14t (free-threaded, no GIL) support:
 
 ```rust
 // Check if running free-threaded at runtime

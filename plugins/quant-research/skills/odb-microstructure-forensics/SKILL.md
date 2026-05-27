@@ -24,7 +24,7 @@ Systematic methodology for investigating Open Deviation Bar anomalies by tracing
 | Source             | Location                                                                                | Schema                                                                                    | Access                                                                             |
 | ------------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | ClickHouse cache   | `opendeviationbar_cache.open_deviation_bars` on **gpu-host**                            | 76 columns, see [schema reference](./references/clickhouse-schema.md)                     | `ssh gpu-host 'curl -s http://localhost:8123/ -d "..."'`                           |
-| Parquet tick cache | `/home/<user>/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **gpu-host** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh gpu-host 'cd /home/<user> && uv run --python 3.13 python3 -c "..."'` with Polars |
+| Parquet tick cache | `/home/<user>/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **gpu-host** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh gpu-host 'cd /home/<user> && uv run --python 3.14 python3 -c "..."'` with Polars |
 
 **Access pattern**: Always query gpu-host directly via SSH. The SSH tunnel (`localhost:18123`) is for the Flowsurface app runtime only — forensic queries go direct.
 

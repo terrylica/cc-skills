@@ -25,39 +25,39 @@ Use this skill when the user mentions:
 
 ```bash
 # Preflight — verify all tools installed and configured
-uv run --python 3.13 --script scripts/preflight.py -- .
+uv run --python 3.14 --script scripts/preflight.py -- .
 
 # Full audit (all 9 tools, preflight + both outputs)
-uv run --python 3.13 --script scripts/audit_hardcodes.py -- src/
+uv run --python 3.14 --script scripts/audit_hardcodes.py -- src/
 
 # Individual tools (all respect .gitignore):
 
 # Python credential detection (passwords, tokens, API keys in variable names)
-uv run --python 3.13 --script scripts/run_bandit.py -- src/
+uv run --python 3.14 --script scripts/run_bandit.py -- src/
 
 # Entropy-based secret detection (catches secrets regex can't)
-uv run --python 3.13 --script scripts/run_trufflehog.py -- src/
+uv run --python 3.14 --script scripts/run_trufflehog.py -- src/
 
 # Config file secrets (YAML, JSON, Dockerfile, .env, .properties)
-uv run --python 3.13 --script scripts/run_whispers.py -- src/
+uv run --python 3.14 --script scripts/run_whispers.py -- src/
 
 # AST-based hardcode detection (numeric args, URLs, paths, sleep)
-uv run --python 3.13 --script scripts/run_ast_grep.py -- src/
+uv run --python 3.14 --script scripts/run_ast_grep.py -- src/
 
 # Python magic numbers only (fastest)
-uv run --python 3.13 --script scripts/run_ruff_plr.py -- src/
+uv run --python 3.14 --script scripts/run_ruff_plr.py -- src/
 
 # Pattern-based detection (URLs, ports, paths, sleep, circuit breaker)
-uv run --python 3.13 --script scripts/run_semgrep.py -- src/
+uv run --python 3.14 --script scripts/run_semgrep.py -- src/
 
 # Env-var coverage audit (BaseSettings cross-reference)
-uv run --python 3.13 --script scripts/audit_env_coverage.py -- src/
+uv run --python 3.14 --script scripts/audit_env_coverage.py -- src/
 
 # Copy-paste detection
-uv run --python 3.13 --script scripts/run_jscpd.py -- src/
+uv run --python 3.14 --script scripts/run_jscpd.py -- src/
 
 # Regex-based secret scanning (API keys, tokens, passwords)
-uv run --python 3.13 --script scripts/run_gitleaks.py -- src/
+uv run --python 3.14 --script scripts/run_gitleaks.py -- src/
 ```
 
 ## Tool Overview
@@ -148,7 +148,7 @@ Summary: 42 findings (ruff: 15, semgrep: 20, jscpd: 7)
 
 | Issue                    | Cause                       | Solution                                                                 |
 | ------------------------ | --------------------------- | ------------------------------------------------------------------------ |
-| Ruff PLR2004 zero output | PLR2004 globally suppressed | Run preflight: `uv run --python 3.13 --script scripts/preflight.py -- .` |
+| Ruff PLR2004 zero output | PLR2004 globally suppressed | Run preflight: `uv run --python 3.14 --script scripts/preflight.py -- .` |
 | Ruff PLR2004 not found   | Ruff not installed or old   | `uv tool install ruff` or upgrade                                        |
 | ast-grep not found       | Binary not installed        | `cargo install ast-grep` or `brew install ast-grep`                      |
 | Semgrep timeout          | Large codebase scan         | Use `--exclude` to limit scope                                           |

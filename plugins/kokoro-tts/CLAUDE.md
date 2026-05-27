@@ -14,7 +14,7 @@ Universal plugin for on-device text-to-speech using [MLX-Audio](https://github.c
 
 ```
 ~/.local/share/kokoro/           # Runtime directory (XDG-compliant)
-├── .venv/                       # Python 3.13 venv (uv)
+├── .venv/                       # Python 3.14 venv (uv)
 ├── kokoro_common.py             # Synthesis SSoT (model ID, sample rate, defaults)
 ├── tts_generate.py              # CLI tool (chunked streaming)
 ├── tts_server.py                # HTTP server (OpenAI-compatible)
@@ -25,7 +25,7 @@ Model cache: `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/`
 
 ## Conventions
 
-- **Runtime**: Python 3.13 via uv (CRITICAL: never use 3.14)
+- **Runtime**: Python 3.14 via uv (CRITICAL: never use 3.14)
 - **Backend**: MLX-Audio only — no PyTorch, no ONNX
 - **Synthesis SSoT**: `kokoro_common.py` (model ID, sample rate, language aliases, synthesis loop)
 - **HTTP server**: OpenAI-compatible `/v1/audio/speech` at port 8779

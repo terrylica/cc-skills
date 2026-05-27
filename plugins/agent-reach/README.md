@@ -12,7 +12,7 @@ Agent Reach is installed via pipx. The skill's preflight handles installation an
 
 ```bash
 # Manual install (preflight does this for you)
-pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.13
+pipx install https://github.com/Panniantong/agent-reach/archive/main.zip --python python3.14
 agent-reach install --env=auto
 ```
 

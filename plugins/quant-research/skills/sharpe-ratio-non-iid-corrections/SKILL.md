@@ -19,7 +19,7 @@ Generalized Sharpe ratio inference framework for non-Normal, serially correlated
 
 ```bash
 # Run all 18 validation tests (paper Exhibit 1 + numerical examples)
-uv run --python 3.13 --with numpy --with scipy --with numba \
+uv run --python 3.14 --with numpy --with scipy --with numba \
   python plugins/quant-research/skills/sharpe-ratio-non-iid-corrections/references/sharpe_numba.py
 ```
 

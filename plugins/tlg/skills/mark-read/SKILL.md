@@ -22,11 +22,11 @@ Mark all messages in a chat as read, clearing unread badges and mentions.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Mark a chat as read
-uv run --python 3.13 "$SCRIPT" mark-read <chat_id_or_username>
+uv run --python 3.14 "$SCRIPT" mark-read <chat_id_or_username>
 
 # Examples
-uv run --python 3.13 "$SCRIPT" mark-read 2124832490
-uv run --python 3.13 "$SCRIPT" mark-read @username
+uv run --python 3.14 "$SCRIPT" mark-read 2124832490
+uv run --python 3.14 "$SCRIPT" mark-read @username
 EOF
 ```
 

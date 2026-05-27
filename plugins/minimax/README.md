@@ -84,7 +84,7 @@ Once `scripts/minimax-check-upgrade` ships in iter-16, you can wire it into your
 
 | Component   | Required | Why                                                                      |
 | ----------- | -------- | ------------------------------------------------------------------------ |
-| Python 3.13 | Optional | For running the `scripts/minimax-check-upgrade` diff logic               |
+| Python 3.14 | Optional | For running the `scripts/minimax-check-upgrade` diff logic               |
 | `op` CLI    | Optional | For fetching the MiniMax API key from 1Password (used by the OPS script) |
 | `curl`      | Optional | For ad-hoc API calls per the SKILL.md quick-start                        |
 | `jq`        | Optional | For parsing JSON responses in shell pipelines                            |

@@ -11,7 +11,7 @@ This matters enormously because it determines the entire workflow. In Word-gener
 **Use `pymupdf4llm`** for prose extraction. Run it like this:
 
 ```bash
-uv run --python 3.13 --with pymupdf4llm python3 -c "
+uv run --python 3.14 --with pymupdf4llm python3 -c "
 import pymupdf4llm
 md = pymupdf4llm.to_markdown('your-paper.pdf')
 open('paper-raw.md', 'w').write(md)
