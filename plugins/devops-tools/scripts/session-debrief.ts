@@ -879,7 +879,7 @@ function parseSessionViaPython(path: string, sessionLabel: string, startTurn: nu
     return parseSessionRaw(path, sessionLabel, startTurn, verbose);
   }
 
-  const result = spawnSync("uv", ["run", "--python", "3.13", PREPROCESS_SCRIPT, path], {
+  const result = spawnSync("uv", ["run", "--python", "3.14", PREPROCESS_SCRIPT, path], {
     encoding: "utf-8",
     maxBuffer: 200 * 1024 * 1024,
   });

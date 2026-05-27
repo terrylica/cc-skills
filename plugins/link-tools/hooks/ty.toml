@@ -22,7 +22,7 @@
 #   etc.) continue to apply with default severity.
 
 [environment]
-python-version = "3.13"
+python-version = "3.14"
 
 [terminal]
 output-format = "concise"

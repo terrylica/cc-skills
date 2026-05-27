@@ -98,7 +98,7 @@ Scripts should declare their own dependencies so the agent can run them without 
 
 ```python
 # /// script
-# requires-python = ">=3.13"
+# requires-python = ">=3.14"
 # dependencies = [
 #     "httpx>=0.27",
 #     "rich>=13.0",

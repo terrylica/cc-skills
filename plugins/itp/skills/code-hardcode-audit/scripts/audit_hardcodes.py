@@ -366,7 +366,7 @@ def run_env_coverage(target: Path, excludes: list[str]) -> list[Finding]:
         print(f"env-coverage script not found: {script}", file=sys.stderr)
         return []
 
-    cmd = ["uv", "run", "--python", "3.13", "--script", str(script), "--", str(target), "--output", "json"]
+    cmd = ["uv", "run", "--python", "3.14", "--script", str(script), "--", str(target), "--output", "json"]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -554,7 +554,7 @@ def run_preflight(target: Path) -> bool:
     if not script.exists():
         return True  # Skip if preflight script not available
 
-    cmd = ["uv", "run", "--python", "3.13", "--script", str(script), "--", str(target), "--output", "text"]
+    cmd = ["uv", "run", "--python", "3.14", "--script", str(script), "--", str(target), "--output", "text"]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
         print(result.stdout, end="")

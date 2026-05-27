@@ -6,7 +6,7 @@
  * Runs `ty check <file>` after every Write/Edit of a .py/.pyi file.
  * ty is ~60x faster than mypy (4.7ms incremental) so it's hook-viable.
  *
- * CRITICAL: Always runs with --python-version 3.13. Uses --output-format
+ * CRITICAL: Always runs with --python-version 3.14. Uses --output-format
  * concise for one-line diagnostics. If ty is not installed, surfaces a
  * once-per-session install reminder via the iter-95 shared helper.
  * Tracks .py edits via gate file for the Stop hook
@@ -91,7 +91,7 @@ export async function classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchest
 
     const tyExecutionResult =
       await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
-        ["ty", "check", filePath, "--python-version", "3.13", "--output-format", "concise"],
+        ["ty", "check", filePath, "--python-version", "3.14", "--output-format", "concise"],
         { timeoutMs: TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS },
       );
 
