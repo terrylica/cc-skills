@@ -83,7 +83,17 @@ Use when paper contains architecture diagrams, result plots, attention maps, or 
 
 ## Section 1 — Programmatic Firecrawl Usage
 
-**Instance**: Self-hosted on small-host. Reachable via Tailscale MagicDNS (`small-host`, preferred) or legacy ZeroTier IP (`172.25.236.1`, fragile fallback). No API key needed.
+**Instance**: Self-hosted on **small-host** — Debian 12 (bookworm), kernel 6.1.0-31, hostname `kab`, login user `yca`, RTX 2080 Ti, 62 GiB RAM. No API key required for any Firecrawl endpoint.
+
+| Access path        | URL base                                    | When to use                                                               |
+| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------- |
+| Tailscale MagicDNS | `http://small-host:3002`                   | **Preferred.** Works whenever the client is on the tailnet with MagicDNS. |
+| Tailscale FQDN     | `http://<host>:3002` | When bare MagicDNS doesn't resolve (corporate DNS, split-horizon).        |
+| Tailscale IP       | `http://100.78.106.112:3002`                | Bypasses DNS entirely; stable while the tailnet device exists.            |
+| Same-LAN direct    | `http://192.168.1.67:3002`                  | Only when the client is on the Telus PureFibre LAN (`eno1` interface).    |
+| Legacy ZeroTier    | `http://172.25.236.1:3002`                  | Fragile fallback (`ztksetviym` interface). Prefer Tailscale.              |
+
+SSH (for ops, not API calls): `ssh small-host` — defined in `~/.ssh/config` as `HostName <host>`, `User yca`, `IdentityFile ~/.ssh/id_ed25519_zerotier_np`.
 
 ### Why `fetch()` Instead of `@mendable/firecrawl-js` SDK
 
@@ -307,7 +317,7 @@ content_tokens_approx: 4200
 
 ## Section 5 — Self-Hosted Operations
 
-The Firecrawl instance runs on **small-host** (Tailscale: `<host>`, legacy ZeroTier: `172.25.236.1`). All 5 containers up 5+ weeks, stable. No API key needed.
+The Firecrawl instance runs on **small-host** (Debian 12, RTX 2080 Ti, hostname `kab`). System uptime is in the 100+ day range; Firecrawl is stable on this host. No API key needed. For the full access matrix (Tailscale MagicDNS / FQDN / IP, same-LAN, legacy ZeroTier), see Section 1 "Instance" — Section 5 examples use bare `small-host` (Tailscale MagicDNS), substitute any path from that table if MagicDNS isn't available.
 
 | Port | Service           | Type   | Purpose                                            |
 | ---- | ----------------- | ------ | -------------------------------------------------- |
