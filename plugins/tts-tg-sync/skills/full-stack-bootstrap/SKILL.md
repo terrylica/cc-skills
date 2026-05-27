@@ -29,7 +29,7 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 | Bun                 | Yes      | `brew install oven-sh/bun/bun`          |
 | mise                | Yes      | `brew install mise`                     |
 | uv                  | Yes      | `brew install uv`                       |
-| Python 3.14         | Yes      | `uv python install 3.13`                |
+| Python 3.14         | Yes      | `uv python install 3.14`                |
 | Homebrew            | Yes      | Already installed on macOS dev machines |
 | Apple Silicon (M1+) | Yes      | Required for MLX Metal acceleration     |
 
@@ -45,10 +45,10 @@ Verify all prerequisites are installed and accessible:
 command -v bun    # Bun runtime for TypeScript bot
 command -v mise   # Environment manager
 command -v uv     # Python package manager
-uv python list | grep 3.13  # Python 3.14 available
+uv python list | grep 3.14  # Python 3.14 available
 ```
 
-If any tool is missing, install via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.13`.
+If any tool is missing, install via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.14`.
 
 ### Phase 1: Kokoro TTS Engine Install
 
@@ -182,7 +182,7 @@ After modifying this skill:
 | Issue                               | Cause                               | Solution                                                    |
 | ----------------------------------- | ----------------------------------- | ----------------------------------------------------------- |
 | uv not found                        | Not installed                       | `brew install uv`                                           |
-| Python 3.14 not available           | Not installed via uv                | `uv python install 3.13`                                    |
+| Python 3.14 not available           | Not installed via uv                | `uv python install 3.14`                                    |
 | Not Apple Silicon                   | Intel Mac or Linux                  | Requires M1 or newer Mac (MLX Metal)                        |
 | Model download fails                | Network issue or HuggingFace outage | Check internet connectivity, retry                          |
 | BotFather token invalid             | Typo or revoked token               | Verify via `curl https://api.telegram.org/bot<TOKEN>/getMe` |

@@ -24,7 +24,7 @@ Detailed documentation for each of the 6 Kokoro TTS health checks.
 
 ## Check 2: Python 3.14 Executable
 
-**What it tests**: Whether the venv Python is version 3.13.
+**What it tests**: Whether the venv Python is version 3.14.
 
 **Command**:
 
@@ -32,9 +32,9 @@ Detailed documentation for each of the 6 Kokoro TTS health checks.
 ~/.local/share/kokoro/.venv/bin/python --version 2>&1 | grep -q '3\.13'
 ```
 
-**Pass condition**: Output contains `3.13`.
+**Pass condition**: Output contains `3.14`.
 
-**Failure meaning**: Wrong Python version in venv. Must be 3.13 per global Python version policy.
+**Failure meaning**: Wrong Python version in venv. Must be 3.14 per global Python version policy.
 
 **Remediation**: Delete `.venv` and recreate: `kokoro-install.sh --uninstall && kokoro-install.sh --install`
 

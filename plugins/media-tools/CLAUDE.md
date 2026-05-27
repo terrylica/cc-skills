@@ -33,7 +33,7 @@ All tools are installed via Homebrew or pip/uvx. The skill runs preflight checks
 
 ## Conventions
 
-- **Python**: 3.13 only, via `uvx --python 3.14`
+- **Python**: 3.14 only, via `uvx --python 3.14`
 - **Temp files**: `mktemp -d` for working directories, cleaned up after success
 - **Device selection**: `create_using_usbmux()` auto-selects first connected device
 - **No hardcoded paths**: Use `$HOME`, `command -v`, auto-detection throughout

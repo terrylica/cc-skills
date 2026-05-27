@@ -91,7 +91,7 @@ Multi-objective evolutionary optimization for per-metric percentile ranking:
 
 | Component | Required | Installation            |
 | --------- | -------- | ----------------------- |
-| Python    | Yes      | `mise use python@3.13`  |
+| Python    | Yes      | `mise use python@3.14`  |
 | Polars    | Yes      | `uv pip install polars` |
 | NumPy     | Yes      | `uv pip install numpy`  |
 | SciPy     | Optional | `uv pip install scipy`  |
