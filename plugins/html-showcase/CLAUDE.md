@@ -78,19 +78,48 @@ re-read the principle, not to work around it.
 - **Sections sort by date prefix when available.** Slugs matching
   `YYYY-MM-DD-<rest>` trigger chronological newest-first ordering for ALL
   sections; mixed sets put dated sections first, then undated alphabetical.
-- **Pages within a section sort in creation order, not alphabetical.**
-  `index.html` always renders first. Other top-level pages following the
-  `index_iter_<N>_<slug>.html` convention sort by `N` (integer, not lex —
-  so `iter_10` correctly comes after `iter_9`, not after `iter_1`). Pages
-  that don't follow the `iter` convention fall back to filesystem
-  birthtime (`st_birthtime` on macOS; `mtime` on Linux). Nested pages
-  group by subdir, then `index.html` first, then alphabetical. **Why
-  birthtime over mtime**: rebuilds, find-replace passes, and CI all
-  touch `mtime` — using it re-orders the rail every time anyone edits
-  anything. Birthtime is set once and never moves. **Why `iter-N` over
-  birthtime when available**: birthtime resets on `git clone` (new
-  inodes), so for cross-machine canonical ordering the `iter_N`
-  filename token is the durable signal.
+- **Pages within a section sort newest-first, with a pin escape hatch.**
+  The tier order inside a section (top to bottom) is:
+  1. The section's `index.html` — always first.
+  2. **Pinned pages** — any page containing `<!-- nav-pin -->` (or
+     `<!-- nav-pin: N -->` for explicit priority where lower = higher up)
+     in its HTML body. Ties broken by descending iter-N then descending
+     birthtime. This is the user's escape hatch for "this canonical
+     anchor page stays at the top even when 50 newer iterations land."
+  3. **Unpinned `index_iter_<N>_<slug>.html` pages** — sorted
+     **descending by N** (iter_315 above iter_314 above iter_2, integer
+     compare so `iter_10` correctly outranks `iter_2`).
+  4. **Other unpinned top-level pages** — sorted by filesystem birthtime,
+     newest first.
+  5. **Nested pages** — grouped by subdirectory, then `index.html` first,
+     then alphabetical within each subdir.
+
+  **Why newest-first by default**: when a campaign produces iter_1 →
+  iter_N, the operator's most-pressing question is "what's the latest?"
+  — that page should sit at the top of the rail, not buried hundreds of
+  entries down. The previous chronological-ascending default forced the
+  user to scroll past stale work to reach the active edge.
+
+  **Why birthtime over mtime**: rebuilds, find-replace passes, and CI
+  all touch `mtime` — using it would re-order the rail every time
+  anyone edits anything. Birthtime is set once and never moves.
+  **Why iter-N over birthtime when available**: birthtime resets on
+  `git clone` (new inodes), so for cross-machine canonical ordering
+  the `iter-N` filename token is the durable signal.
+  **Why a comment marker, not a sidecar file, for pins**: the marker
+  lives WITH the page so renaming, regenerating, or git-cloning the
+  file never desynchronizes pin state from page identity. No manifest
+  to keep in sync; no orphaned `.nav-pin` file to forget about.
+
+- **Page-theme freedom; rail theme is the constant.** Individual pages
+  can adopt any color scheme the AI judges appropriate for the content
+  (dark dashboard, light contractor showcase, sepia post-mortem) —
+  pages are not required to coordinate with each other. The nav rail
+  and the site-map stay dark across every page so the navigation
+  surface is the recognizable anchor across the whole site. If a page
+  needs to override its own background, it does so in its own
+  `overrides.css`; the rail's appearance is not configurable per page
+  on purpose.
 - **Nav rail + site-map are ALWAYS dark.** The rail's `auto-nav.css`
   and the site-map's inline `<style>` both pin `color-scheme: dark` and
   use the slate-950 / slate-300 / indigo-400 palette regardless of the
@@ -104,6 +133,39 @@ re-read the principle, not to work around it.
   `build-nav.py` changes, bump `--asset-version` (default in the script).
   The browser sees a new URL and re-fetches; we don't rely on
   `Cache-Control` headers.
+- **Body gutter is part of the rail contract.** The rail injects
+  `padding-left: 28px` (collapsed) / `padding-left: 40px` (open) and
+  `padding-right: 28px` on `<body>` via `!important`, plus a clamped
+  `max-width` so wide pages cannot push content underneath the rail.
+  This was added per user feedback 2026-05-26 (the iter_315
+  PRESENTATION_REFACTOR): without the gutter, page content butted
+  directly against the rail's right edge and the eye had nowhere to
+  land between the two visual surfaces. Pages declaring their own
+  `body { padding: ... }` will be overridden — that's intentional.
+
+## Recent Changes
+
+- **2026-05-26 — iter_315 PRESENTATION_REFACTOR (asset version v6).**
+  Three concurrent changes ported from a downstream user-facing edit
+  into the plugin defaults:
+  - **Body gutter (28-40px)**: rail now injects `padding-left` /
+    `padding-right` / clamped `max-width` on `<body>` so page content
+    has breathing room next to the rail.
+  - **Rail typography shrunk ~20%**: base rail font 0.9rem → 0.72rem,
+    cascading into `.rail-h` 0.7→0.58rem, `.rail-date` 0.7→0.58rem,
+    `.rail-link` 0.86→0.7rem, `.rail-toggle-icon` 1.25→1.05rem,
+    `.rail-toggle-label` 0.78→0.65rem, Pagefind UI inputs/results
+    correspondingly tightened. The rail now reads as a dense index,
+    not a billboard.
+  - **Site-map tightened**: body font 0.92rem baseline, h1 1.55rem,
+    headings 1rem, list items 0.85em, deeper background palette
+    (`#0b1120` outer / `#111c33` container) to match the dashboard
+    spokes' visual register.
+  - **Newest-first iter-N ordering**: pages within a section now sort
+    descending by iter-N (was ascending), and unpinned non-iter pages
+    sort descending by birthtime. `<!-- nav-pin -->` comment marker
+    added as an escape hatch for anchoring a canonical page to the
+    top regardless of newer iterations.
 
 ## Architecture
 
