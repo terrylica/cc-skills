@@ -31,7 +31,7 @@ tar xzf otel.tar.gz
 echo "  ✓ $(find "semantic-conventions-${OTEL_VERSION}/model" -name 'registry.yaml' | wc -l | tr -d ' ') registry files"
 
 echo "→ Building unified canonical-names.json..."
-uv run --python 3.13 --with pyyaml python3 - <<PY
+uv run --python 3.14 --with pyyaml python3 - <<PY
 import json
 from pathlib import Path
 import yaml

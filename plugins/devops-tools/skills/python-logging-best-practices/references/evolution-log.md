@@ -36,7 +36,7 @@
 - Added Pydantic Logfire for AI/LLM observability
 - Added Kern for enterprise compliance
 - Added container vs local comparison table
-- Added Python 3.13 `LoggerAdapter.merge_extra=True` note
+- Added Python 3.14 `LoggerAdapter.merge_extra=True` note
 - Added structlog ContextVar reset pattern for async memory leak prevention
 - Removed platformdirs references
 

@@ -30,7 +30,7 @@ Default when uncertain: **draft**. The user can always hit send in one tap; they
 Before drafting, verify the session is authorized (not just that the file exists):
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 -c "
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 -c "
 import asyncio, os
 from telethon import TelegramClient
 async def c():
@@ -51,15 +51,15 @@ If `EXPIRED`, run `/tlg:setup` first.
 SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
 
 # Draft a plain-text message labelled for a group
-uv run --python 3.13 "$SCRIPT" draft -1003958083153 "Plain text draft goes here"
+uv run --python 3.14 "$SCRIPT" draft -1003958083153 "Plain text draft goes here"
 
 # Draft an HTML-formatted message
-uv run --python 3.13 "$SCRIPT" draft --html -1003958083153 "<b>Bold heading</b>
+uv run --python 3.14 "$SCRIPT" draft --html -1003958083153 "<b>Bold heading</b>
 
 Body text with <code>inline code</code> and a <a href=\"https://example.com\">link</a>."
 
 # Draft labelled for a user
-uv run --python 3.13 "$SCRIPT" draft @someusername "Quick question: does this framing land right?"
+uv run --python 3.14 "$SCRIPT" draft @someusername "Quick question: does this framing land right?"
 DRAFT_EOF
 ```
 
@@ -68,7 +68,7 @@ The `recipient` argument is used **only to label the draft's banner in Saved Mes
 ## Usage: Direct Telethon (when tg-cli.py is unavailable)
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.13 --no-project --with telethon python3 << 'PYEOF'
+VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
 import asyncio, os
 from telethon import TelegramClient
 

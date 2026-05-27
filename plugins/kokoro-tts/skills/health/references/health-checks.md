@@ -22,7 +22,7 @@ Detailed documentation for each of the 6 Kokoro TTS health checks.
 
 ---
 
-## Check 2: Python 3.13 Executable
+## Check 2: Python 3.14 Executable
 
 **What it tests**: Whether the venv Python is version 3.13.
 

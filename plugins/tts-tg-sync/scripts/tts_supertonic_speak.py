@@ -3,7 +3,7 @@
 
 Usage:
     echo "Hello world" | TTS_SPEED=1.25 python3 tts_supertonic_speak.py
-    pbpaste | uv run --python 3.13 --with supertonic python3 tts_supertonic_speak.py
+    pbpaste | uv run --python 3.14 --with supertonic python3 tts_supertonic_speak.py
 
 Environment variables:
     TTS_SPEED  - Speech speed multiplier (default: 1.25, range: 0.5-3.0)

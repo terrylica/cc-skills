@@ -5,7 +5,7 @@
 """Preflight check for hardcode audit tools.
 
 Usage:
-    uv run --python 3.13 --script preflight.py -- <path> [--output {json,text}]
+    uv run --python 3.14 --script preflight.py -- <path> [--output {json,text}]
 
 Verifies all audit tools are installed and properly configured.
 Detects silent misconfigurations like globally suppressed Ruff PLR2004.

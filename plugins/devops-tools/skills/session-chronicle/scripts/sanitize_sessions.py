@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv run --python 3.13 --no-project
+#!/usr/bin/env -S uv run --python 3.14 --no-project
 # /// script
 # requires-python = ">=3.13"
 # dependencies = []
