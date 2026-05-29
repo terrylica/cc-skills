@@ -1,3 +1,10 @@
+# [21.85.0](https://github.com/terrylica/cc-skills/compare/v21.84.3...v21.85.0) (2026-05-29)
+
+
+### Features
+
+* **itp-hooks:** add Pushover message-budget PostToolUse reminder hook ([8cb2460](https://github.com/terrylica/cc-skills/commit/8cb24604f2f6fd4522ccf172e846fef396d0de8c)), closes [#19432](https://github.com/terrylica/cc-skills/issues/19432) [#55889](https://github.com/terrylica/cc-skills/issues/55889) [#15664](https://github.com/terrylica/cc-skills/issues/15664)
+
 ## [21.84.3](https://github.com/terrylica/cc-skills/compare/v21.84.2...v21.84.3) (2026-05-27)
 
 
