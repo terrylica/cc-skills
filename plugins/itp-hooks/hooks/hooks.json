@@ -158,6 +158,17 @@
         ]
       },
       {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pushover-budget-reminder.ts",
+            "timeout": 5000,
+            "description": "Pushover message-budget nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17, since PreToolUse additionalContext is silently dropped esp. for Bash per GitHub #19432/#55889). Detects Pushover message construction in Python/Go/TypeScript/Bash via precision-anchored rules (api.pushover.net on a non-comment line + a real send call, OR a known lib/CLI: gregdel SendMessage, chump/.send_message, new Pushover, a pushover-client import, pushover-notify CLI). Reminds Claude to use the full budget — message 1024 / title 250 / url 512 / url_title 100 UTF-8 chars — front-load IDs (preview truncates), spend title+url side channels, and render overflow/CEO-readable provenance as a ≤5MB PNG attachment. Never blocks real work. Escape hatch: PUSHOVER-BUDGET-OK. Detection verified 0 FP / 0 FN against 51 adversarial spike fixtures (Py/Go/TS/Bash) under hooks/tests/pushover-budget-fixtures/."
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
