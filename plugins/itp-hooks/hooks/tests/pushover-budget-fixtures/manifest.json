@@ -1,0 +1,410 @@
+[
+  {
+    "language": "bash",
+    "filename": "base64-image-attachment.sh",
+    "relPath": "bash/base64-image-attachment.sh",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Pushover send with image attachment using curl -F (multipart form) — edge case for rich notification budgeting."
+  },
+  {
+    "language": "bash",
+    "filename": "comment-reference-no-send.sh",
+    "relPath": "bash/comment-reference-no-send.sh",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Comments and log strings mentioning Pushover API URL and workflow — reference material, not actual message construction or send."
+  },
+  {
+    "language": "bash",
+    "filename": "config-check-false-positive.sh",
+    "relPath": "bash/config-check-false-positive.sh",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Configuration file containing pushover_enabled flag with no actual message construction — incidental mention should NOT trigger nudge."
+  },
+  {
+    "language": "bash",
+    "filename": "deploy-status-pushover-curl.sh",
+    "relPath": "bash/deploy-status-pushover-curl.sh",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Direct curl POST to api.pushover.net/1/messages.json with token, user, title, message parameters — canonical Pushover send."
+  },
+  {
+    "language": "bash",
+    "filename": "dynamic-cli-wrapper.sh",
+    "relPath": "bash/dynamic-cli-wrapper.sh",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Inline Pushover CLI wrapper function that constructs messages and sends to api.pushover.net — dynamically assembled pattern."
+  },
+  {
+    "language": "bash",
+    "filename": "escaped-hatch-marker-skip.sh",
+    "relPath": "bash/escaped-hatch-marker-skip.sh",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Real Pushover send with PUSHOVER-BUDGET-OK escape hatch marker in message — hook should skip this per host rules."
+  },
+  {
+    "language": "bash",
+    "filename": "fleet-heartbeat-wrapper.sh",
+    "relPath": "bash/fleet-heartbeat-wrapper.sh",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Calls pushover-notify command with --title, --message, --service flags — wrapper pattern for Pushover dispatch."
+  },
+  {
+    "language": "bash",
+    "filename": "heredoc-pushover-config.sh",
+    "relPath": "bash/heredoc-pushover-config.sh",
+    "expected": "NO_DETECT",
+    "category": "edge",
+    "rationale": "Pushover API documentation in heredoc (docstring) — reference material, not actual message construction or send."
+  },
+  {
+    "language": "bash",
+    "filename": "jq-payload-builder.sh",
+    "relPath": "bash/jq-payload-builder.sh",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "JSON payload constructed with jq, then POSTed to api.pushover.net — structured approach to Pushover message building."
+  },
+  {
+    "language": "bash",
+    "filename": "multi-line-message-construction.sh",
+    "relPath": "bash/multi-line-message-construction.sh",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Message body constructed via multi-line variable concatenation, then sent to api.pushover.net — realistic edge case for provenance tracking."
+  },
+  {
+    "language": "bash",
+    "filename": "pushover-url-parameter-send.sh",
+    "relPath": "bash/pushover-url-parameter-send.sh",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Pushover send with url and url_title parameters for supplementary context — full budget utilization for provenance."
+  },
+  {
+    "language": "bash",
+    "filename": "title-only-notification.sh",
+    "relPath": "bash/title-only-notification.sh",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Title-only Pushover notification (no body) — valid edge case where message field is absent but api.pushover.net endpoint called."
+  },
+  {
+    "language": "bash",
+    "filename": "unrelated-http-post.sh",
+    "relPath": "bash/unrelated-http-post.sh",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Generic HTTP POST to non-Pushover endpoint — related pattern but wrong service entirely."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_comment_mention.go",
+    "relPath": "go/pushover_comment_mention.go",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Pushover mentioned in comments/TODOs but no actual message construction or API invocation."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_config_flag.go",
+    "relPath": "go/pushover_config_flag.go",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Configuration flags mentioning pushover but no message construction or API call — false positive guard."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_direct_http_post.go",
+    "relPath": "go/pushover_direct_http_post.go",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Direct POST to api.pushover.net/1/messages.json with url.Values payload construction — canonical Go pattern."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_docstring_example.go",
+    "relPath": "go/pushover_docstring_example.go",
+    "expected": "NO_DETECT",
+    "category": "edge",
+    "rationale": "Pushover mentioned in docstring/example but no actual message construction — documentation reference only."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_gregdel_client.go",
+    "relPath": "go/pushover_gregdel_client.go",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "gregdel/pushover named client library with struct payload (Title, Message, URL fields)."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_heredoc_message.go",
+    "relPath": "go/pushover_heredoc_message.go",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Multi-line message body using string concatenation with backticks (Go heredoc style) — should detect Pushover send."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_image_attachment.go",
+    "relPath": "go/pushover_image_attachment.go",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Multipart form data POST to Pushover API with binary image attachment (edge case within positive)."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_json_marshal.go",
+    "relPath": "go/pushover_json_marshal.go",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Pushover message sent via JSON marshaling to api.pushover.net — valid Go pattern."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_multiline_message_concat.go",
+    "relPath": "go/pushover_multiline_message_concat.go",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Message constructed via string concatenation across multiple lines, then sent to Pushover API."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_title_only_message.go",
+    "relPath": "go/pushover_title_only_message.go",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Title-only Pushover message (no body field) — edge case but still API invocation to Pushover."
+  },
+  {
+    "language": "go",
+    "filename": "pushover_with_escape_hatch.go",
+    "relPath": "go/pushover_with_escape_hatch.go",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Real Pushover message POST but includes PUSHOVER-BUDGET-OK escape-hatch marker in title — hook should skip."
+  },
+  {
+    "language": "go",
+    "filename": "unrelated_http_post.go",
+    "relPath": "go/unrelated_http_post.go",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "HTTP POST with url.Values to unrelated endpoint (not api.pushover.net) — should not trigger."
+  },
+  {
+    "language": "python",
+    "filename": "pushover_base64_image_attachment.py",
+    "relPath": "python/pushover_base64_image_attachment.py",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Pushover message with base64-encoded image attachment; real use of multipart form for 5MB max image constraint"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_chump_library.py",
+    "relPath": "python/pushover_chump_library.py",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Pushover message construction and send using chump library (python-pushover wrapper) with title and message fields"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_comment_string_mention.py",
+    "relPath": "python/pushover_comment_string_mention.py",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Comments and strings containing 'pushover' text without actual message construction or API call; no payload assembly"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_config_flag_not_sending.py",
+    "relPath": "python/pushover_config_flag_not_sending.py",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Config dictionary with pushover_enabled flag; no actual message construction or send — incidental mention only"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_direct_requests_send.py",
+    "relPath": "python/pushover_direct_requests_send.py",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Direct POST to api.pushover.net/1/messages.json with message and title payload construction — classic Pushover send path using requests library"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_docstring_reference.py",
+    "relPath": "python/pushover_docstring_reference.py",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Pushover mentioned in docstring/comment; no actual message construction, no API call to api.pushover.net"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_httpx_async_send.py",
+    "relPath": "python/pushover_httpx_async_send.py",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Async Pushover send via httpx.AsyncClient to api.pushover.net/1/messages.json with message and title fields"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_manual_json_construct.py",
+    "relPath": "python/pushover_manual_json_construct.py",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Message dict built with title and message fields, then JSON-encoded and POSTed to api.pushover.net/1/messages.json endpoint"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_multiline_fstring.py",
+    "relPath": "python/pushover_multiline_fstring.py",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Pushover message assembled via multi-line f-string; body spans multiple lines before post() call to api.pushover.net"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_python_pushover_library.py",
+    "relPath": "python/pushover_python_pushover_library.py",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Message construction and send using python-pushover library Client.send_message() with title and message fields"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_title_only_message.py",
+    "relPath": "python/pushover_title_only_message.py",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Title-only Pushover message (message field empty); sent via urllib GET with api.pushover.net endpoint"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_unrelated_http_post.py",
+    "relPath": "python/pushover_unrelated_http_post.py",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "HTTP POST to unrelated webhook (webhook.example.com, not api.pushover.net); service name happens to mention 'pushover' in string"
+  },
+  {
+    "language": "python",
+    "filename": "pushover_with_escape_hatch.py",
+    "relPath": "python/pushover_with_escape_hatch.py",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Contains PUSHOVER-BUDGET-OK escape hatch marker in message body; host skips nudge when present"
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_axios_post.ts",
+    "relPath": "typescript/pushover_axios_post.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "axios.post to api.pushover.net with message and title fields in payload object."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_config_flag_no_send.ts",
+    "relPath": "typescript/pushover_config_flag_no_send.ts",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Configuration flag 'pushover_enabled' with no actual message construction or API call; false positive prevention."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_dynamic_message_concat.ts",
+    "relPath": "typescript/pushover_dynamic_message_concat.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Dynamic message body constructed via template literal and URLSearchParams .set() for title/message to api.pushover.net."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_emergency_priority_retry.ts",
+    "relPath": "typescript/pushover_emergency_priority_retry.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Emergency priority (2) with retry/expire fields, title/message set on URLSearchParams to api.pushover.net."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_fetch_api_call.ts",
+    "relPath": "typescript/pushover_fetch_api_call.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Direct fetch POST to api.pushover.net/1/messages.json with URLSearchParams body construction and message/title fields."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_image_attachment_base64.ts",
+    "relPath": "typescript/pushover_image_attachment_base64.ts",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Image attachment via FormData to api.pushover.net with title/message; boundary edge case for attachments."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_multiline_docstring.ts",
+    "relPath": "typescript/pushover_multiline_docstring.ts",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Pushover API references only in documentation/docstring/example; no actual message construction or send call."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_multiline_template_literal.ts",
+    "relPath": "typescript/pushover_multiline_template_literal.ts",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Message assembled via multiline template literal with trim(), full URLSearchParams with optional url/url_title to api.pushover.net."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_node_client_named_import.ts",
+    "relPath": "typescript/pushover_node_client_named_import.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "Named 'pushover-notifications' npm package with message/title object being sent via .send() method."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_node_pushover_lib.ts",
+    "relPath": "typescript/pushover_node_pushover_lib.ts",
+    "expected": "DETECT",
+    "category": "positive",
+    "rationale": "node-pushover Client with .send() method passing title/message notification object."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_title_only_message.ts",
+    "relPath": "typescript/pushover_title_only_message.ts",
+    "expected": "DETECT",
+    "category": "edge",
+    "rationale": "Title-only Pushover message (no explicit message field) sent to api.pushover.net; edge case for minimal payloads."
+  },
+  {
+    "language": "typescript",
+    "filename": "pushover_with_escape_hatch.ts",
+    "relPath": "typescript/pushover_with_escape_hatch.ts",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Real Pushover send to api.pushover.net with PUSHOVER-BUDGET-OK escape-hatch marker in code; host skips."
+  },
+  {
+    "language": "typescript",
+    "filename": "unrelated_http_post.ts",
+    "relPath": "typescript/unrelated_http_post.ts",
+    "expected": "NO_DETECT",
+    "category": "negative",
+    "rationale": "Generic HTTP POST to unrelated analytics endpoint; no Pushover API or message construction."
+  }
+]
