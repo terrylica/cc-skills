@@ -141,25 +141,43 @@ what pins cover, etc. — that's a Stance 3 change to `build-nav.py`'s
 Every page (except `site-map.html`, which gets its own custom render)
 gets the same three-section rail:
 
-1. **Site shortcuts** — Home + Site map.
+1. **Site shortcuts** — Home + Site map. For pages inside a section, the
+   header row also carries compact `‹ ›` **within-section Prev/Next**
+   buttons (firing-219 pattern): they sit on the SAME row as the "Site"
+   label so they add zero vertical height. `‹` goes to the sibling
+   immediately above in the rail's flat list (newer, since the list is
+   newest-first), `›` to the one below (older). At the ends of the
+   sequence the unavailable arrow renders greyed-out and non-clickable.
 2. **Current section** — the section's name + every sibling page (with
    the current page highlighted).
 3. **Other sections** — Prev / Next neighbors in the section ordering.
 
 Top-level pages (pages directly in `<site-root>`, not in a subdirectory)
-get the home-page version of the rail: just the Site shortcuts. They
-have no "section siblings" because they aren't in a section.
+get the home-page version of the rail: just the Site shortcuts, with a
+plain "Site" header (no `‹ ›` buttons). They have no "section siblings"
+because they aren't in a section.
+
+**Keyboard Prev/Next.** On any page inside a section, the bare `[` and
+`]` keys navigate to the previous / next sibling (same targets as the
+`‹ ›` buttons). The bindings are **Chrome-safe** — only `Cmd+[` / `Cmd+]`
+are the browser's Back/Forward on macOS, so bare brackets are free. The
+handler bails when any modifier is held or when focus is in an input,
+textarea, select, or contenteditable element, so it never hijacks typing
+in the search box. The URLs are surfaced as `data-prev-url` /
+`data-next-url` attributes on the `<details class="auto-nav-rail">`
+element and read by `auto-nav.js`; they're absent at the sequence ends.
 
 ## Rail width: auto-fit, drag, persist
 
 The rail's width is dynamic at runtime, governed by `auto-nav.js`:
 
-| Gesture                          | Effect                                                                                                                                   |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **First load** (no saved width)  | Measures every `.rail-link`'s **intrinsic** width via `width: max-content`, picks `max + padding + scrollbar`, clamps to `[220, 760]px`. |
-| **Drag the right-edge handle**   | Live resize within `[220, 1200]px`. The chosen width is saved to `localStorage` under `autoNavWidth_universal_v1`.                       |
-| **Double-click the handle**      | Clears the saved width and re-runs auto-fit. Mental model: "reset to smart default", not "force the maximum".                            |
-| **Return visit** (saved present) | The saved width wins; auto-fit is skipped. Drag preferences persist across pages.                                                        |
+| Gesture                          | Effect                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **First load** (no saved width)  | Measures every `.rail-link`'s **intrinsic** width via `width: max-content`, picks `max + padding + scrollbar`, clamps to `[220, 760]px`.                                               |
+| **Drag the right-edge handle**   | Live resize within `[220, 1200]px`. The chosen width is saved to `localStorage` under `autoNavWidth_universal_v1`.                                                                     |
+| **Double-click the handle**      | Clears the saved width and re-runs auto-fit. Mental model: "reset to smart default", not "force the maximum".                                                                          |
+| **Return visit** (saved present) | The saved width wins; auto-fit is skipped. Drag preferences persist across pages.                                                                                                      |
+| **`[` / `]` keys**               | Navigate to the previous / next sibling page in the current section (same targets as the `‹ ›` header buttons). Chrome-safe; ignored while a modifier is held or focus is in an input. |
 
 Why `width: max-content` matters: `scrollWidth` on a block-level link
 returns `max(clientWidth, content-width)`. If the rail is currently 880
