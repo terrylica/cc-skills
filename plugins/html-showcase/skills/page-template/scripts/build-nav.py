@@ -646,6 +646,41 @@ body:has(.auto-nav-rail[open]) {
   margin-left: 6px;
 }
 
+/* ----- Within-section Prev/Next (firing 219): compact ‹ › buttons placed
+   on the SAME row as the "Site" header so they add ZERO vertical height
+   (SOTA section-header trailing-actions pattern). Keyboard: bare [ / ] (see
+   the keydown handler in auto-nav.js) — Chrome-safe (Cmd+[ / Cmd+] are the
+   browser's Back/Forward on macOS; bare brackets are not reserved). Neighbors
+   are the page immediately above (‹, newer) / below (›, older) in the rail's
+   flat sibling list; disabled at the ends of the sequence. */
+.rail-h-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rail-prevnext {
+  display: inline-flex;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.rail-pn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 18px;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  line-height: 1;
+  text-decoration: none;
+  color: #c7d2fe;
+  background: rgba(129, 140, 248, 0.14);
+  border: 1px solid #1e293b;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.rail-pn:hover { background: #4f46e5; color: #fff; }
+.rail-pn.rail-pn-disabled { opacity: 0.28; pointer-events: none; }
+
 /* ----- Links — long titles wrap, no truncation ----- */
 .rail-link {
   display: block;
@@ -947,6 +982,34 @@ AUTO_NAV_JS_BODY = """\
   function init() {
     var rail = document.querySelector(".auto-nav-rail");
     if (!rail) return;
+
+    // ----- Keyboard Prev/Next within the current section (firing 219) -----
+    // Bare [ = previous page, ] = next page. URLs come from the rail's data-*
+    // attrs (emitted by render_rail). Chrome-SAFE: bare brackets are NOT
+    // reserved (only Cmd+[ / Cmd+] are Back/Forward on macOS). Guarded so it
+    // never fires while a modifier is held or while typing in the search box /
+    // any input — so it cannot misfire while you read. Registered BEFORE the
+    // mobile-bail below so an external keyboard still drives navigation.
+    var pnPrev = rail.getAttribute("data-prev-url");
+    var pnNext = rail.getAttribute("data-next-url");
+    if (pnPrev || pnNext) {
+      document.addEventListener("keydown", function (e) {
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+        var t = e.target;
+        var tag = t && t.tagName ? t.tagName.toUpperCase() : "";
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (t && t.isContentEditable)) {
+          return;
+        }
+        if (e.key === "[" && pnPrev) {
+          e.preventDefault();
+          window.location.href = pnPrev;
+        } else if (e.key === "]" && pnNext) {
+          e.preventDefault();
+          window.location.href = pnNext;
+        }
+      });
+    }
+
     mountSearch();
     if (window.matchMedia && window.matchMedia("(max-width: 900px)").matches) return;
 
@@ -1058,6 +1121,26 @@ def render_rail(
     home_url = relpath_from(page_path, root / "index.html")
     site_map_url = relpath_from(page_path, root / SITE_MAP_NAME)
 
+    # ----- Within-section Prev/Next (firing 219) -----
+    # The visually-adjacent sibling pages within the current page's section, in
+    # the SAME order the rail renders them (section["pages"], a single flat
+    # list). So the ‹ › header buttons and the bare [ / ] keyboard shortcut
+    # (auto-nav.js keydown handler) move to the page immediately above (‹,
+    # newer — list is newest-first) or below (›, older). None at the ends:
+    # the first page has no prev; the last has no next. Top-level/home pages
+    # (section is None) get no prev/next — they aren't in a section sequence.
+    prev_url: str | None = None
+    next_url: str | None = None
+    if section:
+        sec_pages = section["pages"]
+        cur_idx = next(
+            (i for i, p in enumerate(sec_pages) if p["path"] == page_path), -1
+        )
+        if cur_idx > 0:
+            prev_url = relpath_from(page_path, sec_pages[cur_idx - 1]["path"])
+        if 0 <= cur_idx < len(sec_pages) - 1:
+            next_url = relpath_from(page_path, sec_pages[cur_idx + 1]["path"])
+
     parts: list[str] = []
 
     # ----- Section 0: search box (mounted by auto-nav.js mountSearch) -----
@@ -1071,9 +1154,36 @@ def render_rail(
     )
 
     # ----- Section 1: top-level shortcuts -----
+    # The ‹ › prev/next buttons ride the SAME row as the "Site" header (zero
+    # added vertical height). Disabled (greyed, non-clickable) at the ends of
+    # the sequence. The prevnext span only appears for pages inside a section;
+    # the home/top-level rail keeps a plain "Site" header.
+    if section:
+        if prev_url:
+            prev_btn = (
+                f'<a class="rail-pn" href="{html.escape(prev_url)}" '
+                'aria-label="Previous page in this section" '
+                'title="Previous page  ·  [ key">‹</a>'
+            )
+        else:
+            prev_btn = '<span class="rail-pn rail-pn-disabled" aria-hidden="true">‹</span>'
+        if next_url:
+            next_btn = (
+                f'<a class="rail-pn" href="{html.escape(next_url)}" '
+                'aria-label="Next page in this section" '
+                'title="Next page  ·  ] key">›</a>'
+            )
+        else:
+            next_btn = '<span class="rail-pn rail-pn-disabled" aria-hidden="true">›</span>'
+        site_h = (
+            '<h4 class="rail-h rail-h-nav">Site'
+            f'<span class="rail-prevnext">{prev_btn}{next_btn}</span></h4>'
+        )
+    else:
+        site_h = '<h4 class="rail-h">Site</h4>'
     parts.append(
         '<div class="rail-section">'
-        '<h4 class="rail-h">Site</h4>'
+        f'{site_h}'
         f'<a class="rail-link" href="{html.escape(home_url)}">'
         '<span class="rail-emoji">🏠</span>Home</a>'
         f'<a class="rail-link" href="{html.escape(site_map_url)}">'
@@ -1151,8 +1261,16 @@ def render_rail(
             '</div>'
         )
 
+    # Prev/next URLs surfaced as data-* attrs for the auto-nav.js keydown
+    # handler ([ = prev, ] = next). Absent at the sequence ends.
+    pn_attrs = ""
+    if prev_url:
+        pn_attrs += f' data-prev-url="{html.escape(prev_url)}"'
+    if next_url:
+        pn_attrs += f' data-next-url="{html.escape(next_url)}"'
+
     return (
-        '<details class="auto-nav-rail" open>'
+        f'<details class="auto-nav-rail" open{pn_attrs}>'
         '<summary>'
         '<span class="rail-toggle-icon">›</span>'
         '<span class="rail-toggle-label">Navigation</span>'
@@ -1550,8 +1668,12 @@ def main() -> int:
         help="Site root directory (default: current dir)",
     )
     parser.add_argument(
-        "--asset-version", default="6",
+        "--asset-version", default="7",
         help="Cache-bust version appended to asset URLs (bump on rail asset changes). "
+             "v7 = firing-219 within-section Prev/Next — compact ‹ › buttons on the "
+             "\"Site\" header row (zero added height) + Chrome-safe bare [ / ] keyboard "
+             "shortcut (guarded against modifiers and input focus); neighbors are the "
+             "visually-adjacent siblings in the flat section list. "
              "v6 = iter_315 PRESENTATION_REFACTOR — body gutter 28-40px, "
              "rail typography shrunk ~20%% (literal percent, argparse-escaped), "
              "site-map tightened, newest-first iter-N ordering, and "
