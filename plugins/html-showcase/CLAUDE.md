@@ -133,6 +133,14 @@ re-read the principle, not to work around it.
   `build-nav.py` changes, bump `--asset-version` (default in the script).
   The browser sees a new URL and re-fetches; we don't rely on
   `Cache-Control` headers.
+- **Prev/Next keys are bare `[` / `]`, and the handler MUST stay guarded.**
+  Bare brackets are deliberate: `Cmd+[` / `Cmd+]` are macOS Back/Forward, so
+  the unmodified keys are free to repurpose for sibling navigation. The
+  `AUTO_NAV_JS_BODY` keydown handler must always early-return when any
+  modifier is held or when focus is in an input / textarea / select /
+  contenteditable element — otherwise it would hijack typing in the Pagefind
+  search box. Never relax these guards; never switch to a modified chord
+  (that would collide with the browser's own shortcuts).
 - **Body gutter is part of the rail contract.** The rail injects
   `padding-left: 28px` (collapsed) / `padding-left: 40px` (open) and
   `padding-right: 28px` on `<body>` via `!important`, plus a clamped
@@ -145,6 +153,28 @@ re-read the principle, not to work around it.
 
 ## Recent Changes
 
+- **2026-05-29 — within-section Prev/Next (asset version v7).** Ported the
+  firing-219 navigation pattern from the `opendeviationbar-patterns`
+  dashboard rail:
+  - **`‹ ›` buttons on the "Site" header row** (Section 1 of `render_rail()`).
+    They ride the existing header via `display: flex; justify-content:
+space-between` (`.rail-h-nav`), so they add **zero** vertical height.
+    Disabled (greyed, `pointer-events: none`) at the ends of the sequence.
+    Only rendered for pages inside a section; the home/top-level rail keeps
+    a plain "Site" header.
+  - **Chrome-safe `[` / `]` keyboard shortcut** (`AUTO_NAV_JS_BODY` keydown
+    handler). Bare `[` = previous sibling, `]` = next. The handler bails when
+    any modifier (`metaKey`/`ctrlKey`/`altKey`/`shiftKey`) is held or when
+    focus is in `INPUT`/`TEXTAREA`/`SELECT`/`contenteditable`, so it never
+    hijacks typing in the search box. Bare brackets are unreserved on macOS
+    (only `Cmd+[` / `Cmd+]` are Back/Forward).
+  - **Neighbor semantics**: prev/next are the visually-adjacent siblings in
+    the flat `section["pages"]` list — `‹` = the page above (newer, since the
+    list is newest-first), `›` = the page below (older). URLs are surfaced as
+    `data-prev-url` / `data-next-url` on `<details class="auto-nav-rail">`
+    (absent at the ends) and read by the keydown handler.
+  - New CSS: `.rail-h-nav` / `.rail-prevnext` / `.rail-pn` / `.rail-pn-disabled`
+    in `AUTO_NAV_CSS_BODY`.
 - **2026-05-26 — iter_315 PRESENTATION_REFACTOR (asset version v6).**
   Three concurrent changes ported from a downstream user-facing edit
   into the plugin defaults:

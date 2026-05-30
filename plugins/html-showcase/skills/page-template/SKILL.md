@@ -116,6 +116,12 @@ The rail's runtime behavior:
   auto-fit (semantically: "reset to smart default").
 - The handle is a 14px hit zone with an always-visible 2px indicator
   line and a hover tooltip explaining the dual gesture.
+- **Within-section Prev/Next**: pages inside a section get compact `‹ ›`
+  buttons on the "Site" header row (zero added height) plus a Chrome-safe
+  bare `[` / `]` keyboard shortcut. `‹` / `[` goes to the sibling above
+  (newer), `›` / `]` to the one below (older); both are greyed out at the
+  ends of the list. The keys ignore presses while a modifier is held or
+  while focus is in the search box, so they never interrupt typing.
 
 ## Search is on by default
 
