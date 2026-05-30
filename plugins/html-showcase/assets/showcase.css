@@ -259,6 +259,21 @@
     font-size: var(--fs-md);
     line-height: var(--leading-normal);
   }
+
+  /* Flow rhythm for bare section content.
+   * The base layer zeroes every heading/<p> margin (`h1..h4{margin:0}`,
+   * `p{margin:0}`) and supplies vertical rhythm only through opt-in structure
+   * (.section-head / .section-intro / .stack). Docs that author bare
+   * <h2>/<p>/grids/lists as direct children of a section therefore stack at
+   * ZERO gap — section titles jam into the cards beneath them and paragraphs
+   * collide with the grids that follow (operator-reported 2026-05-29).
+   * Restore rhythm for a section's direct flow children so bare markup
+   * "just works"; structured markup (.section-head etc.) is unaffected because
+   * its own margins collapse to the larger value. Graduated from the
+   * fleet-html-docs overrides on 2026-05-29. */
+  .section > * + * { margin-block-start: var(--space-5); }
+  .section > h2 + * { margin-block-start: var(--space-6); } /* extra air below a section title */
+  .section > * + :is(h2, h3) { margin-block-start: var(--space-7); } /* clear break before a new (sub)heading */
 }
 
 /* 6. COMPONENTS */
