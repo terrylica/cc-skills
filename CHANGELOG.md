@@ -1,3 +1,15 @@
+# [21.86.0](https://github.com/terrylica/cc-skills/compare/v21.85.0...v21.86.0) (2026-05-30)
+
+
+### Bug Fixes
+
+* **html-showcase:** restore section flow vertical rhythm ([3faa880](https://github.com/terrylica/cc-skills/commit/3faa880fa2ef457946f2b1c2a9b6050b566d7a28))
+
+
+### Features
+
+* **html-showcase:** within-section Prev/Next nav in the auto-nav rail ([d5a7eb2](https://github.com/terrylica/cc-skills/commit/d5a7eb2a25b0d32495cf721c926b32ec8a91af32))
+
 # [21.85.0](https://github.com/terrylica/cc-skills/compare/v21.84.3...v21.85.0) (2026-05-29)
 
 
