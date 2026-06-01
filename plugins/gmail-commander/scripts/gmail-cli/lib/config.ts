@@ -60,6 +60,15 @@ export function getImageDir(messageId: string, uuid?: string): string {
   return join(homedir(), ".claude", "tools", "gmail-images", actualUuid, messageId);
 }
 
+/**
+ * Get attachment cache directory for a given message ID
+ * Attachments stored at ~/.claude/tools/gmail-attachments/<uuid>/<messageId>/
+ */
+export function getAttachmentDir(messageId: string, uuid?: string): string {
+  const actualUuid = uuid ?? getOpUuid();
+  return join(homedir(), ".claude", "tools", "gmail-attachments", actualUuid, messageId);
+}
+
 // Gmail API scopes - readonly + compose for draft creation
 export const SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
