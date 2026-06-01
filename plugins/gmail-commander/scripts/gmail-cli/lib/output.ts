@@ -44,6 +44,14 @@ export function printEmails(
       }
     }
 
+    // File attachment metadata (PDF, docx, …) — download with --save-attachments
+    if (email.attachments && email.attachments.length > 0) {
+      console.log(`\n--- Attachments (${email.attachments.length}) ---`);
+      for (const att of email.attachments) {
+        console.log(`  ${att.filename}  ${att.mimeType}  ${formatBytes(att.size)}`);
+      }
+    }
+
     // Saved image paths and markdown references
     const saved = savedImagesMap?.get(email.id);
     if (saved && saved.length > 0) {

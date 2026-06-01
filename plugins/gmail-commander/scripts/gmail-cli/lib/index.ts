@@ -21,6 +21,7 @@ export {
 export {
   readEmailWithImages,
   saveInlineImages,
+  saveAttachments,
 } from "./gmail-images.ts";
 export {
   createDraft,
