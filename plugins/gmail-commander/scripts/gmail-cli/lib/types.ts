@@ -14,6 +14,7 @@ export interface Email {
   labels: string[];
   body?: string;
   inlineImages?: InlineImage[];
+  attachments?: Attachment[];
 }
 
 export interface InlineImage {
@@ -25,11 +26,31 @@ export interface InlineImage {
   partId: string;
 }
 
+/**
+ * A real file attachment (application/pdf, document, etc.) — a MIME part
+ * with a non-empty filename + attachmentId that is NOT an inline image.
+ * Inline images (image/* parts) are surfaced via `inlineImages` instead,
+ * so the two lists never overlap.
+ */
+export interface Attachment {
+  attachmentId: string;
+  mimeType: string;
+  filename: string;
+  size: number;
+  partId: string;
+}
+
 export interface SavedImage {
   image: InlineImage;
   savedPath: string;
   bytesWritten: number;
   markdownRef: string;
+}
+
+export interface SavedAttachment {
+  attachment: Attachment;
+  savedPath: string;
+  bytesWritten: number;
 }
 
 export interface ReadOptions {

@@ -13,6 +13,7 @@ import {
   listEmails,
   searchEmails,
   readEmailWithImages,
+  saveAttachments,
   exportEmails,
   createDraft,
   listDrafts,
@@ -22,7 +23,7 @@ import {
   printJson,
   printProgress,
 } from "./lib/index.ts";
-import type { SavedImage } from "./lib/types.ts";
+import type { SavedImage, SavedAttachment } from "./lib/types.ts";
 
 /**
  * Resolve the email body from --body OR --body-file (mutually exclusive).
@@ -126,6 +127,8 @@ OPTIONS:
   --json            Output as JSON
   --save-images     Download inline images to disk (for read command)
   --image-dir       Custom output directory for images (implies --save-images)
+  --save-attachments Download real file attachments (PDF, docx, …) to disk (for read command)
+  --attachment-dir  Custom output directory for attachments (implies --save-attachments)
   --to              Recipient email (for draft/draft-update)
   --from            Sender alias (for draft/draft-update, auto-detected if replying)
   --subject         Email subject (for draft/draft-update)
@@ -151,6 +154,7 @@ EXAMPLES:
   gmail read 18abc123def
   gmail read 18abc123def --save-images
   gmail read 18abc123def --save-images --image-dir ./attachments/
+  gmail read 18abc123def --save-attachments --attachment-dir ./files/
   gmail export -q "label:inbox" -o emails.json -n 100
   gmail draft --to "user@example.com" --subject "Hello" --body "Message body"
   gmail draft --to "user@example.com" --subject "Re: Hello" --body "Reply" --reply-to 18abc123def
@@ -182,6 +186,8 @@ async function main() {
       json: { type: "boolean", default: false },
       "save-images": { type: "boolean", default: false },
       "image-dir": { type: "string" },
+      "save-attachments": { type: "boolean", default: false },
+      "attachment-dir": { type: "string" },
       help: { type: "boolean", short: "h" },
       to: { type: "string" },
       from: { type: "string" },
@@ -242,6 +248,8 @@ async function main() {
         }
         const shouldSaveImages = values["save-images"] || !!values["image-dir"];
         const imageDir = values["image-dir"];
+        const shouldSaveAttachments = values["save-attachments"] || !!values["attachment-dir"];
+        const attachmentDir = values["attachment-dir"];
 
         const result = await readEmailWithImages(client, messageId, {
           saveImages: shouldSaveImages,
@@ -252,10 +260,16 @@ async function main() {
           process.exit(1);
         }
 
+        let savedAttachments: SavedAttachment[] = [];
+        if (shouldSaveAttachments) {
+          savedAttachments = await saveAttachments(client, result.email, attachmentDir);
+        }
+
         if (asJson) {
           printJson({
             ...result.email,
             ...(result.savedImages.length > 0 && { savedImages: result.savedImages }),
+            ...(savedAttachments.length > 0 && { savedAttachments }),
           });
         } else {
           const savedMap = new Map<string, SavedImage[]>();
@@ -263,6 +277,12 @@ async function main() {
             savedMap.set(result.email.id, result.savedImages);
           }
           printEmails([result.email], savedMap);
+          if (savedAttachments.length > 0) {
+            console.log(`\n--- Saved Attachments (${savedAttachments.length}) ---`);
+            for (const sa of savedAttachments) {
+              console.log(`  ${sa.savedPath}  (${sa.bytesWritten.toLocaleString()} B, ${sa.attachment.mimeType})`);
+            }
+          }
         }
         break;
       }

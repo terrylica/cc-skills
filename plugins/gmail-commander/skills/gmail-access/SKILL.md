@@ -61,6 +61,27 @@ $GMAIL_CLI list -n 1 2>&1 | head -5
 - If the wrong account is shown, check which `.mise.local.toml` sets `GMAIL_OP_UUID` in the mise hierarchy
 - If mismatch, inform user and do NOT proceed
 
+**Multi-account disambiguation (when `GMAIL_OP_UUID` is NOT_SET but tokens exist).**
+There is no `whoami` subcommand; map each cached token UUID to its mailbox by
+probing, then pick the one that fits the project:
+
+```bash
+# Which accounts are cached, and which mailbox does each resolve to?
+for f in ~/.claude/tools/gmail-tokens/*.json; do
+  case "$(basename "$f")" in *.app-credentials.json|'*.json') continue ;; esac
+  uuid=$(basename "$f" .json)
+  who=$(GMAIL_OP_UUID="$uuid" $GMAIL_CLI list -n 1 --json 2>/dev/null \
+        | jq -r '.[0].to // "(probe failed / token expired)"')
+  echo "$uuid → $who"
+done
+```
+
+A probe that returns `invalid_grant` means that account's refresh token is dead
+(see "Diagnosing `invalid_grant`"). Pick the working UUID whose mailbox matches
+the project, pin it in `.mise.local.toml`, and confirm it's gitignored. A child
+project often needs a DIFFERENT account than its parent — verify, never assume
+the parent's UUID.
+
 ### Step 3: Verify Token Health
 
 ```bash
@@ -223,7 +244,13 @@ $GMAIL_CLI read <message_id> --image-dir ./attachments/my-folder/
 # JSON output with image metadata and saved paths
 $GMAIL_CLI read <message_id> --save-images --json
 
-# Export to JSON
+# Download REAL file attachments (PDF, docx, csv, …) — distinct from inline images
+$GMAIL_CLI read <message_id> --save-attachments
+
+# Download attachments to a specific directory (implies --save-attachments)
+$GMAIL_CLI read <message_id> --attachment-dir ./files/case-17402939/
+
+# Export search results to JSON (full body + inlineImages + attachments metadata per message)
 $GMAIL_CLI export -q "label:inbox" -o emails.json -n 100
 
 # JSON output (for parsing)
@@ -282,9 +309,18 @@ Emails often contain **copy-pasted screenshots** (inline images embedded in the 
 ![03_photo.jpg](./attachments/03_photo.jpg)
 ```
 
-### Important: Inline Images vs Attachments
+### Important: Inline Images vs File Attachments
 
-**`has:attachment` does NOT find inline images.** Gmail search has no operator for inline images. To discover emails with inline images, you must read the email and check the MIME tree.
+These are **two disjoint channels**, surfaced and downloaded separately:
+
+| Channel              | MIME parts                                                             | Metadata field   | Download flag                             |
+| -------------------- | ---------------------------------------------------------------------- | ---------------- | ----------------------------------------- |
+| **Inline images**    | `image/*` with `attachmentId` (copy-pasted screenshots)                | `inlineImages[]` | `--save-images` / `--image-dir`           |
+| **File attachments** | non-image parts with a `filename` + `attachmentId` (PDF, docx, csv, …) | `attachments[]`  | `--save-attachments` / `--attachment-dir` |
+
+A plain `gmail read <id>` (no flags) shows **both** as metadata blocks (filename, MIME, size) without downloading — so you can see a PDF exists before pulling it. `export` and `read --json` both carry `attachments[]` (and `inlineImages[]`) in their JSON.
+
+**`has:attachment` matches real file attachments but NOT inline images.** Gmail search has no operator for inline images. To discover emails with inline images, you must read the email and check the MIME tree.
 
 **Strategy for finding emails with inline images:**
 
@@ -329,6 +365,70 @@ When inline images contain **handwritten annotations** (circles, arrows, written
 ```
 
 **Do NOT defer annotation transcription to a second pass.** Capture all annotations on the first image examination to avoid redundant re-reads.
+
+## File Attachment Extraction
+
+Real file attachments (PDF, docx, csv, …) are surfaced in `attachments[]` and
+downloaded with `--save-attachments` / `--attachment-dir`. Same fetch path as
+inline images, different metadata field.
+
+```bash
+# See what a message carries (no download) — both metadata blocks print
+$GMAIL_CLI read <id>          # → "--- Attachments (1) ---  foo.pdf  application/pdf  192.5 KB"
+
+# Download to a chosen dir; files are index-prefixed + sanitized
+$GMAIL_CLI read <id> --attachment-dir ./files/
+
+# Discover which messages in a corpus actually carry attachments
+$GMAIL_CLI search "from:sender@example.com has:attachment" -n 20 --json | \
+  jq -r '.[].id' | while IFS= read -r id; do
+    N=$($GMAIL_CLI read "$id" --json | jq '.attachments | length')
+    [ "$N" -gt 0 ] && echo "$id → $N attachment(s)"
+  done
+```
+
+**Why this matters for archival**: in clinical/legal/operational mail the
+attached PDF (a protocol, a vendor form, a signed consent) is often the most
+important payload. A body-only export silently loses it. Always check
+`attachments[]` when archiving a correspondence thread.
+
+## Bulk Retrieval & Thread Archival
+
+The canonical pattern for archiving a whole correspondence (verified on a
+27-message, 15-thread clinical corpus):
+
+1. **Scope with high-signal queries, not generic keywords.** A bare keyword
+   (`"Curve"`) returns mostly newsletter noise. Prefer:
+   - **domain**: `curvedental.com` (matches from/to/cc on the org)
+   - **participant**: `from:dr.phoebe.tsang@gmail.com OR to:…`
+   - **project code**: any internal tag the sender uses (e.g. `1233V`)
+2. **Collect message IDs** from `search --json` (snippet-only) and curate the
+   in-scope set out of the noise.
+3. **Fetch full bodies** with a `read --json` loop (one file per message).
+4. **Group by `threadId`** client-side — Gmail's list/search APIs return
+   individual messages, _not_ threads; you reconstruct threads yourself.
+5. **Sort within a thread by parsed `Date`** and **strip quoted history**
+   (drop `>`-prefixed lines and everything after `On … wrote:`) to expose each
+   message's new content.
+6. **Pull attachments** for any message whose `attachments[]` is non-empty.
+
+```bash
+# Robust batch fetch. NOTE: in zsh `for id in $VAR` does NOT word-split —
+# always loop with `while IFS= read -r` over newline-delimited IDs.
+printf '%s\n' $IDS | while IFS= read -r id; do
+  [ -n "$id" ] && $GMAIL_CLI read "$id" --json > "raw/$id.json"
+done
+```
+
+### `export` is the one-call shortcut (fixed)
+
+`gmail export -q "<query>" -o out.json -n N` writes one JSON array with full
+body + `inlineImages[]` + `attachments[]` per message — the batch-fetch
+shortcut when a single query captures your set. (Historical note: before the
+fix, `export` printed `"Exported N emails to <path>"` but **wrote no file** —
+`outputPath` was an unused parameter. If you see that symptom, the binary is
+stale; rebuild it.) `export` does **not** download attachment bytes — it only
+carries the metadata; use `read --save-attachments` per message for the files.
 
 ## Creating Draft Emails
 
@@ -525,15 +625,16 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
 
 ### Diagnosing `invalid_grant`
 
-Google OAuth "Testing" mode refresh tokens expire after **7 days** without a refresh. If the hourly refresher was not running during that window, the refresh_token becomes permanently revoked.
+A refresh token in a Google OAuth app whose **publishing status is "Testing"** expires after **7 days — period.** The hourly refresher renews the _access_ token but does NOT extend the _refresh_ token's 7-day clock, so a Testing-mode account dies roughly weekly and can only be revived by a browser re-consent. (An app in **"In production"** status issues long-lived refresh tokens that don't expire on that clock.)
 
-**Fix**: Delete the expired token file and re-authorize via browser:
+**Recovery (re-consent)**: Delete the expired token file and re-authorize via browser:
 
 ```bash
 # 1. Back up and remove the expired token
 mv ~/.claude/tools/gmail-tokens/<uuid>.json ~/.claude/tools/gmail-tokens/<uuid>.json.expired
 
 # 2. Run any gmail command — browser will open for OAuth consent
+#    (sign in with the SPECIFIC account that <uuid> maps to — see accounts.json labels)
 $GMAIL_CLI list -n 1
 
 # 3. Verify the hourly refresher picks up the new token
@@ -542,6 +643,23 @@ $GMAIL_CLI list -n 1
 # 4. Clean up backup
 rm ~/.claude/tools/gmail-tokens/<uuid>.json.expired
 ```
+
+**Durable fix (stop the weekly death — "keep everything re-auth")**: publish the
+OAuth app to Production so refresh tokens stop expiring on the 7-day clock.
+
+1. If an account survives indefinitely while another dies weekly, they use
+   **different OAuth apps** (check `accounts.json` `vault` per uuid). Only the
+   dying one is stuck in Testing.
+2. Google Cloud Console → the project owning that OAuth client (the
+   `client_id` prefix is the project number; the CLI prints the full
+   `client_id` in the consent URL during re-auth).
+3. **APIs & Services → OAuth consent screen → Publishing status → Publish app
+   → confirm "In production".** (External + Production with Gmail scopes may
+   warn "unverified" for _new_ users, but already-consented accounts get
+   long-lived refresh tokens; full Google verification is only needed for
+   public/>100-user apps.)
+4. Re-consent once more after publishing; the hourly refresher then keeps the
+   access token fresh indefinitely with no weekly re-auth.
 
 ### Multi-Account Token Status
 
@@ -574,6 +692,13 @@ done
 - [ ] Trigger keywords current
 - [ ] Path patterns use $HOME not hardcoded paths
 - [ ] References exist and are linked
+
+## Evolution Log
+
+- **2026-05-31 — export silent failure + no attachment retrieval (clinical archival task).**
+  - _Trigger_: archiving a 27-message Curve-Dental correspondence. `gmail export -o <path>` printed `"Exported N emails to <path>"` but wrote nothing (`exportEmails` returned the array, never wrote `outputPath`). Separately, the CLI surfaced no file attachments (only `inlineImages`), so 11 messages' attached PDFs (a vendor certification form, protocols) were silently dropped.
+  - _Fix_: (1) `exportEmails` now `writeFile`s the JSON. (2) Added `extractAttachments` + `attachments[]` metadata in `formatMessage`, `saveAttachments()` in gmail-images.ts, `--save-attachments`/`--attachment-dir` flags, and an Attachments metadata block in `printEmails`. Documented the inline-image-vs-attachment split, the bulk thread-archival pipeline, the multi-account UUID→mailbox probe, and the zsh `while read` batch-loop gotcha.
+  - _Evidence_: `export -q curvedental.com -o /tmp/x.json` now writes 3 emails with full bodies; `read <id> --attachment-dir` pulled `CDAnet Software Vendor Certification Application form.pdf` (197,168 B, valid PDF 1.7, 3 pages). Rebuilt binary, `tsc --noEmit` clean.
 
 ## Post-Execution Reflection
 

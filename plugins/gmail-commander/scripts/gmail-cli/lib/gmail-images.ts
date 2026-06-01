@@ -18,8 +18,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 
 import { readEmail } from "./gmail.ts";
-import { getImageDir } from "./config.ts";
-import type { Email, SavedImage, ReadOptions } from "./types.ts";
+import { getImageDir, getAttachmentDir } from "./config.ts";
+import type { Email, SavedImage, SavedAttachment, ReadOptions } from "./types.ts";
 
 /**
  * Fetch attachment data from Gmail API
@@ -77,6 +77,43 @@ export async function saveInlineImages(
       markdownRef: `![${filename}](${filePath})`,
     });
     onProgress?.(i + 1, images.length);
+  }
+
+  return saved;
+}
+
+/**
+ * Download all real file attachments (PDF, docx, csv, …) from an email to
+ * disk. Mirrors `saveInlineImages` but pulls from `email.attachments` (the
+ * non-image filenamed parts) rather than `email.inlineImages`. Reuses the
+ * same `fetchAttachmentData` + `sanitizeFilename` helpers — the Gmail API
+ * attachment-fetch path is identical for images and files.
+ */
+export async function saveAttachments(
+  client: gmail_v1.Gmail,
+  email: Email,
+  outputDir?: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<SavedAttachment[]> {
+  const attachments = email.attachments;
+  if (!attachments || attachments.length === 0) return [];
+
+  const dir = outputDir ?? getAttachmentDir(email.id);
+  await mkdir(dir, { recursive: true });
+
+  const saved: SavedAttachment[] = [];
+  for (let i = 0; i < attachments.length; i++) {
+    const att = attachments[i];
+    const filename = sanitizeFilename(att.filename, i);
+    const filePath = join(dir, filename);
+    const data = await fetchAttachmentData(client, email.id, att.attachmentId);
+    await writeFile(filePath, data);
+    saved.push({
+      attachment: att,
+      savedPath: filePath,
+      bytesWritten: data.length,
+    });
+    onProgress?.(i + 1, attachments.length);
   }
 
   return saved;
