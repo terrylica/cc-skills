@@ -14,9 +14,11 @@
  * Uses @googleapis/gmail for lighter dependency footprint.
  */
 
+import { writeFile } from "node:fs/promises";
+
 import { gmail, type gmail_v1 } from "@googleapis/gmail";
 import { getAuthClient } from "./auth.ts";
-import type { Email, InlineImage, ListOptions, SearchOptions, ExportOptions } from "./types.ts";
+import type { Attachment, Email, InlineImage, ListOptions, SearchOptions, ExportOptions } from "./types.ts";
 
 /**
  * Create authenticated Gmail API service
@@ -99,6 +101,45 @@ function extractInlineImages(payload: gmail_v1.Schema$MessagePart | undefined): 
 }
 
 /**
+ * Extract real file attachments from MIME payload.
+ *
+ * A "real" attachment is a part with a non-empty `filename` + `attachmentId`
+ * whose MIME type is NOT image/* (those are reported via inlineImages, so the
+ * two lists stay disjoint). This is what surfaces PDFs, .docx, .csv, etc. —
+ * the content that `extractInlineImages` deliberately ignores.
+ *
+ * Like inlineImages this is a *summary* only (id + filename + size); the bytes
+ * are fetched on demand by `saveAttachments` (gmail-images.ts) when the caller
+ * passes --save-attachments.
+ */
+function extractAttachments(payload: gmail_v1.Schema$MessagePart | undefined): Attachment[] {
+  const attachments: Attachment[] = [];
+  if (!payload) return attachments;
+
+  function walk(part: gmail_v1.Schema$MessagePart): void {
+    const filename = part.filename ?? "";
+    const isImage = part.mimeType?.startsWith("image/") ?? false;
+    if (filename && part.body?.attachmentId && !isImage) {
+      attachments.push({
+        attachmentId: part.body.attachmentId,
+        mimeType: part.mimeType ?? "application/octet-stream",
+        filename,
+        size: part.body.size ?? 0,
+        partId: part.partId ?? "",
+      });
+    }
+    if (part.parts) {
+      for (const child of part.parts) {
+        walk(child);
+      }
+    }
+  }
+
+  walk(payload);
+  return attachments;
+}
+
+/**
  * Map MIME type to file extension
  */
 function mimeToExt(mimeType: string): string {
@@ -132,6 +173,7 @@ function formatMessage(msg: gmail_v1.Schema$Message, includeBody = false): Email
     labels: msg.labelIds ?? [],
     ...(includeBody && { body: parseBody(msg.payload) }),
     ...(includeBody && { inlineImages: extractInlineImages(msg.payload) }),
+    ...(includeBody && { attachments: extractAttachments(msg.payload) }),
   };
 }
 
@@ -203,7 +245,16 @@ export async function readEmail(client: gmail_v1.Gmail, messageId: string): Prom
 }
 
 /**
- * Export emails to JSON file
+ * Export emails matching a query to a JSON file on disk.
+ *
+ * Each entry carries full body + inlineImages + attachments metadata
+ * (formatMessage(true)). Grouping into threads is left to the caller via the
+ * `threadId` field — Gmail's list API returns individual messages, not threads.
+ *
+ * BUGFIX: this function previously built `emails` and returned them but never
+ * wrote `options.outputPath` — the CLI's `export` command reported success
+ * ("Exported N emails to <path>") while writing nothing. The file write below
+ * is the fix; without it `gmail export -o file.json` was a silent no-op.
  */
 export async function exportEmails(
   client: gmail_v1.Gmail,
@@ -228,6 +279,8 @@ export async function exportEmails(
     emails.push(formatMessage(msg.data, true));
     onProgress?.(i + 1, messageIds.length);
   }
+
+  await writeFile(options.outputPath, JSON.stringify(emails, null, 2), "utf-8");
 
   return emails;
 }
