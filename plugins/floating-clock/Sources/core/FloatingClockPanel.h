@@ -7,6 +7,8 @@
 #import "../data/ThemeCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"
 
+@class FCMicMuteIndicator;   // mic-mute banner overlay (user directive 2026-06-01)
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface FloatingClockPanel : NSPanel {
@@ -20,6 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
     WeekSegmentView *_weekSeg;     // iter-251: 4-block layout — week as own segment
     ActiveSegmentView *_activeSeg;
     NextSegmentView *_nextSeg;
+    // Mic-mute indicator: red "MIC MUTED" banner over the clock when the
+    // Antlion USB Microphone is muted. Synced from tick + windowDidMove.
+    FCMicMuteIndicator *_micMuteIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
