@@ -1,5 +1,6 @@
 #import "FloatingClockPanel+Runtime.h"
 #import "FloatingClockPanel+Layout.h"
+#import "MicMuteIndicator.h"   // mic-mute banner sync (user directive 2026-06-01)
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
@@ -56,6 +57,10 @@ static uint64_t nsUntilNextSecond(void) {
     } else {
         [self tickLegacy];
     }
+    // Mic-mute banner: poll the live mute value every tick (tracks the
+    // hardware button even when the device posts no change-notification) and
+    // reposition to follow the clock's per-tick resize/recenter.
+    [_micMuteIndicator refresh];
 }
 
 - (void)tickThreeSegment {
@@ -453,6 +458,8 @@ static uint64_t nsUntilNextSecond(void) {
     if ([sn isKindOfClass:[NSNumber class]]) {
         [d setObject:sn forKey:@"FloatingClockScreenNumber"];
     }
+    // Keep the mic-mute banner glued to the clock while the user drags it.
+    [_micMuteIndicator syncPosition];
 }
 
 - (void)restorePosition {

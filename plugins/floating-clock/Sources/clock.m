@@ -10,6 +10,7 @@
 #import "content/NextSegmentContentBuilder.h"
 #import "segments/FloatingClockSegmentViews.h"
 #import "core/FloatingClockPanel.h"
+#import "core/MicMuteIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
 #import "menu/FloatingClockPanel+MenuBuilder.h"
 #import "core/FloatingClockPanel+Runtime.h"
@@ -199,6 +200,13 @@
     [self restorePosition];
     [self applyDisplaySettings];
     [self setupTimer];
+
+    // Mic-mute indicator (user directive 2026-06-01): show a red "MIC MUTED"
+    // banner over the clock whenever the Antlion USB Microphone is muted, so
+    // the user never speaks into a muted mic unaware. Created after the first
+    // layout pass so the panel frame is real; positions itself on first read.
+    _micMuteIndicator = [[FCMicMuteIndicator alloc] initWithClockPanel:self
+                                                            deviceName:@"Antlion USB Microphone"];
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak
