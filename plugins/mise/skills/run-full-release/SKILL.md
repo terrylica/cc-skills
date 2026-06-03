@@ -136,6 +136,8 @@ fi
 
 **Idempotent `git push` returns non-zero**: orchestrators that include a manual `git push --follow-tags origin main` step AFTER `release:version` (where semantic-release's `@semantic-release/git` plugin already pushed) can fail when re-pushing an already-up-to-date branch + an existing tag. Treat this as success: detect via `[[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]]` before pushing, and only push the latest tag if `git ls-remote --tags origin "refs/tags/$LATEST_TAG"` returns empty. Otherwise the wrapper exits non-zero on a release that actually shipped fine, polluting the success/failure signal.
 
+**`git stash -u` of WIP `.gitignore` re-exposes ignored dirs and fails preflight (PII hazard)**: when the dirty working tree includes uncommitted `.gitignore` changes whose purpose is to ignore untracked directories, `git stash -u` reverts `.gitignore` to its committed state — which _un-ignores_ those dirs and surfaces them as `??` untracked. preflight's clean-tree gate (which typically exempts only `archive/sessions/` and `node_modules/`) then fails on them, and in a clinical/PII repo this momentarily exposes sensitive dirs (e.g. `correspondence/`, `site/`, `cdanet/`) to accidental `git add -A`. Root cause: an uncommitted `.gitignore` is _load-bearing infrastructure_, not feature WIP — stashing it inverts the ignore state. Fix: separate concerns. Commit the `.gitignore` hygiene (plus any tracked-companion files it references, e.g. a secret-free deploy script) as its own `chore:` commit so the ignore rules stay active and the tree is clean, then stash ONLY the true feature code with a pathspec'd `git stash push -- <files>` (NOT `-u`, which would re-expose the dirs). After the release, `git stash pop` restores the feature WIP. Verified 2026-06-02 on a clinical PII repo: a blanket `git stash -u` exposed three PII dirs + a machine-local TOML override; popping, committing `.gitignore` + the secret-free deploy script it references separately, then pathspec-stashing the feature files produced a clean preflight and a correctly-scoped release.
+
 ## Step 3: Execute
 
 ```bash
@@ -156,7 +158,7 @@ mise run release:dry     # --dry
 mise run release:status  # --status
 ```
 
-If working directory is dirty: commit related changes or stash WIP first. Reset lockfile drift if present:
+If working directory is dirty: commit related changes or stash WIP first. **Caution**: if the dirt includes `.gitignore` changes, treat them as load-bearing — commit them as a `chore:` rather than stashing, because `git stash -u` reverts `.gitignore` and re-exposes any dirs it was ignoring (preflight then fails on them; PII hazard — see Known Issues). Stash only true feature code with a pathspec: `git stash push -- <files>`. Reset lockfile drift if present:
 
 ```bash
 git diff --name-only | grep -E '(uv\.lock|package-lock\.json|Cargo\.lock|bun\.lockb)$' | xargs -r git checkout --
