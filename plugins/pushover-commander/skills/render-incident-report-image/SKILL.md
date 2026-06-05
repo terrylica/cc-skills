@@ -5,6 +5,8 @@ description: Render a verbose monospace "incident report" PNG tuned for reading 
 
 # render-incident-report-image
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Render a clean monospace report PNG via the TS core `pushover_core.ts render` (Satori → vector SVG → @resvg/resvg-js → PNG).
 
 ## Device-calibrated facts (verified on a physical iPhone 13 mini, 2026-05-30)
@@ -38,3 +40,12 @@ hashes, URLs) is hard-broken so nothing overflows the canvas. Lines already with
 the width keep their exact spacing (aligned tables stay aligned). Greedy is the
 correct algorithm for left-aligned monospace — Knuth-Plass optimizes _justified_
 paragraphs and adds nothing to ragged-right fixed-width text.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the PNG render with correct word-wrap and no horizontal cut-off at the target device width?** If text overflowed, fix the wrap/width.
+2. **Did the Satori to resvg pipeline complete without error?** A blank or partial image means a rendering regression to fix.
+
+Only update if the issue is real and reproducible — not speculative.

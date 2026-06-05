@@ -5,6 +5,8 @@ description: Control the pushover.net web dashboard headlessly for things the HT
 
 # manage-apps-and-sounds-headless
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Headless dashboard automation via `pushover_headless_web_control.py`. pushover.net login is a plain email/password form
 (**no anti-bot / CAPTCHA / 2FA** — verified 2026-05-30), so plain Playwright + system Chrome works.
 
@@ -57,3 +59,12 @@ and **long** (≈29 s) before upload. Loaded so far: `po_fanfare`, `po_uplift`, 
 
 - Default: Playwright + `channel="chrome"` (no browser download). Scrapling/Obscura unnecessary here.
 - Network: prefix `op`/HTTP with `env -u *PROXY*` (and curl `--noproxy '*'`) to bypass the sandbox proxy.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the headless Playwright flow log in and mint/delete the app token without a selector break?** A pushover.net UI change silently breaks selectors — fix them immediately if so.
+2. **Did the returned token work on a test send?** A minted-but-dead token means the create flow needs fixing.
+
+Only update if the issue is real and reproducible — not speculative.
