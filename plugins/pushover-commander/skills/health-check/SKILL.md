@@ -5,6 +5,8 @@ description: Diagnose the po Pushover plugin and check remaining monthly quota. 
 
 # health-check
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Self-test + quota for the po plugin, via the TS core.
 
 ```bash
@@ -29,3 +31,12 @@ remaining messages and warns when below `quota_warn_remaining` (see `pushover_ap
   `grep <uuid> ~/.local/state/pushover/po-audit.jsonl | jq .`.
 - **Quota guard** — each send reads `X-Limit-App-Remaining` and warns when low.
 - **Retry/backoff** — transient network / 5xx are retried (×3, backoff) before failing.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the check surface real failures (credentials, quota, dependencies) with no false green?** If a broken subsystem reported healthy, fix the check.
+2. **Was remaining quota reported accurately?** A stale or wrong quota reading needs fixing before it misleads.
+
+Only update if the issue is real and reproducible — not speculative.
