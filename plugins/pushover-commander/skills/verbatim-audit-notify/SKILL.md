@@ -1,5 +1,5 @@
 ---
-name: pushover-verbatim-notify
+name: verbatim-audit-notify
 description: Send Pushover notifications with UUID-linked verbatim JSONL audit trail. TRIGGERS - pushover notify, send pushover, observability alert, verbatim notification, fleet alert, pushover-lookup, audit log notification, push notification with UUID
 ---
 
@@ -33,18 +33,18 @@ The fix is the **correlation-ID-plus-JSONL** pattern: short summary on the devic
 Add the scripts to your PATH:
 
 ```bash
-ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-notify.sh" ~/.local/bin/pushover-notify
-ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
-ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
-ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-quota.sh" ~/.local/bin/pushover-quota
-ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/scripts/pushover-heartbeat.sh" ~/.local/bin/pushover-heartbeat
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/scripts/pushover-notify.sh" ~/.local/bin/pushover-notify
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/scripts/pushover-lookup.sh" ~/.local/bin/pushover-lookup
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/scripts/pushover-prune.sh" ~/.local/bin/pushover-prune
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/scripts/pushover-quota.sh" ~/.local/bin/pushover-quota
+ln -sf "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/scripts/pushover-heartbeat.sh" ~/.local/bin/pushover-heartbeat
 ```
 
 **Verify the symlinks resolve to THIS skill** (iter 13a 2026-05-19 caught the trap where stale symlinks from a legacy pushover-notify in `~/.claude/tools/notifications/` silently masked the new flag-rich script — the legacy didn't understand `--service/--level/--extra`, so dispatches "succeeded" but wrote no JSONL audit and sent malformed Pushover payloads):
 
 ```bash
 for cmd in pushover-notify pushover-lookup pushover-prune pushover-quota; do
-    readlink "$HOME/.local/bin/$cmd" | grep -q "cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify" \
+    readlink "$HOME/.local/bin/$cmd" | grep -q "cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify" \
         && echo "✓ $cmd → iter-5 skill" \
         || echo "✗ $cmd → STALE target ($(readlink "$HOME/.local/bin/$cmd" || echo 'not a symlink')) — rerun the ln -sf commands above"
 done
@@ -61,17 +61,17 @@ Install the launchd timers (retention + quota monitor — see each template head
 
 ```bash
 # Retention (daily 04:15, 90-day window)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-prune.plist" ~/Library/LaunchAgents/
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.terryli.pushover-prune.plist" ~/Library/LaunchAgents/
 mkdir -p ~/.local/state/launchd-logs/pushover-prune
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-prune.plist
 
 # Quota monitor (daily 03:30, alert at <20% remaining)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-quota.plist" ~/Library/LaunchAgents/
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.terryli.pushover-quota.plist" ~/Library/LaunchAgents/
 mkdir -p ~/.local/state/launchd-logs/pushover-quota
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-quota.plist
 
 # Daily fleet heartbeat (09:03, INFO; auto-promotes to WARN on failure)
-cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/devops-tools/skills/pushover-verbatim-notify/templates/com.terryli.pushover-heartbeat.plist" ~/Library/LaunchAgents/
+cp "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/pushover-commander/skills/verbatim-audit-notify/templates/com.terryli.pushover-heartbeat.plist" ~/Library/LaunchAgents/
 mkdir -p ~/.local/state/launchd-logs/pushover-heartbeat
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.terryli.pushover-heartbeat.plist
 ```

@@ -1,0 +1,29 @@
+{
+  "_doc": "SSoT for Pushover limits + silent-failure rules, verified empirically 2026-05-30. Consumed by pushover_core.ts (preflight) and referenced by pushover_headless_web_control.py / bash. Update HERE, nowhere else.",
+  "message_max": 1024,
+  "title_max": 250,
+  "url_max": 512,
+  "url_title_max": 100,
+  "attachment_max_bytes": 5242880,
+  "attachment_formats": ["png", "jpeg", "jpg", "bmp"],
+  "sound_mp3_max_bytes": 500000,
+  "sound_max_seconds": 30,
+  "app_name_max": 20,
+  "app_description_max": 500,
+  "priority2_retry_min": 30,
+  "priority2_expire_max": 10800,
+  "monthly_message_limit": 10000,
+  "quota_warn_remaining": 500,
+  "silent_truncate_fields": ["message", "title"],
+  "hard_reject": {
+    "url": "HTTP 400 if > url_max",
+    "attachment": "HTTP 413 if > attachment_max_bytes",
+    "html+monospace": "HTTP 400 — mutually exclusive",
+    "priority2_without_retry_expire": "HTTP 400"
+  },
+  "silently_accepted": {
+    "invalid_sound": "no error — ignored/defaulted; validate via /1/sounds.json",
+    "invalid_device": "no error — ignored",
+    "over_length_message_title": "no error — truncated"
+  }
+}

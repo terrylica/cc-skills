@@ -1,0 +1,32 @@
+{
+  "name": "pushover-commander",
+  "version": "21.86.0",
+  "description": "Pushover end-to-end toolkit: send notifications (+image attachment), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, since Pushover has no app-creation API), monospace incident-report PNG rendering (Satori/resvg), UUID-keyed JSONL verbatim audit + quota/heartbeat, and /loop briefings. Public + generic; per-user secrets stay private under ~/.claude (see references/private-config-setup.md).",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  },
+  "keywords": [
+    "pushover",
+    "notification",
+    "push",
+    "alert",
+    "emergency",
+    "receipt",
+    "create-pushover-app",
+    "app-token",
+    "headless",
+    "playwright",
+    "custom-sound",
+    "incident-report",
+    "image-render",
+    "satori",
+    "resvg",
+    "audit",
+    "jsonl",
+    "uuid",
+    "loop",
+    "1password",
+    "bun"
+  ]
+}
