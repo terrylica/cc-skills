@@ -55,7 +55,6 @@ Links to external URLs (not validated - assumed working):
 | `docs/CLAUDE.md`                   | <https://github.com/adr/madr>                                                                               |
 | `plugins/CLAUDE.md`                | <https://example.com>                                                                                       |
 | `plugins/gh-tools/CLAUDE.md`       | <https://github.com/terrylica/cc-skills/blob/main/docs/adr/2025-11-21-github-actions-no-testing-linting.md> |
-| `plugins/gitnexus-tools/CLAUDE.md` | <https://www.npmjs.com/package/gitnexus>                                                                    |
 | `plugins/itp-hooks/CLAUDE.md`      | <https://code.claude.com/docs/en/hooks>                                                                     |
 | `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/Nukesor/pueue>                                                                          |
 | `plugins/itp-hooks/CLAUDE.md`      | <https://github.com/terrylica/rangebar-py/issues/77>                                                        |

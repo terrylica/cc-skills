@@ -297,7 +297,6 @@ Suggested metrics to track over time:
 | tts-tg-sync | Fair | ✓ | - | - | Add Skills table, Commands table |
 | calcom-commander | Fair | ✓ | - | - | Add Skills table, Commands table |
 | mise | Fair | ✓ | - | ✓ | Add Skills table |
-| gitnexus-tools | Good | ✓ | ✓ | - | Add Commands table |
 | rust-tools | Good | ✓ | ✓ | ✓ | - |
 
 ---
