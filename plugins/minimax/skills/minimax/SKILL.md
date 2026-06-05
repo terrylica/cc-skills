@@ -12,6 +12,13 @@ The model itself is a **competent qualitative judge + theory explainer + tool or
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues. Source-of-truth campaign archive: `~/own/amonic/minimax/` (read-only reference; do not modify from this skill).
 
+> **🆕 MiniMax-M3 is live (2026-06-01).** This file covers **M2.7**. For M3 — native vision,
+> `reasoning_split` clean output, `response_format` acceptance, 512K input ceiling / 512K output cap,
+> `n=1`, and the docs-vs-reality discrepancies — use the sibling skill
+> [`../m3/SKILL.md`](../m3/SKILL.md) and the evidence doc
+> [`../../references/M3-EMPIRICAL.md`](../../references/M3-EMPIRICAL.md). The defensive snippets
+> below (`<think>` strip, `base_resp` retry, cached-token reader) apply to M3 unchanged.
+
 ---
 
 ## When to use M2.7 vs not — the decision table

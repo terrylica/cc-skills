@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# m3-verify — fast live drift check of MiniMax-M3 capability invariants vs the locked snapshot.
+#
+# Re-probes a CHEAP subset of M3's behaviour (catalog presence, highspeed-variant absence,
+# n>1 rejection, output-token ceiling, reasoning_split separation) and diffs the observed
+# booleans against the locked capability snapshot. The expensive invariants (512K input
+# ceiling, vision OCR, full param sweep) are covered by the standalone probe scripts:
+#   scripts/m3-probe.py · scripts/m3-context-probe.py · scripts/m3-bench.py
+#
+# Exit codes:
+#   0 — no drift (live matches locked snapshot)
+#   1 — drift detected (an invariant changed — review before bumping the snapshot)
+#   2 — fetch / parse / key-resolution error
+#
+# Flags:
+#   --json   emit structured JSON instead of the human-readable table
+#   --help   show this header
+#
+# Environment variables (override defaults):
+#   M3_CAPABILITIES_SNAPSHOT — path to the locked snapshot JSON
+#                              (default: <plugin-root>/references/fixtures/m3-capabilities-locked-2026-06-01.json)
+#   MINIMAX_API_KEY          — MiniMax API key (skips 1Password lookup if set)
+#   MINIMAX_API_KEY_OP_PATH  — 1Password op-path for the key
+#                              (default: op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password)
+#   MINIMAX_OP_ACCOUNT       — 1Password account UUID (default: K5BH72Z7O5BYXOGKBYT5FWTP2E)
+#
+# SSoT: this script + the locked snapshot + references/M3-EMPIRICAL.md. Mirrors the design of
+# scripts/minimax-check-upgrade (catalog tripwire); m3-verify is the *capability* tripwire.
+
+set -euo pipefail
+
+PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SNAPSHOT="${M3_CAPABILITIES_SNAPSHOT:-${PLUGIN_ROOT}/references/fixtures/m3-capabilities-locked-2026-06-01.json}"
+
+EMIT_JSON=0
+for arg in "$@"; do
+    case "$arg" in
+        --json) EMIT_JSON=1 ;;
+        --help | -h)
+            sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^# \?//'
+            exit 0
+            ;;
+        *)
+            echo "Unknown arg: $arg" >&2
+            exit 2
+            ;;
+    esac
+done
+
+# Resolve API key: env first, then 1Password.
+if [[ -n "${MINIMAX_API_KEY:-}" ]]; then
+    KEY="$MINIMAX_API_KEY"
+elif command -v op >/dev/null 2>&1; then
+    OP_PATH="${MINIMAX_API_KEY_OP_PATH:-op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password}"
+    OP_ACCOUNT="${MINIMAX_OP_ACCOUNT:-K5BH72Z7O5BYXOGKBYT5FWTP2E}"
+    KEY=$(op read "$OP_PATH" --account "$OP_ACCOUNT" 2>/dev/null) || {
+        echo "ERROR: failed to read MiniMax API key from 1Password (path=$OP_PATH)" >&2
+        exit 2
+    }
+else
+    echo "ERROR: MINIMAX_API_KEY not set and 'op' CLI unavailable" >&2
+    exit 2
+fi
+
+if [[ ! -f "$SNAPSHOT" ]]; then
+    echo "ERROR: locked capability snapshot not found at $SNAPSHOT" >&2
+    exit 2
+fi
+
+# Probe + diff in stdlib Python (no requests/pillow needed). Run directly (not in a command
+# substitution) so a non-zero exit (1 = drift) doesn't trip `set -e` before we read it.
+export _M3_KEY="$KEY"
+set +e
+python3 - "$SNAPSHOT" "$EMIT_JSON" <<'PYEOF'
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+snapshot_path, emit_json = sys.argv[1], sys.argv[2] == "1"
+KEY = os.environ["_M3_KEY"]
+BASE = "https://api.minimax.io/v1"
+# Bypass any *_PROXY env — MiniMax 502s through the local proxy.
+OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def req(path, body=None, method="GET"):
+    data = json.dumps(body).encode() if body is not None else None
+    r = urllib.request.Request(
+        BASE + path, data=data, method=method,
+        headers={"Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
+    try:
+        with OPENER.open(r, timeout=90) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            return json.loads(e.read().decode())
+        except (ValueError, OSError):
+            return {"_http_error": e.code}
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return {"_net_error": str(e)[:120]}
+
+
+def err_of(j):
+    if j.get("error"):
+        return j["error"].get("message")
+    code = (j.get("base_resp") or {}).get("status_code", 0)
+    if code not in (0,):
+        return f"{code}: {(j.get('base_resp') or {}).get('status_msg')}"
+    if "_http_error" in j:
+        return f"http {j['_http_error']}"
+    if "_net_error" in j:
+        return j["_net_error"]
+    return None
+
+
+M3 = "MiniMax-M3"
+
+
+def chat(body):
+    return req("/chat/completions", {"model": M3, "max_tokens": 8,
+               "messages": [{"role": "user", "content": "hi"}], **body}, "POST")
+
+
+# --- cheap live probes ---
+models = req("/models")
+ids = {m.get("id") for m in (models.get("data") or [])}
+in_catalog = M3 in ids
+
+hs_chat = req("/chat/completions", {"model": "MiniMax-M3-highspeed", "max_tokens": 8,
+              "messages": [{"role": "user", "content": "hi"}]}, "POST")
+highspeed_exists = ("MiniMax-M3-highspeed" in ids) or (err_of(hs_chat) is None)
+
+supports_n_gt_1 = err_of(chat({"n": 2})) is None
+mt_524k_rejected = err_of(chat({"max_tokens": 524288})) is not None
+
+rs = chat({"reasoning_split": True, "max_tokens": 512,
+           "messages": [{"role": "user", "content": "What is 2+2? Think briefly, then answer."}]})
+rs_msg = (rs.get("choices") or [{}])[0].get("message", {}) or {}
+reasoning_split_separates = (
+    ("reasoning_content" in rs_msg or "reasoning_details" in rs_msg)
+    and "<think>" not in (rs_msg.get("content") or "")
+)
+
+with open(snapshot_path) as f:
+    inv = json.load(f).get("invariants", {})
+
+# observed bool : expected bool (derived from the locked snapshot)
+checks = {
+    "in_catalog": (in_catalog, inv.get("in_catalog")),
+    "highspeed_variant_exists": (highspeed_exists, inv.get("highspeed_variant_exists")),
+    "supports_n_gt_1": (supports_n_gt_1, inv.get("supports_n_gt_1")),
+    "max_tokens>512000 rejected": (mt_524k_rejected, inv.get("max_output_tokens", 0) < 524288),
+    "reasoning_split_separates_reasoning": (reasoning_split_separates, inv.get("reasoning_split_separates_reasoning")),
+}
+
+fetch_failed = not in_catalog and not models.get("data")
+drift = {k: {"observed": o, "expected": e} for k, (o, e) in checks.items() if o != e}
+
+result = {"model": M3, "snapshot": os.path.basename(snapshot_path),
+          "checks": {k: {"observed": o, "expected": e} for k, (o, e) in checks.items()},
+          "drift": drift, "has_drift": bool(drift)}
+
+if fetch_failed:
+    print("ERROR: could not fetch /v1/models — check connectivity / key", file=sys.stderr)
+    sys.exit(2)
+
+if emit_json:
+    print(json.dumps(result, indent=2))
+else:
+    print(f"m3-verify · {M3} · snapshot {result['snapshot']}")
+    for k, (o, e) in checks.items():
+        flag = "✅" if o == e else "🚨"
+        print(f"  {flag} {k:38s} observed={o!s:<6} expected={e}")
+    if drift:
+        print(f"\n🚨 DRIFT in {len(drift)} invariant(s) — review before bumping the snapshot:")
+        for k, v in drift.items():
+            print(f"     {k}: {v['expected']} → {v['observed']}")
+    else:
+        print("\n✅ No drift — live M3 matches the locked capability snapshot")
+
+sys.exit(1 if drift else 0)
+PYEOF
+PYTHON_EXIT=$?
+set -e
+exit "$PYTHON_EXIT"
