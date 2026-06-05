@@ -124,7 +124,7 @@ Standardized categories derived from marketplace.json:
 
 | Category       | Description                 | Plugins                                                                                   |
 | -------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
-| `development`  | Code development tools      | plugin-dev, gh-tools, gitnexus-tools, rust-tools                                          |
+| `development`  | Code development tools      | plugin-dev, gh-tools, rust-tools                                                          |
 | `productivity` | Workflow automation         | itp, mise, gmail-commander, calcom-commander, productivity-tools                          |
 | `devops`       | Infrastructure & deployment | devops-tools, dotfiles-tools, asciinema-tools, git-town-workflow, kokoro-tts, tts-tg-sync |
 | `trading`      | Financial trading           | mql5, quant-research                                                                      |
