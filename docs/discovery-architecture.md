@@ -207,7 +207,7 @@ Enhance root CLAUDE.md with category-based plugin listing:
 
 ### Development (7)
 
-- plugin-dev, gh-tools, gitnexus-tools, rust-tools, devops-tools...
+- plugin-dev, gh-tools, rust-tools, devops-tools...
 
 ### Productivity (5)
 
