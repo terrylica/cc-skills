@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Session Debrief — Focused session analysis via MiniMax highspeed.
+ * Session Debrief — Focused session analysis via MiniMax-M3 (model from MINIMAX_MODEL SSoT).
  *
  * Three expert modes (--goal 1|2|3):
  * 1. Handoff Document      — exhaustive context extraction for the next developer/session
@@ -30,7 +30,7 @@ import { spawnSync } from "child_process";
 
 const MINIMAX_API_URL = "https://api.minimax.io/anthropic/v1/messages";
 // MINIMAX_MODEL: single source of truth is ~/.config/mise/config.toml
-const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M2.7-highspeed";
+const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M3";
 const MAX_OUTPUT_TOKENS = 16384;
 
 // MiniMax empirical context ceiling: ~951K content chars (260K tokens)

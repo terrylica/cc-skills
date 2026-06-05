@@ -80,7 +80,7 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 - [project-directory-migration](./skills/project-directory-migration/SKILL.md)
 - [pueue-job-orchestration](./skills/pueue-job-orchestration/SKILL.md)
 - [macos-fda-grant-helper](./skills/macos-fda-grant-helper/SKILL.md) — interactive Full Disk Access (FDA) grant walkthrough for launchd-spawned binaries (iter 21)
-- [pushover-verbatim-notify](./skills/pushover-verbatim-notify/SKILL.md) — UUID-linked Pushover notifications with full-fidelity JSONL audit trail (iter 5)
+- Pushover notifications **moved 2026-06-05** to the dedicated [`pushover-commander`](../pushover-commander/CLAUDE.md) plugin (send, emergency, headless app/sound management, incident-report rendering, UUID/JSONL verbatim audit). The former `pushover-verbatim-notify` skill is now `pushover-commander:verbatim-audit-notify`.
 - [python-logging-best-practices](./skills/python-logging-best-practices/SKILL.md)
 - [python-memory-safe-scripts](./skills/python-memory-safe-scripts/SKILL.md)
 - [session-chronicle](./skills/session-chronicle/SKILL.md)
@@ -115,6 +115,6 @@ Skip rules in the PostToolUse hook prevent nag-loops:
 
 ## Environment Variables
 
-| Variable        | Required | Description                                                                                                                           |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `MINIMAX_MODEL` | No       | MiniMax model ID for `session-debrief` and `prompt-benchmark`; SSoT is `~/.config/mise/config.toml`; default `MiniMax-M2.7-highspeed` |
+| Variable        | Required | Description                                                                                                                                                         |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MINIMAX_MODEL` | No       | MiniMax model ID for `session-debrief` and `prompt-benchmark`; SSoT is `~/.config/mise/config.toml`; default `MiniMax-M3` (switched from M2.7-highspeed 2026-06-01) |

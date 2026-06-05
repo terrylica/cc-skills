@@ -372,25 +372,6 @@
       "strict": false
     },
     {
-      "name": "gitnexus-tools",
-      "description": "GitNexus knowledge graph: explore symbols, blast radius analysis, staleness detection hooks",
-      "version": "21.86.0",
-      "source": "./plugins/gitnexus-tools",
-      "category": "development",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "gitnexus",
-        "knowledge-graph",
-        "blast-radius",
-        "impact-analysis",
-        "execution-flows"
-      ],
-      "strict": false
-    },
-    {
       "name": "gmail-commander",
       "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
       "version": "21.86.0",
@@ -412,6 +393,37 @@
         "oauth",
         "1password",
         "mise",
+        "bun"
+      ],
+      "strict": false
+    },
+    {
+      "name": "pushover-commander",
+      "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
+      "version": "21.86.0",
+      "source": "./plugins/pushover-commander",
+      "category": "devops",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "pushover",
+        "notification",
+        "push",
+        "alert",
+        "emergency",
+        "create-pushover-app",
+        "app-token",
+        "headless",
+        "playwright",
+        "custom-sound",
+        "incident-report",
+        "image-render",
+        "audit",
+        "jsonl",
+        "loop",
+        "1password",
         "bun"
       ],
       "strict": false
