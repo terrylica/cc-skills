@@ -1,3 +1,20 @@
+# [21.87.0](https://github.com/terrylica/cc-skills/compare/v21.86.0...v21.87.0) (2026-06-05)
+
+
+### Bug Fixes
+
+* **release:** parse YAML via uv python 3.14 in doctor + 2 self-tests ([5e67cdb](https://github.com/terrylica/cc-skills/commit/5e67cdbda9fc06ec5a7467ddc47cefd99fde98d1))
+
+
+### Features
+
+* **floating-clock:** add Antlion mic-mute banner overlay ([839d6fd](https://github.com/terrylica/cc-skills/commit/839d6fdb375130b58ecd717bc6a42e28637439a7))
+* **gmail-commander:** retrieve attachments + fix export silent no-op ([de4c3bb](https://github.com/terrylica/cc-skills/commit/de4c3bbf8765c29658130e3c1221bfa694962f95))
+* **minimax:** add empirically-verified MiniMax-M3 wiring layer ([01c03bf](https://github.com/terrylica/cc-skills/commit/01c03bffb9edefff4f03db2b4472c40ee893ab2a))
+* **mise:** gate release scaffolding on repo classification (Step 1b) ([dbfee82](https://github.com/terrylica/cc-skills/commit/dbfee82694f0e758ffb6be9dc631db7b22721e20))
+* **productivity-tools:** gdrive-access write — create-doc + backoff ([048dd1d](https://github.com/terrylica/cc-skills/commit/048dd1d559114c4e31491b3b5354078a657ab603))
+* **pushover-commander:** consolidate all Pushover tooling into one discoverable plugin ([1090480](https://github.com/terrylica/cc-skills/commit/10904804f865cc3ffcf5035e6697471b5e535cfd))
+
 # [21.86.0](https://github.com/terrylica/cc-skills/compare/v21.85.0...v21.86.0) (2026-05-30)
 
 
