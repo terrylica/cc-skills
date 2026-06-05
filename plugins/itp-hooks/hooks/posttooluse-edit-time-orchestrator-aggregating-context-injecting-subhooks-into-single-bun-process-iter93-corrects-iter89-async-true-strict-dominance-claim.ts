@@ -300,7 +300,17 @@ async function runPostToolUseEditTimeOrchestratorMain(): Promise<void> {
   // in native code (no userspace TextDecoder cost), and the chunk-coalescing
   // bugs documented in Bun GitHub #7500 / #11553 / #3255 (for stdin.stream())
   // are bypassed entirely.
-  const inputText = await Bun.stdin.text();
+  // Guard the one-shot read: if the parent never closes stdin's write end
+  // (observed under heavy container load), Bun.stdin.text() blocks forever,
+  // leaking a bun process per tool call → memory pressure → SIGTRAP storms.
+  // Race against a hard deadline and silent-exit (orchestrator never blocks).
+  const stdinReadDeadlineMs = Number(process.env.ITP_HOOK_STDIN_TIMEOUT_MS) || 2000;
+  const inputText = await Promise.race([
+    Bun.stdin.text(),
+    new Promise<never>(() =>
+      setTimeout(() => process.exit(0), stdinReadDeadlineMs).unref?.()
+    ),
+  ]);
 
   let parsedInput: PostToolUseInput;
   try {

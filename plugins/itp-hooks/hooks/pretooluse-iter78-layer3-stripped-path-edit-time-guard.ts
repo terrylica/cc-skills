@@ -37,6 +37,7 @@
  */
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { readStdinTextWithTimeout } from "./lib/stdin-timeout.ts";
 // Iter-107 migration: replace the hand-rolled escape-hatch detection
 // (regex + per-line preceding-window lookup loop) with the canonical
 // shared helper. Behavior-preserving — the iter-78 regex grammar
@@ -248,10 +249,12 @@ async function main(): Promise<void> {
   // Read raw stdin.
   let rawStdinText: string;
   try {
-    rawStdinText = await Bun.stdin.text();
+    rawStdinText = await readStdinTextWithTimeout();
   } catch {
+    // On stdin-read timeout the underlying read promise is still pending (an
+    // active handle that would keep bun alive). emitAllow() then hard-exit.
     emitAllow();
-    return;
+    process.exit(0);
   }
 
   // Pre-JSON-parse fastpath. If the raw stdin lacks the

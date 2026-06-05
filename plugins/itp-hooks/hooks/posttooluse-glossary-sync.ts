@@ -9,6 +9,7 @@
  */
 
 import { existsSync } from "node:fs";
+import { readStdinTextWithTimeout } from "./lib/stdin-timeout.ts";
 import { join } from "node:path";
 import { $ } from "bun";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
@@ -45,7 +46,7 @@ interface HookResult {
 
 async function parseStdin(): Promise<PostToolUseInput | null> {
   try {
-    const stdin = await Bun.stdin.text();
+    const stdin = await readStdinTextWithTimeout();
     if (!stdin.trim()) return null;
     return JSON.parse(stdin) as PostToolUseInput;
   } catch {

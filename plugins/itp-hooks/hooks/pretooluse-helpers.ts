@@ -135,15 +135,42 @@ export function hasToolSchema(toolName: string): boolean {
 }
 
 /**
+ * Max time to wait for stdin EOF before failing open. Bun.stdin.text() blocks
+ * forever when the parent never closes the write end (observed under heavy
+ * container load: 9 PreToolUse guards per call all stuck in Sl sleep for ~59min,
+ * leaking ~31MB each → memory pressure → fresh bun spawns SIGTRAP/core-dump).
+ * Timing out and failing open keeps a slow/absent stdin from hanging the hook.
+ */
+const STDIN_READ_TIMEOUT_MS = Number(process.env.ITP_HOOK_STDIN_TIMEOUT_MS) || 2000;
+
+/**
  * Parse stdin JSON and return PreToolUseInput, or null if parsing fails.
- * On parse failure, automatically calls allow() and returns null (fail-open).
+ * On parse failure OR stdin-read timeout, automatically calls allow() and
+ * returns null (fail-open).
  */
 export async function parseStdinOrAllow(
   hookName: string
 ): Promise<PreToolUseInput | null> {
   const logger = createHookLogger(hookName);
   try {
-    const stdin = await Bun.stdin.text();
+    const stdin = await Promise.race([
+      Bun.stdin.text(),
+      new Promise<never>(() =>
+        setTimeout(() => {
+          // stdin EOF never arrived: emit fail-open decision and hard-exit.
+          // process.exit is required — the pending Bun.stdin.text() read is an
+          // active handle that keeps the event loop (and thus the bun process)
+          // alive until SIGTERM otherwise, which is the leak we're fixing.
+          logger.error("stdin read timed out — failing open", {
+            hook_event: "PreToolUse",
+            timeout_ms: STDIN_READ_TIMEOUT_MS,
+          });
+          trackHookError(hookName, `stdin read timed out after ${STDIN_READ_TIMEOUT_MS}ms`);
+          allow();
+          process.exit(0);
+        }, STDIN_READ_TIMEOUT_MS).unref?.()
+      ),
+    ]);
     const input = JSON.parse(stdin) as PreToolUseInput;
     logger.debug("Parsed stdin", {
       hook_event: "PreToolUse",

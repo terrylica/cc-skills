@@ -57,6 +57,7 @@
  */
 
 import { spawn } from "node:child_process";
+import { readStdinTextWithTimeout } from "./lib/stdin-timeout.ts";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -172,12 +173,14 @@ function parseJSONOrEmpty(text: string): Record<string, unknown> {
 }
 
 async function main() {
-  // Pull stdin (Stop hook payload).
-  const payloadChunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    payloadChunks.push(Buffer.from(chunk));
+  // Pull stdin (Stop hook payload). Bounded read: a never-closed stdin must
+  // not hang the Stop hook forever (the leak that caused SIGTRAP storms).
+  let payload = "";
+  try {
+    payload = await readStdinTextWithTimeout();
+  } catch {
+    process.exit(0); // stdin read timed out → silent allow
   }
-  const payload = Buffer.concat(payloadChunks).toString("utf8");
 
   // stop_hook_active loop guard — Claude Code sets this to true on a
   // re-fire after a previous block decision. Aggregating block-reasons
