@@ -1,0 +1,1648 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "commands": {
+    "plugins/devops-tools/skills/clickhouse-pydantic-config/scripts/generate_dbeaver_config.py": {
+      "additionalProperties": false,
+      "description": "Generate DBeaver config from Pydantic ClickHouse model",
+      "properties": {
+        "--dry-run": {
+          "default": false,
+          "description": "Print config to stdout without writing file",
+          "type": "boolean",
+          "x-option-strings": [
+            "--dry-run"
+          ]
+        },
+        "--mode": {
+          "description": "Override connection mode (default: from CLICKHOUSE_MODE env var)",
+          "enum": [
+            "local",
+            "cloud"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--mode",
+            "-m"
+          ]
+        },
+        "--output": {
+          "description": "Output path for data-sources.json",
+          "type": "string",
+          "x-option-strings": [
+            "--output",
+            "-o"
+          ]
+        }
+      },
+      "title": "plugins/devops-tools/skills/clickhouse-pydantic-config/scripts/generate_dbeaver_config.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/clickhouse-pydantic-config/scripts/validate_config.py": {
+      "additionalProperties": false,
+      "description": "Validate DBeaver config",
+      "properties": {
+        "--config": {
+          "description": "Path to data-sources.json",
+          "type": "string",
+          "x-option-strings": [
+            "--config",
+            "-c"
+          ]
+        }
+      },
+      "title": "plugins/devops-tools/skills/clickhouse-pydantic-config/scripts/validate_config.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/doppler-secret-validation/scripts/test_api_auth.py": {
+      "additionalProperties": false,
+      "description": "Test API authentication using token from Doppler",
+      "properties": {
+        "--api-url": {
+          "description": "API endpoint to test",
+          "type": "string",
+          "x-option-strings": [
+            "--api-url"
+          ]
+        },
+        "--config": {
+          "description": "Doppler config (if not using doppler run)",
+          "type": "string",
+          "x-option-strings": [
+            "--config"
+          ]
+        },
+        "--project": {
+          "description": "Doppler project (if not using doppler run)",
+          "type": "string",
+          "x-option-strings": [
+            "--project"
+          ]
+        },
+        "--secret": {
+          "description": "Secret name (e.g., PYPI_TOKEN)",
+          "type": "string",
+          "x-option-strings": [
+            "--secret"
+          ]
+        },
+        "--token": {
+          "description": "Token value (for manual testing, not recommended)",
+          "type": "string",
+          "x-option-strings": [
+            "--token"
+          ]
+        }
+      },
+      "required": [
+        "--api-url",
+        "--secret"
+      ],
+      "title": "plugins/devops-tools/skills/doppler-secret-validation/scripts/test_api_auth.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/doppler-secret-validation/scripts/validate_secret.py": {
+      "additionalProperties": false,
+      "description": "Validate secret storage and retrieval from Doppler",
+      "properties": {
+        "--config": {
+          "description": "Doppler config name (e.g., dev, prd)",
+          "type": "string",
+          "x-option-strings": [
+            "--config"
+          ]
+        },
+        "--project": {
+          "description": "Doppler project name",
+          "type": "string",
+          "x-option-strings": [
+            "--project"
+          ]
+        },
+        "--secret": {
+          "description": "Secret name to validate",
+          "type": "string",
+          "x-option-strings": [
+            "--secret"
+          ]
+        },
+        "--show-value": {
+          "default": false,
+          "description": "Show secret value (security risk, use only for debugging)",
+          "type": "boolean",
+          "x-option-strings": [
+            "--show-value"
+          ]
+        }
+      },
+      "required": [
+        "--config",
+        "--project",
+        "--secret"
+      ],
+      "title": "plugins/devops-tools/skills/doppler-secret-validation/scripts/validate_secret.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/mlflow-python/scripts/create_experiment.py": {
+      "additionalProperties": false,
+      "description": "Create a new MLflow experiment",
+      "properties": {
+        "--artifact-location": {
+          "description": "Artifact storage location (default: MLflow server default)",
+          "type": "string",
+          "x-option-strings": [
+            "--artifact-location"
+          ]
+        },
+        "--description": {
+          "description": "Experiment description",
+          "type": "string",
+          "x-option-strings": [
+            "--description",
+            "-d"
+          ]
+        },
+        "--name": {
+          "description": "Experiment name (must be unique)",
+          "type": "string",
+          "x-option-strings": [
+            "--name",
+            "-n"
+          ]
+        },
+        "--tags": {
+          "description": "Tags as JSON string (e.g., '{\"team\": \"quant\"}')",
+          "type": "string",
+          "x-option-strings": [
+            "--tags",
+            "-t"
+          ]
+        }
+      },
+      "required": [
+        "--name"
+      ],
+      "title": "plugins/devops-tools/skills/mlflow-python/scripts/create_experiment.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/mlflow-python/scripts/get_metric_history.py": {
+      "additionalProperties": false,
+      "description": "Get metric history for an MLflow run",
+      "properties": {
+        "--all": {
+          "default": false,
+          "description": "Retrieve history for all metrics",
+          "type": "boolean",
+          "x-option-strings": [
+            "--all",
+            "-a"
+          ]
+        },
+        "--format": {
+          "default": "table",
+          "description": "Output format",
+          "enum": [
+            "table",
+            "csv",
+            "json"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--format"
+          ]
+        },
+        "--metrics": {
+          "description": "Comma-separated list of metrics to retrieve",
+          "type": "string",
+          "x-option-strings": [
+            "--metrics",
+            "-m"
+          ]
+        },
+        "--run-id": {
+          "description": "MLflow run ID",
+          "type": "string",
+          "x-option-strings": [
+            "--run-id",
+            "-r"
+          ]
+        }
+      },
+      "required": [
+        "--run-id"
+      ],
+      "title": "plugins/devops-tools/skills/mlflow-python/scripts/get_metric_history.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/mlflow-python/scripts/log_backtest.py": {
+      "additionalProperties": false,
+      "description": "Log backtest metrics to MLflow using QuantStats",
+      "properties": {
+        "--dry-run": {
+          "default": false,
+          "description": "Calculate metrics without logging to MLflow",
+          "type": "boolean",
+          "x-option-strings": [
+            "--dry-run"
+          ]
+        },
+        "--experiment": {
+          "description": "MLflow experiment name",
+          "type": "string",
+          "x-option-strings": [
+            "--experiment",
+            "-e"
+          ]
+        },
+        "--params": {
+          "default": "{}",
+          "description": "Strategy parameters as JSON string",
+          "type": "string",
+          "x-option-strings": [
+            "--params"
+          ]
+        },
+        "--returns": {
+          "description": "Path to returns CSV file",
+          "type": "string",
+          "x-option-strings": [
+            "--returns"
+          ]
+        },
+        "--risk-free-rate": {
+          "default": 0.0,
+          "description": "Risk-free rate for Sharpe calculation (default: 0.0)",
+          "type": "number",
+          "x-option-strings": [
+            "--risk-free-rate"
+          ]
+        },
+        "--run-name": {
+          "description": "MLflow run name",
+          "type": "string",
+          "x-option-strings": [
+            "--run-name",
+            "-r"
+          ]
+        }
+      },
+      "required": [
+        "--experiment",
+        "--returns",
+        "--run-name"
+      ],
+      "title": "plugins/devops-tools/skills/mlflow-python/scripts/log_backtest.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/mlflow-python/scripts/query_experiments.py": {
+      "additionalProperties": false,
+      "description": "Query MLflow experiments and runs",
+      "properties": {
+        "--columns": {
+          "description": "Comma-separated list of columns to display",
+          "type": "string",
+          "x-option-strings": [
+            "--columns",
+            "-c"
+          ]
+        },
+        "--experiment": {
+          "description": "Experiment name to search",
+          "type": "string",
+          "x-option-strings": [
+            "--experiment",
+            "-e"
+          ]
+        },
+        "--filter": {
+          "description": "SQL-like filter (e.g., 'metrics.sharpe_ratio > 1.5')",
+          "type": "string",
+          "x-option-strings": [
+            "--filter",
+            "-f"
+          ]
+        },
+        "--format": {
+          "default": "table",
+          "description": "Output format",
+          "enum": [
+            "table",
+            "csv",
+            "json"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--format"
+          ]
+        },
+        "--max-results": {
+          "default": 100,
+          "description": "Maximum number of runs (default: 100)",
+          "type": "integer",
+          "x-option-strings": [
+            "--max-results"
+          ]
+        },
+        "--order-by": {
+          "description": "Order by clause (e.g., 'metrics.sharpe_ratio DESC')",
+          "type": "string",
+          "x-option-strings": [
+            "--order-by",
+            "-o"
+          ]
+        },
+        "--show-deleted": {
+          "default": false,
+          "description": "Include deleted experiments",
+          "type": "boolean",
+          "x-option-strings": [
+            "--show-deleted"
+          ]
+        }
+      },
+      "required": [
+        "--experiment"
+      ],
+      "title": "plugins/devops-tools/skills/mlflow-python/scripts/query_experiments.py",
+      "type": "object"
+    },
+    "plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py": {
+      "additionalProperties": false,
+      "description": "v2 sanitizer for Claude Code JSONL sessions",
+      "properties": {
+        "--input": {
+          "description": "Input directory (raw JSONL)",
+          "type": "string",
+          "x-option-strings": [
+            "--input"
+          ]
+        },
+        "--output": {
+          "description": "Output directory (sanitized)",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--report": {
+          "description": "Redaction report path",
+          "type": "string",
+          "x-option-strings": [
+            "--report"
+          ]
+        }
+      },
+      "title": "plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py",
+      "type": "object"
+    },
+    "plugins/doc-tools/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py": {
+      "additionalProperties": false,
+      "description": "Validate ASCII box-drawing diagram alignment in markdown files",
+      "properties": {
+        "--verbose": {
+          "default": false,
+          "description": "Print verbose progress information",
+          "type": "boolean",
+          "x-option-strings": [
+            "--verbose",
+            "-v"
+          ]
+        },
+        "--warn-only": {
+          "default": false,
+          "description": "Exit 0 even if warnings found (still exit 1 on errors)",
+          "type": "boolean",
+          "x-option-strings": [
+            "--warn-only"
+          ]
+        },
+        "paths": {
+          "description": "Files or directories to validate",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/doc-tools/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py",
+      "type": "object"
+    },
+    "plugins/html-showcase/skills/page-template/scripts/build-nav.py": {
+      "additionalProperties": false,
+      "description": "Universal site-map navigator builder.",
+      "properties": {
+        "--asset-version": {
+          "default": "7",
+          "description": "Cache-bust version appended to asset URLs (bump on rail asset changes). v7 = firing-219 within-section Prev/Next — compact ‹ › buttons on the \"Site\" header row (zero added height) + Chrome-safe bare [ / ] keyboard shortcut (guarded against modifiers and input focus); neighbors are the visually-adjacent siblings in the flat section list. v6 = iter_315 PRESENTATION_REFACTOR — body gutter 28-40px, rail typography shrunk ~20%% (literal percent, argparse-escaped), site-map tightened, newest-first iter-N ordering, and <!-- nav-pin --> marker support.",
+          "type": "string",
+          "x-option-strings": [
+            "--asset-version"
+          ]
+        },
+        "--root": {
+          "description": "Site root directory (default: current dir)",
+          "type": "string",
+          "x-option-strings": [
+            "--root"
+          ]
+        }
+      },
+      "title": "plugins/html-showcase/skills/page-template/scripts/build-nav.py",
+      "type": "object"
+    },
+    "plugins/html-showcase/skills/page-template/scripts/check-orphan-pages.py": {
+      "additionalProperties": false,
+      "properties": {
+        "--entry": {
+          "default": "index.html",
+          "description": "Entry file relative to <directory> (default: index.html)",
+          "type": "string",
+          "x-option-strings": [
+            "--entry"
+          ]
+        },
+        "directory": {
+          "description": "Site root containing index.html and other *.html pages",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/html-showcase/skills/page-template/scripts/check-orphan-pages.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/audit_env_coverage.py": {
+      "additionalProperties": false,
+      "description": "Audit env-var coverage for Python constants",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to audit",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/audit_env_coverage.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/audit_hardcodes.py": {
+      "additionalProperties": false,
+      "description": "Audit code for hardcoded values using 9 detection tools",
+      "properties": {
+        "--exclude": {
+          "description": "Glob pattern to exclude",
+          "type": "string",
+          "x-option-strings": [
+            "--exclude"
+          ]
+        },
+        "--no-parallel": {
+          "default": false,
+          "description": "Disable parallel execution",
+          "type": "boolean",
+          "x-option-strings": [
+            "--no-parallel"
+          ]
+        },
+        "--output": {
+          "default": "both",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text",
+            "both"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--severity": {
+          "default": "all",
+          "description": "Filter by minimum severity",
+          "enum": [
+            "all",
+            "high",
+            "medium",
+            "low"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--severity"
+          ]
+        },
+        "--skip-preflight": {
+          "default": false,
+          "description": "Skip tool availability preflight check",
+          "type": "boolean",
+          "x-option-strings": [
+            "--skip-preflight"
+          ]
+        },
+        "--tools": {
+          "description": "Tools to run",
+          "enum": [
+            "all",
+            "ruff",
+            "semgrep",
+            "jscpd",
+            "gitleaks",
+            "ast-grep",
+            "env-coverage",
+            "bandit",
+            "trufflehog",
+            "whispers"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--tools"
+          ]
+        },
+        "path": {
+          "description": "Path to audit",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/audit_hardcodes.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/preflight.py": {
+      "additionalProperties": false,
+      "description": "Preflight check for hardcode audit tools",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Target path (used to find ruff config)",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/preflight.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_ast_grep.py": {
+      "additionalProperties": false,
+      "description": "Run ast-grep AST-based hardcode detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_ast_grep.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_bandit.py": {
+      "additionalProperties": false,
+      "description": "Run Bandit hardcoded secret detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_bandit.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_gitleaks.py": {
+      "additionalProperties": false,
+      "description": "Run gitleaks for secret detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format (default: text)",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Directory to scan",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_gitleaks.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_jscpd.py": {
+      "additionalProperties": false,
+      "description": "Run jscpd copy-paste detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_jscpd.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_ruff_plr.py": {
+      "additionalProperties": false,
+      "description": "Run Ruff PLR2004 magic number detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_ruff_plr.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_semgrep.py": {
+      "additionalProperties": false,
+      "description": "Run Semgrep pattern-based hardcode detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_semgrep.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_trufflehog.py": {
+      "additionalProperties": false,
+      "description": "Run trufflehog for secret detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format (default: text)",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Directory to scan",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_trufflehog.py",
+      "type": "object"
+    },
+    "plugins/itp/skills/code-hardcode-audit/scripts/run_whispers.py": {
+      "additionalProperties": false,
+      "description": "Run Whispers secret/credential detection",
+      "properties": {
+        "--output": {
+          "default": "text",
+          "description": "Output format",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "path": {
+          "description": "Path to check",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_whispers.py",
+      "type": "object"
+    },
+    "plugins/kokoro-tts/scripts/tts_generate.py": {
+      "additionalProperties": false,
+      "description": "Kokoro TTS generate WAV",
+      "properties": {
+        "--chunk": {
+          "default": false,
+          "description": "Chunked streaming: print WAV path per chunk as ready",
+          "type": "boolean",
+          "x-option-strings": [
+            "--chunk"
+          ]
+        },
+        "--lang": {
+          "description": "Language code",
+          "type": "string",
+          "x-option-strings": [
+            "--lang"
+          ]
+        },
+        "--output": {
+          "description": "Output WAV path",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--speed": {
+          "description": "Speech speed",
+          "type": "number",
+          "x-option-strings": [
+            "--speed"
+          ]
+        },
+        "--text": {
+          "description": "Text to synthesize",
+          "type": "string",
+          "x-option-strings": [
+            "--text"
+          ]
+        },
+        "--voice": {
+          "description": "Voice name",
+          "type": "string",
+          "x-option-strings": [
+            "--voice"
+          ]
+        }
+      },
+      "required": [
+        "--output",
+        "--text"
+      ],
+      "title": "plugins/kokoro-tts/scripts/tts_generate.py",
+      "type": "object"
+    },
+    "plugins/productivity-tools/skills/imessage-query/scripts/decode_attributed_body.py": {
+      "additionalProperties": false,
+      "description": "Query macOS iMessage database with NSAttributedString decoding",
+      "properties": {
+        "--after": {
+          "description": "Only messages after this date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)",
+          "type": "string",
+          "x-option-strings": [
+            "--after"
+          ]
+        },
+        "--before": {
+          "description": "Only messages before this date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS)",
+          "type": "string",
+          "x-option-strings": [
+            "--before"
+          ]
+        },
+        "--chat": {
+          "description": "Chat identifier (phone number like +1234567890 or email)",
+          "type": "string",
+          "x-option-strings": [
+            "--chat"
+          ]
+        },
+        "--context": {
+          "description": "Show N messages before and after each --search match",
+          "type": "integer",
+          "x-option-strings": [
+            "--context"
+          ]
+        },
+        "--db": {
+          "description": "Path to chat.db (default: ~/Library/Messages/chat.db)",
+          "type": "string",
+          "x-option-strings": [
+            "--db"
+          ]
+        },
+        "--export": {
+          "description": "Export messages to NDJSON file (.jsonl) instead of stdout",
+          "type": "string",
+          "x-option-strings": [
+            "--export"
+          ]
+        },
+        "--limit": {
+          "description": "Maximum number of messages to return",
+          "type": "integer",
+          "x-option-strings": [
+            "--limit"
+          ]
+        },
+        "--me-label": {
+          "default": "Me",
+          "description": "Label for outgoing messages (default: Me)",
+          "type": "string",
+          "x-option-strings": [
+            "--me-label"
+          ]
+        },
+        "--order": {
+          "default": "asc",
+          "description": "Sort order by date (default: asc)",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--order"
+          ]
+        },
+        "--search": {
+          "description": "Filter messages containing this keyword (case-insensitive)",
+          "type": "string",
+          "x-option-strings": [
+            "--search"
+          ]
+        },
+        "--sender": {
+          "default": "both",
+          "description": "Filter by sender (default: both)",
+          "enum": [
+            "me",
+            "them",
+            "both"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--sender"
+          ]
+        },
+        "--stats": {
+          "default": false,
+          "description": "Show statistics instead of messages",
+          "type": "boolean",
+          "x-option-strings": [
+            "--stats"
+          ]
+        },
+        "--them-label": {
+          "default": "Them",
+          "description": "Label for incoming messages (default: Them)",
+          "type": "string",
+          "x-option-strings": [
+            "--them-label"
+          ]
+        }
+      },
+      "required": [
+        "--chat"
+      ],
+      "title": "plugins/productivity-tools/skills/imessage-query/scripts/decode_attributed_body.py",
+      "type": "object"
+    },
+    "plugins/pushover-commander/skills/_lib/make_app_icon.py": {
+      "additionalProperties": false,
+      "properties": {
+        "--color": {
+          "default": "#3b82f6",
+          "type": "string",
+          "x-option-strings": [
+            "--color"
+          ]
+        },
+        "--label": {
+          "default": "",
+          "description": "small role label",
+          "type": "string",
+          "x-option-strings": [
+            "--label"
+          ]
+        },
+        "--mono": {
+          "description": "2-4 char monogram",
+          "type": "string",
+          "x-option-strings": [
+            "--mono"
+          ]
+        },
+        "--out": {
+          "type": "string",
+          "x-option-strings": [
+            "--out"
+          ]
+        },
+        "--size": {
+          "default": 256,
+          "type": "integer",
+          "x-option-strings": [
+            "--size"
+          ]
+        }
+      },
+      "required": [
+        "--mono",
+        "--out"
+      ],
+      "title": "plugins/pushover-commander/skills/_lib/make_app_icon.py",
+      "type": "object"
+    },
+    "plugins/pushover-commander/skills/_lib/pushover_headless_web_control.py": {
+      "additionalProperties": false,
+      "properties": {
+        "--desc": {
+          "default": "",
+          "type": "string",
+          "x-option-strings": [
+            "--desc"
+          ]
+        },
+        "--file": {
+          "type": "string",
+          "x-option-strings": [
+            "--file"
+          ]
+        },
+        "--headed": {
+          "default": false,
+          "type": "boolean",
+          "x-option-strings": [
+            "--headed"
+          ]
+        },
+        "--icon": {
+          "type": "string",
+          "x-option-strings": [
+            "--icon"
+          ]
+        },
+        "--name": {
+          "type": "string",
+          "x-option-strings": [
+            "--name"
+          ]
+        },
+        "--new-name": {
+          "type": "string",
+          "x-dest": "new_name",
+          "x-option-strings": [
+            "--new-name"
+          ]
+        },
+        "--reveal": {
+          "default": false,
+          "type": "boolean",
+          "x-option-strings": [
+            "--reveal"
+          ]
+        },
+        "--slug": {
+          "type": "string",
+          "x-option-strings": [
+            "--slug"
+          ]
+        },
+        "--url": {
+          "default": "",
+          "type": "string",
+          "x-option-strings": [
+            "--url"
+          ]
+        },
+        "cmd": {
+          "default": "apps",
+          "enum": [
+            "apps",
+            "dump-apps",
+            "create-app",
+            "delete-app",
+            "edit-app",
+            "list-sounds",
+            "add-sound",
+            "remove-sound"
+          ],
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/pushover-commander/skills/_lib/pushover_headless_web_control.py",
+      "type": "object"
+    },
+    "plugins/quality-tools/skills/telemetry-terminology-similarity/references/term_similarity.py": {
+      "additionalProperties": false,
+      "description": "Score telemetry field name similarity across 3 layers.",
+      "properties": {
+        "--canonical": {
+          "default": false,
+          "description": "Lookup each field against bundled OTel/OCSF/CloudEvents dictionary",
+          "type": "boolean",
+          "x-option-strings": [
+            "--canonical"
+          ]
+        },
+        "--json": {
+          "default": false,
+          "description": "Output as JSON",
+          "type": "boolean",
+          "x-option-strings": [
+            "--json"
+          ]
+        },
+        "--jsonl": {
+          "description": "Extract fields from JSONL file",
+          "type": "string",
+          "x-option-strings": [
+            "--jsonl"
+          ]
+        },
+        "--schema-a": {
+          "description": "First JSON schema",
+          "type": "string",
+          "x-option-strings": [
+            "--schema-a"
+          ]
+        },
+        "--schema-b": {
+          "description": "Second JSON schema",
+          "type": "string",
+          "x-option-strings": [
+            "--schema-b"
+          ]
+        },
+        "--top": {
+          "default": 50,
+          "description": "Show top N pairs (default: 50, 0=all)",
+          "type": "integer",
+          "x-option-strings": [
+            "--top"
+          ]
+        },
+        "fields": {
+          "description": "Field names (also reads stdin)",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/quality-tools/skills/telemetry-terminology-similarity/references/term_similarity.py",
+      "type": "object"
+    },
+    "plugins/quant-research/skills/opendeviation-eval-metrics/scripts/compute_metrics.py": {
+      "additionalProperties": false,
+      "description": "Compute range bar evaluation metrics",
+      "properties": {
+        "--actuals": {
+          "description": "Path to actuals .npy",
+          "type": "string",
+          "x-option-strings": [
+            "--actuals"
+          ]
+        },
+        "--aggregate": {
+          "default": false,
+          "description": "Compute aggregate metrics",
+          "type": "boolean",
+          "x-option-strings": [
+            "--aggregate"
+          ]
+        },
+        "--annualization": {
+          "default": 365,
+          "description": "365 for crypto, 252 for equities",
+          "enum": [
+            252,
+            365
+          ],
+          "type": "integer",
+          "x-option-strings": [
+            "--annualization"
+          ]
+        },
+        "--days-per-week": {
+          "default": 7,
+          "description": "7 for crypto (24/7), 5 for equity markets",
+          "enum": [
+            5,
+            7
+          ],
+          "type": "integer",
+          "x-option-strings": [
+            "--days-per-week"
+          ]
+        },
+        "--n-trials": {
+          "default": 1,
+          "description": "Number of strategy trials for DSR calculation",
+          "type": "integer",
+          "x-option-strings": [
+            "--n-trials"
+          ]
+        },
+        "--no-extended": {
+          "default": false,
+          "description": "Skip extended risk metrics (VaR, Sortino, Omega, etc.)",
+          "type": "boolean",
+          "x-option-strings": [
+            "--no-extended"
+          ]
+        },
+        "--output": {
+          "description": "Output path (default: stdout)",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--predictions": {
+          "description": "Path to predictions .npy",
+          "type": "string",
+          "x-option-strings": [
+            "--predictions"
+          ]
+        },
+        "--results": {
+          "description": "Path to fold results .jsonl",
+          "type": "string",
+          "x-option-strings": [
+            "--results"
+          ]
+        },
+        "--timestamps": {
+          "description": "Path to timestamps .npy",
+          "type": "string",
+          "x-option-strings": [
+            "--timestamps"
+          ]
+        }
+      },
+      "title": "plugins/quant-research/skills/opendeviation-eval-metrics/scripts/compute_metrics.py",
+      "type": "object"
+    },
+    "plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py": {
+      "additionalProperties": false,
+      "description": "Time-windowed operator report from ~/.claude/doorward-state.jsonl (appended by the statusline-tools plugin on every statusline render). Read-only.",
+      "properties": {
+        "--jsonl": {
+          "type": "string",
+          "x-option-strings": [
+            "--jsonl"
+          ]
+        },
+        "--metric": {
+          "default": "all",
+          "description": "Restrict the report to a single metric. Default: all.",
+          "type": "string",
+          "x-option-strings": [
+            "--metric"
+          ]
+        },
+        "--since": {
+          "type": "string",
+          "x-option-strings": [
+            "--since"
+          ]
+        }
+      },
+      "title": "plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py",
+      "type": "object"
+    },
+    "plugins/tlg/scripts/cleanup_deleted.py": {
+      "additionalProperties": false,
+      "description": "Purge deleted/ghost Telegram accounts from all profiles",
+      "properties": {
+        "--dry-run": {
+          "default": false,
+          "description": "Scan and report without deleting",
+          "type": "boolean",
+          "x-option-strings": [
+            "--dry-run"
+          ]
+        },
+        "--profile": {
+          "type": "string",
+          "x-option-strings": [
+            "-p",
+            "--profile"
+          ]
+        }
+      },
+      "title": "plugins/tlg/scripts/cleanup_deleted.py",
+      "type": "object"
+    },
+    "plugins/tlg/scripts/tg-cli.py": {
+      "additionalProperties": false,
+      "description": "Telegram CLI — personal account operations via MTProto",
+      "properties": {
+        "--about": {
+          "description": "Description",
+          "type": "string",
+          "x-option-strings": [
+            "--about"
+          ]
+        },
+        "--admins": {
+          "default": false,
+          "description": "Show admins only",
+          "type": "boolean",
+          "x-option-strings": [
+            "--admins"
+          ]
+        },
+        "--caption": {
+          "description": "Caption text",
+          "type": "string",
+          "x-option-strings": [
+            "-c",
+            "--caption"
+          ]
+        },
+        "--chat": {
+          "description": "Limit to specific chat (omit for global)",
+          "type": "string",
+          "x-dest": "search_chat",
+          "x-option-strings": [
+            "--chat"
+          ]
+        },
+        "--document": {
+          "default": false,
+          "description": "Force send as document",
+          "type": "boolean",
+          "x-option-strings": [
+            "--document"
+          ]
+        },
+        "--from": {
+          "description": "Filter by sender",
+          "type": "string",
+          "x-dest": "from_user",
+          "x-option-strings": [
+            "--from"
+          ]
+        },
+        "--html": {
+          "default": false,
+          "description": "Parse message as HTML",
+          "type": "boolean",
+          "x-option-strings": [
+            "--html"
+          ]
+        },
+        "--limit": {
+          "default": 200,
+          "description": "Max members (default: 200)",
+          "type": "integer",
+          "x-option-strings": [
+            "-n",
+            "--limit"
+          ]
+        },
+        "--no-media": {
+          "default": false,
+          "description": "Skip media downloads (NDJSON only)",
+          "type": "boolean",
+          "x-option-strings": [
+            "--no-media"
+          ]
+        },
+        "--output": {
+          "default": ".",
+          "description": "Output directory (default: current)",
+          "type": "string",
+          "x-option-strings": [
+            "-o",
+            "--output"
+          ]
+        },
+        "--preview": {
+          "description": "Truncate each message body to CHARS chars (default: full text, multi-line indented)",
+          "type": "integer",
+          "x-option-strings": [
+            "--preview"
+          ]
+        },
+        "--profile": {
+          "type": "string",
+          "x-option-strings": [
+            "-p",
+            "--profile"
+          ]
+        },
+        "--reply-to": {
+          "description": "Reply to a message ID (for supergroup topics, pass the topic's root_msg_id)",
+          "type": "integer",
+          "x-dest": "reply_to",
+          "x-option-strings": [
+            "--reply-to"
+          ]
+        },
+        "--search": {
+          "description": "Filter by name/username",
+          "type": "string",
+          "x-option-strings": [
+            "--search"
+          ]
+        },
+        "--self-only": {
+          "default": false,
+          "description": "Delete only for yourself",
+          "type": "boolean",
+          "x-option-strings": [
+            "--self-only"
+          ]
+        },
+        "--silent": {
+          "default": false,
+          "description": "Pin without notification",
+          "type": "boolean",
+          "x-option-strings": [
+            "--silent"
+          ]
+        },
+        "--type": {
+          "default": "supergroup",
+          "enum": [
+            "group",
+            "supergroup",
+            "channel"
+          ],
+          "type": "string",
+          "x-dest": "group_type",
+          "x-option-strings": [
+            "--type"
+          ]
+        },
+        "--unpin": {
+          "default": false,
+          "description": "Unpin instead of pin",
+          "type": "boolean",
+          "x-option-strings": [
+            "--unpin"
+          ]
+        },
+        "--users": {
+          "description": "Users to invite (usernames or IDs)",
+          "type": "string",
+          "x-option-strings": [
+            "--users"
+          ]
+        },
+        "--video-note": {
+          "default": false,
+          "description": "Send as round video",
+          "type": "boolean",
+          "x-option-strings": [
+            "--video-note"
+          ]
+        },
+        "--voice": {
+          "default": false,
+          "description": "Send as voice note",
+          "type": "boolean",
+          "x-option-strings": [
+            "--voice"
+          ]
+        },
+        "chat": {
+          "description": "Chat ID or username",
+          "type": "string",
+          "x-positional": true
+        },
+        "file": {
+          "description": "Path to file",
+          "type": "string",
+          "x-positional": true
+        },
+        "from_chat": {
+          "description": "Source chat ID or username",
+          "type": "string",
+          "x-positional": true
+        },
+        "group": {
+          "description": "Group/channel ID or username",
+          "type": "string",
+          "x-positional": true
+        },
+        "message": {
+          "description": "Message text",
+          "type": "string",
+          "x-positional": true
+        },
+        "message_id": {
+          "description": "Message ID with media",
+          "type": "integer",
+          "x-positional": true
+        },
+        "message_ids": {
+          "description": "Message ID(s), comma-separated",
+          "type": "string",
+          "x-positional": true
+        },
+        "new_text": {
+          "description": "New message text",
+          "type": "string",
+          "x-positional": true
+        },
+        "output": {
+          "description": "Output directory (messages.ndjson + media/ created inside)",
+          "type": "string",
+          "x-positional": true
+        },
+        "query": {
+          "description": "Username (@user), phone, or user ID",
+          "type": "string",
+          "x-positional": true
+        },
+        "recipient": {
+          "description": "Username, phone, or chat ID",
+          "type": "string",
+          "x-positional": true
+        },
+        "title": {
+          "description": "Group/channel title",
+          "type": "string",
+          "x-positional": true
+        },
+        "to_chat": {
+          "description": "Destination chat ID or username",
+          "type": "string",
+          "x-positional": true
+        },
+        "user": {
+          "description": "User to kick",
+          "type": "string",
+          "x-positional": true
+        },
+        "users": {
+          "description": "Users to invite",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/tlg/scripts/tg-cli.py",
+      "type": "object"
+    },
+    "plugins/tts-tg-sync/scripts/tts_generate.py": {
+      "additionalProperties": false,
+      "description": "Kokoro TTS generate WAV",
+      "properties": {
+        "--chunk": {
+          "default": false,
+          "description": "Chunked streaming: print WAV path per chunk as ready",
+          "type": "boolean",
+          "x-option-strings": [
+            "--chunk"
+          ]
+        },
+        "--lang": {
+          "description": "Language code",
+          "type": "string",
+          "x-option-strings": [
+            "--lang"
+          ]
+        },
+        "--output": {
+          "description": "Output WAV path",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--speed": {
+          "description": "Speech speed",
+          "type": "number",
+          "x-option-strings": [
+            "--speed"
+          ]
+        },
+        "--text": {
+          "description": "Text to synthesize",
+          "type": "string",
+          "x-option-strings": [
+            "--text"
+          ]
+        },
+        "--voice": {
+          "description": "Voice name",
+          "type": "string",
+          "x-option-strings": [
+            "--voice"
+          ]
+        }
+      },
+      "required": [
+        "--output",
+        "--text"
+      ],
+      "title": "plugins/tts-tg-sync/scripts/tts_generate.py",
+      "type": "object"
+    },
+    "scripts/cli_spec.py": {
+      "additionalProperties": false,
+      "description": "Generate / verify cc-skills' machine-readable Python cli_spec.json SSoT.",
+      "properties": {
+        "--check": {
+          "default": false,
+          "description": "Drift gate: regenerate in-memory and exit non-zero if the committed file is stale.",
+          "type": "boolean",
+          "x-option-strings": [
+            "--check"
+          ]
+        },
+        "--output": {
+          "description": "Output path for cli_spec.json (default: repository-root cli_spec.json).",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        }
+      },
+      "title": "scripts/cli_spec.py",
+      "type": "object"
+    },
+    "scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py": {
+      "additionalProperties": false,
+      "description": "iter-144 semantic-release plugin-lifecycle-step timing parser. Reads a captured DEBUG=semantic-release:* stderr log file; emits top-N slowest plugin-lifecycle-step bottleneck ranking.",
+      "properties": {
+        "debug_log_file_absolute_path": {
+          "description": "Path to captured `DEBUG=semantic-release:* npx semantic-release ...` stderr log",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "scripts/iter144-semantic-release-plugin-lifecycle-step-timing-instrumentation-via-debug-namespace-stderr-output-parser-emitting-top-n-slowest-bottleneck-ranking-with-cumulative-elapsed-milliseconds-summed-per-plugin-step.py",
+      "type": "object"
+    }
+  },
+  "x-generated-by": "scripts/cli_spec.py",
+  "x-note": "Machine-readable SSoT of every Python argparse CLI in cc-skills (skill helper scripts under plugins/*/skills/*/scripts/ + the root scripts/ dir), for AI-agent introspection. Regenerate with `mise run cli-spec`; the drift+completeness gate (scripts/test_cli_spec.py / `mise run cli-spec-check`) fails if this is stale or a CLI was added/removed without regenerating.",
+  "x-spec-version": "1"
+}

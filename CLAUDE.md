@@ -30,20 +30,21 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 
 ### Spokes & Docs
 
-| Topic             | Document                                                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Installation      | [README.md](./README.md)                                                                                                     |
-| Plugin Dev        | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                                                                     |
-| Documentation     | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                                                           |
-| Hooks Dev         | [docs/HOOKS.md](./docs/HOOKS.md)                                                                                             |
-| Lessons Learned   | [docs/LESSONS.md](./docs/LESSONS.md)                                                                                         |
-| Cargo TTY Fix     | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
-| Claude Code Proxy | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
-| Release           | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
-| Plugin Lifecycle  | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
-| Troubleshooting   | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
-| ADRs              | [docs/adr/](./docs/adr/)                                                                                                     |
-| Resume Context    | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
+| Topic                     | Document                                                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Installation              | [README.md](./README.md)                                                                                                     |
+| Plugin Dev                | [plugins/CLAUDE.md](./plugins/CLAUDE.md)                                                                                     |
+| Documentation             | [docs/CLAUDE.md](./docs/CLAUDE.md)                                                                                           |
+| Hooks Dev                 | [docs/HOOKS.md](./docs/HOOKS.md)                                                                                             |
+| Lessons Learned           | [docs/LESSONS.md](./docs/LESSONS.md)                                                                                         |
+| Cargo TTY Fix             | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
+| Claude Code Proxy         | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
+| Release                   | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
+| Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
+| Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
+| ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
+| Resume Context            | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
+| Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `mise run cli-spec` / `cli-spec-check`                  |
 
 ### Plugin CLAUDE.md Files (37/37)
 
@@ -52,6 +53,10 @@ All 37 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Acces
 **Emerging deeper layer**: skill-level CLAUDE.mds (one per skill, sibling to `SKILL.md`) are appearing where a skill is large enough that maintainers need a separate compass from the user-invocable instructions. First adopter: [`plugins/macro-keyboard/skills/{configure-macro-keyboard,emit-fn-key-on-macos,diagnose-hid-keycodes}/CLAUDE.md`](./plugins/macro-keyboard/CLAUDE.md). Add one to your skill if SKILL.md is starting to mix "what to do when invoked" with "what to know before editing".
 
 **Active project (SSoT):** [plugins/claude-tts-companion/CLAUDE.md](./plugins/claude-tts-companion/CLAUDE.md) — project/stack/conventions/architecture for the Swift macOS companion binary. Critical invariants (e.g., _do not replace afplay with AVAudioPlayer_) live there, not here.
+
+### Machine-readable CLI spec (`cli_spec.json`)
+
+Per the cross-repo CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`; cc-skills is repo 2 of the 4-repo rollout), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 35 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `mise run cli-spec`; drift+completeness gate: `mise run cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
 
 Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [tts-tg-sync](./plugins/tts-tg-sync/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md) | [claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)
 
