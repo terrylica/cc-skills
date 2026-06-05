@@ -15,7 +15,12 @@ iter143_assert_yaml_python_predicate_holds() {
     local python_predicate_expression_returning_truthy_when_assertion_holds="$2"
     ITER143_TOTAL_ASSERTIONS_EVALUATED=$((ITER143_TOTAL_ASSERTIONS_EVALUATED + 1))
     local python_evaluation_exit_status=0
-    python3 -c "
+    # 2026-06-05: parse via `uv run --python 3.14 --with pyyaml` — the system
+    # `python3` (3.13) has no PyYAML, so a bare `python3 -c "import yaml"`
+    # false-negatives every assertion here. Honors the Python-3.14-only
+    # directive + mirrors the repo-canonical uv pattern
+    # (plugins/pushover-commander/CLAUDE.md). Do NOT revert to bare python3.
+    uv run --python 3.14 --with pyyaml python -c "
 import yaml, sys
 plugins_config_loaded_from_releaserc_yml = yaml.safe_load(open('$ITER143_RELEASERC_YML_PATH'))['plugins']
 github_plugin_entry_from_releaserc_yml_plugin_list = None

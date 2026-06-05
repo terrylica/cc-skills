@@ -83,7 +83,11 @@ else
 fi
 
 ITER158_TOTAL_ASSERTIONS_EVALUATED=$((ITER158_TOTAL_ASSERTIONS_EVALUATED + 1))
-if python3 -c "import yaml; yaml.safe_load(open('$ITER158_PRECOMMIT_MANIFEST_ABSOLUTE_PATH'))" 2>/dev/null; then
+# 2026-06-05: `uv run --python 3.14 --with pyyaml` — system python3 (3.13) lacks
+# PyYAML; bare `python3 -c "import yaml"` false-negatives this check. Mirrors the
+# repo-canonical uv pattern (plugins/pushover-commander/CLAUDE.md). Same for the
+# field-probe below. Do NOT revert to bare python3.
+if uv run --python 3.14 --with pyyaml python -c "import yaml; yaml.safe_load(open('$ITER158_PRECOMMIT_MANIFEST_ABSOLUTE_PATH'))" 2>/dev/null; then
     echo "  ✓ B2: .pre-commit-hooks.yaml parses as valid YAML"
 else
     echo "  ✗ B2: .pre-commit-hooks.yaml does NOT parse as valid YAML"
@@ -91,7 +95,7 @@ else
 fi
 
 ITER158_MANIFEST_FIELD_PROBE_OUTPUT=$(
-    python3 -c "
+    uv run --python 3.14 --with pyyaml python -c "
 import yaml
 with open('$ITER158_PRECOMMIT_MANIFEST_ABSOLUTE_PATH') as f:
     m = yaml.safe_load(f)

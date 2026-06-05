@@ -422,8 +422,13 @@ fi
 
 ITER160_ITER158_MANIFEST_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/.pre-commit-hooks.yaml"
 if [[ -f "$ITER160_ITER158_MANIFEST_ABSOLUTE_PATH" ]]; then
+    # 2026-06-05: parse via `uv run --python 3.14 --with pyyaml` — the system
+    # `python3` (3.13) has no PyYAML, so a bare `python3 -c "import yaml"` here
+    # reports a FALSE iter-159 recurrence and flips the whole toolkit verdict to
+    # TOOLKIT_BROKEN. Honors Python-3.14-only + the repo-canonical uv pattern
+    # (plugins/pushover-commander/CLAUDE.md). Do NOT revert to bare python3.
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
-        python3 -c "import yaml; m = yaml.safe_load(open('$ITER160_ITER158_MANIFEST_ABSOLUTE_PATH')); assert m[0]['language'] == 'script', f'wrong language: {m[0][\"language\"]}'"
+        uv run --python 3.14 --with pyyaml python -c "import yaml; m = yaml.safe_load(open('$ITER160_ITER158_MANIFEST_ABSOLUTE_PATH')); assert m[0]['language'] == 'script', f'wrong language: {m[0][\"language\"]}'"
     iter160_iter158_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
     iter160_iter158_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
     if [[ "$iter160_iter158_exit" -eq 0 ]]; then
