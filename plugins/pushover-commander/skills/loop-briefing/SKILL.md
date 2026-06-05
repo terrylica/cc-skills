@@ -5,6 +5,8 @@ description: Notify the user via Pushover when an autonomous Claude Code /loop i
 
 # loop-briefing
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 The original goal skill: a contextually-invoked briefing for autonomous `/loop` runs. Built on the TS core `pushover_core.ts loop-brief`, which gathers context (project, cwd, branch, `git status`, recent commits, plus any details you pass), renders it (Satori → PNG), and sends it (emergency+receipt for blocked, high-priority for done).
 
 ```bash
@@ -23,3 +25,12 @@ env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover
 2. **Done** — no meaningful remaining work under the initial or updated directives; the loop should stop scheduling further wakeups (CronDelete).
 
 Do **not** fire for routine progress. The `--body -` form reads details from stdin.
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the block/done briefing fire at the right moment with the right git and session context?** If it fired on routine progress or missed a real block, fix the trigger.
+2. **Was the emergency vs high-priority routing correct?** Blocked = emergency+receipt, done = high-priority — fix if swapped.
+
+Only update if the issue is real and reproducible — not speculative.
