@@ -18,7 +18,31 @@ mise tasks ls 2>/dev/null | grep -i release
 ```
 
 **If tasks exist** → skip to [Step 3: Execute](#step-3-execute).
-**If tasks NOT found** → continue to Step 2.
+**If tasks NOT found** → continue to Step 1b.
+
+## Step 1b: Classify the Repo Before Scaffolding
+
+Not every repo is a publishable package. Before bootstrapping a versioning/publish pipeline, decide what kind of repo this is:
+
+```bash
+ls pyproject.toml Cargo.toml package.json setup.py go.mod 2>/dev/null || echo "NO_PACKAGE_MANIFEST"
+```
+
+- **Has a package manifest** (Python/Rust/Node/Go) → publishable repo. Continue to **Step 2** (scaffold a version+publish pipeline).
+- **NO package manifest AND no existing release infra** → this is a **docs / config / sync repo** (personal dotfiles, notes, or a multi-machine `git`-synced config repo). There is nothing to version or publish. **Do NOT scaffold `semantic-release`.** For these repos, "release" = **sync to origin**:
+
+  ```bash
+  git fetch origin
+  git rev-list --left-right --count origin/<branch>...HEAD   # behind  ahead
+  [ -z "$(git status --porcelain)" ] || echo "DIRTY — commit or stash first"
+  # Only when the user has asked to release/ship (push only on request):
+  git push origin <branch>
+  git fetch origin && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/<branch>)" ] && echo "✅ synced — release complete"
+  ```
+
+  If `behind > 0`, reconcile first (`git pull --rebase` or merge) before pushing. Optionally scaffold a minimal `release:full` = `preflight` (clean tree + correct branch + up-to-date) → `push` → `verify` (origin == HEAD), with NO version/publish phases — but only if the user wants repeatable sync; otherwise the one-shot push above IS the whole release.
+
+  _Evidence (2026-06-04): invoked on `claude-sys`, a multi-machine git-synced config/docs repo — no package manifest, no `.mise.toml`, no semantic-release. Correct action was a fast-forward `git push origin main` + HEAD==origin verify, NOT a pipeline scaffold. Audit-first (Step 2a's ecosystem check) is what surfaced this; promoting it to an explicit Step 1b gate prevents the wrong reflex of scaffolding a publish pipeline on a repo with nothing to publish._
 
 ## Step 2: Bootstrap Release Workflow
 
