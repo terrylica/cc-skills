@@ -1,0 +1,15 @@
+{
+  "name": "po-core",
+  "private": true,
+  "type": "module",
+  "description": "po plugin TypeScript core (Bun): Pushover send/emergency/sounds + Satori report rendering.",
+  "dependencies": {
+    "@resvg/resvg-js": "latest",
+    "satori": "latest",
+    "satori-html": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "latest"
+  }
+}
