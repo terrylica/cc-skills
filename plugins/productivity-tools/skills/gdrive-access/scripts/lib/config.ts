@@ -17,21 +17,21 @@ const ENV_GDRIVE_OP_VAULT = "GDRIVE_OP_VAULT";
  * Exits with self-guiding error if not configured
  */
 export function getOpUuid(): string {
-  const uuid = process.env[ENV_GDRIVE_OP_UUID];
+	const uuid = process.env[ENV_GDRIVE_OP_UUID];
 
-  if (!uuid) {
-    printSetupError();
-    process.exit(1);
-  }
+	if (!uuid) {
+		printSetupError();
+		process.exit(1);
+	}
 
-  return uuid;
+	return uuid;
 }
 
 /**
  * Get 1Password vault from environment (default: Employee)
  */
 export function getOpVault(): string {
-  return process.env[ENV_GDRIVE_OP_VAULT] ?? "Employee";
+	return process.env[ENV_GDRIVE_OP_VAULT] ?? "Employee";
 }
 
 /**
@@ -39,21 +39,26 @@ export function getOpVault(): string {
  * Tokens stored centrally at ~/.claude/tools/gdrive-tokens/<uuid>.json
  */
 export function getTokenPath(uuid?: string): string {
-  const actualUuid = uuid ?? getOpUuid();
-  const tokensDir = join(homedir(), ".claude", "tools", "gdrive-tokens");
-  return join(tokensDir, `${actualUuid}.json`);
+	const actualUuid = uuid ?? getOpUuid();
+	const tokensDir = join(homedir(), ".claude", "tools", "gdrive-tokens");
+	return join(tokensDir, `${actualUuid}.json`);
 }
 
 /**
  * Get tokens directory path
  */
 export function getTokensDir(): string {
-  return join(homedir(), ".claude", "tools", "gdrive-tokens");
+	return join(homedir(), ".claude", "tools", "gdrive-tokens");
 }
 
-// Google Drive API scopes - readonly for file access
+// Google Drive API scopes.
+// - drive.readonly: read/list/download any file the user can access (the original read-only surface).
+// - drive.file: create + manage files this app creates (powers `create-doc`; least-privilege write —
+//   NOT full-drive access). Adding it changes the consent set, so existing read-only users re-consent
+//   the first time they use a write command (delete ~/.claude/tools/gdrive-tokens/<uuid>.json to force it).
 export const SCOPES = [
-  "https://www.googleapis.com/auth/drive.readonly",
+	"https://www.googleapis.com/auth/drive.readonly",
+	"https://www.googleapis.com/auth/drive.file",
 ] as const;
 
 // OAuth callback server configuration
@@ -65,7 +70,7 @@ export const EPHEMERAL_PORT_RANGE = 16383;
  * Print self-guiding setup error
  */
 function printSetupError(): void {
-  const message = `
+	const message = `
 ╔══════════════════════════════════════════════════════════════╗
 ║                 GDRIVE TOOL - SETUP REQUIRED                 ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -94,5 +99,5 @@ Run: /gdrive-tools:setup
 See: ~/.claude/plugins/marketplaces/cc-skills/plugins/gdrive-tools/
      skills/gdrive-access/references/gdrive-api-setup.md
 `;
-  console.error(message);
+	console.error(message);
 }

@@ -188,6 +188,43 @@ $GDRIVE_CLI sync <folder_id> -o ./output_dir -r
 $GDRIVE_CLI list <folder_id> --json
 ```
 
+## Creating a native Google Doc (write)
+
+`create-doc` uploads a local **HTML** (or `.docx`) source and has Drive convert it into a **native
+Google Doc** (`application/vnd.google-apps.document`) — the team can open + comment on it directly, no
+"convert" step. This is the recommended Drive pattern: `files.create` with the **target** mimeType in the
+metadata and the **source** bytes as media, sent as a _multipart_ upload (a simple upload silently skips
+conversion).
+
+```bash
+# Markdown is the usual author format → HTML (highest-fidelity import) → native Google Doc
+pandoc notes.md -o /tmp/notes.html --standalone
+$GDRIVE_CLI create-doc /tmp/notes.html --name "Meeting Notes" --parent <folder_id>
+# → prints the new Doc's id, mimeType (application/vnd.google-apps.document), and docs.google.com link
+
+# Overwrite an existing Doc's contents in place (keeps the same id / link / comments):
+$GDRIVE_CLI create-doc /tmp/notes.html --update <doc_id>
+```
+
+**Why not rclone / `.docx`?** rclone's `--drive-import-formats` is unreliable for this (name-collision
+and sync-confusion gotchas), and a plain `.docx` in Drive opens in Docs but isn't a _native_ Doc. The Drive
+API conversion above is the robust FOSS path.
+
+**Write scope (one-time re-auth).** `create-doc` needs the `drive.file` scope (create/manage files this
+app makes — least-privilege, NOT full-drive). It was added alongside the original `drive.readonly`, so the
+first write re-prompts for consent. If it doesn't, force it:
+`rm ~/.claude/tools/gdrive-tokens/$GDRIVE_OP_UUID.json` then re-run. `--update` only works on Docs this app
+created (drive.file limitation); to overwrite externally-created Docs, broaden the scope to `auth/drive`.
+
+## Rate limits & retries (built in)
+
+Drive returns **HTTP 403 `rateLimitExceeded` / `userRateLimitExceeded`** (and sometimes **429**) when a
+project bursts too many queries — we hit this doing several writes back-to-back. The CLI now wraps every
+Drive call in **exponential backoff with jitter** (`withBackoff` in `lib/drive.ts`): wait
+`min(2^n·1000 + random_ms, 64s)`, finite retries, per Google's official guidance. Non-rate-limit errors
+still fail loud. To stay under the limit proactively: **batch / space out** bulk operations, avoid
+redundant metadata calls, and don't refresh the token on every call.
+
 ## Extracting Folder ID from URL
 
 Google Drive folder URL:
