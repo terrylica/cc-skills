@@ -1,0 +1,11 @@
+# TS core deps (regenerated via `bun install` in skills/_lib/)
+node_modules/
+*.bun-build
+.bun/
+# tool caches
+.ruff_cache/
+__pycache__/
+*.pyc
+# never commit a real private config or token cache (these live under ~/.claude)
+pushover-commander.local.env
+apps_inventory.json
