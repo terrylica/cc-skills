@@ -54,6 +54,7 @@
  */
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { readStdinTextWithTimeout } from "./lib/stdin-timeout.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -200,8 +201,10 @@ function extractText(input: HookInput): string {
 
 async function main(): Promise<void> {
   let inputText = "";
-  for await (const chunk of Bun.stdin.stream()) {
-    inputText += new TextDecoder().decode(chunk);
+  try {
+    inputText = await readStdinTextWithTimeout();
+  } catch {
+    process.exit(0); // stdin read timed out → fail-open
   }
 
   let input: HookInput;

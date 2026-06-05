@@ -17,6 +17,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readStdinTextWithTimeout } from "./lib/stdin-timeout.ts";
 import { join, basename } from "path";
 import { execSync } from "child_process";
 import { homedir } from "os";
@@ -648,8 +649,10 @@ function checkImplementationCode(
 async function main(): Promise<void> {
   // Read JSON from stdin
   let inputText = "";
-  for await (const chunk of Bun.stdin.stream()) {
-    inputText += new TextDecoder().decode(chunk);
+  try {
+    inputText = await readStdinTextWithTimeout();
+  } catch {
+    process.exit(0); // stdin read timed out → fail-open
   }
 
   let input: HookInput;
