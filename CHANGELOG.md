@@ -2225,7 +2225,6 @@ require manual contract editing.
 - [gemini-deep-research Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gemini-deep-research/CLAUDE.md) - updated (+4)
 - [gh-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gh-tools/CLAUDE.md) - updated (+14/-9)
 - [git-town-workflow Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/CLAUDE.md) - updated (+7)
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+4/-6)
 - [Gmail Commander Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gmail-commander/CLAUDE.md) - updated (+22/-10)
 - [itp-hooks Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/CLAUDE.md) - updated (+13/-4)
 - [itp Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/itp/CLAUDE.md) - updated (+15/-17)
@@ -3549,16 +3548,6 @@ require manual contract editing.
 - [fork](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/fork/SKILL.md) - updated (+14/-12)
 - [hooks](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/hooks/SKILL.md) - updated (+15)
 - [setup](https://github.com/terrylica/cc-skills/blob/main/plugins/git-town-workflow/skills/setup/SKILL.md) - updated (+14/-12)
-
-</details>
-
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+15)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+15)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+15)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+15)
 
 </details>
 
@@ -6617,7 +6606,6 @@ require manual contract editing.
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Correct --repo flag documentation (optional not absent) ([ab3bd19](https://github.com/terrylica/cc-skills/commit/ab3bd19d971bfa6b79a45a8d33169dbce3ccfb6d))
 
 
 
@@ -6631,29 +6619,17 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+2/-8)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+2/-8)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+2/-8)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+2/-8)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+17/-11)
 
 # [11.90.0](https://github.com/terrylica/cc-skills/compare/v11.89.0...v11.90.0) (2026-03-08)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Add pre-flight check and remove phantom --repo flag ([b25fc7f](https://github.com/terrylica/cc-skills/commit/b25fc7fb0f3ca3546633f8977d8be571d8c0802d))
 
 
 ### Features
@@ -6679,22 +6655,11 @@ require manual contract editing.
 
 </details>
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+17/-11)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+20/-15)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+20/-15)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+15/-9)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+13/-12)
 
 # [11.89.0](https://github.com/terrylica/cc-skills/compare/v11.88.0...v11.89.0) (2026-03-08)
 
@@ -7002,7 +6967,6 @@ require manual contract editing.
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Remove all hooks — invoke via skills only ([847eab9](https://github.com/terrylica/cc-skills/commit/847eab9012085796783bea0c97cb709dc85cd35e))
 
 # [11.83.0](https://github.com/terrylica/cc-skills/compare/v11.82.0...v11.83.0) (2026-03-07)
 
@@ -7334,7 +7298,6 @@ require manual contract editing.
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Add npx fallback for gitnexus CLI shim resolution ([6199591](https://github.com/terrylica/cc-skills/commit/61995911044c7749ecd9e520303aa15229e6d23b))
 
 
 
@@ -7348,22 +7311,11 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+11/-8)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+13/-12)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+14/-11)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+10/-7)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+11/-10)
 
 ## [11.77.7](https://github.com/terrylica/cc-skills/compare/v11.77.6...v11.77.7) (2026-03-06)
 
@@ -7372,7 +7324,6 @@ require manual contract editing.
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Remove Read from CLI reminder hook matcher ([5a63d30](https://github.com/terrylica/cc-skills/commit/5a63d305079ab7d333fbc3a7a9ad3858abe848a2))
 
 
 
@@ -7386,14 +7337,12 @@ require manual contract editing.
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+5/-5)
 
 ## [11.77.5](https://github.com/terrylica/cc-skills/compare/v11.77.4...v11.77.5) (2026-03-06)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Auto-reindex when stale instead of suggesting manual reindex ([75f7f92](https://github.com/terrylica/cc-skills/commit/75f7f92dc3033138cb69b6d763e3424703bb6f4a))
 
 
 
@@ -7406,22 +7355,12 @@ require manual contract editing.
 ## Plugin Documentation
 
 ### Skills
-
-<details>
-<summary><strong>gitnexus-tools</strong> (3 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+8/-2)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+8/-2)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+8/-2)
-
-</details>
 
 ## [11.77.4](https://github.com/terrylica/cc-skills/compare/v11.77.3...v11.77.4) (2026-03-06)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** Add --repo flag to all skills and hooks for multi-repo support ([310b9bb](https://github.com/terrylica/cc-skills/commit/310b9bbe4974861b15ba8fdc3ce31483d257d6c0))
 
 
 
@@ -7434,16 +7373,6 @@ require manual contract editing.
 ## Plugin Documentation
 
 ### Skills
-
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+13/-7)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+19/-10)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+17/-10)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+12/-6)
-
-</details>
 
 
 ## Repository Documentation
@@ -7457,7 +7386,6 @@ require manual contract editing.
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+15/-9)
 
 ## [11.77.3](https://github.com/terrylica/cc-skills/compare/v11.77.2...v11.77.3) (2026-03-05)
 
@@ -7473,22 +7401,11 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+6/-6)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+9/-9)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+9/-9)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+5/-5)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+11/-11)
 
 ## [11.77.2](https://github.com/terrylica/cc-skills/compare/v11.77.1...v11.77.2) (2026-03-05)
 
@@ -8488,7 +8405,6 @@ require manual contract editing.
 
 ### Bug Fixes
 
-* **gitnexus-tools:** remove non-existent --repo flag from all CLI examples ([bd9a788](https://github.com/terrylica/cc-skills/commit/bd9a788370dfcb6292da56df7216a84e0fb8161f))
 * **tts:** unify lock protocol — tts_read_clipboard uses shared kokoro-tts.lock ([15deb40](https://github.com/terrylica/cc-skills/commit/15deb4071df875fe61b0acca6e02f1abc492fdf5))
 
 
@@ -8503,29 +8419,17 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+10/-16)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+14/-21)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+15/-22)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+16/-22)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+12/-12)
 
 ## [11.62.4](https://github.com/terrylica/cc-skills/compare/v11.62.3...v11.62.4) (2026-02-28)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** add CLI ONLY warning to skill description frontmatter ([9f6c7c3](https://github.com/terrylica/cc-skills/commit/9f6c7c30db4644dd0804209e66ab7e03beac9e72))
 
 
 
@@ -8538,30 +8442,18 @@ require manual contract editing.
 ## Plugin Documentation
 
 ### Skills
-
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+1/-1)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+1/-1)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+1/-1)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+1/-1)
-
-</details>
 
 ## [11.62.3](https://github.com/terrylica/cc-skills/compare/v11.62.2...v11.62.3) (2026-02-28)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** resolve cwd from process.cwd() when file_path is outside repo ([696b18a](https://github.com/terrylica/cc-skills/commit/696b18abc36cd306ce0f8b76b1328470053c89a4))
 
 ## [11.62.2](https://github.com/terrylica/cc-skills/compare/v11.62.1...v11.62.2) (2026-02-28)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** strengthen MCP prohibition and document --repo flag ([2cd0905](https://github.com/terrylica/cc-skills/commit/2cd0905edd1c8e6a841b58b55d2c112ad8dcd2ef))
 
 
 
@@ -8575,29 +8467,17 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - updated (+19/-9)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - updated (+24/-13)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - updated (+25/-14)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - updated (+18/-8)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+13/-8)
 
 ## [11.62.1](https://github.com/terrylica/cc-skills/compare/v11.62.0...v11.62.1) (2026-02-28)
 
 
 ### Bug Fixes
 
-* **gitnexus-tools:** replace broken PreToolUse MCP hook with PostToolUse CLI reminder ([74f5a89](https://github.com/terrylica/cc-skills/commit/74f5a89ec124c9868b10d5ed7befc272c562c5be))
 
 
 
@@ -8611,14 +8491,12 @@ require manual contract editing.
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+7/-7)
 
 # [11.62.0](https://github.com/terrylica/cc-skills/compare/v11.61.2...v11.62.0) (2026-02-28)
 
 
 ### Features
 
-* **gitnexus-tools:** add PreToolUse hook to redirect MCP calls to CLI ([d098751](https://github.com/terrylica/cc-skills/commit/d098751ae2c8ccbf28beee7e55b75247e6507ed0))
 
 
 
@@ -8632,7 +8510,6 @@ require manual contract editing.
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - updated (+9/-4)
 
 ## [11.61.2](https://github.com/terrylica/cc-skills/compare/v11.61.1...v11.61.2) (2026-02-28)
 
@@ -8653,7 +8530,6 @@ require manual contract editing.
 
 ### Features
 
-* **gitnexus-tools:** GitNexus knowledge graph skills and staleness hooks ([7d58c1f](https://github.com/terrylica/cc-skills/commit/7d58c1ff4126f556c24059b8526a9197c525c584))
 
 
 
@@ -8667,22 +8543,11 @@ require manual contract editing.
 
 ### Skills
 
-<details>
-<summary><strong>gitnexus-tools</strong> (4 changes)</summary>
-
-- [dead-code](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/dead-code/SKILL.md) - new (+107)
-- [explore](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/explore/SKILL.md) - new (+83)
-- [impact](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/impact/SKILL.md) - new (+91)
-- [reindex](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/skills/reindex/SKILL.md) - new (+72)
-
-</details>
-
 
 ## Other Documentation
 
 ### Other
 
-- [gitnexus-tools Plugin](https://github.com/terrylica/cc-skills/blob/main/plugins/gitnexus-tools/CLAUDE.md) - new (+71)
 
 # [11.60.0](https://github.com/terrylica/cc-skills/compare/v11.59.3...v11.60.0) (2026-02-27)
 
