@@ -4,13 +4,17 @@ SSoT for all 1Password items Claude Code uses programmatically via `op` CLI.
 
 ## Service Account Tokens
 
-| Token                                            | Vault             | Permissions                    | Item ID                      | Expires    |
-| ------------------------------------------------ | ----------------- | ------------------------------ | ---------------------------- | ---------- |
-| **Claude Automation 3** (primary, write-enabled) | Claude Automation | read/write items, ACL, devices | `f7zsfibfvzluw4ahe2qxv3ddee` | 2026-07-13 |
+**There is exactly ONE service account** (consolidated 2026-06-06 — two redundant accounts deleted). Integration `HCQV4B6F5VFFVNB5THPNNH5ALQ`, read + write (full CRUD).
 
-**Retrieval**: `op item get f7zsfibfvzluw4ahe2qxv3ddee --vault ggk4orq7rmcm7jinsb4ahygv7e --fields credential --reveal`
+| Token                                                         | Vault             | Permissions                    | Item ID (cloud master)       | Expires        |
+| ------------------------------------------------------------- | ----------------- | ------------------------------ | ---------------------------- | -------------- |
+| **Claude Code · read-write · Claude Automation vault (only)** | Claude Automation | read/write items, ACL, devices | `f7zsfibfvzluw4ahe2qxv3ddee` | Doesn't expire |
 
-**Usage (write operations)**: `OP_SERVICE_ACCOUNT_TOKEN="$(op item get f7zsfibfvzluw4ahe2qxv3ddee --vault ggk4orq7rmcm7jinsb4ahygv7e --fields credential --reveal)" op item create ...`
+**Single source of truth**: the secret value lives authoritatively in 1P item `f7zsfibfvzluw4ahe2qxv3ddee` (cloud master) and is materialized to one local cache file `~/.claude/.secrets/op-service-account-token` (mode `0600`), which every consumer reads. No other copies.
+
+**Retrieval (cloud master)**: `op item get f7zsfibfvzluw4ahe2qxv3ddee --vault ggk4orq7rmcm7jinsb4ahygv7e --fields credential --reveal`
+
+**Usage (reads or writes — single R/W token)**: `OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" op item create ...`
 
 ## Vault Directory
 
@@ -21,13 +25,13 @@ SSoT for all 1Password items Claude Code uses programmatically via `op` CLI.
 
 ## Credential Items (Claude Automation vault)
 
-| Item                             | Item ID                      | Category       | Used By                                           |
-| -------------------------------- | ---------------------------- | -------------- | ------------------------------------------------- |
-| Cloudflare Global API Key        | `u34n7vav7t7mgbtn3ccsaw5mfi` | API credential | ccmax-monitor CF operations                       |
-| Tailscale API Key (eon tailnet)  | `7qpluad2eax23oraimkop7j2jy` | API credential | Tailscale ACL/device automation                   |
-| Pushover - cc-skills             | `dg5ng7vgj6dmmtc2vavo5kfko4` | API credential | Observability fleet (verbatim+UUID notifications) |
-| FXView MT5 Demo Account (401678) | `ulpysnzzs4vwow3xbcpnsrkqrm` | Login          | Demo feed parity testing                          |
-| SA Token: Claude Automation 3    | `f7zsfibfvzluw4ahe2qxv3ddee` | Token          | Write-enabled SA for vault operations             |
+| Item                                                                 | Item ID                      | Category       | Used By                                             |
+| -------------------------------------------------------------------- | ---------------------------- | -------------- | --------------------------------------------------- |
+| Cloudflare Global API Key                                            | `u34n7vav7t7mgbtn3ccsaw5mfi` | API credential | ccmax-monitor CF operations                         |
+| Tailscale API Key (eon tailnet)                                      | `7qpluad2eax23oraimkop7j2jy` | API credential | Tailscale ACL/device automation                     |
+| Pushover - cc-skills                                                 | `dg5ng7vgj6dmmtc2vavo5kfko4` | API credential | Observability fleet (verbatim+UUID notifications)   |
+| FXView MT5 Demo Account (401678)                                     | `ulpysnzzs4vwow3xbcpnsrkqrm` | Login          | Demo feed parity testing                            |
+| SA Token — Claude Code · read-write · Claude Automation vault (only) | `f7zsfibfvzluw4ahe2qxv3ddee` | Token          | The single R/W service-account token (cloud master) |
 
 ### Pushover credential fields (`dg5ng7vgj6dmmtc2vavo5kfko4`)
 
