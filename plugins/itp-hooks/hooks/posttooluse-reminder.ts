@@ -484,6 +484,89 @@ function checkFileSizeReminder(filePath: string): string | null {
 }
 
 /**
+ * Check Bun/TypeScript loop/batch tooling for SWALLOWED errors → nudge fail-fast.
+ *
+ * Motivation (2026-06-08, yukon referral-intake non-PDF back-scan): a long-running
+ * Bun-TS scanner caught each per-item error, logged it, and `continue`d — silently
+ * masking a HEIC-decode failure and a network TimeoutError until the operator
+ * happened to eyeball the output. The durable lesson: long-running Bun-TS loop
+ * tooling should FAIL FAST — halt on a non-transient error (after bounded
+ * retries), persist resumable state, and exit non-zero — so the error surfaces,
+ * gets fixed, and the run is restarted (resuming), rather than swallow-and-continue
+ * which masks regressions and forces manual intervention later.
+ *
+ * This is a REMINDER (warn + allow), never a block. It also reinforces the repo
+ * convention of building tooling in Bun + TypeScript with proper wiring.
+ *
+ * Fires only when ALL hold (high-precision, low-noise — better to under-fire
+ * than nag correct code):
+ *   - file is Bun/TS/JS source (.ts/.tsx/.mts/.cts/.js/.mjs/.cjs), non-test
+ *   - file has an AWAITED loop (for/while/.map/.forEach + `await`) → it's a
+ *     batch / long-running iteration tool, the class where swallowing bites
+ *   - a catch block swallows-and-continues:  catch (…) { … continue }
+ *   - file has NO fail-fast path at all: no `throw`, no `process.exit(<non-zero>)`
+ * Escape hatch: add `FAIL-FAST-OK` anywhere in the file.
+ */
+function checkFailFastErrorHandling(
+  filePath: string,
+  content?: string,
+): string | null {
+  // Bun / TypeScript / JavaScript source only.
+  if (!/\.(ts|tsx|mts|cts|js|mjs|cjs)$/.test(filePath)) return null;
+
+  // Skip test files (fixtures legitimately model swallow-and-continue).
+  const fileName = filePath.split("/").pop() || "";
+  if (/\.(test|spec)\.(ts|tsx|mts|cts|js|mjs|cjs)$/.test(fileName)) return null;
+  if (filePath.includes("__tests__/") || filePath.includes("/tests/")) return null;
+
+  // Resolve content (PostToolUse ⇒ file is durable on disk).
+  let text = content;
+  if (!text && existsSync(filePath)) {
+    try {
+      text = readFileSync(filePath, "utf-8");
+    } catch {
+      return null;
+    }
+  }
+  if (!text) return null;
+
+  // Escape hatch.
+  if (text.includes("FAIL-FAST-OK")) return null;
+
+  // Signal 1: awaited loop ⇒ batch / long-running iteration tool.
+  const hasLoop =
+    /\b(for|while)\s*\(/.test(text) ||
+    /\bfor\s+(const|let|var)\b[^\n]*\bof\b/.test(text) ||
+    /\.(map|forEach)\s*\(/.test(text);
+  const hasAwait = /\bawait\b/.test(text);
+  if (!(hasLoop && hasAwait)) return null;
+
+  // Signal 2: a catch block that swallows-and-continues. Bounded look-ahead
+  // (≤400 chars) keeps the match inside the catch body, not a later loop.
+  const swallowsAndContinues = /catch\s*\([^)]*\)\s*\{[\s\S]{0,400}?\bcontinue\b/.test(text);
+  if (!swallowsAndContinues) return null;
+
+  // Signal 3: NO fail-fast path anywhere in the file. If it already throws or
+  // exits non-zero, the author has a halt mechanism ⇒ stay quiet.
+  const hasFailFast = /\bthrow\b/.test(text) || /process\.exit\s*\(\s*[1-9]/.test(text);
+  if (hasFailFast) return null;
+
+  return `[FAIL-FAST-REMINDER] ${fileName} looks like a long-running Bun/TS loop that catches errors and \`continue\`s — i.e. it SWALLOWS failures. This is how silent regressions hide (a decode/network error gets logged and skipped, surfacing only if someone eyeballs the output).
+
+PREFER fail-fast for batch/long-running tooling:
+- Retry only TRANSIENT errors (timeout / 5xx / rate-limit) with bounded backoff.
+- On a non-transient error AFTER retries: persist resumable state, print a clear
+  diagnostic (which item + why), and HALT (exit non-zero) — do not mark-and-continue.
+- Make the run RESUMABLE so a restart picks up where it stopped after the fix.
+- Offer an explicit opt-out (e.g. SKIP_BAD=1) to skip known-bad items on purpose.
+
+WHY: surfacing errors immediately → fix → restart beats swallowing → silent gaps
+→ manual archaeology later. Build this wiring in Bun + TypeScript (repo default).
+
+Add \`FAIL-FAST-OK\` to suppress if this loop intentionally tolerates per-item failures.`;
+}
+
+/**
  * Check if a Python file looks like a long-running service/daemon but is missing setproctitle.
  * Without setproctitle, all Python services appear as generic "python" in ps/top/Activity Monitor.
  *
@@ -733,6 +816,11 @@ async function main(): Promise<void> {
     // Check file size for code files (500-1000 line soft reminder)
     if (!reminder) {
       reminder = checkFileSizeReminder(rawFilePath);
+    }
+
+    // Check Bun/TS loop/batch tooling for swallowed errors → nudge fail-fast
+    if (!reminder) {
+      reminder = checkFailFastErrorHandling(rawFilePath, content);
     }
 
     if (reminder) {
