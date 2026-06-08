@@ -55,7 +55,7 @@ local pragma delta from upstream (iter-81).
 | --------------------------- | -------------------------------------------------------------------------------- |
 | `/floating-clock:install`   | Build + copy to `/Applications/` + launch                                        |
 | `/floating-clock:launch`    | Open the installed (or local) app                                                |
-| `/floating-clock:quench`      | Terminate the running clock                                                      |
+| `/floating-clock:quench`    | Terminate the running clock                                                      |
 | `/floating-clock:diagnose`  | One-page health report (binary info, signing, process, active profile, tests)    |
 | `/floating-clock:uninstall` | Quit, remove from `/Applications/`, clear NSUserDefaults (confirmation required) |
 
@@ -260,6 +260,31 @@ Every user-visible UI element has a stable canonical short name so feedback can 
 | `[TIME]`   | `LocalSegmentView.timeLabel` | TIME — user-local time text inside [LOCAL] (NSToolTip only; no corner overlay since the label fills the segment) |
 
 Sub-element names for elements that live inside attributed-string content (e.g. `[PROGRESSBAR]`, `[COUNTDOWN]`, `[HEADER-LEGEND]`, `[SKYGLYPH]`, `[DATE]`, `[MARKETCODE]`) can't use NSToolTip directly because `NSAttributedString` text runs aren't distinct `NSView`s. A future iter may add a custom NSView overlay that turns on text-run hit-testing when `ShowDebugLabels` is YES; for now the names stay as a paper reference so the user can call them out verbally ("the [COUNTDOWN] column right-aligns oddly when the market has lunch") and we find them in code by grep.
+
+## Generic external-state status indicator (`VPNStatusIndicator`, 2026-06-07)
+
+A second banner alongside the mic-mute bar: `Sources/core/VPNStatusIndicator.{h,m}`.
+It shows a colored bar (default violet `#8B2FE6`) above the clock — and **above the
+mic-mute bar when that one is showing** (via the new `FCMicMuteIndicator -isShowing`) —
+whenever an external **state file** exists on disk. Same `NSPanel`+CALayer mechanics, the
+same 1 Hz refresh off the clock `tick`, and `syncPosition` from `windowDidMove:`.
+
+Deliberately **generic and secret-free** — it has no idea what the state represents (a
+VPN, tunnel, build, backup). Everything is `NSUserDefaults`-driven (domain
+`com.terryli.floating-clock`) and it is **disabled by default**, so the public build ships
+inert until a deployment opts in:
+
+| default key             | type   | default                               | meaning                        |
+| ----------------------- | ------ | ------------------------------------- | ------------------------------ |
+| `VPNIndicatorEnabled`   | BOOL   | `NO`                                  | master on/off                  |
+| `VPNIndicatorStateFile` | string | `~/.config/floating-clock/vpn-active` | bar shows iff this path exists |
+| `VPNIndicatorLabel`     | string | `"VPN"`                               | bar text                       |
+| `VPNIndicatorColorHex`  | string | `"#8B2FE6"`                           | bar color `#RRGGBB`            |
+
+A deployment wires it up by (a) `defaults write com.terryli.floating-clock VPNIndicatorEnabled -bool YES`
+(+ optional label/color/path overrides) and (b) having some external toggle create/remove
+the state file. Keep this plugin free of any host/IP/secret — the _meaning_ of the state
+(and the toggle that drives it) lives in the operator's private infra repo, never here.
 
 ## Known limitations
 

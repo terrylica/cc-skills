@@ -11,6 +11,7 @@
 #import "segments/FloatingClockSegmentViews.h"
 #import "core/FloatingClockPanel.h"
 #import "core/MicMuteIndicator.h"
+#import "core/VPNStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
 #import "menu/FloatingClockPanel+MenuBuilder.h"
 #import "core/FloatingClockPanel+Runtime.h"
@@ -207,6 +208,12 @@
     // layout pass so the panel frame is real; positions itself on first read.
     _micMuteIndicator = [[FCMicMuteIndicator alloc] initWithClockPanel:self
                                                             deviceName:@"Antlion USB Microphone"];
+
+    // Generic external-state status banner (default violet "VPN"); stacks
+    // above the mic-mute bar. Disabled unless VPNIndicatorEnabled is set in
+    // defaults — see VPNStatusIndicator.h. Configured locally; secret-free.
+    _vpnStatusIndicator = [[FCVPNStatusIndicator alloc] initWithClockPanel:self
+                                                             micIndicator:_micMuteIndicator];
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak
