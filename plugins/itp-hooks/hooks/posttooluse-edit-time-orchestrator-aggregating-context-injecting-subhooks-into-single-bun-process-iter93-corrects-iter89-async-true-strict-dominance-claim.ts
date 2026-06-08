@@ -75,6 +75,7 @@ import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome
 import { classifyValeClaudeMdForPostToolUseOrchestrator } from "./posttooluse-vale-claude-md.ts";
 import { classifySsotPrinciplesForPostToolUseOrchestrator } from "./posttooluse-ssot-principles.ts";
 import { classifyMemoryEfficiencyReminderForPostToolUseOrchestrator } from "./posttooluse-memory-efficiency-reminder.ts";
+import { classifyClaudeMdSizeBudgetForPostToolUseOrchestrator } from "./posttooluse-claude-md-size-budget-reminder.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -137,6 +138,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifySsotPrinciplesForPostToolUseOrchestrator,
     description:
       "Surfaces a SSoT/DI principles reminder ONCE PER SESSION on the first eligible code-file Write/Edit (.py/.ts/.tsx/.js/.jsx/.rs/.go/.java/.kt/.rb; test files excluded). Runs `ast-grep scan --json` to append any anti-pattern findings (hardcoded defaults, direct env-var reads, etc.) to the static reminder text. Iter-97 SIXTH inlined PostToolUse subhook (6/15 in arc) and FIRST migration that creates real Promise.all parallel fan-out — overlaps with ty (.py), tsgo + oxlint + biome (.ts/.tsx), and oxlint + biome (.js/.jsx). Iter-97 also remediates three adversarial-audit findings vs the pre-iter-97 standalone hook: (a) latent /tmp temp-file race — pre-iter-97 wrote proposed content to a fixed scratch path under /tmp keyed only by file-extension suffix, so two concurrent sessions writing the same extension would corrupt each other's scan buffer; iter-97 scans filePath directly per PostToolUse invariant (file is on disk by the time we run); (b) shell-spawn overhead — pre-iter-97 used `bun $` template literal (shell parse cost ~5-10ms); iter-97 uses iter-95 shared `executeBunSubprocessAsync...` helper (`Bun.spawn` direct); (c) no cooperative timeout — pre-iter-97 had no AbortSignal bound; iter-97 inherits the shared helper's 2000ms timeout + 256KiB maxBuffer guardrail. Algorithm encoded in `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator` (re-exported as `classifySsotPrinciplesForPostToolUseOrchestrator` for symmetric naming).",
+  },
+  {
+    name: "claude-md-size-budget",
+    timeoutMs: 2000,
+    classify: classifyClaudeMdSizeBudgetForPostToolUseOrchestrator,
+    description:
+      "After every Write/Edit/MultiEdit of a file basenamed exactly CLAUDE.md, counts CHARACTERS (content.length / UTF-16 code units — Claude Code's own string-length measure, exact for CJK; NOT bytes) and, at >=36k (90% of the 40k hard limit), injects a hub-and-spoke refactor reminder BEFORE the file silently stops loading. 8th inlined PostToolUse subhook (8/15 in the iter-93+ arc). 2026-06-07: replaces a prior standalone byte-counting version that false-alarmed on non-ASCII CLAUDE.md (a 28k-char CJK file is 42k bytes and was wrongly reported OVER-limit). Strict basename match (spokes like principles-CLAUDE.md are on-demand Reads, exempt from the auto-load limit). Escape hatch: CLAUDE-MD-SIZE-OK marker. Reason wrapped in the canonical truncation helper. Pure single-file-read classifier, no subprocess; lightest-first registry position LAST (cheap basename pre-filter pre-empts the read). Algorithm encoded in classifyClaudeMdCharacterCountBudgetForPostToolUseOrchestrator (alias classifyClaudeMdSizeBudgetForPostToolUseOrchestrator).",
   },
 ];
 
