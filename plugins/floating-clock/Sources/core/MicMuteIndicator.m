@@ -2,6 +2,7 @@
 #import <CoreAudio/CoreAudio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
+#import <stdlib.h>
 
 // Banner geometry. Height is fixed; width tracks the clock each sync.
 static const CGFloat kBannerHeight = 20.0;
@@ -22,7 +23,75 @@ typedef struct {
     volatile int32_t silent;          // 1 when sustained digital silence
     double           silentRunFrames;  // consecutive silent frames
     double           sampleRate;
+    volatile double  lastRMS;         // DEBUG: most recent RMS from the IOProc
+    volatile int64_t cbCount;         // DEBUG: total IOProc callbacks (liveness)
+    volatile int64_t lastFrames;      // DEBUG: frames in the most recent buffer
 } FCMeter;
+
+#pragma mark - DEBUG instrumentation (FC_MIC_DEBUG=1) — data-flow tracing
+
+static BOOL FCMicDebugOn(void) {
+    static int v = -1;
+    if (v < 0) v = (getenv("FC_MIC_DEBUG") != NULL) ? 1 : 0;
+    return v;
+}
+
+// Human-readable name of a device id (for log correlation).
+static NSString *FCDeviceName(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return @"(none)";
+    AudioObjectPropertyAddress na = { kAudioObjectPropertyName,
+                                      kAudioObjectPropertyScopeGlobal,
+                                      kAudioObjectPropertyElementMain };
+    CFStringRef cf = NULL; UInt32 sz = sizeof(cf);
+    if (AudioObjectGetPropertyData(dev, &na, 0, NULL, &sz, &cf) == noErr && cf) {
+        return (__bridge_transfer NSString *)cf;
+    }
+    return @"(unnamed)";
+}
+
+// Is this device running for ANY process system-wide (i.e. some app is actively
+// recording it)? This is the signal that distinguishes "another app/call owns
+// the mic" from "the mic is muted". (kAudioDevicePropertyDeviceIsRunningSomewhere)
+static BOOL FCDeviceRunningSomewhere(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return NO;
+    AudioObjectPropertyAddress a = { kAudioDevicePropertyDeviceIsRunningSomewhere,
+                                     kAudioObjectPropertyScopeGlobal,
+                                     kAudioObjectPropertyElementMain };
+    if (!AudioObjectHasProperty(dev, &a)) return NO;
+    UInt32 v = 0, sz = sizeof(v);
+    if (AudioObjectGetPropertyData(dev, &a, 0, NULL, &sz, &v) != noErr) return NO;
+    return v != 0;
+}
+
+// Is this device hogged (exclusive access) by some process? pid -1 == not hogged.
+static pid_t FCDeviceHogPID(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return -2;
+    AudioObjectPropertyAddress a = { kAudioDevicePropertyHogMode,
+                                     kAudioObjectPropertyScopeInput,
+                                     kAudioObjectPropertyElementMain };
+    if (!AudioObjectHasProperty(dev, &a)) return -2;
+    pid_t pid = -1; UInt32 sz = sizeof(pid);
+    if (AudioObjectGetPropertyData(dev, &a, 0, NULL, &sz, &pid) != noErr) return -2;
+    return pid;
+}
+
+static void FCMicLog(NSString *fmt, ...) {
+    if (!FCMicDebugOn()) return;
+    va_list ap; va_start(ap, fmt);
+    NSString *msg = [[NSString alloc] initWithFormat:fmt arguments:ap];
+    va_end(ap);
+    static dispatch_once_t once; static NSFileHandle *fh;
+    dispatch_once(&once, ^{
+        NSString *path = [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Logs/FloatingClock-mic.log"];
+        [[NSFileManager defaultManager] createFileAtPath:path contents:nil attributes:nil];
+        fh = [NSFileHandle fileHandleForWritingAtPath:path];
+        [fh seekToEndOfFile];
+    });
+    NSString *line = [NSString stringWithFormat:@"%.3f %@\n",
+                      [[NSDate date] timeIntervalSince1970], msg];
+    fputs(line.UTF8String, stderr);
+    [fh writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
+}
 
 static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                               const AudioTimeStamp *inNow,
@@ -51,6 +120,11 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     }
     if (totalSamples == 0) return noErr;
     double rms = sqrt(sumSq / (double)totalSamples);
+
+    // DEBUG: RT-safe scalar writes only (no ObjC/locks/alloc on the audio thread).
+    m->lastRMS    = rms;
+    m->lastFrames = frames;
+    m->cbCount   += 1;
 
     if (rms < kSilenceRMS) {
         m->silentRunFrames += frames;
@@ -194,6 +268,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 }
 
 - (void)applyMuted:(BOOL)muted {
+    if (muted != _muted) FCMicLog(@"  >> BANNER %@", muted ? @"SHOW (muted)" : @"hide (unmuted)");
     _muted = muted;
     if (muted) {
         [self syncPosition];
@@ -222,6 +297,15 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // Only trust the audio-silence signal when metering is actually live and
     // permitted — otherwise the IOProc would deliver zeros and false-positive.
     BOOL audioMuted = (_micAuthorized && _meteringStarted && _meter.silent != 0);
+    if (FCMicDebugOn()) {
+        AudioObjectID def = [self defaultInputDevice];
+        FCMicLog(@"read dev=%u(%@) prop=%d silent=%d rms=%.6f frames=%lld cb=%lld meter=%d auth=%d runSomewhere=%d hogPID=%d default=%u(%@) => MUTED=%d",
+                 _device, FCDeviceName(_device), propMuted, _meter.silent,
+                 _meter.lastRMS, (long long)_meter.lastFrames, (long long)_meter.cbCount,
+                 _meteringStarted, _micAuthorized, FCDeviceRunningSomewhere(_device),
+                 FCDeviceHogPID(_device), def, FCDeviceName(def),
+                 (propMuted || audioMuted));
+    }
     [self applyMuted:(propMuted || audioMuted)];
 }
 
@@ -274,8 +358,11 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 - (void)rebindDevice {
     [self stopMetering];
     [self removeMuteListener];
-    _device = [self findDeviceByName:_deviceName];
+    AudioObjectID named = [self findDeviceByName:_deviceName];
+    _device = named;
+    BOOL fellBack = NO;
     if (_device == kAudioObjectUnknown) {
+        fellBack = YES;
         // Named mic (the Antlion) is absent — fall back to the current default
         // input device so the banner still tracks whatever mic is live (e.g. the
         // built-in mic muted via F10 / system mute). This restores the overlay
@@ -290,6 +377,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
             __weak typeof(self) ws = self;
             _muteBlock = ^(UInt32 n, const AudioObjectPropertyAddress *addrs) {
                 (void)n; (void)addrs;
+                FCMicLog(@"EVT mute-property changed");
                 [ws readMuteState];
             };
             AudioObjectAddPropertyListenerBlock(_device, &a, dispatch_get_main_queue(), _muteBlock);
@@ -297,6 +385,10 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         }
         [self startMetering];
     }
+    FCMicLog(@"REBIND named=%u fellBack=%d dev=%u(%@) muteListener=%d metering=%d runSomewhere=%d hogPID=%d",
+             named, fellBack, _device, FCDeviceName(_device),
+             _muteListenerInstalled, _meteringStarted,
+             FCDeviceRunningSomewhere(_device), FCDeviceHogPID(_device));
     [self readMuteState];
 }
 
@@ -318,6 +410,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     __weak typeof(self) ws = self;
     _devicesBlock = ^(UInt32 n, const AudioObjectPropertyAddress *addrs) {
         (void)n; (void)addrs;
+        FCMicLog(@"EVT device-list changed");
         [ws rebindDevice];
     };
     AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, dispatch_get_main_queue(), _devicesBlock);
@@ -331,6 +424,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                                       kAudioObjectPropertyElementMain };
     _defaultInputBlock = ^(UInt32 n, const AudioObjectPropertyAddress *addrs) {
         (void)n; (void)addrs;
+        FCMicLog(@"EVT default-input changed");
         [ws rebindDevice];
     };
     AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &da, dispatch_get_main_queue(), _defaultInputBlock);
