@@ -1,3 +1,13 @@
+# [21.88.0](https://github.com/terrylica/cc-skills/compare/v21.87.0...v21.88.0) (2026-06-08)
+
+
+### Features
+
+* **floating-clock:** add FC_MIC_DEBUG mic data-flow instrumentation ([a63d9e6](https://github.com/terrylica/cc-skills/commit/a63d9e6d68280d5ed5d4ae9d63b2e694c7809654))
+* **floating-clock:** generic state-file status indicator ([daa68a6](https://github.com/terrylica/cc-skills/commit/daa68a6ec69a114d4e49b504853c9bb8b9af59b3))
+* **itp-hooks:** CLAUDE.md size-budget hook (char-accurate, inlined) ([6da44ed](https://github.com/terrylica/cc-skills/commit/6da44ed2f70396fdb2111563cdfd83828804bf63))
+* **itp-hooks:** nudge fail-fast error handling in long-running Bun/TS loops ([07f9106](https://github.com/terrylica/cc-skills/commit/07f910659b826094f50a4e11bda97137f454733a)), closes [Hi#precision](https://github.com/Hi/issues/precision)
+
 # [21.87.0](https://github.com/terrylica/cc-skills/compare/v21.86.0...v21.87.0) (2026-06-05)
 
 
