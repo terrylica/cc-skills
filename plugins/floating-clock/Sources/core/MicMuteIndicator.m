@@ -69,8 +69,9 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     NSTextField    *_bannerLabel;
     AudioObjectID   _device;             // kAudioObjectUnknown when absent
     BOOL            _muted;
-    AudioObjectPropertyListenerBlock _muteBlock;     // retained to remove later
-    AudioObjectPropertyListenerBlock _devicesBlock;  // hotplug listener
+    AudioObjectPropertyListenerBlock _muteBlock;        // retained to remove later
+    AudioObjectPropertyListenerBlock _devicesBlock;     // hotplug listener
+    AudioObjectPropertyListenerBlock _defaultInputBlock; // default-input-change listener
     BOOL            _muteListenerInstalled;
     // Audio-level metering (catches the analog hardware-button mute).
     BOOL              _micAuthorized;
@@ -102,6 +103,13 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
                                          kAudioObjectPropertyElementMain };
         AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &a,
                                                dispatch_get_main_queue(), _devicesBlock);
+    }
+    if (_defaultInputBlock) {
+        AudioObjectPropertyAddress a = { kAudioHardwarePropertyDefaultInputDevice,
+                                         kAudioObjectPropertyScopeGlobal,
+                                         kAudioObjectPropertyElementMain };
+        AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &a,
+                                               dispatch_get_main_queue(), _defaultInputBlock);
     }
 }
 
@@ -194,6 +202,8 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     }
 }
 
+- (BOOL)isShowing { return _muted; }
+
 #pragma mark - Mute state (flag OR audio-silence)
 
 - (BOOL)readPropertyMute {
@@ -245,12 +255,33 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     return kAudioObjectUnknown;
 }
 
+// Current system default input device (kAudioObjectUnknown if none). Used as the
+// fallback target when the named mic (the Antlion) isn't connected.
+- (AudioObjectID)defaultInputDevice {
+    AudioObjectPropertyAddress a = { kAudioHardwarePropertyDefaultInputDevice,
+                                     kAudioObjectPropertyScopeGlobal,
+                                     kAudioObjectPropertyElementMain };
+    AudioObjectID dev = kAudioObjectUnknown;
+    UInt32 sz = sizeof(dev);
+    if (AudioObjectGetPropertyData(kAudioObjectSystemObject, &a, 0, NULL, &sz, &dev) != noErr) {
+        return kAudioObjectUnknown;
+    }
+    return dev;
+}
+
 // (Re)find the target device, (re)install its mute listener + metering, refresh.
 // Called on launch and whenever the device list changes (unplug/replug).
 - (void)rebindDevice {
     [self stopMetering];
     [self removeMuteListener];
     _device = [self findDeviceByName:_deviceName];
+    if (_device == kAudioObjectUnknown) {
+        // Named mic (the Antlion) is absent — fall back to the current default
+        // input device so the banner still tracks whatever mic is live (e.g. the
+        // built-in mic muted via F10 / system mute). This restores the overlay
+        // when the Antlion is unplugged; we rebind again if it comes back.
+        _device = [self defaultInputDevice];
+    }
     if (_device != kAudioObjectUnknown) {
         AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
                                          kAudioObjectPropertyScopeInput,
@@ -290,6 +321,19 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         [ws rebindDevice];
     };
     AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, dispatch_get_main_queue(), _devicesBlock);
+
+    // Also rebind when the system default INPUT changes (e.g. the Antlion is
+    // unplugged and macOS falls back to the built-in mic, or the user switches
+    // the default in Sound settings). Without this the fallback target could go
+    // stale while both devices are present.
+    AudioObjectPropertyAddress da = { kAudioHardwarePropertyDefaultInputDevice,
+                                      kAudioObjectPropertyScopeGlobal,
+                                      kAudioObjectPropertyElementMain };
+    _defaultInputBlock = ^(UInt32 n, const AudioObjectPropertyAddress *addrs) {
+        (void)n; (void)addrs;
+        [ws rebindDevice];
+    };
+    AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &da, dispatch_get_main_queue(), _defaultInputBlock);
 }
 
 #pragma mark - Audio metering (analog-button detection)

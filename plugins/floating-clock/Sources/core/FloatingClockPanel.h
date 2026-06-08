@@ -8,6 +8,7 @@
 #import "../segments/FloatingClockSegmentViews.h"
 
 @class FCMicMuteIndicator;   // mic-mute banner overlay (user directive 2026-06-01)
+@class FCVPNStatusIndicator; // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,6 +26,10 @@ NS_ASSUME_NONNULL_BEGIN
     // Mic-mute indicator: red "MIC MUTED" banner over the clock when the
     // Antlion USB Microphone is muted. Synced from tick + windowDidMove.
     FCMicMuteIndicator *_micMuteIndicator;
+    // Generic external-state status banner (default violet); stacks above the
+    // mic-mute bar. Driven by a state file; configured via NSUserDefaults
+    // (VPNIndicator*). Disabled by default. Synced from tick + windowDidMove.
+    FCVPNStatusIndicator *_vpnStatusIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}

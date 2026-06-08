@@ -34,6 +34,10 @@ NS_ASSUME_NONNULL_BEGIN
 // No-op while the mic is unmuted (banner hidden).
 - (void)syncPosition;
 
+// YES while the "MIC MUTED" banner is visible. Lets a second indicator
+// (e.g. FCVPNStatusIndicator) stack itself directly above this bar.
+- (BOOL)isShowing;
+
 @end
 
 NS_ASSUME_NONNULL_END
