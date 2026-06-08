@@ -1,6 +1,7 @@
 #import "FloatingClockPanel+Runtime.h"
 #import "FloatingClockPanel+Layout.h"
 #import "MicMuteIndicator.h"   // mic-mute banner sync (user directive 2026-06-01)
+#import "VPNStatusIndicator.h" // generic state-file status banner sync (2026-06-07)
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
@@ -61,6 +62,7 @@ static uint64_t nsUntilNextSecond(void) {
     // hardware button even when the device posts no change-notification) and
     // reposition to follow the clock's per-tick resize/recenter.
     [_micMuteIndicator refresh];
+    [_vpnStatusIndicator refresh];
 }
 
 - (void)tickThreeSegment {
@@ -460,6 +462,7 @@ static uint64_t nsUntilNextSecond(void) {
     }
     // Keep the mic-mute banner glued to the clock while the user drags it.
     [_micMuteIndicator syncPosition];
+    [_vpnStatusIndicator syncPosition];
 }
 
 - (void)restorePosition {
