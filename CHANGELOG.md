@@ -1,3 +1,10 @@
+# [21.89.0](https://github.com/terrylica/cc-skills/compare/v21.88.0...v21.89.0) (2026-06-10)
+
+
+### Features
+
+* **statusline-tools:** model id + mode badges on line 1 ([a72971a](https://github.com/terrylica/cc-skills/commit/a72971aea5a5f29452c70f6fb47b1152c01b55e6))
+
 # [21.88.0](https://github.com/terrylica/cc-skills/compare/v21.87.0...v21.88.0) (2026-06-08)
 
 
