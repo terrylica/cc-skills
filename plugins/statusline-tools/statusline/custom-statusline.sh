@@ -95,9 +95,16 @@ echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 
 # field still gets post-processed with sed (Claude → display compactor)
 # but the JSON-extraction step is now a single spawn. The trailing-tab
 # fallback via printf keeps `read` happy if jq dies.
-IFS=$'\t' read -r model_raw session_id transcript_file cost git_branch <<< "$(
-    echo "$input" | jq -r '"\(.model.display_name // .model.id // .model // "Unknown")\t\(.session_id // "")\t\(.transcript_path // "")\t\(.cost.total_cost_usd // "")\t\(.git.branch // "")"' 2>/dev/null \
-        || printf 'Unknown\t\t\t\t'
+# Delimiter note (2026-06-10 model-id-badges edit): switched TSV → \x1f (ASCII
+# unit separator). Tab is IFS *whitespace*, so bash `read` COLLAPSES runs of
+# consecutive tabs — any empty mid-field (e.g. `.fast_mode // ""` when jq's //
+# treats `false` as empty) silently shifts every later field left (session_id
+# would receive the transcript path). \x1f is non-whitespace, so empty fields
+# survive. Booleans default via `// false` (never empty) and all values pass
+# through tostring before join.
+IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_flag session_id transcript_file cost git_branch <<< "$(
+    echo "$input" | jq -r '[(.model.display_name // .model.id // .model // "Unknown"), (.model.id // ""), (.effort.level // ""), (.thinking.enabled // false), (.fast_mode // false), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
+        || printf 'Unknown\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
 )"
 model=$(echo "$model_raw" | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 
@@ -1114,13 +1121,51 @@ if command -v scc >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
 fi
 
 # Status line layout:
-#   Line 1: git stats
+#   Line 1: git stats | model id + inference-mode badges (gray suffix)
 #   Line 2: code stats (scc — LOC, files, complexity, top languages, COCOMO)
 #   Line 3: UTC time | local time | ccmax (inline)
 #   Line 4: ~/path | github-url
 #   Line 5: session UUID (if available)
 #   Line 6: ~/asciinemalogs cast UUID
-line1="${git_changes}"
+
+# === Model identity + inference-mode badges (first-line suffix, 2026-06-10) ===
+# Native statusline-input fields (verified against live ~/.claude/statusline.jsonl):
+#   .model.id          raw model id incl. variant suffix (e.g. claude-fable-5[1m])
+#   .effort.level      reasoning effort (e.g. high)
+#   .thinking.enabled  extended thinking on/off (bool)
+#   .fast_mode         fast mode active (bool)
+# Render (all BRIGHT_BLACK, operator-selected subdued style):
+#   ... | v12.43.0 3h ago | claude-fable-5[1m] · effort:xhigh · thinking:on · ✦ ultracode
+# .model.id may be empty at session start (no API call yet) — fall back to
+# $model_raw (display_name-first decode above); suppress segment if both empty.
+#
+# ✦ ultracode badge (2026-06-10): HEURISTIC PROXY, not a native field. Forensic
+# finding (10-agent workflow, adversarially verified): Claude Code v2.1.172
+# keeps ultracode as session-only in-memory appState ({value:"xhigh",
+# ultracode:true}) — never persisted to settings.json, no env var mirror, and
+# the statusline stdin JSON has NO ultracode key (open upstream issues request
+# it; none shipped as of 2026-06-10). The only readable signal is the
+# composite the TUI itself implies: effort.level=="xhigh" AND thinking.enabled
+# AND NOT fast_mode. Across 34,484 historical statusline.jsonl records, xhigh
+# co-occurred EXCLUSIVELY with thinking=on + fast=off (zero counterexamples),
+# and enabling ultracode force-sets xhigh. Known false-positive: a manual
+# `/effort xhigh` without ultracode renders the badge too — indistinguishable
+# from the payload by design. Revisit when upstream ships a native field.
+model_inline=""
+model_token="${model_id:-$model_raw}"
+if [ -n "$model_token" ] && [ "$model_token" != "Unknown" ]; then
+    model_inline=" ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${model_token}${RESET}"
+    [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · effort:${effort_level}${RESET}"
+    case "$thinking_enabled" in
+        true)  model_inline="${model_inline}${BRIGHT_BLACK} · thinking:on${RESET}" ;;
+        false) model_inline="${model_inline}${BRIGHT_BLACK} · thinking:off${RESET}" ;;
+    esac
+    [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast${RESET}"
+    if [ "$effort_level" = "xhigh" ] && [ "$thinking_enabled" = "true" ] && [ "$fast_mode_flag" != "true" ]; then
+        model_inline="${model_inline}${BRIGHT_BLACK} · ✦ ultracode${RESET}"
+    fi
+fi
+line1="${git_changes}${model_inline}"
 
 # Line 3: path | GitHub URL (visibility)
 vis_label=""
