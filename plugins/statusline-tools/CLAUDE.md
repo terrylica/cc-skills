@@ -29,16 +29,19 @@
 
 ## Status Line Indicators
 
-| Indicator       | Meaning                                            |
-| --------------- | -------------------------------------------------- |
-| M/D/S/U         | Modified, Deleted, Staged, Untracked files         |
-| ↑/↓             | Commits ahead/behind remote                        |
-| ≡               | Stash count                                        |
-| ⚠               | Merge conflicts                                    |
-| Σ &lt;n&gt; LOC | Total lines of code (via `scc`, all tracked files) |
-| cx &lt;n&gt;    | Cyclomatic complexity (yellow when ≥ 1k)           |
-| MD/TS/Py …      | Top 3 languages by code share (% of total LOC)     |
-| ~$&lt;n&gt;     | COCOMO basic-organic cost estimate (informational) |
+| Indicator                                   | Meaning                                                                                                                                                                                                                                                                              |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M/D/S/U                                     | Modified, Deleted, Staged, Untracked files                                                                                                                                                                                                                                           |
+| ↑/↓                                         | Commits ahead/behind remote                                                                                                                                                                                                                                                          |
+| ≡                                           | Stash count                                                                                                                                                                                                                                                                          |
+| ⚠                                           | Merge conflicts                                                                                                                                                                                                                                                                      |
+| Σ &lt;n&gt; LOC                             | Total lines of code (via `scc`, all tracked files)                                                                                                                                                                                                                                   |
+| `claude-…[1m]`                              | Model id from statusline stdin `.model.id` (falls back to `.model.display_name`), gray suffix on line 1                                                                                                                                                                              |
+| effort:&lt;lvl&gt; / thinking:on·off / fast | Inference-mode badges from `.effort.level`, `.thinking.enabled`, `.fast_mode`                                                                                                                                                                                                        |
+| ✦ ultracode                                 | **Heuristic** badge: `effort==xhigh AND thinking AND NOT fast_mode`. No native statusline field exists (binary-string forensics + live-payload audit, 2026-06-10); a manual `/effort xhigh` is indistinguishable. See render comment in `custom-statusline.sh` ("✦ ultracode badge") |
+| cx &lt;n&gt;                                | Cyclomatic complexity (yellow when ≥ 1k)                                                                                                                                                                                                                                             |
+| MD/TS/Py …                                  | Top 3 languages by code share (% of total LOC)                                                                                                                                                                                                                                       |
+| ~$&lt;n&gt;                                 | COCOMO basic-organic cost estimate (informational)                                                                                                                                                                                                                                   |
 
 ## Code Statistics Line
 
