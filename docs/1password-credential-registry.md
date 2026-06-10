@@ -25,13 +25,14 @@ SSoT for all 1Password items Claude Code uses programmatically via `op` CLI.
 
 ## Credential Items (Claude Automation vault)
 
-| Item                                                                 | Item ID                      | Category       | Used By                                             |
-| -------------------------------------------------------------------- | ---------------------------- | -------------- | --------------------------------------------------- |
-| Cloudflare Global API Key                                            | `u34n7vav7t7mgbtn3ccsaw5mfi` | API credential | ccmax-monitor CF operations                         |
-| Tailscale API Key (eon tailnet)                                      | `7qpluad2eax23oraimkop7j2jy` | API credential | Tailscale ACL/device automation                     |
-| Pushover - cc-skills                                                 | `dg5ng7vgj6dmmtc2vavo5kfko4` | API credential | Observability fleet (verbatim+UUID notifications)   |
-| FXView MT5 Demo Account (401678)                                     | `ulpysnzzs4vwow3xbcpnsrkqrm` | Login          | Demo feed parity testing                            |
-| SA Token — Claude Code · read-write · Claude Automation vault (only) | `f7zsfibfvzluw4ahe2qxv3ddee` | Token          | The single R/W service-account token (cloud master) |
+| Item                                                                 | Item ID                      | Category       | Used By                                                                                                                                        |
+| -------------------------------------------------------------------- | ---------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloudflare Global API Key                                            | `u34n7vav7t7mgbtn3ccsaw5mfi` | API credential | ccmax-monitor CF operations                                                                                                                    |
+| Tailscale API Key (eon tailnet)                                      | `7qpluad2eax23oraimkop7j2jy` | API credential | Tailscale ACL/device automation                                                                                                                |
+| Pushover - cc-skills                                                 | `dg5ng7vgj6dmmtc2vavo5kfko4` | API credential | Observability fleet (verbatim+UUID notifications)                                                                                              |
+| FXView MT5 Demo Account (401678)                                     | `ulpysnzzs4vwow3xbcpnsrkqrm` | Login          | Demo feed parity testing                                                                                                                       |
+| Zadarma SIP — voip-hk-spike (HK calling)                             | `hfcstkadqwrnpckucr45snd4b4` | Login          | terrylica/voip-hk-spike — baresip SIP creds (HK PSTN), fields: username/password/server/sip_domain/outbound_proxy/default_test_number/provider |
+| SA Token — Claude Code · read-write · Claude Automation vault (only) | `f7zsfibfvzluw4ahe2qxv3ddee` | Token          | The single R/W service-account token (cloud master)                                                                                            |
 
 ### Pushover credential fields (`dg5ng7vgj6dmmtc2vavo5kfko4`)
 
