@@ -249,10 +249,18 @@ EOF
 }
 
 # =============================================================================
-# Model id + inference-mode badges + ultracode heuristic (added 2026-06-10)
+# Model id + inference-mode badges (added 2026-06-10; native-only 2026-06-11)
 # Pins the line-1 model segment introduced in v21.89.0 and the \x1f
 # unit-separator batch decode that replaced TSV (tab is IFS whitespace, so
 # empty mid-fields collapsed and shifted every later field left).
+#
+# NATIVE-FIELDS-ONLY INVARIANT (operator directive 2026-06-11): the segment
+# renders ONLY direct payload echoes (.model.id, .effort.level,
+# .thinking.enabled, .fast_mode). The ✦ ultracode composite badge was
+# RETIRED after one day: live counterexample sessions (ea782bfd, a9861cbf)
+# rendered xhigh with ultracode OFF — effort persists across sessions while
+# ultracode is session-only with no payload field, so the inference was
+# unsound. The invariant test below pins that no inferred token renders.
 # =============================================================================
 
 @test "model segment renders raw model id from .model.id" {
@@ -278,34 +286,28 @@ EOF
     [[ "$plain" == *"· fast"* ]]
 }
 
-@test "ultracode badge appears for xhigh + thinking + not fast" {
+@test "model segment renders only native payload echoes (no inferred badges)" {
+    # NATIVE-FIELDS-ONLY invariant pin (2026-06-11). This is the exact input
+    # that used to trigger the retired ✦ ultracode composite badge
+    # (xhigh + thinking + not fast). Positive anchors FIRST (a negative-only
+    # assertion passes even if the whole segment is deleted), then assert
+    # the inferred token never renders.
     run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
-    [[ "$plain" == *"✦ ultracode"* ]]
-}
-
-@test "ultracode badge absent when fast_mode is true" {
-    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":true}' | $STATUSLINE"
-    [ "$status" -eq 0 ]
-    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
-    # Positive anchors FIRST (pre-ship review 2026-06-10: a negative-only
-    # assertion passes even if the whole model segment is deleted — anchor
-    # on the sibling badges actually rendering before asserting absence).
+    [[ "$plain" == *"claude-test-9"* ]]
     [[ "$plain" == *"effort:xhigh"* ]]
     [[ "$plain" == *"thinking:on"* ]]
-    [[ "$plain" == *"· fast"* ]]
     [[ "$plain" != *"ultracode"* ]]
+    [[ "$plain" != *"✦"* ]]
 }
 
-@test "ultracode badge absent when effort is not xhigh" {
-    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
-    [ "$status" -eq 0 ]
-    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
-    # Positive anchors first — see comment in the fast_mode sibling test.
-    [[ "$plain" == *"effort:high"* ]]
-    [[ "$plain" == *"thinking:on"* ]]
-    [[ "$plain" != *"ultracode"* ]]
+@test "statusline script contains no inferred-badge logic (source-level lint)" {
+    # Belt-and-suspenders for the native-fields-only invariant: the render
+    # path must not reintroduce composite/inferred badges. Allowed mentions
+    # of the retired badge are comments only (legend/history), never code.
+    run bash -c "grep -v '^[[:space:]]*#' '$STATUSLINE' | grep -c 'ultracode'"
+    [ "$output" = "0" ]
 }
 
 @test "x1f batch decode survives false booleans without field shift" {

@@ -1128,28 +1128,32 @@ fi
 #   Line 6: ~/asciinemalogs cast UUID
 
 # === Model identity + inference-mode badges (first-line suffix, 2026-06-10) ===
+# NATIVE-FIELDS-ONLY INVARIANT (operator directive 2026-06-11): every token in
+# this segment is a DIRECT, parameterless echo of a statusline stdin field —
+# no composite/inferred state is ever rendered. Pinned by the bats test
+# "model segment renders only native payload echoes (no inferred badges)".
+#
 # Native statusline-input fields (verified against live ~/.claude/statusline.jsonl):
 #   .model.id          raw model id incl. variant suffix (e.g. claude-fable-5[1m])
 #   .effort.level      reasoning effort (e.g. high)
 #   .thinking.enabled  extended thinking on/off (bool)
 #   .fast_mode         fast mode active (bool)
 # Render (all BRIGHT_BLACK, operator-selected subdued style):
-#   ... | v12.43.0 3h ago | claude-fable-5[1m] · effort:xhigh · thinking:on · ✦ ultracode
+#   ... | v12.43.0 3h ago | claude-fable-5[1m] · effort:xhigh · thinking:on
 # .model.id may be empty at session start (no API call yet) — fall back to
 # $model_raw (display_name-first decode above); suppress segment if both empty.
 #
-# ✦ ultracode badge (2026-06-10): HEURISTIC PROXY, not a native field. Forensic
-# finding (10-agent workflow, adversarially verified): Claude Code v2.1.172
-# keeps ultracode as session-only in-memory appState ({value:"xhigh",
-# ultracode:true}) — never persisted to settings.json, no env var mirror, and
-# the statusline stdin JSON has NO ultracode key (open upstream issues request
-# it; none shipped as of 2026-06-10). The only readable signal is the
-# composite the TUI itself implies: effort.level=="xhigh" AND thinking.enabled
-# AND NOT fast_mode. Across 34,484 historical statusline.jsonl records, xhigh
-# co-occurred EXCLUSIVELY with thinking=on + fast=off (zero counterexamples),
-# and enabling ultracode force-sets xhigh. Known false-positive: a manual
-# `/effort xhigh` without ultracode renders the badge too — indistinguishable
-# from the payload by design. Revisit when upstream ships a native field.
+# ── ✦ ultracode badge RETIRED 2026-06-11 (lived one day) ────────────────────
+# The 2026-06-10 heuristic (effort=="xhigh" AND thinking AND NOT fast_mode)
+# was REFUTED by live counterexamples within 24h: sessions ea782bfd (yukon)
+# and a9861cbf (claude-sys) rendered xhigh with ZERO ultracode activation in
+# their transcripts — the operator saw "✦ ultracode" while it was OFF. Root
+# cause of the bad heuristic: effort levels persist (saved default / carried
+# state) while ultracode itself is session-only in-memory appState
+# ({value:"xhigh", ultracode:true}) with NO statusline-payload field, so
+# xhigh ⇏ ultracode. The native tokens effort:xhigh · thinking:on already
+# carry the full payload truth; interpreting them is the operator's job.
+# Reinstate ONLY if upstream ships a native `ultracode` payload field.
 model_inline=""
 model_token="${model_id:-$model_raw}"
 if [ -n "$model_token" ] && [ "$model_token" != "Unknown" ]; then
@@ -1160,9 +1164,6 @@ if [ -n "$model_token" ] && [ "$model_token" != "Unknown" ]; then
         false) model_inline="${model_inline}${BRIGHT_BLACK} · thinking:off${RESET}" ;;
     esac
     [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast${RESET}"
-    if [ "$effort_level" = "xhigh" ] && [ "$thinking_enabled" = "true" ] && [ "$fast_mode_flag" != "true" ]; then
-        model_inline="${model_inline}${BRIGHT_BLACK} · ✦ ultracode${RESET}"
-    fi
 fi
 line1="${git_changes}${model_inline}"
 
