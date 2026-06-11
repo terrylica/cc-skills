@@ -50,6 +50,7 @@ import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch
 interface HookInput {
   tool_name: string;
   tool_input?: {
+    command?: string;
     file_path?: string;
     content?: string;
     old_string?: string;
@@ -134,6 +135,23 @@ function firstRuleName(text: string): string {
  */
 export function detectNetNewInventedFallback(input: HookInput): { matched: boolean; rule: string } {
   const ti = input.tool_input || {};
+
+  // Bash arm (2026-06-11 operator extension): inline commands — heredoc
+  // scripts, one-off renderers — are code too. Every hit is net-new by
+  // definition (there is no old_string for a command). The escape hatch
+  // works inside the command text.
+  if (input.tool_name === "Bash") {
+    const command = ti.command || "";
+    if (
+      hasFileWideEscapeHatchMarkerInContent(command, INVENTED_FALLBACK_ESCAPE_HATCH_MARKER_DETECTION_CONFIG)
+    ) {
+      return { matched: false, rule: "" };
+    }
+    return countHits(command) > 0
+      ? { matched: true, rule: firstRuleName(command) }
+      : { matched: false, rule: "" };
+  }
+
   const filePath = ti.file_path || "";
   if (!CODE_FILE_RX.test(filePath) || TEST_PATH_RX.test(filePath)) {
     return { matched: false, rule: "" };
@@ -199,7 +217,7 @@ async function main(): Promise<void> {
     process.exit(0); // invalid JSON → fail-open
   }
 
-  if (!["Write", "Edit", "MultiEdit"].includes(input.tool_name)) process.exit(0);
+  if (!["Bash", "Write", "Edit", "MultiEdit"].includes(input.tool_name)) process.exit(0);
 
   const { matched, rule } = detectNetNewInventedFallback(input);
   if (matched) {
