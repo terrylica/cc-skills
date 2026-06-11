@@ -165,7 +165,20 @@ else
     assert_fails "Case 5: top-level predicate fails to discriminate grounded from unmoored synthetic descriptions"
 fi
 
-# ─── Case 6: audit script passes cleanly on 20-entry canonical baseline ─────
+# ─── Case 6: audit script passes cleanly on the canonical baseline ──────────
+# The expected entry count is DERIVED from the registries (the official
+# source) rather than hard-coded: the previous pinned "20 entries" broke the
+# moment a 21st legitimate marker was registered (2026-06-11,
+# INVENTED-FALLBACK-OK) even though the audit itself passed — a hard-coded
+# parameter value masquerading as a regression signal. Same counting shape
+# the registries themselves use: one quoted markerNameTokenIncludingSuffix
+# field per entry.
+ITER121_EXPECTED_REGISTRY_ENTRY_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES=$(
+    grep -chE '^\s*markerNameTokenIncludingSuffix: "' \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts" \
+        | awk '{ s += $1 } END { print s }'
+)
 set +e
 AUDIT_OUTPUT=$(bash "$ITER121_AUDIT_TASK_ABSOLUTE_PATH" 2>&1)
 AUDIT_EXIT_CODE=$?
@@ -173,10 +186,10 @@ set -e
 
 if [[ "$AUDIT_EXIT_CODE" -eq 0 ]] && \
    [[ "$AUDIT_OUTPUT" == *"AUDIT PASSED"* ]] && \
-   [[ "$AUDIT_OUTPUT" == *"audited 20 entries"* ]]; then
-    assert_passes "Case 6: audit script passes on 20-entry canonical baseline (12 iter-111 runtime-hook + 8 iter-114 audit-task) with 0 stale-description hits"
+   [[ "$AUDIT_OUTPUT" == *"audited ${ITER121_EXPECTED_REGISTRY_ENTRY_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES} entries"* ]]; then
+    assert_passes "Case 6: audit script passes on the ${ITER121_EXPECTED_REGISTRY_ENTRY_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES}-entry canonical baseline (count derived from the iter-111 + iter-114 registries) with 0 stale-description hits"
 else
-    assert_fails "Case 6: audit script did NOT pass clean baseline (exit=$AUDIT_EXIT_CODE)"
+    assert_fails "Case 6: audit script did NOT pass clean baseline (exit=$AUDIT_EXIT_CODE, expected entries=${ITER121_EXPECTED_REGISTRY_ENTRY_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES})"
 fi
 
 # ─── Case 7: audit prints the discriminating-segment-grounded narrative ─────
