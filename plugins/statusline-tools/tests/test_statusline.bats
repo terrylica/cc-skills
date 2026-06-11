@@ -277,17 +277,36 @@ EOF
     [[ "$plain" == *"Testy 9"* ]]
 }
 
-@test "inference badges render effort, thinking:off, and fast" {
+@test "inference badges render official names and verbatim values" {
+    # OFFICIAL-VALUES-ONLY contract (2026-06-11): effort renders bare
+    # ("· high", no "effort:" label; the "· " separator anchors the
+    # assertion so "high" can't false-match inside "xhigh"); thinking
+    # renders the VERBATIM official boolean (thinking:false — never a
+    # made-up on/off translation); fast_mode renders its official field
+    # name when true (never the truncated "fast" label).
     run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":true}' | $STATUSLINE"
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
-    # Effort renders BARE ("· high", no "effort:" label — dropped 2026-06-11
-    # per operator preference). The "· " separator anchors the assertion so
-    # "high" can't false-match inside "xhigh" or other tokens.
     [[ "$plain" == *"· high"* ]]
     [[ "$plain" != *"effort:"* ]]
-    [[ "$plain" == *"thinking:off"* ]]
-    [[ "$plain" == *"· fast"* ]]
+    [[ "$plain" == *"thinking:false"* ]]
+    [[ "$plain" != *"thinking:on"* ]]
+    [[ "$plain" != *"thinking:off"* ]]
+    [[ "$plain" == *"· fast_mode"* ]]
+}
+
+@test "absent payload fields omit their tokens (no invented fallbacks)" {
+    # Payload with ONLY a model: thinking/fast_mode/effort tokens must be
+    # omitted entirely — never rendered with invented defaults. And a
+    # payload with fast_mode:false omits the fast_mode token (official
+    # value false = not active; the token names presence).
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"claude-test-9"* ]]
+    [[ "$plain" != *"thinking:"* ]]
+    [[ "$plain" != *"fast_mode"* ]]
+    [[ "$plain" != *"Unknown"* ]]
 }
 
 @test "model segment renders only native payload echoes (no inferred badges)" {
@@ -301,7 +320,7 @@ EOF
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
     [[ "$plain" == *"claude-test-9"* ]]
     [[ "$plain" == *"· xhigh"* ]]
-    [[ "$plain" == *"thinking:on"* ]]
+    [[ "$plain" == *"thinking:true"* ]]
     [[ "$plain" != *"ultracode"* ]]
     [[ "$plain" != *"✦"* ]]
 }
