@@ -11,6 +11,23 @@
 #import "DensityPad.h"                                      // FCDensityPadPoints
 #import "CornerRadius.h"                                    // FCCornerRadiusPoints
 #import "ShadowSpec.h"                                      // FCShadowSpecForId
+#import "SegmentBorderSpec.h"                               // FCSegmentBorderSpecForId
+
+// 2026-06-11 hairline border (audio-bar edge recipe promoted to the clock):
+// luminance-adaptive against the given background — light hairline on dark
+// fills (defines the edge on #000 where shadows vanish), dark hairline on
+// light fills (slightly stronger; dark-on-light needs more alpha to read).
+// Shared by the three-segment pills AND the compact modes' contentView pill.
+static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
+                                 double bgR, double bgG, double bgB) {
+    if (!bs.enabled) { layer.borderWidth = 0; return; }
+    double lum = 0.2126 * bgR + 0.7152 * bgG + 0.0722 * bgB;
+    NSColor *col = (lum < 0.5)
+        ? [NSColor colorWithWhite:1.0 alpha:bs.alpha]
+        : [NSColor colorWithWhite:0.0 alpha:bs.alpha + 0.08];
+    layer.borderWidth = bs.width;
+    layer.borderColor = col.CGColor;
+}
 
 @implementation FloatingClockPanel (Layout)
 
@@ -373,6 +390,17 @@
     applyShadow(_activeSeg.layer, tActive2);
     applyShadow(_nextSeg.layer,   tNext2);
 
+    // 2026-06-11 user request: hairline segment border (FCApplyBorderToLayer
+    // at the top of this file; spec catalog in Sources/core/SegmentBorderSpec).
+    FCSegmentBorderSpec bs = FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]);
+    FCApplyBorderToLayer(_localSeg.layer,  bs, tLocal2->bg_r,  tLocal2->bg_g,  tLocal2->bg_b);
+    FCApplyBorderToLayer(_weekSeg.layer,   bs, tLocal2->bg_r,  tLocal2->bg_g,  tLocal2->bg_b);  // week shares LOCAL theme
+    FCApplyBorderToLayer(_activeSeg.layer, bs, tActive2->bg_r, tActive2->bg_g, tActive2->bg_b);
+    FCApplyBorderToLayer(_nextSeg.layer,   bs, tNext2->bg_r,   tNext2->bg_g,   tNext2->bg_b);
+    // The contentView is a transparent CANVAS in this mode — never frame it
+    // (a stale border here is exactly what the compact modes leave behind).
+    self.contentView.layer.borderWidth = 0;
+
     // Optical centering for LOCAL.
     //
     // Fonts are asymmetric around the baseline: ascender (~19pt at size 24)
@@ -428,6 +456,14 @@
     _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
     self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
 
+    // 2026-06-11 hairline border: in this compact mode the window's
+    // contentView IS the pill (rounded in clock.m) — the border lands there.
+    // (User report: border showed in three-segment but vanished after the
+    // double-click shrink — this path never applied it.)
+    FCApplyBorderToLayer(self.contentView.layer,
+                         FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]),
+                         t->bg_r, t->bg_g, t->bg_b);
+
     _sessionLabel.hidden = YES;
     _localSeg.hidden = YES;
     _activeSeg.hidden = YES;
@@ -470,6 +506,11 @@
     const ClockTheme *t = themeForId(themeId);
     _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
     self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
+
+    // 2026-06-11 hairline border on the contentView pill (see local-only note).
+    FCApplyBorderToLayer(self.contentView.layer,
+                         FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]),
+                         t->bg_r, t->bg_g, t->bg_b);
 
     NSString *marketId = [d stringForKey:@"SelectedMarket"];
     const ClockMarket *mkt = marketForId(marketId);

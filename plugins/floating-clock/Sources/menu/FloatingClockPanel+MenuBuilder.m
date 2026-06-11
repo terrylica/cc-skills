@@ -228,6 +228,16 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Floating (hovering)",        @"floating"]]
                                      defaultsKey:@"ShadowStyle"]];
 
+    // 2026-06-11 user request: hairline segment border (the audio bar's
+    // edge treatment promoted to the clock). Luminance-adaptive color;
+    // catalog in Sources/core/SegmentBorderSpec. Default = Hairline (on).
+    [displayItems addObject:[self submenuTitled:@"Border"
+                                          action:@selector(setBorderStyle:)
+                                           pairs:@[@[@"None (flat)",        @"none"],
+                                                   @[@"Hairline (subtle)",  @"hairline"],
+                                                   @[@"Frame (stronger)",   @"frame"]]
+                                     defaultsKey:@"BorderStyle"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===

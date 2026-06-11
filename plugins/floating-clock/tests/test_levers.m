@@ -11,6 +11,7 @@
 #import "../Sources/core/SegmentGap.h"
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/ShadowSpec.h"
+#import "../Sources/core/SegmentBorderSpec.h"
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/content/UrgencyColors.h"
@@ -482,6 +483,42 @@ void test_shadow_spec_catalog(void) {
     }
     if (FCShadowSpecForId(@"nebula").enabled) {
         failures++; fprintf(stderr, "FAIL %s: unknown should be disabled\n", __func__);
+    }
+}
+
+void test_segment_border_spec_catalog(void) {
+    // 2026-06-11: hairline segment border presets (audio-bar edge recipe
+    // promoted to the clock). UNLIKE ShadowSpec, the DEFAULT is ON:
+    // nil / empty / unknown all resolve to "hairline".
+    struct { NSString *id; BOOL enabled; CGFloat width, alpha; } cases[] = {
+        {@"none",     NO,  0.0, 0.0},
+        {@"hairline", YES, 1.0, 0.22},
+        {@"frame",    YES, 1.5, 0.35},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+        FCSegmentBorderSpec b = FCSegmentBorderSpecForId(cases[i].id);
+        BOOL ok = b.enabled == cases[i].enabled &&
+                  fabs(b.width - cases[i].width) < 0.001 &&
+                  fabs(b.alpha - cases[i].alpha) < 0.001;
+        if (!ok) {
+            fprintf(stderr, "FAIL %s: '%s' enabled=%d w=%.2f a=%.2f\n",
+                    __func__, cases[i].id.UTF8String,
+                    b.enabled, (double)b.width, (double)b.alpha);
+            failures++;
+        }
+    }
+    // Default-on semantics: nil / empty / unknown → hairline.
+    FCSegmentBorderSpec defaults[] = {
+        FCSegmentBorderSpecForId(nil),
+        FCSegmentBorderSpecForId(@""),
+        FCSegmentBorderSpecForId(@"chrome"),
+    };
+    for (size_t i = 0; i < 3; i++) {
+        if (!defaults[i].enabled || fabs(defaults[i].width - 1.0) > 0.001 ||
+            fabs(defaults[i].alpha - 0.22) > 0.001) {
+            failures++;
+            fprintf(stderr, "FAIL %s: default case %zu should be hairline\n", __func__, i);
+        }
     }
 }
 

@@ -29,6 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setSegmentGap:(NSMenuItem *)sender;
 - (void)setCornerStyle:(NSMenuItem *)sender;
 - (void)setShadowStyle:(NSMenuItem *)sender;
+- (void)setBorderStyle:(NSMenuItem *)sender;
 - (void)setActiveFontSize:(NSMenuItem *)sender;
 - (void)setNextFontSize:(NSMenuItem *)sender;
 - (void)setFontWeight:(NSMenuItem *)sender;
