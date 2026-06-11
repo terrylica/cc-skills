@@ -69,6 +69,48 @@ describe("FIRES: net-new invented fallbacks in code files", () => {
   });
 });
 
+describe("FIRES: Bash inline commands (2026-06-11 extension)", () => {
+  it("bash command introducing a shell Unknown default", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `echo "model=\${m:-Unknown}" >> render.sh` },
+    });
+    expect(r.matched).toBe(true);
+  });
+
+  it("bash command with jq Unknown fallback", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `cat in.json | jq -r '.name // "Unknown"'` },
+    });
+    expect(r.matched).toBe(true);
+  });
+
+  it("bash command without fallbacks stays silent", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `ls -la && git status` },
+    });
+    expect(r.matched).toBe(false);
+  });
+
+  it("bash legitimate non-invented default stays silent", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `TIMEOUT="\${TIMEOUT:-30}" ./run.sh` },
+    });
+    expect(r.matched).toBe(false);
+  });
+
+  it("bash escape hatch silences", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `echo "\${m:-Unknown}" # INVENTED-FALLBACK-OK probing legacy shape` },
+    });
+    expect(r.matched).toBe(false);
+  });
+});
+
 describe("SILENT: exemptions and legitimate shapes", () => {
   it("test files are exempt", () => {
     const r = detectNetNewInventedFallback(write("/a/tests/render.test.ts", 'const x = y ?? "Unknown";'));
