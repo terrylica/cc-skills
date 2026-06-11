@@ -1,4 +1,5 @@
 #import "AudioStatusIndicator.h"
+#import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
 #import <CoreAudio/CoreAudio.h>
 
 // Bar geometry — matches the mic-mute / VPN bars so the stack reads as one
@@ -64,6 +65,20 @@ static BOOL FCDeviceHasChannels(AudioObjectID dev, BOOL input) {
     UInt32 ch = 0;
     for (UInt32 i = 0; i < abl->mNumberBuffers; i++) ch += abl->mBuffers[i].mNumberChannels;
     return ch > 0;
+}
+
+// Software mute flag on the device's input scope (the analog hardware-button
+// mute on the Antlion is invisible here — FCMicMuteIndicator's silence meter
+// covers that path; the IN zone ORs both signals).
+static BOOL FCReadInputMute(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return NO;
+    AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
+                                     kAudioDevicePropertyScopeInput,
+                                     kAudioObjectPropertyElementMain };
+    if (!AudioObjectHasProperty(dev, &a)) return NO;
+    UInt32 v = 0, sz = sizeof(v);
+    if (AudioObjectGetPropertyData(dev, &a, 0, NULL, &sz, &v) != noErr) return NO;
+    return v != 0;
 }
 
 // Volume as 0.0–1.0, or -1 when the device exposes no volume control
@@ -169,6 +184,10 @@ static NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
 // Interactive half of the bar. Hit regions, left→right:
 //   [prefix+device name ........][−][level][+]
 // name click → cycle device · −/+ click → step volume · scroll → fine adjust.
+//
+// The zone OWNS its render state (2026-06-11 extras refactor): caching,
+// the change-flash deadlines, and the muted tint all live here so the
+// indicator just feeds it fresh HAL values once per tick.
 @interface FCAudioZoneView : NSView
 @property (nonatomic, weak) FCAudioStatusIndicator *owner;
 @property (nonatomic, assign) BOOL isInput;
@@ -176,9 +195,26 @@ static NSArray<NSNumber *> *FCDevicesForScope(BOOL input) {
 @property (nonatomic, strong) NSTextField *minusLabel;
 @property (nonatomic, strong) NSTextField *levelLabel;
 @property (nonatomic, strong) NSTextField *plusLabel;
+
+// Apply fresh state. Internally cached — labels only redraw when the
+// rendered composite (name/pct/muted/flash-phase) actually changes.
+- (void)renderDevice:(NSString *)name levelPercent:(NSInteger)pct muted:(BOOL)muted;
 @end
 
-@implementation FCAudioZoneView
+@implementation FCAudioZoneView {
+    // Render cache + flash state (2026-06-11 extras). _renderKey encodes the
+    // full visible composite; when unchanged, the 1Hz tick touches nothing.
+    NSString      *_renderKey;
+    NSString      *_lastName;       // nil → first render (no flash on launch)
+    NSInteger      _lastPct;
+    CFAbsoluteTime _nameFlashUntil;
+    CFAbsoluteTime _levelFlashUntil;
+}
+
+// Flash duration after a device/level change (user-selected extra): long
+// enough to survive 1-2 ticks of the 1Hz refresh, short enough to read as
+// a blink, not a state.
+static const CFTimeInterval kFlashSecs = 1.4;
 
 static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment align) {
     NSTextField *l = [[NSTextField alloc] initWithFrame:NSZeroRect];
@@ -227,6 +263,63 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 - (NSView *)hitTest:(NSPoint)point {
     NSView *v = [super hitTest:point];
     return v ? self : nil;
+}
+
+#pragma mark Zone rendering (cache + mute tint + change flash)
+
+- (void)renderDevice:(NSString *)name levelPercent:(NSInteger)pct muted:(BOOL)muted {
+    CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+    BOOL first = (_lastName == nil);
+    if (!first) {
+        if (![name isEqualToString:_lastName]) _nameFlashUntil  = now + kFlashSecs;
+        if (pct != _lastPct)                   _levelFlashUntil = now + kFlashSecs;
+    }
+    BOOL nameFlash   = now < _nameFlashUntil;
+    BOOL levelFlash  = now < _levelFlashUntil;
+    BOOL nameChanged = first || ![name isEqualToString:_lastName];
+    _lastName = [name copy];
+    _lastPct  = pct;
+
+    // Composite of everything visible — skip ALL label work when unchanged
+    // (the 1Hz tick path must stay allocation/layout-free at steady state).
+    NSString *key = [NSString stringWithFormat:@"%@|%ld|%d|%d|%d",
+                     name, (long)pct, muted, nameFlash, levelFlash];
+    if ([key isEqualToString:_renderKey]) return;
+    _renderKey = key;
+
+    NSColor *amber = [NSColor colorWithSRGBRed:1.00 green:0.78 blue:0.16 alpha:1.0]; // change blink
+    NSColor *red   = [NSColor colorWithSRGBRed:0.96 green:0.26 blue:0.21 alpha:1.0]; // muted
+    NSColor *tint  = muted ? red
+                   : (self.isInput
+                       ? [NSColor colorWithSRGBRed:0.34 green:0.95 blue:0.46 alpha:1.0]   // green — capture
+                       : [NSColor colorWithSRGBRed:0.38 green:0.78 blue:1.00 alpha:1.0]); // blue  — playback
+    NSColor *nameColor = muted ? red : (nameFlash ? amber : [NSColor whiteColor]);
+
+    NSMutableDictionary *nameAttrs = [@{
+        NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium],
+        NSForegroundColorAttributeName: nameColor,
+    } mutableCopy];
+    if (muted) nameAttrs[NSStrikethroughStyleAttributeName] = @(NSUnderlineStyleSingle);
+
+    NSMutableAttributedString *s = [[NSMutableAttributedString alloc] init];
+    [s appendAttributedString:[[NSAttributedString alloc]
+        initWithString:(self.isInput ? (muted ? @"IN⊘ " : @"IN ") : @"OUT ")
+            attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightHeavy],
+                          NSForegroundColorAttributeName: tint }]];
+    [s appendAttributedString:[[NSAttributedString alloc] initWithString:name
+                                                               attributes:nameAttrs]];
+    self.nameLabel.attributedStringValue = s;
+    if (nameChanged) {
+        self.nameLabel.toolTip = [NSString stringWithFormat:@"%@ — click to switch to the next available %@ device",
+                                  name, self.isInput ? @"input" : @"output"];
+    }
+
+    self.levelLabel.stringValue = (pct < 0) ? @"--" : [NSString stringWithFormat:@"%ld", (long)pct];
+    self.levelLabel.textColor   = muted ? red : (levelFlash ? amber : [NSColor whiteColor]);
+    BOOL adjustable = (pct >= 0);
+    CGFloat glyphAlpha = adjustable ? 0.55 : 0.18;
+    self.minusLabel.textColor = [NSColor colorWithWhite:1.0 alpha:glyphAlpha];
+    self.plusLabel.textColor  = [NSColor colorWithWhite:1.0 alpha:glyphAlpha];
 }
 
 - (void)layout {
@@ -287,19 +380,13 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     FCAudioZoneView *_inZone;
     FCAudioZoneView *_outZone;
     NSView          *_divider;
-    // Last-rendered state — labels are only touched when a value changes,
-    // keeping the 1Hz refresh free of layout/alloc churn.
-    NSString        *_lastInName;
-    NSString        *_lastOutName;
-    NSInteger        _lastInPct;
-    NSInteger        _lastOutPct;
+    // Render caching lives inside each FCAudioZoneView (2026-06-11 extras
+    // refactor) — the indicator just feeds fresh HAL values once per tick.
 }
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel {
     if ((self = [super init])) {
-        _clock      = clockPanel;
-        _lastInPct  = NSIntegerMin;
-        _lastOutPct = NSIntegerMin;
+        _clock = clockPanel;
         [self buildBar];
         [self refresh];
     }
@@ -368,46 +455,23 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
         [_bar orderOut:nil];
         return;
     }
-    [self renderZone:_inZone isInput:YES  lastName:&_lastInName  lastPct:&_lastInPct];
-    [self renderZone:_outZone isInput:NO lastName:&_lastOutName lastPct:&_lastOutPct];
+    AudioObjectID inDev  = FCDefaultDevice(YES);
+    AudioObjectID outDev = FCDefaultDevice(NO);
+    float inVol  = FCReadVolume(inDev, YES);
+    float outVol = FCReadVolume(outDev, NO);
+    // Mute = software mute flag on the current default input OR the mic
+    // indicator's banner state (which adds the Antlion's analog hardware
+    // button via its silence meter).
+    BOOL inMuted = FCReadInputMute(inDev)
+                || (self.micIndicator && [self.micIndicator isShowing]);
+
+    [_inZone  renderDevice:(FCAudioDeviceName(inDev) ?: @"(no device)")
+              levelPercent:(inVol  < 0.0f ? -1 : (NSInteger)lroundf(inVol  * 100.0f))
+                     muted:inMuted];
+    [_outZone renderDevice:(FCAudioDeviceName(outDev) ?: @"(no device)")
+              levelPercent:(outVol < 0.0f ? -1 : (NSInteger)lroundf(outVol * 100.0f))
+                     muted:NO];
     [self syncPosition];
-}
-
-- (void)renderZone:(FCAudioZoneView *)zone
-           isInput:(BOOL)isInput
-          lastName:(NSString * __strong *)lastName
-           lastPct:(NSInteger *)lastPct {
-    AudioObjectID dev = FCDefaultDevice(isInput);
-    NSString *name = FCAudioDeviceName(dev) ?: @"(no device)";
-    float vol = FCReadVolume(dev, isInput);
-    NSInteger pct = (vol < 0.0f) ? -1 : (NSInteger)lroundf(vol * 100.0f);
-
-    if (![name isEqualToString:*lastName]) {
-        *lastName = name;
-        NSString *prefix = isInput ? @"IN " : @"OUT ";
-        NSColor *tint = isInput
-            ? [NSColor colorWithSRGBRed:0.34 green:0.95 blue:0.46 alpha:1.0]   // green — capture
-            : [NSColor colorWithSRGBRed:0.38 green:0.78 blue:1.00 alpha:1.0];  // blue  — playback
-        NSMutableAttributedString *s = [[NSMutableAttributedString alloc] init];
-        [s appendAttributedString:[[NSAttributedString alloc]
-            initWithString:prefix
-                attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightHeavy],
-                              NSForegroundColorAttributeName: tint }]];
-        [s appendAttributedString:[[NSAttributedString alloc]
-            initWithString:name
-                attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium],
-                              NSForegroundColorAttributeName: [NSColor whiteColor] }]];
-        zone.nameLabel.attributedStringValue = s;
-        zone.nameLabel.toolTip = [NSString stringWithFormat:@"%@ — click to switch to the next available %@ device",
-                                  name, isInput ? @"input" : @"output"];
-    }
-    if (pct != *lastPct) {
-        *lastPct = pct;
-        zone.levelLabel.stringValue = (pct < 0) ? @"--" : [NSString stringWithFormat:@"%ld", (long)pct];
-        BOOL adjustable = (pct >= 0);
-        zone.minusLabel.textColor = [NSColor colorWithWhite:1.0 alpha:adjustable ? 0.55 : 0.18];
-        zone.plusLabel.textColor  = [NSColor colorWithWhite:1.0 alpha:adjustable ? 0.55 : 0.18];
-    }
 }
 
 #pragma mark Positioning
