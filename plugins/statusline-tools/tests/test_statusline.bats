@@ -289,6 +289,12 @@ EOF
     run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":true}' | $STATUSLINE"
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # Positive anchors FIRST (pre-ship review 2026-06-10: a negative-only
+    # assertion passes even if the whole model segment is deleted — anchor
+    # on the sibling badges actually rendering before asserting absence).
+    [[ "$plain" == *"effort:xhigh"* ]]
+    [[ "$plain" == *"thinking:on"* ]]
+    [[ "$plain" == *"· fast"* ]]
     [[ "$plain" != *"ultracode"* ]]
 }
 
@@ -296,6 +302,9 @@ EOF
     run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # Positive anchors first — see comment in the fast_mode sibling test.
+    [[ "$plain" == *"effort:high"* ]]
+    [[ "$plain" == *"thinking:on"* ]]
     [[ "$plain" != *"ultracode"* ]]
 }
 
