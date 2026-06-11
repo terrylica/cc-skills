@@ -228,22 +228,41 @@ describe("BLOCK: pipx, virtualenv, easy_install", () => {
 });
 
 // ============================================================================
-// BLOCK Cases: SSH-wrapped commands
+// ALLOW Cases: SSH remote commands bypass local guards (operator directive)
 // ============================================================================
+// HISTORY: these two cases originally expected DENY (written 2026-02-28).
+// On 2026-04-08 the operator mandated the OPPOSITE after three sessions in
+// one day were blocked by local guards pattern-matching inside SSH payloads
+// (CWD deletion matched \brm\b, UV enforcement matched python3, stdin-inlet
+// wrapped ssh with </dev/null causing confirmation prompts). The directive —
+// "All Bash-matching hooks must detect ssh-to-remote and skip local-only
+// guards" — shipped in v12.42.3/v12.42.4 via isRemoteCommand() inside
+// isReadOnly() (lib/readonly-command-detector.ts). Remote hosts manage their
+// own Python tooling; UV enforcement applies to THIS machine only.
+// SSoT: project memory feedback_ssh_remote_bypass.md (CRITICAL).
+// Localhost/loopback SSH is still checked (not bypassed) — see below.
 
-describe("BLOCK: SSH-wrapped commands", () => {
-  it("should block pip install inside SSH", () => {
+describe("ALLOW: SSH remote commands bypass local guards", () => {
+  it("should allow pip install inside SSH to a remote host (remote bypass directive)", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "ssh bigblack 'cd ~/project && pip install requests'" },
     });
-    expectDeny(result);
+    expectAllow(result);
   });
 
-  it("should block conda install inside SSH", () => {
+  it("should allow conda install inside SSH to a remote host (remote bypass directive)", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "ssh server 'conda install pytorch'" },
+    });
+    expectAllow(result);
+  });
+
+  it("should still block pip install inside SSH to localhost (loopback is NOT remote)", () => {
+    const result = runHook({
+      tool_name: "Bash",
+      tool_input: { command: "ssh localhost 'pip install requests'" },
     });
     expectDeny(result);
   });
