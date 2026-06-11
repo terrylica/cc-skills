@@ -1,3 +1,11 @@
+# [21.91.0](https://github.com/terrylica/cc-skills/compare/v21.90.0...v21.91.0) (2026-06-11)
+
+
+### Features
+
+* **minimax:** gate benched model ids against locked catalog ([067f0d6](https://github.com/terrylica/cc-skills/commit/067f0d64fbc80f586243ccf2ed935771111a5ff8))
+* **statusline-tools:** official names + verbatim values only ([0696dde](https://github.com/terrylica/cc-skills/commit/0696dde4bbf435bccabcbc9f5a56f3b13934cca4))
+
 # [21.90.0](https://github.com/terrylica/cc-skills/compare/v21.89.2...v21.90.0) (2026-06-11)
 
 
