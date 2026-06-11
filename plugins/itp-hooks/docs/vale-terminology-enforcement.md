@@ -72,3 +72,35 @@ Edit `~/.claude/docs/GLOSSARY.md` to configure scan paths:
 -->
 ```
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-91 orchestrator)
+
+**Rejects** Write/Edit on `CLAUDE.md` files with `vale` lint warning-or-error findings (terminology config at `~/.claude/.vale.ini`). Edit-path scoping limits findings to changed-line range ± 3-line buffer so pre-existing issues elsewhere don't false-positive. The precise algorithm-encoding classifier name is `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator`; the alias `classifyValeClaudeMdGuardForOrchestrator` preserves symmetric naming with sibling subhooks. Heaviest classifier in the registry: spawns external `vale` subprocess against a tempfile holding proposed content (100-300ms typical wall-clock). Iter-91 registry `timeoutMs: 12000ms` provides generous headroom for slow-disk/cold-cache machines. **This was the FINAL subhook of the iter-84 → iter-91 PreToolUse Write\|Edit migration arc**; standalone hook remains runnable for direct-CLI invocation. Lightest-first registry position: LAST (after `file-size-guard`).
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-96 orchestrator)
+
+Vale terminology check on CLAUDE.md files (informational only — visibility, not blocking). **Iter-96 fifth inlined PostToolUse subhook (5/15 in arc)** — async Bun.spawn via shared lib helpers. PostToolUse twin to the iter-91 PreToolUse vale-claude-md-guard (that one BLOCKS before edit; this one INFORMS after edit). Walks up from edited file directory looking for `.vale.ini`, falls back to `~/.claude/.vale.ini`. Edit-path line-scoping ±3-line buffer prevents pre-existing-issue spam. Algorithm encoded in `classifyValeTerminologyConformanceOnEditedClaudeMdFileForPostToolUseOrchestrator`; alias `classifyValeClaudeMdForPostToolUseOrchestrator`. Standalone hook still runnable via `import.meta.main` guard.
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Write\|Edit
+
+Auto-sync GLOSSARY.md to Vale vocabulary
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Write\|Edit
+
+Project CLAUDE.md to global GLOSSARY.md sync
