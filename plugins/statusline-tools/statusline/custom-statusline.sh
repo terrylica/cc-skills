@@ -820,7 +820,7 @@ pool_errors=0
 # shellcheck disable=SC2034
 canary_failures=0
 canary_class="unknown"
-canary_failure_type_code_AU_QT_CF_UP_IN=""
+canary_last_observed_http_status_for_render=""
 pool_resilience_state_machine_label=""
 unified_state_name_for_render_label=""
 canary_failure_duration_humanized_short_form=""
@@ -840,37 +840,30 @@ import sys, json
 # Output line shape:
 #   <gate_status>|<pool_schedulable>|<pool_rotation_size>|<pool_errors>
 #    |<canary_consecutive_failures>|<canary_classification_four_state>
-#    |<canary_failure_type_code_AU_QT_CF_UP_IN>
+#    |<canary_last_observed_http_status_for_render>
 #    |<pool_resilience_state_machine_label>
 #    |<unified_state_name_for_render_label>
 #    |<canary_failure_duration_humanized_short_form>
 
-def derive_canary_failure_type_code_from_last_observed_http_status(
+def passthrough_official_canary_http_status_for_render(
     last_observed_http_status_code_from_canary_self_test_block,
 ):
-    # RFC 9110 status-class taxonomy collapsed onto the operationally-distinct
-    # 5-code shape we render in the statusline. Citation taxonomy:
-    # RFC 9457 (problem+json), Envoy cluster_stats upstream_rq_* metric groups,
-    # AWS API Gateway 4XXError/5XXError separation, Cloudflare Tunnel error
-    # categorization (auth/policy/upstream/network/internal). Single source
-    # signal today is canary_self_test.last_observed_http_status_code; richer
-    # per-account reasons require L3 server work (task #8).
+    # OFFICIAL-VALUES rendering (operator directive 2026-06-11): emit the
+    # canary's last_observed_http_status_code VERBATIM. This replaces the
+    # retired AU/QT/CF/UP/IN letter-code translation (an RFC-9457-inspired
+    # taxonomy, removed because it was a hand-made re-labeling of official
+    # HTTP statuses — 401 IS the value the canary observed; no legend
+    # needed). The value 0 is also the field's official recorded value
+    # (HTTP request never completed — no status observed) and renders
+    # verbatim. 2xx/3xx return empty (not a failure token; the render path
+    # only attaches this on degraded states anyway). NOTE: this python runs
+    # inside a shell double-quoted python3 -c block — NEVER use a literal
+    # double-quote character anywhere in it (it terminates the shell string
+    # and the parser dies silently behind 2>/dev/null).
     s = int(last_observed_http_status_code_from_canary_self_test_block or 0)
-    if s == 0:
-        # Canary couldn't complete the HTTP request at all — network or
-        # timeout before status was observed. Treat as upstream-unavailable.
-        return 'UP'
-    if s in (401, 403):
-        return 'AU'  # Auth / credential / version-gate rejection
-    if s in (429, 509):
-        return 'QT'  # Quota / rate-limit / throttle
-    if s in (400, 422):
-        return 'CF'  # Client / schema / policy-deny
-    if s in (502, 503, 504):
-        return 'UP'  # Upstream unavailable / pool exhausted / gateway timeout
-    if 500 <= s <= 599:
-        return 'IN'  # Internal / proxy bug / 500 from our own gateway
-    return ''        # Status 2xx/3xx (shouldn't happen on a 'failure' branch)
+    if 200 <= s < 400:
+        return ''
+    return str(s)
 
 def derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
     schedulable_active_accounts_count, rotation_working_set_size,
@@ -973,8 +966,8 @@ try:
         legacy_gate_status_binary = 'healthy'
 
     # L1d new primitives.
-    canary_failure_type_code_AU_QT_CF_UP_IN = \
-        derive_canary_failure_type_code_from_last_observed_http_status(
+    canary_last_observed_http_status_for_render = \
+        passthrough_official_canary_http_status_for_render(
             canary_last_observed_http_status_code,
         )
     pool_resilience_state_machine_label = \
@@ -1002,7 +995,7 @@ try:
         f'|{pool_error_accounts_count}'
         f'|{canary_consecutive_failures_count}'
         f'|{canary_classification_four_state}'
-        f'|{canary_failure_type_code_AU_QT_CF_UP_IN}'
+        f'|{canary_last_observed_http_status_for_render}'
         f'|{pool_resilience_state_machine_label}'
         f'|{unified_state_name_for_render_label}'
         f'|{canary_failure_duration_humanized_short_form}'
@@ -1014,7 +1007,7 @@ except Exception:
     print('parse-error|0|0|0|0|unknown||unknown|unknown|')
 " 2>/dev/null) || doorward_parsed=""
     if [ -n "$doorward_parsed" ]; then
-        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_failure_type_code_AU_QT_CF_UP_IN pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
+        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_last_observed_http_status_for_render pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
     fi
 fi
 
@@ -1213,10 +1206,10 @@ echo -e "$line1"
 # Final output shapes (L1d unified multi-dimensional render, 2026-05-13):
 #
 #   ... UTC | ... PDT | doorward 3/3 ✓ 1.93.0                                ← all healthy
-#   ... UTC | ... PDT | doorward 3/3 ✗AU 3d since-boot 1.93.0                ← today (config bug, gray)
-#   ... UTC | ... PDT | doorward 2/3 ⚠UP 3m flapping 1.93.0                   ← one backend transient
-#   ... UTC | ... PDT | doorward 1/3 ⚠UP 12m partial-outage 1.93.0            ← last healthy account, pre-warn
-#   ... UTC | ... PDT | doorward 0/3 ✗UP 47m outage 1.93.0                    ← total outage, alarm
+#   ... UTC | ... PDT | doorward 3/3 ✗401 3d since-boot 1.93.0                ← today (config bug, gray)
+#   ... UTC | ... PDT | doorward 2/3 ⚠503 3m flapping 1.93.0                   ← one backend transient
+#   ... UTC | ... PDT | doorward 1/3 ⚠503 12m partial-outage 1.93.0            ← last healthy account, pre-warn
+#   ... UTC | ... PDT | doorward 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
 #   ... UTC | ... PDT | doorward 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
 #   ... UTC | ... PDT | doorward unreachable 1.93.0                          ← gateway down
 #
@@ -1225,7 +1218,7 @@ echo -e "$line1"
 #
 # State is conveyed entirely by per-token coloring + the named state label:
 #   "all healthy"    → ✓ in GREEN, rest in BRIGHT_BLACK, no state label
-#   "since-boot"     → ✗AU and "since-boot" in BRIGHT_BLACK (calm, config bug)
+#   "since-boot"     → ✗401 (official status) and "since-boot" in BRIGHT_BLACK (calm, config bug)
 #   "flapping"       → ⚠<type> and "flapping" in YELLOW (watch, transient)
 #   "partial-outage" → ⚠<type> and "partial-outage" in YELLOW, pool ratio also YELLOW (pre-warn — last account standing)
 #   "outage"         → ✗<type> and "outage" in RED, pool ratio in RED if 0/N (alarm)
@@ -1283,13 +1276,13 @@ echo -e "$line1"
 #   carries each account's {name, status, schedulable} triple if you need to
 #   know WHICH account is in which state.
 #
-# ── "✓" or "✗AU 3d" or "⚠UP 12m"  ←  severity-glyph + type-code + duration ──
+# ── "✓" or "✗401 3d" or "⚠503 12m"  ←  severity-glyph + official status + duration ──
 #   The L1d unified render replaced the raw consecutive-failure-count display
 #   with a three-token composite that's both more glanceable and more
 #   actionable. Each token answers a distinct operator question:
 #
 #     severity-glyph   How urgent? — ✓ (none), ⚠ (warn), ✗ (alarm or calm)
-#     type-code        What kind of failure? — AU / QT / CF / UP / IN
+#     official status   What failed? — the canary's last_observed_http_status_code VERBATIM (401, 429, 503, 0=never completed)
 #     duration         How long has it been failing? — humanized short form
 #
 #   Source primitives = /v1/router-status .canary_self_test sub-object:
@@ -1300,12 +1293,12 @@ echo -e "$line1"
 #     .canary_self_test.configured_interval_secs (int)        → × failures = duration
 #     .canary_self_test.last_observed_http_status_code (int)  → maps to type-code
 #
-#   Type-code derivation (RFC 9457 / Envoy / AWS API Gateway taxonomy):
-#     401, 403         → AU (auth / credential / version-gate)
-#     429, 509         → QT (quota / rate-limit / throttle)
-#     400, 422         → CF (client / schema / policy-deny)
-#     502, 503, 504, 0 → UP (upstream unavailable / pool exhausted / timeout)
-#     500, 501, 505..  → IN (internal / proxy bug from our own gateway)
+#   Status rendering (official-values directive 2026-06-11): the canary's
+#   last_observed_http_status_code renders VERBATIM (e.g. 401, 429, 503).
+#   0 is the field's official recorded value when the HTTP request never
+#   completed (network/timeout before any status was observed). The former
+#   AU/QT/CF/UP/IN letter-code translation (RFC-9457-inspired) is RETIRED —
+#   it re-labeled official statuses, violating the official-values policy.
 #
 #   The single source of type information today is the LAST observed canary
 #   status code. Richer per-account failure reasons (one type-code per pool
@@ -1464,8 +1457,8 @@ echo -e "$line1"
 #   N/M         pool ratio, colored by pool resilience state machine
 #               (BRIGHT_BLACK healthy, YELLOW degraded/partial-outage, RED total-outage)
 #   severity    ✓ healthy (GREEN) | ✗ degraded/outage (RED/gray) | ⚠ pre-warn (YELLOW)
-#   type        AU/QT/CF/UP/IN — only when severity != ✓ (derived from canary
-#               last_observed_http_status_code per RFC 9457 taxonomy)
+#   status      official HTTP status VERBATIM — only when severity != ✓ (the canary's
+#               last_observed_http_status_code; letter-code taxonomy retired 2026-06-11)
 #   duration    humanized canary failure duration (e.g. 18h, 3m, 2d) — only
 #               when severity != ✓
 #   state-name  since-boot | flapping | partial-outage | outage — operator-
@@ -1476,10 +1469,10 @@ echo -e "$line1"
 #
 # Scenario examples (against today's live state and hypotheticals):
 #   doorward 3/3 ✓ 1.93.0                              all healthy
-#   doorward 3/3 ✗AU 18h since-boot 1.93.0             today (config bug, gray)
-#   doorward 2/3 ⚠UP 3m flapping 1.93.0                one backend transient
-#   doorward 1/3 ⚠UP 12m partial-outage 1.93.0         last healthy, pre-warn
-#   doorward 0/3 ✗UP 47m outage 1.93.0                 total outage, alarm
+#   doorward 3/3 ✗401 18h since-boot 1.93.0             today (config bug, gray)
+#   doorward 2/3 ⚠503 3m flapping 1.93.0                one backend transient
+#   doorward 1/3 ⚠503 12m partial-outage 1.93.0         last healthy, pre-warn
+#   doorward 0/3 ✗503 47m outage 1.93.0                 total outage, alarm
 #   doorward 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
 #
 # Full source-of-truth legend for each token lives in the in-script LEGEND
@@ -1504,7 +1497,7 @@ echo -e "$line1"
 #   doorward_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
 #   doorward_canary_consecutive_failures                    (int)
 #   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unknown}
-#   doorward_canary_failure_type_code                       ∈ {AU, QT, CF, UP, IN, ""}  (RFC 9457 taxonomy)
+#   doorward_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
 #   doorward_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
 #   doorward_canary_real_traffic_damper_engaged             (bool)
 #   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unknown}
@@ -1542,7 +1535,7 @@ doorward_real_traffic_damper_engaged_boolean_serialized="false"
 [ "$real_traffic_recent" -eq 1 ] && doorward_real_traffic_damper_engaged_boolean_serialized="true"
 
 doorward_state_jsonl_log_record_for_this_render="{\
-\"schema_version\":1,\
+\"schema_version\":2,\
 \"wall_clock_unix_seconds\":$(date +%s),\
 \"doorward_gateway_legacy_binary_gate_status\":\"${doorward_status}\",\
 \"doorward_pool_schedulable_active_accounts_count\":${pool_schedulable},\
@@ -1551,7 +1544,7 @@ doorward_state_jsonl_log_record_for_this_render="{\
 \"doorward_pool_resilience_state_machine_label\":\"${pool_resilience_state_machine_label}\",\
 \"doorward_canary_consecutive_failures\":${canary_failures},\
 \"doorward_canary_classification_four_state\":\"${canary_class}\",\
-\"doorward_canary_failure_type_code\":\"${canary_failure_type_code_AU_QT_CF_UP_IN}\",\
+\"doorward_canary_failure_type_code\":\"${canary_last_observed_http_status_for_render}\",\
 \"doorward_canary_failure_duration_humanized\":\"${canary_failure_duration_humanized_short_form}\",\
 \"doorward_canary_real_traffic_damper_engaged\":${doorward_real_traffic_damper_engaged_boolean_serialized},\
 \"doorward_unified_state_name_for_render\":\"${unified_state_name_for_render_label}\",\
@@ -1601,19 +1594,19 @@ if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; th
             unified_state_name_visible_label_token=""
             ;;
         since-boot)
-            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${BRIGHT_BLACK}since-boot${RESET}"
             ;;
         flapping)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}flapping${RESET}"
             ;;
         partial-outage)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}partial-outage${RESET}"
             ;;
         outage)
-            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${RED}outage${RESET}"
             ;;
         *)

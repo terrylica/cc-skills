@@ -22,7 +22,7 @@ by plugins/statusline-tools/statusline/custom-statusline.sh's L2 statistics
 surface) and emits a time-windowed operator report covering:
 
   * Uptime / reachability percentage broken down by gateway state
-  * Failure-type-code distribution (AU / QT / CF / UP / IN per RFC 9457
+  * Failure-status distribution (verbatim official HTTP statuses from schema v2, 2026-06-11; AU/QT/CF/UP/IN letter codes in pre-v2 records aggregate identically
     taxonomy) so the operator can see which failure dimension dominated the
     window
   * Unified-state-name distribution (since-boot / flapping / partial-outage /
@@ -52,7 +52,7 @@ Usage:
 Citations / design references:
     - Schema documented inline in custom-statusline.sh (search for "L2
       STATISTICS SURFACE — JSONL append per render")
-    - Failure-type taxonomy: RFC 9457 + Envoy upstream_rq_* taxonomy
+    - Failure values: official HTTP statuses verbatim (schema v2); pre-v2 letter codes
     - State-machine: Envoy outlier-detection + Resilience4j adapted to
       finite-N rotation pool
     - Time-window report style: Google SRE Workbook chapter on alerting on
@@ -441,8 +441,8 @@ def render_full_operator_report_to_stdout(
 
     if should_render_metric("type-codes"):
         print(
-            "\n## Failure type-code distribution among non-healthy renders "
-            "(RFC 9457 taxonomy)"
+            "\n## Failure status distribution among non-healthy renders "
+            "(official HTTP statuses from schema v2; letter codes in pre-v2 records)"
         )
         type_distribution = (
             compute_failure_type_code_distribution_among_non_healthy_records(
