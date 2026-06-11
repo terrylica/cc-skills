@@ -1,4 +1,5 @@
 #import "AudioStatusIndicator.h"
+#import "AudioDeviceSelectionMenuController.h"  // pull-out menus (2026-06-11)
 #import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
 #import <CoreAudio/CoreAudio.h>
 
@@ -363,6 +364,15 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     [self.owner adjustVolumeForInput:self.isInput byPercent:(dy > 0 ? 2 : -2)];
 }
 
+// Pull-out device-selection menu (2026-06-11). AppKit calls -menuForEvent:
+// for right-click, two-finger trackpad tap, AND ctrl-click — covering every
+// activation gesture in the directive. Built fresh per invocation so the
+// device list (live + paired-offline Bluetooth) is always current. IN and
+// OUT zones each ask for their own scope — fully independent menus.
+- (NSMenu *)menuForEvent:(NSEvent *)event {
+    return [self.owner deviceSelectionMenuForInput:self.isInput];
+}
+
 + (NSInteger)stepPercent {
     NSInteger s = [[NSUserDefaults standardUserDefaults] integerForKey:@"AudioBarStep"];
     if (s < 1)  s = 5;     // unset/garbage → default
@@ -382,6 +392,13 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     NSView          *_divider;
     // Render caching lives inside each FCAudioZoneView (2026-06-11 extras
     // refactor) — the indicator just feeds fresh HAL values once per tick.
+
+    // Pull-out menu support (2026-06-11). One controller for both zones;
+    // transient ⏳/✗ status per scope ([0]=input, [1]=output) rendered in
+    // place of the device name while a Bluetooth connect is in flight.
+    FCAudioDeviceSelectionMenuController *_menuController;
+    NSString       *_transientText[2];
+    CFAbsoluteTime  _transientUntil[2];
 }
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel {
@@ -476,10 +493,16 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     BOOL inMuted = FCReadInputMute(inDev)
                 || (self.micIndicator && [self.micIndicator isShowing]);
 
-    [_inZone  renderDevice:(FCAudioDeviceName(inDev) ?: @"(no device)")
+    // Transient ⏳/✗ status (BT connect in flight) overrides the device name.
+    NSString *inName  = [self transientForInput:YES]
+                      ?: (FCAudioDeviceName(inDev)  ?: @"(no device)");
+    NSString *outName = [self transientForInput:NO]
+                      ?: (FCAudioDeviceName(outDev) ?: @"(no device)");
+
+    [_inZone  renderDevice:inName
               levelPercent:(inVol  < 0.0f ? -1 : (NSInteger)lroundf(inVol  * 100.0f))
                      muted:inMuted];
-    [_outZone renderDevice:(FCAudioDeviceName(outDev) ?: @"(no device)")
+    [_outZone renderDevice:outName
               levelPercent:(outVol < 0.0f ? -1 : (NSInteger)lroundf(outVol * 100.0f))
                      muted:NO];
     [self syncPosition];
@@ -517,6 +540,9 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 #pragma mark User actions
 
 - (void)cycleDeviceForInput:(BOOL)isInput {
+    // Explicit user choice — cancel any hijack guard watching this scope
+    // (nil controller ⇒ no menu ever opened ⇒ no guard running).
+    [_menuController noteExplicitDeviceSelectionForInput:isInput];
     NSArray<NSNumber *> *devs = FCDevicesForScope(isInput);
     if (devs.count == 0) return;
     AudioObjectID cur = FCDefaultDevice(isInput);
@@ -536,6 +562,76 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     if (vol < 0.0f) return;      // device has no volume control
     FCWriteVolume(dev, isInput, vol + (float)deltaPercent / 100.0f);
     [self refresh];              // instant feedback
+}
+
+#pragma mark Device-selection menu support (2026-06-11 pull-out menus)
+
+- (NSMenu *)deviceSelectionMenuForInput:(BOOL)isInput {
+    if (!_menuController) {
+        _menuController = [[FCAudioDeviceSelectionMenuController alloc]
+                              initWithIndicator:self];
+    }
+    return [_menuController menuForInput:isInput];
+}
+
+- (NSArray<NSDictionary<NSString *, id> *> *)liveDevicesForInput:(BOOL)isInput {
+    NSArray<NSNumber *> *ids = FCDevicesForScope(isInput);
+    NSMutableArray *out = [NSMutableArray arrayWithCapacity:ids.count];
+    for (NSNumber *n in ids) {
+        NSString *name = FCAudioDeviceName((AudioObjectID)n.unsignedIntValue);
+        if (!name.length) continue;
+        [out addObject:@{ @"id": n, @"name": name }];
+    }
+    return out;
+}
+
+- (AudioObjectID)currentDefaultDeviceForInput:(BOOL)isInput {
+    return FCDefaultDevice(isInput);
+}
+
+- (void)selectDeviceID:(AudioObjectID)devID forInput:(BOOL)isInput {
+    if (devID == kAudioObjectUnknown) return;
+    FCSetDefaultDevice(devID, isInput);
+    [self refresh];              // instant feedback
+}
+
+- (AudioObjectID)liveDeviceIDMatchingName:(NSString *)name forInput:(BOOL)isInput {
+    if (!name.length) return 0;
+    for (NSNumber *n in FCDevicesForScope(isInput)) {
+        NSString *liveName = FCAudioDeviceName((AudioObjectID)n.unsignedIntValue);
+        if (!liveName.length) continue;
+        if ([liveName caseInsensitiveCompare:name] == NSOrderedSame ||
+            [liveName rangeOfString:name options:NSCaseInsensitiveSearch].location != NSNotFound ||
+            [name rangeOfString:liveName options:NSCaseInsensitiveSearch].location != NSNotFound) {
+            return (AudioObjectID)n.unsignedIntValue;
+        }
+    }
+    return 0;
+}
+
+- (BOOL)deviceIDStillExists:(AudioObjectID)devID {
+    // Name-property probe: readable on every live AudioObject regardless of
+    // transport (real, virtual, aggregate); fails for reassigned/dead IDs.
+    return devID != kAudioObjectUnknown && FCAudioDeviceName(devID) != nil;
+}
+
+- (void)setTransientStatus:(NSString *)status forInput:(BOOL)isInput seconds:(NSTimeInterval)seconds {
+    int i = isInput ? 0 : 1;
+    _transientText[i]  = [status copy];
+    _transientUntil[i] = status ? (CFAbsoluteTimeGetCurrent() + seconds) : 0;
+    [self refresh];              // render ⏳/✗ (or restore the device name) now
+}
+
+// Active transient text for the scope, or nil when none/expired. Expiry is
+// lazy — the 1Hz tick calls refresh anyway, so no timers needed.
+- (NSString *)transientForInput:(BOOL)isInput {
+    int i = isInput ? 0 : 1;
+    if (!_transientText[i]) return nil;
+    if (CFAbsoluteTimeGetCurrent() >= _transientUntil[i]) {
+        _transientText[i] = nil;
+        return nil;
+    }
+    return _transientText[i];
 }
 
 @end
