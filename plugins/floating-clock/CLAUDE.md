@@ -244,6 +244,16 @@ verified 2026-06-11). Refresh is tick-driven (6 HAL property reads/sec, no
 listeners/IOProcs); each zone caches a render-key composite so labels only
 redraw when something visible changes.
 
+**Any-background legibility (research-converged "dual-layer" treatment,
+2026-06-11):** the pill melted into pure-black backgrounds (user report). Fix —
+the same recipe macOS HUDs / launcher panels use, zero per-frame sampling:
+1pt hairline border (white @ 0.22) defines the edge on black where shadows are
+invisible; surface lifted 0.11 → 0.16 gray (Material-style dark elevation) so
+the fill separates from `#000`; `NSPanel hasShadow` keeps doing the work on
+light backgrounds. Verified by screenshot over both pure-black and white
+backdrops. If the clock body itself needs the same on-black separation, that's
+theme territory: `ShadowStyle` glow / halo / crisp presets.
+
 AskUserQuestion-selected extras (same day, all verified on-screen):
 
 - **"Show Audio Bar"** context-menu toggle (Display section) → flips
