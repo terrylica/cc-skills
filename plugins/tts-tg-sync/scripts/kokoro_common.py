@@ -10,6 +10,14 @@ import numpy as np
 
 from mlx_audio.tts.utils import load_model
 
+# MODEL_ID is a deliberate DEPENDENCY PIN (like a lockfile entry), not a
+# hard-coded display value: the local TTS engine must stay deterministic, so
+# the model is never derived live from HuggingFace (an upstream rename would
+# silently change audio output). Official registry entry:
+# https://huggingface.co/mlx-community/Kokoro-82M-bf16
+# SSoT for the pin: plugins/kokoro-tts/scripts/kokoro_common.py; the
+# tts-tg-sync copy is byte-identical by necessity (plugins are self-contained
+# for marketplace installs) - update BOTH together.
 MODEL_ID = "mlx-community/Kokoro-82M-bf16"
 SAMPLE_RATE = 24000
 DEFAULT_VOICE = "af_heart"
