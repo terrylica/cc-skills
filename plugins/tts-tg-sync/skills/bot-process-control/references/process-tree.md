@@ -13,7 +13,7 @@ launchd (PID 1)
 
 In production, launchd manages the lifecycle via a compiled Swift runner binary (`telegram-bot-runner`). The runner is a thin launcher that sets up PATH/env and delegates to `bun --watch run`. When any `.ts` file changes, Bun automatically restarts the process — no manual kills needed.
 
-The Swift binary exists to satisfy the [native-binary-guard](../../../itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd) policy: launchd requires named binaries (not bash scripts) for clean Login Items display.
+The Swift binary exists to satisfy the [native-binary-guard](../../../itp-hooks/docs/native-binary-guard.md) policy: launchd requires named binaries (not bash scripts) for clean Login Items display.
 
 **Source**: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner.swift`
 **Binary**: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner`
