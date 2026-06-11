@@ -1,5 +1,6 @@
 #import "VPNStatusIndicator.h"
 #import "MicMuteIndicator.h"
+#import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 
 // Banner geometry — matches the mic-mute bar so the two stack cleanly.
 static const CGFloat kVPNBannerHeight = 20.0;
@@ -133,14 +134,18 @@ static const CGFloat kVPNBannerGap    = 3.0;
     CGFloat w = c.size.width;
     CGFloat x = c.origin.x;
 
-    // Stack above the mic-mute bar when it's visible; otherwise above the clock.
-    CGFloat micOffset = (_mic && [_mic isShowing]) ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
-    CGFloat aboveY    = NSMaxY(c) + kVPNBannerGap + micOffset;
+    // Stack above the mic-mute bar and the always-visible audio I/O bar
+    // (2026-06-11) — one 20pt+gap slot per bar currently showing.
+    CGFloat micOffset   = (_mic && [_mic isShowing]) ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
+    CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
+                          ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
+    CGFloat stack  = micOffset + audioOffset;
+    CGFloat aboveY = NSMaxY(c) + kVPNBannerGap + stack;
     CGFloat y;
     if (aboveY + kVPNBannerHeight <= NSMaxY(vf)) {
-        y = aboveY;                                                        // preferred: above
+        y = aboveY;                                                    // preferred: above
     } else {
-        y = c.origin.y - kVPNBannerGap - kVPNBannerHeight - micOffset;     // fallback: below
+        y = c.origin.y - kVPNBannerGap - kVPNBannerHeight - stack;     // fallback: below
     }
     if (x + w > NSMaxX(vf)) x = NSMaxX(vf) - w;
     if (x < vf.origin.x)    x = vf.origin.x;

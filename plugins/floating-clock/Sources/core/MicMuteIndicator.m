@@ -1,4 +1,5 @@
 #import "MicMuteIndicator.h"
+#import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import <CoreAudio/CoreAudio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
@@ -253,12 +254,16 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 
     CGFloat w = c.size.width;
     CGFloat x = c.origin.x;
-    CGFloat aboveY = NSMaxY(c) + kBannerGap;
+    // Stack above the always-visible audio I/O bar when it's showing
+    // (2026-06-11) — same slot maths the VPN bar uses above this one.
+    CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
+                          ? (kBannerHeight + kBannerGap) : 0.0;
+    CGFloat aboveY = NSMaxY(c) + kBannerGap + audioOffset;
     CGFloat y;
     if (aboveY + kBannerHeight <= NSMaxY(vf)) {
-        y = aboveY;                                      // preferred: above the clock
+        y = aboveY;                                                    // preferred: above the clock
     } else {
-        y = c.origin.y - kBannerGap - kBannerHeight;     // fallback: below (clock at screen top)
+        y = c.origin.y - kBannerGap - kBannerHeight - audioOffset;     // fallback: below (clock at screen top)
     }
     if (x + w > NSMaxX(vf)) x = NSMaxX(vf) - w;
     if (x < vf.origin.x)    x = vf.origin.x;

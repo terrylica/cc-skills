@@ -18,10 +18,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class FCAudioStatusIndicator;  // always-visible audio I/O bar (2026-06-11)
+
 @interface FCMicMuteIndicator : NSObject
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel
                         deviceName:(NSString *)deviceName;
+
+// When the always-visible audio I/O bar (2026-06-11) is showing, this banner
+// stacks one slot higher so the two never overlap. Set once after init.
+@property (nonatomic, weak, nullable) FCAudioStatusIndicator *audioIndicator;
 
 // Re-read the live mute state AND reposition. Call from the clock's 1Hz tick.
 // Polling here (not just relying on CoreAudio change-notifications) is what
