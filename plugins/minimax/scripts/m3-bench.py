@@ -13,7 +13,9 @@ Key from MINIMAX_API_KEY env or 1Password (see scripts/_m3_common.py).
 import json
 import re
 import statistics
+import sys
 import time
+from pathlib import Path
 
 from _m3_common import BASE, NET_ERRORS, get_key, session, err_of
 
@@ -21,7 +23,22 @@ S = session()
 HDR = {"Authorization": f"Bearer {get_key()}", "Content-Type": "application/json"}
 URL = f"{BASE}/chat/completions"
 THINK = re.compile(r"<think>[\s\S]*?</think>\s*")
+
+# Benched models: an intentional SUBSET selection, but every id must exist in
+# the plugin's official catalog SSoT (references/fixtures/models-list-locked.json,
+# review-gated, tripwired against /v1/models by scripts/minimax-check-upgrade).
+# Fail loudly on drift instead of benchmarking a renamed/retired model id.
 MODELS = ["MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M3"]
+_CATALOG = Path(__file__).resolve().parent.parent / "references" / "fixtures" / "models-list-locked.json"
+_official_ids = {m["id"] for m in json.loads(_CATALOG.read_text())["data"]}
+_unknown = [m for m in MODELS if m not in _official_ids]
+if _unknown:
+    sys.exit(
+        f"[m3-bench] benched model id(s) {_unknown} absent from the official "
+        f"catalog snapshot {_CATALOG.name} ({sorted(_official_ids)}). "
+        "Audit the catalog tripwire (scripts/minimax-check-upgrade) and update "
+        "MODELS or the review-gated snapshot."
+    )
 REPS = 2
 
 JSON_SYS = ('Output ONLY a JSON object: {"action":"long"|"short"|"flat","confidence":0..1,'
