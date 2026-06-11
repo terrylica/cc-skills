@@ -1,3 +1,10 @@
+## [21.89.2](https://github.com/terrylica/cc-skills/compare/v21.89.1...v21.89.2) (2026-06-11)
+
+
+### Bug Fixes
+
+* **statusline-tools:** retire inferred ultracode badge ([216a54e](https://github.com/terrylica/cc-skills/commit/216a54e6e48a4076839f20ef3ce0920877df0d82))
+
 ## [21.89.1](https://github.com/terrylica/cc-skills/compare/v21.89.0...v21.89.1) (2026-06-11)
 
 
