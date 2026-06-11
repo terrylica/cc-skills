@@ -1,3 +1,10 @@
+# [21.90.0](https://github.com/terrylica/cc-skills/compare/v21.89.2...v21.90.0) (2026-06-11)
+
+
+### Features
+
+* **statusline-tools:** drop effort: label, render level bare ([ed40187](https://github.com/terrylica/cc-skills/commit/ed40187fedc88ea515ab7c6c7f0769c9dd1b15ff))
+
 ## [21.89.2](https://github.com/terrylica/cc-skills/compare/v21.89.1...v21.89.2) (2026-06-11)
 
 
