@@ -53,10 +53,10 @@ See [HOOKS.md "Iter-93: PostToolUse edit-time orchestrator kick-off"](../../../d
 
 See individual spoke docs:
 
-- [ty-type-check.md](./posttooluse-hooks-full-table.md)
-- [tsgo-type-check.md](./posttooluse-hooks-full-table.md)
-- [oxlint-check.md](./posttooluse-hooks-full-table.md)
-- [biome-lint.md](./posttooluse-hooks-full-table.md)
+- [ty-type-checker.md](./ty-type-checker.md)
+- [tsgo-type-check.md](./tsgo-type-check.md)
+- [oxlint-check.md](./oxlint-check.md)
+- [biome-lint.md](./biome-lint.md)
 - [vale-terminology-enforcement.md](./vale-terminology-enforcement.md)
 - [ssot-principles.md](./ssot-principles.md)
 - [memory-efficiency-reminder.md](./memory-efficiency-reminder.md)
@@ -77,3 +77,11 @@ See individual spoke docs:
 Pre-iter-98 the standalone `memory-efficiency-reminder.ts` hook emitted the reminder via plain `console.log` (raw text — transcript-only, NOT Claude-visible per iter-66/93 forensic finding). Iter-98 orchestrator path emits proper `additional_context` decision (Claude-visible system reminder); standalone CLI now also emits JSON not raw text.
 
 Also fixed a race-unsafe `existsSync(...) + writeFileSync(...)` gate pattern (atomic O_EXCL via shared helper now).
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Write\|Edit
+
+**Iter-93→iter-94 PostToolUse edit-time orchestrator (2/15 inlined: ty-type-check + tsgo-type-check)**. Combines context-injecting PostToolUse subhooks into one bun process with **MULTI-AGGREGATION semantics**: runs ALL subhooks in parallel via `Promise.all` (no short-circuit, unlike the PreToolUse first-deny-short-circuit orchestrator), merges every non-empty `additional_context` payload into ONE consolidated `{decision: "block", reason: aggregate}` JSON with per-section `[orchestrator-subhook: <name>]` provenance prefix (iter-94 usability enhancement). Emits NOTHING when all subhooks return `noop` (preserves legacy silent-allow semantics). **Iter-94 critical perf invariant**: every inlined classifier MUST use `Bun.spawn` (async) — `Bun.spawnSync` halts the JS event loop and defeats `Promise.all` parallelism per [Bun docs](https://bun.com/docs/api/spawn) + 2026 community guidance. The static audit task `.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` prevents regression. Path B (orchestrator inlining) replaces iter-89's ruled-out Path A (async:true sweep) per the iter-92 audit findings. Final-state projection: `(15-1) × 17ms ≈ 238ms` per Write\|Edit cold-start savings. Contract at [`lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`](../hooks/lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts). See [HOOKS.md "Iter-93: PostToolUse edit-time orchestrator kick-off"](../../../docs/HOOKS.md#iter-93-posttooluse-edit-time-orchestrator-kick-off--path-b-orchestrator-inlining-started-115-inlined).

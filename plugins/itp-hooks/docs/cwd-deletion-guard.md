@@ -43,3 +43,11 @@ Add `# CWD-DELETE-OK` comment to bypass:
 rm -rf ~/fork-tools/repo  # CWD-DELETE-OK
 ```
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Bash
+
+Prevents deleting the current working directory
