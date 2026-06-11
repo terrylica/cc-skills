@@ -69,6 +69,13 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowProgressPercent:) keyEquivalent:@""];
     [displayItems addObject:sp];
 
+    // 2026-06-11: always-visible audio I/O bar (AudioStatusIndicator).
+    // Menu toggle requested via AskUserQuestion — hide/show without
+    // `defaults write`. Backing key: AudioBarEnabled (registered YES).
+    NSMenuItem *sab = [[NSMenuItem alloc] initWithTitle:@"Show Audio Bar"
+                                                 action:@selector(toggleShowAudioBar:) keyEquivalent:@""];
+    [displayItems addObject:sab];
+
     // v4 iter-248: "Show Debug Labels" menu item removed — canonical
     // [LOCAL]/[ACTIVE]/[NEXT] corner overlays no longer rendered per
     // user directive. Toggle action retained on the panel for

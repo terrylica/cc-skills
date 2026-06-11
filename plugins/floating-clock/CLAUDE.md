@@ -241,11 +241,24 @@ Implementation notes: same NSPanel+CALayer mechanics as the other banners but
 `ignoresMouseEvents = NO`; `FCAudioZoneView` overrides `hitTest:` to claim every
 click inside the zone (NSTextField subviews swallowed mouseDown otherwise —
 verified 2026-06-11). Refresh is tick-driven (6 HAL property reads/sec, no
-listeners/IOProcs); labels only redraw when a value changes.
+listeners/IOProcs); each zone caches a render-key composite so labels only
+redraw when something visible changes.
+
+AskUserQuestion-selected extras (same day, all verified on-screen):
+
+- **"Show Audio Bar"** context-menu toggle (Display section) → flips
+  `AudioBarEnabled` with instant show/hide + checkmark.
+- **Mute state on IN**: while the mic is muted (CoreAudio mute flag on the
+  current default input OR the mic indicator's banner state, which covers the
+  Antlion's analog hardware button), the IN zone renders `IN⊘` + red
+  struck-through device name + red level.
+- **Change flash**: a device or level change blinks the affected text amber
+  for ~1.4s (`kFlashSecs`), then decays to white on the next tick — external
+  changes (volume keys, other apps) catch the eye.
 
 | default key       | type | default | meaning                        |
 | ----------------- | ---- | ------- | ------------------------------ |
-| `AudioBarEnabled` | BOOL | `YES`   | master on/off                  |
+| `AudioBarEnabled` | BOOL | `YES`   | master on/off (also in menu)   |
 | `AudioBarStep`    | int  | `5`     | −/+ click step %, clamped 1–25 |
 
 ## Generic external-state status indicator (`VPNStatusIndicator`, 2026-06-07)

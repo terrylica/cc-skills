@@ -1,6 +1,7 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
+#import "../core/AudioStatusIndicator.h" // 2026-06-11: instant bar show/hide
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
 
@@ -285,6 +286,16 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
     [self applyDisplaySettings];
+}
+
+// 2026-06-11: hide/show the always-visible audio I/O bar from the context
+// menu (AskUserQuestion-selected extra). The indicator's own refresh handles
+// orderOut/orderFront, so flipping the key + one refresh is the whole job —
+// no applyDisplaySettings needed (the bar is an overlay, not segment layout).
+- (void)toggleShowAudioBar:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"AudioBarEnabled"] forKey:@"AudioBarEnabled"];
+    [_audioStatusIndicator refresh];   // instant show/hide (vs ≤1s tick lag)
 }
 
 // v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny

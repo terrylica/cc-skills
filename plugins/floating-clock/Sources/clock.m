@@ -224,6 +224,10 @@
     _micMuteIndicator = [[FCMicMuteIndicator alloc] initWithClockPanel:self
                                                             deviceName:@"Antlion USB Microphone"];
     _micMuteIndicator.audioIndicator = _audioStatusIndicator;
+    // 2026-06-11 extra: the audio bar's IN zone renders red/struck-through
+    // while the mic indicator's banner is showing (mute flag OR analog
+    // silence), so mute state is visible even when the banner is off-screen.
+    _audioStatusIndicator.micIndicator = _micMuteIndicator;
 
     // Generic external-state status banner (default violet "VPN"); stacks
     // above the mic-mute bar. Disabled unless VPNIndicatorEnabled is set in
