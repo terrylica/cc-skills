@@ -16,7 +16,10 @@ import { execSync } from "child_process";
 import { mkdirSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 
-const HOOK_PATH = join(import.meta.dir, "pretooluse-hoisted-deps-guard.mjs");
+// iter-86 migrated the hook .mjs → .ts; the harness must invoke the .ts file
+// via bun (node cannot parse TypeScript syntax — the stale `node x.mjs`
+// harness produced parsed:null on every deny case until fixed 2026-06-10).
+const HOOK_PATH = join(import.meta.dir, "pretooluse-hoisted-deps-guard.ts");
 const TMP_DIR = join(import.meta.dir, "test-tmp-pretooluse");
 
 // Get git root for testing
@@ -32,7 +35,7 @@ try {
 function runHook(input) {
   try {
     const inputJson = JSON.stringify(input);
-    const stdout = execSync(`node ${HOOK_PATH}`, {
+    const stdout = execSync(`bun ${HOOK_PATH}`, {
       encoding: "utf-8",
       input: inputJson,
       stdio: ["pipe", "pipe", "pipe"],
@@ -67,6 +70,18 @@ function isDenied(parsed) {
   // Old format (legacy)
   if (parsed.decision === "block") return true;
   return false;
+}
+
+/**
+ * Helper to check if hook allowed the operation.
+ * Works with both the modern explicit-allow JSON
+ * ({hookSpecificOutput: {permissionDecision: "allow"}}) emitted by the .ts
+ * hook and the legacy silent-allow contract (empty stdout, exit 0).
+ */
+function isAllowed(result) {
+  if (result.exitCode !== 0) return false;
+  if (result.stdout === "") return true; // legacy silent allow
+  return result.parsed?.hookSpecificOutput?.permissionDecision === "allow";
 }
 
 /**
@@ -108,7 +123,7 @@ describe("Policy 1: Root-only pyproject.toml", () => {
       },
     });
     // No output = allowed
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should BLOCK pyproject.toml in packages/ subdirectory", () => {
@@ -157,7 +172,7 @@ describe("Policy 1: Root-only pyproject.toml", () => {
         content: 'from setuptools import setup\nsetup()',
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 });
 
@@ -174,7 +189,7 @@ describe("Policy 2: Path boundary validation", () => {
         new_string: 'sibling = { path = "packages/sibling" }',
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should BLOCK path escaping with ../../../", () => {
@@ -199,7 +214,7 @@ describe("Policy 2: Path boundary validation", () => {
           'rangebar = { git = "https://github.com/owner/repo", branch = "main" }',
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should ALLOW workspace references", () => {
@@ -210,7 +225,7 @@ describe("Policy 2: Path boundary validation", () => {
         new_string: "my-lib = { workspace = true }",
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should BLOCK multiple escaping paths", () => {
@@ -240,7 +255,7 @@ valid = { path = "packages/valid" }`,
         new_string: 'sibling = { path = "./packages/other" }',
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 });
 
@@ -262,7 +277,7 @@ dev = ["pytest", "ruff"]`,
       },
     });
     // Root-level is allowed (this would be caught by root-only first for sub-packages)
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should BLOCK [dependency-groups] in packages/ sub-package", () => {
@@ -296,12 +311,12 @@ describe("Edge cases", () => {
         file_path: `${GIT_ROOT}/packages/lib/pyproject.toml`,
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should handle invalid JSON gracefully", () => {
     try {
-      execSync(`echo "not json" | node ${HOOK_PATH}`, {
+      execSync(`echo "not json" | bun ${HOOK_PATH}`, {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       });
@@ -318,7 +333,7 @@ describe("Edge cases", () => {
       tool_name: "Write",
       tool_input: {},
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 
   it("should handle empty content gracefully", () => {
@@ -329,6 +344,6 @@ describe("Edge cases", () => {
         content: "",
       },
     });
-    expect(result.stdout).toBe("");
+    expect(isAllowed(result)).toBe(true);
   });
 });
