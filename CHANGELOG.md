@@ -1,3 +1,17 @@
+# [21.94.0](https://github.com/terrylica/cc-skills/compare/v21.93.0...v21.94.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **floating-clock:** audio bar legibility on pure-black backgrounds ([8d543af](https://github.com/terrylica/cc-skills/commit/8d543af7e6e9103c6fb106b6c364e93810d888cd)), closes [#000](https://github.com/terrylica/cc-skills/issues/000) [#000](https://github.com/terrylica/cc-skills/issues/000)
+
+
+### Features
+
+* **floating-clock:** always-visible audio I/O bar, manual control ([fe5952b](https://github.com/terrylica/cc-skills/commit/fe5952b5926bc08136d86f92c29e8b579685dbfd))
+* **floating-clock:** audio bar extras — menu toggle, mute-red, flash ([820f3a0](https://github.com/terrylica/cc-skills/commit/820f3a0bb5285cdbebe97f74a36ad16e09b92969))
+* **floating-clock:** device menus + Bluetooth connect/takeover ([fb8f6f6](https://github.com/terrylica/cc-skills/commit/fb8f6f627e89e0c4674327c99eca5a75bcc33cf9))
+
 # [21.93.0](https://github.com/terrylica/cc-skills/compare/v21.92.0...v21.93.0) (2026-06-11)
 
 
