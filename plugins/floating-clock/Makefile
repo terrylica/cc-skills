@@ -8,7 +8,7 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -84,9 +84,19 @@ bundle: build icon
 	cp Info.plist $(CONTENTS)/Info.plist
 	cp $(ICON_ICNS) $(CONTENTS)/Resources/Icon.icns
 
+# Stable signing identity (2026-06-11): ad-hoc signing ("-") mints a NEW code
+# identity every build, so macOS TCC re-prompts (Bluetooth, mic) after every
+# reinstall. A persistent self-signed cert keeps the identity stable — the
+# user authorizes ONCE and the grant survives rebuilds. Falls back to ad-hoc
+# when the cert is absent (fresh machines). Cert lives in the login keychain;
+# key material at ~/.local/share/floating-clock-signing/ (never in git).
+SIGN_IDENTITY := $(shell security find-identity -v -p codesigning 2>/dev/null \
+	| grep -q "FloatingClock Local Signing" \
+	&& echo "FloatingClock Local Signing" || echo "-")
+
 sign: bundle
-	codesign --force --deep --sign - $(APP)
-	@echo "Signed: $(APP)"
+	codesign --force --deep --sign "$(SIGN_IDENTITY)" $(APP)
+	@echo "Signed: $(APP) (identity: $(SIGN_IDENTITY))"
 
 install: sign
 	cp -R $(APP) /Applications/

@@ -25,7 +25,13 @@
 // NSUserDefaults (domain com.terryli.floating-clock):
 //   AudioBarEnabled  BOOL  YES   master on/off (always visible by default)
 //   AudioBarStep     int   5     ± click step in percent (clamped 1–25)
+//
+// 2026-06-11 pull-out menus: right-click / two-finger tap / ctrl-click on a
+// zone pops an independent device-selection menu (live CoreAudio devices +
+// paired-but-offline Bluetooth audio devices that connect-then-switch, incl.
+// takeover from another host). See AudioDeviceSelectionMenuController.
 #import <Cocoa/Cocoa.h>
+#import <CoreAudio/CoreAudio.h>
 
 @class FCMicMuteIndicator;   // mic-mute red-state source (2026-06-11 extras)
 
@@ -55,6 +61,36 @@ NS_ASSUME_NONNULL_BEGIN
 // User actions (invoked by the zone views; exposed for testability).
 - (void)cycleDeviceForInput:(BOOL)isInput;
 - (void)adjustVolumeForInput:(BOOL)isInput byPercent:(NSInteger)deltaPercent;
+
+#pragma mark Device-selection menu support (2026-06-11 pull-out menus)
+
+// Pull-out menu for one zone — built fresh per right-click so the device
+// list is always current. Zones return this from -menuForEvent:.
+- (NSMenu *)deviceSelectionMenuForInput:(BOOL)isInput;
+
+// Live (CoreAudio HAL) real devices in scope: @{ @"id": AudioObjectID as
+// NSNumber, @"name": NSString }. Name-sorted, virtual/aggregate excluded —
+// the same ring the left-click cycle walks.
+- (NSArray<NSDictionary<NSString *, id> *> *)liveDevicesForInput:(BOOL)isInput;
+
+- (AudioObjectID)currentDefaultDeviceForInput:(BOOL)isInput;
+
+// Set the system default for the scope + refresh instantly.
+- (void)selectDeviceID:(AudioObjectID)devID forInput:(BOOL)isInput;
+
+// First live device whose name matches (case-insensitive, containment both
+// ways — BT nicknames vs HAL names). 0 = no match.
+- (AudioObjectID)liveDeviceIDMatchingName:(NSString *)name forInput:(BOOL)isInput;
+
+// YES while the HAL still knows this ID — ANY transport, virtual included
+// (hijack-guard restore targets may legitimately be Background Music etc.).
+// HAL IDs are reassigned on unplug/replug, so cached IDs must be re-probed
+// before use.
+- (BOOL)deviceIDStillExists:(AudioObjectID)devID;
+
+// Transient status text rendered in place of the device name (⏳ connecting /
+// ✗ failed). nil clears immediately; otherwise auto-expires after `seconds`.
+- (void)setTransientStatus:(nullable NSString *)status forInput:(BOOL)isInput seconds:(NSTimeInterval)seconds;
 
 @end
 

@@ -258,10 +258,17 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
 
 - **"Show Audio Bar"** context-menu toggle (Display section) → flips
   `AudioBarEnabled` with instant show/hide + checkmark.
-- **Mute state on IN**: while the mic is muted (CoreAudio mute flag on the
-  current default input OR the mic indicator's banner state, which covers the
-  Antlion's analog hardware button), the IN zone renders `IN⊘` + red
-  struck-through device name + red level.
+- **Mute state on IN**: while the ACTIVE mic is muted (CoreAudio mute flag on
+  the current default input OR the mic indicator's banner state), the IN zone
+  renders `IN⊘` + red struck-through device name + red level. 2026-06-11
+  fix: `FCMicMuteIndicator` now binds DEFAULT-INPUT-FIRST (was Antlion-first,
+  which falsely flagged AirPods red when the Antlion's hardware button was
+  pressed); Bluetooth inputs are never silence-metered (a persistent IOProc
+  would hold the headset in HFP/SCO call mode). The Antlion's analog button
+  is still caught — when the Antlion is the default input. Companion fix
+  outside this repo: `~/.local/bin/mic-mute` (chezmoi) gained a `default`
+  target and both Karabiner F10 bindings use it, so the mute key follows the
+  active mic too.
 - **Change flash**: a device or level change blinks the affected text amber
   for ~1.4s (`kFlashSecs`), then decays to white on the next tick — external
   changes (volume keys, other apps) catch the eye.
@@ -270,6 +277,90 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
 | ----------------- | ---- | ------- | ------------------------------ |
 | `AudioBarEnabled` | BOOL | `YES`   | master on/off (also in menu)   |
 | `AudioBarStep`    | int  | `5`     | −/+ click step %, clamped 1–25 |
+
+### Pull-out device menus + Bluetooth connect/takeover (2026-06-11, second directive)
+
+**Right-click / two-finger tap / ctrl-click** on either zone pops an independent
+device-selection menu (all three gestures come free via `-menuForEvent:`).
+The left-click cycle toggle is untouched. Verified on-screen 2026-06-11:
+menu structure, direct live-device selection, IN/OUT independence, and a real
+takeover (device connected & switched from an iPhone).
+
+- `Sources/core/AudioDeviceSelectionMenuController.{h,m}` — builds the menu
+  fresh per invocation: live CoreAudio devices (✓ on current; click = switch
+  now) + `BLUETOOTH — CONNECT` section of paired-but-offline BT audio devices
+  (`○` prefix). Orchestrates connect → bounded HAL polling (0.5s × 16) →
+  set-default, with transient `⏳ name…` / `✗ name` status in the zone.
+- `Sources/core/BluetoothPairedAudioDeviceConnector.{h,m}` — IOBluetooth
+  wrapper: `pairedDevices` filtered to the Audio/Video major class;
+  async `openConnection:` with self-retaining attempt objects + timeout
+  backstop. **`openConnection` IS the takeover request** — audio devices
+  (AirPods/W1/H1, multipoint headsets) switch to the most recent requesting
+  host; this is the in-app equivalent of `blueutil --connect` /
+  lapfelix/BluetoothConnector (the FOSS canon for un-sticking devices from an
+  iPhone). CoreBluetooth is BLE-only and useless here; IOBluetooth remains
+  the only public classic-BT API.
+- Requirements: `-framework IOBluetooth` (Makefile CFLAGS) and
+  `NSBluetoothAlwaysUsageDescription` (Info.plist; macOS TCC prompts on the
+  first menu open since `pairedDevices` is called lazily).
+- Resource posture: zero steady-state cost — no listeners, no daemons, no
+  polling; IOBluetooth is touched only while a menu is open or a connect is
+  in flight. Connect ≠ routed: the CoreAudio endpoint appears async after
+  the baseband link, hence the poll-then-select stage (honest `✗` when a
+  device connects but exposes no endpoint in that scope, e.g. a speaker
+  picked from the INPUT menu).
+
+### Scope-independence hijack guard (2026-06-11, user bug report)
+
+Selecting AirPods for INPUT also flipped the OUTPUT. Probe-verified root
+cause (`scripts/audio-diagnostics/fc-audio-default-routing-probe.m`): the
+defaults are NOT bound — AirPods are TWO HAL devices (24kHz HFP mic +
+48kHz A2DP out) behind separate default-in/default-out properties —
+**coreaudiod auto-routes the other scope to a BT device when it connects**
+(watcher caught it twice, +0s and +7s after connect). Fix in
+`AudioDeviceSelectionMenuController`: snapshot the other scope before
+connect; for 20s (40 × 0.5s) restore it whenever it's hijacked _by the
+connected device_ (ID-change first, then name match), max 3 restores then
+`✗ macOS keeps re-routing`. `↩ name` transient on each restore. Explicit
+user selections bump a per-scope generation counter that cancels the guard
+(menu picks AND the left-click cycle). Restore targets may legitimately be
+virtual (Background Music) — existence is re-probed across ALL transports
+(`deviceIDStillExists:`), since HAL IDs are reassigned on unplug.
+Adversarially reviewed (19-agent workflow, 16 findings → 8 confirmed → all
+fixed or dispositioned 2026-06-11).
+
+**Per-app caveat (Typeless et al.)**: live capture sessions do NOT migrate
+when the default input changes — apps must listen for
+`kAudioHardwarePropertyDefaultInputDevice` and rebind; many (Typeless
+"Auto-detect") resolve once at session start. Capture-path truth-test:
+`scripts/audio-diagnostics/fc-default-input-capture-rms-probe.m` (records
+default input, prints per-500ms RMS; AirPods stem-scratch is the
+discriminator).
+
+### Stable local signing identity (2026-06-11, TCC re-prompt fix)
+
+Ad-hoc signing (`codesign --sign -`) mints a new code identity per build →
+TCC (Bluetooth/mic) re-prompts after every reinstall. The Makefile now
+signs with the self-signed cert **"FloatingClock Local Signing"** when
+present (auto-fallback to ad-hoc). One Allow then persists forever.
+Recreate on a new machine (OpenSSL 3 p12 import is broken against macOS
+`security` — import PEMs separately):
+
+```bash
+DIR=~/.local/share/floating-clock-signing && mkdir -p $DIR && cd $DIR
+openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
+  -subj "/CN=FloatingClock Local Signing" \
+  -addext "keyUsage=critical,digitalSignature" \
+  -addext "extendedKeyUsage=critical,codeSigning" \
+  -addext "basicConstraints=critical,CA:false"
+security import key.pem  -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign
+security import cert.pem -k ~/Library/Keychains/login.keychain-db
+security add-trusted-cert -p codeSign -k ~/Library/Keychains/login.keychain-db cert.pem  # GUI password dialog
+```
+
+Silent Bluetooth pre-authorization is impossible without MDM — the grant
+row is `kTCCServiceBluetoothAlways` / `com.terryli.floating-clock` in the
+user TCC.db; one human click is mandatory, once per identity.
 
 ## Generic external-state status indicator (`VPNStatusIndicator`, 2026-06-07)
 

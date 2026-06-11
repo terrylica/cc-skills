@@ -237,9 +237,13 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // 1Hz driver (called from the clock tick). Re-reads the live mute state — both
 // the CoreAudio mute flag (software mutes) AND the audio-silence flag (the
 // analog hardware button) — then repositions. Recovers the device if it was
-// absent so a late plug-in / missed hotplug still works.
+// absent, and rebinds if the default input drifted away from the bound device
+// (backstop for missed/coalesced default-change notifications; one HAL
+// property read per second).
 - (void)refresh {
-    if (_device == kAudioObjectUnknown) {
+    AudioObjectID def = [self defaultInputDevice];
+    if (_device == kAudioObjectUnknown ||
+        (def != kAudioObjectUnknown && def != _device)) {
         [self rebindDevice];
     } else {
         [self readMuteState];
@@ -358,21 +362,26 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     return dev;
 }
 
-// (Re)find the target device, (re)install its mute listener + metering, refresh.
-// Called on launch and whenever the device list changes (unplug/replug).
+// (Re)bind the watch target, (re)install its mute listener + metering, refresh.
+// Called on launch and whenever the device list or default input changes.
+//
+// 2026-06-11 SEMANTICS FLIP (user bug report): this used to bind
+// named-device-first, so while the Antlion was plugged in the banner metered
+// the ANTLION even when the default input was AirPods — pressing the
+// Antlion's hardware button then flagged the AirPods IN zone red, a false
+// positive. The banner now tracks the CURRENT DEFAULT INPUT — the mic that
+// would actually capture. A muted mic that is NOT the active input is
+// irrelevant by definition. The named device (the Antlion) remains only as
+// a last-resort fallback when the HAL reports no default input at all.
 - (void)rebindDevice {
     [self stopMetering];
     [self removeMuteListener];
-    AudioObjectID named = [self findDeviceByName:_deviceName];
-    _device = named;
+    AudioObjectID def = [self defaultInputDevice];
+    _device = def;
     BOOL fellBack = NO;
     if (_device == kAudioObjectUnknown) {
         fellBack = YES;
-        // Named mic (the Antlion) is absent — fall back to the current default
-        // input device so the banner still tracks whatever mic is live (e.g. the
-        // built-in mic muted via F10 / system mute). This restores the overlay
-        // when the Antlion is unplugged; we rebind again if it comes back.
-        _device = [self defaultInputDevice];
+        _device = [self findDeviceByName:_deviceName];
     }
     if (_device != kAudioObjectUnknown) {
         AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
@@ -390,8 +399,8 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         }
         [self startMetering];
     }
-    FCMicLog(@"REBIND named=%u fellBack=%d dev=%u(%@) muteListener=%d metering=%d runSomewhere=%d hogPID=%d",
-             named, fellBack, _device, FCDeviceName(_device),
+    FCMicLog(@"REBIND default=%u fellBackToNamed=%d dev=%u(%@) muteListener=%d metering=%d runSomewhere=%d hogPID=%d",
+             def, fellBack, _device, FCDeviceName(_device),
              _muteListenerInstalled, _meteringStarted,
              FCDeviceRunningSomewhere(_device), FCDeviceHogPID(_device));
     [self readMuteState];
@@ -457,8 +466,28 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // denied / restricted → leave metering off; software-mute detection still works.
 }
 
+// Bluetooth transports must NOT be metered: a persistent capture IOProc on a
+// BT mic holds the headset in HFP/SCO call mode permanently — degraded output
+// quality + battery drain (2026-06-11). Their mute is a software flag anyway;
+// the analog-silence meter exists for the Antlion's analog button, which only
+// matters when the Antlion IS the bound (default) device.
+static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
+    AudioObjectPropertyAddress a = { kAudioDevicePropertyTransportType,
+                                     kAudioObjectPropertyScopeGlobal,
+                                     kAudioObjectPropertyElementMain };
+    if (!AudioObjectHasProperty(dev, &a)) return NO;
+    UInt32 t = 0, sz = sizeof(t);
+    if (AudioObjectGetPropertyData(dev, &a, 0, NULL, &sz, &t) != noErr) return NO;
+    return t == kAudioDeviceTransportTypeBluetooth
+        || t == kAudioDeviceTransportTypeBluetoothLE;
+}
+
 - (void)startMetering {
     if (_meteringStarted || !_micAuthorized || _device == kAudioObjectUnknown) return;
+    if (FCDeviceIsBluetoothTransport(_device)) {
+        FCMicLog(@"metering skipped: bluetooth transport (HFP/SCO lock avoidance)");
+        return;
+    }
 
     Float64 sr = 48000.0;
     UInt32 sz = sizeof(sr);
