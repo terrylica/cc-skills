@@ -122,3 +122,11 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
 - Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
 - Credential caching: `~/.claude/automation/gmail-token-refresher/main.swift`
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-90 orchestrator)
+
+Blocks Write/Edit on macOS launchd-related files (under `~/.claude/automation/`, `~/Library/LaunchAgents/`, `~/Library/LaunchDaemons/`) that introduce shell scripts (`.sh`/`.bash` extension or bash/sh shebang) or plist `<string>/bin/bash</string>` / `<string>...something.sh</string>` ProgramArguments references. Forces compiled native binaries (Swift preferred) so launchd services show proper names in System Settings > Login Items instead of generic 'bash' entry. The precise algorithm-encoding classifier name is `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator`; the alias `classifyNativeBinaryGuardForOrchestrator` preserves symmetric naming with sibling subhooks. Iter-15 fix preserved: `Edit` whose `new_string` omits the `BASH-LAUNCHD-OK` marker still inherits the file-wide opt-out via `await Bun.file(filePath).text()` lookup. Standalone hook retains its raw-stdin LAUNCHD-RELATED-KEYWORD prefilter (cheaper than JSON.parse for non-launchd payloads in direct-CLI mode); the orchestrator path replaces this with an equivalent O(1) `isLaunchdRelatedDirectoryPath()` substring scan on the already-parsed `file_path`. Lightest-first registry position: AFTER `pyi-stub-guard` and BEFORE `gpu-optimization-guard`. Escape hatch: `# BASH-LAUNCHD-OK` (or `<!-- BASH-LAUNCHD-OK -->` in plists).

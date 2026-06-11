@@ -8,13 +8,13 @@
 
 This plugin provides PreToolUse and PostToolUse hooks that enforce development standards, prevent common mistakes, and ensure compliance with project requirements.
 
-**Hub-and-spoke note (2026-06-11)**: this file was refactored from 112k chars to a slim hub (the size guard fires over 40k — Claude Code will not fully load larger files). Every section body and every long table-cell narrative moved VERBATIM to [`docs/`](./docs/) spokes — one clause + a link remains here. The full original hook tables (with the complete iter-N narratives per cell) are preserved at [docs/pretooluse-hooks-full-table.md](./docs/pretooluse-hooks-full-table.md) and [docs/posttooluse-hooks-full-table.md](./docs/posttooluse-hooks-full-table.md).
+**Hub-and-spoke note (2026-06-11)**: this file was refactored from 112k chars to a slim hub (the size guard fires over 40k — Claude Code will not fully load larger files). Every section body and every long table-cell narrative moved VERBATIM to [`docs/`](./docs/) spokes — one clause + a link remains here. The former full-table snapshot docs were DISSOLVED 2026-06-11 (snapshots drift): every original table-cell narrative now lives in its per-hook spoke under [`docs/`](./docs/), linked from each table row below.
 
 ## Hooks
 
 ### PreToolUse Hooks
 
-Full per-hook narratives: [docs/pretooluse-hooks-full-table.md](./docs/pretooluse-hooks-full-table.md). Orchestrator arc: [docs/pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md).
+Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md).
 
 | Hook                                                        | Matcher                           | Purpose (one clause; details in spoke)                                                                                          |
 | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -41,14 +41,14 @@ Full per-hook narratives: [docs/pretooluse-hooks-full-table.md](./docs/pretoolus
 
 ### PostToolUse Hooks
 
-Full per-hook narratives: [docs/posttooluse-hooks-full-table.md](./docs/posttooluse-hooks-full-table.md). Orchestrator arc: [docs/posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md).
+Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md).
 
 | Hook                                              | Matcher                           | Purpose (one clause; details in spoke)                                                                                                                                                                                      |
 | ------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `posttooluse-reminder.ts`                         | Bash\|Write\|Edit                 | Context-aware reminders (UV, Pueue, ADR sync, file-size, fail-fast in long-running loops)                                                                                                                                   |
 | `code-correctness-guard.sh`                       | Bash\|Write\|Edit                 | Silent-failure detection ONLY — [spoke](./docs/code-correctness-philosophy.md)                                                                                                                                              |
 | `posttooluse-pushover-budget-reminder.ts`         | Bash\|Write\|Edit\|MultiEdit      | Pushover message-budget nudge + official limits SSoT — [spoke](./docs/pushover-budget-reminder.md)                                                                                                                          |
-| `posttooluse-invented-fallback-reminder.ts`       | Write\|Edit\|MultiEdit            | Official-values policy nudge: net-new invented fallback display values (`Unknown`/`N/A`/`?` defaults) get a Claude-visible reminder; escape hatch `INVENTED-FALLBACK-OK` (added 2026-06-11, statusline official-values arc) |
+| `posttooluse-invented-fallback-reminder.ts`       | Bash\|Write\|Edit\|MultiEdit            | Official-values policy nudge: net-new invented fallback display values (`Unknown`/`N/A`/`?` defaults) get a Claude-visible reminder; escape hatch `INVENTED-FALLBACK-OK`; covers Bash inline commands too (added 2026-06-11, statusline official-values arc) |
 | `posttooluse-vale-claude-md.ts`                   | (inlined in iter-96 orchestrator) | Informational vale check on CLAUDE.md edits — [spoke](./docs/vale-terminology-enforcement.md)                                                                                                                               |
 | `posttooluse-glossary-sync.ts`                    | Write\|Edit                       | Auto-sync GLOSSARY.md to Vale vocabulary                                                                                                                                                                                    |
 | `posttooluse-terminology-sync.ts`                 | Write\|Edit                       | Project CLAUDE.md → global GLOSSARY.md sync + duplicate detection                                                                                                                                                           |
@@ -73,8 +73,6 @@ Full per-hook narratives: [docs/posttooluse-hooks-full-table.md](./docs/posttool
 
 | Spoke                                                                                   | Topic                                                                                                                              |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [pretooluse-hooks-full-table.md](./docs/pretooluse-hooks-full-table.md)                 | FULL original PreToolUse table (complete iter-N narratives per cell)                                                               |
-| [posttooluse-hooks-full-table.md](./docs/posttooluse-hooks-full-table.md)               | FULL original PostToolUse table (complete iter-N narratives per cell)                                                              |
 | [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md)   | Iter-84→91 PreToolUse orchestrator arc                                                                                             |
 | [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md) | Iter-93+ PostToolUse orchestrator arc                                                                                              |
 | [stop-hooks.md](./docs/stop-hooks.md)                                                   | Stop-hook schema correctness (iter-66 trinity → iter-69 pentad, silent-drop rules)                                                 |

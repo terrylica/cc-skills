@@ -48,3 +48,11 @@ Add `PUSHOVER-BUDGET-OK` anywhere in the file/command to silence the nudge (e.g.
 
 Detection was designed and adversarially verified by a multi-subagent spike workflow (spikes → per-language detect → adversarial verify → synthesis). The 51 resulting fixtures live at `hooks/tests/pushover-budget-fixtures/` (Python/Go/TypeScript/Bash × positive/negative/edge) with a `manifest.json` of expected verdicts; `hooks/tests/posttooluse-pushover-budget-reminder.test.ts` asserts **0 false positives / 0 false negatives** against them. Documented recall limits (require AST-level analysis, not in the fixture set): dynamic endpoint built from a generic-named variable, and `new Pushover()` whose `.send()` is split across distant variable scope.
 
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Bash\|Write\|Edit\|MultiEdit
+
+**Pushover message-budget nudge** (soft; emits `{decision:block,reason}` — the Claude-visible PostToolUse channel per ADR 2025-12-17, since PreToolUse `additionalContext` is silently dropped, esp. for Bash, per [GitHub #19432](https://github.com/anthropics/claude-code/issues/19432) / [#55889](https://github.com/anthropics/claude-code/issues/55889)). Detects Pushover message construction in Python/Go/TypeScript/Bash and reminds Claude to use the full budget (message **1024** / title **250** / url **512** / url_title **100** UTF-8 chars), front-load IDs (preview truncates), spend the title+url side channels, and render overflow / CEO-readable provenance as a **≤5 MB PNG attachment**. Precision-anchored rules: `api.pushover.net` on a non-comment line + a real send call, OR a known lib/CLI (gregdel `SendMessage`, chump/`.send_message`, `new Pushover`, a pushover-client import, `pushover-notify`). Verified **0 FP / 0 FN** vs 51 adversarial spike fixtures (`hooks/tests/pushover-budget-fixtures/`). Never blocks real work. Escape hatch: `PUSHOVER-BUDGET-OK`. See [§ Pushover Message-Budget Reminder](./pushover-budget-reminder.md).

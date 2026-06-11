@@ -28,3 +28,11 @@ The hooks never block on ty configuration errors (exit code 2) or internal bugs 
 
 The PostToolUse hook writes a gate file to `/tmp/.claude-ty-edits/{sessionId}.edited` after each .py/.pyi edit. The Stop hook checks for these gate files to decide whether to run the project-wide check. Gate files are cleaned up after the Stop hook runs.
 
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-93 orchestrator)
+
+ty type checker on .py/.pyi files with --python-version 3.14, concise output (every edit). **Iter-93 first inlined PostToolUse subhook** — kicks off the iter-93+ PostToolUse Write\|Edit migration arc (Path B per iter-92 audit; async:true was ruled out for context-injecting hooks). Standalone hook still runnable via `import.meta.main` guard for direct CLI invocation; the Write\|Edit hooks.json entry now points to `posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts` which imports `classifyTyTypeCheckForPostToolUseOrchestrator` from this file (algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator`, alias preserved for symmetric naming).

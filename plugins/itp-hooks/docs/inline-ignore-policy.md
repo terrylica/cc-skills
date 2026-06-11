@@ -40,3 +40,11 @@ Add `# INLINE-IGNORE-OK` or `// INLINE-IGNORE-OK` on the same line:
 import pysbd  # type: ignore[import]  # INLINE-IGNORE-OK
 ```
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Write\|Edit
+
+Blocks inline ignore comments (`# noqa`, `# type: ignore`, `// eslint-disable`, `// biome-ignore`, `// oxlint-ignore`) — enforces config-level suppression

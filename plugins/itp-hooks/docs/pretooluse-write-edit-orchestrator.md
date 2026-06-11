@@ -41,12 +41,12 @@ Belt-and-suspenders deny defense per [GitHub #37210](https://github.com/anthropi
 
 See individual spoke docs:
 
-- [version-guard.md](./pretooluse-hooks-full-table.md)
-- [hoisted-deps-guard.md](./pretooluse-hooks-full-table.md)
-- [mise-hygiene-guard.md](./pretooluse-hooks-full-table.md)
-- [pyi-stub-guard.md](./pretooluse-hooks-full-table.md)
+- [version-guard.md](./version-guard.md)
+- [hoisted-deps-guard.md](./hoisted-deps-guard.md)
+- [mise-hygiene-guard.md](./mise-hygiene-guard.md)
+- [pyi-stub-guard.md](./pyi-stub-guard.md)
 - [native-binary-guard.md](./native-binary-guard.md)
-- [gpu-optimization-guard.md](./pretooluse-hooks-full-table.md)
+- [gpu-optimization-guard.md](./gpu-optimization-guard.md)
 - [file-size-guard.md](./file-size-guard.md)
 - [vale-terminology-enforcement.md](./vale-terminology-enforcement.md)
 
@@ -66,3 +66,11 @@ Iter-90 added a marketplace-wide PreToolUse `additionalContext` silent-drop NON-
 | 89   | pyi-stub-guard, marketplace audit         | 6     | init-file monolith detection        |
 | 90   | (none)                                    | 6     | Marketplace additionalContext audit |
 | 91   | native-binary-guard, vale-claude-md-guard | 8     | **Arc COMPLETE**                    |
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Write\|Edit
+
+**Iter-84 → iter-91 in-process orchestrator — PreToolUse Write\|Edit migration arc COMPLETE (8/8)**. Combines ALL 8 Write\|Edit subhooks into one bun process to amortize the bun cold-start across the registry. Iter-87 empirical correction: per-saved-subhook cost is ~17ms (NOT iter-80's ~44ms estimate, which conflated stdin-parse + classifier overhead with pure cold-start; iter-89 web research independently corroborated this via 2026 Bun 1.3 8-15ms cold-start benchmarks). Final-state savings = `(8-1) × 17` = **~119ms per Write\|Edit** (NOT iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): `version-guard`, `hoisted-deps-guard`, `mise-hygiene-guard`, `pyi-stub-guard`, `native-binary-guard`, `gpu-optimization-guard`, `file-size-guard`, `vale-claude-md-guard`. Iter-90 added a marketplace-wide PreToolUse `additionalContext` silent-drop NON-USE invariant audit per [GitHub #15664](https://github.com/anthropics/claude-code/issues/15664) — emission-pattern grep (not prose-comment) confirms ZERO classifiers emit the silently-dropped field. Next orchestration project (task #96, iter-92+): PostToolUse Write\|Edit consolidation via Anthropic's Jan-2026 `async: true` flag (Path A, strict-dominant over orchestrator inlining for PostToolUse since the schema cannot deny). Subhook contract at [`lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts`](../hooks/lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts) enforces pure-function discipline + cooperative timeout + crash isolation via try/catch. Belt-and-suspenders deny defense per [GitHub #37210](https://github.com/anthropics/claude-code/issues/37210) (stdout JSON + stderr + exit 2).
