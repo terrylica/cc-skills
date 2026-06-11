@@ -88,7 +88,7 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 ```
 cc-skills/
 ├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 37 plugins)
-├── plugins/                         ← 36 marketplace plugins (each has CLAUDE.md)
+├── plugins/                         ← 37 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness (incl. autoloop stall guard)

@@ -174,6 +174,6 @@ The legacy version files should be removed and validation added to prevent futur
 ## References
 
 - [ADR 2025-12-05: Centralized Version Management](/docs/adr/2025-12-05-centralized-version-management.md)
-- [scripts/sync-versions.mjs](scripts/sync-versions.mjs)
-- [.releaserc.yml](.releaserc.yml)
-- [marketplace.json](.claude-plugin/marketplace.json)
+- [scripts/sync-versions.mjs](/scripts/sync-versions.mjs)
+- [.releaserc.yml](/.releaserc.yml)
+- [marketplace.json](/.claude-plugin/marketplace.json)
