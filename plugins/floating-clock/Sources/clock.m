@@ -99,6 +99,7 @@
         @"SegmentGap": @"normal",
         @"CornerStyle": @"rounded",
         @"ShadowStyle": @"none",
+        @"BorderStyle": @"hairline",   // 2026-06-11: on by default (audio-bar edge recipe)
         @"ActiveFontSize": @12.0,
         @"NextFontSize": @12.0,
         @"FontWeight": @"medium",
