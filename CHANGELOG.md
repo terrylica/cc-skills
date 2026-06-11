@@ -1,3 +1,10 @@
+## [21.89.1](https://github.com/terrylica/cc-skills/compare/v21.89.0...v21.89.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **scripts:** iter160 fails explicitly outside the git repo ([1af9214](https://github.com/terrylica/cc-skills/commit/1af9214b52bdfcd78778cf08fbbd6591b71b0787))
+
 # [21.89.0](https://github.com/terrylica/cc-skills/compare/v21.88.0...v21.89.0) (2026-06-10)
 
 
