@@ -27,11 +27,20 @@
 //   AudioBarStep     int   5     ± click step in percent (clamped 1–25)
 #import <Cocoa/Cocoa.h>
 
+@class FCMicMuteIndicator;   // mic-mute red-state source (2026-06-11 extras)
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface FCAudioStatusIndicator : NSObject
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel;
+
+// 2026-06-11 extras (user-selected): when set, the IN zone renders red with
+// a struck-through device name while the mic is muted — same OR'd signal the
+// big "MIC MUTED" banner uses (CoreAudio mute flag OR analog-silence meter)
+// plus a direct mute-flag read on the current default input. Set once after
+// the mic indicator is created.
+@property (nonatomic, weak, nullable) FCMicMuteIndicator *micIndicator;
 
 // Re-read default devices + volumes and reposition. Call from the 1Hz tick.
 - (void)refresh;
