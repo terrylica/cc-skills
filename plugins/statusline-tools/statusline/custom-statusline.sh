@@ -132,48 +132,11 @@ if [ -n "$session_id" ] && command -v bun >/dev/null 2>&1; then
     fi
 fi
 
-# Context - Claude Code doesn't send token counts in status JSON
-# Instead, try to read from transcript file or show cost.
-# (transcript_file already TSV-batched above in iter-30 input-payload decode.)
-ctx_display=""
-
-if [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
-    # Try to get token count from last line of transcript.
-    # Perf (iter-30 transcript-last-line-tsv-batch): pre-iter-30 this block
-    # spawned TWO jq processes (one per token field). Single TSV-batched
-    # jq + bash `read` decodes both at once. Saves ~10ms per refresh when
-    # a transcript exists. Fallback via printf '\t' keeps `read` happy if
-    # jq dies (e.g. malformed last-line JSON) — both vars default to empty.
-    last_line=$(tail -1 "$transcript_file" 2>/dev/null)
-    if [ -n "$last_line" ]; then
-        IFS=$'\t' read -r input_tok output_tok <<< "$(
-            echo "$last_line" | jq -r '"\(.usage.input_tokens // "")\t\(.usage.output_tokens // "")"' 2>/dev/null \
-                || printf '\t'
-        )"
-
-        if [ -n "$input_tok" ] && [ -n "$output_tok" ]; then
-            total_tok=$((input_tok + output_tok))
-            if [ "$total_tok" -gt 1000 ]; then
-                ctx_k=$((total_tok / 1000))
-                ctx_display="${ctx_k}k"
-            else
-                ctx_display="${total_tok}"
-            fi
-        fi
-    fi
-fi
-
-# Fallback: show cost if no token count available.
-# (cost already TSV-batched above in iter-30 input-payload decode; empty-string
-# defaults from the TSV become the "no cost available" branch here.)
-if [ -z "$ctx_display" ]; then
-    if [ -n "$cost" ]; then
-        cost_formatted=$(printf "%.2f" "$cost" 2>/dev/null || echo "$cost")
-        ctx_display="\$${cost_formatted}"
-    else
-        ctx_display="N/A"
-    fi
-fi
+# Context/cost block REMOVED 2026-06-11: ctx_display (token count from the
+# transcript tail, cost fallback, invented "N/A" terminal fallback) was
+# computed on every render but NEVER rendered — dead code since the layout
+# settled, surfaced by the official-values audit. $cost itself is still
+# decoded above and passed to the session registry.
 
 # Git info - try JSON first, fallback to direct git commands.
 # (git_branch already TSV-batched above in iter-30 input-payload decode.)
@@ -340,9 +303,13 @@ fi
 
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
 # include non-semver milestone tags like v2.0/v2.1 that sort above semver releases).
-# Tri-state: real release → version+age; API-says-no-release → ∅ rel; gh broken → ⌁ offline.
-# `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
-# pattern-match stderr to tell them apart instead of trusting exit code alone.
+# Tri-state, rendered with OFFICIAL text only (2026-06-11 directive — the
+# invented "∅ rel"/"⌁ offline" markers are gone): real release → version+age;
+# failure → the first line of gh's own stderr verbatim (e.g. "release not
+# found"); silent failure (timeout kills gh before it prints) → the official
+# exit code as "gh exit N". `gh` returns exit 1 for both "release not found"
+# AND auth/network failures, so stderr text — not the exit code — is also
+# what distinguishes cacheable no-release from transient network errors.
 if [ -n "$owner_repo" ]; then
     # Iter 19 (2026-05-19) — 5-minute disk cache. gh release view costs ~460ms
     # per call (network round-trip to api.github.com). Latest release rarely
@@ -373,16 +340,19 @@ if [ -n "$owner_repo" ]; then
             tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
         fi
         git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}${tag_age}"
-    elif [[ "$release_out" == *"release not found"* ]]; then
-        # gh succeeded talking to the API; the API just has no release for this repo
-        git_changes="${git_changes} ${BRIGHT_BLACK}| ∅ rel${RESET}"
     else
-        # Genuine failure: timeout (124), gh missing (127), HTTP 4xx/5xx, network unreachable
-        git_changes="${git_changes} ${BRIGHT_BLACK}| ⌁ offline${RESET}"
+        # Failure: render gh's OWN diagnostic verbatim (first stderr line,
+        # severity prefix stripped — covers both "release not found" and
+        # auth/network errors). When gh died without output (timeout 124,
+        # binary missing 127), state the official exit code instead —
+        # never an invented marker word.
+        gh_rel_diag=$(printf '%s' "$release_out" | head -1 | sed -E 's/^(fatal|error): //')
+        git_changes="${git_changes} ${BRIGHT_BLACK}| ${gh_rel_diag:-gh exit ${release_exit}}${RESET}"
     fi
-else
-    git_changes="${git_changes} ${BRIGHT_BLACK}| ∅${RESET}"
 fi
+# (No origin remote → the release segment is omitted entirely: absent data
+# renders nothing, per the official-values policy — the invented "| ∅"
+# placeholder was removed 2026-06-11.)
 
 # === Active Cron Jobs ===
 # Reads ~/.claude/state/active-crons.json written by cron-tracker.ts hook
@@ -472,7 +442,12 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
     elif [[ "$vis_out" == *"HTTP 404"* ]]; then
         repo_visibility=""  # repo doesn't exist or no read access — leave badge off
     else
-        repo_visibility="?"  # auth, network, timeout, gh-missing — surface a marker
+        # auth, network, timeout, gh-missing: surface gh's OWN diagnostic
+        # verbatim (first stderr line) instead of the invented "?" marker
+        # (removed 2026-06-11 per official-values directive). When gh died
+        # silently (timeout/missing binary), state the official exit code.
+        gh_vis_diag=$(printf '%s' "$vis_out" | head -1 | sed -E 's/^(fatal|error): //')
+        repo_visibility="${gh_vis_diag:-gh exit ${vis_exit}}"
     fi
 fi
 
@@ -1193,9 +1168,10 @@ line1="${git_changes}${model_inline}"
 # Line 3: path | GitHub URL (visibility)
 vis_label=""
 case "$repo_visibility" in
+    "")      ;;  # no remote / repo missing — badge off
     private) vis_label=" ${YELLOW}(private)${RESET}" ;;
     public)  vis_label=" ${BRIGHT_BLACK}(public)${RESET}" ;;
-    "?")     vis_label=" ${RED}(?)${RESET}" ;;  # gh failed — auth/network/timeout
+    *)       vis_label=" ${RED}(${repo_visibility})${RESET}" ;;  # gh's own diagnostic, verbatim
 esac
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
