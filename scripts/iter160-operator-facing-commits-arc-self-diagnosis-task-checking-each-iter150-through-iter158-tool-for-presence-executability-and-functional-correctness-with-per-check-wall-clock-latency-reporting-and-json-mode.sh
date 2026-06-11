@@ -41,8 +41,21 @@
 set -euo pipefail
 
 # ─── Source the iter-155 shared library for JSON escape (if --json) ─────────
+# Explicit repo-root detection with env-var override for testing/remote invocation.
+# Fails explicitly if not in a git repo AND env var not set, per repo philosophy of
+# rejecting silent failures (documented in LESSONS.md 2026-01-24).
 
-ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+if [[ -z "${ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE:-}" ]]; then
+    if ! ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+        echo "ERROR: iter-160 must be run from within the cc-skills git repository." >&2
+        echo "       Current directory: $(pwd)" >&2
+        echo "       git rev-parse --show-toplevel failed (not a git repo, .git corrupted, or no read permission)." >&2
+        echo "       Override with: ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE=/path/to/cc-skills" >&2
+        exit 1
+    fi
+else
+    ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE"
+fi
 ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
 
 # ─── Parse output mode flag ─────────────────────────────────────────────────
