@@ -836,5 +836,5 @@ The defensive pattern above reduces the blast radius if you forget — but the o
 
 ## Related Documentation
 
-- [semantic-release Skill](/plugins/itp/skills/semantic-release/SKILL.md)
+- [Release workflow patterns (itp mise-tasks reference)](/plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md)
 - [Version Management ADR](/docs/adr/2025-12-05-centralized-version-management.md)
