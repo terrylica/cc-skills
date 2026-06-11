@@ -242,10 +242,12 @@ EOF
     # Strip ANSI color codes for plain-text assertions.
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
 
-    # The red `(?)` badge means gh's visibility query failed. With
-    # probe_direct in place gh bypasses the broken proxy and returns
-    # either `(private)` or `(public)` — anything but `(?)`.
-    [[ "$plain" != *"(?)"* ]]
+    # With probe_direct in place gh bypasses the broken proxy and returns
+    # the official visibility value — `(private)` or `(public)` (cached or
+    # fresh). If gh were still routed through the broken proxy, the badge
+    # would instead carry gh's connection-error diagnostic verbatim
+    # (the invented `(?)` marker was retired 2026-06-11).
+    [[ "$plain" == *"(public)"* || "$plain" == *"(private)"* ]]
 }
 
 # =============================================================================
