@@ -6,6 +6,8 @@ Dated entries extracted from root [CLAUDE.md](../CLAUDE.md). Newest first.
 
 ---
 
+**2026-06-11**: A CLAUDE.md over 40k chars is silently load-truncated — its instructions stop being honored, including the very sections being edited. itp-hooks/CLAUDE.md had grown to 112k chars (62% of it two hook TABLES whose Purpose cells accumulated full iter-N migration narratives). Refactor: every section body + the full original tables moved VERBATIM to `plugins/itp-hooks/docs/` spokes (22 files); the hub keeps one-clause table cells + a spoke index (19k chars). **Two traps hit during the move**: (1) verbatim-moved content carries hub-relative links that break one directory deeper (`../../docs/` → `../../../docs/`, `./hooks/lib/` → `../hooks/lib/`, intra-file `#fragments` → spoke paths) — lychee with `--root-dir` catches all of them; (2) a delegated refactor agent created paraphrased spokes and died twice before rewriting the hub — regenerating spokes from the authoritative hub via line-range extraction was both safer and cheaper than trusting agent copies (two were missing content, two linked to spokes that never existed).
+
 **2026-06-11**: Statusline renders native payload echoes ONLY — never composite/inferred state. The ✦ ultracode badge (added 2026-06-10 as `effort==xhigh AND thinking AND NOT fast_mode`) was refuted by live counterexamples within 24 hours: sessions `ea782bfd` (yukon) and `a9861cbf` (claude-sys) rendered xhigh with ultracode OFF, because **effort levels persist across sessions while ultracode is session-only in-memory appState with no statusline-payload field** — so `xhigh ⇏ ultracode`. The 2026-06-10 "zero counterexamples in 34k records" claim sampled a history where xhigh had only ever been reached via ultracode; the persistence leak only manifests in the sessions AFTER an ultracode session ends. **Rule**: a heuristic validated purely on historical co-occurrence is one state-transition away from false-positives — the statusline may only echo fields the payload states directly (the operator interprets `effort:xhigh · thinking:on` themselves). Pinned by two bats tests: render invariant + source-level lint that non-comment `ultracode` mentions in `custom-statusline.sh` equal zero.
 
 **2026-06-10**: Hook file-extension migrations must migrate their test harnesses in the same commit. iter-86 renamed `pretooluse-hoisted-deps-guard.mjs` → `.ts` but the standalone harness kept `node <old>.mjs` — node can't parse TypeScript, so every deny case returned `parsed:null` and 7 tests sat red for 3 weeks while the commit message claimed the harness was updated. **Rule**: after renaming any hook file, grep `*.test.*` for the old basename AND the runner (`node` vs `bun`) before committing. Fixed in `d8a0467c`.
@@ -34,13 +36,13 @@ Dated entries extracted from root [CLAUDE.md](../CLAUDE.md). Newest first.
 
 **2026-02-23**: Cargo TTY suspension prevention hook added - prevents Claude Code suspension when running `cargo bench/test/build &`. Uses PUEUE daemon for process isolation (eliminates stdin inheritance). [Full Guide](./cargo-tty-suspension-prevention.md) | [Hook](../plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts) | [GitHub Issues #11898, #12507, #13598](https://github.com/anthropics/claude-code/issues)
 
-**2026-02-20**: Swift launchd binaries that spawn `op` CLI trigger macOS TCC "access data from other apps" prompt — compiled Swift does NOT bypass TCC. Fix: cache static credentials (client_id/client_secret) locally on first run; subsequent runs read only local files, no TCC prompt. [itp-hooks CLAUDE.md](../plugins/itp-hooks/CLAUDE.md#native-binary-guard-macos-launchd)
+**2026-02-20**: Swift launchd binaries that spawn `op` CLI trigger macOS TCC "access data from other apps" prompt — compiled Swift does NOT bypass TCC. Fix: cache static credentials (client_id/client_secret) locally on first run; subsequent runs read only local files, no TCC prompt. [itp-hooks CLAUDE.md](../plugins/itp-hooks/docs/native-binary-guard.md)
 
 **2026-02-05**: gh-issue-title-reminder hook added - maximizes 256-char GitHub issue titles. [gh-tools CLAUDE.md](../plugins/gh-tools/CLAUDE.md#github-issue-title-optimization-2026-02-05)
 
 **2026-02-04**: gdrive-tools plugin absorbed into `productivity-tools/skills/gdrive-access`. Google Drive API access with 1Password OAuth.
 
-**2026-01-24**: Code correctness hooks check silent failures only - NO unused imports (F401). [itp-hooks CLAUDE.md](../plugins/itp-hooks/CLAUDE.md#code-correctness-philosophy)
+**2026-01-24**: Code correctness hooks check silent failures only - NO unused imports (F401). [itp-hooks CLAUDE.md](../plugins/itp-hooks/docs/code-correctness-philosophy.md)
 
 **2026-01-22**: posttooluse-reminder migrated from bash to TypeScript/Bun (33 tests). [Design Spec](/docs/design/2026-01-10-uv-reminder-hook/spec.md)
 
