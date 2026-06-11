@@ -12,17 +12,27 @@ setup() {
 
     # Store original directory
     ORIG_DIR="$PWD"
+
+    # Isolated fixture repo (fix 2026-06-10): the hook resolves GIT_ROOT via
+    # `git rev-parse --show-toplevel` and writes its caches THERE, and it
+    # enumerates markdown via `git ls-files --cached`. When tests cd'd into
+    # fixtures/sample_repo (inside the cc-skills repo), GIT_ROOT resolved to
+    # the cc-skills root — caches landed in the PARENT repo and the
+    # fixture-local assertions never passed (4 tests red since inception),
+    # while stray .lychee-results.json polluted the cc-skills root.
+    # Copying the fixture into $BATS_TEST_TMPDIR and committing it as its own
+    # git repo makes GIT_ROOT == the fixture, so assertions and hook agree.
+    WORK_REPO="$BATS_TEST_TMPDIR/sample_repo"
+    cp -R "$FIXTURES/sample_repo" "$WORK_REPO"
+    git -C "$WORK_REPO" init -q
+    git -C "$WORK_REPO" -c user.email=bats@test -c user.name=bats add -A
+    git -C "$WORK_REPO" -c user.email=bats@test -c user.name=bats commit -qm fixture
 }
 
 teardown() {
     # Return to original directory
     cd "$ORIG_DIR"
-
-    # Clean up cache files in fixtures
-    rm -f "$FIXTURES/sample_repo/.lychee-results.json" 2>/dev/null || true
-    rm -f "$FIXTURES/sample_repo/.lint-relative-paths-results.txt" 2>/dev/null || true
-    rm -f "$FIXTURES/repo_with_broken_links/.lychee-results.json" 2>/dev/null || true
-    rm -f "$FIXTURES/repo_with_broken_links/.lint-relative-paths-results.txt" 2>/dev/null || true
+    # $BATS_TEST_TMPDIR (and WORK_REPO inside it) is auto-cleaned by bats.
 }
 
 @test "hook script exists and is executable" {
@@ -30,21 +40,21 @@ teardown() {
 }
 
 @test "hook exits successfully in git repo" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     # Provide minimal JSON payload on stdin
     run bash -c "echo '{\"cwd\":\"$PWD\"}' | $HOOK"
     [ "$status" -eq 0 ]
 }
 
 @test "hook creates lychee cache file" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     rm -f .lychee-results.json
     run bash -c "echo '{\"cwd\":\"$PWD\"}' | $HOOK"
     [ -f .lychee-results.json ]
 }
 
 @test "hook creates lint-relative-paths results file" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     rm -f .lint-relative-paths-results.txt
     run bash -c "echo '{\"cwd\":\"$PWD\"}' | $HOOK"
     # File may or may not exist depending on lint-relative-paths availability
@@ -53,7 +63,7 @@ teardown() {
 }
 
 @test "lychee cache has valid JSON structure" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     rm -f .lychee-results.json
     run bash -c "echo '{\"cwd\":\"$PWD\"}' | $HOOK"
     [ -f .lychee-results.json ]
@@ -74,14 +84,14 @@ teardown() {
 }
 
 @test "hook handles empty payload" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     # Empty stdin - should use pwd
     run bash -c "echo '' | $HOOK"
     [ "$status" -eq 0 ]
 }
 
 @test "hook handles missing lychee gracefully" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
     rm -f .lychee-results.json
 
     # Run with restricted PATH (lychee not available)
@@ -95,7 +105,7 @@ teardown() {
 }
 
 @test "hook is non-blocking (always exits 0)" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
 
     # Even if there are errors, hook should exit 0 to not block Claude
     run bash -c "echo '{\"cwd\":\"$PWD\"}' | $HOOK"
@@ -103,7 +113,7 @@ teardown() {
 }
 
 @test "hook uses CLAUDE_PLUGIN_ROOT when set" {
-    cd "$FIXTURES/sample_repo"
+    cd "$WORK_REPO"
 
     # Set custom plugin root
     export CLAUDE_PLUGIN_ROOT="$BATS_TEST_DIRNAME/.."
