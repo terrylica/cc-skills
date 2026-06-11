@@ -1,3 +1,12 @@
+# [21.92.0](https://github.com/terrylica/cc-skills/compare/v21.91.0...v21.92.0) (2026-06-11)
+
+
+### Features
+
+* **itp-hooks:** invented-fallback display-value reminder hook ([4403b27](https://github.com/terrylica/cc-skills/commit/4403b270559d55b203edc5f411ff28b63b528096))
+* **pushover-commander:** re-verify limits, add 2026 quota + ttl facts ([03bad8c](https://github.com/terrylica/cc-skills/commit/03bad8cb79552a45af6912d14d2683741421ce1e))
+* **statusline-tools:** official error text replaces invented markers ([0acf224](https://github.com/terrylica/cc-skills/commit/0acf224d727d51c73efd831caf12f7167a9b31a5))
+
 # [21.91.0](https://github.com/terrylica/cc-skills/compare/v21.90.0...v21.91.0) (2026-06-11)
 
 
