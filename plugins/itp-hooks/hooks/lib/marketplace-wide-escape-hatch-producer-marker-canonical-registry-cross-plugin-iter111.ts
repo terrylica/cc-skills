@@ -231,6 +231,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a single inline lint-suppression comment (covering the four families: Python ruff suppressions, Python ty type-checker suppressions, ESLint per-line and per-block suppressions, and the Bun-ecosystem fast-linter suppressions) on the SAME LINE as this marker. Used when a tool/library limitation genuinely requires the suppression — config-file-level suppression in ruff/ty/oxlint/biome configuration files is still strongly preferred when possible.",
     },
     {
+      markerNameTokenIncludingSuffix: "INVENTED-FALLBACK-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
+    },
+    {
       markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
