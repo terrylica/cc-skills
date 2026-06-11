@@ -90,22 +90,27 @@ echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 
 # to decode the input JSON. The statusline refreshes every few seconds so
 # the cost compounds across every session.
 #
-# One TSV-batched jq + bash `read` decodes all five at once. The model
-# field still gets post-processed with sed (Claude → display compactor)
-# but the JSON-extraction step is now a single spawn. The trailing-tab
-# fallback via printf keeps `read` happy if jq dies.
+# One batched jq + bash `read` decodes all fields in a single spawn. The
+# trailing-separator fallback via printf keeps `read` happy if jq dies
+# (all fields default to empty → segment omitted).
 # Delimiter note (2026-06-10 model-id-badges edit): switched TSV → \x1f (ASCII
 # unit separator). Tab is IFS *whitespace*, so bash `read` COLLAPSES runs of
-# consecutive tabs — any empty mid-field (e.g. `.fast_mode // ""` when jq's //
-# treats `false` as empty) silently shifts every later field left (session_id
-# would receive the transcript path). \x1f is non-whitespace, so empty fields
-# survive. Booleans default via `// false` (never empty) and all values pass
-# through tostring before join.
+# consecutive tabs — any empty mid-field silently shifts every later field
+# left (session_id would receive the transcript path). \x1f is non-whitespace,
+# so empty fields survive.
+#
+# OFFICIAL-VALUES-ONLY decode (2026-06-11 operator directive): values pass
+# through VERBATIM. No made-up fallbacks — the former "Unknown" model
+# fallback and the `sed 's/Claude //'` display compactor are gone (a payload
+# without a model renders no model segment; the session registry receives
+# the official display_name untouched). Booleans distinguish ABSENT (empty
+# string → token omitted from render) from present-false (official value
+# "false" rendered). jq's `//` cannot make that distinction (it treats false
+# as empty), so booleans use an explicit null check instead of `// false`.
 IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_flag session_id transcript_file cost git_branch <<< "$(
-    echo "$input" | jq -r '[(.model.display_name // .model.id // .model // "Unknown"), (.model.id // ""), (.effort.level // ""), (.thinking.enabled // false), (.fast_mode // false), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
-        || printf 'Unknown\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
+    echo "$input" | jq -r '[(.model.display_name // .model.id // ""), (.model.id // ""), (.effort.level // ""), (.thinking.enabled | if . == null then "" else tostring end), (.fast_mode | if . == null then "" else tostring end), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
+        || printf '\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
 )"
-model=$(echo "$model_raw" | sed 's/Claude //' | sed 's/ 4.5/4.5/')
 
 # === Session Chain (Bun-based) ===
 # Traces session ancestry, displays last 5 sessions with arrows
@@ -173,8 +178,13 @@ fi
 # Git info - try JSON first, fallback to direct git commands.
 # (git_branch already TSV-batched above in iter-30 input-payload decode.)
 if [ -z "$git_branch" ]; then
-    # Fallback: read git directly
-    git_branch=$(git branch --show-current 2>/dev/null || echo "no-branch")
+    # Fallback: read git directly. OFFICIAL-VALUES-ONLY (2026-06-11): the
+    # invented "no-branch" label is gone — on detached HEAD (show-current
+    # empty) surface the official short SHA; outside a git repo stay empty.
+    git_branch=$(git branch --show-current 2>/dev/null)
+    if [ -z "$git_branch" ]; then
+        git_branch=$(git rev-parse --short HEAD 2>/dev/null)
+    fi
 fi
 
 # === Session Registry Update (CONDITIONAL fire-and-forget) ===
@@ -193,7 +203,7 @@ if [ -n "$session_id" ]; then
             if mkdir "$LOCK_DIR" 2>/dev/null; then
                 (
                     trap 'rmdir /tmp/session-registry.lock 2>/dev/null' EXIT
-                    bun "$registry_script" "$session_id" "$cwd_path" "$model" "${cost:-}" "$git_branch"
+                    bun "$registry_script" "$session_id" "$cwd_path" "$model_raw" "${cost:-}" "$git_branch"
                 ) >/dev/null 2>&1 &
             fi
         fi
@@ -585,6 +595,11 @@ elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
             else if (key == "account_mode") account_mode_value = val
         }
         END {
+            # Default "soft" is NOT invented here: it is the documented
+            # official default from the SSoT, ccmax-monitor
+            # hooks/pin-helper.sh (ccmax_pin_mode). This legacy inline
+            # parser only runs when that helper is absent, so the default
+            # is duplicated by necessity — keep it in sync with the SSoT.
             if (mode_value == "") mode_value = "soft"
             printf "%s|%s|%s\n", account_value, mode_value, account_mode_value
         }
@@ -600,6 +615,10 @@ fi
 unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined _ccmax_pin_legacy_rest
 
 ccmax_bearer_account=""
+# "bearer_key_anthropic_compatible_api_mode" is the OFFICIAL enum value of the
+# pin file's [account_mode] field — SSoT: ccmax-monitor hooks/pin-helper.sh.
+# This is a verbatim comparison against the official value, not a translation;
+# keep the literal in sync with the SSoT if ccmax-monitor ever renames it.
 if [ "$ccmax_pin_account_mode" = "bearer_key_anthropic_compatible_api_mode" ] && [ -n "$ccmax_pin_account" ]; then
     ccmax_bearer_account="$ccmax_pin_account"
 elif [ -n "${CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION:-}" ]; then
@@ -1136,13 +1155,17 @@ fi
 # Native statusline-input fields (verified against live ~/.claude/statusline.jsonl):
 #   .model.id          raw model id incl. variant suffix (e.g. claude-fable-5[1m])
 #   .effort.level      reasoning effort (e.g. high)
-#   .thinking.enabled  extended thinking on/off (bool)
+#   .thinking.enabled  extended thinking (bool)
 #   .fast_mode         fast mode active (bool)
-# Render (all BRIGHT_BLACK, operator-selected subdued style; effort level is
-# shown bare — the "effort:" label was dropped 2026-06-11 per operator
-# preference, the level word is self-evident between the model id and the
-# thinking badge):
-#   ... | v12.43.0 3h ago | claude-fable-5[1m] · xhigh · thinking:on
+# OFFICIAL-NAMES/VALUES rendering (2026-06-11 operator directive):
+#   effort     → bare official level word ("effort:" label dropped)
+#   thinking   → official field name + VERBATIM official boolean value
+#                (thinking:true / thinking:false); omitted when the payload
+#                lacks the field — no invented on/off translation
+#   fast_mode  → official field name shown when true, omitted when false
+#                (no truncated "fast" label)
+# Render (all BRIGHT_BLACK, operator-selected subdued style):
+#   ... | v12.43.0 3h ago | claude-fable-5[1m] · xhigh · thinking:true
 # .model.id may be empty at session start (no API call yet) — fall back to
 # $model_raw (display_name-first decode above); suppress segment if both empty.
 #
@@ -1159,14 +1182,11 @@ fi
 # Reinstate ONLY if upstream ships a native `ultracode` payload field.
 model_inline=""
 model_token="${model_id:-$model_raw}"
-if [ -n "$model_token" ] && [ "$model_token" != "Unknown" ]; then
+if [ -n "$model_token" ]; then
     model_inline=" ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${model_token}${RESET}"
     [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
-    case "$thinking_enabled" in
-        true)  model_inline="${model_inline}${BRIGHT_BLACK} · thinking:on${RESET}" ;;
-        false) model_inline="${model_inline}${BRIGHT_BLACK} · thinking:off${RESET}" ;;
-    esac
-    [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast${RESET}"
+    [ -n "$thinking_enabled" ] && model_inline="${model_inline}${BRIGHT_BLACK} · thinking:${thinking_enabled}${RESET}"
+    [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
 fi
 line1="${git_changes}${model_inline}"
 
@@ -1184,9 +1204,17 @@ if [[ -n "$github_url" ]]; then
         line_repo="${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET}${vis_label}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET}"
+    # OFFICIAL-VALUES-ONLY (2026-06-11): surface git's own diagnostic for
+    # the missing origin remote instead of the invented "no remote" label.
+    # `2>&1 1>/dev/null` captures stderr only; the severity prefix
+    # (fatal:/error:) is stripped — the ⚠ glyph already carries severity.
+    git_diag=$(git remote get-url origin 2>&1 1>/dev/null | sed -E 's/^(fatal|error): //')
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ ${git_diag}${RESET}"
 else
-    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET}"
+    # Same policy outside a work tree: render git's official diagnostic
+    # (e.g. "not a git repository ...") instead of the invented "no git".
+    git_diag=$(git rev-parse --is-inside-work-tree 2>&1 1>/dev/null | sed -E 's/^(fatal|error): //')
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ ${git_diag}${RESET}"
 fi
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
@@ -1717,8 +1745,10 @@ if [ -f "$loop_registry" ]; then
             ' "$contract_path" 2>/dev/null)" 2>/dev/null
         fi
         loop_name="${loop_name:-$loop_id}"
-        loop_status="${loop_status:-?}"
-        loop_iter="${loop_iter:-?}"
+        # OFFICIAL-VALUES-ONLY (2026-06-11): no invented "?" placeholders.
+        # loop_name falls back to loop_id (an official registry value);
+        # status/iteration stay EMPTY when the frontmatter lacks them and
+        # their tokens are omitted from the compose line below.
 
         # Heartbeat freshness — last_wake_us age in seconds; cwd-drift flag.
         #
@@ -1763,6 +1793,8 @@ if [ -f "$loop_registry" ]; then
         esac
 
         # Status color: ACTIVE → green; DONE/* → bright_black; PAUSED → yellow; else cyan
+        # (Color selection only — the rendered token is the OFFICIAL status
+        # value verbatim from the contract frontmatter, never a translation.)
         case "$loop_status" in
             ACTIVE*|active*)            status_label="${GREEN}${loop_status:0:30}${RESET}" ;;
             DONE*|done*|COMPLETE*|FINISHED*|SUPERSEDED*|STOPPED*|ABORTED*)
@@ -1783,8 +1815,14 @@ if [ -f "$loop_registry" ]; then
                 ;;
         esac
 
-        # Compose: ⏿ <name> [<id>] iter N · <status> · bound: <sid> · ♡ <age>
-        echo -e "${BRIGHT_BLACK}⏿${RESET} ${MAGENTA}${loop_name:0:40}${RESET} ${BRIGHT_BLACK}[${loop_id}]${RESET} iter ${loop_iter} ${BRIGHT_BLACK}·${RESET} ${status_label} ${BRIGHT_BLACK}·${RESET} bound:${bind_label} ${BRIGHT_BLACK}·${RESET} ${hb_label}${drift_flag}"
+        # Compose: ⏿ <name> [<id>] [iter N ·] [<status> ·] bound: <sid> · ♡ <age>
+        # iter/status tokens are OMITTED when the frontmatter lacks the
+        # field (official-empty) — no invented "?" placeholders.
+        iter_part=""
+        [ -n "$loop_iter" ] && iter_part=" iter ${loop_iter} ${BRIGHT_BLACK}·${RESET}"
+        status_part=""
+        [ -n "$loop_status" ] && status_part=" ${status_label} ${BRIGHT_BLACK}·${RESET}"
+        echo -e "${BRIGHT_BLACK}⏿${RESET} ${MAGENTA}${loop_name:0:40}${RESET} ${BRIGHT_BLACK}[${loop_id}]${RESET}${iter_part}${status_part} bound:${bind_label} ${BRIGHT_BLACK}·${RESET} ${hb_label}${drift_flag}"
     fi
 fi
 
