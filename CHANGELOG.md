@@ -1,3 +1,12 @@
+# [21.93.0](https://github.com/terrylica/cc-skills/compare/v21.92.0...v21.93.0) (2026-06-11)
+
+
+### Features
+
+* **itp-hooks:** extend invented-fallback nudge to Bash commands ([0a46f72](https://github.com/terrylica/cc-skills/commit/0a46f72a467749de33ec45ae6660fb14ec82fb24))
+* **pushover-commander:** ttl on routine sends, heartbeat self-cleans ([478f5fb](https://github.com/terrylica/cc-skills/commit/478f5fb2769fa2d7e72ede232775ce6f08a9bdad))
+* **statusline-tools:** doorward renders official HTTP status verbatim ([5fbaead](https://github.com/terrylica/cc-skills/commit/5fbaeadba6d42f3f7b2a71a2bbaf14e2e3e78e21))
+
 # [21.92.0](https://github.com/terrylica/cc-skills/compare/v21.91.0...v21.92.0) (2026-06-11)
 
 
