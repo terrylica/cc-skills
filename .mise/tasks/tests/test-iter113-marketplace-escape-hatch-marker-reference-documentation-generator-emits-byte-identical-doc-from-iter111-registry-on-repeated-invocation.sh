@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-113 regression test for the registry-to-docs generator. Verifies (1) generator task exists and is executable; (2) generator's --check mode passes against the on-disk committed doc; (3) generator's --stdout mode emits a non-empty doc with all 12 baseline marker sections; (4) regenerating the doc twice in a row produces byte-identical output (idempotency invariant — required for the drift-detection check to be meaningful); (5) the on-disk doc renders all 12 baseline markers and is in alphabetical order; (6) doc contains expected sections (preamble + marker catalog + invariants + add-new-marker instructions); (7) drift-detection correctly fails when the doc is mutated."
+#MISE description="Iter-113 regression test for the registry-to-docs generator. Verifies (1) generator task exists and is executable; (2) generator's --check mode passes against the on-disk committed doc; (3) generator's --stdout mode emits a non-empty doc with every registry baseline marker section (count derived from the iter-111 registry); (4) regenerating the doc twice in a row produces byte-identical output (idempotency invariant — required for the drift-detection check to be meaningful); (5) the on-disk doc renders every registry baseline marker and is in alphabetical order; (6) doc contains expected sections (preamble + marker catalog + invariants + add-new-marker instructions); (7) drift-detection correctly fails when the doc is mutated."
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -9,20 +9,16 @@ REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
 ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 
-ITER111_BASELINE_MARKER_TOKENS=(
-    "BASH-LAUNCHD-OK"
-    "CARGO-TTY-SKIP"
-    "CARGO-TTY-WRAP"
-    "CWD-DELETE-OK"
-    "FILE-SIZE-OK"
-    "INIT-MONOLITH-OK"
-    "INLINE-IGNORE-OK"
-    "LAYER3-STRIPPED-PATH-OK"
-    "PROCESS-STORM-OK"
-    "PUEUE-LOCAL-OK"
-    "SETPROCTITLE-OK"
-    "SSoT-OK"
-)
+# Baseline marker tokens DERIVED from the iter-111 registry (the official
+# source) instead of hard-coded — the pinned 12-token array broke when the
+# 13th legitimate marker (INVENTED-FALLBACK-OK, 2026-06-11) was registered,
+# even though the generator emitted it correctly. One quoted
+# markerNameTokenIncludingSuffix field per entry, in registry order.
+ITER111_RUNTIME_HOOK_REGISTRY_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
+ITER111_BASELINE_MARKER_TOKENS=()
+while IFS= read -r _iter111_marker_token_line; do
+    ITER111_BASELINE_MARKER_TOKENS+=("$_iter111_marker_token_line")
+done < <(grep -E '^\s*markerNameTokenIncludingSuffix: "' "$ITER111_RUNTIME_HOOK_REGISTRY_ABSOLUTE_PATH" | sed -E 's/.*: "([^"]+)".*/\1/')
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0
@@ -66,7 +62,7 @@ for baseline_marker_token in "${ITER111_BASELINE_MARKER_TOKENS[@]}"; do
 done
 
 if [[ "$stdout_mode_exit_code" == "0" ]] && [[ "${#stdout_mode_output}" -gt 1000 ]] && [[ "$MISSING_FROM_STDOUT_COUNT" -eq 0 ]]; then
-    assert_passes "Case 3: generator --stdout mode emits non-empty doc (${#stdout_mode_output} chars) with all 12 baseline marker sections"
+    assert_passes "Case 3: generator --stdout mode emits non-empty doc (${#stdout_mode_output} chars) with all ${#ITER111_BASELINE_MARKER_TOKENS[@]} baseline marker sections"
 else
     assert_fails "Case 3: --stdout missing markers ($MISSING_FROM_STDOUT_COUNT) or empty output (exit=$stdout_mode_exit_code, ${#stdout_mode_output} chars)"
 fi
@@ -110,7 +106,7 @@ ON_DISK_MARKER_HEADING_ORDER=$(awk -F '`' '/^## `[^`]+`$/ {print $2}' "$ITER113_
 EXPECTED_ALPHABETICAL_ORDER=$(printf '%s\n' "${ITER111_BASELINE_MARKER_TOKENS[@]}" | sort)
 
 if [[ "$ON_DISK_MARKER_HEADING_ORDER" == "$EXPECTED_ALPHABETICAL_ORDER" ]]; then
-    assert_passes "Case 5: on-disk doc renders all 12 baseline markers in alphabetical order"
+    assert_passes "Case 5: on-disk doc renders all ${#ITER111_BASELINE_MARKER_TOKENS[@]} baseline markers in alphabetical order"
 else
     assert_fails "Case 5: marker order in on-disk doc does NOT match alphabetical expectation"
     echo "    Expected: $EXPECTED_ALPHABETICAL_ORDER" | tr '\n' ' '
