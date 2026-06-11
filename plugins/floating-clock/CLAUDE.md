@@ -251,8 +251,22 @@ the same recipe macOS HUDs / launcher panels use, zero per-frame sampling:
 invisible; surface lifted 0.11 → 0.16 gray (Material-style dark elevation) so
 the fill separates from `#000`; `NSPanel hasShadow` keeps doing the work on
 light backgrounds. Verified by screenshot over both pure-black and white
-backdrops. If the clock body itself needs the same on-black separation, that's
-theme territory: `ShadowStyle` glow / halo / crisp presets.
+backdrops. 2026-06-11 (second user request): the same treatment IS now on the
+clock body — see "Hairline segment border" below.
+
+### Hairline segment border (`BorderStyle`, 2026-06-11)
+
+The audio bar's edge recipe promoted to the clock pills. Catalog dispatcher
+`Sources/core/SegmentBorderSpec.{h,m}` (locked by test_levers), applied in
+BOTH layout families via `FCApplyBorderToLayer` (FloatingClockPanel+Layout.m):
+the three-segment pills AND the compact local-only/single-market modes, where
+the window contentView IS the pill (first ship missed those — user caught the
+bare double-click-shrunk view; three-segment clears the contentView border so
+mode switches never leak a stale frame). Color is luminance-adaptive per
+segment theme bg: white @ alpha on dark fills, black @ alpha+0.08 on light.
+Menu: context menu → Display → Border. Presets: `none` / `hairline` (1pt @
+0.22, DEFAULT — registered in clock.m, threaded through all 8 starter
+profiles; Minimalist=none, Auction Watcher=frame) / `frame` (1.5pt @ 0.35).
 
 AskUserQuestion-selected extras (same day, all verified on-screen):
 
