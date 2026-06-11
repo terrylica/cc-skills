@@ -203,6 +203,17 @@
             "description": "Iter-93→iter-100 PostToolUse edit-time orchestrator (8/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder + claude-md-size-budget). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit → Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research — pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
+            "timeout": 5000,
+            "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values — prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
+          }
+        ]
       }
     ],
     "Stop": [
