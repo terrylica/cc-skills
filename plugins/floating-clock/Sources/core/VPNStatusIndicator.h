@@ -19,6 +19,7 @@
 #import <Cocoa/Cocoa.h>
 
 @class FCMicMuteIndicator;
+@class FCAudioStatusIndicator;  // always-visible audio I/O bar (2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -28,6 +29,11 @@ NS_ASSUME_NONNULL_BEGIN
 // the mic-mute bar while that one is showing (else above the clock).
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel
                       micIndicator:(nullable FCMicMuteIndicator *)micIndicator;
+
+// When the always-visible audio I/O bar (2026-06-11) is showing, this banner
+// shifts one more slot up so the three-bar stack never overlaps. Set once
+// after init.
+@property (nonatomic, weak, nullable) FCAudioStatusIndicator *audioIndicator;
 
 // Re-read the live state (defaults + state-file existence) AND reposition.
 // Call from the clock's 1 Hz tick.
