@@ -247,3 +247,68 @@ EOF
     # either `(private)` or `(public)` — anything but `(?)`.
     [[ "$plain" != *"(?)"* ]]
 }
+
+# =============================================================================
+# Model id + inference-mode badges + ultracode heuristic (added 2026-06-10)
+# Pins the line-1 model segment introduced in v21.89.0 and the \x1f
+# unit-separator batch decode that replaced TSV (tab is IFS whitespace, so
+# empty mid-fields collapsed and shifted every later field left).
+# =============================================================================
+
+@test "model segment renders raw model id from .model.id" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9[1m]\",\"display_name\":\"Testy 9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"claude-test-9[1m]"* ]]
+}
+
+@test "model segment falls back to display_name when model.id absent" {
+    run bash -c "echo '{\"model\":{\"display_name\":\"Testy 9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"Testy 9"* ]]
+}
+
+@test "inference badges render effort, thinking:off, and fast" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":true}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"effort:high"* ]]
+    [[ "$plain" == *"thinking:off"* ]]
+    [[ "$plain" == *"· fast"* ]]
+}
+
+@test "ultracode badge appears for xhigh + thinking + not fast" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"✦ ultracode"* ]]
+}
+
+@test "ultracode badge absent when fast_mode is true" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":true}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" != *"ultracode"* ]]
+}
+
+@test "ultracode badge absent when effort is not xhigh" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" != *"ultracode"* ]]
+}
+
+@test "x1f batch decode survives false booleans without field shift" {
+    # Regression pin for the tab-collapse bug: with TSV decode + jq's
+    # `// \"\"` (which treats false as empty), thinking.enabled=false and
+    # fast_mode=false produced empty mid-fields that bash `read` collapsed,
+    # shifting session_id into the transcript-path slot. The \x1f decode +
+    # `// false` defaults must keep the session UUID in its own field, so
+    # the session line must render the UUID — not the transcript path.
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":false,\"session_id\":\"f1e1d-shift-regression-uuid\",\"transcript_path\":\"/tmp/nonexistent-transcript.jsonl\"}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"f1e1d-shift-regression-uuid"* ]]
+    [[ "$plain" != *"JSONL ID: /tmp/nonexistent-transcript.jsonl"* ]]
+}
