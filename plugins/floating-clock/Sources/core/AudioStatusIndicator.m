@@ -423,7 +423,18 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     bg.wantsLayer            = YES;
     bg.layer.cornerRadius    = 7.0;
     bg.layer.masksToBounds   = YES;
-    bg.layer.backgroundColor = [[NSColor colorWithSRGBRed:0.11 green:0.11 blue:0.125 alpha:0.94] CGColor];
+    // 2026-06-11 contrast fix (research-converged "dual-layer" treatment used
+    // by macOS HUDs / launcher panels): the pill must read on BOTH light and
+    // pure-black backgrounds with zero per-frame sampling.
+    //   1. Hairline white border — defines the edge on black (the NSPanel
+    //      shadow is invisible there); near-invisible on light backgrounds
+    //      where the dark fill already contrasts.
+    //   2. Elevated surface — Material-style dark-elevation lift from
+    //      0.11 → 0.16 gray so the fill itself separates from #000.
+    //   3. NSPanel hasShadow (outer shadow) keeps doing the work on light.
+    bg.layer.backgroundColor = [[NSColor colorWithSRGBRed:0.16 green:0.16 blue:0.18 alpha:0.95] CGColor];
+    bg.layer.borderWidth     = 1.0;
+    bg.layer.borderColor     = [[NSColor colorWithWhite:1.0 alpha:0.22] CGColor];
     bg.autoresizingMask      = NSViewWidthSizable | NSViewHeightSizable;
     _bar.contentView         = bg;
 
