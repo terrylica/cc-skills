@@ -7,8 +7,9 @@
 #import "../data/ThemeCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"
 
-@class FCMicMuteIndicator;   // mic-mute banner overlay (user directive 2026-06-01)
-@class FCVPNStatusIndicator; // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
+@class FCMicMuteIndicator;     // mic-mute banner overlay (user directive 2026-06-01)
+@class FCVPNStatusIndicator;   // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
+@class FCAudioStatusIndicator; // always-visible audio I/O device + level bar (2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -30,6 +31,11 @@ NS_ASSUME_NONNULL_BEGIN
     // mic-mute bar. Driven by a state file; configured via NSUserDefaults
     // (VPNIndicator*). Disabled by default. Synced from tick + windowDidMove.
     FCVPNStatusIndicator *_vpnStatusIndicator;
+    // Always-visible audio I/O status bar (2026-06-11): current default
+    // input/output devices + numeric levels, click-to-toggle device cycling,
+    // direct level adjustment. Bottom-most overlay in the indicator stack;
+    // mic-mute and VPN bars stack above it. Synced from tick + windowDidMove.
+    FCAudioStatusIndicator *_audioStatusIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
