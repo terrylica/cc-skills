@@ -33,3 +33,11 @@ Add `# SSoT-OK` (or `// SSoT-OK`) comment to suppress findings. Same convention 
 
 [#28](https://github.com/terrylica/cc-skills/issues/28)
 
+
+## Original hub-table narrative (PostToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PostToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-97 orchestrator)
+
+SSoT/DI principles reminder with ast-grep anti-pattern detection (once per session) on .py/.ts/.tsx/.js/.jsx/.rs/.go/.java/.kt/.rb edits (test files excluded). **Iter-97 SIXTH inlined PostToolUse subhook (6/15 in arc) and FIRST migration that creates REAL Promise.all parallel fan-out**. **Iter-98 uplift**: gate-file claim logic delegated to the new shared lib helper `tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName` (parallel to iter-95's async-spawn helper hoist — DRY-out across iter-97 ssot-principles and iter-98 memory-efficiency-reminder). Algorithm encoded in `classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOncePerSessionForPostToolUseOrchestrator`; alias `classifySsotPrinciplesForPostToolUseOrchestrator`. Standalone hook still runnable via `import.meta.main` guard.
