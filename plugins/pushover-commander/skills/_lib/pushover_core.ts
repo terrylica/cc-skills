@@ -363,6 +363,11 @@ async function cmdDoctor(a: Args): Promise<void> {
   catch (e) { report.creds_error = String(e instanceof Error ? e.message : e); }
   try { report.validate = (await validate(token, user, device)) ? "status=1" : "FAIL"; }
   catch (e) { report.validate = `ERROR ${e instanceof Error ? e.message : e}`; }
+  // Quota semantics changed 2026-05-01 (Pushover blog 2026-04): limits are
+  // PER-ACCOUNT, shared across all of the account's applications — the
+  // limit/remaining reported here is the ACCOUNT pool, regardless of which
+  // app token queries it. Exhaustion = HTTP 429 on sends. SSoT:
+  // pushover_api_limits.json (quota_scope / quota_exhausted_status).
   try { const q: any = await poGet(`apps/limits.json?token=${token}`); report.quota = { limit: q.limit, remaining: q.remaining }; }
   catch { report.quota = "ERROR"; }
   try {
