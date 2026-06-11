@@ -1,3 +1,10 @@
+# [21.95.0](https://github.com/terrylica/cc-skills/compare/v21.94.0...v21.95.0) (2026-06-11)
+
+
+### Features
+
+* **floating-clock:** hairline segment border (BorderStyle lever) ([c4e7698](https://github.com/terrylica/cc-skills/commit/c4e76981badcc4ffcababb3640a0dceb143b80dd)), closes [#000](https://github.com/terrylica/cc-skills/issues/000)
+
 # [21.94.0](https://github.com/terrylica/cc-skills/compare/v21.93.0...v21.94.0) (2026-06-11)
 
 
