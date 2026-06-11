@@ -49,3 +49,11 @@ Create `.claude/file-size-guard.json` (project-level) or `~/.claude/file-size-gu
 
 Automatically skipped when Claude is in planning phase.
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: (inlined in iter-84 orchestrator)
+
+File size bloat prevention (per-extension limits). Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84 orchestrator which imports `classifyFileSizeGuardForOrchestrator` from this file. See [Iter-84 PreToolUse Orchestrator](../../../docs/HOOKS.md#iter-84-pretooluse-edit-time-orchestrator-in-process-inlining-not-subprocess).

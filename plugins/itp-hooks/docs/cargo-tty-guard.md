@@ -40,3 +40,11 @@ cargo bench # CARGO-TTY-WRAP
 - [#12507](https://github.com/anthropics/claude-code/issues/12507): Subprocess stdin inheritance
 - [#13598](https://github.com/anthropics/claude-code/issues/13598): Spurious /dev/tty reader
 
+
+## Original hub-table narrative (PreToolUse, moved 2026-06-11)
+
+> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
+
+**Matcher**: Bash
+
+**Cargo TTY suspension prevention** — Redirects `cargo bench/test/build &` to PUEUE daemon (eliminates stdin inheritance, prevents SIGSTOP). See [Full Guide](../../../docs/cargo-tty-suspension-prevention.md)
