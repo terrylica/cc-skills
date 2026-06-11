@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 20 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 21 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (12; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (13; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
@@ -22,6 +22,7 @@ Jump directly to any of the 20 registered markers below. Markers are listed alph
 - [`FILE-SIZE-OK`](#file-size-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
+- [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
 - [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
@@ -56,7 +57,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (12 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (13 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -177,6 +178,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # INLINE-IGNORE-OK
+```
+
+## `INVENTED-FALLBACK-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.
+
+**Example usage**:
+
+```
+# INVENTED-FALLBACK-OK
 ```
 
 ## `LAYER3-STRIPPED-PATH-OK`
