@@ -1138,8 +1138,11 @@ fi
 #   .effort.level      reasoning effort (e.g. high)
 #   .thinking.enabled  extended thinking on/off (bool)
 #   .fast_mode         fast mode active (bool)
-# Render (all BRIGHT_BLACK, operator-selected subdued style):
-#   ... | v12.43.0 3h ago | claude-fable-5[1m] · effort:xhigh · thinking:on
+# Render (all BRIGHT_BLACK, operator-selected subdued style; effort level is
+# shown bare — the "effort:" label was dropped 2026-06-11 per operator
+# preference, the level word is self-evident between the model id and the
+# thinking badge):
+#   ... | v12.43.0 3h ago | claude-fable-5[1m] · xhigh · thinking:on
 # .model.id may be empty at session start (no API call yet) — fall back to
 # $model_raw (display_name-first decode above); suppress segment if both empty.
 #
@@ -1158,7 +1161,7 @@ model_inline=""
 model_token="${model_id:-$model_raw}"
 if [ -n "$model_token" ] && [ "$model_token" != "Unknown" ]; then
     model_inline=" ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${model_token}${RESET}"
-    [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · effort:${effort_level}${RESET}"
+    [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
     case "$thinking_enabled" in
         true)  model_inline="${model_inline}${BRIGHT_BLACK} · thinking:on${RESET}" ;;
         false) model_inline="${model_inline}${BRIGHT_BLACK} · thinking:off${RESET}" ;;

@@ -281,7 +281,11 @@ EOF
     run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":true}' | $STATUSLINE"
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
-    [[ "$plain" == *"effort:high"* ]]
+    # Effort renders BARE ("· high", no "effort:" label — dropped 2026-06-11
+    # per operator preference). The "· " separator anchors the assertion so
+    # "high" can't false-match inside "xhigh" or other tokens.
+    [[ "$plain" == *"· high"* ]]
+    [[ "$plain" != *"effort:"* ]]
     [[ "$plain" == *"thinking:off"* ]]
     [[ "$plain" == *"· fast"* ]]
 }
@@ -296,7 +300,7 @@ EOF
     [ "$status" -eq 0 ]
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
     [[ "$plain" == *"claude-test-9"* ]]
-    [[ "$plain" == *"effort:xhigh"* ]]
+    [[ "$plain" == *"· xhigh"* ]]
     [[ "$plain" == *"thinking:on"* ]]
     [[ "$plain" != *"ultracode"* ]]
     [[ "$plain" != *"✦"* ]]
