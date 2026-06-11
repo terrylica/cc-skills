@@ -71,15 +71,14 @@ get_repo_path() {
 
 repo_path=$(get_repo_path)
 
-# Debug logging (temporary) - logs invocations to diagnose intermittent failures
-DEBUG_LOG="/tmp/ccstatusline-invocation.log"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) PID=$$ PPID=$PPID PWD=$(pwd)" >> "$DEBUG_LOG" 2>/dev/null
 # Read JSON from stdin
 input=$(cat)
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INPUT_LEN=${#input} MODEL_RAW=$(echo "$input" | jq -r '.model // "null"' 2>/dev/null | head -c 80)" >> "$DEBUG_LOG" 2>/dev/null
 
 # Append raw statusline data to JSONL for analytics (ccmax-monitor analytics package)
 # Format matches ccost's expected schema: {"ts":<unix_epoch>,"data":<stdin_json>}
+# Consumed by: scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py
+# (L2 telemetry surface) and the external ccmax-monitor analytics package —
+# intentional cross-repo infrastructure, NOT dead code.
 echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
 
 # Extract fields.
@@ -1422,8 +1421,9 @@ echo -e "$line1"
 # ── Line-suppression rule ────────────────────────────────────────────────────
 #   The whole ccmax segment is suppressed (only datetime renders) when ALL of:
 #     - doorward_status == "unreachable", AND
-#     - ccmax_pin_badge is empty, AND
 #     - ccmax_bearer_account is empty
+#   (The ccmax_pin_badge render-trigger was retired 2026-05-13; its dead
+#   placeholder variable was removed 2026-06-10.)
 #   This is the "no integration installed at all" case (most public cc-skills
 #   users). They see the bare datetime line and nothing else.
 # =============================================================================
@@ -1434,10 +1434,9 @@ echo -e "$line1"
 # detection, which gates the render-decision below. The visible badge itself
 # is dropped — the operator has no remaining need to see WHICH scope holds
 # the pin since under bearer-mode routing doorward picks the upstream
-# account dynamically per-request anyway. ccmax_pin_badge stays as an empty
-# placeholder so downstream render-decision and echo statements don't need
-# structural changes.
-ccmax_pin_badge=""
+# account dynamically per-request anyway. (2026-06-10: the always-empty
+# ccmax_pin_badge placeholder variable was removed from the render decision
+# and echo below — dead-code cleanup, zero behavior change.)
 
 # NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
 # state the emoji could signal is already expressed by a colored token after
@@ -1647,17 +1646,17 @@ fi
 # Decide whether to render the ccmax segment at all. Three independent
 # triggers, any one is sufficient:
 #   - doorward responded (cached or fresh) → status != "unreachable"
-#   - a pin file resolved a scope+mode → ccmax_pin_badge non-empty
+#   (pin-badge render-trigger retired 2026-05-13; placeholder removed 2026-06-10)
 #   - bearer-mode detection found a bearer account → ccmax_bearer_account set
 # Otherwise (no integration installed), print the bare datetime line.
 # ccmax_bearer_account itself produces no visible badge — only the render
 # decision uses it; presence of the doorward block already implies bearer-
 # mode routing for the operator.
-if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_pin_badge" ] || [ -n "$ccmax_bearer_account" ]; then
+if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_bearer_account" ]; then
     # $doorward_inline starts with its own leading space (the "doorward"
     # anchor), so concatenating directly after the BRIGHT_BLACK "|" separator
     # produces exactly one space of padding between them.
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}${ccmax_pin_badge}"
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}"
 else
     echo -e "${datetime_display}"
 fi
