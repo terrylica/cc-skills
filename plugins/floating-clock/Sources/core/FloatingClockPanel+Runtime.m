@@ -1,7 +1,8 @@
 #import "FloatingClockPanel+Runtime.h"
 #import "FloatingClockPanel+Layout.h"
-#import "MicMuteIndicator.h"   // mic-mute banner sync (user directive 2026-06-01)
-#import "VPNStatusIndicator.h" // generic state-file status banner sync (2026-06-07)
+#import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
+#import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
+#import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
@@ -63,6 +64,9 @@ static uint64_t nsUntilNextSecond(void) {
     // reposition to follow the clock's per-tick resize/recenter.
     [_micMuteIndicator refresh];
     [_vpnStatusIndicator refresh];
+    // Audio I/O bar: re-read default devices + volumes (6 cheap HAL property
+    // reads) and reposition to follow the clock's per-tick resize/recenter.
+    [_audioStatusIndicator refresh];
 }
 
 - (void)tickThreeSegment {
@@ -460,9 +464,10 @@ static uint64_t nsUntilNextSecond(void) {
     if ([sn isKindOfClass:[NSNumber class]]) {
         [d setObject:sn forKey:@"FloatingClockScreenNumber"];
     }
-    // Keep the mic-mute banner glued to the clock while the user drags it.
+    // Keep the indicator stack glued to the clock while the user drags it.
     [_micMuteIndicator syncPosition];
     [_vpnStatusIndicator syncPosition];
+    [_audioStatusIndicator syncPosition];
 }
 
 - (void)restorePosition {
