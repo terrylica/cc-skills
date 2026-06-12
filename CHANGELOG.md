@@ -1,3 +1,10 @@
+# [21.96.0](https://github.com/terrylica/cc-skills/compare/v21.95.0...v21.96.0) (2026-06-12)
+
+
+### Features
+
+* **floating-clock:** solar-elevation canvas color ramp ([2bf7bdd](https://github.com/terrylica/cc-skills/commit/2bf7bdd782effd9b188cb2c933bbdccc0c685f78))
+
 # [21.95.0](https://github.com/terrylica/cc-skills/compare/v21.94.0...v21.95.0) (2026-06-11)
 
 
