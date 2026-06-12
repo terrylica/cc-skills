@@ -1,3 +1,10 @@
+## [21.96.1](https://github.com/terrylica/cc-skills/compare/v21.96.0...v21.96.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* **floating-clock:** weld overlay bars to clock via child windows ([beba4ae](https://github.com/terrylica/cc-skills/commit/beba4aead0e6ef83e94f341cc833a4d1ffb4a2e7))
+
 # [21.96.0](https://github.com/terrylica/cc-skills/compare/v21.95.0...v21.96.0) (2026-06-12)
 
 
