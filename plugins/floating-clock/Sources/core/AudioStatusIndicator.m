@@ -1,6 +1,8 @@
 #import "AudioStatusIndicator.h"
 #import "AudioDeviceSelectionMenuController.h"  // pull-out menus (2026-06-11)
 #import "ClockChildWindowAttachment.h"          // drag-welding (2026-06-12)
+#import "OverlayPanelFactory.h"                 // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStackingPositioner.h"           // shared stacking geometry (DRY 2026-06-12)
 #import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
 #import <CoreAudio/CoreAudio.h>
 
@@ -421,21 +423,8 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 
 - (void)buildBar {
     NSRect r = NSMakeRect(0, 0, 320, kAudioBarHeight);
-    _bar = [[NSPanel alloc] initWithContentRect:r
-                                      styleMask:(NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel)
-                                        backing:NSBackingStoreBuffered
-                                          defer:NO];
-    _bar.level                  = (_clock ? _clock.level : NSFloatingWindowLevel) + 1;
-    _bar.opaque                 = NO;
-    _bar.backgroundColor        = [NSColor clearColor];
-    _bar.hasShadow              = YES;
-    _bar.ignoresMouseEvents     = NO;    // interactive — toggle + level controls
-    _bar.becomesKeyOnlyIfNeeded = YES;
-    _bar.hidesOnDeactivate      = NO;
-    _bar.movableByWindowBackground = NO; // clicks are controls, not drags
-    _bar.collectionBehavior     = NSWindowCollectionBehaviorCanJoinAllSpaces
-                                | NSWindowCollectionBehaviorStationary
-                                | NSWindowCollectionBehaviorIgnoresCycle;
+    // ignoresMouse:NO — this overlay carries interactive controls.
+    _bar = FCCreateOverlayPanel(_clock, r.size, NO);
 
     NSView *bg = [[NSView alloc] initWithFrame:r];
     bg.wantsLayer            = YES;
@@ -481,8 +470,7 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 
 - (void)refresh {
     if (![self enabled]) {
-        FCDetachOverlayFromClock(_bar);   // detach BEFORE hiding (welding contract)
-        [_bar orderOut:nil];
+        FCHideOverlay(_bar);   // detach-then-hide ceremony (welding contract)
         return;
     }
     AudioObjectID inDev  = FCDefaultDevice(YES);
@@ -518,22 +506,11 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;
 
-    CGFloat w = c.size.width;
-    CGFloat x = c.origin.x;
-    CGFloat aboveY = NSMaxY(c) + kAudioBarGap;
-    CGFloat y;
-    if (aboveY + kAudioBarHeight <= NSMaxY(vf)) {
-        y = aboveY;                                          // preferred: above the clock
-    } else {
-        y = c.origin.y - kAudioBarGap - kAudioBarHeight;     // fallback: below (clock at top edge)
-    }
-    if (x + w > NSMaxX(vf)) x = NSMaxX(vf) - w;
-    if (x < vf.origin.x)    x = vf.origin.x;
-
-    NSRect f = NSMakeRect(x, y, w, kAudioBarHeight);
+    // Bottom of the stack: stackOffset 0 (geometry SSoT: OverlayStackingPositioner).
+    NSRect f = FCComputeOverlayFrame(c, vf, kAudioBarHeight, 0.0, kAudioBarGap);
     if (!NSEqualRects(f, _bar.frame)) {
         [_bar setFrame:f display:YES];
-        [self layoutZonesForWidth:w];
+        [self layoutZonesForWidth:f.size.width];
     }
     if (!_bar.visible) [_bar orderFront:nil];
     [_bar orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];

@@ -1,6 +1,8 @@
 #import "MicMuteIndicator.h"
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
+#import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
 #import <CoreAudio/CoreAudio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
@@ -193,20 +195,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 
 - (void)buildBanner {
     NSRect r = NSMakeRect(0, 0, 160, kBannerHeight);
-    _banner = [[NSPanel alloc] initWithContentRect:r
-                                         styleMask:(NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel)
-                                           backing:NSBackingStoreBuffered
-                                             defer:NO];
-    _banner.level                  = (_clock ? _clock.level : NSFloatingWindowLevel) + 1;
-    _banner.opaque                 = NO;
-    _banner.backgroundColor        = [NSColor clearColor];
-    _banner.hasShadow              = YES;
-    _banner.ignoresMouseEvents     = YES;   // detection-only, no controls
-    _banner.becomesKeyOnlyIfNeeded = YES;
-    _banner.hidesOnDeactivate      = NO;
-    _banner.collectionBehavior     = NSWindowCollectionBehaviorCanJoinAllSpaces
-                                   | NSWindowCollectionBehaviorStationary
-                                   | NSWindowCollectionBehaviorIgnoresCycle;
+    _banner = FCCreateOverlayPanel(_clock, r.size, YES);   // detection-only
 
     NSView *bg = [[NSView alloc] initWithFrame:r];
     bg.wantsLayer            = YES;
@@ -216,17 +205,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     bg.autoresizingMask      = NSViewWidthSizable | NSViewHeightSizable;
     _banner.contentView      = bg;
 
-    CGFloat labelH = 16.0;
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(0, (kBannerHeight - labelH) / 2.0, r.size.width, labelH)];
-    label.editable        = NO;
-    label.selectable      = NO;
-    label.bezeled         = NO;
-    label.drawsBackground = NO;
-    label.alignment       = NSTextAlignmentCenter;
-    label.textColor       = [NSColor whiteColor];
-    label.font            = [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightBold];
-    label.stringValue     = @"⊘ MIC MUTED";
-    label.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin | NSViewMaxYMargin;
+    NSTextField *label = FCCreateBannerLabel(kBannerHeight, r.size.width, @"⊘ MIC MUTED");
     [bg addSubview:label];
     _bannerLabel = label;
 
@@ -257,23 +236,12 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;
 
-    CGFloat w = c.size.width;
-    CGFloat x = c.origin.x;
-    // Stack above the always-visible audio I/O bar when it's showing
-    // (2026-06-11) — same slot maths the VPN bar uses above this one.
+    // Stack above the audio bar when it's showing; geometry SSoT:
+    // OverlayStackingPositioner. The stacking POLICY stays here.
     CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
                           ? (kBannerHeight + kBannerGap) : 0.0;
-    CGFloat aboveY = NSMaxY(c) + kBannerGap + audioOffset;
-    CGFloat y;
-    if (aboveY + kBannerHeight <= NSMaxY(vf)) {
-        y = aboveY;                                                    // preferred: above the clock
-    } else {
-        y = c.origin.y - kBannerGap - kBannerHeight - audioOffset;     // fallback: below (clock at screen top)
-    }
-    if (x + w > NSMaxX(vf)) x = NSMaxX(vf) - w;
-    if (x < vf.origin.x)    x = vf.origin.x;
-
-    [_banner setFrame:NSMakeRect(x, y, w, kBannerHeight) display:YES];
+    [_banner setFrame:FCComputeOverlayFrame(c, vf, kBannerHeight, audioOffset, kBannerGap)
+              display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
     FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
 }
@@ -284,8 +252,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     if (muted) {
         [self syncPosition];
     } else {
-        FCDetachOverlayFromClock(_banner);   // detach BEFORE hiding
-        [_banner orderOut:nil];
+        FCHideOverlay(_banner);   // detach-then-hide ceremony
     }
 }
 
