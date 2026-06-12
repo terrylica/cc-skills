@@ -18,16 +18,24 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
 
 @implementation FloatingClockPanel (ActionHandlers)
 
-- (void)toggleShowSeconds:(NSMenuItem *)sender {
+// Unified bool-pref toggle (DRY 2026-06-12): the nine Show* toggles used
+// TWO divergent patterns — plain boolForKey (correct only for keys present
+// in registerDefaults) and a lazy nil-means-default check. The helper makes
+// the default EXPLICIT per key, so unregistered keys (e.g. ShowMoonPhase)
+// and freshly-migrated installs behave identically to steady state.
+- (void)toggleBoolPref:(NSString *)key defaultValue:(BOOL)defaultValue {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowSeconds"] forKey:@"ShowSeconds"];
+    BOOL current = [d objectForKey:key] ? [d boolForKey:key] : defaultValue;
+    [d setBool:!current forKey:key];
     [self applyDisplaySettings];
 }
 
+- (void)toggleShowSeconds:(NSMenuItem *)sender {
+    [self toggleBoolPref:@"ShowSeconds" defaultValue:YES];
+}
+
 - (void)toggleShowDate:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowDate"] forKey:@"ShowDate"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowDate" defaultValue:YES];
 }
 
 - (void)setTimeFormat:(NSMenuItem *)sender {
@@ -263,45 +271,29 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
 }
 
 - (void)toggleShowFlags:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowFlags"] forKey:@"ShowFlags"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowFlags" defaultValue:YES];
 }
 
 - (void)toggleShowUTCReference:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
-    [d setBool:!cur forKey:@"ShowUTCReference"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowUTCReference" defaultValue:YES];
 }
 
 - (void)toggleShowSkyState:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
-    [d setBool:!cur forKey:@"ShowSkyState"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowSkyState" defaultValue:YES];
 }
 
 // v4 iter-229: weekly progress bar toggle.
 - (void)toggleShowWeekProgress:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowWeekProgress"] || [d boolForKey:@"ShowWeekProgress"];
-    [d setBool:!cur forKey:@"ShowWeekProgress"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowWeekProgress" defaultValue:YES];
 }
 
 // v4 iter-246: moon-phase glyph toggle (iter-243 wire-up completion).
 - (void)toggleShowMoonPhase:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowMoonPhase"] || [d boolForKey:@"ShowMoonPhase"];
-    [d setBool:!cur forKey:@"ShowMoonPhase"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowMoonPhase" defaultValue:YES];   // unregistered key — default lives here
 }
 
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowProgressPercent" defaultValue:NO];
 }
 
 // 2026-06-11: hide/show the always-visible audio I/O bar from the context
