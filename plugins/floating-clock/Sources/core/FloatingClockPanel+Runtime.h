@@ -24,12 +24,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)tick;
 - (void)tickThreeSegment;
 - (void)tickLegacy;
-- (NSScreen *)primaryScreen;
-- (NSRect)defaultFrame;
-- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed;
-- (void)windowDidMove:(NSNotification *)n;
-- (void)restorePosition;
-- (void)screensChanged:(NSNotification *)n;
+// Placement + persistence: FloatingClockPanel+WindowPlacement.h
+// (2026-06-12 modularization split).
 
 @end
 
