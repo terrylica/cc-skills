@@ -12,6 +12,8 @@
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/ShadowSpec.h"
 #import "../Sources/core/SegmentBorderSpec.h"
+#import "../Sources/core/SolarSkyColorRamp.h"
+#import "../Sources/data/SolarEvents.h"
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/content/UrgencyColors.h"
@@ -519,6 +521,59 @@ void test_segment_border_spec_catalog(void) {
             failures++;
             fprintf(stderr, "FAIL %s: default case %zu should be hairline\n", __func__, i);
         }
+    }
+}
+
+void test_solar_canvas_color_ramp(void) {
+    // 2026-06-11: solar canvas — elevation→color ramp + elevation math.
+    // Lock the qualitative invariants, not exact pixels: the ramp must be
+    // warm at the horizon, blue in the day, violet at night (vivid), and
+    // dark at night (atmospheric); all channels gamut-clamped.
+    struct { double elev; } probes[] = {{-90},{-18},{-12},{-6},{-4},{0},{6},{20},{50},{90}};
+    NSString *styles[] = { @"solar-vivid", @"solar-atmospheric" };
+    for (int s = 0; s < 2; s++) {
+        for (size_t i = 0; i < sizeof(probes)/sizeof(probes[0]); i++) {
+            FCSolarCanvasColor c = FCSolarCanvasColorForElevation(probes[i].elev, styles[s]);
+            if (c.r < 0 || c.r > 1 || c.g < 0 || c.g > 1 || c.b < 0 || c.b > 1) {
+                failures++;
+                fprintf(stderr, "FAIL %s: %s elev=%.0f out of gamut (%.3f,%.3f,%.3f)\n",
+                        __func__, styles[s].UTF8String, probes[i].elev, c.r, c.g, c.b);
+            }
+        }
+    }
+    FCSolarCanvasColor horizonV = FCSolarCanvasColorForElevation(0, @"solar-vivid");
+    if (!(horizonV.r > horizonV.b)) {
+        failures++; fprintf(stderr, "FAIL %s: vivid horizon should be warm (r>b)\n", __func__);
+    }
+    FCSolarCanvasColor dayV = FCSolarCanvasColorForElevation(30, @"solar-vivid");
+    if (!(dayV.b > dayV.r)) {
+        failures++; fprintf(stderr, "FAIL %s: vivid day should be blue (b>r)\n", __func__);
+    }
+    FCSolarCanvasColor nightA = FCSolarCanvasColorForElevation(-30, @"solar-atmospheric");
+    if (!(0.2126*nightA.r + 0.7152*nightA.g + 0.0722*nightA.b < 0.25)) {
+        failures++; fprintf(stderr, "FAIL %s: atmospheric night should be dark\n", __func__);
+    }
+    FCSolarCanvasColor nightV = FCSolarCanvasColorForElevation(-30, @"solar-vivid");
+    if (!(nightV.b > nightV.g && (nightV.r + nightV.b) > 0.3)) {
+        failures++; fprintf(stderr, "FAIL %s: vivid night should be rich violet, not black\n", __func__);
+    }
+    // nil/unknown style → vivid.
+    FCSolarCanvasColor d1 = FCSolarCanvasColorForElevation(10, nil);
+    FCSolarCanvasColor d2 = FCSolarCanvasColorForElevation(10, @"solar-vivid");
+    if (fabs(d1.r - d2.r) > 0.001 || fabs(d1.b - d2.b) > 0.001) {
+        failures++; fprintf(stderr, "FAIL %s: nil style should dispatch to vivid\n", __func__);
+    }
+    // Elevation sanity: equator, equinox (2026-03-20), 12:00 UTC at (0,0)
+    // → sun near zenith; 00:00 UTC → deep below horizon.
+    NSDate *noonUTC = [NSDate dateWithTimeIntervalSince1970:1773748800]; // 2026-03-20 12:00:00Z (vernal equinox day)
+    double eNoon = FCSolarElevationDegrees(noonUTC, 0.0, 0.0);
+    if (eNoon < 70.0) {
+        failures++; fprintf(stderr, "FAIL %s: equinox equator noon elevation %.1f < 70\n", __func__, eNoon);
+    }
+    NSDate *midnightUTC = [NSDate dateWithTimeIntervalSince1970:1773705600]; // 2026-03-20 00:00:00Z
+    double eMid = FCSolarElevationDegrees(midnightUTC, 0.0, 0.0);
+    if (eMid > -60.0) {
+        failures++; fprintf(stderr, "FAIL %s: equinox equator midnight elevation %.1f > -60\n", __func__, eMid);
     }
 }
 

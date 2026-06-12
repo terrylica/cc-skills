@@ -19,6 +19,7 @@
 #import "preferences/FloatingClockPanel+ProfileManagement.h"
 #import "actions/FloatingClockPanel+ActionHandlers.h"
 #import "core/LocationProvider.h"
+#import "rendering/SolarOutlinedTextRenderingView.h"  // solar canvas outlined text (2026-06-11)
 
 // # FILE-SIZE-OK
 
@@ -100,6 +101,7 @@
         @"CornerStyle": @"rounded",
         @"ShadowStyle": @"none",
         @"BorderStyle": @"hairline",   // 2026-06-11: on by default (audio-bar edge recipe)
+        @"CanvasColorMode": @"solar-vivid",  // 2026-06-11: compact canvas rides the solar ramp
         @"ActiveFontSize": @12.0,
         @"NextFontSize": @12.0,
         @"FontWeight": @"medium",
@@ -177,6 +179,18 @@
     cv.layer.backgroundColor = [[NSColor clearColor] CGColor];
     cv.panel = self;
     self.contentView = cv;
+
+    // 2026-06-11 solar canvas: round-join outlined text renderer (Core Text)
+    // — shows INSTEAD of _label while a solar canvas mode is active. See
+    // SolarOutlinedTextRenderingView.h for why NSTextField stroke attributes
+    // were rejected (fill starvation / miter spikes on descenders).
+    FCSolarOutlinedTextView *labelOutline =
+        [[FCSolarOutlinedTextView alloc] initWithFrame:NSInsetRect(defaultFrame, 8, 8)];
+    labelOutline.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    labelOutline.outlineWidth = 2.2;
+    labelOutline.hidden = YES;   // only visible in solar canvas modes
+    [cv addSubview:labelOutline];
+    _labelOutline = labelOutline;
 
     // Text field for clock display
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSInsetRect(defaultFrame, 8, 8)];

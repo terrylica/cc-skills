@@ -10,11 +10,16 @@
 @class FCMicMuteIndicator;     // mic-mute banner overlay (user directive 2026-06-01)
 @class FCVPNStatusIndicator;   // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
 @class FCAudioStatusIndicator; // always-visible audio I/O device + level bar (2026-06-11)
+@class FCSolarOutlinedTextView; // round-join outlined compact text (solar canvas, 2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface FloatingClockPanel : NSPanel {
     NSTextField *_label;
+    FCSolarOutlinedTextView *_labelOutline; // 2026-06-11 solar canvas: round-join
+                                            // Core Text outline+fill renderer that
+                                            // REPLACES _label while solar is active
+                                            // (_label stays populated for sizing)
     NSTextField *_sessionLabel;
     dispatch_source_t _timer;
     NSDateFormatter *_dateFormatter;
