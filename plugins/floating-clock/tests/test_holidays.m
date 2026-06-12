@@ -12,46 +12,16 @@
 #import "../Sources/data/MarketSessionCalculator.h"
 #import "../Sources/data/HolidayCalendar.h"
 #import "test_levers.h"  // extern int failures
-
-static NSDate *holidayDateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss) {
-    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-    cal.timeZone = [NSTimeZone timeZoneWithName:iana];
-    NSDateComponents *c = [[NSDateComponents alloc] init];
-    c.year = y; c.month = m; c.day = d;
-    c.hour = h; c.minute = mm; c.second = ss;
-    return [cal dateFromComponents:c];
-}
-
-static const char *holidayStateName(SessionState s) {
-    switch (s) {
-        case kSessionOpen:       return "OPEN";
-        case kSessionLunch:      return "LUNCH";
-        case kSessionClosed:     return "CLOSED";
-        case kSessionPreMarket:  return "PRE-MARKET";
-        case kSessionAfterHours: return "AFTER-HOURS";
-    }
-    return "?";
-}
-
-#define ASSERT_HSTATE(mkt, date, expected)                                        \
-    do {                                                                          \
-        SessionState s; double _p; long _n;                                       \
-        computeSessionState((mkt), (date), &s, &_p, &_n);                         \
-        if (s != (expected)) {                                                    \
-            fprintf(stderr, "FAIL %s: state expected %s got %s\n",                \
-                    __func__, holidayStateName(expected), holidayStateName(s));   \
-            failures++;                                                           \
-        }                                                                         \
-    } while (0)
+#import "test_helpers.h" // shared dateAt / sessionStateName / ASSERT_SESSION_STATE
 
 void test_holiday_calendar_nyse(void) {
     // v4 iter-173: pure-data lookup test for FCIsMarketHoliday.
     const ClockMarket *nyse = marketForId(@"nyse");
     const ClockMarket *tse  = marketForId(@"tse");
 
-    NSDate *thanksgiving = holidayDateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
-    NSDate *christmas    = holidayDateAt(@"America/New_York", 2026, 12, 25, 12, 0, 0);
-    NSDate *newYears     = holidayDateAt(@"America/New_York", 2026,  1,  1, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    NSDate *christmas    = dateAt(@"America/New_York", 2026, 12, 25, 12, 0, 0);
+    NSDate *newYears     = dateAt(@"America/New_York", 2026,  1,  1, 12, 0, 0);
     if (!FCIsMarketHoliday(nyse, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: Thanksgiving not flagged\n", __func__);
     }
@@ -62,13 +32,13 @@ void test_holiday_calendar_nyse(void) {
         failures++; fprintf(stderr, "FAIL %s: New Year's Day not flagged\n", __func__);
     }
 
-    NSDate *regularFriday = holidayDateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
+    NSDate *regularFriday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
     if (FCIsMarketHoliday(nyse, regularFriday)) {
         failures++; fprintf(stderr, "FAIL %s: Fri 2026-04-24 wrongly flagged\n", __func__);
     }
 
     // Cross-market: NYSE must not flag TSE-only Jan 2 bank holiday.
-    NSDate *tseJan2 = holidayDateAt(@"America/New_York", 2026, 1, 2, 12, 0, 0);
+    NSDate *tseJan2 = dateAt(@"America/New_York", 2026, 1, 2, 12, 0, 0);
     if (FCIsMarketHoliday(nyse, tseJan2)) {
         failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged TSE-only Jan 2\n", __func__);
     }
@@ -90,10 +60,10 @@ void test_holiday_calendar_lse(void) {
     const ClockMarket *lse  = marketForId(@"lse");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *easterMonday = holidayDateAt(@"Europe/London", 2026, 4, 6, 12, 0, 0);
-    NSDate *springBank   = holidayDateAt(@"Europe/London", 2026, 5, 25, 12, 0, 0);
-    NSDate *summerBank   = holidayDateAt(@"Europe/London", 2026, 8, 31, 12, 0, 0);
-    NSDate *boxingObs    = holidayDateAt(@"Europe/London", 2026, 12, 28, 12, 0, 0);
+    NSDate *easterMonday = dateAt(@"Europe/London", 2026, 4, 6, 12, 0, 0);
+    NSDate *springBank   = dateAt(@"Europe/London", 2026, 5, 25, 12, 0, 0);
+    NSDate *summerBank   = dateAt(@"Europe/London", 2026, 8, 31, 12, 0, 0);
+    NSDate *boxingObs    = dateAt(@"Europe/London", 2026, 12, 28, 12, 0, 0);
     if (!FCIsMarketHoliday(lse, easterMonday)) {
         failures++; fprintf(stderr, "FAIL %s: Easter Monday not flagged\n", __func__);
     }
@@ -107,7 +77,7 @@ void test_holiday_calendar_lse(void) {
         failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed Dec 28) not flagged\n", __func__);
     }
 
-    NSDate *thanksgiving = holidayDateAt(@"Europe/London", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Europe/London", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(lse, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: LSE wrongly flagged Thanksgiving\n", __func__);
     }
@@ -115,7 +85,7 @@ void test_holiday_calendar_lse(void) {
         failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Easter Monday\n", __func__);
     }
 
-    NSDate *regularWed = holidayDateAt(@"Europe/London", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Europe/London", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(lse, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on LSE\n", __func__);
     }
@@ -129,13 +99,13 @@ void test_holiday_calendar_tse(void) {
     const ClockMarket *tse  = marketForId(@"tse");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *bankJan2      = holidayDateAt(@"Asia/Tokyo", 2026,  1,  2, 12, 0, 0);
-    NSDate *comingOfAge   = holidayDateAt(@"Asia/Tokyo", 2026,  1, 12, 12, 0, 0);
-    NSDate *emperorBday   = holidayDateAt(@"Asia/Tokyo", 2026,  2, 23, 12, 0, 0);
-    NSDate *showaDay      = holidayDateAt(@"Asia/Tokyo", 2026,  4, 29, 12, 0, 0);
-    NSDate *goldenWeekSub = holidayDateAt(@"Asia/Tokyo", 2026,  5,  6, 12, 0, 0);
-    NSDate *marineDay     = holidayDateAt(@"Asia/Tokyo", 2026,  7, 20, 12, 0, 0);
-    NSDate *yearEnd       = holidayDateAt(@"Asia/Tokyo", 2026, 12, 31, 12, 0, 0);
+    NSDate *bankJan2      = dateAt(@"Asia/Tokyo", 2026,  1,  2, 12, 0, 0);
+    NSDate *comingOfAge   = dateAt(@"Asia/Tokyo", 2026,  1, 12, 12, 0, 0);
+    NSDate *emperorBday   = dateAt(@"Asia/Tokyo", 2026,  2, 23, 12, 0, 0);
+    NSDate *showaDay      = dateAt(@"Asia/Tokyo", 2026,  4, 29, 12, 0, 0);
+    NSDate *goldenWeekSub = dateAt(@"Asia/Tokyo", 2026,  5,  6, 12, 0, 0);
+    NSDate *marineDay     = dateAt(@"Asia/Tokyo", 2026,  7, 20, 12, 0, 0);
+    NSDate *yearEnd       = dateAt(@"Asia/Tokyo", 2026, 12, 31, 12, 0, 0);
     if (!FCIsMarketHoliday(tse, bankJan2)) {
         failures++; fprintf(stderr, "FAIL %s: TSE Jan 2 bank holiday not flagged\n", __func__);
     }
@@ -167,8 +137,8 @@ void test_holiday_calendar_tse(void) {
     }
 
     // TSE does NOT flag NYSE-only holidays.
-    NSDate *thanksgiving = holidayDateAt(@"Asia/Tokyo", 2026, 11, 26, 12, 0, 0);
-    NSDate *juneteenth   = holidayDateAt(@"Asia/Tokyo", 2026,  6, 19, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Asia/Tokyo", 2026, 11, 26, 12, 0, 0);
+    NSDate *juneteenth   = dateAt(@"Asia/Tokyo", 2026,  6, 19, 12, 0, 0);
     if (FCIsMarketHoliday(tse, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: TSE wrongly flagged Thanksgiving\n", __func__);
     }
@@ -176,7 +146,7 @@ void test_holiday_calendar_tse(void) {
         failures++; fprintf(stderr, "FAIL %s: TSE wrongly flagged Juneteenth\n", __func__);
     }
 
-    NSDate *regularWed = holidayDateAt(@"Asia/Tokyo", 2026, 6, 10, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Asia/Tokyo", 2026, 6, 10, 12, 0, 0);
     if (FCIsMarketHoliday(tse, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-06-10 wrongly flagged on TSE\n", __func__);
     }
@@ -192,18 +162,18 @@ void test_holiday_calendar_hkex(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
 
     // Lunar New Year 3-day cluster — Feb 17/18/19 Tue/Wed/Thu 2026.
-    NSDate *lny1 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 17, 12, 0, 0);
-    NSDate *lny2 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 18, 12, 0, 0);
-    NSDate *lny3 = holidayDateAt(@"Asia/Hong_Kong", 2026,  2, 19, 12, 0, 0);
+    NSDate *lny1 = dateAt(@"Asia/Hong_Kong", 2026,  2, 17, 12, 0, 0);
+    NSDate *lny2 = dateAt(@"Asia/Hong_Kong", 2026,  2, 18, 12, 0, 0);
+    NSDate *lny3 = dateAt(@"Asia/Hong_Kong", 2026,  2, 19, 12, 0, 0);
     if (!FCIsMarketHoliday(hkex, lny1)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 1 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, lny2)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 2 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, lny3)) { failures++; fprintf(stderr, "FAIL %s: LNY Day 3 not flagged\n", __func__); }
 
     // Lunar-calendar non-LNY holidays.
-    NSDate *buddha      = holidayDateAt(@"Asia/Hong_Kong", 2026,  5, 25, 12, 0, 0);
-    NSDate *dragonBoat  = holidayDateAt(@"Asia/Hong_Kong", 2026,  6, 19, 12, 0, 0);
-    NSDate *midAutumn   = holidayDateAt(@"Asia/Hong_Kong", 2026,  9, 25, 12, 0, 0);
-    NSDate *chungYeung  = holidayDateAt(@"Asia/Hong_Kong", 2026, 10, 19, 12, 0, 0);
+    NSDate *buddha      = dateAt(@"Asia/Hong_Kong", 2026,  5, 25, 12, 0, 0);
+    NSDate *dragonBoat  = dateAt(@"Asia/Hong_Kong", 2026,  6, 19, 12, 0, 0);
+    NSDate *midAutumn   = dateAt(@"Asia/Hong_Kong", 2026,  9, 25, 12, 0, 0);
+    NSDate *chungYeung  = dateAt(@"Asia/Hong_Kong", 2026, 10, 19, 12, 0, 0);
     if (!FCIsMarketHoliday(hkex, buddha))     { failures++; fprintf(stderr, "FAIL %s: Buddha's Birthday not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, dragonBoat)) { failures++; fprintf(stderr, "FAIL %s: Dragon Boat not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: Mid-Autumn not flagged\n", __func__); }
@@ -211,9 +181,9 @@ void test_holiday_calendar_hkex(void) {
 
     // Civic holidays (National Day + SAR Establishment) and the
     // Easter Mon + Ching Ming coincidence.
-    NSDate *sarDay      = holidayDateAt(@"Asia/Hong_Kong", 2026,  7,  1, 12, 0, 0);
-    NSDate *nationalDay = holidayDateAt(@"Asia/Hong_Kong", 2026, 10,  1, 12, 0, 0);
-    NSDate *easterMon   = holidayDateAt(@"Asia/Hong_Kong", 2026,  4,  6, 12, 0, 0);
+    NSDate *sarDay      = dateAt(@"Asia/Hong_Kong", 2026,  7,  1, 12, 0, 0);
+    NSDate *nationalDay = dateAt(@"Asia/Hong_Kong", 2026, 10,  1, 12, 0, 0);
+    NSDate *easterMon   = dateAt(@"Asia/Hong_Kong", 2026,  4,  6, 12, 0, 0);
     if (!FCIsMarketHoliday(hkex, sarDay))      { failures++; fprintf(stderr, "FAIL %s: HKSAR Establishment Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, nationalDay)) { failures++; fprintf(stderr, "FAIL %s: National Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(hkex, easterMon))   { failures++; fprintf(stderr, "FAIL %s: Easter Mon/Ching Ming not flagged\n", __func__); }
@@ -234,7 +204,7 @@ void test_holiday_calendar_hkex(void) {
     // which is still a NY holiday — but HKEX's own registry has no
     // Thanksgiving, so it returns NO as expected (cross-market routing
     // rather than TZ logic).
-    NSDate *thanksgiving = holidayDateAt(@"Asia/Hong_Kong", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Asia/Hong_Kong", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(hkex, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: HKEX wrongly flagged Thanksgiving\n", __func__);
     }
@@ -243,7 +213,7 @@ void test_holiday_calendar_hkex(void) {
     // Both markets correctly flag it; no negative test applicable.
 
     // Regular HKEX trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Asia/Hong_Kong", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Asia/Hong_Kong", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(hkex, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on HKEX\n", __func__);
     }
@@ -261,11 +231,11 @@ void test_holiday_calendar_target2(void) {
     const ClockMarket *xetra    = marketForId(@"xetra");
     const ClockMarket *euronext = marketForId(@"euronext");
 
-    NSDate *newYears     = holidayDateAt(@"Europe/Berlin", 2026,  1,  1, 12, 0, 0);
-    NSDate *goodFriday   = holidayDateAt(@"Europe/Berlin", 2026,  4,  3, 12, 0, 0);
-    NSDate *easterMonday = holidayDateAt(@"Europe/Berlin", 2026,  4,  6, 12, 0, 0);
-    NSDate *labourDay    = holidayDateAt(@"Europe/Berlin", 2026,  5,  1, 12, 0, 0);
-    NSDate *christmas    = holidayDateAt(@"Europe/Berlin", 2026, 12, 25, 12, 0, 0);
+    NSDate *newYears     = dateAt(@"Europe/Berlin", 2026,  1,  1, 12, 0, 0);
+    NSDate *goodFriday   = dateAt(@"Europe/Berlin", 2026,  4,  3, 12, 0, 0);
+    NSDate *easterMonday = dateAt(@"Europe/Berlin", 2026,  4,  6, 12, 0, 0);
+    NSDate *labourDay    = dateAt(@"Europe/Berlin", 2026,  5,  1, 12, 0, 0);
+    NSDate *christmas    = dateAt(@"Europe/Berlin", 2026, 12, 25, 12, 0, 0);
 
     // All 5 TARGET2 dates must be flagged for both markets.
     if (!FCIsMarketHoliday(xetra,    newYears))     { failures++; fprintf(stderr, "FAIL %s: XETRA Jan 1 not flagged\n", __func__); }
@@ -282,23 +252,23 @@ void test_holiday_calendar_target2(void) {
     // Dec 26 Sat 2026 — Boxing Day (weekend, not in TARGET2 array).
     // FCIsMarketHoliday should return NO for both (data array doesn't
     // have it; isWeekend branch in computeSessionState handles it).
-    NSDate *dec26Sat = holidayDateAt(@"Europe/Berlin", 2026, 12, 26, 12, 0, 0);
+    NSDate *dec26Sat = dateAt(@"Europe/Berlin", 2026, 12, 26, 12, 0, 0);
     if (FCIsMarketHoliday(xetra, dec26Sat)) {
         failures++; fprintf(stderr, "FAIL %s: Dec 26 wrongly in XETRA array (handled by weekend)\n", __func__);
     }
 
     // Cross-market negatives: TARGET2 markets must NOT flag holidays
     // from other calendars (NYSE Thanksgiving, TSE Shogatsu, HKEX LNY).
-    NSDate *thanksgiving = holidayDateAt(@"Europe/Berlin", 2026, 11, 26, 12, 0, 0);
-    NSDate *tseShogatsu  = holidayDateAt(@"Europe/Berlin", 2026,  1,  2, 12, 0, 0);
-    NSDate *hkexLNY      = holidayDateAt(@"Europe/Berlin", 2026,  2, 17, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Europe/Berlin", 2026, 11, 26, 12, 0, 0);
+    NSDate *tseShogatsu  = dateAt(@"Europe/Berlin", 2026,  1,  2, 12, 0, 0);
+    NSDate *hkexLNY      = dateAt(@"Europe/Berlin", 2026,  2, 17, 12, 0, 0);
     if (FCIsMarketHoliday(xetra,    thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged Thanksgiving\n", __func__); }
     if (FCIsMarketHoliday(euronext, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: Euronext wrongly flagged Thanksgiving\n", __func__); }
     if (FCIsMarketHoliday(xetra,    tseShogatsu))  { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged TSE Shogatsu\n", __func__); }
     if (FCIsMarketHoliday(xetra,    hkexLNY))      { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged HKEX LNY\n", __func__); }
 
     // Regular trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Europe/Berlin", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Europe/Berlin", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(xetra,    regularWed)) { failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on XETRA\n", __func__); }
     if (FCIsMarketHoliday(euronext, regularWed)) { failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on Euronext\n", __func__); }
 }
@@ -312,10 +282,10 @@ void test_holiday_calendar_asx(void) {
     const ClockMarket *asx  = marketForId(@"asx");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *australiaDay  = holidayDateAt(@"Australia/Sydney", 2026,  1, 26, 12, 0, 0);
-    NSDate *easterTuesday = holidayDateAt(@"Australia/Sydney", 2026,  4,  7, 12, 0, 0);
-    NSDate *kingsBday     = holidayDateAt(@"Australia/Sydney", 2026,  6,  8, 12, 0, 0);
-    NSDate *boxingObs     = holidayDateAt(@"Australia/Sydney", 2026, 12, 28, 12, 0, 0);
+    NSDate *australiaDay  = dateAt(@"Australia/Sydney", 2026,  1, 26, 12, 0, 0);
+    NSDate *easterTuesday = dateAt(@"Australia/Sydney", 2026,  4,  7, 12, 0, 0);
+    NSDate *kingsBday     = dateAt(@"Australia/Sydney", 2026,  6,  8, 12, 0, 0);
+    NSDate *boxingObs     = dateAt(@"Australia/Sydney", 2026, 12, 28, 12, 0, 0);
     if (!FCIsMarketHoliday(asx, australiaDay))   { failures++; fprintf(stderr, "FAIL %s: Australia Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(asx, easterTuesday))  { failures++; fprintf(stderr, "FAIL %s: Easter Tuesday not flagged\n", __func__); }
     if (!FCIsMarketHoliday(asx, kingsBday))      { failures++; fprintf(stderr, "FAIL %s: King's Birthday not flagged\n", __func__); }
@@ -327,21 +297,21 @@ void test_holiday_calendar_asx(void) {
     if (FCIsMarketHoliday(nyse, kingsBday))      { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged King's Birthday\n", __func__); }
 
     // ASX does NOT flag NYSE-only holidays (Thanksgiving, Juneteenth).
-    NSDate *thanksgiving = holidayDateAt(@"Australia/Sydney", 2026, 11, 26, 12, 0, 0);
-    NSDate *juneteenth   = holidayDateAt(@"Australia/Sydney", 2026,  6, 19, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Australia/Sydney", 2026, 11, 26, 12, 0, 0);
+    NSDate *juneteenth   = dateAt(@"Australia/Sydney", 2026,  6, 19, 12, 0, 0);
     if (FCIsMarketHoliday(asx, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Thanksgiving\n", __func__); }
     if (FCIsMarketHoliday(asx, juneteenth))   { failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Juneteenth\n", __func__); }
 
     // ANZAC Day Apr 25 2026 is Saturday — ASX does NOT observe a Mon
     // substitute; weekend branch handles the closure. So Apr 27 Mon
     // must NOT be flagged (regular trading).
-    NSDate *anzacMondayAfter = holidayDateAt(@"Australia/Sydney", 2026, 4, 27, 12, 0, 0);
+    NSDate *anzacMondayAfter = dateAt(@"Australia/Sydney", 2026, 4, 27, 12, 0, 0);
     if (FCIsMarketHoliday(asx, anzacMondayAfter)) {
         failures++; fprintf(stderr, "FAIL %s: ASX wrongly flagged Apr 27 Mon (no ANZAC substitute)\n", __func__);
     }
 
     // Regular ASX trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Australia/Sydney", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Australia/Sydney", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(asx, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on ASX\n", __func__);
     }
@@ -356,12 +326,12 @@ void test_holiday_calendar_tsx(void) {
     const ClockMarket *tsx  = marketForId(@"tsx");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *familyDay       = holidayDateAt(@"America/Toronto", 2026,  2, 16, 12, 0, 0);
-    NSDate *victoriaDay     = holidayDateAt(@"America/Toronto", 2026,  5, 18, 12, 0, 0);
-    NSDate *canadaDay       = holidayDateAt(@"America/Toronto", 2026,  7,  1, 12, 0, 0);
-    NSDate *civicHoliday    = holidayDateAt(@"America/Toronto", 2026,  8,  3, 12, 0, 0);
-    NSDate *canadaThanks    = holidayDateAt(@"America/Toronto", 2026, 10, 12, 12, 0, 0);
-    NSDate *boxingObs       = holidayDateAt(@"America/Toronto", 2026, 12, 28, 12, 0, 0);
+    NSDate *familyDay       = dateAt(@"America/Toronto", 2026,  2, 16, 12, 0, 0);
+    NSDate *victoriaDay     = dateAt(@"America/Toronto", 2026,  5, 18, 12, 0, 0);
+    NSDate *canadaDay       = dateAt(@"America/Toronto", 2026,  7,  1, 12, 0, 0);
+    NSDate *civicHoliday    = dateAt(@"America/Toronto", 2026,  8,  3, 12, 0, 0);
+    NSDate *canadaThanks    = dateAt(@"America/Toronto", 2026, 10, 12, 12, 0, 0);
+    NSDate *boxingObs       = dateAt(@"America/Toronto", 2026, 12, 28, 12, 0, 0);
     if (!FCIsMarketHoliday(tsx, familyDay))    { failures++; fprintf(stderr, "FAIL %s: Family Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(tsx, victoriaDay))  { failures++; fprintf(stderr, "FAIL %s: Victoria Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(tsx, canadaDay))    { failures++; fprintf(stderr, "FAIL %s: Canada Day not flagged\n", __func__); }
@@ -370,7 +340,7 @@ void test_holiday_calendar_tsx(void) {
     if (!FCIsMarketHoliday(tsx, boxingObs))    { failures++; fprintf(stderr, "FAIL %s: Boxing Day (observed) not flagged\n", __func__); }
 
     // TSX does NOT close Easter Monday (trades).
-    NSDate *easterMonday = holidayDateAt(@"America/Toronto", 2026, 4, 6, 12, 0, 0);
+    NSDate *easterMonday = dateAt(@"America/Toronto", 2026, 4, 6, 12, 0, 0);
     if (FCIsMarketHoliday(tsx, easterMonday)) {
         failures++; fprintf(stderr, "FAIL %s: TSX wrongly flagged Easter Monday (TSX trades Easter Mon)\n", __func__);
     }
@@ -385,13 +355,13 @@ void test_holiday_calendar_tsx(void) {
     if (FCIsMarketHoliday(nyse, civicHoliday)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Civic Holiday\n", __func__); }
 
     // TSX does NOT flag NYSE Thanksgiving (Nov 26).
-    NSDate *usThanks = holidayDateAt(@"America/Toronto", 2026, 11, 26, 12, 0, 0);
+    NSDate *usThanks = dateAt(@"America/Toronto", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(tsx, usThanks)) {
         failures++; fprintf(stderr, "FAIL %s: TSX wrongly flagged US Thanksgiving (TSX trades Nov 26)\n", __func__);
     }
 
     // Regular TSX trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"America/Toronto", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"America/Toronto", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(tsx, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on TSX\n", __func__);
     }
@@ -406,11 +376,11 @@ void test_holiday_calendar_six(void) {
     const ClockMarket *six    = marketForId(@"six");
     const ClockMarket *xetra  = marketForId(@"xetra");
 
-    NSDate *berchtold    = holidayDateAt(@"Europe/Zurich", 2026,  1,  2, 12, 0, 0);
-    NSDate *ascension    = holidayDateAt(@"Europe/Zurich", 2026,  5, 14, 12, 0, 0);
-    NSDate *whitMonday   = holidayDateAt(@"Europe/Zurich", 2026,  5, 25, 12, 0, 0);
-    NSDate *xmasEve      = holidayDateAt(@"Europe/Zurich", 2026, 12, 24, 12, 0, 0);
-    NSDate *nyEve        = holidayDateAt(@"Europe/Zurich", 2026, 12, 31, 12, 0, 0);
+    NSDate *berchtold    = dateAt(@"Europe/Zurich", 2026,  1,  2, 12, 0, 0);
+    NSDate *ascension    = dateAt(@"Europe/Zurich", 2026,  5, 14, 12, 0, 0);
+    NSDate *whitMonday   = dateAt(@"Europe/Zurich", 2026,  5, 25, 12, 0, 0);
+    NSDate *xmasEve      = dateAt(@"Europe/Zurich", 2026, 12, 24, 12, 0, 0);
+    NSDate *nyEve        = dateAt(@"Europe/Zurich", 2026, 12, 31, 12, 0, 0);
     if (!FCIsMarketHoliday(six, berchtold))  { failures++; fprintf(stderr, "FAIL %s: Berchtold's Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(six, ascension))  { failures++; fprintf(stderr, "FAIL %s: Ascension Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(six, whitMonday)) { failures++; fprintf(stderr, "FAIL %s: Whit Monday not flagged\n", __func__); }
@@ -426,20 +396,20 @@ void test_holiday_calendar_six(void) {
     if (FCIsMarketHoliday(xetra, nyEve))      { failures++; fprintf(stderr, "FAIL %s: XETRA wrongly flagged NYE (XETRA trades — half day)\n", __func__); }
 
     // SIX must NOT flag NYSE-only holidays.
-    NSDate *thanksgiving = holidayDateAt(@"Europe/Zurich", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Europe/Zurich", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(six, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: SIX wrongly flagged Thanksgiving\n", __func__);
     }
 
     // Swiss National Day Aug 1 2026 is Saturday — SIX has no substitute,
     // so Mon Aug 3 must NOT be flagged (weekend handles Aug 1 itself).
-    NSDate *nationalDayAfterMonday = holidayDateAt(@"Europe/Zurich", 2026, 8, 3, 12, 0, 0);
+    NSDate *nationalDayAfterMonday = dateAt(@"Europe/Zurich", 2026, 8, 3, 12, 0, 0);
     if (FCIsMarketHoliday(six, nationalDayAfterMonday)) {
         failures++; fprintf(stderr, "FAIL %s: SIX wrongly flagged Aug 3 (no National Day substitute)\n", __func__);
     }
 
     // Regular SIX trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Europe/Zurich", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Europe/Zurich", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(six, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on SIX\n", __func__);
     }
@@ -456,22 +426,22 @@ void test_holiday_calendar_sse(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
 
     // Spring Festival Golden Week — verify all 5 weekday closures.
-    NSDate *sfDay1 = holidayDateAt(@"Asia/Shanghai", 2026, 2, 17, 12, 0, 0);
-    NSDate *sfDay5 = holidayDateAt(@"Asia/Shanghai", 2026, 2, 23, 12, 0, 0);
+    NSDate *sfDay1 = dateAt(@"Asia/Shanghai", 2026, 2, 17, 12, 0, 0);
+    NSDate *sfDay5 = dateAt(@"Asia/Shanghai", 2026, 2, 23, 12, 0, 0);
     if (!FCIsMarketHoliday(sse, sfDay1)) { failures++; fprintf(stderr, "FAIL %s: Spring Festival Day 1 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(sse, sfDay5)) { failures++; fprintf(stderr, "FAIL %s: Spring Festival Day 5 (Feb 23 Mon) not flagged\n", __func__); }
 
     // National Day Golden Week.
-    NSDate *ndDay1 = holidayDateAt(@"Asia/Shanghai", 2026, 10, 1, 12, 0, 0);
-    NSDate *ndDay5 = holidayDateAt(@"Asia/Shanghai", 2026, 10, 7, 12, 0, 0);
+    NSDate *ndDay1 = dateAt(@"Asia/Shanghai", 2026, 10, 1, 12, 0, 0);
+    NSDate *ndDay5 = dateAt(@"Asia/Shanghai", 2026, 10, 7, 12, 0, 0);
     if (!FCIsMarketHoliday(sse, ndDay1)) { failures++; fprintf(stderr, "FAIL %s: National Day Day 1 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(sse, ndDay5)) { failures++; fprintf(stderr, "FAIL %s: National Day Day 5 (Oct 7 Wed) not flagged\n", __func__); }
 
     // Qingming + Mid-Autumn + Dragon Boat + Labour Day.
-    NSDate *qingming   = holidayDateAt(@"Asia/Shanghai", 2026,  4,  6, 12, 0, 0);
-    NSDate *labour     = holidayDateAt(@"Asia/Shanghai", 2026,  5,  1, 12, 0, 0);
-    NSDate *dragonBoat = holidayDateAt(@"Asia/Shanghai", 2026,  6, 19, 12, 0, 0);
-    NSDate *midAutumn  = holidayDateAt(@"Asia/Shanghai", 2026,  9, 25, 12, 0, 0);
+    NSDate *qingming   = dateAt(@"Asia/Shanghai", 2026,  4,  6, 12, 0, 0);
+    NSDate *labour     = dateAt(@"Asia/Shanghai", 2026,  5,  1, 12, 0, 0);
+    NSDate *dragonBoat = dateAt(@"Asia/Shanghai", 2026,  6, 19, 12, 0, 0);
+    NSDate *midAutumn  = dateAt(@"Asia/Shanghai", 2026,  9, 25, 12, 0, 0);
     if (!FCIsMarketHoliday(sse, qingming))   { failures++; fprintf(stderr, "FAIL %s: Qingming not flagged\n", __func__); }
     if (!FCIsMarketHoliday(sse, labour))     { failures++; fprintf(stderr, "FAIL %s: Labour Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(sse, dragonBoat)) { failures++; fprintf(stderr, "FAIL %s: Dragon Boat not flagged\n", __func__); }
@@ -482,7 +452,7 @@ void test_holiday_calendar_sse(void) {
     if (!FCIsMarketHoliday(hkex, midAutumn))  { failures++; fprintf(stderr, "FAIL %s: HKEX should also flag Mid-Autumn\n", __func__); }
 
     // Cross-market: SSE must NOT flag NYSE-only holidays.
-    NSDate *thanksgiving = holidayDateAt(@"Asia/Shanghai", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Asia/Shanghai", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(sse, thanksgiving)) { failures++; fprintf(stderr, "FAIL %s: SSE wrongly flagged Thanksgiving\n", __func__); }
 
     // NYSE must NOT flag SSE-only National Day Oct 5 (doesn't coincide
@@ -491,7 +461,7 @@ void test_holiday_calendar_sse(void) {
     if (FCIsMarketHoliday(nyse, ndDay5)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged SSE Oct 7\n", __func__); }
 
     // Regular SSE trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Asia/Shanghai", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Asia/Shanghai", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(sse, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on SSE\n", __func__);
     }
@@ -507,28 +477,28 @@ void test_holiday_calendar_krx(void) {
     const ClockMarket *sse  = marketForId(@"sse");
 
     // Seollal cluster.
-    NSDate *seollalEve  = holidayDateAt(@"Asia/Seoul", 2026, 2, 16, 12, 0, 0);
-    NSDate *seollalDay1 = holidayDateAt(@"Asia/Seoul", 2026, 2, 17, 12, 0, 0);
-    NSDate *seollalDay2 = holidayDateAt(@"Asia/Seoul", 2026, 2, 18, 12, 0, 0);
+    NSDate *seollalEve  = dateAt(@"Asia/Seoul", 2026, 2, 16, 12, 0, 0);
+    NSDate *seollalDay1 = dateAt(@"Asia/Seoul", 2026, 2, 17, 12, 0, 0);
+    NSDate *seollalDay2 = dateAt(@"Asia/Seoul", 2026, 2, 18, 12, 0, 0);
     if (!FCIsMarketHoliday(krx, seollalEve))  { failures++; fprintf(stderr, "FAIL %s: Seollal Eve not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, seollalDay1)) { failures++; fprintf(stderr, "FAIL %s: Seollal Day 1 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, seollalDay2)) { failures++; fprintf(stderr, "FAIL %s: Seollal Day 2 not flagged\n", __func__); }
 
     // Chuseok cluster (Sep 24-28).
-    NSDate *chuseok1 = holidayDateAt(@"Asia/Seoul", 2026, 9, 24, 12, 0, 0);
-    NSDate *chuseok2 = holidayDateAt(@"Asia/Seoul", 2026, 9, 25, 12, 0, 0);
-    NSDate *chuseokSub = holidayDateAt(@"Asia/Seoul", 2026, 9, 28, 12, 0, 0);
+    NSDate *chuseok1 = dateAt(@"Asia/Seoul", 2026, 9, 24, 12, 0, 0);
+    NSDate *chuseok2 = dateAt(@"Asia/Seoul", 2026, 9, 25, 12, 0, 0);
+    NSDate *chuseokSub = dateAt(@"Asia/Seoul", 2026, 9, 28, 12, 0, 0);
     if (!FCIsMarketHoliday(krx, chuseok1))    { failures++; fprintf(stderr, "FAIL %s: Chuseok Day 1 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, chuseok2))    { failures++; fprintf(stderr, "FAIL %s: Chuseok Day 2 not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, chuseokSub))  { failures++; fprintf(stderr, "FAIL %s: Chuseok Sep 28 substitute not flagged\n", __func__); }
 
     // Korean-distinctive single-day holidays.
-    NSDate *marMonSub = holidayDateAt(@"Asia/Seoul", 2026,  3,  2, 12, 0, 0);
-    NSDate *childrens = holidayDateAt(@"Asia/Seoul", 2026,  5,  5, 12, 0, 0);
-    NSDate *libSub    = holidayDateAt(@"Asia/Seoul", 2026,  8, 17, 12, 0, 0);
-    NSDate *foundSub  = holidayDateAt(@"Asia/Seoul", 2026, 10,  5, 12, 0, 0);
-    NSDate *hangeul   = holidayDateAt(@"Asia/Seoul", 2026, 10,  9, 12, 0, 0);
-    NSDate *yearEnd   = holidayDateAt(@"Asia/Seoul", 2026, 12, 31, 12, 0, 0);
+    NSDate *marMonSub = dateAt(@"Asia/Seoul", 2026,  3,  2, 12, 0, 0);
+    NSDate *childrens = dateAt(@"Asia/Seoul", 2026,  5,  5, 12, 0, 0);
+    NSDate *libSub    = dateAt(@"Asia/Seoul", 2026,  8, 17, 12, 0, 0);
+    NSDate *foundSub  = dateAt(@"Asia/Seoul", 2026, 10,  5, 12, 0, 0);
+    NSDate *hangeul   = dateAt(@"Asia/Seoul", 2026, 10,  9, 12, 0, 0);
+    NSDate *yearEnd   = dateAt(@"Asia/Seoul", 2026, 12, 31, 12, 0, 0);
     if (!FCIsMarketHoliday(krx, marMonSub)) { failures++; fprintf(stderr, "FAIL %s: Independence Movement Day substitute not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, childrens)) { failures++; fprintf(stderr, "FAIL %s: Children's Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(krx, libSub))    { failures++; fprintf(stderr, "FAIL %s: Liberation Day substitute not flagged\n", __func__); }
@@ -542,13 +512,13 @@ void test_holiday_calendar_krx(void) {
     if (!FCIsMarketHoliday(sse,  chuseok2)) { failures++; fprintf(stderr, "FAIL %s: SSE must flag Sep 25 (Mid-Autumn)\n", __func__); }
 
     // Cross-market negative: KRX must NOT flag NYSE Thanksgiving.
-    NSDate *thanksgiving = holidayDateAt(@"Asia/Seoul", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Asia/Seoul", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(krx, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: KRX wrongly flagged Thanksgiving\n", __func__);
     }
 
     // Regular KRX trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Asia/Seoul", 2026, 3, 11, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Asia/Seoul", 2026, 3, 11, 12, 0, 0);
     if (FCIsMarketHoliday(krx, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-03-11 wrongly flagged on KRX\n", __func__);
     }
@@ -567,11 +537,11 @@ void test_holiday_calendar_nse(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
 
     // Gregorian-fixed Indian civic dates (highest confidence).
-    NSDate *republicDay  = holidayDateAt(@"Asia/Kolkata", 2026,  1, 26, 12, 0, 0);
-    NSDate *maharashtra  = holidayDateAt(@"Asia/Kolkata", 2026,  5,  1, 12, 0, 0);
-    NSDate *gandhi       = holidayDateAt(@"Asia/Kolkata", 2026, 10,  2, 12, 0, 0);
-    NSDate *goodFriday   = holidayDateAt(@"Asia/Kolkata", 2026,  4,  3, 12, 0, 0);
-    NSDate *christmas    = holidayDateAt(@"Asia/Kolkata", 2026, 12, 25, 12, 0, 0);
+    NSDate *republicDay  = dateAt(@"Asia/Kolkata", 2026,  1, 26, 12, 0, 0);
+    NSDate *maharashtra  = dateAt(@"Asia/Kolkata", 2026,  5,  1, 12, 0, 0);
+    NSDate *gandhi       = dateAt(@"Asia/Kolkata", 2026, 10,  2, 12, 0, 0);
+    NSDate *goodFriday   = dateAt(@"Asia/Kolkata", 2026,  4,  3, 12, 0, 0);
+    NSDate *christmas    = dateAt(@"Asia/Kolkata", 2026, 12, 25, 12, 0, 0);
     if (!FCIsMarketHoliday(nse, republicDay)) { failures++; fprintf(stderr, "FAIL %s: Republic Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(nse, maharashtra)) { failures++; fprintf(stderr, "FAIL %s: Maharashtra Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(nse, gandhi))      { failures++; fprintf(stderr, "FAIL %s: Gandhi Jayanti not flagged\n", __func__); }
@@ -579,11 +549,11 @@ void test_holiday_calendar_nse(void) {
     if (!FCIsMarketHoliday(nse, christmas))   { failures++; fprintf(stderr, "FAIL %s: Christmas not flagged\n", __func__); }
 
     // Lunar/religious-calc dates (fixture-locked, best-effort).
-    NSDate *diwaliLaxmi  = holidayDateAt(@"Asia/Kolkata", 2026, 11,  9, 12, 0, 0);
-    NSDate *govardhan    = holidayDateAt(@"Asia/Kolkata", 2026, 11, 10, 12, 0, 0);
-    NSDate *ganesh       = holidayDateAt(@"Asia/Kolkata", 2026,  8, 26, 12, 0, 0);
-    NSDate *dussehra     = holidayDateAt(@"Asia/Kolkata", 2026, 10, 20, 12, 0, 0);
-    NSDate *holi         = holidayDateAt(@"Asia/Kolkata", 2026,  3,  3, 12, 0, 0);
+    NSDate *diwaliLaxmi  = dateAt(@"Asia/Kolkata", 2026, 11,  9, 12, 0, 0);
+    NSDate *govardhan    = dateAt(@"Asia/Kolkata", 2026, 11, 10, 12, 0, 0);
+    NSDate *ganesh       = dateAt(@"Asia/Kolkata", 2026,  8, 26, 12, 0, 0);
+    NSDate *dussehra     = dateAt(@"Asia/Kolkata", 2026, 10, 20, 12, 0, 0);
+    NSDate *holi         = dateAt(@"Asia/Kolkata", 2026,  3,  3, 12, 0, 0);
     if (!FCIsMarketHoliday(nse, diwaliLaxmi)) { failures++; fprintf(stderr, "FAIL %s: Diwali Laxmi Pujan not flagged\n", __func__); }
     if (!FCIsMarketHoliday(nse, govardhan))   { failures++; fprintf(stderr, "FAIL %s: Govardhan Puja not flagged\n", __func__); }
     if (!FCIsMarketHoliday(nse, ganesh))      { failures++; fprintf(stderr, "FAIL %s: Ganesh Chaturthi not flagged\n", __func__); }
@@ -593,7 +563,7 @@ void test_holiday_calendar_nse(void) {
     // NSE does NOT substitute Independence Day (Aug 15 2026 = Saturday)
     // — Mon Aug 17 must NOT be flagged (not an NSE holiday; weekend
     // branch handles Aug 15 itself).
-    NSDate *aug17Mon = holidayDateAt(@"Asia/Kolkata", 2026, 8, 17, 12, 0, 0);
+    NSDate *aug17Mon = dateAt(@"Asia/Kolkata", 2026, 8, 17, 12, 0, 0);
     if (FCIsMarketHoliday(nse, aug17Mon)) {
         failures++; fprintf(stderr, "FAIL %s: NSE wrongly flagged Aug 17 (Indep Day Aug 15 Sat, no substitute)\n", __func__);
     }
@@ -604,13 +574,13 @@ void test_holiday_calendar_nse(void) {
     if (FCIsMarketHoliday(nyse, diwaliLaxmi)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Diwali\n", __func__); }
 
     // NSE must NOT flag NYSE Thanksgiving.
-    NSDate *thanksgiving = holidayDateAt(@"Asia/Kolkata", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"Asia/Kolkata", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHoliday(nse, thanksgiving)) {
         failures++; fprintf(stderr, "FAIL %s: NSE wrongly flagged Thanksgiving\n", __func__);
     }
 
     // Regular NSE trading day should NOT be flagged.
-    NSDate *regularTue = holidayDateAt(@"Asia/Kolkata", 2026, 7, 14, 12, 0, 0);
+    NSDate *regularTue = dateAt(@"Asia/Kolkata", 2026, 7, 14, 12, 0, 0);
     if (FCIsMarketHoliday(nse, regularTue)) {
         failures++; fprintf(stderr, "FAIL %s: Tue 2026-07-14 wrongly flagged on NSE\n", __func__);
     }
@@ -624,12 +594,12 @@ void test_holiday_calendar_jse(void) {
     const ClockMarket *jse  = marketForId(@"jse");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *familyDay       = holidayDateAt(@"Africa/Johannesburg", 2026,  4,  6, 12, 0, 0);
-    NSDate *freedomDay      = holidayDateAt(@"Africa/Johannesburg", 2026,  4, 27, 12, 0, 0);
-    NSDate *youthDay        = holidayDateAt(@"Africa/Johannesburg", 2026,  6, 16, 12, 0, 0);
-    NSDate *womensDaySub    = holidayDateAt(@"Africa/Johannesburg", 2026,  8, 10, 12, 0, 0);
-    NSDate *heritageDay     = holidayDateAt(@"Africa/Johannesburg", 2026,  9, 24, 12, 0, 0);
-    NSDate *reconciliation  = holidayDateAt(@"Africa/Johannesburg", 2026, 12, 16, 12, 0, 0);
+    NSDate *familyDay       = dateAt(@"Africa/Johannesburg", 2026,  4,  6, 12, 0, 0);
+    NSDate *freedomDay      = dateAt(@"Africa/Johannesburg", 2026,  4, 27, 12, 0, 0);
+    NSDate *youthDay        = dateAt(@"Africa/Johannesburg", 2026,  6, 16, 12, 0, 0);
+    NSDate *womensDaySub    = dateAt(@"Africa/Johannesburg", 2026,  8, 10, 12, 0, 0);
+    NSDate *heritageDay     = dateAt(@"Africa/Johannesburg", 2026,  9, 24, 12, 0, 0);
+    NSDate *reconciliation  = dateAt(@"Africa/Johannesburg", 2026, 12, 16, 12, 0, 0);
     if (!FCIsMarketHoliday(jse, familyDay))      { failures++; fprintf(stderr, "FAIL %s: Family Day (Easter Mon) not flagged\n", __func__); }
     if (!FCIsMarketHoliday(jse, freedomDay))     { failures++; fprintf(stderr, "FAIL %s: Freedom Day not flagged\n", __func__); }
     if (!FCIsMarketHoliday(jse, youthDay))       { failures++; fprintf(stderr, "FAIL %s: Youth Day not flagged\n", __func__); }
@@ -639,7 +609,7 @@ void test_holiday_calendar_jse(void) {
 
     // Human Rights Day Mar 21 2026 Sat — no substitute. Mon Mar 23
     // must NOT be flagged.
-    NSDate *hrdMondayAfter = holidayDateAt(@"Africa/Johannesburg", 2026, 3, 23, 12, 0, 0);
+    NSDate *hrdMondayAfter = dateAt(@"Africa/Johannesburg", 2026, 3, 23, 12, 0, 0);
     if (FCIsMarketHoliday(jse, hrdMondayAfter)) {
         failures++; fprintf(stderr, "FAIL %s: JSE wrongly flagged Mar 23 (Human Rights Day Sat, no sub)\n", __func__);
     }
@@ -649,7 +619,7 @@ void test_holiday_calendar_jse(void) {
     if (FCIsMarketHoliday(nyse, youthDay))   { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Youth Day\n", __func__); }
 
     // Regular JSE trading day should NOT be flagged.
-    NSDate *regularWed = holidayDateAt(@"Africa/Johannesburg", 2026, 7, 15, 12, 0, 0);
+    NSDate *regularWed = dateAt(@"Africa/Johannesburg", 2026, 7, 15, 12, 0, 0);
     if (FCIsMarketHoliday(jse, regularWed)) {
         failures++; fprintf(stderr, "FAIL %s: Wed 2026-07-15 wrongly flagged on JSE\n", __func__);
     }
@@ -662,14 +632,14 @@ void test_holiday_calendar_b3(void) {
     const ClockMarket *b3   = marketForId(@"b3");
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *carnivalMon   = holidayDateAt(@"America/Sao_Paulo", 2026,  2, 16, 12, 0, 0);
-    NSDate *carnivalTue   = holidayDateAt(@"America/Sao_Paulo", 2026,  2, 17, 12, 0, 0);
-    NSDate *tiradentes    = holidayDateAt(@"America/Sao_Paulo", 2026,  4, 21, 12, 0, 0);
-    NSDate *corpusChristi = holidayDateAt(@"America/Sao_Paulo", 2026,  6,  4, 12, 0, 0);
-    NSDate *independence  = holidayDateAt(@"America/Sao_Paulo", 2026,  9,  7, 12, 0, 0);
-    NSDate *aparecida     = holidayDateAt(@"America/Sao_Paulo", 2026, 10, 12, 12, 0, 0);
-    NSDate *allSouls      = holidayDateAt(@"America/Sao_Paulo", 2026, 11,  2, 12, 0, 0);
-    NSDate *blackAwarens  = holidayDateAt(@"America/Sao_Paulo", 2026, 11, 20, 12, 0, 0);
+    NSDate *carnivalMon   = dateAt(@"America/Sao_Paulo", 2026,  2, 16, 12, 0, 0);
+    NSDate *carnivalTue   = dateAt(@"America/Sao_Paulo", 2026,  2, 17, 12, 0, 0);
+    NSDate *tiradentes    = dateAt(@"America/Sao_Paulo", 2026,  4, 21, 12, 0, 0);
+    NSDate *corpusChristi = dateAt(@"America/Sao_Paulo", 2026,  6,  4, 12, 0, 0);
+    NSDate *independence  = dateAt(@"America/Sao_Paulo", 2026,  9,  7, 12, 0, 0);
+    NSDate *aparecida     = dateAt(@"America/Sao_Paulo", 2026, 10, 12, 12, 0, 0);
+    NSDate *allSouls      = dateAt(@"America/Sao_Paulo", 2026, 11,  2, 12, 0, 0);
+    NSDate *blackAwarens  = dateAt(@"America/Sao_Paulo", 2026, 11, 20, 12, 0, 0);
     if (!FCIsMarketHoliday(b3, carnivalMon))   { failures++; fprintf(stderr, "FAIL %s: Carnival Monday not flagged\n", __func__); }
     if (!FCIsMarketHoliday(b3, carnivalTue))   { failures++; fprintf(stderr, "FAIL %s: Carnival Tuesday not flagged\n", __func__); }
     if (!FCIsMarketHoliday(b3, tiradentes))    { failures++; fprintf(stderr, "FAIL %s: Tiradentes not flagged\n", __func__); }
@@ -681,7 +651,7 @@ void test_holiday_calendar_b3(void) {
 
     // Proclamation Day Nov 15 2026 Sun — no substitute. Mon Nov 16
     // must NOT be flagged.
-    NSDate *nov16Mon = holidayDateAt(@"America/Sao_Paulo", 2026, 11, 16, 12, 0, 0);
+    NSDate *nov16Mon = dateAt(@"America/Sao_Paulo", 2026, 11, 16, 12, 0, 0);
     if (FCIsMarketHoliday(b3, nov16Mon)) {
         failures++; fprintf(stderr, "FAIL %s: B3 wrongly flagged Nov 16 (Proclamation Sun, no sub)\n", __func__);
     }
@@ -694,7 +664,7 @@ void test_holiday_calendar_b3(void) {
     if (FCIsMarketHoliday(nyse, corpusChristi)) { failures++; fprintf(stderr, "FAIL %s: NYSE wrongly flagged Corpus Christi\n", __func__); }
 
     // Regular B3 trading day should NOT be flagged.
-    NSDate *regularThu = holidayDateAt(@"America/Sao_Paulo", 2026, 7, 16, 12, 0, 0);
+    NSDate *regularThu = dateAt(@"America/Sao_Paulo", 2026, 7, 16, 12, 0, 0);
     if (FCIsMarketHoliday(b3, regularThu)) {
         failures++; fprintf(stderr, "FAIL %s: Thu 2026-07-16 wrongly flagged on B3\n", __func__);
     }
@@ -716,15 +686,15 @@ void test_nyse_holiday_state_closed(void) {
     // blocks PRE/AFTER promotions on holidays.
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *thanksgivingMidday    = holidayDateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
-    NSDate *thanksgivingPreOpen   = holidayDateAt(@"America/New_York", 2026, 11, 26,  9, 25, 0);
-    NSDate *thanksgivingPostClose = holidayDateAt(@"America/New_York", 2026, 11, 26, 16,  5, 0);
-    NSDate *regularFridayMidday   = holidayDateAt(@"America/New_York", 2026,  4, 24, 12,  0, 0);
+    NSDate *thanksgivingMidday    = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgivingPreOpen   = dateAt(@"America/New_York", 2026, 11, 26,  9, 25, 0);
+    NSDate *thanksgivingPostClose = dateAt(@"America/New_York", 2026, 11, 26, 16,  5, 0);
+    NSDate *regularFridayMidday   = dateAt(@"America/New_York", 2026,  4, 24, 12,  0, 0);
 
-    ASSERT_HSTATE(nyse, thanksgivingMidday,    kSessionClosed);
-    ASSERT_HSTATE(nyse, thanksgivingPreOpen,   kSessionClosed);
-    ASSERT_HSTATE(nyse, thanksgivingPostClose, kSessionClosed);
-    ASSERT_HSTATE(nyse, regularFridayMidday,   kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, thanksgivingMidday,    kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, thanksgivingPreOpen,   kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, thanksgivingPostClose, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, regularFridayMidday,   kSessionOpen);
 }
 
 void test_holiday_chains_through_weekend(void) {
@@ -742,11 +712,11 @@ void test_holiday_chains_through_weekend(void) {
     // (Before iter-177, the loop only skipped weekends so the answer
     // was off by ~3 days — first candidate was Dec 25 Friday's open.)
     const ClockMarket *lse = marketForId(@"lse");
-    NSDate *thursdayAfterClose = holidayDateAt(@"Europe/London", 2026, 12, 24, 18, 0, 0);
+    NSDate *thursdayAfterClose = dateAt(@"Europe/London", 2026, 12, 24, 18, 0, 0);
     SessionState s; double _p; long actual;
     computeSessionState(lse, thursdayAfterClose, &s, &_p, &actual);
     if (s != kSessionClosed) {
-        failures++; fprintf(stderr, "FAIL %s: state expected CLOSED got %s\n", __func__, holidayStateName(s));
+        failures++; fprintf(stderr, "FAIL %s: state expected CLOSED got %s\n", __func__, sessionStateName(s));
     }
     long expected = 396000L;
     long diff = actual > expected ? actual - expected : expected - actual;
@@ -760,7 +730,7 @@ void test_holiday_chains_through_weekend(void) {
     // Chain through holiday (Fri) + weekend (Sat+Sun). Dec 28 is a
     // regular trading day for NYSE (Boxing Day is LSE-only).
     const ClockMarket *nyse = marketForId(@"nyse");
-    NSDate *nyseChristmasEve = holidayDateAt(@"America/New_York", 2026, 12, 25, 18, 0, 0);
+    NSDate *nyseChristmasEve = dateAt(@"America/New_York", 2026, 12, 25, 18, 0, 0);
     computeSessionState(nyse, nyseChristmasEve, &s, &_p, &actual);
     // From Fri 18:00 ET to Mon 09:30 ET = 6h + 2*24h + 9.5h
     //   = 21600 + 172800 + 34200 = 228600

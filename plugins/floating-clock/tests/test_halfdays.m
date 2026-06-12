@@ -5,7 +5,7 @@
 // iters can grow this file without touching test_holidays.
 //
 // Shares the extern `failures` counter defined in test_session.m via
-// test_levers.h. Helper functions (halfdayDateAt + halfdayStateName +
+// test_levers.h. Helper functions (dateAt + sessionStateName +
 // ASSERT_HDSTATE macro) are local — same pattern as test_holidays.m's
 // local helpers.
 
@@ -15,45 +15,15 @@
 #import "../Sources/data/HolidayCalendar.h"
 #import "../Sources/data/HalfDayCalendar.h"
 #import "test_levers.h"  // extern int failures
-
-static NSDate *halfdayDateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss) {
-    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-    cal.timeZone = [NSTimeZone timeZoneWithName:iana];
-    NSDateComponents *c = [[NSDateComponents alloc] init];
-    c.year = y; c.month = m; c.day = d;
-    c.hour = h; c.minute = mm; c.second = ss;
-    return [cal dateFromComponents:c];
-}
-
-static const char *halfdayStateName(SessionState s) {
-    switch (s) {
-        case kSessionOpen:       return "OPEN";
-        case kSessionLunch:      return "LUNCH";
-        case kSessionClosed:     return "CLOSED";
-        case kSessionPreMarket:  return "PRE-MARKET";
-        case kSessionAfterHours: return "AFTER-HOURS";
-    }
-    return "?";
-}
-
-#define ASSERT_HDSTATE(mkt, date, expected)                                     \
-    do {                                                                        \
-        SessionState s; double _p; long _n;                                     \
-        computeSessionState((mkt), (date), &s, &_p, &_n);                       \
-        if (s != (expected)) {                                                  \
-            fprintf(stderr, "FAIL %s: state expected %s got %s\n",              \
-                    __func__, halfdayStateName(expected), halfdayStateName(s)); \
-            failures++;                                                         \
-        }                                                                       \
-    } while (0)
+#import "test_helpers.h" // shared dateAt / sessionStateName / ASSERT_SESSION_STATE
 
 void test_halfday_calendar_nyse(void) {
     // v4 iter-188: NYSE 2026 half-day MVP (data-only). Both close 13:00 ET.
     const ClockMarket *nyse = marketForId(@"nyse");
     const ClockMarket *tse  = marketForId(@"tse");
 
-    NSDate *blackFriday = halfdayDateAt(@"America/New_York", 2026, 11, 27, 12, 0, 0);
-    NSDate *xmasEve     = halfdayDateAt(@"America/New_York", 2026, 12, 24, 12, 0, 0);
+    NSDate *blackFriday = dateAt(@"America/New_York", 2026, 11, 27, 12, 0, 0);
+    NSDate *xmasEve     = dateAt(@"America/New_York", 2026, 12, 24, 12, 0, 0);
 
     int h = -1, m = -1;
     if (!FCIsMarketHalfDay(nyse, blackFriday, &h, &m) || h != 13 || m != 0) {
@@ -66,12 +36,12 @@ void test_halfday_calendar_nyse(void) {
     if (!FCIsMarketHalfDay(nyse, blackFriday, NULL, NULL)) {
         failures++; fprintf(stderr, "FAIL %s: nil-out-param probe returned NO\n", __func__);
     }
-    NSDate *regularFriday = halfdayDateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
+    NSDate *regularFriday = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
     if (FCIsMarketHalfDay(nyse, regularFriday, NULL, NULL)) {
         failures++; fprintf(stderr, "FAIL %s: Regular Fri wrongly flagged\n", __func__);
     }
     // Full-holiday and half-day are disjoint sets.
-    NSDate *thanksgiving = halfdayDateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
+    NSDate *thanksgiving = dateAt(@"America/New_York", 2026, 11, 26, 12, 0, 0);
     if (FCIsMarketHalfDay(nyse, thanksgiving, NULL, NULL)) {
         failures++; fprintf(stderr, "FAIL %s: Thanksgiving wrongly flagged half-day\n", __func__);
     }
@@ -92,8 +62,8 @@ void test_halfday_calendar_lse_and_target2(void) {
     const ClockMarket *xetra    = marketForId(@"xetra");
     const ClockMarket *euronext = marketForId(@"euronext");
 
-    NSDate *lseXmasEve = halfdayDateAt(@"Europe/London", 2026, 12, 24, 12, 0, 0);
-    NSDate *lseNYE     = halfdayDateAt(@"Europe/London", 2026, 12, 31, 12, 0, 0);
+    NSDate *lseXmasEve = dateAt(@"Europe/London", 2026, 12, 24, 12, 0, 0);
+    NSDate *lseNYE     = dateAt(@"Europe/London", 2026, 12, 31, 12, 0, 0);
     int h = -1, m = -1;
     if (!FCIsMarketHalfDay(lse, lseXmasEve, &h, &m) || h != 12 || m != 30) {
         failures++; fprintf(stderr, "FAIL %s: LSE Xmas Eve expected 12:30 got %d:%02d\n", __func__, h, m);
@@ -103,8 +73,8 @@ void test_halfday_calendar_lse_and_target2(void) {
         failures++; fprintf(stderr, "FAIL %s: LSE NYE expected 12:30 got %d:%02d\n", __func__, h, m);
     }
 
-    NSDate *xetraXmasEve = halfdayDateAt(@"Europe/Berlin", 2026, 12, 24, 12, 0, 0);
-    NSDate *euronextNYE  = halfdayDateAt(@"Europe/Paris",  2026, 12, 31, 12, 0, 0);
+    NSDate *xetraXmasEve = dateAt(@"Europe/Berlin", 2026, 12, 24, 12, 0, 0);
+    NSDate *euronextNYE  = dateAt(@"Europe/Paris",  2026, 12, 31, 12, 0, 0);
     h = -1; m = -1;
     if (!FCIsMarketHalfDay(xetra, xetraXmasEve, &h, &m) || h != 14 || m != 0) {
         failures++; fprintf(stderr, "FAIL %s: XETRA Xmas Eve expected 14:00 got %d:%02d\n", __func__, h, m);
@@ -123,7 +93,7 @@ void test_halfday_calendar_lse_and_target2(void) {
         failures++; fprintf(stderr, "FAIL %s: LSE Dec 24 is half-day NOT full holiday\n", __func__);
     }
 
-    NSDate *regularFri = halfdayDateAt(@"Europe/London", 2026, 7, 10, 12, 0, 0);
+    NSDate *regularFri = dateAt(@"Europe/London", 2026, 7, 10, 12, 0, 0);
     if (FCIsMarketHalfDay(lse,      regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: LSE regular Fri flagged\n", __func__); }
     if (FCIsMarketHalfDay(xetra,    regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: XETRA regular Fri flagged\n", __func__); }
     if (FCIsMarketHalfDay(euronext, regularFri, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: Euronext regular Fri flagged\n", __func__); }
@@ -135,9 +105,9 @@ void test_halfday_calendar_hkex_and_tsx(void) {
     const ClockMarket *hkex = marketForId(@"hkex");
     const ClockMarket *tsx  = marketForId(@"tsx");
 
-    NSDate *lnyEve  = halfdayDateAt(@"Asia/Hong_Kong", 2026,  2, 16, 10,  0, 0);
-    NSDate *xmasEve = halfdayDateAt(@"Asia/Hong_Kong", 2026, 12, 24, 10,  0, 0);
-    NSDate *nye     = halfdayDateAt(@"Asia/Hong_Kong", 2026, 12, 31, 10,  0, 0);
+    NSDate *lnyEve  = dateAt(@"Asia/Hong_Kong", 2026,  2, 16, 10,  0, 0);
+    NSDate *xmasEve = dateAt(@"Asia/Hong_Kong", 2026, 12, 24, 10,  0, 0);
+    NSDate *nye     = dateAt(@"Asia/Hong_Kong", 2026, 12, 31, 10,  0, 0);
     int h = -1, m = -1;
     if (!FCIsMarketHalfDay(hkex, lnyEve,  &h, &m) || h != 12 || m != 0) { failures++; fprintf(stderr, "FAIL %s: HKEX LNY Eve expected 12:00 got %d:%02d\n", __func__, h, m); }
     h = -1; m = -1;
@@ -146,22 +116,22 @@ void test_halfday_calendar_hkex_and_tsx(void) {
     if (!FCIsMarketHalfDay(hkex, nye,     &h, &m) || h != 12 || m != 0) { failures++; fprintf(stderr, "FAIL %s: HKEX NYE expected 12:00 got %d:%02d\n", __func__, h, m); }
 
     // Integration lock — 12:30 on half-day must be CLOSED not LUNCH.
-    NSDate *xmasEveLunch = halfdayDateAt(@"Asia/Hong_Kong", 2026, 12, 24, 12, 30, 0);
+    NSDate *xmasEveLunch = dateAt(@"Asia/Hong_Kong", 2026, 12, 24, 12, 30, 0);
     SessionState s; double _p; long _n;
     computeSessionState(hkex, xmasEveLunch, &s, &_p, &_n);
     if (s != kSessionClosed) {
         failures++;
         fprintf(stderr, "FAIL %s: HKEX 12:30 Xmas Eve expected CLOSED got %s (iter-189 hasLunch=NO override broken)\n",
-                __func__, halfdayStateName(s));
+                __func__, sessionStateName(s));
     }
-    ASSERT_HDSTATE(hkex, xmasEve, kSessionOpen);
+    ASSERT_SESSION_STATE(hkex, xmasEve, kSessionOpen);
 
-    NSDate *tsxXmasEve = halfdayDateAt(@"America/Toronto", 2026, 12, 24, 10, 0, 0);
+    NSDate *tsxXmasEve = dateAt(@"America/Toronto", 2026, 12, 24, 10, 0, 0);
     h = -1; m = -1;
     if (!FCIsMarketHalfDay(tsx, tsxXmasEve, &h, &m) || h != 13 || m != 0) {
         failures++; fprintf(stderr, "FAIL %s: TSX Xmas Eve expected 13:00 got %d:%02d\n", __func__, h, m);
     }
-    NSDate *tsxNYE = halfdayDateAt(@"America/Toronto", 2026, 12, 31, 10, 0, 0);
+    NSDate *tsxNYE = dateAt(@"America/Toronto", 2026, 12, 31, 10, 0, 0);
     if (FCIsMarketHalfDay(tsx, tsxNYE, NULL, NULL)) {
         failures++; fprintf(stderr, "FAIL %s: TSX Dec 31 wrongly flagged half-day\n", __func__);
     }
@@ -171,8 +141,8 @@ void test_halfday_calendar_jse_and_asx(void) {
     // v4 iter-192: JSE + ASX Dec 24 half-days fill Africa + Oceania.
     const ClockMarket *jse = marketForId(@"jse");
     const ClockMarket *asx = marketForId(@"asx");
-    NSDate *jseXmasEve = halfdayDateAt(@"Africa/Johannesburg", 2026, 12, 24, 10, 0, 0);
-    NSDate *asxXmasEve = halfdayDateAt(@"Australia/Sydney",    2026, 12, 24, 10, 0, 0);
+    NSDate *jseXmasEve = dateAt(@"Africa/Johannesburg", 2026, 12, 24, 10, 0, 0);
+    NSDate *asxXmasEve = dateAt(@"Australia/Sydney",    2026, 12, 24, 10, 0, 0);
     int h = -1, m = -1;
     if (!FCIsMarketHalfDay(jse, jseXmasEve, &h, &m) || h != 12 || m != 0) {
         failures++; fprintf(stderr, "FAIL %s: JSE Xmas Eve expected 12:00 got %d:%02d\n", __func__, h, m);
@@ -181,8 +151,8 @@ void test_halfday_calendar_jse_and_asx(void) {
     if (!FCIsMarketHalfDay(asx, asxXmasEve, &h, &m) || h != 14 || m != 10) {
         failures++; fprintf(stderr, "FAIL %s: ASX Xmas Eve expected 14:10 got %d:%02d\n", __func__, h, m);
     }
-    NSDate *jseNYE = halfdayDateAt(@"Africa/Johannesburg", 2026, 12, 31, 10, 0, 0);
-    NSDate *asxNYE = halfdayDateAt(@"Australia/Sydney",    2026, 12, 31, 10, 0, 0);
+    NSDate *jseNYE = dateAt(@"Africa/Johannesburg", 2026, 12, 31, 10, 0, 0);
+    NSDate *asxNYE = dateAt(@"Australia/Sydney",    2026, 12, 31, 10, 0, 0);
     if (FCIsMarketHalfDay(jse, jseNYE, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: JSE Dec 31 wrongly flagged\n", __func__); }
     if (FCIsMarketHalfDay(asx, asxNYE, NULL, NULL)) { failures++; fprintf(stderr, "FAIL %s: ASX Dec 31 wrongly flagged\n", __func__); }
 }
@@ -193,16 +163,16 @@ void test_nyse_halfday_state_closed(void) {
     // this would be OPEN).
     const ClockMarket *nyse = marketForId(@"nyse");
 
-    NSDate *bfMorning     = halfdayDateAt(@"America/New_York", 2026, 11, 27, 10,  0, 0);
-    NSDate *bfAfterClose  = halfdayDateAt(@"America/New_York", 2026, 11, 27, 14,  0, 0);
-    ASSERT_HDSTATE(nyse, bfMorning,    kSessionOpen);
-    ASSERT_HDSTATE(nyse, bfAfterClose, kSessionClosed);
+    NSDate *bfMorning     = dateAt(@"America/New_York", 2026, 11, 27, 10,  0, 0);
+    NSDate *bfAfterClose  = dateAt(@"America/New_York", 2026, 11, 27, 14,  0, 0);
+    ASSERT_SESSION_STATE(nyse, bfMorning,    kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, bfAfterClose, kSessionClosed);
 
-    NSDate *xeMorning    = halfdayDateAt(@"America/New_York", 2026, 12, 24, 10,  0, 0);
-    NSDate *xeAfterClose = halfdayDateAt(@"America/New_York", 2026, 12, 24, 14,  0, 0);
-    ASSERT_HDSTATE(nyse, xeMorning,    kSessionOpen);
-    ASSERT_HDSTATE(nyse, xeAfterClose, kSessionClosed);
+    NSDate *xeMorning    = dateAt(@"America/New_York", 2026, 12, 24, 10,  0, 0);
+    NSDate *xeAfterClose = dateAt(@"America/New_York", 2026, 12, 24, 14,  0, 0);
+    ASSERT_SESSION_STATE(nyse, xeMorning,    kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, xeAfterClose, kSessionClosed);
 
-    NSDate *regularFri14 = halfdayDateAt(@"America/New_York", 2026, 4, 24, 14, 0, 0);
-    ASSERT_HDSTATE(nyse, regularFri14, kSessionOpen);
+    NSDate *regularFri14 = dateAt(@"America/New_York", 2026, 4, 24, 14, 0, 0);
+    ASSERT_SESSION_STATE(nyse, regularFri14, kSessionOpen);
 }
