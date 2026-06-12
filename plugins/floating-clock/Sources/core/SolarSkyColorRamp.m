@@ -1,4 +1,5 @@
 #import "SolarSkyColorRamp.h"
+#import "RelativeLuminance.h"   // WCAG coefficients SSoT (DRY 2026-06-12)
 #import <math.h>
 
 #pragma mark - OKLab → sRGB (Björn Ottosson's reference matrices)
@@ -111,7 +112,7 @@ static FCSolarCanvasColor fcEvalRamp(const FCRampAnchor *anchors, int count,
     out.b = fcClamp01(fcLinearToSRGB(fcClamp01(bl)));
     // WCAG-style relative luminance on the final sRGB — light canvases need
     // dark ink (the golden-hour and pale-day anchors cross this line).
-    double lum = 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
+    double lum = FCRelativeLuminance(rl, gl, bl);
     out.preferDarkText = (lum > 0.45);
     return out;
 }

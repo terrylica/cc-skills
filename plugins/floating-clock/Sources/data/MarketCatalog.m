@@ -33,52 +33,69 @@ const ClockMarket *marketForId(NSString *idStr) {
     return &kMarkets[0];
 }
 
-const char *flagForIana(const char *iana) {
-    if (!iana || !*iana) return "";
-    if (strcmp(iana, "America/New_York") == 0) return "\xF0\x9F\x87\xBA\xF0\x9F\x87\xB8";  // 🇺🇸
-    if (strcmp(iana, "America/Toronto") == 0)  return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xA6";  // 🇨🇦
-    if (strcmp(iana, "Europe/London") == 0)    return "\xF0\x9F\x87\xAC\xF0\x9F\x87\xA7";  // 🇬🇧
-    if (strcmp(iana, "Europe/Paris") == 0)     return "\xF0\x9F\x87\xAB\xF0\x9F\x87\xB7";  // 🇫🇷
-    if (strcmp(iana, "Europe/Berlin") == 0)    return "\xF0\x9F\x87\xA9\xF0\x9F\x87\xAA";  // 🇩🇪
-    if (strcmp(iana, "Europe/Zurich") == 0)    return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xAD";  // 🇨🇭
-    if (strcmp(iana, "Asia/Tokyo") == 0)       return "\xF0\x9F\x87\xAF\xF0\x9F\x87\xB5";  // 🇯🇵
-    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return "\xF0\x9F\x87\xAD\xF0\x9F\x87\xB0";  // 🇭🇰
-    if (strcmp(iana, "Asia/Shanghai") == 0)    return "\xF0\x9F\x87\xA8\xF0\x9F\x87\xB3";  // 🇨🇳
-    if (strcmp(iana, "Asia/Seoul") == 0)       return "\xF0\x9F\x87\xB0\xF0\x9F\x87\xB7";  // 🇰🇷
-    if (strcmp(iana, "Asia/Kolkata") == 0)     return "\xF0\x9F\x87\xAE\xF0\x9F\x87\xB3";  // 🇮🇳
-    if (strcmp(iana, "Australia/Sydney") == 0) return "\xF0\x9F\x87\xA6\xF0\x9F\x87\xBA";  // 🇦🇺
-    if (strcmp(iana, "Africa/Johannesburg") == 0) return "\xF0\x9F\x87\xBF\xF0\x9F\x87\xA6";  // 🇿🇦 (iter-155)
-    if (strcmp(iana, "America/Sao_Paulo") == 0)   return "\xF0\x9F\x87\xA7\xF0\x9F\x87\xB7";  // 🇧🇷 (iter-161)
-    return "";
+// ── IANA zone metadata table (DRY 2026-06-12) ──────────────────────────
+// flagForIana / friendlyAbbrevForIana / cityCodeForIana each carried their
+// own 14-branch strcmp chain over the SAME zones. One table row per zone is
+// now the single source of truth — adding an exchange's zone is one line
+// here instead of three edits. DST-aware abbreviations stay hand-curated
+// because macOS returns "GMT+1/+2" instead of the regional forms traders
+// recognize (see friendlyAbbrevForIana note below); abbrevDst == NULL means
+// the zone observes no DST (or, like Brazil post-2019, abolished it).
+typedef struct {
+    const char *iana;
+    const char *flag;       // UTF-8 flag emoji
+    const char *abbrevStd;  // standard-time abbreviation
+    const char *abbrevDst;  // daylight abbreviation, or NULL when no DST
+    const char *cityCode;   // 3-letter trader code
+} FCIanaZoneEntry;
+
+static const FCIanaZoneEntry kIanaZones[] = {
+    {"America/New_York",    "\xF0\x9F\x87\xBA\xF0\x9F\x87\xB8", "EST",  "EDT",  "NYC"},
+    {"America/Toronto",     "\xF0\x9F\x87\xA8\xF0\x9F\x87\xA6", "EST",  "EDT",  "TOR"},
+    {"Europe/London",       "\xF0\x9F\x87\xAC\xF0\x9F\x87\xA7", "GMT",  "BST",  "LON"},
+    {"Europe/Paris",        "\xF0\x9F\x87\xAB\xF0\x9F\x87\xB7", "CET",  "CEST", "PAR"},
+    {"Europe/Berlin",       "\xF0\x9F\x87\xA9\xF0\x9F\x87\xAA", "CET",  "CEST", "FRA"},
+    {"Europe/Zurich",       "\xF0\x9F\x87\xA8\xF0\x9F\x87\xAD", "CET",  "CEST", "ZRH"},
+    {"Asia/Tokyo",          "\xF0\x9F\x87\xAF\xF0\x9F\x87\xB5", "JST",  NULL,   "TOK"},
+    {"Asia/Hong_Kong",      "\xF0\x9F\x87\xAD\xF0\x9F\x87\xB0", "HKT",  NULL,   "HKG"},
+    {"Asia/Shanghai",       "\xF0\x9F\x87\xA8\xF0\x9F\x87\xB3", "CST",  NULL,   "SHA"},
+    {"Asia/Seoul",          "\xF0\x9F\x87\xB0\xF0\x9F\x87\xB7", "KST",  NULL,   "SEO"},
+    {"Asia/Kolkata",        "\xF0\x9F\x87\xAE\xF0\x9F\x87\xB3", "IST",  NULL,   "MUM"},
+    {"Australia/Sydney",    "\xF0\x9F\x87\xA6\xF0\x9F\x87\xBA", "AEST", "AEDT", "SYD"},
+    {"Africa/Johannesburg", "\xF0\x9F\x87\xBF\xF0\x9F\x87\xA6", "SAST", NULL,   "JHB"},  // iter-155: no DST
+    {"America/Sao_Paulo",   "\xF0\x9F\x87\xA7\xF0\x9F\x87\xB7", "BRT",  NULL,   "SAO"},  // iter-161: DST abolished 2019
+};
+static const size_t kNumIanaZones = sizeof(kIanaZones) / sizeof(kIanaZones[0]);
+
+static const FCIanaZoneEntry *fcFindIanaZone(const char *iana) {
+    if (!iana || !*iana) return NULL;
+    for (size_t i = 0; i < kNumIanaZones; i++) {
+        if (strcmp(kIanaZones[i].iana, iana) == 0) return &kIanaZones[i];
+    }
+    return NULL;
 }
 
-// Hand-curated DST-aware abbreviations for the 12 exchanges we support.
+const char *flagForIana(const char *iana) {
+    const FCIanaZoneEntry *e = fcFindIanaZone(iana);
+    return e ? e->flag : "";
+}
+
+// Hand-curated DST-aware abbreviations for the exchanges we support.
 // macOS's NSTimeZone abbreviationForDate: returns "GMT+1/+2" instead of
-// "BST/CEST" for many European zones on recent OS releases — so hardcode
-// the regional forms traders actually recognize.
+// "BST/CEST" for many European zones on recent OS releases — so the table
+// hardcodes the regional forms traders actually recognize.
 NSString *friendlyAbbrevForIana(const char *iana, NSDate *date) {
     if (!iana || !*iana || !date) {
         NSTimeZone *loc = [NSTimeZone localTimeZone];
         return [loc abbreviationForDate:date ?: [NSDate date]] ?: @"";
     }
     NSTimeZone *tz = [NSTimeZone timeZoneWithName:[NSString stringWithUTF8String:iana]];
-    BOOL dst = tz ? [tz isDaylightSavingTimeForDate:date] : NO;
-
-    if (strcmp(iana, "America/New_York") == 0) return dst ? @"EDT" : @"EST";
-    if (strcmp(iana, "America/Toronto") == 0)  return dst ? @"EDT" : @"EST";
-    if (strcmp(iana, "Europe/London") == 0)    return dst ? @"BST" : @"GMT";
-    if (strcmp(iana, "Europe/Paris") == 0)     return dst ? @"CEST" : @"CET";
-    if (strcmp(iana, "Europe/Berlin") == 0)    return dst ? @"CEST" : @"CET";
-    if (strcmp(iana, "Europe/Zurich") == 0)    return dst ? @"CEST" : @"CET";
-    if (strcmp(iana, "Asia/Tokyo") == 0)       return @"JST";
-    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return @"HKT";
-    if (strcmp(iana, "Asia/Shanghai") == 0)    return @"CST";
-    if (strcmp(iana, "Asia/Seoul") == 0)       return @"KST";
-    if (strcmp(iana, "Asia/Kolkata") == 0)     return @"IST";
-    if (strcmp(iana, "Australia/Sydney") == 0) return dst ? @"AEDT" : @"AEST";
-    if (strcmp(iana, "Africa/Johannesburg") == 0) return @"SAST";  // iter-155: no DST
-    if (strcmp(iana, "America/Sao_Paulo") == 0)   return @"BRT";   // iter-161: Brazil abolished DST in 2019
-
+    const FCIanaZoneEntry *e = fcFindIanaZone(iana);
+    if (e) {
+        BOOL dst = tz ? [tz isDaylightSavingTimeForDate:date] : NO;
+        return [NSString stringWithUTF8String:(dst && e->abbrevDst) ? e->abbrevDst
+                                                                    : e->abbrevStd];
+    }
     return tz ? ([tz abbreviationForDate:date] ?: @"") : @"";
 }
 
@@ -119,20 +136,8 @@ NSString *fullTzLabelForZone(NSTimeZone *tz, NSDate *date) {
 
 const char *cityCodeForIana(const char *iana) {
     if (!iana || !*iana) return "LOC";
-    if (strcmp(iana, "America/New_York") == 0) return "NYC";
-    if (strcmp(iana, "America/Toronto") == 0)  return "TOR";
-    if (strcmp(iana, "Europe/London") == 0)    return "LON";
-    if (strcmp(iana, "Europe/Paris") == 0)     return "PAR";
-    if (strcmp(iana, "Europe/Berlin") == 0)    return "FRA";
-    if (strcmp(iana, "Europe/Zurich") == 0)    return "ZRH";
-    if (strcmp(iana, "Asia/Tokyo") == 0)       return "TOK";
-    if (strcmp(iana, "Asia/Hong_Kong") == 0)   return "HKG";
-    if (strcmp(iana, "Asia/Shanghai") == 0)    return "SHA";
-    if (strcmp(iana, "Asia/Seoul") == 0)       return "SEO";
-    if (strcmp(iana, "Asia/Kolkata") == 0)     return "MUM";
-    if (strcmp(iana, "Australia/Sydney") == 0) return "SYD";
-    if (strcmp(iana, "Africa/Johannesburg") == 0) return "JHB";  // iter-155
-    if (strcmp(iana, "America/Sao_Paulo") == 0)   return "SAO";  // iter-161
+    const FCIanaZoneEntry *e = fcFindIanaZone(iana);
+    if (e) return e->cityCode;
     // Fallback: first 3 chars of the city portion of IANA, uppercased.
     static char fallback[4];
     const char *slash = strrchr(iana, '/');
