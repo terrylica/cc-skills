@@ -211,279 +211,39 @@ Every user-visible UI element has a stable canonical short name so feedback can 
 
 Sub-element names for elements that live inside attributed-string content (e.g. `[PROGRESSBAR]`, `[COUNTDOWN]`, `[HEADER-LEGEND]`, `[SKYGLYPH]`, `[DATE]`, `[MARKETCODE]`) can't use NSToolTip directly because `NSAttributedString` text runs aren't distinct `NSView`s. A future iter may add a custom NSView overlay that turns on text-run hit-testing when `ShowDebugLabels` is YES; for now the names stay as a paper reference so the user can call them out verbally ("the [COUNTDOWN] column right-aligns oddly when the market has lunch") and we find them in code by grep.
 
-## Always-visible audio I/O status bar (`AudioStatusIndicator`, 2026-06-11)
+## Overlay indicators (audio bar · mic-mute · VPN) — [docs/overlay-indicators.md](./docs/overlay-indicators.md)
 
-`Sources/core/AudioStatusIndicator.{h,m}` — interactive bar pinned directly above
-the clock (the **bottom-most** slot of the indicator stack; the mic-mute and VPN
-bars shift one 20pt+3pt slot up while it shows). Visible **by default**
-(`AudioBarEnabled` registered YES). Replaces the decommissioned
-`com.terryli.audio-device-monitor` launchd service (amonic repo,
-`archive/audio-device-monitor-decommissioned-2026-06-11/`) — automatic
-"plug-and-play" prioritization is gone; this bar is fully manual control.
+Audio I/O bar (`AudioStatusIndicator`, default ON): manual IN/OUT device +
+volume control above the clock; right-click pull-out menus with Bluetooth
+connect/takeover (`AudioDeviceSelectionMenuController` +
+`BluetoothPairedAudioDeviceConnector`); coreaudiod hijack guard keeps IN/OUT
+independent. All overlay panels are drag-WELDED to the clock as child windows
+(`ClockChildWindowAttachment`). The VPN/state-file banner stays generic and
+secret-free. Defaults: `AudioBarEnabled`, `AudioBarStep`, `VPNIndicator*`.
+Full saga, defaults tables, and diagnostics: the spoke above.
 
-Layout: `IN <device> − <level> +  │  OUT <device> − <level> +` (green `IN` /
-blue `OUT` prefixes, middle-truncating names, levels 0–100 or `--` when the
-device exposes no volume control — e.g. DisplayPort sinks).
+## Solar canvas + segment styling — [docs/solar-canvas-and-styling.md](./docs/solar-canvas-and-styling.md)
 
-Interactions (each zone independent):
+Compact-mode background rides an OKLab twilight ramp over the LIVE solar
+elevation at the user's CoreLocation coordinates (`CanvasColorMode`:
+solar-vivid DEFAULT / solar-atmospheric / theme — `SolarSkyColorRamp` +
+`FCSolarElevationDegrees`). Hairline segment border lever (`BorderStyle`:
+hairline DEFAULT / frame / none — `SegmentBorderSpec`,
+`FCApplyBorderToLayer`). Compact text legibility via Core Text round-join
+outline (`SolarOutlinedTextRenderingView`).
 
-- **Click device name** → switch that category to the next available REAL
-  device, name-sorted ring. Virtual/aggregate transports (BackgroundMusic,
-  Lark loopback, multi-output sets) are excluded from the ring — cycling
-  wedged on "Background Music" otherwise (its UI-Sounds sibling refuses
-  main-default) — but a virtual default is still _displayed_ truthfully, and
-  one click escapes to the first real device.
-- **Click − / +** → step that category's volume by `AudioBarStep` (default 5).
-- **Click the number** → top half steps up, bottom half steps down.
-- **Scroll over a zone** → fine adjust (±2 per notch).
+## Build signing + TCC — [docs/signing-and-tcc.md](./docs/signing-and-tcc.md)
 
-Implementation notes: same NSPanel+CALayer mechanics as the other banners but
-`ignoresMouseEvents = NO`; `FCAudioZoneView` overrides `hitTest:` to claim every
-click inside the zone (NSTextField subviews swallowed mouseDown otherwise —
-verified 2026-06-11). Refresh is tick-driven (6 HAL property reads/sec, no
-listeners/IOProcs); each zone caches a render-key composite so labels only
-redraw when something visible changes.
+The Makefile signs with the persistent "FloatingClock Local Signing" cert so
+TCC grants (Bluetooth / mic / location) survive rebuilds. Identity changes
+reset ALL grants — one re-Allow each. Cert recreation recipe in the spoke.
 
-**Drag-welding (2026-06-12)**: all three overlay panels (audio bar, mic-mute,
-VPN) are attached as CHILD WINDOWS of the clock via
-`Sources/core/ClockChildWindowAttachment.{h,m}` — the WindowServer moves them
-atomically with the clock during drags (the old windowDidMove→syncPosition
-chase trailed one move-event behind; fast drags visibly decoupled the bar —
-user-caught "elastic trail"). Separation of concerns: indicators own content
-
-- relative stacking (syncPosition unchanged); the attachment module owns only
-  the idempotent attach + detach-BEFORE-orderOut contract. New overlays get
-  welding by calling the two functions at their show/hide points.
-
-**Any-background legibility (research-converged "dual-layer" treatment,
-2026-06-11):** the pill melted into pure-black backgrounds (user report). Fix —
-the same recipe macOS HUDs / launcher panels use, zero per-frame sampling:
-1pt hairline border (white @ 0.22) defines the edge on black where shadows are
-invisible; surface lifted 0.11 → 0.16 gray (Material-style dark elevation) so
-the fill separates from `#000`; `NSPanel hasShadow` keeps doing the work on
-light backgrounds. Verified by screenshot over both pure-black and white
-backdrops. 2026-06-11 (second user request): the same treatment IS now on the
-clock body — see "Hairline segment border" below.
-
-### Hairline segment border (`BorderStyle`, 2026-06-11)
-
-The audio bar's edge recipe promoted to the clock pills. Catalog dispatcher
-`Sources/core/SegmentBorderSpec.{h,m}` (locked by test_levers), applied in
-BOTH layout families via `FCApplyBorderToLayer` (FloatingClockPanel+Layout.m):
-the three-segment pills AND the compact local-only/single-market modes, where
-the window contentView IS the pill (first ship missed those — user caught the
-bare double-click-shrunk view; three-segment clears the contentView border so
-mode switches never leak a stale frame). Color is luminance-adaptive per
-segment theme bg: white @ alpha on dark fills, black @ alpha+0.08 on light.
-Menu: context menu → Display → Border. Presets: `none` / `hairline` (1pt @
-0.22, DEFAULT — registered in clock.m, threaded through all 8 starter
-profiles; Minimalist=none, Auction Watcher=frame) / `frame` (1.5pt @ 0.35).
-
-AskUserQuestion-selected extras (same day, all verified on-screen):
-
-- **"Show Audio Bar"** context-menu toggle (Display section) → flips
-  `AudioBarEnabled` with instant show/hide + checkmark.
-- **Mute state on IN**: while the ACTIVE mic is muted (CoreAudio mute flag on
-  the current default input OR the mic indicator's banner state), the IN zone
-  renders `IN⊘` + red struck-through device name + red level. 2026-06-11
-  fix: `FCMicMuteIndicator` now binds DEFAULT-INPUT-FIRST (was Antlion-first,
-  which falsely flagged AirPods red when the Antlion's hardware button was
-  pressed); Bluetooth inputs are never silence-metered (a persistent IOProc
-  would hold the headset in HFP/SCO call mode). The Antlion's analog button
-  is still caught — when the Antlion is the default input. Companion fix
-  outside this repo: `~/.local/bin/mic-mute` (chezmoi) gained a `default`
-  target and both Karabiner F10 bindings use it, so the mute key follows the
-  active mic too.
-- **Change flash**: a device or level change blinks the affected text amber
-  for ~1.4s (`kFlashSecs`), then decays to white on the next tick — external
-  changes (volume keys, other apps) catch the eye.
-
-| default key       | type | default | meaning                        |
-| ----------------- | ---- | ------- | ------------------------------ |
-| `AudioBarEnabled` | BOOL | `YES`   | master on/off (also in menu)   |
-| `AudioBarStep`    | int  | `5`     | −/+ click step %, clamped 1–25 |
-
-### Pull-out device menus + Bluetooth connect/takeover (2026-06-11, second directive)
-
-**Right-click / two-finger tap / ctrl-click** on either zone pops an independent
-device-selection menu (all three gestures come free via `-menuForEvent:`).
-The left-click cycle toggle is untouched. Verified on-screen 2026-06-11:
-menu structure, direct live-device selection, IN/OUT independence, and a real
-takeover (device connected & switched from an iPhone).
-
-- `Sources/core/AudioDeviceSelectionMenuController.{h,m}` — builds the menu
-  fresh per invocation: live CoreAudio devices (✓ on current; click = switch
-  now) + `BLUETOOTH — CONNECT` section of paired-but-offline BT audio devices
-  (`○` prefix). Orchestrates connect → bounded HAL polling (0.5s × 16) →
-  set-default, with transient `⏳ name…` / `✗ name` status in the zone.
-- `Sources/core/BluetoothPairedAudioDeviceConnector.{h,m}` — IOBluetooth
-  wrapper: `pairedDevices` filtered to the Audio/Video major class;
-  async `openConnection:` with self-retaining attempt objects + timeout
-  backstop. **`openConnection` IS the takeover request** — audio devices
-  (AirPods/W1/H1, multipoint headsets) switch to the most recent requesting
-  host; this is the in-app equivalent of `blueutil --connect` /
-  lapfelix/BluetoothConnector (the FOSS canon for un-sticking devices from an
-  iPhone). CoreBluetooth is BLE-only and useless here; IOBluetooth remains
-  the only public classic-BT API.
-- Requirements: `-framework IOBluetooth` (Makefile CFLAGS) and
-  `NSBluetoothAlwaysUsageDescription` (Info.plist; macOS TCC prompts on the
-  first menu open since `pairedDevices` is called lazily).
-- Resource posture: zero steady-state cost — no listeners, no daemons, no
-  polling; IOBluetooth is touched only while a menu is open or a connect is
-  in flight. Connect ≠ routed: the CoreAudio endpoint appears async after
-  the baseband link, hence the poll-then-select stage (honest `✗` when a
-  device connects but exposes no endpoint in that scope, e.g. a speaker
-  picked from the INPUT menu).
-
-### Scope-independence hijack guard (2026-06-11, user bug report)
-
-Selecting AirPods for INPUT also flipped the OUTPUT. Probe-verified root
-cause (`scripts/audio-diagnostics/fc-audio-default-routing-probe.m`): the
-defaults are NOT bound — AirPods are TWO HAL devices (24kHz HFP mic +
-48kHz A2DP out) behind separate default-in/default-out properties —
-**coreaudiod auto-routes the other scope to a BT device when it connects**
-(watcher caught it twice, +0s and +7s after connect). Fix in
-`AudioDeviceSelectionMenuController`: snapshot the other scope before
-connect; for 20s (40 × 0.5s) restore it whenever it's hijacked _by the
-connected device_ (ID-change first, then name match), max 3 restores then
-`✗ macOS keeps re-routing`. `↩ name` transient on each restore. Explicit
-user selections bump a per-scope generation counter that cancels the guard
-(menu picks AND the left-click cycle). Restore targets may legitimately be
-virtual (Background Music) — existence is re-probed across ALL transports
-(`deviceIDStillExists:`), since HAL IDs are reassigned on unplug.
-Adversarially reviewed (19-agent workflow, 16 findings → 8 confirmed → all
-fixed or dispositioned 2026-06-11).
-
-**Per-app caveat (Typeless et al.)**: live capture sessions do NOT migrate
-when the default input changes — apps must listen for
-`kAudioHardwarePropertyDefaultInputDevice` and rebind; many (Typeless
-"Auto-detect") resolve once at session start. Capture-path truth-test:
-`scripts/audio-diagnostics/fc-default-input-capture-rms-probe.m` (records
-default input, prints per-500ms RMS; AirPods stem-scratch is the
-discriminator).
-
-### Stable local signing identity (2026-06-11, TCC re-prompt fix)
-
-Ad-hoc signing (`codesign --sign -`) mints a new code identity per build →
-TCC (Bluetooth/mic) re-prompts after every reinstall. The Makefile now
-signs with the self-signed cert **"FloatingClock Local Signing"** when
-present (auto-fallback to ad-hoc). One Allow then persists forever.
-Recreate on a new machine (OpenSSL 3 p12 import is broken against macOS
-`security` — import PEMs separately):
-
-```bash
-DIR=~/.local/share/floating-clock-signing && mkdir -p $DIR && cd $DIR
-openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
-  -subj "/CN=FloatingClock Local Signing" \
-  -addext "keyUsage=critical,digitalSignature" \
-  -addext "extendedKeyUsage=critical,codeSigning" \
-  -addext "basicConstraints=critical,CA:false"
-security import key.pem  -k ~/Library/Keychains/login.keychain-db -T /usr/bin/codesign
-security import cert.pem -k ~/Library/Keychains/login.keychain-db
-security add-trusted-cert -p codeSign -k ~/Library/Keychains/login.keychain-db cert.pem  # GUI password dialog
-```
-
-Silent Bluetooth pre-authorization is impossible without MDM — the grant
-row is `kTCCServiceBluetoothAlways` / `com.terryli.floating-clock` in the
-user TCC.db; one human click is mandatory, once per identity.
-
-## Solar canvas (`CanvasColorMode`, 2026-06-11)
-
-"Colorful, not transparent": the COMPACT modes' background derives from the
-CONTINUOUS solar elevation at the user's real location — authoritative
-ephemeris math, nothing scheduled by clock hours.
-
-- `Sources/data/SolarEvents.m` gained `FCSolarElevationDegrees` (SunCalc/
-  Meeus sun position; same lineage as the event calculator so glyph and
-  canvas can never disagree). Locality = the CoreLocation fix cached by
-  `FCLocationProvider` (same `Latitude`/`Longitude` defaults the sky glyph
-  reads); pre-fix fallback = coarse local-hour sinusoid.
-- `Sources/core/SolarSkyColorRamp.{h,m}`: OKLab ramp keyed to international
-  twilight standards (−18/−12/−6/−4/0/+6/+20/+50°). Two styles (locked by
-  test_levers): `solar-vivid` (DEFAULT — LCh polar interpolation, constant
-  chroma; day-side hue arc runs UP through green/cyan 440→605 because the
-  descending arc retraced magenta and made mid-morning purple — preview-
-  validated with an ANSI swatch harness) and `solar-atmospheric` (Cartesian
-  Lab interpolation — warm→blue crossfades desaturate through neutral like
-  the real sky). Menu: Display → Canvas Color; registered default
-  solar-vivid; threaded through all 8 starter profiles.
-- Painting: the ROUNDED contentView layer, NOT the window background (the
-  window rect extends past the corner radius — square patches, user-caught).
-  Three-segment + theme paths clear the layer fill/border so nothing leaks
-  across mode switches. 1Hz evolution in tick, 8-bit-quantized.
-- Text: `Sources/rendering/SolarOutlinedTextRenderingView.{h,m}` — Core
-  Text, white fill + ROUND-JOIN black outline (2.2pt), replaces `_label`
-  while solar is active (\_label stays populated for sizeToFit). Rejected on
-  the way (all user-caught on-screen): negative NSStrokeWidth eats the fill
-  from inside; positive-stroke underlay field has NO join control → miter
-  spikes on descenders; CTLineDraw fills with the RUN color (black) unless
-  `kCTForegroundColorFromContextAttributeName` opts into context colors.
-  Optical alignment user-tuned: lift 1.5pt, left-shift 2.0pt.
-- Location staleness bug (found during this work): `FCLocationProvider
-kickoff` ran only at launch and `requestLocation` failures are silent →
-  coords stranded on a 7-week-old fix from another city. Fixed: hourly
-  re-kick from tick (self-gates on the 24h freshness check). NOTE: changing
-  the code-signing identity RESETS TCC grants — Location (and Bluetooth)
-  each need one re-Allow after the stable-identity migration.
-
-## Generic external-state status indicator (`VPNStatusIndicator`, 2026-06-07)
-
-A second banner alongside the mic-mute bar: `Sources/core/VPNStatusIndicator.{h,m}`.
-It shows a colored bar (default violet `#8B2FE6`) above the clock — and **above the
-mic-mute bar when that one is showing** (via the new `FCMicMuteIndicator -isShowing`) —
-whenever an external **state file** exists on disk. Same `NSPanel`+CALayer mechanics, the
-same 1 Hz refresh off the clock `tick`, and `syncPosition` from `windowDidMove:`.
-
-Deliberately **generic and secret-free** — it has no idea what the state represents (a
-VPN, tunnel, build, backup). Everything is `NSUserDefaults`-driven (domain
-`com.terryli.floating-clock`) and it is **disabled by default**, so the public build ships
-inert until a deployment opts in:
-
-| default key             | type   | default                               | meaning                        |
-| ----------------------- | ------ | ------------------------------------- | ------------------------------ |
-| `VPNIndicatorEnabled`   | BOOL   | `NO`                                  | master on/off                  |
-| `VPNIndicatorStateFile` | string | `~/.config/floating-clock/vpn-active` | bar shows iff this path exists |
-| `VPNIndicatorLabel`     | string | `"VPN"`                               | bar text                       |
-| `VPNIndicatorColorHex`  | string | `"#8B2FE6"`                           | bar color `#RRGGBB`            |
-
-A deployment wires it up by (a) `defaults write com.terryli.floating-clock VPNIndicatorEnabled -bool YES`
-(+ optional label/color/path overrides) and (b) having some external toggle create/remove
-the state file. Keep this plugin free of any host/IP/secret — the _meaning_ of the state
-(and the toggle that drives it) lives in the operator's private infra repo, never here.
 
 ## Known limitations
 
 - **Holiday awareness: 14/14 exchanges (2026 fixtures); half-days: 8/14.** `Sources/data/HolidayCalendar.{h,m}` + `HalfDayCalendar.{h,m}`, wired into `computeSessionState` with correct back-to-back chaining (weekend+holiday clusters). Live caveats: 6 exchanges' half-days deferred, SSE make-up Saturdays (补班) not modelled, lunar dates fixture-locked best-effort. Full iter-173…192 chronicle + per-exchange detail: [docs/holiday-coverage.md](./docs/holiday-coverage.md).
 - **No extended after-hours trading window modelled**. Each exchange's full extended session (US equities 16:00–20:00 ET, various 1–2 h windows elsewhere) is not modelled. What is modelled: the first 15 minutes immediately after regular close promote CLOSED → AFTER-HOURS (iter-125, rose ◒ glyph) — a short signal symmetric to iter-123's PRE-MARKET. Full per-market extended-session modelling remains deferred pending a decision on per-exchange duration data.
 
-## Future Enhancements
+## Future Enhancements — [docs/roadmap.md](./docs/roadmap.md)
 
-### Near-term
-
-- Holiday awareness (bundled annual JSON per exchange, refreshed yearly)
-- System appearance (light/dark) auto-adjust of themes
-- Copy Time / Copy segments keyboard shortcuts (requires global event tap for LSUIElement)
-
-### Tier-3
-
-- Multi-market rotation mode (cycle 2–3 favorites every 10 s)
-- User-definable theme bundles (pick fg/bg/alpha via menu)
-- Settings export/import (JSON, for sync across machines)
-- Launchd login-item for autostart
-
-### Already shipped in v4 (moved out of "future")
-
-- ~~Per-segment themes (LocalTheme / ActiveTheme / NextTheme)~~ — iter-14
-- ~~Profile system with bundled starters~~ — iter-17
-- ~~Segment-scoped right-click menus~~ — iter-15
-- ~~Regional TZ abbreviations (PDT / BST / CEST / JST / AEDT) + UTC offset~~ — iter-37/38
-- ~~Inline UTC reference on LOCAL~~ — iter-39
-- ~~Sun/moon day-night glyph~~ — iter-42
-- ~~Progress-bar running head~~ — iter-43
-- ~~Urgency color tiers on ACTIVE + NEXT countdowns~~ — iter-44/45
-- ~~NEXT cross-day weekday disambiguation~~ — iter-49
-- ~~Unit test harness for session-state + TZ helpers~~ — iter-50/51
-- ~~PRE-MARKET state (15-min amber ◐ pre-open window)~~ — iter-123
-- ~~AFTER-HOURS state (15-min rose ◒ post-close window)~~ — iter-125
-- ~~User-configurable SessionSignalWindow (off / 5-60 min)~~ — iter-126
-- ~~Copy Time / Active Markets / Next Opens to clipboard~~ — iter-149/150
+Near-term + Tier-3 backlog and the shipped-in-v4 log live in the spoke.

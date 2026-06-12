@@ -22,10 +22,36 @@ ICON_ICNS := $(BUILD)/Icon.icns
 
 .PHONY: all build bundle icon sign install run clean test check help leaks
 
-# Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
-# with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
+# Test binary sources are DERIVED from APP_SOURCES (DRY 2026-06-12): a new
+# data/spec module is auto-included in the test link with zero Makefile
+# edits; only the main()-bearing clock.m and AppKit-BOUND modules (NSPanel/
+# NSView subclasses, panel categories, UI builders) are excluded. If a new
+# module breaks the test link (duplicate main, unresolved AppKit symbols),
+# add it to TEST_EXCLUDED — the failure is loud, never silent.
 TEST_BIN := $(BUILD)/test_session
-TEST_SOURCES := tests/test_session.m tests/test_levers.m tests/test_holidays.m tests/test_halfdays.m tests/test_local_features.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m Sources/core/CornerRadius.m Sources/core/ShadowSpec.m Sources/core/SegmentBorderSpec.m Sources/core/SolarSkyColorRamp.m Sources/core/SessionSignalWindow.m Sources/core/ClipboardHeader.m Sources/content/UrgencyColors.m Sources/content/UrgencyHorizon.m Sources/content/UrgencyFlash.m Sources/content/WeekProgressBar.m Sources/data/HolidayCalendar.m Sources/data/HalfDayCalendar.m Sources/data/MoonPhase.m Sources/data/SolarEvents.m
+TEST_EXCLUDED := Sources/clock.m \
+    $(wildcard Sources/menu/*.m) \
+    $(wildcard Sources/actions/*.m) \
+    $(wildcard Sources/segments/*.m) \
+    $(wildcard Sources/vendor/RMBlurredView/*.m) \
+    Sources/core/FloatingClockPanel+Layout.m \
+    Sources/core/FloatingClockPanel+Runtime.m \
+    Sources/core/AudioStatusIndicator.m \
+    Sources/core/MicMuteIndicator.m \
+    Sources/core/VPNStatusIndicator.m \
+    Sources/core/AudioDeviceSelectionMenuController.m \
+    Sources/core/BluetoothPairedAudioDeviceConnector.m \
+    Sources/core/ClockChildWindowAttachment.m \
+    Sources/core/LocationProvider.m \
+    Sources/rendering/AttributedStringLayoutMeasurer.m \
+    Sources/rendering/VerticallyCenteredTextFieldCell.m \
+    Sources/rendering/SolarOutlinedTextRenderingView.m \
+    Sources/preferences/FloatingClockPanel+ProfileManagement.m \
+    Sources/content/ActiveSegmentContentBuilder.m \
+    Sources/content/NextSegmentContentBuilder.m \
+    Sources/content/SegmentHeaderRenderer.m
+TEST_SOURCES := $(wildcard tests/*.m) $(filter-out $(TEST_EXCLUDED),$(APP_SOURCES))
+$(if $(TEST_SOURCES),,$(error TEST_SOURCES is empty after filtering))
 TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
 
 all: sign
