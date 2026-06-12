@@ -13,6 +13,7 @@
 #import "../Sources/core/ShadowSpec.h"
 #import "../Sources/core/SegmentBorderSpec.h"
 #import "../Sources/core/SolarSkyColorRamp.h"
+#import "../Sources/core/OverlayStackingPositioner.h"
 #import "../Sources/data/SolarEvents.h"
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
@@ -521,6 +522,48 @@ void test_segment_border_spec_catalog(void) {
             failures++;
             fprintf(stderr, "FAIL %s: default case %zu should be hairline\n", __func__, i);
         }
+    }
+}
+
+void test_overlay_stacking_positioner(void) {
+    // 2026-06-12 DRY extraction: the place-above-or-flip-below overlay
+    // geometry was triplicated (audio/mic/VPN) and untestable in place.
+    // Lock the invariants here.
+    NSRect vf = NSMakeRect(0, 0, 1000, 800);
+
+    // Mid-screen clock → overlay sits ABOVE: y = maxY(clock) + gap + stack.
+    NSRect clock = NSMakeRect(100, 400, 320, 60);
+    NSRect f = FCComputeOverlayFrame(clock, vf, 20, 0, 3);
+    if (f.origin.y != 463 || f.origin.x != 100 || f.size.width != 320 || f.size.height != 20) {
+        failures++; fprintf(stderr, "FAIL %s: above-placement wrong (%.0f,%.0f %.0fx%.0f)\n",
+                            __func__, f.origin.x, f.origin.y, f.size.width, f.size.height);
+    }
+
+    // Stack offset shifts the slot up by exactly the offset.
+    NSRect f2 = FCComputeOverlayFrame(clock, vf, 20, 23, 3);
+    if (f2.origin.y != 486) {
+        failures++; fprintf(stderr, "FAIL %s: stack offset wrong (y=%.0f)\n", __func__, f2.origin.y);
+    }
+
+    // Clock at the top edge → overlay FLIPS BELOW (incl. the stack slot).
+    NSRect top = NSMakeRect(100, 730, 320, 60);   // maxY 790; 790+3+20 > 800
+    NSRect f3 = FCComputeOverlayFrame(top, vf, 20, 0, 3);
+    if (f3.origin.y != 707) {
+        failures++; fprintf(stderr, "FAIL %s: below-flip wrong (y=%.0f)\n", __func__, f3.origin.y);
+    }
+    NSRect f4 = FCComputeOverlayFrame(top, vf, 20, 23, 3);
+    if (f4.origin.y != 684) {
+        failures++; fprintf(stderr, "FAIL %s: below-flip stack wrong (y=%.0f)\n", __func__, f4.origin.y);
+    }
+
+    // X clamping: clock hanging off the right and left screen edges.
+    NSRect right = NSMakeRect(900, 400, 320, 60);
+    if (FCComputeOverlayFrame(right, vf, 20, 0, 3).origin.x != 680) {
+        failures++; fprintf(stderr, "FAIL %s: right clamp wrong\n", __func__);
+    }
+    NSRect left = NSMakeRect(-50, 400, 320, 60);
+    if (FCComputeOverlayFrame(left, vf, 20, 0, 3).origin.x != 0) {
+        failures++; fprintf(stderr, "FAIL %s: left clamp wrong\n", __func__);
     }
 }
 

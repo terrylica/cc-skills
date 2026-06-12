@@ -2,6 +2,8 @@
 #import "MicMuteIndicator.h"
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
+#import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
+#import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
 
 // Banner geometry — matches the mic-mute bar so the two stack cleanly.
 static const CGFloat kVPNBannerHeight = 20.0;
@@ -67,20 +69,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
 
 - (void)buildBanner {
     NSRect r = NSMakeRect(0, 0, 160, kVPNBannerHeight);
-    _banner = [[NSPanel alloc] initWithContentRect:r
-                                         styleMask:(NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel)
-                                           backing:NSBackingStoreBuffered
-                                             defer:NO];
-    _banner.level                  = (_clock ? _clock.level : NSFloatingWindowLevel) + 1;
-    _banner.opaque                 = NO;
-    _banner.backgroundColor        = [NSColor clearColor];
-    _banner.hasShadow              = YES;
-    _banner.ignoresMouseEvents     = YES;   // detection-only
-    _banner.becomesKeyOnlyIfNeeded = YES;
-    _banner.hidesOnDeactivate      = NO;
-    _banner.collectionBehavior     = NSWindowCollectionBehaviorCanJoinAllSpaces
-                                   | NSWindowCollectionBehaviorStationary
-                                   | NSWindowCollectionBehaviorIgnoresCycle;
+    _banner = FCCreateOverlayPanel(_clock, r.size, YES);   // detection-only
 
     NSView *bg = [[NSView alloc] initWithFrame:r];
     bg.wantsLayer            = YES;
@@ -91,17 +80,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
     _banner.contentView      = bg;
     _bg                      = bg;
 
-    CGFloat labelH = 16.0;
-    NSTextField *label = [[NSTextField alloc] initWithFrame:NSMakeRect(0, (kVPNBannerHeight - labelH) / 2.0, r.size.width, labelH)];
-    label.editable        = NO;
-    label.selectable      = NO;
-    label.bezeled         = NO;
-    label.drawsBackground = NO;
-    label.alignment       = NSTextAlignmentCenter;
-    label.textColor       = [NSColor whiteColor];
-    label.font            = [NSFont monospacedSystemFontOfSize:12 weight:NSFontWeightBold];
-    label.stringValue     = [self labelText];
-    label.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin | NSViewMaxYMargin;
+    NSTextField *label = FCCreateBannerLabel(kVPNBannerHeight, r.size.width, [self labelText]);
     [bg addSubview:label];
     _label = label;
 
@@ -122,8 +101,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
     if (active) {
         [self syncPosition];
     } else {
-        FCDetachOverlayFromClock(_banner);   // detach BEFORE hiding
-        [_banner orderOut:nil];
+        FCHideOverlay(_banner);   // detach-then-hide ceremony
     }
 }
 
@@ -133,26 +111,14 @@ static const CGFloat kVPNBannerGap    = 3.0;
     NSScreen *s = _clock.screen ?: [NSScreen mainScreen];
     NSRect vf   = s ? s.visibleFrame : c;
 
-    CGFloat w = c.size.width;
-    CGFloat x = c.origin.x;
-
-    // Stack above the mic-mute bar and the always-visible audio I/O bar
-    // (2026-06-11) — one 20pt+gap slot per bar currently showing.
+    // Stack above mic-mute + audio bars when showing; geometry SSoT:
+    // OverlayStackingPositioner. The stacking POLICY stays here.
     CGFloat micOffset   = (_mic && [_mic isShowing]) ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
     CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
                           ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
-    CGFloat stack  = micOffset + audioOffset;
-    CGFloat aboveY = NSMaxY(c) + kVPNBannerGap + stack;
-    CGFloat y;
-    if (aboveY + kVPNBannerHeight <= NSMaxY(vf)) {
-        y = aboveY;                                                    // preferred: above
-    } else {
-        y = c.origin.y - kVPNBannerGap - kVPNBannerHeight - stack;     // fallback: below
-    }
-    if (x + w > NSMaxX(vf)) x = NSMaxX(vf) - w;
-    if (x < vf.origin.x)    x = vf.origin.x;
-
-    [_banner setFrame:NSMakeRect(x, y, w, kVPNBannerHeight) display:YES];
+    [_banner setFrame:FCComputeOverlayFrame(c, vf, kVPNBannerHeight,
+                                            micOffset + audioOffset, kVPNBannerGap)
+              display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
     FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
 }

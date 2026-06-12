@@ -834,6 +834,7 @@ int main(void) {
         RUN_TEST(test_shadow_spec_catalog);
         RUN_TEST(test_segment_border_spec_catalog);
         RUN_TEST(test_solar_canvas_color_ramp);
+        RUN_TEST(test_overlay_stacking_positioner);
         RUN_TEST(test_session_signal_window);
         RUN_TEST(test_session_state_label);
         RUN_TEST(test_session_state_color);
