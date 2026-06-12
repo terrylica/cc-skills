@@ -12,6 +12,7 @@
 #import "CornerRadius.h"                                    // FCCornerRadiusPoints
 #import "ShadowSpec.h"                                      // FCShadowSpecForId
 #import "SegmentBorderSpec.h"                               // FCSegmentBorderSpecForId
+#import "RelativeLuminance.h"                               // WCAG coefficients SSoT (DRY 2026-06-12)
 #import "SolarSkyColorRamp.h"                               // FCSolarCanvasColorForElevation
 #import "../data/SolarEvents.h"                             // FCSolarElevationDegrees
 #import "../rendering/SolarOutlinedTextRenderingView.h"     // solar outlined text (2026-06-11)
@@ -24,7 +25,7 @@
 static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
                                  double bgR, double bgG, double bgB) {
     if (!bs.enabled) { layer.borderWidth = 0; return; }
-    double lum = 0.2126 * bgR + 0.7152 * bgG + 0.0722 * bgB;
+    double lum = FCRelativeLuminance(bgR, bgG, bgB);
     NSColor *col = (lum < 0.5)
         ? [NSColor colorWithWhite:1.0 alpha:bs.alpha]
         : [NSColor colorWithWhite:0.0 alpha:bs.alpha + 0.08];
