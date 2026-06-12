@@ -15,3 +15,9 @@ void FCDetachOverlayFromClock(NSWindow *overlay) {
         [overlay.parentWindow removeChildWindow:overlay];
     }
 }
+
+void FCHideOverlay(NSWindow *overlay) {
+    if (!overlay) return;
+    FCDetachOverlayFromClock(overlay);
+    [overlay orderOut:nil];
+}
