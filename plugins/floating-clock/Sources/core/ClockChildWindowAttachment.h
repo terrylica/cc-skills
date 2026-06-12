@@ -32,6 +32,11 @@ void FCAttachOverlayToClock(NSWindow *_Nullable clock, NSWindow *_Nullable overl
 // Detach (idempotent) — MUST be called before orderOut:-hiding an overlay.
 void FCDetachOverlayFromClock(NSWindow *_Nullable overlay);
 
+// The full hide ceremony: detach-then-orderOut in one call. All three
+// indicators were hand-rolling this two-step dance (DRY 2026-06-12);
+// using the helper makes the ordering contract impossible to violate.
+void FCHideOverlay(NSWindow *_Nullable overlay);
+
 #ifdef __cplusplus
 }
 #endif
