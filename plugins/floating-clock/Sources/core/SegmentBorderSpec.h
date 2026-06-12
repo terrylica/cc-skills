@@ -17,6 +17,8 @@
 //   frame     — 1.5pt @ 0.35 (stronger, deliberate framing)
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <QuartzCore/QuartzCore.h>
+@class NSColor;
 
 typedef struct {
     BOOL    enabled;
@@ -31,6 +33,14 @@ extern "C" {
 // nil / empty / unknown ids resolve to the DEFAULT preset ("hairline") —
 // the border is on by default, like the audio bar's.
 FCSegmentBorderSpec FCSegmentBorderSpecForId(NSString *_Nullable styleId);
+
+// Apply a spec to a layer with the luminance-adaptive color rule: light
+// hairline on dark fills (defines the edge on #000 where shadows vanish),
+// dark hairline (alpha+0.08) on light fills. Lives WITH the spec — the
+// applier and its catalog evolve together (moved here from the Layout
+// category during the 2026-06-12 modularization).
+void FCApplyBorderSpecToLayer(CALayer *_Nonnull layer, FCSegmentBorderSpec bs,
+                              double bgR, double bgG, double bgB);
 
 #ifdef __cplusplus
 }
