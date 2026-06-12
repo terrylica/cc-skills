@@ -26,4 +26,11 @@ typedef struct FCSolarEvents {
 // at the given longitude (i.e. the calendar day the user sees).
 FCSolarEvents FCSolarEventsForLocation(NSDate *date, double latDeg, double lonDeg);
 
+// 2026-06-11 solar canvas: CONTINUOUS solar elevation angle in degrees at
+// the exact instant `date` for (lat, lon). Positive above horizon, negative
+// below; range ≈ [-90, +90]. Same SunCalc/Meeus sun-position math as the
+// event calculator (declination + sidereal hour angle), so the color ramp
+// and the dawn/dusk glyph can never disagree. Pure trig — safe at 1Hz.
+double FCSolarElevationDegrees(NSDate *date, double latDeg, double lonDeg);
+
 NS_ASSUME_NONNULL_END

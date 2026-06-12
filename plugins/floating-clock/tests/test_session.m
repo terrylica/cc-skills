@@ -884,6 +884,7 @@ int main(void) {
         test_quick_styles_invariants();
         test_shadow_spec_catalog();
         test_segment_border_spec_catalog();
+        test_solar_canvas_color_ramp();
         test_session_signal_window();
         test_session_state_label();
         test_session_state_color();
@@ -899,7 +900,7 @@ int main(void) {
         test_solar_events();
 
         if (failures == 0) {
-            fprintf(stderr, "All 92 tests passed.\n");
+            fprintf(stderr, "All 93 tests passed.\n");
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
