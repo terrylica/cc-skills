@@ -1,6 +1,7 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
+#import "../core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "../core/AudioStatusIndicator.h" // 2026-06-11: instant bar show/hide
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"

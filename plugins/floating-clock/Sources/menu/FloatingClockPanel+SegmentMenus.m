@@ -9,6 +9,7 @@
 #import "FloatingClockPanel+SegmentMenus.h"
 #import "FloatingClockPanel+MenuBuilder.h"
 #import "FloatingClockPanel+MenuHelpers.h"
+#import "FloatingClockPanel+ProfileMenu.h"  // 2026-06-12 split
 #import "../core/DateFormatPrefix.h"  // FCDateFormatMenuPairs (DRY 2026-06-12)
 #import "../data/ThemeCatalog.h"
 #import "../segments/FloatingClockSegmentViews.h"

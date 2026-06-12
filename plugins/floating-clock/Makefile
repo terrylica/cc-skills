@@ -34,8 +34,7 @@ TEST_EXCLUDED := Sources/clock.m \
     $(wildcard Sources/actions/*.m) \
     $(wildcard Sources/segments/*.m) \
     $(wildcard Sources/vendor/RMBlurredView/*.m) \
-    Sources/core/FloatingClockPanel+Layout.m \
-    Sources/core/FloatingClockPanel+Runtime.m \
+    $(wildcard Sources/core/FloatingClockPanel+*.m) \
     Sources/core/AudioStatusIndicator.m \
     Sources/core/MicMuteIndicator.m \
     Sources/core/VPNStatusIndicator.m \
@@ -52,7 +51,7 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/content/SegmentHeaderRenderer.m
 TEST_SOURCES := $(wildcard tests/*.m) $(filter-out $(TEST_EXCLUDED),$(APP_SOURCES))
 $(if $(TEST_SOURCES),,$(error TEST_SOURCES is empty after filtering))
-TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
+TEST_CFLAGS := -framework Cocoa -framework CoreAudio -fobjc-arc -Wall -ISources
 
 all: sign
 

@@ -14,8 +14,10 @@
 #import "core/VPNStatusIndicator.h"
 #import "core/AudioStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
+#import "core/FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "menu/FloatingClockPanel+MenuBuilder.h"
 #import "core/FloatingClockPanel+Runtime.h"
+#import "core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "preferences/FloatingClockPanel+ProfileManagement.h"
 #import "actions/FloatingClockPanel+ActionHandlers.h"
 #import "core/LocationProvider.h"

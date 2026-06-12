@@ -18,16 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)applyDisplaySettings;
 - (void)applyThreeSegmentLayout;
 - (void)relayoutThreeSegmentIfNeeded;
-- (void)applyLocalOnlyLayout;
-- (void)applySingleMarketLayout;
-
-// 2026-06-11 solar canvas: recolor the compact modes' background from the
-// live solar elevation at the user's location (CanvasColorMode pref).
-// No-op in three-segment mode or when the mode is "theme". Call with
-// force=NO from the 1Hz tick (quantized — skips redundant writes) and
-// force=YES from layout passes (invalidates the quantization cache so a
-// mode/theme switch always repaints).
-- (void)refreshSolarCanvasForced:(BOOL)force;
+// Compact-mode layouts + solar canvas: FloatingClockPanel+CompactLayout.h
+// (2026-06-12 modularization split).
 
 @end
 
