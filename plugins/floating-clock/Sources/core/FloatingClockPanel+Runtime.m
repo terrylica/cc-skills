@@ -3,6 +3,8 @@
 #import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
 #import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
+#import "LocationProvider.h"     // hourly staleness re-kick (2026-06-11)
+#import "../rendering/SolarOutlinedTextRenderingView.h" // solar outlined text (2026-06-11)
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
@@ -67,6 +69,19 @@ static uint64_t nsUntilNextSecond(void) {
     // Audio I/O bar: re-read default devices + volumes (6 cheap HAL property
     // reads) and reposition to follow the clock's per-tick resize/recenter.
     [_audioStatusIndicator refresh];
+    // Solar canvas (2026-06-11): evolve the compact modes' background with
+    // the live solar elevation. Quantized internally — usually a no-op.
+    [self refreshSolarCanvasForced:NO];
+    // Location staleness backstop (2026-06-11 bug: coords were stranded on a
+    // 7-week-old fix because kickoff ran only at launch and requestLocation
+    // failures are silent). Re-kick hourly; kickoff self-gates on its 24h
+    // freshness check, so this is a no-op while the cache is fresh.
+    static NSTimeInterval lastKick = 0;
+    NSTimeInterval nowTs = [NSDate timeIntervalSinceReferenceDate];
+    if (nowTs - lastKick > 3600.0) {
+        lastKick = nowTs;
+        [[FCLocationProvider shared] kickoff];
+    }
 }
 
 - (void)tickThreeSegment {
@@ -349,8 +364,24 @@ static uint64_t nsUntilNextSecond(void) {
     NSString *legacyLabel = (strlen(mkt->iana) > 0)
         ? fullTzLabelForIana(mkt->iana, now)
         : fullTzLabelForZone(effectiveTz, now);
-    _label.stringValue = [NSString stringWithFormat:@"%@ %@",
+    NSString *legacyText = [NSString stringWithFormat:@"%@ %@",
         [_dateFormatter stringFromDate:now], legacyLabel];
+    // _label is ALWAYS populated — the compact layouts size the window off
+    // its sizeToFit even while it is hidden.
+    _label.stringValue = legacyText;
+    if ([[d stringForKey:@"CanvasColorMode"] hasPrefix:@"solar"]) {
+        // Solar canvas: the round-join Core Text renderer REPLACES _label —
+        // solid white fill wrapped in a clean black border (no miter spikes,
+        // no fill starvation; see SolarOutlinedTextRenderingView.h).
+        _labelOutline.font  = _label.font;
+        _labelOutline.frame = _label.frame;
+        _labelOutline.text  = legacyText;
+        _labelOutline.hidden = NO;
+        _label.hidden = YES;
+    } else {
+        _labelOutline.hidden = YES;
+        _label.hidden = NO;   // tickLegacy only runs in compact modes
+    }
 
     if (strlen(mkt->iana) == 0) return;  // local mode — no session label
 

@@ -238,6 +238,17 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                    @[@"Frame (stronger)",   @"frame"]]
                                      defaultsKey:@"BorderStyle"]];
 
+    // 2026-06-11 solar canvas: compact-mode background driven by the live
+    // solar elevation at the user's location (CoreLocation + NOAA math,
+    // OKLab twilight ramp — Sources/core/SolarSkyColorRamp). Default =
+    // Solar Vivid per user directive ("colorful, not transparent").
+    [displayItems addObject:[self submenuTitled:@"Canvas Color"
+                                          action:@selector(setCanvasColorMode:)
+                                           pairs:@[@[@"Theme (static)",            @"theme"],
+                                                   @[@"Solar Vivid (max color)",   @"solar-vivid"],
+                                                   @[@"Solar Atmospheric (real sky)", @"solar-atmospheric"]]
+                                     defaultsKey:@"CanvasColorMode"]];
+
     [m addItem:fcTopCategory(@"Display", displayItems)];
 
     // === THEMES ===
