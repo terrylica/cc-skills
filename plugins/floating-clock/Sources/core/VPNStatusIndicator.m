@@ -1,6 +1,7 @@
 #import "VPNStatusIndicator.h"
 #import "MicMuteIndicator.h"
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
+#import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 
 // Banner geometry — matches the mic-mute bar so the two stack cleanly.
 static const CGFloat kVPNBannerHeight = 20.0;
@@ -121,6 +122,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
     if (active) {
         [self syncPosition];
     } else {
+        FCDetachOverlayFromClock(_banner);   // detach BEFORE hiding
         [_banner orderOut:nil];
     }
 }
@@ -152,6 +154,7 @@ static const CGFloat kVPNBannerGap    = 3.0;
 
     [_banner setFrame:NSMakeRect(x, y, w, kVPNBannerHeight) display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
+    FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
 }
 
 @end

@@ -244,6 +244,17 @@ verified 2026-06-11). Refresh is tick-driven (6 HAL property reads/sec, no
 listeners/IOProcs); each zone caches a render-key composite so labels only
 redraw when something visible changes.
 
+**Drag-welding (2026-06-12)**: all three overlay panels (audio bar, mic-mute,
+VPN) are attached as CHILD WINDOWS of the clock via
+`Sources/core/ClockChildWindowAttachment.{h,m}` — the WindowServer moves them
+atomically with the clock during drags (the old windowDidMove→syncPosition
+chase trailed one move-event behind; fast drags visibly decoupled the bar —
+user-caught "elastic trail"). Separation of concerns: indicators own content
+
+- relative stacking (syncPosition unchanged); the attachment module owns only
+  the idempotent attach + detach-BEFORE-orderOut contract. New overlays get
+  welding by calling the two functions at their show/hide points.
+
 **Any-background legibility (research-converged "dual-layer" treatment,
 2026-06-11):** the pill melted into pure-black backgrounds (user report). Fix —
 the same recipe macOS HUDs / launcher panels use, zero per-frame sampling:
