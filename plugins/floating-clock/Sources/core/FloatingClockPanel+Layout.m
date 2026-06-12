@@ -12,6 +12,9 @@
 #import "CornerRadius.h"                                    // FCCornerRadiusPoints
 #import "ShadowSpec.h"                                      // FCShadowSpecForId
 #import "SegmentBorderSpec.h"                               // FCSegmentBorderSpecForId
+#import "SolarSkyColorRamp.h"                               // FCSolarCanvasColorForElevation
+#import "../data/SolarEvents.h"                             // FCSolarElevationDegrees
+#import "../rendering/SolarOutlinedTextRenderingView.h"     // solar outlined text (2026-06-11)
 
 // 2026-06-11 hairline border (audio-bar edge recipe promoted to the clock):
 // luminance-adaptive against the given background — light hairline on dark
@@ -92,6 +95,7 @@ static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
     }
 
     _label.hidden = YES;
+    _labelOutline.hidden = YES;   // solar text underlay is compact-only
     _sessionLabel.hidden = YES;
     _localSeg.hidden = NO;
     BOOL showWeek = [[NSUserDefaults standardUserDefaults] boolForKey:@"ShowWeekProgress"];
@@ -398,8 +402,10 @@ static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
     FCApplyBorderToLayer(_activeSeg.layer, bs, tActive2->bg_r, tActive2->bg_g, tActive2->bg_b);
     FCApplyBorderToLayer(_nextSeg.layer,   bs, tNext2->bg_r,   tNext2->bg_g,   tNext2->bg_b);
     // The contentView is a transparent CANVAS in this mode — never frame it
-    // (a stale border here is exactly what the compact modes leave behind).
+    // (a stale border here is exactly what the compact modes leave behind),
+    // and never leave a stale solar fill on it either.
     self.contentView.layer.borderWidth = 0;
+    self.contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
 
     // Optical centering for LOCAL.
     //
@@ -464,6 +470,13 @@ static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
                          FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]),
                          t->bg_r, t->bg_g, t->bg_b);
 
+    // 2026-06-11 solar canvas: when CanvasColorMode is solar-*, override the
+    // theme background/border with the live solar-elevation color (painted
+    // on the rounded contentView layer). Theme mode must clear any stale
+    // solar fill first — refreshSolarCanvas no-ops for "theme".
+    self.contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
+    [self refreshSolarCanvasForced:YES];
+
     _sessionLabel.hidden = YES;
     _localSeg.hidden = YES;
     _activeSeg.hidden = YES;
@@ -512,6 +525,10 @@ static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
                          FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]),
                          t->bg_r, t->bg_g, t->bg_b);
 
+    // 2026-06-11 solar canvas (see local-only note).
+    self.contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
+    [self refreshSolarCanvasForced:YES];
+
     NSString *marketId = [d stringForKey:@"SelectedMarket"];
     const ClockMarket *mkt = marketForId(marketId);
     BOOL marketMode = (strlen(mkt->iana) > 0);
@@ -558,6 +575,68 @@ static void FCApplyBorderToLayer(CALayer *layer, FCSegmentBorderSpec bs,
     } else {
         _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
     }
+}
+
+#pragma mark - Solar canvas (2026-06-11 user directive: colorful, not transparent)
+
+// Continuous solar-elevation color for the compact modes' canvas.
+// Locality: the CoreLocation fix cached by FCLocationProvider — the SAME
+// Latitude/Longitude defaults the sky glyph reads, so glyph and canvas can
+// never disagree about where the sun is. Color: FCSolarCanvasColorForElevation
+// (OKLab ramp keyed to international twilight standards — nothing scheduled
+// by clock hours). Pre-first-fix fallback: a coarse local-hour sinusoid so
+// the canvas is colorful from first launch; replaced when coordinates land.
+- (void)refreshSolarCanvasForced:(BOOL)force {
+    // Tick path: compact modes only. In solar compact the outlined renderer
+    // replaces _label (which hides), so EITHER being visible means compact.
+    // Forced calls come exclusively from the compact layout passes, where
+    // neither may be un-hidden yet — skip the guard there.
+    if (!force && _label.hidden && _labelOutline.hidden) return;
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    NSString *mode = [d stringForKey:@"CanvasColorMode"];
+    if (![mode hasPrefix:@"solar"]) return;
+
+    double elev;
+    BOOL haveLoc = [d objectForKey:@"LocationFetchedAt"] != nil
+                 && ([d doubleForKey:@"Latitude"] != 0.0 || [d doubleForKey:@"Longitude"] != 0.0);
+    if (haveLoc) {
+        elev = FCSolarElevationDegrees([NSDate date],
+                                       [d doubleForKey:@"Latitude"],
+                                       [d doubleForKey:@"Longitude"]);
+    } else {
+        NSDateComponents *c = [[NSCalendar currentCalendar]
+            components:(NSCalendarUnitHour | NSCalendarUnitMinute)
+              fromDate:[NSDate date]];
+        double h = (double)c.hour + (double)c.minute / 60.0;
+        elev = 60.0 * sin((h - 7.0) / 24.0 * 2.0 * M_PI);  // rough: rise ~07, peak ~13
+    }
+
+    FCSolarCanvasColor sc = FCSolarCanvasColorForElevation(elev, mode);
+
+    // Quantize to 8-bit and skip redundant AppKit writes at 1Hz — the sun
+    // moves ~0.004°/s, so the visible color changes every minute or two.
+    static int lastKey = -1;
+    int key = ((int)lround(sc.r * 255) << 16)
+            | ((int)lround(sc.g * 255) << 8)
+            |  (int)lround(sc.b * 255);
+    if (!force && key == lastKey) return;
+    lastKey = key;
+
+    // Solid canvas — NO transparency (explicit user directive). Paint the
+    // ROUNDED contentView layer, NOT the square window background: the
+    // window rect extends past the corner radius, and a solid bright fill
+    // there shows as rectangular patches outside the rounded pill
+    // (user-caught 2026-06-11; dark translucent themes had hidden it).
+    self.backgroundColor = [NSColor clearColor];
+    self.contentView.layer.backgroundColor =
+        [[NSColor colorWithRed:sc.r green:sc.g blue:sc.b alpha:1.0] CGColor];
+    [self invalidateShadow];   // window shadow tracks the new opaque shape
+    // Text legibility is handled by the outlined attributed string in
+    // tickLegacy (white fill + black stroke) — works on every ramp color.
+    // Border adapts to the live canvas color (luminance-aware helper).
+    FCApplyBorderToLayer(self.contentView.layer,
+                         FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]),
+                         sc.r, sc.g, sc.b);
 }
 
 @end

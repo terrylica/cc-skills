@@ -154,6 +154,14 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     }
 }
 
+// 2026-06-11 solar canvas (SolarSkyColorRamp; compact modes).
+- (void)setCanvasColorMode:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"CanvasColorMode"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)setActiveFontSize:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"ActiveFontSize"];

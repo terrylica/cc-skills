@@ -94,3 +94,36 @@ FCSolarEvents FCSolarEventsForLocation(NSDate *date, double latDeg, double lonDe
     out.valid = YES;
     return out;
 }
+
+#pragma mark - Continuous solar elevation (2026-06-11 solar canvas)
+
+// SunCalc getPosition() math (same Meeus lineage as the event calculator
+// above): ecliptic longitude → equatorial coordinates (right ascension +
+// declination) → local sidereal hour angle → elevation.
+double FCSolarElevationDegrees(NSDate *date, double latDeg, double lonDeg) {
+    if (!date) return 0.0;
+    double lwRad  = -lonDeg * kDeg2Rad;   // west-positive, SunCalc convention
+    double latRad = latDeg * kDeg2Rad;
+
+    double d = fcJulianDayFromUnix([date timeIntervalSince1970]) - 2451545.0;
+
+    // Solar mean anomaly + equation of the center → ecliptic longitude.
+    double Mrad = (357.5291 + 0.98560028 * d) * kDeg2Rad;
+    double C = 1.9148 * sin(Mrad) + 0.0200 * sin(2.0 * Mrad) + 0.0003 * sin(3.0 * Mrad);
+    double lambdaRad = (fmod(Mrad * kRad2Deg + C + 180.0 + 102.9372, 360.0)) * kDeg2Rad;
+
+    // Equatorial coordinates (obliquity ε = 23.4397°).
+    double epsRad  = 23.4397 * kDeg2Rad;
+    double declRad = asin(sin(lambdaRad) * sin(epsRad));
+    double raRad   = atan2(sin(lambdaRad) * cos(epsRad), cos(lambdaRad));
+
+    // Local sidereal time → hour angle.
+    double thetaRad = (280.16 + 360.9856235 * d) * kDeg2Rad - lwRad;
+    double Hrad = thetaRad - raRad;
+
+    double sinElev = sin(latRad) * sin(declRad)
+                   + cos(latRad) * cos(declRad) * cos(Hrad);
+    if (sinElev > 1.0)  sinElev = 1.0;
+    if (sinElev < -1.0) sinElev = -1.0;
+    return asin(sinElev) * kRad2Deg;
+}
