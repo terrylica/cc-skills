@@ -1,5 +1,6 @@
 #import "MicMuteIndicator.h"
 #import "AudioStatusIndicator.h"   // stack offset above the audio I/O bar (2026-06-11)
+#import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import <CoreAudio/CoreAudio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
@@ -274,6 +275,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 
     [_banner setFrame:NSMakeRect(x, y, w, kBannerHeight) display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
+    FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
 }
 
 - (void)applyMuted:(BOOL)muted {
@@ -282,6 +284,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     if (muted) {
         [self syncPosition];
     } else {
+        FCDetachOverlayFromClock(_banner);   // detach BEFORE hiding
         [_banner orderOut:nil];
     }
 }
