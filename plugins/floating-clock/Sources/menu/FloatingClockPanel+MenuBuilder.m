@@ -16,6 +16,7 @@
 #import "../segments/FloatingClockSegmentViews.h"
 #import "../preferences/FloatingClockQuickStyles.h"
 #import "FloatingClockPanel+MenuHelpers.h"
+#import "../core/DateFormatPrefix.h"  // FCDateFormatMenuPairs (DRY 2026-06-12)
 
 @implementation FloatingClockPanel (MenuBuilder)
 
@@ -335,17 +336,7 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
     // v4 iter-111 + iter-227: 6 → 9 → 11 presets with locale-flavored + scope-flexible additions.
     [marketItems addObject:[self submenuTitled:@"Date Format"
                                          action:@selector(setDateFormat:)
-                                          pairs:@[@[@"Short         (Thu Apr 23)",         @"short"],
-                                                  @[@"Long          (Thursday April 23)",  @"long"],
-                                                  @[@"ISO           (2026-04-23)",         @"iso"],
-                                                  @[@"Compact ISO   (04-23)",              @"compact_iso"],
-                                                  @[@"Numeric       (4/23)",               @"numeric"],
-                                                  @[@"USA           (4/23/2026)",          @"usa"],
-                                                  @[@"European      (23.4.2026)",          @"european"],
-                                                  @[@"Week Number   (Wk 17)",              @"weeknum"],
-                                                  @[@"Day of Year   (Day 114)",            @"dayofyr"],
-                                                  @[@"Weekday Only  (Saturday)",           @"weekday_only"],
-                                                  @[@"Month-Day     (Apr 25)",             @"monthday"]]
+                                          pairs:FCDateFormatMenuPairs()
                                     defaultsKey:@"DateFormat"]];
 
     // v4 iter-126: symmetric auction-window lever. Gates iter-123's
