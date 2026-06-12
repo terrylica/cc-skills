@@ -1,5 +1,6 @@
 #import "AudioStatusIndicator.h"
 #import "AudioDeviceSelectionMenuController.h"  // pull-out menus (2026-06-11)
+#import "ClockChildWindowAttachment.h"          // drag-welding (2026-06-12)
 #import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
 #import <CoreAudio/CoreAudio.h>
 
@@ -480,6 +481,7 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 
 - (void)refresh {
     if (![self enabled]) {
+        FCDetachOverlayFromClock(_bar);   // detach BEFORE hiding (welding contract)
         [_bar orderOut:nil];
         return;
     }
@@ -535,6 +537,9 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
     }
     if (!_bar.visible) [_bar orderFront:nil];
     [_bar orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
+    // Drag-welding (2026-06-12): as a child window the bar moves ATOMICALLY
+    // with the clock during drags — no chase lag. Idempotent.
+    FCAttachOverlayToClock(_clock, _bar);
 }
 
 #pragma mark User actions
