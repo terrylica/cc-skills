@@ -1,5 +1,12 @@
 # Meta-Prompt: Autonomous Polyglot Monorepo Bootstrap
 
+> **⚠️ SUPERSEDED for greenfield repos (2026-06-12)**: the canonical bootstrap is now the
+> **moon + proto + Bun (Nx-convergent)** stack at
+> [../../bootstrap-monorepo/references/bootstrap-monorepo.md](../../bootstrap-monorepo/references/bootstrap-monorepo.md).
+> This Pants + mise document remains valid ONLY for maintaining repos that already use it;
+> migrate per-repo, parity-first. The SR&ED section below remains current and is referenced
+> by the new document.
+
 ## Table of Contents
 
 - [Tooling Stack: Pants + mise](#tooling-stack-pants--mise)
