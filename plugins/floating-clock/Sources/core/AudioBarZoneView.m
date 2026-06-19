@@ -109,7 +109,7 @@ static NSTextField *FCBarLabel(NSFont *font, NSColor *color, NSTextAlignment ali
 
     NSMutableAttributedString *s = [[NSMutableAttributedString alloc] init];
     [s appendAttributedString:[[NSAttributedString alloc]
-        initWithString:(self.isInput ? (muted ? @"IN⊘ " : @"IN ") : @"OUT ")
+        initWithString:(self.isInput ? (muted ? @"IN⊘ " : @"IN ") : (muted ? @"OUT⊘ " : @"OUT "))
             attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightHeavy],
                           NSForegroundColorAttributeName: tint }]];
     [s appendAttributedString:[[NSAttributedString alloc] initWithString:name
