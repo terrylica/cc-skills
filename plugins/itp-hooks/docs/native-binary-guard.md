@@ -12,14 +12,15 @@ Using `/bin/bash` in launchd plists shows a generic "bash" entry in System Setti
 
 ### Detections
 
-| Pattern                              | Example                               | Decision            |
-| ------------------------------------ | ------------------------------------- | ------------------- |
-| `.sh`/`.bash` file in automation dir | `~/.claude/automation/foo/run.sh`     | **DENY**            |
-| `.plist` with `/bin/bash`            | `<string>/bin/bash</string>`          | **DENY**            |
-| `.plist` with `.sh` script path      | `<string>/path/to/script.sh</string>` | **DENY**            |
-| `.swift` file in automation dir      | `~/.claude/automation/foo/Main.swift` | ALLOW               |
-| `.plist` with compiled binary        | `<string>/path/to/binary</string>`    | ALLOW               |
-| Any file outside automation dirs     | `~/eon/project/script.sh`             | ALLOW (not checked) |
+| Pattern                              | Example                                                                                | Decision                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------- |
+| `.sh`/`.bash` file in automation dir | `~/.claude/automation/foo/run.sh`                                                      | **DENY**                               |
+| `.plist` with `/bin/bash`            | `<string>/bin/bash</string>`                                                           | **DENY**                               |
+| `.plist` with `.sh` script path      | `<string>/path/to/script.sh</string>`                                                  | **DENY**                               |
+| `.plist` arg0 = bare interpreter     | `ProgramArguments[0]=/bin/bash` or `/opt/homebrew/bin/bun` / `node` / `python` / `env` | **DENY** (even WITH `BASH-LAUNCHD-OK`) |
+| `.swift` file in automation dir      | `~/.claude/automation/foo/Main.swift`                                                  | ALLOW                                  |
+| `.plist` with compiled binary        | `<string>/path/to/binary</string>`                                                     | ALLOW                                  |
+| Any file outside automation dirs     | `~/eon/project/script.sh`                                                              | ALLOW (not checked)                    |
 
 ### Scope (Narrow)
 
@@ -70,7 +71,19 @@ Reference: `~/.claude/automation/claude-telegram-sync/telegram-bot-runner.swift`
 
 ### Escape Hatch
 
-Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass.
+Add `# BASH-LAUNCHD-OK` (in scripts) or `<!-- BASH-LAUNCHD-OK -->` (in plists) to bypass the
+"must be a compiled native binary" requirement.
+
+**The marker does NOT waive the named-`arg0` requirement.** A bare interpreter as launchd `arg0`
+(`/bin/bash`, `/bin/sh`, `bun`, `node`, `python`, `env`, …) is denied for `.plist` files **even
+with the marker**, because macOS Login Items shows `basename(arg0)` → a generic "bash"/"bun" entry
+regardless of the script passed as a later argument. Keep bash if you want, but point `arg0` at a
+_named_ script and put the interpreter inside it (shebang or `exec`):
+
+```xml
+<key>ProgramArguments</key><array><string>/path/to/my-named-tool</string></array>
+<!-- my-named-tool:  #!/usr/bin/env bash   …or…   exec /opt/homebrew/bin/bun real.ts "$@" -->
+```
 
 ### TCC Anti-Pattern: Duplicate EventKit Access
 
@@ -121,7 +134,6 @@ rm ~/.claude/tools/gmail-tokens/<uuid>.app-credentials.json
 
 - Examples: `~/.claude/automation/calendar-alarm-sweep/swift-cli/` (CalendarAnnounce.swift, CalendarAlarmSweep.swift)
 - Credential caching: `~/.claude/automation/gmail-token-refresher/main.swift`
-
 
 ## Original hub-table narrative (PreToolUse, moved 2026-06-11)
 

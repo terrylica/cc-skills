@@ -29,6 +29,8 @@ import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
   tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolByName,
 } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+// Iter-124: skip type-checking throwaway scripts edited in temp dirs.
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // --- Constants ---
 
@@ -69,6 +71,13 @@ export async function classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeChe
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
     if (filePath.includes("/node_modules/")) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+    if (
+      isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(
+        filePath,
+      )
+    ) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
