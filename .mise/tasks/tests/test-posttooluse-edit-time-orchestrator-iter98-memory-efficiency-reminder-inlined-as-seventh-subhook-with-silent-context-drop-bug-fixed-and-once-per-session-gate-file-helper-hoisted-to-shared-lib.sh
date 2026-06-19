@@ -154,7 +154,11 @@ fi
 # .py edit overlaps with multiple subhooks (memory-efficiency, ssot-principles,
 # possibly ty). With ≥2 contributing sections, the iter-95 conditional
 # provenance prefix `[orchestrator-subhook: <name>]` MUST activate.
-TEMP_E2E_DIR=$(mktemp -d -t iter98-e2e.XXXXXX)
+# Scratch dir under the repo-local (gitignored) tmp/ — NOT mktemp's default
+# /var/folders $TMPDIR — so iter-124's temp-dir lint-skip does not no-op the
+# orchestrator on this fixture (a repo-local path mirrors a real edit).
+mkdir -p "$REPO_ROOT/tmp"
+TEMP_E2E_DIR=$(mktemp -d "$REPO_ROOT/tmp/iter98-e2e.XXXXXX")
 TEMP_PY_FILE="$TEMP_E2E_DIR/sample.py"
 TEMP_PAYLOAD_FILE="$TEMP_E2E_DIR/payload.json"
 trap 'rm -rf "$TEMP_E2E_DIR"' EXIT
