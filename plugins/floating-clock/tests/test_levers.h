@@ -35,6 +35,8 @@ void test_shadow_spec_catalog(void);
 void test_segment_border_spec_catalog(void);
 void test_solar_canvas_color_ramp(void);
 void test_overlay_stacking_positioner(void);
+void test_overlay_frame_with_width(void);   // 2026-06-14 content-width audio bar
+void test_mute_readers_guard(void);         // 2026-06-14 in/out mute reader guards
 void test_session_signal_window(void);
 void test_session_state_label(void);
 void test_session_state_color(void);
