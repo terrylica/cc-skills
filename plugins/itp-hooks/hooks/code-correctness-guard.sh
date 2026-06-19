@@ -164,6 +164,24 @@ if [[ "$TOOL_NAME" == "Write" || "$TOOL_NAME" == "Edit" ]]; then
         exit 0
     fi
 
+    # Iter-124: skip static analysis on throwaway scratch scripts edited inside
+    # temporary directories. Carefully linting a file that exists only to be run
+    # once and discarded is wasted wall-clock + wasted Claude context. Mirror of
+    # lib/shared-temporary-directory-edited-file-path-detection-...-iter124.ts
+    # (the TS lint subhooks share the same temp-root set). Honors $TMPDIR and its
+    # macOS /private realpath twin.
+    case "$FILE_PATH" in
+        /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*|/dev/shm/*)
+            exit 0
+            ;;
+    esac
+    if [[ -n "${TMPDIR:-}" ]]; then
+        TMPDIR_NORM="${TMPDIR%/}"
+        if [[ "$FILE_PATH" == "$TMPDIR_NORM"/* || "$FILE_PATH" == "/private${TMPDIR_NORM}"/* ]]; then
+            exit 0
+        fi
+    fi
+
     # For Edit tool: determine changed line range to scope linter output.
     # Only reports issues on lines that were actually modified (± buffer).
     # This prevents flagging pre-existing issues elsewhere in the file.

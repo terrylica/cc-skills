@@ -37,6 +37,8 @@ import { trackHookError } from "./lib/hook-error-tracker.ts";
 // incidental to the implementation (never documented as a constraint),
 // so widening the prefix tolerance is operator-friendly.
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+// Iter-124: skip lint/quality nudges on throwaway scripts edited in temp dirs.
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 const SETPROCTITLE_REMINDER_ESCAPE_HATCH_CONFIGURATION_REGISTERED_IN_ITER111_CANONICAL_REGISTRY = {
   markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
@@ -783,6 +785,17 @@ async function main(): Promise<void> {
     const patternPath = normalizeForPatternMatch(input.tool_input?.file_path || "");
 
     if (!rawFilePath) {
+      process.exit(0);
+    }
+
+    // Iter-124: throwaway scripts edited inside temp directories get no
+    // lint/quality nudges — carefully checking a file that exists only to be
+    // run once and discarded is wasted wall-clock + wasted Claude context.
+    if (
+      isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(
+        input.tool_input?.file_path || "",
+      )
+    ) {
       process.exit(0);
     }
 
