@@ -1,3 +1,12 @@
+# [21.97.0](https://github.com/terrylica/cc-skills/compare/v21.96.1...v21.97.0) (2026-06-19)
+
+
+### Features
+
+* **floating-clock:** output-mute indicator + name-width audio bar ([4065b13](https://github.com/terrylica/cc-skills/commit/4065b13129588005606cd83d66660d2243b7fef6))
+* **itp-hooks:** skip lint nudges on throwaway temp-dir scripts ([4b09008](https://github.com/terrylica/cc-skills/commit/4b090086fb099ff965d20f33b617dbe1f2cbf606))
+* **statusline-tools:** model segment on own line + CC version token ([742b4b4](https://github.com/terrylica/cc-skills/commit/742b4b4f8b3eeb45d068917fd115042a9b7c57fd))
+
 ## [21.96.1](https://github.com/terrylica/cc-skills/compare/v21.96.0...v21.96.1) (2026-06-12)
 
 
