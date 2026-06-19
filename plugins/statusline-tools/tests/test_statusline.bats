@@ -348,3 +348,28 @@ EOF
     [[ "$plain" == *"f1e1d-shift-regression-uuid"* ]]
     [[ "$plain" != *"JSONL ID: /tmp/nonexistent-transcript.jsonl"* ]]
 }
+
+@test "model segment renders the native Claude Code .version on its own line" {
+    # 2026-06-19 operator directive: the running Claude Code version (native
+    # statusline payload field .version, "our current version locally") is
+    # appended to the model segment, which now renders on its OWN line below
+    # the code-stats line. Assert the version token appears on the SAME line
+    # as the model id, separated by " | ".
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9[1m]\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":true},\"version\":\"2.1.183\"}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"2.1.183"* ]]
+    model_line=$(printf '%s\n' "$plain" | grep 'claude-test-9')
+    [[ "$model_line" == *"claude-test-9[1m]"*"| 2.1.183"* ]]
+}
+
+@test "model segment omits version token when .version absent" {
+    # No invented fallback: a payload lacking .version must not render a
+    # trailing " | " separator or any placeholder.
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"thinking\":{\"enabled\":true}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    model_line=$(printf '%s\n' "$plain" | grep 'claude-test-9')
+    [[ "$model_line" == *"thinking:true"* ]]
+    [[ "$model_line" != *"thinking:true |"* ]]
+}
