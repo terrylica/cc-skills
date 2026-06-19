@@ -104,7 +104,11 @@ else
 fi
 
 # ─── Case 6: end-to-end MultiEdit payload on .py fires expected subhooks ────
-TEMP_E2E_DIR=$(mktemp -d -t iter100-e2e.XXXXXX)
+# Scratch dir under the repo-local (gitignored) tmp/ — NOT mktemp's default
+# /var/folders $TMPDIR — so iter-124's temp-dir lint-skip does not no-op the
+# orchestrator on this fixture (a repo-local path mirrors a real edit).
+mkdir -p "$REPO_ROOT/tmp"
+TEMP_E2E_DIR=$(mktemp -d "$REPO_ROOT/tmp/iter100-e2e.XXXXXX")
 trap 'rm -rf "$TEMP_E2E_DIR"' EXIT
 TEMP_PY_FILE="$TEMP_E2E_DIR/sample.py"
 cat > "$TEMP_PY_FILE" <<'PY'
@@ -174,7 +178,8 @@ fi
 
 # ─── Case 9: backward compatibility — Write payloads still fire correctly ────
 # Iter-100 must NOT break the existing Write|Edit behavior.
-TEMP_BC_DIR=$(mktemp -d -t iter100-bc.XXXXXX)
+mkdir -p "$REPO_ROOT/tmp"
+TEMP_BC_DIR=$(mktemp -d "$REPO_ROOT/tmp/iter100-bc.XXXXXX")
 TEMP_BC_PY_FILE="$TEMP_BC_DIR/sample.py"
 cat > "$TEMP_BC_PY_FILE" <<'PY'
 import os
