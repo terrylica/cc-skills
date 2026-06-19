@@ -426,6 +426,12 @@ orchestration/consumer, not kernel. Choose the pattern by the 8-float-op test (`
 | **A — conformance vectors**  | kernel math fits the 8 ops deterministically               | one reference impl per language + shared test-vector files (JSON/CSV with expected outputs, sha256-pinned); every language must reproduce bit-exact |
 | **B — one WASM/native core** | anything beyond the 8 ops (transcendentals, stateful FSMs) | ONE compiled core (Rust → wasm/cdylib/PyO3) + thin per-language bindings; bindings are glue-only                                                    |
 
+**Pattern B mechanism gate** (verified 2026-06): if the kernel needs threads or host-grade
+throughput → native core (cdylib + PyO3/napi-rs bindings), NOT WASM — WASI threading is still
+roadmapped with no ship date (WASI 0.3, Feb 2026, added async only). For the full boundary
+decision ladder (process → RPC → Arrow data-plane → FFI → WASM component) and verified tool
+status, see [cross-language-interop.md](./cross-language-interop.md).
+
 Contract types:
 
 - `schemas/*.json` (JSON Schema 2020-12) or `schemas/*.proto` are the SSoT.
@@ -434,6 +440,13 @@ Contract types:
   byte-diffs against the committed copy (`moon run contracts:check`).
 - Bindings carry **parity tests** against the core (count them: "140/140 bit parity" is a
   task output, not a vibe).
+- Proto SSoT: gate with `buf breaking` and **pick the category deliberately** — `FILE`
+  (source-level, strictest) vs `PACKAGE` vs `WIRE_JSON` vs `WIRE` (binary only). A field
+  rename passes `WIRE` yet breaks every generated SDK.
+- JSON Schema SSoT: it's a constraint language, not a type spec — codegen is lossy. Keep
+  codegen-bound schemas in the constructive subset (objects + `required`, enums, arrays,
+  scalars); avoid `not` / `multipleOf` / heavy `allOf`. Rust side: typify (Rust-only,
+  `x-rust-type` round-trip).
 
 ## Phase 7: CLI-First Machine-Readable Surface
 
