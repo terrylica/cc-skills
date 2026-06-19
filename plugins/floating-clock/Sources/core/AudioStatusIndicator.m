@@ -13,13 +13,17 @@
 static const CGFloat kAudioBarHeight = 20.0;
 static const CGFloat kAudioBarGap    = 3.0;
 
-// Fixed-width control cells inside each zone (points).
-static const CGFloat kGlyphW = 14.0;   // − and + hit cells
-// Numeric level cell. "100" at 11pt monospaced-bold ≈ 20pt of glyphs, but
-// NSTextField adds ~2pt internal padding per side — 24pt truncated "100"
-// to "…" (verified on-screen 2026-06-11), so size for glyphs + padding.
-static const CGFloat kLevelW = 30.0;
-static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
+// Everything in a zone that is NOT the name label: left pad + 2pt name→glyph
+// gap + the −/level/+ control cells + right pad. MUST equal the chrome
+// FCAudioZoneView -layout reserves (kPadX 6 + nameW + 2 + kGlyphW 14 +
+// kLevelW 30 + kGlyphW 14 + kPadX 6), so a zone of (name width + kZoneChromeW)
+// shows the name in full. 6 + 2 + 14 + 30 + 14 + 6 = 72. The per-cell
+// constants themselves live in FCAudioZoneView (the only place that lays them
+// out); this file needs only their sum.
+static const CGFloat kZoneChromeW = 72.0;
+// Floor per zone so a short name (or "(no device)") next to a long one never
+// looks cramped; the bar-width floor (clock width) handles the both-short case.
+static const CGFloat kMinZoneW = 92.0;
 
 #pragma mark - Indicator
 
@@ -38,11 +42,21 @@ static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
     FCAudioDeviceSelectionMenuController *_menuController;
     NSString       *_transientText[2];
     CFAbsoluteTime  _transientUntil[2];
+
+    // Content-width sizing (2026-06-14). Each refresh stashes the width each
+    // zone needs to show its prefix+name in full; syncPosition turns those
+    // into the bar width and the asymmetric zone split. _lastInW/_lastBarW
+    // cache the applied layout so the steady-state 1Hz tick re-flows nothing.
+    CGFloat _inZoneNeed;
+    CGFloat _outZoneNeed;
+    CGFloat _lastInW;
+    CGFloat _lastBarW;
 }
 
 - (instancetype)initWithClockPanel:(NSPanel *)clockPanel {
     if ((self = [super init])) {
         _clock = clockPanel;
+        _lastInW = _lastBarW = -1.0;   // force the first zone layout to apply
         [self buildBar];
         [self refresh];
     }
@@ -93,11 +107,53 @@ static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
     [_bar orderOut:nil];   // shown on first refresh when enabled
 }
 
-- (void)layoutZonesForWidth:(CGFloat)w {
-    CGFloat half = floor((w - 1.0) / 2.0);
-    _inZone.frame  = NSMakeRect(0, 0, half, kAudioBarHeight);
-    _divider.frame = NSMakeRect(half, 3, 1, kAudioBarHeight - 6);
-    _outZone.frame = NSMakeRect(half + 1, 0, w - half - 1, kAudioBarHeight);
+// Width a zone needs to show its prefix+name in full: the rendered composite
+// measured at the SAME fonts FCAudioZoneView -renderDevice: uses, plus the
+// fixed control chrome, floored at kMinZoneW. Strikethrough (muted) doesn't
+// change advance, so only the prefix glyph matters ("IN⊘ "/"OUT⊘ " when muted
+// vs "IN "/"OUT ") — measured with the SAME muted state the zone will render so
+// the widened bar always fits the ⊘.
+- (CGFloat)zoneWidthForName:(NSString *)name isInput:(BOOL)isInput muted:(BOOL)muted {
+    NSString *prefix = isInput ? (muted ? @"IN⊘ " : @"IN ") : (muted ? @"OUT⊘ " : @"OUT ");
+    NSMutableAttributedString *s = [[NSMutableAttributedString alloc] init];
+    [s appendAttributedString:[[NSAttributedString alloc] initWithString:prefix
+        attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightHeavy] }]];
+    [s appendAttributedString:[[NSAttributedString alloc] initWithString:(name ?: @"")
+        attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium] }]];
+    // +3 absorbs sub-pixel rounding (the label's own nameW subtracts 2) so the
+    // last glyph never clips into an ellipsis.
+    CGFloat w = ceil(s.size.width) + 3.0 + kZoneChromeW;
+    return w < kMinZoneW ? kMinZoneW : w;
+}
+
+// Lay the two zones into a bar of width `w` using the stashed per-zone needs.
+//   · bar ≥ content → split the slack evenly (names left-align, trailing pad).
+//   · bar < content (capped at screen width) → shrink proportionally; the
+//     name labels truncate as a last resort.
+// Caches the applied split so the 1Hz tick re-flows nothing at steady state.
+- (void)layoutZonesInBarWidth:(CGFloat)w {
+    CGFloat avail = w - 1.0;                       // minus the 1pt divider
+    CGFloat need  = _inZoneNeed + _outZoneNeed;
+    CGFloat inW;
+    if (need <= 0.0) {
+        inW = floor(avail / 2.0);
+    } else if (avail >= need) {
+        inW = _inZoneNeed + (avail - need) / 2.0;  // even slack split
+    } else {
+        inW = round(_inZoneNeed / need * avail);   // proportional shrink
+    }
+    inW = floor(inW);
+    if (inW < 1.0)          inW = 1.0;
+    if (inW > avail - 1.0)  inW = avail - 1.0;
+    CGFloat outW = avail - inW;
+
+    if (fabs(inW - _lastInW) < 0.5 && fabs(w - _lastBarW) < 0.5) return;  // unchanged
+    _lastInW  = inW;
+    _lastBarW = w;
+
+    _inZone.frame  = NSMakeRect(0, 0, inW, kAudioBarHeight);
+    _divider.frame = NSMakeRect(inW, 3, 1, kAudioBarHeight - 6);
+    _outZone.frame = NSMakeRect(inW + 1, 0, outW, kAudioBarHeight);
     _inZone.needsLayout  = YES;
     _outZone.needsLayout = YES;
 }
@@ -118,6 +174,10 @@ static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
     // button via its silence meter).
     BOOL inMuted = FCReadInputMute(inDev)
                 || (self.micIndicator && [self.micIndicator isShowing]);
+    // Output (playback) mute is a pure property read on the default output —
+    // no analog-button/silence-meter path exists for outputs, so unlike the IN
+    // zone there is nothing to OR in (FCReadOutputMute IS the whole signal).
+    BOOL outMuted = FCReadOutputMute(outDev);
 
     // Transient ⏳/✗ status (BT connect in flight) overrides the device name.
     NSString *inName  = [self transientForInput:YES]
@@ -130,7 +190,14 @@ static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
                      muted:inMuted];
     [_outZone renderDevice:outName
               levelPercent:(outVol < 0.0f ? -1 : (NSInteger)lroundf(outVol * 100.0f))
-                     muted:NO];
+                     muted:outMuted];
+
+    // Stash the width each zone needs so the (possibly wider) bar fits both
+    // full names — consumed by syncPosition. Device names change rarely, so
+    // this measurement is effectively idle most ticks.
+    _inZoneNeed  = [self zoneWidthForName:inName  isInput:YES muted:inMuted];
+    _outZoneNeed = [self zoneWidthForName:outName isInput:NO  muted:outMuted];
+
     [self syncPosition];
 }
 
@@ -143,11 +210,17 @@ static const CGFloat kPadX   = 6.0;    // zone inner horizontal padding
     NSRect vf   = s ? s.visibleFrame : c;
 
     // Bottom of the stack: stackOffset 0 (geometry SSoT: OverlayStackingPositioner).
-    NSRect f = FCComputeOverlayFrame(c, vf, kAudioBarHeight, 0.0, kAudioBarGap);
+    // Bar widens past the clock when a device name needs it (centered, capped
+    // at screen width); never narrower than the clock.
+    CGFloat desired = _inZoneNeed + 1.0 + _outZoneNeed;   // +1 divider
+    NSRect f = FCComputeOverlayFrameWithWidth(c, vf, kAudioBarHeight, 0.0,
+                                              kAudioBarGap, desired);
     if (!NSEqualRects(f, _bar.frame)) {
         [_bar setFrame:f display:YES];
-        [self layoutZonesForWidth:f.size.width];
     }
+    // Re-flow zones from the stashed needs (a name swap can change the split
+    // without changing total width); the method caches and no-ops when stable.
+    [self layoutZonesInBarWidth:f.size.width];
     if (!_bar.visible) [_bar orderFront:nil];
     [_bar orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
     // Drag-welding (2026-06-12): as a child window the bar moves ATOMICALLY

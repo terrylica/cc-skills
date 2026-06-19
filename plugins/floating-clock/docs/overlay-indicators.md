@@ -17,8 +17,22 @@ bars shift one 20pt+3pt slot up while it shows). Visible **by default**
 "plug-and-play" prioritization is gone; this bar is fully manual control.
 
 Layout: `IN <device> − <level> +  │  OUT <device> − <level> +` (green `IN` /
-blue `OUT` prefixes, middle-truncating names, levels 0–100 or `--` when the
-device exposes no volume control — e.g. DisplayPort sinks).
+blue `OUT` prefixes, levels 0–100 or `--` when the device exposes no volume
+control — e.g. DisplayPort sinks).
+
+**Content-width sizing (2026-06-14).** Names used to truncate in the middle
+(`Terry's AirPods Pro` → `Terry's…`) because the bar was locked to the clock
+width and split 50/50. Now each zone is measured for the width it needs to
+show its prefix+name in full (`-zoneWidthForName:isInput:muted:`), and the bar
+**grows wider than the clock**, **centered** on it, to fit both — floored at
+the clock width (never narrower) and capped at the screen's visible width
+(only then do names shrink proportionally and, as a last resort, truncate).
+Geometry SSoT: `FCComputeOverlayFrameWithWidth` in `OverlayStackingPositioner`
+(the legacy clock-width `FCComputeOverlayFrame` is now that fn with
+`desired == clock width`). The asymmetric zone split lives in
+`-layoutZonesInBarWidth:` (even slack split when the bar ≥ content). Cosmetic
+note: the mic-mute / VPN banners stay clock-width, so when the audio bar
+widens they sit centered above a wider bar.
 
 Interactions (each zone independent):
 
@@ -64,6 +78,28 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
   outside this repo: `~/.local/bin/mic-mute` (chezmoi) gained a `default`
   target and both Karabiner F10 bindings use it, so the mute key follows the
   active mic too.
+- **Mute state on OUT (2026-06-14)**: symmetric to IN — when the system output
+  is muted (the mute key / `set volume output muted`), the OUT zone renders
+  `OUT⊘` + red struck-through device name + red level. Detection is a pure 1Hz
+  property read, `FCReadOutputMute` = `kAudioDevicePropertyMute` on the
+  **output scope** main element of the default output device. There is NO
+  silence-meter/IOProc path (that's input-only — outputs have no analog mute
+  button to catch), so the HAL flag is the whole signal.
+  - **Why `FCReadOutputMute` must NOT gate on `AudioObjectHasProperty` (the one
+    asymmetry vs `FCReadInputMute`):** on the OUTPUT scope, `AudioObjectHasProperty`
+    returns FALSE _even when the property is readable_ (macOS quirk, confirmed
+    on this Mac across built-in / Bluetooth / virtual by a toggle probe). Gating
+    on it would make output mute silently always-NO. `AudioObjectGetPropertyData`
+    self-gates instead — it errors on devices that truly lack the property (→ NO)
+    and returns 0 where there's no independent HAL mute.
+  - **Coverage / honesty:** Bluetooth (AirPods) tracks the system mute exactly.
+    Built-in speakers and virtual devices have no independent HAL mute — the
+    volume-key mute lives in the OS mixer, not the device — so they read 0
+    (unmuted) and the OUT zone simply never shows `⊘`. We deliberately do NOT
+    treat volume==0 as muted (would false-positive when the user just turns the
+    level down, and on HDMI/DP sinks). Detection verified empirically (on-device
+    mute-toggle probe) + on-screen, not by headless unit test; the unit suite
+    only locks the unknown-device nil-guard (`test_mute_readers_guard`).
 - **Change flash**: a device or level change blinks the affected text amber
   for ~1.4s (`kFlashSecs`), then decays to white on the next tick — external
   changes (volume keys, other apps) catch the eye.

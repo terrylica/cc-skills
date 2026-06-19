@@ -23,6 +23,18 @@ NSRect FCComputeOverlayFrame(NSRect clockFrame, NSRect visibleFrame,
                              double overlayHeight, double stackOffset,
                              double gap);
 
+// Content-width variant (2026-06-14): the audio I/O bar must grow wider than
+// the clock so a full device name ("Terry's AirPods Pro") never truncates.
+// `desiredWidth` is the content's natural width; the result is floored at the
+// clock width (never smaller — keeps the bar visually tied to the clock),
+// capped at the visible-frame width, CENTERED on the clock, then x-clamped
+// into the screen. Y is identical to FCComputeOverlayFrame (above, or flip
+// below at the screen top). FCComputeOverlayFrame == this with
+// desiredWidth = clockFrame width.
+NSRect FCComputeOverlayFrameWithWidth(NSRect clockFrame, NSRect visibleFrame,
+                                      double overlayHeight, double stackOffset,
+                                      double gap, double desiredWidth);
+
 #ifdef __cplusplus
 }
 #endif

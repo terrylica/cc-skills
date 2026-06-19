@@ -18,6 +18,10 @@ void FCSetDefaultDevice(AudioObjectID dev, BOOL input);
 NSString *_Nullable FCAudioDeviceName(AudioObjectID dev);
 BOOL FCDeviceHasChannels(AudioObjectID dev, BOOL input);
 BOOL FCReadInputMute(AudioObjectID dev);
+// Output-scope (playback) mute on the default output device — the system mute
+// the mute key / "set volume output muted" toggles. See the .m: unlike the
+// input reader it must NOT gate on AudioObjectHasProperty (output-scope quirk).
+BOOL FCReadOutputMute(AudioObjectID dev);
 // Volume as 0.0–1.0, or -1 when the device exposes no volume control.
 float FCReadVolume(AudioObjectID dev, BOOL input);
 BOOL FCWriteVolume(AudioObjectID dev, BOOL input, float v);
