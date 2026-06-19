@@ -69,6 +69,8 @@ import {
   tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName,
 } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
 import { isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+// Iter-124: skip ast-grep scanning throwaway scripts edited in temp dirs.
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Constants
@@ -286,6 +288,13 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
     if (isTestFilePathExcludedFromSsotPrinciplesScan(filePath)) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+    if (
+      isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(
+        filePath,
+      )
+    ) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 
