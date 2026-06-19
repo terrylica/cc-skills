@@ -107,9 +107,9 @@ echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 
 # string → token omitted from render) from present-false (official value
 # "false" rendered). jq's `//` cannot make that distinction (it treats false
 # as empty), so booleans use an explicit null check instead of `// false`.
-IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_flag session_id transcript_file cost git_branch <<< "$(
-    echo "$input" | jq -r '[(.model.display_name // .model.id // ""), (.model.id // ""), (.effort.level // ""), (.thinking.enabled | if . == null then "" else tostring end), (.fast_mode | if . == null then "" else tostring end), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
-        || printf '\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
+IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_flag session_id transcript_file cost git_branch cc_version <<< "$(
+    echo "$input" | jq -r '[(.model.display_name // .model.id // ""), (.model.id // ""), (.effort.level // ""), (.thinking.enabled | if . == null then "" else tostring end), (.fast_mode | if . == null then "" else tostring end), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // ""), (.version // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
+        || printf '\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
 )"
 
 # === Session Chain (Bun-based) ===
@@ -1148,15 +1148,24 @@ fi
 # xhigh ⇏ ultracode. The native tokens effort:xhigh · thinking:on already
 # carry the full payload truth; interpreting them is the operator's job.
 # Reinstate ONLY if upstream ships a native `ultracode` payload field.
+# Model segment is its OWN line (moved off line 1 — 2026-06-19 operator
+# directive). Renders native payload echoes (.model.id, .effort.level,
+# .thinking.enabled, .fast_mode) and ends with the running Claude Code
+# version straight from the statusline payload's native .version field
+# ("our current version of Claude Code locally") — no subprocess, official
+# value verbatim per the NATIVE-FIELDS-ONLY invariant. Starts with the model
+# token directly (no leading " | " — that separator existed only when this
+# was appended to git_changes).
 model_inline=""
 model_token="${model_id:-$model_raw}"
 if [ -n "$model_token" ]; then
-    model_inline=" ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${model_token}${RESET}"
+    model_inline="${BRIGHT_BLACK}${model_token}${RESET}"
     [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
     [ -n "$thinking_enabled" ] && model_inline="${model_inline}${BRIGHT_BLACK} · thinking:${thinking_enabled}${RESET}"
     [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
+    [ -n "$cc_version" ] && model_inline="${model_inline} ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${cc_version}${RESET}"
 fi
-line1="${git_changes}${model_inline}"
+line1="${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
 vis_label=""
@@ -1198,6 +1207,10 @@ echo -e "$line1"
 # Code statistics (scc): LOC, files, complexity, top 3 languages, COCOMO
 # Empty when scc unavailable, repo not git, or computation timed out (>1s)
 [ -n "$code_stats" ] && echo -e "$code_stats"
+
+# Model segment line (own line as of 2026-06-19) — after code stats, before
+# the datetime/doorward line. Suppressed entirely when no model token.
+[ -n "$model_inline" ] && echo -e "$model_inline"
 
 # =============================================================================
 # Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
