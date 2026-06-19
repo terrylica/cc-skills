@@ -155,10 +155,14 @@ else
 fi
 
 # ─── Case 10: end-to-end .py edit fires ssot-principles via orchestrator ─────
-# macOS mktemp appends the random suffix AFTER the template, so use a temp
+# macOS mktemp appends the random suffix AFTER the template, so use a
 # DIRECTORY then materialize the .py file inside it (extname() relies on the
-# trailing .py).
-TEMP_E2E_DIR=$(mktemp -d -t iter97-e2e.XXXXXX)
+# trailing .py). NOTE: the scratch dir lives under the repo-local (gitignored)
+# tmp/ — NOT mktemp's default /var/folders $TMPDIR — because iter-124's
+# temp-dir lint-skip would otherwise no-op the orchestrator on this fixture.
+# A repo-local path also mirrors a real project edit, which is what fires.
+mkdir -p "$REPO_ROOT/tmp"
+TEMP_E2E_DIR=$(mktemp -d "$REPO_ROOT/tmp/iter97-e2e.XXXXXX")
 TEMP_PY_FILE="$TEMP_E2E_DIR/sample.py"
 TEMP_PAYLOAD_FILE="$TEMP_E2E_DIR/payload.json"
 trap 'rm -rf "$TEMP_E2E_DIR"' EXIT
