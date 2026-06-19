@@ -8,6 +8,7 @@
 #import "../Sources/core/SegmentBorderSpec.h"
 #import "../Sources/core/SolarSkyColorRamp.h"
 #import "../Sources/core/OverlayStackingPositioner.h"
+#import "../Sources/core/CoreAudioDeviceHALHelpers.h"
 #import "../Sources/data/SolarEvents.h"
 #import <math.h>
 
@@ -86,6 +87,67 @@ void test_overlay_stacking_positioner(void) {
     NSRect left = NSMakeRect(-50, 400, 320, 60);
     if (FCComputeOverlayFrame(left, vf, 20, 0, 3).origin.x != 0) {
         failures++; fprintf(stderr, "FAIL %s: left clamp wrong\n", __func__);
+    }
+}
+
+void test_overlay_frame_with_width(void) {
+    // 2026-06-14: the audio bar grows wider than the clock to fit a full
+    // device name. Lock the width-aware geometry: floor at clock width, center
+    // on the clock, cap at screen width, x-clamp on-screen, and exact
+    // equivalence with the legacy fn at desired == clock width.
+    NSRect vf = NSMakeRect(0, 0, 1000, 800);
+    NSRect clock = NSMakeRect(300, 400, 320, 60);   // midX 460
+
+    // Desired < clock width → floored to clock width; centered == clock x.
+    NSRect a = FCComputeOverlayFrameWithWidth(clock, vf, 20, 0, 3, 100);
+    if (a.size.width != 320 || a.origin.x != 300) {
+        failures++; fprintf(stderr, "FAIL %s: floor-at-clock-width (w=%.0f x=%.0f)\n",
+                            __func__, a.size.width, a.origin.x);
+    }
+
+    // Desired > clock width → widens, centered on the clock's midX.
+    NSRect b = FCComputeOverlayFrameWithWidth(clock, vf, 20, 0, 3, 500);
+    if (b.size.width != 500 || b.origin.x != 210) {
+        failures++; fprintf(stderr, "FAIL %s: widen+center (w=%.0f x=%.0f)\n",
+                            __func__, b.size.width, b.origin.x);
+    }
+
+    // Desired > screen → capped at the visible width, clamped to the origin.
+    NSRect c = FCComputeOverlayFrameWithWidth(clock, vf, 20, 0, 3, 5000);
+    if (c.size.width != 1000 || c.origin.x != 0) {
+        failures++; fprintf(stderr, "FAIL %s: screen-width cap (w=%.0f x=%.0f)\n",
+                            __func__, c.size.width, c.origin.x);
+    }
+
+    // Wide bar over a narrow clock near the right edge → clamped on-screen.
+    NSRect rclk = NSMakeRect(850, 400, 120, 60);    // midX 910
+    NSRect d = FCComputeOverlayFrameWithWidth(rclk, vf, 20, 0, 3, 400);
+    if (d.size.width != 400 || d.origin.x != 600) {
+        failures++; fprintf(stderr, "FAIL %s: right-edge clamp (x=%.0f)\n",
+                            __func__, d.origin.x);
+    }
+
+    // Equivalence: width-aware fn with desired == clock width == legacy fn.
+    NSRect leg = FCComputeOverlayFrame(clock, vf, 20, 0, 3);
+    NSRect eqv = FCComputeOverlayFrameWithWidth(clock, vf, 20, 0, 3, clock.size.width);
+    if (!NSEqualRects(leg, eqv)) {
+        failures++; fprintf(stderr, "FAIL %s: legacy-equivalence\n", __func__);
+    }
+}
+
+void test_mute_readers_guard(void) {
+    // 2026-06-14: output-mute detection (FCReadOutputMute) joins FCReadInputMute.
+    // Real mute detection needs live hardware (verified by the on-device toggle
+    // probe + on-screen check, not headless CI), so lock only what IS
+    // deterministic here: both readers must return NO for an unknown device —
+    // the nil-guard that keeps a 1Hz tick safe when no device is bound. This
+    // also pins both symbols into the link so a signature/scope regression in
+    // either reader fails the build.
+    if (FCReadInputMute(kAudioObjectUnknown) != NO) {
+        failures++; fprintf(stderr, "FAIL %s: input mute on unknown device should be NO\n", __func__);
+    }
+    if (FCReadOutputMute(kAudioObjectUnknown) != NO) {
+        failures++; fprintf(stderr, "FAIL %s: output mute on unknown device should be NO\n", __func__);
     }
 }
 
