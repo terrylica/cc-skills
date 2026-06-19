@@ -64,6 +64,31 @@ BOOL FCReadInputMute(AudioObjectID dev) {
     return v != 0;
 }
 
+// Software mute flag on the device's OUTPUT scope — the playback analog of
+// FCReadInputMute, tracking the system output mute (the mute key / AppleScript
+// `set volume output muted`). Empirically verified on-device 2026-06-14:
+// kAudioDevicePropertyMute on the OUTPUT-scope main element toggles 0<->1 in
+// lockstep with the system mute on the DEFAULT OUTPUT device (AirPods/Bluetooth);
+// built-in speakers + virtual devices read 0 (no independent HAL mute — the
+// volume-key mute lives in the OS mixer, not the device), so no false positives.
+//
+// CRITICAL difference from FCReadInputMute: do NOT gate on AudioObjectHasProperty.
+// On the OUTPUT scope it returns FALSE even when the property is perfectly
+// readable (macOS quirk, confirmed across built-in / Bluetooth / virtual via a
+// toggle probe) — gating on it would make this ALWAYS return NO and the feature
+// would silently never fire. AudioObjectGetPropertyData self-gates: it errors on
+// devices that genuinely lack the property (→ NO) and returns 0 where there is
+// no independent mute, so a direct read is both correct and false-positive-free.
+BOOL FCReadOutputMute(AudioObjectID dev) {
+    if (dev == kAudioObjectUnknown) return NO;
+    AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,
+                                     kAudioDevicePropertyScopeOutput,
+                                     kAudioObjectPropertyElementMain };
+    UInt32 v = 0, sz = sizeof(v);
+    if (AudioObjectGetPropertyData(dev, &a, 0, NULL, &sz, &v) != noErr) return NO;
+    return v != 0;
+}
+
 // Volume as 0.0–1.0, or -1 when the device exposes no volume control
 // (e.g. HDMI/DisplayPort sinks). Tries the virtual main element first,
 // then channel 1 (left) — the common pattern for BT and USB devices.
