@@ -51,6 +51,8 @@ import {
 // contract lib where iter-104 pragmatically introduced it).
 import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
 import { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+// Iter-124: skip vale linting throwaway CLAUDE.md edited in temp dirs.
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // --- Constants ---
 
@@ -188,6 +190,13 @@ export async function classifyValeTerminologyConformanceOnEditedClaudeMdFileForP
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
     if (!filePath.endsWith("CLAUDE.md")) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    if (
+      isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(
+        filePath,
+      )
+    ) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
     if (!existsSync(filePath)) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
 
     const configPath =

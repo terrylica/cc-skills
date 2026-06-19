@@ -72,7 +72,11 @@ else
     assert_fails "Case 1c: exit=$case1_exit, expected 2"
 fi
 
-# ─── Case 2: launchd .plist with /bin/bash ProgramArguments → DENY ────────────
+# ─── Case 2: launchd .plist with /bin/bash as arg0 → DENY ─────────────────────
+# Now denied by the named-arg0 rule (it runs BEFORE the legacy bash-reference
+# detection), so the authoritative message is the "must be a NAMED script" one.
+# The legacy `plist must not reference /bin/bash` message still fires when
+# /bin/bash appears as a NON-arg0 string (and the .sh-path branch is covered by Case 3).
 case2_payload="$PAYLOAD_TEMP_DIR/case2.json"
 cat > "$case2_payload" <<'PAYLOAD'
 {"tool_name":"Write","tool_input":{"file_path":"/Users/foo/Library/LaunchAgents/com.example.plist","content":"<plist><dict><key>ProgramArguments</key><array><string>/bin/bash</string><string>-c</string><string>echo hi</string></array></dict></plist>"}}
@@ -83,8 +87,8 @@ case2_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case2_payload" 2>/dev/null)
 case2_exit=$?
 set -e
 
-if [[ "$case2_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case2_stdout" == *'plist must not reference /bin/bash'* ]]; then
-    assert_passes "Case 2a: orchestrator denies plist with /bin/bash"
+if [[ "$case2_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case2_stdout" == *'must be a NAMED script'* ]]; then
+    assert_passes "Case 2a: orchestrator denies plist with /bin/bash as arg0 (named-arg0 rule)"
 else
     assert_fails "Case 2a: plist /bin/bash deny missing; got=${case2_stdout:0:200}"
 fi
@@ -241,6 +245,80 @@ if [[ "$additional_context_emission_violations_count" == "0" ]]; then
     assert_passes "Case 10: PreToolUse additionalContext silent-drop NON-USE invariant holds across all 7 inlined subhooks (GitHub #15664 defense-in-depth — emission-pattern audit ignores prose-comment mentions)"
 else
     assert_fails "Case 10: ${additional_context_emission_violations_count} PreToolUse subhook(s) emit additionalContext — silent-drop hazard!"
+fi
+
+# ─── Case 11: plist arg0=/bin/bash WITH BASH-LAUNCHD-OK marker → DENY ─────────
+# Hardening: the marker waives "must be a native binary" but NOT "arg0 must be a
+# NAMED script", so a bare /bin/bash as arg0 is denied even with the marker.
+case11_payload="$PAYLOAD_TEMP_DIR/case11.json"
+cat > "$case11_payload" <<'PAYLOAD'
+{"tool_name":"Write","tool_input":{"file_path":"/Users/foo/Library/LaunchAgents/com.example.plist","content":"<!-- BASH-LAUNCHD-OK --><plist><dict><key>ProgramArguments</key><array><string>/bin/bash</string><string>/Users/foo/scripts/named-tool</string></array></dict></plist>"}}
+PAYLOAD
+
+set +e
+case11_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case11_payload" 2>/dev/null)
+case11_exit=$?
+set -e
+
+if [[ "$case11_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case11_stdout" == *'must be a NAMED script'* ]] && [[ "$case11_exit" == "2" ]]; then
+    assert_passes "Case 11: plist arg0=/bin/bash WITH BASH-LAUNCHD-OK marker → DENY (marker does not waive named-arg0 rule)"
+else
+    assert_fails "Case 11: bare-interpreter-arg0 not denied under marker; exit=$case11_exit; got=${case11_stdout:0:200}"
+fi
+
+# ─── Case 12: plist arg0=/opt/homebrew/bin/bun (no marker) → DENY ─────────────
+# Non-bash interpreters (bun/node/python/env) were previously invisible to the
+# bash/sh-only regexes; the named-arg0 rule now catches them.
+case12_payload="$PAYLOAD_TEMP_DIR/case12.json"
+cat > "$case12_payload" <<'PAYLOAD'
+{"tool_name":"Write","tool_input":{"file_path":"/Users/foo/Library/LaunchAgents/com.example.plist","content":"<plist><dict><key>ProgramArguments</key><array><string>/opt/homebrew/bin/bun</string><string>/Users/foo/daemon.ts</string></array></dict></plist>"}}
+PAYLOAD
+
+set +e
+case12_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case12_payload" 2>/dev/null)
+case12_exit=$?
+set -e
+
+if [[ "$case12_stdout" == *'"permissionDecision":"deny"'* ]] && [[ "$case12_stdout" == *'must be a NAMED script'* ]] && [[ "$case12_exit" == "2" ]]; then
+    assert_passes "Case 12: plist arg0=bun → DENY (non-bash interpreters now caught)"
+else
+    assert_fails "Case 12: bun arg0 not denied; exit=$case12_exit; got=${case12_stdout:0:200}"
+fi
+
+# ─── Case 13: plist arg0=named extensionless script (+ marker) → ALLOW ────────
+# The blessed fix pattern: bash kept INSIDE a named script so the Login Items
+# panel shows the script's name, not "bash".
+case13_payload="$PAYLOAD_TEMP_DIR/case13.json"
+cat > "$case13_payload" <<'PAYLOAD'
+{"tool_name":"Write","tool_input":{"file_path":"/Users/foo/Library/LaunchAgents/com.example.plist","content":"<!-- BASH-LAUNCHD-OK --><plist><dict><key>ProgramArguments</key><array><string>/Users/foo/.local/bin/my-named-tool</string></array></dict></plist>"}}
+PAYLOAD
+
+set +e
+case13_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case13_payload" 2>/dev/null)
+case13_exit=$?
+set -e
+
+if [[ "$case13_stdout" == *'"permissionDecision":"allow"'* ]] && [[ "$case13_exit" == "0" ]]; then
+    assert_passes "Case 13: plist arg0=named extensionless script (+ marker) → ALLOW"
+else
+    assert_fails "Case 13: named-arg0 wrongly blocked; exit=$case13_exit; got=${case13_stdout:0:200}"
+fi
+
+# ─── Case 14: plist Program=named binary → ALLOW ─────────────────────────────
+case14_payload="$PAYLOAD_TEMP_DIR/case14.json"
+cat > "$case14_payload" <<'PAYLOAD'
+{"tool_name":"Write","tool_input":{"file_path":"/Users/foo/Library/LaunchAgents/com.example.plist","content":"<plist><dict><key>Program</key><string>/Users/foo/libexec/my-runner</string></dict></plist>"}}
+PAYLOAD
+
+set +e
+case14_stdout=$(bun "$ORCHESTRATOR_HOOK_PATH" < "$case14_payload" 2>/dev/null)
+case14_exit=$?
+set -e
+
+if [[ "$case14_stdout" == *'"permissionDecision":"allow"'* ]] && [[ "$case14_exit" == "0" ]]; then
+    assert_passes "Case 14: plist Program=named binary → ALLOW"
+else
+    assert_fails "Case 14: named Program wrongly blocked; exit=$case14_exit; got=${case14_stdout:0:200}"
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────

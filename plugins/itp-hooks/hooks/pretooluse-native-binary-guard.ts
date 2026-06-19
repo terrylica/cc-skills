@@ -198,6 +198,80 @@ function buildPlistBashOrShOrShellScriptReferenceViolationMessage(filePath: stri
 }
 
 // ============================================================================
+// Bare-interpreter-as-arg0 detection (NOT waivable by BASH-LAUNCHD-OK)
+// ============================================================================
+//
+// macOS Login Items / Background Task Management shows each launchd item's name
+// as basename(ProgramArguments[0]) — the literal binary launchd execs — and
+// ignores the launchd Label. So `<string>/bin/bash</string>` (or bun/node/python)
+// as arg0 renders as a generic "bash"/"bun" entry that "looks like unidentified
+// malware", EVEN when a named script is passed as a LATER argument. The
+// BASH-LAUNCHD-OK marker waives "must be a compiled native binary", but it must
+// NOT waive "arg0 must be a NAMED script/binary" — otherwise the marker
+// reintroduces the exact generic-name problem this guard exists to prevent.
+// (Confirmed empirically via `sfltool dumpbtm`: a named `#!/bin/bash` script used
+// directly as arg0 shows its own name; only bare `/bin/bash` shows "bash".)
+
+/** Interpreter basenames that, as launchd arg0, render as a generic Login Items entry. */
+const NATIVE_BINARY_GUARD_BARE_INTERPRETER_ARG0_BASENAMES: ReadonlySet<string> = new Set([
+  "bash", "sh", "zsh", "dash", "ksh", "fish", "env",
+  "bun", "node", "deno", "ts-node",
+  "python", "python2", "python3", "ruby", "perl", "php", "osascript", "Rscript",
+]);
+
+/** Capture arg0 = first <string> inside <key>ProgramArguments</key><array>. */
+const NATIVE_BINARY_GUARD_PLIST_PROGRAM_ARGUMENTS_ARG0_REGEX =
+  /<key>\s*ProgramArguments\s*<\/key>\s*<array>\s*<string>\s*([^<]+?)\s*<\/string>/;
+
+/** Capture <key>Program</key><string>…</string> (single-program form). */
+const NATIVE_BINARY_GUARD_PLIST_PROGRAM_REGEX =
+  /<key>\s*Program\s*<\/key>\s*<string>\s*([^<]+?)\s*<\/string>/;
+
+/** basename of a (possibly trailing-slashed) path string. */
+function basenameOfPath(rawPath: string): string {
+  const trimmed = rawPath.trim().replace(/\/+$/, "");
+  const slashIndex = trimmed.lastIndexOf("/");
+  return slashIndex >= 0 ? trimmed.slice(slashIndex + 1) : trimmed;
+}
+
+/**
+ * If the plist content's launchd arg0 (Program, or first ProgramArguments entry)
+ * is a bare interpreter, return its basename; otherwise null. Program is checked
+ * first because a plist may define only Program (no ProgramArguments array).
+ */
+function plistLaunchdArg0BareInterpreterName(content: string): string | null {
+  for (const regex of [
+    NATIVE_BINARY_GUARD_PLIST_PROGRAM_REGEX,
+    NATIVE_BINARY_GUARD_PLIST_PROGRAM_ARGUMENTS_ARG0_REGEX,
+  ]) {
+    const match = content.match(regex);
+    if (match?.[1]) {
+      const base = basenameOfPath(match[1]);
+      if (NATIVE_BINARY_GUARD_BARE_INTERPRETER_ARG0_BASENAMES.has(base)) return base;
+    }
+  }
+  return null;
+}
+
+/** Build the deny message for a bare-interpreter launchd arg0 (marker-independent). */
+function buildBareInterpreterArg0ViolationMessage(filePath: string, interpreter: string): string {
+  return [
+    `[${NATIVE_BINARY_GUARD_HOOK_NAME}] Launchd arg0 must be a NAMED script/binary, not the bare interpreter "${interpreter}".`,
+    "",
+    `File: ${filePath}`,
+    "",
+    `macOS Login Items shows basename(ProgramArguments[0]) — here "${interpreter}" — which reads as an`,
+    'unidentified "bash"/"bun"/"node" entry even if a named script is passed as a later argument.',
+    "This rule is NOT waived by BASH-LAUNCHD-OK: the marker allows bash, but arg0 must still be a",
+    "named script so the Login Items panel is identifiable.",
+    "",
+    "FIX: point arg0 at a named, executable script/binary; the interpreter goes INSIDE it:",
+    "  <key>ProgramArguments</key><array><string>/path/to/my-named-tool</string></array>",
+    '  # my-named-tool:  #!/usr/bin/env bash   …or…   exec /opt/homebrew/bin/bun real.ts "$@"',
+  ].join("\n");
+}
+
+// ============================================================================
 // Pure classifier (iter-90 orchestrator-inlineable contract)
 // ============================================================================
 
@@ -243,6 +317,16 @@ export async function classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrat
 
   const proposedContent =
     (tool_input?.content as string) || (tool_input?.new_string as string) || "";
+
+  // Bare-interpreter-as-arg0 (NOT waivable by BASH-LAUNCHD-OK) — checked BEFORE the
+  // escape-hatch return so the marker cannot reintroduce a generic "bash"/"bun"
+  // Login Items entry. Plist-only; the interpreter belongs INSIDE a named script.
+  if (filePath.endsWith(".plist")) {
+    const bareInterpreterArg0 = plistLaunchdArg0BareInterpreterName(proposedContent);
+    if (bareInterpreterArg0) {
+      return denyDecision(buildBareInterpreterArg0ViolationMessage(filePath, bareInterpreterArg0));
+    }
+  }
 
   // Escape hatch in proposed content (iter-109: delegated to canonical shared helper).
   if (hasFileWideEscapeHatchMarkerInContent(proposedContent, NATIVE_BINARY_GUARD_BASH_LAUNCHD_OK_ESCAPE_HATCH_CONFIGURATION)) {
