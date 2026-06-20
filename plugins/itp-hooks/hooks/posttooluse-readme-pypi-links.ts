@@ -86,6 +86,20 @@ function findAbsoluteGitHubLinks(content: string): string[] {
 // MAIN LOGIC
 // ============================================================================
 
+/**
+ * Pure path-activation gate (exported for tests): the hook acts only on a
+ * Write/Edit/MultiEdit of a durable root-level README.md, never on a throwaway
+ * copy inside a temp dir (iter-124 shared helper).
+ */
+export function isReadmePypiEligibleTarget(toolName: string, filePath: string, cwd: string): boolean {
+  if (toolName !== "Write" && toolName !== "Edit" && toolName !== "MultiEdit") return false;
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
+    return false;
+  }
+  if (!isRootReadme(filePath, cwd)) return false;
+  return true;
+}
+
 async function runHook(): Promise<HookResult> {
   const input = await parseStdin();
   if (!input) {
@@ -96,19 +110,8 @@ async function runHook(): Promise<HookResult> {
   const filePath = input.tool_input?.file_path || "";
   const cwd = input.cwd || process.cwd();
 
-  // Only check Write, Edit, and MultiEdit tools
-  if (toolName !== "Write" && toolName !== "Edit" && toolName !== "MultiEdit") {
-    return { exitCode: 0 };
-  }
-
-  // Iter-124: a throwaway README.md in a temp dir is scratch, not a publishable
-  // repo root — skip the relative-link nudge (shared temp-dir helper).
-  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
-    return { exitCode: 0 };
-  }
-
-  // Only check root-level README.md
-  if (!isRootReadme(filePath, cwd)) {
+  // Activation gate (pure, exported for tests) — durable root-level README.md only.
+  if (!isReadmePypiEligibleTarget(toolName, filePath, cwd)) {
     return { exitCode: 0 };
   }
 
@@ -160,4 +163,8 @@ async function main(): Promise<never> {
   return process.exit(result.exitCode);
 }
 
-void main();
+// Run only as a hook entrypoint; stay importable by tests (an unguarded
+// main() would read stdin + process.exit() the moment a test imports this).
+if (import.meta.main) {
+  void main();
+}
