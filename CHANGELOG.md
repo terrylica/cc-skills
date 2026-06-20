@@ -1,3 +1,10 @@
+## [21.97.1](https://github.com/terrylica/cc-skills/compare/v21.97.0...v21.97.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** skip nudges on throwaway temp-dir scratch scripts ([08504c5](https://github.com/terrylica/cc-skills/commit/08504c5b06627d14eea34e8fb181af3badb4ddbc))
+
 # [21.97.0](https://github.com/terrylica/cc-skills/compare/v21.96.1...v21.97.0) (2026-06-19)
 
 
