@@ -104,3 +104,54 @@ export function isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWas
     pathIsAtOrBeneathDirectoryPrefix(candidate, prefix),
   );
 }
+
+/** Escape a literal string for safe interpolation into a RegExp. */
+function escapeForRegExp(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Bash-command temp-scratch WRITE-TARGET detection (iter-124 extension,
+ * 2026-06-19).
+ *
+ * A Bash arm of a PostToolUse nudge hook has no single `tool_input.file_path`
+ * — the "file" is whatever the command materializes. This detects the common
+ * shapes that drop a THROWAWAY script INTO a temp directory, so a heredoc /
+ * redirect / tee that writes a one-shot script to `/tmp` is exempt from the
+ * lint/quality nudges exactly like a `Write` to `/tmp` already is.
+ *
+ * Detected shapes (target must resolve under a temp prefix):
+ *   • redirect:  `> /tmp/x`  `>>/tmp/x`  `1>/tmp/x`  `&>/tmp/x`
+ *   • tee:       `tee /tmp/x`  `tee -a /tmp/x`
+ *   • mktemp:    ANY use of `mktemp` — its sole purpose is throwaway temp files.
+ *
+ * Temp prefixes: the static set + the live `$TMPDIR` value (+ `/private` twin)
+ * + the literal `$TMPDIR` / `${TMPDIR}` tokens, because a Bash command string
+ * the hook sees is UNEXPANDED (the shell expands `$TMPDIR` only at run time).
+ *
+ * Best-effort + fail-safe: returns `false` on any falsy / non-string input, so
+ * a miss only means "nudge as normal", never a crash. This is deliberately a
+ * RECALL-leaning heuristic — over-exempting a throwaway script is cheap; the
+ * shapes here are the ones agents actually use to drop scratch scripts.
+ */
+export function bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory(
+  command: string | undefined | null,
+): boolean {
+  if (!command || typeof command !== "string") return false;
+  // `mktemp`'s entire purpose is creating throwaway temp files/dirs.
+  if (/\bmktemp\b/.test(command)) return true;
+
+  const prefixAlternation = [
+    ...collectTemporaryDirectoryPrefixesIncludingLiveTmpdir().map(escapeForRegExp),
+    "\\$TMPDIR",
+    "\\$\\{TMPDIR\\}",
+  ].join("|");
+
+  // A redirect (`>`, `>>`, `1>`, `2>>`, `&>`) or `tee [-a]` whose target path
+  // begins with a temp prefix. The trailing class consumes the rest of the
+  // path token without requiring a specific extension.
+  const writeTargetRx = new RegExp(
+    `(?:(?:\\d*>>?|&>)|\\btee\\b(?:\\s+-a)?)\\s*["']?(?:${prefixAlternation})[\\w./-]*`,
+  );
+  return writeTargetRx.test(command);
+}

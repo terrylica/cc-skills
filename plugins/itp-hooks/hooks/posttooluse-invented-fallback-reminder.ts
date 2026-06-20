@@ -44,6 +44,10 @@
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import {
+  bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory,
+  isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts,
+} from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -142,6 +146,12 @@ export function detectNetNewInventedFallback(input: HookInput): { matched: boole
   // works inside the command text.
   if (input.tool_name === "Bash") {
     const command = ti.command || "";
+    // Iter-124: a Bash command that materializes a throwaway script into a
+    // temp dir (heredoc / redirect / tee / mktemp) is scratch, not durable
+    // render/display code — exempt it like a Write to /tmp.
+    if (bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory(command)) {
+      return { matched: false, rule: "" };
+    }
     if (
       hasFileWideEscapeHatchMarkerInContent(command, INVENTED_FALLBACK_ESCAPE_HATCH_MARKER_DETECTION_CONFIG)
     ) {
@@ -154,6 +164,13 @@ export function detectNetNewInventedFallback(input: HookInput): { matched: boole
 
   const filePath = ti.file_path || "";
   if (!CODE_FILE_RX.test(filePath) || TEST_PATH_RX.test(filePath)) {
+    return { matched: false, rule: "" };
+  }
+
+  // Iter-124: throwaway scripts written/edited inside a temp directory
+  // (`/tmp/foo.sh`, `$TMPDIR/scratch.ts`) are run once and discarded — the
+  // official-values policy targets durable render/display code, not scratch.
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
     return { matched: false, rule: "" };
   }
 
