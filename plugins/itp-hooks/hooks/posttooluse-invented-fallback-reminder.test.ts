@@ -165,3 +165,43 @@ describe("SILENT: exemptions and legitimate shapes", () => {
     expect(r.matched).toBe(false);
   });
 });
+
+describe("SILENT: throwaway scripts in temp directories (iter-124)", () => {
+  it("/tmp scratch script is exempt", () => {
+    const r = detectNetNewInventedFallback(write("/tmp/audit17.sh", `model="\${model_raw:-Unknown}"`));
+    expect(r.matched).toBe(false);
+  });
+
+  it("/private/tmp scratch script is exempt", () => {
+    const r = detectNetNewInventedFallback(write("/private/tmp/scratch.ts", 'const x = y ?? "N/A";'));
+    expect(r.matched).toBe(false);
+  });
+
+  it("/private/var/folders (macOS TMPDIR) scratch script is exempt", () => {
+    const r = detectNetNewInventedFallback(
+      write("/private/var/folders/ab/cd/T/render.py", 'label = value or "Unknown"'),
+    );
+    expect(r.matched).toBe(false);
+  });
+
+  it("a durable project path with the same shape still fires (control)", () => {
+    const r = detectNetNewInventedFallback(write("/Users/me/proj/render.sh", `model="\${model_raw:-Unknown}"`));
+    expect(r.matched).toBe(true);
+  });
+
+  it("Bash heredoc writing a throwaway script into /tmp is exempt", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `cat > /tmp/render.sh <<'EOF'\nmodel="\${m:-Unknown}"\nEOF` },
+    });
+    expect(r.matched).toBe(false);
+  });
+
+  it("Bash heredoc writing a durable script still fires (control)", () => {
+    const r = detectNetNewInventedFallback({
+      tool_name: "Bash",
+      tool_input: { command: `cat > /Users/me/proj/render.sh <<'EOF'\nmodel="\${m:-Unknown}"\nEOF` },
+    });
+    expect(r.matched).toBe(true);
+  });
+});
