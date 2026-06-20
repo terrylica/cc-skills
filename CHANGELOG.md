@@ -1,3 +1,10 @@
+## [21.97.2](https://github.com/terrylica/cc-skills/compare/v21.97.1...v21.97.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** extend temp-dir nudge skip to 3 sibling hooks ([d2b1bbb](https://github.com/terrylica/cc-skills/commit/d2b1bbb2fd5a5c5d715756c0036a7c602a47a90e))
+
 ## [21.97.1](https://github.com/terrylica/cc-skills/compare/v21.97.0...v21.97.1) (2026-06-20)
 
 
