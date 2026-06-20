@@ -14,6 +14,7 @@
 
 import { basename, dirname, resolve } from "node:path";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ============================================================================
 // TYPES
@@ -97,6 +98,12 @@ async function runHook(): Promise<HookResult> {
 
   // Only check Write, Edit, and MultiEdit tools
   if (toolName !== "Write" && toolName !== "Edit" && toolName !== "MultiEdit") {
+    return { exitCode: 0 };
+  }
+
+  // Iter-124: a throwaway README.md in a temp dir is scratch, not a publishable
+  // repo root — skip the relative-link nudge (shared temp-dir helper).
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
     return { exitCode: 0 };
   }
 

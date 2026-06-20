@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { Glob, $ } from "bun";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -423,6 +424,13 @@ async function runHook(): Promise<HookResult> {
 
   // Only trigger on Edit/Write
   if (tool_name !== "Edit" && tool_name !== "Write") {
+    return { exitCode: 0 };
+  }
+
+  // Iter-124: a throwaway CLAUDE.md dropped in a temp dir is a scratch doc
+  // fragment, not a real project memory — skip the terminology scan/sync
+  // (shared temp-dir helper).
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
     return { exitCode: 0 };
   }
 
