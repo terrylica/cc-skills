@@ -65,6 +65,21 @@ function createVisibilityOutput(reason: string): string {
 // MAIN LOGIC
 // ============================================================================
 
+/**
+ * Pure path-activation gate (exported for tests): the hook acts only on a
+ * Write/Edit of the durable global GLOSSARY.md, and never on a throwaway copy
+ * inside a temp dir (iter-124 shared helper).
+ */
+export function isGlossarySyncEligibleTarget(toolName: string, filePath: string): boolean {
+  if (toolName !== "Edit" && toolName !== "Write") return false;
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
+    return false;
+  }
+  if (!filePath.endsWith("GLOSSARY.md")) return false;
+  if (!filePath.includes(".claude/docs/GLOSSARY.md")) return false;
+  return true;
+}
+
 async function runHook(): Promise<HookResult> {
   const input = await parseStdin();
   if (!input) {
@@ -74,24 +89,8 @@ async function runHook(): Promise<HookResult> {
   const { tool_name, tool_input } = input;
   const filePath = tool_input?.file_path || "";
 
-  // Only trigger on Edit/Write
-  if (tool_name !== "Edit" && tool_name !== "Write") {
-    return { exitCode: 0 };
-  }
-
-  // Iter-124: a throwaway GLOSSARY.md dropped in a temp dir is scratch, not the
-  // durable global glossary — never sync it (shared temp-dir helper).
-  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
-    return { exitCode: 0 };
-  }
-
-  // Only trigger on GLOSSARY.md
-  if (!filePath.endsWith("GLOSSARY.md")) {
-    return { exitCode: 0 };
-  }
-
-  // Ensure it's the global glossary, not a project-specific one
-  if (!filePath.includes(".claude/docs/GLOSSARY.md")) {
+  // Activation gate (pure, exported for tests) — durable global GLOSSARY.md only.
+  if (!isGlossarySyncEligibleTarget(tool_name, filePath)) {
     return { exitCode: 0 };
   }
 
@@ -146,4 +145,8 @@ async function main(): Promise<never> {
   return process.exit(result.exitCode);
 }
 
-void main();
+// Run only as a hook entrypoint; stay importable by tests (an unguarded
+// main() would read stdin + process.exit() the moment a test imports this).
+if (import.meta.main) {
+  void main();
+}
