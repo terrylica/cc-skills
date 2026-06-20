@@ -12,6 +12,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { $ } from "bun";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -75,6 +76,12 @@ async function runHook(): Promise<HookResult> {
 
   // Only trigger on Edit/Write
   if (tool_name !== "Edit" && tool_name !== "Write") {
+    return { exitCode: 0 };
+  }
+
+  // Iter-124: a throwaway GLOSSARY.md dropped in a temp dir is scratch, not the
+  // durable global glossary — never sync it (shared temp-dir helper).
+  if (isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath)) {
     return { exitCode: 0 };
   }
 
