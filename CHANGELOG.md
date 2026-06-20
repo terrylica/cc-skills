@@ -1,3 +1,10 @@
+## [21.97.3](https://github.com/terrylica/cc-skills/compare/v21.97.2...v21.97.3) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** guard sibling-hook entrypoints + add temp-dir gate tests ([061fff7](https://github.com/terrylica/cc-skills/commit/061fff7701324560274fac7246f3265cdd9f9c6a))
+
 ## [21.97.2](https://github.com/terrylica/cc-skills/compare/v21.97.1...v21.97.2) (2026-06-20)
 
 
