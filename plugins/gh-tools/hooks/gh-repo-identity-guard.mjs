@@ -100,18 +100,32 @@ if (!targetRepo) {
 
 const [repoOwner] = targetRepo.split("/");
 
-// ─── Resolve authenticated user ─────────────────────────────────────────────
-
-const ghToken = process.env.GH_TOKEN || "";
-if (!ghToken) {
-  // No token set — allow through (gh CLI will fail itself)
-  process.exit(0);
+// ─── Resolve the local account from the origin host-alias (SSoT) ─────────────
+// ADR 2026-06-21 host-alias doctrine: a repo's origin remote
+// (git@github.com-<account>:owner/repo) names its account. GH_ACCOUNT env,
+// ~/.claude/.secrets/gh-token-* files, and mise [env] token injection are all
+// retired. The alias is parsed from git alone — no `gh`, no network — so it
+// honours the process-storm rule (no gh-CLI calls inside hooks).
+function aliasAccount() {
+  try {
+    const remote = execSync("git remote get-url origin 2>/dev/null", {
+      encoding: "utf-8",
+      timeout: 3000,
+    }).trim();
+    const m = remote.match(/github\.com-([A-Za-z0-9_-]+):/);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
 }
 
-// Fast-path: GH_ACCOUNT env var (personal account match)
-const ghAccount = process.env.GH_ACCOUNT;
-if (ghAccount && ghAccount === repoOwner) {
-  process.exit(0); // Owner match — allow immediately (zero API calls)
+const localAccount = aliasAccount();
+
+// Fast-path: the host-alias account owns the target repo → allow.
+// Zero API calls, zero `gh`, and crucially no ambient token required — this
+// clears the common "writing to your own repo" case under the new model.
+if (localAccount && localAccount === repoOwner) {
+  process.exit(0);
 }
 
 // Fast-path: GH_ORGS env var (comma-separated org names the user belongs to)
@@ -119,6 +133,16 @@ if (ghAccount && ghAccount === repoOwner) {
 const ghOrgs = process.env.GH_ORGS;
 if (ghOrgs?.split(",").map(s => s.trim()).includes(repoOwner)) {
   process.exit(0); // Org match — allow immediately (zero API calls)
+}
+
+// Cross-account write attempt. Verify against an already-exported GH_TOKEN if
+// present. Per the process-storm rule the hook never runs `gh` itself, so it
+// cannot mint a token — if none is exported we cannot verify and fail open
+// (the alias fast-path above already cleared the safe owner case). To enable
+// the check, run: export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
+const ghToken = process.env.GH_TOKEN || "";
+if (!ghToken) {
+  process.exit(0);
 }
 
 // Cache: /tmp/.gh-identity-cache-{uid}.json
@@ -187,9 +211,9 @@ if (!authenticatedUser) {
   process.exit(0); // Can't resolve user — fail-open
 }
 
-// If GH_ACCOUNT was set but didn't match owner, note that
-if (ghAccount) {
-  source = `GH_ACCOUNT=${ghAccount}`;
+// If the origin host-alias named an account that didn't match the owner, note it
+if (localAccount) {
+  source = `origin alias github.com-${localAccount}`;
 }
 
 // ─── Check: authenticated user === repo owner → allow ───────────────────────
@@ -230,11 +254,13 @@ Authenticated as: ${authenticatedUser} (via ${source})
 Target repository: ${targetRepo}
 ${action}: DENIED
 
-Fix:
-  1. Check mise config: mise env | grep GH_TOKEN
-  2. Verify GH_ACCOUNT: echo $GH_ACCOUNT
-  3. If mise parse error: mise doctor
-  4. Set correct token: export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-${repoOwner})`;
+Fix (ADR 2026-06-21 host-alias model):
+  1. Check the origin alias names the right account:
+       git remote get-url origin   # expect git@github.com-<account>:owner/repo
+  2. If the alias is wrong, repoint it:
+       git remote set-url origin git@github.com-${repoOwner}:${targetRepo}.git
+  3. Export the matching token for this repo, then retry:
+       export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`;
 
 console.log(
   JSON.stringify({
