@@ -1,3 +1,10 @@
+## [21.98.2](https://github.com/terrylica/cc-skills/compare/v21.98.1...v21.98.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* **statusline-tools:** compute context bar threshold from bundle math ([b5000fe](https://github.com/terrylica/cc-skills/commit/b5000fe9c1282e9a255d4399158fe9b6af40adda))
+
 ## [21.98.1](https://github.com/terrylica/cc-skills/compare/v21.98.0...v21.98.1) (2026-06-21)
 
 # [21.98.0](https://github.com/terrylica/cc-skills/compare/v21.97.3...v21.98.0) (2026-06-21)
