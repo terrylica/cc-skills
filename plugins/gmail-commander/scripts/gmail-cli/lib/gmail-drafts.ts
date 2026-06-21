@@ -63,6 +63,60 @@ function guessMimeType(filename: string): string {
 }
 
 /**
+ * RFC 2047 "encoded-word" for a mail header value containing non-ASCII.
+ *
+ * Mail headers are ASCII-only (RFC 5322). Putting raw UTF-8 bytes (e.g. an
+ * em-dash "—" = E2 80 94) straight into `Subject:` makes clients decode them
+ * as Latin-1 → the classic "â€"" mojibake. RFC 2047 fixes this by base64-
+ * encoding the UTF-8 bytes inside `=?UTF-8?B?…?=`.
+ *
+ * Pure-ASCII values pass through untouched. Non-ASCII values are split into
+ * encoded-words on CODE-POINT boundaries (never mid-codepoint) so each word's
+ * total length stays within RFC 2047's 75-char cap, folded with CRLF+SP.
+ */
+export function encodeMimeHeader(value: string): string {
+  // Printable ASCII only → safe to emit verbatim.
+  if (/^[\x20-\x7E]*$/.test(value)) return value;
+
+  const prefix = "=?UTF-8?B?";
+  const suffix = "?=";
+  // Each encoded-word ≤ 75 chars. base64 is 4 chars per 3 bytes, so budget the
+  // raw UTF-8 byte count that keeps prefix+base64+suffix under the cap.
+  const maxB64 = 75 - prefix.length - suffix.length;
+  const maxBytes = Math.floor(maxB64 / 4) * 3;
+
+  const words: string[] = [];
+  let buf: number[] = [];
+  for (const ch of value) {
+    const chBytes = [...Buffer.from(ch, "utf-8")];
+    if (buf.length > 0 && buf.length + chBytes.length > maxBytes) {
+      words.push(prefix + Buffer.from(buf).toString("base64") + suffix);
+      buf = [];
+    }
+    buf.push(...chBytes);
+  }
+  if (buf.length > 0) {
+    words.push(prefix + Buffer.from(buf).toString("base64") + suffix);
+  }
+  // Fold adjacent encoded-words with CRLF + a single space (RFC 5322 folding).
+  return words.join("\r\n ");
+}
+
+/**
+ * Encode a `From`/`To`-style address whose display name may contain non-ASCII.
+ *
+ * Only the display-name portion is RFC 2047-encoded; the `<addr@host>` is left
+ * untouched. A bare `addr@host` (no display name) passes straight through.
+ */
+export function encodeAddressHeader(value: string): string {
+  const m = value.match(/^\s*(.*?)\s*(<[^>]+>)\s*$/);
+  if (!m) return encodeMimeHeader(value);
+  const [, display, addr] = m;
+  if (!display) return addr;
+  return `${encodeMimeHeader(display)} ${addr}`;
+}
+
+/**
  * Encode a single attachment file as a multipart MIME part.
  *
  * Reads the file via Bun.file, base64-encodes the bytes, and wraps to
@@ -129,9 +183,9 @@ async function buildRawMessage(
   const { inReplyTo, references, from, attachments } = options;
   const headers: string[] = [];
 
-  if (from) headers.push(`From: ${from}`);
-  headers.push(`To: ${to}`);
-  headers.push(`Subject: ${subject}`);
+  if (from) headers.push(`From: ${encodeAddressHeader(from)}`);
+  headers.push(`To: ${encodeAddressHeader(to)}`);
+  headers.push(`Subject: ${encodeMimeHeader(subject)}`);
   headers.push("MIME-Version: 1.0");
 
   if (inReplyTo) {
@@ -169,11 +223,14 @@ async function buildRawMessage(
     ].join("\r\n");
   } else {
     headers.push("Content-Type: text/plain; charset=utf-8");
+    headers.push("Content-Transfer-Encoding: 8bit");
     mimeBody = body;
   }
 
+  // Encode the whole message as UTF-8 bytes (Buffer.from defaults to utf-8), so the
+  // 8-bit body and any encoded-word headers transmit their bytes intact.
   const email = headers.join("\r\n") + "\r\n\r\n" + mimeBody;
-  return Buffer.from(email).toString("base64url");
+  return Buffer.from(email, "utf-8").toString("base64url");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
