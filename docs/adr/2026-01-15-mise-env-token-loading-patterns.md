@@ -1,10 +1,22 @@
 ---
-status: accepted
+status: superseded
+superseded-by: 2025-12-17-github-multi-account-authentication.md (§2026-06-21)
 date: 2026-01-15
 decision-maker: Terry Li
 consulted: [Claude Opus 4.5]
 research-method: incident-investigation
 ---
+
+> **⚠️ SUPERSEDED 2026-06-21** — This ADR documents a **retired** pattern: mise
+> `[env]` loading `GH_TOKEN` from plaintext `~/.claude/.secrets/gh-token-*` via
+> `read_file()`. That entire approach is gone. mise no longer touches GitHub
+> tokens. **Current practice:** the repo's `origin` host-alias
+> (`git@github.com-<account>:owner/repo`) is the single source of truth for SSH
+> key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account; HTTP
+> tokens resolve fresh via `~/.claude/tools/bin/gh-token-for-repo`. There is **no
+> ambient `GH_TOKEN`** (not even via `op read`). See
+> `~/.claude/docs/adr/2025-12-17-github-multi-account-authentication.md` §2026-06-21.
+> The content below is kept for history only.
 
 <!-- PROCESS-STORM-OK: This ADR documents anti-patterns for educational purposes -->
 

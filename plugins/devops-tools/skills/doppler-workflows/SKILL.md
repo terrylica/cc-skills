@@ -92,15 +92,18 @@ For local development, mise `[env]` provides a simpler alternative to `doppler r
 [env]
 # Fetch from Doppler with caching for performance
 PYPI_TOKEN = "{{ cache(key='pypi_token', duration='1h', run='doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain') }}"
-
-# For GitHub multi-account setups
-GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-accountname') | trim }}"
 ```
 
-**When to use mise [env]:**
+> **Do NOT use mise `[env]` for GitHub tokens (ADR 2026-06-21).** GitHub
+> multi-account auth is driven by the repo's `origin` host-alias
+> (`git@github.com-<account>:…`), not mise. A token resolves fresh per-repo via
+> `~/.claude/tools/bin/gh-token-for-repo`; an ambient `GH_TOKEN` outranks the
+> isolated gh profile and 401s after a rotation. The `.secrets/gh-token-*` files are
+> deleted.
+
+**When to use mise [env]** (for non-GitHub secrets like `PYPI_TOKEN`):
 
 - Per-directory credential configuration
-- Multi-account GitHub setups
 - Credentials that persist across commands (not session-scoped)
 
 **When to use doppler run:**

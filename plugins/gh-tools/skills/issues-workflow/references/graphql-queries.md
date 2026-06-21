@@ -7,7 +7,7 @@ Advanced GitHub Projects v2 operations via GraphQL API.
 All GraphQL queries require a Classic PAT with `project` scope:
 
 ```bash
-export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-terrylica)
+export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
 ```
 
 ## Query: List User Projects

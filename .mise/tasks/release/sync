@@ -90,9 +90,15 @@ for plugin_source in "$MARKETPLACE_DIR/plugins"/*/; do
     # (this rm runs every release on every plugin's cache directory).
     rm -rf "${CACHE_DIR:?CACHE_DIR_must_be_set}/${plugin_name:?plugin_name_must_be_set}/${VERSION:?VERSION_must_be_set}"
     mkdir -p "$plugin_target"
-    [[ -d "$plugin_source/skills" ]] && cp -r "$plugin_source/skills" "$plugin_target/"
-    [[ -d "$plugin_source/hooks" ]] && cp -r "$plugin_source/hooks" "$plugin_target/"
-    [[ -f "$plugin_source/plugin.json" ]] && cp "$plugin_source/plugin.json" "$plugin_target/"
+    # Copy the FULL plugin tree, mirroring Claude Code's own on-demand cache.
+    # Pre-2026-06-21 this copied ONLY skills/, hooks/, and a root plugin.json —
+    # which left an EMPTY version dir for "companion" plugins that have none of
+    # those (claude-tts-companion, ssh-tunnel-companion: Swift/binary plugins
+    # registered purely via marketplace.json, with CLAUDE.md/Sources/Makefile
+    # but no skills|hooks|plugin.json). An empty cache dir makes `claude doctor`
+    # report "Plugin not cached at .../<version>". Full copy guarantees every
+    # plugin — skill-bearing or companion — is materialised in the cache.
+    cp -R "${plugin_source}." "$plugin_target/" 2>/dev/null || true
     ((CACHE_COUNT+=1)) || true  # iter-45 defensive ((VAR+=N)) guard
 done
 echo "  ✓ Cache populated: $CACHE_COUNT plugin(s) at v$VERSION (older versions preserved)"

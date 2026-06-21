@@ -260,17 +260,14 @@ enabled = false
 
 ### mise.toml
 
-> **CRITICAL**: Use `read_file()` for tokens, NOT `exec()`. The `exec()` pattern spawns subprocesses on every shell command, causing process storms. See [ADR: mise-env-token-loading-patterns](https://github.com/terrylica/cc-skills/blob/main/docs/adr/2026-01-15-mise-env-token-loading-patterns.md).
+> **Do NOT put GitHub tokens in mise (ADR 2026-06-21).** mise manages tool versions
+> and non-GitHub env only. GitHub auth is driven by the repo's `origin` host-alias
+> (`git@github.com-<account>:…`); a token, when a script needs one, resolves fresh
+> via `~/.claude/tools/bin/gh-token-for-repo`. The old `read_file(.secrets/gh-token-*)`
+> injection and the `.secrets` files are retired/deleted.
 
 ```toml
 [env]
-# CORRECT: read_file() - no subprocess spawning
-GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-<account>') | trim }}"
-GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-<account>') | trim }}"
-
-# WRONG: exec() causes process storms - NEVER USE THIS
-# GH_TOKEN = "{{ exec(command='cat ~/.claude/.secrets/gh-token') }}"
-
 LOG_DIR = "{{config_root}}/logs"
 ENV = "dev"
 PANTS_CONCURRENT = "true"
