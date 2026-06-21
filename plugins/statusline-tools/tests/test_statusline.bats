@@ -223,6 +223,51 @@ EOF
     fi
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Visibility badge 401 regression — fixed 2026-06-21.
+#
+# `gh api` on a non-2xx response dumps the raw JSON body to STDOUT (first line
+# is a bare "{") and writes its own `gh: <msg> (HTTP NNN)` diagnostic as the
+# LAST line of STDERR. The pre-fix code merged both with `2>&1` and took
+# `head -1`, so an invalid GH_TOKEN rendered the badge as ({) — the literal
+# opening brace of the JSON body. The fix splits the streams and surfaces gh's
+# real diagnostic. These tests pin both halves: the bug never returns AND the
+# human-readable message is what shows instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@test "visibility badge surfaces gh diagnostic (not raw JSON {) on auth failure" {
+    cd "$FIXTURES/sample_repo"
+    # Bust the hourly visibility cache so the live (faked) gh call is made.
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
+
+    # Fake gh reproducing the 401 stream split: JSON body → stdout, the
+    # `gh: ...` line → stderr (last), exit 1. Any non-api subcommand also fails
+    # (the statusline tolerates gh failures and still exits 0).
+    fakebin="$BATS_TEST_TMPDIR/fakebin-401"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+if [ "$1" = "api" ]; then
+    printf '%s\n' '{' '  "message": "Bad credentials",' '  "status": "401"' '}'
+    printf '%s\n' 'gh: Bad credentials (HTTP 401)' >&2
+    exit 1
+fi
+exit 1
+FAKE
+    chmod +x "$fakebin/gh"
+
+    run bash -c "PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # The bug: a bare "{" inside the visibility parens.
+    [[ "$plain" != *"({)"* ]]
+    [[ "$plain" != *"({})"* ]]
+    # The fix: gh's own diagnostic shows instead.
+    [[ "$plain" == *"Bad credentials"* ]]
+}
+
 @test "statusline survives broken HTTPS_PROXY in env (antifragile)" {
     # Inject an unreachable proxy on a deliberately closed port. With the fix
     # in place the statusline must still exit 0 and the visibility badge
