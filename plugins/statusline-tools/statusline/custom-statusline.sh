@@ -324,6 +324,17 @@ if [ -n "$remote_url_raw" ]; then
     owner_repo=$(echo "$remote_url_raw" | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
 fi
 
+# Credential resolution (ADR 2026-06-21 doctrine): derive the gh account from the
+# remote host-alias (git@github.com-<account>:…) — the single source of truth — and
+# pin its isolated profile. ALWAYS strip ambient GH_TOKEN/GITHUB_TOKEN: gh ranks
+# GH_TOKEN above GH_CONFIG_DIR, so a stale session token would 401 the status line
+# after a rotation. `gh_cred` is the prefix for every API-hitting gh call below.
+gh_account=$(printf '%s' "$remote_url_raw" | sed -nE 's#^git@github\.com-([A-Za-z0-9_-]+):.*#\1#p')
+gh_cred=(env -u GH_TOKEN -u GITHUB_TOKEN)
+if [ -n "$gh_account" ] && [ -d "$HOME/.config/gh-$gh_account" ]; then
+    gh_cred+=("GH_CONFIG_DIR=$HOME/.config/gh-$gh_account")
+fi
+
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
 # include non-semver milestone tags like v2.0/v2.1 that sort above semver releases).
 # Tri-state, rendered with OFFICIAL text only (2026-06-11 directive — the
@@ -347,7 +358,7 @@ if [ -n "$owner_repo" ]; then
         release_out=$(cat "$release_cache_file")
         release_exit=0
     else
-        release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
+        release_out=$(probe_direct timeout 2 "${gh_cred[@]}" gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
         release_exit=$?
         if { [ $release_exit -eq 0 ] && [ -n "$release_out" ]; } || [[ "$release_out" == *"release not found"* ]]; then
             echo "$release_out" > "$release_cache_file" 2>/dev/null
@@ -464,7 +475,7 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
         # apart so the success value (stdout) and the diagnostic (stderr)
         # never contaminate each other.
         vis_err_file=$(mktemp -t ccstatusline-gh-vis.XXXXXX)
-        vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>"$vis_err_file")
+        vis_out=$(probe_direct timeout 2 "${gh_cred[@]}" gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>"$vis_err_file")
         vis_exit=$?
         vis_err=$(cat "$vis_err_file" 2>/dev/null)
         rm -f "$vis_err_file"
