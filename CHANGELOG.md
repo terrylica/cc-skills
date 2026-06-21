@@ -1,3 +1,12 @@
+## [21.98.4](https://github.com/terrylica/cc-skills/compare/v21.98.3...v21.98.4) (2026-06-21)
+
+
+### Bug Fixes
+
+* **gh-tools:** derive account from origin host-alias in hooks ([1a89a78](https://github.com/terrylica/cc-skills/commit/1a89a78b4f8925441571278cb49dbea38c51754c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#repo-identity-guard](https://github.com/terrylica/cc-skills/issues/repo-identity-guard)
+* **release:** resolve gh token fresh via gh-token-for-repo (ADR 2026-06-21 doctrine) ([9adb731](https://github.com/terrylica/cc-skills/commit/9adb73140a151d2742d8ac679f49d5bb67c86e89)), closes [#token-for-repo](https://github.com/terrylica/cc-skills/issues/token-for-repo)
+* **statusline:** alias-driven gh creds, strip ambient GH_TOKEN (ADR 2026-06-21 doctrine) ([7ad7421](https://github.com/terrylica/cc-skills/commit/7ad74211fdf34931e5371e4dc14fe9ebb2be3a47))
+
 ## [21.98.3](https://github.com/terrylica/cc-skills/compare/v21.98.2...v21.98.3) (2026-06-21)
 
 
