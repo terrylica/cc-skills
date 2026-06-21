@@ -9,15 +9,14 @@
  *
  * This hook is NON-BLOCKING (always exits 0) - it only provides reminders.
  *
- * User detection priority:
- * 1. GH_ACCOUNT environment variable (set by mise per-directory)
- * 2. Fallback: scan ~/.claude/.secrets/gh-token-* files
+ * User detection (ADR 2026-06-21 host-alias model):
+ *   The current account is the one named in the origin remote's host-alias
+ *   (git@github.com-<account>:owner/repo). GH_ACCOUNT env and
+ *   ~/.claude/.secrets/gh-token-* files are retired. Parsed from git alone.
  */
 
-import { readFileSync, readdirSync } from "fs";
+import { readFileSync } from "fs";
 import { execSync } from "child_process";
-import { homedir } from "os";
-import { join } from "path";
 
 // Read hook input from stdin
 let input;
@@ -57,7 +56,7 @@ if (commentMatch) {
 }
 
 // Pattern: gh api repos/owner/repo/issues/123/comments
-const apiMatch = command.match(/gh\s+api\s+repos\/([^\/]+\/[^\/]+)\/issues\/(\d+)\/comments/);
+const apiMatch = command.match(/gh\s+api\s+repos\/([^/]+\/[^/]+)\/issues\/(\d+)\/comments/);
 if (apiMatch) {
   repo = apiMatch[1];
   issueNumber = apiMatch[2];
@@ -82,45 +81,20 @@ if (!issueNumber) {
   process.exit(0);
 }
 
-// Get current user - priority: GH_ACCOUNT env var, then token filename fallback
+// Get current user from the origin remote's host-alias (ADR 2026-06-21 SSoT).
+// git@github.com-<account>:owner/repo → <account>. Parsed from git alone (no
+// `gh`, no network), honouring the process-storm rule for hooks.
 function getCurrentUser() {
-  // Priority 1: GH_ACCOUNT set by mise per-directory config
-  const ghAccount = process.env.GH_ACCOUNT;
-  if (ghAccount) {
-    return ghAccount;
-  }
-
-  // Priority 2: Fallback to token filename pattern
-  // Look for exact match first (gh-token-username), skip suffixed ones (gh-token-username-classic)
-  const secretsDir = join(homedir(), ".claude", ".secrets");
   try {
-    const files = readdirSync(secretsDir);
-    // Filter to only base token files (no suffix like -classic, -finegrained)
-    const baseTokenFiles = files.filter(f => {
-      if (!f.startsWith("gh-token-")) return false;
-      const username = f.replace("gh-token-", "");
-      // Skip if username contains hyphen (likely a suffix variant)
-      return !username.includes("-");
-    });
-    if (baseTokenFiles.length === 1) {
-      return baseTokenFiles[0].replace("gh-token-", "");
-    }
-    // If multiple or none, try symlinks (they point to the active one)
-    const symlinkToken = files.find(f => {
-      const fullPath = join(secretsDir, f);
-      try {
-        const stats = require("fs").lstatSync(fullPath);
-        return stats.isSymbolicLink() && f.startsWith("gh-token-");
-      } catch { return false; }
-    });
-    if (symlinkToken) {
-      const username = symlinkToken.replace("gh-token-", "");
-      return username.includes("-") ? null : username;
-    }
+    const remote = execSync("git remote get-url origin 2>/dev/null", {
+      encoding: "utf-8",
+      timeout: 3000,
+    }).trim();
+    const m = remote.match(/github\.com-([A-Za-z0-9_-]+):/);
+    return m ? m[1] : null;
   } catch {
-    // Fall back or skip
+    return null;
   }
-  return null;
 }
 
 // Get issue details (author and title)
