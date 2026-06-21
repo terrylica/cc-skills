@@ -112,6 +112,29 @@ IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_f
         || printf '\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
 )"
 
+# === Context window fields (for bracketed-zone bar on model line) ===
+# Separate jq spawn from the 10-field model-info TSV above — kept apart for
+# readability and because context_window is absent at session start (all vars
+# empty → bar suppressed downstream). Unit-separator pattern mirrors iter-30.
+#
+# cfmt: compact token notation — integers only, no decimals needed for this
+# use case (97205 → "97k", 1000000 → "1M", 200000 → "200k").
+IFS=$'\x1f' read -r ctx_used_tok ctx_window_size ctx_used_pct ctx_tok_compact ctx_win_compact <<< "$(
+    echo "$input" | jq -r '
+        def cfmt:
+            if . >= 1000000 then (. / 1000000 | floor | tostring) + "M"
+            elif . >= 1000  then (. / 1000    | floor | tostring) + "k"
+            else tostring end;
+        [
+            (.context_window.total_input_tokens  // 0 | tostring),
+            (.context_window.context_window_size // 0 | tostring),
+            (.context_window.used_percentage     // 0 | tostring),
+            (.context_window.total_input_tokens  // 0 | cfmt),
+            (.context_window.context_window_size // 0 | cfmt)
+        ] | join("")' 2>/dev/null \
+            || printf '\x1f\x1f\x1f\x1f'
+)"
+
 # === Session Chain (Bun-based) ===
 # Traces session ancestry, displays last 5 sessions with arrows
 # All in gray for uniform, non-distracting reference display
@@ -1165,6 +1188,72 @@ if [ -n "$model_token" ]; then
     [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
     [ -n "$cc_version" ] && model_inline="${model_inline} ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${cc_version}${RESET}"
 fi
+
+# === Context window bracketed-zone bar (appended to model line) ===
+# Design: ▕<safe-fill>·····|≈≈≈≈▏  where | marks the compaction trigger.
+# Left zone = safe capacity before compaction fires.
+# Right zone = the do-not-enter region past the trigger.
+#
+# compact_pct from CLAUDE_AUTOCOMPACT_PCT_OVERRIDE (confirmed present in env
+# via settings.json; default 73 when absent). Bar suppressed at session start
+# when context_window fields are absent OR when model_inline is still empty
+# (no model yet — nothing to append to).
+#
+# Color tiers:
+#   far from trigger (>15pp headroom)  — BRIGHT_BLACK (dim, non-distracting)
+#   approaching (<= 15pp headroom)     — YELLOW
+#   past trigger                       — RED
+#
+# Readout (right of bar): N% · tok/win · ~Nk until compact
+ctx_bar_segment=""
+if [ -n "$model_inline" ] && [ -n "$ctx_window_size" ] && \
+   [ "${ctx_window_size:-0}" -gt 0 ] 2>/dev/null && [ -n "$ctx_used_pct" ]; then
+    _cpct="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-73}"
+    _BLEN=20  # total inner bar width (safe + danger combined)
+    # Round safe_width to nearest integer: (BAR * pct + 50) / 100
+    _sw=$(( (_BLEN * _cpct + 50) / 100 ))
+    _dw=$(( _BLEN - _sw ))
+    # How many total bar chars are filled (proportional to used_pct)
+    _ft=$(( (_BLEN * ctx_used_pct + 50) / 100 ))
+    _fs=$(( _ft < _sw ? _ft : _sw ))          # filled in safe zone
+    _us=$(( _sw - _fs ))                       # empty dots in safe zone
+    _fd=$(( _ft > _sw ? _ft - _sw : 0 ))      # filled past separator (past trigger)
+    _ud=$(( _dw - _fd ))                       # remaining ≈ in danger zone
+    [ "${_ud:-0}" -lt 0 ] && _ud=0
+
+    # Pick color tier
+    if [ "${ctx_used_pct:-0}" -ge "${_cpct:-73}" ] 2>/dev/null; then
+        _bc="$RED"; _sc="$RED"; _dc="$RED"
+    elif [ "${ctx_used_pct:-0}" -ge $(( _cpct - 15 )) ] 2>/dev/null; then
+        _bc="$YELLOW"; _sc="$YELLOW"; _dc="$BRIGHT_BLACK"
+    else
+        _bc="$BRIGHT_BLACK"; _sc="$BRIGHT_BLACK"; _dc="$BRIGHT_BLACK"
+    fi
+
+    # Build character runs (pure bash, no subshells)
+    _bf="";  for ((i=0; i<_fs; i++)); do _bf+="█";  done
+    _be="";  for ((i=0; i<_us; i++)); do _be+="·";  done
+    _bdf=""; for ((i=0; i<_fd; i++)); do _bdf+="█"; done
+    _bde=""; for ((i=0; i<_ud; i++)); do _bde+="≈"; done
+
+    # Distance until compact trigger (tokens remaining, may be negative if past)
+    _ctok=$(( ctx_window_size * _cpct / 100 ))
+    _utok=$(( _ctok - ctx_used_tok ))
+    if [ "${_utok:-0}" -le 0 ] 2>/dev/null; then
+        _until_part="past compact"
+    elif [ "${_utok:-0}" -ge 1000000 ] 2>/dev/null; then
+        _until_part="~$(( _utok / 1000000 ))M until compact"
+    elif [ "${_utok:-0}" -ge 1000 ] 2>/dev/null; then
+        _until_part="~$(( _utok / 1000 ))k until compact"
+    else
+        _until_part="~${_utok} until compact"
+    fi
+
+    # Assemble: ▕<safe-fill><safe-empty>|<danger-fill><danger-empty>▏ N% · tok/win · ~Nk until compact
+    ctx_bar_segment=" ${BRIGHT_BLACK}· ctx ▕${RESET}${_bc}${_bf}${RESET}${BRIGHT_BLACK}${_be}${RESET}${_sc}|${RESET}${_bc}${_bdf}${RESET}${_dc}${_bde}${RESET}${BRIGHT_BLACK}▏ ${ctx_used_pct}% · ${ctx_tok_compact}/${ctx_win_compact} · ${_until_part}${RESET}"
+fi
+[ -n "$ctx_bar_segment" ] && model_inline="${model_inline}${ctx_bar_segment}"
+
 line1="${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
