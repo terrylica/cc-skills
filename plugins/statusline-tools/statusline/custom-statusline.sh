@@ -1206,7 +1206,7 @@ fi
 #
 # Readout (right of bar): N% · tok/win · ~Nk until compact
 ctx_bar_segment=""
-if [ -n "$model_inline" ] && [ -n "$ctx_window_size" ] && \
+if [ -n "$ctx_window_size" ] && \
    [ "${ctx_window_size:-0}" -gt 0 ] 2>/dev/null && [ -n "$ctx_used_pct" ]; then
     _cpct="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-73}"
     _BLEN=20  # total inner bar width (safe + danger combined)
@@ -1250,9 +1250,8 @@ if [ -n "$model_inline" ] && [ -n "$ctx_window_size" ] && \
     fi
 
     # Assemble: ▕<safe-fill><safe-empty>|<danger-fill><danger-empty>▏ N% · tok/win · ~Nk until compact
-    ctx_bar_segment=" ${BRIGHT_BLACK}· ctx ▕${RESET}${_bc}${_bf}${RESET}${BRIGHT_BLACK}${_be}${RESET}${_sc}|${RESET}${_bc}${_bdf}${RESET}${_dc}${_bde}${RESET}${BRIGHT_BLACK}▏ ${ctx_used_pct}% · ${ctx_tok_compact}/${ctx_win_compact} · ${_until_part}${RESET}"
+    ctx_bar_segment="${BRIGHT_BLACK}ctx ▕${RESET}${_bc}${_bf}${RESET}${BRIGHT_BLACK}${_be}${RESET}${_sc}|${RESET}${_bc}${_bdf}${RESET}${_dc}${_bde}${RESET}${BRIGHT_BLACK}▏ ${ctx_used_pct}% · ${ctx_tok_compact}/${ctx_win_compact} · ${_until_part}${RESET}"
 fi
-[ -n "$ctx_bar_segment" ] && model_inline="${model_inline}${ctx_bar_segment}"
 
 line1="${git_changes}"
 
@@ -1300,6 +1299,10 @@ echo -e "$line1"
 # Model segment line (own line as of 2026-06-19) — after code stats, before
 # the datetime/doorward line. Suppressed entirely when no model token.
 [ -n "$model_inline" ] && echo -e "$model_inline"
+
+# Context window bar (own line as of 2026-06-21) — after model line, before
+# datetime/doorward. Suppressed when context_window absent (session start).
+[ -n "$ctx_bar_segment" ] && echo -e "$ctx_bar_segment"
 
 # =============================================================================
 # Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
