@@ -1,3 +1,10 @@
+# [21.98.0](https://github.com/terrylica/cc-skills/compare/v21.97.3...v21.98.0) (2026-06-21)
+
+
+### Features
+
+* **statusline-tools:** add context-window bracketed-zone bar to model line ([3653cd1](https://github.com/terrylica/cc-skills/commit/3653cd1094d060d59140dfda5a163858f1ae7692))
+
 ## [21.97.3](https://github.com/terrylica/cc-skills/compare/v21.97.2...v21.97.3) (2026-06-20)
 
 
