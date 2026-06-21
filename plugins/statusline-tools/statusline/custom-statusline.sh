@@ -331,8 +331,19 @@ fi
 # after a rotation. `gh_cred` is the prefix for every API-hitting gh call below.
 gh_account=$(printf '%s' "$remote_url_raw" | sed -nE 's#^git@github\.com-([A-Za-z0-9_-]+):.*#\1#p')
 gh_cred=(env -u GH_TOKEN -u GITHUB_TOKEN)
-if [ -n "$gh_account" ] && [ -d "$HOME/.config/gh-$gh_account" ]; then
-    gh_cred+=("GH_CONFIG_DIR=$HOME/.config/gh-$gh_account")
+# When the alias names an account but no ~/.config/gh-<account> profile exists,
+# gh falls back to the multi-user default config, whose active-account
+# resolution is fragile in this subprocess (it 401s as "gh exit 4"). Flag the
+# real cause so a missing profile reads as an actionable hint, not a mystery.
+# (Incident 2026-06-21: Eon-Labs repos failed because gh-eonlabs was never set
+# up — every in-use host-alias needs its own isolated profile.)
+gh_profile_missing=""
+if [ -n "$gh_account" ]; then
+    if [ -d "$HOME/.config/gh-$gh_account" ]; then
+        gh_cred+=("GH_CONFIG_DIR=$HOME/.config/gh-$gh_account")
+    else
+        gh_profile_missing="$gh_account"
+    fi
 fi
 
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
@@ -381,6 +392,11 @@ if [ -n "$owner_repo" ]; then
         # binary missing 127), state the official exit code instead —
         # never an invented marker word.
         gh_rel_diag=$(printf '%s' "$release_out" | head -1 | sed -E 's/^(fatal|error): //')
+        # Missing-profile failures are actionable — name the absent profile
+        # instead of gh's generic auth diagnostic ("gh exit 4" / login prompt).
+        if [ -n "$gh_profile_missing" ]; then
+            gh_rel_diag="no gh-${gh_profile_missing} profile"
+        fi
         git_changes="${git_changes} ${BRIGHT_BLACK}| ${gh_rel_diag:-gh exit ${release_exit}}${RESET}"
     fi
 fi
@@ -497,6 +513,11 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
         gh_vis_diag=$(printf '%s\n' "$vis_err" | grep -E '^gh: ' | tail -1 | sed -E 's/^gh: //')
         if [ -z "$gh_vis_diag" ]; then
             gh_vis_diag=$(printf '%s' "$vis_out" | grep -oE '"message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)".*/\1/')
+        fi
+        # A missing isolated profile is the actionable root cause — name it
+        # instead of gh's generic auth diagnostic (see gh_profile_missing above).
+        if [ -n "$gh_profile_missing" ]; then
+            gh_vis_diag="no gh-${gh_profile_missing} profile"
         fi
         repo_visibility="${gh_vis_diag:-gh exit ${vis_exit}}"
     fi
