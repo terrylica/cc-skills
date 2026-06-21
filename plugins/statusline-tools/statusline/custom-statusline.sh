@@ -1210,10 +1210,29 @@ if [ -n "$ctx_window_size" ] && \
    [ "${ctx_window_size:-0}" -gt 0 ] 2>/dev/null && [ -n "$ctx_used_pct" ]; then
     _cpct="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-73}"
     _BLEN=20  # total inner bar width (safe + danger combined)
-    # Round safe_width to nearest integer: (BAR * pct + 50) / 100
-    _sw=$(( (_BLEN * _cpct + 50) / 100 ))
+
+    # === EXACT THRESHOLD COMPUTATION (mirrors Claude Code bundle math) ===
+    # The actual compact trigger is NOT simply pct% of the raw window.
+    # Bundle chain: cee() = window - min(ehe(), AFi=20000)
+    #               Swn()  = min(floor(effective * pct/100), effective - 13000)
+    #               A8r()  = min(effective - round(effective*0.2), Swn())
+    # We approximate with effective = window - 20000 (AFi cap), ignoring the
+    # per-model ehe() variance and the 0.2 precompute fraction (which only
+    # tightens the result to Swn anyway for typical pct values like 73).
+    # This gives the threshold in tokens and its percentage of the raw window —
+    # so the bar separator lands at the right place regardless of PCT_OVERRIDE.
+    _effective=$(( ctx_window_size - 20000 ))
+    _thresh=$(( _effective * _cpct / 100 ))
+    _thresh_cap=$(( _effective - 13000 ))
+    [ "${_thresh:-0}" -gt "${_thresh_cap:-0}" ] 2>/dev/null && _thresh=$_thresh_cap
+    # Threshold as % of raw window (for bar + color tier)
+    _trigger_pct=$(( _thresh * 100 / ctx_window_size ))
+
+    # Bar separator at the EXACT trigger percentage, not at raw pct
+    _sw=$(( (_BLEN * _trigger_pct + 50) / 100 ))
     _dw=$(( _BLEN - _sw ))
-    # How many total bar chars are filled (proportional to used_pct)
+
+    # Fill position: how far the bar is filled (proportional to used_pct of raw window)
     _ft=$(( (_BLEN * ctx_used_pct + 50) / 100 ))
     _fs=$(( _ft < _sw ? _ft : _sw ))          # filled in safe zone
     _us=$(( _sw - _fs ))                       # empty dots in safe zone
@@ -1221,10 +1240,13 @@ if [ -n "$ctx_window_size" ] && \
     _ud=$(( _dw - _fd ))                       # remaining ≈ in danger zone
     [ "${_ud:-0}" -lt 0 ] && _ud=0
 
-    # Pick color tier
-    if [ "${ctx_used_pct:-0}" -ge "${_cpct:-73}" ] 2>/dev/null; then
+    # Color tier.
+    # RED: token-level comparison against the exact threshold (avoids the
+    #      integer-% rounding gap where e.g. 72% > 71 but 715k < 715,400).
+    # YELLOW: 12pp before the trigger percentage (practical "approaching" zone).
+    if [ "${ctx_used_tok:-0}" -ge "${_thresh:-999999999}" ] 2>/dev/null; then
         _bc="$RED"; _sc="$RED"; _dc="$RED"
-    elif [ "${ctx_used_pct:-0}" -ge $(( _cpct - 15 )) ] 2>/dev/null; then
+    elif [ "${ctx_used_pct:-0}" -ge $(( _trigger_pct - 12 )) ] 2>/dev/null; then
         _bc="$YELLOW"; _sc="$YELLOW"; _dc="$BRIGHT_BLACK"
     else
         _bc="$BRIGHT_BLACK"; _sc="$BRIGHT_BLACK"; _dc="$BRIGHT_BLACK"
@@ -1236,9 +1258,8 @@ if [ -n "$ctx_window_size" ] && \
     _bdf=""; for ((i=0; i<_fd; i++)); do _bdf+="█"; done
     _bde=""; for ((i=0; i<_ud; i++)); do _bde+="≈"; done
 
-    # Distance until compact trigger (tokens remaining, may be negative if past)
-    _ctok=$(( ctx_window_size * _cpct / 100 ))
-    _utok=$(( _ctok - ctx_used_tok ))
+    # Distance until the exact computed threshold
+    _utok=$(( _thresh - ctx_used_tok ))
     if [ "${_utok:-0}" -le 0 ] 2>/dev/null; then
         _until_part="past compact"
     elif [ "${_utok:-0}" -ge 1000000 ] 2>/dev/null; then
