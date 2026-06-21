@@ -1,3 +1,11 @@
+## [21.98.3](https://github.com/terrylica/cc-skills/compare/v21.98.2...v21.98.3) (2026-06-21)
+
+
+### Bug Fixes
+
+* **gmail-commander:** RFC 2047-encode non-ASCII mail headers ([555913c](https://github.com/terrylica/cc-skills/commit/555913c305769b9fc466854edaba6a54369d156b))
+* **statusline-tools:** fix ({) visibility badge on gh auth failure ([7ce7ce9](https://github.com/terrylica/cc-skills/commit/7ce7ce980f623d132bebc0bee8497916a384f9b3))
+
 ## [21.98.2](https://github.com/terrylica/cc-skills/compare/v21.98.1...v21.98.2) (2026-06-21)
 
 
