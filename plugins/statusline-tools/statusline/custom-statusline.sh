@@ -450,26 +450,43 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
     vis_cache_file="${vis_cache_dir:-/tmp}/ccstatusline-gh-visibility-cache"
     vis_cache_age=9999
     [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(stat -f %m "$vis_cache_file" 2>/dev/null || echo 0)))
+    vis_err=""
     if [ "$vis_cache_age" -lt 3600 ]; then
         vis_out=$(cat "$vis_cache_file")
         vis_exit=0
     else
-        vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
+        # Capture stdout and stderr SEPARATELY. On a non-2xx response `gh api`
+        # dumps the raw JSON response body to STDOUT (its first line is a bare
+        # "{") and writes its own one-line diagnostic — `gh: <msg> (HTTP NNN)`
+        # — as the LAST line of STDERR. The pre-2026-06-21 code merged the two
+        # with `2>&1` and took `head -1`, so it surfaced the JSON body's "{"
+        # and rendered the ({) badge on every auth failure. Keep the streams
+        # apart so the success value (stdout) and the diagnostic (stderr)
+        # never contaminate each other.
+        vis_err_file=$(mktemp -t ccstatusline-gh-vis.XXXXXX)
+        vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>"$vis_err_file")
         vis_exit=$?
+        vis_err=$(cat "$vis_err_file" 2>/dev/null)
+        rm -f "$vis_err_file"
         if [ $vis_exit -eq 0 ] && [[ "$vis_out" == "public" || "$vis_out" == "private" ]]; then
             echo "$vis_out" > "$vis_cache_file" 2>/dev/null
         fi
     fi
-    if [ $vis_exit -eq 0 ] && [ -n "$vis_out" ]; then
+    if [ $vis_exit -eq 0 ] && [[ "$vis_out" == "public" || "$vis_out" == "private" ]]; then
         repo_visibility="$vis_out"
-    elif [[ "$vis_out" == *"HTTP 404"* ]]; then
+    elif [[ "$vis_err" == *"HTTP 404"* ]]; then
         repo_visibility=""  # repo doesn't exist or no read access — leave badge off
     else
         # auth, network, timeout, gh-missing: surface gh's OWN diagnostic
-        # verbatim (first stderr line) instead of the invented "?" marker
-        # (removed 2026-06-11 per official-values directive). When gh died
-        # silently (timeout/missing binary), state the official exit code.
-        gh_vis_diag=$(printf '%s' "$vis_out" | head -1 | sed -E 's/^(fatal|error): //')
+        # verbatim instead of the invented "?" marker (removed 2026-06-11 per
+        # official-values directive). Prefer gh's last `gh: ...` stderr line
+        # (e.g. "Bad credentials (HTTP 401)"); fall back to the JSON body's
+        # .message; finally state the official exit code when gh died silently
+        # (timeout/missing binary leave both streams empty).
+        gh_vis_diag=$(printf '%s\n' "$vis_err" | grep -E '^gh: ' | tail -1 | sed -E 's/^gh: //')
+        if [ -z "$gh_vis_diag" ]; then
+            gh_vis_diag=$(printf '%s' "$vis_out" | grep -oE '"message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)".*/\1/')
+        fi
         repo_visibility="${gh_vis_diag:-gh exit ${vis_exit}}"
     fi
 fi
