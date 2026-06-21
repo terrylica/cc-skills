@@ -1,3 +1,10 @@
+## [21.98.5](https://github.com/terrylica/cc-skills/compare/v21.98.4...v21.98.5) (2026-06-21)
+
+
+### Bug Fixes
+
+* **statusline:** name missing gh-<alias> profile, not gh exit 4 ([afd91ff](https://github.com/terrylica/cc-skills/commit/afd91ff9373c7a83e0d2b71ccea10c9c28e3f461)), closes [#eonlabs](https://github.com/terrylica/cc-skills/issues/eonlabs) [#failure](https://github.com/terrylica/cc-skills/issues/failure)
+
 ## [21.98.4](https://github.com/terrylica/cc-skills/compare/v21.98.3...v21.98.4) (2026-06-21)
 
 
