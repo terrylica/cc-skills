@@ -24,11 +24,16 @@ fi
 echo "✓ Working directory clean"
 
 # Step 3: Validate GitHub token (no API calls - avoids process storms)
-# Token is set by mise via .mise.toml reading from ~/.claude/.secrets/gh-token-*
+# Token resolved FRESH from this repo's account gh profile (ADR 2026-06-21 doctrine:
+# account = origin host-alias; no mise/.secrets dependency).
+if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ] && [ -x "$HOME/.claude/tools/bin/gh-token-for-repo" ]; then
+  GH_TOKEN="$("$HOME/.claude/tools/bin/gh-token-for-repo" 2>/dev/null || true)"
+  export GH_TOKEN GITHUB_TOKEN="$GH_TOKEN"
+fi
 if [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
   echo "❌ PREFLIGHT FAILED: No GitHub token found"
   echo ""
-  echo "Resolution: Run 'eval \"\$(mise env)\"' or check .mise.toml"
+  echo "Resolution: ensure 'gh-token-for-repo' resolves (gh profile for this account exists)"
   exit 1
 fi
 TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
