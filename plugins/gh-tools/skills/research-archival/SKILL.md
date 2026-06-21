@@ -82,7 +82,7 @@ echo "Target repo owner: $REPO_OWNER"
 if [ "$AUTH_USER" != "$REPO_OWNER" ]; then
   echo ""
   echo "MISMATCH — do NOT proceed with gh write commands"
-  echo "Fix: export GH_TOKEN=\$(cat ~/.claude/.secrets/gh-token-$REPO_OWNER)"
+  echo "Fix: export GH_TOKEN=\$(~/.claude/tools/bin/gh-token-for-repo)"
   exit 1
 fi
 echo "Identity verified — safe to proceed"
@@ -328,7 +328,7 @@ After modifying THIS skill:
 | Scrape returns empty          | JS-heavy page timeout              | Increase Firecrawl timeout, try Jina fallback                             |
 | Jina returns login page shell | Gemini login wall (not rendered)   | Must use Firecrawl for `gemini.google.com/share/*` URLs                   |
 | mise parse error              | Stale .mise.toml syntax            | Run `mise doctor`, check `[hooks.enter]` syntax                           |
-| Identity guard blocks         | Non-owner account                  | `export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-OWNER)`                |
+| Identity guard blocks         | Non-owner account                  | `export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`                |
 
 ## References
 

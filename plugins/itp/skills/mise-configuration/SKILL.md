@@ -169,16 +169,14 @@ For full settings reference and version pinning options: [Code Patterns - Settin
 
 ## GitHub Token Multi-Account Patterns {#github-token-multi-account-patterns}
 
-For multi-account GitHub setups, mise `[env]` provides per-directory token configuration that overrides gh CLI's global authentication.
+> **mise does NOT manage GitHub tokens (ADR 2026-06-21).** Per-directory `GH_TOKEN`
+> injection via mise `[env]` is **retired**. GitHub identity is driven by the repo's
+> `origin` host-alias (`git@github.com-<account>:owner/repo`): SSH key, commit
+> identity (`includeIf hasconfig:remote.*.url`), and gh account all derive from it.
+> The `gh` wrapper in `~/.zshrc` strips any ambient `GH_TOKEN`. When a script needs a
+> token, resolve it fresh: `GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"`.
 
-**Rule**: Always set BOTH `GH_TOKEN` and `GITHUB_TOKEN` pointing to the same token file.
-
-| Variable       | Usage Context                                 |
-| -------------- | --------------------------------------------- |
-| `GH_TOKEN`     | mise [env], Doppler, verification tasks       |
-| `GITHUB_TOKEN` | npm scripts, GitHub Actions, semantic-release |
-
-**Full guide with templates, verification, and 1Password integration**: [GitHub Token Patterns](./references/github-tokens.md)
+**Full guide**: [GitHub Multi-Account Auth (host-alias model)](./references/github-tokens.md)
 
 ## Anti-Patterns
 

@@ -1,175 +1,75 @@
-# GitHub Token Multi-Account Patterns
+# GitHub Multi-Account Auth (host-alias model)
 
 **Parent Skill**: [mise-configuration](../SKILL.md)
 
-## Overview
+> **⚠️ 2026-06-21 — this page was rewritten.** The previous version taught mise
+> `[env]` `GH_TOKEN` injection from plaintext `~/.claude/.secrets/gh-token-*`
+> files and cwd-based SSH `Match` directives. **All of that is retired.** mise no
+> longer touches GitHub tokens (it manages tool versions only). The canonical
+> model below is the **host-alias single-source-of-truth**. See the ADR:
+> `~/.claude/docs/adr/2025-12-17-github-multi-account-authentication.md` (§2026-06-21).
 
-Per-directory GH_TOKEN configuration for multi-account GitHub setups using mise `[env]`.
+## The model: the remote URL host-alias is the single source of truth
 
-## Problem
+A repo's `origin` remote names its account, and **that one signal drives all three layers** — so identity travels with the repo, not its folder location.
 
-GitHub's `gh` CLI has no native per-directory authentication. When working across multiple GitHub accounts (personal, organization, client), the wrong account may be used for operations like `semantic-release`.
+```
+git@github.com-<account>:owner/repo.git
+              ^^^^^^^^^ the account
+```
 
-## Solution
+| Layer               | Mechanism (keyed off the alias)                                                                                                                                                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SSH key**         | `Host github.com-<account>` block in `~/.ssh/config` → `IdentityFile`, with `IdentitiesOnly yes` + `ControlMaster no` + `ControlPath none`. A top-of-file `Host github.com github.com-* ssh.github.com` block with `ControlPath none` is the multiplexing kill-switch (defeats the wrong-identity bug). |
+| **Commit identity** | `~/.gitconfig`: `[includeIf "hasconfig:remote.*.url:git@github.com-<account>:*/**"] path = ~/.gitconfig-<account>` — binds identity to the remote, not the folder (git ≥ 2.36).                                                                                                                         |
+| **gh CLI**          | The neutral `gh` wrapper in `~/.zshrc` derives the account from the remote alias → `GH_CONFIG_DIR=~/.config/gh-<account>` (isolated profile) and **strips `GH_TOKEN`** (a stale ambient token would otherwise outrank the profile and 401 after a rotation).                                            |
 
-Use mise `[env]` to set `GH_TOKEN` and `GITHUB_TOKEN` per directory, overriding gh CLI's stored credentials.
+## Tokens are resolved fresh — never stored or injected
 
-## Token File Storage
+There are **no** plaintext token files and **no** ambient `GH_TOKEN`. Anything that
+needs an HTTP token (semantic-release, CI scripts) resolves one at the moment of use:
 
 ```bash
-# Create secure directory
-mkdir -p ~/.claude/.secrets
-chmod 700 ~/.claude/.secrets
-
-# Store tokens (one per account)
-gh auth login --hostname github.com  # Login as account
-gh auth token > ~/.claude/.secrets/gh-token-accountname
-chmod 600 ~/.claude/.secrets/gh-token-*
+# Account derived from the repo's origin alias → that account's gh profile → fresh token
+GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"
+GITHUB_TOKEN="$GH_PAT" GH_TOKEN="$GH_PAT" npx semantic-release
 ```
 
-**Token file naming convention**: `gh-token-<accountname>`
+`gh-token-for-repo` runs `GH_CONFIG_DIR=~/.config/gh-<account> gh auth token`
+(verified to work headless under launchd with no Touch ID). **1Password is the
+at-rest SSoT** (each account's gh login is provisioned from it; `~/.gitconfig-<account>`
+references `githubToken1PasswordID`).
 
-## mise [env] Templates
+## Account → alias → key map
 
-### Same-Directory Token (using config_root)
+| Account      | Remote alias            | SSH key                         | gh profile                |
+| ------------ | ----------------------- | ------------------------------- | ------------------------- |
+| terrylica    | `github.com-terrylica`  | `id_ed25519_terrylica`          | `~/.config/gh-terrylica`  |
+| tainora      | `github.com-tainora`    | `id_ed25519_tainora`            | `~/.config/gh-tainora`    |
+| 459ecs       | `github.com-459ecs`     | `id_ed25519_459ecs`             | `~/.config/gh-459ecs`     |
+| vanjobbers   | `github.com-vanjobbers` | `id_ed25519_vanjobbers`         | `~/.config/gh-vanjobbers` |
+| Eon-Labs org | `github.com-eonlabs`    | `id_ed25519_terrylica` (member) | `~/.config/gh-terrylica`  |
 
-```toml
-# ~/.claude/.mise.toml
-[env]
-GH_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
-GITHUB_TOKEN = "{{ read_file(path=config_root ~ '/.secrets/gh-token-terrylica') | trim }}"
-GH_ACCOUNT = "terrylica"  # Human reference only
-```
-
-### Cross-Directory Token (using env.HOME)
-
-```toml
-# ~/eon/.mise.toml
-[env]
-GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
-GITHUB_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
-GH_ACCOUNT = "terrylica"
-```
-
-**When to use each**:
-
-- `config_root`: Token file is relative to the `.mise.toml` location
-- `env.HOME`: Token file is in a shared location (recommended)
-
-## GH_TOKEN vs GITHUB_TOKEN
-
-| Variable       | Usage Context                                 | Example                     |
-| -------------- | --------------------------------------------- | --------------------------- |
-| `GH_TOKEN`     | mise [env], Doppler, verification tasks       | `.mise.toml`, shell scripts |
-| `GITHUB_TOKEN` | npm scripts, GitHub Actions, semantic-release | `package.json`, workflows   |
-
-**Rule**: Always set BOTH variables pointing to the same token file.
-
-## Directory-Account Mapping
-
-| Directory              | GitHub Account | Token File           |
-| ---------------------- | -------------- | -------------------- |
-| `~/.claude/`           | terrylica      | `gh-token-terrylica` |
-| `~/eon/`               | terrylica      | `gh-token-terrylica` |
-| `~/raw-data-services/` | terrylica      | `gh-token-terrylica` |
-| `~/own/`               | tainora        | `gh-token-tainora`   |
-| `~/scripts/`           | tainora        | `gh-token-tainora`   |
-| `~/459ecs/`            | 459ecs         | `gh-token-459ecs`    |
-
-## Account Alignment Verification
+## Verification
 
 ```bash
-/usr/bin/env bash << 'VALIDATE_EOF'
-# Verify all directories use correct account
-for dir in ~/.claude ~/eon ~/own ~/scripts ~/459ecs; do
-  cd "$dir" && eval "$(mise hook-env -s bash)" && echo "$dir → $(gh api user --jq '.login')"
-done
-VALIDATE_EOF
+# In any repo: account is whatever the origin alias names
+git -C <repo> remote get-url origin        # → git@github.com-<account>:...
+~/.claude/tools/bin/gh-token-for-repo | GH_TOKEN=$(cat) gh api user --jq .login   # → <account>
 ```
 
-## SSH ControlMaster Warning
+## RETIRED — do NOT reintroduce
 
-> **CRITICAL**: If using multi-account SSH, ensure `ControlMaster no` is set for GitHub hosts in `~/.ssh/config`. Cached connections can authenticate with the wrong account.
-
-```ssh-config
-Match host github.com,ssh.github.com exec "pwd | grep -q '/.claude'"
-    IdentityFile ~/.ssh/id_ed25519_terrylica
-    IdentitiesOnly yes
-    ControlMaster no  # ← CRITICAL
-```
-
-See [SSH ControlMaster Cache](../../semantic-release/references/troubleshooting.md#ssh-controlmaster-cache) for troubleshooting.
-
-## Troubleshooting
-
-### "Repository not found" Error
-
-1. Check account alignment:
-
-   ```bash
-   ssh -T git@github.com  # SSH account
-   gh api user --jq '.login'  # gh CLI account (should match)
-   ```
-
-2. If mismatch, verify mise config:
-
-   ```bash
-   mise env | grep GH_TOKEN
-   cat ~/.claude/.secrets/gh-token-accountname  # First 10 chars
-   ```
-
-3. Clear SSH ControlMaster cache:
-
-   ```bash
-   ssh -O exit git@github.com 2>/dev/null || pkill -f 'ssh.*github.com'
-   ```
-
-### Token Not Loading
-
-1. Verify mise trusted:
-
-   ```bash
-   mise trust
-   ```
-
-2. Check token file exists:
-
-   ```bash
-   ls -la ~/.claude/.secrets/gh-token-*
-   ```
-
-3. Test token directly:
-
-   ```bash
-
-   ```
-
-/usr/bin/env bash << 'GITHUB_TOKENS_SCRIPT_EOF'
-GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-accountname) gh api user --jq '.login'
-
-GITHUB_TOKENS_SCRIPT_EOF
-
-````
-
-### Token Expired
-
-GitHub tokens expire. Refresh with:
-
-```bash
-gh auth login --hostname github.com
-gh auth token > ~/.claude/.secrets/gh-token-accountname
-````
-
-## 1Password Integration
-
-For automatic token rotation:
-
-```toml
-[env]
-GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engineering/GitHub Token/credential') }}"
-GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='op read op://Engineering/GitHub Token/credential') }}"
-```
+- mise `[env]` injecting `GH_TOKEN`/`GITHUB_TOKEN`/`GH_CONFIG_DIR`/`GH_ACCOUNT`
+  (including via `read_file(... .secrets/gh-token-*)` **or** `op read` — any ambient
+  token is the failure mode).
+- plaintext `~/.claude/.secrets/gh-token-*` files (deleted).
+- the `git-credential-gh-token` helper; "HTTPS-first" git remotes.
+- cwd-based `Match host github.com exec "pwd | grep ..."` SSH directives.
+- `includeIf "gitdir:..."` account selection (replaced by `hasconfig:remote.*.url`).
+- the `~/.config/gh-profiles/*` and `~/.config/gh/profiles/*` conventions (deleted).
 
 ## References
 
-- [mise env documentation](https://mise.jdx.dev/environments/)
+- ADR: `~/.claude/docs/adr/2025-12-17-github-multi-account-authentication.md` (§2026-06-21)
+- Resolver: `~/.claude/tools/bin/gh-token-for-repo`

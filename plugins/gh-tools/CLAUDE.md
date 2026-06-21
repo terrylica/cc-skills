@@ -41,10 +41,15 @@ GitHub allows **256 characters** for issue titles. Maximize this limit to create
 
 ### Ownership Check
 
-The hook only shows reminders for issues you own:
+The hook only shows reminders for issues you own. Account resolution (ADR 2026-06-21):
 
-1. **Primary**: `GH_ACCOUNT` environment variable (set by mise per-directory)
-2. **Fallback**: Token filename pattern from `~/.claude/.secrets/gh-token-<username>`
+1. **Primary**: the repo's `origin` host-alias `git@github.com-<account>:…` names the account.
+2. **Fallback**: `curl /user` with the token from `~/.claude/tools/bin/gh-token-for-repo`.
+
+> Legacy `GH_ACCOUNT` (mise-injected) and `~/.claude/.secrets/gh-token-*` filename
+> detection are **retired** (mise no longer injects; `.secrets` is deleted). The
+> hook `.mjs` code still references these as fallbacks — tracked for a follow-up to
+> derive the account from the remote alias instead.
 
 ### Threshold
 
@@ -113,7 +118,7 @@ Fix:
   1. Check mise config: mise env | grep GH_TOKEN
   2. Verify GH_ACCOUNT: echo $GH_ACCOUNT
   3. If mise parse error: mise doctor
-  4. Set correct token: export GH_TOKEN=$(cat ~/.claude/.secrets/gh-token-owner)
+  4. Set correct token: export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
 ```
 
 ## Discovery Provenance (Mandatory for Issue Creation)
@@ -224,26 +229,30 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 **Repositories you own**: `terrylica/*` (verify with `gh repo list terrylica`)
 
-## Multi-Account Authentication
+## Multi-Account Authentication (host-alias model, ADR 2026-06-21)
 
-This plugin respects the multi-account setup via mise:
+This plugin respects the **host-alias single-source-of-truth**: a repo's `origin`
+remote (`git@github.com-<account>:owner/repo.git`) names its account and drives the
+SSH key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account. The
+neutral `gh` wrapper in `~/.zshrc` derives the account from that alias, sets
+`GH_CONFIG_DIR=~/.config/gh-<account>`, and strips any ambient `GH_TOKEN`.
 
-```toml
-# ~/eon/.mise.toml
-[env]
-GH_TOKEN = "{{ read_file(path=env.HOME ~ '/.claude/.secrets/gh-token-terrylica') | trim }}"
-GH_ACCOUNT = "terrylica"
+**Tokens are never injected by mise and never ambient.** When a token is needed
+(e.g. release scripts), resolve it fresh:
+
+```bash
+GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"   # account = origin alias → that gh profile
 ```
 
-**ADR**: [/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
+**ADR**: `~/.claude/docs/adr/2025-12-17-github-multi-account-authentication.md` (§2026-06-21)
 
 ## Environment Variables
 
-| Variable     | Required | Description                                                                              |
-| ------------ | -------- | ---------------------------------------------------------------------------------------- |
-| `GH_TOKEN`   | Yes      | GitHub PAT (`ghp_...` / `github_pat_...`); read from mise per-project config             |
-| `GH_ACCOUNT` | Yes      | GitHub username for the active token; used by identity guard to verify ownership         |
-| `GH_ORGS`    | No       | Comma-separated list of orgs the current account may write to (identity guard allowlist) |
+`gh` itself needs no env vars here — it resolves the account from the repo's remote
+alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in mise or the shell;
+a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation.
+For an explicit token in a script, use `gh-token-for-repo` (above).
+| `GH_ORGS` | No | Comma-separated list of orgs the current account may write to (identity guard allowlist) |
 
 ## Process Safety
 

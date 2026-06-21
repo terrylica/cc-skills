@@ -249,7 +249,7 @@ mutation($projectId: ID!, $body: String!, $status: ProjectV2StatusUpdateStatus!)
 
 ```bash
 # Check token type
-cat ~/.claude/.secrets/gh-token-terrylica | head -c 10
+~/.claude/tools/bin/gh-token-for-repo | head -c 10
 # ghp_ = Classic PAT (supports Projects)
 # github_pat_ = Fine-grained (NO Projects support)
 ```
