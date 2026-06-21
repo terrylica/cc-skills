@@ -418,3 +418,34 @@ FAKE
     [[ "$model_line" == *"thinking:true"* ]]
     [[ "$model_line" != *"thinking:true |"* ]]
 }
+
+@test "release segment names the missing gh-<alias> profile instead of a bare gh exit code" {
+    # Incident 2026-06-21: an origin host-alias (e.g. eonlabs) with no matching
+    # ~/.config/gh-<alias> profile fell back to the multi-user default config,
+    # which 401s in this subprocess as an opaque "gh exit 4". The hardening
+    # names the absent profile so the fix (create it) is obvious at a glance.
+    repo="$BATS_TEST_TMPDIR/noprofile_repo"
+    mkdir -p "$repo"
+    git -C "$repo" init -q
+    # An alias guaranteed to have NO ~/.config/gh-<alias> profile.
+    git -C "$repo" remote add origin "git@github.com-zzznoprofile:owner/widgets.git"
+
+    # Fake gh: behaves like an unauthenticated CLI (exit 4) for every call.
+    fakebin="$BATS_TEST_TMPDIR/fakebin-noauth"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' 'To get started with GitHub CLI, please run: gh auth login' >&2
+exit 4
+FAKE
+    chmod +x "$fakebin/gh"
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # The hardened hint names the absent profile...
+    [[ "$plain" == *"no gh-zzznoprofile profile"* ]]
+    # ...instead of the opaque generic auth diagnostic.
+    [[ "$plain" != *"gh exit 4"* ]]
+}
