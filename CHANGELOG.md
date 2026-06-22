@@ -1,3 +1,10 @@
+# [21.100.0](https://github.com/terrylica/cc-skills/compare/v21.99.0...v21.100.0) (2026-06-22)
+
+
+### Features
+
+* **itp-hooks:** add git-worktree guard enforcing worktree-per-branch ([09aaa49](https://github.com/terrylica/cc-skills/commit/09aaa493f7541a791f90dd7278ac8a235dd5239a))
+
 # [21.99.0](https://github.com/terrylica/cc-skills/compare/v21.98.5...v21.99.0) (2026-06-22)
 
 
