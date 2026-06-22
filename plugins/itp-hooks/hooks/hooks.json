@@ -133,6 +133,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-git-worktree-guard.ts",
+            "timeout": 5000,
+            "description": "Enforces worktree-per-branch: denies bare branch creation (git checkout -b / switch -c / branch <new>, git-town hack|append|prepend, gh pr checkout) and steers to `git worktree add -b` or the EnterWorktree tool. Always allows `git worktree add`, switching to existing branches, branch list/delete/rename, and doc/echo/comment/commit-message mentions. Escape hatch: prefix with ALLOW_BARE_BRANCH=1. Fail-open. Spoke: docs/git-worktree-guard.md. ADR 2026-06-22."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5000,
             "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection — MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"
