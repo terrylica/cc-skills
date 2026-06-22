@@ -1,0 +1,9 @@
+{
+  "name": "x-twitter-scraper",
+  "version": "1.0.0",
+  "description": "X/Twitter automation via Xquik REST API: search, users, media, monitors, webhooks, and confirmation-gated posting",
+  "author": {
+    "name": "Xquik",
+    "url": "https://github.com/Xquik-dev"
+  }
+}
