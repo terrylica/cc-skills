@@ -1,3 +1,10 @@
+# [21.99.0](https://github.com/terrylica/cc-skills/compare/v21.98.5...v21.99.0) (2026-06-22)
+
+
+### Features
+
+* **itp-hooks:** block broken WebFetch, use curl/search fallback ([37e962a](https://github.com/terrylica/cc-skills/commit/37e962ab04704d4bdc5f7cd210c521ae3bc93830)), closes [anthropics/claude-code#8331](https://github.com/anthropics/claude-code/issues/8331) [#22846](https://github.com/terrylica/cc-skills/issues/22846) [#39896](https://github.com/terrylica/cc-skills/issues/39896) [#13718](https://github.com/terrylica/cc-skills/issues/13718) [#17929](https://github.com/terrylica/cc-skills/issues/17929)
+
 ## [21.98.5](https://github.com/terrylica/cc-skills/compare/v21.98.4...v21.98.5) (2026-06-21)
 
 
