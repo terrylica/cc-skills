@@ -67,6 +67,17 @@
         ]
       },
       {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
+            "timeout": 5000,
+            "description": "Unconditionally blocks the upstream-broken built-in WebFetch (claude.ai Cloudflare pre-check returns 403 to CLI clients → 'unable to fetch from <domain>'; proven NOT proxy/network 2026-06-22). Denies with the curl → agent-reach → WebSearch fallback chain; matcher WebFetch sidesteps the #55889 Bash-matcher context-drop bug and deny+reason is the Claude-visible channel. No escape hatch (WebFetch never succeeds in CLI); if Anthropic fixes the bug, disable this hook. SSoT: ~/.claude/webfetch-fallback-CLAUDE.md"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
