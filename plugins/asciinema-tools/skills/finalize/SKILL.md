@@ -33,6 +33,31 @@ Finalize orphaned asciinema recordings: stop running processes gracefully, compr
 
 ## Execution
 
+### Phase 0: Parse Arguments
+
+Parse `$ARGUMENTS` once at the top of the workflow so the later phases
+can consult `$FORCE`, `$ALL_MODE`, `$NO_PUSH`, and `$KEEP_LOCAL`.
+
+```bash
+/usr/bin/env bash << 'PARSE_EOF'
+FORCE=false
+ALL_MODE=false
+NO_PUSH=false
+KEEP_LOCAL=false
+TARGET_FILE=""
+for arg in $ARGUMENTS; do
+  case "$arg" in
+    --force)       FORCE=true ;;
+    --all)         ALL_MODE=true ;;
+    --no-push)     NO_PUSH=true ;;
+    --keep-local)  KEEP_LOCAL=true ;;
+    *)             TARGET_FILE="$arg" ;;
+  esac
+done
+export FORCE ALL_MODE NO_PUSH KEEP_LOCAL TARGET_FILE
+PARSE_EOF
+```
+
 ### Phase 1: Discovery
 
 ```bash
