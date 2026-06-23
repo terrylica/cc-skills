@@ -39,8 +39,8 @@ enum ExitCode {
 
 const BASE = "https://api.minimax.io/v1";
 const MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M3";
-const OP_PATH_DEFAULT = "op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password";
-const OP_ACCOUNT_DEFAULT = "K5BH72Z7O5BYXOGKBYT5FWTP2E";
+const OP_PATH_DEFAULT = "op://<vault>/<minimax-api-key-item>/credential";
+const OP_ACCOUNT_DEFAULT = "<op-account>";
 
 const SCRIPTS_DIR = dirname(Bun.fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(SCRIPTS_DIR);
