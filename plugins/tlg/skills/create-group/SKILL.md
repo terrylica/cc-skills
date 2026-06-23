@@ -12,26 +12,26 @@ Create groups, supergroups, or channels and optionally invite users.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Create supergroup (default)
-uv run --python 3.14 "$SCRIPT" create-group "My Group" --about "Group description"
+bun "$SCRIPT" create-group "My Group" --about "Group description"
 
 # Create with initial members
-uv run --python 3.14 "$SCRIPT" create-group "Project Chat" --users @user1 @user2
+bun "$SCRIPT" create-group "Project Chat" --users @user1 @user2
 
 # Create broadcast channel
-uv run --python 3.14 "$SCRIPT" create-group "Announcements" --type channel --about "Updates"
+bun "$SCRIPT" create-group "Announcements" --type channel --about "Updates"
 
 # Create legacy group (limited to ~200 members)
-uv run --python 3.14 "$SCRIPT" create-group "Small Team" --type group --users @teammate
+bun "$SCRIPT" create-group "Small Team" --type group --users @teammate
 EOF
 ```
 
@@ -57,7 +57,7 @@ EOF
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.
