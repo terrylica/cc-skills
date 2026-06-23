@@ -1,3 +1,10 @@
+# [21.101.0](https://github.com/terrylica/cc-skills/compare/v21.100.0...v21.101.0) (2026-06-23)
+
+
+### Features
+
+* **whatsapp-commander:** add WhatsApp messaging plugin ([cba4850](https://github.com/terrylica/cc-skills/commit/cba48502da1c6a6a03bb7ef25bcb7087285be028))
+
 # [21.100.0](https://github.com/terrylica/cc-skills/compare/v21.99.0...v21.100.0) (2026-06-22)
 
 
