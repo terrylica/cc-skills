@@ -179,11 +179,31 @@ export async function createApp(pg: Page, opts: Options, userKey: string): Promi
   await pg.click('input[name="commit"]');
   await pg.waitForLoadState("networkidle", { timeout: 30000 });
   out.app_url = pg.url();
-  const candidates = await scrapeTokens(pg);
-  if (userKey) {
-    candidates.delete(userKey);
+
+  // Reliable extraction: a successful create lands on the app's page
+  // (/apps/<slug>). Read the 30-char token from THAT page's input fields
+  // (excluding the user key) — exactly how dumpApps() scrapes per-app tokens.
+  // The old `scrapeTokens()+toSorted()[0]` guessed the alphabetically-first
+  // 30-char string in the whole body, which on the post-create page can be a
+  // CSRF/nonce/asset hash → an invalid "minted-but-dead" token (the documented
+  // failure mode). Only fall back to the body scrape if no app page was reached.
+  let token: string | null = null;
+  const slug = pg.url().match(/\/apps\/([^/?#]+)$/)?.[1];
+  if (slug && !["build", "new"].includes(slug)) {
+    out.new_slug = slug;
+    const values = await pg.$$eval("input", (els) =>
+      els.map((e) => (e as HTMLInputElement).value || ""),
+    );
+    token = values.find((v) => TOKEN_EXACT.test(v) && v !== userKey) ?? null;
   }
-  const token = [...candidates].toSorted()[0] ?? null;
+  if (token === null) {
+    const candidates = await scrapeTokens(pg);
+    if (userKey) {
+      candidates.delete(userKey);
+    }
+    token = [...candidates][0] ?? null;
+  }
+
   out.created = token !== null;
   out.token = token === null ? null : opts.reveal ? token : maskToken(token);
   return out;
