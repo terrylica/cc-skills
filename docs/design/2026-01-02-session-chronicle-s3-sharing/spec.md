@@ -5,7 +5,7 @@ implementation-status: complete
 s3_artifacts:
   bucket: s3://eonlabs-findings
   prefix: sessions/
-  credential_source: 1Password Claude Automation vault (ise47dxnkftmxopupffavsgby4)
+  credential_source: 1Password Claude Automation vault (<chronicle-item>)
 ---
 
 # Design Spec: Session-Chronicle S3 Artifact Sharing
@@ -36,7 +36,7 @@ brew install brotli awscli 1password-cli
 
 # Verify 1Password access
 op signin
-op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id" >/dev/null && echo "OK"
+op read "op://Claude Automation/<chronicle-item>/access key id" >/dev/null && echo "OK"
 ```
 
 ---
@@ -68,13 +68,13 @@ op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id" >/dev/
 
 ### Phase 4: Credential Access Pattern
 
-**1Password item**: `ise47dxnkftmxopupffavsgby4` (Claude Automation vault)
+**1Password item**: `<chronicle-item>` (Claude Automation vault)
 
 ```bash
 # Credential injection (in s3_upload.sh)
 /usr/bin/env bash << 'CREDS_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 aws s3 cp "$FILE" "s3://eonlabs-findings/$PATH"
@@ -133,8 +133,8 @@ Design Spec: /docs/design/<adr-slug>/spec.md
 
 Retrieval (requires 1Password Claude Automation vault access):
   /usr/bin/env bash << 'RETRIEVE_EOF'
-  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
-  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
+  export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/access key id")
+  export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
   export AWS_DEFAULT_REGION="us-west-2"
   aws s3 sync s3://eonlabs-findings/sessions/<id>/ ./artifacts/
   RETRIEVE_EOF
@@ -277,8 +277,8 @@ Session-Chronicle-S3: s3://eonlabs-findings/sessions/<id>
 ```bash
 # Download and decompress artifacts
 /usr/bin/env bash << 'RETRIEVE_EOF'
-export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/access key id")
-export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/ise47dxnkftmxopupffavsgby4/secret access key")
+export AWS_ACCESS_KEY_ID=$(op read "op://Claude Automation/<chronicle-item>/access key id")
+export AWS_SECRET_ACCESS_KEY=$(op read "op://Claude Automation/<chronicle-item>/secret access key")
 export AWS_DEFAULT_REGION="us-west-2"
 
 # Sync all artifacts
@@ -319,7 +319,7 @@ RETRIEVE_EOF
 | Bucket         | `s3://eonlabs-findings`      |
 | Region         | `us-west-2`                  |
 | Account        | `050214414362`               |
-| 1Password Item | `ise47dxnkftmxopupffavsgby4` |
+| 1Password Item | `<chronicle-item>` |
 | Prefix         | `sessions/`                  |
 
 ---

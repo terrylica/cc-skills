@@ -32,7 +32,7 @@ exploration campaign and extended (2026-06-01) with a live-probed **MiniMax-M3**
    (code-correctness-guard). Narrow the catch instead (typed `errOf` envelope). `m3-cli.ts` is pure
    Bun — no `uv` / `requests` / `pillow` runtime; oxlint + `tsc --strict` run clean.
 4. **Key resolution order** (all scripts): `MINIMAX_API_KEY` env → 1Password `op read` (op-path
-   `op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password`, account `K5BH72Z7O5BYXOGKBYT5FWTP2E`).
+   `op://<vault>/<minimax-api-key-item>/credential`, account `<op-account>`).
    MiniMax 502s through the local proxy — `m3-cli.ts` bypasses it by deleting `*_PROXY` from its env at startup.
 5. **MiniMax errors are HTTP 200 + `base_resp.status_code`** (or an `error` envelope) — not HTTP 4xx.
    Both skills' parsers depend on this.

@@ -15,6 +15,12 @@ import { logger } from "./logger";
 export type ContentType = "bug" | "feature" | "question" | "documentation" | "unknown";
 
 /**
+ * Model id for `gh models run`, resolved from the SSoT (GH_MODELS_MODEL env) so it
+ * is never pinned in code; defaults to the current GA model when unset.
+ */
+export const GH_MODELS_MODEL = process.env.GH_MODELS_MODEL ?? "openai/gpt-4.1";
+
+/**
  * Keyword patterns for fallback detection
  */
 const KEYWORD_PATTERNS: Record<ContentType, RegExp[]> = {
@@ -67,7 +73,7 @@ Content:
 ${content.slice(0, 2000)}`;
 
   const result = execSync(
-    `gh models run openai/gpt-4.1 "${prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`,
+    `gh models run ${GH_MODELS_MODEL} "${prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`,
     {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
@@ -84,7 +90,7 @@ ${content.slice(0, 2000)}`;
   logger.info("AI content type detection", {
     event: "type_detected",
     duration_ms: duration,
-    ctx: { ai_model: "openai/gpt-4.1", detected_type: detectedType, raw_response: result.slice(0, 50) },
+    ctx: { ai_model: GH_MODELS_MODEL, detected_type: detectedType, raw_response: result.slice(0, 50) },
   });
 
   return detectedType;
