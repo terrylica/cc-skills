@@ -12,29 +12,29 @@ Invite, kick, and list members in groups and channels.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Invite users
-uv run --python 3.14 "$SCRIPT" invite <group> @user1 @user2
+bun "$SCRIPT" invite <group> @user1 @user2
 
 # Kick a user
-uv run --python 3.14 "$SCRIPT" kick <group> @username
+bun "$SCRIPT" kick <group> @username
 
 # List all members
-uv run --python 3.14 "$SCRIPT" members <group>
+bun "$SCRIPT" members <group>
 
 # List admins only
-uv run --python 3.14 "$SCRIPT" members <group> --admins
+bun "$SCRIPT" members <group> --admins
 
 # Search members by name
-uv run --python 3.14 "$SCRIPT" members <group> --search "Terry"
+bun "$SCRIPT" members <group> --search "Terry"
 EOF
 ```
 
@@ -74,7 +74,7 @@ First Last @username (id: 12345) [admin]
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.

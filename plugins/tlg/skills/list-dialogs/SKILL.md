@@ -12,23 +12,23 @@ List all chats, groups, and channels visible to your personal Telegram account.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'DIALOGS_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Default profile
-uv run --python 3.14 "$SCRIPT" dialogs
+bun "$SCRIPT" dialogs
 
 # Specific profile
-uv run --python 3.14 "$SCRIPT" -p missterryli dialogs
+bun "$SCRIPT" -p missterryli dialogs
 
 # Filter results
-uv run --python 3.14 "$SCRIPT" dialogs | grep -i "search term"
+bun "$SCRIPT" dialogs | grep -i "search term"
 DIALOGS_EOF
 ```
 
@@ -42,21 +42,21 @@ grouped. No truncation.
 
 ```bash
 # Full text (default — recommended)
-uv run --python 3.14 "$SCRIPT" read <chat_id> -n 10
+bun "$SCRIPT" read <chat_id> -n 10
 
 # Short scan listing — truncate each body to N chars (\n flattened to "⏎")
-uv run --python 3.14 "$SCRIPT" read <chat_id> -n 50 --preview 200
+bun "$SCRIPT" read <chat_id> -n 50 --preview 200
 ```
 
 Use `--preview N` only when you're scanning many messages and want a
 single-line summary per row. For routine reading, omit it — long messages
 deserve to be read in full, not silently cut at 200 chars (the prior default,
-which forced repeated direct-Telethon escape hatches when content mattered).
+which forced repeated manual workarounds when content mattered).
 
 ### Account Info
 
 ```bash
-uv run --python 3.14 "$SCRIPT" whoami
+bun "$SCRIPT" whoami
 ```
 
 ## Output Format
@@ -72,7 +72,7 @@ Use the `id` value with `send-message` skill to send to that chat.
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.

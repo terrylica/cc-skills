@@ -12,7 +12,7 @@ Archive a complete Telegram channel/group/chat to NDJSON + downloaded media file
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 2. User must be subscribed to (or a member of) the target channel/chat
 
@@ -20,19 +20,19 @@ Archive a complete Telegram channel/group/chat to NDJSON + downloaded media file
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Full dump: NDJSON + all media (photos, videos, documents)
-uv run --python 3.14 "$SCRIPT" dump @ChannelName ./output/ChannelName
+bun "$SCRIPT" dump @ChannelName ./output/ChannelName
 
 # NDJSON only (skip media downloads — much faster)
-uv run --python 3.14 "$SCRIPT" dump @ChannelName ./output/ChannelName --no-media
+bun "$SCRIPT" dump @ChannelName ./output/ChannelName --no-media
 
 # Dump by numeric chat ID
-uv run --python 3.14 "$SCRIPT" dump -1001234567890 ./output/MyChannel
+bun "$SCRIPT" dump -1001234567890 ./output/MyChannel
 
 # Use a different profile
-uv run --python 3.14 "$SCRIPT" -p missterryli dump @ChannelName ./output/ChannelName
+bun "$SCRIPT" -p missterryli dump @ChannelName ./output/ChannelName
 EOF
 ```
 
@@ -66,7 +66,7 @@ Each line is a JSON object with these fields:
 | `date`            | string      | ISO 8601 timestamp with timezone                |
 | `text`            | string/null | Full message text (no truncation)               |
 | `has_media`       | bool        | Whether message contains media                  |
-| `media_type`      | string/null | Telethon class name (MessageMediaPhoto, etc.)   |
+| `media_type`      | string/null | GramJS class name (MessageMediaPhoto, etc.)   |
 | `media_file`      | string/null | Filename in media/ dir (e.g., "6.jpg")          |
 | `views`           | int/null    | View count (channels only)                      |
 | `forwards`        | int/null    | Forward count                                   |
@@ -98,7 +98,7 @@ df = pl.read_ndjson("messages.ndjson")
 ## Performance Notes
 
 - ~3000 messages + 1700 media files takes ~3-5 minutes
-- Telegram may briefly disconnect mid-download (`Server closed the connection`) — Telethon auto-reconnects
+- Telegram may briefly disconnect mid-download (`Server closed the connection`) — GramJS auto-reconnects
 - For very large channels (10k+ messages), expect 10-15 minutes with media
 
 ## Recommended Storage Pattern
@@ -114,7 +114,7 @@ This keeps the NDJSON (metadata) in version control while keeping large media fi
 
 ## Anti-Patterns
 
-- **Don't dump channels you're not subscribed to** — Telethon needs access via your account
+- **Don't dump channels you're not subscribed to** — GramJS needs access via your account
 - **Don't run multiple dumps concurrently on the same profile** — session file contention
 
 ## Post-Execution Reflection
@@ -122,7 +122,7 @@ This keeps the NDJSON (metadata) in version control while keeping large media fi
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.
