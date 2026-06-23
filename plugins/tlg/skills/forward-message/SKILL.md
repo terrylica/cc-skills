@@ -12,23 +12,23 @@ Forward one or multiple messages between chats.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Forward single message
-uv run --python 3.14 "$SCRIPT" forward <from_chat> <message_id> <to_chat>
+bun "$SCRIPT" forward <from_chat> <message_id> <to_chat>
 
 # Forward multiple messages (comma-separated IDs)
-uv run --python 3.14 "$SCRIPT" forward 2124832490 471920,471921 90417581
+bun "$SCRIPT" forward 2124832490 471920,471921 90417581
 
 # Get message IDs first with read command
-uv run --python 3.14 "$SCRIPT" read <chat> -n 5
+bun "$SCRIPT" read <chat> -n 5
 EOF
 ```
 
@@ -50,7 +50,7 @@ EOF
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.
