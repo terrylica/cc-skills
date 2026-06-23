@@ -861,7 +861,7 @@
     },
     {
       "name": "tlg",
-      "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, list dialogs, 1Password credentials",
+      "description": "Telegram user-account messaging via MTProto (GramJS, Bun TypeScript) - send messages as yourself, list dialogs, 1Password credentials",
       "version": "21.102.0",
       "source": "./plugins/tlg",
       "category": "productivity",
@@ -871,7 +871,7 @@
       },
       "keywords": [
         "telegram",
-        "telethon",
+        "gramjs",
         "mtproto",
         "messaging",
         "user-account",
