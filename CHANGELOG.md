@@ -1,3 +1,10 @@
+## [22.1.1](https://github.com/terrylica/cc-skills/compare/v22.1.0...v22.1.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **pushover-commander:** scrape new app token from app page, not sorted body guess ([13a9e0a](https://github.com/terrylica/cc-skills/commit/13a9e0ae8a450afe8a31a717da7b2fef112a2cf8))
+
 # [22.1.0](https://github.com/terrylica/cc-skills/compare/v22.0.4...v22.1.0) (2026-06-23)
 
 
