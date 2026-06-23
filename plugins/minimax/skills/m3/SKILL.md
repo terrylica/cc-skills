@@ -76,22 +76,22 @@ Scripts live at the plugin **source** checkout (`scripts/` is stripped from the 
 run from `~/eon/cc-skills/plugins/minimax`:
 
 ```bash
-export MINIMAX_API_KEY=...        # or rely on the 1Password op-path default (see m3-verify -h)
+export MINIMAX_API_KEY=...        # or rely on the 1Password op-path default (see `bun scripts/m3-cli.ts verify --help`)
 
-./scripts/m3-verify                                                   # fast drift check vs locked snapshot (0/1/2)
-uv run --python 3.14 --with requests,pillow python scripts/m3-probe.py        # full option/capability map
-uv run --python 3.14 --with requests        python scripts/m3-context-probe.py # ceiling + needle retrieval
-uv run --python 3.14 --with requests        python scripts/m3-bench.py         # speed/quality: default thinking vs reasoning:"disabled"
-./scripts/minimax-check-upgrade                                       # catalog drift (lock now includes MiniMax-M3)
+bun scripts/m3-cli.ts verify          # fast drift check vs locked snapshot (exit 0/1/2)
+bun scripts/m3-cli.ts probe [--out f] # full option/capability map (writes JSON; default m3_probe_results.json)
+bun scripts/m3-cli.ts context-probe   # input-context ceiling + needle retrieval
+bun scripts/m3-cli.ts bench           # speed/quality: default thinking vs reasoning:"disabled"
+./scripts/minimax-check-upgrade       # catalog drift (lock includes MiniMax-M3)
 ```
 
 Locked invariants: [`../../references/fixtures/m3-capabilities-locked-2026-06-23.json`](../../references/fixtures/m3-capabilities-locked-2026-06-23.json).
-Schedule `m3-verify` + `minimax-check-upgrade` (launchd template in `templates/`) to catch the
+Schedule `m3-cli.ts verify` + `minimax-check-upgrade` (launchd template in `templates/`) to catch the
 day MiniMax ships `M3-highspeed`, opens up 1M context, or changes a limit.
 
 ## Post-Execution Reflection
 
 0. **Locate yourself.** — Confirm this is the canonical `skills/m3/SKILL.md` before editing.
 1. **What failed?** — A flag that worked now errors, or vice-versa → fix here + M3-EMPIRICAL.md.
-2. **What drifted?** — `m3-verify` flagged an invariant change → review, then bump the locked snapshot.
+2. **What drifted?** — `m3-cli verify` flagged an invariant change → review, then bump the locked snapshot.
 3. **Log it.** — Append to the Evolution log in `references/M3-EMPIRICAL.md` with trigger + fix + evidence.
