@@ -21,7 +21,7 @@ live-probed extension layered on top of the same plugin:
 | `fixtures/models-list-locked.json`                                                                     | Catalog lock — refreshed to include `MiniMax-M3`                  |
 
 Headline deltas vs M2.7: native vision ✅, `reasoning_split` clean output, `response_format`
-accepted, 512K input ceiling (not 1M), 512K output cap, `n=1`. Full detail + discrepancies in
+accepted, ~1M input ceiling (reliable retrieval ≤ ~256K), 524K output cap, `n=1`. Full detail + discrepancies in
 `M3-EMPIRICAL.md`.
 
 ---

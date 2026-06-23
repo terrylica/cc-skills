@@ -45,6 +45,9 @@ exploration campaign and extended (2026-06-01) with a live-probed **MiniMax-M3**
   `scripts/m3-cli.ts` (`verify` · `probe` · `context-probe` · `bench`) — pure Bun, no
   `uv`/`requests`/`pillow`; vision now uses the committed `fixtures/vision-banana-7295.png`. The
   model is read from the `MINIMAX_MODEL` SSoT. All four subcommands validated live; `verify` exits 0.
+  Also re-probed the input ceiling: **raised ~512K → ~1M** (docs' 1M claim now holds; 1,048,576
+  rejected), but **deep retrieval regressed** — the 400K needle now misses (2/2) vs retrieved on
+  06-01, so reliable retrieval is ≤ ~256K; 1M prefill latency ~235 s.
 
 - **2026-06-01** — Added the M3 layer: `skills/m3/SKILL.md`, `references/M3-EMPIRICAL.md`,
   `references/fixtures/m3-capabilities-locked-2026-06-23.json`, `scripts/m3-{probe,context-probe,bench}.py`
