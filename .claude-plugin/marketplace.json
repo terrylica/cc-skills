@@ -905,6 +905,26 @@
         "health-check"
       ],
       "strict": false
+    },
+    {
+      "name": "whatsapp-commander",
+      "description": "WhatsApp messaging - wa.me click-to-chat deep links (default, ToS-safe) and WhatsApp Business Cloud API sends. Function/enum-driven Bun TypeScript.",
+      "version": "21.100.0",
+      "source": "./plugins/whatsapp-commander",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "whatsapp",
+        "wa.me",
+        "click-to-chat",
+        "cloud-api",
+        "messaging",
+        "1password"
+      ],
+      "strict": false
     }
   ]
 }
