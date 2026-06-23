@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""m3-bench — head-to-head speed + quality benchmark: M2.7 vs M2.7-highspeed vs M3.
+"""m3-bench — speed + quality benchmark for the current MiniMax model (the SSoT).
 
-Serial calls (accurate per-call latency), proxy-bypassed. Strips <think> for the visible
-answer, then applies cheap task-specific quality checks. Use to decide per-consumer whether the
-M3 latency (default thinking) is acceptable, or whether to add reasoning:"disabled".
+The model under test is read dynamically from the SSoT (MINIMAX_MODEL env, set by
+~/.config/mise/config.toml) via scripts/_m3_common.py — this tool never pins or
+benchmarks a prior model version. Each task is run in two reasoning modes:
+`default` (native thinking on) and `reasoning_disabled` (reasoning:"disabled"),
+so you can decide per consumer whether the default-thinking latency is acceptable
+or whether to disable it for short/simple work.
+
+Serial calls (accurate per-call latency), proxy-bypassed. Strips <think> for the
+visible answer, then applies cheap task-specific quality checks.
 
 Usage:
   uv run --python 3.14 --with requests python scripts/m3-bench.py
@@ -17,28 +23,32 @@ import sys
 import time
 from pathlib import Path
 
-from _m3_common import BASE, NET_ERRORS, get_key, session, err_of
+from _m3_common import BASE, MODEL, NET_ERRORS, get_key, session, err_of
 
 S = session()
 HDR = {"Authorization": f"Bearer {get_key()}", "Content-Type": "application/json"}
 URL = f"{BASE}/chat/completions"
 THINK = re.compile(r"<think>[\s\S]*?</think>\s*")
 
-# Benched models: an intentional SUBSET selection, but every id must exist in
-# the plugin's official catalog SSoT (references/fixtures/models-list-locked.json,
-# review-gated, tripwired against /v1/models by scripts/minimax-check-upgrade).
-# Fail loudly on drift instead of benchmarking a renamed/retired model id.
-MODELS = ["MiniMax-M2.7", "MiniMax-M2.7-highspeed", "MiniMax-M3"]
+# The model under test is the SSoT model (MODEL, resolved dynamically in
+# _m3_common). It must exist in the plugin's official catalog SSoT
+# (references/fixtures/models-list-locked.json, review-gated, tripwired against
+# /v1/models by scripts/minimax-check-upgrade) — fail loudly on drift instead of
+# benchmarking a renamed/retired model id.
 _CATALOG = Path(__file__).resolve().parent.parent / "references" / "fixtures" / "models-list-locked.json"
 _official_ids = {m["id"] for m in json.loads(_CATALOG.read_text())["data"]}
-_unknown = [m for m in MODELS if m not in _official_ids]
-if _unknown:
+if MODEL not in _official_ids:
     sys.exit(
-        f"[m3-bench] benched model id(s) {_unknown} absent from the official "
-        f"catalog snapshot {_CATALOG.name} ({sorted(_official_ids)}). "
-        "Audit the catalog tripwire (scripts/minimax-check-upgrade) and update "
-        "MODELS or the review-gated snapshot."
+        f"[m3-bench] model id {MODEL!r} absent from the official catalog snapshot "
+        f"{_CATALOG.name} ({sorted(_official_ids)}). Audit the catalog tripwire "
+        "(scripts/minimax-check-upgrade) and update the review-gated snapshot or "
+        "the MINIMAX_MODEL SSoT."
     )
+
+# Reasoning modes benchmarked for the single SSoT model — both stay on MODEL, so
+# no prior version is ever invoked. "default" leaves native thinking on;
+# "reasoning_disabled" sends reasoning:"disabled".
+MODES = {"default": {}, "reasoning_disabled": {"reasoning": "disabled"}}
 REPS = 2
 
 JSON_SYS = ('Output ONLY a JSON object: {"action":"long"|"short"|"flat","confidence":0..1,'
@@ -56,10 +66,10 @@ TASKS = {
 }
 
 
-def call(model, task):
+def call(mode_extra, task):
     t = TASKS[task]
     msgs = ([{"role": "system", "content": t["sys"]}] if t["sys"] else []) + [{"role": "user", "content": t["user"]}]
-    body = {"model": model, "messages": msgs, "max_tokens": t["max"], "temperature": t["temp"]}
+    body = {"model": MODEL, "messages": msgs, "max_tokens": t["max"], "temperature": t["temp"], **mode_extra}
     t0 = time.perf_counter()
     try:
         r = S.post(URL, headers=HDR, json=body, timeout=120)
@@ -94,34 +104,31 @@ def quality(task, vis):
     return f"{len(vis)} chars"
 
 
+print(f"# m3-bench — model under test: {MODEL} (SSoT: MINIMAX_MODEL)", flush=True)
 results = {}
-for model in MODELS:
-    print(f"\n### {model}", flush=True)
-    results[model] = {}
+for mode, extra in MODES.items():
+    print(f"\n### {MODEL} [{mode}]", flush=True)
+    results[mode] = {}
     for task in TASKS:
-        runs = [call(model, task) for _ in range(REPS)]
+        runs = [call(extra, task) for _ in range(REPS)]
         for rep, res in enumerate(runs):
             print(f"  {task} r{rep}: dt={res.get('dt')}s tps={res.get('tps')} "
                   f"comp={res.get('comp_tok')} {res.get('err', '')}", flush=True)
         ok = [r for r in runs if "err" not in r]
         if ok:
             best = max(ok, key=lambda r: len(r["vis"]))
-            results[model][task] = {
+            results[mode][task] = {
                 "lat_med": round(statistics.median(r["dt"] for r in ok), 2),
                 "tps_med": round(statistics.median(r["tps"] for r in ok), 1),
                 "comp_tok": best["comp_tok"], "finish": best["finish"], "quality": quality(task, best["vis"])}
         else:
-            results[model][task] = {"error": runs[0].get("err")}
-
-print("\n### probe MiniMax-M3-highspeed (docs claim it exists)", flush=True)
-hs = call("MiniMax-M3-highspeed", "short_tag")
-print(f"  -> {hs.get('err') or 'ACCEPTED (no error)'}", flush=True)
+            results[mode][task] = {"error": runs[0].get("err")}
 
 print("\n=== SUMMARY (median latency / median TPS / quality) ===", flush=True)
-for m in MODELS:
-    print(f"\n{m}", flush=True)
+for mode in MODES:
+    print(f"\n{MODEL} [{mode}]", flush=True)
     for task in TASKS:
-        r = results[m][task]
+        r = results[mode][task]
         if "error" in r:
             print(f"  {task:12s} ERROR {r['error']}", flush=True)
         else:

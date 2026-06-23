@@ -115,7 +115,9 @@ def err_of(j):
     return None
 
 
-M3 = "MiniMax-M3"
+# Resolved from the SSoT (MINIMAX_MODEL env); the locked snapshot this verifies
+# against is the GA model, so that is the fallback when the env is unset.
+M3 = os.environ.get("MINIMAX_MODEL", "MiniMax-M3")
 
 
 def chat(body):

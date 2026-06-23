@@ -81,7 +81,7 @@ export MINIMAX_API_KEY=...        # or rely on the 1Password op-path default (se
 ./scripts/m3-verify                                                   # fast drift check vs locked snapshot (0/1/2)
 uv run --python 3.14 --with requests,pillow python scripts/m3-probe.py        # full option/capability map
 uv run --python 3.14 --with requests        python scripts/m3-context-probe.py # ceiling + needle retrieval
-uv run --python 3.14 --with requests        python scripts/m3-bench.py         # speed/quality vs M2.7/-highspeed
+uv run --python 3.14 --with requests        python scripts/m3-bench.py         # speed/quality: default thinking vs reasoning:"disabled"
 ./scripts/minimax-check-upgrade                                       # catalog drift (lock now includes MiniMax-M3)
 ```
 

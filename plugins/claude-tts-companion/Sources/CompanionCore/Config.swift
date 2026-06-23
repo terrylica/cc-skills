@@ -96,8 +96,14 @@ public enum Config {
     /// MiniMax API base URL (Anthropic-compatible endpoint)
     static let miniMaxBaseURL = "https://api.minimax.io/anthropic"
 
-    /// MiniMax model identifier (SSoT: ~/.config/mise/config.toml MINIMAX_MODEL)
-    static let miniMaxModel = "MiniMax-M2.7-highspeed"
+    /// MiniMax model identifier. Dynamically resolved from the SSoT
+    /// (`MINIMAX_MODEL` env, set by `~/.config/mise/config.toml`) so the model
+    /// in use always tracks the SSoT and no prior version is ever pinned in
+    /// code. Falls back to the current GA model only when the env is unset.
+    static let miniMaxModel: String = {
+        return ProcessInfo.processInfo.environment["MINIMAX_MODEL"]
+            ?? "MiniMax-M3"
+    }()
 
     // MARK: - Telegram Bot
 
