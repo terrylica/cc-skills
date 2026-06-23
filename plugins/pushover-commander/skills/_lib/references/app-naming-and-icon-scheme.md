@@ -44,4 +44,4 @@ monogram, and a default sound (built-in or a custom sound uploaded via
   free MP3 jingles (MP3 only, < 500 KB, ≤ 30 s; sweet spot ~29 s @ 128 kbps ≈ 454 KB).
 - `manage-apps-and-sounds-headless` (`create-app` / `edit-app` / `add-sound`) applies
   name + icon + sound headlessly.
-- `batch_create_pushover_apps.py` — create many apps from a plan JSON in one pass.
+- `batch_create_pushover_apps.ts` — create many apps from a plan JSON in one pass.
