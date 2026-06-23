@@ -5,8 +5,8 @@
 # Strategy: SUBHOOKS_DIR env override points the orchestrator at a temp
 # directory of mock subhooks. Each mock is a standalone shell script
 # named identically to a real subhook (stop-subprocess-session-cleanup.ts,
-# stop-hook-error-summary.ts, stop-ty-project-check.ts, stop-markdown-lint.ts,
-# stop-loop-stall-guard.ts) whose behavior we control per test case.
+# stop-hook-error-summary.ts, stop-ty-project-check.ts, stop-markdown-lint.ts)
+# whose behavior we control per test case.
 #
 # Run: bash plugins/itp-hooks/tests/test-stop-orchestrator.sh
 # Exits 0 on all-pass.
@@ -59,7 +59,7 @@ EOF
             cat >"$script" <<EOF
 #!/bin/sh
 cat >/dev/null
-echo "stall message from $name" >&2
+echo "exit2 message from $name" >&2
 exit 2
 EOF
             ;;
@@ -89,8 +89,8 @@ EOF
     chmod +x "$script"
 }
 
-# Set up a mock subhook dir with all 5 subhooks in given modes.
-# Args: <dir> <subprocess-mode> <error-summary-mode> <ty-mode> <md-mode> <loop-mode>
+# Set up a mock subhook dir with all 4 subhooks in given modes.
+# Args: <dir> <subprocess-mode> <error-summary-mode> <ty-mode> <md-mode>
 setup_mocks() {
     local dir="$1"
     rm -rf "$dir" && mkdir -p "$dir"
@@ -98,7 +98,6 @@ setup_mocks() {
     build_mock "$dir" stop-hook-error-summary.ts          "$3"
     build_mock "$dir" stop-ty-project-check.ts             "$4"
     build_mock "$dir" stop-markdown-lint.ts               "$5"
-    build_mock "$dir" stop-loop-stall-guard.ts            "$6"
 }
 
 # Tests set SUBHOOK_RUNNER="" so the orchestrator skips `bun script` and
@@ -141,17 +140,17 @@ echo ""
 
 # Case 1: all silent → exit 0, output {}
 MOCK="$TMP/case1"
-setup_mocks "$MOCK" silent silent silent silent silent
+setup_mocks "$MOCK" silent silent silent silent
 run_case "all silent → exit 0, empty JSON" 0 '^\{\}' "$MOCK"
 
 # Case 2: one block-reason → exit 0, output contains decision:block
 MOCK="$TMP/case2"
-setup_mocks "$MOCK" silent block-reason silent silent silent
+setup_mocks "$MOCK" silent block-reason silent silent
 run_case "one block-reason → decision:block in output" 0 '"decision":"block"' "$MOCK"
 
 # Case 3: two block-reasons → both reasons concatenated
 MOCK="$TMP/case3"
-setup_mocks "$MOCK" silent block-reason silent block-reason silent
+setup_mocks "$MOCK" silent block-reason silent block-reason
 run_case "two block-reasons → both reasons in output" 0 'error-summary.*markdown-lint|markdown-lint.*error-summary' "$MOCK"
 
 # Case 4: additionalContext from one subhook → aggregated to STDERR (NOT stdout JSON)
@@ -164,80 +163,76 @@ run_case "two block-reasons → both reasons in output" 0 'error-summary.*markdo
 # stdout JSON must NOT contain a JSON "additionalContext" key (verifies the
 # silent-drop bug is fixed).
 MOCK="$TMP/case4"
-setup_mocks "$MOCK" silent silent context silent silent
+setup_mocks "$MOCK" silent silent context silent
 run_case "additionalContext from subhook → text appears in stderr (iter-66)" 0 'ctx from stop-ty-project-check' "$MOCK"
 
-# Case 5: loop-stall-guard exit 2 → orchestrator exits 2 (asyncRewake path)
+# Case 5: any subhook exit 2 → swallowed (orchestrator exits 0, empty JSON).
+# Since the loop-stall-guard was removed, no subhook escalates exit 2 to a
+# rewake — every non-zero exit is logged to stderr and treated as silent.
 MOCK="$TMP/case5"
-setup_mocks "$MOCK" silent silent silent silent exit2
-run_case "loop-stall-guard exit 2 → orchestrator exit 2" 2 'stall message' "$MOCK"
+setup_mocks "$MOCK" exit2 silent silent silent
+run_case "subhook exit 2 → swallowed (orch exit 0)" 0 '^\{\}' "$MOCK"
 
-# Case 6: NON-loop-stall-guard exit 2 → swallowed, orchestrator exits 0
-# (Other subhooks must not be allowed to trigger asyncRewake.)
-MOCK="$TMP/case6"
-setup_mocks "$MOCK" exit2 silent silent silent silent
-run_case "subprocess-cleanup exit 2 → swallowed (orch exit 0)" 0 '^\{\}' "$MOCK"
-
-# Case 7: crash isolation — one subhook crashes, others still aggregate to stderr.
+# Case 6: crash isolation — one subhook crashes, others still aggregate to stderr.
 # iter-66: post-fix, aggregated subhook text is in STDERR (not stdout JSON).
 # Crash isolation invariant: subprocess-cleanup crash does NOT prevent ty-check's
 # context from being aggregated. Assertion: "ctx from stop-ty-project-check"
 # must appear in combined stdout+stderr despite the crash.
-MOCK="$TMP/case7"
-setup_mocks "$MOCK" crash silent context silent silent
+MOCK="$TMP/case6"
+setup_mocks "$MOCK" crash silent context silent
 run_case "crash isolation — surviving subhook context still aggregated to stderr (iter-66)" 0 'ctx from stop-ty-project-check' "$MOCK"
 
-# Case 8: bad JSON output is treated as silent (no parse failure)
-MOCK="$TMP/case8"
-setup_mocks "$MOCK" bad-json silent silent silent silent
+# Case 7: bad JSON output is treated as silent (no parse failure)
+MOCK="$TMP/case7"
+setup_mocks "$MOCK" bad-json silent silent silent
 run_case "bad JSON treated as silent" 0 '^\{\}' "$MOCK"
 
-# Case 9: empty stdin doesn't break the orchestrator
-MOCK="$TMP/case9"
-setup_mocks "$MOCK" silent silent silent silent silent
-echo -n "" | env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" >"$TMP/out9" 2>"$TMP/err9" && rc9=$? || rc9=$?
-if [[ "${rc9:-0}" -eq 0 ]]; then
+# Case 8: empty stdin doesn't break the orchestrator
+MOCK="$TMP/case8"
+setup_mocks "$MOCK" silent silent silent silent
+echo -n "" | env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" >"$TMP/out8" 2>"$TMP/err8" && rc8=$? || rc8=$?
+if [[ "${rc8:-0}" -eq 0 ]]; then
     echo "  PASS: empty stdin doesn't crash orchestrator"
     PASSES=$((PASSES + 1))
 else
-    echo "  FAIL: empty stdin (rc=$rc9)"
+    echo "  FAIL: empty stdin (rc=$rc8)"
     FAILS=$((FAILS + 1))
     FAILED_CASES+=("empty stdin")
 fi
 
 
-# Case 9b: iter-66 schema-correctness invariant — orchestrator STDOUT JSON
+# Case 8b: iter-66 schema-correctness invariant — orchestrator STDOUT JSON
 # must NEVER contain a "additionalContext" field. Per the official Anthropic
 # Stop-hook schema (verbatim example in GitHub #19115), Stop hooks support
 # only {decision, reason} in stdout JSON. Any additionalContext field would
 # be silently dropped by Claude Code. The orchestrator routes aggregated
 # subhook additionalContext to stderr instead. This test asserts the bug
 # from iter-66 cannot recur.
-MOCK="$TMP/case9b"
-setup_mocks "$MOCK" silent silent context context context
-stdout_9b=$(env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" \
+MOCK="$TMP/case8b"
+setup_mocks "$MOCK" silent silent context context
+stdout_8b=$(env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" \
     <<<'{"transcript_path":"/tmp/x.jsonl","session_id":"s","cwd":"/tmp"}' 2>/dev/null)
-if ! grep -qE '"additionalContext"' <<<"$stdout_9b"; then
+if ! grep -qE '"additionalContext"' <<<"$stdout_8b"; then
     echo "  PASS: iter-66 schema-correctness — stdout JSON contains NO additionalContext key"
     PASSES=$((PASSES + 1))
 else
     echo "  FAIL: iter-66 schema-correctness — stdout JSON still contains additionalContext key"
-    echo "         stdout was: $stdout_9b"
+    echo "         stdout was: $stdout_8b"
     FAILS=$((FAILS + 1))
     FAILED_CASES+=("iter-66 schema-correctness — additionalContext silent-drop bug recurred")
 fi
 
-# Case 10: stop_hook_active loop guard — even with a block-emitting
+# Case 9: stop_hook_active loop guard — even with a block-emitting
 # subhook, the orchestrator must exit silently when stop_hook_active=true.
-MOCK="$TMP/case10"
-setup_mocks "$MOCK" silent block-reason silent silent silent
-out10=$(env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" \
+MOCK="$TMP/case9"
+setup_mocks "$MOCK" silent block-reason silent silent
+out9=$(env SUBHOOKS_DIR="$MOCK" SUBHOOK_RUNNER="" bun "$ORCH" \
     <<<'{"transcript_path":"/tmp/x.jsonl","session_id":"s","cwd":"/tmp","stop_hook_active":true}' 2>/dev/null)
-if [[ "$out10" == "{}" ]]; then
+if [[ "$out9" == "{}" ]]; then
     echo "  PASS: stop_hook_active=true bypasses block-emitting subhook"
     PASSES=$((PASSES + 1))
 else
-    echo "  FAIL: stop_hook_active loop guard (got: $out10)"
+    echo "  FAIL: stop_hook_active loop guard (got: $out9)"
     FAILS=$((FAILS + 1))
     FAILED_CASES+=("stop_hook_active loop guard")
 fi

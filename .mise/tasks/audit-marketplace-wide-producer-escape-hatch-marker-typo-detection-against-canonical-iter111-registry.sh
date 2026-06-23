@@ -8,7 +8,7 @@
 # Pre-iter-111 marketplace state: ~12 production escape-hatch markers
 # (PROCESS-STORM-OK, FILE-SIZE-OK, BASH-LAUNCHD-OK, SSoT-OK, etc.)
 # scattered across producer files in 7+ plugins (gmail-commander,
-# calcom-commander, autoloop, quality-tools, statusline-tools, itp-hooks,
+# calcom-commander, quality-tools, statusline-tools, itp-hooks,
 # agent-reach) with NO single document answering the new-contributor's
 # question:
 #

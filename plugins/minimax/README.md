@@ -35,7 +35,6 @@ Each skill's SKILL.md frontmatter is the SSoT for its description.
 plugins/minimax/
 ├── plugin.json                              # Marketplace metadata
 ├── README.md                                # This file (high-level overview)
-├── LOOP_CONTRACT.md                         # Aggregation campaign state machine (transient)
 ├── skills/
 │   └── minimax/
 │       └── SKILL.md                         # The auto-discoverable production-wiring skill (328 lines)
@@ -99,7 +98,7 @@ No hard runtime dependencies — the skill is pure documentation. The OPS script
 
 ## Provenance
 
-Distilled from the 41-iteration `minimax-m27-explore` autoloop campaign at `~/own/amonic/minimax/`:
+Distilled from the 41-iteration `minimax-m27-explore` campaign at `~/own/amonic/minimax/`:
 
 - 40 verified hands-on pattern docs (`api-patterns/*.md`)
 - 1 quirks consolidation (`quirks/CLAUDE.md`)
@@ -109,21 +108,6 @@ Distilled from the 41-iteration `minimax-m27-explore` autoloop campaign at `~/ow
 - 35 critical findings, 11 documented failure modes, 4 error code families, 6 compat envelope categories
 
 Campaign verified against `MiniMax-M2.7-highspeed` between 2026-04-28 and 2026-04-29.
-
-## Aggregation campaign status
-
-This plugin is being built incrementally by an autoloop campaign tracked in [`LOOP_CONTRACT.md`](./LOOP_CONTRACT.md). Current status:
-
-| Phase                                   | Status         | Iters          |
-| --------------------------------------- | -------------- | -------------- |
-| Phase A — Plugin scaffold               | 🔄 IN PROGRESS | 0-3 (75% done) |
-| Phase B — Reference content aggregation | ⏸️ PENDING     | 5-15           |
-| Phase C — OPS tool migration            | ⏸️ PENDING     | 16-18          |
-| Phase D — Audit                         | ⏸️ PENDING     | 19-22          |
-| Phase E — Refinement + discoverability  | ⏸️ PENDING     | 23-27          |
-| Phase F — Close                         | ⏸️ PENDING     | ~28            |
-
-Source-of-truth at `~/own/amonic/minimax/` is the authoritative archive — read-only during this campaign per user directive.
 
 ## Troubleshooting
 

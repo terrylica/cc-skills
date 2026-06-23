@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 // STOP-HOOK-ADDITIONAL-CONTEXT-OK: orchestrator reads additionalContext from subhook stdout as internal aggregation protocol, then routes aggregated text to STDERR per iter-66 fix — NEVER emits additionalContext to its own stdout JSON (which Claude Code would silently drop per official Stop-hook schema). Verified by Case 9b regression test in test-stop-orchestrator.sh and by iter-67 marketplace-wide audit.
 /**
- * Stop hook orchestrator — runs the 5 itp-hooks Stop hooks in sequence
- * inside a single hook entry. Replaces 5 lines in the "Ran N stop hooks"
+ * Stop hook orchestrator — runs the itp-hooks Stop hooks in sequence
+ * inside a single hook entry. Replaces N lines in the "Ran N stop hooks"
  * display with one.
  *
  * Each subhook receives the same stdin payload, gets its own subprocess
@@ -15,12 +15,7 @@
  *   - `additionalContext` from multiple subhooks concatenates with
  *     blank-line separators and is written to STDERR (NOT stdout JSON).
  *     See "iter-66 Stop-hook schema-correctness fix" below for why.
- *   - `stop-loop-stall-guard` is the only subhook that legitimately
- *     exits 2 (asyncRewake on detected stall). When it does, the
- *     orchestrator forwards exit 2 + its stderr verbatim — the
- *     orchestrator's own hook entry has `asyncRewake: true` so Claude
- *     Code does the async rewake exactly as before.
- *   - Other subhooks exiting non-zero are logged and treated as silent.
+ *   - Subhooks exiting non-zero are logged and treated as silent.
  *
  * iter-66 Stop-hook schema-correctness fix:
  *   Per the official Anthropic Claude Code hook schema (verbatim
@@ -77,10 +72,6 @@ interface SubHookConfig {
   name: string;
   script: string;
   timeoutMs: number;
-  // True only for stop-loop-stall-guard — its exit 2 maps to orchestrator
-  // exit 2, triggering Claude Code's asyncRewake. Other subhooks must
-  // not be allowed to trigger asyncRewake (would dilute the signal).
-  rewakeOnExit2?: boolean;
 }
 
 const SUBHOOKS: SubHookConfig[] = [
@@ -88,7 +79,6 @@ const SUBHOOKS: SubHookConfig[] = [
   { name: "error-summary",      script: "stop-hook-error-summary.ts",          timeoutMs: 5000 },
   { name: "ty-check",            script: "stop-ty-project-check.ts",            timeoutMs: 15000 },
   { name: "markdown-lint",      script: "stop-markdown-lint.ts",                timeoutMs: 15000 },
-  { name: "loop-stall-guard",   script: "stop-loop-stall-guard.ts",             timeoutMs: 15000, rewakeOnExit2: true },
 ];
 
 interface SubHookResult {
@@ -199,9 +189,9 @@ async function main() {
   const here = dirname(fileURLToPath(import.meta.url));
   const subhooksDir = config.subhooksDir ?? here;
 
-  // Run subhooks in sequence (same as the original 5 separate hook
-  // entries — Claude Code ran them sequentially too, just at the
-  // hook-entry layer instead of inside one process).
+  // Run subhooks in sequence (same as separate hook entries — Claude
+  // Code ran them sequentially too, just at the hook-entry layer
+  // instead of inside one process).
   const results: SubHookResult[] = [];
   for (const cfg of SUBHOOKS) {
     results.push(await runSubHook(cfg, subhooksDir, payload));
@@ -211,8 +201,6 @@ async function main() {
   const aggregated: AggregatedOutput = {};
   const additionalContexts: string[] = [];
   const blockReasons: string[] = [];
-  let rewakeRequested = false;
-  let rewakeStderr = "";
 
   for (const r of results) {
     // Forward stderr from any subhook to our stderr (Claude Code shows
@@ -222,15 +210,8 @@ async function main() {
       if (!r.stderr.endsWith("\n")) process.stderr.write("\n");
     }
 
-    // exit-2 from loop-stall-guard → request orchestrator-level asyncRewake.
     const cfg = SUBHOOKS.find((s) => s.name === r.name);
-    if (r.exitCode === 2 && cfg?.rewakeOnExit2) {
-      rewakeRequested = true;
-      rewakeStderr = r.stderr;
-      continue;
-    }
-
-    // Other non-zero exits → log via stderr (already done above) and skip
+    // Non-zero exits → log via stderr (already done above) and skip
     // any output parsing.
     if (r.exitCode !== 0) {
       if (r.timedOut) {
@@ -248,13 +229,6 @@ async function main() {
     if (typeof parsed.additionalContext === "string" && parsed.additionalContext.trim()) {
       additionalContexts.push(parsed.additionalContext);
     }
-  }
-
-  // If loop-stall-guard fired, propagate exit 2 verbatim — Claude Code's
-  // asyncRewake on the orchestrator's hook entry handles the rest.
-  if (rewakeRequested) {
-    if (rewakeStderr.trim() && !rewakeStderr.endsWith("\n")) process.stderr.write("\n");
-    process.exit(2);
   }
 
   if (blockReasons.length > 0) {

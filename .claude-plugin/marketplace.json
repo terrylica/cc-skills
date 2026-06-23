@@ -63,29 +63,6 @@
       "strict": false
     },
     {
-      "name": "autoloop",
-      "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:muster, /autoloop:stop, /autoloop:reclaim, /autoloop:triage, /autoloop:setup",
-      "version": "21.103.1",
-      "source": "./plugins/autoloop",
-      "category": "automation",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "autonomous",
-        "loop",
-        "self-revising",
-        "contract",
-        "dynamic-pacing",
-        "schedule-wakeup",
-        "monitor",
-        "long-horizon",
-        "living-documentation"
-      ],
-      "strict": false
-    },
-    {
       "name": "calcom-commander",
       "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
       "version": "21.103.1",
@@ -110,29 +87,6 @@
         "1password",
         "mise",
         "bun"
-      ],
-      "strict": false
-    },
-    {
-      "name": "chronicle-share",
-      "description": "Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)",
-      "version": "21.103.1",
-      "source": "./plugins/chronicle-share",
-      "category": "devops",
-      "author": {
-        "name": "mdnasim",
-        "url": "https://github.com/nasimubd"
-      },
-      "keywords": [
-        "session-chronicle",
-        "chronicle-share",
-        "r2",
-        "cloudflare-r2",
-        "presigned-url",
-        "sanitize",
-        "bundle",
-        "session-sharing",
-        "producer-side"
       ],
       "strict": false
     },
