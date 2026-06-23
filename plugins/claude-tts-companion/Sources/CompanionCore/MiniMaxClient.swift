@@ -122,7 +122,7 @@ public final class MiniMaxClient: @unchecked Sendable {
         }
 
         // Extract text from content blocks
-        // MiniMax-M2.7-highspeed is a thinking model: returns thinking blocks then text blocks
+        // MiniMax models are thinking models: returns thinking blocks then text blocks
         guard let content = dict["content"] as? [[String: Any]] else {
             circuitBreaker.recordFailure()
             throw SummaryError.decodingError("Missing 'content' array in response")
