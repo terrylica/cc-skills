@@ -11,7 +11,7 @@
 import { execSync } from "node:child_process";
 import { logger } from "./logger";
 import { getLabels, type Label } from "./label-cache";
-import { isGhModelsAvailable, type ContentType } from "./content-detector";
+import { GH_MODELS_MODEL, isGhModelsAvailable, type ContentType } from "./content-detector";
 
 /**
  * Keyword patterns for fallback label matching
@@ -49,7 +49,7 @@ ${body.slice(0, 1500)}
 Return format: ["label1", "label2"]`;
 
   const result = execSync(
-    `gh models run openai/gpt-4.1 "${prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`,
+    `gh models run ${GH_MODELS_MODEL} "${prompt.replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`,
     {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
@@ -64,7 +64,7 @@ Return format: ["label1", "label2"]`;
   if (!jsonMatch) {
     logger.warn("AI label suggestion failed to parse", {
       event: "labels_parse_failed",
-      ctx: { ai_model: "openai/gpt-4.1", raw_response: result.slice(0, 100) },
+      ctx: { ai_model: GH_MODELS_MODEL, raw_response: result.slice(0, 100) },
     });
     return [];
   }
@@ -79,7 +79,7 @@ Return format: ["label1", "label2"]`;
   logger.info("AI label suggestion", {
     event: "labels_suggested",
     duration_ms: duration,
-    ctx: { ai_model: "openai/gpt-4.1", labels_count: validLabels.length, suggested: validLabels, filtered_out: suggestions.length - validLabels.length },
+    ctx: { ai_model: GH_MODELS_MODEL, labels_count: validLabels.length, suggested: validLabels, filtered_out: suggestions.length - validLabels.length },
   });
 
   return validLabels;
