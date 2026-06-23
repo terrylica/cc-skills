@@ -6,10 +6,10 @@
 [`../skills/m3/SKILL.md`](../skills/m3/SKILL.md). Where the official docs and the live
 API disagree, **the live API wins** — discrepancies are flagged explicitly below.
 
-> **Re-verify, don't trust this file blindly.** Everything here is reproducible:
-> `scripts/m3-probe.py` (options/capabilities), `scripts/m3-context-probe.py` (ceiling +
-> retrieval), `scripts/m3-bench.py` (speed/quality vs M2.7). Drift tripwire:
-> `scripts/m3-verify` diffs a fast live re-probe against
+> **Re-verify, don't trust this file blindly.** Everything here is reproducible via the
+> Bun CLI `scripts/m3-cli.ts`: `probe` (options/capabilities), `context-probe` (ceiling +
+> retrieval), `bench` (speed/quality). Drift tripwire:
+> `m3-cli.ts verify` diffs a fast live re-probe against
 > `fixtures/m3-capabilities-locked-2026-06-23.json` and exits non-zero on change.
 
 ---
@@ -97,7 +97,7 @@ fences and append a prose "Note:". So:
 `tools` accepted; `tool_choice:"none"` respected (no call emitted). **`tool_choice` forced**
 to a named function on a `"Hi"` prompt did **not** emit `tool_calls` — M3 reasoned "no tools
 needed" and replied conversationally. This contradicts the docs. **Before relying on forced
-tool calls, re-test with a tool-relevant prompt** (`m3-probe.py` uses a trivial prompt by design).
+tool calls, re-test with a tool-relevant prompt** (`m3-cli probe` uses a trivial prompt by design).
 
 ---
 
@@ -219,13 +219,13 @@ unchanged to M3 — only the model string and the reasoning controls differ.
 ```bash
 # From the plugin source checkout (scripts/ is stripped from the runtime cache):
 cd ~/eon/cc-skills/plugins/minimax
-export MINIMAX_API_KEY=...            # or rely on the 1Password op-path default (see m3-verify -h)
+export MINIMAX_API_KEY=...            # or rely on the 1Password op-path default (see `bun scripts/m3-cli.ts verify --help`)
 
-uv run --python 3.14 --with requests,pillow python scripts/m3-probe.py            # full option/capability map
-uv run --python 3.14 --with requests           python scripts/m3-context-probe.py # ceiling + needle
-uv run --python 3.14 --with requests           python scripts/m3-bench.py         # speed/quality vs M2.7
+bun scripts/m3-cli.ts probe          # full option/capability map (writes JSON)
+bun scripts/m3-cli.ts context-probe  # ceiling + needle
+bun scripts/m3-cli.ts bench          # speed/quality: default thinking vs reasoning:"disabled"
 
-./scripts/m3-verify            # fast drift check vs the locked capability snapshot (exit 0/1/2)
+bun scripts/m3-cli.ts verify    # fast drift check vs the locked capability snapshot (exit 0/1/2)
 ./scripts/minimax-check-upgrade # catalog drift (now includes MiniMax-M3 in the lock)
 ```
 
