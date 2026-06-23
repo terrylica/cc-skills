@@ -6,7 +6,7 @@ description: Production wiring for the MiniMax-M3 model — empirically verified
 # MiniMax-M3 — Production Wiring (empirical)
 
 The M3 companion to [`../minimax/SKILL.md`](../minimax/SKILL.md) (M2.7). Every claim here was
-**live-probed 2026-06-01** on the Plus-High-Speed key. Full evidence + copy-paste snippets:
+**live-probed 2026-06-01** (fast subset re-verified 2026-06-23) on the Plus-High-Speed key. Full evidence + copy-paste snippets:
 [`../../references/M3-EMPIRICAL.md`](../../references/M3-EMPIRICAL.md).
 
 > **Self-Evolving Skill**: improves through use. If a flag stopped working, a limit moved, or
@@ -58,8 +58,8 @@ Need M2.7-highspeed-class **speed** on short/simple tasks? Add `"reasoning": "di
 
 - **Input context ≈ 512K tokens (hard cap).** 512,180 accepted; 575K+ → `400`. Docs claim 1M —
   **not on this key.** Operate at ≤ 512K input.
-- **Output `max_tokens` ≤ 512,000.** > 512000 → `2013`.
-- **`n > 1` rejected** (`2013`). One choice per call.
+- **Output `max_tokens` ≤ 524,288.** > 524288 → `invalid params … does not support max tokens > 524288` (raised from 512,000 — re-verified 2026-06-23).
+- **`n > 1` silently dropped.** Was a hard `2013` rejection; now accepted-but-ignored — the response still carries exactly one choice. No true multi-sampling (re-verified 2026-06-23).
 - **`response_format` accepted but not a hard JSON guarantee** — M3 may still wrap with `<think>`
   / ` ```json ` fences / a trailing note. Pair with `reasoning_split` + try/except `json.loads`.
 - **`tool_choice` forced did NOT compel a call** in the trivial-prompt probe — re-test with a
@@ -85,7 +85,7 @@ uv run --python 3.14 --with requests        python scripts/m3-bench.py         #
 ./scripts/minimax-check-upgrade                                       # catalog drift (lock now includes MiniMax-M3)
 ```
 
-Locked invariants: [`../../references/fixtures/m3-capabilities-locked-2026-06-01.json`](../../references/fixtures/m3-capabilities-locked-2026-06-01.json).
+Locked invariants: [`../../references/fixtures/m3-capabilities-locked-2026-06-23.json`](../../references/fixtures/m3-capabilities-locked-2026-06-23.json).
 Schedule `m3-verify` + `minimax-check-upgrade` (launchd template in `templates/`) to catch the
 day MiniMax ships `M3-highspeed`, opens up 1M context, or changes a limit.
 
