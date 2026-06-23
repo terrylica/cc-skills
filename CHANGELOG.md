@@ -1,3 +1,15 @@
+# [21.103.0](https://github.com/terrylica/cc-skills/compare/v21.102.0...v21.103.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* **statusline:** set GIT_OPTIONAL_LOCKS=0 so renders never race user git commits ([#96](https://github.com/terrylica/cc-skills/issues/96)) ([0a4742d](https://github.com/terrylica/cc-skills/commit/0a4742d016adffe1335ef467cd753bb443d0fae8))
+
+
+### Features
+
+* **tlg:** port Telegram CLI from Telethon/Python to GramJS/Bun TS ([b029365](https://github.com/terrylica/cc-skills/commit/b029365db8128c92798414b4b5a909d33f9f735b))
+
 # [21.102.0](https://github.com/terrylica/cc-skills/compare/v21.101.0...v21.102.0) (2026-06-23)
 
 
