@@ -10,23 +10,23 @@ API disagree, **the live API wins** — discrepancies are flagged explicitly bel
 > `scripts/m3-probe.py` (options/capabilities), `scripts/m3-context-probe.py` (ceiling +
 > retrieval), `scripts/m3-bench.py` (speed/quality vs M2.7). Drift tripwire:
 > `scripts/m3-verify` diffs a fast live re-probe against
-> `fixtures/m3-capabilities-locked-2026-06-01.json` and exits non-zero on change.
+> `fixtures/m3-capabilities-locked-2026-06-23.json` and exits non-zero on change.
 
 ---
 
 ## TL;DR — what changed vs M2.7
 
-| Dimension                | M2.7 / M2.7-highspeed                 | M3 (this key)                                                       |
-| ------------------------ | ------------------------------------- | ------------------------------------------------------------------- |
-| `<think>` in `content`   | yes, always strip                     | **yes by default** — _or_ set `reasoning_split:true` for clean      |
-| Reasoning control        | none                                  | **rich**: `reasoning_split` / `reasoning` / `reasoning_effort`      |
-| Vision (`image_url`)     | ❌ silently dropped (text-only)       | ✅ **works** — read text off a PNG correctly                        |
-| `response_format`        | ❌ silently dropped                   | ✅ **accepted** (still wraps with `<think>`/fences — see caveat)    |
-| `tool_choice`            | ❌ silently dropped                   | partial — `"none"` respected; **forced did not compel** a call      |
-| `n > 1`                  | (untested)                            | ❌ **rejected** (`2013`)                                            |
-| Output ceiling           | (max_tokens not enforced server-side) | ✅ **hard 512,000**; > 512000 → `2013`                              |
-| Input context            | ~200K                                 | **~512K hard cap** (575K+ → `400`); docs claim 1M — not on this key |
-| Speed (default thinking) | ~40–50 TPS (highspeed)                | ~20–27 TPS — **slower unless thinking is reduced/disabled**         |
+| Dimension                | M2.7 / M2.7-highspeed                 | M3 (this key)                                                                                       |
+| ------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `<think>` in `content`   | yes, always strip                     | **yes by default** — _or_ set `reasoning_split:true` for clean                                      |
+| Reasoning control        | none                                  | **rich**: `reasoning_split` / `reasoning` / `reasoning_effort`                                      |
+| Vision (`image_url`)     | ❌ silently dropped (text-only)       | ✅ **works** — read text off a PNG correctly                                                        |
+| `response_format`        | ❌ silently dropped                   | ✅ **accepted** (still wraps with `<think>`/fences — see caveat)                                    |
+| `tool_choice`            | ❌ silently dropped                   | partial — `"none"` respected; **forced did not compel** a call                                      |
+| `n > 1`                  | (untested)                            | ⚠️ **silently dropped** — accepted but ignored, still 1 choice (was `2013`-rejected pre-2026-06-23) |
+| Output ceiling           | (max_tokens not enforced server-side) | ✅ **hard 524,288**; > 524288 → `invalid params … > 524288` (was 512,000 pre-2026-06-23)            |
+| Input context            | ~200K                                 | **~512K hard cap** (575K+ → `400`); docs claim 1M — not on this key                                 |
+| Speed (default thinking) | ~40–50 TPS (highspeed)                | ~20–27 TPS — **slower unless thinking is reduced/disabled**                                         |
 
 **Headline:** M3 is a **capability upgrade** (vision, structured-output acceptance,
 clean-reasoning split, larger 512K context + bigger output cap) but is **slower by
@@ -103,26 +103,26 @@ tool calls, re-test with a tool-relevant prompt** (`m3-probe.py` uses a trivial 
 
 ## 3. Parameter honoring
 
-| Param                                                                                       | Result                                           |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `temperature`, `top_p`, `stop`, `seed`, `presence_penalty`, `frequency_penalty`, `logprobs` | accepted                                         |
-| `response_format`, `tools`, `reasoning*`, `reasoning_split`                                 | accepted                                         |
-| **`n > 1`**                                                                                 | ❌ `2013` "does not support n > 1"               |
-| **`max_tokens > 512000`**                                                                   | ❌ `2013` "does not support max tokens > 512000" |
-| **`thinking: <bool>`**                                                                      | ❌ `2013` expects `ThinkingConfig` object        |
+| Param                                                                                       | Result                                                                                     |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `temperature`, `top_p`, `stop`, `seed`, `presence_penalty`, `frequency_penalty`, `logprobs` | accepted                                                                                   |
+| `response_format`, `tools`, `reasoning*`, `reasoning_split`                                 | accepted                                                                                   |
+| **`n > 1`**                                                                                 | ⚠️ silently dropped (accepted, ignored — 1 choice; was `2013`-rejected pre-2026-06-23)     |
+| **`max_tokens > 524288`**                                                                   | ❌ `invalid params` "does not support max tokens > 524288" (was `> 512000` pre-2026-06-23) |
+| **`thinking: <bool>`**                                                                      | ❌ `2013` expects `ThinkingConfig` object                                                  |
 
 ---
 
 ## 4. Context & output ceilings (this plan — empirically pinned)
 
-| Probe                           | Result                                            |
-| ------------------------------- | ------------------------------------------------- |
-| Input 128K / 400K / 512K tokens | **accepted** (measured `prompt_tokens` 512,180 ✓) |
-| Input 575K / 700K tokens        | **rejected** — `400 (2013)`                       |
-| **→ Input ceiling**             | **≈ 512K tokens (hard cap)** — _not_ 1M           |
-| Output `max_tokens`             | **≤ 512,000** (524,288 rejected)                  |
-| Needle retrieval @128K / @400K  | **retrieved ✓** (9.2 s / 21.8 s, `finish=stop`)   |
-| Latency vs size                 | ~9 s @128K, ~22 s @400–512K (prefill cost)        |
+| Probe                           | Result                                                       |
+| ------------------------------- | ------------------------------------------------------------ |
+| Input 128K / 400K / 512K tokens | **accepted** (measured `prompt_tokens` 512,180 ✓)            |
+| Input 575K / 700K tokens        | **rejected** — `400 (2013)`                                  |
+| **→ Input ceiling**             | **≈ 512K tokens (hard cap)** — _not_ 1M                      |
+| Output `max_tokens`             | **≤ 524,288** (524,289 rejected; was 512,000 pre-2026-06-23) |
+| Needle retrieval @128K / @400K  | **retrieved ✓** (9.2 s / 21.8 s, `finish=stop`)              |
+| Latency vs size                 | ~9 s @128K, ~22 s @400–512K (prefill cost)                   |
 
 The earlier "retrieved=False" reading was a **measurement artifact** (`max_tokens=64` was
 consumed by the `<think>` block before the answer). With thinking disabled + `max_tokens≥256`,
@@ -204,8 +204,8 @@ body = {"model": "MiniMax-M3", "max_tokens": 512, "reasoning_split": True, "mess
 ### E. Guard rails (hard limits)
 
 ```python
-assert body.get("max_tokens", 0) <= 512_000, "M3 output cap is 512000"
-# n stays 1 (M3 rejects n>1). Keep input <= ~512K tokens (~512K * 4.5 chars on this filler).
+assert body.get("max_tokens", 0) <= 524_288, "M3 output cap is 524288"
+# n stays 1 (M3 silently drops n>1 — 1 choice regardless). Keep input <= ~512K tokens (~512K * 4.5 chars on this filler).
 ```
 
 The `<think>`-stripping, `base_resp` rate-limit retry, and cached-token reader snippets in
