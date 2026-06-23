@@ -376,7 +376,9 @@ function parseArgs(argv: readonly string[]): Parsed {
   const flags = new Flags();
   for (let i = 0; i < argv.length; i += 1) {
     let token = argv[i] ?? "";
-    if (token.startsWith("-") && token !== "-") {
+    // A "-" followed by digits is a negative chat id (e.g. -1004445659143 from
+    // `dialogs`), not a flag — treat it as a positional.
+    if (token.startsWith("-") && token !== "-" && !/^-\d+$/.test(token)) {
       token = FLAG_ALIASES[token] ?? token;
       if (token === "--profile") {
         profile = argv[++i] ?? profile;
@@ -914,7 +916,8 @@ async function handleMembers({ profile, pos, flags }: Ctx): Promise<RunResult> {
   return { text: lines.join("\n") };
 }
 
-async function handleCheckAuth({ profile }: Ctx): Promise<RunResult> {
+async function handleCheckAuth({ profile, pos }: Ctx): Promise<RunResult> {
+  profile = pos[0] ?? profile;
   const client = newClient(profile);
   await client.connect();
   try {
@@ -955,12 +958,22 @@ async function handleCheckAuth({ profile }: Ctx): Promise<RunResult> {
   }
 }
 
-async function handleSendCode({ profile }: Ctx): Promise<RunResult> {
+async function handleSendCode({ profile, pos }: Ctx): Promise<RunResult> {
+  profile = pos[0] ?? profile;
   const { apiId, apiHash } = getCredentials(profile);
   const phone = getPhone(profile);
   const client = newClient(profile);
   await client.connect();
   try {
+    // Guard: sending a code starts a fresh login that would overwrite an
+    // existing authorized session. Refuse rather than clobber it.
+    if (await client.checkAuthorization()) {
+      return jsonResult({
+        status: "already_authorized",
+        profile,
+        note: "session is already valid; send-code skipped to avoid overwriting it. Use check-auth to inspect.",
+      });
+    }
     const result: any = await client.sendCode({ apiId, apiHash }, phone);
     persistSession(profile, client); // keep DC + auth key for sign-in
     return jsonResult({
@@ -975,7 +988,8 @@ async function handleSendCode({ profile }: Ctx): Promise<RunResult> {
   }
 }
 
-async function handleSignIn({ profile, flags }: Ctx): Promise<RunResult> {
+async function handleSignIn({ profile, pos, flags }: Ctx): Promise<RunResult> {
+  profile = pos[0] ?? profile;
   const code = flags.get("--code");
   const hash = flags.get("--hash");
   if (!code || !hash) {
