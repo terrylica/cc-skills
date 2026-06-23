@@ -15,7 +15,10 @@ import subprocess
 import requests
 
 BASE = "https://api.minimax.io/v1"
-MODEL = "MiniMax-M3"
+# Model is read dynamically from the SSoT (MINIMAX_MODEL env, set by
+# ~/.config/mise/config.toml) so consumers always track the current model and no
+# prior version is ever pinned in code. Falls back to the GA model if unset.
+MODEL = os.environ.get("MINIMAX_MODEL", "MiniMax-M3")
 
 # Exceptions worth catching around a live API call (network + JSON decode).
 # Centralized so probe scripts narrow their excepts instead of using inline ignores.
