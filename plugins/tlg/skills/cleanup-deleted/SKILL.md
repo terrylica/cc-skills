@@ -20,26 +20,26 @@ After the first pass, it re-scans for survivors and retries with method 3.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/cleanup_deleted.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/cleanup_deleted.ts"
 
 # Scan only (no deletions)
-uv run --python 3.14 "$SCRIPT" --dry-run
+bun "$SCRIPT" --dry-run
 
 # Clean all profiles
-uv run --python 3.14 "$SCRIPT"
+bun "$SCRIPT"
 
 # Clean specific profile
-uv run --python 3.14 "$SCRIPT" -p eon
+bun "$SCRIPT" -p eon
 
 # Clean multiple specific profiles
-uv run --python 3.14 "$SCRIPT" -p eon missterryli
+bun "$SCRIPT" -p eon missterryli
 EOF
 ```
 
@@ -68,7 +68,7 @@ Run monthly or whenever you notice "Deleted Account" entries appearing in your c
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.

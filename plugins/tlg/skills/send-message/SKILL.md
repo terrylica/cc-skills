@@ -15,16 +15,7 @@ Send a message from your personal Telegram account (not a bot) via MTProto.
 Before sending, verify the session is **authorized** (not just that the file exists):
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 -c "
-import asyncio, os
-from telethon import TelegramClient
-async def c():
-    cl = TelegramClient(os.path.expanduser('~/.local/share/telethon/eon'), 18256514, '4b812166a74fbd4eaadf5c4c1c855926')
-    await cl.connect()
-    print('OK' if await cl.is_user_authorized() else 'EXPIRED')
-    await cl.disconnect()
-asyncio.run(c())
-"
+bun "$SCRIPT" check-auth
 ```
 
 If `EXPIRED`, run `/tlg:setup` first (uses 3-step non-interactive auth pattern).
@@ -44,21 +35,15 @@ The Bruntwork group (`-1003958083153`) is a **supergroup with Topics**. All mess
 
 **Citation convention:** Bare `id=N` citations resolve identically for every member. When referencing a prior message, cite its ID. Claude Code on both sides can look it up autonomously via `client.get_messages(supergroup_id, ids=N)`.
 
-**Sending to a topic via tg-cli.py:** use the `--reply-to` flag with the topic's root_msg_id. See the Topic Registry section below for root_msg_id values.
+**Sending to a topic via tg-cli.ts:** use the `--reply-to` flag with the topic's root_msg_id. See the Topic Registry section below for root_msg_id values.
 
 ```bash
-uv run --python 3.14 "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
-```
-
-**Sending to a topic via Direct Telethon:**
-
-```python
-await client.send_message(-1003958083153, message, parse_mode="html", reply_to=TOPIC_ROOT_ID)
+bun "$SCRIPT" send --html --reply-to 5 -1003958083153 "<b>Policy update</b> ..."
 ```
 
 ## Auto-split for long messages
 
-Telegram's hard limit is 4096 post-parsing chars per message. **tg-cli.py `send` and `draft` both auto-split** messages exceeding ~3900 plain chars into multiple sequential posts, preserving HTML formatting and section structure.
+Telegram's hard limit is 4096 post-parsing chars per message. **tg-cli.ts `send` and `draft` both auto-split** messages exceeding ~3900 plain chars into multiple sequential posts, preserving HTML formatting and section structure.
 
 **Split algorithm**: splits at the finest-grained safe boundary that fits all chunks:
 
@@ -70,126 +55,43 @@ Telegram's hard limit is 4096 post-parsing chars per message. **tg-cli.py `send`
 
 Each continuation chunk gets a `<i>(Part N/M)</i>` header prepended so recipients see the sequence clearly. All parts share the same `--reply-to` target so a multi-part post stays in one topic thread.
 
-**You do NOT need to manually split messages anymore.** Compose the full HTML as one string, pass to `send`, and the splitter handles it. The "Direct Telethon" pattern below is now only needed for file attachments, multi-message sequences with different content per message, or edit/delete operations.
+**You do NOT need to manually split messages anymore.** Compose the full HTML as one string, pass to `send`, and the splitter handles it.
 
 **Size-aware authoring guidance**: prefer messages that fit in one post (≤ 3900 plain chars) — splits add visual overhead with part headers. If a message is naturally larger (e.g., a pinned reference), let the splitter do its job. Structure with `━━━━━━━━━━━━━━` separators so split boundaries land cleanly between logical sections.
 
-## Usage: tg-cli.py (when session is valid)
+## Usage: tg-cli.ts (when session is valid)
 
 > **When in doubt, USE `--html`.** If your message contains ANY of: `<b>`, `<i>`, `<code>`, `<pre>`, `<a href>`, bold headers, inline code, or markdown-style `**bold**` / `` `code` ``, you MUST either pass `--html` (and translate markdown → HTML tags first) or strip the decoration. Sending Telegram-style markdown without `--html` renders the asterisks and backticks literally to the recipient. For multi-section messages with headers, separators, and code spans — **always** use `--html`.
 >
-> Recovery pattern when you've already sent a mangled message: send a follow-up prefixed `Resend — earlier message rendered as raw markdown, readable version below:` then the correctly-HTML-formatted content. Do NOT silently edit if the message has been read (see "Editing Discipline" below).
+> Recovery pattern when you've already sent a mangled message: send a follow-up prefixed `Correction — earlier message rendered as raw text, corrected version below:` then the correctly-HTML-formatted content. Do NOT silently edit if the message has been read (see "Editing Discipline" below).
 
 ```bash
 /usr/bin/env bash << 'SEND_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Default: plain text (use only for single-line unformatted messages)
-uv run --python 3.14 "$SCRIPT" send @username "Hello"
+bun "$SCRIPT" send @username "Hello"
 
 # HTML formatting — the recommended default for any structured message
-uv run --python 3.14 "$SCRIPT" send --html -1003958083153 "<b>Bold header</b>
+bun "$SCRIPT" send --html -1003958083153 "<b>Bold header</b>
 
 Body with <code>inline code</code> and <a href='https://example.com'>a link</a>."
 
 # By chat ID (groups use negative IDs)
-uv run --python 3.14 "$SCRIPT" send -1003958083153 "Hello group"
+bun "$SCRIPT" send -1003958083153 "Hello group"
 
 # Specific profile
-uv run --python 3.14 "$SCRIPT" -p missterryli send @username "Hello"
+bun "$SCRIPT" -p missterryli send @username "Hello"
+
+# Edit a message by ID
+bun "$SCRIPT" edit -1003958083153 12345 "<b>Updated text</b>"
+
+# Delete a message by ID
+bun "$SCRIPT" delete -1003958083153 12345
 SEND_EOF
 ```
 
-**Long HTML messages**: `tg-cli.py send --html` auto-splits at the 3900-plain-char threshold. Compose the full HTML as one string and let the splitter handle it. See "Auto-split for long messages" above.
-
-## Usage: Direct Telethon (for file attachments, multi-message sequences with varying content, edits/deletes)
-
-Direct Telethon is now only needed for cases `tg-cli.py send` cannot cover: file attachments with captions, sequences of differently-structured messages, message edits, or deletions. Long single-body messages are handled by `tg-cli.py send` auto-split.
-
-```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -1003958083153  # negative for groups
-
-MSG = """<b>Bold title</b>
-<i>Italic subtitle</i>
-
-<pre>
-Preformatted block
-</pre>
-
-<code>inline code</code>
-
-Normal text with <b>decorations</b>."""
-
-async def send():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    await client.send_message(CHAT_ID, MSG, parse_mode='html')
-    print("Sent.")
-    await client.disconnect()
-
-asyncio.run(send())
-PYEOF
-```
-
-### Sending files with captions
-
-```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -1003958083153
-
-CAPTION = """<b>File Title</b>
-
-Description of the file contents."""
-
-async def send():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    await client.send_file(CHAT_ID, "/path/to/file.md", caption=CAPTION, parse_mode='html')
-    print("File sent.")
-    await client.disconnect()
-
-asyncio.run(send())
-PYEOF
-```
-
-### Editing a previously sent message
-
-```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-CHAT_ID = -1003958083153
-
-async def edit():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    # Get recent messages to find the one to edit
-    async for msg in client.iter_messages(CHAT_ID, limit=10, from_user='me'):
-        print(f"ID: {msg.id} | {msg.text[:80] if msg.text else '(file)'}...")
-    # Edit by message ID:
-    # await client.edit_message(CHAT_ID, msg_id, new_text, parse_mode='html')
-    await client.disconnect()
-
-asyncio.run(edit())
-PYEOF
-```
+**Long HTML messages**: `tg-cli.ts send --html` auto-splits at the 3900-plain-char threshold. Compose the full HTML as one string and let the splitter handle it. See "Auto-split for long messages" above.
 
 ### Editing Discipline — unread vs. read
 
@@ -222,16 +124,9 @@ Make the supplement self-contained so a reader scrolling back understands withou
 
 **How to tell if it's been read**: Telegram's MTProto exposes read receipts in 1:1 and small group chats via `messages.readHistoryOutbox` updates, but in large groups this is unreliable. The safest heuristic is time + activity: if more than ~60 seconds have elapsed and/or the recipient has been active in the chat, assume they saw it.
 
-### Deleting messages
-
-```bash
-# Delete specific messages by ID
-await client.delete_messages(CHAT_ID, [msg_id1, msg_id2])
-```
-
 ## Telegram HTML Formatting Reference
 
-Telegram supports a subset of HTML (not Markdown in MTProto):
+GramJS uses HTML, not Markdown:
 
 | Tag                             | Renders As        |
 | ------------------------------- | ----------------- |
@@ -274,7 +169,7 @@ Emojis are supported but user may prefer decorations without emojis — use `<pr
 
 ## Topic Registry (Bruntwork Supergroup)
 
-To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_message()` or use `--reply-to` in tg-cli.py.
+To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_message()` or use `--reply-to` in tg-cli.ts.
 
 | Topic                      | root_msg_id | Scope                                                  |
 | -------------------------- | ----------- | ------------------------------------------------------ |
@@ -291,29 +186,27 @@ To send a message to a specific topic, pass `reply_to=<root_msg_id>` in `send_me
 
 ## Anti-Patterns (NEVER DO)
 
-| Anti-Pattern                                           | Why It Fails                                                                       |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Running `uv run "$SCRIPT"` without checking auth first | If session expired, `client.start()` calls `input()` — EOFError                    |
-| Running `uv run` without `VIRTUAL_ENV=""`              | Broken `.venv` symlink in cwd causes uv to fail even with `--no-project`           |
-| Checking only session file existence in preflight      | Session file can exist but be expired — must check `is_user_authorized()`          |
-| Using Markdown parse mode                              | Telethon MTProto uses HTML, not Markdown. Use `--html` flag or `parse_mode='html'` |
+| Anti-Pattern                                        | Why It Fails                                                         |
+| --------------------------------------------------- | -------------------------------------------------------------------- |
+| Running `bun "$SCRIPT"` without checking auth first | If session expired, auth will fail                                   |
+| Checking only session file existence in preflight   | Session file can exist but be expired — must check with `check-auth` |
+| Using plain text for formatted messages             | GramJS uses HTML, not Markdown. Use `--html` flag for formatting     |
 
 ## Error Handling
 
-| Error                                 | Cause                                       | Fix                                                                   |
-| ------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- |
-| `Unknown profile`                     | Invalid `-p` value                          | Use `eon` or `missterryli`                                            |
-| `Cannot find any entity`              | Bad username/ID                             | Verify with `dialogs` command or use direct Telethon `iter_dialogs()` |
-| `message cannot be empty`             | Empty string passed                         | Provide message text                                                  |
-| `EOFError: EOF when reading a line`   | Session expired, `client.start()` triggered | Run `/tlg:setup` to re-authenticate non-interactively                 |
-| `Broken symlink at .venv/bin/python3` | cwd has corrupt venv                        | Prepend `VIRTUAL_ENV=""` to the command                               |
+| Error                     | Cause                   | Fix                                                         |
+| ------------------------- | ----------------------- | ----------------------------------------------------------- |
+| `Unknown profile`         | Invalid `-p` value      | Use `eon` or `missterryli`                                  |
+| `Cannot find any entity`  | Bad username/ID         | Verify with `dialogs` command or use `find-user` to resolve |
+| `message cannot be empty` | Empty string passed     | Provide message text                                        |
+| `Session expired`         | Session no longer valid | Run `/tlg:setup` to re-authenticate non-interactively       |
 
 ## Post-Execution Reflection
 
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.

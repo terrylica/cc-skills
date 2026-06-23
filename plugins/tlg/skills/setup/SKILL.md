@@ -1,163 +1,119 @@
 ---
 name: setup
-description: user needs to set up Telegram CLI for the first time, authenticate or log in to a Telegram account, re-authenticate a session, or configure.
+description: user needs to set up Telegram CLI for the first time, authenticate or log in to a Telegram account, re-authenticate an expired session, or configure a profile.
 allowed-tools: Bash, Read, Write, AskUserQuestion
 disable-model-invocation: false
 ---
 
 # Telegram CLI Setup
 
-One-time setup to authenticate personal Telegram accounts via MTProto.
+One-time (or re-)authentication of a personal Telegram account for the GramJS CLI.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-## Prerequisites
+## Engine + session model (read first)
 
-- 1Password CLI installed: `op --version`
-- Telegram API credentials stored in 1Password vault `Claude Automation`
+The CLI uses **GramJS** (MTProto). Each profile's login is a **GramJS StringSession**
+stored at `~/.local/share/gramjs/<profile>.session`. The Telegram API id/hash come
+from 1Password at runtime. (Historical note: this replaced the Telethon/`uv`
+implementation in 2026-06; old `~/.local/share/telethon/*.session` files are not
+reused — accounts log in once more here.)
 
-## Available Profiles
+```bash
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+```
+
+## Profiles
 
 | Profile       | 1Password Item                   | Item UUID                    | Phone        |
 | ------------- | -------------------------------- | ---------------------------- | ------------ |
 | `eon`         | Telegram API - EonLabsOperations | `iqwxow2iidycaethycub7agfmm` | +16043008878 |
 | `missterryli` | Telegram API - missterryli (CN)  | `dk456cs3v2fjilppernryoro5a` | +86 (CN)     |
 
-## CRITICAL: Authentication Must Be Non-Interactive
+## Prerequisites
 
-`tg-cli.py whoami` uses `client.start()` which calls `input()` for phone/code. **This always fails in Claude Code** because Bash tool has no stdin. Never attempt interactive auth via the Bash tool or the `!` prefix.
+- `bun` available, and deps installed once: `cd "$(dirname "$SCRIPT")" && bun install`
+- 1Password CLI (`op`) signed in; the item above present in the `Claude Automation` vault.
 
-### Correct Pattern: 3-Step Non-Interactive Auth
+## Auth is non-interactive (3 steps)
 
-**Step 1: Fetch credentials from 1Password and delete expired session**
+The Bash tool has no stdin, so the CLI never prompts. Authentication is split into
+`send-code` (requests the code) and `sign-in` (submits it). Get the code from the
+user with **AskUserQuestion** between the two steps.
 
-```bash
-/usr/bin/env bash << 'STEP1_EOF'
-PROFILE="eon"  # or "missterryli"
-ITEM_UUID="iqwxow2iidycaethycub7agfmm"  # match profile
-
-API_ID=$(op item get "$ITEM_UUID" --vault "Claude Automation" --fields "App ID")
-API_HASH=$(op item get "$ITEM_UUID" --vault "Claude Automation" --fields "App API Hash" --reveal)
-PHONE=$(op item get "$ITEM_UUID" --vault "Claude Automation" --fields "Phone Number")
-
-echo "API_ID=$API_ID"
-echo "PHONE=$PHONE"
-
-# Delete expired session
-rm -f ~/.local/share/telethon/${PROFILE}.session
-STEP1_EOF
-```
-
-**Step 2: Send verification code request (non-interactive)**
+### Step 0 — check current state (no SMS sent)
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, json, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514       # from Step 1
-API_HASH = "..."        # from Step 1
-PHONE = "+16043008878"  # from Step 1
-
-async def request_code():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    result = await client.send_code_request(PHONE)
-    print(json.dumps({"phone_code_hash": result.phone_code_hash, "status": "code_sent"}))
-    await client.disconnect()
-
-asyncio.run(request_code())
-PYEOF
+bun "$SCRIPT" check-auth eon    # exit 0 + JSON if authorized; exit 1 if not
 ```
 
-Then use **AskUserQuestion** to get the verification code from the user.
+If it reports `authorized: true`, you're done. Otherwise continue.
 
-**Step 3: Complete auth with the code (non-interactive)**
+### Step 1 — request a login code
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "..."
-PHONE = "+16043008878"
-CODE = "12345"                          # from AskUserQuestion
-HASH = "abc123..."                      # phone_code_hash from Step 2
-
-async def complete_auth():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    await client.sign_in(phone=PHONE, code=CODE, phone_code_hash=HASH)
-    me = await client.get_me()
-    print(f"Authenticated as: {me.first_name} (@{me.username})")
-    await client.disconnect()
-
-asyncio.run(complete_auth())
-PYEOF
+bun "$SCRIPT" send-code eon
+# → JSON: { "status": "code_sent", "phone": "...", "phone_code_hash": "<HASH>", ... }
 ```
 
-### Anti-Patterns (NEVER DO)
+Telegram delivers the code to the account's **Telegram app first**, then SMS. The
+code **expires within a couple of minutes** — move straight to Step 2.
 
-| Anti-Pattern                                    | Why It Fails                                                                           |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `uv run "$SCRIPT" -p eon whoami` for fresh auth | `client.start()` calls `input()` — EOFError in Claude Code                             |
-| Telling user to run `! command` in prompt       | The `!` prefix also has no stdin for interactive prompts                               |
-| Telling user to "open a separate terminal"      | Breaks the autonomous workflow — user has to leave Claude Code                         |
-| Running `uv run` without `VIRTUAL_ENV=""`       | If cwd has a broken `.venv` symlink, uv inspects it and fails even with `--no-project` |
-| Checking only session file existence            | Session file can exist but be expired (`is_user_authorized()` returns `False`)         |
+### Step 2 — get the code from the user (AskUserQuestion)
 
-## Preflight: Check Session Validity
+Ask the user for the digits (they type them in the "Other" box). Also ask whether
+they have two-factor (cloud password) enabled.
 
-Before any tlg operation, check if the session is still authorized:
+### Step 3 — sign in with the code
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-
-async def check():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    authed = await client.is_user_authorized()
-    if authed:
-        me = await client.get_me()
-        print(f"OK: {me.first_name} (@{me.username})")
-    else:
-        print("EXPIRED: session needs re-authentication")
-    await client.disconnect()
-
-asyncio.run(check())
-PYEOF
+bun "$SCRIPT" sign-in eon --code <CODE> --hash <HASH>
+# 2FA enabled? add: --password '<cloud password>'
+# → JSON: { "authorized": true, "user_id": ..., "username": ..., "session_file": ... }
 ```
 
-If `EXPIRED`, run the 3-step non-interactive auth above. Do NOT fall through to `tg-cli.py` — it will EOFError.
+Run `sign-in` **once** per code — a failed/duplicate attempt invalidates the code
+(`PHONE_CODE_EXPIRED`); if that happens, redo Step 1 for a fresh code.
+
+### Step 4 — verify
+
+```bash
+bun "$SCRIPT" whoami -p eon
+```
+
+## Anti-Patterns (NEVER DO)
+
+| Anti-Pattern                                         | Why It Fails                                                             |
+| ---------------------------------------------------- | ------------------------------------------------------------------------ |
+| Expecting an interactive login prompt                | The CLI never reads stdin; use `send-code` + `sign-in`                   |
+| Running `sign-in` twice with the same code           | The first attempt consumes it → `PHONE_CODE_EXPIRED`; request anew       |
+| Dawdling between `send-code` and `sign-in`           | Codes expire in ~minutes; collect the code immediately and sign in       |
+| Reusing an old `~/.local/share/telethon` session     | Wrong format/engine — GramJS sessions live under `~/.local/share/gramjs` |
+| Checking only file existence for "is it authorized?" | A session file can exist but be expired — use `check-auth`               |
 
 ## Session Management
 
-| File                                          | Purpose                           |
-| --------------------------------------------- | --------------------------------- |
-| `~/.local/share/telethon/eon.session`         | EonLabsOperations MTProto session |
-| `~/.local/share/telethon/missterryli.session` | missterryli MTProto session       |
+| File                                        | Purpose                         |
+| ------------------------------------------- | ------------------------------- |
+| `~/.local/share/gramjs/eon.session`         | EonLabsOperations StringSession |
+| `~/.local/share/gramjs/missterryli.session` | missterryli StringSession       |
 
-Sessions expire when: revoked in Telegram Settings > Devices, or after prolonged inactivity. When expired, `is_user_authorized()` returns `False` but the session file still exists — always check auth state, not just file existence.
+Sessions expire when revoked in Telegram → Settings → Devices, or after prolonged
+inactivity. When expired, `check-auth` reports `authorized: false`; rerun the 3-step flow.
 
 ## Adding New Profiles
 
-Edit the `PROFILES` dict in `scripts/tg-cli.py` and store credentials in 1Password vault `Claude Automation` with fields `App ID`, `App API Hash`, and `Phone Number`.
+Add the profile to the `PROFILES` map in `scripts/tg-cli.ts` and store credentials in
+the `Claude Automation` 1Password vault with fields `App ID`, `App API Hash`, and
+`Phone Number`. (Override per-invocation with `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`
+env vars to skip 1Password.)
 
 ## Post-Execution Reflection
 
 After this skill completes, check before closing:
 
-1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
-3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
+1. **Did `check-auth` confirm an authorized session?** If not, fix the step/error that blocked it.
+2. **Did the CLI's auth interface drift?** If `send-code`/`sign-in` flags changed, update the commands above.
+3. **Was a workaround needed?** Capture it here so the next setup doesn't rediscover it.
 
 Only update if the issue is real and reproducible — not speculative.

@@ -1,0 +1,13 @@
+{
+  "name": "tlg-cli",
+  "private": true,
+  "type": "module",
+  "description": "Telegram personal-account CLI via MTProto (GramJS) — function/enum-driven Bun TypeScript.",
+  "dependencies": {
+    "telegram": "latest"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "latest"
+  }
+}
