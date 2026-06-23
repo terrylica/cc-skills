@@ -448,11 +448,31 @@ async function contextRun(targetTok: number, maxOut: number, needle = true): Pro
   };
 }
 
-async function cmdContextProbe(): Promise<ExitCode> {
+/** Parse a comma list of positive ints; "none"/"" → []. */
+function parseIntList(s: string): number[] {
+  return s
+    .split(",")
+    .map((x) => Number(x.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+async function cmdContextProbe(args: string[]): Promise<ExitCode> {
+  const flag = (name: string): string | undefined => {
+    const i = args.indexOf(name);
+    return i >= 0 ? args[i + 1] : undefined;
+  };
+  const needle = parseIntList(flag("--needle") ?? "128000,400000");
+  const ceiling = parseIntList(flag("--ceiling") ?? "512000,575000,700000");
+  const reps = Math.max(1, Number(flag("--reps") ?? "1") || 1);
+
   process.stdout.write("=== needle retrieval (thinking OFF, max_tokens 256) ===\n");
-  for (const tk of [128_000, 400_000]) process.stdout.write(`${JSON.stringify(await contextRun(tk, 256))}\n`);
+  for (const tk of needle) {
+    for (let r = 0; r < reps; r++) process.stdout.write(`${JSON.stringify(await contextRun(tk, 256))}\n`);
+  }
   process.stdout.write("=== ceiling pin (needle off, max_tokens 32) ===\n");
-  for (const tk of [512_000, 575_000, 700_000]) process.stdout.write(`${JSON.stringify(await contextRun(tk, 32, false))}\n`);
+  for (const tk of ceiling) {
+    for (let r = 0; r < reps; r++) process.stdout.write(`${JSON.stringify(await contextRun(tk, 32, false))}\n`);
+  }
   process.stdout.write("DONE\n");
   return ExitCode.Ok;
 }
@@ -600,6 +620,7 @@ Commands:
   verify          fast live drift check vs the locked snapshot (exit 0/1/2)
   probe [--out f] full option/capability map (writes JSON; default m3_probe_results.json)
   context-probe   input-context ceiling + needle retrieval
+                  flags: --needle <tok,list> --ceiling <tok,list> --reps <n> ("none" disables a phase)
   bench           speed/quality: default thinking vs reasoning:"disabled"
 
 Model is read from MINIMAX_MODEL (SSoT). Key from MINIMAX_API_KEY or 1Password.
@@ -608,7 +629,7 @@ Model is read from MINIMAX_MODEL (SSoT). Key from MINIMAX_API_KEY or 1Password.
 const HANDLERS: Record<Command, (args: string[]) => Promise<ExitCode>> = {
   [Command.Verify]: cmdVerify,
   [Command.Probe]: cmdProbe,
-  [Command.ContextProbe]: () => cmdContextProbe(),
+  [Command.ContextProbe]: cmdContextProbe,
   [Command.Bench]: () => cmdBench(),
 };
 

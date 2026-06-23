@@ -1,6 +1,6 @@
 ---
 name: m3
-description: Production wiring for the MiniMax-M3 model — empirically verified flags, capabilities, and limits (thinking control via reasoning_split, native vision, response_format, 512K input ceiling, 512K output cap, n=1, docs-vs-reality discrepancies). Use when wiring or tuning MiniMax-M3, choosing M3 vs M2.7/-highspeed, switching a service off M2.7-highspeed onto M3, getting clean output without <think>, or asking what M3 supports / how big its context is. TRIGGERS - MiniMax M3, MiniMax-M3, M3 model, switch to M3, reasoning_split, M3 context length, M3 vision, M3 options, get the most out of M3.
+description: Production wiring for the MiniMax-M3 model — empirically verified flags, capabilities, and limits (thinking control via reasoning_split, native vision, response_format, ~1M input ceiling, 524K output cap, n=1, docs-vs-reality discrepancies). Use when wiring or tuning MiniMax-M3, choosing M3 vs M2.7/-highspeed, switching a service off M2.7-highspeed onto M3, getting clean output without <think>, or asking what M3 supports / how big its context is. TRIGGERS - MiniMax M3, MiniMax-M3, M3 model, switch to M3, reasoning_split, M3 context length, M3 vision, M3 options, get the most out of M3.
 ---
 
 # MiniMax-M3 — Production Wiring (empirical)
@@ -42,22 +42,24 @@ Need M2.7-highspeed-class **speed** on short/simple tasks? Add `"reasoning": "di
 
 ## When to use M3 vs M2.7
 
-| Workload                                          | Verdict                                                                  |
-| ------------------------------------------------- | ------------------------------------------------------------------------ |
-| Clean chat / judgment / theory / JSON             | ✅ M3 + `reasoning_split:true` (the new default)                         |
-| Short tagging / classification, latency-sensitive | ✅ M3 + `reasoning:"disabled"`, **or** stay on plain `MiniMax-M2.7`      |
-| **Vision** (OCR, charts, screenshots)             | ✅ **M3 only** — M2.7 is text-only; M3 reads images correctly            |
-| Structured JSON                                   | ✅ M3 (`response_format` accepted) + `reasoning_split` + defensive parse |
-| Long context up to ~500K tokens                   | ✅ M3 (retrieval verified at 128K/400K); **keep ≤ 512K — hard cap**      |
-| Raw math / QP / risk on realistic N               | ❌ still route to Python (the M2.7 saturation guidance carries over)     |
-| Final deployable code                             | ⚠️ scaffold-only; sandbox-validate (unchanged from M2.7)                 |
+| Workload                                          | Verdict                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Clean chat / judgment / theory / JSON             | ✅ M3 + `reasoning_split:true` (the new default)                                                 |
+| Short tagging / classification, latency-sensitive | ✅ M3 + `reasoning:"disabled"`, **or** stay on plain `MiniMax-M2.7`                              |
+| **Vision** (OCR, charts, screenshots)             | ✅ **M3 only** — M2.7 is text-only; M3 reads images correctly                                    |
+| Structured JSON                                   | ✅ M3 (`response_format` accepted) + `reasoning_split` + defensive parse                         |
+| Long context (input up to ~1M)                    | ✅ input accepts to ~1M, but **reliable retrieval ≤ ~256K** (400K now misses); 1M prefill ~235 s |
+| Raw math / QP / risk on realistic N               | ❌ still route to Python (the M2.7 saturation guidance carries over)                             |
+| Final deployable code                             | ⚠️ scaffold-only; sandbox-validate (unchanged from M2.7)                                         |
 
 ---
 
 ## Hard limits & gotchas (live-verified)
 
-- **Input context ≈ 512K tokens (hard cap).** 512,180 accepted; 575K+ → `400`. Docs claim 1M —
-  **not on this key.** Operate at ≤ 512K input.
+- **Input context ≈ 1,000,000 tokens (re-verified 2026-06-23).** Accepts to ~1,000,180; 1,048,576 →
+  `context window exceeds limit`. The docs' 1M now holds (was ~512K on 2026-06-01) — **but** 1M
+  prefill is ~235 s and **reliable needle retrieval is ≤ ~256K** (400K misses 2/2). Operate at
+  ≤ ~256K for retrieval-critical work.
 - **Output `max_tokens` ≤ 524,288.** > 524288 → `invalid params … does not support max tokens > 524288` (raised from 512,000 — re-verified 2026-06-23).
 - **`n > 1` silently dropped.** Was a hard `2013` rejection; now accepted-but-ignored — the response still carries exactly one choice. No true multi-sampling (re-verified 2026-06-23).
 - **`response_format` accepted but not a hard JSON guarantee** — M3 may still wrap with `<think>`
