@@ -15,7 +15,7 @@ live-probed extension layered on top of the same plugin:
 | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
 | [`M3-EMPIRICAL.md`](./M3-EMPIRICAL.md)                                                                 | Verified M3 option/capability map + copy-paste wiring snippets  |
 | [`../skills/m3/SKILL.md`](../skills/m3/SKILL.md)                                                       | Invocable `minimax:m3` skill (when-to-use, default profile)     |
-| [`fixtures/m3-capabilities-locked-2026-06-01.json`](./fixtures/m3-capabilities-locked-2026-06-01.json) | Locked capability invariants (drift contract for `m3-verify`)   |
+| [`fixtures/m3-capabilities-locked-2026-06-23.json`](./fixtures/m3-capabilities-locked-2026-06-23.json) | Locked capability invariants (drift contract for `m3-verify`)   |
 | `../scripts/m3-probe.py` · `m3-context-probe.py` · `m3-bench.py`                                       | Runnable re-verification of options / ceiling / speed           |
 | `../scripts/m3-verify`                                                                                 | Fast capability tripwire (diffs live M3 vs the locked snapshot) |
 | `fixtures/models-list-locked.json`                                                                     | Catalog lock — refreshed to include `MiniMax-M3`                |
