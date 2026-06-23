@@ -1,3 +1,10 @@
+## [22.0.1](https://github.com/terrylica/cc-skills/compare/v22.0.0...v22.0.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** resolve model from SSoT, never pin a prior version ([71ae633](https://github.com/terrylica/cc-skills/commit/71ae6335624edd6fde5e6bcc26be36dfdc50e12c))
+
 # [22.0.0](https://github.com/terrylica/cc-skills/compare/v21.103.1...v22.0.0) (2026-06-23)
 
 
