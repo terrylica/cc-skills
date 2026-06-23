@@ -1,3 +1,10 @@
+# [22.1.0](https://github.com/terrylica/cc-skills/compare/v22.0.4...v22.1.0) (2026-06-23)
+
+
+### Features
+
+* **devops-tools:** Self-Custody Secrets (SCS) credential doctrine ([9d169b9](https://github.com/terrylica/cc-skills/commit/9d169b9c60677bc5b2516d94dac87f90e3f149de))
+
 ## [22.0.4](https://github.com/terrylica/cc-skills/compare/v22.0.3...v22.0.4) (2026-06-23)
 
 
