@@ -21,6 +21,16 @@
 #   ~/asciinemalogs cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 
+# GIT_OPTIONAL_LOCKS=0 — the statusline must OBSERVE repo state, never CONTEND for it.
+# Every render runs `git status`/`git diff`, which by default take .git/index.lock to refresh
+# the index. Fired on each prompt render, that races a user's concurrent `git commit`/`git add`
+# in the same checkout (and in worktrees, the per-worktree index.lock), intermittently failing
+# their commit with "Unable to create '.../index.lock': File exists". Setting this env var (the
+# same mechanism VS Code and other IDEs use) makes all git subprocesses this script spawns skip
+# the OPTIONAL index lock — status/diff still report correctly, they just don't write index.lock.
+# Comprehensive + future-proof: covers every git call here, including any added later.
+export GIT_OPTIONAL_LOCKS=0
+
 # ANSI Color codes
 RESET='\033[0m'
 BRIGHT_BLACK='\033[90m'
