@@ -41,7 +41,7 @@ exploration campaign and extended (2026-06-01) with a live-probed **MiniMax-M3**
 ## Recent changes
 
 - **2026-06-01** — Added the M3 layer: `skills/m3/SKILL.md`, `references/M3-EMPIRICAL.md`,
-  `references/fixtures/m3-capabilities-locked-2026-06-01.json`, `scripts/m3-{probe,context-probe,bench}.py`
+  `references/fixtures/m3-capabilities-locked-2026-06-23.json`, `scripts/m3-{probe,context-probe,bench}.py`
   - `_m3_common.py` + `m3-verify`. Refreshed `fixtures/models-list-locked.json` to include `MiniMax-M3`
     (catalog tripwire was correctly firing on the new model). Both tripwires verified green live.
     Key M3 facts: 512K input ceiling (docs claim 1M — not on this key), 512K output cap, `n=1`,
