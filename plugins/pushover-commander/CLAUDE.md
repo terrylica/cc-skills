@@ -34,9 +34,9 @@ ID, app token, or operator-specific app→repo map. All per-user secrets/config 
 | `skills/loop-briefing/`                                               | `/loop` block/done briefings                                                                     |
 | `skills/health-check/`                                                | doctor / quota                                                                                   |
 | `skills/_lib/pushover_core.ts`                                        | Bun/TS core: send · emergency · sounds · render · loop-brief · doctor · quota (Satori→resvg PNG) |
-| `skills/_lib/pushover_headless_web_control.py`                        | Playwright headless dashboard: `login/create_app/delete_app/edit_app/sounds`                     |
+| `skills/_lib/pushover_headless_web_control.ts`                        | Playwright (Bun/TS) headless dashboard: `apps/create-app/delete-app/edit-app/sounds`             |
 | `skills/_lib/resolve_pushover_secret.sh`                              | env/1Password/Keychain credential resolver (generic)                                             |
-| `skills/_lib/batch_create_pushover_apps.py`                           | batch create apps from a plan JSON                                                               |
+| `skills/_lib/batch_create_pushover_apps.ts`                           | batch create apps from a plan JSON (reuses web-control helpers)                                  |
 | `skills/_lib/{make_app_icon.py,make_custom_sound.sh,find_jingles.sh}` | icon/sound sourcing pipeline                                                                     |
 | `skills/_lib/pushover_api_limits.json`                                | SSoT for Pushover caps + silent-failure rules                                                    |
 | `skills/_lib/references/`                                             | app-naming scheme (generic template), device calibration + API limits, private-config setup      |
@@ -51,8 +51,8 @@ website-only action. To mint one programmatically:
 export PO_EMAIL="$(bash skills/_lib/resolve_pushover_secret.sh login_email)"
 export PO_PW="$(bash skills/_lib/resolve_pushover_secret.sh login_password)"
 export PO_USER="$(bash skills/_lib/resolve_pushover_secret.sh user_key)"
-env -u HTTPS_PROXY -u HTTP_PROXY uv run --python 3.14 --with playwright \
-  python skills/_lib/pushover_headless_web_control.py create-app --name "my-app" --reveal
+env -u HTTPS_PROXY -u HTTP_PROXY \
+  bun skills/_lib/pushover_headless_web_control.ts create-app --name "my-app" --reveal
 ```
 
 Drives system Chrome via Playwright; pushover.net login is plain email/password

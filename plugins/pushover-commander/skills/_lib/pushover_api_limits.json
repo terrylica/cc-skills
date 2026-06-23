@@ -1,5 +1,5 @@
 {
-  "_doc": "SSoT for Pushover limits + silent-failure rules, verified empirically 2026-05-30; re-verified against pushover.net/api + the April-2026 Pushover blog on 2026-06-11. Consumed by pushover_core.ts (preflight) and referenced by pushover_headless_web_control.py / bash. Update HERE, nowhere else.",
+  "_doc": "SSoT for Pushover limits + silent-failure rules, verified empirically 2026-05-30; re-verified against pushover.net/api + the April-2026 Pushover blog on 2026-06-11. Consumed by pushover_core.ts (preflight) and referenced by pushover_headless_web_control.ts / bash. Update HERE, nowhere else.",
   "message_max": 1024,
   "title_max": 250,
   "url_max": 512,

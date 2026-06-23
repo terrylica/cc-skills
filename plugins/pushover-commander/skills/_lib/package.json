@@ -2,9 +2,10 @@
   "name": "po-core",
   "private": true,
   "type": "module",
-  "description": "po plugin TypeScript core (Bun): Pushover send/emergency/sounds + Satori report rendering.",
+  "description": "po plugin TypeScript core (Bun): Pushover send/emergency/sounds + Satori report rendering + headless dashboard control (Playwright).",
   "dependencies": {
     "@resvg/resvg-js": "latest",
+    "playwright-core": "latest",
     "satori": "latest",
     "satori-html": "latest"
   },
