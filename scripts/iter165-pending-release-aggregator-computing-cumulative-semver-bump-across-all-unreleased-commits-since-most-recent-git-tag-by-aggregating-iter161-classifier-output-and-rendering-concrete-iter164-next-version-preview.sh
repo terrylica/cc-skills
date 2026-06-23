@@ -93,7 +93,7 @@
 #     per-commit breakdown (oldest → newest):
 #       9d3e2456  feat(release): iter-164 next-version preview     → MINOR
 #       2f24404d  fix(release): iter-163 test parallel-safe        → PATCH
-#       abc12345  docs: clarify autoloop semantics                  → PATCH
+#       abc12345  docs: clarify statusline semantics                → PATCH
 #
 #     bump histogram:        MAJOR=0  MINOR=1  PATCH=2  NONE=0
 #     aggregate bump:        MINOR (max precedence: MAJOR > MINOR > PATCH > NONE)

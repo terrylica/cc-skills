@@ -10,7 +10,7 @@
  * `INLINE-IGNORE-OK`, `CARGO-TTY-SKIP`/`CARGO-TTY-WRAP`,
  * `LAYER3-STRIPPED-PATH-OK`, `CWD-DELETE-OK`, `INIT-MONOLITH-OK`,
  * `PUEUE-LOCAL-OK`, etc.) scattered across producer files in 7+ plugins
- * (gmail-commander, calcom-commander, autoloop, quality-tools,
+ * (gmail-commander, calcom-commander, quality-tools,
  * statusline-tools, itp-hooks, agent-reach) with NO single document
  * answering the new-contributor's question:
  *
@@ -262,7 +262,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots, autoloop heartbeat) where the pattern is intentional.",
+        "Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.",
     },
     {
       markerNameTokenIncludingSuffix: "PUEUE-LOCAL-OK",

@@ -11,8 +11,11 @@
 set -euo pipefail
 
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
-# disable bash 5.2+ `&`-as-backreference. See
-# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale.
+# disable bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}.
+# Bash 5.2 made `&` in replacement strings expand as backreference to the match
+# (standard sed-like behavior). Pre-5.2 it was literal. This breaks cross-version
+# portability. Use `shopt -u patsub_replacement` to disable the feature globally.
+# (bash maintainer @chet-ramey, Arch pacman patch #72681).
 shopt -u patsub_replacement 2>/dev/null || true
 
 # Read JSON input from stdin
