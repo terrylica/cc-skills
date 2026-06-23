@@ -1,3 +1,10 @@
+## [22.0.4](https://github.com/terrylica/cc-skills/compare/v22.0.3...v22.0.4) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** re-lock M3 input ceiling to ~1M + retrieval regression ([b9ee91c](https://github.com/terrylica/cc-skills/commit/b9ee91cc9de54200347bc2f36e7f21ad468f99af))
+
 ## [22.0.3](https://github.com/terrylica/cc-skills/compare/v22.0.2...v22.0.3) (2026-06-23)
 
 ## [22.0.2](https://github.com/terrylica/cc-skills/compare/v22.0.1...v22.0.2) (2026-06-23)
