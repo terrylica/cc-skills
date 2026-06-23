@@ -23,8 +23,10 @@ set -euo pipefail
 
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
 # disable bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}.
-# See plugins/autoloop/hooks/heartbeat-tick.sh for full rationale +
-# upstream sources (bash maintainer + Arch pacman patch).
+# Bash 5.2 made `&` in replacement strings expand as backreference to the match
+# (standard sed-like behavior). Pre-5.2 it was literal. This breaks cross-version
+# portability. Use `shopt -u patsub_replacement` to disable the feature globally.
+# (bash maintainer @chet-ramey, Arch pacman patch #72681).
 shopt -u patsub_replacement 2>/dev/null || true
 
 # Read JSON input from Claude Code
@@ -86,8 +88,8 @@ if [[ "$TOOL_NAME" == "Bash" ]]; then
     #
     # Net: within the Bash branch, 3 jq spawns → 1 jq spawn on exit-0
     # hot path (also: 3 → 2 on exit-nonzero path, since STDERR+COMMAND
-    # are now batched via @tsv). Matches the autoloop iter-25/26/27/28/29
-    # batched-jq + early-exit pattern.
+    # are now batched via @tsv). Implements a batched-jq + early-exit
+    # optimization pattern for performance-critical hooks.
     #
     # Measured (A/B benchmark, 50 iters, Bash exit-0 hot path):
     #   BASELINE (pre-iter-56, 4 total jq spawns): 23.36 ms/call
