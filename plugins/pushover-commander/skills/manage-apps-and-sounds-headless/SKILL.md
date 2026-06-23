@@ -7,15 +7,17 @@ description: Control the pushover.net web dashboard headlessly for things the HT
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-Headless dashboard automation via `pushover_headless_web_control.py`. pushover.net login is a plain email/password form
-(**no anti-bot / CAPTCHA / 2FA** — verified 2026-05-30), so plain Playwright + system Chrome works.
+Headless dashboard automation via `pushover_headless_web_control.ts` (function/enum-driven Bun
+TypeScript — run directly, no build; needs `bun install` in `skills/_lib/` for `playwright-core`).
+pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA** — verified
+2026-05-30), so plain Playwright + system Chrome works.
 
 ```bash
 export PO_EMAIL="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" login_email)"
 export PO_PW="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" login_password)"
 export PO_USER="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" user_key)"   # create-app token disambiguation
-WEB() { env -u HTTPS_PROXY -u HTTP_PROXY uv run --python 3.14 --with playwright \
-  python "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_headless_web_control.py" "$@"; }
+WEB() { env -u HTTPS_PROXY -u HTTP_PROXY \
+  bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_headless_web_control.ts" "$@"; }
 
 WEB apps                                              # list application names
 WEB create-app --name "My App" --desc "..." --reveal # create app, print its API token (--reveal = full)
