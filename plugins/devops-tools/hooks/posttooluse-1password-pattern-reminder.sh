@@ -2,11 +2,13 @@
 # posttooluse-1password-pattern-reminder.sh
 #
 # Detects `op` (1Password CLI) commands in Bash invocations and reminds Claude
-# of the cc-skills credential management pattern:
-#   1. unset HTTPS_PROXY (Claude Code OAuth proxy returns 502 on 1Password endpoints)
-#   2. Prioritize the Claude Automation SA token (item f7zsfibfvzluw4ahe2qxv3ddee)
-#      for all R/W operations on the "Claude Automation" vault
-#   3. Fall back to biometric auth (Touch ID) ONLY when SA returns permission denied
+# of the Self-Custody Secrets (SCS) doctrine: 1Password is LAST RESORT. The
+# reminder steers toward operator-controlled stores (Keychain -> SOPS/age ->
+# iCloud + provenance) and, only if 1Password is genuinely required for a
+# company-shared secret, the proxy-bypass + service-account pattern.
+#
+# AGNOSTIC: this public file contains NO real vault names, item IDs, or token
+# paths — those live in the operator's local, git-ignored credential registry.
 #
 # Trigger: PostToolUse on Bash
 # Output:  {"decision":"block","reason":"..."} — does NOT undo the command, just
@@ -117,25 +119,27 @@ fi
 # Emit the reminder. Cap at ~1200 chars to stay reasonable for Claude's context.
 # Uses jq to safely encode the multi-line string as JSON.
 read -r -d '' REASON <<'REMINDER_EOF' || true
-[1PASSWORD-HINT] You just ran an `op` command without the canonical
-cc-skills pattern. For Claude Automation vault operations:
+[SELF-CUSTODY SECRETS] You ran `op` (1Password). Under the Self-Custody
+Secrets (SCS) doctrine, 1Password is LAST RESORT. First ask:
 
-(1) PROXY MUST BE BYPASSED — `HTTPS_PROXY=127.0.0.1:52205` (Claude Code
-    OAuth proxy) returns 502 Bad Gateway on api.1password.com:
+(0) DOES THIS BELONG IN 1PASSWORD AT ALL? Client-confidential secrets must
+    NOT live in a company/employer-managed vault (admin-visible/recoverable).
+    Prefer the SCS ladder instead:
+      • macOS Keychain (machine SSoT): security add/find-generic-password
+        -s <scope>-<service> ... -T /usr/bin/security
+      • SOPS+age backup in the repo (age key in Keychain via SOPS_AGE_KEY_CMD)
+      • iCloud (Drive/Passwords) + a committed restore-runbook (provenance)
+
+If 1Password is genuinely required (company-SHARED, non-confidential secret):
+(1) BYPASS THE PROXY — the OAuth proxy returns 502 on api.1password.com:
         unset HTTPS_PROXY HTTP_PROXY
+(2) Prefer a Service Account token for scriptable, no-prompt R/W:
+        OP_SERVICE_ACCOUNT_TOKEN="$(cat <local-sa-token-path>)" op <cmd> --vault <vault>
+(3) Fall back to biometric (Touch ID) only when the SA is denied:
+        unset OP_SERVICE_ACCOUNT_TOKEN; op <cmd> --vault <vault>
 
-(2) PRIORITIZE the Service Account token for R/W on "Claude Automation"
-    vault — no biometric prompt, scriptable, automation-ready:
-        OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
-        op <command> --vault "Claude Automation"
-
-(3) FALLBACK to biometric (Touch ID) ONLY when SA returns permission
-    denied (e.g., some item-create operations require user auth):
-        unset OP_SERVICE_ACCOUNT_TOKEN
-        op <command> --vault "Claude Automation"
-
-Registry: docs/1password-credential-registry.md
-SA token item: f7zsfibfvzluw4ahe2qxv3ddee (vault: Claude Automation)
+Concrete vault names / item IDs / token paths live in the operator's LOCAL,
+git-ignored credential registry — never hard-code them here.
 REMINDER_EOF
 
 jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
