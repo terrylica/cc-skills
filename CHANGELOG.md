@@ -1,3 +1,14 @@
+# [22.0.0](https://github.com/terrylica/cc-skills/compare/v21.103.1...v22.0.0) (2026-06-23)
+
+
+* feat(marketplace)!: remove autoloop and chronicle-share plugins ([4d52361](https://github.com/terrylica/cc-skills/commit/4d523617cfc3303d20d50493e230b936c7bc2ab0))
+
+
+### BREAKING CHANGES
+
+* the autoloop and chronicle-share plugins are removed.
+/autoloop:* commands no longer exist — use native /loop with ScheduleWakeup.
+
 ## [21.103.1](https://github.com/terrylica/cc-skills/compare/v21.103.0...v21.103.1) (2026-06-23)
 
 
