@@ -180,7 +180,7 @@ Followups (the Pushover API response, dispatch failures) are appended as separat
 
 ## Credentials
 
-By default, the sender pulls Pushover credentials from 1Password Claude Automation vault, item `dg5ng7vgj6dmmtc2vavo5kfko4` (registered in `docs/1password-credential-registry.md`). It follows the cc-skills canonical pattern:
+By default, the sender pulls Pushover credentials from 1Password Claude Automation vault, item `<pushover-item>` (registered in `docs/1password-credential-registry.md`). It follows the cc-skills canonical pattern:
 
 1. Unset `HTTPS_PROXY` / `HTTP_PROXY` (Claude Code OAuth proxy returns 502 on 1P endpoints)
 2. Try Service Account token first (`~/.claude/.secrets/op-service-account-token`)

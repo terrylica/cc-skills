@@ -17,7 +17,7 @@
 | ------------- | --------------------------------------------------------- |
 | Token cache   | `~/.claude/.secrets/op-service-account-token` (chmod 600) |
 | Vault access  | **Claude Automation** vault only (read + write)           |
-| Token 1P item | Employee vault, ID `xtzirdfnngcgbir7wy4ohfu7i4`           |
+| Token 1P item | Employee vault, ID `<token-item>`           |
 
 **Usage** (headless/automation — no biometric prompt):
 

@@ -53,7 +53,7 @@ op item create \
   --vault "Claude Automation" \
   --tags "cloudflare,workers,static-hosting"
 
-# Note the item ID from the output (e.g., "ewtid322w2bozkzqfg4my2kd5m")
+# Note the item ID from the output (e.g., "<item-id>")
 ```
 
 Or via 1Password web UI: Navigate to Claude Automation vault > + > API Credential.
@@ -93,7 +93,7 @@ OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" \
 Store the 1Password item ID in your deploy script as a constant:
 
 ```bash
-OP_ITEM_ID="ewtid322w2bozkzqfg4my2kd5m"
+OP_ITEM_ID="<item-id>"
 ```
 
 This ID is NOT secret (opaque reference, not a credential). Safe to commit to source control.
