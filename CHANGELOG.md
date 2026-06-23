@@ -1,3 +1,10 @@
+## [22.0.2](https://github.com/terrylica/cc-skills/compare/v22.0.1...v22.0.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** re-lock M3 snapshot — 524288 cap, n>1 silent-drop ([cd30e73](https://github.com/terrylica/cc-skills/commit/cd30e73b00d112f226556903ff0a69d32fb220b9))
+
 ## [22.0.1](https://github.com/terrylica/cc-skills/compare/v22.0.0...v22.0.1) (2026-06-23)
 
 
