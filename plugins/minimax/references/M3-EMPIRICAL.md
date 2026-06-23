@@ -29,7 +29,7 @@ API disagree, **the live API wins** — discrepancies are flagged explicitly bel
 | Speed (default thinking) | ~40–50 TPS (highspeed)                | ~20–27 TPS — **slower unless thinking is reduced/disabled**                                         |
 
 **Headline:** M3 is a **capability upgrade** (vision, structured-output acceptance,
-clean-reasoning split, larger 512K context + bigger output cap) but is **slower by
+clean-reasoning split, larger ~1M context + bigger output cap) but is **slower by
 default**. Speed parity with M2.7-highspeed comes from reducing/disabling thinking.
 
 ---
@@ -206,7 +206,7 @@ body = {"model": "MiniMax-M3", "max_tokens": 512, "reasoning_split": True, "mess
 
 ```python
 assert body.get("max_tokens", 0) <= 524_288, "M3 output cap is 524288"
-# n stays 1 (M3 silently drops n>1 — 1 choice regardless). Keep input <= ~512K tokens (~512K * 4.5 chars on this filler).
+# n stays 1 (M3 silently drops n>1 — 1 choice regardless). Raw input ceiling ~1M, but keep input <= ~256K for reliable retrieval.
 ```
 
 The `<think>`-stripping, `base_resp` rate-limit retry, and cached-token reader snippets in
