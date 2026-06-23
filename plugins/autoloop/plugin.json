@@ -1,9 +1,0 @@
-{
-  "name": "autoloop",
-  "version": "12.51.0",
-  "description": "Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Subscription-safe, complementary to /loop, /schedule, and ru.",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}

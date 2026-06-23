@@ -8,10 +8,11 @@
 set -euo pipefail
 
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep): disable
-# bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}. See
-# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale + upstream
-# sources (bash maintainer + Arch pacman patch). `|| true` makes it a
-# graceful no-op on bash <5.2.
+# bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}. Bash 5.2 made
+# `&` in replacement strings expand as backreference to the match (standard sed-
+# like behavior). Pre-5.2 it was literal. This breaks cross-version portability.
+# Use `shopt -u patsub_replacement` to disable the feature globally. `|| true`
+# makes it a graceful no-op on bash <5.2.
 shopt -u patsub_replacement 2>/dev/null || true
 
 export PATH="/usr/bin:/usr/sbin:/bin:/sbin:/usr/local/bin:/opt/homebrew/bin:$PATH"

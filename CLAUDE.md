@@ -62,15 +62,15 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 
 ## Essential Commands
 
-| Task             | Command                                                   |
-| ---------------- | --------------------------------------------------------- |
-| Validate plugins | `bun scripts/validate-plugins.mjs`                        |
-| Release (full)   | `mise run release:full`                                   |
-| Release (dry)    | `mise run release:dry`                                    |
-| Execute workflow | `/itp:go feature-name -b`                                 |
-| Setup env        | `/itp:setup`                                              |
-| Add plugin       | `/plugin-dev:create plugin-name`                          |
-| Autonomous loop  | `/autoloop:start` / `/autoloop:stop` / `/autoloop:muster` |
+| Task             | Command                            |
+| ---------------- | ---------------------------------- |
+| Validate plugins | `bun scripts/validate-plugins.mjs` |
+| Release (full)   | `mise run release:full`            |
+| Release (dry)    | `mise run release:dry`             |
+| Execute workflow | `/itp:go feature-name -b`          |
+| Setup env        | `/itp:setup`                       |
+| Add plugin       | `/plugin-dev:create plugin-name`   |
+| Autonomous loop  | `/itp:go feature-name -b`          |
 
 ## Plugin Discovery
 
@@ -91,8 +91,7 @@ cc-skills/
 ├── plugins/                         ← 37 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
-│   ├── itp-hooks/                   ← Workflow enforcement + code correctness (incl. autoloop stall guard)
-│   ├── autoloop/                    ← Self-paced loop mode (replaces deprecated ru; renamed from autonomous-loop)
+│   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── mise/                        ← User-global mise workflow commands
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
@@ -105,11 +104,6 @@ cc-skills/
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
 │   └── LESSONS.md                   ← Lessons learned
-├── .autoloop/                       ← autoloop campaign storage (gitignored)
-│   └── <campaign-slug>--<short-hash>/
-│       ├── CONTRACT.md              ← Live LOOP_CONTRACT
-│       ├── PROVENANCE.md            ← Owner+history index
-│       └── state/                   ← heartbeat.json + revision-log
 └── .mise/tasks/                     ← Release automation (5 phases + postflight)
 ```
 

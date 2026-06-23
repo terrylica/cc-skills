@@ -65,11 +65,10 @@ Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/postt
 
 ### Stop Hooks
 
-| Hook                         | Purpose                                                                                                                     |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit — [schema notes](./docs/stop-hooks.md)                               |
-| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited) — [spoke](./docs/ty-type-checker.md)                     |
-| `stop-loop-stall-guard.ts`   | asyncRewake: forces the model to schedule a waker when an autoloop firing stalls — [spoke](./docs/stop-loop-stall-guard.md) |
+| Hook                         | Purpose                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit — [schema notes](./docs/stop-hooks.md)           |
+| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited) — [spoke](./docs/ty-type-checker.md) |
 
 ## Spoke Docs Index
 
@@ -77,8 +76,7 @@ Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/postt
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md)   | Iter-84→91 PreToolUse orchestrator arc                                                                                             |
 | [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md) | Iter-93+ PostToolUse orchestrator arc                                                                                              |
-| [stop-hooks.md](./docs/stop-hooks.md)                                                   | Stop-hook schema correctness (iter-66 trinity → iter-69 pentad, silent-drop rules)                                                 |
-| [stop-loop-stall-guard.md](./docs/stop-loop-stall-guard.md)                             | Autoloop stall guard (four gates, asyncRewake, escape hatch)                                                                       |
+| [stop-hooks.md](./docs/stop-hooks.md)                                                   | Stop-hook schema correctness (iter-66 trinity + iter-69 pentad, silent-drop rules)                                                 |
 | [sred-commit-guard.md](./docs/sred-commit-guard.md)                                     | SR&ED commit format, categories, CRA extraction                                                                                    |
 | [plan-mode-detection.md](./docs/plan-mode-detection.md)                                 | Plan-mode detection signals + which hooks honor them                                                                               |
 | [read-only-command-detection.md](./docs/read-only-command-detection.md)                 | Read-only command detection (+ SSH remote-bypass semantics)                                                                        |

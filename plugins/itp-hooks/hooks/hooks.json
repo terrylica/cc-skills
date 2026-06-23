@@ -245,9 +245,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
             "timeout": 65000,
-            "asyncRewake": true,
-            "rewakeSummary": "Loop stall detected — rewaking to schedule waker",
-            "description": "Stop-hook orchestrator: sequentially runs the 5 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint, loop-stall-guard) with per-subhook timeout + crash isolation. Replaces 5 entries in the Stop hook display list with 1. asyncRewake on exit 2 propagates from loop-stall-guard."
+            "description": "Stop-hook orchestrator: sequentially runs the 4 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint) with per-subhook timeout + crash isolation. Replaces 4 entries in the Stop hook display list with 1."
           }
         ]
       }
