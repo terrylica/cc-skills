@@ -4,7 +4,7 @@
   "originally_locked": "2026-06-01",
   "endpoint": "https://api.minimax.io/v1/chat/completions",
   "plan": "Plus-High-Speed (same key as the M2.7 campaign)",
-  "note": "Empirical invariants captured by scripts/m3-probe.py + scripts/m3-context-probe.py. scripts/m3-verify re-probes a fast subset and diffs against this file. Bump via review, never blindly. 2026-06-23 re-lock (fast subset re-probed): output ceiling raised 512000 -> 524288; n>1 stopped erroring but is now SILENTLY DROPPED (still returns 1 choice), so supports_n_gt_1 stays false and m3-verify now requires >1 actual choices to call it supported. Fields outside the fast subset (input ceiling, vision, reasoning_split details, tool handling) carry forward from the 2026-06-01 lock.",
+  "note": "Empirical invariants captured by `m3-cli probe` + `m3-cli context-probe`. `m3-cli verify` re-probes a fast subset and diffs against this file. Bump via review, never blindly. 2026-06-23 re-lock (fast subset re-probed): output ceiling raised 512000 -> 524288; n>1 stopped erroring but is now SILENTLY DROPPED (still returns 1 choice), so supports_n_gt_1 stays false and `m3-cli verify` now requires >1 actual choices to call it supported. Fields outside the fast subset (input ceiling, vision, reasoning_split details, tool handling) carry forward from the 2026-06-01 lock.",
   "invariants": {
     "in_catalog": true,
     "highspeed_variant_exists": false,
