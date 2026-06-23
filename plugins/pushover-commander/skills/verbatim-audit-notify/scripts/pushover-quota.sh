@@ -33,7 +33,7 @@ set -euo pipefail
 readonly LOG_DIR="${PUSHOVER_LOG_DIR:-$HOME/.local/state/pushover}"
 readonly QUOTA_FILE="${LOG_DIR}/quota.json"
 readonly OP_VAULT="Claude Automation"
-readonly OP_ITEM_ID="dg5ng7vgj6dmmtc2vavo5kfko4"
+readonly OP_ITEM_ID="${PUSHOVER_OP_ITEM_ID:-<pushover-item>}"
 
 ALERT_THRESHOLD=""   # e.g. "0.20" = alert when remaining < 20% of limit
 JSON_ONLY=0

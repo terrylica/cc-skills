@@ -13,7 +13,7 @@ OUTPUT_DIR="${2:-./artifacts}"
 
 # 1Password configuration
 OP_VAULT="Claude Automation"
-OP_ITEM_ID="ise47dxnkftmxopupffavsgby4"
+OP_ITEM_ID="${CHRONICLE_OP_ITEM_ID:-<chronicle-item>}"
 AWS_REGION="us-west-2"
 
 if [[ -z "$S3_URI" ]]; then
