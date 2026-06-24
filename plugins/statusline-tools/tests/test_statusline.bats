@@ -449,3 +449,27 @@ FAKE
     # ...instead of the opaque generic auth diagnostic.
     [[ "$plain" != *"gh exit 4"* ]]
 }
+
+@test "ctx readout honors CLAUDE_CODE_AUTO_COMPACT_WINDOW clamp (2026-06-24)" {
+    # Claude Code's real autocompact window = min(modelMax, CLAUDE_CODE_AUTO_COMPACT_WINDOW).
+    # With a 1M model but an 800k cap + pct=73, the trigger is (800k-20k)*0.73 = 569,400.
+    # At 580k used the box is ALREADY past that → must read "past compact", NOT a phantom
+    # "~135k until compact" (the pre-fix bug computed against the raw 1M window → 715k).
+    local json='{"context_window":{"total_input_tokens":580000,"context_window_size":1000000,"used_percentage":58}}'
+    run bash -c "echo '$json' | CLAUDE_CODE_AUTO_COMPACT_WINDOW=800000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=73 $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"past compact"* ]]
+    [[ "$plain" != *"until compact"* ]]
+}
+
+@test "ctx readout uses raw window when no AUTO_COMPACT_WINDOW cap (2026-06-24)" {
+    # Same 580k used, but no window cap (0 = unset) → threshold computed against the
+    # raw 1M window = (1M-20k)*0.73 = 715,400, so there IS headroom: "~135k until compact".
+    local json='{"context_window":{"total_input_tokens":580000,"context_window_size":1000000,"used_percentage":58}}'
+    run bash -c "echo '$json' | CLAUDE_CODE_AUTO_COMPACT_WINDOW=0 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=73 $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"until compact"* ]]
+    [[ "$plain" != *"past compact"* ]]
+}

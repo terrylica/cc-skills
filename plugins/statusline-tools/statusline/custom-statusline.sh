@@ -1272,19 +1272,27 @@ if [ -n "$ctx_window_size" ] && \
 
     # === EXACT THRESHOLD COMPUTATION (mirrors Claude Code bundle math) ===
     # The actual compact trigger is NOT simply pct% of the raw window.
-    # Bundle chain: cee() = window - min(ehe(), AFi=20000)
-    #               Swn()  = min(floor(effective * pct/100), effective - 13000)
-    #               A8r()  = min(effective - round(effective*0.2), Swn())
-    # We approximate with effective = window - 20000 (AFi cap), ignoring the
+    # Bundle chain: window  = min(modelMax, CLAUDE_CODE_AUTO_COMPACT_WINDOW)  <-- the clamp
+    #               cee()   = window - min(ehe(), AFi=20000)
+    #               Swn()   = min(floor(effective * pct/100), effective - 13000)
+    #               A8r()   = min(effective - round(effective*0.2), Swn())
+    # CRITICAL (2026-06-24): CLAUDE_CODE_AUTO_COMPACT_WINDOW caps the window
+    # BEFORE pct is applied. Computing against the RAW 1M window over-promised
+    # headroom — empirically the readout said "~149k until compact" while Claude
+    # Code actually compacted at ~570k ( = (min(1M,800k)-20k)*0.73 ). Apply the
+    # same min(modelMax, AUTO_COMPACT_WINDOW) clamp so the readout is truthful.
+    # We still approximate effective = window - 20000 (AFi cap), ignoring the
     # per-model ehe() variance and the 0.2 precompute fraction (which only
     # tightens the result to Swn anyway for typical pct values like 73).
-    # This gives the threshold in tokens and its percentage of the raw window —
-    # so the bar separator lands at the right place regardless of PCT_OVERRIDE.
-    _effective=$(( ctx_window_size - 20000 ))
+    _acw="${CLAUDE_CODE_AUTO_COMPACT_WINDOW:-0}"
+    _cwin=$ctx_window_size
+    [ "${_acw:-0}" -gt 0 ] 2>/dev/null && [ "$_acw" -lt "$_cwin" ] 2>/dev/null && _cwin=$_acw
+    _effective=$(( _cwin - 20000 ))
     _thresh=$(( _effective * _cpct / 100 ))
     _thresh_cap=$(( _effective - 13000 ))
     [ "${_thresh:-0}" -gt "${_thresh_cap:-0}" ] 2>/dev/null && _thresh=$_thresh_cap
-    # Threshold as % of raw window (for bar + color tier)
+    # Threshold as % of RAW window (bar separator + color tier land on the
+    # visible bar, which is always drawn against the raw model window).
     _trigger_pct=$(( _thresh * 100 / ctx_window_size ))
 
     # Bar separator at the EXACT trigger percentage, not at raw pct
