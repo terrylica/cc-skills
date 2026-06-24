@@ -31,7 +31,7 @@ PAYLOAD=$(cat)
 # (which drops false positives like "1page", "options", "manage", "page").
 shopt -s nocasematch
 case "$PAYLOAD" in
-    *1password*|*1p*|*service\ account*|*sa\ token*|*claude\ automation*|*op://*|*op\ item*|*op\ read*|*op\ vault*|*op\ list*|*op\ create*|*op\ edit*|*op\ delete*|*keychain*|*sops*|*age-keygen*|*self-custody*|*credential*|*generic-password*|*password\ manager*) ;;
+    *1password*|*1p*|*service\ account*|*sa\ token*|*claude\ automation*|*op://*|*op\ item*|*op\ read*|*op\ vault*|*op\ list*|*op\ create*|*op\ edit*|*op\ delete*|*keychain*|*sops*|*age-keygen*|*self-custody*|*credential*|*generic-password*|*password\ manager*|*vault*) ;;
     *) shopt -u nocasematch; exit 0 ;;
 esac
 shopt -u nocasematch
@@ -46,7 +46,7 @@ LOWER=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # sops, age-keygen, self-custody, generic-password) and legacy 1Password
 # (1password, op subcommands, service account). Deliberately avoids bare
 # "age"/"key"/"secret"/"password" (too noisy).
-if ! echo "$LOWER" | grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edit|op delete|service account|sa token|claude automation vault|op://|keychain|sops|age-keygen|self-custody|credentials?|generic-password|password manager)\b'; then
+if ! echo "$LOWER" | grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edit|op delete|service account|sa token|claude automation vault|op://|keychain|sops|age-keygen|self-custody|credentials?|generic-password|password manager|vault (get|set|new-scope|list|manifest|backup-keys|recover|doctor))\b'; then
     exit 0
 fi
 
@@ -54,7 +54,16 @@ fi
 cat <<'CONTEXT_EOF'
 [SELF-CUSTODY SECRETS] Credential work detected. Default to the Self-Custody
 Secrets (SCS) doctrine — store secrets ONLY in operator-controlled stores,
-NEVER an employer/company-managed vault. SCS ladder (prefer top-down):
+NEVER an employer/company-managed vault.
+
+PREFERRED (the breadcrumb): if a self-custody `vault` CLI is present
+(e.g. ~/.claude/tools/vault — `vault get|set|new-scope|list|manifest|
+backup-keys|recover|doctor`), USE IT. It wraps the entire ladder below behind
+one interface, keeps a machine-readable secrets/manifest.toml index for
+discovery, captures values via a hidden native prompt, and verifies encryption.
+Start with `vault doctor` / `vault spec`. Do NOT invent ad-hoc storage.
+
+Otherwise apply the SCS ladder directly (top-down):
 
 1) macOS login Keychain = machine SSoT (agent-readable, no prompt):
      add:  security add-generic-password -U -s <scope>-<service> -a <user> \
@@ -62,17 +71,22 @@ NEVER an employer/company-managed vault. SCS ladder (prefer top-down):
              "$HOME/Library/Keychains/login.keychain-db"
      read: security find-generic-password -s <scope>-<service> -w
 
-2) Versioned backup = SOPS + age in the project repo (keys readable, values
-   encrypted); age key held in the Keychain:
+2) Versioned backup = SOPS + age (keys readable, values encrypted; age key in
+   Keychain). sops uses Go RE2 (NO lookahead) — keep _meta readable via
+   `unencrypted_regex: "^_meta$"`, NEVER a negative-lookahead `encrypted_regex`
+   (it silently encrypts NOTHING — always verify values show ENC[...]):
      export SOPS_AGE_KEY_CMD='security find-generic-password -s <age-key-item> -w'
-     sops <repo>/secrets/<scope>.sops.json        # edit -> re-encrypts on save
+     unset HTTPS_PROXY HTTP_PROXY      # the OAuth proxy 502s sops/age
 
-3) Off-device backup = iCloud (Drive for files / Passwords app for logins).
-   IMPORTANT: `security`-created items live in the LOCAL `login` keychain and
-   do NOT sync to iCloud — back the age key up to iCloud Drive separately.
+3) Off-device backup = iCloud DRIVE (a plain synced folder, fully CLI-writable).
+   The iCloud *Passwords app* / iCloud Keychain CANNOT be written from any CLI
+   (Apple entitlement wall — errSecMissingEntitlement; verified). `security`
+   items live in the LOCAL login keychain and do NOT sync. Back the age key up
+   to iCloud Drive passphrase-encrypted — and note `age -p` needs a TTY, so use
+   `gpg --batch --pinentry-mode loopback -c --cipher-algo AES256`.
 
-4) Provenance = commit a restore-runbook + checksum manifest beside the backup
-   so a future agent (or a fresh Mac) can recover deterministically.
+4) Provenance = commit a restore-runbook + manifest beside the backup so a
+   future agent (or a fresh Mac) can recover deterministically.
 
 Naming for self-discovery: `<scope>-<service>` Keychain items + a descriptive
 `-j` comment. Keep an agnostic registry/runbook in the repo.

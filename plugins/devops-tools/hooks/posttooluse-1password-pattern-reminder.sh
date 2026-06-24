@@ -125,10 +125,14 @@ Secrets (SCS) doctrine, 1Password is LAST RESORT. First ask:
 (0) DOES THIS BELONG IN 1PASSWORD AT ALL? Client-confidential secrets must
     NOT live in a company/employer-managed vault (admin-visible/recoverable).
     Prefer the SCS ladder instead:
+      • PREFERRED: a self-custody `vault` CLI if present (e.g.
+        ~/.claude/tools/vault — `vault get|set|new-scope`); it wraps the ladder.
       • macOS Keychain (machine SSoT): security add/find-generic-password
         -s <scope>-<service> ... -T /usr/bin/security
-      • SOPS+age backup in the repo (age key in Keychain via SOPS_AGE_KEY_CMD)
-      • iCloud (Drive/Passwords) + a committed restore-runbook (provenance)
+      • SOPS+age backup in the repo (age key in Keychain via SOPS_AGE_KEY_CMD;
+        unset HTTPS_PROXY/HTTP_PROXY first — proxy 502s sops/age)
+      • iCloud DRIVE for the off-device key backup (the Passwords app/iCloud
+        Keychain CANNOT be scripted — Apple entitlement wall) + a committed runbook
 
 If 1Password is genuinely required (company-SHARED, non-confidential secret):
 (1) BYPASS THE PROXY — the OAuth proxy returns 502 on api.1password.com:
