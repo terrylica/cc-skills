@@ -63,14 +63,16 @@ See individual spoke docs:
 
 ## Migration Timeline
 
-| Iter | Subhooks Inlined           | Count | Key Changes                                               |
-| ---- | -------------------------- | ----- | --------------------------------------------------------- |
-| 93   | ty-type-check              | 1     | **Arc kick-off** — Path B (orchestrator inlining)         |
-| 94   | tsgo-type-check            | 2     | Project-scoped filtering; Bun.spawn-only invariant        |
-| 95   | oxlint-check, biome-lint   | 4     | Shared lib helper hoists (async-spawn)                    |
-| 96   | vale-claude-md             | 5     | Informational (not blocking); line-scoping ±3-line buffer |
-| 97   | ssot-principles            | 6     | **FIRST real Promise.all parallel fan-out**               |
-| 98   | memory-efficiency-reminder | 7     | Once-per-session gate via atomic claim helper             |
+| Iter | Subhooks Inlined           | Count | Key Changes                                                                                                                                       |
+| ---- | -------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 93   | ty-type-check              | 1     | **Arc kick-off** — Path B (orchestrator inlining)                                                                                                 |
+| 94   | tsgo-type-check            | 2     | Project-scoped filtering; Bun.spawn-only invariant                                                                                                |
+| 95   | oxlint-check, biome-lint   | 4     | Shared lib helper hoists (async-spawn)                                                                                                            |
+| 96   | vale-claude-md             | 5     | Informational (not blocking); line-scoping ±3-line buffer                                                                                         |
+| 97   | ssot-principles            | 6     | **FIRST real Promise.all parallel fan-out**                                                                                                       |
+| 98   | memory-efficiency-reminder | 7     | Once-per-session gate via atomic claim helper                                                                                                     |
+| —    | claude-md-size-budget      | 8     | CLAUDE.md char-budget (90% of 40k) refactor reminder                                                                                              |
+| —    | python-preference-nudge    | 9     | Per-`.py` language-preference nudge; ancestor `python-allowlist.toml` (reason-gated); temp-scratch exempt — [spoke](./python-preference-nudge.md) |
 
 ## Iter-98 Bug Fix: Silent Context Drop
 

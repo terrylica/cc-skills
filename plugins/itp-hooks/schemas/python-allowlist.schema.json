@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/schemas/python-allowlist.schema.json",
+  "title": "python-allowlist.toml",
+  "description": "Per-file allowlist that exempts individual Python files from the itp-hooks Python-preference nudge (posttooluse-python-preference-nudge.ts). Each file must be allowed explicitly with a justification; there is no blanket/project-wide suppression. Discovered by walking up from an edited .py file toward the repo root; an entry's `path` is resolved relative to the directory containing this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "description": "Optional informational pointer to this JSON Schema. Not enforced by the hook."
+    },
+    "allow": {
+      "type": "array",
+      "description": "The list of explicitly-allowed Python files.",
+      "items": { "$ref": "#/$defs/allowEntry" }
+    }
+  },
+  "required": ["allow"],
+  "$defs": {
+    "allowEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "reason"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to the allowed .py file, relative to the directory containing this allowlist file (absolute paths are also accepted). Matched exactly against the edited file's resolved absolute path.",
+          "pattern": "\\.py$"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required, non-empty justification for why Python is the right choice for this file (e.g. SOTA-native ML/data/quant lane, or existing convention). A blank/whitespace-only reason is treated by the hook as NOT allowed."
+        },
+        "issue": {
+          "type": "string",
+          "description": "Optional tracking issue (e.g. 'eon/mono#1234') — typically a migration-tracking or rationale issue."
+        }
+      }
+    }
+  }
+}
