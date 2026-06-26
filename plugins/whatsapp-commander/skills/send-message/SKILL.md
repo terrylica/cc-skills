@@ -100,6 +100,14 @@ The Business Cloud API does **not** let you send arbitrary text to anyone at any
 | API error `131047`                          | Outside 24h window                       | Send an approved template, or use Tier 1          |
 | `wa.me` opens but shows "invalid number"    | Recipient not on WhatsApp / wrong number | Confirm the number with the user                  |
 
+## Evolution Log
+
+- **2026-06-22 — initial skill.** WhatsApp has no personal-account send API. Modelled on
+  `tlg`/`gmail-commander` conventions but split into capability tiers because the platform
+  forbids the equivalent of MTProto/OAuth personal send. Default = `wa.me` link (the path
+  proven in the VanJobbers ↔ CPC engagement); Cloud API send wired but credential-gated.
+  CLI written as function/enum-driven Bun TypeScript per the repo language preference.
+
 ## Post-Execution Reflection
 
 After this skill completes, check before closing:
@@ -110,11 +118,3 @@ After this skill completes, check before closing:
 4. **New convention learned about WhatsApp's limits?** — Add it to the tier table / window rules.
 
 Only update if the issue is real and reproducible — not speculative.
-
-## Evolution Log
-
-- **2026-06-22 — initial skill.** WhatsApp has no personal-account send API. Modelled on
-  `tlg`/`gmail-commander` conventions but split into capability tiers because the platform
-  forbids the equivalent of MTProto/OAuth personal send. Default = `wa.me` link (the path
-  proven in the VanJobbers ↔ CPC engagement); Cloud API send wired but credential-gated.
-  CLI written as function/enum-driven Bun TypeScript per the repo language preference.
