@@ -1,0 +1,10 @@
+{
+  "$schema": "../../schema/token-spec.schema.json",
+  "name": "all-repos-admin",
+  "description": "ILLUSTRATIVE: broad token across ALL repos with Administration write. Powerful — prefer a narrowly-scoped token. Not part of the auto-campaign.",
+  "expiration": 30,
+  "repositoryAccess": { "mode": "all" },
+  "permissions": {
+    "repository": { "Administration": "write", "Contents": "write" }
+  }
+}
