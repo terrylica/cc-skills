@@ -181,6 +181,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Opt IN to cargo-tty-guard's PUEUE-wrapping even when the heuristic doesn't trigger automatically. Used when the operator knows their cargo invocation will inherit a contested TTY and wants the daemon path explicitly.",
     },
     {
+      markerNameTokenIncludingSuffix: "CROWN-JEWEL-PLAIN-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).",
+    },
+    {
       markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs",
@@ -189,6 +199,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a bash command that the cwd-deletion-guard would otherwise block as a CWD-deleting `rm -rf` (or equivalent). Used when the operator has verified the rm target is safe (e.g., target is a sibling, not the CWD itself, and the regex false-positives).",
+    },
+    {
+      markerNameTokenIncludingSuffix: "FGPAT-REMINDER-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.",
     },
     {
       markerNameTokenIncludingSuffix: "FILE-SIZE-OK",
@@ -253,6 +273,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         // noTemplateCurlyInString lint from misreading the bash-style env-var
         // reference as an unintended interpolation placeholder.
         `Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
+    },
+    {
+      markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.",
     },
     {
       markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
