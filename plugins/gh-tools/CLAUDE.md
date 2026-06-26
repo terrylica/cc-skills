@@ -19,9 +19,26 @@ This plugin provides GitHub CLI enforcement through hooks and skills for PR crea
 
 ### PostToolUse Hooks
 
-| Hook                          | Matcher | Purpose                                       |
-| ----------------------------- | ------- | --------------------------------------------- |
-| `gh-issue-title-reminder.mjs` | Bash    | Reminds to optimize issue title after comment |
+| Hook                                   | Matcher | Purpose                                                                                                                                |
+| -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `gh-issue-title-reminder.mjs`          | Bash    | Reminds to optimize issue title after comment                                                                                          |
+| `posttooluse-manual-pat-page-nudge.sh` | Bash    | Nudges toward the `gh-fine-grained-pat` skill when a command opens GitHub's token settings page by hand (escape: `MANUAL-PAT-PAGE-OK`) |
+
+### UserPromptSubmit Hooks
+
+| Hook                                            | Purpose                                                                                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `userpromptsubmit-fine-grained-pat-reminder.sh` | Detects GitHub-token-creation intent and reminds to use the `gh-fine-grained-pat` skill (declarative, scoped, no broad classic tokens). Escape: `FGPAT-REMINDER-OK` |
+
+## Fine-grained PAT creation (use the skill, not the UI)
+
+GitHub has **no API** to create fine-grained PATs. When you need a token (release,
+CI, read-only audit, account-scoped, …), use the **`gh-fine-grained-pat` skill**
+([skills/gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md)) — it
+browser-automates the web UI from a declarative JSON spec and stores the value
+straight into the SCS vault. The two hooks above surface this proactively
+(prompt intent) and reactively (manual settings-page open). Prefer it over
+hand-clicking or a broad classic `ghp_*` token.
 
 ## GitHub Issue Title Optimization (2026-02-05)
 
@@ -175,6 +192,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 - [issues-workflow](./skills/issues-workflow/SKILL.md)
 - [pr-gfm-validator](./skills/pr-gfm-validator/SKILL.md)
 - [research-archival](./skills/research-archival/SKILL.md)
+- [gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md) — browser-automate fine-grained PAT creation from a declarative JSON spec (GitHub exposes no API for this); has its own skill-level [CLAUDE.md](./skills/gh-fine-grained-pat/CLAUDE.md) (selector map + 4 hard-won gotchas)
 
 ## GitHub Operations Policy
 

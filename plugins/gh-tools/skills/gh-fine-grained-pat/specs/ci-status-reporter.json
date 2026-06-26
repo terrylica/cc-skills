@@ -1,0 +1,10 @@
+{
+  "$schema": "../schema/token-spec.schema.json",
+  "name": "ci-status-reporter",
+  "description": "Report commit statuses for CI + read Actions. Exercises permissions outside the release trio.",
+  "expiration": 30,
+  "repositoryAccess": { "mode": "selected", "repos": ["terrylica/cc-skills"] },
+  "permissions": {
+    "repository": { "Commit statuses": "write", "Actions": "read" }
+  }
+}

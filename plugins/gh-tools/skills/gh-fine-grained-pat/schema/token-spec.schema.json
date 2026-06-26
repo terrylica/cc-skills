@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/terrylica/cc-skills/plugins/gh-tools/skills/gh-fine-grained-pat/token-spec.schema.json",
+  "title": "GitHub fine-grained PAT spec",
+  "description": "Declarative spec consumed by scripts/form.mjs to drive GitHub's fine-grained personal-access-token creation UI. There is NO API to create fine-grained PATs (web UI only), so this spec is the machine-readable SSoT the browser engine reads.",
+  "type": "object",
+  "required": ["name"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 40,
+      "description": "Token name. Must be unique on the account."
+    },
+    "description": {
+      "type": "string",
+      "default": "",
+      "description": "Free-text token description (optional)."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Resource-owner login. Omit to use the authenticated user. Set to an org login for org-owned tokens."
+    },
+    "expiration": {
+      "description": "Token lifetime: 7/30/60/90 (days), an ISO date 'YYYY-MM-DD' (custom), or 'none' (no expiration — triggers a confirm modal).",
+      "default": 30,
+      "oneOf": [
+        { "type": "integer", "enum": [7, 30, 60, 90] },
+        { "type": "string", "pattern": "^(none|[0-9]{4}-[0-9]{2}-[0-9]{2})$" }
+      ]
+    },
+    "repositoryAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "description": "Which repositories the token can touch. 'public' = read-only public repos (use for account-only tokens); 'all' = every repo the owner has; 'selected' = the explicit 'repos' list.",
+      "properties": {
+        "mode": { "enum": ["public", "all", "selected"] },
+        "repos": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^/]+/[^/]+$" },
+          "description": "owner/name entries; required (non-empty) when mode = 'selected'."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "selected" } } },
+          "then": { "required": ["repos"], "properties": { "repos": { "minItems": 1 } } }
+        }
+      ]
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "UI permission rows to set. Key = exact permission label as shown in GitHub's 'Add permissions' menu (e.g. 'Contents', 'Pull requests', 'Commit statuses', 'Gists'). Value: 'read' -> 'Read-only', 'write' -> 'Read and write'. 'Metadata' is auto-required read-only and must NOT be listed.",
+      "properties": {
+        "repository": {
+          "type": "object",
+          "additionalProperties": { "enum": ["read", "write"] }
+        },
+        "account": {
+          "type": "object",
+          "additionalProperties": { "enum": ["read", "write"] }
+        }
+      }
+    }
+  }
+}
