@@ -12,14 +12,20 @@
 //   list                  list fine-grained tokens (id + name)
 //   inspect <name>        read back a token's settings (verification)
 //   delete <name>         revoke a token
+//   register --account A  one-time: capture a passkey + password/TOTP for account A into the gated vault (autonomous sudo)
+//   agent start|stop|status  memory-only session agent: one Touch-ID unlock lasts the session
+//   accounts              list accounts provisioned for autonomous web-auth
 //   quit                  kill the debug Chrome (specific PID; no pkill -f)
 //
+// AUTONOMOUS: GH_PAT_AUTONOMOUS=1 + a resolved account (--account | repo host-alias
+// | spec owner) lets create/rotate clear GitHub sudo mode via the gated credential.
 // SECURITY: a token value is NEVER printed to stdout/chat. `create` writes it to
 // a 0600 file (--out) or pipes it into `vault set` (--vault scope:dot.path).
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
-import { spawnSync } from "node:child_process";
-import { dirname } from "node:path";
+import { spawn, spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
+import { homedir } from "node:os";
 import {
   PROFILE_DIR,
   DEBUG_DIR,
@@ -35,6 +41,9 @@ import {
 
 const sleep = (msec) => new Promise((r) => setTimeout(r, msec));
 import { createToken, listTokens, inspectToken, deleteToken } from "./form.mjs";
+import { resolveAccount, addProvisioned, listProvisioned, isProvisioned } from "./identity.mjs";
+import { agentStatus, agentStop, agentRunning, AGENT_SOCK } from "./webauth-agent.mjs";
+import { openWebAuthn, mountAuthenticator, getCredentials, serializeCredential, removeAuthenticator } from "./webauthn.mjs";
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -193,8 +202,10 @@ async function doCreate({ replace, rotate }) {
     } else if (rotate) {
       console.error(`• no existing '${spec.name}' — creating fresh`);
     }
+    const { account, source } = resolveAccount({ account: flag("--account"), owner: spec.owner });
+    if (process.env.GH_PAT_AUTONOMOUS === "1") console.error(`• account: ${account ?? "(logged-in)"} [${source}]`);
     console.error(`• ${rotate ? "rotating" : "creating"} '${spec.name}'…`);
-    const token = await createToken(page, spec);
+    const token = await createToken(page, spec, { account });
     emitToken(token, spec, rotate ? "rotated" : "created");
   } finally {
     if (!has("--keep-open")) await browser.close();
@@ -248,8 +259,87 @@ async function cmdQuit() {
   console.log(r.killed ? `✓ Chrome (pid ${r.pid}) terminated` : `nothing to terminate (${r.reason ?? "no pid"})`);
 }
 
+// ---- autonomous web-auth (ADR 2026-06-26) ----------------------------------
+const TOUCHID_BIN = join(homedir(), ".claude", "tools", "vault", "touchid", "vault-touchid");
+function promptSecret(label) {
+  const r = spawnSync(
+    "osascript",
+    ["-e", `display dialog ${JSON.stringify(label)} default answer "" with hidden answer with title "pat register"`, "-e", "text returned of result"],
+    { encoding: "utf8" },
+  );
+  return r.status === 0 ? r.stdout.replace(/\n$/, "") : "";
+}
+function storeGatedBlob(account, blob) {
+  if (!existsSync(TOUCHID_BIN)) die(`vault-touchid not built at ${TOUCHID_BIN} (compile it; see SCS tiered ADR)`);
+  const r = spawnSync(TOUCHID_BIN, ["set", `vault-gated-github-web-${account}`, process.env.USER ?? "vault"], {
+    input: JSON.stringify(blob),
+  });
+  if (r.status !== 0) die("gated store failed (vault-touchid set)");
+}
+
+// register --account <a>: one-time ceremony — capture a passkey via a virtual
+// authenticator + password/TOTP, store as ONE gated blob. Touch-ID gated tier.
+async function cmdRegister() {
+  const account = flag("--account");
+  if (!account || account === true) die("usage: register --account <login>");
+  const { browser, ctx, page } = await session();
+  const client = await openWebAuthn(page);
+  const authenticatorId = await mountAuthenticator(client);
+  try {
+    await page.goto("https://github.com/settings/passkeys", { waitUntil: "domcontentloaded" });
+    console.error(`A Chrome window is open at GitHub → Passkeys for '${account}'.`);
+    console.error('Click "Add a passkey" and complete the prompt — the virtual authenticator captures it.');
+    console.error("Waiting up to 5 min for a passkey credential to appear…");
+    let cred = null;
+    for (let i = 0; i < 60 && !cred; i++) {
+      await page.waitForTimeout(5000);
+      const creds = await getCredentials(client, authenticatorId);
+      if (creds.length) cred = serializeCredential(creds[0]);
+    }
+    if (!cred) die("no passkey credential captured — re-run register");
+    console.error(`✓ captured passkey (rpId ${cred.rpId})`);
+    const password = promptSecret(`GitHub password for '${account}' (stored gated; for the password+TOTP fallback):`);
+    const totpSeed = promptSecret(`GitHub TOTP base32 seed for '${account}' (from 2FA 'set up using an app' → text code):`);
+    storeGatedBlob(account, { passkey: cred, password, totpSeed });
+    addProvisioned(account);
+    console.log(`✓ '${account}' provisioned → gated vault item github-web-${account} (Touch-ID required to use). Registry updated.`);
+  } finally {
+    await removeAuthenticator(client, authenticatorId);
+    void ctx;
+    if (!has("--keep-open")) await browser.close();
+  }
+}
+
+async function cmdAgent() {
+  const sub = args[1] ?? "status";
+  if (sub === "start") {
+    if (agentRunning()) return void console.log(`agent already running (${AGENT_SOCK})`);
+    const child = spawn(process.execPath, [new URL("./webauth-agent.mjs", import.meta.url).pathname, "serve"], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+    return void console.log(`✓ webauth-agent started (${AGENT_SOCK}) — one Touch-ID unlock now lasts the session`);
+  }
+  if (sub === "stop") {
+    const r = await agentStop();
+    return void console.log(r.ok ? "✓ agent stopped" : "no agent running");
+  }
+  const r = await agentStatus();
+  console.log(r.ok ? `agent up (pid ${r.pid}); unlocked: ${r.accounts.join(", ") || "(none)"}` : "agent not running");
+}
+
+function cmdAccounts() {
+  const prov = listProvisioned();
+  console.log(prov.length ? `provisioned (autonomous web-auth): ${prov.join(", ")}` : "no accounts provisioned (run: pat register --account <login>)");
+  void isProvisioned;
+}
+
 function help() {
-  console.log(readFileSync(new URL("./pat.mjs", import.meta.url), "utf8").split("\n").slice(2, 19).join("\n").replace(/^\/\/ ?/gm, ""));
+  const lines = readFileSync(new URL("./pat.mjs", import.meta.url), "utf8").split("\n");
+  const out = [];
+  for (let i = 1; i < lines.length && lines[i].startsWith("//"); i++) out.push(lines[i].replace(/^\/\/ ?/, ""));
+  console.log(out.join("\n"));
 }
 
 const table = {
@@ -260,6 +350,9 @@ const table = {
   list: cmdList,
   inspect: cmdInspect,
   delete: cmdDelete,
+  register: cmdRegister,
+  agent: cmdAgent,
+  accounts: cmdAccounts,
   quit: cmdQuit,
 };
 
@@ -268,7 +361,9 @@ if (!fn) {
   help();
   process.exit(cmd ? 1 : 0);
 }
-fn().catch((e) => {
-  console.error(`pat: ${e.message}`);
-  process.exit(1);
-});
+Promise.resolve()
+  .then(fn)
+  .catch((e) => {
+    console.error(`pat: ${e.message}`);
+    process.exit(1);
+  });
