@@ -286,17 +286,34 @@ async function cmdRegister() {
   const client = await openWebAuthn(page);
   const authenticatorId = await mountAuthenticator(client);
   try {
-    await page.goto("https://github.com/settings/passkeys", { waitUntil: "domcontentloaded" });
-    console.error(`A Chrome window is open at GitHub → Passkeys for '${account}'.`);
-    console.error('Click "Add a passkey" and complete the prompt — the virtual authenticator captures it.');
-    console.error("Waiting up to 5 min for a passkey credential to appear…");
+    await page.goto("https://github.com/settings/security", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500);
+    console.error(`A Chrome window is open at GitHub → Account security for '${account}'.`);
+    console.error('If "Confirm access" (sudo) appears, complete it. Then click "Add passkey" (I will also try to);');
+    console.error("complete any GitHub prompt — the virtual authenticator captures the new passkey.");
+    console.error("Waiting up to 8 min for a passkey credential to appear…");
+    // Best-effort: click "Add passkey" ourselves (the operator can also click it).
+    try {
+      await page.getByRole("button", { name: /^Add passkey$/i }).first().click({ timeout: 4000 });
+    } catch {
+      try {
+        await page.getByRole("link", { name: /^Add passkey$/i }).first().click({ timeout: 4000 });
+      } catch {
+        /* operator will click */
+      }
+    }
     let cred = null;
-    for (let i = 0; i < 60 && !cred; i++) {
+    for (let i = 0; i < 96 && !cred; i++) {
       await page.waitForTimeout(5000);
+      // keep nudging the dialog's confirm button if present
+      await page.evaluate(() => {
+        const b = [...document.querySelectorAll("button")].find((x) => x.offsetParent !== null && /^Add passkey$/i.test((x.textContent || "").trim()));
+        if (b) b.click();
+      }).catch(() => {});
       const creds = await getCredentials(client, authenticatorId);
       if (creds.length) cred = serializeCredential(creds[0]);
     }
-    if (!cred) die("no passkey credential captured — re-run register");
+    if (!cred) die("no passkey credential captured — re-run register (complete the Add-passkey prompt in the window)");
     console.error(`✓ captured passkey (rpId ${cred.rpId})`);
     const password = promptSecret(`GitHub password for '${account}' (stored gated; for the password+TOTP fallback):`);
     const totpSeed = promptSecret(`GitHub TOTP base32 seed for '${account}' (from 2FA 'set up using an app' → text code):`);
