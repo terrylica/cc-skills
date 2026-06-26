@@ -38,6 +38,9 @@ const NOUN = {
   Webhooks: "repository hooks",
   Metadata: "metadata",
   Gists: "gists",
+  "Dependabot secrets": "dependabot secrets",
+  Secrets: "secrets",
+  "Secret scanning alerts": "secret scanning alerts",
 };
 
 /** Parse "(Read and Write|Read|No) access to <clause>" prose into noun -> level. */
