@@ -210,12 +210,23 @@ async function generate(page) {
 }
 
 // GitHub "sudo mode": sensitive pages (token creation) show a "Confirm access"
-// challenge when the session hasn't re-authed recently. We cannot bypass it
-// (passkey/2FA) — wait for the operator to confirm in the browser, then proceed.
-async function ensureFormReady(page) {
+// challenge when the session hasn't re-authed recently. Default = wait for the
+// operator. With GH_PAT_AUTONOMOUS=1 + a resolved account, satisfy it via the
+// gated github-web-<account> credential (one Touch-ID unlock per session).
+async function ensureFormReady(page, account) {
   const hasForm = async () => (await page.locator(SEL.nameInput).count()) > 0;
   if (await hasForm()) return;
   if (!/confirm access/i.test(await page.title())) return; // unknown state — let caller fail loudly
+
+  if (process.env.GH_PAT_AUTONOMOUS === "1" && account) {
+    try {
+      const { autonomousSudo } = await import("./autosudo.mjs");
+      if (await autonomousSudo(page, account)) return void console.error(`✓ autonomous sudo (${account})`);
+    } catch (e) {
+      console.error(`autonomous sudo failed (${e.message}); falling back to manual confirm`);
+    }
+  }
+
   console.error("⚠ GitHub sudo mode — confirm access in the Chrome window (passkey / 2FA). Waiting up to 8 min…");
   // Do NOT reload the page — that would wipe a half-typed password/2FA. After a
   // successful confirm GitHub auto-redirects back to the form; just poll for it.
@@ -228,10 +239,10 @@ async function ensureFormReady(page) {
 
 // ---- public API -------------------------------------------------------------
 /** Drive the whole form from a spec; returns the github_pat_ value. */
-export async function createToken(page, spec) {
+export async function createToken(page, spec, opts = {}) {
   await page.goto(NEW_URL, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1500);
-  await ensureFormReady(page); // handle GitHub sudo-mode "Confirm access"
+  await ensureFormReady(page, opts.account); // handle GitHub sudo-mode "Confirm access"
   await fillNameDesc(page, spec);
   await setOwner(page, spec);
   await setExpiration(page, spec);

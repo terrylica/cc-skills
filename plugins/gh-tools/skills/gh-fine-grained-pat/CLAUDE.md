@@ -8,15 +8,21 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 
 ## File map
 
-| File                            | Role                                                                                                               |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `scripts/pat.mjs`               | CLI: `login \| doctor \| create \| list \| inspect \| delete \| quit`. Secure token output (0600 / vault).         |
-| `scripts/browser.mjs`           | Chrome launch (persistent profile), CDP attach (`/json/version` → `connectOverCDP`, retry), specific-PID teardown. |
-| `scripts/form.mjs`              | The form driver — all the gotchas. `createToken / listTokens / inspectToken / deleteToken`.                        |
-| `scripts/selectors.mjs`         | Selector constants + generic click/wait/DOM-fallback/screenshot helpers.                                           |
-| `schema/token-spec.schema.json` | JSON Schema 2020-12 — formal spec SSoT.                                                                            |
-| `specs/*.json`                  | Five templates (release-bot, read-only-auditor, ci-status-reporter, account-scoped, kitchen-sink).                 |
-| `test/campaign.mjs`             | Empirical create→verify→delete harness + forced-failure + leak sweep.                                              |
+| File                            | Role                                                                                                                   |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `scripts/pat.mjs`               | CLI: `login \| doctor \| create \| rotate \| list \| inspect \| delete \| register \| agent \| accounts \| quit`.      |
+| `scripts/browser.mjs`           | Chrome launch (persistent profile), CDP attach (`/json/version` → `connectOverCDP`, retry), specific-PID teardown.     |
+| `scripts/form.mjs`              | The form driver — all the gotchas. `createToken / listTokens / inspectToken / deleteToken` + `ensureFormReady` (sudo). |
+| `scripts/selectors.mjs`         | Selector constants + generic click/wait/DOM-fallback/screenshot helpers.                                               |
+| `scripts/identity.mjs`          | Resolve target account (flag → host-alias → spec owner → logged-in) + provisioned-account registry. (ADR 2026-06-26)   |
+| `scripts/webauthn.mjs`          | CDP virtual-authenticator helpers (mount/inject/getCredentials) — autonomous passkey, no biometric at run time.        |
+| `scripts/autosudo.mjs`          | Clear GitHub sudo via the gated `github-web-<account>` blob: passkey primary, password/TOTP fallback.                  |
+| `scripts/webauth-agent.mjs`     | Memory-only session agent (ssh-agent pattern) → one Touch-ID unlock lasts the session.                                 |
+| `schema/token-spec.schema.json` | JSON Schema 2020-12 — formal spec SSoT.                                                                                |
+| `specs/*.json`                  | Five templates (release-bot, read-only-auditor, ci-status-reporter, account-scoped, kitchen-sink) + `specs/examples/`. |
+| `test/campaign.mjs`             | Empirical create→verify→delete harness + forced-failure + leak sweep.                                                  |
+| `test/autonomous.test.mjs`      | Unit tests (identity parsing, credential serde, agent put/get/TTL).                                                    |
+| `test/webauthn-smoke.mjs`       | Live CDP proof: virtual-authenticator create→capture→restore on localhost (GitHub-independent).                        |
 
 ## Runtime invariants (do NOT change blindly)
 
@@ -83,3 +89,4 @@ When adding a new permission to a spec, confirm its detail noun (create one toke
 
 - **2026-06-26** — skill created. Engine + 5 spec templates + JSON Schema + empirical campaign harness. Codifies the gotchas learned while minting `cc-skills-release`. Empirically validated by create→verify→delete across all 5 specs + a forced-failure case (PASS). The campaign surfaced gotchas 5–7 (two-tab permissions, regenerate-link list scrape, friendly-noun detail page) which are now encoded + documented.
 - **2026-06-26 (follow-up)** — added `rotate`, two reminder hooks, `specs/examples/`, and **gotcha #8 (sudo mode)**: `createToken`→`ensureFormReady()` now waits (non-disruptively, no page reload) for the operator to clear GitHub's "Confirm access" challenge. Empirically verified `dependabot-secrets` and extended `NOUN` (dependabot secrets / secrets / secret scanning alerts).
+- **2026-06-26 (autonomous web-auth, ADR-driven)** — multi-account autonomous sudo: virtual-authenticator passkey (primary) + password/TOTP fallback, gated `github-web-<account>` blob, session agent for one-tap-per-session, `register`/`agent`/`accounts` verbs + `--account` + `GH_PAT_AUTONOMOUS=1`. Core mechanism proven by `test/webauthn-smoke.mjs` (create→capture→restore) + `test/autonomous.test.mjs` (9 assertions). The live GitHub registration ceremony is the remaining interactive step. ADR: `/docs/adr/2026-06-26-autonomous-github-web-auth-virtual-passkey-and-totp-for-pat-engine.md`.
