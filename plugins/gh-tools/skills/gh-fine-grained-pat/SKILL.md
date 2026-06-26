@@ -90,6 +90,18 @@ node test/campaign.mjs          # create→verify→delete every spec + a forced
 
 The harness namespaces test tokens `zz-pat-selftest-*`, auto-deletes them, asserts none leak, and confirms a real token (`cc-skills-release`) is untouched. Re-running needs no login (proves session reuse).
 
+## Autonomous web-auth (optional, multi-account)
+
+GitHub's **sudo mode** ("Confirm access") normally needs a human gesture. The engine can clear it autonomously using a self-custodied credential — see the [ADR](/docs/adr/2026-06-26-autonomous-github-web-auth-virtual-passkey-and-totp-for-pat-engine.md). One-time per account:
+
+```bash
+node scripts/pat.mjs register --account <login>   # capture a passkey (virtual authenticator) + password/TOTP → gated vault
+node scripts/pat.mjs agent start                  # memory-only session agent: one Touch-ID unlock lasts the session
+GH_PAT_AUTONOMOUS=1 node scripts/pat.mjs create specs/release-bot.json --account <login> --vault cc-skills:gh.token
+```
+
+Account is resolved from `--account` → the repo's `origin` host-alias → the spec `owner` → the logged-in profile. The credential is a **Touch-ID-gated** crown jewel stored as one blob (`github-web-<login>`): **one tap** when you go in to operate, then nothing for the session (the agent caches it in memory only). Headless/cron is intentionally unsupported (the gated tier needs that one live tap). Primary path = virtual-authenticator passkey; fallback = password + `oathtool` TOTP.
+
 ## Troubleshooting
 
 GitHub renames CSS classes but keeps names/roles/labels — the engine prefers role/name/label with DOM-text fallbacks and screenshots failures to `/tmp/gh-pat-debug`. When the UI drifts, the live selector map and the eight hard-won gotchas are documented in [CLAUDE.md](./CLAUDE.md) for fast repair.
