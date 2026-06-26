@@ -1,3 +1,17 @@
+# [22.3.0](https://github.com/terrylica/cc-skills/compare/v22.2.0...v22.3.0) (2026-06-26)
+
+
+### Bug Fixes
+
+* **gh-tools:** handle GitHub sudo-mode in the PAT engine ([de70c2d](https://github.com/terrylica/cc-skills/commit/de70c2d507531aafe119980dee1b30a2c074c283)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#8](https://github.com/terrylica/cc-skills/issues/8)
+* **itp-hooks:** register new producer escape-hatch markers ([f6fccd5](https://github.com/terrylica/cc-skills/commit/f6fccd5d8537fa43f6d916a1cd9558df97f7f823)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **devops-tools:** tiered Touch-ID crown-jewel nudge + dotenvx ([1c6bee4](https://github.com/terrylica/cc-skills/commit/1c6bee424fec79785b438c111bcee135baf5c795))
+* **gh-tools:** add gh-fine-grained-pat token-creation skill ([b0f6114](https://github.com/terrylica/cc-skills/commit/b0f61146204a34a7276b8abc6161e14049b6b6a9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#fine-grained-pat](https://github.com/terrylica/cc-skills/issues/fine-grained-pat)
+
 # [22.2.0](https://github.com/terrylica/cc-skills/compare/v22.1.1...v22.2.0) (2026-06-26)
 
 
