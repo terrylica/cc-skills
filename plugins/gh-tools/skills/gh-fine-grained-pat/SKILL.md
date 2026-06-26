@@ -8,6 +8,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 GitHub exposes **no API** to _create_ fine-grained PATs ([community #148626](https://github.com/orgs/community/discussions/148626)) — the web UI is the only way. This skill drives that UI over the Chrome DevTools Protocol from a declarative JSON spec, so token creation is repeatable, reviewable, and anti-fragile instead of a hand-clicked one-off.
 
+> **Self-Evolving Skill**: This skill improves through use. GitHub's settings UI drifts — if a selector misses, the modal/picker/permission flow changed, or a permission's detail-page noun is wrong, fix `scripts/`, `CLAUDE.md` (selector map + noun map), or the spec **immediately**; don't defer. Only update for real, reproducible breakage.
+
 ## When to use
 
 - Mint a scoped token (release bot, CI reporter, read-only auditor, account-scoped) for storage in the SCS `vault`.
@@ -90,4 +92,13 @@ The harness namespaces test tokens `zz-pat-selftest-*`, auto-deletes them, asser
 
 ## Troubleshooting
 
-GitHub renames CSS classes but keeps names/roles/labels — the engine prefers role/name/label with DOM-text fallbacks and screenshots failures to `/tmp/gh-pat-debug`. When the UI drifts, the live selector map and the four hard-won gotchas are documented in [CLAUDE.md](./CLAUDE.md) for fast repair.
+GitHub renames CSS classes but keeps names/roles/labels — the engine prefers role/name/label with DOM-text fallbacks and screenshots failures to `/tmp/gh-pat-debug`. When the UI drifts, the live selector map and the eight hard-won gotchas are documented in [CLAUDE.md](./CLAUDE.md) for fast repair.
+
+## Post-Execution Reflection
+
+After running this skill, reflect before closing the task:
+
+1. **What broke?** — A selector miss, a changed modal/picker/tab flow, or a sudo-mode stall: fix `scripts/form.mjs` (or `browser.mjs`) and update the selector map in `CLAUDE.md`.
+2. **A new permission?** — Confirm its detail-page noun (create one token, read the settings page) and add it to `test/campaign.mjs` (`NOUN`) + the CLAUDE.md noun table.
+3. **A new token shape?** — Add a `specs/` (or `specs/examples/`) template so it's reusable next time.
+4. **Log it.** — Append a dated line to the "Recent changes" section in `CLAUDE.md`. Do NOT defer — the next invocation inherits whatever you leave behind.
