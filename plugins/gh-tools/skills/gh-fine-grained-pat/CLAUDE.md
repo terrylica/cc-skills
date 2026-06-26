@@ -36,6 +36,7 @@ GitHub has **no API to create fine-grained PATs** (only the web UI). We created 
 5. **Permissions are split across two tabs.** The Permissions section has "Repositories" and "Account" tabs, each with its **own** "Add permissions" menu ("Select repository permissions" / "Select account permissions"). Repository perms (`Contents`, …) are only in the repo menu; account perms (`Gists`, …) only in the account menu. Add + set-level each group while its tab is active (`applyGroup`). _Discovered empirically: searching "Gists" in the repo menu returns "No items available"._
 6. **Token-list scrape: capture only the name link.** Each token row has a name link `/settings/personal-access-tokens/<id>` AND a `…/<id>/regenerate?index_page=1` link that shares the id. A naive id-keyed map lets the regenerate link (text "This token has no expiration date") overwrite the name. Fix: match `/\/personal-access-tokens\/(\d+)(?:[?#]|$)/` so only the bare-id href is captured. _This caused a false "cc-skills-release MISSING" sweep on the first run._
 7. **Detail-page verification uses friendly nouns, not labels.** A token's detail page renders permissions as prose grouped by access level — e.g. _"Read access to actions, metadata, and repository hooks"_ / _"Read and Write access to code, commit statuses, deployments, and environments"_ — NOT per-label rows. `test/campaign.mjs` parses these clauses and maps UI label → detail noun (below).
+8. **GitHub sudo mode ("Confirm access").** On a session that hasn't re-authed recently (e.g. after a Chrome restart), navigating to the new-token page shows a "Confirm access" passkey/2FA challenge instead of the form — `input[name="user_programmatic_access[name]"]` is absent. This cannot be bypassed programmatically. `createToken` → `ensureFormReady()` detects it (page title "Confirm access") and waits up to 3 min for the operator to confirm in the browser, then proceeds. _The campaign needs a sudo-confirmed session; confirm once at the start of a run._
 
 ## Live selector map (update when GitHub drifts)
 
@@ -69,6 +70,8 @@ The token detail page names permissions with friendly nouns, not the UI labels. 
 | Actions       | `actions`       |     | **Webhooks**    | **`repository hooks`** |
 | Metadata      | `metadata`      |     | Gists (account) | `gists`                |
 
+Verified for `specs/examples/dependabot-secrets.json`: `Dependabot secrets` → `dependabot secrets`, `Secrets` → `secrets`, `Secret scanning alerts` → `secret scanning alerts`.
+
 When adding a new permission to a spec, confirm its detail noun (create one token, read the detail page) and add it to `NOUN` — otherwise verification reports a false "perm missing".
 
 ## Security invariants
@@ -79,3 +82,4 @@ When adding a new permission to a spec, confirm its detail noun (create one toke
 ## Recent changes
 
 - **2026-06-26** — skill created. Engine + 5 spec templates + JSON Schema + empirical campaign harness. Codifies the gotchas learned while minting `cc-skills-release`. Empirically validated by create→verify→delete across all 5 specs + a forced-failure case (PASS). The campaign surfaced gotchas 5–7 (two-tab permissions, regenerate-link list scrape, friendly-noun detail page) which are now encoded + documented.
+- **2026-06-26 (follow-up)** — added `rotate`, two reminder hooks, `specs/examples/`, and **gotcha #8 (sudo mode)**: `createToken`→`ensureFormReady()` now waits (non-disruptively, no page reload) for the operator to clear GitHub's "Confirm access" challenge. Empirically verified `dependabot-secrets` and extended `NOUN` (dependabot secrets / secrets / secret scanning alerts).

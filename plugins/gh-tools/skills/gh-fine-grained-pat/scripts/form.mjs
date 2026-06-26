@@ -209,11 +209,29 @@ async function generate(page) {
   return token;
 }
 
+// GitHub "sudo mode": sensitive pages (token creation) show a "Confirm access"
+// challenge when the session hasn't re-authed recently. We cannot bypass it
+// (passkey/2FA) — wait for the operator to confirm in the browser, then proceed.
+async function ensureFormReady(page) {
+  const hasForm = async () => (await page.locator(SEL.nameInput).count()) > 0;
+  if (await hasForm()) return;
+  if (!/confirm access/i.test(await page.title())) return; // unknown state — let caller fail loudly
+  console.error("⚠ GitHub sudo mode — confirm access in the Chrome window (passkey / 2FA). Waiting up to 8 min…");
+  // Do NOT reload the page — that would wipe a half-typed password/2FA. After a
+  // successful confirm GitHub auto-redirects back to the form; just poll for it.
+  for (let i = 0; i < 96; i++) {
+    await sleep(5000);
+    if (await hasForm()) return void console.error("✓ sudo confirmed");
+  }
+  throw new Error("sudo confirmation timed out — confirm access in the browser and retry");
+}
+
 // ---- public API -------------------------------------------------------------
 /** Drive the whole form from a spec; returns the github_pat_ value. */
 export async function createToken(page, spec) {
   await page.goto(NEW_URL, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1500);
+  await ensureFormReady(page); // handle GitHub sudo-mode "Confirm access"
   await fillNameDesc(page, spec);
   await setOwner(page, spec);
   await setExpiration(page, spec);
