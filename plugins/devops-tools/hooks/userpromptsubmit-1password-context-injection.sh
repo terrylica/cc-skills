@@ -57,15 +57,23 @@ Secrets (SCS) doctrine — store secrets ONLY in operator-controlled stores,
 NEVER an employer/company-managed vault.
 
 PREFERRED (the breadcrumb): if a self-custody `vault` CLI is present
-(e.g. ~/.claude/tools/vault — `vault get|set|new-scope|list|manifest|
+(e.g. ~/.claude/tools/vault — `vault get|set|run|new-scope|list|manifest|
 backup-keys|recover|doctor`), USE IT. It wraps the entire ladder below behind
 one interface, keeps a machine-readable secrets/manifest.toml index for
 discovery, captures values via a hidden native prompt, and verifies encryption.
 Start with `vault doctor` / `vault spec`. Do NOT invent ad-hoc storage.
 
+TIERED (which Keychain tier?): plain `-T /usr/bin/security` items are SILENTLY
+readable by any same-user process INCLUDING this agent — use them ONLY for narrow
+automation tokens (e.g. a scoped release PAT). For CROWN JEWELS (master/private/
+age/signing keys, client-confidential secrets) use `vault set --gated <name>`
+(Touch-ID Keychain only). Inject at runtime with `vault run <scope> -- <cmd>`
+(in-memory, nothing on disk; +`--gated <name>=<ENV>` for a crown jewel).
+
 Otherwise apply the SCS ladder directly (top-down):
 
-1) macOS login Keychain = machine SSoT (agent-readable, no prompt):
+1) macOS login Keychain = machine SSoT (plain tier is agent-readable, no prompt —
+   narrow automation tokens ONLY; crown jewels -> `vault set --gated`):
      add:  security add-generic-password -U -s <scope>-<service> -a <user> \
              -w <secret> -T /usr/bin/security -j "<desc + url>" \
              "$HOME/Library/Keychains/login.keychain-db"
