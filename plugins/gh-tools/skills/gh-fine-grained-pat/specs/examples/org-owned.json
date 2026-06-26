@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/token-spec.schema.json",
+  "name": "org-owned-ci",
+  "description": "ILLUSTRATIVE: an ORG-owned token. Set 'owner' to an org you administer and 'repos' to that org's repos. Requires the org to allow fine-grained PATs. Not part of the auto-campaign.",
+  "owner": "your-org-login",
+  "expiration": 90,
+  "repositoryAccess": { "mode": "selected", "repos": ["your-org-login/some-repo"] },
+  "permissions": {
+    "repository": { "Contents": "read", "Commit statuses": "write" }
+  }
+}

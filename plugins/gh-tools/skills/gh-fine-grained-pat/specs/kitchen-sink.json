@@ -1,0 +1,25 @@
+{
+  "$schema": "../schema/token-spec.schema.json",
+  "name": "kitchen-sink",
+  "description": "Superset spec exercising every UI branch: multiple selected repos, no expiration, many repository permissions AND account permissions, mixed read/write levels. If the engine builds this, it builds anything.",
+  "expiration": "none",
+  "repositoryAccess": {
+    "mode": "selected",
+    "repos": ["terrylica/cc-skills", "terrylica/binance-futures-availability"]
+  },
+  "permissions": {
+    "repository": {
+      "Contents": "write",
+      "Issues": "write",
+      "Pull requests": "write",
+      "Commit statuses": "write",
+      "Deployments": "write",
+      "Environments": "write",
+      "Webhooks": "read",
+      "Actions": "read"
+    },
+    "account": {
+      "Gists": "write"
+    }
+  }
+}

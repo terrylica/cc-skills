@@ -1,6 +1,17 @@
 {
-  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, blocks writes to non-owned repos, blocks anchor links in issues, reminds to optimize issue titles",
+  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, blocks writes to non-owned repos, blocks anchor links in issues, reminds to optimize issue titles, reminds to use the gh-fine-grained-pat skill for token creation",
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "WebFetch",
@@ -36,6 +47,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-title-reminder.mjs",
             "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-manual-pat-page-nudge.sh",
+            "timeout": 5000
           }
         ]
       }

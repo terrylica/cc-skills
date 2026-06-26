@@ -1,0 +1,10 @@
+{
+  "$schema": "../schema/token-spec.schema.json",
+  "name": "account-scoped",
+  "description": "Account-level only: manage gists. No repository write access (public read-only). Exercises the Account tab + no-repo path.",
+  "expiration": 60,
+  "repositoryAccess": { "mode": "public" },
+  "permissions": {
+    "account": { "Gists": "write" }
+  }
+}

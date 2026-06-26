@@ -1,0 +1,10 @@
+{
+  "$schema": "../schema/token-spec.schema.json",
+  "name": "release-bot",
+  "description": "semantic-release: push tags/commits/releases + comment on issues & PRs. Injected as GH_TOKEN via vault run.",
+  "expiration": "none",
+  "repositoryAccess": { "mode": "selected", "repos": ["terrylica/cc-skills"] },
+  "permissions": {
+    "repository": { "Contents": "write", "Issues": "write", "Pull requests": "write" }
+  }
+}
