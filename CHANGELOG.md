@@ -1,3 +1,17 @@
+# [22.2.0](https://github.com/terrylica/cc-skills/compare/v22.1.1...v22.2.0) (2026-06-26)
+
+
+### Bug Fixes
+
+* **statusline:** clamp ctx threshold by CLAUDE_CODE_AUTO_COMPACT_WINDOW ([d9113b6](https://github.com/terrylica/cc-skills/commit/d9113b62d482ab27e7752be4d5f860c08f63bfb3))
+* **whatsapp-commander:** put Post-Execution Reflection last ([9de3978](https://github.com/terrylica/cc-skills/commit/9de3978aef9b10d857ef772f344c2e6edf686278))
+
+
+### Features
+
+* **devops-tools:** SCS hooks use vault breadcrumb ([7c81e21](https://github.com/terrylica/cc-skills/commit/7c81e215be2993c382e451a58325e3f3494eb07c))
+* **itp-hooks:** nudge non-allowlisted Python file edits ([8404ecb](https://github.com/terrylica/cc-skills/commit/8404ecbb24ee7cfec32c24eb4a6b1c1ca6e3cc04))
+
 ## [22.1.1](https://github.com/terrylica/cc-skills/compare/v22.1.0...v22.1.1) (2026-06-23)
 
 
