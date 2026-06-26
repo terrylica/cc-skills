@@ -16,17 +16,38 @@ therefore must not live there. SCS moves those secrets to stores you alone hold.
 
 ## The SCS ladder (prefer top-down)
 
-1. **macOS login Keychain — machine SSoT.** Agent-readable with no prompt when the
-   item ACL trusts the `security` binary; a human still needs Touch ID to _view_ it
-   in Keychain Access.
+1. **macOS login Keychain — machine SSoT, in TWO tiers.**
 
-   ```bash
-   # store
-   security add-generic-password -U -s <scope>-<service> -a <user> -w <secret> \
-     -T /usr/bin/security -j "<description + url>" "$HOME/Library/Keychains/login.keychain-db"
-   # read (no prompt, scriptable)
-   security find-generic-password -s <scope>-<service> -w
-   ```
+   - **Automation tier (agent-readable).** Items stored with `-T /usr/bin/security`
+     are readable by any process running as you — **including an AI coding agent**
+     (`security find-generic-password -w` returns them with **no prompt**;
+     empirically verified in-session). Use this tier ONLY for narrow,
+     low-blast-radius automation tokens (e.g. a scoped release PAT):
+
+     ```bash
+     security add-generic-password -U -s <scope>-<service> -a <user> -w <secret> \
+       -T /usr/bin/security -j "<description + url>" "$HOME/Library/Keychains/login.keychain-db"
+     security find-generic-password -s <scope>-<service> -w   # no prompt, scriptable
+     ```
+
+   - **Crown-jewel tier (Touch-ID-gated).** Master/private/age/signing keys and
+     client-confidential secrets must require a live biometric so a headless agent
+     cannot read them. Use the `vault` gated tier (stores in the Touch-ID Keychain
+     only — never in a plain item or a sops scope):
+
+     ```bash
+     vault set --gated <name>            # store; Touch ID required to read
+     vault get --gated <name>            # prompts Touch ID
+     ```
+
+     > **Security finding (2026-06-26):** the agent CAN silently read plain
+     > `-T /usr/bin/security` items — proven this session. _Cryptographic_ item-level
+     > gating (`kSecAccessControl` / Secure Enclave) needs a **paid Apple Developer ID**
+     > (AMFI kills a self-signed `keychain-access-groups` entitlement). Until enrolled,
+     > the gated tier is **app-level** Touch ID via a stably-signed helper — which
+     > still blocks the headless agent (it can satisfy neither the Touch ID nor a GUI
+     > keychain-authorization prompt). The strong path is staged: one re-sign once a
+     > Developer ID exists.
 
 2. **SOPS + age — versioned backup in the project repo.** Values encrypted, keys
    readable (the repo self-documents structure). The age private key lives in the
@@ -47,6 +68,14 @@ therefore must not live there. SCS moves those secrets to stores you alone hold.
 4. **Provenance — a restore runbook + checksum manifest** committed beside the
    encrypted backup, so a future agent or a fresh machine can recover
    deterministically (which key, which repo/commit, which Keychain items).
+
+## Runtime injection (use secrets without writing plaintext)
+
+`vault run <scope> -- <cmd>` decrypts a scope **in memory** and injects its secrets
+as env vars into `<cmd>` — nothing touches disk. Add `--gated <name>=<ENV>` to also
+pull a crown-jewel secret (one Touch ID). For per-repo committed-and-encrypted env
+files, **dotenvx** (`dotenvx run -- <cmd>`) is the alternative last-mile injector;
+keep its private key in the Touch-ID tier, never in a plaintext `.env.keys`.
 
 ## Naming convention (for AI-agent self-discovery)
 
@@ -73,5 +102,9 @@ Two `devops-tools` hooks nudge toward this doctrine:
   prompt mentions credentials/keychain/sops/age/1Password.
 - `posttooluse-1password-pattern-reminder.sh` — after an `op` command, reminds that
   1Password is last-resort and points back to the SCS ladder.
+- `posttooluse-crown-jewel-plain-keychain-nudge.sh` — after a `security
+add-generic-password … -T /usr/bin/security` for a crown-jewel-looking item
+  (master/private/age/signing key), nudges toward `vault set --gated`. Escape hatch
+  for a deliberately-plain narrow token: `CROWN-JEWEL-PLAIN-OK`.
 
 Both are agnostic; broaden/adjust triggers there, keep secrets out of this repo.
