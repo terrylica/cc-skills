@@ -327,6 +327,8 @@ async function cmdRegister() {
     storeGatedBlob(account, { passkey: cred, password, totpSeed });
     addProvisioned(account);
     console.log(`✓ '${account}' provisioned → gated vault item github-web-${account} (Touch-ID required to use). Registry updated.`);
+    console.log(`  NOTE: GitHub often invalidates the session once right after adding a passkey. If a later run`);
+    console.log(`  shows "not logged in", run \`pat login --account ${account}\` ONE more time — it persists after that.`);
   } finally {
     await removeAuthenticator(client, authenticatorId);
     void ctx;
