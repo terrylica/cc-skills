@@ -39,13 +39,21 @@ async function tryPasskey(page, passkey) {
   if (!passkey?.credentialId) return false;
   const { client, authenticatorId } = await armStoredPasskey(page, passkey);
   try {
-    // Trigger the passkey assertion — the virtual authenticator auto-satisfies it.
-    if (!(await clickByText(page, /use passkey|sign in with a passkey|passkey/i))) {
-      // some flows assert automatically on load
-    }
-    for (let i = 0; i < 12; i++) {
-      await sleep(1000);
-      if (await hasForm(page)) return true;
+    // RACE: GitHub's /sessions/sudo page auto-fires navigator.credentials.get()
+    // on load — BEFORE our virtual authenticator exists — so that first attempt
+    // shows "Authentication failed". We must trigger a FRESH assertion now that
+    // the authenticator is mounted, and retry: the first click can still race the
+    // authenticator's warm-up, but a subsequent "Retry passkey" click reliably
+    // succeeds (proven empirically for vanjobbers; terrylica won the race on the
+    // first click, vanjobbers lost it — hence the retry loop). The button text
+    // flips "Use passkey" → "Retry passkey" after a failure, so the regex covers both.
+    await sleep(600); // let the just-mounted authenticator settle before asserting
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await clickByText(page, /use passkey|retry passkey|sign in with a passkey|passkey/i);
+      for (let i = 0; i < 6; i++) {
+        await sleep(1000);
+        if (await hasForm(page)) return true;
+      }
     }
     return await hasForm(page);
   } finally {
