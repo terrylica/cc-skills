@@ -1,3 +1,15 @@
+# [22.4.0](https://github.com/terrylica/cc-skills/compare/v22.3.0...v22.4.0) (2026-06-27)
+
+
+### Bug Fixes
+
+* **gh-tools:** correct passkey registration URL to /settings/security ([89e2740](https://github.com/terrylica/cc-skills/commit/89e27403d7b66a0a745760c341b1d165c192043d)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **gh-tools:** autonomous multi-account GitHub web-auth for PAT engine ([4d30a08](https://github.com/terrylica/cc-skills/commit/4d30a08f803a52d9da1d66d24b88e0f88bc7ca06)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
 # [22.3.0](https://github.com/terrylica/cc-skills/compare/v22.2.0...v22.3.0) (2026-06-26)
 
 
