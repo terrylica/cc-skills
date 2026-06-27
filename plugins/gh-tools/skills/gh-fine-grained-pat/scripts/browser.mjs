@@ -17,24 +17,47 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 
-export const PORT = Number(process.env.GH_PAT_CDP_PORT ?? 9222);
-export const CDP_URL = `http://127.0.0.1:${PORT}`;
-export const PROFILE_DIR =
-  process.env.GH_PAT_PROFILE_DIR ?? join(homedir(), ".local", "share", "gh-pat-automation", "profile");
+// Multi-account: each account gets its OWN isolated profile + CDP port (derived
+// from GH_PAT_ACCOUNT), matching the per-account gh-config isolation. The
+// "shared" account (default terrylica) keeps the original profile/port for
+// back-compat. GH_PAT_PROFILE_DIR / GH_PAT_CDP_PORT still override explicitly.
+const BASE_PORT = Number(process.env.GH_PAT_CDP_PORT ?? 9222);
+const SHARED_ACCOUNT = process.env.GH_PAT_SHARED_ACCOUNT ?? "terrylica";
+const BASE_DIR = join(homedir(), ".local", "share", "gh-pat-automation");
 export const DEBUG_DIR = process.env.GH_PAT_DEBUG_DIR ?? "/tmp/gh-pat-debug";
 const CHROME_BIN =
   process.env.GH_PAT_CHROME_BIN ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const currentAccount = () => process.env.GH_PAT_ACCOUNT || null;
+const isShared = () => {
+  const a = currentAccount();
+  return !a || a === SHARED_ACCOUNT;
+};
+const portOffset = (s) => 1 + ([...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 40);
+
+/** Per-account persistent profile dir (terrylica/shared keeps the original). */
+export function profileDir() {
+  if (process.env.GH_PAT_PROFILE_DIR) return process.env.GH_PAT_PROFILE_DIR;
+  return isShared() ? join(BASE_DIR, "profile") : join(BASE_DIR, `profile-${currentAccount()}`);
+}
+/** Per-account CDP port (shared = BASE_PORT) so accounts never collide. */
+export function port() {
+  return isShared() ? BASE_PORT : BASE_PORT + portOffset(currentAccount());
+}
+export function cdpUrl() {
+  return `http://127.0.0.1:${port()}`;
+}
+
 export function ensureDirs() {
-  for (const d of [PROFILE_DIR, DEBUG_DIR]) if (!existsSync(d)) mkdirSync(d, { recursive: true });
+  for (const d of [profileDir(), DEBUG_DIR]) if (!existsSync(d)) mkdirSync(d, { recursive: true });
 }
 
 /** PID of the process listening on the CDP port, or null. */
-export function chromePidOnPort(port = PORT) {
+export function chromePidOnPort(p = port()) {
   try {
-    const out = execFileSync("/usr/sbin/lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], {
+    const out = execFileSync("/usr/sbin/lsof", ["-nP", `-iTCP:${p}`, "-sTCP:LISTEN", "-t"], {
       encoding: "utf8",
     });
     const pid = out.split("\n").map((s) => s.trim()).filter(Boolean)[0];
@@ -47,7 +70,7 @@ export function chromePidOnPort(port = PORT) {
 /** True once /json/version responds (Chrome's CDP endpoint is up). */
 async function cdpReady() {
   try {
-    const r = await fetch(`${CDP_URL}/json/version`);
+    const r = await fetch(`${cdpUrl()}/json/version`);
     return r.ok;
   } catch {
     return false;
@@ -64,9 +87,9 @@ export async function launchChrome(openUrl = "https://github.com/settings/person
   if (existing && (await cdpReady())) return { pid: existing, reused: true };
 
   const args = [
-    `--remote-debugging-port=${PORT}`,
+    `--remote-debugging-port=${port()}`,
     "--remote-allow-origins=*",
-    `--user-data-dir=${PROFILE_DIR}`,
+    `--user-data-dir=${profileDir()}`,
     "--no-first-run",
     "--no-default-browser-check",
     openUrl,
@@ -78,7 +101,7 @@ export async function launchChrome(openUrl = "https://github.com/settings/person
     if (await cdpReady()) break;
     await sleep(500);
   }
-  if (!(await cdpReady())) throw new Error(`Chrome CDP did not come up on ${CDP_URL} within 30s`);
+  if (!(await cdpReady())) throw new Error(`Chrome CDP did not come up on ${cdpUrl()} within 30s`);
   return { pid: chromePidOnPort(), reused: false };
 }
 
@@ -87,7 +110,7 @@ export async function connect() {
   let wsUrl = null;
   for (let i = 0; i < 20; i++) {
     try {
-      const data = await (await fetch(`${CDP_URL}/json/version`)).json();
+      const data = await (await fetch(`${cdpUrl()}/json/version`)).json();
       if (data.webSocketDebuggerUrl) {
         wsUrl = data.webSocketDebuggerUrl;
         break;
@@ -97,7 +120,7 @@ export async function connect() {
     }
     await sleep(500);
   }
-  if (!wsUrl) throw new Error(`Could not resolve webSocketDebuggerUrl from ${CDP_URL}/json/version`);
+  if (!wsUrl) throw new Error(`Could not resolve webSocketDebuggerUrl from ${cdpUrl()}/json/version`);
   const browser = await chromium.connectOverCDP(wsUrl);
   const ctx = browser.contexts()[0] ?? (await browser.newContext());
   return { browser, ctx };
