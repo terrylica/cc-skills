@@ -27,9 +27,8 @@ import { spawn, spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import {
-  PROFILE_DIR,
-  DEBUG_DIR,
-  CDP_URL,
+  profileDir,
+  cdpUrl,
   launchChrome,
   connect,
   gotoSettings,
@@ -115,6 +114,8 @@ async function session({ requireAuth = true } = {}) {
 }
 
 async function cmdLogin() {
+  const a = flag("--account");
+  if (a && a !== true) process.env.GH_PAT_ACCOUNT = a;
   ensureDirs();
   const { reused } = await launchChrome();
   const { browser, ctx } = await connect();
@@ -127,7 +128,7 @@ async function cmdLogin() {
   // auth is polled via the cookie store, so your half-typed form is never reloaded.
   await gotoSettings(ctx);
   console.log(`A Chrome window is open at GitHub. Log in at your own pace (incl. 2FA).`);
-  console.log(`The page will NOT reload while you type. Session persists in:\n  ${PROFILE_DIR}`);
+  console.log(`The page will NOT reload while you type. Session persists in:\n  ${profileDir()}`);
   console.log("Waiting for sign-in (up to 10 min)…");
   for (let i = 0; i < 120; i++) {
     await sleep(5000);
@@ -153,9 +154,9 @@ async function cmdDoctor() {
   }
   rows.push(["playwright-core", pw]);
   rows.push(["chrome", existsSync("/Applications/Google Chrome.app") ? "ok" : "MISSING"]);
-  rows.push(["profile", existsSync(PROFILE_DIR) ? PROFILE_DIR : `absent (run login)`]);
+  rows.push(["profile", existsSync(profileDir()) ? profileDir() : `absent (run login)`]);
   const pid = chromePidOnPort();
-  rows.push(["cdp", pid ? `up (pid ${pid}, ${CDP_URL})` : "not running"]);
+  rows.push(["cdp", pid ? `up (pid ${pid}, ${cdpUrl()})` : "not running"]);
   if (pid) {
     try {
       const { browser, ctx } = await connect();
@@ -192,6 +193,10 @@ async function doCreate({ replace, rotate }) {
   const spec = loadSpec(args[1]);
   if (rotate && !flag("--vault") && !flag("--out"))
     die("rotate needs a sink: --vault <scope>:<dot.path> (recommended) or --out <file>");
+  // Resolve the account BEFORE launching the browser so the per-account
+  // profile/port is selected (terrylica/shared keeps the original).
+  const { account, source } = resolveAccount({ account: flag("--account"), owner: spec.owner });
+  if (account) process.env.GH_PAT_ACCOUNT = account;
   const { browser, page } = await session();
   try {
     const existing = (await listTokens(page)).find((t) => t.name === spec.name);
@@ -202,7 +207,6 @@ async function doCreate({ replace, rotate }) {
     } else if (rotate) {
       console.error(`• no existing '${spec.name}' — creating fresh`);
     }
-    const { account, source } = resolveAccount({ account: flag("--account"), owner: spec.owner });
     if (process.env.GH_PAT_AUTONOMOUS === "1") console.error(`• account: ${account ?? "(logged-in)"} [${source}]`);
     console.error(`• ${rotate ? "rotating" : "creating"} '${spec.name}'…`);
     const token = await createToken(page, spec, { account });
@@ -255,6 +259,8 @@ async function cmdDelete() {
 }
 
 async function cmdQuit() {
+  const a = flag("--account");
+  if (a && a !== true) process.env.GH_PAT_ACCOUNT = a;
   const r = await teardown();
   console.log(r.killed ? `✓ Chrome (pid ${r.pid}) terminated` : `nothing to terminate (${r.reason ?? "no pid"})`);
 }
@@ -282,6 +288,7 @@ function storeGatedBlob(account, blob) {
 async function cmdRegister() {
   const account = flag("--account");
   if (!account || account === true) die("usage: register --account <login>");
+  process.env.GH_PAT_ACCOUNT = account; // per-account profile/port
   const { browser, ctx, page } = await session();
   const client = await openWebAuthn(page);
   const authenticatorId = await mountAuthenticator(client);
