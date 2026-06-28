@@ -1,3 +1,16 @@
+# [22.5.0](https://github.com/terrylica/cc-skills/compare/v22.4.0...v22.5.0) (2026-06-28)
+
+
+### Bug Fixes
+
+* **gh-tools:** note passkey-relogin + Gists no-read-only; vanjobbers validated ([a69152a](https://github.com/terrylica/cc-skills/commit/a69152a5aabfcd55dbe2f666315df0b3ed873ed9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#9](https://github.com/terrylica/cc-skills/issues/9) [#10](https://github.com/terrylica/cc-skills/issues/10)
+* **gh-tools:** retry passkey assertion to beat sudo-page get() race ([83fc471](https://github.com/terrylica/cc-skills/commit/83fc471f6f43ee210bfd8595cbc143f5752440b8)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **gh-tools:** per-account browser profile + CDP port for PAT engine ([52d5595](https://github.com/terrylica/cc-skills/commit/52d55956a5c6029767add44946059bf97bac2364)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#config](https://github.com/terrylica/cc-skills/issues/config)
+
 # [22.4.0](https://github.com/terrylica/cc-skills/compare/v22.3.0...v22.4.0) (2026-06-27)
 
 
