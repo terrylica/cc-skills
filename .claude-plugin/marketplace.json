@@ -901,6 +901,28 @@
         "1password"
       ],
       "strict": false
+    },
+    {
+      "name": "macos-font-defaults",
+      "description": "Point macOS's user fixed-pitch font and per-app fixed-width fonts (TextEdit plain text, Stickies default note) at a chosen font (default JetBrains Mono NL). Idempotent, parameterized, reproducible on a fresh machine. Does not touch Terminal/editors or Apple Notes.",
+      "version": "22.7.0",
+      "source": "./plugins/macos-font-defaults",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "macos",
+        "font",
+        "fixed-pitch",
+        "monospace",
+        "jetbrains-mono",
+        "textedit",
+        "stickies",
+        "defaults"
+      ],
+      "strict": false
     }
   ]
 }
