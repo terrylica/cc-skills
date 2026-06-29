@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # macos-font-defaults — set the system fixed-width font
 
+> **Self-Evolving skill** — if a macOS release changes these defaults keys or Stickies' storage, fix this SKILL.md and `apply.sh`; see the Post-Execution Reflection at the bottom.
+
 macOS has **no single system-wide monospaced-font setting**. This skill sets the three
 levers that exist, in one idempotent command:
 
@@ -43,3 +45,13 @@ Always run `check` first and show the operator the current values before `apply`
   Stickies first (it would otherwise overwrite the plist on exit). Re-running is safe.
 - Relaunch target apps to pick up changes; already-running apps cache the font.
 - Reverse the global lever with `defaults delete -g NSFixedPitchFont NSFixedPitchFontSize`.
+
+## Post-Execution Reflection
+
+After running `apply`, check before closing:
+
+1. **Did `check` confirm all three levers?** — if a value didn't stick, the key or write path drifted; fix `apply.sh`.
+2. **Did an app fail to pick up the font?** — note the relaunch requirement, or add that app's own font key.
+3. **Did a macOS update move/rename the Stickies plist or change `NSFixedPitchFont` semantics?** — update the levers table here.
+
+Only update if the issue is real and reproducible — not speculative.

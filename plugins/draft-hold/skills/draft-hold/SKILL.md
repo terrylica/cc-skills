@@ -6,6 +6,8 @@ allowed-tools: Bash, Read
 
 # draft-hold — human-in-the-loop drafts via macOS Notes
 
+> **Self-Evolving skill** — if macOS Notes/Stickies behavior drifts from what's below, fix this SKILL.md and `draft-hold.sh`; see the Post-Execution Reflection at the bottom.
+
 When you compose something a human should confirm or edit before it goes out (a message to a real person, an announcement, a commit body), **don't keep it only in chat** — park it in macOS Notes so the operator can edit it on any device, then read it back and act on the edited version.
 
 `DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`
@@ -62,3 +64,13 @@ Pass the current Claude Code session JSONL UUID via `CLAUDE_SESSION_ID` or `--se
 - Notes is the source of truth. Stickies cannot be read back (no AppleScript dictionary), so never treat a sticky as the live draft.
 - There is no scriptable deep-link to a specific note (`open x-coredata://…` fails; `applenotes:` links are UI-only) — reference drafts by **folder + title**.
 - First run prompts once for Automation permission to control Notes.
+
+## Post-Execution Reflection
+
+After holding or sending a draft, check before closing:
+
+1. **Did read-back match what Notes shows?** — if entities/quotes leaked (e.g. `&quot`), the decode path drifted; fix the `textutil` step, never hand-roll sed.
+2. **Did `get`/`list` find the note by title?** — if not, the name==title assumption broke; fix the title-prepend in `new`.
+3. **Did Notes/Stickies change behavior?** — update the macOS-quirks section so the next run doesn't rediscover it.
+
+Only update if the issue is real and reproducible — not speculative.
