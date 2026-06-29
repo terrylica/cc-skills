@@ -10,6 +10,11 @@ Scan Markdown files for the structural problems that silently demote a GFM table
 to a plain paragraph on GitHub / VS Code preview, and optionally auto-escape the
 single most common cause (an unescaped `|` inside a cell).
 
+> **Self-Evolving Skill**: This skill improves through use. If the detector
+> misses a real broken-table case, the `--fix` heuristic guesses wrong, or a
+> path/flag has drifted — fix this file (and the detector SSoT) immediately,
+> don't defer. Only update for real, reproducible issues.
+
 ## Why tables break (the one rule that matters)
 
 GFM ignores whitespace between pipes, so **alignment is never the cause**. What
@@ -78,3 +83,15 @@ Suppress the per-edit hook on a file by adding a comment containing `MD-TABLE-OK
 ## References
 
 - [algorithm.md](./references/algorithm.md) — the detection algorithm + the pipe-escaping rationale.
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — A missed broken table or a false positive → fix the detector (`markdown-table-detector.ts`) and its mirror here.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Keep the self-contained scanner copy in parity with the itp-hooks detector SSoT.
+4. **Log it.** — Note the trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
