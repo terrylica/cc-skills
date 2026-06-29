@@ -19,6 +19,7 @@ set -euo pipefail
 FOLDER="Claude Drafts"
 SESSION="${CLAUDE_SESSION_ID:-}"
 PROJECT="$(basename "$PWD")"
+BODY_ONLY=0
 
 cmd="${1:-}"; shift || true
 title=""
@@ -28,23 +29,36 @@ case "$cmd" in
 esac
 while [ $# -gt 0 ]; do
   case "$1" in
-    --session) SESSION="${2:-}"; shift 2 ;;
-    --project) PROJECT="${2:-}"; shift 2 ;;
-    --folder)  FOLDER="${2:-}"; shift 2 ;;
+    --session)   SESSION="${2:-}"; shift 2 ;;
+    --project)   PROJECT="${2:-}"; shift 2 ;;
+    --folder)    FOLDER="${2:-}"; shift 2 ;;
+    --body-only) BODY_ONLY=1; shift ;;
     *) shift ;;
   esac
 done
 
-esc() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g'; }
+# HTML-encode for the body we hand to Notes. We MUST encode " as well: although
+# Notes tolerates a raw " on input, its AppleScript `body` getter re-serializes
+# every " as the *semicolon-less* legacy entity `&quot` on read-back — so we
+# always decode with a real HTML parser (textutil) rather than fragile sed.
+esc() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'; }
+
+# Decode a Notes `body` HTML string to plain text. textutil (WebKit-backed)
+# handles tags->linebreaks AND legacy entities with or without the trailing
+# semicolon (`&quot` -> "), which the old `sed s/&quot;/"/g` silently missed.
+html_to_text() { textutil -stdin -stdout -convert txt -format html; }
 
 case "$cmd" in
   new)
     [ -n "$title" ] || { echo "usage: draft-hold.sh new <title>  (body on stdin)" >&2; exit 2; }
     raw="$(cat)"
+    # Prepend the title as a bold first line: Notes derives a note's NAME from its
+    # first body line, so this guarantees `name == title` (else get/list/replace miss).
+    title_html="<div><b>$(printf '%s' "$title" | esc)</b></div><div><br></div>"
     html="$(printf '%s\n' "$raw" | esc | awk '{ if($0=="") print "<div><br></div>"; else print "<div>"$0"</div>" }')"
     sess_seg=""; [ -n "$SESSION" ] && sess_seg="session ${SESSION} | "
     footer="<div><br></div><div>------</div><div>Held by Claude Code | ${sess_seg}${PROJECT} | $(date '+%Y-%m-%d %H:%M %Z')</div>"
-    body="${html}${footer}"
+    body="${title_html}${html}${footer}"
     osascript - "$FOLDER" "$title" "$body" <<'OSA'
 on run {folderName, noteTitle, bodyHTML}
   tell application "Notes"
@@ -57,8 +71,8 @@ end run
 OSA
     ;;
   get)
-    [ -n "$title" ] || { echo "usage: draft-hold.sh get <title>" >&2; exit 2; }
-    osascript - "$FOLDER" "$title" <<'OSA' | sed -E 's/<[^>]+>/\n/g' | sed 's/&amp;/\&/g; s/&lt;/</g; s/&gt;/>/g; s/&quot;/"/g' | awk 'NF || prev{print} {prev=NF}'
+    [ -n "$title" ] || { echo "usage: draft-hold.sh get <title> [--body-only]" >&2; exit 2; }
+    full="$(osascript - "$FOLDER" "$title" <<'OSA' | html_to_text
 on run {folderName, noteTitle}
   tell application "Notes"
     if not (exists note noteTitle of folder folderName) then return "(no such draft)"
@@ -66,6 +80,21 @@ on run {folderName, noteTitle}
   end tell
 end run
 OSA
+)"
+    if [ "$BODY_ONLY" = "1" ]; then
+      # Sendable message only: drop the title heading (first non-empty line) and
+      # everything from the provenance separator (------) onward.
+      printf '%s\n' "$full" | awk '
+        BEGIN { state = "pre" }
+        /^------[[:space:]]*$/ { exit }
+        {
+          if (state == "pre")   { if (NF == 0) next; state = "title"; next }
+          if (state == "title") { if (NF == 0) next; state = "body" }
+          print
+        }'
+    else
+      printf '%s\n' "$full" | awk 'NF || prev{print} {prev=NF}'
+    fi
     ;;
   list)
     osascript - "$FOLDER" <<'OSA'
@@ -94,7 +123,7 @@ on run {folderName, noteTitle}
 end run
 OSA
 )"
-    plain="$(printf '%s' "$text" | sed -E 's/<[^>]+>/\n/g' | sed 's/&amp;/\&/g; s/&lt;/</g; s/&gt;/>/g; s/&quot;/"/g')"
+    plain="$(printf '%s' "$text" | html_to_text)"
     plain="Draft (edit in Notes -> $FOLDER -> $title)"$'\n\n'"$plain"
     printf '%s' "$plain" | pbcopy
     osascript <<'OSA' 2>&1 || echo "Stickies mirror failed (grant Accessibility to the controlling app). Notes copy is authoritative."
