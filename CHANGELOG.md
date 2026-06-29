@@ -1,3 +1,15 @@
+# [22.7.0](https://github.com/terrylica/cc-skills/compare/v22.6.0...v22.7.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **doc-tools:** add self-evolution sandwich to markdown-table-validator ([e5eabc2](https://github.com/terrylica/cc-skills/commit/e5eabc2545ccde83709fd837245ced767952c6e9))
+
+
+### Features
+
+* anti-fragile GFM markdown table guard + repair 7 broken tables ([#97](https://github.com/terrylica/cc-skills/issues/97)) ([da7cce9](https://github.com/terrylica/cc-skills/commit/da7cce98e0c7ea3dc50fd3e893537b602531b8bf))
+
 # [22.6.0](https://github.com/terrylica/cc-skills/compare/v22.5.0...v22.6.0) (2026-06-29)
 
 
