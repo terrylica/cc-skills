@@ -11,7 +11,8 @@
  * Fail-open everywhere.
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { detectBrokenTables, hasTableErrors } from "./lib/markdown-table-detector.ts";
 
 const MAX_DIAGNOSTIC_LINES = 20;
 
@@ -54,18 +55,47 @@ function main(): void {
 
   const messages: string[] = [];
 
+  // --- Phase 0: gate out structurally-broken tables ---
+  // Prettier reparses tables and would BAKE IN the wrong column split when a
+  // cell has an unescaped `|` (prettier#10164 / #11410) — turning a fixable
+  // table into a corrupted one. So NEVER auto-format a file with a
+  // render-breaking table error; report it for a pipe-escape fix instead, and
+  // only format the structurally-clean files.
+  const cleanFiles: string[] = [];
+  for (const f of editedFiles) {
+    let tableErrors = false;
+    let errorLineLabels = "";
+    try {
+      const issues = detectBrokenTables(readFileSync(f, "utf8"));
+      tableErrors = hasTableErrors(issues);
+      errorLineLabels = issues
+        .filter((it) => it.severity === "error")
+        .map((it) => `L${it.line}`)
+        .join(", ");
+    } catch {
+      // Unreadable → treat as clean (fail-open; the formatter will cope/skip).
+    }
+    if (tableErrors) {
+      messages.push(
+        `${f}: SKIPPED auto-format — broken table at ${errorLineLabels}. Fix the structure first (escape literal pipes as \\|, even inside \`code spans\`); prettier is gated off this file so it can't bake in the wrong column split.`,
+      );
+    } else {
+      cleanFiles.push(f);
+    }
+  }
+
   // --- Phase 1: prettier --write (auto-fix formatting) ---
   const hasPrettier =
     Bun.spawnSync(["which", "prettier"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
 
-  if (hasPrettier) {
+  if (hasPrettier && cleanFiles.length > 0) {
     const prettierResult = Bun.spawnSync(
-      ["prettier", "--write", "--prose-wrap", "preserve", ...editedFiles],
+      ["prettier", "--write", "--prose-wrap", "preserve", ...cleanFiles],
       { stdout: "pipe", stderr: "pipe", timeout: 10000 },
     );
 
     if (prettierResult.exitCode === 0) {
-      messages.push(`prettier: auto-formatted ${editedFiles.length} file(s)`);
+      messages.push(`prettier: auto-formatted ${cleanFiles.length} file(s)`);
     } else {
       const stderr = prettierResult.stderr?.toString().trim() || "";
       if (stderr) {
@@ -78,16 +108,16 @@ function main(): void {
   const hasMarkdownlint =
     Bun.spawnSync(["which", "markdownlint-cli2"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
 
-  if (hasMarkdownlint) {
+  if (hasMarkdownlint && cleanFiles.length > 0) {
     // First pass: auto-fix
-    Bun.spawnSync(["markdownlint-cli2", "--fix", ...editedFiles], {
+    Bun.spawnSync(["markdownlint-cli2", "--fix", ...cleanFiles], {
       stdout: "pipe",
       stderr: "pipe",
       timeout: 10000,
     });
 
     // Second pass: report remaining issues
-    const lintResult = Bun.spawnSync(["markdownlint-cli2", ...editedFiles], {
+    const lintResult = Bun.spawnSync(["markdownlint-cli2", ...cleanFiles], {
       stdout: "pipe",
       stderr: "pipe",
       timeout: 10000,
@@ -109,11 +139,8 @@ function main(): void {
     }
   }
 
-  if (!hasPrettier && !hasMarkdownlint) {
-    console.log(JSON.stringify({}));
-    return;
-  }
-
+  // Note: no early-return when neither formatter is installed — a broken-table
+  // skip notice (Phase 0) must still be surfaced even without prettier/markdownlint.
   if (messages.length === 0) {
     console.log(JSON.stringify({}));
     return;
