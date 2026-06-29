@@ -27,12 +27,25 @@ When you compose something a human should confirm or edit before it goes out (a 
 3. **Read it back** before acting — ALWAYS re-read, since the operator may have edited it:
 
    ```bash
-   "$DH" get "<title>"
+   "$DH" get "<title>"              # full note (heading + message + provenance footer)
+   "$DH" get "<title>" --body-only  # JUST the sendable message (no heading, no footer)
    ```
 
-   Show the operator the exact current text, get explicit go-ahead, then send/commit.
+   Use `--body-only` to get exactly the text to send/paste — it strips the title
+   heading and everything from the `------` provenance separator onward. Show the
+   operator the exact current text, get explicit go-ahead, then send/commit.
 
 4. `"$DH" list` enumerates held drafts.
+
+## macOS quirks this skill handles for you
+
+- **Quote serialization**: Notes' AppleScript `body` getter re-emits every `"` as the
+  _semicolon-less_ legacy entity `&quot` (verified 2026-06-29). We decode with
+  `textutil` (a real HTML parser) instead of `sed`, so `&quot`/`&amp`/`&lt` etc. round-trip
+  back to literal characters. Never hand-roll entity decoding here.
+- **Note name = first body line**: Notes names a note after its first line, ignoring any
+  title you "set". `new` therefore prepends the title as a bold first line so
+  `get`/`list`/replace can find it by title. Pass the message body only on STDIN.
 
 ## Getting the session UUID for provenance
 
