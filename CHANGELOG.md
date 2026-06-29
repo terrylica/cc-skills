@@ -1,3 +1,18 @@
+# [22.8.0](https://github.com/terrylica/cc-skills/compare/v22.7.0...v22.8.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **draft-hold:** decode Notes quotes + make note name==title ([ecf278a](https://github.com/terrylica/cc-skills/commit/ecf278a99a65e0685dfcf6d98a5d57be97cfb69d))
+* **skills:** add self-evolution sandwich to new skills ([2a86c92](https://github.com/terrylica/cc-skills/commit/2a86c92f006cb782c03711b004418424af4c91c0))
+
+
+### Features
+
+* **draft-hold:** add macOS Notes draft-holding skill ([f6aeb8b](https://github.com/terrylica/cc-skills/commit/f6aeb8b373470a104a8a6b9893cb5d14746efd97))
+* **draft-hold:** render held drafts monospaced in Notes ([e195909](https://github.com/terrylica/cc-skills/commit/e195909f8e61ac04c9b63ca88bc6d83236bfc651))
+* **macos-font-defaults:** add fixed-width font setter ([720144e](https://github.com/terrylica/cc-skills/commit/720144e94b2768172291e6eeaea59746b51fa1c8))
+
 # [22.7.0](https://github.com/terrylica/cc-skills/compare/v22.6.0...v22.7.0) (2026-06-29)
 
 
