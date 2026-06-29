@@ -10,6 +10,7 @@
 - [ascii-diagram-validator](./skills/ascii-diagram-validator/SKILL.md)
 - [documentation-standards](./skills/documentation-standards/SKILL.md)
 - [glossary-management](./skills/glossary-management/SKILL.md)
+- [markdown-table-validator](./skills/markdown-table-validator/SKILL.md) — detect/fix GFM tables that won't render (unescaped pipes, column mismatch); manual counterpart to the `itp-hooks` per-edit table guard
 - [latex-build](./skills/latex-build/SKILL.md)
 - [latex-setup](./skills/latex-setup/SKILL.md)
 - [latex-tables](./skills/latex-tables/SKILL.md)

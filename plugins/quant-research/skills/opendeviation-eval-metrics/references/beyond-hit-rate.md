@@ -29,12 +29,12 @@ Empirically validated on 866K ODB bars (BTCUSDT 250dbps, 2018-2026): **hit-rate 
 
 ### Tier 2: HIGH — temporal decay detection
 
-| Metric                               | Formula                                            | Detects                                        | Library                          |
-| ------------------------------------ | -------------------------------------------------- | ---------------------------------------------- | -------------------------------- | ------------------------ | ------------- |
-| **CUSUM on equity curve**            | `S_t = max(0, S_{t-1} + (x_t - μ₀ - k))`           | Exact changepoint where strategy stops working | `ruptures` (PELT)                |
-| **HHI across time buckets**          | `Σ(w_i/W_total)²` per quarter/year                 | Temporal concentration of edge                 | `numpy`                          |
-| **KL Divergence period-over-period** | `D_KL(P‖Q)` between quarterly return distributions | Distributional shift / regime change           | `scipy.stats.entropy`            |
-| **Alpha half-life**                  | `t_half = ln(2)/                                   | φ                                              | ` from AR(1) on rolling hit rate | How fast the edge erodes | `statsmodels` |
+| Metric                               | Formula                                               | Detects                                        | Library               |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------- | --------------------- |
+| **CUSUM on equity curve**            | `S_t = max(0, S_{t-1} + (x_t - μ₀ - k))`              | Exact changepoint where strategy stops working | `ruptures` (PELT)     |
+| **HHI across time buckets**          | `Σ(w_i/W_total)²` per quarter/year                    | Temporal concentration of edge                 | `numpy`               |
+| **KL Divergence period-over-period** | `D_KL(P‖Q)` between quarterly return distributions    | Distributional shift / regime change           | `scipy.stats.entropy` |
+| **Alpha half-life**                  | `t_half = ln(2)/\|φ\|` from AR(1) on rolling hit rate | How fast the edge erodes                       | `statsmodels`         |
 
 ### Tier 3: META-LABELING — outcome prediction
 

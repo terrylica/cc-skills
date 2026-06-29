@@ -102,13 +102,13 @@ if not token:
 
 ## Template Syntax Reference
 
-| Syntax        | Purpose              | Example               |
-| ------------- | -------------------- | --------------------- | ------------------------ |
-| `~`           | String concatenation | `env.HOME ~ '/path'`  |
-| `read_file()` | Read file contents   | `read_file(path=...)` |
-| `             | trim`                | Remove whitespace     | `read_file(...) \| trim` |
-| `env.HOME`    | Home directory       | `/Users/terryli`      |
-| `config_root` | mise.toml directory  | Current project root  |
+| Syntax        | Purpose              | Example                  |
+| ------------- | -------------------- | ------------------------ |
+| `~`           | String concatenation | `env.HOME ~ '/path'`     |
+| `read_file()` | Read file contents   | `read_file(path=...)`    |
+| `\| trim`     | Remove whitespace    | `read_file(...) \| trim` |
+| `env.HOME`    | Home directory       | `/Users/terryli`         |
+| `config_root` | mise.toml directory  | Current project root     |
 
 ## Validation Checklist
 
