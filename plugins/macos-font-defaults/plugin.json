@@ -1,0 +1,9 @@
+{
+  "name": "macos-font-defaults",
+  "version": "22.7.0",
+  "description": "Point macOS's user fixed-pitch font and per-app fixed-width fonts (TextEdit plain text, Stickies default note) at a chosen font. Idempotent, parameterized, reproducible on a fresh machine.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
