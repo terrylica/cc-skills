@@ -1,3 +1,10 @@
+# [22.6.0](https://github.com/terrylica/cc-skills/compare/v22.5.0...v22.6.0) (2026-06-29)
+
+
+### Features
+
+* **gh-tools:** add passkey-safe patch-password verb ([d767951](https://github.com/terrylica/cc-skills/commit/d7679511cccdebf050d916db476d105bb0f481a3)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
 # [22.5.0](https://github.com/terrylica/cc-skills/compare/v22.4.0...v22.5.0) (2026-06-28)
 
 
