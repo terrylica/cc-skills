@@ -13,6 +13,7 @@
 //   inspect <name>        read back a token's settings (verification)
 //   delete <name>         revoke a token
 //   register --account A  one-time: capture a passkey + password/TOTP for account A into the gated vault (autonomous sudo)
+//   patch-password --account A  re-store A's gated password (passkey KEPT); fixes a missed register dialog [--force] [--totp]
 //   agent start|stop|status  memory-only session agent: one Touch-ID unlock lasts the session
 //   accounts              list accounts provisioned for autonomous web-auth
 //   quit                  kill the debug Chrome (specific PID; no pkill -f)
@@ -23,7 +24,7 @@
 // a 0600 file (--out) or pipes it into `vault set` (--vault scope:dot.path).
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import {
@@ -40,7 +41,7 @@ import {
 
 const sleep = (msec) => new Promise((r) => setTimeout(r, msec));
 import { createToken, listTokens, inspectToken, deleteToken } from "./form.mjs";
-import { resolveAccount, addProvisioned, listProvisioned, isProvisioned } from "./identity.mjs";
+import { resolveAccount, addProvisioned, listProvisioned, isProvisioned, vaultItemName } from "./identity.mjs";
 import { agentStatus, agentStop, agentRunning, AGENT_SOCK } from "./webauth-agent.mjs";
 import { openWebAuthn, mountAuthenticator, getCredentials, serializeCredential, removeAuthenticator } from "./webauthn.mjs";
 
@@ -336,6 +337,36 @@ async function cmdRegister() {
   }
 }
 
+// patch-password --account <a>: re-store the gated password for an already-
+// registered account WITHOUT re-capturing a passkey (which would leave a
+// duplicate passkey on GitHub). Reads the blob once (one Touch ID), preserves
+// the passkey, re-prompts the password (+ optional TOTP), re-stores. Idempotent:
+// skips if a password is already set unless --force. Secrets never reach chat.
+async function cmdPatchPassword() {
+  const account = flag("--account");
+  if (!account || account === true) die("usage: patch-password --account <login> [--force] [--totp]");
+  let blob;
+  try {
+    blob = JSON.parse(execFileSync("vault", ["get", "--gated", vaultItemName(account)], { encoding: "utf8" }));
+  } catch (e) {
+    die(`could not read gated blob for ${account} (Touch ID denied, or not provisioned — run \`register --account ${account}\` first): ${e.message}`);
+  }
+  if (!blob.passkey?.credentialId) die(`gated blob for ${account} has no passkey — run \`register --account ${account}\` instead`);
+  if (!has("--force") && typeof blob.password === "string" && blob.password.length >= 6) {
+    console.log(`✓ ${account}: password already set (${blob.password.length} chars), passkey present. Nothing to do (use --force to overwrite).`);
+    return;
+  }
+  const pw = promptSecret(`GitHub password for '${account}' (stored gated; password+TOTP fallback). Type carefully:`);
+  if (!pw) die("no password entered — blob unchanged");
+  blob.password = pw;
+  if (has("--totp")) {
+    const seed = promptSecret(`TOTP base32 seed for '${account}' (blank to leave unchanged):`);
+    if (seed) blob.totpSeed = seed;
+  }
+  storeGatedBlob(account, blob);
+  console.log(`✓ ${account}: password updated (${pw.length} chars), passkey kept, totp ${blob.totpSeed ? "set" : "none"}.`);
+}
+
 async function cmdAgent() {
   const sub = args[1] ?? "status";
   if (sub === "start") {
@@ -377,6 +408,7 @@ const table = {
   inspect: cmdInspect,
   delete: cmdDelete,
   register: cmdRegister,
+  "patch-password": cmdPatchPassword,
   agent: cmdAgent,
   accounts: cmdAccounts,
   quit: cmdQuit,

@@ -96,6 +96,7 @@ GitHub's **sudo mode** ("Confirm access") normally needs a human gesture. The en
 
 ```bash
 node scripts/pat.mjs register --account <login>   # capture a passkey (virtual authenticator) + password/TOTP → gated vault
+node scripts/pat.mjs patch-password --account <login>  # fix a missed password dialog (passkey kept; idempotent) [--force] [--totp]
 node scripts/pat.mjs agent start                  # memory-only session agent: one Touch-ID unlock lasts the session
 GH_PAT_AUTONOMOUS=1 node scripts/pat.mjs create specs/release-bot.json --account <login> --vault cc-skills:gh.token
 ```
