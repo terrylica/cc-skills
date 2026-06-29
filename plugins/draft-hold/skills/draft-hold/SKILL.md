@@ -46,6 +46,11 @@ When you compose something a human should confirm or edit before it goes out (a 
 - **Note name = first body line**: Notes names a note after its first line, ignoring any
   title you "set". `new` therefore prepends the title as a bold first line so
   `get`/`list`/replace can find it by title. Pass the message body only on STDIN.
+- **Monospaced by default**: `new` wraps every line in `<tt>`, which Notes renders as its
+  monospaced ("Monostyled") style — drafts read like a code block so columns/IDs line up.
+  This is cosmetic in Notes only; `get`/`--body-only` strip the tags, so the text you
+  send is unaffected. (Notes' mono face is fixed by Notes — it is _not_ the global
+  `NSFixedPitchFont`; that default governs TextEdit-style apps, not Notes.)
 
 ## Getting the session UUID for provenance
 

@@ -52,12 +52,13 @@ case "$cmd" in
   new)
     [ -n "$title" ] || { echo "usage: draft-hold.sh new <title>  (body on stdin)" >&2; exit 2; }
     raw="$(cat)"
-    # Prepend the title as a bold first line: Notes derives a note's NAME from its
-    # first body line, so this guarantees `name == title` (else get/list/replace miss).
-    title_html="<div><b>$(printf '%s' "$title" | esc)</b></div><div><br></div>"
-    html="$(printf '%s\n' "$raw" | esc | awk '{ if($0=="") print "<div><br></div>"; else print "<div>"$0"</div>" }')"
+    # Wrap every line in <tt> so Notes stores the note as "Monostyled" (its monospaced
+    # paragraph style — verified: Monostyled round-trips as <tt>). The title is the bold
+    # first line so the Notes-derived note NAME == title (get/list/replace need that).
+    title_html="<div><tt><b>$(printf '%s' "$title" | esc)</b></tt></div><div><br></div>"
+    html="$(printf '%s\n' "$raw" | esc | awk '{ if($0=="") print "<div><br></div>"; else print "<div><tt>"$0"</tt></div>" }')"
     sess_seg=""; [ -n "$SESSION" ] && sess_seg="session ${SESSION} | "
-    footer="<div><br></div><div>------</div><div>Held by Claude Code | ${sess_seg}${PROJECT} | $(date '+%Y-%m-%d %H:%M %Z')</div>"
+    footer="<div><br></div><div><tt>------</tt></div><div><tt>Held by Claude Code | ${sess_seg}${PROJECT} | $(date '+%Y-%m-%d %H:%M %Z')</tt></div>"
     body="${title_html}${html}${footer}"
     osascript - "$FOLDER" "$title" "$body" <<'OSA'
 on run {folderName, noteTitle, bodyHTML}
