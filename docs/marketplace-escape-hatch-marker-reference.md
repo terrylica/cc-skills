@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 24 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 25 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (16; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (17; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
@@ -27,6 +27,7 @@ Jump directly to any of the 24 registered markers below. Markers are listed alph
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
 - [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
+- [`MD-TABLE-OK`](#md-table-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
@@ -60,7 +61,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (16 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (17 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -266,6 +267,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # MANUAL-PAT-PAGE-OK
+```
+
+## `MD-TABLE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.
+
+**Example usage**:
+
+```
+# MD-TABLE-OK
 ```
 
 ## `PROCESS-STORM-OK`
