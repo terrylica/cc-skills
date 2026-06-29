@@ -8,6 +8,28 @@
   },
   "plugins": [
     {
+      "name": "draft-hold",
+      "description": "Park a draft message in macOS Notes (provenance-stamped with the Claude Code session UUID, iCloud-synced) for the operator to edit, then read it back before sending. Notes is the source of truth; Stickies is a best-effort view-only mirror.",
+      "version": "22.7.0",
+      "source": "./plugins/draft-hold",
+      "category": "productivity",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "draft",
+        "notes",
+        "apple-notes",
+        "stickies",
+        "human-in-the-loop",
+        "review",
+        "macos",
+        "provenance"
+      ],
+      "strict": false
+    },
+    {
       "name": "agent-reach",
       "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
       "version": "22.7.0",
