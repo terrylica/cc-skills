@@ -1,3 +1,10 @@
+# [22.10.0](https://github.com/terrylica/cc-skills/compare/v22.9.0...v22.10.0) (2026-06-30)
+
+
+### Features
+
+* **media-tools:** add HEIC-to-JPEG photo-share skills + extend hosting ([5081737](https://github.com/terrylica/cc-skills/commit/5081737410a2591e2f9ec0e075750ba914b19862))
+
 # [22.9.0](https://github.com/terrylica/cc-skills/compare/v22.8.0...v22.9.0) (2026-06-30)
 
 
