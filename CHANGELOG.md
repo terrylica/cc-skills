@@ -1,3 +1,10 @@
+# [22.9.0](https://github.com/terrylica/cc-skills/compare/v22.8.0...v22.9.0) (2026-06-30)
+
+
+### Features
+
+* **disk-hygiene:** add Phase 2.5 for in-repo build artifacts ([a259031](https://github.com/terrylica/cc-skills/commit/a259031502aabf34815dc91ac392d4861c00555f)), closes [#if](https://github.com/terrylica/cc-skills/issues/if)
+
 # [22.8.0](https://github.com/terrylica/cc-skills/compare/v22.7.0...v22.8.0) (2026-06-29)
 
 
