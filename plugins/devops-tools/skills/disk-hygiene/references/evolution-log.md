@@ -2,6 +2,20 @@
 
 Reverse chronological - newest on top.
 
+## 2026-06-29 — In-repo build artifacts were invisible; added Phase 2.5
+
+**Trigger**: A deep multi-round audit on terryli's MBP had already reclaimed ~140 GB from caches/apps/VMs, yet the largest single category was still untouched because the skill never looked _inside_ repos: 62 GB of Rust `target/` (one repo's `target/` alone was 35 GB) plus 20 GB of Python `.venv` across ~50 repos. The Phase 1/2 scans only walk `~/Library` and the dev-cache dirs, so compiler/dependency output in the code tree was structurally invisible.
+
+**Root cause**: Conceptual gap — the skill modeled "disk hog" as caches (in `~/Library`/`~/.cache`) or loose forgotten files, but not regenerable build output that lives in-repo. On a developer machine this is frequently the #1 consumer.
+
+**Fix**:
+
+- Added **Phase 2.5 - Project Build Artifacts (in-repo, regenerable)** covering Rust `target/`, Python `.venv`, `node_modules`, and zig caches: size table, a ROOTS-based discovery sweep, and safe deletion. Key safety detail baked in: only delete a `target/` that has a sibling `Cargo.toml` (so an unrelated folder named "target" is never nuked), and `pgrep` for a running build first.
+- Added a step 3 to Template A (Full Disk Audit) so the artifact scan is part of every audit.
+- Added two top rows to Quick Wins (Rust `target/` 10-60 GB+, `.venv` 5-20 GB) — risk "None" but flagged as a cold-rebuild/re-sync cost.
+
+**Evidence**: `rm -rf` of the guarded `target/` set + `.venv` set freed ~76 GB net in one pass (275 GB → 351 GB free), the biggest movement of the entire session.
+
 ## 2026-05-15 — Three new high-impact cache vectors discovered
 
 **Trigger**: Second disk audit on terryli's MBP found 21GB in `~/Library/Caches/go-build` plus multi-toolchain accumulation in rustup (8.8GB, 6 versions) and mise installs (7GB) — none of which were in the skill's cache reference table. Skill incorrectly listed `cargo cache -a` as the rustup cleanup; the actual command is `rustup toolchain uninstall <name>`. Mise toolchain pruning wasn't documented at all.
