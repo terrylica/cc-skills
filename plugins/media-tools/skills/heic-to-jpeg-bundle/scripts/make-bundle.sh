@@ -47,6 +47,11 @@ done
 [ -n "$SRC" ] && [ -d "$SRC" ] || { echo "--src DIR required"; exit 2; }
 OUT="${OUT:-$SRC/_bundle}"
 
+# HTML-escape the (caller-supplied) title so <, >, &, " can't break markup.
+# Non-ASCII is handled later by the ASCII-fold step, so titles can contain anything.
+esc_html() { printf '%s' "$1" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'; }
+TITLE_ESC=$(esc_html "$TITLE")
+
 # Collect source images (sips reads heic/jpg/png/tiff/...), sorted for stable order.
 mapfile -t SRCS < <(find "$SRC" -maxdepth 1 -type f \
   \( -iname '*.heic' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.tiff' \) | sort)
@@ -78,7 +83,7 @@ wait
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>${TITLE}</title>
+<title>${TITLE_ESC}</title>
 <style>:root{color-scheme:light dark}*{box-sizing:border-box}
 body{margin:0;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0f1115;color:#e6e8eb}
 header{padding:26px 18px 14px;max-width:1100px;margin:0 auto}h1{font-size:1.5rem;margin:0 0 6px}
@@ -88,11 +93,11 @@ main{max-width:1100px;margin:0 auto;padding:10px 14px 60px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .grid a{display:block;aspect-ratio:4/3;overflow:hidden;border-radius:7px;background:#1a1d23}
 .grid img{width:100%;height:100%;object-fit:cover;display:block}</style></head><body>
-<header><h1>${TITLE}</h1><p class="sub">${N} photos · JPEG · tap any photo for full size.</p>
+<header><h1>${TITLE_ESC}</h1><p class="sub">${N} photos &middot; JPEG &middot; tap any photo for full size.</p>
 HTML
   if [ "$ZIP" = 1 ]; then
-    echo '<div><a class="btn" href="bundle.zip">⬇ Download all (ZIP)'"$([ -n "$PW" ] && echo ' <small>password-protected</small>')"'</a></div>'
-    [ -n "$PW" ] && echo '<p class="note">The ZIP is password-protected — the password is in the message/page that linked you here.</p>'
+    echo '<div><a class="btn" href="bundle.zip">&#8595; Download all (ZIP)'"$([ -n "$PW" ] && echo ' <small>password-protected</small>')"'</a></div>'
+    [ -n "$PW" ] && echo '<p class="note">The ZIP is password-protected &mdash; the password is in the message/page that linked you here.</p>'
   fi
   echo '</header><main><div class="grid">'
   for ((j = 1; j <= N; j++)); do
@@ -101,6 +106,18 @@ HTML
   done
   echo '</div></main></body></html>'
 } > "$SITE/index.html"
+
+# Charset-proof the page: fold EVERY non-ASCII char to a numeric HTML entity so the
+# output is pure ASCII (identical under UTF-8 / Latin-1 / Windows-1252 — immune to any
+# charset mismatch or downstream re-encoding). The `-CSD` UTF-8 layer is MANDATORY:
+# without it, perl reads existing multibyte bytes as Latin-1 and re-emits them as UTF-8,
+# producing the classic "Wide character in print" mojibake (—  ->  Ã¢ÃÂ...). Never run an
+# in-place perl/sed edit that inserts non-ASCII without -CSD (or just edit ASCII entities).
+perl -CSD -i -pe 's/([^\x00-\x7F])/sprintf("&#%d;", ord($1))/ge' "$SITE/index.html"
+# Guard: the page MUST now be pure ASCII. Fail loudly if anything slipped through.
+if ! iconv -f ASCII -t ASCII "$SITE/index.html" >/dev/null 2>&1; then
+  echo "[bundle] ERROR: non-ASCII bytes survived in index.html (encoding guard failed)"; exit 1
+fi
 
 # Optional ZIP, downscaled to fit the per-file cap.
 if [ "$ZIP" = 1 ]; then

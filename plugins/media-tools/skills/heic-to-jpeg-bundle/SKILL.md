@@ -96,6 +96,17 @@ tier was downscaled to fit a size cap.
   doesn't shrink them and `-0` is faster.
 - **Filenames with spaces/parentheses** (Amazon/iCloud exports) are handled — the script
   reads sources null-safely and renames outputs to stable `photo-NNN.jpg`.
+- **The gallery is emitted as pure ASCII** (every non-ASCII char — em-dash, middot, arrows,
+  emoji, and anything in your `--title` — is folded to a numeric HTML entity like `&#8212;`).
+  ASCII is byte-identical under UTF-8 / Latin-1 / Windows-1252, so the page **cannot mojibake**
+  even if a host serves `text/html` with no `charset` (Cloudflare Workers does exactly that).
+  A build-time guard (`iconv -f ASCII`) fails the run if any non-ASCII byte survives.
+  - **Hazard this prevents:** never run an in-place `perl -pe` / `sed -i` edit that _inserts_
+    non-ASCII (e.g. `\x{2014}`, `\x{2B07}`, an emoji) over a UTF-8 file **without the `-CSD`
+    layer** — perl will read the existing multibyte bytes as Latin-1 and re-emit them as UTF-8,
+    silently corrupting them (the tell-tale `Wide character in print` warning). Each pass
+    re-encodes again. If you must post-edit generated HTML, edit ASCII entities, or use
+    `perl -CSD`. This skill avoids the pattern entirely by folding to entities once.
 
 ## Preflight
 
