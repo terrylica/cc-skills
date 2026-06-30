@@ -1,3 +1,10 @@
+## [22.10.1](https://github.com/terrylica/cc-skills/compare/v22.10.0...v22.10.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **media-tools:** emit pure-ASCII gallery to prevent mojibake ([c1eb625](https://github.com/terrylica/cc-skills/commit/c1eb625a8ef878372847c1883df0aad90f7760ce)), closes [#8595](https://github.com/terrylica/cc-skills/issues/8595)
+
 # [22.10.0](https://github.com/terrylica/cc-skills/compare/v22.9.0...v22.10.0) (2026-06-30)
 
 
