@@ -1,7 +1,7 @@
 {
   "name": "media-tools",
   "version": "11.93.0",
-  "description": "YouTube audio download and iOS device media transfer workflows",
+  "description": "YouTube audio download, iOS device media transfer, and HEIC-to-JPEG photo-share workflows",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"
