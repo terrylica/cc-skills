@@ -567,7 +567,7 @@
     },
     {
       "name": "media-tools",
-      "description": "YouTube audio download and iOS device media transfer workflows",
+      "description": "YouTube audio download, iOS device media transfer, and HEIC-to-JPEG photo-share workflows",
       "version": "22.9.0",
       "source": "./plugins/media-tools",
       "category": "utilities",

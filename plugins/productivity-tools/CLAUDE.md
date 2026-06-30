@@ -14,6 +14,7 @@
 - [notion-cli](./skills/notion-cli/SKILL.md)
 - [notion-sdk](./skills/notion-sdk/SKILL.md)
 - [slash-command-factory](./skills/slash-command-factory/SKILL.md)
+- [amazon-photos-album-download](./skills/amazon-photos-album-download/SKILL.md) — pull originals from a public Amazon Photos share link (Drive `/drive/v1/` API + Playwright)
 
 ## Hooks
 
