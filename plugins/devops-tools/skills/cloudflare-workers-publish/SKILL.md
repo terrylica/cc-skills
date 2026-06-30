@@ -225,23 +225,45 @@ mise run publish:site
 
 Full details with code examples: [references/anti-patterns.md](./references/anti-patterns.md)
 
-| ID     | Severity | Gotcha                                   | Fix                                           |
-| ------ | -------- | ---------------------------------------- | --------------------------------------------- |
-| CFW-01 | HIGH     | Cloudflare Pages deprecated (April 2025) | Use Workers with Static Assets                |
-| CFW-02 | HIGH     | 1P service account creating items        | Pre-provision via biometric/web UI            |
-| CFW-03 | HIGH     | Missing `--reveal` for CONCEALED fields  | Always pass `--reveal` for API tokens         |
-| CFW-04 | MEDIUM   | SC2155 `export VAR=$(cmd)`               | Split: `VAR=$(cmd)` then `export VAR`         |
-| CFW-05 | LOW      | Bash 4+ `${var^^}` on macOS              | Use `tr '[:lower:]' '[:upper:]'`              |
-| CFW-06 | MEDIUM   | Assuming workers.dev URL format          | Run `npx wrangler whoami` to discover slug    |
-| CFW-07 | HIGH     | workers.dev subdomain not registered     | Enable in Cloudflare dashboard first          |
-| CFW-08 | LOW      | curl SSL/TLS handshake failure on macOS  | Verify in browser instead                     |
-| CFW-09 | MEDIUM   | Overcomplicating wrangler.toml           | Only `name`, `compatibility_date`, `[assets]` |
-| CFW-10 | HIGH     | Running wrangler from wrong directory    | Always `cd` to directory with wrangler.toml   |
-| CFW-11 | MEDIUM   | Excessive token permissions              | Workers Scripts Edit (Account) only           |
-| CFW-12 | HIGH     | Deploying LFS pointers instead of files  | Run `git lfs pull` before deploy              |
-| CFW-13 | MEDIUM   | Tera template conflict in mise TOML      | Complex bash in standalone `.sh` files        |
-| CFW-14 | MEDIUM   | Pipe subshell data loss in while-read    | Use `< <(find ...)` process substitution      |
-| CFW-15 | LOW      | No directory listing page                | Auto-generate index.html before each deploy   |
+| ID     | Severity | Gotcha                                           | Fix                                                                                                                                                                                                                                                          |
+| ------ | -------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CFW-01 | HIGH     | Cloudflare Pages deprecated (April 2025)         | Use Workers with Static Assets                                                                                                                                                                                                                               |
+| CFW-02 | HIGH     | 1P service account creating items                | Pre-provision via biometric/web UI                                                                                                                                                                                                                           |
+| CFW-03 | HIGH     | Missing `--reveal` for CONCEALED fields          | Always pass `--reveal` for API tokens                                                                                                                                                                                                                        |
+| CFW-04 | MEDIUM   | SC2155 `export VAR=$(cmd)`                       | Split: `VAR=$(cmd)` then `export VAR`                                                                                                                                                                                                                        |
+| CFW-05 | LOW      | Bash 4+ `${var^^}` on macOS                      | Use `tr '[:lower:]' '[:upper:]'`                                                                                                                                                                                                                             |
+| CFW-06 | MEDIUM   | Assuming workers.dev URL format                  | Run `npx wrangler whoami` to discover slug                                                                                                                                                                                                                   |
+| CFW-07 | HIGH     | workers.dev subdomain not registered             | Enable in Cloudflare dashboard first                                                                                                                                                                                                                         |
+| CFW-08 | LOW      | curl SSL/TLS handshake failure on macOS          | Verify in browser instead                                                                                                                                                                                                                                    |
+| CFW-09 | MEDIUM   | Overcomplicating wrangler.toml                   | Only `name`, `compatibility_date`, `[assets]`                                                                                                                                                                                                                |
+| CFW-10 | HIGH     | Running wrangler from wrong directory            | Always `cd` to directory with wrangler.toml                                                                                                                                                                                                                  |
+| CFW-11 | MEDIUM   | Excessive token permissions                      | Workers Scripts Edit (Account) only                                                                                                                                                                                                                          |
+| CFW-12 | HIGH     | Deploying LFS pointers instead of files          | Run `git lfs pull` before deploy                                                                                                                                                                                                                             |
+| CFW-13 | MEDIUM   | Tera template conflict in mise TOML              | Complex bash in standalone `.sh` files                                                                                                                                                                                                                       |
+| CFW-14 | MEDIUM   | Pipe subshell data loss in while-read            | Use `< <(find ...)` process substitution                                                                                                                                                                                                                     |
+| CFW-15 | LOW      | No directory listing page                        | Auto-generate index.html before each deploy                                                                                                                                                                                                                  |
+| CFW-16 | HIGH     | Asset > 25 MiB → `Asset too large` deploy error  | Workers Static Assets hard-caps **each file at 25 MiB**. Host large ZIPs/binaries off a large-file host (R2, GitHub Release, own server); keep only ≤25 MiB files on Workers. See [large files & ZIP delivery](./references/large-files-and-zip-delivery.md) |
+| CFW-17 | LOW      | Want a bulk-download ZIP, but it exceeds the cap | Downscale the ZIP tier to fit (e.g. `heic-to-jpeg-bundle --zip-cap-mib 25`), or split hosts: gallery + small ZIP on Workers, full-res ZIP on R2                                                                                                              |
+
+---
+
+## Large files & ZIP delivery (downloads, not just pages)
+
+This skill also covers serving **downloadable files** (a ZIP bundle, a dataset) from
+Workers — within the 25 MiB/file cap — and the **password-on-the-gateway** pattern for
+gating an otherwise-unlisted download. Full guide:
+[references/large-files-and-zip-delivery.md](./references/large-files-and-zip-delivery.md).
+
+Quick rules:
+
+- **≤ 25 MiB → Workers is fine.** A small/downscaled ZIP can sit beside the gallery and be
+  linked directly. `> 25 MiB` is a hard deploy error (CFW-16) — use R2 / a GitHub Release /
+  your own host for those.
+- **Password-gated, unlisted download.** Encrypt the ZIP (ZipCrypto, so Windows/7-Zip/macOS
+  open it natively) and put the **password only on the gateway you share** (a gist, an
+  email), never on the Workers page. Finding the bare ZIP URL then isn't enough to open it.
+  The `heic-to-jpeg-bundle` skill produces exactly this kind of capped, optionally-encrypted
+  ZIP.
 
 ---
 
