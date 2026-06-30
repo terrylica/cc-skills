@@ -1,16 +1,18 @@
 # media-tools
 
-> YouTube audio download and iOS device media transfer workflows.
+> YouTube audio download, iOS device media transfer, and image conversion + photo-share workflows.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [plugins/CLAUDE.md](../../plugins/CLAUDE.md)
 
-**Skill**: [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md) — Download YouTube audio and push to BookPlayer on iPhone via USB.
+**Skills**: [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md) — YouTube audio → BookPlayer on iPhone · [heic-to-jpeg-bundle](./skills/heic-to-jpeg-bundle/SKILL.md) — HEIC → JPEG gallery + password ZIP (sips) · [photo-gallery-delivery](./skills/photo-gallery-delivery/SKILL.md) — end-to-end deliver-a-photo-set playbook.
 
 ---
 
 ## Skills
 
 - [youtube-to-bookplayer](./skills/youtube-to-bookplayer/SKILL.md)
+- [heic-to-jpeg-bundle](./skills/heic-to-jpeg-bundle/SKILL.md) — convert HEIC → JPEG and package a gallery + size-capped, optionally password-protected ZIP (macOS `sips`/`zip`, zero install)
+- [photo-gallery-delivery](./skills/photo-gallery-delivery/SKILL.md) — orchestrator: pull a cloud album → convert/bundle → host unlisted → share via a gist gateway (ties together `amazon-photos-album-download`, `heic-to-jpeg-bundle`, `cloudflare-workers-publish`)
 
 ## Dependencies
 
