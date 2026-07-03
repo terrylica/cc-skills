@@ -1,3 +1,10 @@
+## [22.10.2](https://github.com/terrylica/cc-skills/compare/v22.10.1...v22.10.2) (2026-07-03)
+
+
+### Bug Fixes
+
+* **draft-hold:** declare UTF-8 charset before textutil decode (non-ASCII mojibake) ([2a2bbf2](https://github.com/terrylica/cc-skills/commit/2a2bbf227669bf05627341f38c66343038171a00))
+
 ## [22.10.1](https://github.com/terrylica/cc-skills/compare/v22.10.0...v22.10.1) (2026-06-30)
 
 
