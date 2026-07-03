@@ -46,7 +46,10 @@ esc() { sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g'; }
 # Decode a Notes `body` HTML string to plain text. textutil (WebKit-backed)
 # handles tags->linebreaks AND legacy entities with or without the trailing
 # semicolon (`&quot` -> "), which the old `sed s/&quot;/"/g` silently missed.
-html_to_text() { textutil -stdin -stdout -convert txt -format html; }
+# The <meta charset> prefix is REQUIRED: without a charset declaration textutil
+# misreads UTF-8 stdin as Latin-1 and mojibakes every non-ASCII character
+# (verified 2026-07-02 with a Chinese draft: 关于 -> å…³äºŽ).
+html_to_text() { { printf '<meta charset="utf-8">'; cat; } | textutil -stdin -stdout -convert txt -format html; }
 
 case "$cmd" in
   new)
