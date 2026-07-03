@@ -45,6 +45,10 @@ When you compose something a human should confirm or edit before it goes out (a 
   _semicolon-less_ legacy entity `&quot` (verified 2026-06-29). We decode with
   `textutil` (a real HTML parser) instead of `sed`, so `&quot`/`&amp`/`&lt` etc. round-trip
   back to literal characters. Never hand-roll entity decoding here.
+- **UTF-8 decode needs an explicit charset**: `textutil -format html` assumes Latin-1
+  when the HTML has no charset declaration, mojibaking every non-ASCII character
+  (关于 → `å…³äºŽ`; verified 2026-07-02 with a Chinese draft). `html_to_text` therefore
+  prepends `<meta charset="utf-8">` before piping to textutil — keep that prefix.
 - **Note name = first body line**: Notes names a note after its first line, ignoring any
   title you "set". `new` therefore prepends the title as a bold first line so
   `get`/`list`/replace can find it by title. Pass the message body only on STDIN.
