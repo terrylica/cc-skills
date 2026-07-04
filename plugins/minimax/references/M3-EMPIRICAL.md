@@ -6,30 +6,30 @@
 [`../skills/m3/SKILL.md`](../skills/m3/SKILL.md). Where the official docs and the live
 API disagree, **the live API wins** — discrepancies are flagged explicitly below.
 
-> **Re-verify, don't trust this file blindly.** Everything here is reproducible:
-> `scripts/m3-probe.py` (options/capabilities), `scripts/m3-context-probe.py` (ceiling +
-> retrieval), `scripts/m3-bench.py` (speed/quality vs M2.7). Drift tripwire:
-> `scripts/m3-verify` diffs a fast live re-probe against
-> `fixtures/m3-capabilities-locked-2026-06-01.json` and exits non-zero on change.
+> **Re-verify, don't trust this file blindly.** Everything here is reproducible via the
+> Bun CLI `scripts/m3-cli.ts`: `probe` (options/capabilities), `context-probe` (ceiling +
+> retrieval), `bench` (speed/quality). Drift tripwire:
+> `m3-cli.ts verify` diffs a fast live re-probe against
+> `fixtures/m3-capabilities-locked-2026-06-23.json` and exits non-zero on change.
 
 ---
 
 ## TL;DR — what changed vs M2.7
 
-| Dimension                | M2.7 / M2.7-highspeed                 | M3 (this key)                                                       |
-| ------------------------ | ------------------------------------- | ------------------------------------------------------------------- |
-| `<think>` in `content`   | yes, always strip                     | **yes by default** — _or_ set `reasoning_split:true` for clean      |
-| Reasoning control        | none                                  | **rich**: `reasoning_split` / `reasoning` / `reasoning_effort`      |
-| Vision (`image_url`)     | ❌ silently dropped (text-only)       | ✅ **works** — read text off a PNG correctly                        |
-| `response_format`        | ❌ silently dropped                   | ✅ **accepted** (still wraps with `<think>`/fences — see caveat)    |
-| `tool_choice`            | ❌ silently dropped                   | partial — `"none"` respected; **forced did not compel** a call      |
-| `n > 1`                  | (untested)                            | ❌ **rejected** (`2013`)                                            |
-| Output ceiling           | (max_tokens not enforced server-side) | ✅ **hard 512,000**; > 512000 → `2013`                              |
-| Input context            | ~200K                                 | **~512K hard cap** (575K+ → `400`); docs claim 1M — not on this key |
-| Speed (default thinking) | ~40–50 TPS (highspeed)                | ~20–27 TPS — **slower unless thinking is reduced/disabled**         |
+| Dimension                | M2.7 / M2.7-highspeed                 | M3 (this key)                                                                                       |
+| ------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `<think>` in `content`   | yes, always strip                     | **yes by default** — _or_ set `reasoning_split:true` for clean                                      |
+| Reasoning control        | none                                  | **rich**: `reasoning_split` / `reasoning` / `reasoning_effort`                                      |
+| Vision (`image_url`)     | ❌ silently dropped (text-only)       | ✅ **works** — read text off a PNG correctly                                                        |
+| `response_format`        | ❌ silently dropped                   | ✅ **accepted** (still wraps with `<think>`/fences — see caveat)                                    |
+| `tool_choice`            | ❌ silently dropped                   | partial — `"none"` respected; **forced did not compel** a call                                      |
+| `n > 1`                  | (untested)                            | ⚠️ **silently dropped** — accepted but ignored, still 1 choice (was `2013`-rejected pre-2026-06-23) |
+| Output ceiling           | (max_tokens not enforced server-side) | ✅ **hard 524,288**; > 524288 → `invalid params … > 524288` (was 512,000 pre-2026-06-23)            |
+| Input context            | ~200K                                 | **~1M** (to ~1,000,000; 1,048,576 → 2013) as of 2026-06-23 — but reliable retrieval ≤ ~256K         |
+| Speed (default thinking) | ~40–50 TPS (highspeed)                | ~20–27 TPS — **slower unless thinking is reduced/disabled**                                         |
 
 **Headline:** M3 is a **capability upgrade** (vision, structured-output acceptance,
-clean-reasoning split, larger 512K context + bigger output cap) but is **slower by
+clean-reasoning split, larger ~1M context + bigger output cap) but is **slower by
 default**. Speed parity with M2.7-highspeed comes from reducing/disabling thinking.
 
 ---
@@ -97,52 +97,53 @@ fences and append a prose "Note:". So:
 `tools` accepted; `tool_choice:"none"` respected (no call emitted). **`tool_choice` forced**
 to a named function on a `"Hi"` prompt did **not** emit `tool_calls` — M3 reasoned "no tools
 needed" and replied conversationally. This contradicts the docs. **Before relying on forced
-tool calls, re-test with a tool-relevant prompt** (`m3-probe.py` uses a trivial prompt by design).
+tool calls, re-test with a tool-relevant prompt** (`m3-cli probe` uses a trivial prompt by design).
 
 ---
 
 ## 3. Parameter honoring
 
-| Param                                                                                       | Result                                           |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `temperature`, `top_p`, `stop`, `seed`, `presence_penalty`, `frequency_penalty`, `logprobs` | accepted                                         |
-| `response_format`, `tools`, `reasoning*`, `reasoning_split`                                 | accepted                                         |
-| **`n > 1`**                                                                                 | ❌ `2013` "does not support n > 1"               |
-| **`max_tokens > 512000`**                                                                   | ❌ `2013` "does not support max tokens > 512000" |
-| **`thinking: <bool>`**                                                                      | ❌ `2013` expects `ThinkingConfig` object        |
+| Param                                                                                       | Result                                                                                     |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `temperature`, `top_p`, `stop`, `seed`, `presence_penalty`, `frequency_penalty`, `logprobs` | accepted                                                                                   |
+| `response_format`, `tools`, `reasoning*`, `reasoning_split`                                 | accepted                                                                                   |
+| **`n > 1`**                                                                                 | ⚠️ silently dropped (accepted, ignored — 1 choice; was `2013`-rejected pre-2026-06-23)     |
+| **`max_tokens > 524288`**                                                                   | ❌ `invalid params` "does not support max tokens > 524288" (was `> 512000` pre-2026-06-23) |
+| **`thinking: <bool>`**                                                                      | ❌ `2013` expects `ThinkingConfig` object                                                  |
 
 ---
 
 ## 4. Context & output ceilings (this plan — empirically pinned)
 
-| Probe                           | Result                                            |
-| ------------------------------- | ------------------------------------------------- |
-| Input 128K / 400K / 512K tokens | **accepted** (measured `prompt_tokens` 512,180 ✓) |
-| Input 575K / 700K tokens        | **rejected** — `400 (2013)`                       |
-| **→ Input ceiling**             | **≈ 512K tokens (hard cap)** — _not_ 1M           |
-| Output `max_tokens`             | **≤ 512,000** (524,288 rejected)                  |
-| Needle retrieval @128K / @400K  | **retrieved ✓** (9.2 s / 21.8 s, `finish=stop`)   |
-| Latency vs size                 | ~9 s @128K, ~22 s @400–512K (prefill cost)        |
+| Probe                              | Result                                                                                               |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Input 128K – 1M tokens             | **accepted** through `prompt_tokens` 1,000,180 (2026-06-23)                                          |
+| Input 1,048,576 / 1.2M tokens      | **rejected** — `context window exceeds limit (2013)`                                                 |
+| **→ Input ceiling**                | **≈ 1,000,000 tokens** — the docs' 1M now holds (was ~512K on 2026-06-01)                            |
+| Output `max_tokens`                | **≤ 524,288** (524,289 rejected; was 512,000 pre-2026-06-23)                                         |
+| Needle retrieval @128K/@256K/@400K | **128K & 256K retrieved (2/2); 400K MISSED (2/2)** on 2026-06-23 — deep-retrieval regressed vs 06-01 |
+| Latency vs size                    | ~6 s @128K, ~30 s @800K, **~235 s @1M** (prefill cost)                                               |
 
-The earlier "retrieved=False" reading was a **measurement artifact** (`max_tokens=64` was
-consumed by the `<think>` block before the answer). With thinking disabled + `max_tokens≥256`,
-retrieval is **accurate** at both depths. No "lost in the middle" observed up to 400K.
+With thinking disabled + `max_tokens≥256`, retrieval is accurate at 128K and 256K (2/2 each on
+2026-06-23). At **400K it now MISSES (2/2)** — a deep-retrieval regression vs 2026-06-01 (which
+retrieved at 400K). The effective "reliable retrieval" depth on this key is **≤ ~256K**, even
+though the raw input window now accepts up to ~1M.
 
-**Why 512K, not 1M:** docs advertise 1M context, but this Plus-High-Speed key rejects payloads
-above ~512K with a generic `400`. 512K is also the documented billing cliff. Whether 1M needs a
-higher/Code tier, a different endpoint, or smaller-per-request chunks is **unconfirmed** — flag for
-follow-up with MiniMax. **Operate at ≤ 512K input on this key.**
+**1M context now holds (2026-06-23):** the key accepts payloads through ~1,000,000 tokens
+(1,048,576 → `context window exceeds limit`), up from the ~512K cap pinned on 2026-06-01 — the
+docs' 1M claim is now real. Caveats: 1M-context latency is brutal (~235 s prefill) and deep
+retrieval degrades well before the ceiling, so **operate at ≤ ~256K for retrieval-critical work.**
 
 ---
 
 ## 5. Docs ⨯ live discrepancies (trust the live column)
 
-| Official docs say             | This key actually does                                                  |
-| ----------------------------- | ----------------------------------------------------------------------- |
-| 1M context window             | **512K hard cap** (575K+ → 400)                                         |
-| `MiniMax-M3-highspeed` exists | **`2013 unknown model 'minimax-m3-highspeed'`** — not in catalog        |
-| `tool_choice` supported       | forced choice **did not compel** a call (one trivial-prompt data point) |
-| reasoning configurable/hidden | ✅ confirmed — `reasoning_split` moves `<think>` → separate field       |
+| Official docs say             | This key actually does                                                    |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| 1M context window             | ✅ **now ~1M** (accepts to ~1,000,000; 1,048,576 → 2013) as of 2026-06-23 |
+| `MiniMax-M3-highspeed` exists | **`2013 unknown model 'minimax-m3-highspeed'`** — not in catalog          |
+| `tool_choice` supported       | forced choice **did not compel** a call (one trivial-prompt data point)   |
+| reasoning configurable/hidden | ✅ confirmed — `reasoning_split` moves `<think>` → separate field         |
 
 ---
 
@@ -204,8 +205,8 @@ body = {"model": "MiniMax-M3", "max_tokens": 512, "reasoning_split": True, "mess
 ### E. Guard rails (hard limits)
 
 ```python
-assert body.get("max_tokens", 0) <= 512_000, "M3 output cap is 512000"
-# n stays 1 (M3 rejects n>1). Keep input <= ~512K tokens (~512K * 4.5 chars on this filler).
+assert body.get("max_tokens", 0) <= 524_288, "M3 output cap is 524288"
+# n stays 1 (M3 silently drops n>1 — 1 choice regardless). Raw input ceiling ~1M, but keep input <= ~256K for reliable retrieval.
 ```
 
 The `<think>`-stripping, `base_resp` rate-limit retry, and cached-token reader snippets in
@@ -219,13 +220,13 @@ unchanged to M3 — only the model string and the reasoning controls differ.
 ```bash
 # From the plugin source checkout (scripts/ is stripped from the runtime cache):
 cd ~/eon/cc-skills/plugins/minimax
-export MINIMAX_API_KEY=...            # or rely on the 1Password op-path default (see m3-verify -h)
+export MINIMAX_API_KEY=...            # or rely on the 1Password op-path default (see `bun scripts/m3-cli.ts verify --help`)
 
-uv run --python 3.14 --with requests,pillow python scripts/m3-probe.py            # full option/capability map
-uv run --python 3.14 --with requests           python scripts/m3-context-probe.py # ceiling + needle
-uv run --python 3.14 --with requests           python scripts/m3-bench.py         # speed/quality vs M2.7
+bun scripts/m3-cli.ts probe          # full option/capability map (writes JSON)
+bun scripts/m3-cli.ts context-probe  # ceiling + needle
+bun scripts/m3-cli.ts bench          # speed/quality: default thinking vs reasoning:"disabled"
 
-./scripts/m3-verify            # fast drift check vs the locked capability snapshot (exit 0/1/2)
+bun scripts/m3-cli.ts verify    # fast drift check vs the locked capability snapshot (exit 0/1/2)
 ./scripts/minimax-check-upgrade # catalog drift (now includes MiniMax-M3 in the lock)
 ```
 
@@ -233,6 +234,13 @@ uv run --python 3.14 --with requests           python scripts/m3-bench.py       
 
 ## Evolution log
 
+- **2026-06-23** — Re-locked the capability snapshot and ported the probe scripts to a single Bun
+  CLI (`scripts/m3-cli.ts`). Live re-probe: output ceiling **512000 → 524288**; `n>1` now
+  **silently dropped** (no longer a 2013 error, still 1 choice); **input ceiling rose ~512K → ~1M**
+  (accepts to ~1,000,180; 1,048,576 → `context window exceeds limit`) — the 06-01 "does 1M need a
+  higher tier?" follow-up is **answered: 1M now works on this key**. But **deep-retrieval
+  regressed** — the 400K needle now misses (2/2) where it retrieved on 06-01, so reliable retrieval
+  is ≤ ~256K. 1M prefill latency ~235 s.
 - **2026-06-01** — Initial M3 empirical characterization. Live-probed thinking controls,
   vision, response_format, tool_choice, param honoring, 512K input ceiling, 512K output cap,
   retrieval accuracy. Catalog lock refreshed to include `MiniMax-M3`. Open follow-ups: confirm

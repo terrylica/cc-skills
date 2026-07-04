@@ -14,4 +14,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 NSString *FCDateFormatPrefix(NSString * _Nullable presetId);
 
+
+// Menu presentation pairs for the date-format catalog (label, id) — DRY
+// 2026-06-12: this list was duplicated verbatim in the full-preferences
+// menu AND the LOCAL segment menu. Living next to FCDateFormatPrefix keeps
+// the format ids and their human labels in ONE file: add a format = one
+// implementation branch + one row here, and every menu picks it up.
+NSArray<NSArray<NSString *> *> *FCDateFormatMenuPairs(void);
+
 NS_ASSUME_NONNULL_END

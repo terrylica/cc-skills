@@ -170,6 +170,12 @@ type SendOpts = {
   attach?: string; sound?: string; url?: string; urlTitle?: string;
   html?: boolean; monospace?: boolean;
   retry?: number; expire?: number; validateFirst?: boolean; force?: boolean;
+  // ttl (official API parameter, re-verified 2026-06-11): message
+  // self-deletes from devices after N seconds. IGNORED by the API for
+  // priority 2; needs device clients >= 4.0. Employ for routine/heartbeat
+  // sends so they self-clean instead of piling up — part of the per-account
+  // quota hygiene (one 10k/month pool shared across all fleet apps).
+  ttl?: number;
 };
 
 // preflight: turn Pushover's SILENT failures into explicit warn (proceed) / error (refuse)
@@ -220,6 +226,7 @@ async function sendMessage(o: SendOpts): Promise<any> {
   if (o.urlTitle) fd.set("url_title", o.urlTitle.slice(0, LIMITS.url_title_max));
   if (o.html) fd.set("html", "1");
   if (o.monospace) fd.set("monospace", "1");
+  if (o.ttl && o.ttl > 0 && (o.priority ?? 0) < 2) fd.set("ttl", String(o.ttl));
   if ((o.priority ?? 0) === 2) {
     fd.set("retry", String(o.retry ?? LIMITS.priority2_retry_min));
     fd.set("expire", String(o.expire ?? 300));
@@ -291,6 +298,9 @@ async function cmdSend(a: Args, emergency: boolean): Promise<void> {
     monospace: a.bools.has("monospace"),
     retry: a.flags.retry ? Number(a.flags.retry) : undefined,
     expire: a.flags.expire ? Number(a.flags.expire) : undefined,
+    // --ttl <seconds>: routine sends self-delete from devices (official
+    // API param; the API ignores it on priority 2 and we skip setting it).
+    ttl: a.flags.ttl ? Number(a.flags.ttl) : undefined,
     force: a.bools.has("force"),
   });
   console.log(JSON.stringify({ status: j.status, request: j.request, receipt: j.receipt ?? null }));
@@ -363,6 +373,11 @@ async function cmdDoctor(a: Args): Promise<void> {
   catch (e) { report.creds_error = String(e instanceof Error ? e.message : e); }
   try { report.validate = (await validate(token, user, device)) ? "status=1" : "FAIL"; }
   catch (e) { report.validate = `ERROR ${e instanceof Error ? e.message : e}`; }
+  // Quota semantics changed 2026-05-01 (Pushover blog 2026-04): limits are
+  // PER-ACCOUNT, shared across all of the account's applications — the
+  // limit/remaining reported here is the ACCOUNT pool, regardless of which
+  // app token queries it. Exhaustion = HTTP 429 on sends. SSoT:
+  // pushover_api_limits.json (quota_scope / quota_exhausted_status).
   try { const q: any = await poGet(`apps/limits.json?token=${token}`); report.quota = { limit: q.limit, remaining: q.remaining }; }
   catch { report.quota = "ERROR"; }
   try {

@@ -1,5 +1,7 @@
 #import "FloatingClockPanel+Layout.h"
+#import "FloatingClockPanel+CompactLayout.h"  // compact dispatch targets (2026-06-12 split)
 #import "FloatingClockPanel+Runtime.h"
+#import "FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "../segments/LocalLayoutConstants.h"  // iter-242: SSoT for LOCAL layout
 #import "../rendering/AttributedStringLayoutMeasurer.h"
 #import "../rendering/FontResolver.h"
@@ -11,6 +13,12 @@
 #import "DensityPad.h"                                      // FCDensityPadPoints
 #import "CornerRadius.h"                                    // FCCornerRadiusPoints
 #import "ShadowSpec.h"                                      // FCShadowSpecForId
+#import "SegmentBorderSpec.h"                               // FCSegmentBorderSpecForId
+#import "RelativeLuminance.h"                               // WCAG coefficients SSoT (DRY 2026-06-12)
+#import "SolarSkyColorRamp.h"                               // FCSolarCanvasColorForElevation
+#import "../data/SolarEvents.h"                             // FCSolarElevationDegrees
+#import "../rendering/SolarOutlinedTextRenderingView.h"     // solar outlined text (2026-06-11)
+
 
 @implementation FloatingClockPanel (Layout)
 
@@ -75,6 +83,7 @@
     }
 
     _label.hidden = YES;
+    _labelOutline.hidden = YES;   // solar text underlay is compact-only
     _sessionLabel.hidden = YES;
     _localSeg.hidden = NO;
     BOOL showWeek = [[NSUserDefaults standardUserDefaults] boolForKey:@"ShowWeekProgress"];
@@ -373,6 +382,19 @@
     applyShadow(_activeSeg.layer, tActive2);
     applyShadow(_nextSeg.layer,   tNext2);
 
+    // 2026-06-11 user request: hairline segment border (FCApplyBorderToLayer
+    // at the top of this file; spec catalog in Sources/core/SegmentBorderSpec).
+    FCSegmentBorderSpec bs = FCSegmentBorderSpecForId([d stringForKey:@"BorderStyle"]);
+    FCApplyBorderSpecToLayer(_localSeg.layer,  bs, tLocal2->bg_r,  tLocal2->bg_g,  tLocal2->bg_b);
+    FCApplyBorderSpecToLayer(_weekSeg.layer,   bs, tLocal2->bg_r,  tLocal2->bg_g,  tLocal2->bg_b);  // week shares LOCAL theme
+    FCApplyBorderSpecToLayer(_activeSeg.layer, bs, tActive2->bg_r, tActive2->bg_g, tActive2->bg_b);
+    FCApplyBorderSpecToLayer(_nextSeg.layer,   bs, tNext2->bg_r,   tNext2->bg_g,   tNext2->bg_b);
+    // The contentView is a transparent CANVAS in this mode — never frame it
+    // (a stale border here is exactly what the compact modes leave behind),
+    // and never leave a stale solar fill on it either.
+    self.contentView.layer.borderWidth = 0;
+    self.contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
+
     // Optical centering for LOCAL.
     //
     // Fonts are asymmetric around the baseline: ascender (~19pt at size 24)
@@ -415,108 +437,6 @@
     _weekSeg.weekDayLabelsLabel.font     = activeFont;
     _activeSeg.contentLabel.font  = activeFont;
     _nextSeg.contentLabel.font    = nextFont;
-}
-
-- (void)applyLocalOnlyLayout {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-
-    CGFloat fontSize = [d doubleForKey:@"FontSize"];
-    _label.font = resolveClockFont(fontSize);
-
-    NSString *themeId = [d stringForKey:@"ColorTheme"];
-    const ClockTheme *t = themeForId(themeId);
-    _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
-    self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
-
-    _sessionLabel.hidden = YES;
-    _localSeg.hidden = YES;
-    _activeSeg.hidden = YES;
-    _nextSeg.hidden = YES;
-    _label.hidden = NO;
-
-    [self tick];
-
-    [_label sizeToFit];
-    NSSize textSize = _label.frame.size;
-
-    CGFloat w1 = ceilf(textSize.width), h1 = ceilf(textSize.height);
-
-    CGFloat contentWidth  = w1 + 16;
-    CGFloat contentHeight = h1;
-    CGFloat windowWidth   = contentWidth + 32;
-    CGFloat windowHeight  = contentHeight + 20;
-
-    NSRect oldFrame = self.frame;
-    // v4 iter-249: horizontal recenter on screen on every reflow per
-    // user directive — widget remains L/R center-aligned as canvas
-    // width changes. Vertical position preserved (user Y-drag survives).
-    NSScreen *screen249 = self.screen ?: [NSScreen mainScreen];
-    CGFloat centerX = NSMidX(screen249.visibleFrame);
-    CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
-    NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
-    newFrame = [self clampFrameToVisibleScreen:newFrame];
-    [self setFrame:newFrame display:YES animate:NO];
-
-    _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
-}
-
-- (void)applySingleMarketLayout {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-
-    CGFloat fontSize = [d doubleForKey:@"FontSize"];
-    _label.font = resolveClockFont(fontSize);
-
-    NSString *themeId = [d stringForKey:@"ColorTheme"];
-    const ClockTheme *t = themeForId(themeId);
-    _label.textColor = [NSColor colorWithRed:t->fg_r green:t->fg_g blue:t->fg_b alpha:1.0];
-    self.backgroundColor = [NSColor colorWithRed:t->bg_r green:t->bg_g blue:t->bg_b alpha:t->alpha];
-
-    NSString *marketId = [d stringForKey:@"SelectedMarket"];
-    const ClockMarket *mkt = marketForId(marketId);
-    BOOL marketMode = (strlen(mkt->iana) > 0);
-    _sessionLabel.hidden = !marketMode;
-
-    _localSeg.hidden = YES;
-    _activeSeg.hidden = YES;
-    _nextSeg.hidden = YES;
-    _label.hidden = NO;
-
-    [self tick];
-
-    [_label sizeToFit];
-    NSSize textSize = _label.frame.size;
-
-    NSSize size2 = NSZeroSize;
-    if (marketMode) {
-        [_sessionLabel sizeToFit];
-        size2 = _sessionLabel.frame.size;
-    }
-
-    CGFloat w1 = ceilf(textSize.width), h1 = ceilf(textSize.height);
-    CGFloat w2 = ceilf(size2.width), h2 = ceilf(size2.height);
-
-    CGFloat contentWidth  = MAX(w1, w2) + 16;
-    CGFloat contentHeight = marketMode ? (h1 + h2 + 4) : h1;
-    CGFloat windowWidth   = contentWidth + 32;
-    CGFloat windowHeight  = contentHeight + 20;
-
-    NSRect oldFrame = self.frame;
-    // v4 iter-249: horizontal recenter on screen on every reflow per
-    // user directive — widget remains L/R center-aligned as canvas
-    // width changes. Vertical position preserved (user Y-drag survives).
-    NSScreen *screen249 = self.screen ?: [NSScreen mainScreen];
-    CGFloat centerX = NSMidX(screen249.visibleFrame);
-    CGFloat centerY = oldFrame.origin.y + oldFrame.size.height / 2.0;
-    NSRect newFrame = NSMakeRect(centerX - windowWidth / 2.0, centerY - windowHeight / 2.0, windowWidth, windowHeight);
-    newFrame = [self clampFrameToVisibleScreen:newFrame];
-    [self setFrame:newFrame display:YES animate:NO];
-
-    if (marketMode) {
-        _sessionLabel.frame = NSMakeRect(16, 10, contentWidth, h2);
-        _label.frame = NSMakeRect(16, 10 + h2 + 4, contentWidth, h1);
-    } else {
-        _label.frame = NSInsetRect(self.contentView.bounds, 8, 8);
-    }
 }
 
 @end

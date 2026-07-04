@@ -2,6 +2,15 @@
 
 NSString *const kFCSegmentHRule = @"────────────────────────────────────────────";
 
+// DRY 2026-06-12: one constructor for the colored-line pattern repeated at
+// every append site (font + foreground color + trailing newline).
+static NSAttributedString *fcColoredLine(NSString *text, NSFont *font, NSColor *color) {
+    return [[NSAttributedString alloc]
+        initWithString:[text stringByAppendingString:@"\n"]
+            attributes:@{NSFontAttributeName: font,
+                         NSForegroundColorAttributeName: color}];
+}
+
 void FCAppendSectionHeader(NSMutableAttributedString *out,
                            NSFont *font,
                            NSString *title,
@@ -15,20 +24,14 @@ void FCAppendSectionHeader(NSMutableAttributedString *out,
     // as the section identifier. Legend + hrule still render — they
     // describe the row format, not the section name.
     if (title.length > 0) {
-        [out appendAttributedString:[[NSAttributedString alloc]
-            initWithString:[title stringByAppendingString:@"\n"]
-            attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: titleColor}]];
+        [out appendAttributedString:fcColoredLine(title, font, titleColor)];
     }
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:[legend stringByAppendingString:@"\n"]
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: dimColor}]];
+    [out appendAttributedString:fcColoredLine(legend, font, dimColor)];
     FCAppendDividerRule(out, font, ruleColor);
 }
 
 void FCAppendDividerRule(NSMutableAttributedString *out,
                          NSFont *font,
                          NSColor *ruleColor) {
-    [out appendAttributedString:[[NSAttributedString alloc]
-        initWithString:[kFCSegmentHRule stringByAppendingString:@"\n"]
-        attributes:@{NSFontAttributeName: font, NSForegroundColorAttributeName: ruleColor}]];
+    [out appendAttributedString:fcColoredLine(kFCSegmentHRule, font, ruleColor)];
 }

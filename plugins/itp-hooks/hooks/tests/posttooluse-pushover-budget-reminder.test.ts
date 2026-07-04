@@ -18,7 +18,10 @@
 import { describe, test, expect } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { detectPushoverMessageConstruction } from "../posttooluse-pushover-budget-reminder.ts";
+import {
+  detectPushoverMessageConstruction,
+  evaluatePushoverHookInput,
+} from "../posttooluse-pushover-budget-reminder.ts";
 
 const FIXTURE_DIR = join(import.meta.dir, "pushover-budget-fixtures");
 
@@ -95,5 +98,61 @@ describe("Pushover budget detector — escape hatch & guards", () => {
         `# POST to https://api.pushover.net/1/messages.json with token and message`,
       ).matched,
     ).toBe(false);
+  });
+});
+
+/**
+ * The temp-dir skip (iter-124) lives in evaluatePushoverHookInput(), the
+ * input-level seam main() actually calls — the pure detectPushoverMessage…
+ * detector never sees tool_input.file_path. These tests drive that seam
+ * directly, mirroring how Claude Code feeds the hook a full tool input.
+ */
+describe("Pushover budget detector — temp-dir skip (iter-124)", () => {
+  const PUSHOVER_SEND =
+    `curl -s --form-string "token=$T" --form-string "user=$U" ` +
+    `--form-string "message=hi" https://api.pushover.net/1/messages.json`;
+
+  const pushoverWrite = (filePath: string) => ({
+    tool_name: "Write",
+    tool_input: { file_path: filePath, content: PUSHOVER_SEND },
+  });
+
+  test("fires on a Write to a durable project path (control)", () => {
+    expect(evaluatePushoverHookInput(pushoverWrite("/Users/me/proj/notify.sh")).matched).toBe(true);
+  });
+
+  test("stays silent on a Write to a /tmp throwaway script", () => {
+    expect(evaluatePushoverHookInput(pushoverWrite("/tmp/audit17.sh")).matched).toBe(false);
+  });
+
+  test("stays silent on a Write under /private/var/folders (macOS TMPDIR)", () => {
+    expect(
+      evaluatePushoverHookInput(pushoverWrite("/private/var/folders/ab/cd/T/scratch.sh")).matched,
+    ).toBe(false);
+  });
+
+  test("Bash sends to no temp target still fire", () => {
+    expect(
+      evaluatePushoverHookInput({ tool_name: "Bash", tool_input: { command: PUSHOVER_SEND } }).matched,
+    ).toBe(true);
+  });
+
+  test("Write to a test/fixture file is exempt", () => {
+    expect(evaluatePushoverHookInput(pushoverWrite("/Users/me/proj/notify.test.ts")).matched).toBe(false);
+    expect(evaluatePushoverHookInput(pushoverWrite("/Users/me/proj/fixtures/send.sh")).matched).toBe(false);
+  });
+
+  test("Bash heredoc writing a throwaway script into /tmp is exempt", () => {
+    const cmd = `cat > /tmp/notify.sh <<'EOF'\n${PUSHOVER_SEND}\nEOF`;
+    expect(evaluatePushoverHookInput({ tool_name: "Bash", tool_input: { command: cmd } }).matched).toBe(
+      false,
+    );
+  });
+
+  test("Bash heredoc writing a durable script still fires (control)", () => {
+    const cmd = `cat > /Users/me/proj/notify.sh <<'EOF'\n${PUSHOVER_SEND}\nEOF`;
+    expect(evaluatePushoverHookInput({ tool_name: "Bash", tool_input: { command: cmd } }).matched).toBe(
+      true,
+    );
   });
 });

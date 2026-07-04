@@ -106,7 +106,7 @@ echo "$MESSAGE" | grep -E '<[^>]*$'  # Check for unclosed tags
 ```bash
 /usr/bin/env bash << 'VALIDATE_EOF'
 # ❌ WRONG - Hardcoded secrets
-PUSHOVER_APP_TOKEN="aej7osoja3x8nvxgi96up2poxdjmfj"
+PUSHOVER_APP_TOKEN="<pushover-app-token>"
 TELEGRAM_BOT_TOKEN="1234567890:ABC..."
 
 # ✅ CORRECT - Load from Doppler (canonical source)

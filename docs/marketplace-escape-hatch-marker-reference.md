@@ -11,18 +11,23 @@
 
 ## Quick navigation
 
-Jump directly to any of the 20 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 25 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (12; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (17; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
+- [`CROWN-JEWEL-PLAIN-OK`](#crown-jewel-plain-ok)
 - [`CWD-DELETE-OK`](#cwd-delete-ok)
+- [`FGPAT-REMINDER-OK`](#fgpat-reminder-ok)
 - [`FILE-SIZE-OK`](#file-size-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
+- [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
 - [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
+- [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
+- [`MD-TABLE-OK`](#md-table-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
@@ -56,7 +61,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (12 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (17 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -111,6 +116,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # CARGO-TTY-WRAP
 ```
 
+## `CROWN-JEWEL-PLAIN-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).
+
+**Example usage**:
+
+```
+# CROWN-JEWEL-PLAIN-OK
+```
+
 ## `CWD-DELETE-OK`
 
 | Field | Value |
@@ -126,6 +148,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # CWD-DELETE-OK
+```
+
+## `FGPAT-REMINDER-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.
+
+**Example usage**:
+
+```
+# FGPAT-REMINDER-OK
 ```
 
 ## `FILE-SIZE-OK`
@@ -179,6 +218,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # INLINE-IGNORE-OK
 ```
 
+## `INVENTED-FALLBACK-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.
+
+**Example usage**:
+
+```
+# INVENTED-FALLBACK-OK
+```
+
 ## `LAYER3-STRIPPED-PATH-OK`
 
 | Field | Value |
@@ -196,6 +252,40 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # LAYER3-STRIPPED-PATH-OK: explain the deliberate exception here in at least 10 characters
 ```
 
+## `MANUAL-PAT-PAGE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.
+
+**Example usage**:
+
+```
+# MANUAL-PAT-PAGE-OK
+```
+
+## `MD-TABLE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.
+
+**Example usage**:
+
+```
+# MD-TABLE-OK
+```
+
 ## `PROCESS-STORM-OK`
 
 | Field | Value |
@@ -205,7 +295,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots, autoloop heartbeat) where the pattern is intentional.
+**What it does**: Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.
 
 **Example usage**:
 

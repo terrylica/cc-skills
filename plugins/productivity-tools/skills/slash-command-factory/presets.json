@@ -104,7 +104,7 @@
     "description": "Translate medical terminology to 8th-10th grade reading level with accuracy validation (German/English)",
     "argument-hint": "[medical-term] [de|en]",
     "allowed-tools": "Read",
-    "model": "claude-3-5-sonnet-20241022",
+    "model": "sonnet",
     "command_body": "Translate medical term \"$ARGUMENTS\" to patient-friendly language:\n\n1. **Language Detection**:\n   - Identify language from second argument (de=German, en=English)\n   - Use appropriate reading level validator\n\n2. **Simplification**:\n   - Translate complex medical term to simple alternative\n   - Target reading level: 8th-10th grade\n   - Use everyday words (avoid Latin/Greek medical terms)\n   - Short sentences (12-18 words max)\n\n3. **Validation**:\n   - English: Flesch-Kincaid Grade Level (target: 8.0-10.0)\n   - German: Wiener Sachtextformel (target: Klasse 8-10)\n   - Medical accuracy: Preserve clinical correctness\n\n4. **Output Format**:\n   - Original term\n   - Simple translation\n   - 8th grade explanation (2-3 sentences)\n   - Concrete example or analogy\n   - Reading level score\n\n**Success Criteria**:\n- Reading level at 8th-10th grade (validated)\n- Medical accuracy preserved\n- Patient-friendly and empowering",
     "supporting_folders": []
   },

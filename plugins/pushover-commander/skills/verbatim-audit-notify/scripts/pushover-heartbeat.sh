@@ -177,12 +177,20 @@ if [ "$COMPANION_STATUS" != "ok" ] || [ "$KOKORO_STATUS" != "ok" ] || [ "$FAILED
     LEVEL=WARN
 fi
 
+# --ttl 90000 (25h, official API parameter, adopted 2026-06-11): the daily
+# heartbeat self-deletes from the device shortly after the next one lands,
+# so routine snapshots never pile up. Quota-hygiene companion to the
+# 2026-05-01 per-account pool change (all fleet apps share one 10k/month
+# budget). The JSONL audit trail keeps the full history regardless; the
+# device copy is ephemeral by design. (ttl is ignored by the API for
+# priority 2 — irrelevant here, heartbeat is INFO/WARN.)
 pushover-notify \
     --title "🔔 Fleet daily heartbeat" \
     --message "$BODY" \
     --service "fleet-heartbeat" \
     --level "$LEVEL" \
     --device iphone_13_mini \
+    --ttl 90000 \
     --extra "$EXTRA_JSON" \
     >/dev/null
 

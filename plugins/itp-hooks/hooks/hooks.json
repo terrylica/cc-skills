@@ -67,6 +67,17 @@
         ]
       },
       {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
+            "timeout": 5000,
+            "description": "Unconditionally blocks the upstream-broken built-in WebFetch (claude.ai Cloudflare pre-check returns 403 to CLI clients → 'unable to fetch from <domain>'; proven NOT proxy/network 2026-06-22). Denies with the curl → agent-reach → WebSearch fallback chain; matcher WebFetch sidesteps the #55889 Bash-matcher context-drop bug and deny+reason is the Claude-visible channel. No escape hatch (WebFetch never succeeds in CLI); if Anthropic fixes the bug, disable this hook. SSoT: ~/.claude/webfetch-fallback-CLAUDE.md"
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
@@ -114,6 +125,17 @@
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-parquet-duckdb-nudge.ts",
             "timeout": 5000,
             "description": "Nudge toward DuckDB for Parquet content analysis (soft, warn+allow)"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-git-worktree-guard.ts",
+            "timeout": 5000,
+            "description": "Enforces worktree-per-branch: denies bare branch creation (git checkout -b / switch -c / branch <new>, git-town hack|append|prepend, gh pr checkout) and steers to `git worktree add -b` or the EnterWorktree tool. Always allows `git worktree add`, switching to existing branches, branch list/delete/rename, and doc/echo/comment/commit-message mentions. Escape hatch: prefix with ALLOW_BARE_BRANCH=1. Fail-open. Spoke: docs/git-worktree-guard.md. ADR 2026-06-22."
           }
         ]
       },
@@ -198,9 +220,31 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-markdown-table-guard.ts",
+            "timeout": 5000,
+            "description": "Per-edit GFM table structural guard (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks). On a .md/.markdown Write/Edit/MultiEdit, reads the file from disk and runs the shared pure detector (lib/markdown-table-detector.ts). Fires ONLY on render-breaking ERRORS that prettier/markdownlint canNOT auto-fix — unescaped `|` inflating a row's cell count (the #1 LLM-table bug; GFM treats `|` as a delimiter even inside code spans, and Prettier corrupts such tables per prettier#10164/#11410), header/separator column-count mismatch, table indented ≥4 spaces (parsed as a code block), or an alignment token like :--: pasted into a data row. Info-class nits (short rows, missing blank lines) stay silent because the Stop-hook markdown-lint auto-fixes them. Fenced code blocks are skipped so example broken tables in docs don't trip it. Escape hatch: MD-TABLE-OK (iter-111 canonical registry). Temp-scratch exempt (iter-124 shared helper). Spoke: docs/markdown-table-guard.md."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93→iter-100 PostToolUse edit-time orchestrator (7/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit → Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research — pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+            "description": "Iter-93→iter-100 PostToolUse edit-time orchestrator (8/15 subhooks inlined: ty-type-check + tsgo-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder + claude-md-size-budget). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit → Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research — pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
+            "timeout": 5000,
+            "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values — prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
           }
         ]
       }
@@ -212,9 +256,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts",
             "timeout": 65000,
-            "asyncRewake": true,
-            "rewakeSummary": "Loop stall detected — rewaking to schedule waker",
-            "description": "Stop-hook orchestrator: sequentially runs the 5 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint, loop-stall-guard) with per-subhook timeout + crash isolation. Replaces 5 entries in the Stop hook display list with 1. asyncRewake on exit 2 propagates from loop-stall-guard."
+            "description": "Stop-hook orchestrator: sequentially runs the 4 itp-hooks Stop hooks (subprocess-cleanup, error-summary, ty-check, markdown-lint) with per-subhook timeout + crash isolation. Replaces 4 entries in the Stop hook display list with 1."
           }
         ]
       }

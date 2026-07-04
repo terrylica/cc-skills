@@ -1,6 +1,8 @@
 #import "FloatingClockPanel+ActionHandlers.h"
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
+#import "../core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
+#import "../core/AudioStatusIndicator.h" // 2026-06-11: instant bar show/hide
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
 
@@ -17,16 +19,24 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
 
 @implementation FloatingClockPanel (ActionHandlers)
 
-- (void)toggleShowSeconds:(NSMenuItem *)sender {
+// Unified bool-pref toggle (DRY 2026-06-12): the nine Show* toggles used
+// TWO divergent patterns — plain boolForKey (correct only for keys present
+// in registerDefaults) and a lazy nil-means-default check. The helper makes
+// the default EXPLICIT per key, so unregistered keys (e.g. ShowMoonPhase)
+// and freshly-migrated installs behave identically to steady state.
+- (void)toggleBoolPref:(NSString *)key defaultValue:(BOOL)defaultValue {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowSeconds"] forKey:@"ShowSeconds"];
+    BOOL current = [d objectForKey:key] ? [d boolForKey:key] : defaultValue;
+    [d setBool:!current forKey:key];
     [self applyDisplaySettings];
 }
 
+- (void)toggleShowSeconds:(NSMenuItem *)sender {
+    [self toggleBoolPref:@"ShowSeconds" defaultValue:YES];
+}
+
 - (void)toggleShowDate:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowDate"] forKey:@"ShowDate"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowDate" defaultValue:YES];
 }
 
 - (void)setTimeFormat:(NSMenuItem *)sender {
@@ -145,6 +155,22 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     }
 }
 
+// 2026-06-11 segment hairline border (SegmentBorderSpec catalog).
+- (void)setBorderStyle:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"BorderStyle"];
+        [self applyDisplaySettings];
+    }
+}
+
+// 2026-06-11 solar canvas (SolarSkyColorRamp; compact modes).
+- (void)setCanvasColorMode:(NSMenuItem *)sender {
+    if ([sender.representedObject isKindOfClass:[NSString class]]) {
+        [[NSUserDefaults standardUserDefaults] setObject:sender.representedObject forKey:@"CanvasColorMode"];
+        [self applyDisplaySettings];
+    }
+}
+
 - (void)setActiveFontSize:(NSMenuItem *)sender {
     if ([sender.representedObject isKindOfClass:[NSNumber class]]) {
         [[NSUserDefaults standardUserDefaults] setDouble:[sender.representedObject doubleValue] forKey:@"ActiveFontSize"];
@@ -246,45 +272,39 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
 }
 
 - (void)toggleShowFlags:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowFlags"] forKey:@"ShowFlags"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowFlags" defaultValue:YES];
 }
 
 - (void)toggleShowUTCReference:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowUTCReference"] || [d boolForKey:@"ShowUTCReference"];
-    [d setBool:!cur forKey:@"ShowUTCReference"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowUTCReference" defaultValue:YES];
 }
 
 - (void)toggleShowSkyState:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowSkyState"] || [d boolForKey:@"ShowSkyState"];
-    [d setBool:!cur forKey:@"ShowSkyState"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowSkyState" defaultValue:YES];
 }
 
 // v4 iter-229: weekly progress bar toggle.
 - (void)toggleShowWeekProgress:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowWeekProgress"] || [d boolForKey:@"ShowWeekProgress"];
-    [d setBool:!cur forKey:@"ShowWeekProgress"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowWeekProgress" defaultValue:YES];
 }
 
 // v4 iter-246: moon-phase glyph toggle (iter-243 wire-up completion).
 - (void)toggleShowMoonPhase:(NSMenuItem *)sender {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    BOOL cur = ![d objectForKey:@"ShowMoonPhase"] || [d boolForKey:@"ShowMoonPhase"];
-    [d setBool:!cur forKey:@"ShowMoonPhase"];
-    [self applyDisplaySettings];
+    [self toggleBoolPref:@"ShowMoonPhase" defaultValue:YES];   // unregistered key — default lives here
 }
 
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender {
+    [self toggleBoolPref:@"ShowProgressPercent" defaultValue:NO];
+}
+
+// 2026-06-11: hide/show the always-visible audio I/O bar from the context
+// menu (AskUserQuestion-selected extra). The indicator's own refresh handles
+// orderOut/orderFront, so flipping the key + one refresh is the whole job —
+// no applyDisplaySettings needed (the bar is an overlay, not segment layout).
+- (void)toggleShowAudioBar:(NSMenuItem *)sender {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setBool:![d boolForKey:@"ShowProgressPercent"] forKey:@"ShowProgressPercent"];
-    [self applyDisplaySettings];
+    [d setBool:![d boolForKey:@"AudioBarEnabled"] forKey:@"AudioBarEnabled"];
+    [_audioStatusIndicator refresh];   // instant show/hide (vs ≤1s tick lag)
 }
 
 // v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny

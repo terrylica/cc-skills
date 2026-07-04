@@ -29,6 +29,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setSegmentGap:(NSMenuItem *)sender;
 - (void)setCornerStyle:(NSMenuItem *)sender;
 - (void)setShadowStyle:(NSMenuItem *)sender;
+- (void)setBorderStyle:(NSMenuItem *)sender;
+- (void)setCanvasColorMode:(NSMenuItem *)sender;
 - (void)setActiveFontSize:(NSMenuItem *)sender;
 - (void)setNextFontSize:(NSMenuItem *)sender;
 - (void)setFontWeight:(NSMenuItem *)sender;
@@ -47,6 +49,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleShowWeekProgress:(NSMenuItem *)sender;
 - (void)toggleShowMoonPhase:(NSMenuItem *)sender;
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender;
+- (void)toggleShowAudioBar:(NSMenuItem *)sender;   // 2026-06-11 audio I/O bar
 - (void)copyStateToClipboard:(id)sender;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;

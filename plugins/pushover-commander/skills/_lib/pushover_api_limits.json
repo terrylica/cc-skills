@@ -1,5 +1,5 @@
 {
-  "_doc": "SSoT for Pushover limits + silent-failure rules, verified empirically 2026-05-30. Consumed by pushover_core.ts (preflight) and referenced by pushover_headless_web_control.py / bash. Update HERE, nowhere else.",
+  "_doc": "SSoT for Pushover limits + silent-failure rules, verified empirically 2026-05-30; re-verified against pushover.net/api + the April-2026 Pushover blog on 2026-06-11. Consumed by pushover_core.ts (preflight) and referenced by pushover_headless_web_control.ts / bash. Update HERE, nowhere else.",
   "message_max": 1024,
   "title_max": 250,
   "url_max": 512,
@@ -13,6 +13,9 @@
   "priority2_retry_min": 30,
   "priority2_expire_max": 10800,
   "monthly_message_limit": 10000,
+  "quota_scope": "PER-ACCOUNT since 2026-05-01 (Pushover blog 2026-04): the 10000/month pool is shared across ALL of this account's applications — the observability fleet's apps draw from ONE budget. Teams accounts: 25000/month. Exhaustion: HTTP 429 on message creation.",
+  "quota_exhausted_status": 429,
+  "ttl_seconds": "optional per-message Time-To-Live: message auto-deletes from devices after N seconds. Positive integer counted from API receipt; IGNORED for priority 2; needs device clients >= 4.0. Employ for ephemeral progress/heartbeat notifications so they self-clean instead of piling up.",
   "quota_warn_remaining": 500,
   "silent_truncate_fields": ["message", "title"],
   "hard_reject": {

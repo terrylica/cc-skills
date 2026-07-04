@@ -11,6 +11,10 @@
 #import "../Sources/core/SegmentGap.h"
 #import "../Sources/core/SkyGlyph.h"
 #import "../Sources/core/ShadowSpec.h"
+#import "../Sources/core/SegmentBorderSpec.h"
+#import "../Sources/core/SolarSkyColorRamp.h"
+#import "../Sources/core/OverlayStackingPositioner.h"
+#import "../Sources/data/SolarEvents.h"
 #import "../Sources/core/SessionSignalWindow.h"
 #import "../Sources/core/ClipboardHeader.h"
 #import "../Sources/content/UrgencyColors.h"
@@ -484,6 +488,9 @@ void test_shadow_spec_catalog(void) {
         failures++; fprintf(stderr, "FAIL %s: unknown should be disabled\n", __func__);
     }
 }
+
+
+
 
 void test_session_signal_window(void) {
     // iter-126: SessionSignalWindow pref — controls the minute count

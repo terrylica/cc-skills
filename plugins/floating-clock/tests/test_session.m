@@ -23,6 +23,7 @@
 #import "../Sources/preferences/FloatingClockStarterProfiles.h"
 #import "../Sources/content/LandingTimeFormatter.h"
 #import "test_levers.h"
+#import "test_helpers.h" // shared dateAt / sessionStateName / assertion macros
 #import "test_holidays.h"        // iter-176 extraction
 #import "test_halfdays.h"        // iter-193 extraction
 #import "test_local_features.h"  // iter-244 extraction
@@ -31,63 +32,11 @@
 // test_levers.m can increment the same storage.
 int failures = 0;
 
-static NSDate *dateAt(NSString *iana, int y, int m, int d, int h, int mm, int ss) {
-    NSCalendar *cal = [[NSCalendar alloc] initWithCalendarIdentifier:NSCalendarIdentifierGregorian];
-    cal.timeZone = [NSTimeZone timeZoneWithName:iana];
-    NSDateComponents *c = [[NSDateComponents alloc] init];
-    c.year = y; c.month = m; c.day = d;
-    c.hour = h; c.minute = mm; c.second = ss;
-    return [cal dateFromComponents:c];
-}
-
-static const char *stateName(SessionState s) {
-    switch (s) {
-        case kSessionOpen:       return "OPEN";
-        case kSessionLunch:      return "LUNCH";
-        case kSessionClosed:     return "CLOSED";
-        case kSessionPreMarket:  return "PRE-MARKET";
-        case kSessionAfterHours: return "AFTER-HOURS";
-    }
-    return "?";
-}
-
-// Header annotates out-params as nonnull even though the implementation
-// guards each write with `if (outXxx)`. Pass throwaway locals here to
-// satisfy the annotation without changing the public contract.
-#define ASSERT_STATE(mkt, date, expected)                                        \
-    do {                                                                         \
-        SessionState s; double _p; long _n;                                      \
-        computeSessionState((mkt), (date), &s, &_p, &_n);                        \
-        if (s != (expected)) {                                                   \
-            fprintf(stderr, "FAIL %s: state expected %s got %s\n",               \
-                    __func__, stateName(expected), stateName(s));                \
-            failures++;                                                          \
-        }                                                                        \
-    } while (0)
-
-#define ASSERT_SECS_NEAR(mkt, date, expected, tolerance)                         \
-    do {                                                                         \
-        SessionState _s; double _p; long actual;                                 \
-        computeSessionState((mkt), (date), &_s, &_p, &actual);                   \
-        long diff = actual > (expected) ? actual - (expected) : (expected) - actual; \
-        if (diff > (tolerance)) {                                                \
-            fprintf(stderr, "FAIL %s: secsToNext expected ~%ld got %ld (diff %ld)\n", \
-                    __func__, (long)(expected), actual, diff);                   \
-            failures++;                                                          \
-        }                                                                        \
-    } while (0)
-
-#define ASSERT_PROGRESS_NEAR(mkt, date, expected, tolerance)                     \
-    do {                                                                         \
-        SessionState _s; double actual; long _n;                                 \
-        computeSessionState((mkt), (date), &_s, &actual, &_n);                   \
-        double diff = actual > (expected) ? actual - (expected) : (expected) - actual; \
-        if (diff > (tolerance)) {                                                \
-            fprintf(stderr, "FAIL %s: progress expected ~%.3f got %.3f (diff %.3f)\n", \
-                    __func__, (double)(expected), actual, diff);                 \
-            failures++;                                                          \
-        }                                                                        \
-    } while (0)
+// Computed test count (DRY 2026-06-12): the old hardcoded "All N tests
+// passed" drifted every time a fixture was added. RUN_TEST counts at the
+// call site — the printed number can no longer lie.
+static int testCount = 0;
+#define RUN_TEST(fn) do { fn(); testCount++; } while (0)
 
 // ---- Cases ----
 
@@ -96,7 +45,7 @@ static void test_nyse_closed_before_open_today(void) {
     // before the 09:30 open. Expected secsToNext = 2h 30m = 9000 s.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 7, 0, 0);
-    ASSERT_STATE(nyse, d, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d, kSessionClosed);
     ASSERT_SECS_NEAR(nyse, d, 9000, 5);
 }
 
@@ -104,7 +53,7 @@ static void test_nyse_open_midsession(void) {
     // Friday 12:00 EDT = 2h30m after open, 4h until close (16:00).
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 12, 0, 0);
-    ASSERT_STATE(nyse, d, kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, d, kSessionOpen);
     ASSERT_SECS_NEAR(nyse, d, 4 * 3600, 5);
 }
 
@@ -113,7 +62,7 @@ static void test_nyse_closed_friday_evening_skips_to_monday(void) {
     // 61h 30m = 221400 s.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 20, 0, 0);
-    ASSERT_STATE(nyse, d, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d, kSessionClosed);
     ASSERT_SECS_NEAR(nyse, d, 61 * 3600 + 30 * 60, 120);
 }
 
@@ -122,7 +71,7 @@ static void test_nyse_saturday_weekend(void) {
     // at Saturday noon → 149400 s.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 25, 12, 0, 0);
-    ASSERT_STATE(nyse, d, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d, kSessionClosed);
     ASSERT_SECS_NEAR(nyse, d, 45 * 3600 + 30 * 60, 120);
 }
 
@@ -132,16 +81,16 @@ static void test_nyse_premarket_last_15min(void) {
     // before = PRE-MARKET. 09:10 is 20 min before = still CLOSED.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d_pre  = dateAt(@"America/New_York", 2026, 4, 24, 9, 20, 0);
-    ASSERT_STATE(nyse, d_pre, kSessionPreMarket);
+    ASSERT_SESSION_STATE(nyse, d_pre, kSessionPreMarket);
     ASSERT_SECS_NEAR(nyse, d_pre, 10 * 60, 5);
 
     NSDate *d_closed_earlier = dateAt(@"America/New_York", 2026, 4, 24, 9, 10, 0);
-    ASSERT_STATE(nyse, d_closed_earlier, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d_closed_earlier, kSessionClosed);
 
     // Edge: exactly at open should be OPEN (not PRE-MARKET — the PRE
     // promotion requires nowMins < openMins).
     NSDate *d_open = dateAt(@"America/New_York", 2026, 4, 24, 9, 30, 0);
-    ASSERT_STATE(nyse, d_open, kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, d_open, kSessionOpen);
 }
 
 static void test_tse_premarket_not_just_nyse(void) {
@@ -152,12 +101,12 @@ static void test_tse_premarket_not_just_nyse(void) {
     const ClockMarket *tse = marketForId(@"tse");
     // 08:50 JST on Fri 2026-04-24 (early hours pre-open)
     NSDate *d_pre = dateAt(@"Asia/Tokyo", 2026, 4, 24, 8, 50, 0);
-    ASSERT_STATE(tse, d_pre, kSessionPreMarket);
+    ASSERT_SESSION_STATE(tse, d_pre, kSessionPreMarket);
     ASSERT_SECS_NEAR(tse, d_pre, 10 * 60, 5);
 
     // 08:30 JST = 30 min before = still CLOSED (outside the 15-min window).
     NSDate *d_closed = dateAt(@"Asia/Tokyo", 2026, 4, 24, 8, 30, 0);
-    ASSERT_STATE(tse, d_closed, kSessionClosed);
+    ASSERT_SESSION_STATE(tse, d_closed, kSessionClosed);
 }
 
 static void test_premarket_not_on_weekend(void) {
@@ -166,7 +115,7 @@ static void test_premarket_not_on_weekend(void) {
     const ClockMarket *nyse = marketForId(@"nyse");
     // Sat 2026-04-25 09:20 EDT — weekday-schedule would say pre-open.
     NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 9, 20, 0);
-    ASSERT_STATE(nyse, d_sat, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d_sat, kSessionClosed);
 }
 
 static void test_nyse_afterhours_first_15min(void) {
@@ -176,18 +125,18 @@ static void test_nyse_afterhours_first_15min(void) {
     // = back to CLOSED. 15:59 is still OPEN (mid-session boundary).
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d_after = dateAt(@"America/New_York", 2026, 4, 24, 16, 10, 0);
-    ASSERT_STATE(nyse, d_after, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, d_after, kSessionAfterHours);
 
     NSDate *d_closed_later = dateAt(@"America/New_York", 2026, 4, 24, 16, 30, 0);
-    ASSERT_STATE(nyse, d_closed_later, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d_closed_later, kSessionClosed);
 
     // Edge: exactly at close should be CLOSED→AFTER-HOURS (nowMins >= closeMins).
     NSDate *d_close = dateAt(@"America/New_York", 2026, 4, 24, 16, 0, 0);
-    ASSERT_STATE(nyse, d_close, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, d_close, kSessionAfterHours);
 
     // Edge: 15:59 is still mid-session.
     NSDate *d_open = dateAt(@"America/New_York", 2026, 4, 24, 15, 59, 0);
-    ASSERT_STATE(nyse, d_open, kSessionOpen);
+    ASSERT_SESSION_STATE(nyse, d_open, kSessionOpen);
 }
 
 static void test_afterhours_not_on_weekend(void) {
@@ -196,7 +145,7 @@ static void test_afterhours_not_on_weekend(void) {
     // must stay CLOSED — markets don't post-close-auction on Saturdays.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d_sat = dateAt(@"America/New_York", 2026, 4, 25, 16, 10, 0);
-    ASSERT_STATE(nyse, d_sat, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, d_sat, kSessionClosed);
 }
 
 static void test_premarket_progress_is_zero(void) {
@@ -206,7 +155,7 @@ static void test_premarket_progress_is_zero(void) {
     // is neither OPEN/LUNCH nor nowMins >= closeMins. Lock it.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 9, 20, 0);
-    ASSERT_STATE(nyse, d, kSessionPreMarket);
+    ASSERT_SESSION_STATE(nyse, d, kSessionPreMarket);
     ASSERT_PROGRESS_NEAR(nyse, d, 0.0, 0.001);
 }
 
@@ -217,7 +166,7 @@ static void test_afterhours_progress_is_one(void) {
     // branch before the AFTER-HOURS state promotion.
     const ClockMarket *nyse = marketForId(@"nyse");
     NSDate *d = dateAt(@"America/New_York", 2026, 4, 24, 16, 10, 0);
-    ASSERT_STATE(nyse, d, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, d, kSessionAfterHours);
     ASSERT_PROGRESS_NEAR(nyse, d, 1.0, 0.001);
 }
 
@@ -373,19 +322,19 @@ static void test_signal_window_pref_gates_premarket(void) {
 
     // "off" disables promotion: 10 min pre-open stays CLOSED.
     [d setObject:@"off" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, t, kSessionClosed);
 
     // "5min" is too narrow at T-10min: still CLOSED.
     [d setObject:@"5min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, t, kSessionClosed);
 
     // "15min" / "30min" / "60min" all cover T-10min: PRE-MARKET.
     [d setObject:@"15min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionPreMarket);
+    ASSERT_SESSION_STATE(nyse, t, kSessionPreMarket);
     [d setObject:@"30min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionPreMarket);
+    ASSERT_SESSION_STATE(nyse, t, kSessionPreMarket);
     [d setObject:@"60min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionPreMarket);
+    ASSERT_SESSION_STATE(nyse, t, kSessionPreMarket);
 
     // Restore.
     if (saved) [d setObject:saved forKey:@"SessionSignalWindow"];
@@ -404,19 +353,19 @@ static void test_signal_window_pref_gates_afterhours(void) {
 
     // "off" disables promotion: 10 min post-close stays CLOSED.
     [d setObject:@"off" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, t, kSessionClosed);
 
     // "5min" is too narrow at T+10min: back to CLOSED.
     [d setObject:@"5min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionClosed);
+    ASSERT_SESSION_STATE(nyse, t, kSessionClosed);
 
     // "15min" / "30min" / "60min" all cover T+10min: AFTER-HOURS.
     [d setObject:@"15min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, t, kSessionAfterHours);
     [d setObject:@"30min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, t, kSessionAfterHours);
     [d setObject:@"60min" forKey:@"SessionSignalWindow"];
-    ASSERT_STATE(nyse, t, kSessionAfterHours);
+    ASSERT_SESSION_STATE(nyse, t, kSessionAfterHours);
 
     // Restore.
     if (saved) [d setObject:saved forKey:@"SessionSignalWindow"];
@@ -428,7 +377,7 @@ static void test_tse_lunch_window(void) {
     // and secsToNext is 30min = 1800s to lunchEnd.
     const ClockMarket *tse = marketForId(@"tse");
     NSDate *d = dateAt(@"Asia/Tokyo", 2026, 4, 24, 12, 0, 0);
-    ASSERT_STATE(tse, d, kSessionLunch);
+    ASSERT_SESSION_STATE(tse, d, kSessionLunch);
     ASSERT_SECS_NEAR(tse, d, 30 * 60, 5);
 }
 
@@ -797,108 +746,113 @@ static void test_full_tz_label_composition(void) {
 
 int main(void) {
     @autoreleasepool {
-        test_nyse_closed_before_open_today();
-        test_nyse_open_midsession();
-        test_nyse_closed_friday_evening_skips_to_monday();
-        test_nyse_saturday_weekend();
-        test_nyse_premarket_last_15min();
-        test_tse_premarket_not_just_nyse();
-        test_premarket_not_on_weekend();
-        test_nyse_afterhours_first_15min();
-        test_afterhours_not_on_weekend();
-        test_premarket_progress_is_zero();
-        test_afterhours_progress_is_one();
-        test_state_invariants_24h_sweep();
-        test_state_invariants_tse_sweep();
-        test_state_invariants_jse_sweep();
-        test_state_invariants_asx_sweep();
-        test_state_invariants_lse_sweep();
-        test_state_invariants_b3_sweep();
-        test_weekend_always_closed();
-        test_auction_watcher_sets_extended_window();
-        test_signal_window_pref_gates_premarket();
-        test_signal_window_pref_gates_afterhours();
-        test_tse_lunch_window();
-        test_progress_roughly_correct();
+        RUN_TEST(test_nyse_closed_before_open_today);
+        RUN_TEST(test_nyse_open_midsession);
+        RUN_TEST(test_nyse_closed_friday_evening_skips_to_monday);
+        RUN_TEST(test_nyse_saturday_weekend);
+        RUN_TEST(test_nyse_premarket_last_15min);
+        RUN_TEST(test_tse_premarket_not_just_nyse);
+        RUN_TEST(test_premarket_not_on_weekend);
+        RUN_TEST(test_nyse_afterhours_first_15min);
+        RUN_TEST(test_afterhours_not_on_weekend);
+        RUN_TEST(test_premarket_progress_is_zero);
+        RUN_TEST(test_afterhours_progress_is_one);
+        RUN_TEST(test_state_invariants_24h_sweep);
+        RUN_TEST(test_state_invariants_tse_sweep);
+        RUN_TEST(test_state_invariants_jse_sweep);
+        RUN_TEST(test_state_invariants_asx_sweep);
+        RUN_TEST(test_state_invariants_lse_sweep);
+        RUN_TEST(test_state_invariants_b3_sweep);
+        RUN_TEST(test_weekend_always_closed);
+        RUN_TEST(test_auction_watcher_sets_extended_window);
+        RUN_TEST(test_signal_window_pref_gates_premarket);
+        RUN_TEST(test_signal_window_pref_gates_afterhours);
+        RUN_TEST(test_tse_lunch_window);
+        RUN_TEST(test_progress_roughly_correct);
 
-        test_abbrev_london_dst_vs_standard();
-        test_abbrev_paris_dst_vs_standard();
-        test_abbrev_new_york_dst_vs_standard();
-        test_abbrev_sydney_inverted();
-        test_abbrev_no_dst_zones();
-        test_utc_offset_format();
-        test_full_tz_label_composition();
+        RUN_TEST(test_abbrev_london_dst_vs_standard);
+        RUN_TEST(test_abbrev_paris_dst_vs_standard);
+        RUN_TEST(test_abbrev_new_york_dst_vs_standard);
+        RUN_TEST(test_abbrev_sydney_inverted);
+        RUN_TEST(test_abbrev_no_dst_zones);
+        RUN_TEST(test_utc_offset_format);
+        RUN_TEST(test_full_tz_label_composition);
 
-        test_city_codes_for_all_markets();
-        test_flag_emoji_present_for_all_markets();
-        test_market_roster_lock();
-        test_holiday_calendar_nyse();
-        test_holiday_calendar_lse();
-        test_holiday_calendar_tse();
-        test_holiday_calendar_hkex();
-        test_holiday_calendar_target2();
-        test_holiday_calendar_asx();
-        test_holiday_calendar_tsx();
-        test_holiday_calendar_six();
-        test_holiday_calendar_sse();
-        test_holiday_calendar_krx();
-        test_holiday_calendar_nse();
-        test_holiday_calendar_jse();
-        test_holiday_calendar_b3();
-        test_halfday_calendar_nyse();
-        test_halfday_calendar_lse_and_target2();
-        test_halfday_calendar_hkex_and_tsx();
-        test_halfday_calendar_jse_and_asx();
-        test_nyse_halfday_state_closed();
-        test_nyse_holiday_state_closed();
-        test_holiday_chains_through_weekend();
-        test_flag_empty_for_unknown_iana();
+        RUN_TEST(test_city_codes_for_all_markets);
+        RUN_TEST(test_flag_emoji_present_for_all_markets);
+        RUN_TEST(test_market_roster_lock);
+        RUN_TEST(test_holiday_calendar_nyse);
+        RUN_TEST(test_holiday_calendar_lse);
+        RUN_TEST(test_holiday_calendar_tse);
+        RUN_TEST(test_holiday_calendar_hkex);
+        RUN_TEST(test_holiday_calendar_target2);
+        RUN_TEST(test_holiday_calendar_asx);
+        RUN_TEST(test_holiday_calendar_tsx);
+        RUN_TEST(test_holiday_calendar_six);
+        RUN_TEST(test_holiday_calendar_sse);
+        RUN_TEST(test_holiday_calendar_krx);
+        RUN_TEST(test_holiday_calendar_nse);
+        RUN_TEST(test_holiday_calendar_jse);
+        RUN_TEST(test_holiday_calendar_b3);
+        RUN_TEST(test_halfday_calendar_nyse);
+        RUN_TEST(test_halfday_calendar_lse_and_target2);
+        RUN_TEST(test_halfday_calendar_hkex_and_tsx);
+        RUN_TEST(test_halfday_calendar_jse_and_asx);
+        RUN_TEST(test_nyse_halfday_state_closed);
+        RUN_TEST(test_nyse_holiday_state_closed);
+        RUN_TEST(test_holiday_chains_through_weekend);
+        RUN_TEST(test_flag_empty_for_unknown_iana);
 
-        test_starter_profiles_cover_all_keys();
-        test_starter_profiles_count();
-        test_profile_managed_keys_covers_iter126_lever();
+        RUN_TEST(test_starter_profiles_cover_all_keys);
+        RUN_TEST(test_starter_profiles_count);
+        RUN_TEST(test_profile_managed_keys_covers_iter126_lever);
 
-        test_countdown_fancy_format();
-        test_lunch_markets_identified();
+        RUN_TEST(test_countdown_fancy_format);
+        RUN_TEST(test_lunch_markets_identified);
 
-        test_landing_same_day_same_weekday();
-        test_landing_cross_day_cross_weekday();
-        test_landing_cross_day_same_weekday();
-        test_landing_empty_iana();
+        RUN_TEST(test_landing_same_day_same_weekday);
+        RUN_TEST(test_landing_cross_day_cross_weekday);
+        RUN_TEST(test_landing_cross_day_same_weekday);
+        RUN_TEST(test_landing_empty_iana);
 
         // Lever / dispatcher tests (declared in test_levers.h,
         // defined in test_levers.m; share the `failures` counter).
-        test_font_weight_parser();
-        test_segment_weight_fallback();
-        test_segment_opacity_fallback();
-        test_progress_bar_glyph_styles();
-        test_theme_catalog_invariants();
-        test_letter_spacing_parser();
-        test_line_spacing_parser();
-        test_date_format_prefix();
-        test_sky_glyph_phases();
-        test_segment_gap_points();
-        test_density_pad_points();
-        test_corner_radius_points();
-        test_current_time_format();
-        test_quick_styles_invariants();
-        test_shadow_spec_catalog();
-        test_session_signal_window();
-        test_session_state_label();
-        test_session_state_color();
-        test_state_is_trading();
-        test_clipboard_header_format();
-        test_urgency_color_tiers();
-        test_urgency_continuous_and_flash();
-        test_urgency_horizon_dispatcher();
-        test_urgency_flash_intensity();
-        test_week_fraction();
-        test_phase_color_for_hour();
-        test_moon_phase();
-        test_solar_events();
+        RUN_TEST(test_font_weight_parser);
+        RUN_TEST(test_segment_weight_fallback);
+        RUN_TEST(test_segment_opacity_fallback);
+        RUN_TEST(test_progress_bar_glyph_styles);
+        RUN_TEST(test_theme_catalog_invariants);
+        RUN_TEST(test_letter_spacing_parser);
+        RUN_TEST(test_line_spacing_parser);
+        RUN_TEST(test_date_format_prefix);
+        RUN_TEST(test_sky_glyph_phases);
+        RUN_TEST(test_segment_gap_points);
+        RUN_TEST(test_density_pad_points);
+        RUN_TEST(test_corner_radius_points);
+        RUN_TEST(test_current_time_format);
+        RUN_TEST(test_quick_styles_invariants);
+        RUN_TEST(test_shadow_spec_catalog);
+        RUN_TEST(test_segment_border_spec_catalog);
+        RUN_TEST(test_solar_canvas_color_ramp);
+        RUN_TEST(test_overlay_stacking_positioner);
+        RUN_TEST(test_overlay_frame_with_width);
+        RUN_TEST(test_mute_readers_guard);
+        RUN_TEST(test_session_signal_window);
+        RUN_TEST(test_session_state_label);
+        RUN_TEST(test_session_state_color);
+        RUN_TEST(test_state_is_trading);
+        RUN_TEST(test_clipboard_header_format);
+        RUN_TEST(test_urgency_color_tiers);
+        RUN_TEST(test_urgency_continuous_and_flash);
+        RUN_TEST(test_urgency_horizon_dispatcher);
+        RUN_TEST(test_urgency_flash_intensity);
+        RUN_TEST(test_week_fraction);
+        RUN_TEST(test_phase_color_for_hour);
+        RUN_TEST(test_moon_phase);
+        RUN_TEST(test_solar_events);
 
         if (failures == 0) {
-            fprintf(stderr, "All 91 tests passed.\n");
+            fprintf(stderr, "All %d tests passed.\n", testCount);
             return 0;
         }
         fprintf(stderr, "%d test(s) failed.\n", failures);
