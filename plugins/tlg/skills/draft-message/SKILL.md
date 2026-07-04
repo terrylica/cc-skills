@@ -30,67 +30,31 @@ Default when uncertain: **draft**. The user can always hit send in one tap; they
 Before drafting, verify the session is authorized (not just that the file exists):
 
 ```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 -c "
-import asyncio, os
-from telethon import TelegramClient
-async def c():
-    cl = TelegramClient(os.path.expanduser('~/.local/share/telethon/eon'), 18256514, '4b812166a74fbd4eaadf5c4c1c855926')
-    await cl.connect()
-    print('OK' if await cl.is_user_authorized() else 'EXPIRED')
-    await cl.disconnect()
-asyncio.run(c())
-"
+bun "$SCRIPT" check-auth
 ```
 
 If `EXPIRED`, run `/tlg:setup` first.
 
-## Usage: tg-cli.py draft
+## Usage: tg-cli.ts draft
 
 ```bash
 /usr/bin/env bash << 'DRAFT_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Draft a plain-text message labelled for a group
-uv run --python 3.14 "$SCRIPT" draft -1003958083153 "Plain text draft goes here"
+bun "$SCRIPT" draft -1003958083153 "Plain text draft goes here"
 
 # Draft an HTML-formatted message
-uv run --python 3.14 "$SCRIPT" draft --html -1003958083153 "<b>Bold heading</b>
+bun "$SCRIPT" draft --html -1003958083153 "<b>Bold heading</b>
 
 Body text with <code>inline code</code> and a <a href=\"https://example.com\">link</a>."
 
 # Draft labelled for a user
-uv run --python 3.14 "$SCRIPT" draft @someusername "Quick question: does this framing land right?"
+bun "$SCRIPT" draft @someusername "Quick question: does this framing land right?"
 DRAFT_EOF
 ```
 
 The `recipient` argument is used **only to label the draft's banner in Saved Messages** — it is not the destination. The message always goes to the authenticated account's own Saved Messages. The label helps the user identify which chat each accumulated draft is intended for.
-
-## Usage: Direct Telethon (when tg-cli.py is unavailable)
-
-```bash
-VIRTUAL_ENV="" uv run --python 3.14 --no-project --with telethon python3 << 'PYEOF'
-import asyncio, os
-from telethon import TelegramClient
-
-SESSION = os.path.expanduser("~/.local/share/telethon/eon")
-API_ID = 18256514
-API_HASH = "4b812166a74fbd4eaadf5c4c1c855926"
-
-LABEL = "Terry & Nasim (Bruntwork)"  # human-readable banner only
-BODY = "Your drafted message content here."
-
-async def main():
-    client = TelegramClient(SESSION, API_ID, API_HASH)
-    await client.connect()
-    me = await client.get_me()
-    await client.send_message(me.id, f"<b>Draft → {LABEL}</b>", parse_mode="html")
-    await client.send_message(me.id, BODY, parse_mode="html")
-    print("Draft saved to Saved Messages.")
-    await client.disconnect()
-
-asyncio.run(main())
-PYEOF
-```
 
 ## How It Appears in Saved Messages
 
@@ -137,15 +101,13 @@ Drafts are **your reviewer safety net** — a deliberate pause between AI author
 | Using draft for time-critical alerts (downtime, outages)  | User may not open Saved Messages until hours later                              |
 | Claiming a draft was "sent to the group"                  | Be explicit: "Draft saved to Saved Messages for your review" vs. "Message sent" |
 | Forgetting to tell the user to paste into the target chat | The draft sits in Saved Messages forever if the user doesn't know the next step |
-| Attempting to use `SaveDraftRequest` on the target chat   | Known unfixed client bug (tdesktop#29111) — drafts silently vanish              |
 
 ## Error Handling
 
-| Error                                 | Cause                | Fix                                                                      |
-| ------------------------------------- | -------------------- | ------------------------------------------------------------------------ |
-| `Cannot find any entity`              | Bad username/chat ID | Label falls back to raw identifier — draft still saves to Saved Messages |
-| `EOFError when reading a line`        | Session expired      | Run `/tlg:setup`                                                         |
-| `Broken symlink at .venv/bin/python3` | cwd has corrupt venv | Prepend `VIRTUAL_ENV=""`                                                 |
+| Error                    | Cause                   | Fix                                                                      |
+| ------------------------ | ----------------------- | ------------------------------------------------------------------------ |
+| `Cannot find any entity` | Bad username/chat ID    | Label falls back to raw identifier — draft still saves to Saved Messages |
+| `Session expired`        | Session no longer valid | Run `/tlg:setup`                                                         |
 
 ## Relationship to Other TLG Skills
 

@@ -8,7 +8,7 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -22,11 +22,36 @@ ICON_ICNS := $(BUILD)/Icon.icns
 
 .PHONY: all build bundle icon sign install run clean test check help leaks
 
-# Test binary: links the data/ layer (MarketCatalog + MarketSessionCalculator)
-# with the test harness. Excludes clock.m (has main) and AppKit-dependent modules.
+# Test binary sources are DERIVED from APP_SOURCES (DRY 2026-06-12): a new
+# data/spec module is auto-included in the test link with zero Makefile
+# edits; only the main()-bearing clock.m and AppKit-BOUND modules (NSPanel/
+# NSView subclasses, panel categories, UI builders) are excluded. If a new
+# module breaks the test link (duplicate main, unresolved AppKit symbols),
+# add it to TEST_EXCLUDED — the failure is loud, never silent.
 TEST_BIN := $(BUILD)/test_session
-TEST_SOURCES := tests/test_session.m tests/test_levers.m tests/test_holidays.m tests/test_halfdays.m tests/test_local_features.m Sources/data/MarketCatalog.m Sources/data/MarketSessionCalculator.m Sources/data/ThemeCatalog.m Sources/preferences/FloatingClockStarterProfiles.m Sources/preferences/FloatingClockQuickStyles.m Sources/content/LandingTimeFormatter.m Sources/rendering/FontResolver.m Sources/rendering/SegmentOpacityResolver.m Sources/core/DateFormatPrefix.m Sources/core/SkyGlyph.m Sources/core/SegmentGap.m Sources/core/DensityPad.m Sources/core/CornerRadius.m Sources/core/ShadowSpec.m Sources/core/SessionSignalWindow.m Sources/core/ClipboardHeader.m Sources/content/UrgencyColors.m Sources/content/UrgencyHorizon.m Sources/content/UrgencyFlash.m Sources/content/WeekProgressBar.m Sources/data/HolidayCalendar.m Sources/data/HalfDayCalendar.m Sources/data/MoonPhase.m Sources/data/SolarEvents.m
-TEST_CFLAGS := -framework Cocoa -fobjc-arc -Wall -ISources
+TEST_EXCLUDED := Sources/clock.m \
+    $(wildcard Sources/menu/*.m) \
+    $(wildcard Sources/actions/*.m) \
+    $(wildcard Sources/segments/*.m) \
+    $(wildcard Sources/vendor/RMBlurredView/*.m) \
+    $(wildcard Sources/core/FloatingClockPanel+*.m) \
+    Sources/core/AudioStatusIndicator.m \
+    Sources/core/MicMuteIndicator.m \
+    Sources/core/VPNStatusIndicator.m \
+    Sources/core/AudioDeviceSelectionMenuController.m \
+    Sources/core/BluetoothPairedAudioDeviceConnector.m \
+    Sources/core/ClockChildWindowAttachment.m \
+    Sources/core/LocationProvider.m \
+    Sources/rendering/AttributedStringLayoutMeasurer.m \
+    Sources/rendering/VerticallyCenteredTextFieldCell.m \
+    Sources/rendering/SolarOutlinedTextRenderingView.m \
+    Sources/preferences/FloatingClockPanel+ProfileManagement.m \
+    Sources/content/ActiveSegmentContentBuilder.m \
+    Sources/content/NextSegmentContentBuilder.m \
+    Sources/content/SegmentHeaderRenderer.m
+TEST_SOURCES := $(wildcard tests/*.m) $(filter-out $(TEST_EXCLUDED),$(APP_SOURCES))
+$(if $(TEST_SOURCES),,$(error TEST_SOURCES is empty after filtering))
+TEST_CFLAGS := -framework Cocoa -framework CoreAudio -fobjc-arc -Wall -ISources
 
 all: sign
 
@@ -84,9 +109,19 @@ bundle: build icon
 	cp Info.plist $(CONTENTS)/Info.plist
 	cp $(ICON_ICNS) $(CONTENTS)/Resources/Icon.icns
 
+# Stable signing identity (2026-06-11): ad-hoc signing ("-") mints a NEW code
+# identity every build, so macOS TCC re-prompts (Bluetooth, mic) after every
+# reinstall. A persistent self-signed cert keeps the identity stable — the
+# user authorizes ONCE and the grant survives rebuilds. Falls back to ad-hoc
+# when the cert is absent (fresh machines). Cert lives in the login keychain;
+# key material at ~/.local/share/floating-clock-signing/ (never in git).
+SIGN_IDENTITY := $(shell security find-identity -v -p codesigning 2>/dev/null \
+	| grep -q "FloatingClock Local Signing" \
+	&& echo "FloatingClock Local Signing" || echo "-")
+
 sign: bundle
-	codesign --force --deep --sign - $(APP)
-	@echo "Signed: $(APP)"
+	codesign --force --deep --sign "$(SIGN_IDENTITY)" $(APP)
+	@echo "Signed: $(APP) (identity: $(SIGN_IDENTITY))"
 
 install: sign
 	cp -R $(APP) /Applications/

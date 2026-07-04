@@ -12,26 +12,26 @@ Resolve usernames, phone numbers, or IDs to full user/chat profile information.
 
 ## Preflight
 
-1. Session must exist: `~/.local/share/telethon/<profile>.session`
+1. Session must exist: `~/.local/share/gramjs/<profile>.session`
    - If missing, run `/tlg:setup` first
 
 ## Usage
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # By username
-uv run --python 3.14 "$SCRIPT" find-user @username
+bun "$SCRIPT" find-user @username
 
 # By user ID
-uv run --python 3.14 "$SCRIPT" find-user 2124832490
+bun "$SCRIPT" find-user 2124832490
 
 # By phone (must be in contacts)
-uv run --python 3.14 "$SCRIPT" find-user +16043008878
+bun "$SCRIPT" find-user +16043008878
 
 # Works for groups/channels too
-uv run --python 3.14 "$SCRIPT" find-user @channelname
+bun "$SCRIPT" find-user @channelname
 EOF
 ```
 
@@ -68,7 +68,7 @@ For groups/channels:
 After this skill completes, check before closing:
 
 1. **Did the command succeed?** — If not, fix the instruction or error table that caused the failure.
-2. **Did parameters or output change?** — If tg-cli.py's interface drifted, update Usage examples and Parameters table to match.
+2. **Did parameters or output change?** — If tg-cli.ts's interface drifted, update Usage examples and Parameters table to match.
 3. **Was a workaround needed?** — If you had to improvise (different flags, extra steps), update this SKILL.md so the next invocation doesn't need the same workaround.
 
 Only update if the issue is real and reproducible — not speculative.

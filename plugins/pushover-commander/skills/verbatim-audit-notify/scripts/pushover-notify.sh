@@ -11,7 +11,7 @@
 #     to retrieve the full verbatim entry. Pushover message body capped
 #     at 1024 chars (per pushover.net/api); use the JSONL for the long tail.
 #   - Credentials come from 1Password Claude Automation vault by default
-#     (item dg5ng7vgj6dmmtc2vavo5kfko4). Override via env for testing.
+#     (item <pushover-item>). Override via env for testing.
 #
 # Usage:
 #   pushover-notify.sh \
@@ -56,7 +56,7 @@ readonly MAX_TITLE_CHARS=250   # Pushover API limit
 # 1Password item holding cc-skills Pushover credentials.
 # Override via env (PUSHOVER_TOKEN, PUSHOVER_USER) for testing or non-1P flows.
 readonly OP_VAULT="Claude Automation"
-readonly OP_ITEM_ID="dg5ng7vgj6dmmtc2vavo5kfko4"
+readonly OP_ITEM_ID="${PUSHOVER_OP_ITEM_ID:-<pushover-item>}"
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -91,6 +91,8 @@
             item.state = on ? NSControlStateValueOn : NSControlStateValueOff;
         } else if ([item.title isEqualToString:@"Show Progress %"]) {
             item.state = [d boolForKey:@"ShowProgressPercent"] ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show Audio Bar"]) {
+            item.state = [d boolForKey:@"AudioBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
             id currentValue = nil;

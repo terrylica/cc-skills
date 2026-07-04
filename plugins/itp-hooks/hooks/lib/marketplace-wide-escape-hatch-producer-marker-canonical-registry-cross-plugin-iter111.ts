@@ -10,7 +10,7 @@
  * `INLINE-IGNORE-OK`, `CARGO-TTY-SKIP`/`CARGO-TTY-WRAP`,
  * `LAYER3-STRIPPED-PATH-OK`, `CWD-DELETE-OK`, `INIT-MONOLITH-OK`,
  * `PUEUE-LOCAL-OK`, etc.) scattered across producer files in 7+ plugins
- * (gmail-commander, calcom-commander, autoloop, quality-tools,
+ * (gmail-commander, calcom-commander, quality-tools,
  * statusline-tools, itp-hooks, agent-reach) with NO single document
  * answering the new-contributor's question:
  *
@@ -181,6 +181,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Opt IN to cargo-tty-guard's PUEUE-wrapping even when the heuristic doesn't trigger automatically. Used when the operator knows their cargo invocation will inherit a contested TTY and wants the daemon path explicitly.",
     },
     {
+      markerNameTokenIncludingSuffix: "CROWN-JEWEL-PLAIN-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).",
+    },
+    {
       markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs",
@@ -189,6 +199,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a bash command that the cwd-deletion-guard would otherwise block as a CWD-deleting `rm -rf` (or equivalent). Used when the operator has verified the rm target is safe (e.g., target is a sibling, not the CWD itself, and the regex false-positives).",
+    },
+    {
+      markerNameTokenIncludingSuffix: "FGPAT-REMINDER-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.",
     },
     {
       markerNameTokenIncludingSuffix: "FILE-SIZE-OK",
@@ -231,6 +251,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a single inline lint-suppression comment (covering the four families: Python ruff suppressions, Python ty type-checker suppressions, ESLint per-line and per-block suppressions, and the Bun-ecosystem fast-linter suppressions) on the SAME LINE as this marker. Used when a tool/library limitation genuinely requires the suppression — config-file-level suppression in ruff/ty/oxlint/biome configuration files is still strongly preferred when possible.",
     },
     {
+      markerNameTokenIncludingSuffix: "INVENTED-FALLBACK-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
+    },
+    {
       markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
@@ -245,6 +275,26 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         `Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
     },
     {
+      markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.",
+    },
+    {
+      markerNameTokenIncludingSuffix: "MD-TABLE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.",
+    },
+    {
       markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/process-storm-patterns.mjs",
@@ -252,7 +302,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots, autoloop heartbeat) where the pattern is intentional.",
+        "Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.",
     },
     {
       markerNameTokenIncludingSuffix: "PUEUE-LOCAL-OK",

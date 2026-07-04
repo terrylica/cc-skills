@@ -29,8 +29,11 @@
 set -euo pipefail
 
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
-# disable bash 5.2+ `&`-as-backreference. See
-# plugins/autoloop/hooks/heartbeat-tick.sh for full rationale.
+# disable bash 5.2+ `&`-as-backreference in ${VAR//PATTERN/REPLACEMENT}.
+# Bash 5.2 made `&` in replacement strings expand as backreference to the match
+# (standard sed-like behavior). Pre-5.2 it was literal. This breaks cross-version
+# portability. Use `shopt -u patsub_replacement` to disable the feature globally.
+# (bash maintainer @chet-ramey, Arch pacman patch #72681).
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,7 +61,9 @@ hook_injects_context() {
   payload=$(jq -n --arg p "$prompt_text" '{prompt: $p}')
   local hook_stdout
   hook_stdout=$(printf '%s' "$payload" | "$HOOK_UNDER_TEST" 2>/dev/null || true)
-  if echo "$hook_stdout" | grep -q '\[1PASSWORD-CONTEXT\]'; then
+  # Marker renamed to [SELF-CUSTODY SECRETS] when the hook adopted the SCS
+  # doctrine (broadened beyond 1Password to the full operator-controlled stack).
+  if echo "$hook_stdout" | grep -q '\[SELF-CUSTODY SECRETS\]'; then
     return 0
   else
     return 1
@@ -238,6 +243,46 @@ assert_silent \
 assert_silent \
   "math question — no keywords" \
   "What is the time complexity of mergesort?"
+
+# ---------------------------------------------------------------------------
+# INVARIANT E: Self-Custody Secrets (SCS) stack keywords now also trigger
+# the doctrine — the hook broadened beyond 1Password.
+# ---------------------------------------------------------------------------
+echo ""
+echo "=== INVARIANT E: SCS-stack keywords trigger the doctrine ==="
+
+assert_injects_context \
+  "macOS Keychain reference" \
+  "Store the token in the macOS Keychain instead."
+
+assert_injects_context \
+  "SOPS reference" \
+  "Encrypt the secrets with sops in the repo."
+
+assert_injects_context \
+  "age-keygen reference" \
+  "Generate a key with age-keygen for the backup."
+
+assert_injects_context \
+  "self-custody phrase" \
+  "Move everything to a self-custody setup."
+
+assert_injects_context \
+  "generic-password reference" \
+  "Use security add-generic-password to store it."
+
+assert_injects_context \
+  "bare 'credential' keyword" \
+  "Where should this credential live?"
+
+# SCS-adjacent false-friends that must STAY SILENT (no \\b-bounded match)
+assert_silent \
+  "'age' inside 'page'/'manage'/'storage' must not fire" \
+  "How do I manage a page of storage usage stats?"
+
+assert_silent \
+  "'key' alone is not a trigger" \
+  "What is the primary key of this table?"
 
 # ---------------------------------------------------------------------------
 # Summary

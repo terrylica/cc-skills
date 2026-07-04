@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-38-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-39-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -14,9 +14,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
 | [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.             | productivity  |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
-| [autoloop](./plugins/autoloop/)                         | Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work. Dynamic pacing via ScheduleWakeup + Monitor fallback. Commands: /autoloop:start, /autoloop:muster, /autoloop:stop, /autoloop:reclaim, /autoloop:triage, /autoloop:setup                     | automation    |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
-| [chronicle-share](./plugins/chronicle-share/)           | Producer-side session chronicle sharing pipeline: bundle -> sanitize -> Cloudflare R2 -> presigned URL (skeleton, not yet functional)                                                                                                                                | devops        |
 | [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
@@ -30,7 +28,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [gmail-commander](./plugins/gmail-commander/)           | Gmail bot + CLI lifecycle: 1Password OAuth, scheduled email triage via Agent SDK Haiku, interactive Telegram bot                                                                                                                                                     | productivity  |
 | [html-showcase](./plugins/html-showcase/)               | Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, dashboards); single design-system SSoT via jsDelivr, per-page CSS overrides                                                                                                      | documents     |
 | [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release                                                                                                                                                              | productivity  |
-| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement + code correctness: PreToolUse / PostToolUse / Stop hooks for SSoT principles, file-size guard, type checks, ASCII art blocking, ty/oxlint/biome lint, autoloop stall guard                                                                 | enforcement   |
+| [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement + code correctness: PreToolUse / PostToolUse / Stop hooks for SSoT principles, file-size guard, type checks, ASCII art blocking, ty/oxlint/biome lint                                                                                       | enforcement   |
 | [kokoro-tts](./plugins/kokoro-tts/)                     | Kokoro TTS engine: install, server lifecycle, synthesis, health checks, and real-time audio architecture for macOS Apple Silicon                                                                                                                                     | productivity  |
 | [link-tools](./plugins/link-tools/)                     | Link validation: portability checks, broken link detection, path policy linting                                                                                                                                                                                      | quality       |
 | [macro-keyboard](./plugins/macro-keyboard/)             | Karabiner remap for cheap 3-key USB-C/Bluetooth macro pads + HID diagnostic + Fn-key emit utilities                                                                                                                                                                  | utilities     |
@@ -67,8 +65,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 38 plugins (one-liner, alphabetically ordered to match marketplace.json)
-for p in agent-reach asciinema-tools autoloop calcom-commander chronicle-share claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macro-keyboard media-tools minimax mise mql5 openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync x-twitter-scraper; do
+# 2. Install all 39 plugins (one-liner, alphabetically ordered to match marketplace.json)
+for p in agent-reach asciinema-tools calcom-commander claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools draft-hold floating-clock gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macro-keyboard macos-font-defaults media-tools minimax mise mql5 openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync whatsapp-commander x-twitter-scraper; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -108,9 +106,6 @@ claude plugin install itp-hooks@cc-skills
 claude plugin install plugin-dev@cc-skills
 claude plugin install gh-tools@cc-skills
 claude plugin install link-tools@cc-skills
-
-# Autonomous loop primitives
-claude plugin install autoloop@cc-skills
 
 # DevOps + quality
 claude plugin install devops-tools@cc-skills
@@ -478,9 +473,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (38 plugins) - SSoT
-├── plugins/                      # 38 marketplace plugins (each with its own CLAUDE.md)
-│   ├── autoloop/                 # Self-revising LOOP_CONTRACT pattern (.autoloop/<slug>--<hash>/ layout)
+│   └── marketplace.json          # Plugin registry (39 plugins) - SSoT
+├── plugins/                      # 39 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
@@ -503,11 +497,6 @@ cc-skills/
 │   └── marketplace.schema.json      # JSON Schema for marketplace.json
 ├── .mise/tasks/release/             # Release automation (6 phases — see below)
 ├── docs/                            # ADRs, design docs, lessons-learned, troubleshooting
-├── .autoloop/                       # autoloop campaign storage (gitignored)
-│   └── <campaign-slug>--<short-hash>/
-│       ├── CONTRACT.md              # Live LOOP_CONTRACT
-│       ├── PROVENANCE.md            # Owner+history index
-│       └── state/                   # heartbeat.json + revision-log
 ├── package.json                     # semantic-release
 └── README.md
 ```
@@ -575,26 +564,6 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **plugin-validator** - Validate plugin structure, manifests, and detect silent script failures
 
 **Commands**: `/plugin-dev:create`
-
-### autoloop
-
-**Self-revising LOOP_CONTRACT.md pattern for long-horizon autonomous work.** Replaces the previously-shipped `ru` plugin (removed 2026-04 per [ADR](./docs/adr/2026-04-20-remove-ru-plugin.md)) and renames the post-Ralph "autonomous-loop" plugin to a shorter slug.
-
-Features:
-
-- **Per-campaign storage layout**: contracts live at `<cwd>/.autoloop/<slug>--<short-hash>/CONTRACT.md` with sibling `state/` dir and `PROVENANCE.md` ledger
-- **Multi-campaign coexistence** in one cwd via slug+hash directory naming (no collisions when multiple Claude sessions run in the same branch+folder)
-- **Auto-migration** on first `/autoloop:start` for any directory containing a legacy `LOOP_CONTRACT.md`
-- **schema_version 2 frontmatter** with self-describing provenance: `loop_id`, `campaign_slug`, `created_in_session`, `created_at_cwd`, `created_at_git_branch`, `created_at_git_commit`, mirrored owner state, expected-cadence hint
-- **5-step identification decision tree** in every contract so any AI agent (offline or live) can answer "is this mine, reclaimable, or hands-off?" without consulting the registry
-- **Atomic ownership**: registry at `~/.claude/loops/registry.json` is the SSoT; flock-serialized writes; PID-reuse defense via `owner_start_time_us`; generation counter for TOCTOU defense
-- **Stall-guard hook** in `itp-hooks` (`stop-loop-stall-guard.ts`) detects firings that ended without a valid waker and forces a rewake
-
-**Commands**: `/autoloop:start`, `/autoloop:muster`, `/autoloop:stop`, `/autoloop:setup`, `/autoloop:reclaim`, `/autoloop:triage`
-
-> `muster` (was `status`) and `triage` (was `doctor`) renamed in v18/v19 to avoid clashing with Claude Code's built-in `/status` and `/doctor`. Old TRIGGER keywords kept in skill descriptions for soft backward-compat.
-
-**Plugin doc**: [plugins/autoloop/CLAUDE.md](./plugins/autoloop/CLAUDE.md) — architecture, 6 catastrophic pitfalls, troubleshooting playbook.
 
 ### gh-tools
 

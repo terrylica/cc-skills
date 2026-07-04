@@ -17,7 +17,7 @@
 | ------------- | --------------------------------------------------------- |
 | Token cache   | `~/.claude/.secrets/op-service-account-token` (chmod 600) |
 | Vault access  | **Claude Automation** vault only (read + write)           |
-| Token 1P item | Employee vault, ID `xtzirdfnngcgbir7wy4ohfu7i4`           |
+| Token 1P item | Employee vault, ID `<token-item>`                         |
 
 **Usage** (headless/automation — no biometric prompt):
 
@@ -90,11 +90,12 @@ ssh bigblack "curl -s 'http://localhost:8123/?query=SELECT+1'"
 
 ## Hooks
 
-| Hook                                              | Event            | Matcher             | Purpose                                                                                  |
-| ------------------------------------------------- | ---------------- | ------------------- | ---------------------------------------------------------------------------------------- |
-| `pretooluse-firecrawl-research-reminder.ts`       | PreToolUse       | WebFetch\|WebSearch | Routes academic-paper fetches to `Skill(firecrawl-research-patterns)`                    |
-| `posttooluse-1password-pattern-reminder.sh`       | PostToolUse      | Bash                | Reminds Claude of the SA-token-first, biometric-fallback pattern when `op` is run "bare" |
-| `userpromptsubmit-1password-context-injection.sh` | UserPromptSubmit | (any)               | Injects the canonical 1Password pattern upfront when the user mentions 1Password in chat |
+| Hook                                              | Event            | Matcher             | Purpose                                                                                                                                                             |
+| ------------------------------------------------- | ---------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pretooluse-firecrawl-research-reminder.ts`       | PreToolUse       | WebFetch\|WebSearch | Routes academic-paper fetches to `Skill(firecrawl-research-patterns)`                                                                                               |
+| `posttooluse-1password-pattern-reminder.sh`       | PostToolUse      | Bash                | Reminds Claude of the SA-token-first, biometric-fallback pattern when `op` is run "bare"                                                                            |
+| `posttooluse-crown-jewel-plain-keychain-nudge.sh` | PostToolUse      | Bash                | Nudges crown-jewel `security add-generic-password … -T /usr/bin/security` toward the Touch-ID-gated tier (`vault set --gated`); escape hatch `CROWN-JEWEL-PLAIN-OK` |
+| `userpromptsubmit-1password-context-injection.sh` | UserPromptSubmit | (any)               | Injects the canonical 1Password pattern upfront when the user mentions 1Password in chat                                                                            |
 
 ### 1Password pattern reminder (iter 4, 2026-05-19)
 

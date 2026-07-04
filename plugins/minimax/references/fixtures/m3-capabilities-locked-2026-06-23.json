@@ -1,0 +1,36 @@
+{
+  "model": "MiniMax-M3",
+  "probed_at": "2026-06-23",
+  "originally_locked": "2026-06-01",
+  "endpoint": "https://api.minimax.io/v1/chat/completions",
+  "plan": "Plus-High-Speed (same key as the M2.7 campaign)",
+  "note": "Empirical invariants captured by `m3-cli probe` + `m3-cli context-probe`. `m3-cli verify` re-probes a fast subset and diffs against this file. Bump via review, never blindly. 2026-06-23 re-lock (fast subset re-probed): output ceiling raised 512000 -> 524288; n>1 stopped erroring but is now SILENTLY DROPPED (still returns 1 choice), so supports_n_gt_1 stays false and `m3-cli verify` now requires >1 actual choices to call it supported. Input ceiling + needle retrieval were also re-probed 2026-06-23: input rose ~512K -> ~1,000,000, but deep-retrieval regressed (400K now missed 2/2). Vision + reasoning_split details + tool handling still carry forward from the 2026-06-01 lock.",
+  "invariants": {
+    "in_catalog": true,
+    "highspeed_variant_exists": false,
+    "thinking_in_content_by_default": true,
+    "reasoning_split_separates_reasoning": true,
+    "reasoning_disable_accepted": true,
+    "reasoning_effort_accepted": true,
+    "thinking_param_expects_object_not_bool": true,
+    "response_format_accepted": true,
+    "tools_accepted": true,
+    "tool_choice_none_respected": true,
+    "tool_choice_forced_compels_call": false,
+    "vision_supported": true,
+    "supports_n_gt_1": false,
+    "max_output_tokens": 524288,
+    "max_input_tokens_ok": 1000180,
+    "input_ceiling_rejected_at": 1048576
+  },
+  "evidence": {
+    "max_output_tokens": "2026-06-23: max_tokens=512000 and 524288 accepted; 700000/1000000/1048576/2000000 -> 'invalid params, model[MiniMax-M3] does not support max tokens > 524288'. (Was 512000 on 2026-06-01.)",
+    "input_ceiling": "2026-06-23: prompt_tokens accepted through 800180 (~30s) and 1000180 (~235s, near-timeout); 1048576 & 1200000 -> 'context window exceeds limit' (2013). Input ceiling is now ~1,000,000 tokens — the docs' 1M claim now holds (was ~512K on 2026-06-01). 1M-context latency is very high.",
+    "retrieval": "2026-06-23: needle ZX9Q7-DELTA retrieved at 128K and 256K (2/2 each) but MISSED at 400K (2/2). Deep-retrieval regressed vs 2026-06-01 (which retrieved at 400K) even as the raw input ceiling rose to ~1M. Treat reliable retrieval as <=~256K; reasoning disabled + max_tokens 256.",
+    "reasoning_split": "reasoning_split:true -> message.content clean (no <think>); reasoning in reasoning_content (str) + reasoning_details[{type:'reasoning.text',text}]",
+    "vision": "data:image/png;base64 input -> correctly read 'BANANA-7295'",
+    "n_gt_1": "2026-06-23: n=2 and n=4 NO LONGER error (was 2013 'does not support n > 1' on 2026-06-01) but are SILENTLY DROPPED — response still carries exactly 1 choice. No true multi-sampling, so supports_n_gt_1 stays false; n joins MiniMax's silently-dropped-param set.",
+    "thinking_bool": "{'thinking': false} -> 2013 'Mismatch type open_platform_oai.ThinkingConfig with value bool'",
+    "tool_choice_forced": "tool_choice:{type:function,...} on a 'Hi' prompt did NOT emit tool_calls (model reasoned 'no tools needed'); needs a tool-relevant prompt to confirm tool-calling works at all"
+  }
+}

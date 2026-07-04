@@ -148,17 +148,30 @@ else
 fi
 
 # ─── Case 6: CLI falls back to full-list display on unrelated query ──────
+# The expected distinct-consumer-path count is DERIVED from the registries
+# (the official source) rather than hard-coded: the previous pinned "19"
+# broke when a 20th legitimate consumer path was registered (2026-06-11,
+# posttooluse-invented-fallback-reminder.ts) even though the CLI behaved
+# correctly. Same counting shape as the CLI's own
+# distinctRegisteredConsumerPaths: unique quoted path values of the
+# consumer*SourceFileRelativePath fields across both registries.
+ITER118_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES=$(
+    grep -hA1 -E '^\s*consumer(Hook|AuditTask)SourceFileRelativePath:' \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts" \
+        | grep -oE '"(plugins|\.mise)/[^"]+"' | sort -u | wc -l | tr -d ' '
+)
 set +e
 CLI_UNRELATED_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$COMPLETELY_UNRELATED_PATH_GUARANTEED_TO_BE_FAR_FROM_EVERY_REGISTERED_PATH" 2>&1)
 CLI_UNRELATED_EXIT_CODE=$?
 set -e
 if [[ "$CLI_UNRELATED_EXIT_CODE" -eq 2 ]] && \
    [[ "$CLI_UNRELATED_OUTPUT" == *"Hint: query is not close to any registered path"* ]] && \
-   [[ "$CLI_UNRELATED_OUTPUT" == *"Showing all 19 registered consumer paths"* ]] && \
+   [[ "$CLI_UNRELATED_OUTPUT" == *"Showing all ${ITER118_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES} registered consumer paths"* ]] && \
    [[ "$CLI_UNRELATED_OUTPUT" != *"Did you mean"* ]]; then
-    assert_passes "Case 6: CLI on unrelated-query input correctly falls back to full-list display (does NOT misleadingly suggest unrelated paths)"
+    assert_passes "Case 6: CLI on unrelated-query input correctly falls back to full-list display of all ${ITER118_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES} paths (count derived from the registries; does NOT misleadingly suggest unrelated paths)"
 else
-    assert_fails "Case 6: CLI unrelated-query handling failed (exit=$CLI_UNRELATED_EXIT_CODE)"
+    assert_fails "Case 6: CLI unrelated-query handling failed (exit=$CLI_UNRELATED_EXIT_CODE, expected paths=${ITER118_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES})"
 fi
 
 # ─── Case 7: iter-118 enhancement does not regress iter-116 happy path ───

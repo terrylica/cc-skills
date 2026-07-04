@@ -638,6 +638,105 @@ describe("Bash: Pueue long-running task detection", () => {
 });
 
 // ============================================================================
+// Fail-Fast Reminder Tests (Bun/TS loop/batch tooling that swallows errors)
+// Motivation: 2026-06-08 yukon non-PDF back-scan swallowed HEIC/timeout errors.
+// ============================================================================
+
+describe("Write/Edit: fail-fast error-handling reminder", () => {
+  const SWALLOWING_LOOP = `
+async function run() {
+  for (const id of ids) {
+    try {
+      const bytes = await fetchThing(id);
+      await processThing(bytes);
+    } catch (e) {
+      console.error("ERR " + String(e));
+      continue;
+    }
+  }
+}
+`;
+
+  it("should nudge on a Bun/TS awaited loop that catches and continues", () => {
+    const testFile = join(TMP_DIR, "swallow_scan.ts");
+    writeFileSync(testFile, SWALLOWING_LOOP);
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    expect(result.parsed).not.toBeNull();
+    expect((result.parsed as any).decision).toBe("block");
+    expect((result.parsed as any).reason).toContain("[FAIL-FAST-REMINDER]");
+  });
+
+  it("should NOT nudge when the file already has process.exit(1) fail-fast", () => {
+    const testFile = join(TMP_DIR, "failfast_exit.ts");
+    writeFileSync(
+      testFile,
+      SWALLOWING_LOOP.replace('continue;', 'await persist(); process.exit(1);'),
+    );
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[FAIL-FAST-REMINDER]");
+    }
+  });
+
+  it("should NOT nudge when the file throws (has a halt path)", () => {
+    const testFile = join(TMP_DIR, "failfast_throw.ts");
+    writeFileSync(testFile, SWALLOWING_LOOP.replace('continue;', 'throw e;'));
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[FAIL-FAST-REMINDER]");
+    }
+  });
+
+  it("should NOT nudge with the FAIL-FAST-OK escape hatch", () => {
+    const testFile = join(TMP_DIR, "failfast_optout.ts");
+    writeFileSync(testFile, `// FAIL-FAST-OK\n${SWALLOWING_LOOP}`);
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[FAIL-FAST-REMINDER]");
+    }
+  });
+
+  it("should NOT nudge on a non-loop file (no awaited iteration)", () => {
+    const testFile = join(TMP_DIR, "no_loop.ts");
+    writeFileSync(
+      testFile,
+      `async function one() {\n  try {\n    await x();\n  } catch (e) {\n    console.log(e);\n  }\n}\n`,
+    );
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[FAIL-FAST-REMINDER]");
+    }
+  });
+
+  it("should NOT nudge on test files", () => {
+    const testFile = join(TMP_DIR, "swallow_scan.test.ts");
+    writeFileSync(testFile, SWALLOWING_LOOP);
+    const result = runHook({
+      tool_name: "Write",
+      tool_input: { file_path: testFile },
+    });
+    if (result.parsed) {
+      expect((result.parsed as any).reason).not.toContain("[FAIL-FAST-REMINDER]");
+    }
+  });
+});
+
+// ============================================================================
 // Polars Preference Tests - REMOVED
 // ADR: 2026-01-22-polars-preference-hook (superseded 2026-01-31)
 // Feature disabled due to excessive noise during normal development.

@@ -1,0 +1,9 @@
+{
+  "name": "draft-hold",
+  "version": "22.7.0",
+  "description": "Park a draft message in macOS Notes (provenance-stamped, iCloud-synced) for the operator to edit, then read it back. Notes is the source of truth; Stickies is a best-effort view-only mirror.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

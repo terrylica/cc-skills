@@ -1,0 +1,9 @@
+{
+  "name": "whatsapp-commander",
+  "version": "0.1.0",
+  "description": "WhatsApp messaging helper - wa.me click-to-chat deep links (default, ToS-safe) and WhatsApp Business Cloud API sends. Function/enum-driven Bun TypeScript.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

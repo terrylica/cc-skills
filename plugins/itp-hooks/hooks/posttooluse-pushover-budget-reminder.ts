@@ -55,6 +55,10 @@
 
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import {
+  bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory,
+  isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts,
+} from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +88,13 @@ const PUSHOVER_BUDGET_ESCAPE_HATCH_MARKER_DETECTION_CONFIG = {
   markerNameTokenIncludingSuffix: "PUSHOVER-BUDGET-OK",
   caseSensitivityMode: "CASE_SENSITIVE" as const,
 };
+
+/**
+ * Test / fixture paths are exempt: writing test code that legitimately
+ * contains a Pushover send (e.g. this hook's own fixtures) should not nag.
+ * Mirrors the invented-fallback hook's exemption (2026-06-19).
+ */
+const TEST_PATH_RX = /(\.test\.|\.spec\.|_test\.|\btest_|\/tests?\/|\/fixtures?\/|\.bats$)/;
 
 /** The canonical Pushover send endpoint. */
 const ENDPOINT = /api\.pushover\.net/i;
@@ -198,6 +209,36 @@ function extractText(input: HookInput): string {
   return "";
 }
 
+/**
+ * Evaluate a full hook input end-to-end: first short-circuit throwaway scripts
+ * written/edited inside a temp directory (iter-124) — a file that exists only
+ * to be run once and discarded is not worth a Pushover-budget lecture — then
+ * run the pure text detector on the per-tool-type extracted text. Exported so
+ * the temp-dir skip (which needs `tool_input.file_path`, invisible to the pure
+ * `detectPushoverMessageConstruction` detector) is unit-testable without
+ * spawning the hook process. Bash inline commands carry no file_path, so the
+ * skip can only apply to the Write/Edit/MultiEdit arms.
+ */
+export function evaluatePushoverHookInput(input: HookInput): PushoverDetectionResult {
+  const ti = input.tool_input || {};
+  const filePath = ti.file_path || "";
+  // Throwaway / non-durable scripts get no nudge (iter-124):
+  //   • Write/Edit/MultiEdit of a file inside a temp dir, OR a test/fixture file
+  //   • a Bash command that materializes a throwaway script into a temp dir
+  //     (heredoc / redirect / tee / mktemp) — Bash has no single file_path.
+  if (
+    isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(filePath) ||
+    TEST_PATH_RX.test(filePath) ||
+    (input.tool_name === "Bash" &&
+      bashCommandWritesThrowawayScriptIntoTemporaryScratchDirectory(ti.command || ""))
+  ) {
+    return { matched: false, rule: null };
+  }
+  const text = extractText(input);
+  if (!text) return { matched: false, rule: null };
+  return detectPushoverMessageConstruction(text);
+}
+
 async function main(): Promise<void> {
   let inputText = "";
   for await (const chunk of Bun.stdin.stream()) {
@@ -211,10 +252,7 @@ async function main(): Promise<void> {
     process.exit(0); // invalid JSON → fail-open
   }
 
-  const text = extractText(input);
-  if (!text) process.exit(0);
-
-  const { matched, rule } = detectPushoverMessageConstruction(text);
+  const { matched, rule } = evaluatePushoverHookInput(input);
   if (matched && rule) {
     // ADR /docs/adr/2025-12-17-posttooluse-hook-visibility.md — only the
     // `reason` field of a {decision:"block"} payload is visible to Claude.

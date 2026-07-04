@@ -195,10 +195,20 @@ set -e
 #     registered path, so distance exceeds threshold and we fall back)
 # This Case 7 deliberately exercises branch (b) by using the unrelated
 # query declared above. Match assertions accordingly.
+# Expected distinct-path count DERIVED from the registries (the official
+# source), not hard-coded — the pinned "19" broke when the 20th legitimate
+# consumer path was registered (2026-06-11). Same derivation as the
+# iter-118 regression test.
+ITER116_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES=$(
+    grep -hA1 -E '^\s*consumer(Hook|AuditTask)SourceFileRelativePath:' \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
+        "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts" \
+        | grep -oE '"(plugins|\.mise)/[^"]+"' | sort -u | wc -l | tr -d ' '
+)
 if [[ "$UNKNOWN_CONSUMER_TASK_EXIT_CODE" -eq 2 ]] && \
    [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"No registered escape-hatch markers"* ]] && \
    [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Hint: query is not close to any registered path"* ]] && \
-   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Showing all 19 registered consumer paths"* ]]; then
+   [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"Showing all ${ITER116_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGISTRIES} registered consumer paths"* ]]; then
     assert_passes "Case 7: iter-116 task exits 2 with 'No registered markers' + iter-118 fallback hint (query unrelated to every registered path, top-rank distance exceeds ⌊queryLen/3⌋ threshold so full-list dump is shown)"
 else
     assert_fails "Case 7: iter-116 task on unrelated unknown path failed to emit expected fallback hint or wrong exit code (exit=$UNKNOWN_CONSUMER_TASK_EXIT_CODE)"

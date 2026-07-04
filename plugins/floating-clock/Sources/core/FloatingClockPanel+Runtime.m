@@ -1,6 +1,11 @@
 #import "FloatingClockPanel+Runtime.h"
 #import "FloatingClockPanel+Layout.h"
-#import "MicMuteIndicator.h"   // mic-mute banner sync (user directive 2026-06-01)
+#import "FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
+#import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
+#import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
+#import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
+#import "LocationProvider.h"     // hourly staleness re-kick (2026-06-11)
+#import "../rendering/SolarOutlinedTextRenderingView.h" // solar outlined text (2026-06-11)
 #import "../data/ThemeCatalog.h"
 #import "../data/MarketCatalog.h"
 #import "../data/MarketSessionCalculator.h"
@@ -61,6 +66,23 @@ static uint64_t nsUntilNextSecond(void) {
     // hardware button even when the device posts no change-notification) and
     // reposition to follow the clock's per-tick resize/recenter.
     [_micMuteIndicator refresh];
+    [_vpnStatusIndicator refresh];
+    // Audio I/O bar: re-read default devices + volumes (6 cheap HAL property
+    // reads) and reposition to follow the clock's per-tick resize/recenter.
+    [_audioStatusIndicator refresh];
+    // Solar canvas (2026-06-11): evolve the compact modes' background with
+    // the live solar elevation. Quantized internally — usually a no-op.
+    [self refreshSolarCanvasForced:NO];
+    // Location staleness backstop (2026-06-11 bug: coords were stranded on a
+    // 7-week-old fix because kickoff ran only at launch and requestLocation
+    // failures are silent). Re-kick hourly; kickoff self-gates on its 24h
+    // freshness check, so this is a no-op while the cache is fresh.
+    static NSTimeInterval lastKick = 0;
+    NSTimeInterval nowTs = [NSDate timeIntervalSinceReferenceDate];
+    if (nowTs - lastKick > 3600.0) {
+        lastKick = nowTs;
+        [[FCLocationProvider shared] kickoff];
+    }
 }
 
 - (void)tickThreeSegment {
@@ -343,8 +365,24 @@ static uint64_t nsUntilNextSecond(void) {
     NSString *legacyLabel = (strlen(mkt->iana) > 0)
         ? fullTzLabelForIana(mkt->iana, now)
         : fullTzLabelForZone(effectiveTz, now);
-    _label.stringValue = [NSString stringWithFormat:@"%@ %@",
+    NSString *legacyText = [NSString stringWithFormat:@"%@ %@",
         [_dateFormatter stringFromDate:now], legacyLabel];
+    // _label is ALWAYS populated — the compact layouts size the window off
+    // its sizeToFit even while it is hidden.
+    _label.stringValue = legacyText;
+    if ([[d stringForKey:@"CanvasColorMode"] hasPrefix:@"solar"]) {
+        // Solar canvas: the round-join Core Text renderer REPLACES _label —
+        // solid white fill wrapped in a clean black border (no miter spikes,
+        // no fill starvation; see SolarOutlinedTextRenderingView.h).
+        _labelOutline.font  = _label.font;
+        _labelOutline.frame = _label.frame;
+        _labelOutline.text  = legacyText;
+        _labelOutline.hidden = NO;
+        _label.hidden = YES;
+    } else {
+        _labelOutline.hidden = YES;
+        _label.hidden = NO;   // tickLegacy only runs in compact modes
+    }
 
     if (strlen(mkt->iana) == 0) return;  // local mode — no session label
 
@@ -417,94 +455,6 @@ static uint64_t nsUntilNextSecond(void) {
     }
 
     _sessionLabel.attributedStringValue = attr;
-}
-
-#pragma mark - Positioning
-
-// Primary display = screens[0] (with menu bar at origin). mainScreen is
-// indeterminate for LSUIElement apps before a window is key.
-- (NSScreen *)primaryScreen {
-    NSArray<NSScreen *> *all = [NSScreen screens];
-    if (all.count > 0) return all.firstObject;
-    return [NSScreen mainScreen];
-}
-
-- (NSRect)defaultFrame {
-    NSScreen *s = [self primaryScreen];
-    NSRect vf = s.visibleFrame;
-    NSRect f = self.frame;
-    CGFloat x = vf.origin.x + (vf.size.width - f.size.width) / 2.0;
-    CGFloat y = vf.origin.y + 24;
-    return NSMakeRect(x, y, f.size.width, f.size.height);
-}
-
-- (NSRect)clampFrameToVisibleScreen:(NSRect)proposed {
-    NSScreen *s = self.screen ?: [self primaryScreen];
-    NSRect vf = s.visibleFrame;
-    NSRect r = proposed;
-    if (r.size.width > vf.size.width)  r.size.width  = vf.size.width;
-    if (r.size.height > vf.size.height) r.size.height = vf.size.height;
-    if (NSMaxX(r) > NSMaxX(vf)) r.origin.x = NSMaxX(vf) - r.size.width;
-    if (NSMaxY(r) > NSMaxY(vf)) r.origin.y = NSMaxY(vf) - r.size.height;
-    if (r.origin.x < vf.origin.x) r.origin.x = vf.origin.x;
-    if (r.origin.y < vf.origin.y) r.origin.y = vf.origin.y;
-    return r;
-}
-
-- (void)windowDidMove:(NSNotification *)n {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    [d setObject:NSStringFromRect(self.frame) forKey:@"FloatingClockWindowFrame"];
-    NSNumber *sn = self.screen.deviceDescription[@"NSScreenNumber"];
-    if ([sn isKindOfClass:[NSNumber class]]) {
-        [d setObject:sn forKey:@"FloatingClockScreenNumber"];
-    }
-    // Keep the mic-mute banner glued to the clock while the user drags it.
-    [_micMuteIndicator syncPosition];
-}
-
-- (void)restorePosition {
-    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    NSString *frameStr = [d stringForKey:@"FloatingClockWindowFrame"];
-    NSNumber *savedScreenNum = [d objectForKey:@"FloatingClockScreenNumber"];
-
-    if ([frameStr isKindOfClass:[NSString class]] && frameStr.length > 0 &&
-        [savedScreenNum isKindOfClass:[NSNumber class]]) {
-        NSRect r = NSRectFromString(frameStr);
-        if (r.size.width > 20 && r.size.height > 20) {
-            for (NSScreen *s in [NSScreen screens]) {
-                NSNumber *n = s.deviceDescription[@"NSScreenNumber"];
-                if ([n isKindOfClass:[NSNumber class]] && [n isEqualToNumber:savedScreenNum]) {
-                    if (NSIntersectsRect(r, s.frame)) {
-                        [self setFrame:r display:NO];
-                        return;
-                    }
-                    NSRect vf = s.visibleFrame;
-                    NSRect clamped = r;
-                    clamped.origin.x = MAX(vf.origin.x, MIN(r.origin.x, NSMaxX(vf) - r.size.width));
-                    clamped.origin.y = MAX(vf.origin.y, MIN(r.origin.y, NSMaxY(vf) - r.size.height));
-                    [self setFrame:clamped display:NO];
-                    return;
-                }
-            }
-        }
-    }
-    [self setFrame:[self defaultFrame] display:NO];
-}
-
-- (void)screensChanged:(NSNotification *)n {
-    BOOL onLiveScreen = NO;
-    for (NSScreen *s in [NSScreen screens]) {
-        if (NSIntersectsRect(self.frame, s.frame)) { onLiveScreen = YES; break; }
-    }
-    if (!onLiveScreen) {
-        [self setFrame:[self defaultFrame] display:YES animate:YES];
-        NSNumber *sn = [self primaryScreen].deviceDescription[@"NSScreenNumber"];
-        if ([sn isKindOfClass:[NSNumber class]]) {
-            [[NSUserDefaults standardUserDefaults] setObject:sn forKey:@"FloatingClockScreenNumber"];
-        }
-        [[NSUserDefaults standardUserDefaults] setObject:NSStringFromRect(self.frame)
-                                                  forKey:@"FloatingClockWindowFrame"];
-    }
 }
 
 @end

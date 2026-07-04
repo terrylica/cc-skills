@@ -43,7 +43,7 @@ This plugin manages the Telegram notification bot and iTerm2 tab focus integrati
 
 The bot runs as a launchd service via a compiled Swift runner binary (`telegram-bot-runner`) that launches `bun --watch run src/main.ts`. Code changes auto-restart the service — no manual kills needed.
 
-See [itp-hooks CLAUDE.md: TypeScript Services](../itp-hooks/CLAUDE.md#typescript-services-swift-runner--bun---watch) for the full pattern. Process tree and operational commands: [bot-process-control references](./skills/bot-process-control/references/).
+See [itp-hooks CLAUDE.md: TypeScript Services](../itp-hooks/docs/native-binary-guard.md#typescript-services-swift-runner--bun---watch) for the full pattern. Process tree and operational commands: [bot-process-control references](./skills/bot-process-control/references/).
 
 ## Telemetry
 

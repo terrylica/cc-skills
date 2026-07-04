@@ -40,10 +40,10 @@ Compact map from paper equations to Numba JIT functions and validation tests.
 
 ## Section 4: Minimum Track Record Length
 
-| Eq  | Name                 | Compact Formula                                   | Page    | Function  | Test      | ✓    |
-| --- | -------------------- | ------------------------------------------------- | ------- | --------- | --------- | ---- | --- |
-| 10  | MinTRL (definition)  | min T s.t. P[SR̂≥SR̂\*                              | H₀] ≤ α | 9         | `min_trl` | 4,15 | ✓   |
-| 11  | MinTRL (closed form) | (a−b·γ₃·SR₀+c·(γ₄−1)/4·SR₀²)·(z\_{1−α}/(SR̂−SR₀))² | 9       | `min_trl` | 4,15      | ✓    |
+| Eq  | Name                 | Compact Formula                                   | Page | Function  | Test | ✓   |
+| --- | -------------------- | ------------------------------------------------- | ---- | --------- | ---- | --- |
+| 10  | MinTRL (definition)  | min T s.t. P[SR̂≥SR̂\* \| H₀] ≤ α                   | 9    | `min_trl` | 4,15 | ✓   |
+| 11  | MinTRL (closed form) | (a−b·γ₃·SR₀+c·(γ₄−1)/4·SR₀²)·(z\_{1−α}/(SR̂−SR₀))² | 9    | `min_trl` | 4,15 | ✓   |
 
 ## Section 5: Statistical Power
 
@@ -58,16 +58,16 @@ Compact map from paper equations to Numba JIT functions and validation tests.
 
 ## Section 6: False Discovery Rates
 
-| Eq  | Name                     | Compact Formula                          | Page               | Function           | Test   | ✓    |
-| --- | ------------------------ | ---------------------------------------- | ------------------ | ------------------ | ------ | ---- | --- |
-| 18  | pFDR definition          | P[H₀                                     | SR̂≥SR_c]           | 13                 | `pfdr` | 5,17 | ✓   |
-| 19  | Bayes theorem            | P[H₀                                     | SR̂≥SR_c] via Bayes | 13                 | `pfdr` | 5,17 | ✓   |
-| 20  | Total probability        | α·P[H₀] + (1−β)·P[H₁]                    | 13                 | (inline)           | —      | ✓    |
-| 21  | pFDR (closed)            | (1 + (1−β)P[H₁]/(αP[H₀]))⁻¹              | 14                 | `pfdr`             | 5,17   | ✓    |
-| 22  | oFDR definition          | P[H₀                                     | SR̂≥SR̂\*]           | 15                 | `ofdr` | 18   | ✓   |
-| 23  | Total probability (oFDR) | p·P[H₀] + (1−Φ[z*(SR₁)])·P[H₁]           | 15                 | (inline in `ofdr`) | —      | ✓    |
-| 24  | oFDR (closed)            | p·P[H₀] / (p·P[H₀]+(1−Φ[z*(SR₁)])·P[H₁]) | 15                 | `ofdr`             | 18     | ✓    |
-| 25  | FWER                     | 1 − (1−α)^K                              | 16                 | `fwer`             | 8      | ✓    |
+| Eq  | Name                     | Compact Formula                          | Page | Function           | Test | ✓   |
+| --- | ------------------------ | ---------------------------------------- | ---- | ------------------ | ---- | --- |
+| 18  | pFDR definition          | P[H₀ \| SR̂≥SR_c]                         | 13   | `pfdr`             | 5,17 | ✓   |
+| 19  | Bayes theorem            | P[H₀ \| SR̂≥SR_c] via Bayes               | 13   | `pfdr`             | 5,17 | ✓   |
+| 20  | Total probability        | α·P[H₀] + (1−β)·P[H₁]                    | 13   | (inline)           | —    | ✓   |
+| 21  | pFDR (closed)            | (1 + (1−β)P[H₁]/(αP[H₀]))⁻¹              | 14   | `pfdr`             | 5,17 | ✓   |
+| 22  | oFDR definition          | P[H₀ \| SR̂≥SR̂\*]                         | 15   | `ofdr`             | 18   | ✓   |
+| 23  | Total probability (oFDR) | p·P[H₀] + (1−Φ[z*(SR₁)])·P[H₁]           | 15   | (inline in `ofdr`) | —    | ✓   |
+| 24  | oFDR (closed)            | p·P[H₀] / (p·P[H₀]+(1−Φ[z*(SR₁)])·P[H₁]) | 15   | `ofdr`             | 18   | ✓   |
+| 25  | FWER                     | 1 − (1−α)^K                              | 16   | `fwer`             | 8    | ✓   |
 
 ## Section 7: Deflated Sharpe Ratio
 
@@ -107,9 +107,9 @@ Compact map from paper equations to Numba JIT functions and validation tests.
 
 ## Appendix C: General FDR Framework
 
-| Eq    | Name        | Compact Formula | Page                            | Function | Test                             | ✓         |
-| ----- | ----------- | --------------- | ------------------------------- | -------- | -------------------------------- | --------- | --- |
-| 76-82 | General FDR | q=P[H₀          | X≥c], α, β, Bayes → closed form | 40-42    | `pfdr`, `ofdr`, `sfdr_threshold` | 5,9,17,18 | ✓   |
+| Eq    | Name        | Compact Formula                           | Page  | Function                         | Test      | ✓   |
+| ----- | ----------- | ----------------------------------------- | ----- | -------------------------------- | --------- | --- |
+| 76-82 | General FDR | q=P[H₀ \| X≥c], α, β, Bayes → closed form | 40-42 | `pfdr`, `ofdr`, `sfdr_threshold` | 5,9,17,18 | ✓   |
 
 ## Summary
 

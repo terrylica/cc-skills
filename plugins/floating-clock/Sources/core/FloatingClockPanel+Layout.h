@@ -18,8 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)applyDisplaySettings;
 - (void)applyThreeSegmentLayout;
 - (void)relayoutThreeSegmentIfNeeded;
-- (void)applyLocalOnlyLayout;
-- (void)applySingleMarketLayout;
+// Compact-mode layouts + solar canvas: FloatingClockPanel+CompactLayout.h
+// (2026-06-12 modularization split).
 
 @end
 

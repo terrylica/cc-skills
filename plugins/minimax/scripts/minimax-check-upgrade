@@ -19,9 +19,9 @@
 #                              (default: <plugin-root>/references/fixtures/models-list-locked.json)
 #   MINIMAX_API_KEY          — MiniMax API key (skips 1Password lookup if set)
 #   MINIMAX_API_KEY_OP_PATH  — 1Password op-path for API key
-#                              (default: op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password)
+#                              (default: op://<vault>/<minimax-api-key-item>/credential)
 #   MINIMAX_OP_ACCOUNT       — 1Password account UUID
-#                              (default: K5BH72Z7O5BYXOGKBYT5FWTP2E)
+#                              (default: <op-account>)
 #
 # Provenance: ported from ~/own/amonic/bin/minimax-check-upgrade (amonic
 # campaign iter-41) with portability adjustments for cc-skills marketplace.
@@ -62,8 +62,8 @@ done
 if [[ -n "${MINIMAX_API_KEY:-}" ]]; then
     API_KEY="$MINIMAX_API_KEY"
 elif command -v op >/dev/null 2>&1; then
-    OP_PATH="${MINIMAX_API_KEY_OP_PATH:-op://ggk4orq7rmcm7jinsb4ahygv7e/e54cb3ujopexslaq7loywpuycm/password}"
-    OP_ACCOUNT="${MINIMAX_OP_ACCOUNT:-K5BH72Z7O5BYXOGKBYT5FWTP2E}"
+    OP_PATH="${MINIMAX_API_KEY_OP_PATH:-op://<vault>/<minimax-api-key-item>/credential}"
+    OP_ACCOUNT="${MINIMAX_OP_ACCOUNT:-<op-account>}"
     API_KEY=$(op read "$OP_PATH" --account "$OP_ACCOUNT" 2>/dev/null) || {
         echo "ERROR: Failed to read MiniMax API key from 1Password (path=$OP_PATH, account=$OP_ACCOUNT)" >&2
         echo "  Set MINIMAX_API_KEY env var, or override MINIMAX_API_KEY_OP_PATH / MINIMAX_OP_ACCOUNT" >&2

@@ -21,6 +21,16 @@
 #   ~/asciinemalogs cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
 
+# GIT_OPTIONAL_LOCKS=0 — the statusline must OBSERVE repo state, never CONTEND for it.
+# Every render runs `git status`/`git diff`, which by default take .git/index.lock to refresh
+# the index. Fired on each prompt render, that races a user's concurrent `git commit`/`git add`
+# in the same checkout (and in worktrees, the per-worktree index.lock), intermittently failing
+# their commit with "Unable to create '.../index.lock': File exists". Setting this env var (the
+# same mechanism VS Code and other IDEs use) makes all git subprocesses this script spawns skip
+# the OPTIONAL index lock — status/diff still report correctly, they just don't write index.lock.
+# Comprehensive + future-proof: covers every git call here, including any added later.
+export GIT_OPTIONAL_LOCKS=0
+
 # ANSI Color codes
 RESET='\033[0m'
 BRIGHT_BLACK='\033[90m'
@@ -71,15 +81,14 @@ get_repo_path() {
 
 repo_path=$(get_repo_path)
 
-# Debug logging (temporary) - logs invocations to diagnose intermittent failures
-DEBUG_LOG="/tmp/ccstatusline-invocation.log"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) PID=$$ PPID=$PPID PWD=$(pwd)" >> "$DEBUG_LOG" 2>/dev/null
 # Read JSON from stdin
 input=$(cat)
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INPUT_LEN=${#input} MODEL_RAW=$(echo "$input" | jq -r '.model // "null"' 2>/dev/null | head -c 80)" >> "$DEBUG_LOG" 2>/dev/null
 
 # Append raw statusline data to JSONL for analytics (ccmax-monitor analytics package)
 # Format matches ccost's expected schema: {"ts":<unix_epoch>,"data":<stdin_json>}
+# Consumed by: scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py
+# (L2 telemetry surface) and the external ccmax-monitor analytics package —
+# intentional cross-repo infrastructure, NOT dead code.
 echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
 
 # Extract fields.
@@ -91,15 +100,50 @@ echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 
 # to decode the input JSON. The statusline refreshes every few seconds so
 # the cost compounds across every session.
 #
-# One TSV-batched jq + bash `read` decodes all five at once. The model
-# field still gets post-processed with sed (Claude → display compactor)
-# but the JSON-extraction step is now a single spawn. The trailing-tab
-# fallback via printf keeps `read` happy if jq dies.
-IFS=$'\t' read -r model_raw session_id transcript_file cost git_branch <<< "$(
-    echo "$input" | jq -r '"\(.model.display_name // .model.id // .model // "Unknown")\t\(.session_id // "")\t\(.transcript_path // "")\t\(.cost.total_cost_usd // "")\t\(.git.branch // "")"' 2>/dev/null \
-        || printf 'Unknown\t\t\t\t'
+# One batched jq + bash `read` decodes all fields in a single spawn. The
+# trailing-separator fallback via printf keeps `read` happy if jq dies
+# (all fields default to empty → segment omitted).
+# Delimiter note (2026-06-10 model-id-badges edit): switched TSV → \x1f (ASCII
+# unit separator). Tab is IFS *whitespace*, so bash `read` COLLAPSES runs of
+# consecutive tabs — any empty mid-field silently shifts every later field
+# left (session_id would receive the transcript path). \x1f is non-whitespace,
+# so empty fields survive.
+#
+# OFFICIAL-VALUES-ONLY decode (2026-06-11 operator directive): values pass
+# through VERBATIM. No made-up fallbacks — the former "Unknown" model
+# fallback and the `sed 's/Claude //'` display compactor are gone (a payload
+# without a model renders no model segment; the session registry receives
+# the official display_name untouched). Booleans distinguish ABSENT (empty
+# string → token omitted from render) from present-false (official value
+# "false" rendered). jq's `//` cannot make that distinction (it treats false
+# as empty), so booleans use an explicit null check instead of `// false`.
+IFS=$'\x1f' read -r model_raw model_id effort_level thinking_enabled fast_mode_flag session_id transcript_file cost git_branch cc_version <<< "$(
+    echo "$input" | jq -r '[(.model.display_name // .model.id // ""), (.model.id // ""), (.effort.level // ""), (.thinking.enabled | if . == null then "" else tostring end), (.fast_mode | if . == null then "" else tostring end), (.session_id // ""), (.transcript_path // ""), (.cost.total_cost_usd // ""), (.git.branch // ""), (.version // "")] | map(tostring) | join("\u001f")' 2>/dev/null \
+        || printf '\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f\x1f'
 )"
-model=$(echo "$model_raw" | sed 's/Claude //' | sed 's/ 4.5/4.5/')
+
+# === Context window fields (for bracketed-zone bar on model line) ===
+# Separate jq spawn from the 10-field model-info TSV above — kept apart for
+# readability and because context_window is absent at session start (all vars
+# empty → bar suppressed downstream). Unit-separator pattern mirrors iter-30.
+#
+# cfmt: compact token notation — integers only, no decimals needed for this
+# use case (97205 → "97k", 1000000 → "1M", 200000 → "200k").
+IFS=$'\x1f' read -r ctx_used_tok ctx_window_size ctx_used_pct ctx_tok_compact ctx_win_compact <<< "$(
+    echo "$input" | jq -r '
+        def cfmt:
+            if . >= 1000000 then (. / 1000000 | floor | tostring) + "M"
+            elif . >= 1000  then (. / 1000    | floor | tostring) + "k"
+            else tostring end;
+        [
+            (.context_window.total_input_tokens  // 0 | tostring),
+            (.context_window.context_window_size // 0 | tostring),
+            (.context_window.used_percentage     // 0 | tostring),
+            (.context_window.total_input_tokens  // 0 | cfmt),
+            (.context_window.context_window_size // 0 | cfmt)
+        ] | join("")' 2>/dev/null \
+            || printf '\x1f\x1f\x1f\x1f'
+)"
 
 # === Session Chain (Bun-based) ===
 # Traces session ancestry, displays last 5 sessions with arrows
@@ -121,54 +165,22 @@ if [ -n "$session_id" ] && command -v bun >/dev/null 2>&1; then
     fi
 fi
 
-# Context - Claude Code doesn't send token counts in status JSON
-# Instead, try to read from transcript file or show cost.
-# (transcript_file already TSV-batched above in iter-30 input-payload decode.)
-ctx_display=""
-
-if [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
-    # Try to get token count from last line of transcript.
-    # Perf (iter-30 transcript-last-line-tsv-batch): pre-iter-30 this block
-    # spawned TWO jq processes (one per token field). Single TSV-batched
-    # jq + bash `read` decodes both at once. Saves ~10ms per refresh when
-    # a transcript exists. Fallback via printf '\t' keeps `read` happy if
-    # jq dies (e.g. malformed last-line JSON) — both vars default to empty.
-    last_line=$(tail -1 "$transcript_file" 2>/dev/null)
-    if [ -n "$last_line" ]; then
-        IFS=$'\t' read -r input_tok output_tok <<< "$(
-            echo "$last_line" | jq -r '"\(.usage.input_tokens // "")\t\(.usage.output_tokens // "")"' 2>/dev/null \
-                || printf '\t'
-        )"
-
-        if [ -n "$input_tok" ] && [ -n "$output_tok" ]; then
-            total_tok=$((input_tok + output_tok))
-            if [ "$total_tok" -gt 1000 ]; then
-                ctx_k=$((total_tok / 1000))
-                ctx_display="${ctx_k}k"
-            else
-                ctx_display="${total_tok}"
-            fi
-        fi
-    fi
-fi
-
-# Fallback: show cost if no token count available.
-# (cost already TSV-batched above in iter-30 input-payload decode; empty-string
-# defaults from the TSV become the "no cost available" branch here.)
-if [ -z "$ctx_display" ]; then
-    if [ -n "$cost" ]; then
-        cost_formatted=$(printf "%.2f" "$cost" 2>/dev/null || echo "$cost")
-        ctx_display="\$${cost_formatted}"
-    else
-        ctx_display="N/A"
-    fi
-fi
+# Context/cost block REMOVED 2026-06-11: ctx_display (token count from the
+# transcript tail, cost fallback, invented "N/A" terminal fallback) was
+# computed on every render but NEVER rendered — dead code since the layout
+# settled, surfaced by the official-values audit. $cost itself is still
+# decoded above and passed to the session registry.
 
 # Git info - try JSON first, fallback to direct git commands.
 # (git_branch already TSV-batched above in iter-30 input-payload decode.)
 if [ -z "$git_branch" ]; then
-    # Fallback: read git directly
-    git_branch=$(git branch --show-current 2>/dev/null || echo "no-branch")
+    # Fallback: read git directly. OFFICIAL-VALUES-ONLY (2026-06-11): the
+    # invented "no-branch" label is gone — on detached HEAD (show-current
+    # empty) surface the official short SHA; outside a git repo stay empty.
+    git_branch=$(git branch --show-current 2>/dev/null)
+    if [ -z "$git_branch" ]; then
+        git_branch=$(git rev-parse --short HEAD 2>/dev/null)
+    fi
 fi
 
 # === Session Registry Update (CONDITIONAL fire-and-forget) ===
@@ -187,7 +199,7 @@ if [ -n "$session_id" ]; then
             if mkdir "$LOCK_DIR" 2>/dev/null; then
                 (
                     trap 'rmdir /tmp/session-registry.lock 2>/dev/null' EXIT
-                    bun "$registry_script" "$session_id" "$cwd_path" "$model" "${cost:-}" "$git_branch"
+                    bun "$registry_script" "$session_id" "$cwd_path" "$model_raw" "${cost:-}" "$git_branch"
                 ) >/dev/null 2>&1 &
             fi
         fi
@@ -322,11 +334,37 @@ if [ -n "$remote_url_raw" ]; then
     owner_repo=$(echo "$remote_url_raw" | sed -E 's|\.wiki\.git$||; s|\.wiki$||' | sed -E 's|.*github\.com[^:]*:([^/]+/[^/.]+)(\.git)?$|\1|; s|https://github\.com/||; s|\.git$||')
 fi
 
+# Credential resolution (ADR 2026-06-21 doctrine): derive the gh account from the
+# remote host-alias (git@github.com-<account>:…) — the single source of truth — and
+# pin its isolated profile. ALWAYS strip ambient GH_TOKEN/GITHUB_TOKEN: gh ranks
+# GH_TOKEN above GH_CONFIG_DIR, so a stale session token would 401 the status line
+# after a rotation. `gh_cred` is the prefix for every API-hitting gh call below.
+gh_account=$(printf '%s' "$remote_url_raw" | sed -nE 's#^git@github\.com-([A-Za-z0-9_-]+):.*#\1#p')
+gh_cred=(env -u GH_TOKEN -u GITHUB_TOKEN)
+# When the alias names an account but no ~/.config/gh-<account> profile exists,
+# gh falls back to the multi-user default config, whose active-account
+# resolution is fragile in this subprocess (it 401s as "gh exit 4"). Flag the
+# real cause so a missing profile reads as an actionable hint, not a mystery.
+# (Incident 2026-06-21: Eon-Labs repos failed because gh-eonlabs was never set
+# up — every in-use host-alias needs its own isolated profile.)
+gh_profile_missing=""
+if [ -n "$gh_account" ]; then
+    if [ -d "$HOME/.config/gh-$gh_account" ]; then
+        gh_cred+=("GH_CONFIG_DIR=$HOME/.config/gh-$gh_account")
+    else
+        gh_profile_missing="$gh_account"
+    fi
+fi
+
 # Latest release from GitHub (semantic-release SSoT, not local tags which may
 # include non-semver milestone tags like v2.0/v2.1 that sort above semver releases).
-# Tri-state: real release → version+age; API-says-no-release → ∅ rel; gh broken → ⌁ offline.
-# `gh` returns exit 1 for both "release not found" AND auth/network failures, so we
-# pattern-match stderr to tell them apart instead of trusting exit code alone.
+# Tri-state, rendered with OFFICIAL text only (2026-06-11 directive — the
+# invented "∅ rel"/"⌁ offline" markers are gone): real release → version+age;
+# failure → the first line of gh's own stderr verbatim (e.g. "release not
+# found"); silent failure (timeout kills gh before it prints) → the official
+# exit code as "gh exit N". `gh` returns exit 1 for both "release not found"
+# AND auth/network failures, so stderr text — not the exit code — is also
+# what distinguishes cacheable no-release from transient network errors.
 if [ -n "$owner_repo" ]; then
     # Iter 19 (2026-05-19) — 5-minute disk cache. gh release view costs ~460ms
     # per call (network round-trip to api.github.com). Latest release rarely
@@ -341,7 +379,7 @@ if [ -n "$owner_repo" ]; then
         release_out=$(cat "$release_cache_file")
         release_exit=0
     else
-        release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
+        release_out=$(probe_direct timeout 2 "${gh_cred[@]}" gh release view --repo "$owner_repo" --json tagName,publishedAt -q '.tagName + "|" + .publishedAt' 2>&1)
         release_exit=$?
         if { [ $release_exit -eq 0 ] && [ -n "$release_out" ]; } || [[ "$release_out" == *"release not found"* ]]; then
             echo "$release_out" > "$release_cache_file" 2>/dev/null
@@ -357,16 +395,24 @@ if [ -n "$owner_repo" ]; then
             tag_age=" ${BRIGHT_BLACK}$(reltime "$tag_epoch")${RESET}"
         fi
         git_changes="${git_changes} ${BRIGHT_BLACK}|${RESET} ${CYAN}${latest_tag}${RESET}${tag_age}"
-    elif [[ "$release_out" == *"release not found"* ]]; then
-        # gh succeeded talking to the API; the API just has no release for this repo
-        git_changes="${git_changes} ${BRIGHT_BLACK}| ∅ rel${RESET}"
     else
-        # Genuine failure: timeout (124), gh missing (127), HTTP 4xx/5xx, network unreachable
-        git_changes="${git_changes} ${BRIGHT_BLACK}| ⌁ offline${RESET}"
+        # Failure: render gh's OWN diagnostic verbatim (first stderr line,
+        # severity prefix stripped — covers both "release not found" and
+        # auth/network errors). When gh died without output (timeout 124,
+        # binary missing 127), state the official exit code instead —
+        # never an invented marker word.
+        gh_rel_diag=$(printf '%s' "$release_out" | head -1 | sed -E 's/^(fatal|error): //')
+        # Missing-profile failures are actionable — name the absent profile
+        # instead of gh's generic auth diagnostic ("gh exit 4" / login prompt).
+        if [ -n "$gh_profile_missing" ]; then
+            gh_rel_diag="no gh-${gh_profile_missing} profile"
+        fi
+        git_changes="${git_changes} ${BRIGHT_BLACK}| ${gh_rel_diag:-gh exit ${release_exit}}${RESET}"
     fi
-else
-    git_changes="${git_changes} ${BRIGHT_BLACK}| ∅${RESET}"
 fi
+# (No origin remote → the release segment is omitted entirely: absent data
+# renders nothing, per the official-values policy — the invented "| ∅"
+# placeholder was removed 2026-06-11.)
 
 # === Active Cron Jobs ===
 # Reads ~/.claude/state/active-crons.json written by cron-tracker.ts hook
@@ -441,22 +487,49 @@ if [[ -n "$github_url" && -n "$owner_repo" ]]; then
     vis_cache_file="${vis_cache_dir:-/tmp}/ccstatusline-gh-visibility-cache"
     vis_cache_age=9999
     [ -f "$vis_cache_file" ] && vis_cache_age=$(($(date +%s) - $(stat -f %m "$vis_cache_file" 2>/dev/null || echo 0)))
+    vis_err=""
     if [ "$vis_cache_age" -lt 3600 ]; then
         vis_out=$(cat "$vis_cache_file")
         vis_exit=0
     else
-        vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>&1)
+        # Capture stdout and stderr SEPARATELY. On a non-2xx response `gh api`
+        # dumps the raw JSON response body to STDOUT (its first line is a bare
+        # "{") and writes its own one-line diagnostic — `gh: <msg> (HTTP NNN)`
+        # — as the LAST line of STDERR. The pre-2026-06-21 code merged the two
+        # with `2>&1` and took `head -1`, so it surfaced the JSON body's "{"
+        # and rendered the ({) badge on every auth failure. Keep the streams
+        # apart so the success value (stdout) and the diagnostic (stderr)
+        # never contaminate each other.
+        vis_err_file=$(mktemp -t ccstatusline-gh-vis.XXXXXX)
+        vis_out=$(probe_direct timeout 2 "${gh_cred[@]}" gh api "repos/${owner_repo}" --jq 'if .private then "private" else "public" end' 2>"$vis_err_file")
         vis_exit=$?
+        vis_err=$(cat "$vis_err_file" 2>/dev/null)
+        rm -f "$vis_err_file"
         if [ $vis_exit -eq 0 ] && [[ "$vis_out" == "public" || "$vis_out" == "private" ]]; then
             echo "$vis_out" > "$vis_cache_file" 2>/dev/null
         fi
     fi
-    if [ $vis_exit -eq 0 ] && [ -n "$vis_out" ]; then
+    if [ $vis_exit -eq 0 ] && [[ "$vis_out" == "public" || "$vis_out" == "private" ]]; then
         repo_visibility="$vis_out"
-    elif [[ "$vis_out" == *"HTTP 404"* ]]; then
+    elif [[ "$vis_err" == *"HTTP 404"* ]]; then
         repo_visibility=""  # repo doesn't exist or no read access — leave badge off
     else
-        repo_visibility="?"  # auth, network, timeout, gh-missing — surface a marker
+        # auth, network, timeout, gh-missing: surface gh's OWN diagnostic
+        # verbatim instead of the invented "?" marker (removed 2026-06-11 per
+        # official-values directive). Prefer gh's last `gh: ...` stderr line
+        # (e.g. "Bad credentials (HTTP 401)"); fall back to the JSON body's
+        # .message; finally state the official exit code when gh died silently
+        # (timeout/missing binary leave both streams empty).
+        gh_vis_diag=$(printf '%s\n' "$vis_err" | grep -E '^gh: ' | tail -1 | sed -E 's/^gh: //')
+        if [ -z "$gh_vis_diag" ]; then
+            gh_vis_diag=$(printf '%s' "$vis_out" | grep -oE '"message"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)".*/\1/')
+        fi
+        # A missing isolated profile is the actionable root cause — name it
+        # instead of gh's generic auth diagnostic (see gh_profile_missing above).
+        if [ -n "$gh_profile_missing" ]; then
+            gh_vis_diag="no gh-${gh_profile_missing} profile"
+        fi
+        repo_visibility="${gh_vis_diag:-gh exit ${vis_exit}}"
     fi
 fi
 
@@ -579,6 +652,11 @@ elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
             else if (key == "account_mode") account_mode_value = val
         }
         END {
+            # Default "soft" is NOT invented here: it is the documented
+            # official default from the SSoT, ccmax-monitor
+            # hooks/pin-helper.sh (ccmax_pin_mode). This legacy inline
+            # parser only runs when that helper is absent, so the default
+            # is duplicated by necessity — keep it in sync with the SSoT.
             if (mode_value == "") mode_value = "soft"
             printf "%s|%s|%s\n", account_value, mode_value, account_mode_value
         }
@@ -594,6 +672,10 @@ fi
 unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined _ccmax_pin_legacy_rest
 
 ccmax_bearer_account=""
+# "bearer_key_anthropic_compatible_api_mode" is the OFFICIAL enum value of the
+# pin file's [account_mode] field — SSoT: ccmax-monitor hooks/pin-helper.sh.
+# This is a verbatim comparison against the official value, not a translation;
+# keep the literal in sync with the SSoT if ccmax-monitor ever renames it.
 if [ "$ccmax_pin_account_mode" = "bearer_key_anthropic_compatible_api_mode" ] && [ -n "$ccmax_pin_account" ]; then
     ccmax_bearer_account="$ccmax_pin_account"
 elif [ -n "${CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION:-}" ]; then
@@ -820,7 +902,7 @@ pool_errors=0
 # shellcheck disable=SC2034
 canary_failures=0
 canary_class="unknown"
-canary_failure_type_code_AU_QT_CF_UP_IN=""
+canary_last_observed_http_status_for_render=""
 pool_resilience_state_machine_label=""
 unified_state_name_for_render_label=""
 canary_failure_duration_humanized_short_form=""
@@ -840,37 +922,30 @@ import sys, json
 # Output line shape:
 #   <gate_status>|<pool_schedulable>|<pool_rotation_size>|<pool_errors>
 #    |<canary_consecutive_failures>|<canary_classification_four_state>
-#    |<canary_failure_type_code_AU_QT_CF_UP_IN>
+#    |<canary_last_observed_http_status_for_render>
 #    |<pool_resilience_state_machine_label>
 #    |<unified_state_name_for_render_label>
 #    |<canary_failure_duration_humanized_short_form>
 
-def derive_canary_failure_type_code_from_last_observed_http_status(
+def passthrough_official_canary_http_status_for_render(
     last_observed_http_status_code_from_canary_self_test_block,
 ):
-    # RFC 9110 status-class taxonomy collapsed onto the operationally-distinct
-    # 5-code shape we render in the statusline. Citation taxonomy:
-    # RFC 9457 (problem+json), Envoy cluster_stats upstream_rq_* metric groups,
-    # AWS API Gateway 4XXError/5XXError separation, Cloudflare Tunnel error
-    # categorization (auth/policy/upstream/network/internal). Single source
-    # signal today is canary_self_test.last_observed_http_status_code; richer
-    # per-account reasons require L3 server work (task #8).
+    # OFFICIAL-VALUES rendering (operator directive 2026-06-11): emit the
+    # canary's last_observed_http_status_code VERBATIM. This replaces the
+    # retired AU/QT/CF/UP/IN letter-code translation (an RFC-9457-inspired
+    # taxonomy, removed because it was a hand-made re-labeling of official
+    # HTTP statuses — 401 IS the value the canary observed; no legend
+    # needed). The value 0 is also the field's official recorded value
+    # (HTTP request never completed — no status observed) and renders
+    # verbatim. 2xx/3xx return empty (not a failure token; the render path
+    # only attaches this on degraded states anyway). NOTE: this python runs
+    # inside a shell double-quoted python3 -c block — NEVER use a literal
+    # double-quote character anywhere in it (it terminates the shell string
+    # and the parser dies silently behind 2>/dev/null).
     s = int(last_observed_http_status_code_from_canary_self_test_block or 0)
-    if s == 0:
-        # Canary couldn't complete the HTTP request at all — network or
-        # timeout before status was observed. Treat as upstream-unavailable.
-        return 'UP'
-    if s in (401, 403):
-        return 'AU'  # Auth / credential / version-gate rejection
-    if s in (429, 509):
-        return 'QT'  # Quota / rate-limit / throttle
-    if s in (400, 422):
-        return 'CF'  # Client / schema / policy-deny
-    if s in (502, 503, 504):
-        return 'UP'  # Upstream unavailable / pool exhausted / gateway timeout
-    if 500 <= s <= 599:
-        return 'IN'  # Internal / proxy bug / 500 from our own gateway
-    return ''        # Status 2xx/3xx (shouldn't happen on a 'failure' branch)
+    if 200 <= s < 400:
+        return ''
+    return str(s)
 
 def derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
     schedulable_active_accounts_count, rotation_working_set_size,
@@ -973,8 +1048,8 @@ try:
         legacy_gate_status_binary = 'healthy'
 
     # L1d new primitives.
-    canary_failure_type_code_AU_QT_CF_UP_IN = \
-        derive_canary_failure_type_code_from_last_observed_http_status(
+    canary_last_observed_http_status_for_render = \
+        passthrough_official_canary_http_status_for_render(
             canary_last_observed_http_status_code,
         )
     pool_resilience_state_machine_label = \
@@ -1002,7 +1077,7 @@ try:
         f'|{pool_error_accounts_count}'
         f'|{canary_consecutive_failures_count}'
         f'|{canary_classification_four_state}'
-        f'|{canary_failure_type_code_AU_QT_CF_UP_IN}'
+        f'|{canary_last_observed_http_status_for_render}'
         f'|{pool_resilience_state_machine_label}'
         f'|{unified_state_name_for_render_label}'
         f'|{canary_failure_duration_humanized_short_form}'
@@ -1014,7 +1089,7 @@ except Exception:
     print('parse-error|0|0|0|0|unknown||unknown|unknown|')
 " 2>/dev/null) || doorward_parsed=""
     if [ -n "$doorward_parsed" ]; then
-        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_failure_type_code_AU_QT_CF_UP_IN pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
+        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_last_observed_http_status_for_render pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
     fi
 fi
 
@@ -1114,20 +1189,167 @@ if command -v scc >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/n
 fi
 
 # Status line layout:
-#   Line 1: git stats
+#   Line 1: git stats | model id + inference-mode badges (gray suffix)
 #   Line 2: code stats (scc — LOC, files, complexity, top languages, COCOMO)
 #   Line 3: UTC time | local time | ccmax (inline)
 #   Line 4: ~/path | github-url
 #   Line 5: session UUID (if available)
 #   Line 6: ~/asciinemalogs cast UUID
+
+# === Model identity + inference-mode badges (first-line suffix, 2026-06-10) ===
+# NATIVE-FIELDS-ONLY INVARIANT (operator directive 2026-06-11): every token in
+# this segment is a DIRECT, parameterless echo of a statusline stdin field —
+# no composite/inferred state is ever rendered. Pinned by the bats test
+# "model segment renders only native payload echoes (no inferred badges)".
+#
+# Native statusline-input fields (verified against live ~/.claude/statusline.jsonl):
+#   .model.id          raw model id incl. variant suffix (e.g. claude-fable-5[1m])
+#   .effort.level      reasoning effort (e.g. high)
+#   .thinking.enabled  extended thinking (bool)
+#   .fast_mode         fast mode active (bool)
+# OFFICIAL-NAMES/VALUES rendering (2026-06-11 operator directive):
+#   effort     → bare official level word ("effort:" label dropped)
+#   thinking   → official field name + VERBATIM official boolean value
+#                (thinking:true / thinking:false); omitted when the payload
+#                lacks the field — no invented on/off translation
+#   fast_mode  → official field name shown when true, omitted when false
+#                (no truncated "fast" label)
+# Render (all BRIGHT_BLACK, operator-selected subdued style):
+#   ... | v12.43.0 3h ago | claude-fable-5[1m] · xhigh · thinking:true
+# .model.id may be empty at session start (no API call yet) — fall back to
+# $model_raw (display_name-first decode above); suppress segment if both empty.
+#
+# ── ✦ ultracode badge RETIRED 2026-06-11 (lived one day) ────────────────────
+# The 2026-06-10 heuristic (effort=="xhigh" AND thinking AND NOT fast_mode)
+# was REFUTED by live counterexamples within 24h: sessions ea782bfd (yukon)
+# and a9861cbf (claude-sys) rendered xhigh with ZERO ultracode activation in
+# their transcripts — the operator saw "✦ ultracode" while it was OFF. Root
+# cause of the bad heuristic: effort levels persist (saved default / carried
+# state) while ultracode itself is session-only in-memory appState
+# ({value:"xhigh", ultracode:true}) with NO statusline-payload field, so
+# xhigh ⇏ ultracode. The native tokens effort:xhigh · thinking:on already
+# carry the full payload truth; interpreting them is the operator's job.
+# Reinstate ONLY if upstream ships a native `ultracode` payload field.
+# Model segment is its OWN line (moved off line 1 — 2026-06-19 operator
+# directive). Renders native payload echoes (.model.id, .effort.level,
+# .thinking.enabled, .fast_mode) and ends with the running Claude Code
+# version straight from the statusline payload's native .version field
+# ("our current version of Claude Code locally") — no subprocess, official
+# value verbatim per the NATIVE-FIELDS-ONLY invariant. Starts with the model
+# token directly (no leading " | " — that separator existed only when this
+# was appended to git_changes).
+model_inline=""
+model_token="${model_id:-$model_raw}"
+if [ -n "$model_token" ]; then
+    model_inline="${BRIGHT_BLACK}${model_token}${RESET}"
+    [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
+    [ -n "$thinking_enabled" ] && model_inline="${model_inline}${BRIGHT_BLACK} · thinking:${thinking_enabled}${RESET}"
+    [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
+    [ -n "$cc_version" ] && model_inline="${model_inline} ${BRIGHT_BLACK}|${RESET} ${BRIGHT_BLACK}${cc_version}${RESET}"
+fi
+
+# === Context window bracketed-zone bar (appended to model line) ===
+# Design: ▕<safe-fill>·····|≈≈≈≈▏  where | marks the compaction trigger.
+# Left zone = safe capacity before compaction fires.
+# Right zone = the do-not-enter region past the trigger.
+#
+# compact_pct from CLAUDE_AUTOCOMPACT_PCT_OVERRIDE (confirmed present in env
+# via settings.json; default 73 when absent). Bar suppressed at session start
+# when context_window fields are absent OR when model_inline is still empty
+# (no model yet — nothing to append to).
+#
+# Color tiers:
+#   far from trigger (>15pp headroom)  — BRIGHT_BLACK (dim, non-distracting)
+#   approaching (<= 15pp headroom)     — YELLOW
+#   past trigger                       — RED
+#
+# Readout (right of bar): N% · tok/win · ~Nk until compact
+ctx_bar_segment=""
+if [ -n "$ctx_window_size" ] && \
+   [ "${ctx_window_size:-0}" -gt 0 ] 2>/dev/null && [ -n "$ctx_used_pct" ]; then
+    _cpct="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-73}"
+    _BLEN=20  # total inner bar width (safe + danger combined)
+
+    # === EXACT THRESHOLD COMPUTATION (mirrors Claude Code bundle math) ===
+    # The actual compact trigger is NOT simply pct% of the raw window.
+    # Bundle chain: window  = min(modelMax, CLAUDE_CODE_AUTO_COMPACT_WINDOW)  <-- the clamp
+    #               cee()   = window - min(ehe(), AFi=20000)
+    #               Swn()   = min(floor(effective * pct/100), effective - 13000)
+    #               A8r()   = min(effective - round(effective*0.2), Swn())
+    # CRITICAL (2026-06-24): CLAUDE_CODE_AUTO_COMPACT_WINDOW caps the window
+    # BEFORE pct is applied. Computing against the RAW 1M window over-promised
+    # headroom — empirically the readout said "~149k until compact" while Claude
+    # Code actually compacted at ~570k ( = (min(1M,800k)-20k)*0.73 ). Apply the
+    # same min(modelMax, AUTO_COMPACT_WINDOW) clamp so the readout is truthful.
+    # We still approximate effective = window - 20000 (AFi cap), ignoring the
+    # per-model ehe() variance and the 0.2 precompute fraction (which only
+    # tightens the result to Swn anyway for typical pct values like 73).
+    _acw="${CLAUDE_CODE_AUTO_COMPACT_WINDOW:-0}"
+    _cwin=$ctx_window_size
+    [ "${_acw:-0}" -gt 0 ] 2>/dev/null && [ "$_acw" -lt "$_cwin" ] 2>/dev/null && _cwin=$_acw
+    _effective=$(( _cwin - 20000 ))
+    _thresh=$(( _effective * _cpct / 100 ))
+    _thresh_cap=$(( _effective - 13000 ))
+    [ "${_thresh:-0}" -gt "${_thresh_cap:-0}" ] 2>/dev/null && _thresh=$_thresh_cap
+    # Threshold as % of RAW window (bar separator + color tier land on the
+    # visible bar, which is always drawn against the raw model window).
+    _trigger_pct=$(( _thresh * 100 / ctx_window_size ))
+
+    # Bar separator at the EXACT trigger percentage, not at raw pct
+    _sw=$(( (_BLEN * _trigger_pct + 50) / 100 ))
+    _dw=$(( _BLEN - _sw ))
+
+    # Fill position: how far the bar is filled (proportional to used_pct of raw window)
+    _ft=$(( (_BLEN * ctx_used_pct + 50) / 100 ))
+    _fs=$(( _ft < _sw ? _ft : _sw ))          # filled in safe zone
+    _us=$(( _sw - _fs ))                       # empty dots in safe zone
+    _fd=$(( _ft > _sw ? _ft - _sw : 0 ))      # filled past separator (past trigger)
+    _ud=$(( _dw - _fd ))                       # remaining ≈ in danger zone
+    [ "${_ud:-0}" -lt 0 ] && _ud=0
+
+    # Color tier.
+    # RED: token-level comparison against the exact threshold (avoids the
+    #      integer-% rounding gap where e.g. 72% > 71 but 715k < 715,400).
+    # YELLOW: 12pp before the trigger percentage (practical "approaching" zone).
+    if [ "${ctx_used_tok:-0}" -ge "${_thresh:-999999999}" ] 2>/dev/null; then
+        _bc="$RED"; _sc="$RED"; _dc="$RED"
+    elif [ "${ctx_used_pct:-0}" -ge $(( _trigger_pct - 12 )) ] 2>/dev/null; then
+        _bc="$YELLOW"; _sc="$YELLOW"; _dc="$BRIGHT_BLACK"
+    else
+        _bc="$BRIGHT_BLACK"; _sc="$BRIGHT_BLACK"; _dc="$BRIGHT_BLACK"
+    fi
+
+    # Build character runs (pure bash, no subshells)
+    _bf="";  for ((i=0; i<_fs; i++)); do _bf+="█";  done
+    _be="";  for ((i=0; i<_us; i++)); do _be+="·";  done
+    _bdf=""; for ((i=0; i<_fd; i++)); do _bdf+="█"; done
+    _bde=""; for ((i=0; i<_ud; i++)); do _bde+="≈"; done
+
+    # Distance until the exact computed threshold
+    _utok=$(( _thresh - ctx_used_tok ))
+    if [ "${_utok:-0}" -le 0 ] 2>/dev/null; then
+        _until_part="past compact"
+    elif [ "${_utok:-0}" -ge 1000000 ] 2>/dev/null; then
+        _until_part="~$(( _utok / 1000000 ))M until compact"
+    elif [ "${_utok:-0}" -ge 1000 ] 2>/dev/null; then
+        _until_part="~$(( _utok / 1000 ))k until compact"
+    else
+        _until_part="~${_utok} until compact"
+    fi
+
+    # Assemble: ▕<safe-fill><safe-empty>|<danger-fill><danger-empty>▏ N% · tok/win · ~Nk until compact
+    ctx_bar_segment="${BRIGHT_BLACK}ctx ▕${RESET}${_bc}${_bf}${RESET}${BRIGHT_BLACK}${_be}${RESET}${_sc}|${RESET}${_bc}${_bdf}${RESET}${_dc}${_bde}${RESET}${BRIGHT_BLACK}▏ ${ctx_used_pct}% · ${ctx_tok_compact}/${ctx_win_compact} · ${_until_part}${RESET}"
+fi
+
 line1="${git_changes}"
 
 # Line 3: path | GitHub URL (visibility)
 vis_label=""
 case "$repo_visibility" in
+    "")      ;;  # no remote / repo missing — badge off
     private) vis_label=" ${YELLOW}(private)${RESET}" ;;
     public)  vis_label=" ${BRIGHT_BLACK}(public)${RESET}" ;;
-    "?")     vis_label=" ${RED}(?)${RESET}" ;;  # gh failed — auth/network/timeout
+    *)       vis_label=" ${RED}(${repo_visibility})${RESET}" ;;  # gh's own diagnostic, verbatim
 esac
 if [[ -n "$github_url" ]]; then
     if [[ "$git_branch" == "main" || "$git_branch" == "master" ]]; then
@@ -1136,9 +1358,17 @@ if [[ -n "$github_url" ]]; then
         line_repo="${GREEN}${repo_path}${RESET} | ${MAGENTA}${github_url}${RESET}${vis_label}"
     fi
 elif git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no remote${RESET}"
+    # OFFICIAL-VALUES-ONLY (2026-06-11): surface git's own diagnostic for
+    # the missing origin remote instead of the invented "no remote" label.
+    # `2>&1 1>/dev/null` captures stderr only; the severity prefix
+    # (fatal:/error:) is stripped — the ⚠ glyph already carries severity.
+    git_diag=$(git remote get-url origin 2>&1 1>/dev/null | sed -E 's/^(fatal|error): //')
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ ${git_diag}${RESET}"
 else
-    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ no git${RESET}"
+    # Same policy outside a work tree: render git's official diagnostic
+    # (e.g. "not a git repository ...") instead of the invented "no git".
+    git_diag=$(git rev-parse --is-inside-work-tree 2>&1 1>/dev/null | sed -E 's/^(fatal|error): //')
+    line_repo="${GREEN}${repo_path}${RESET} | ${RED}⚠ ${git_diag}${RESET}"
 fi
 
 # Extract iTerm2 session UUID from environment (format: w0t1p1:UUID)
@@ -1154,6 +1384,14 @@ echo -e "$line1"
 # Empty when scc unavailable, repo not git, or computation timed out (>1s)
 [ -n "$code_stats" ] && echo -e "$code_stats"
 
+# Model segment line (own line as of 2026-06-19) — after code stats, before
+# the datetime/doorward line. Suppressed entirely when no model token.
+[ -n "$model_inline" ] && echo -e "$model_inline"
+
+# Context window bar (own line as of 2026-06-21) — after model line, before
+# datetime/doorward. Suppressed when context_window absent (session start).
+[ -n "$ctx_bar_segment" ] && echo -e "$ctx_bar_segment"
+
 # =============================================================================
 # Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
 # =============================================================================
@@ -1161,10 +1399,10 @@ echo -e "$line1"
 # Final output shapes (L1d unified multi-dimensional render, 2026-05-13):
 #
 #   ... UTC | ... PDT | doorward 3/3 ✓ 1.93.0                                ← all healthy
-#   ... UTC | ... PDT | doorward 3/3 ✗AU 3d since-boot 1.93.0                ← today (config bug, gray)
-#   ... UTC | ... PDT | doorward 2/3 ⚠UP 3m flapping 1.93.0                   ← one backend transient
-#   ... UTC | ... PDT | doorward 1/3 ⚠UP 12m partial-outage 1.93.0            ← last healthy account, pre-warn
-#   ... UTC | ... PDT | doorward 0/3 ✗UP 47m outage 1.93.0                    ← total outage, alarm
+#   ... UTC | ... PDT | doorward 3/3 ✗401 3d since-boot 1.93.0                ← today (config bug, gray)
+#   ... UTC | ... PDT | doorward 2/3 ⚠503 3m flapping 1.93.0                   ← one backend transient
+#   ... UTC | ... PDT | doorward 1/3 ⚠503 12m partial-outage 1.93.0            ← last healthy account, pre-warn
+#   ... UTC | ... PDT | doorward 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
 #   ... UTC | ... PDT | doorward 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
 #   ... UTC | ... PDT | doorward unreachable 1.93.0                          ← gateway down
 #
@@ -1173,7 +1411,7 @@ echo -e "$line1"
 #
 # State is conveyed entirely by per-token coloring + the named state label:
 #   "all healthy"    → ✓ in GREEN, rest in BRIGHT_BLACK, no state label
-#   "since-boot"     → ✗AU and "since-boot" in BRIGHT_BLACK (calm, config bug)
+#   "since-boot"     → ✗401 (official status) and "since-boot" in BRIGHT_BLACK (calm, config bug)
 #   "flapping"       → ⚠<type> and "flapping" in YELLOW (watch, transient)
 #   "partial-outage" → ⚠<type> and "partial-outage" in YELLOW, pool ratio also YELLOW (pre-warn — last account standing)
 #   "outage"         → ✗<type> and "outage" in RED, pool ratio in RED if 0/N (alarm)
@@ -1231,13 +1469,13 @@ echo -e "$line1"
 #   carries each account's {name, status, schedulable} triple if you need to
 #   know WHICH account is in which state.
 #
-# ── "✓" or "✗AU 3d" or "⚠UP 12m"  ←  severity-glyph + type-code + duration ──
+# ── "✓" or "✗401 3d" or "⚠503 12m"  ←  severity-glyph + official status + duration ──
 #   The L1d unified render replaced the raw consecutive-failure-count display
 #   with a three-token composite that's both more glanceable and more
 #   actionable. Each token answers a distinct operator question:
 #
 #     severity-glyph   How urgent? — ✓ (none), ⚠ (warn), ✗ (alarm or calm)
-#     type-code        What kind of failure? — AU / QT / CF / UP / IN
+#     official status   What failed? — the canary's last_observed_http_status_code VERBATIM (401, 429, 503, 0=never completed)
 #     duration         How long has it been failing? — humanized short form
 #
 #   Source primitives = /v1/router-status .canary_self_test sub-object:
@@ -1248,12 +1486,12 @@ echo -e "$line1"
 #     .canary_self_test.configured_interval_secs (int)        → × failures = duration
 #     .canary_self_test.last_observed_http_status_code (int)  → maps to type-code
 #
-#   Type-code derivation (RFC 9457 / Envoy / AWS API Gateway taxonomy):
-#     401, 403         → AU (auth / credential / version-gate)
-#     429, 509         → QT (quota / rate-limit / throttle)
-#     400, 422         → CF (client / schema / policy-deny)
-#     502, 503, 504, 0 → UP (upstream unavailable / pool exhausted / timeout)
-#     500, 501, 505..  → IN (internal / proxy bug from our own gateway)
+#   Status rendering (official-values directive 2026-06-11): the canary's
+#   last_observed_http_status_code renders VERBATIM (e.g. 401, 429, 503).
+#   0 is the field's official recorded value when the HTTP request never
+#   completed (network/timeout before any status was observed). The former
+#   AU/QT/CF/UP/IN letter-code translation (RFC-9457-inspired) is RETIRED —
+#   it re-labeled official statuses, violating the official-values policy.
 #
 #   The single source of type information today is the LAST observed canary
 #   status code. Richer per-account failure reasons (one type-code per pool
@@ -1377,8 +1615,9 @@ echo -e "$line1"
 # ── Line-suppression rule ────────────────────────────────────────────────────
 #   The whole ccmax segment is suppressed (only datetime renders) when ALL of:
 #     - doorward_status == "unreachable", AND
-#     - ccmax_pin_badge is empty, AND
 #     - ccmax_bearer_account is empty
+#   (The ccmax_pin_badge render-trigger was retired 2026-05-13; its dead
+#   placeholder variable was removed 2026-06-10.)
 #   This is the "no integration installed at all" case (most public cc-skills
 #   users). They see the bare datetime line and nothing else.
 # =============================================================================
@@ -1389,10 +1628,9 @@ echo -e "$line1"
 # detection, which gates the render-decision below. The visible badge itself
 # is dropped — the operator has no remaining need to see WHICH scope holds
 # the pin since under bearer-mode routing doorward picks the upstream
-# account dynamically per-request anyway. ccmax_pin_badge stays as an empty
-# placeholder so downstream render-decision and echo statements don't need
-# structural changes.
-ccmax_pin_badge=""
+# account dynamically per-request anyway. (2026-06-10: the always-empty
+# ccmax_pin_badge placeholder variable was removed from the render decision
+# and echo below — dead-code cleanup, zero behavior change.)
 
 # NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
 # state the emoji could signal is already expressed by a colored token after
@@ -1412,8 +1650,8 @@ ccmax_pin_badge=""
 #   N/M         pool ratio, colored by pool resilience state machine
 #               (BRIGHT_BLACK healthy, YELLOW degraded/partial-outage, RED total-outage)
 #   severity    ✓ healthy (GREEN) | ✗ degraded/outage (RED/gray) | ⚠ pre-warn (YELLOW)
-#   type        AU/QT/CF/UP/IN — only when severity != ✓ (derived from canary
-#               last_observed_http_status_code per RFC 9457 taxonomy)
+#   status      official HTTP status VERBATIM — only when severity != ✓ (the canary's
+#               last_observed_http_status_code; letter-code taxonomy retired 2026-06-11)
 #   duration    humanized canary failure duration (e.g. 18h, 3m, 2d) — only
 #               when severity != ✓
 #   state-name  since-boot | flapping | partial-outage | outage — operator-
@@ -1424,10 +1662,10 @@ ccmax_pin_badge=""
 #
 # Scenario examples (against today's live state and hypotheticals):
 #   doorward 3/3 ✓ 1.93.0                              all healthy
-#   doorward 3/3 ✗AU 18h since-boot 1.93.0             today (config bug, gray)
-#   doorward 2/3 ⚠UP 3m flapping 1.93.0                one backend transient
-#   doorward 1/3 ⚠UP 12m partial-outage 1.93.0         last healthy, pre-warn
-#   doorward 0/3 ✗UP 47m outage 1.93.0                 total outage, alarm
+#   doorward 3/3 ✗401 18h since-boot 1.93.0             today (config bug, gray)
+#   doorward 2/3 ⚠503 3m flapping 1.93.0                one backend transient
+#   doorward 1/3 ⚠503 12m partial-outage 1.93.0         last healthy, pre-warn
+#   doorward 0/3 ✗503 47m outage 1.93.0                 total outage, alarm
 #   doorward 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
 #
 # Full source-of-truth legend for each token lives in the in-script LEGEND
@@ -1452,7 +1690,7 @@ ccmax_pin_badge=""
 #   doorward_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
 #   doorward_canary_consecutive_failures                    (int)
 #   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unknown}
-#   doorward_canary_failure_type_code                       ∈ {AU, QT, CF, UP, IN, ""}  (RFC 9457 taxonomy)
+#   doorward_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
 #   doorward_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
 #   doorward_canary_real_traffic_damper_engaged             (bool)
 #   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unknown}
@@ -1490,7 +1728,7 @@ doorward_real_traffic_damper_engaged_boolean_serialized="false"
 [ "$real_traffic_recent" -eq 1 ] && doorward_real_traffic_damper_engaged_boolean_serialized="true"
 
 doorward_state_jsonl_log_record_for_this_render="{\
-\"schema_version\":1,\
+\"schema_version\":2,\
 \"wall_clock_unix_seconds\":$(date +%s),\
 \"doorward_gateway_legacy_binary_gate_status\":\"${doorward_status}\",\
 \"doorward_pool_schedulable_active_accounts_count\":${pool_schedulable},\
@@ -1499,7 +1737,7 @@ doorward_state_jsonl_log_record_for_this_render="{\
 \"doorward_pool_resilience_state_machine_label\":\"${pool_resilience_state_machine_label}\",\
 \"doorward_canary_consecutive_failures\":${canary_failures},\
 \"doorward_canary_classification_four_state\":\"${canary_class}\",\
-\"doorward_canary_failure_type_code\":\"${canary_failure_type_code_AU_QT_CF_UP_IN}\",\
+\"doorward_canary_failure_type_code\":\"${canary_last_observed_http_status_for_render}\",\
 \"doorward_canary_failure_duration_humanized\":\"${canary_failure_duration_humanized_short_form}\",\
 \"doorward_canary_real_traffic_damper_engaged\":${doorward_real_traffic_damper_engaged_boolean_serialized},\
 \"doorward_unified_state_name_for_render\":\"${unified_state_name_for_render_label}\",\
@@ -1549,19 +1787,19 @@ if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; th
             unified_state_name_visible_label_token=""
             ;;
         since-boot)
-            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${BRIGHT_BLACK}since-boot${RESET}"
             ;;
         flapping)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}flapping${RESET}"
             ;;
         partial-outage)
-            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${YELLOW}partial-outage${RESET}"
             ;;
         outage)
-            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_failure_type_code_AU_QT_CF_UP_IN} ${canary_failure_duration_humanized_short_form}${RESET}"
+            severity_glyph_with_optional_type_code_and_duration="${RED}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${RED}outage${RESET}"
             ;;
         *)
@@ -1602,142 +1840,19 @@ fi
 # Decide whether to render the ccmax segment at all. Three independent
 # triggers, any one is sufficient:
 #   - doorward responded (cached or fresh) → status != "unreachable"
-#   - a pin file resolved a scope+mode → ccmax_pin_badge non-empty
+#   (pin-badge render-trigger retired 2026-05-13; placeholder removed 2026-06-10)
 #   - bearer-mode detection found a bearer account → ccmax_bearer_account set
 # Otherwise (no integration installed), print the bare datetime line.
 # ccmax_bearer_account itself produces no visible badge — only the render
 # decision uses it; presence of the doorward block already implies bearer-
 # mode routing for the operator.
-if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_pin_badge" ] || [ -n "$ccmax_bearer_account" ]; then
+if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_bearer_account" ]; then
     # $doorward_inline starts with its own leading space (the "doorward"
     # anchor), so concatenating directly after the BRIGHT_BLACK "|" separator
     # produces exactly one space of padding between them.
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}${ccmax_pin_badge}"
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}"
 else
     echo -e "${datetime_display}"
-fi
-
-# Autonomous-loop awareness (v16.9.2): if the current cwd is under any
-# registered loop's contract dir, print one compact line with the loop's
-# identity + health. Sits between datetime and the path line so the
-# operator sees "what loop owns this terminal" alongside the project info.
-loop_registry="$HOME/.claude/loops/registry.json"
-if [ -f "$loop_registry" ]; then
-    # Find the loop whose contract dir is a prefix of the current cwd OR
-    # whose contract dir IS the current cwd. Same matcher as session-bind.sh.
-    loop_match=$(jq -c --arg cwd "$PWD" '
-        .loops[]? |
-        select(
-            ((.contract_path | split("/") | .[:-1] | join("/")) as $contract_dir |
-              ($contract_dir + "/") as $contract_prefix |
-              ($cwd | startswith($contract_prefix)) or ($cwd == $contract_dir)
-            )
-        ) |
-        {
-            loop_id, contract_path, state_dir,
-            owner_session_id: (.owner_session_id // "")
-        }
-    ' "$loop_registry" 2>/dev/null | head -1)
-    if [ -n "$loop_match" ] && [ "$loop_match" != "null" ]; then
-        # Perf (iter-30 statusline-loop-match-tsv-batch-decode): pre-iter-30
-        # the statusline spawned FOUR jq processes here — one per field
-        # extracted from $loop_match. Each spawn pays ~7-10ms cold-start on
-        # macOS, so a 4-field decode cost ~30-40ms PER STATUSLINE REFRESH.
-        # The statusline refreshes every few seconds; with autoloop active
-        # this cost compounds across the whole session.
-        #
-        # TSV-batched decode + bash `read` mirrors the iter-25/26 pattern
-        # established in heartbeat-tick.sh's MATCHING_LOOP decode. The
-        # trailing-tab fallback via printf keeps `read` happy if jq dies so
-        # all four vars default to empty strings.
-        IFS=$'\t' read -r loop_id contract_path state_dir_raw owner_sid <<< "$(
-            echo "$loop_match" | jq -r '"\(.loop_id // "")\t\(.contract_path // "")\t\(.state_dir // "")\t\(.owner_session_id // "")"' 2>/dev/null \
-                || printf '\t\t\t'
-        )"
-        state_dir="${state_dir_raw%/}"  # strip trailing slash (was `sed 's:/*$::'`)
-
-        # Read contract frontmatter for name + status + iteration
-        loop_name=""; loop_status=""; loop_iter=""
-        if [ -f "$contract_path" ]; then
-            # Single awk pass — name / status / iteration from YAML frontmatter
-            eval "$(awk '
-                /^---$/{n++; next}
-                n==1 && /^name:[[:space:]]*/      {sub(/^name:[[:space:]]*/, "");      gsub(/'\''/, ""); printf "loop_name=%s\n", "\"" $0 "\""; next}
-                n==1 && /^status:[[:space:]]*/    {sub(/^status:[[:space:]]*/, "");    gsub(/'\''/, ""); printf "loop_status=%s\n", "\"" $0 "\""; next}
-                n==1 && /^iteration:[[:space:]]*/ {sub(/^iteration:[[:space:]]*/, ""); printf "loop_iter=%s\n", "\"" $0 "\""; next}
-                n==1 && NR > 30 {exit}
-            ' "$contract_path" 2>/dev/null)" 2>/dev/null
-        fi
-        loop_name="${loop_name:-$loop_id}"
-        loop_status="${loop_status:-?}"
-        loop_iter="${loop_iter:-?}"
-
-        # Heartbeat freshness — last_wake_us age in seconds; cwd-drift flag.
-        #
-        # Perf (iter-30 statusline-heartbeat-tsv-batch + python3-now-us-replacement):
-        # Pre-iter-30 this block did THREE expensive things:
-        #   1. jq for last_wake_us (~7-10ms)
-        #   2. python3 -c "import time; ..." for now_us (~30-50ms cold start
-        #      on macOS — Python startup is much slower than gdate)
-        #   3. jq for cwd_drift_detected (~7-10ms)
-        # Cumulative: ~45-70ms PER STATUSLINE REFRESH when autoloop is active.
-        #
-        # Iter-30 replaces all three with:
-        #   - 1 TSV-batched jq reading both heartbeat fields at once
-        #   - gdate +%s%6N for now_us (~3ms cold start vs python3's ~30-50ms)
-        # Cumulative: ~10-15ms — a 3-7× speedup on this block.
-        #
-        # Matches the iter-25/26 pattern and the iter-28
-        # python3-now-us-replacement applied to session-bind.sh.
-        hb_age="?"
-        drift_flag=""
-        if [ -n "$state_dir" ] && [ -f "$state_dir/heartbeat.json" ]; then
-            IFS=$'\t' read -r last_us drift <<< "$(
-                jq -r '"\(.last_wake_us // 0)\t\(.cwd_drift_detected // false)"' "$state_dir/heartbeat.json" 2>/dev/null \
-                    || printf '0\tfalse'
-            )"
-            now_us=$(gdate +%s%6N 2>/dev/null || python3 -c "import time; print(int(time.time()*1_000_000))" 2>/dev/null || echo 0)
-            if [ "${last_us:-0}" -gt 0 ] && [ "${now_us:-0}" -gt 0 ]; then
-                hb_age=$(( (now_us - last_us) / 1000000 ))
-            fi
-            [ "$drift" = "true" ] && drift_flag=" ${RED}⚠ cwd-drift${RESET}"
-        fi
-
-        # Binding state — color-code owner_session_id
-        case "$owner_sid" in
-            ""|"unknown"|"unknown-session"|"pending-bind")
-                bind_label="${YELLOW}${owner_sid:-unbound}${RESET}"
-                ;;
-            *)
-                # Truncate UUID to first 8 chars for compactness
-                bind_label="${GREEN}${owner_sid:0:8}${RESET}"
-                ;;
-        esac
-
-        # Status color: ACTIVE → green; DONE/* → bright_black; PAUSED → yellow; else cyan
-        case "$loop_status" in
-            ACTIVE*|active*)            status_label="${GREEN}${loop_status:0:30}${RESET}" ;;
-            DONE*|done*|COMPLETE*|FINISHED*|SUPERSEDED*|STOPPED*|ABORTED*)
-                                        status_label="${BRIGHT_BLACK}${loop_status:0:30}${RESET}" ;;
-            PAUSED*|paused*)            status_label="${YELLOW}${loop_status:0:30}${RESET}" ;;
-            *)                          status_label="${CYAN}${loop_status:0:30}${RESET}" ;;
-        esac
-
-        # Heartbeat age color: <60s green; <600s cyan; <3600s yellow; else red/?
-        case "$hb_age" in
-            "?")           hb_label="${BRIGHT_BLACK}♡ never${RESET}" ;;
-            *)
-                if   [ "$hb_age" -lt 60 ];   then hb_label="${GREEN}♡ ${hb_age}s${RESET}"
-                elif [ "$hb_age" -lt 600 ];  then hb_label="${CYAN}♡ ${hb_age}s${RESET}"
-                elif [ "$hb_age" -lt 3600 ]; then hb_label="${YELLOW}♡ ${hb_age}s${RESET}"
-                else                              hb_label="${RED}♡ ${hb_age}s${RESET}"
-                fi
-                ;;
-        esac
-
-        # Compose: ⏿ <name> [<id>] iter N · <status> · bound: <sid> · ♡ <age>
-        echo -e "${BRIGHT_BLACK}⏿${RESET} ${MAGENTA}${loop_name:0:40}${RESET} ${BRIGHT_BLACK}[${loop_id}]${RESET} iter ${loop_iter} ${BRIGHT_BLACK}·${RESET} ${status_label} ${BRIGHT_BLACK}·${RESET} bound:${bind_label} ${BRIGHT_BLACK}·${RESET} ${hb_label}${drift_flag}"
-    fi
 fi
 
 echo -e "$line_repo"

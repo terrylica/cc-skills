@@ -1,7 +1,7 @@
 {
   "name": "tlg",
   "version": "12.8.0",
-  "description": "Telegram user-account messaging via MTProto (Telethon) - send messages as yourself, not as a bot",
+  "description": "Telegram user-account messaging via MTProto (GramJS) - send messages as yourself, not as a bot",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"

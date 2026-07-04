@@ -1,15 +1,16 @@
 ---
 name: bootstrap-monorepo
-description: Autonomous polyglot monorepo bootstrap meta-prompt. TRIGGERS - new monorepo, polyglot setup, scaffold Python+Rust+Bun, monorepo from scratch.
+description: Autonomous polyglot monorepo bootstrap meta-prompt on the moon + proto + Bun stack (Nx-convergent). TRIGGERS - new monorepo, new repository, polyglot setup, scaffold repo, moon proto bootstrap, monorepo from scratch.
 allowed-tools: Read
 disable-model-invocation: false
 ---
 
-# Bootstrap Polyglot Monorepo
+# Bootstrap Polyglot Monorepo (moon + proto + Bun, Nx-convergent)
 
-This skill redirects to the canonical reference in mise-tasks.
+Canonical reference lives in THIS skill:
 
-→ **See**: [mise-tasks/references/bootstrap-monorepo.md](../mise-tasks/references/bootstrap-monorepo.md)
+→ **See**: [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md)
+→ **Cross-language boundaries**: [references/cross-language-interop.md](references/cross-language-interop.md) — boundary decision ladder + verified tool status (research-verified 2026-06)
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
@@ -17,49 +18,79 @@ This skill redirects to the canonical reference in mise-tasks.
 
 Use this skill when:
 
-- Starting a new polyglot monorepo from scratch
-- Setting up Python + Rust + Bun/TypeScript project structure
-- Need autonomous 9-phase bootstrap workflow (includes release setup)
-- Want Pants + mise integration for affected detection
+- Starting ANY new repository — single-language or polyglot (the structure scales down)
+- Setting up a moon-orchestrated, proto-pinned, Bun/TypeScript-wired monorepo
+- Wiring engines (Rust/Python/Go) behind contracts under a TS control plane
+- You want the repo Nx-convergent from day one (later `nx init` is mechanical, not a restructure)
 
 ## Stack
 
-| Tool      | Responsibility                                                         |
-| --------- | ---------------------------------------------------------------------- |
-| **mise**  | Runtime versions (Python, Node, Rust) + environment variables          |
-| **Pants** | Build orchestration + native affected detection + dependency inference |
+| Tool           | Responsibility                                                                     |
+| -------------- | ---------------------------------------------------------------------------------- |
+| **proto**      | Toolchain versions (bun, python, rust, node, …) pinned in repo-local `.prototools` |
+| **moon**       | Project graph + task orchestration + caching + affected detection (`moon ci`)      |
+| **Bun**        | TS runtime for every script, CLI, glue tool, and test; root workspaces             |
+| **uv / cargo** | Python / Rust engines invoked natively from moon `script:` tasks                   |
+
+TypeScript is the control plane; other languages are engines behind language-neutral contracts (JSON Schema 2020-12 / proto) with drift gates and parity tests.
+
+## Language-Selection Default (greenfield tiebreaker)
+
+Choose _which language owns the code_ before choosing how to cross between them. This is a **tiebreaker, not a mandate** — a SOTA-native ecosystem and existing repo convention override it.
+
+- **TypeScript by default** for the control plane: app logic, orchestration, CLIs, APIs, config, validation, agent/workflow automation, and anything future agents must refactor. (TS is structurally typed by default — the most agent-navigable surface.)
+- **An engine language only where its ecosystem is SOTA-native**: Python for ML/data/science/quant or Python-only libraries; Rust/Go for hot kernels and systems work (Go > Rust as the tiebreaker).
+- **Never let an engine language leak across the repo.** A Python-only library does NOT make the project Python — wrap it behind ONE typed boundary (ladder below) and keep TS as the public interface. Validate at the boundary: TS types are compile-time only and Python hints are not runtime-enforced.
+
+## Crossing a Language Boundary (decision ladder)
+
+When work must cross languages, climb from cheapest to most coupled — **stop at the first rung that satisfies the need** (full doctrine + verified tool status: [references/cross-language-interop.md](references/cross-language-interop.md)):
+
+1. **Process boundary** — CLI + JSON/NDJSON on stdio (moon `script:` task). Default.
+2. **Schema-typed RPC** — protobuf + buf / ConnectRPC, when a long-lived service or stream exists.
+3. **Data-plane** — Apache Arrow IPC/Flight/ADBC, the moment two languages exchange _tables_.
+4. **In-process FFI** — PyO3/maturin, napi-rs, Bun FFI, when call frequency makes 1–3 too slow.
+5. **One WASM component core** — WIT + Component Model, ONLY if the kernel needs no threads (WASI threading still unshipped as of mid-2026).
+
+Pattern B gate amendment: after the 8-float-op test selects Pattern B, ask "does the kernel need threads?" → if yes, native core (cdylib/PyO3), not WASM.
+
+**TypeScript ↔ Python** (the most common pair) verified picks, June 2026: rung 1 = `Bun.spawn`/`child_process` running Python via `uv run --python 3.14` (NOT `bun:ffi` — C-ABI only); rung 2 = FastAPI + `@hey-api/openapi-ts` (HTTP) or `buf`-generated `protobuf-es` + `protocolbuffers/python` stubs (RPC); schema SSoT = Pydantic v2 → JSON Schema 2020-12 → TS, with a CI drift gate. Full table in the reference.
 
 ## Quick Commands
 
 ```bash
-# After bootstrap, use these Pants commands:
-pants --changed-since=origin/main test    # Test affected
-pants --changed-since=origin/main lint    # Lint affected
-pants tailor                               # Generate BUILD files
-pants list ::                              # List all targets
+# After bootstrap:
+moon ci                          # affected quality pipeline
+moon run <project>:check         # one project's full gate (lint+test+drift)
+moon query projects              # machine-readable project graph (agents read this)
+moon query tasks                 # machine-readable task surface
+proto use                        # install all .prototools pins on a fresh machine
 ```
+
+## Legacy Path
+
+Pre-2026-06 repos on **Pants + mise**: the old reference remains at
+[../mise-tasks/references/bootstrap-monorepo.md](../mise-tasks/references/bootstrap-monorepo.md).
+Migrate per-repo (parity-first, cut tasks over one at a time), never big-bang.
 
 ## Related Skills
 
-- `itp:mise-tasks` - Task orchestration and affected detection (Level 11)
-- `itp:mise-configuration` - Environment and tool version management
-- `itp:semantic-release` - Release automation (Phase 8 reference)
+- `itp:semantic-release` - Release automation (local-first; Actions only for release/CodeQL/Dependabot/deploy)
+- `itp:mise-tasks` / `itp:mise-configuration` - legacy mise-era orchestration (still valid for unmigrated repos)
 
 ---
 
 ## Troubleshooting
 
-| Issue                      | Cause                      | Solution                                          |
-| -------------------------- | -------------------------- | ------------------------------------------------- |
-| Pants not found            | Not installed              | Install via `brew install pantsbuild/tap/pants`   |
-| mise not loading           | Shell hook not configured  | Configure mise shell hook in ~/.zshrc             |
-| BUILD files not generated  | Missing `pants tailor`     | Run `pants tailor` to generate BUILD files        |
-| Affected detection empty   | No base branch set         | Ensure `origin/main` exists and is up to date     |
-| Python version mismatch    | mise vs Pants conflict     | Align Python version in mise.toml and pants.toml  |
-| Rust targets not found     | Pants Rust backend missing | Enable Rust backend in pants.toml                 |
-| Node/Bun not detected      | Not in mise tools          | Add to mise.toml: `node = "latest"` or `bun`      |
-| Dependency inference fails | Missing imports in source  | Ensure explicit imports, run `pants tailor` again |
-
+| Issue                                                | Cause                                                  | Solution                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `proto::detect::failed` for moon                     | tool installed but no version pinned                   | `proto pin --to global moon <version>` (or add to `.prototools`)          |
+| `moon` not found over ssh                            | shims not on non-interactive PATH                      | export `PROTO_HOME` + shims PATH in `~/.zshenv` (NOT only `.zshrc`)       |
+| Python tests "No module named pytest"                | `uv run` prunes dev extras                             | `uv run --extra dev -p <version> pytest <path>` from repo root            |
+| PyO3 crate `cargo test` link errors (`_PyBool_Type`) | tests reference `#[pyfunction]` under extension-module | keep logic in pure-Rust core fns; tests call the core, wrapper stays thin |
+| Task runs in wrong cwd                               | script assumes repo root                               | `options: { runFromWorkspaceRoot: true }` in the task                     |
+| Guard task wrongly cached                            | moon caches by default                                 | `options: { cache: false }` on guards/parity/network tasks                |
+| Commit "passed" but didn't land                      | a hook auto-fixed files and aborted                    | re-stage and retry; ALWAYS verify `git log --oneline -1` after commit     |
 
 ## Post-Execution Reflection
 

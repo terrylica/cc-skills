@@ -1,19 +1,20 @@
 # Telegram CLI Plugin
 
-> Send Telegram messages as your personal account via MTProto (Telethon) — not as a bot.
+> Send Telegram messages as your personal account via MTProto (GramJS) — not as a bot.
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gmail-commander CLAUDE.md](../gmail-commander/CLAUDE.md)
 
 ## Architecture
 
-Single Python script using Telethon (MTProto client). Multi-profile support for multiple accounts.
+Single function/enum-driven **Bun TypeScript** CLI using **GramJS** (MTProto client),
+run directly with `bun` (no build). Multi-profile support for multiple accounts.
 
-| Component   | Path                                        | Purpose                                   |
-| ----------- | ------------------------------------------- | ----------------------------------------- |
-| CLI Script  | `scripts/tg-cli.py`                           | PEP 723 inline deps, invoked via `uv run` |
-| Sessions    | `~/.local/share/telethon/<profile>.session` | Per-profile persisted auth                |
-| Credentials | 1Password `Claude Automation` vault         | Per-profile API credentials               |
-| Source Fork | `~/fork-tools/Telethon`                     | Cloned from Codeberg (canonical upstream) |
+| Component   | Path                                      | Purpose                                            |
+| ----------- | ----------------------------------------- | -------------------------------------------------- |
+| CLI Script  | `scripts/tg-cli.ts`                       | Bun TS, invoked via `bun` (deps: `bun install`)    |
+| Cleanup     | `scripts/cleanup_deleted.ts`              | Purge deleted/ghost accounts (reuses CLI helpers)  |
+| Sessions    | `~/.local/share/gramjs/<profile>.session` | Per-profile GramJS StringSession (one per account) |
+| Credentials | 1Password `Claude Automation` vault       | Per-profile Telegram API id/hash                   |
 
 ## Profiles
 
@@ -60,32 +61,32 @@ Single Python script using Telethon (MTProto client). Multi-profile support for 
 ## Quick Reference
 
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.py"
+SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
 
 # Messaging
-uv run --python 3.14 "$SCRIPT" send <to> "text"
-uv run --python 3.14 "$SCRIPT" send-file <to> /path/to/file [-c "caption"]
-uv run --python 3.14 "$SCRIPT" forward <from> <msg_ids> <to>
-uv run --python 3.14 "$SCRIPT" edit <chat> <msg_id> "new text"
-uv run --python 3.14 "$SCRIPT" delete <chat> <msg_ids>
-uv run --python 3.14 "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
-uv run --python 3.14 "$SCRIPT" mark-read <chat>
+bun "$SCRIPT" send <to> "text"
+bun "$SCRIPT" send-file <to> /path/to/file [-c "caption"]
+bun "$SCRIPT" forward <from> <msg_ids> <to>
+bun "$SCRIPT" edit <chat> <msg_id> "new text"
+bun "$SCRIPT" delete <chat> <msg_ids>
+bun "$SCRIPT" pin <chat> <msg_id> [--unpin] [--silent]
+bun "$SCRIPT" mark-read <chat>
 
 # Reading & Search
-uv run --python 3.14 "$SCRIPT" read <chat> [-n 10]
-uv run --python 3.14 "$SCRIPT" search "query" [--chat <chat>] [--from <user>]
-uv run --python 3.14 "$SCRIPT" dialogs
-uv run --python 3.14 "$SCRIPT" whoami
-uv run --python 3.14 "$SCRIPT" find-user @username
+bun "$SCRIPT" read <chat> [-n 10]
+bun "$SCRIPT" search "query" [--chat <chat>] [--from <user>]
+bun "$SCRIPT" dialogs
+bun "$SCRIPT" whoami
+bun "$SCRIPT" find-user @username
 
 # Media
-uv run --python 3.14 "$SCRIPT" download <chat> <msg_id> [-o /path]
+bun "$SCRIPT" download <chat> <msg_id> [-o /path]
 
 # Groups
-uv run --python 3.14 "$SCRIPT" create-group "Title" [--type supergroup|channel|group]
-uv run --python 3.14 "$SCRIPT" invite <group> @user1 @user2
-uv run --python 3.14 "$SCRIPT" kick <group> @user
-uv run --python 3.14 "$SCRIPT" members <group> [--admins] [--search "name"]
+bun "$SCRIPT" create-group "Title" [--type supergroup|channel|group]
+bun "$SCRIPT" invite <group> @user1 @user2
+bun "$SCRIPT" kick <group> @user
+bun "$SCRIPT" members <group> [--admins] [--search "name"]
 ```
 
 All commands accept `-p <profile>` (default: `eon`).
@@ -98,10 +99,21 @@ Fetched from 1Password at runtime via `op item get`. Each profile maps to a diff
 
 ## Upstream
 
-Telethon migrated from GitHub to Codeberg (2026-02-21):
+MTProto client library is **GramJS** (`telegram` on npm):
 
-- **Canonical**: <https://codeberg.org/Lonami/Telethon>
-- **Local clone**: `~/fork-tools/Telethon` (from Codeberg)
+- **Canonical**: <https://github.com/gram-js/gramjs> · docs <https://gram.js.org>
+- Installed as a local dep in `scripts/` (`bun install`); the old Telethon/`uv`
+  toolchain was retired in the 2026-06 TypeScript port.
+
+## Migration note (2026-06-22)
+
+Ported from Telethon (Python, `uv run`) to GramJS (Bun TS). The MTProto engine
+changed, so the **session format changed**: sessions now live at
+`~/.local/share/gramjs/<profile>.session` as GramJS StringSessions — the old
+`~/.local/share/telethon/*.session` files are not reused. Each account logs in
+once more via the non-interactive flow (`send-code` → `sign-in`); see
+[setup](./skills/setup/SKILL.md). The Telegram API id/hash (1Password) are
+unchanged. `eon` was re-authenticated and verified; `missterryli` re-login pending.
 
 ## Validation Results (2026-03-17)
 

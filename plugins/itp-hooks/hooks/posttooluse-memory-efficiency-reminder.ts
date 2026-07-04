@@ -63,6 +63,9 @@ import {
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
+// Iter-124: don't let a throwaway temp-file edit consume the once-per-session
+// reminder gate — skip temp dirs so the first REAL code edit still gets it.
+import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Constants
@@ -171,6 +174,13 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
     if (isTestFilePathExcludedFromMemoryEfficiencyReminder(filePath)) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+    if (
+      isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts(
+        filePath,
+      )
+    ) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     }
 

@@ -1,3 +1,382 @@
+## [22.10.2](https://github.com/terrylica/cc-skills/compare/v22.10.1...v22.10.2) (2026-07-03)
+
+
+### Bug Fixes
+
+* **draft-hold:** declare UTF-8 charset before textutil decode (non-ASCII mojibake) ([2a2bbf2](https://github.com/terrylica/cc-skills/commit/2a2bbf227669bf05627341f38c66343038171a00))
+
+## [22.10.1](https://github.com/terrylica/cc-skills/compare/v22.10.0...v22.10.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **media-tools:** emit pure-ASCII gallery to prevent mojibake ([c1eb625](https://github.com/terrylica/cc-skills/commit/c1eb625a8ef878372847c1883df0aad90f7760ce)), closes [#8595](https://github.com/terrylica/cc-skills/issues/8595)
+
+# [22.10.0](https://github.com/terrylica/cc-skills/compare/v22.9.0...v22.10.0) (2026-06-30)
+
+
+### Features
+
+* **media-tools:** add HEIC-to-JPEG photo-share skills + extend hosting ([5081737](https://github.com/terrylica/cc-skills/commit/5081737410a2591e2f9ec0e075750ba914b19862))
+
+# [22.9.0](https://github.com/terrylica/cc-skills/compare/v22.8.0...v22.9.0) (2026-06-30)
+
+
+### Features
+
+* **disk-hygiene:** add Phase 2.5 for in-repo build artifacts ([a259031](https://github.com/terrylica/cc-skills/commit/a259031502aabf34815dc91ac392d4861c00555f)), closes [#if](https://github.com/terrylica/cc-skills/issues/if)
+
+# [22.8.0](https://github.com/terrylica/cc-skills/compare/v22.7.0...v22.8.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **draft-hold:** decode Notes quotes + make note name==title ([ecf278a](https://github.com/terrylica/cc-skills/commit/ecf278a99a65e0685dfcf6d98a5d57be97cfb69d))
+* **skills:** add self-evolution sandwich to new skills ([2a86c92](https://github.com/terrylica/cc-skills/commit/2a86c92f006cb782c03711b004418424af4c91c0))
+
+
+### Features
+
+* **draft-hold:** add macOS Notes draft-holding skill ([f6aeb8b](https://github.com/terrylica/cc-skills/commit/f6aeb8b373470a104a8a6b9893cb5d14746efd97))
+* **draft-hold:** render held drafts monospaced in Notes ([e195909](https://github.com/terrylica/cc-skills/commit/e195909f8e61ac04c9b63ca88bc6d83236bfc651))
+* **macos-font-defaults:** add fixed-width font setter ([720144e](https://github.com/terrylica/cc-skills/commit/720144e94b2768172291e6eeaea59746b51fa1c8))
+
+# [22.7.0](https://github.com/terrylica/cc-skills/compare/v22.6.0...v22.7.0) (2026-06-29)
+
+
+### Bug Fixes
+
+* **doc-tools:** add self-evolution sandwich to markdown-table-validator ([e5eabc2](https://github.com/terrylica/cc-skills/commit/e5eabc2545ccde83709fd837245ced767952c6e9))
+
+
+### Features
+
+* anti-fragile GFM markdown table guard + repair 7 broken tables ([#97](https://github.com/terrylica/cc-skills/issues/97)) ([da7cce9](https://github.com/terrylica/cc-skills/commit/da7cce98e0c7ea3dc50fd3e893537b602531b8bf))
+
+# [22.6.0](https://github.com/terrylica/cc-skills/compare/v22.5.0...v22.6.0) (2026-06-29)
+
+
+### Features
+
+* **gh-tools:** add passkey-safe patch-password verb ([d767951](https://github.com/terrylica/cc-skills/commit/d7679511cccdebf050d916db476d105bb0f481a3)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+# [22.5.0](https://github.com/terrylica/cc-skills/compare/v22.4.0...v22.5.0) (2026-06-28)
+
+
+### Bug Fixes
+
+* **gh-tools:** note passkey-relogin + Gists no-read-only; vanjobbers validated ([a69152a](https://github.com/terrylica/cc-skills/commit/a69152a5aabfcd55dbe2f666315df0b3ed873ed9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#9](https://github.com/terrylica/cc-skills/issues/9) [#10](https://github.com/terrylica/cc-skills/issues/10)
+* **gh-tools:** retry passkey assertion to beat sudo-page get() race ([83fc471](https://github.com/terrylica/cc-skills/commit/83fc471f6f43ee210bfd8595cbc143f5752440b8)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **gh-tools:** per-account browser profile + CDP port for PAT engine ([52d5595](https://github.com/terrylica/cc-skills/commit/52d55956a5c6029767add44946059bf97bac2364)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#config](https://github.com/terrylica/cc-skills/issues/config)
+
+# [22.4.0](https://github.com/terrylica/cc-skills/compare/v22.3.0...v22.4.0) (2026-06-27)
+
+
+### Bug Fixes
+
+* **gh-tools:** correct passkey registration URL to /settings/security ([89e2740](https://github.com/terrylica/cc-skills/commit/89e27403d7b66a0a745760c341b1d165c192043d)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **gh-tools:** autonomous multi-account GitHub web-auth for PAT engine ([4d30a08](https://github.com/terrylica/cc-skills/commit/4d30a08f803a52d9da1d66d24b88e0f88bc7ca06)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+# [22.3.0](https://github.com/terrylica/cc-skills/compare/v22.2.0...v22.3.0) (2026-06-26)
+
+
+### Bug Fixes
+
+* **gh-tools:** handle GitHub sudo-mode in the PAT engine ([de70c2d](https://github.com/terrylica/cc-skills/commit/de70c2d507531aafe119980dee1b30a2c074c283)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#8](https://github.com/terrylica/cc-skills/issues/8)
+* **itp-hooks:** register new producer escape-hatch markers ([f6fccd5](https://github.com/terrylica/cc-skills/commit/f6fccd5d8537fa43f6d916a1cd9558df97f7f823)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+
+### Features
+
+* **devops-tools:** tiered Touch-ID crown-jewel nudge + dotenvx ([1c6bee4](https://github.com/terrylica/cc-skills/commit/1c6bee424fec79785b438c111bcee135baf5c795))
+* **gh-tools:** add gh-fine-grained-pat token-creation skill ([b0f6114](https://github.com/terrylica/cc-skills/commit/b0f61146204a34a7276b8abc6161e14049b6b6a9)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#fine-grained-pat](https://github.com/terrylica/cc-skills/issues/fine-grained-pat)
+
+# [22.2.0](https://github.com/terrylica/cc-skills/compare/v22.1.1...v22.2.0) (2026-06-26)
+
+
+### Bug Fixes
+
+* **statusline:** clamp ctx threshold by CLAUDE_CODE_AUTO_COMPACT_WINDOW ([d9113b6](https://github.com/terrylica/cc-skills/commit/d9113b62d482ab27e7752be4d5f860c08f63bfb3))
+* **whatsapp-commander:** put Post-Execution Reflection last ([9de3978](https://github.com/terrylica/cc-skills/commit/9de3978aef9b10d857ef772f344c2e6edf686278))
+
+
+### Features
+
+* **devops-tools:** SCS hooks use vault breadcrumb ([7c81e21](https://github.com/terrylica/cc-skills/commit/7c81e215be2993c382e451a58325e3f3494eb07c))
+* **itp-hooks:** nudge non-allowlisted Python file edits ([8404ecb](https://github.com/terrylica/cc-skills/commit/8404ecbb24ee7cfec32c24eb4a6b1c1ca6e3cc04))
+
+## [22.1.1](https://github.com/terrylica/cc-skills/compare/v22.1.0...v22.1.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **pushover-commander:** scrape new app token from app page, not sorted body guess ([13a9e0a](https://github.com/terrylica/cc-skills/commit/13a9e0ae8a450afe8a31a717da7b2fef112a2cf8))
+
+# [22.1.0](https://github.com/terrylica/cc-skills/compare/v22.0.4...v22.1.0) (2026-06-23)
+
+
+### Features
+
+* **devops-tools:** Self-Custody Secrets (SCS) credential doctrine ([9d169b9](https://github.com/terrylica/cc-skills/commit/9d169b9c60677bc5b2516d94dac87f90e3f149de))
+
+## [22.0.4](https://github.com/terrylica/cc-skills/compare/v22.0.3...v22.0.4) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** re-lock M3 input ceiling to ~1M + retrieval regression ([b9ee91c](https://github.com/terrylica/cc-skills/commit/b9ee91cc9de54200347bc2f36e7f21ad468f99af))
+
+## [22.0.3](https://github.com/terrylica/cc-skills/compare/v22.0.2...v22.0.3) (2026-06-23)
+
+## [22.0.2](https://github.com/terrylica/cc-skills/compare/v22.0.1...v22.0.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** re-lock M3 snapshot — 524288 cap, n>1 silent-drop ([cd30e73](https://github.com/terrylica/cc-skills/commit/cd30e73b00d112f226556903ff0a69d32fb220b9))
+
+## [22.0.1](https://github.com/terrylica/cc-skills/compare/v22.0.0...v22.0.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **minimax:** resolve model from SSoT, never pin a prior version ([71ae633](https://github.com/terrylica/cc-skills/commit/71ae6335624edd6fde5e6bcc26be36dfdc50e12c))
+
+# [22.0.0](https://github.com/terrylica/cc-skills/compare/v21.103.1...v22.0.0) (2026-06-23)
+
+
+* feat(marketplace)!: remove autoloop and chronicle-share plugins ([4d52361](https://github.com/terrylica/cc-skills/commit/4d523617cfc3303d20d50493e230b936c7bc2ab0))
+
+
+### BREAKING CHANGES
+
+* the autoloop and chronicle-share plugins are removed.
+/autoloop:* commands no longer exist — use native /loop with ScheduleWakeup.
+
+## [21.103.1](https://github.com/terrylica/cc-skills/compare/v21.103.0...v21.103.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **tlg:** positional profile, send-code guard, negative chat ids ([73097b3](https://github.com/terrylica/cc-skills/commit/73097b38cfc7575f55fde2caf5799655a14cec84))
+
+# [21.103.0](https://github.com/terrylica/cc-skills/compare/v21.102.0...v21.103.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* **statusline:** set GIT_OPTIONAL_LOCKS=0 so renders never race user git commits ([#96](https://github.com/terrylica/cc-skills/issues/96)) ([0a4742d](https://github.com/terrylica/cc-skills/commit/0a4742d016adffe1335ef467cd753bb443d0fae8))
+
+
+### Features
+
+* **tlg:** port Telegram CLI from Telethon/Python to GramJS/Bun TS ([b029365](https://github.com/terrylica/cc-skills/commit/b029365db8128c92798414b4b5a909d33f9f735b))
+
+# [21.102.0](https://github.com/terrylica/cc-skills/compare/v21.101.0...v21.102.0) (2026-06-23)
+
+
+### Features
+
+* **pushover-commander:** port headless dashboard control to Bun TS ([03920dd](https://github.com/terrylica/cc-skills/commit/03920dd4c8067952bc9b2872a57938b47da82ab2))
+
+# [21.101.0](https://github.com/terrylica/cc-skills/compare/v21.100.0...v21.101.0) (2026-06-23)
+
+
+### Features
+
+* **whatsapp-commander:** add WhatsApp messaging plugin ([cba4850](https://github.com/terrylica/cc-skills/commit/cba48502da1c6a6a03bb7ef25bcb7087285be028))
+
+# [21.100.0](https://github.com/terrylica/cc-skills/compare/v21.99.0...v21.100.0) (2026-06-22)
+
+
+### Features
+
+* **itp-hooks:** add git-worktree guard enforcing worktree-per-branch ([09aaa49](https://github.com/terrylica/cc-skills/commit/09aaa493f7541a791f90dd7278ac8a235dd5239a))
+
+# [21.99.0](https://github.com/terrylica/cc-skills/compare/v21.98.5...v21.99.0) (2026-06-22)
+
+
+### Features
+
+* **itp-hooks:** block broken WebFetch, use curl/search fallback ([37e962a](https://github.com/terrylica/cc-skills/commit/37e962ab04704d4bdc5f7cd210c521ae3bc93830)), closes [anthropics/claude-code#8331](https://github.com/anthropics/claude-code/issues/8331) [#22846](https://github.com/terrylica/cc-skills/issues/22846) [#39896](https://github.com/terrylica/cc-skills/issues/39896) [#13718](https://github.com/terrylica/cc-skills/issues/13718) [#17929](https://github.com/terrylica/cc-skills/issues/17929)
+
+## [21.98.5](https://github.com/terrylica/cc-skills/compare/v21.98.4...v21.98.5) (2026-06-21)
+
+
+### Bug Fixes
+
+* **statusline:** name missing gh-<alias> profile, not gh exit 4 ([afd91ff](https://github.com/terrylica/cc-skills/commit/afd91ff9373c7a83e0d2b71ccea10c9c28e3f461)), closes [#eonlabs](https://github.com/terrylica/cc-skills/issues/eonlabs) [#failure](https://github.com/terrylica/cc-skills/issues/failure)
+
+## [21.98.4](https://github.com/terrylica/cc-skills/compare/v21.98.3...v21.98.4) (2026-06-21)
+
+
+### Bug Fixes
+
+* **gh-tools:** derive account from origin host-alias in hooks ([1a89a78](https://github.com/terrylica/cc-skills/commit/1a89a78b4f8925441571278cb49dbea38c51754c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#repo-identity-guard](https://github.com/terrylica/cc-skills/issues/repo-identity-guard)
+* **release:** resolve gh token fresh via gh-token-for-repo (ADR 2026-06-21 doctrine) ([9adb731](https://github.com/terrylica/cc-skills/commit/9adb73140a151d2742d8ac679f49d5bb67c86e89)), closes [#token-for-repo](https://github.com/terrylica/cc-skills/issues/token-for-repo)
+* **statusline:** alias-driven gh creds, strip ambient GH_TOKEN (ADR 2026-06-21 doctrine) ([7ad7421](https://github.com/terrylica/cc-skills/commit/7ad74211fdf34931e5371e4dc14fe9ebb2be3a47))
+
+## [21.98.3](https://github.com/terrylica/cc-skills/compare/v21.98.2...v21.98.3) (2026-06-21)
+
+
+### Bug Fixes
+
+* **gmail-commander:** RFC 2047-encode non-ASCII mail headers ([555913c](https://github.com/terrylica/cc-skills/commit/555913c305769b9fc466854edaba6a54369d156b))
+* **statusline-tools:** fix ({) visibility badge on gh auth failure ([7ce7ce9](https://github.com/terrylica/cc-skills/commit/7ce7ce980f623d132bebc0bee8497916a384f9b3))
+
+## [21.98.2](https://github.com/terrylica/cc-skills/compare/v21.98.1...v21.98.2) (2026-06-21)
+
+
+### Bug Fixes
+
+* **statusline-tools:** compute context bar threshold from bundle math ([b5000fe](https://github.com/terrylica/cc-skills/commit/b5000fe9c1282e9a255d4399158fe9b6af40adda))
+
+## [21.98.1](https://github.com/terrylica/cc-skills/compare/v21.98.0...v21.98.1) (2026-06-21)
+
+# [21.98.0](https://github.com/terrylica/cc-skills/compare/v21.97.3...v21.98.0) (2026-06-21)
+
+
+### Features
+
+* **statusline-tools:** add context-window bracketed-zone bar to model line ([3653cd1](https://github.com/terrylica/cc-skills/commit/3653cd1094d060d59140dfda5a163858f1ae7692))
+
+## [21.97.3](https://github.com/terrylica/cc-skills/compare/v21.97.2...v21.97.3) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** guard sibling-hook entrypoints + add temp-dir gate tests ([061fff7](https://github.com/terrylica/cc-skills/commit/061fff7701324560274fac7246f3265cdd9f9c6a))
+
+## [21.97.2](https://github.com/terrylica/cc-skills/compare/v21.97.1...v21.97.2) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** extend temp-dir nudge skip to 3 sibling hooks ([d2b1bbb](https://github.com/terrylica/cc-skills/commit/d2b1bbb2fd5a5c5d715756c0036a7c602a47a90e))
+
+## [21.97.1](https://github.com/terrylica/cc-skills/compare/v21.97.0...v21.97.1) (2026-06-20)
+
+
+### Bug Fixes
+
+* **itp-hooks:** skip nudges on throwaway temp-dir scratch scripts ([08504c5](https://github.com/terrylica/cc-skills/commit/08504c5b06627d14eea34e8fb181af3badb4ddbc))
+
+# [21.97.0](https://github.com/terrylica/cc-skills/compare/v21.96.1...v21.97.0) (2026-06-19)
+
+
+### Features
+
+* **floating-clock:** output-mute indicator + name-width audio bar ([4065b13](https://github.com/terrylica/cc-skills/commit/4065b13129588005606cd83d66660d2243b7fef6))
+* **itp-hooks:** skip lint nudges on throwaway temp-dir scripts ([4b09008](https://github.com/terrylica/cc-skills/commit/4b090086fb099ff965d20f33b617dbe1f2cbf606))
+* **statusline-tools:** model segment on own line + CC version token ([742b4b4](https://github.com/terrylica/cc-skills/commit/742b4b4f8b3eeb45d068917fd115042a9b7c57fd))
+
+## [21.96.1](https://github.com/terrylica/cc-skills/compare/v21.96.0...v21.96.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* **floating-clock:** weld overlay bars to clock via child windows ([beba4ae](https://github.com/terrylica/cc-skills/commit/beba4aead0e6ef83e94f341cc833a4d1ffb4a2e7))
+
+# [21.96.0](https://github.com/terrylica/cc-skills/compare/v21.95.0...v21.96.0) (2026-06-12)
+
+
+### Features
+
+* **floating-clock:** solar-elevation canvas color ramp ([2bf7bdd](https://github.com/terrylica/cc-skills/commit/2bf7bdd782effd9b188cb2c933bbdccc0c685f78))
+
+# [21.95.0](https://github.com/terrylica/cc-skills/compare/v21.94.0...v21.95.0) (2026-06-11)
+
+
+### Features
+
+* **floating-clock:** hairline segment border (BorderStyle lever) ([c4e7698](https://github.com/terrylica/cc-skills/commit/c4e76981badcc4ffcababb3640a0dceb143b80dd)), closes [#000](https://github.com/terrylica/cc-skills/issues/000)
+
+# [21.94.0](https://github.com/terrylica/cc-skills/compare/v21.93.0...v21.94.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **floating-clock:** audio bar legibility on pure-black backgrounds ([8d543af](https://github.com/terrylica/cc-skills/commit/8d543af7e6e9103c6fb106b6c364e93810d888cd)), closes [#000](https://github.com/terrylica/cc-skills/issues/000) [#000](https://github.com/terrylica/cc-skills/issues/000)
+
+
+### Features
+
+* **floating-clock:** always-visible audio I/O bar, manual control ([fe5952b](https://github.com/terrylica/cc-skills/commit/fe5952b5926bc08136d86f92c29e8b579685dbfd))
+* **floating-clock:** audio bar extras — menu toggle, mute-red, flash ([820f3a0](https://github.com/terrylica/cc-skills/commit/820f3a0bb5285cdbebe97f74a36ad16e09b92969))
+* **floating-clock:** device menus + Bluetooth connect/takeover ([fb8f6f6](https://github.com/terrylica/cc-skills/commit/fb8f6f627e89e0c4674327c99eca5a75bcc33cf9))
+
+# [21.93.0](https://github.com/terrylica/cc-skills/compare/v21.92.0...v21.93.0) (2026-06-11)
+
+
+### Features
+
+* **itp-hooks:** extend invented-fallback nudge to Bash commands ([0a46f72](https://github.com/terrylica/cc-skills/commit/0a46f72a467749de33ec45ae6660fb14ec82fb24))
+* **pushover-commander:** ttl on routine sends, heartbeat self-cleans ([478f5fb](https://github.com/terrylica/cc-skills/commit/478f5fb2769fa2d7e72ede232775ce6f08a9bdad))
+* **statusline-tools:** doorward renders official HTTP status verbatim ([5fbaead](https://github.com/terrylica/cc-skills/commit/5fbaeadba6d42f3f7b2a71a2bbaf14e2e3e78e21))
+
+# [21.92.0](https://github.com/terrylica/cc-skills/compare/v21.91.0...v21.92.0) (2026-06-11)
+
+
+### Features
+
+* **itp-hooks:** invented-fallback display-value reminder hook ([4403b27](https://github.com/terrylica/cc-skills/commit/4403b270559d55b203edc5f411ff28b63b528096))
+* **pushover-commander:** re-verify limits, add 2026 quota + ttl facts ([03bad8c](https://github.com/terrylica/cc-skills/commit/03bad8cb79552a45af6912d14d2683741421ce1e))
+* **statusline-tools:** official error text replaces invented markers ([0acf224](https://github.com/terrylica/cc-skills/commit/0acf224d727d51c73efd831caf12f7167a9b31a5))
+
+# [21.91.0](https://github.com/terrylica/cc-skills/compare/v21.90.0...v21.91.0) (2026-06-11)
+
+
+### Features
+
+* **minimax:** gate benched model ids against locked catalog ([067f0d6](https://github.com/terrylica/cc-skills/commit/067f0d64fbc80f586243ccf2ed935771111a5ff8))
+* **statusline-tools:** official names + verbatim values only ([0696dde](https://github.com/terrylica/cc-skills/commit/0696dde4bbf435bccabcbc9f5a56f3b13934cca4))
+
+# [21.90.0](https://github.com/terrylica/cc-skills/compare/v21.89.2...v21.90.0) (2026-06-11)
+
+
+### Features
+
+* **statusline-tools:** drop effort: label, render level bare ([ed40187](https://github.com/terrylica/cc-skills/commit/ed40187fedc88ea515ab7c6c7f0769c9dd1b15ff))
+
+## [21.89.2](https://github.com/terrylica/cc-skills/compare/v21.89.1...v21.89.2) (2026-06-11)
+
+
+### Bug Fixes
+
+* **statusline-tools:** retire inferred ultracode badge ([216a54e](https://github.com/terrylica/cc-skills/commit/216a54e6e48a4076839f20ef3ce0920877df0d82))
+
+## [21.89.1](https://github.com/terrylica/cc-skills/compare/v21.89.0...v21.89.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **scripts:** iter160 fails explicitly outside the git repo ([1af9214](https://github.com/terrylica/cc-skills/commit/1af9214b52bdfcd78778cf08fbbd6591b71b0787))
+
+# [21.89.0](https://github.com/terrylica/cc-skills/compare/v21.88.0...v21.89.0) (2026-06-10)
+
+
+### Features
+
+* **statusline-tools:** model id + mode badges on line 1 ([a72971a](https://github.com/terrylica/cc-skills/commit/a72971aea5a5f29452c70f6fb47b1152c01b55e6))
+
+# [21.88.0](https://github.com/terrylica/cc-skills/compare/v21.87.0...v21.88.0) (2026-06-08)
+
+
+### Features
+
+* **floating-clock:** add FC_MIC_DEBUG mic data-flow instrumentation ([a63d9e6](https://github.com/terrylica/cc-skills/commit/a63d9e6d68280d5ed5d4ae9d63b2e694c7809654))
+* **floating-clock:** generic state-file status indicator ([daa68a6](https://github.com/terrylica/cc-skills/commit/daa68a6ec69a114d4e49b504853c9bb8b9af59b3))
+* **itp-hooks:** CLAUDE.md size-budget hook (char-accurate, inlined) ([6da44ed](https://github.com/terrylica/cc-skills/commit/6da44ed2f70396fdb2111563cdfd83828804bf63))
+* **itp-hooks:** nudge fail-fast error handling in long-running Bun/TS loops ([07f9106](https://github.com/terrylica/cc-skills/commit/07f910659b826094f50a4e11bda97137f454733a)), closes [Hi#precision](https://github.com/Hi/issues/precision)
+
 # [21.87.0](https://github.com/terrylica/cc-skills/compare/v21.86.0...v21.87.0) (2026-06-05)
 
 

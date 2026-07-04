@@ -223,6 +223,51 @@ EOF
     fi
 }
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Visibility badge 401 regression — fixed 2026-06-21.
+#
+# `gh api` on a non-2xx response dumps the raw JSON body to STDOUT (first line
+# is a bare "{") and writes its own `gh: <msg> (HTTP NNN)` diagnostic as the
+# LAST line of STDERR. The pre-fix code merged both with `2>&1` and took
+# `head -1`, so an invalid GH_TOKEN rendered the badge as ({) — the literal
+# opening brace of the JSON body. The fix splits the streams and surfaces gh's
+# real diagnostic. These tests pin both halves: the bug never returns AND the
+# human-readable message is what shows instead.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@test "visibility badge surfaces gh diagnostic (not raw JSON {) on auth failure" {
+    cd "$FIXTURES/sample_repo"
+    # Bust the hourly visibility cache so the live (faked) gh call is made.
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
+
+    # Fake gh reproducing the 401 stream split: JSON body → stdout, the
+    # `gh: ...` line → stderr (last), exit 1. Any non-api subcommand also fails
+    # (the statusline tolerates gh failures and still exits 0).
+    fakebin="$BATS_TEST_TMPDIR/fakebin-401"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+if [ "$1" = "api" ]; then
+    printf '%s\n' '{' '  "message": "Bad credentials",' '  "status": "401"' '}'
+    printf '%s\n' 'gh: Bad credentials (HTTP 401)' >&2
+    exit 1
+fi
+exit 1
+FAKE
+    chmod +x "$fakebin/gh"
+
+    run bash -c "PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+    rm -f "$(git rev-parse --git-dir)/ccstatusline-gh-visibility-cache" 2>/dev/null || true
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # The bug: a bare "{" inside the visibility parens.
+    [[ "$plain" != *"({)"* ]]
+    [[ "$plain" != *"({})"* ]]
+    # The fix: gh's own diagnostic shows instead.
+    [[ "$plain" == *"Bad credentials"* ]]
+}
+
 @test "statusline survives broken HTTPS_PROXY in env (antifragile)" {
     # Inject an unreachable proxy on a deliberately closed port. With the fix
     # in place the statusline must still exit 0 and the visibility badge
@@ -242,8 +287,189 @@ EOF
     # Strip ANSI color codes for plain-text assertions.
     plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
 
-    # The red `(?)` badge means gh's visibility query failed. With
-    # probe_direct in place gh bypasses the broken proxy and returns
-    # either `(private)` or `(public)` — anything but `(?)`.
-    [[ "$plain" != *"(?)"* ]]
+    # With probe_direct in place gh bypasses the broken proxy and returns
+    # the official visibility value — `(private)` or `(public)` (cached or
+    # fresh). If gh were still routed through the broken proxy, the badge
+    # would instead carry gh's connection-error diagnostic verbatim
+    # (the invented `(?)` marker was retired 2026-06-11).
+    [[ "$plain" == *"(public)"* || "$plain" == *"(private)"* ]]
+}
+
+# =============================================================================
+# Model id + inference-mode badges (added 2026-06-10; native-only 2026-06-11)
+# Pins the line-1 model segment introduced in v21.89.0 and the \x1f
+# unit-separator batch decode that replaced TSV (tab is IFS whitespace, so
+# empty mid-fields collapsed and shifted every later field left).
+#
+# NATIVE-FIELDS-ONLY INVARIANT (operator directive 2026-06-11): the segment
+# renders ONLY direct payload echoes (.model.id, .effort.level,
+# .thinking.enabled, .fast_mode). The ✦ ultracode composite badge was
+# RETIRED after one day: live counterexample sessions (ea782bfd, a9861cbf)
+# rendered xhigh with ultracode OFF — effort persists across sessions while
+# ultracode is session-only with no payload field, so the inference was
+# unsound. The invariant test below pins that no inferred token renders.
+# =============================================================================
+
+@test "model segment renders raw model id from .model.id" {
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9[1m]\",\"display_name\":\"Testy 9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"claude-test-9[1m]"* ]]
+}
+
+@test "model segment falls back to display_name when model.id absent" {
+    run bash -c "echo '{\"model\":{\"display_name\":\"Testy 9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"Testy 9"* ]]
+}
+
+@test "inference badges render official names and verbatim values" {
+    # OFFICIAL-VALUES-ONLY contract (2026-06-11): effort renders bare
+    # ("· high", no "effort:" label; the "· " separator anchors the
+    # assertion so "high" can't false-match inside "xhigh"); thinking
+    # renders the VERBATIM official boolean (thinking:false — never a
+    # made-up on/off translation); fast_mode renders its official field
+    # name when true (never the truncated "fast" label).
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":true}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"· high"* ]]
+    [[ "$plain" != *"effort:"* ]]
+    [[ "$plain" == *"thinking:false"* ]]
+    [[ "$plain" != *"thinking:on"* ]]
+    [[ "$plain" != *"thinking:off"* ]]
+    [[ "$plain" == *"· fast_mode"* ]]
+}
+
+@test "absent payload fields omit their tokens (no invented fallbacks)" {
+    # Payload with ONLY a model: thinking/fast_mode/effort tokens must be
+    # omitted entirely — never rendered with invented defaults. And a
+    # payload with fast_mode:false omits the fast_mode token (official
+    # value false = not active; the token names presence).
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"claude-test-9"* ]]
+    [[ "$plain" != *"thinking:"* ]]
+    [[ "$plain" != *"fast_mode"* ]]
+    [[ "$plain" != *"Unknown"* ]]
+}
+
+@test "model segment renders only native payload echoes (no inferred badges)" {
+    # NATIVE-FIELDS-ONLY invariant pin (2026-06-11). This is the exact input
+    # that used to trigger the retired ✦ ultracode composite badge
+    # (xhigh + thinking + not fast). Positive anchors FIRST (a negative-only
+    # assertion passes even if the whole segment is deleted), then assert
+    # the inferred token never renders.
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"xhigh\"},\"thinking\":{\"enabled\":true},\"fast_mode\":false}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"claude-test-9"* ]]
+    [[ "$plain" == *"· xhigh"* ]]
+    [[ "$plain" == *"thinking:true"* ]]
+    [[ "$plain" != *"ultracode"* ]]
+    [[ "$plain" != *"✦"* ]]
+}
+
+@test "statusline script contains no inferred-badge logic (source-level lint)" {
+    # Belt-and-suspenders for the native-fields-only invariant: the render
+    # path must not reintroduce composite/inferred badges. Allowed mentions
+    # of the retired badge are comments only (legend/history), never code.
+    run bash -c "grep -v '^[[:space:]]*#' '$STATUSLINE' | grep -c 'ultracode'"
+    [ "$output" = "0" ]
+}
+
+@test "x1f batch decode survives false booleans without field shift" {
+    # Regression pin for the tab-collapse bug: with TSV decode + jq's
+    # `// \"\"` (which treats false as empty), thinking.enabled=false and
+    # fast_mode=false produced empty mid-fields that bash `read` collapsed,
+    # shifting session_id into the transcript-path slot. The \x1f decode +
+    # `// false` defaults must keep the session UUID in its own field, so
+    # the session line must render the UUID — not the transcript path.
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":false},\"fast_mode\":false,\"session_id\":\"f1e1d-shift-regression-uuid\",\"transcript_path\":\"/tmp/nonexistent-transcript.jsonl\"}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"f1e1d-shift-regression-uuid"* ]]
+    [[ "$plain" != *"JSONL ID: /tmp/nonexistent-transcript.jsonl"* ]]
+}
+
+@test "model segment renders the native Claude Code .version on its own line" {
+    # 2026-06-19 operator directive: the running Claude Code version (native
+    # statusline payload field .version, "our current version locally") is
+    # appended to the model segment, which now renders on its OWN line below
+    # the code-stats line. Assert the version token appears on the SAME line
+    # as the model id, separated by " | ".
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9[1m]\"},\"effort\":{\"level\":\"high\"},\"thinking\":{\"enabled\":true},\"version\":\"2.1.183\"}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"2.1.183"* ]]
+    model_line=$(printf '%s\n' "$plain" | grep 'claude-test-9')
+    [[ "$model_line" == *"claude-test-9[1m]"*"| 2.1.183"* ]]
+}
+
+@test "model segment omits version token when .version absent" {
+    # No invented fallback: a payload lacking .version must not render a
+    # trailing " | " separator or any placeholder.
+    run bash -c "echo '{\"model\":{\"id\":\"claude-test-9\"},\"thinking\":{\"enabled\":true}}' | $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    model_line=$(printf '%s\n' "$plain" | grep 'claude-test-9')
+    [[ "$model_line" == *"thinking:true"* ]]
+    [[ "$model_line" != *"thinking:true |"* ]]
+}
+
+@test "release segment names the missing gh-<alias> profile instead of a bare gh exit code" {
+    # Incident 2026-06-21: an origin host-alias (e.g. eonlabs) with no matching
+    # ~/.config/gh-<alias> profile fell back to the multi-user default config,
+    # which 401s in this subprocess as an opaque "gh exit 4". The hardening
+    # names the absent profile so the fix (create it) is obvious at a glance.
+    repo="$BATS_TEST_TMPDIR/noprofile_repo"
+    mkdir -p "$repo"
+    git -C "$repo" init -q
+    # An alias guaranteed to have NO ~/.config/gh-<alias> profile.
+    git -C "$repo" remote add origin "git@github.com-zzznoprofile:owner/widgets.git"
+
+    # Fake gh: behaves like an unauthenticated CLI (exit 4) for every call.
+    fakebin="$BATS_TEST_TMPDIR/fakebin-noauth"
+    mkdir -p "$fakebin"
+    cat > "$fakebin/gh" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' 'To get started with GitHub CLI, please run: gh auth login' >&2
+exit 4
+FAKE
+    chmod +x "$fakebin/gh"
+
+    run bash -c "cd '$repo' && PATH='$fakebin:$PATH' bash -c \"echo '$TEST_INPUT' | '$STATUSLINE'\""
+
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    # The hardened hint names the absent profile...
+    [[ "$plain" == *"no gh-zzznoprofile profile"* ]]
+    # ...instead of the opaque generic auth diagnostic.
+    [[ "$plain" != *"gh exit 4"* ]]
+}
+
+@test "ctx readout honors CLAUDE_CODE_AUTO_COMPACT_WINDOW clamp (2026-06-24)" {
+    # Claude Code's real autocompact window = min(modelMax, CLAUDE_CODE_AUTO_COMPACT_WINDOW).
+    # With a 1M model but an 800k cap + pct=73, the trigger is (800k-20k)*0.73 = 569,400.
+    # At 580k used the box is ALREADY past that → must read "past compact", NOT a phantom
+    # "~135k until compact" (the pre-fix bug computed against the raw 1M window → 715k).
+    local json='{"context_window":{"total_input_tokens":580000,"context_window_size":1000000,"used_percentage":58}}'
+    run bash -c "echo '$json' | CLAUDE_CODE_AUTO_COMPACT_WINDOW=800000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=73 $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"past compact"* ]]
+    [[ "$plain" != *"until compact"* ]]
+}
+
+@test "ctx readout uses raw window when no AUTO_COMPACT_WINDOW cap (2026-06-24)" {
+    # Same 580k used, but no window cap (0 = unset) → threshold computed against the
+    # raw 1M window = (1M-20k)*0.73 = 715,400, so there IS headroom: "~135k until compact".
+    local json='{"context_window":{"total_input_tokens":580000,"context_window_size":1000000,"used_percentage":58}}'
+    run bash -c "echo '$json' | CLAUDE_CODE_AUTO_COMPACT_WINDOW=0 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=73 $STATUSLINE"
+    [ "$status" -eq 0 ]
+    plain=$(printf '%s' "$output" | sed $'s/\x1b\\[[0-9;]*m//g')
+    [[ "$plain" == *"until compact"* ]]
+    [[ "$plain" != *"past compact"* ]]
 }

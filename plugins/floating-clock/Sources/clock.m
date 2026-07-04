@@ -11,12 +11,17 @@
 #import "segments/FloatingClockSegmentViews.h"
 #import "core/FloatingClockPanel.h"
 #import "core/MicMuteIndicator.h"
+#import "core/VPNStatusIndicator.h"
+#import "core/AudioStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
+#import "core/FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "menu/FloatingClockPanel+MenuBuilder.h"
 #import "core/FloatingClockPanel+Runtime.h"
+#import "core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "preferences/FloatingClockPanel+ProfileManagement.h"
 #import "actions/FloatingClockPanel+ActionHandlers.h"
 #import "core/LocationProvider.h"
+#import "rendering/SolarOutlinedTextRenderingView.h"  // solar canvas outlined text (2026-06-11)
 
 // # FILE-SIZE-OK
 
@@ -97,6 +102,8 @@
         @"SegmentGap": @"normal",
         @"CornerStyle": @"rounded",
         @"ShadowStyle": @"none",
+        @"BorderStyle": @"hairline",   // 2026-06-11: on by default (audio-bar edge recipe)
+        @"CanvasColorMode": @"solar-vivid",  // 2026-06-11: compact canvas rides the solar ramp
         @"ActiveFontSize": @12.0,
         @"NextFontSize": @12.0,
         @"FontWeight": @"medium",
@@ -124,6 +131,13 @@
         // corner overlays removed per user directive. Pref kept (legacy)
         // but the visibility helper is now a no-op (always hidden).
         @"ShowDebugLabels": @NO,
+        // 2026-06-11: always-visible audio I/O status bar (device names +
+        // numeric levels + click-to-toggle + direct adjustment). ON by
+        // default per user directive — replaces the decommissioned
+        // audio-device-monitor's automatic prioritization with manual,
+        // clock-centric control.
+        @"AudioBarEnabled": @YES,
+        @"AudioBarStep": @5,
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
@@ -168,6 +182,18 @@
     cv.panel = self;
     self.contentView = cv;
 
+    // 2026-06-11 solar canvas: round-join outlined text renderer (Core Text)
+    // — shows INSTEAD of _label while a solar canvas mode is active. See
+    // SolarOutlinedTextRenderingView.h for why NSTextField stroke attributes
+    // were rejected (fill starvation / miter spikes on descenders).
+    FCSolarOutlinedTextView *labelOutline =
+        [[FCSolarOutlinedTextView alloc] initWithFrame:NSInsetRect(defaultFrame, 8, 8)];
+    labelOutline.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    labelOutline.outlineWidth = 2.2;
+    labelOutline.hidden = YES;   // only visible in solar canvas modes
+    [cv addSubview:labelOutline];
+    _labelOutline = labelOutline;
+
     // Text field for clock display
     NSTextField *label = [[NSTextField alloc] initWithFrame:NSInsetRect(defaultFrame, 8, 8)];
     label.editable = NO;
@@ -201,12 +227,31 @@
     [self applyDisplaySettings];
     [self setupTimer];
 
+    // Always-visible audio I/O status bar (user directive 2026-06-11):
+    // current default input/output devices + numeric levels, click a device
+    // name to toggle to the next available device in that category, click
+    // −/+ (or scroll) to adjust levels. Bottom-most overlay in the indicator
+    // stack — the mic-mute and VPN bars shift one slot up while it shows.
+    _audioStatusIndicator = [[FCAudioStatusIndicator alloc] initWithClockPanel:self];
+
     // Mic-mute indicator (user directive 2026-06-01): show a red "MIC MUTED"
     // banner over the clock whenever the Antlion USB Microphone is muted, so
     // the user never speaks into a muted mic unaware. Created after the first
     // layout pass so the panel frame is real; positions itself on first read.
     _micMuteIndicator = [[FCMicMuteIndicator alloc] initWithClockPanel:self
                                                             deviceName:@"Antlion USB Microphone"];
+    _micMuteIndicator.audioIndicator = _audioStatusIndicator;
+    // 2026-06-11 extra: the audio bar's IN zone renders red/struck-through
+    // while the mic indicator's banner is showing (mute flag OR analog
+    // silence), so mute state is visible even when the banner is off-screen.
+    _audioStatusIndicator.micIndicator = _micMuteIndicator;
+
+    // Generic external-state status banner (default violet "VPN"); stacks
+    // above the mic-mute bar. Disabled unless VPNIndicatorEnabled is set in
+    // defaults — see VPNStatusIndicator.h. Configured locally; secret-free.
+    _vpnStatusIndicator = [[FCVPNStatusIndicator alloc] initWithClockPanel:self
+                                                             micIndicator:_micMuteIndicator];
+    _vpnStatusIndicator.audioIndicator = _audioStatusIndicator;
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak
