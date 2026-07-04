@@ -539,15 +539,28 @@ fi
 # Different month:  Wed 01 Jan 2026 05:00 UTC | Tue 31 Dec 19:00 PST
 # Different year:   Thu 01 Jan 2026 05:00 UTC | Wed 31 Dec 2025 19:00 PST
 # Local date portion shown in yellow when it differs from UTC
+#
+# SYSTEM-TZ invariant (2026-07-04, sibling of probe_direct): "local" time
+# MUST come from the HOST's real timezone (/etc/localtime symlink), never
+# from the inherited $TZ. The ccmax-claude wrapper forces TZ=UTC on the
+# child claude process (China-origin timezone/locale metadata-leak
+# neutralization, 2026-07-02 stego finding), and the statusline inherits
+# that env — a bare `date` would render UTC as "local" (observed live:
+# "06:38 UTC | 06:38 UTC"). Resolving the symlink is display-only; the
+# claude process's privacy posture (TZ=UTC on the wire) is unchanged.
+# Fallback: inherited TZ when the symlink is unreadable (hardened boxes).
+system_tz=$(readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||')
+[ -z "$system_tz" ] && system_tz="${TZ:-UTC}"
+
 utc_date=$(date -u +"%a %d %b %Y")
 utc_hm=$(date -u +"%H:%M")
 utc_month=$(date -u +"%b")
 utc_year=$(date -u +"%Y")
-local_date=$(date +"%a %d %b %Y")
-local_hm=$(date +"%H:%M")
-local_tz=$(date +"%Z")
-local_month=$(date +"%b")
-local_year=$(date +"%Y")
+local_date=$(TZ="$system_tz" date +"%a %d %b %Y")
+local_hm=$(TZ="$system_tz" date +"%H:%M")
+local_tz=$(TZ="$system_tz" date +"%Z")
+local_month=$(TZ="$system_tz" date +"%b")
+local_year=$(TZ="$system_tz" date +"%Y")
 
 if [ "$utc_date" = "$local_date" ]; then
     # Same date: show date once with UTC, local time-only
@@ -555,11 +568,11 @@ if [ "$utc_date" = "$local_date" ]; then
 else
     # Different date: build minimal local date showing only what differs
     # Always show day-of-week + day number; add month if different; add year if different
-    local_short=$(date +"%a %d")
+    local_short=$(TZ="$system_tz" date +"%a %d")
     if [ "$utc_year" != "$local_year" ]; then
-        local_short="$(date +"%a %d %b %Y")"
+        local_short="$(TZ="$system_tz" date +"%a %d %b %Y")"
     elif [ "$utc_month" != "$local_month" ]; then
-        local_short="$(date +"%a %d %b")"
+        local_short="$(TZ="$system_tz" date +"%a %d %b")"
     fi
     datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
 fi
