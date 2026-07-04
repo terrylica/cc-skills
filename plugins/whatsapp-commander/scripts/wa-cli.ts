@@ -65,10 +65,87 @@ function normalizeNumber(raw: string): string {
   return digits;
 }
 
+/** Past this the wa.me landing-page preview scrolls and *looks* truncated — keep bodies concise. */
+const MAX_TIER1_CHARS = 700;
+
+/**
+ * Codepoints that break a Tier-1 wa.me deep link: astral-plane (> U+FFFF) and emoji
+ * selectors/blocks arrive on the recipient's side as U+FFFD (a diamond-`?`), even though
+ * the URL is valid UTF-8. BMP text — including all CJK — survives. Returns the distinct
+ * offending codepoints (as `U+XXXX`), empty if the body is safe.
+ */
+function astralOffenders(text: string): readonly string[] {
+  const bad = new Set<string>();
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    const isAstral = cp > 0xffff;
+    const isEmojiSelector = cp === 0xfe0f || cp === 0x20e3;
+    const isEmojiBlock = cp >= 0x1f000 || (cp >= 0x2600 && cp <= 0x27bf);
+    if (isAstral || isEmojiSelector || isEmojiBlock) {
+      bad.add(`U+${cp.toString(16).toUpperCase().padStart(4, "0")}`);
+    }
+  }
+  return [...bad];
+}
+
+/**
+ * Non-fatal structural smells that make the wa.me landing-page PREVIEW look truncated
+ * (the box is a fixed scrollable preview — the link still carries the whole body). Each is
+ * a lesson from a real round-trip: a bare "1" line reads as a cut-off message; a trailing
+ * "——" reads as a dangling "-- 1"; over-length bodies scroll out of view.
+ */
+function bodyWarnings(text: string): readonly string[] {
+  const warnings: string[] = [];
+  if (text.length > MAX_TIER1_CHARS) {
+    warnings.push(
+      `body is ${text.length} chars (> ${MAX_TIER1_CHARS}); the wa.me preview scrolls and looks cut off — trim, or inline the list`,
+    );
+  }
+  const lines = text.split("\n");
+  for (const [index, line] of lines.entries()) {
+    if (/^\s*\d+[.)]?\s*$/.test(line)) {
+      warnings.push(
+        `line ${index + 1} is a lone list number ("${line.trim()}") — looks truncated in the preview; inline it as (1)/(2)`,
+      );
+    }
+    if (/[—–-]{2,}\s*$/.test(line)) {
+      warnings.push(
+        `line ${index + 1} ends with a dash run — reads as a dangling "-- 1"; use a colon lead-in instead`,
+      );
+    }
+  }
+  return warnings;
+}
+
+/** Decode what we just encoded and assert it survived intact — proves link completeness. */
+function assertLinkRoundTrips(url: string, source: string): void {
+  const marker = "?text=";
+  const at = url.indexOf(marker);
+  const decoded = at >= 0 ? decodeURIComponent(url.slice(at + marker.length)) : "";
+  if (decoded !== source) {
+    throw new ApiError(
+      `link round-trip mismatch: decoded ${decoded.length} chars vs source ${source.length} — refusing to emit a corrupted link`,
+    );
+  }
+}
+
 /** Tier 1: a wa.me deep link with URL-encoded pre-filled text. Always available. */
 function buildWaLink(request: MessageRequest): string {
   const number = normalizeNumber(request.number);
-  return `https://wa.me/${number}?text=${encodeURIComponent(request.text)}`;
+  const offenders = astralOffenders(request.text);
+  if (offenders.length > 0) {
+    throw new UsageError(
+      `body has emoji / astral chars that become "�" on the wa.me path: ${offenders.join(", ")}. ` +
+        "Keep Tier-1 bodies BMP-only — headings 【】, bullets -, numbering (1)/(2).",
+    );
+  }
+  const url = `https://wa.me/${number}?text=${encodeURIComponent(request.text)}`;
+  assertLinkRoundTrips(url, request.text);
+  for (const warning of bodyWarnings(request.text)) {
+    process.stderr.write(`warning: ${warning}\n`);
+  }
+  process.stderr.write(`✓ link carries the full ${request.text.length}-char body (round-trip verified)\n`);
+  return url;
 }
 
 function resolveCloudCreds(): CloudCreds {
