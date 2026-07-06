@@ -184,7 +184,7 @@ fi
 # budget). The JSONL audit trail keeps the full history regardless; the
 # device copy is ephemeral by design. (ttl is ignored by the API for
 # priority 2 — irrelevant here, heartbeat is INFO/WARN.)
-pushover-notify \
+if pushover-notify \
     --title "🔔 Fleet daily heartbeat" \
     --message "$BODY" \
     --service "fleet-heartbeat" \
@@ -193,5 +193,13 @@ pushover-notify \
     --ttl 90000 \
     --extra "$EXTRA_JSON" \
     >/dev/null
-
-echo "pushover-heartbeat: dispatched (level=$LEVEL, quota=${QUOTA_PCT}%, failed=$FAILED_SERVICES)"
+then
+    # Only claim "dispatched" once pushover-notify actually succeeded. Printing
+    # this unconditionally previously masked a ~12-day credential outage (the
+    # send die'd but the log still said "dispatched"). See reference_pushover_scs_migration.
+    echo "pushover-heartbeat: dispatched (level=$LEVEL, quota=${QUOTA_PCT}%, failed=$FAILED_SERVICES)"
+else
+    rc=$?
+    echo "pushover-heartbeat: DISPATCH FAILED — pushover-notify exit $rc (level=$LEVEL, quota=${QUOTA_PCT}%, failed=$FAILED_SERVICES)" >&2
+    exit "$rc"
+fi
