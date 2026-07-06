@@ -53,10 +53,15 @@ readonly LOG_FILE
 readonly MAX_BODY_CHARS=1024   # Pushover API limit (UTF-8)
 readonly MAX_TITLE_CHARS=250   # Pushover API limit
 
-# 1Password item holding cc-skills Pushover credentials.
-# Override via env (PUSHOVER_TOKEN, PUSHOVER_USER) for testing or non-1P flows.
+# Pushover credentials. Load order is self-custody-first (SCS doctrine):
+#   1. PUSHOVER_TOKEN / PUSHOVER_USER env (e.g. injected by `vault run`)
+#   2. macOS login-Keychain SCS items (default names = `vault set pushover-commander ...`)
+#   3. 1Password (LAST RESORT — kept only for hosts without the SCS items above;
+#      personal secrets should NOT live in a company-managed vault)
 readonly OP_VAULT="Claude Automation"
 readonly OP_ITEM_ID="${PUSHOVER_OP_ITEM_ID:-<pushover-item>}"
+readonly KC_TOKEN_ITEM="${PUSHOVER_KEYCHAIN_TOKEN_ITEM:-pushover-commander-pushover_token}"
+readonly KC_USER_ITEM="${PUSHOVER_KEYCHAIN_USER_ITEM:-pushover-commander-pushover_user}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -103,40 +108,54 @@ gen_uuid() {
     fi
 }
 
-# Look up Pushover credentials from 1Password using SA token first, biometric fallback
+# Load Pushover credentials, self-custody-first: env -> SCS Keychain -> 1Password.
 load_credentials() {
     if [ -n "${PUSHOVER_TOKEN:-}" ] && [ -n "${PUSHOVER_USER:-}" ]; then
-        return 0  # already overridden
+        return 0  # (1) already overridden (e.g. injected by `vault run`)
     fi
 
-    # Proxy bypass — Claude Code OAuth proxy returns 502 on 1P endpoints
-    local saved_https_proxy="${HTTPS_PROXY:-}"
-    local saved_http_proxy="${HTTP_PROXY:-}"
-    unset HTTPS_PROXY HTTP_PROXY 2>/dev/null || true
-
-    local sa_token_path="$HOME/.claude/.secrets/op-service-account-token"
-    if [ -r "$sa_token_path" ]; then
-        # Try SA token first
-        local sa_token
-        sa_token=$(/bin/cat "$sa_token_path")
-        export OP_SERVICE_ACCOUNT_TOKEN="$sa_token"
-        if PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null); then
-            PUSHOVER_USER=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/user_key" 2>/dev/null) || PUSHOVER_USER=""
-            unset OP_SERVICE_ACCOUNT_TOKEN
-        else
-            # SA failed; try biometric (will prompt if interactive)
-            unset OP_SERVICE_ACCOUNT_TOKEN
-            PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null) || PUSHOVER_TOKEN=""
-            PUSHOVER_USER=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/user_key" 2>/dev/null) || PUSHOVER_USER=""
+    # (2) SCS: macOS login-Keychain automation items. Readable by `security`
+    #     with no prompt, from any cwd — the doctrine-preferred default source.
+    if command -v security >/dev/null 2>&1; then
+        local kc_tok kc_usr
+        kc_tok=$(security find-generic-password -s "$KC_TOKEN_ITEM" -w 2>/dev/null || true)
+        kc_usr=$(security find-generic-password -s "$KC_USER_ITEM"  -w 2>/dev/null || true)
+        if [ -n "$kc_tok" ] && [ -n "$kc_usr" ]; then
+            PUSHOVER_TOKEN="$kc_tok"; PUSHOVER_USER="$kc_usr"
+            return 0
         fi
     fi
 
-    # Restore proxy state for caller
-    [ -n "$saved_https_proxy" ] && export HTTPS_PROXY="$saved_https_proxy"
-    [ -n "$saved_http_proxy" ] && export HTTP_PROXY="$saved_http_proxy"
+    # (3) 1Password — LAST RESORT (SA token first, biometric fallback). Kept only
+    #     for hosts without the SCS Keychain items above.
+    if command -v op >/dev/null 2>&1; then
+        # Proxy bypass — Claude Code OAuth proxy returns 502 on 1P endpoints
+        local saved_https_proxy="${HTTPS_PROXY:-}"
+        local saved_http_proxy="${HTTP_PROXY:-}"
+        unset HTTPS_PROXY HTTP_PROXY 2>/dev/null || true
+
+        local sa_token_path="$HOME/.claude/.secrets/op-service-account-token"
+        if [ -r "$sa_token_path" ]; then
+            local sa_token
+            sa_token=$(/bin/cat "$sa_token_path")
+            export OP_SERVICE_ACCOUNT_TOKEN="$sa_token"
+            if PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null); then
+                PUSHOVER_USER=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/user_key" 2>/dev/null) || PUSHOVER_USER=""
+                unset OP_SERVICE_ACCOUNT_TOKEN
+            else
+                unset OP_SERVICE_ACCOUNT_TOKEN
+                PUSHOVER_TOKEN=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/credential" 2>/dev/null) || PUSHOVER_TOKEN=""
+                PUSHOVER_USER=$(op read "op://${OP_VAULT}/${OP_ITEM_ID}/user_key" 2>/dev/null) || PUSHOVER_USER=""
+            fi
+        fi
+
+        # Restore proxy state for caller
+        [ -n "$saved_https_proxy" ] && export HTTPS_PROXY="$saved_https_proxy"
+        [ -n "$saved_http_proxy" ] && export HTTP_PROXY="$saved_http_proxy"
+    fi
 
     if [ -z "${PUSHOVER_TOKEN:-}" ] || [ -z "${PUSHOVER_USER:-}" ]; then
-        die "could not load Pushover credentials from 1P (item ${OP_ITEM_ID} in ${OP_VAULT})" 1
+        die "could not load Pushover credentials (SCS Keychain items '$KC_TOKEN_ITEM'/'$KC_USER_ITEM' absent; 1P item ${OP_ITEM_ID} in ${OP_VAULT} unavailable)" 1
     fi
 }
 
