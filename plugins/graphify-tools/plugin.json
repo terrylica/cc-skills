@@ -1,0 +1,9 @@
+{
+  "name": "graphify-tools",
+  "version": "22.10.2",
+  "description": "Multimodal knowledge graphs via Graphify-Labs/graphify: turn code + docs + PDFs + images into a queryable graph (graph.html, Obsidian vault, agent wiki). Complements codegraph (symbol-level) with concept-level cross-corpus structure.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
