@@ -110,6 +110,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [gh-tools](./gh-tools/CLAUDE.md)
 - [git-town-workflow](./git-town-workflow/CLAUDE.md)
 - [gmail-commander](./gmail-commander/CLAUDE.md)
+- [graphify-tools](./graphify-tools/CLAUDE.md)
 - [html-showcase](./html-showcase/CLAUDE.md)
 - [itp](./itp/CLAUDE.md)
 - [itp-hooks](./itp-hooks/CLAUDE.md)
