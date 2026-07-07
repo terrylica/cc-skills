@@ -374,6 +374,28 @@
       "strict": false
     },
     {
+      "name": "graphify-tools",
+      "description": "Multimodal knowledge graphs via Graphify-Labs/graphify: turn code + docs + PDFs + images into a queryable graph (graph.html, Obsidian vault, agent wiki). Complements codegraph (symbol-level) with concept-level cross-corpus structure.",
+      "version": "22.10.2",
+      "source": "./plugins/graphify-tools",
+      "category": "quality",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "knowledge-graph",
+        "graphify",
+        "multimodal",
+        "concept-graph",
+        "obsidian",
+        "wiki",
+        "token-efficiency",
+        "codegraph-complement"
+      ],
+      "strict": false
+    },
+    {
       "name": "pushover-commander",
       "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
       "version": "22.10.2",

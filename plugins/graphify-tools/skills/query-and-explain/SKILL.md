@@ -1,0 +1,39 @@
+---
+name: query-and-explain
+description: "Query an already-built graphify knowledge graph: natural-language questions, path-finding between two concepts, or explain a single node — without re-reading the source files. TRIGGERS - graphify query, ask the graph, what connects, path between concepts, explain node, query knowledge graph."
+allowed-tools: Read, Bash, Glob, Grep
+---
+
+# Query & Explain the Graph
+
+Interrogate a persistent `graphify-out/graph.json` built earlier by `graphify-tools:build-graph`. This is the token-efficiency payoff: answers come from the graph (~71× fewer tokens on large corpora), not from re-reading raw files.
+
+> **Prerequisite**: a `graphify-out/` directory must exist for the target corpus. If missing, invoke `graphify-tools:build-graph` first. If the corpus changed since the last build, suggest `graphify <target> --update` before trusting answers.
+
+## Verbs
+
+Run from the directory containing `graphify-out/` (or pass the target folder):
+
+```bash
+# Natural-language question across the whole graph
+graphify query "what connects attention to the optimizer?"
+
+# Shortest/strongest path between two named nodes
+graphify path "DigestAuth" "Response"
+
+# Deep-dive one node: its edges, communities, provenance
+graphify explain "SwinTransformer"
+```
+
+## Interpreting results
+
+- Edge tags matter: `EXTRACTED` = found in source; `INFERRED` = LLM-suggested; `AMBIGUOUS` = flagged uncertain. Quote the tag when relaying a claim to the operator.
+- If `query` returns nothing useful, check node naming with the graph's own inventory first — `GRAPH_REPORT.md` lists god nodes and communities; `graph.html` has interactive search.
+- For **symbol-level** follow-ups (who calls this function, what breaks if I change it) hand off to the codegraph MCP tools instead — that's their home turf.
+
+## Staleness check
+
+```bash
+# Newest source file vs newest cache entry — if sources are newer, recommend --update
+find <target> -newer <target>/graphify-out/graph.json -type f | grep -v graphify-out | head
+```
