@@ -261,6 +261,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
     },
     {
+      markerNameTokenIncludingSuffix: "MINI-INNGEST-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
+    },
+    {
       markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
