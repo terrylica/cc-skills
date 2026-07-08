@@ -8,6 +8,8 @@
 
 This plugin manages the Telegram notification bot and iTerm2 tab focus integration for TTS. The Kokoro TTS engine itself is managed by the `kokoro-tts` plugin — use `/kokoro-tts:install`, `/kokoro-tts:health`, `/kokoro-tts:augment` (renamed from `upgrade`), `/kokoro-tts:remove`, and `/kokoro-tts:diagnose` for engine management. All components share a lock file protocol and NDJSON telemetry.
 
+> **`scripts/kokoro-install.sh` is a thin delegating wrapper, not the SSoT** (2026-07-08). It `exec`s the canonical installer in the sibling `kokoro-tts` plugin (`../../kokoro-tts/scripts/kokoro-install.sh`) — reliable because both ship from the same cc-skills marketplace and this plugin `requires: [kokoro-tts]`. Previously it was a byte-for-byte 206-line copy that could silently drift. Edit the installer logic in `kokoro-tts` only; this wrapper just forwards `--install|--upgrade|--health|--uninstall`.
+
 ## Conventions
 
 - **Runtime**: Bun for TypeScript, Python 3.14 for Kokoro, Bash for shell scripts
