@@ -1,3 +1,22 @@
+# [22.11.0](https://github.com/terrylica/cc-skills/compare/v22.10.2...v22.11.0) (2026-07-08)
+
+
+### Bug Fixes
+
+* **hooks:** prevent Stop hook infinite loop and clarify gh-isolation scope ([1ea1af4](https://github.com/terrylica/cc-skills/commit/1ea1af4444a910765eb049bd60f1322f4c23a76c)), closes [#isolation](https://github.com/terrylica/cc-skills/issues/isolation)
+* **itp-hooks:** restore alphabetical order of MINI-INNGEST-OK marker ([a08d557](https://github.com/terrylica/cc-skills/commit/a08d557e607b1a840230e34fc012ce8f78e9e3fb))
+* **pushover-commander:** SCS-first credential loading + verify dispatch ([3ccc424](https://github.com/terrylica/cc-skills/commit/3ccc4241ca4fe50ff3ff6831c804ba3324068644))
+* **statusline-tools:** resolve local time from /etc/localtime, not inherited TZ ([58c45bd](https://github.com/terrylica/cc-skills/commit/58c45bdf82e22216d1ad32d6733c781b457d5a41))
+
+
+### Features
+
+* **graphify-tools:** fleet Opus + MiniMax-M3 backends, deeper README ([65d3da5](https://github.com/terrylica/cc-skills/commit/65d3da538f56e2967938e3829fa4a21b27b380ba))
+* **graphify-tools:** new plugin wrapping Graphify-Labs/graphify ([e21fa64](https://github.com/terrylica/cc-skills/commit/e21fa640393708aa20faefef90f9359b48fcd6d9))
+* **itp-hooks:** mini-inngest-doctrine PostToolUse nudge ([ce2037a](https://github.com/terrylica/cc-skills/commit/ce2037aa364d9d694a87dadeec03b0e1de6dd904))
+* **pushover-commander:** add monitor-inbox skill for incoming messages ([93c5027](https://github.com/terrylica/cc-skills/commit/93c50273fa2b7df85ac2b8cd434171038bcbf583))
+* **whatsapp-commander:** guard Tier-1 links against emoji tofu + verify completeness ([1ed0efc](https://github.com/terrylica/cc-skills/commit/1ed0efc67ec71174685efa6278352bb17be14304))
+
 ## [22.10.2](https://github.com/terrylica/cc-skills/compare/v22.10.1...v22.10.2) (2026-07-03)
 
 
