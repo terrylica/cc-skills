@@ -6,6 +6,8 @@ allowed-tools: Read, Bash, Glob, AskUserQuestion
 
 # Graphify Setup
 
+> **Self-Evolving Skill**: This skill improves through use. If the package name drifts, an install flag stops working, or a backend gotcha changes — fix this file (and `references/backends.md`) immediately, don't defer. Only update for real, reproducible issues.
+
 Install the [Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) engine as an isolated uv tool and verify it works.
 
 > **Naming gotcha**: the PyPI package is `graphifyy` (double-y, temporary while the `graphify` name is reclaimed). The CLI binary is still `graphify`. Do not `uv tool install graphify` — wrong package.
@@ -75,3 +77,15 @@ This writes `~/.claude/skills/graphify/SKILL.md`. **Skip by default** — this p
 | Installed `graphify` package by mistake                   | `uv tool uninstall graphify && uv tool install "graphifyy[anthropic,gemini]"`                                                                                                                                       |
 | "the 'anthropic'/'openai' package is required" at runtime | Extras missing: `uv tool install "graphifyy[anthropic,gemini]" --force`                                                                                                                                             |
 | `--backend claude` → HTTP 426 `wrapper_version_too_old`   | This fleet routes `ANTHROPIC_BASE_URL` through doorward, which rejects direct SDK calls lacking the `X-Ccmax-Wrapper-Version` header. Use `--backend gemini` (GEMINI_API_KEY is in the env) — see build-graph skill |
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency (esp. `references/backends.md`) that no longer matches reality.
+4. **Log it.** — Add a dated note to the plugin CLAUDE.md provenance with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
