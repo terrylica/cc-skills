@@ -125,6 +125,20 @@ cc-skills/
 | Repo docs      | Repo-root | `[ADR](/docs/adr/file.md)`       |
 | External       | Full URL  | `[Docs](https://example.com)`    |
 
+## Common Plugin Patterns (reuse registry)
+
+Recurring architectural patterns across the 39 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. (Surfaced by the 2026-07-08 graph-housekeeping audit; deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).)
+
+| Pattern                   | What it is                                                                                                                          | Exemplars to copy                                                                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **setup + health skills** | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                       | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [kokoro-tts](./plugins/kokoro-tts/CLAUDE.md) |
+| **Credential resolution** | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                      | [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [graphify-tools](./plugins/graphify-tools/CLAUDE.md) (fleet-key pattern)                               |
+| **Per-skill CLAUDE.md**   | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
+| **Backend/routing SSoT**  | Plugins with multiple env/endpoint choices centralize them in one `references/*.md`, skills point there                             | [graphify-tools/references/backends.md](./plugins/graphify-tools/references/backends.md)                                                                       |
+| **Evolution log**         | Dated "trigger → fix → evidence" entries at the bottom of a skill/plugin doc, appended not rewritten                                | itp-hooks, minimax, graphify-tools                                                                                                                             |
+
+> These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional and validated (graph audit rejected "dedupe the boilerplate" as a false positive). Only `diff`-proven byte-identical logic is real duplication.
+
 ## Development Toolchain
 
 **Bun-First Policy** (2025-01-12): JavaScript global packages installed via `bun add -g`.
