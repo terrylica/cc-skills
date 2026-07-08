@@ -26,26 +26,21 @@ find <target> -name '*.pdf' -o -name '*.png' -o -name '*.jpg' | wc -l
 
 - < ~100 files: run directly
 - Larger: propose a subfolder (e.g. `docs/`, one plugin dir) or `--update` incremental mode
+- **1000s of files with many same-named files** (e.g. a marketplace of `SKILL.md`s): cross-chunk node-ID collisions silently drop the second same-named node. Extract per-subfolder then `graphify merge-graphs`, rather than one whole-repo shot.
 
 ### 2. Build
 
-**Proven flow on this fleet (2026-07-07)** — two headless steps, gemini backend:
+Pick a backend and set its env — **full copy-paste blocks for all three live in [`../../references/backends.md`](../../references/backends.md)** (the routing SSoT). Quick guide:
 
-```bash
-cd <repo-root>
-graphify extract <target> --backend gemini --model gemini-2.5-flash
-graphify cluster-only <target> --backend gemini --model gemini-2.5-flash
-```
+| Backend              | When                                                   | One-liner                                                                    |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| **gemini-2.5-flash** | large / bulk runs (safe default, no ban-risk)          | `graphify extract <target> --backend gemini --model gemini-2.5-flash`        |
+| **fleet Opus 4.8**   | interactive / smaller graphs, best quality ("our LLM") | `--backend openai --model claude-opus-4-8` + `GRAPHIFY_LLM_TEMPERATURE=omit` |
+| **MiniMax-M3**       | a few dense files, latency OK                          | `--backend openai --model MiniMax-M3`                                        |
 
-Backend selection on THIS machine (empirical):
+> **Always `unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy` first** — the ccmax-claude bearer-pin proxy 502s external hosts. The `claude` backend is BLOCKED (doorward 426); use the fleet **openai** door instead. See backends.md for keys, base URLs, and the mandatory `GRAPHIFY_LLM_TEMPERATURE=omit` for Opus.
 
-| Backend                               | Verdict   | Why                                                                                                                                                                                                     |
-| ------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `claude`                              | ✗ blocked | `ANTHROPIC_BASE_URL` routes through doorward, which returns HTTP 426 (`wrapper_version_too_old`) for direct SDK calls — only ccmax-claude's proxy injects the required `X-Ccmax-Wrapper-Version` header |
-| `gemini` (default model)              | ⚠ flaky   | Default model 503s under load ("high demand")                                                                                                                                                           |
-| `gemini` + `--model gemini-2.5-flash` | ✓ works   | ~$0.15 / 15 docs on the smoke test; `GEMINI_API_KEY` already in env                                                                                                                                     |
-
-The plain `graphify <target>` one-shot also works once a backend is healthy, and auto-detects from whichever API key is set. Cost is printed after every run — relay it to the operator.
+Two-step headless flow (any backend): `graphify extract <target> …` then `graphify cluster-only <target> …` (regenerates GRAPH_REPORT.md + names communities). The plain `graphify <target>` one-shot also works once a backend's env is set. Cost prints after every run — relay it.
 
 Useful flags (combinable):
 

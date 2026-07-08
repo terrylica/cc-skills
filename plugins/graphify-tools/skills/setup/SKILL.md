@@ -46,7 +46,17 @@ graphify --help | head -20
 
 Both must succeed. If `graphify` is not on PATH, run `uv tool update-shell` and re-source the shell profile.
 
-### 4. Optional: register the Claude Code skill command
+### 4. Pick a backend (which LLM does extraction)
+
+The engine needs an LLM for semantic extraction. Three are wired for this operator — full copy-paste env blocks in [`../../references/backends.md`](../../references/backends.md):
+
+- **gemini-2.5-flash** — bulk default (fast, no ban-risk); `GEMINI_API_KEY` already in env.
+- **fleet Opus 4.8** — "our LLM" via the dedicated `graphify` sub2api key (1Password `2eeg5h4n3st6kcmt3icjhfjiiy`); needs `GRAPHIFY_LLM_TEMPERATURE=omit`.
+- **MiniMax-M3** — rich but slow; 1Password `e54cb3ujopexslaq7loywpuycm`.
+
+All require `unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy` first. The `claude` backend is blocked (doorward 426) — use the fleet **openai** door.
+
+### 5. Optional: register the Claude Code skill command
 
 The engine ships its own `/graphify` skill installer:
 
