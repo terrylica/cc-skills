@@ -27,6 +27,18 @@
 8. **Same-named files in different dirs collide** (upstream #1666 adjacent): cross-chunk node-ID collisions drop the second node with a warning. For corpora with repeated filenames (e.g. many `SKILL.md`), consider per-subfolder `graphify extract` + `graphify merge-graphs`.
 9. **Backend env quirks (backends.md is SSoT)**: every backend needs `unset HTTPS_PROXY HTTP_PROXY https_proxy http_proxy` (bearer-pin proxy 502s external hosts). Fleet Opus needs `GRAPHIFY_LLM_TEMPERATURE=omit` (400 otherwise). MiniMax-M3 works but is slow (~5 min/6 files, thinking-on; graphify can't send its `reasoning_split` flag) — reserve for small dense corpora, not bulk.
 
+## Graph limitations & interpretation (read before "housekeeping from the graph")
+
+The graph is a powerful lens, but it has structural blind spots. Confirmed empirically by a 40-agent adversarial housekeeping audit (2026-07-08). Internalize these or you WILL re-raise the same false positives every run:
+
+1. **ZERO cross-plugin edges — by design.** The whole-repo graph was built per-plugin then union-merged (node IDs namespaced `repo::local_id`), so links never cross a plugin boundary. **Cross-plugin coupling / dependency questions are unanswerable from this graph — use the codegraph MCP (symbol-level, whole-repo) instead.** A merged graphify graph answers _intra_-plugin structure and _cross-plugin duplicate concepts_ (via repeated `norm_label`), nothing about how plugins depend on each other.
+2. **degree-0 ("orphan") ≠ dead code.** graphify's AST/semantic extractor does NOT traverse: `manifest.json`-driven test fixtures, `Makefile` build rules, markdown-embedded code blocks, or externally-vendored headers. So a genuinely-live file can show degree 0. Every "dead code" candidate MUST be cross-checked against the repo (grep + codegraph + does a test/manifest/Makefile reference it?) before believing it. In the 2026-07-08 audit, ~all degree-0 "dead" candidates were live (fixtures, vendored `c-api.h`, `gen-icon.m` build helper, diagnostic probes, doc fragments).
+3. **High degree ≠ god-class smell.** Hook control primitives (`allow`/`deny`/`parseStdinOrAllow`/`trackHookError`), UI dispatchers (`FloatingClockPanel`), and enum-driven CLI entry points (`tg-cli`, `m3-cli`) legitimately have high out-degree to their own methods/subcommands. Classify before flagging.
+4. **Repeated `norm_label` across plugins is usually intentional**, not DRY debt: `package.json`/`tsconfig.json`/`compilerOptions` (per-plugin isolation), `main()`/`log()` (independent entry points), `manage-hooks.sh` (structurally similar, NOT byte-identical), `Tether`/`setup`/`health` skills (deliberately parallel). Only `diff`-proven byte-identical files (e.g. the old `kokoro-install.sh` dup) are real duplication.
+5. **`GRAPH_REPORT.md` community count can drift from `graph.json`** (a stale report claimed 757 vs the graph's 123). The report is a snapshot; `graph.json` is authoritative. Regenerate with `graphify cluster-only .` if they disagree.
+
+**Recipe when doing graph-driven housekeeping**: degree→dead-code, repeated-norm_label→dup, community→cohesion, `imports`/`calls` cycles→refactor — but ALWAYS adversarially verify each candidate against the real repo (default: it's intentional design) before proposing a change.
+
 ## Smoke test provenance (2026-07-07)
 
 Target: `plugins/statusline-tools/` (24 code + 15 docs). Result: 344 nodes, 484 edges, 26 communities; 100% EXTRACTED edges; cost $0.14 (gemini-2.5-flash). God node #1 = `statusline-tools Plugin`; report correctly surfaced the doorward-integration and telemetry-analytics communities. Two-step flow used: `extract` → `cluster-only`.
