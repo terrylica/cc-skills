@@ -6,6 +6,8 @@ allowed-tools: Read, Bash, Glob, Grep
 
 # Query & Explain the Graph
 
+> **Self-Evolving Skill**: This skill improves through use. If a query verb drifts or graph-interpretation guidance proves wrong — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Interrogate a persistent `graphify-out/graph.json` built earlier by `graphify-tools:build-graph`. This is the token-efficiency payoff: answers come from the graph (~71× fewer tokens on large corpora), not from re-reading raw files.
 
 > **Prerequisite**: a `graphify-out/` directory must exist for the target corpus. If missing, invoke `graphify-tools:build-graph` first. If the corpus changed since the last build, suggest `graphify <target> --update` before trusting answers.
@@ -38,3 +40,15 @@ graphify explain "SwinTransformer"
 # Newest source file vs newest cache entry — if sources are newer, recommend --update
 find <target> -newer <target>/graphify-out/graph.json -type f | grep -v graphify-out | head
 ```
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency (esp. `references/backends.md`) that no longer matches reality.
+4. **Log it.** — Add a dated note to the plugin CLAUDE.md provenance with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
