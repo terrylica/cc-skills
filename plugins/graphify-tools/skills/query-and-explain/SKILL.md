@@ -30,6 +30,7 @@ graphify explain "SwinTransformer"
 - Edge tags matter: `EXTRACTED` = found in source; `INFERRED` = LLM-suggested; `AMBIGUOUS` = flagged uncertain. Quote the tag when relaying a claim to the operator.
 - If `query` returns nothing useful, check node naming with the graph's own inventory first — `GRAPH_REPORT.md` lists god nodes and communities; `graph.html` has interactive search.
 - For **symbol-level** follow-ups (who calls this function, what breaks if I change it) hand off to the codegraph MCP tools instead — that's their home turf.
+- `query`/`path`/`explain` read `graph.json` locally — **no LLM call, no backend needed**. (Only `extract`/`cluster-only`/`label` hit an LLM; see [`../../references/backends.md`](../../references/backends.md).)
 
 ## Staleness check
 
