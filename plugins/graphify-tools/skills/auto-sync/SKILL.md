@@ -6,6 +6,8 @@ allowed-tools: Read, Bash, Glob, AskUserQuestion
 
 # Auto-Sync the Graph
 
+> **Self-Evolving Skill**: This skill improves through use. If the hook behavior or `--watch` semantics drift — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 Two mechanisms keep `graphify-out/` in step with a changing corpus. They don't conflict — pick per repo temperament.
 
 > **Prerequisite**: engine installed (`graphify-tools:setup`) and an initial graph built (`graphify-tools:build-graph`).
@@ -52,3 +54,15 @@ graphify <target> --watch
 # Hook: remove the graphify stanza
 sed -i '' '/graphify/d' <repo>/.git/hooks/post-commit
 ```
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency (esp. `references/backends.md`) that no longer matches reality.
+4. **Log it.** — Add a dated note to the plugin CLAUDE.md provenance with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.

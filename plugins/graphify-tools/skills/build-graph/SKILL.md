@@ -6,6 +6,8 @@ allowed-tools: Read, Bash, Glob, Grep, AskUserQuestion
 
 # Build Knowledge Graph
 
+> **Self-Evolving Skill**: This skill improves through use. If a backend command drifts, a flag changes, or a new failure mode appears — fix this file (and `references/backends.md`) immediately, don't defer. Only update for real, reproducible issues.
+
 Run the graphify engine on a target folder and surface what it found.
 
 > **Prerequisite**: `graphify` CLI on PATH. If missing, invoke `graphify-tools:setup` first.
@@ -84,3 +86,15 @@ graphify add https://x.com/<user>/status/…  # tweet
 ## Housekeeping
 
 Add `graphify-out/` to `.gitignore` unless the operator explicitly wants the graph committed (graph.json can be large; cache/ is machine-local).
+
+## Post-Execution Reflection
+
+After this skill completes, reflect before closing the task:
+
+0. **Locate yourself.** — Find this SKILL.md's canonical path before editing.
+1. **What failed?** — Fix the instruction that caused it.
+2. **What worked better than expected?** — Promote to recommended practice.
+3. **What drifted?** — Fix any script, reference, or dependency (esp. `references/backends.md`) that no longer matches reality.
+4. **Log it.** — Add a dated note to the plugin CLAUDE.md provenance with trigger, fix, and evidence.
+
+Do NOT defer. The next invocation inherits whatever you leave behind.
