@@ -169,52 +169,57 @@ async function buildAttachmentPart(filePath: string): Promise<string> {
  *     Deep-thread replies should always provide `references` to keep
  *     mail clients' conversation view intact.
  */
-/**
- * Convert a plain-text body into RFC 3676 `format=flowed` so recipient mail
- * clients REFLOW paragraphs to the reader's window width instead of hard-wrapping
- * long author lines at a fixed column (the "premature wrapping" symptom).
- *
- * Rules (RFC 3676):
- *   - A soft line break (paragraph continues, client may reflow) is a line that
- *     ENDS WITH A SPACE before CRLF. We word-wrap each paragraph at 72 cols and
- *     end every wrapped line except the last with a trailing space.
- *   - A hard line break (a real break the author intended — list items, sign-off
- *     lines, blank lines) is a line with NO trailing space. The LAST line of each
- *     source line stays hard, so intentional breaks (numbered lists, "Best,\nRicky")
- *     are preserved exactly.
- *   - Space-stuffing: lines beginning with a space, ">", or "From " get one leading
- *     space so they aren't misread as quote/soft markers; the reader's client strips it.
- */
-/** RFC 3676 space-stuffing: a line starting with space, ">" or "From " gets a leading space. */
-function stuffFlowed(line: string): string {
-  return /^( |>|From )/.test(line) ? " " + line : line;
+/** Escape the five HTML-significant characters for safe insertion into text content. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-function toFormatFlowed(body: string, wrap = 72): string {
-  const out: string[] = [];
-  // Normalize newlines; each source line is a hard unit whose long content we soft-wrap.
-  for (const srcLine of body.replace(/\r\n/g, "\n").split("\n")) {
-    if (srcLine === "") {
-      out.push(""); // preserved blank line = hard paragraph separator
-      continue;
-    }
-    if (srcLine.length <= wrap) {
-      out.push(stuffFlowed(srcLine)); // short line: emit as a hard line (no trailing space)
-      continue;
-    }
-    const words = srcLine.split(" ");
-    let cur = "";
-    for (const w of words) {
-      if (cur === "") cur = w;
-      else if ((cur + " " + w).length <= wrap) cur += " " + w;
-      else {
-        out.push(stuffFlowed(cur) + " "); // soft break: trailing space → client reflows
-        cur = w;
-      }
-    }
-    out.push(stuffFlowed(cur)); // last chunk of this source line = hard break
-  }
-  return out.join("\r\n");
+/**
+ * Convert the author's plain-text body into an HTML body that REFLOWS to the
+ * reader's window and NEVER hard-wraps at a fixed column.
+ *
+ * We do NOT wrap or insert any line breaks into the running text — long
+ * paragraph lines stay as single long lines, so the recipient's browser reflows
+ * them to the window width (the "let it loose" behaviour). Only the author's OWN
+ * newlines become `<br>` (so numbered lists and the "Best,\nRicky" sign-off keep
+ * their intended breaks). A blank line becomes an empty `<br>` = paragraph gap.
+ */
+function toHtmlBody(body: string): string {
+  const lines = body.replace(/\r\n/g, "\n").split("\n").map(escapeHtml);
+  // Join with <br> so each authored newline is one line break; long lines carry
+  // no internal breaks and reflow naturally.
+  const inner = lines.join("<br>\n");
+  return [
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;white-space:normal;word-break:normal;overflow-wrap:break-word">',
+    inner,
+    "</div>",
+  ].join("\n");
+}
+
+/** A `multipart/alternative` body: plain-text (unwrapped) + HTML (reflows). Returns
+ *  its own boundary + the assembled block so callers can nest it under mixed/mixed. */
+function buildAlternativeBody(body: string): { contentType: string; block: string } {
+  const boundary = `=_alt_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+  const block = [
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    body, // UNWRAPPED plain fallback — long lines, no format=flowed, so nothing is pre-chopped
+    `--${boundary}`,
+    "Content-Type: text/html; charset=utf-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    toHtmlBody(body),
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
+  return { contentType: `multipart/alternative; boundary="${boundary}"`, block };
 }
 
 async function buildRawMessage(
@@ -245,22 +250,16 @@ async function buildRawMessage(
     headers.push(`References: ${references ?? inReplyTo}`);
   }
 
-  // RFC 3676 format=flowed so recipients' clients REFLOW paragraphs to their window
-  // width instead of hard-wrapping the author's long lines at a fixed column.
-  const flowedBody = toFormatFlowed(body);
+  // Body is sent as multipart/alternative (plain + HTML). The HTML part is what
+  // Gmail and most clients render; it has NO fixed-column wrapping, so the text
+  // reflows to the reader's window instead of being chopped at ~72 chars.
+  const alt = buildAlternativeBody(body);
 
   let mimeBody: string;
   if (attachments && attachments.length > 0) {
-    // multipart/mixed: text body + N attachment parts
+    // multipart/mixed wrapping the alternative body + N attachment parts
     const boundary = `=_gmail_cli_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
     headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
-
-    const bodyPart = [
-      "Content-Type: text/plain; charset=utf-8; format=flowed",
-      "Content-Transfer-Encoding: 8bit",
-      "",
-      flowedBody,
-    ].join("\r\n");
 
     const attachmentParts = await Promise.all(
       attachments.map((path) => buildAttachmentPart(path))
@@ -268,15 +267,16 @@ async function buildRawMessage(
 
     mimeBody = [
       `--${boundary}`,
-      bodyPart,
+      `Content-Type: ${alt.contentType}`,
+      "",
+      alt.block,
       ...attachmentParts.flatMap((p) => [`--${boundary}`, p]),
       `--${boundary}--`,
       "",
     ].join("\r\n");
   } else {
-    headers.push("Content-Type: text/plain; charset=utf-8; format=flowed");
-    headers.push("Content-Transfer-Encoding: 8bit");
-    mimeBody = flowedBody;
+    headers.push(`Content-Type: ${alt.contentType}`);
+    mimeBody = alt.block;
   }
 
   // Encode the whole message as UTF-8 bytes (Buffer.from defaults to utf-8), so the
