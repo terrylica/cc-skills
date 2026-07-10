@@ -161,6 +161,30 @@
       "strict": false
     },
     {
+      "name": "council",
+      "description": "Multi-agent LLM council for code: parallel diverse finder lenses, blind anonymized cross-examination with refute-first skeptics, execution-based evidence tribunal, and an autonomous loop-until-green fix cycle. Review, debug, and goal-audit modes.",
+      "version": "22.11.0",
+      "source": "./plugins/council",
+      "category": "quality",
+      "author": {
+        "name": "MD NASIM",
+        "url": "https://github.com/nasimubd"
+      },
+      "keywords": [
+        "council",
+        "multi-agent",
+        "code-review",
+        "adversarial",
+        "evidence",
+        "tribunal",
+        "peer-review",
+        "debugging",
+        "invariants",
+        "workflow"
+      ],
+      "strict": false
+    },
+    {
       "name": "crucible",
       "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
       "version": "22.11.0",
