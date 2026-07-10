@@ -5,9 +5,9 @@
 Multi-agent LLM council for code, in the lineage of [karpathy/llm-council](https://github.com/karpathy/llm-council) (parallel first opinions → anonymized peer review → chairman synthesis), upgraded with execution-based evidence gating. Full mechanism→source map: [references/sota-provenance.md](./references/sota-provenance.md).
 
 ```
-goal → invariants → finder lenses → blind cross-exam → evidence tribunal → fix loop → chairman (main session)
-       hard/soft     loop-until-dry   refute-first       CONFIRMED only       until green
-                                      quorum kill        if proven by execution
+goal → invariants → finder lenses → blind cross-exam → evidence tribunal → chairman (main session) → fix
+       hard/soft     loop-until-dry   refute-first       CONFIRMED only        surface-first: human    (--fix: autonomous
+                                      quorum kill        if proven by execution  decides what to fix     loop until green)
 ```
 
 ## Load-bearing invariants (break these and the design breaks)
@@ -16,9 +16,9 @@ goal → invariants → finder lenses → blind cross-exam → evidence tribunal
 2. **`export const meta = {…}` stays the first statement** of every workflow script, and stays a pure literal (harness requirement).
 3. **Skeptics never see provenance.** `PUBLIC_KEYS`/`publicFields()` is the single anonymization gate; lens/model/round/confidence live in a side-table and rejoin only at chairman-report time. Finder prompts forbid self-reference in output fields.
 4. **A kill requires a cross-framing majority** (⌈2S/3⌉ REFUTED spanning both PROSECUTE and DEFEND framings), else a tie-break skeptic on the other framing. Single-framing majorities are anchor bias, not evidence.
-5. **Provers never modify tracked files** (taint guard: `git status --porcelain` compared before/after each tribunal wave; drift ⇒ evidence downgraded to opinion, never auto-reverted). **Fixers are the only agents allowed to edit the real tree**, and only in the fix loop / debug confirmation.
+5. **Provers never modify tracked files** (taint guard: `git status --porcelain` compared before/after each tribunal wave *and* around the fix-loop reprove call; drift ⇒ evidence downgraded to opinion, never auto-reverted). A warden check that cannot run (`agent()` → null) is treated conservatively as tainted, not clean. **Fixers are the only agents allowed to edit the real tree**, and only in the fix loop / debug confirmation.
 6. **The main session is the chairman.** Workflow scripts return a council record; they must NOT synthesize the final report. Chairman rule: synthesize rationales, never tally labels.
-7. **Only CONFIRMED findings (failing-test-repro or runtime-trace, `reproduced: true`) enter the autonomous fix loop.** PLAUSIBLE is reported, never auto-fixed.
+7. **Only CONFIRMED findings (failing-test-repro or runtime-trace, `reproduced: true`) are ever fixed — and by default nothing is fixed at all.** Surface-first (`REPORT_ONLY`) is the review default; the autonomous fix loop requires explicit `fix: true`. PLAUSIBLE is reported, never auto-fixed, and never selectively fixed without a tribunal probe first.
 8. **No Date.now()/Math.random()/new Date() in workflow scripts** (harness forbids them — breaks resume). `runId` arrives via args from the skill preflight; shuffles use the seeded mulberry32 PRNG.
 9. **No Python argparse CLIs in this plugin.** Adding one obligates regenerating the repo-root `cli_spec.json` and keeping `mise run cli-spec-check` green.
 
@@ -63,10 +63,12 @@ Verified 2026-07-09 via a live probe run: `agent()` with `schema` returns valida
 ## Known limitations
 
 - Reviewer diversity is intra-Claude (lens × tier × effort), not cross-provider; correlated blind spots are mitigated, not eliminated — the evidence tribunal is the backstop.
-- `scratch` isolation trusts the taint guard rather than preventing writes; truly hostile probes need `--isolation clone`.
+- `scratch` isolation trusts the taint guard rather than preventing writes; truly hostile probes need `--isolation clone` (which `git clone --local`s into `$TMPDIR` in P0 and points every reviewer/prover there — fixers still edit the real tree, so `clone` in default surface-first mode gives pure investigation).
 - Repro tests live in scratch by default; promotion into the real suite is a human decision offered by the chairman.
 - Fallback mode (no Workflow tool) uses reduced defaults and main-session orchestration — slower and less parallel by design.
 
 ## Evolution log
 
 - 2026-07-09 — Initial build: three skills, six lens cards, cross-framing quorum, evidence tribunal with taint guard, loop-until-green fix cycle. Toy-repo acceptance run + self-dogfood performed pre-merge.
+- 2026-07-09 — Dogfood fixes to `review.workflow.mjs`: budget guards use `budget.total - budget.spent()` (no `remaining()` — matches the probed harness contract); `--isolation clone` now actually clones into `$TMPDIR` and redirects reviewers/provers; skeptic panel clamps to ≥2 and hands the opus reasoner the defend framing; the fix-loop reprove call is taint-guarded like tribunal waves; an inconclusive (null) warden downgrades evidence; NON-FLIPPABLE fix-acceptance resolves per-finding via touched-file overlap rather than one global flag; final status BLOCKs on a red suite; a `violated` coverage vote is downgraded once its supporting findings are refuted; tribunal provers namespace repros under `repro/<anonId>/`.
+- 2026-07-09 — **Surface-first default** (operator decision after observing the dogfood fix loop chase its own repro artifacts): `/council:review` now stops after the tribunal and reports (`REPORT_ONLY`); the autonomous loop requires explicit `--fix` (`fix: true`; legacy `noFix` honored). New SKILL.md Step 4: selective fixing — the human names finding IDs, each CONFIRMED finding's failing repro is the fix's acceptance test; PLAUSIBLE selections get a tribunal probe before any fix.

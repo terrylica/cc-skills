@@ -4,8 +4,9 @@ Multi-agent LLM council for code. In the lineage of [Karpathy's llm-council](htt
 
 ```
             ┌─ inversion ─────────┐
-goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cross-exam ──► evidence tribunal ──► fix loop ──► chairman report
-        (hard/soft)    ├─ dependency-graph┤     anonymized,          failing-test repro     until green    (main session)
+goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cross-exam ──► evidence tribunal ──► chairman report ──► fix loop
+        (hard/soft)    ├─ dependency-graph┤     anonymized,          failing-test repro     (main session;      (opt-in --fix,
+                       │                  │                                                  human decides)      else selective)
                        ├─ adversarial ───┤     refute-first          or runtime trace
                        ├─ spec-conform ──┤     quorum kill           = CONFIRMED
                        └─ static tools ──┘     (loop until dry)      else PLAUSIBLE
@@ -15,7 +16,7 @@ goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cro
 
 | Command | What it does |
 |---|---|
-| `/council:review <goal> [--base ref] [--fleet small\|standard\|large] [--no-fix]` | Final review gate for a feature implementation: diverse finder lenses → blind cross-examination → evidence tribunal → autonomous fix loop until green |
+| `/council:review <goal> [--base ref] [--fleet small\|standard\|large] [--fix]` | Final review gate for a feature implementation: diverse finder lenses → blind cross-examination → evidence tribunal → **surface-first report** (the human picks what to fix; `--fix` opts into the autonomous loop-until-green cycle) |
 | `/council:debug <symptom> [--repro cmd] [--no-fix]` | Hypothesis-elimination debugging: falsifiable hypotheses, discriminating experiments, root cause proven by repro-then-fix-then-pass |
 | `/council:goal-audit <goal> [--depth deep]` | Letter + spirit spec decomposition, per-invariant conformance audit, nuance surfacing — report-only |
 
@@ -23,7 +24,7 @@ goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cro
 
 - **Blind cross-examination** — findings are anonymized and order-shuffled before skeptics see them; skeptics must articulate the strongest refutation even when agreeing; a kill requires a majority spanning both PROSECUTE and DEFEND framings (order/anchor-bias controls from the LLM-judge literature).
 - **Evidence tribunal** — a finding is **CONFIRMED** only when a prover reproduces it (failing test or runtime trace) in your repo, under a taint guard that forbids touching tracked files. Everything unproven is reported as **PLAUSIBLE** and never auto-fixed — LLM critics over-report, and execution is the only precision filter that doesn't share their blind spots.
-- **Loop until green** — confirmed findings are fixed (the repro becomes the fix's acceptance test), the suite re-runs, the fix diff is re-reviewed, and the cycle repeats until zero confirmed findings, a rounds cap, or a no-progress stall.
+- **Surface-first, human in charge** — by default the council reports and stops; you pick the finding IDs to fix, and each CONFIRMED finding's failing repro becomes that fix's acceptance test. With `--fix`, the autonomous cycle runs instead: fix → re-run suite → re-review the fix diff → repeat until zero confirmed findings, a rounds cap, or a no-progress stall.
 - **Negative knowledge kept** — refuted findings ship in the report with their refutations; eliminated debug hypotheses ship in an elimination table.
 - **You stay in charge** — the main session writes the final report as chairman and never merges; the human reads the report and decides.
 
@@ -46,7 +47,7 @@ Full research provenance for every mechanism: [references/sota-provenance.md](./
 | standard | <1500 | ~25 |
 | large | ≥1500 (or `--fleet large`) | 45+ |
 
-This is a deliberate brute-force gate — use the built-in `code-review` skill for quick passes, and `--no-fix` for report-only runs.
+This is a deliberate brute-force gate — use the built-in `code-review` skill for quick passes. Default runs are report-only (surface-first); `--fix` adds fixer/verifier/re-review agents on top.
 
 ## When NOT to use
 

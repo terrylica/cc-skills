@@ -38,7 +38,7 @@ tmp/council-<runId>/
 5. **Skeptics**: ONE message, TWO parallel Task calls — one PROSECUTE, one DEFEND framing (cards in [lenses.md](./lenses.md)), each receiving a differently-ordered anonymized batch. Parse into `verdicts.json`.
 6. **Quorum (S=2)**: kill only on 2/2 REFUTED (which is automatically cross-framing); 1/2 split → contested → keep, flag for tribunal priority. Apply severity ordering; select top-5 for tribunal.
 7. **Tribunal**: sequential Task calls (one prover at a time — no wave management manually), each with the taint rule ("create files ONLY under tmp/council-<runId>/; never modify tracked files") and the [evidence-ladder.md](./evidence-ladder.md) classification rules. Main session checks `git status --porcelain` between provers; on drift, discard that evidence as tainted.
-8. **Fix loop** (unless `--no-fix`): per CONFIRMED finding-group, one fixer Task (may edit the real tree); then main session re-runs repros + `testCmd`; scoped re-review = ONE adversarial-input Task on the fix diff + the 2-skeptic pass on anything new. Max 2 rounds; STALLED on identical confirmed set.
+8. **Fix loop** (only with `--fix`; the default is surface-first — report and stop): per CONFIRMED finding-group, one fixer Task (may edit the real tree); then main session re-runs repros + `testCmd`; scoped re-review = ONE adversarial-input Task on the fix diff + the 2-skeptic pass on anything new. Max 2 rounds; STALLED on identical confirmed set.
 9. **Chairman report**: main session renders [report-template.md](./report-template.md) from the JSON files; note "fallback mode" and the reduced defaults in the budget footer.
 
 ## Procedure (debug mode)

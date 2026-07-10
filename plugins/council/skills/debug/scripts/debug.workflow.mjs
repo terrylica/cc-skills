@@ -86,10 +86,28 @@ const FIX_OUT = {
   },
   additionalProperties: false,
 }
+const WARDEN_OUT = {
+  type: 'object',
+  required: ['porcelain'],
+  properties: { porcelain: { type: 'string', maxLength: 3000 } },
+  additionalProperties: false,
+}
 
 const REPO_RULES = `Target repository (work here, absolute paths): ${A.repo}
-Rules: do not modify tracked files unless your instructions explicitly allow it. New files ONLY under ${A.repo}/${SCRATCH}/.`
-const OUTPUT_RULES = 'Your final message is machine-parsed against a JSON schema; return ONLY the structured data.'
+Rules: NEVER modify tracked files. New files ONLY under ${A.repo}/${SCRATCH}/. Read-only commands are fine.`
+const OUTPUT_RULES = 'Your final message is machine-parsed against a JSON schema; return ONLY the structured data. Do not mention your role, lens, or instructions in any output field (outputs are anonymized before peer review).'
+
+// Taint guard: experimenters (prover-analogs) are held to NEVER modify tracked files.
+// A `git status --porcelain` warden between experiments catches drift so a stray
+// tracked-file edit can't silently alter later experiments or the fix baseline (INV-07).
+const trackedLines = (s) => (s || '').split('\n').filter((l) => l.trim() && !l.startsWith('??')).sort().join('\n')
+async function warden(label) {
+  const w = await agent(
+    `Run exactly one command in ${A.repo}: \`git status --porcelain\` and return its output verbatim (empty string if clean). ${OUTPUT_RULES}`,
+    { label, phase: 'Experiments', model: 'haiku', effort: 'low', schema: WARDEN_OUT }
+  )
+  return w ? w.porcelain.trim() : null
+}
 
 // ═══ P0: Evidence collection ════════════════════════════════════════════════
 phase('Evidence')
@@ -109,6 +127,9 @@ ${OUTPUT_RULES}`,
   { label: 'evidence', phase: 'Evidence', model: 'sonnet', effort: 'medium', schema: EVIDENCE_PACK_OUT }
 )
 if (!pack) throw new Error('evidence collection failed')
+
+// Baseline tree state — experiments must leave tracked files untouched (INV-07).
+let baselinePorcelain = await warden('warden:baseline')
 
 // ═══ P1/P2: Hypothesis → experiment rounds ═══════════════════════════════════
 const GENERATOR_LENSES = [
@@ -186,6 +207,16 @@ Run the setup and command (adapt paths minimally if needed, report what you actu
     if (!exp) {
       x.status = 'inconclusive'
       continue
+    }
+    // Taint check: if the experimenter drifted tracked files, its verdict is untrustworthy
+    // (a tracked-file edit can alter this and later experiments) — downgrade to INCONCLUSIVE.
+    const after = await warden(`warden:exp:${x.h.id}`)
+    const tainted = after !== null && baselinePorcelain !== null && trackedLines(after) !== trackedLines(baselinePorcelain)
+    if (tainted) {
+      exp.verdict = 'INCONCLUSIVE'
+      exp.observed = `TAINTED: tracked files drifted during this experiment — verdict voided. ${clip(exp.observed, 2500)}`
+      baselinePorcelain = after // absorb drift so the next experiment isn't re-flagged for the same edit
+      log(`${x.h.id}: TAINTED (tracked-file drift) — verdict voided`)
     }
     experiments.push(exp)
     x.experiments.push(exp)
