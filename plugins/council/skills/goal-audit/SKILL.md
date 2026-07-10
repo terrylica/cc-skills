@@ -55,5 +55,5 @@ Per [fallback-fanout.md](../../references/fallback-fanout.md): TWO parallel deco
 | Symptom | Action |
 |---|---|
 | Goal too vague to decompose | The decomposers will produce mostly `spirit` invariants — confirm the checklist with the user before trusting the audit |
-| Everything "unverifiable" | Scope too broad or code not present at the audited ref — narrow `--scope` or check `--base` |
+| Everything "unverified" | Scope too broad or code not present at the audited ref — narrow `--scope` or check `--base` |
 | Violation refuted on cross-exam | Its invariant resets to `partial` with a note — read the refutation before celebrating |

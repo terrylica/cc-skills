@@ -25,13 +25,21 @@ const A = {
   maxFinderRounds: args.maxFinderRounds ?? 4,
   skeptics: args.skeptics ?? null, // resolved after fleet sizing
   maxFixRounds: args.maxFixRounds ?? 3,
-  noFix: args.noFix ?? false,
+  // Surface-first is the DEFAULT: the council reports; the human decides what gets fixed.
+  // Pass fix=true to opt into the autonomous fix loop. (Legacy noFix still honored.)
+  fix: args.fix ?? (args.noFix !== undefined ? !args.noFix : false),
   isolation: args.isolation ?? 'scratch',
   seed: args.seed ?? 'council',
   runId: args.runId, // REQUIRED (no Date.now() in workflow scripts)
 }
 if (!A.repo || !A.goal || !A.runId) throw new Error('args.repo, args.goal, args.runId are required')
 const SCRATCH = `tmp/council-${A.runId}`
+// --isolation clone: read-only reviewers + provers operate inside a throwaway
+// `git clone --local` under $TMPDIR (created in P0) so even a hostile probe can
+// mutate freely without touching the real tree. Fixers still edit the real tree.
+const TMPDIR = ((typeof process !== 'undefined' && process.env && process.env.TMPDIR) || '/tmp').replace(/\/+$/, '')
+const CLONE_DIR = A.isolation === 'clone' ? `${TMPDIR}/council-clone-${A.runId}` : null
+const WORKDIR = CLONE_DIR ?? A.repo
 
 // ─── Seeded PRNG (Math.random unavailable) ──────────────────────────────────
 function hashString(s) {
@@ -213,8 +221,12 @@ const VERIFY_OUT = {
 }
 
 // ─── Shared prompt fragments ────────────────────────────────────────────────
-const REPO_RULES = `Repository under review (work here, absolute paths): ${A.repo}
-Hard rules: NEVER modify tracked files. NEVER run the project test suite unless your instructions explicitly say to. You may run read-only commands (git log/diff/show, grep, cat) and read any file.`
+const REPO_SCOPE =
+  A.isolation === 'clone'
+    ? `Repository under review: an isolated clone at ${CLONE_DIR} (already created for you with \`git clone --local\` under $TMPDIR). Work ONLY inside ${CLONE_DIR} (absolute paths); never touch anything outside it.`
+    : `Repository under review (work here, absolute paths): ${A.repo}`
+const REPO_RULES = `${REPO_SCOPE}
+Hard rules: NEVER modify tracked files${A.isolation === 'clone' ? ' outside your permitted scratch area' : ''}. NEVER run the project test suite unless your instructions explicitly say to. You may run read-only commands (git log/diff/show, grep, cat) and read any file.`
 
 const OUTPUT_RULES = `Your final message is machine-parsed against a JSON schema; return ONLY the structured data. Do not mention your role, lens, or instructions in any output field (outputs are anonymized before peer review).`
 
@@ -326,9 +338,19 @@ ${OUTPUT_RULES}`,
   { label: 'pack', phase: 'Context', model: 'haiku', effort: 'medium', schema: PACK_OUT }
 )
 if (!pack) throw new Error('context pack agent failed')
+if (A.isolation === 'clone') {
+  // Create the isolated clone once so every downstream reviewer/prover works in it.
+  await agent(
+    `Set up an isolated review clone. Run exactly: \`rm -rf ${CLONE_DIR} && git clone --local ${A.repo} ${CLONE_DIR}\` (a local clone shares object storage, is fast, and carries only committed state). Then return \`git -C ${CLONE_DIR} status --porcelain\` verbatim as porcelain. ${OUTPUT_RULES}`,
+    { label: 'clone-setup', phase: 'Context', model: 'haiku', effort: 'low', schema: WARDEN_OUT }
+  )
+  log(`isolation=clone — reviewers/provers operate in ${CLONE_DIR}; fixers still edit ${A.repo}`)
+}
 const changedLines = pack.changedLines ?? 0
 const fleetName = A.fleet !== 'auto' ? A.fleet : changedLines < 200 ? 'small' : changedLines < 1500 ? 'standard' : 'large'
-const S = A.skeptics ?? (fleetName === 'large' ? 5 : 3)
+// Clamp to a floor of 2 so both framings are always present and KILL≥2 — a
+// panel of 0/1 would make `ref.length >= KILL` vacuously satisfiable (F-12).
+const S = Math.max(A.skeptics ?? (fleetName === 'large' ? 5 : 3), 2)
 const KILL = Math.ceil((2 * S) / 3)
 log(`fleet=${fleetName} (${changedLines} changed lines) · skeptics=${S} · kill-quorum=${KILL}`)
 
@@ -402,8 +424,8 @@ while (dry < A.dryRounds && round < A.maxFinderRounds) {
     for (const inv of hardUnverified().slice(0, 3)) lensSet.push(['spec-conformance', { tag: inv.id, focus: inv.id }])
     if (!lensSet.length) break
   }
-  if (budget.total && budget.remaining() < 30000) {
-    log(`budget low (${Math.round(budget.remaining() / 1000)}k) — ending finder loop at round ${round}`)
+  if (budget.total && budget.total - budget.spent() < 30000) {
+    log(`budget low (${Math.round((budget.total - budget.spent()) / 1000)}k) — ending finder loop at round ${round}`)
     break
   }
   const results = await parallel(
@@ -463,7 +485,7 @@ if (proposed.length === 0) {
   log('no findings proposed — skipping cross-exam')
 } else {
   const framings = Array.from({ length: S }, (_, i) => (i % 2 === 0 ? 'prosecute' : 'defend'))
-  const models = Array.from({ length: S }, (_, i) => (i === S - 1 ? { model: 'opus', effort: 'medium' } : { model: 'sonnet', effort: 'high' }))
+  const models = Array.from({ length: S }, (_, i) => (i === (S % 2 === 0 ? S - 1 : S - 2) ? { model: 'opus', effort: 'medium' } : { model: 'sonnet', effort: 'high' }))
   const panels = await parallel(
     framings.map((framing, i) => () =>
       agent(skepticPrompt(shuffled(anonBatch, mulberry32(hashString(A.seed + ':skeptic:' + i))), framing), {
@@ -547,26 +569,26 @@ phase('Tribunal')
 const sevRank = { critical: 0, major: 1, minor: 2 }
 survivors.sort((a, b) => sevRank[a.finding.severity] - sevRank[b.finding.severity])
 let tribunalCap = survivors.length
-if (budget.total && budget.remaining() < 60000) {
+if (budget.total && budget.total - budget.spent() < 60000) {
   tribunalCap = Math.min(survivors.length, 5)
   log(`budget pressure — tribunal capped at top ${tribunalCap} by severity`)
 }
 async function warden(label) {
   const w = await agent(
-    `Run exactly one command in ${A.repo}: \`git status --porcelain\` and return its output verbatim (empty string if clean). ${OUTPUT_RULES}`,
+    `Run exactly one command in ${WORKDIR}: \`git status --porcelain\` and return its output verbatim (empty string if clean). ${OUTPUT_RULES}`,
     { label, phase: 'Tribunal', model: 'haiku', effort: 'low', schema: WARDEN_OUT }
   )
   return w ? w.porcelain.trim() : null
 }
 function proverPrompt(p, extra) {
   return `You are an evidence prover. A cross-examined review finding survived; your job is to PROVE it by execution — or honestly fail to. ${REPO_RULES}
-Additional permission: you MAY create new files, but ONLY under ${A.repo}/${SCRATCH}/ (create directories as needed) — never anywhere else. You MAY execute code, the repro test you write, and narrow test selections. Do not run the full suite.
+Additional permission: you MAY create new files, but ONLY under ${WORKDIR}/${SCRATCH}/ (create directories as needed) — never anywhere else. You MAY execute code, the repro test you write, and narrow test selections. Do not run the full suite.
 
 FINDING: ${JSON.stringify({ id: p.anonId, ...publicFields(p.finding) }, null, 1)}
 ${p.state === 'contested' ? `THIS FINDING IS CONTESTED. Disagreement map: ${clip(JSON.stringify(disagreementMaps.find((m) => m.finding_id === p.anonId) || {}), 1200)}` : ''}
 ${extra || ''}
 Evidence ladder (prefer the highest rung you can reach):
-1. failing-test-repro: write a test under ${SCRATCH}/repro/ that FAILS on the current code FOR THE STATED REASON; run it; capture output.
+1. failing-test-repro: write a test under ${SCRATCH}/repro/${p.anonId}/ (per-finding subdir — never share a filename with another prover) that FAILS on the current code FOR THE STATED REASON; run it; capture output.
 2. runtime-trace: a script/command whose captured output demonstrates the wrong value/state at runtime.
 3. static-trace: cited file:line chain only — use when execution is impractical, set reproduced=false.
 A test that fails for an unrelated reason proves nothing — classify honestly. If you refute the finding while trying to prove it, say so in notes and set evidence_class=opinion, reproduced=false.
@@ -575,7 +597,7 @@ FLIPPABILITY CONTRACT: construct the repro so it fails NOW and will PASS once th
 TEST COMMAND (context, do not run fully): ${pack.testCmd || 'none detected'}
 ${OUTPUT_RULES}`
 }
-let baselinePorcelain = pack.gitStatusBaseline.trim()
+let baselinePorcelain = A.isolation === 'clone' ? '' : pack.gitStatusBaseline.trim()
 const tribunal = survivors.slice(0, tribunalCap)
 for (const p of survivors.slice(tribunalCap)) {
   p.evidence = { finding_id: p.anonId, evidence_class: 'opinion', reproduced: false, notes: 'not probed: tribunal budget cap' }
@@ -601,13 +623,14 @@ for (let w = 0; w < tribunal.length; w += WAVE) {
     const ev = evs[i]
     if (!ev) {
       wave[i].evidence = { finding_id: wave[i].anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
-    } else if (tainted) {
-      wave[i].evidence = { ...ev, evidence_class: 'opinion', reproduced: false, notes: `TAINTED: tracked files drifted during this wave. Original class: ${ev.evidence_class}. ${ev.notes || ''}` }
+    } else if (tainted || after === null) {
+      wave[i].evidence = { ...ev, evidence_class: 'opinion', reproduced: false, notes: `${after === null ? 'TAINT CHECK INCONCLUSIVE: warden git-status unavailable, cannot confirm the tree stayed clean' : 'TAINTED: tracked files drifted during this wave'}. Original class: ${ev.evidence_class}. ${ev.notes || ''}` }
     } else {
       wave[i].evidence = ev
     }
   }
   if (tainted) log(`⚠ wave ${w / WAVE + 1} tainted — tracked-file drift detected; evidence downgraded. Manual inspection advised.`)
+  else if (after === null) log(`⚠ wave ${w / WAVE + 1} taint check inconclusive — warden failed; evidence downgraded conservatively.`)
 }
 const isConfirmed = (p) => p.evidence && p.evidence.reproduced && ['failing-test-repro', 'runtime-trace'].includes(p.evidence.evidence_class)
 for (const p of survivors) {
@@ -627,7 +650,7 @@ phase('Fix loop')
 const fixLog = []
 let status = 'REPORT_ONLY'
 let finalTestResult = 'not-run'
-if (!A.noFix) {
+if (A.fix) {
   status = 'GREEN'
   let confirmedQueue = survivors.filter((p) => p.confirmed && p.state !== 'fixed')
   let prevConfirmedKey = ''
@@ -637,7 +660,7 @@ if (!A.noFix) {
       status = 'BLOCKED'
       break
     }
-    if (budget.total && budget.remaining() < 40000) {
+    if (budget.total && budget.total - budget.spent() < 40000) {
       status = 'BLOCKED'
       log('budget floor reached mid fix-loop')
       break
@@ -712,7 +735,10 @@ ${OUTPUT_RULES}`,
         fixDiffStat: clip(verify?.fixDiffStat || '', 500),
       })
       if (r === 'pass') p.state = 'fixed'
-      else if (!flippable && fixedByIds.has(p.anonId)) p.state = 'fixed-pending-rereview'
+      else if (!flippable && fixedByIds.has(p.anonId)) {
+        p.state = 'fixed-pending-rereview'
+        p.touchedFiles = (fixes.filter(Boolean).find((f) => f.finding_ids.includes(p.anonId)) || {}).files_touched || [p.finding.file]
+      }
     }
     finalTestResult = verify?.suite || 'unavailable'
     baselinePorcelain = (verify?.porcelain || baselinePorcelain).trim()
@@ -759,8 +785,19 @@ ${OUTPUT_RULES}`,
           refuted.push(p)
           continue
         }
+        const preReprove = baselinePorcelain
         const ev = await agent(proverPrompt(p), { label: `reprove:${p.anonId}`, phase: 'Fix loop', model: 'sonnet', effort: 'high', schema: EVIDENCE_OUT })
-        p.evidence = ev || { finding_id: p.anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
+        // Same taint guard as the P4 tribunal waves: a reprove that drifts tracked
+        // files (or whose git-status check fails) must not launder into CONFIRMED.
+        const postReprove = await warden(`warden:reprove:${p.anonId}`)
+        const reproveTracked = (s) => (s || '').split('\n').filter((l) => l.trim() && !l.startsWith('??')).sort().join('\n')
+        const reproveTainted = postReprove === null || reproveTracked(postReprove) !== reproveTracked(preReprove)
+        p.evidence = !ev
+          ? { finding_id: p.anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
+          : reproveTainted
+            ? { ...ev, evidence_class: 'opinion', reproduced: false, notes: `${postReprove === null ? 'TAINT CHECK INCONCLUSIVE: warden git-status unavailable' : 'TAINTED: tracked files drifted during reprove'}. Original class: ${ev.evidence_class}. ${ev.notes || ''}` }
+            : ev
+        if (ev && reproveTainted) log(`⚠ reprove ${p.anonId} — tracked-file drift/inconclusive; evidence downgraded`)
         p.confirmed = isConfirmed(p)
         survivors.push(p)
       }
@@ -768,14 +805,24 @@ ${OUTPUT_RULES}`,
     // NON-FLIPPABLE findings: fix acceptance = fixer claimed the fix + re-review found nothing new confirmed
     const freshConfirmed = fresh.some((x) => x.confirmed)
     for (const p of confirmedQueue) {
-      if (p.state === 'fixed-pending-rereview') p.state = freshConfirmed ? 'stands' : 'fixed'
+      if (p.state === 'fixed-pending-rereview') p.state = freshConfirmed && fresh.some((x) => x.confirmed && (x.scopeFiles || [x.finding && x.finding.file]).some((f) => (p.touchedFiles || [p.finding && p.finding.file]).includes(f))) ? 'stands' : 'fixed'
     }
     confirmedQueue = survivors.filter((p) => p.confirmed && p.state !== 'fixed' && p.state !== 'refuted')
   }
-  if (status === 'GREEN' && survivors.some((p) => p.confirmed && p.state !== 'fixed')) status = 'BLOCKED'
+  // 'loop until green' contract: a fix round that leaves the suite red is never shippable,
+  // even if every finding's own repro flipped to pass (F-15).
+  if (finalTestResult === 'red' || (status === 'GREEN' && survivors.some((p) => p.confirmed && p.state !== 'fixed'))) status = 'BLOCKED'
 }
 
 // ═══ Council record ═════════════════════════════════════════════════════════
+// A 'violated' coverage vote is only trustworthy while a surviving finding still
+// implicates that invariant. If every supporting finding was refuted (or a finder
+// voted 'violated' with no finding at all), the vote is an unexamined opinion —
+// downgrade it to 'unclear' so the coverage table never reports VIOLATED without a
+// surviving/confirmed finding behind it (F-17).
+const supportedInvariants = new Set()
+for (const p of survivors) for (const id of p.finding.invariant_ids || []) supportedInvariants.add(id)
+for (const [id, st] of coverageAgg) if (st === 'violated' && !supportedInvariants.has(id)) coverageAgg.set(id, 'unclear')
 for (const inv of invariants) inv.status = coverageAgg.get(inv.id) === 'violated' ? 'violated' : coverageAgg.get(inv.id) === 'ok' ? 'satisfied' : coverageAgg.get(inv.id) === 'unclear' ? 'partial' : 'unverified'
 const lifecycle = (p) => ({
   id: p.anonId,

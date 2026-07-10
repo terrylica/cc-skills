@@ -94,7 +94,7 @@ const AUDIT_OUT = {
         required: ['invariant_id', 'status', 'evidence'],
         properties: {
           invariant_id: { type: 'string' },
-          status: { enum: ['satisfied', 'violated', 'partial', 'unverifiable'] },
+          status: { enum: ['satisfied', 'violated', 'partial', 'unverified'] },
           evidence: { type: 'string', maxLength: 1200 },
         },
         additionalProperties: false,
@@ -178,12 +178,12 @@ log(`${invariants.length} invariants (${invariants.filter((i) => i.kind === 'har
 // ═══ P2: Audit fan-out (clustered by file locality) ═════════════════════════
 phase('Audit')
 const CLUSTERS = Math.min(4, Math.max(1, Math.ceil(invariants.length / 4)))
-const clusters = Array.from({ length: CLUSTERS }, () => [])
-invariants.forEach((inv, i) => clusters[i % CLUSTERS].push(inv)) // simple round-robin; auditors read whatever files each invariant needs
+const byFile = new Map(); for (const inv of invariants) { const k = (inv.files && inv.files[0]) || inv.id; (byFile.get(k) || byFile.set(k, []).get(k)).push(inv) }
+const clusters = Array.from({ length: CLUSTERS }, () => []); [...byFile.values()].forEach((grp, i) => clusters[i % CLUSTERS].push(...grp)) // file locality: each file's invariants stay in one cluster; whole file-groups round-robin across ≤4 auditors
 const auditOuts = await parallel(
   clusters.map((cl, i) => () =>
     agent(
-      `You are a conformance auditor. For EACH invariant below: find the code that satisfies it (cite file:line in evidence), judge status satisfied/violated/partial/unverifiable, and for violations/partials emit a FINDING (anchored file+line, concrete failure_scenario, suggested_probe). Also record NUANCES: observations the goal's author would want to know that are not violations (subtle semantics, quality gaps, surprising-but-correct behavior). Depth: ${A.depth === 'deep' ? 'DEEP — read every relevant file fully; trace call chains; check tests' : 'standard — read the implementing code and its direct callers'}. ${REPO_RULES}\n${baseNote}\n${scopeNote}
+      `You are a conformance auditor. For EACH invariant below: find the code that satisfies it (cite file:line in evidence), judge status satisfied/violated/partial/unverified, and for violations/partials emit a FINDING (anchored file+line, concrete failure_scenario, suggested_probe). Also record NUANCES: observations the goal's author would want to know that are not violations (subtle semantics, quality gaps, surprising-but-correct behavior). Depth: ${A.depth === 'deep' ? 'DEEP — read every relevant file fully; trace call chains; check tests' : 'standard — read the implementing code and its direct callers'}. ${REPO_RULES}\n${baseNote}\n${scopeNote}
 
 GOAL (context):
 ${clip(A.goal, 3000)}
@@ -257,8 +257,8 @@ log(`cross-exam: ${kept.length} kept · ${refuted.length} refuted`)
 // ═══ P4: Evidence probes for hard violations ════════════════════════════════
 phase('Probes')
 const hardKept = kept
-  .filter((k) => (k.finding.invariant_ids || []).some((id) => invariants.find((v) => v.id === id)?.kind === 'hard'))
-  .slice(0, 5)
+  .filter((k) => (k.finding.invariant_ids || []).some((id) => invariants.find((v) => v.id === id)?.kind === 'hard')).toSorted((a, b) => ({ critical: 0, major: 1, minor: 2 }[a.finding.severity] - { critical: 0, major: 1, minor: 2 }[b.finding.severity]))
+  .slice(0, 5) // severity-first (critical→minor) so the top-5 cap never drops a critical hard violation ahead of a minor one
 for (const k of hardKept) {
   const ev = await agent(
     `You are an evidence prover for a goal-conformance audit. PROVE this violation by execution or honestly fail. New files ONLY under ${A.repo}/${SCRATCH}/repro/. Prefer a failing test demonstrating the violated requirement; else a runtime trace; else static-trace with reproduced=false. A test failing for an unrelated reason proves nothing. ${REPO_RULES}
@@ -273,7 +273,7 @@ ${OUTPUT_RULES}`,
   // Guard: evidence proves the finding's scenario, not every tagged invariant — an
   // invariant the auditor judged 'satisfied' softens to 'partial', never flips to violated.
   if (k.confirmed) for (const invId of k.finding.invariant_ids || []) {
-    const s = statuses.get(invId) || { invariant_id: invId, status: 'unverifiable', evidence: '' }
+    const s = statuses.get(invId) || { invariant_id: invId, status: 'unverified', evidence: '' }
     const next = s.status === 'satisfied' ? 'partial' : 'violated'
     statuses.set(invId, { ...s, status: next, evidence: (s.evidence || '') + ` [linked finding CONFIRMED by ${ev.evidence_class}]` })
   }
@@ -285,7 +285,7 @@ return {
   runId: A.runId,
   goal: clip(A.goal, 500),
   depth: A.depth,
-  invariants: invariants.map((v) => ({ ...v, status: statuses.get(v.id)?.status || 'unverifiable', evidence: statuses.get(v.id)?.evidence || '' })),
+  invariants: invariants.map((v) => ({ ...v, status: statuses.get(v.id)?.status || 'unverified', evidence: statuses.get(v.id)?.evidence || '' })),
   findings: kept.map((k) => ({
     id: k.anonId,
     finding: k.finding,

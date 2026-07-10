@@ -79,7 +79,7 @@ Run <runId> · depth <standard|deep> · <N> invariants (<H> hard / <S> soft)
 ## Coverage matrix
 | Invariant | Kind | Letter/Spirit | Status | Evidence | Finding |
 |-----------|------|---------------|--------|----------|---------|
-<status ∈ satisfied / violated / partial / unverifiable>
+<status ∈ satisfied / violated / partial / unverified>
 
 ## Nuances surfaced
 <spirit-of-spec observations: implied expectations, edge semantics, quality gaps

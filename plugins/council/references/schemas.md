@@ -115,7 +115,7 @@ Falsifiability is enforced at the schema level — a hypothesis without a discri
   "maxFinderRounds": "int = 4",
   "skeptics": "int = 3 (5 for large fleet)",
   "maxFixRounds": "int = 3",
-  "noFix": "bool = false — report-only",
+  "fix": "bool = false — SURFACE-FIRST IS THE DEFAULT (status REPORT_ONLY): the council surfaces findings and stops; the human decides what gets fixed. Pass fix=true to opt into the autonomous loop-until-green fix cycle. (Legacy noFix is still honored when fix is absent.)",
   "isolation": "scratch|clone = scratch — tribunal prover isolation",
   "budget": "int|null — token target; phases degrade gracefully near ceilings",
   "seed": "string|null — PRNG seed for reproducible shuffles",
