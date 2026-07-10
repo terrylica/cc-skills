@@ -169,6 +169,54 @@ async function buildAttachmentPart(filePath: string): Promise<string> {
  *     Deep-thread replies should always provide `references` to keep
  *     mail clients' conversation view intact.
  */
+/**
+ * Convert a plain-text body into RFC 3676 `format=flowed` so recipient mail
+ * clients REFLOW paragraphs to the reader's window width instead of hard-wrapping
+ * long author lines at a fixed column (the "premature wrapping" symptom).
+ *
+ * Rules (RFC 3676):
+ *   - A soft line break (paragraph continues, client may reflow) is a line that
+ *     ENDS WITH A SPACE before CRLF. We word-wrap each paragraph at 72 cols and
+ *     end every wrapped line except the last with a trailing space.
+ *   - A hard line break (a real break the author intended — list items, sign-off
+ *     lines, blank lines) is a line with NO trailing space. The LAST line of each
+ *     source line stays hard, so intentional breaks (numbered lists, "Best,\nRicky")
+ *     are preserved exactly.
+ *   - Space-stuffing: lines beginning with a space, ">", or "From " get one leading
+ *     space so they aren't misread as quote/soft markers; the reader's client strips it.
+ */
+/** RFC 3676 space-stuffing: a line starting with space, ">" or "From " gets a leading space. */
+function stuffFlowed(line: string): string {
+  return /^( |>|From )/.test(line) ? " " + line : line;
+}
+
+function toFormatFlowed(body: string, wrap = 72): string {
+  const out: string[] = [];
+  // Normalize newlines; each source line is a hard unit whose long content we soft-wrap.
+  for (const srcLine of body.replace(/\r\n/g, "\n").split("\n")) {
+    if (srcLine === "") {
+      out.push(""); // preserved blank line = hard paragraph separator
+      continue;
+    }
+    if (srcLine.length <= wrap) {
+      out.push(stuffFlowed(srcLine)); // short line: emit as a hard line (no trailing space)
+      continue;
+    }
+    const words = srcLine.split(" ");
+    let cur = "";
+    for (const w of words) {
+      if (cur === "") cur = w;
+      else if ((cur + " " + w).length <= wrap) cur += " " + w;
+      else {
+        out.push(stuffFlowed(cur) + " "); // soft break: trailing space → client reflows
+        cur = w;
+      }
+    }
+    out.push(stuffFlowed(cur)); // last chunk of this source line = hard break
+  }
+  return out.join("\r\n");
+}
+
 async function buildRawMessage(
   to: string,
   subject: string,
@@ -197,6 +245,10 @@ async function buildRawMessage(
     headers.push(`References: ${references ?? inReplyTo}`);
   }
 
+  // RFC 3676 format=flowed so recipients' clients REFLOW paragraphs to their window
+  // width instead of hard-wrapping the author's long lines at a fixed column.
+  const flowedBody = toFormatFlowed(body);
+
   let mimeBody: string;
   if (attachments && attachments.length > 0) {
     // multipart/mixed: text body + N attachment parts
@@ -204,10 +256,10 @@ async function buildRawMessage(
     headers.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
 
     const bodyPart = [
-      "Content-Type: text/plain; charset=utf-8",
+      "Content-Type: text/plain; charset=utf-8; format=flowed",
       "Content-Transfer-Encoding: 8bit",
       "",
-      body,
+      flowedBody,
     ].join("\r\n");
 
     const attachmentParts = await Promise.all(
@@ -222,9 +274,9 @@ async function buildRawMessage(
       "",
     ].join("\r\n");
   } else {
-    headers.push("Content-Type: text/plain; charset=utf-8");
+    headers.push("Content-Type: text/plain; charset=utf-8; format=flowed");
     headers.push("Content-Transfer-Encoding: 8bit");
-    mimeBody = body;
+    mimeBody = flowedBody;
   }
 
   // Encode the whole message as UTF-8 bytes (Buffer.from defaults to utf-8), so the
