@@ -1,0 +1,35 @@
+import pw from '/Users/terryli/.claude/tools/lark-automation/node_modules/playwright-core/index.js';
+const { chromium } = pw;
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+const page = await browser.newPage({ viewport: { width: 900, height: 1300 }, deviceScaleFactor: 2 });
+const errs = [];
+page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+page.on('pageerror', e => errs.push('PAGEERR: ' + e.message));
+await page.goto('file:///tmp/eon-decide/index.html', { waitUntil: 'load' });
+await page.waitForTimeout(400);
+const json = await page.evaluate(() => {
+  const set = (sel, v) => { const e = document.querySelector(sel); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+  const pick = (sel) => { const r = document.querySelector(sel); r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); };
+  set('#respondent', 'Chen Li'); set('#role', 'CEO');
+  pick('.opt[data-id="1"] input[value="fire"]');
+  pick('.opt[data-id="3"] input[value="up"]');
+  set('.opt[data-id="1"] .rank', '1');
+  set('.opt[data-id="1"] .comment', 'Do this first — cheapest clarity.');
+  set('#firstPick', '1'); set('#overallComment', 'Focus on cost survival before fusion.');
+  return JSON.stringify(collect());
+});
+const parsed = JSON.parse(json);
+console.log('OPTIONS rendered:', await page.evaluate(() => document.querySelectorAll('.opt').length));
+console.log('console errors:', errs.length ? errs : 'none');
+console.log('respondent:', parsed.respondent, '| firstPick:', parsed.firstPick);
+console.log('opt1:', JSON.stringify(parsed.choices[0]));
+console.log('opt3 vote:', parsed.choices[2].vote);
+// round-trip: reload fresh page, hydrate the JSON, re-collect, compare
+const page2 = await browser.newPage();
+await page2.goto('file:///tmp/eon-decide/index.html', { waitUntil: 'load' });
+const json2 = await page2.evaluate((j) => { hydrate(JSON.parse(j)); return JSON.stringify(collect()); }, json);
+console.log('round-trip identical:', json2 === json);
+await page.screenshot({ path: '/tmp/eon-decide-render.png', fullPage: false });
+console.log('screenshot: /tmp/eon-decide-render.png');
+await browser.close();

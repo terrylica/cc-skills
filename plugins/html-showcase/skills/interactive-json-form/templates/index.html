@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<title>ODB × time-bar — research directions (pick & comment)</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --surface:#ffffff; --surface-2:#f0f0ee; --ink:#161615; --muted:#5c5b57;
+    --line:#e2e1db; --accent:#2a6df4; --accent-soft:#e7efff;
+    --good:#0a7d33; --warn:#b25e00; --spec:#7a52c7;
+    --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+    --maxw:860px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#141414; --surface:#1c1c1b; --surface-2:#242422; --ink:#f2f2ef; --muted:#a9a89f;
+      --line:#33322e; --accent:#5b93ff; --accent-soft:#1b2740;
+      --good:#4fce77; --warn:#e2a24d; --spec:#b39cf0;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 22px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;padding-bottom:110px}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+  header.hero{padding:44px 0 20px}
+  .eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  h1{font-size:30px;line-height:1.2;margin:.3em 0 .2em}
+  .lede{color:var(--muted);font-size:17px;margin:.4em 0 0}
+  h2{font-size:21px;margin:36px 0 8px;padding-top:8px}
+  h3{font-size:16px;margin:0 0 4px}
+  p{margin:.5em 0}
+  a{color:var(--accent)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--shadow);padding:18px 20px;margin:16px 0}
+  .note{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0;font-size:14.5px;color:var(--muted)}
+  .note b,.note strong{color:var(--ink)}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+  .badge{font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2)}
+  .badge.good{color:var(--good);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+  .badge.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+  .badge.spec{color:var(--spec);border-color:color-mix(in srgb,var(--spec) 40%,transparent)}
+  .opt{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;margin:16px 0}
+  .opt__num{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+  .opt__title{font-size:17px;font-weight:700;margin:0 0 2px}
+  .opt__what{color:var(--muted);margin:.2em 0 .6em}
+  .opt__more{font-size:14.5px;margin:.4em 0 .8em}
+  .votes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}
+  .vote{cursor:pointer;user-select:none;border:1px solid var(--line);border-radius:10px;padding:7px 12px;
+    font-size:14px;font-weight:600;background:var(--surface-2);display:inline-flex;gap:6px;align-items:center;transition:.12s}
+  .vote input{position:absolute;opacity:0;width:0;height:0}
+  .vote:hover{border-color:var(--accent)}
+  .vote.sel{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  label.fld{font-size:13px;color:var(--muted);font-weight:600;display:flex;flex-direction:column;gap:4px}
+  input[type=text],input[type=number],textarea{font:inherit;color:var(--ink);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+  input[type=number]{width:88px}
+  textarea{width:100%;min-height:54px;resize:vertical;margin-top:8px}
+  .respondent{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+  .respondent .fld{flex:1;min-width:200px}
+  .actions{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--surface) 92%,transparent);
+    backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:12px 0;z-index:20}
+  .actions .wrap{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;font-weight:600;cursor:pointer;border-radius:10px;padding:9px 16px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);transition:.12s}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .actions .status{color:var(--muted);font-size:13px;margin-left:auto}
+  .foot{color:var(--muted);font-size:13px;margin:30px 0 10px;border-top:1px solid var(--line);padding-top:14px}
+  kbd{font:12px/1 ui-monospace,monospace;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:2px 5px}
+  .anchor{scroll-margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Eon Labs · Research decision · internal</div>
+    <h1>ODB × time-bar: which next step?</h1>
+    <p class="lede">Pick the research directions you'd back, rank your top few, and leave comments. When done,
+      <b>Download JSON</b> (or Copy) and send it to Terry — he ingests it directly. Nothing is submitted anywhere; this page has no tracking and is not indexed.</p>
+  </header>
+
+  <div class="note">
+    <b>The situation, in one paragraph.</b> Our time-bar feature set is saturated (a 77-indicator baseline had ~1 non-redundant
+    feature) — <b>more features is not the lever; turnover/cost is</b>. ODB (event-clock) intra-bar order-flow features are the project's
+    <b>first temporally-stable signal</b> (same sign 2022→2026) — genuinely <i>new information</i> — but they do <b>not</b> survive realistic
+    trading costs. A strong gross signal (per-bar Sharpe ~0.9) collapses to negative at ~7 bps round-trip. So the question is not
+    "add more data" — it is <b>how to combine the two bar-clocks into something that survives cost</b>, and <b>which minimal experiment tells us most, fastest</b>.
+  </div>
+
+  <div class="note">
+    <b>What the research says (adversarially verified).</b> Across equities, options and crypto, strong-gross/high-turnover signals
+    reproducibly die at realistic cost — cost is the binding constraint, not signal quality. Orthogonality between the two clocks is
+    <i>real in information</i> but <b>theoretically under-determined</b> (classical mutual information can't cleanly separate "synergy" from
+    "redundancy" without an extra axiom) — so it must be measured carefully, not assumed. The convergent recommendation is <b>a small honest
+    pilot before any fusion</b>: establish single-clock baselines → measure the <i>true</i> added information → then test fusion under real cost.
+    Options below are graded by <b>Effort</b> and <b>strength of Evidence</b>.
+  </div>
+
+  <div class="card respondent">
+    <label class="fld" style="flex:1;min-width:220px">Your name
+      <input type="text" id="respondent" placeholder="e.g. Chen Li" autocomplete="name">
+    </label>
+    <label class="fld" style="min-width:160px">Role (optional)
+      <input type="text" id="role" placeholder="CEO / Data Scientist">
+    </label>
+  </div>
+
+  <h2>The 8 candidate directions</h2>
+  <div id="options"></div>
+
+  <h2 class="anchor" id="overall">Overall</h2>
+  <div class="card">
+    <label class="fld">If you could only run <b>ONE</b> first, which option number? &nbsp;
+      <input type="number" id="firstPick" min="1" max="8" placeholder="1–8" style="margin-top:6px">
+    </label>
+    <label class="fld" style="margin-top:14px">Overall comment — strategy, missing options, constraints, anything
+      <textarea id="overallComment" placeholder="Free-form. What matters to you, what you'd change, what's missing…"></textarea>
+    </label>
+  </div>
+
+  <div class="foot">
+    Generated from two deep-research passes (quant methodology + interaction design) + prior internal ODB work.
+    This page is static, self-contained, sends no data, and carries <kbd>noindex</kbd>. Your responses live only in the JSON you download.
+    <span id="ver"></span>
+  </div>
+</div>
+
+<div class="actions">
+  <div class="wrap">
+    <button class="primary" id="btnDownload">⬇ Download JSON</button>
+    <button id="btnCopy">⧉ Copy JSON</button>
+    <button id="btnImport">↺ Import JSON</button>
+    <input type="file" id="fileInput" accept="application/json,.json" hidden>
+    <span class="status" id="status">Not yet saved — pick, comment, then download.</span>
+  </div>
+</div>
+
+<script>
+const OPTIONS = [
+ {id:1,title:"Single-clock baseline bake-off",effort:"Low",evidence:"Strong",
+  what:"Time-bar-only vs ODB-only LSTM (BTC intraday), identical setup, net of 7 bps.",
+  more:"The research's explicit “do this first.” Before any fusion, establish the honest reference: which single clock is better net of cost, and by how much. Cheap, unambiguous, and the denominator every later result is judged against."},
+ {id:2,title:"Measure true added information (CMI / PID)",effort:"Med",evidence:"Strong",
+  what:"Does ODB carry information the time-bars lack — really, or only apparently?",
+  more:"Quantify incremental information via conditional mutual information bounds or partial information decomposition. Directly guards against the trap the research flagged: apparent orthogonality that isn't real. Settles whether ODB is worth fusing at all."},
+ {id:3,title:"Cost-breakeven sweep of harvesting methods",effort:"Low",evidence:"Strong",
+  what:"The exact round-trip cost (bps) at which each method breaks even.",
+  more:"For the existing gross-0.9 signal, map breakeven for direct vs top-N rebalance vs turnover-in-loss vs regime-switch. The cheapest possible clarity on what could ever pay — and at which venue cost tier."},
+ {id:4,title:"Two-clock stacking @7 bps + turnover-in-loss",effort:"High",evidence:"Moderate",
+  what:"Stack separate time & event models; evaluate at 7 bps with turnover baked into the loss.",
+  more:"The real fusion test, done honestly. Needs the LayerNorm fix (our prior PoC broke BatchNorm with contiguous batches). High effort, but it's the direct answer to “does combining the clocks beat either alone, net of cost?”"},
+ {id:5,title:"Transfer-entropy lag decomposition",effort:"Med",evidence:"Moderate",
+  what:"Feed only the synergistic lag windows of the other clock; drop the redundant ones.",
+  more:"Research finding: early lags tend to carry synergy, late lags redundancy. Use transfer-entropy lag decomposition to select which lag windows of the other clock actually add information — a targeted way to extract complementarity without blind concatenation."},
+ {id:6,title:"Endogenous order-flow-aware execution",effort:"High",evidence:"Moderate",
+  what:"Order-flow-timed execution to cut cost 12–24% — does it survive crypto latency?",
+  more:"The only cost-lever with out-of-sample evidence (Bechler–Ludkovski, on equities): accelerate when leakage risk is low, slow when adverse selection is high. Open question is whether crypto's fragmented venues and 100ms+ latency erase the benefit."},
+ {id:7,title:"Regime-conditional clock switching",effort:"Med",evidence:"Speculative",
+  what:"Event-bars in high-volatility regimes, time-bars in low-vol; weight dynamically.",
+  more:"Plausible and intuitive, but the research found no published crypto OOS evidence net of cost, and regime thresholds are notoriously overfit-prone. Higher risk of a mirage; include only if you believe the microstructure story strongly."},
+ {id:8,title:"Information-driven bars as a 3rd clock",effort:"Med",evidence:"Speculative",
+  what:"Volume / dollar / imbalance bars (López de Prado) synced to activity intensity.",
+  more:"Theoretically appealing — sample by market activity, not price or time — but weak empirical crypto evidence. A research bet, not a near-term cost-survivor."},
+];
+const VOTES=[["fire","🔥 Pursue now"],["up","👍 Pursue"],["neutral","🤔 Neutral"],["later","👎 Later"]];
+const SCHEMA_VERSION="odb-directions/1";
+
+const $=(s,el=document)=>el.querySelector(s);
+const optsEl=$("#options");
+OPTIONS.forEach(o=>{
+  const el=document.createElement("div"); el.className="opt"; el.dataset.id=o.id;
+  const evClass=o.evidence==="Strong"?"good":o.evidence==="Moderate"?"warn":"spec";
+  el.innerHTML=`
+    <div class="opt__title"><span class="opt__num">${o.id} ·</span> ${o.title}</div>
+    <div class="opt__what">${o.what}</div>
+    <div class="badges">
+      <span class="badge">Effort: ${o.effort}</span>
+      <span class="badge ${evClass}">Evidence: ${o.evidence}</span>
+    </div>
+    <div class="opt__more">${o.more}</div>
+    <div class="votes">${VOTES.map(([v,lbl])=>`
+      <label class="vote"><input type="radio" name="vote-${o.id}" value="${v}">${lbl}</label>`).join("")}</div>
+    <div class="row">
+      <label class="fld">Your rank (optional, 1 = top)
+        <input type="number" min="1" max="8" class="rank" placeholder="—">
+      </label>
+    </div>
+    <textarea class="comment" placeholder="Comment on option ${o.id} (optional)…"></textarea>`;
+  optsEl.appendChild(el);
+});
+// vote selection styling
+optsEl.addEventListener("change",e=>{
+  if(e.target.matches('input[type=radio]')){
+    const grp=e.target.closest(".opt");
+    grp.querySelectorAll(".vote").forEach(v=>v.classList.toggle("sel",v.contains(e.target)&&e.target.checked));
+  }
+  markDirty();
+});
+optsEl.addEventListener("input",markDirty);
+document.querySelectorAll("#respondent,#role,#firstPick,#overallComment").forEach(el=>el.addEventListener("input",markDirty));
+
+let dirty=false;
+function markDirty(){dirty=true;setStatus("Unsaved changes — Download or Copy when ready.");}
+function setStatus(t){$("#status").textContent=t;}
+
+function collect(){
+  const choices=OPTIONS.map(o=>{
+    const opt=optsEl.querySelector(`.opt[data-id="${o.id}"]`);
+    const vote=opt.querySelector('input[type=radio]:checked');
+    return {id:o.id,title:o.title,
+      vote:vote?vote.value:null,
+      rank:opt.querySelector(".rank").value?Number(opt.querySelector(".rank").value):null,
+      comment:opt.querySelector(".comment").value.trim()||null};
+  });
+  return {schema:SCHEMA_VERSION,
+    respondent:$("#respondent").value.trim()||null,
+    role:$("#role").value.trim()||null,
+    firstPick:$("#firstPick").value?Number($("#firstPick").value):null,
+    overallComment:$("#overallComment").value.trim()||null,
+    choices};
+}
+function hydrate(d){
+  if(!d||typeof d!=="object")return;
+  $("#respondent").value=d.respondent||"";
+  $("#role").value=d.role||"";
+  $("#firstPick").value=d.firstPick??"";
+  $("#overallComment").value=d.overallComment||"";
+  (d.choices||[]).forEach(c=>{
+    const opt=optsEl.querySelector(`.opt[data-id="${c.id}"]`); if(!opt)return;
+    if(c.vote){const r=opt.querySelector(`input[value="${c.vote}"]`);if(r){r.checked=true;
+      opt.querySelectorAll(".vote").forEach(v=>v.classList.toggle("sel",v.contains(r)));}}
+    opt.querySelector(".rank").value=c.rank??"";
+    opt.querySelector(".comment").value=c.comment||"";
+  });
+}
+function fname(){
+  const who=($("#respondent").value.trim()||"response").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return `odb-directions-${who}.json`;
+}
+$("#btnDownload").onclick=()=>{
+  const blob=new Blob([JSON.stringify(collect(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname();
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+  dirty=false;setStatus("Downloaded "+fname()+" — send it to Terry.");
+};
+$("#btnCopy").onclick=async()=>{
+  const txt=JSON.stringify(collect(),null,2);
+  try{await navigator.clipboard.writeText(txt);setStatus("JSON copied to clipboard — paste it to Terry.");}
+  catch{ // fallback
+    const ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();
+    document.execCommand("copy");ta.remove();setStatus("JSON copied (fallback).");}
+};
+$("#btnImport").onclick=()=>$("#fileInput").click();
+$("#fileInput").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{hydrate(JSON.parse(r.result));setStatus("Imported "+f.name+" — continue editing.");}
+    catch{setStatus("Could not parse that JSON.");}};
+  r.readAsText(f);e.target.value="";
+};
+// warn on close with unsaved edits
+addEventListener("beforeunload",e=>{if(dirty){e.preventDefault();e.returnValue="";}});
+$("#ver").textContent=" · schema "+SCHEMA_VERSION;
+</script>
+</body>
+</html>
