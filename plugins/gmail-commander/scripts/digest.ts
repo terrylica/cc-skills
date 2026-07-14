@@ -111,6 +111,24 @@ async function completeWithHaiku(opts: {
   return text;
 }
 
+// --- Failure alert (portable, best-effort) ---
+// The digest failed silently for weeks before anyone noticed. When DIGEST_ALERT_CMD
+// is set, run it with a one-line reason on stdin so a broken run surfaces immediately.
+// The command is machine-local (on the fleet it's a vault-backed Pushover sender), so
+// this plugin carries no notifier/credential coupling. Never lets alerting break the run.
+async function alertDigestFailure(reason: string): Promise<void> {
+  const cmd = Bun.env.DIGEST_ALERT_CMD;
+  if (!cmd) return;
+  try {
+    const proc = Bun.spawn([cmd], { stdin: "pipe", stdout: "ignore", stderr: "ignore" });
+    proc.stdin!.write(`gmail-digest: ${reason}`);
+    proc.stdin!.end();
+    await proc.exited;
+  } catch {
+    // best-effort: alerting must never break the digest
+  }
+}
+
 // --- Main ---
 
 async function main() {
@@ -128,6 +146,7 @@ async function main() {
     if (isCircuitOpen(circuitOpts)) {
       auditLog("digest.circuit_open");
       console.error("Circuit breaker open — skipping this run.");
+      await alertDigestFailure("circuit breaker open — digest still failing, skipping run");
       return;
     }
 
@@ -160,6 +179,7 @@ async function main() {
       auditLog("digest.skill_contamination", { textLen: triageText.length });
       console.error("Skill contamination detected. Discarding result.");
       recordFailure(circuitOpts);
+      await alertDigestFailure("triage output was skill-contaminated — discarded");
       return;
     }
 
@@ -194,6 +214,7 @@ async function main() {
       auditLog("digest.telegram_error");
       console.error("Failed to send Telegram notification.");
       recordFailure(circuitOpts);
+      await alertDigestFailure("triage OK but Telegram send failed");
     }
 
     // --- Podcast-style voice digest ---
@@ -237,6 +258,7 @@ async function main() {
     auditLog("digest.error", { error: msg });
     console.error(`Error: ${msg}`);
     recordFailure(circuitOpts);
+    await alertDigestFailure(`run error: ${msg}`);
   } finally {
     releaseLock(PID_FILE);
   }
