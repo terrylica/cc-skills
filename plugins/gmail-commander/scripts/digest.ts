@@ -48,6 +48,69 @@ Rules:
 - Do NOT use emojis or special characters
 - Avoid abbreviations that TTS would mangle`;
 
+// --- Haiku completion backend ---
+// Portable default: the Agent SDK's query() (spawns Claude's cli.js directly).
+//
+// Fleet override (DIGEST_CLAUDE_WRAPPER): on the ccmax fleet, claude.ai is logged
+// out (pure bearer-pin mode) and the fleet proxy (tailproxy / HEART-101) fail-closes
+// against headless non-wrapper inference — it requires a per-device sk-key plus a
+// ~270s-expiring capability ticket that ONLY the `ccmax-claude` Go wrapper mints (via
+// a per-request PoW handshake against doorward). The SDK spawns cli.js directly,
+// bypassing that wrapper, so query() gets a 403. When DIGEST_CLAUDE_WRAPPER points at
+// the wrapper binary, route one-shot completions through it instead: the wrapper does
+// the handshake, mints/refreshes the per-device key + ticket, injects all four fleet
+// headers, and self-heals across key rotation + version-floor bumps. --output-format
+// text puts only the completion on stdout (fleet banner goes to stderr).
+async function completeWithHaiku(opts: {
+  prompt: string;
+  systemPrompt: string;
+  model: string;
+}): Promise<string> {
+  const wrapper = Bun.env.DIGEST_CLAUDE_WRAPPER;
+  if (wrapper) {
+    const proc = Bun.spawn(
+      [
+        wrapper, "--",
+        "-p",
+        "--model", opts.model,
+        "--output-format", "text",
+        "--append-system-prompt", opts.systemPrompt,
+      ],
+      { stdin: "pipe", stdout: "pipe", stderr: "inherit" }
+    );
+    proc.stdin!.write(opts.prompt);
+    proc.stdin!.end();
+    const out = await new Response(proc.stdout).text();
+    const code = await proc.exited;
+    if (code !== 0) throw new Error(`ccmax-claude wrapper exited with code ${code}`);
+    return out.trim();
+  }
+
+  // Portable SDK path (non-fleet installs).
+  let text = "";
+  const result = query({
+    prompt: opts.prompt,
+    options: {
+      model: opts.model as "haiku",
+      maxTurns: 1,
+      persistSession: false,
+      tools: [],
+      settingSources: [],
+      systemPrompt: opts.systemPrompt,
+    },
+  });
+  for await (const message of result) {
+    if (message.type === "assistant" && message.message?.content) {
+      for (const block of message.message.content) {
+        if (block.type === "text") {
+          text += block.text;
+        }
+      }
+    }
+  }
+  return text;
+}
+
 // --- Main ---
 
 async function main() {
@@ -90,28 +153,7 @@ async function main() {
     const model = Bun.env.HAIKU_MODEL;
     if (!model) throw new Error("HAIKU_MODEL not set in env");
 
-    let triageText = "";
-    const result = query({
-      prompt,
-      options: {
-        model: model as "haiku",
-        maxTurns: 1,
-        persistSession: false,
-        tools: [],
-        settingSources: [],
-        systemPrompt: SYSTEM_PROMPT,
-      },
-    });
-
-    for await (const message of result) {
-      if (message.type === "assistant" && message.message?.content) {
-        for (const block of message.message.content) {
-          if (block.type === "text") {
-            triageText += block.text;
-          }
-        }
-      }
-    }
+    const triageText = await completeWithHaiku({ prompt, systemPrompt: SYSTEM_PROMPT, model });
 
     // Skill contamination check
     if (isSkillContaminated(triageText)) {
@@ -163,29 +205,7 @@ async function main() {
       console.error("Generating podcast narration with Haiku...");
 
       const podcastPrompt = `${ANTI_SKILL_PREFIX}Convert this email triage into a spoken podcast briefing:\n\n${triageText}`;
-      let podcastText = "";
-
-      const podcastResult = query({
-        prompt: podcastPrompt,
-        options: {
-          model: model as "haiku",
-          maxTurns: 1,
-          persistSession: false,
-          tools: [],
-          settingSources: [],
-          systemPrompt: PODCAST_SYSTEM_PROMPT,
-        },
-      });
-
-      for await (const message of podcastResult) {
-        if (message.type === "assistant" && message.message?.content) {
-          for (const block of message.message.content) {
-            if (block.type === "text") {
-              podcastText += block.text;
-            }
-          }
-        }
-      }
+      const podcastText = await completeWithHaiku({ prompt: podcastPrompt, systemPrompt: PODCAST_SYSTEM_PROMPT, model });
 
       if (isSkillContaminated(podcastText)) {
         auditLog("tts.skill_contamination");
