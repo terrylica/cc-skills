@@ -135,6 +135,9 @@ const EVIDENCE_OUT = {
     output_excerpt: { type: 'string', maxLength: 2000 },
     reproduced: { type: 'boolean' },
     notes: { type: 'string' },
+    // Surface-first remediation material (the prover proposes; nothing is applied):
+    proposed_fix: { type: 'string', maxLength: 2000 }, // technical root-cause fix (files + change)
+    fix_summary_plain: { type: 'string', maxLength: 1000 }, // 1-2 plain-language sentences
   },
   additionalProperties: false,
 }
@@ -145,6 +148,16 @@ Rules: NEVER modify tracked files. New files ONLY under ${A.repo}/${SCRATCH}/. R
 const OUTPUT_RULES = 'Your final message is machine-parsed against a JSON schema; return ONLY the structured data. Do not reference your role in output fields.'
 const scopeNote = A.scope.length ? `Audit scope is limited to: ${A.scope.join(', ')}` : 'Audit the whole implementation relevant to the goal.'
 const baseNote = A.base ? `Audit the state at ref ${A.base}.` : 'Audit the current working tree.'
+
+// Taint guard (plugin CLAUDE.md invariant #5): P4 probers execute code and may write ONLY
+// under scratch. A `git status --porcelain` warden before/after each probe voids evidence
+// that drifted tracked files; a warden that cannot run is treated conservatively as tainted.
+const WARDEN_OUT = { type: 'object', required: ['porcelain'], properties: { porcelain: { type: 'string', maxLength: 3000 } }, additionalProperties: false }
+const trackedLines = (s) => (s || '').split('\n').filter((l) => l.trim() && !l.startsWith('??')).sort().join('\n')
+async function warden(label) {
+  const w = await agent(`Run exactly one command in ${A.repo}: \`git status --porcelain\` and return its output verbatim (empty string if clean). ${OUTPUT_RULES}`, { label, phase: 'Probes', model: 'haiku', effort: 'low', schema: WARDEN_OUT })
+  return w ? w.porcelain.trim() : null
+}
 
 // ═══ P1: Dual decomposition ═════════════════════════════════════════════════
 phase('Decompose')
@@ -259,23 +272,38 @@ phase('Probes')
 const hardKept = kept
   .filter((k) => (k.finding.invariant_ids || []).some((id) => invariants.find((v) => v.id === id)?.kind === 'hard')).toSorted((a, b) => ({ critical: 0, major: 1, minor: 2 }[a.finding.severity] - { critical: 0, major: 1, minor: 2 }[b.finding.severity]))
   .slice(0, 5) // severity-first (critical→minor) so the top-5 cap never drops a critical hard violation ahead of a minor one
+let baselinePorcelain = await warden('warden:baseline')
 for (const k of hardKept) {
   const ev = await agent(
     `You are an evidence prover for a goal-conformance audit. PROVE this violation by execution or honestly fail. New files ONLY under ${A.repo}/${SCRATCH}/repro/. Prefer a failing test demonstrating the violated requirement; else a runtime trace; else static-trace with reproduced=false. A test failing for an unrelated reason proves nothing. ${REPO_RULES}
 
 FINDING: ${JSON.stringify({ id: k.anonId, ...k.finding }, null, 1)}
 ${k.contested ? 'THIS FINDING IS CONTESTED (skeptics split) — your execution evidence settles it.' : ''}
+
+REMEDIATION (fill in if determinable — do NOT apply it, this audit only surfaces):
+- proposed_fix: the concrete root-cause change (file(s) + what to change) that would satisfy the violated requirement.
+- fix_summary_plain: 1-2 plain-language sentences describing what the fix does and why.
 ${OUTPUT_RULES}`,
     { label: `probe:${k.anonId}`, phase: 'Probes', model: k.contested ? 'opus' : 'sonnet', effort: 'high', schema: EVIDENCE_OUT }
   )
-  k.evidence = ev || { finding_id: k.anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
-  k.confirmed = !!ev && ev.reproduced && ['failing-test-repro', 'runtime-trace'].includes(ev.evidence_class)
+  // Taint guard: a probe that drifts tracked files (or whose git-status check fails) must
+  // not launder into CONFIRMED — downgrade to opinion, same discipline as review's tribunal.
+  const after = await warden(`warden:probe:${k.anonId}`)
+  const tainted = after === null || trackedLines(after) !== trackedLines(baselinePorcelain)
+  if (ev && tainted) {
+    k.evidence = { ...ev, evidence_class: 'opinion', reproduced: false, notes: `${after === null ? 'TAINT CHECK INCONCLUSIVE: warden git-status unavailable' : 'TAINTED: tracked files drifted during this probe'}. Original class: ${ev.evidence_class}. ${ev.notes || ''}` }
+    log(`probe ${k.anonId}: ${after === null ? 'taint check inconclusive' : 'TAINTED (tracked-file drift)'} — evidence downgraded`)
+  } else {
+    k.evidence = ev || { finding_id: k.anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
+  }
+  if (after !== null) baselinePorcelain = after // absorb benign scratch/untracked drift so the next probe isn't re-flagged
+  k.confirmed = !!k.evidence && k.evidence.reproduced && ['failing-test-repro', 'runtime-trace'].includes(k.evidence.evidence_class)
   // Guard: evidence proves the finding's scenario, not every tagged invariant — an
   // invariant the auditor judged 'satisfied' softens to 'partial', never flips to violated.
   if (k.confirmed) for (const invId of k.finding.invariant_ids || []) {
     const s = statuses.get(invId) || { invariant_id: invId, status: 'unverified', evidence: '' }
     const next = s.status === 'satisfied' ? 'partial' : 'violated'
-    statuses.set(invId, { ...s, status: next, evidence: (s.evidence || '') + ` [linked finding CONFIRMED by ${ev.evidence_class}]` })
+    statuses.set(invId, { ...s, status: next, evidence: (s.evidence || '') + ` [linked finding CONFIRMED by ${k.evidence.evidence_class}]` })
   }
 }
 log(`probes: ${hardKept.filter((k) => k.confirmed).length}/${hardKept.length} confirmed`)

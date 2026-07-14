@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 # /council:goal-audit
 
-Given an end goal or spec, answer: **does the implementation actually meet it — letter AND spirit — and what nuances would its author want to know?** Dual decomposition (letter-of-spec: stated requirements read literally; spirit-of-spec: implied expectations — error paths, edge semantics, what would disappoint the author) → per-invariant auditors with file:line evidence → refute-first skeptic pass on claimed violations → execution probes for hard violations. **Report-only** — it never edits the tree; confirmed violations can be chained into `/council:review`'s fix loop.
+Given an end goal or spec, answer: **does the implementation actually meet it — letter AND spirit — and what nuances would its author want to know?** Dual decomposition (letter-of-spec: stated requirements read literally; spirit-of-spec: implied expectations — error paths, edge semantics, what would disappoint the author) → per-invariant auditors with file:line evidence → refute-first skeptic pass on claimed violations → taint-guarded execution probes for hard violations. **Report-only** — it never edits the tree; each confirmed violation carries a failing repro and a proposed fix, and the operator directs which to fix (there is no autonomous fix loop).
 
 ## Arguments
 
@@ -42,8 +42,8 @@ Call `Workflow` with `scriptPath: "$CLAUDE_PLUGIN_ROOT/skills/goal-audit/scripts
 Render the goal-audit template from [report-template.md](../../references/report-template.md):
 - **Coverage matrix** — every invariant with kind, letter/spirit origin (L-/S- id prefix), status, evidence citation, linked finding.
 - **Nuances surfaced** — the auditors' non-violation observations; this section is the skill's differentiator, do not trim it away.
-- **Confirmed violations** — Evidence/Root-cause blocks; PLAUSIBLE ones clearly separated.
-- **Next step** — offer to chain confirmed violations into `/council:review` (its fix loop takes each violation as a CONFIRMED finding with the probe artifact as the acceptance test).
+- **Violations** — per violation, the four-block surfacing contract: What's wrong (plain English) · How sure we are (CONFIRMED vs PLAUSIBLE) · How to fix it (plain English + technical, from `proposed_fix`/`fix_summary_plain`) · What you need to know.
+- **Next step** — offer to direct fixes: each CONFIRMED violation ships with a failing repro that becomes its fix's acceptance test; the operator names which to fix (PLAUSIBLE ones get a tribunal probe first). No autonomous fix loop.
 - Synthesize rationales, never tally labels; never declare conformance the human hasn't read.
 
 ## Fallback — Workflow tool unavailable

@@ -4,10 +4,10 @@ Multi-agent LLM council for code. In the lineage of [Karpathy's llm-council](htt
 
 ```
             ┌─ inversion ─────────┐
-goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cross-exam ──► evidence tribunal ──► chairman report ──► fix loop
-        (hard/soft)    ├─ dependency-graph┤     anonymized,          failing-test repro     (main session;      (opt-in --fix,
-                       │                  │                                                  human decides)      else selective)
-                       ├─ adversarial ───┤     refute-first          or runtime trace
+goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cross-exam ──► evidence tribunal ──► chairman report
+        (hard/soft)    ├─ dependency-graph┤     anonymized,          failing-test repro     (main session, surface-first:
+                       │                  │                                                  plain + technical + context;
+                       ├─ adversarial ───┤     refute-first          or runtime trace        you direct the fixes)
                        ├─ spec-conform ──┤     quorum kill           = CONFIRMED
                        └─ static tools ──┘     (loop until dry)      else PLAUSIBLE
 ```
@@ -16,15 +16,15 @@ goal ──► invariants ─► ┌─ decomposition ─┐ ──► blind cro
 
 | Command | What it does |
 |---|---|
-| `/council:review <goal> [--base ref] [--fleet small\|standard\|large] [--fix]` | Final review gate for a feature implementation: diverse finder lenses → blind cross-examination → evidence tribunal → **surface-first report** (the human picks what to fix; `--fix` opts into the autonomous loop-until-green cycle) |
-| `/council:debug <symptom> [--repro cmd] [--no-fix]` | Hypothesis-elimination debugging: falsifiable hypotheses, discriminating experiments, root cause proven by repro-then-fix-then-pass |
+| `/council:review <goal> [--base ref] [--scope paths] [--fleet small\|standard\|large]` | Final review gate for a feature implementation: diverse finder lenses → blind cross-examination → evidence tribunal → **surface-first report** with a plain-English + technical fix per finding. The council never edits code; you direct which findings to fix |
+| `/council:debug <symptom> [--repro cmd] [--test-cmd cmd] [--fix]` | Hypothesis-elimination debugging: falsifiable hypotheses, discriminating experiments, root cause. Surface-first: proposes the fix; `--fix` applies it and independently verifies (repro-then-fix-then-pass) |
 | `/council:goal-audit <goal> [--depth deep]` | Letter + spirit spec decomposition, per-invariant conformance audit, nuance surfacing — report-only |
 
 ## What makes it different
 
 - **Blind cross-examination** — findings are anonymized and order-shuffled before skeptics see them; skeptics must articulate the strongest refutation even when agreeing; a kill requires a majority spanning both PROSECUTE and DEFEND framings (order/anchor-bias controls from the LLM-judge literature).
-- **Evidence tribunal** — a finding is **CONFIRMED** only when a prover reproduces it (failing test or runtime trace) in your repo, under a taint guard that forbids touching tracked files. Everything unproven is reported as **PLAUSIBLE** and never auto-fixed — LLM critics over-report, and execution is the only precision filter that doesn't share their blind spots.
-- **Surface-first, human in charge** — by default the council reports and stops; you pick the finding IDs to fix, and each CONFIRMED finding's failing repro becomes that fix's acceptance test. With `--fix`, the autonomous cycle runs instead: fix → re-run suite → re-review the fix diff → repeat until zero confirmed findings, a rounds cap, or a no-progress stall.
+- **Evidence tribunal** — a finding is **CONFIRMED** only when a prover reproduces it (failing test or runtime trace) in your repo, under a taint guard that forbids touching tracked files. Everything unproven is reported as **PLAUSIBLE** and never fixed without your direction — LLM critics over-report, and execution is the only precision filter that doesn't share their blind spots.
+- **Surface-first, human in charge** — the review council reports and stops; it never edits code. Every finding arrives with a plain-English explanation, a plain-English + technical fix, and the operator context you need to decide. You then name the finding IDs to fix, and each CONFIRMED finding's failing repro becomes that fix's acceptance test. There is no autonomous fix loop — a loop's stop signal inherits every flaw of its own repro artifacts, so a human owns the fix decision.
 - **Negative knowledge kept** — refuted findings ship in the report with their refutations; eliminated debug hypotheses ship in an elimination table.
 - **You stay in charge** — the main session writes the final report as chairman and never merges; the human reads the report and decides.
 
@@ -47,7 +47,7 @@ Full research provenance for every mechanism: [references/sota-provenance.md](./
 | standard | <1500 | ~25 |
 | large | ≥1500 (or `--fleet large`) | 45+ |
 
-This is a deliberate brute-force gate — use the built-in `code-review` skill for quick passes. Default runs are report-only (surface-first); `--fix` adds fixer/verifier/re-review agents on top.
+This is a deliberate brute-force gate — use the built-in `code-review` skill for quick passes. Review runs are always report-only (surface-first) — no fixer agents; you direct the fixes afterward.
 
 ## When NOT to use
 

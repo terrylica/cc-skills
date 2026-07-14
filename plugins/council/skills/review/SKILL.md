@@ -1,8 +1,8 @@
 ---
 name: review
-description: LLM-council review gate - parallel finder lenses, blind cross-examination, evidence tribunal. Surface-first - findings are reported with execution proof and the human decides what gets fixed; --fix opts into the autonomous fix loop. TRIGGERS - council review, final review gate, evidence-based review, surface findings.
+description: LLM-council review gate - parallel finder lenses, blind cross-examination, execution-based evidence tribunal. Surface-first - each finding is reported with execution proof, a plain-English + technical fix, and operator context; the human directs which findings to fix. TRIGGERS - council review, final review gate, evidence-based review, surface findings.
 allowed-tools: Workflow, Task, Bash, Read, Grep, Glob, TodoWrite
-argument-hint: "[goal-or-spec-file] [--base ref] [--fleet small|standard|large] [--fix] [--max-fix-rounds N] [--isolation scratch|clone] [--allow-dirty]"
+argument-hint: "[goal-or-spec-file] [--base ref] [--scope paths] [--fleet small|standard|large] [--isolation scratch|clone]"
 disable-model-invocation: true
 ---
 
@@ -11,14 +11,14 @@ disable-model-invocation: true
 Brute-force final review gate for a feature implementation. Pipeline (details: [../../references/](../../references/)):
 
 ```
-goal ──► invariants ──► finder fleet ──► blind cross-exam ──► evidence tribunal ──► fix loop ──► chairman report
-         (hard/soft)    (diverse lenses,  (anonymized,          (CONFIRMED only      (until green)   (you write it)
-                         loop-until-dry)   refute-first quorum)   if proven by execution)
+goal ──► invariants ──► finder fleet ──► blind cross-exam ──► evidence tribunal ──► chairman report
+         (hard/soft)    (diverse lenses,  (anonymized,          (CONFIRMED only      (you write it:
+                         loop-until-dry)   refute-first quorum)   if proven by execution)  plain + technical + context)
 ```
 
-Findings are **CONFIRMED** only when proven by execution (failing-test repro or runtime trace); everything else is reported as **PLAUSIBLE** and never auto-fixed. See [evidence-ladder.md](../../references/evidence-ladder.md).
+Findings are **CONFIRMED** only when proven by execution (failing-test repro or runtime trace); everything else is reported as **PLAUSIBLE**. See [evidence-ladder.md](../../references/evidence-ladder.md).
 
-**Surface-first is the default.** The pipeline runs through the tribunal, then STOPS and reports — the human decides which findings get fixed and how (Step 4). The autonomous loop-until-green fix cycle only runs when the user passes `--fix`. Rationale: the loop's termination signal inherits every imperfection of its own repro artifacts; a human between "report" and "fix" is the stronger control point.
+**Surface-first — this gate never edits code.** The pipeline runs through the tribunal, then STOPS and reports: every finding gets a plain-English explanation, a plain-English + technical fix, and operator context (Step 3). The operator then directs which findings to fix (Step 4). There is intentionally no autonomous fix loop — a loop's termination signal inherits every imperfection of its own repro artifacts, so a human between "report" and "fix" is the control point.
 
 ## When to use / when not
 
@@ -32,11 +32,9 @@ Findings are **CONFIRMED** only when proven by execution (failing-test repro or 
 |---|---|---|---|
 | positional | `goal` | REQUIRED | Goal/spec text, or a path — if a readable file, inline its full contents as `goal` |
 | `--base <ref>` | `base` | merge-base vs origin default | The diff base |
+| `--scope <paths>` | `scope` | `[]` | Optional path globs restricting the review surface |
 | `--fleet <s>` | `fleet` | `auto` | auto: <200 changed lines→small, <1500→standard, else large |
-| `--fix` | `fix` | **false** | Opt IN to the autonomous fix loop; default is surface-first (report-only) |
-| `--max-fix-rounds <n>` | `maxFixRounds` | 3 | Only meaningful with `--fix` |
-| `--isolation <m>` | `isolation` | `scratch` | `scratch`: provers work in the real tree, writes only under the scratch dir (taint-guarded). `clone`: `git clone --local` to `$TMPDIR` first (use when probes must install/mutate) |
-| `--allow-dirty` | — | off | Permit a dirty working tree at preflight |
+| `--isolation <m>` | `isolation` | `scratch` | `scratch`: provers work in the real tree, writes only under the scratch dir (taint-guarded). `clone`: `git clone --local` to `$TMPDIR` first (use when probes must install/mutate). Either way the real tree is never edited — this gate only surfaces. |
 
 ## Step 1 — Preflight (you, before invoking the workflow)
 
@@ -45,9 +43,10 @@ Findings are **CONFIRMED** only when proven by execution (failing-test repro or 
 set -euo pipefail
 REPO="$(git rev-parse --show-toplevel)"          # run inside the target repo
 git -C "$REPO" rev-parse HEAD >/dev/null          # sanity: it is a git repo
-# dirty check (skip when --allow-dirty)
+# dirty tree is advisory only — the taint guard baselines the current status, so a dirty
+# tree is safe; it just makes taint messages noisier. Prefer a clean tree.
 if [ -n "$(git -C "$REPO" status --porcelain)" ]; then
-  echo "DIRTY TREE — pass --allow-dirty to proceed anyway" >&2
+  echo "NOTE: working tree is dirty — review proceeds (taint guard baselines the current state)" >&2
 fi
 RUN_ID="$(date -u +%Y%m%d-%H%M%S)"
 mkdir -p "$REPO/tmp/council-$RUN_ID"
@@ -69,7 +68,6 @@ Call the `Workflow` tool with `scriptPath: "$CLAUDE_PLUGIN_ROOT/skills/review/sc
   "goal": "<full goal/spec text>",
   "base": "origin/main",
   "fleet": "auto",
-  "fix": false,
   "isolation": "scratch",
   "runId": "<RUN_ID from preflight>",
   "seed": "<RUN_ID>",
@@ -77,34 +75,31 @@ Call the `Workflow` tool with `scriptPath: "$CLAUDE_PLUGIN_ROOT/skills/review/sc
 }
 ```
 
-The workflow runs in the background; you are notified on completion. While waiting, do not start conflicting work in the same repo (with `--fix`, fixer agents edit tracked files; in the default surface-first mode only scratch files are created).
+The workflow runs in the background; you are notified on completion. While waiting, do not start conflicting work in the same repo. This gate never edits tracked files — only scratch files under `tmp/council-<runId>/` are created.
 
 ## Step 3 — Chairman synthesis (you, the main session)
 
-You are the chairman. From the returned council record, write the final report per [report-template.md](../../references/report-template.md). Non-negotiables:
+You are the chairman. From the returned council record (status is always `REPORT_ONLY` — nothing was changed), write the final report per [report-template.md](../../references/report-template.md). Render, for EVERY finding, the four-block **surfacing contract**:
 
-1. **Synthesize rationales — never tally labels.** Vote counts are metadata; your verdict rests on the strongest surviving reasoning plus the execution evidence.
-2. Render per-finding: evidence class, votes S/R/U, framing spread, the strongest refutation raised and why it failed.
-3. Render the invariant coverage map — every invariant, including satisfied ones.
-4. Contested findings: present the disagreement map and how execution settled it — never "majority won".
-5. Include the refuted appendix (negative knowledge — stops the next reviewer from re-raising).
-6. Offer promotion of repro tests under `tmp/council-<runId>/repro/` into the real suite.
-7. End with SHIP / BLOCKED and the single strongest reason. **Never merge, push, or declare shippable on the user's behalf — the human decides.**
+1. **What's wrong — plain English.** Explain the defect to a smart non-specialist: what breaks, the exact trigger, the real-world impact. Readable, **not oversimplified** — keep the real mechanism, just say it in words. Define any load-bearing jargon in half a clause.
+2. **How sure we are — evidence.** Evidence class + what was observed (repro command + failing output for CONFIRMED; the file:line chain for PLAUSIBLE, marked "not yet proven by execution — treat as a lead"). Votes S/R/U and framing are metadata; give the strongest refutation raised and why it failed.
+3. **How to fix it — plain English + technical.** First the plain-English fix (`fix_summary_plain`: what it does and why it removes the problem), then the **technical fix** (`proposed_fix`: file(s), root cause, exact change). For PLAUSIBLE findings, mark the fix a *proposed direction* that needs a tribunal probe before anyone edits code.
+4. **What you need to know — operator context.** Blast radius, fix risk/cost, whether a repro can be promoted into the suite, any A/B judgment call the operator must settle — or "No special considerations."
 
-If the record status is `STALLED` or `BLOCKED` (only possible with `--fix`), lead with what is still confirmed-unfixed and why the loop stopped. In the default surface-first mode the status is `REPORT_ONLY` — end the report with the Step 4 offer.
+Also non-negotiable: **synthesize rationales, never tally labels**; render the full invariant coverage map (including satisfied invariants); present contested findings as disagreement maps settled by execution (never "majority won"); include the refuted appendix (negative knowledge); offer to promote repro tests under `tmp/council-<runId>/repro/`. End with a recommendation **in words** plus the Step 4 fix-direction offer. **Never merge, push, apply a fix, or declare shippable on the user's behalf — the human decides.**
 
-## Step 4 — Selective fixing (human decides)
+## Step 4 — Directed fixing (you apply, the operator decides)
 
-After the user reads the report, they name the finding IDs to fix ("fix F-03 and F-07"). For each selected finding:
+Surface-first: nothing is fixed until the operator names finding IDs ("fix F-03 and F-07"). For each selected finding:
 
-1. Its tribunal artifact is the **acceptance test** — a CONFIRMED finding ships with a failing repro under `tmp/council-<runId>/repro/<id>/`.
-2. Apply the fix at root cause (yourself, or one fixer subagent per finding-group — never two agents on one file concurrently).
-3. Re-run the finding's repro (must flip fail→pass) and the project suite (must stay green, excluding the scratch dir).
-4. Report per finding: files touched, repro before/after, suite result. PLAUSIBLE findings the user selects get a tribunal probe FIRST — never fix on an unproven claim.
+1. **Acceptance test.** A CONFIRMED finding backed by a `failing-test-repro` ships with a failing repro under `tmp/council-<runId>/repro/<id>/` — that repro is the fix's acceptance test (must flip fail→pass). A `runtime-trace`, or a repro tagged **NON-FLIPPABLE** (e.g. a demonstrated test-gap), has no flip to check — accept it by re-running the trace / a scoped re-review instead, and say which you used.
+2. **Apply at root cause** using the finding's `proposed_fix` — yourself, or one fixer subagent per finding. If you fan out fixers, run them **serially**: a finding anchored in one file is often fixed in another (a test-gap anchored in `tests/` fixed in `src/`), so file-keyed grouping does NOT guarantee disjoint edits — serial execution is the only collision-proof option.
+3. **Verify.** Re-run the finding's repro (flip fail→pass) and the project suite (must stay green, excluding the scratch dir).
+4. **Report per finding**: files touched, repro before/after, suite result. PLAUSIBLE findings the operator selects get a tribunal probe FIRST — never fix on an unproven claim.
 
 ## Fallback — Workflow tool unavailable
 
-Fall back silently (never ask the user to install anything) to the manual fan-out in [fallback-fanout.md](../../references/fallback-fanout.md): parallel `Task` batches in a single message, bookkeeping JSON under `tmp/council-<runId>/`, you perform the deterministic steps (dedup fingerprinting, anonymization, permutation, quorum) yourself. Reduced defaults: 1 finder round · 3 lenses · 2 skeptics · tribunal top-5 · ≤2 fix rounds. Use this TodoWrite template:
+Fall back silently (never ask the user to install anything) to the manual fan-out in [fallback-fanout.md](../../references/fallback-fanout.md): parallel `Task` batches in a single message, bookkeeping JSON under `tmp/council-<runId>/`, you perform the deterministic steps (dedup fingerprinting, anonymization, permutation, quorum) yourself. Reduced defaults: 1 finder round · 3 lenses · 2 skeptics · tribunal top-5. Surface-first still holds — no fix loop; you report, the operator directs fixes. Use this TodoWrite template:
 
 ```
 1. Preflight: scope diff, detect test cmd, scratch dir
@@ -114,9 +109,8 @@ Fall back silently (never ask the user to install anything) to the manual fan-ou
 5. Dedup + anonymize (PUBLIC_FIELDS only) → anon-map.json
 6. Spawn 2 skeptics (PROSECUTE + DEFEND, different orders) → verdicts.json
 7. Quorum 2/2 kills; contested flagged; select top-5 for tribunal
-8. Tribunal provers sequentially; taint-check git status between each → evidence/
-9. Fix loop (≤2 rounds): fixers → re-run repros + suite → scoped re-review
-10. Chairman report per report-template.md (note fallback mode in footer)
+8. Tribunal provers sequentially; taint-check git status between each → evidence/ (capture proposed_fix per finding)
+9. Chairman report per report-template.md — four-block surfacing per finding; note fallback mode. Fixes only on operator direction (Step 4).
 ```
 
 ## Troubleshooting
@@ -124,11 +118,10 @@ Fall back silently (never ask the user to install anything) to the manual fan-ou
 | Symptom | Action |
 |---|---|
 | No test command detected | Pass `testCmd` explicitly; without one, tribunal still works (runtime traces) but suite checks report `unavailable` |
-| Dirty tree at preflight | Commit/stash, or `--allow-dirty` (taint guard then treats the dirty state as baseline) |
+| Dirty tree at preflight | Advisory only — the taint guard baselines the current state; prefer a clean tree to keep taint messages quiet |
 | Workflow schema validation errors | The harness retries the agent; persistent failure returns null and the stage degrades — check the run journal |
 | Tribunal wave tainted (tracked-file drift) | Evidence auto-downgraded; inspect `git status`, clean up, re-run with `--isolation clone` |
 | Budget exhausted mid-tribunal | Expected degradation: un-probed survivors report as PLAUSIBLE with a "not probed" note |
-| Fix loop STALLED | Same confirmed set two rounds — fixes aren't landing; review the fixLog and fix manually |
 
 ## Post-execution reflection
 

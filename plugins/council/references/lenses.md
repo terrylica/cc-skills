@@ -55,4 +55,6 @@ Skeptics are not lenses — they judge findings, blind to provenance. Two framin
 - **PROSECUTE**: "Construct the strongest case that each claim is FALSE. Verify your case against the actual code. Then verdict."
 - **DEFEND**: "Argue the code is CORRECT despite each claim. Verify against the code. Then verdict."
 
-Both are refute-first with respect to the finding; `strongest_refutation` is mandatory even for STANDS verdicts. Kill requires a cross-framing majority (see quorum math in the review SKILL.md).
+Both are refute-first with respect to the finding; `strongest_refutation` is mandatory even for STANDS verdicts.
+
+**Quorum rule (SSoT).** A finding is killed only when `⌈2S/3⌉` skeptics return REFUTED AND those refutals span BOTH framings (`S` = skeptic count, floored at 2 so a 0/1-panel can't make the threshold vacuous). A single-framing majority is anchor bias, not evidence — it goes to a tie-break skeptic run on the *other* framing. The `.workflow.mjs` scripts mirror this formula; change it here first.
