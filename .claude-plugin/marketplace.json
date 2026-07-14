@@ -162,7 +162,7 @@
     },
     {
       "name": "council",
-      "description": "Multi-agent LLM council for code: parallel diverse finder lenses, blind anonymized cross-examination with refute-first skeptics, execution-based evidence tribunal, and an autonomous loop-until-green fix cycle. Review, debug, and goal-audit modes.",
+      "description": "Multi-agent LLM council for code: parallel diverse finder lenses, blind anonymized cross-examination with refute-first skeptics, and an execution-based evidence tribunal. Surface-first — reports findings with execution proof plus a plain-English + technical fix; the operator directs which findings to fix. Review, debug, and goal-audit modes.",
       "version": "22.11.0",
       "source": "./plugins/council",
       "category": "quality",

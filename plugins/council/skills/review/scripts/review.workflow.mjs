@@ -1,13 +1,12 @@
 export const meta = {
   name: 'council-review',
-  description: 'LLM-council review gate: diverse finder lenses, blind cross-examination, evidence tribunal, fix loop until green',
+  description: 'LLM-council review gate: diverse finder lenses, blind cross-examination, execution-based evidence tribunal. Surface-first — reports findings with proof; the operator directs any fixes (no autonomous fix loop).',
   phases: [
     { title: 'Context' },
     { title: 'Invariants' },
     { title: 'Finders' },
     { title: 'Cross-exam' },
     { title: 'Tribunal' },
-    { title: 'Fix loop' },
   ],
 }
 
@@ -24,19 +23,20 @@ const A = {
   dryRounds: args.dryRounds ?? 2,
   maxFinderRounds: args.maxFinderRounds ?? 4,
   skeptics: args.skeptics ?? null, // resolved after fleet sizing
-  maxFixRounds: args.maxFixRounds ?? 3,
-  // Surface-first is the DEFAULT: the council reports; the human decides what gets fixed.
-  // Pass fix=true to opt into the autonomous fix loop. (Legacy noFix still honored.)
-  fix: args.fix ?? (args.noFix !== undefined ? !args.noFix : false),
   isolation: args.isolation ?? 'scratch',
   seed: args.seed ?? 'council',
   runId: args.runId, // REQUIRED (no Date.now() in workflow scripts)
 }
+// SURFACE-FIRST BY DESIGN: this workflow NEVER modifies tracked files and NEVER runs a
+// fix loop. It reports execution-graded findings and stops; the operator then directs
+// which findings to fix (SKILL.md Step 4), where each CONFIRMED finding's failing repro
+// is that fix's acceptance test. (There is intentionally no `fix` arg any more.)
 if (!A.repo || !A.goal || !A.runId) throw new Error('args.repo, args.goal, args.runId are required')
 const SCRATCH = `tmp/council-${A.runId}`
-// --isolation clone: read-only reviewers + provers operate inside a throwaway
-// `git clone --local` under $TMPDIR (created in P0) so even a hostile probe can
-// mutate freely without touching the real tree. Fixers still edit the real tree.
+// --isolation clone: reviewers + provers operate inside a throwaway `git clone --local`
+// under $TMPDIR (created at the very START of P0, before any agent runs) so even a hostile
+// probe can mutate freely without touching the real tree. Surface-first review edits
+// nothing anywhere, so clone mode is pure, fully-sandboxed investigation.
 const TMPDIR = ((typeof process !== 'undefined' && process.env && process.env.TMPDIR) || '/tmp').replace(/\/+$/, '')
 const CLONE_DIR = A.isolation === 'clone' ? `${TMPDIR}/council-clone-${A.runId}` : null
 const WORKDIR = CLONE_DIR ?? A.repo
@@ -152,12 +152,15 @@ const EVIDENCE_OUT = {
     output_excerpt: { type: 'string', maxLength: 2000 },
     reproduced: { type: 'boolean' },
     notes: { type: 'string' },
+    // Surface-first remediation material (the prover proposes; nothing is applied):
+    proposed_fix: { type: 'string', maxLength: 2000 }, // technical root-cause fix (files + change)
+    fix_summary_plain: { type: 'string', maxLength: 1000 }, // 1-2 plain-language sentences
   },
   additionalProperties: false,
 }
 const PACK_OUT = {
   type: 'object',
-  required: ['baseRef', 'changedFiles', 'diffSummary', 'testCmd', 'testInventory', 'historyNotes', 'blastRadius', 'gitStatusBaseline', 'snapshotRef'],
+  required: ['baseRef', 'changedFiles', 'changedLines', 'diffSummary', 'testCmd', 'testInventory', 'historyNotes', 'blastRadius', 'gitStatusBaseline', 'snapshotRef'],
   properties: {
     baseRef: { type: 'string' },
     changedFiles: { type: 'array', items: { type: 'string' } },
@@ -186,36 +189,6 @@ const MAPPER_OUT = {
     finding_id: { type: 'string' },
     disagreement_axis: { enum: ['assumption', 'mechanism', 'severity', 'scope'] },
     analysis: { type: 'string', maxLength: 2000 },
-  },
-  additionalProperties: false,
-}
-const FIX_OUT = {
-  type: 'object',
-  required: ['finding_ids', 'files_touched', 'description', 'repro_result'],
-  properties: {
-    finding_ids: { type: 'array', items: { type: 'string' } },
-    files_touched: { type: 'array', items: { type: 'string' } },
-    description: { type: 'string', maxLength: 2000 },
-    repro_result: { enum: ['pass', 'fail', 'not-run'] },
-  },
-  additionalProperties: false,
-}
-const VERIFY_OUT = {
-  type: 'object',
-  required: ['repros', 'suite', 'fixDiffStat', 'porcelain'],
-  properties: {
-    repros: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['finding_id', 'result'],
-        properties: { finding_id: { type: 'string' }, result: { enum: ['pass', 'fail', 'error'] } },
-        additionalProperties: false,
-      },
-    },
-    suite: { enum: ['green', 'red', 'unavailable'] },
-    fixDiffStat: { type: 'string', maxLength: 2000 },
-    porcelain: { type: 'string', maxLength: 3000 },
   },
   additionalProperties: false,
 }
@@ -306,8 +279,11 @@ const FLEETS = {
 
 // ─── Dedup / anonymization helpers ──────────────────────────────────────────
 function fingerprint(f) {
-  const stem = (f.summary || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).slice(0, 8).join(' ')
-  return `${(f.file || '').replace(/\\/g, '/')}|${f.symbol || ''}|${f.category}|${stem}`
+  // Include the line and a longer summary stem so two DISTINCT defects in the same
+  // file/category are not silently collapsed into one (recall over aggressive dedup).
+  // Near-line duplicates of the SAME defect are reconciled by the chairman at report time.
+  const stem = (f.summary || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).slice(0, 12).join(' ')
+  return `${(f.file || '').replace(/\\/g, '/')}|${f.line ?? ''}|${f.symbol || ''}|${f.category}|${stem}`
 }
 const PUBLIC_KEYS = ['file', 'line', 'symbol', 'category', 'severity', 'summary', 'failure_scenario', 'evidence_pointers', 'suggested_probe']
 function publicFields(f) {
@@ -319,6 +295,15 @@ function publicFields(f) {
 // ═══ P0: Context pack ═══════════════════════════════════════════════════════
 phase('Context')
 log(`run ${A.runId} · repo ${A.repo}`)
+if (A.isolation === 'clone') {
+  // Create the isolated clone FIRST — before the context pack or any reviewer/prover runs —
+  // so every downstream agent (this pack included) sees the clone that REPO_RULES points at.
+  await agent(
+    `Set up an isolated review clone. Run exactly: \`rm -rf ${CLONE_DIR} && git clone --local ${A.repo} ${CLONE_DIR}\` (a local clone shares object storage, is fast, and carries only committed state). Then return \`git -C ${CLONE_DIR} status --porcelain\` verbatim as porcelain. ${OUTPUT_RULES}`,
+    { label: 'clone-setup', phase: 'Context', model: 'haiku', effort: 'low', schema: WARDEN_OUT }
+  )
+  log(`isolation=clone — all reviewers/provers operate in ${CLONE_DIR}; the real tree ${A.repo} is never touched`)
+}
 const pack = await agent(
   `You are building a review context pack. ${REPO_RULES}
 
@@ -338,14 +323,6 @@ ${OUTPUT_RULES}`,
   { label: 'pack', phase: 'Context', model: 'haiku', effort: 'medium', schema: PACK_OUT }
 )
 if (!pack) throw new Error('context pack agent failed')
-if (A.isolation === 'clone') {
-  // Create the isolated clone once so every downstream reviewer/prover works in it.
-  await agent(
-    `Set up an isolated review clone. Run exactly: \`rm -rf ${CLONE_DIR} && git clone --local ${A.repo} ${CLONE_DIR}\` (a local clone shares object storage, is fast, and carries only committed state). Then return \`git -C ${CLONE_DIR} status --porcelain\` verbatim as porcelain. ${OUTPUT_RULES}`,
-    { label: 'clone-setup', phase: 'Context', model: 'haiku', effort: 'low', schema: WARDEN_OUT }
-  )
-  log(`isolation=clone — reviewers/provers operate in ${CLONE_DIR}; fixers still edit ${A.repo}`)
-}
 const changedLines = pack.changedLines ?? 0
 const fleetName = A.fleet !== 'auto' ? A.fleet : changedLines < 200 ? 'small' : changedLines < 1500 ? 'standard' : 'large'
 // Clamp to a floor of 2 so both framings are always present and KILL≥2 — a
@@ -422,7 +399,6 @@ while (dry < A.dryRounds && round < A.maxFinderRounds) {
     // Rotation: re-brief inversion on the survivors map + one spec finder per unverified hard invariant (cap 3)
     lensSet = [['inversion', { tag: `r${round}` }]]
     for (const inv of hardUnverified().slice(0, 3)) lensSet.push(['spec-conformance', { tag: inv.id, focus: inv.id }])
-    if (!lensSet.length) break
   }
   if (budget.total && budget.total - budget.spent() < 30000) {
     log(`budget low (${Math.round((budget.total - budget.spent()) / 1000)}k) — ending finder loop at round ${round}`)
@@ -485,7 +461,10 @@ if (proposed.length === 0) {
   log('no findings proposed — skipping cross-exam')
 } else {
   const framings = Array.from({ length: S }, (_, i) => (i % 2 === 0 ? 'prosecute' : 'defend'))
-  const models = Array.from({ length: S }, (_, i) => (i === (S % 2 === 0 ? S - 1 : S - 2) ? { model: 'opus', effort: 'medium' } : { model: 'sonnet', effort: 'high' }))
+  // The opus seat sits on the DEFEND framing (its index is always odd ⇒ 'defend') and runs
+  // at FULL effort: a finding that survives the strongest reasoner's best "the code is
+  // correct" steelman is high-confidence. Weakening opus here (effort: medium) was F-20.
+  const models = Array.from({ length: S }, (_, i) => (i === (S % 2 === 0 ? S - 1 : S - 2) ? { model: 'opus', effort: 'high' } : { model: 'sonnet', effort: 'high' }))
   const panels = await parallel(
     framings.map((framing, i) => () =>
       agent(skepticPrompt(shuffled(anonBatch, mulberry32(hashString(A.seed + ':skeptic:' + i))), framing), {
@@ -522,25 +501,38 @@ if (proposed.length === 0) {
   }
   if (tiebreakQueue.length) {
     log(`${tiebreakQueue.length} single-framing kills — tie-break skeptic engaged`)
-    const majorityFraming = tiebreakQueue[0].verdicts.find((v) => v.verdict === 'REFUTED')?.framing ?? 'prosecute'
-    const otherFraming = majorityFraming === 'prosecute' ? 'defend' : 'prosecute'
-    const tb = await agent(skepticPrompt(tiebreakQueue.map((p) => ({ id: p.anonId, ...publicFields(p.finding) })), otherFraming), {
-      label: 'skeptic:tiebreak',
-      phase: 'Cross-exam',
-      model: 'opus',
-      effort: 'high',
-      schema: VERDICTS_OUT,
-    })
-    const tbMap = new Map((tb?.verdicts || []).map((v) => [v.finding_id, v]))
+    // Each single-framing kill must be re-examined from the framing that did NOT kill it.
+    // Route items by their OWN refuting framing (grouping, not the whole queue's first item)
+    // so a finding killed only by PROSECUTE gets a DEFEND tie-break and vice-versa.
+    const refutingFraming = (p) => p.verdicts.find((v) => v.verdict === 'REFUTED')?.framing ?? 'prosecute'
+    const byOpposite = new Map() // otherFraming -> items needing that framing
     for (const p of tiebreakQueue) {
-      const v = tbMap.get(p.anonId)
-      if (v) p.verdicts.push({ ...v, framing: otherFraming })
-      if (v && v.verdict === 'REFUTED') {
-        p.state = 'refuted'
-        refuted.push(p)
-      } else {
-        p.state = 'contested'
-        survivors.push(p)
+      const other = refutingFraming(p) === 'prosecute' ? 'defend' : 'prosecute'
+      ;(byOpposite.get(other) || byOpposite.set(other, []).get(other)).push(p)
+    }
+    const tbResults = await parallel(
+      [...byOpposite.entries()].map(([otherFraming, items]) => () =>
+        agent(skepticPrompt(items.map((p) => ({ id: p.anonId, ...publicFields(p.finding) })), otherFraming), {
+          label: `skeptic:tiebreak:${otherFraming}`,
+          phase: 'Cross-exam',
+          model: 'opus',
+          effort: 'high',
+          schema: VERDICTS_OUT,
+        }).then((r) => ({ otherFraming, items, verdicts: r?.verdicts || [] }))
+      )
+    )
+    for (const { otherFraming, items, verdicts } of tbResults.filter(Boolean)) {
+      const tbMap = new Map(verdicts.map((v) => [v.finding_id, v]))
+      for (const p of items) {
+        const v = tbMap.get(p.anonId)
+        if (v) p.verdicts.push({ ...v, framing: otherFraming })
+        if (v && v.verdict === 'REFUTED') {
+          p.state = 'refuted'
+          refuted.push(p)
+        } else {
+          p.state = 'contested'
+          survivors.push(p)
+        }
       }
     }
   }
@@ -595,6 +587,10 @@ A test that fails for an unrelated reason proves nothing — classify honestly. 
 FLIPPABILITY CONTRACT: construct the repro so it fails NOW and will PASS once the defect is fixed — it becomes the fix's acceptance test. If the finding is inherently non-flippable (e.g. a test-gap you demonstrate by showing a hypothetical regression slips through), include the exact token NON-FLIPPABLE in notes; fix acceptance then falls to re-review instead of artifact flip.
 
 TEST COMMAND (context, do not run fully): ${pack.testCmd || 'none detected'}
+
+REMEDIATION (fill in if you can determine it, whether or not you reproduced the defect — do NOT apply it; this workflow only surfaces):
+- proposed_fix: the concrete root-cause change in technical terms — which file(s), what to change, and why that removes the defect (not a symptom patch).
+- fix_summary_plain: 1-2 sentences a non-engineer could follow, describing what the fix does and why.
 ${OUTPUT_RULES}`
 }
 let baselinePorcelain = A.isolation === 'clone' ? '' : pack.gitStatusBaseline.trim()
@@ -645,174 +641,13 @@ for (const p of survivors) {
 }
 log(`tribunal: ${survivors.filter((p) => p.confirmed).length} CONFIRMED · ${survivors.filter((p) => !p.confirmed).length} PLAUSIBLE`)
 
-// ═══ P6: Fix loop until green ═══════════════════════════════════════════════
-phase('Fix loop')
-const fixLog = []
-let status = 'REPORT_ONLY'
-let finalTestResult = 'not-run'
-if (A.fix) {
-  status = 'GREEN'
-  let confirmedQueue = survivors.filter((p) => p.confirmed && p.state !== 'fixed')
-  let prevConfirmedKey = ''
-  let fixRound = 0
-  while (confirmedQueue.length > 0) {
-    if (fixRound >= A.maxFixRounds) {
-      status = 'BLOCKED'
-      break
-    }
-    if (budget.total && budget.total - budget.spent() < 40000) {
-      status = 'BLOCKED'
-      log('budget floor reached mid fix-loop')
-      break
-    }
-    const key = confirmedQueue.map((p) => p.fp).sort().join('|')
-    if (key === prevConfirmedKey) {
-      status = 'STALLED'
-      log('no-progress guard: identical confirmed set two rounds')
-      break
-    }
-    prevConfirmedKey = key
-    fixRound++
-    log(`fix round ${fixRound}: ${confirmedQueue.length} confirmed findings`)
-    // group by primary file so no two fixers touch one file
-    const groups = new Map()
-    for (const p of confirmedQueue) {
-      const g = p.finding.file
-      if (!groups.has(g)) groups.set(g, [])
-      groups.get(g).push(p)
-    }
-    // Fixers run SERIALLY: fixes for findings anchored in one file often land in another
-    // (e.g. a test-gap anchored in tests/ fixed in src/), so file-keyed groups do not
-    // guarantee disjoint edit sets. Serial execution makes collisions impossible.
-    const fixes = []
-    for (const [file, ps] of groups.entries()) {
-      fixes.push(
-        await agent(
-          `You are a fixer on a review council. Fix the CONFIRMED defects below at their root cause — do not mask symptoms, do not fix the repro test instead of the code, keep the change minimal and in-convention. You may edit tracked files in ${A.repo} (this is the one stage allowed to). You may add or update tests. After fixing, run each repro artifact listed below and report the result.
-
-REPO: ${A.repo}
-GOAL (do not regress it): ${clip(A.goal, 2000)}
-DEFECTS (all anchored in ${file}):
-${ps.map((p) => JSON.stringify({ id: p.anonId, ...publicFields(p.finding), evidence: p.evidence }, null, 1)).join('\n')}
-
-Repro artifacts (fix acceptance tests — these MUST pass after your fix):
-${ps.map((p) => `- ${p.anonId}: ${p.evidence.artifact_path || '(runtime-trace)'} — run: ${p.evidence.command || 'see artifact'}`).join('\n')}
-
-${OUTPUT_RULES}`,
-          {
-            label: `fix:${file.split('/').pop()}:r${fixRound}`,
-            phase: 'Fix loop',
-            model: ps.length > 1 || ps.some((p) => (p.finding.evidence_pointers || []).length > 3) ? 'opus' : 'sonnet',
-            effort: 'high',
-            schema: FIX_OUT,
-          }
-        )
-      )
-    }
-    // verify: re-run all repros + suite
-    const verify = await agent(
-      `You are the verification agent for a fix round. In ${A.repo}:
-1. Run EVERY repro artifact below; report pass/fail/error per finding id. A repro that now PASSES means its defect is fixed.
-${survivors.filter((p) => p.confirmed).map((p) => `- ${p.anonId}: ${p.evidence.command || p.evidence.artifact_path || 'n/a'}`).join('\n')}
-2. Run the project test suite: ${pack.testCmd || 'none detected — report suite="unavailable"'} — report green/red. IMPORTANT: council scratch artifacts under ${SCRATCH}/ are NOT part of the suite — exclude them if the runner supports it (e.g. pytest --ignore=${SCRATCH}); failures located inside ${SCRATCH}/ never count toward red.
-3. Report \`git diff --stat ${pack.snapshotRef || 'HEAD'}\` output as fixDiffStat (≤2000 chars).
-4. Report \`git status --porcelain\` verbatim.
-${OUTPUT_RULES}`,
-      { label: `verify:r${fixRound}`, phase: 'Fix loop', model: 'haiku', effort: 'medium', schema: VERIFY_OUT }
-    )
-    const reproResult = new Map((verify?.repros || []).map((r) => [r.finding_id, r.result]))
-    const fixedByIds = new Set(fixes.filter(Boolean).flatMap((f) => f.finding_ids))
-    for (const p of confirmedQueue) {
-      const r = reproResult.get(p.anonId)
-      const flippable = !(p.evidence.notes || '').includes('NON-FLIPPABLE')
-      fixLog.push({
-        round: fixRound,
-        findingId: p.anonId,
-        files_touched: (fixes.filter(Boolean).find((f) => f.finding_ids.includes(p.anonId)) || {}).files_touched || [],
-        repro_before: 'fail',
-        repro_after: r || 'unknown',
-        suite_result: verify?.suite || 'unavailable',
-        fixDiffStat: clip(verify?.fixDiffStat || '', 500),
-      })
-      if (r === 'pass') p.state = 'fixed'
-      else if (!flippable && fixedByIds.has(p.anonId)) {
-        p.state = 'fixed-pending-rereview'
-        p.touchedFiles = (fixes.filter(Boolean).find((f) => f.finding_ids.includes(p.anonId)) || {}).files_touched || [p.finding.file]
-      }
-    }
-    finalTestResult = verify?.suite || 'unavailable'
-    baselinePorcelain = (verify?.porcelain || baselinePorcelain).trim()
-    // scoped re-review of the fix diff
-    const miniPack = `FIX DIFF THIS ROUND (stat): ${clip(verify?.fixDiffStat || 'unknown', 1500)}\nFixed findings: ${confirmedQueue.map((p) => p.anonId).join(', ')}`
-    const mini = await parallel(
-      ['adversarial-input', 'spec-conformance'].map((name) => () =>
-        agent(
-          finderPrompt(name, LENSES[name].card, 99) +
-            `\n\nSCOPE OVERRIDE: fixes were just applied for confirmed findings. Review ONLY the fix diff (\`git diff ${pack.snapshotRef || 'HEAD'}\` in the repo) for regressions or incomplete fixes. Ignore files under ${SCRATCH}/ — they are council scratch artifacts, not the implementation.\n${miniPack}`,
-          { label: `refind:${name}:r${fixRound}`, phase: 'Fix loop', model: 'sonnet', effort: 'high', schema: FINDER_OUT }
-        )
-      )
-    )
-    const fresh = []
-    for (const res of mini.filter(Boolean)) {
-      mergeCoverage(res.coverage)
-      for (const f of res.findings || []) {
-        const fp = fingerprint(f)
-        if (known.has(fp)) continue
-        known.set(fp, { finding: f, provenance: { lens: 'fix-re-review', round: `fix-${fixRound}` } })
-        fresh.push({ anonId: `F-${pad2(known.size)}`, fp, finding: f, provenance: { lens: 'fix-re-review' }, verdicts: [], state: 'stands' })
-      }
-    }
-    if (fresh.length) {
-      log(`re-review found ${fresh.length} new findings — quorum + tribunal on them`)
-      const anonFresh = fresh.map((p) => ({ id: p.anonId, ...publicFields(p.finding) }))
-      const panels2 = await parallel(
-        ['prosecute', 'defend'].map((framing, i) => () =>
-          agent(skepticPrompt(shuffled(anonFresh, mulberry32(hashString(A.seed + ':refresh:' + fixRound + i))), framing), {
-            label: `reskeptic:${framing}:r${fixRound}`,
-            phase: 'Fix loop',
-            model: 'sonnet',
-            effort: 'high',
-            schema: VERDICTS_OUT,
-          }).then((r) => (r ? { framing, verdicts: r.verdicts } : null))
-        )
-      )
-      for (const p of fresh) {
-        const vs = panels2.filter(Boolean).flatMap((pa) => pa.verdicts.filter((v) => v.finding_id === p.anonId).map((v) => ({ ...v, framing: pa.framing })))
-        p.verdicts = vs
-        if (vs.length === 2 && vs.every((v) => v.verdict === 'REFUTED')) {
-          p.state = 'refuted'
-          refuted.push(p)
-          continue
-        }
-        const preReprove = baselinePorcelain
-        const ev = await agent(proverPrompt(p), { label: `reprove:${p.anonId}`, phase: 'Fix loop', model: 'sonnet', effort: 'high', schema: EVIDENCE_OUT })
-        // Same taint guard as the P4 tribunal waves: a reprove that drifts tracked
-        // files (or whose git-status check fails) must not launder into CONFIRMED.
-        const postReprove = await warden(`warden:reprove:${p.anonId}`)
-        const reproveTracked = (s) => (s || '').split('\n').filter((l) => l.trim() && !l.startsWith('??')).sort().join('\n')
-        const reproveTainted = postReprove === null || reproveTracked(postReprove) !== reproveTracked(preReprove)
-        p.evidence = !ev
-          ? { finding_id: p.anonId, evidence_class: 'opinion', reproduced: false, notes: 'prover failed' }
-          : reproveTainted
-            ? { ...ev, evidence_class: 'opinion', reproduced: false, notes: `${postReprove === null ? 'TAINT CHECK INCONCLUSIVE: warden git-status unavailable' : 'TAINTED: tracked files drifted during reprove'}. Original class: ${ev.evidence_class}. ${ev.notes || ''}` }
-            : ev
-        if (ev && reproveTainted) log(`⚠ reprove ${p.anonId} — tracked-file drift/inconclusive; evidence downgraded`)
-        p.confirmed = isConfirmed(p)
-        survivors.push(p)
-      }
-    }
-    // NON-FLIPPABLE findings: fix acceptance = fixer claimed the fix + re-review found nothing new confirmed
-    const freshConfirmed = fresh.some((x) => x.confirmed)
-    for (const p of confirmedQueue) {
-      if (p.state === 'fixed-pending-rereview') p.state = freshConfirmed && fresh.some((x) => x.confirmed && (x.scopeFiles || [x.finding && x.finding.file]).some((f) => (p.touchedFiles || [p.finding && p.finding.file]).includes(f))) ? 'stands' : 'fixed'
-    }
-    confirmedQueue = survivors.filter((p) => p.confirmed && p.state !== 'fixed' && p.state !== 'refuted')
-  }
-  // 'loop until green' contract: a fix round that leaves the suite red is never shippable,
-  // even if every finding's own repro flipped to pass (F-15).
-  if (finalTestResult === 'red' || (status === 'GREEN' && survivors.some((p) => p.confirmed && p.state !== 'fixed'))) status = 'BLOCKED'
-}
+// ═══ Surface-first: no fix loop ═════════════════════════════════════════════
+// This workflow reports and STOPS. It never edits tracked files and never runs a fix
+// loop. Each CONFIRMED finding carries the prover's proposed_fix / fix_summary_plain so
+// the chairman can explain the remediation in plain and technical terms; the operator
+// then directs which findings to fix (SKILL.md Step 4), where each finding's failing
+// repro is that fix's acceptance test.
+const status = 'REPORT_ONLY'
 
 // ═══ Council record ═════════════════════════════════════════════════════════
 // A 'violated' coverage vote is only trustworthy while a surviving finding still
@@ -829,10 +664,11 @@ const lifecycle = (p) => ({
   finding: p.finding,
   provenance: p.provenance,
   verdicts: (p.verdicts || []).map((v) => ({ verdict: v.verdict, framing: v.framing, strongest_refutation: clip(v.strongest_refutation, 600), confidence: v.confidence })),
+  // evidence carries proposed_fix / fix_summary_plain — the chairman's remediation material.
   evidence: p.evidence || null,
-  state: p.state === 'fixed' ? 'FIXED-VERIFIED' : p.confirmed ? 'CONFIRMED-UNFIXED' : 'PLAUSIBLE',
+  state: p.confirmed ? 'CONFIRMED' : 'PLAUSIBLE',
 })
-log(`done: status=${status} · ${survivors.filter((p) => p.state === 'fixed').length} fixed · ${survivors.filter((p) => p.confirmed && p.state !== 'fixed').length} confirmed-unfixed · ${refuted.length} refuted`)
+log(`done: status=${status} · ${survivors.filter((p) => p.confirmed).length} CONFIRMED · ${survivors.filter((p) => !p.confirmed).length} PLAUSIBLE · ${refuted.length} refuted — surface-first, no fixes applied`)
 return {
   runId: A.runId,
   goal: clip(A.goal, 500),
@@ -844,8 +680,6 @@ return {
   findings: survivors.map(lifecycle),
   refuted: refuted.map(lifecycle),
   disagreementMaps,
-  fixLog,
-  finalTestResult,
   status,
   budgetSpent: budget.spent(),
   scratchDir: SCRATCH,

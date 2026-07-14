@@ -1,0 +1,9 @@
+{
+  "name": "council",
+  "version": "22.11.0",
+  "description": "Multi-agent LLM council for code: diverse finder lenses, blind anonymized cross-examination with refute-first skeptics, and an execution-based evidence tribunal. Surface-first — reports findings with execution proof plus a plain-English + technical fix and operator context; the operator directs which findings to fix. Review, debug, and goal-audit modes.",
+  "author": {
+    "name": "MD NASIM",
+    "url": "https://github.com/nasimubd"
+  }
+}

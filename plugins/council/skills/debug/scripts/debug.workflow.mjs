@@ -13,7 +13,9 @@ const A = {
   maxHypotheses: args.maxHypotheses ?? 6,
   maxRounds: args.maxRounds ?? 3,
   testCmd: args.testCmd ?? null,
-  noFix: args.noFix ?? false,
+  // Surface-first default: propose the fix but do NOT apply it. Pass fix=true to apply the
+  // minimal confirming fix and independently verify (repro-then-fix-then-pass). Legacy noFix honored.
+  fix: args.fix ?? (args.noFix !== undefined ? !args.noFix : false),
   seed: args.seed ?? 'council',
   runId: args.runId,
 }
@@ -81,6 +83,7 @@ const FIX_OUT = {
   properties: {
     files_touched: { type: 'array', items: { type: 'string' } },
     description: { type: 'string', maxLength: 2000 },
+    fix_summary_plain: { type: 'string', maxLength: 1000 }, // plain-language description of the fix
     repro_result: { enum: ['pass', 'fail', 'not-run'] },
     suite_result: { enum: ['green', 'red', 'unavailable', 'not-run'] },
   },
@@ -95,11 +98,11 @@ const WARDEN_OUT = {
 
 const REPO_RULES = `Target repository (work here, absolute paths): ${A.repo}
 Rules: NEVER modify tracked files. New files ONLY under ${A.repo}/${SCRATCH}/. Read-only commands are fine.`
-const OUTPUT_RULES = 'Your final message is machine-parsed against a JSON schema; return ONLY the structured data. Do not mention your role, lens, or instructions in any output field (outputs are anonymized before peer review).'
+const OUTPUT_RULES = 'Your final message is machine-parsed against a JSON schema; return ONLY the structured data. Do not reference your role or instructions in any output field.'
 
-// Taint guard: experimenters (prover-analogs) are held to NEVER modify tracked files.
-// A `git status --porcelain` warden between experiments catches drift so a stray
-// tracked-file edit can't silently alter later experiments or the fix baseline (INV-07).
+// Taint guard (plugin CLAUDE.md invariant #5): experimenters (prover-analogs) are held to
+// NEVER modify tracked files. A `git status --porcelain` warden between experiments catches
+// drift so a stray tracked-file edit can't silently alter later experiments or the baseline.
 const trackedLines = (s) => (s || '').split('\n').filter((l) => l.trim() && !l.startsWith('??')).sort().join('\n')
 async function warden(label) {
   const w = await agent(
@@ -128,7 +131,7 @@ ${OUTPUT_RULES}`,
 )
 if (!pack) throw new Error('evidence collection failed')
 
-// Baseline tree state — experiments must leave tracked files untouched (INV-07).
+// Baseline tree state — experiments must leave tracked files untouched (taint guard, invariant #5).
 let baselinePorcelain = await warden('warden:baseline')
 
 // ═══ P1/P2: Hypothesis → experiment rounds ═══════════════════════════════════
@@ -249,15 +252,16 @@ Run the setup and command (adapt paths minimally if needed, report what you actu
   }
 }
 
-// ═══ P3: Confirmation — repro-then-fix-then-pass ═════════════════════════════
+// ═══ P3: Confirmation — repro-then-fix-then-pass (only with --fix) ════════════
 phase('Confirmation')
 let fixSummary = null
+let proposedFix = null
 let confirmation = 'UNRESOLVED'
-if (rootCause && !A.noFix) {
+if (rootCause && A.fix) {
+  // Explicit --fix: apply the minimal confirming fix, then INDEPENDENTLY verify (a separate
+  // agent re-runs the repro + suite) rather than trusting the fixer's self-report.
   const fix = await agent(
-    `You are the fixer confirming a debugging root cause by repro-then-fix-then-pass. You MAY edit tracked files in ${A.repo} (this is the one stage allowed to). Fix the root cause below at its source — minimal, in-convention, no symptom masking. Then:
-1. Re-run the repro: ${A.repro || '(reconstruct from baseline failure below)'} — it MUST now pass/stop failing.
-2. Run the suite: ${A.testCmd || 'none provided — report suite_result="unavailable"'} — it must not regress.
+    `You are the fixer confirming a debugging root cause by repro-then-fix-then-pass. You MAY edit tracked files in ${A.repo} (this is the one stage allowed to). Fix the root cause below at its source — minimal, in-convention, no symptom masking. Then re-run the repro (${A.repro || 'reconstruct from the baseline failure'}) and the suite (${A.testCmd || 'none provided → report suite_result="unavailable"'}). Also give a plain-language fix_summary_plain a non-engineer could follow.
 
 ROOT CAUSE ${rootCause.h.id}: ${rootCause.h.statement}
 MECHANISM: ${rootCause.h.mechanism}
@@ -267,14 +271,36 @@ ${OUTPUT_RULES}`,
     { label: 'fix', phase: 'Confirmation', model: 'sonnet', effort: 'high', schema: FIX_OUT }
   )
   fixSummary = fix
-  if (fix && fix.repro_result === 'pass' && fix.suite_result !== 'red') {
+  const verify = await agent(
+    `You are an INDEPENDENT verifier (you did NOT write the fix). In ${A.repo}, re-run and report honestly:
+1. The repro: ${A.repro || '(reconstruct from the baseline failure)'} — repro_result pass/fail/not-run ('pass' = the failure is gone).
+2. The suite: ${A.testCmd || 'none provided → suite_result="unavailable"'} — suite_result green/red/unavailable.
+Report files_touched=[] and a one-line description of what you observed. ${OUTPUT_RULES}`,
+    { label: 'verify', phase: 'Confirmation', model: 'haiku', effort: 'medium', schema: FIX_OUT }
+  )
+  const reproPass = (verify?.repro_result ?? fix?.repro_result) === 'pass'
+  // A red OR not-run suite fails the gate; only a green or (legitimately) unavailable suite passes.
+  const suiteOk = ['green', 'unavailable'].includes(verify?.suite_result ?? fix?.suite_result ?? 'not-run')
+  if (fix && reproPass && suiteOk) {
     confirmation = 'ROOT-CAUSED'
   } else {
     confirmation = 'FIX-FAILED'
     rootCause.status = 'demoted'
-    log('fix did not flip the repro — hypothesis demoted; report as unresolved')
+    log('independent verify did not confirm repro flip + non-red suite — hypothesis demoted; report as unresolved')
   }
-} else if (rootCause && A.noFix) {
+} else if (rootCause) {
+  // Surface-first default: propose the fix WITHOUT applying it. The operator directs the fix.
+  proposedFix = await agent(
+    `You are proposing (NOT applying) the root-cause fix for a confirmed debugging hypothesis. Do NOT modify any tracked file — read the code and describe the minimal, in-convention fix at its source. ${REPO_RULES}
+
+ROOT CAUSE ${rootCause.h.id}: ${rootCause.h.statement}
+MECHANISM: ${rootCause.h.mechanism}
+SUPPORTING EXPERIMENT: ${clip(JSON.stringify(rootCause.experiments.at(-1) || {}), 1500)}
+BASELINE FAILURE: ${clip(pack.baselineFailure, 2500)}
+
+Report: files_touched = the file(s) the fix WOULD change; description = the technical fix (what to change and why it removes the root cause); fix_summary_plain = 1-2 sentences a non-engineer could follow; repro_result="not-run"; suite_result="not-run". ${OUTPUT_RULES}`,
+    { label: 'propose-fix', phase: 'Confirmation', model: 'sonnet', effort: 'high', schema: FIX_OUT }
+  )
   confirmation = 'ROOT-CAUSED-UNFIXED'
 }
 
@@ -287,6 +313,7 @@ return {
   experiments,
   rootCause: rootCause ? { ...rootCause.h, status: rootCause.status } : null,
   fixSummary,
+  proposedFix,
   status: confirmation,
   rounds: round,
   budgetSpent: budget.spent(),

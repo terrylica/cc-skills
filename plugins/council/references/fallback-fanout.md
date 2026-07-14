@@ -9,10 +9,10 @@ When the `Workflow` tool is unavailable or denied, the main session replicates t
 | Knob | Workflow mode | Fallback |
 |---|---|---|
 | Finder rounds | loop-until-dry (≤4) | 1 (2 only if round 1 found ≥3 critical/major) |
-| Lenses | fleet-sized (3/6/11) | 3: inversion · spec-conformance · adversarial-input |
+| Lenses | fleet-sized (3/6/9 finder lenses) | 3: inversion · spec-conformance · adversarial-input |
 | Skeptics | 3–5 | 2 (1 PROSECUTE + 1 DEFEND) |
 | Tribunal | all survivors | top-5 by severity |
-| Fix rounds | ≤3 | ≤2 |
+| Fixing | surface-first (operator-directed, no loop) | surface-first (operator-directed, no loop) |
 
 ## Bookkeeping
 
@@ -25,8 +25,7 @@ tmp/council-<runId>/
 ├── findings.json        # FINDING[] with provenance — the side-table IS this file
 ├── anon-map.json        # F-NN → findings.json index (chairman-only)
 ├── verdicts.json        # VERDICT[] per skeptic
-├── evidence/            # EVIDENCE records + repro tests + trace outputs
-└── fixlog.json          # FIXROUND[]
+└── evidence/            # EVIDENCE records + repro tests + trace outputs (incl. proposed_fix per finding)
 ```
 
 ## Procedure (review mode)
@@ -38,19 +37,19 @@ tmp/council-<runId>/
 5. **Skeptics**: ONE message, TWO parallel Task calls — one PROSECUTE, one DEFEND framing (cards in [lenses.md](./lenses.md)), each receiving a differently-ordered anonymized batch. Parse into `verdicts.json`.
 6. **Quorum (S=2)**: kill only on 2/2 REFUTED (which is automatically cross-framing); 1/2 split → contested → keep, flag for tribunal priority. Apply severity ordering; select top-5 for tribunal.
 7. **Tribunal**: sequential Task calls (one prover at a time — no wave management manually), each with the taint rule ("create files ONLY under tmp/council-<runId>/; never modify tracked files") and the [evidence-ladder.md](./evidence-ladder.md) classification rules. Main session checks `git status --porcelain` between provers; on drift, discard that evidence as tainted.
-8. **Fix loop** (only with `--fix`; the default is surface-first — report and stop): per CONFIRMED finding-group, one fixer Task (may edit the real tree); then main session re-runs repros + `testCmd`; scoped re-review = ONE adversarial-input Task on the fix diff + the 2-skeptic pass on anything new. Max 2 rounds; STALLED on identical confirmed set.
-9. **Chairman report**: main session renders [report-template.md](./report-template.md) from the JSON files; note "fallback mode" and the reduced defaults in the budget footer.
+8. **Surface-first — no fix loop.** Capture each survivor's `proposed_fix` / `fix_summary_plain` during the tribunal. Fixes happen only when the operator names finding IDs afterwards (SKILL.md Step 4) — never inside this run.
+9. **Chairman report**: main session renders [report-template.md](./report-template.md) from the JSON files — the four-block surfacing per finding; note "fallback mode" and the reduced defaults in the budget footer.
 
 ## Procedure (debug mode)
 
 1. Run `--repro` once; save baseline output to scratch.
 2. ONE message, THREE parallel Task generators (state-corruption / causal-chain / environment lenses) → HYPOTHESIS[] (schema-complete or rejected by the main session — regenerate once on schema failure).
 3. Main session orders experiments greedily by `discriminates_against` count; executes them **itself** via Bash, serially; records EXPERIMENT[]; eliminates.
-4. Survivor → fixer Task → repro must flip fail→pass, suite green. Elimination table in the report.
+4. Survivor → propose the fix (default), or with `--fix` a fixer Task + an INDEPENDENT verify (repro must flip fail→pass, suite non-red). Elimination table in the report.
 
 ## Procedure (goal-audit mode)
 
 1. TWO parallel Task decomposers (letter-of-spec / spirit-of-spec) → main session merges + tags hard/soft.
 2. Auditor Tasks per file-locality cluster (≤4, one message) → per-invariant status + FINDINGs for violations.
-3. 2-skeptic pass on violations only; tribunal probes (≤3, sequential) for hard violations.
-4. Coverage-matrix report; offer chaining into /council:review.
+3. 2-skeptic pass on violations only; taint-guarded tribunal probes (≤3, sequential) for hard violations.
+4. Coverage-matrix report with four-block surfacing for violations; operator directs fixes (no autonomous loop).

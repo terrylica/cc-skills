@@ -22,10 +22,12 @@ opinion  <  static-trace  <  runtime-trace  <  failing-test-repro
 
 ## The CONFIRMED / PLAUSIBLE dial
 
-- **CONFIRMED** = `failing-test-repro` or `runtime-trace` with `reproduced: true`. Only CONFIRMED findings enter the autonomous fix loop.
-- **PLAUSIBLE** = everything below. Reported to the human with full reasoning, never auto-fixed.
+- **CONFIRMED** = evidence class is `failing-test-repro` OR `runtime-trace`, AND `reproduced: true`. The `reproduced` flag is required for **both** classes — a repro or trace that did not actually demonstrate the defect is not CONFIRMED. These are the only findings the operator can direct a fix on.
+- **PLAUSIBLE** = everything else (`static-trace`, `opinion`, or any class with `reproduced: false`). Reported to the human with full reasoning and a proposed fix, but never fixed without direction — and a PLAUSIBLE finding the operator selects gets a tribunal probe FIRST.
 
-Rationale: LLM critics catch more bugs than human reviewers but also hallucinate plausible-sounding bugs (CriticGPT, arXiv:2407.00215); multi-agent consensus does not fix this — 80+ agents once unanimously endorsed a nonexistent OpenSSL vulnerability (Refute-or-Promote, arXiv:2604.19049). Execution is the only precision filter that does not share the model's blind spots. See [sota-provenance.md](./sota-provenance.md).
+There is no autonomous fix loop: the council surfaces, the operator directs.
+
+Rationale: LLM critics catch more bugs than human reviewers but also hallucinate plausible-sounding bugs (CriticGPT, arXiv:2407.00215); multi-agent consensus does not fix this — 80+ agents once unanimously endorsed a nonexistent OpenSSL vulnerability (Refute-or-Promote, arXiv:2604.19049). Execution is the only precision filter that does not share the model's blind spots — which is also why a human, not an autonomous loop, owns the fix decision. See [sota-provenance.md](./sota-provenance.md).
 
 ## Downgrade policy
 

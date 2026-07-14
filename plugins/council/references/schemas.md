@@ -6,7 +6,7 @@ Conventions: all schemas are JSON Schema (draft 2020-12 subset the Workflow tool
 
 ## FINDING
 
-Emitted by finder lenses (review P2), auditors (goal-audit P2), and re-review mini-fleets (review P6).
+Emitted by finder lenses (review P2) and auditors (goal-audit P2).
 
 | Field | Type | Required | Semantics |
 |---|---|---|---|
@@ -62,8 +62,10 @@ Produced by goal decomposition (review P1, goal-audit P1).
 | `output_excerpt` | string ≤2000 | no | Captured failing output |
 | `reproduced` | boolean | yes | Did the probe actually demonstrate the defect |
 | `notes` | string | no | Caveats, environment assumptions |
+| `proposed_fix` | string ≤2000 | no | Surface-first remediation: the technical root-cause fix (files + change). Proposed only — never applied by the workflow. |
+| `fix_summary_plain` | string ≤1000 | no | 1-2 plain-language sentences describing what the fix does and why (feeds the chairman's plain-English fix block) |
 
-Only `failing-test-repro` and `runtime-trace` with `reproduced: true` yield **CONFIRMED**. Everything else is **PLAUSIBLE** and never enters the autonomous fix loop.
+Only `failing-test-repro` and `runtime-trace` with `reproduced: true` yield **CONFIRMED**. Everything else is **PLAUSIBLE** — reported with full reasoning and a proposed fix, but never fixed without the operator's direction (there is no autonomous fix loop).
 
 ## COVERAGE (finder → invariant, per round)
 
@@ -114,9 +116,7 @@ Falsifiability is enforced at the schema level — a hypothesis without a discri
   "dryRounds": "int = 2 — consecutive novelty-free rounds that end the finder loop",
   "maxFinderRounds": "int = 4",
   "skeptics": "int = 3 (5 for large fleet)",
-  "maxFixRounds": "int = 3",
-  "fix": "bool = false — SURFACE-FIRST IS THE DEFAULT (status REPORT_ONLY): the council surfaces findings and stops; the human decides what gets fixed. Pass fix=true to opt into the autonomous loop-until-green fix cycle. (Legacy noFix is still honored when fix is absent.)",
-  "isolation": "scratch|clone = scratch — tribunal prover isolation",
+  "isolation": "scratch|clone = scratch — tribunal prover isolation. SURFACE-FIRST: neither mode edits tracked files, status is always REPORT_ONLY, and there is intentionally no fix arg.",
   "budget": "int|null — token target; phases degrade gracefully near ceilings",
   "seed": "string|null — PRNG seed for reproducible shuffles",
   "runId": "string (REQUIRED) — supplied by the skill preflight (timestamps are unavailable inside Workflow scripts)"
@@ -134,7 +134,7 @@ Falsifiability is enforced at the schema level — a hypothesis without a discri
   "maxHypotheses": "int = 6",
   "maxRounds": "int = 3",
   "testCmd": "string|null",
-  "noFix": "bool = false",
+  "fix": "bool = false — SURFACE-FIRST DEFAULT: the root cause is proven by elimination and the fix is PROPOSED, not applied. fix=true applies the minimal confirming fix and INDEPENDENTLY verifies it (repro-then-fix-then-pass). Legacy noFix honored when fix is absent.",
   "budget": "int|null",
   "seed": "string|null",
   "runId": "string (REQUIRED)"
@@ -158,19 +158,21 @@ Falsifiability is enforced at the schema level — a hypothesis without a discri
 
 ## Council record (review return value)
 
+Surface-first: the record is a report, not an action log. Each finding carries its evidence (including `proposed_fix` / `fix_summary_plain`) so the chairman can explain both the defect and its remediation. `status` is always `REPORT_ONLY` — the workflow never fixes anything.
+
 ```jsonc
 {
   "runId": "...", "goal": "...",
   "refs": { "base": "...", "head": "...", "snapshot": "git stash create hash" },
+  "fleet": "small | standard | large",
   "invariants": ["INVARIANT with final status"],
   "coverageMap": ["COVERAGE aggregated"],
   "finderRounds": "int",
-  "findings": ["full lifecycle: proposed → verdicts[] → evidence → fix state"],
+  "findings": ["lifecycle: finding + verdicts[] + evidence (with proposed_fix) + state (CONFIRMED | PLAUSIBLE)"],
   "refuted": ["killed findings WITH their refutations — kept, never deleted"],
   "disagreementMaps": ["contested-finding disagreement analyses"],
-  "fixLog": [{ "round": 1, "findingId": "...", "files_touched": [], "repro_before": "fail", "repro_after": "pass", "suite_result": "green", "fixDiffStat": "..." }],
-  "finalTestResult": "...",
-  "status": "GREEN | BLOCKED | STALLED | REPORT_ONLY",
-  "budgetSpent": "int"
+  "status": "REPORT_ONLY",
+  "budgetSpent": "int",
+  "scratchDir": "tmp/council-<runId>"
 }
 ```
