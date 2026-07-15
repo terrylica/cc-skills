@@ -58,7 +58,7 @@ One toolchain manager, one task orchestrator, one TS runtime — wired together 
 | Affected detection   | `pants --changed-since=…`          | `moon ci` / `moon run :task --affected` / `moon query projects --affected`                                                                               |
 | Build metadata       | `BUILD` files + `pants tailor`     | one `moon.yml` per project + explicit `projects:` map                                                                                                    |
 | Dependency inference | Pants engine                       | explicit `dependsOn`/`deps` in `moon.yml` (transparent > inferred)                                                                                       |
-| Release              | mise file tasks → semantic-release | identical pattern, invoked as a moon task                                                                                                                |
+| Release              | mise file tasks → semantic-release | identical pattern, invoked as a moon task; multi-project repos add per-project namespaced tags via the monorepo fork (Phase 9 case B)                    |
 
 Legacy repos on mise stay on mise until proven at parity — migrate per-repo, never big-bang (the migration playbook: run both side by side, cut tasks over one at a time, delete `.mise.toml` last).
 
@@ -225,12 +225,22 @@ vcs:
   "devDependencies": {
     "@biomejs/biome": "<version>",
     "semantic-release": "<version>",
+    "@semantic-release/commit-analyzer": "<version>",
+    "@semantic-release/release-notes-generator": "<version>",
     "@semantic-release/changelog": "<version>",
+    "@semantic-release/exec": "<version>",
     "@semantic-release/git": "<version>",
-    "@semantic-release/github": "<version>"
+    "@semantic-release/github": "<version>",
+    "conventional-changelog-conventionalcommits": "<version>",
+    "js-yaml": "<version>",
+    "@rimac-technology/semantic-release-monorepo": "<version>"
   }
 }
 ```
+
+> The last three devDeps power **per-project** releases (Phase 9 case B). Install the fork with
+> `npm i -D --ignore-scripts @rimac-technology/semantic-release-monorepo` — its `husky` prepare-script
+> errors on a non-workspace root otherwise. Drop them for a single-releasable-unit repo (case A).
 
 ### Per-project moon.yml exemplars
 
@@ -481,7 +491,19 @@ git-town for branch workflow (`git config git-town.main-branch main`,
 
 **Local-first CI/CD is doctrine**: quality gates run locally via `moon ci` / `moon run
 <project>:check` — NEVER in GitHub Actions. Actions are reserved for: semantic-release,
-CodeQL, Dependabot, deployment.
+CodeQL, Dependabot, deployment. Releases run **locally** (`--no-ci`); private repos publish
+**tags + CHANGELOG + GitHub Release only** (NO `@semantic-release/npm`).
+
+**Pick your case first:**
+
+- **Case A — one releasable unit** (the repo ships as a single version): stock `semantic-release`, one
+  `.releaserc.yml`, tag `v${version}`. Use this for single-package repos.
+- **Case B — multiple independently-versioned projects** (a real monorepo): **per-project namespaced tags**
+  (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`**, driven by a cosmiconfig
+  **dispatcher** `.releaserc.cjs`, plus one repo-wide **umbrella** stream on stock `semantic-release`. This is
+  the **operator monorepo standard** — verified in `claude-sys` (6 streams). Details below.
+
+### Case A — single releasable unit
 
 `.releaserc.yml` (root):
 
@@ -520,6 +542,135 @@ release-full:
 
 > The `@semantic-release/exec` plugin uses Lodash templates — avoid bash `${VAR:-default}`
 > syntax inside exec commands.
+
+### Case B — per-project monorepo releases (the standard)
+
+**Why a fork.** Stock semantic-release has **no path filter** — its `commitPaths` option is silently
+**ignored** (upstream semantic-release#1279 / #1212), so a naive per-project config computes its version off
+the **whole repo**. `@rimac-technology/semantic-release-monorepo` fixes this: its `modifyContextCommits` tags
+each commit with a `filePaths` array (from `git diff-tree`) and then calls a **`processCommits(commits)`** hook
+from your config — keep only the commits that touched this project's folder, and the version is scoped correctly.
+(It also auto-detects npm/yarn workspaces via `npm query .workspace`, but that returns null on a non-workspace
+repo — so we drive scoping **entirely** through `processCommits`, which works from the repo root with no
+workspaces.)
+
+**Why a dispatcher.** semantic-release v25's `--extends <file.yml>` cannot load a YAML path (it `require()`s it,
+and require has no YAML loader). So keep **one YAML per stream** (`.releaserc-<profile>.yml`) and select it with a
+`RELEASE_PROFILE` env var from a cosmiconfig-discovered `.releaserc.cjs`, which also **derives `processCommits`
+from each profile's `commitPaths`** (DRY: the same `commitPaths` list documents intent AND enforces scope):
+
+```js
+// .releaserc.cjs — cosmiconfig dispatcher. RELEASE_PROFILE selects the stream.
+// Per-project streams (with commitPaths) run the `semantic-release-monorepo` bin;
+// the umbrella (no commitPaths) runs the stock `semantic-release` bin.
+const fs = require("node:fs");
+const path = require("node:path");
+const yaml = require("js-yaml");
+
+const profile = process.env.RELEASE_PROFILE || "repo";
+const file = path.join(__dirname, `.releaserc-${profile}.yml`);
+if (!fs.existsSync(file))
+  throw new Error(`unknown RELEASE_PROFILE '${profile}' (${file})`);
+
+const config = yaml.load(fs.readFileSync(file, "utf8"));
+
+// Scope this stream to its own folder: the monorepo fork calls config.processCommits(commits),
+// where each commit carries a filePaths array. Keep only commits under one of the commitPaths dirs.
+if (Array.isArray(config.commitPaths) && config.commitPaths.length > 0) {
+  const prefixes = config.commitPaths.map(
+    (p) => p.replace(/\*+$/, "").replace(/\/+$/, "") + "/",
+  );
+  config.processCommits = (commits) =>
+    (commits || []).filter((c) =>
+      (c.filePaths || []).some((fp) =>
+        prefixes.some((pre) => fp.startsWith(pre)),
+      ),
+    );
+}
+module.exports = config;
+```
+
+**Per-project stream** `.releaserc-<project>.yml` (slash tag + `commitPaths` + exec preflight/push; `github`
+assets optional):
+
+```yaml
+tagFormat: "<project>/v${version}" # namespaced → no collision with sibling projects or the umbrella
+commitPaths: ["packages/<project>/**"] # the dispatcher turns this into processCommits
+branches: [main]
+plugins:
+  - [
+      "@semantic-release/commit-analyzer",
+      { preset: conventionalcommits, releaseRules: *rules },
+    ]
+  - [
+      "@semantic-release/release-notes-generator",
+      { preset: conventionalcommits },
+    ]
+  - - "@semantic-release/exec"
+    - verifyConditionsCmd: "./scripts/release-preflight.sh" # clean tree + on main + token
+      successCmd: "git push --follow-tags origin main"
+  - [
+      "@semantic-release/changelog",
+      { changelogFile: packages/<project>/CHANGELOG.md },
+    ]
+  - - "@semantic-release/git"
+    - assets: [packages/<project>/CHANGELOG.md, packages/<project>/package.json]
+      message: "chore(release): <project> ${nextRelease.version} [skip ci]"
+  - ["@semantic-release/github", { assets: [] }]
+```
+
+The **umbrella** `.releaserc-repo.yml` is the same minus `commitPaths` + `tagFormat: "v${version}"` — it runs the
+**stock** `semantic-release` bin over the whole repo (so config/doc commits that touch no project still cut a repo
+release). A `fix(x):` under a project advances BOTH that project's tag and the umbrella — correct, the repo did change.
+
+**moon tasks** — umbrella uses `semantic-release`; every per-project stream uses `semantic-release-monorepo`:
+
+```yaml
+# repo (umbrella) project moon.yml
+release-preflight:
+  {
+    script: "./scripts/release-preflight.sh",
+    options: { cache: false, runFromWorkspaceRoot: true },
+  }
+release-dry:
+  {
+    script: "RELEASE_PROFILE=repo npx semantic-release --no-ci --dry-run",
+    deps: ["repo:release-preflight"],
+    options: { cache: false, runFromWorkspaceRoot: true },
+  }
+release:
+  {
+    script: "RELEASE_PROFILE=repo npx semantic-release --no-ci",
+    deps: ["repo:release-preflight"],
+    options: { cache: false, runFromWorkspaceRoot: true },
+  }
+
+# <project> project moon.yml (note the -monorepo bin)
+release-dry:
+  {
+    script: "RELEASE_PROFILE=<project> npx semantic-release-monorepo --no-ci --dry-run",
+    deps: ["repo:release-preflight"],
+    options: { cache: false, runFromWorkspaceRoot: true },
+  }
+release:
+  {
+    script: "RELEASE_PROFILE=<project> npx semantic-release-monorepo --no-ci",
+    deps: ["repo:release-preflight"],
+    options: { cache: false, runFromWorkspaceRoot: true },
+  }
+```
+
+**Gotchas (all verified):**
+
+- **Install the fork with `npm i -D --ignore-scripts`** — its `husky` prepare-script errors on a non-workspace root.
+- **Fork CLI builds `tty.WriteStream(1)`** → run it to a **terminal, pipe, or `| tee`**; a direct `> file.log`
+  redirect throws `ERR_TTY_INIT_FAILED` (harmless — `moon run` and bare terminal runs are unaffected).
+- **Always `*:release-dry` first.** A correct dry-run shows a project ignoring commits outside its `commitPaths`
+  (e.g. hundreds of repo commits since a `<project>/v*` tag → "no relevant changes" when none touched the folder).
+- **Namespaced tags need a baseline.** Seed the first `<project>/v<x>` tag (or let the first release start at the
+  fork's default) so `Found N commits since last release` counts from the right point.
+- Preflight sources the GitHub token from the environment (never argv/log); mint a **dedicated fine-grained PAT**
+  (`gh-tools:gh-fine-grained-pat`) scoped to Contents+Releases and store it in the vault, not `gh auth`.
 
 ## Testing Patterns by Language
 
@@ -560,7 +711,8 @@ release-full:
 - [ ] `cli_spec.json` emitted + `spec-check` green
 - [ ] Root CLAUDE.md hub + one spoke per project, all links valid
 - [ ] GitHub repo decorated (description, topics, labels, LICENSE, README)
-- [ ] `moon run repo:release-full` performs first release (CHANGELOG + GitHub release)
+- [ ] Release wired: case A → `moon run repo:release-full`; case B → per-project `<project>:release-dry` scopes to
+      its own `commitPaths` (a dry-run ignores commits outside the folder) + the umbrella covers the whole repo
 - [ ] Nx-convergence rules honored (explicit projects, uniform task names, tags, declared outputs, orchestrator-free scripts)
 
 ## Related Resources
@@ -568,5 +720,7 @@ release-full:
 - [moonrepo docs](https://moonrepo.dev/docs) · [proto docs](https://moonrepo.dev/docs/proto) · [Bun docs](https://bun.sh/docs)
 - [Nx docs](https://nx.dev/) — the convergence target; revisit when repo > ~30 projects or remote caching/distributed execution pays
 - Legacy bootstrap (Pants + mise): `itp/skills/mise-tasks/references/bootstrap-monorepo.md`
-- `itp:semantic-release` skill — release automation deep dive
+- `itp:semantic-release` skill — release automation deep dive (single-unit case A)
+- Per-project monorepo releases (case B): Phase 9 above — `@rimac-technology/semantic-release-monorepo` + the
+  `.releaserc.cjs` dispatcher. Reference implementation: `claude-sys` (6 streams, verified).
 - JSON Schema 2020-12 · RFC 9457 problem+json · Conventional Commits
