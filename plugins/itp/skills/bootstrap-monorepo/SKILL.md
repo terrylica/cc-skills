@@ -73,6 +73,17 @@ Pre-2026-06 repos on **Pants + mise**: the old reference remains at
 [../mise-tasks/references/bootstrap-monorepo.md](../mise-tasks/references/bootstrap-monorepo.md).
 Migrate per-repo (parity-first, cut tasks over one at a time), never big-bang.
 
+## Releases (local-first)
+
+Two cases (full recipes in [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md) Phase 9):
+
+- **One releasable unit** → stock `semantic-release`, one `.releaserc.yml`, tag `v${version}`.
+- **Multiple independently-versioned projects** (the monorepo standard) → per-project **namespaced tags**
+  (`<project>/v${version}`) via **`@rimac-technology/semantic-release-monorepo`** (stock semantic-release ignores
+  `commitPaths` — upstream #1279/#1212), selected by a `RELEASE_PROFILE`-keyed `.releaserc.cjs` dispatcher that
+  derives each stream's `processCommits` from its `commitPaths`, plus a repo-wide umbrella on stock semantic-release.
+  Install the fork with `npm i -D --ignore-scripts`. Reference impl: `claude-sys`.
+
 ## Related Skills
 
 - `itp:semantic-release` - Release automation (local-first; Actions only for release/CodeQL/Dependabot/deploy)
