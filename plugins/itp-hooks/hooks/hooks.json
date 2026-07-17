@@ -245,12 +245,6 @@
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
             "timeout": 5000,
             "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values — prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
-          },
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-mini-inngest-doctrine.ts",
-            "timeout": 5000,
-            "description": "Mini-Inngest doctrine soft nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Nudges when the agent appears to be setting up an external/web-facing service or off-web monitor locally/manually instead of on the Mac Mini as an Inngest application (the shared, durable workflow engine). Trigger heuristic: explicit launchd/cron context (launchctl bootstrap, crontab, StartInterval, plist files) OR actionable keyword + external target (webhook-url=, poll-endpoint https://external, monitor_host=api.example.com, forward-to, etc.). External target detection excludes localhost/127.0.0.1/.local/tailnet. Escape hatch: MINI-INNGEST-OK (registered in the iter-111 canonical marker registry). Spoke: docs/mini-inngest-doctrine.md. ADR: docs/adr/2026-07-06-mini-inngest-doctrine-hook.md."
           }
         ]
       }
