@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # notes-inventory — the Notes sidebar as data
 
+> **Self-Evolving skill** — if macOS Notes' AppleScript behavior drifts from what's below (folder flattening, trash visibility, counts), fix this SKILL.md and the shared engine `scripts/lib/notes-core.ts` / `scripts/notes.ts` (+ a test in `notes-core.test.ts`); see the Post-Execution Reflection at the bottom.
+
 Read-only survey of the whole Notes tree, across ALL accounts (iCloud, Google, Exchange…).
 
 ```bash
@@ -21,3 +23,7 @@ bun "$NC" inventory --json     # [{account, path, count}, …] for analysis
 - If it fails with `-600`/"not running" repeatedly, open Notes once, then retry (the engine already retries transient errors).
 
 This is the data source the `notes-audit` skill analyzes and the `notes-organize` skill acts on.
+
+## Post-Execution Reflection
+
+After an inventory run, check: (1) did the tree match the Notes sidebar (folders, nesting, counts)? If not, the flattened-`folders of account` filter or trash handling drifted — fix `OSA_INVENTORY` in `scripts/notes.ts` and document the macOS change here. (2) Did a transient `-600`/`-1712` require a manual retry? If the built-in retry didn't absorb it, tune `runOsa` in `notes-core.ts`. Only update for real, reproducible drift — not speculation.
