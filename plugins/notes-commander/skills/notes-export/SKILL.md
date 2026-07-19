@@ -28,6 +28,17 @@ What a snapshot contains:
 - The default root (`~/.local/share/notes-commander/export/`) is deliberately OUTSIDE any git repo so note content can never be accidentally committed. Don't redirect `--out` into a repo.
 - Snapshots are full (not incremental); each run creates a new timestamped dir. Old snapshots are plain dirs — delete them manually when no longer wanted.
 - `Recently Deleted` is deliberately skipped (restore a note in the Notes UI first if you want it captured).
+
+## MemPalace bridge (if `mempalace` is on PATH)
+
+After a successful export, re-mine the snapshot into the local MemPalace semantic index so the notes are searchable by meaning (multilingual — verified on 中文 content):
+
+```bash
+command -v mempalace >/dev/null && mempalace mine "<snapshot-dir>" --wing apple-notes --agent terry
+```
+
+Idempotent (unchanged notes are skipped). Recall then works via `mempalace search "<query>" --wing apple-notes`. Skip silently when mempalace isn't installed — the bridge is an enhancement, not a dependency.
+
 - A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). Transient `-600`/`-1712` launch races retry automatically.
 
 ## Post-Execution Reflection
