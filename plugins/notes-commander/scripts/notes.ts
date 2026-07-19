@@ -260,14 +260,18 @@ on run {acctName, folderPath, newName}
   return "ok"
 end run`;
 
+// Iterate a PRE-CAPTURED reference list: indexing `item 1 of (notes of src)` live fails with
+// -1728 once membership changes mid-loop (verified 2026-07-19); captured references are by id
+// and stay valid after each move.
 const OSA_MERGE = `${OSA_COMMON}
 on run {acctName, srcPath, dstPath}
   set src to my resolveFolder(acctName, srcPath)
   set dst to my resolveFolder(acctName, dstPath)
   tell application "Notes"
+    set ns to every note of src
     set moved to 0
-    repeat while (count of notes of src) > 0
-      move (item 1 of (notes of src)) to dst
+    repeat with n in ns
+      move n to dst
       set moved to moved + 1
     end repeat
     set leftFolders to count of folders of src
