@@ -1,3 +1,11 @@
+# [22.13.0](https://github.com/terrylica/cc-skills/compare/v22.12.1...v22.13.0) (2026-07-19)
+
+
+### Features
+
+* **notes-commander:** Apple Notes organizer plugin; absorbs draft-hold ([c7d941f](https://github.com/terrylica/cc-skills/commit/c7d941ff79f05c1bd94c34254ccdc2dac02df1f7))
+* **release:** gate releases on the marketplace-wide bun unit suite ([cc0d48b](https://github.com/terrylica/cc-skills/commit/cc0d48bfc6ccd4179ea7408f857def51a35ec99b))
+
 ## [22.12.1](https://github.com/terrylica/cc-skills/compare/v22.12.0...v22.12.1) (2026-07-19)
 
 
