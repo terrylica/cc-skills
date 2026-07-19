@@ -33,6 +33,11 @@
           },
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-path-owner-guard.mjs",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-no-anchors.mjs",
             "timeout": 5000
           }
