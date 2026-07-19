@@ -216,12 +216,21 @@ function bodyOnly(full: string): string {
 }
 
 // ---- AppleScript payloads ----
+// Create-then-swap: make the NEW note FIRST, then delete any OTHER notes sharing this title.
+// A transient Notes AppleEvent failure can therefore never orphan the draft (the old copy
+// survives until the new one exists), and a leftover duplicate from a past failure self-heals
+// on the next run. Notes names a note by its first line, so the new note's name == noteTitle;
+// we keep it by id and delete the rest.
 const OSA_NEW = `on run {folderName, noteTitle, bodyHTML}
   tell application "Notes"
     if not (exists folder folderName) then make new folder with properties {name:folderName}
-    if exists note noteTitle of folder folderName then delete note noteTitle of folder folderName
     set n to make new note at folder folderName with properties {body:bodyHTML}
-    return (id of n)
+    set newId to id of n
+    set dupes to (notes of folder folderName whose name is noteTitle)
+    repeat with x in dupes
+      if (id of x) is not newId then delete x
+    end repeat
+    return newId
   end tell
 end run`;
 
