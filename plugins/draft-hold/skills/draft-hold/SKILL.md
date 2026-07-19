@@ -6,11 +6,22 @@ allowed-tools: Bash, Read
 
 # draft-hold — human-in-the-loop drafts via macOS Notes
 
-> **Self-Evolving skill** — if macOS Notes/Stickies behavior drifts from what's below, fix this SKILL.md and `draft-hold.sh`; see the Post-Execution Reflection at the bottom.
+> **Self-Evolving skill** — if macOS Notes/Stickies behavior drifts from what's below, fix this SKILL.md and the Bun engine `draft-hold.ts` (add a case to `draft-hold.test.ts`); see the Post-Execution Reflection at the bottom.
 
 When you compose something a human should confirm or edit before it goes out (a message to a real person, an announcement, a commit body), **don't keep it only in chat** — park it in macOS Notes so the operator can edit it on any device, then read it back and act on the edited version.
 
-`DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`
+`DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"` — a thin shim that `exec`s the **Bun/TypeScript engine** `draft-hold.ts` (which owns all formatting). You can also call `bun "$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.ts" …` directly.
+
+## Formatting is handled in code — just write naturally
+
+The engine (`draft-hold.ts`, unit-tested in `draft-hold.test.ts`) normalizes your input into Notes HTML, so you no longer have to hand-manage line breaks. The rules it enforces:
+
+- **Prose reflows.** Consecutive non-blank lines are joined into ONE paragraph that Notes soft-wraps to the reader's screen. This means accidental hard-wrapping (e.g. text pre-wrapped at ~80/100 cols) is corrected automatically — it can no longer become a permanent mid-sentence break. Write however you like; blank lines are the only breaks that matter.
+- **A blank line = a new paragraph/section.** That is the one authored break.
+- **List items** — lines beginning with `-`, `*`, `+`, `•`, `1.`, `2)`, `a.` etc. each stay on their own line; a wrapped continuation line (indented, no marker) joins back to its item.
+- **Verbatim / columnar / code blocks** — wrap them in a ` ``` ` fence. Every line inside is preserved exactly and rendered monospace with spaces held (via `&nbsp;`), so columns and IDs line up **in the Notes UI**. Use this for tables, cheque numbers, ASCII layouts — anything where alignment matters. (Note: `get --body-only` returns the _sendable_ plain text and collapses inter-column runs to single spaces, since email/chat bodies don't render monospace anyway; if exact alignment must survive to the recipient, send it as an attachment/screenshot.)
+
+Net effect: paste prose in any wrapping and it renders clean; reserve blank lines for structure; fence anything that must stay literally aligned.
 
 ## Workflow
 
@@ -52,11 +63,13 @@ When you compose something a human should confirm or edit before it goes out (a 
 - **Note name = first body line**: Notes names a note after its first line, ignoring any
   title you "set". `new` therefore prepends the title as a bold first line so
   `get`/`list`/replace can find it by title. Pass the message body only on STDIN.
-- **Monospaced by default**: `new` wraps every line in `<tt>`, which Notes renders as its
-  monospaced ("Monostyled") style — drafts read like a code block so columns/IDs line up.
-  This is cosmetic in Notes only; `get`/`--body-only` strip the tags, so the text you
-  send is unaffected. (Notes' mono face is fixed by Notes — it is _not_ the global
-  `NSFixedPitchFont`; that default governs TextEdit-style apps, not Notes.)
+- **Proportional prose, monospace only in fences**: prose paragraphs render in Notes' normal
+  proportional font (so a long line reflows to the reader's screen). Only ` ``` ` fenced blocks
+  are wrapped in `<tt>` (Notes' "Monostyled" face) with spaces held as `&nbsp;`, so columns/IDs
+  line up. (Earlier versions wrapped _every_ line in `<tt>`; that made all drafts read like code
+  and — combined with per-line paragraphs — turned hard-wrapped prose into permanent mid-sentence
+  breaks. The engine now reflows prose and reserves monospace for fences.) The mono face is fixed
+  by Notes — it is _not_ the global `NSFixedPitchFont`, which governs TextEdit-style apps, not Notes.
 
 ## Getting the session UUID for provenance
 
@@ -68,6 +81,10 @@ Pass the current Claude Code session JSONL UUID via `CLAUDE_SESSION_ID` or `--se
 - Notes is the source of truth. Stickies cannot be read back (no AppleScript dictionary), so never treat a sticky as the live draft.
 - There is no scriptable deep-link to a specific note (`open x-coredata://…` fails; `applenotes:` links are UI-only) — reference drafts by **folder + title**.
 - First run prompts once for Automation permission to control Notes.
+
+## Evolution log
+
+- **2026-07-18 — hard-wrapped prose became forced mid-sentence breaks.** A long bilingual briefing was passed with each paragraph pre-wrapped at ~100 chars; because the old bash `new` made each input line its own Notes paragraph (all wrapped in `<tt>`), the reader saw mid-sentence line breaks that did not reflow. _First fix (insufficient)_: a "one line per paragraph" caller contract — but that only works if every caller remembers it. _Real fix_: reimplemented the engine as **Bun/TypeScript** (`draft-hold.ts` + `draft-hold.test.ts`), enforcing the formatting in code so the failure is impossible: prose blocks REFLOW (consecutive lines join; blank line = paragraph), list markers stay per-item, and only ` ``` ` fenced blocks are preserved verbatim/monospace (spaces held as `&nbsp;` so columns align in the Notes UI). `draft-hold.sh` is now a thin shim that `exec`s the Bun engine, so `$DH` call sites are unchanged. Verified by 9 unit tests + a live Notes round-trip (hard-wrapped input reflowed; fenced table stayed aligned).
 
 ## Post-Execution Reflection
 
