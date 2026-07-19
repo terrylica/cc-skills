@@ -743,8 +743,34 @@ fi
 # pin, the entire ccmax line is suppressed (see renderer below). Graceful
 # degradation.
 
+# DOORWARD_BASE — derived from the LIVE bearer pin, not hardcoded (2026-07-19).
+#
+# This was pinned to bigblack:8450 and therefore always described el02's pool,
+# no matter where the wrapper actually routed. When the fleet primary moved to
+# nca.25u.com (7 schedulable accounts) while el02 kept 2, the status line went
+# on reporting "2" — an accurate number for a door the user was no longer
+# using. That is worse than no number: it reads as capacity, so a 3.5x pool
+# change is invisible and a real capacity problem would be attributed to the
+# wrong host.
+#
+# The pin's ANTHROPIC_BASE_URL is the INFERENCE url; router-status lives on
+# doorward, which is the same host but not always the same port:
+#   bigblack…:8452  (tailproxy)      -> doorward on :8450
+#   https://nca.25u.com (portless)   -> Caddy proxies /v1/* to doorward, as-is
+#   https://eon.25u.com:8450         -> already doorward, as-is
+# Falls back to the historical constant when no pin file exists, so public
+# cc-skills users and personal-OAuth devices behave exactly as before.
+_ccmax_pin_file="${HOME}/.config/ccmax/bearer-pin-env.sh"
 DOORWARD_BASE="https://bigblack.tail0f299b.ts.net:8450"
-DOORWARD_CACHE="/tmp/ccmax-doorward-cache.json"
+if [ -r "$_ccmax_pin_file" ]; then
+    _ccmax_pin_url=$(sed -n 's/^export ANTHROPIC_BASE_URL=//p' "$_ccmax_pin_file" 2>/dev/null | tr -d "\"'" | head -1)
+    if [ -n "$_ccmax_pin_url" ]; then
+        # tailproxy inference port -> doorward port; every other form is
+        # already doorward-addressable.
+        DOORWARD_BASE="${_ccmax_pin_url/:8452/:8450}"
+    fi
+fi
+DOORWARD_CACHE="/tmp/ccmax-doorward-cache-$(printf '%s' "$DOORWARD_BASE" | shasum | cut -c1-8).json"
 DOORWARD_CACHE_TTL=60
 
 # Doorward's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
