@@ -1,3 +1,10 @@
+## [22.13.1](https://github.com/terrylica/cc-skills/compare/v22.13.0...v22.13.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **notes-commander:** iterate pre-captured refs in merge-folder ([19e6540](https://github.com/terrylica/cc-skills/commit/19e654057b8452e5ffbfe7b6e5600510371fc4bf))
+
 # [22.13.0](https://github.com/terrylica/cc-skills/compare/v22.12.1...v22.13.0) (2026-07-19)
 
 
