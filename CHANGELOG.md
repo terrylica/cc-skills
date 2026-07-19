@@ -1,3 +1,5 @@
+## [22.13.2](https://github.com/terrylica/cc-skills/compare/v22.13.1...v22.13.2) (2026-07-19)
+
 ## [22.13.1](https://github.com/terrylica/cc-skills/compare/v22.13.0...v22.13.1) (2026-07-19)
 
 
