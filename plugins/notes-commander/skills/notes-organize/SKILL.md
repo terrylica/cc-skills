@@ -6,6 +6,8 @@ allowed-tools: Bash, Read
 
 # notes-organize — the reorganization primitives
 
+> **Self-Evolving skill** — if a verb misbehaves (path resolution, ambiguity handling, `move` semantics), fix this SKILL.md and the AppleScript payloads in `scripts/notes.ts`; see the Post-Execution Reflection at the bottom.
+
 The folderization verbs, built on the shared hardened engine (path-based folder resolution,
 transient-error retry). Folder **paths** use `/` between segments (`To-Do / Done`) because
 names are not unique across the tree.
@@ -37,3 +39,7 @@ All verbs accept `--account A` (default `iCloud`; your Google/Exchange accounts 
 - **No delete verb.** Notes are only ever MOVED; folders are never deleted by this tool. `merge-folder` empties the source but leaves the (now-empty) folder for the operator to delete in the Notes UI after visual confirmation. This keeps the worst possible outcome "a note is in the wrong folder", never "a note is gone".
 - Tags (`#tag`) have **no AppleScript API** — organizing is folder-based. If tag hygiene matters, note it in the audit output for manual action.
 - Moves between DIFFERENT accounts are not supported by Notes' AppleScript `move` (same-account only). Cross-account moves are a manual drag in the UI.
+
+## Post-Execution Reflection
+
+After any reorganization, check: (1) did post-move `inventory` counts match the dry-run prediction? A mismatch means `resolveFolder` or `move` semantics drifted — fix the payloads in `scripts/notes.ts` and document here. (2) Did an ambiguous-title refusal print usable ids? (3) Did anything require bypassing the snapshot-first protocol? If so, that's a process failure to write down, not a tooling gap. Update only for real, reproducible drift.

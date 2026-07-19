@@ -6,6 +6,8 @@ allowed-tools: Bash, Read
 
 # notes-export — full local snapshot of Apple Notes
 
+> **Self-Evolving skill** — if export behavior drifts (AE size caps, chunk failures, encoding), fix this SKILL.md and `scripts/notes.ts` `OSA_EXPORT` (+ a test in `notes-core.test.ts` for any pure helper change); see the Post-Execution Reflection at the bottom.
+
 One command captures everything Notes holds into a timestamped local snapshot:
 
 ```bash
@@ -27,3 +29,7 @@ What a snapshot contains:
 - Snapshots are full (not incremental); each run creates a new timestamped dir. Old snapshots are plain dirs — delete them manually when no longer wanted.
 - `Recently Deleted` is deliberately skipped (restore a note in the Notes UI first if you want it captured).
 - A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). Transient `-600`/`-1712` launch races retry automatically.
+
+## Post-Execution Reflection
+
+After an export, check: (1) exit code 0 and note count ≈ live inventory total? Exit 3 means some notes were skipped — read the `⚠` lines and investigate before trusting the snapshot as a backup. (2) Spot-check one CJK/emoji-titled file — mojibake means the `<meta charset="utf-8">` textutil prefix or `safeFilename` drifted. (3) New `-1741`s despite chunking → shrink the chunk size in `OSA_EXPORT`. Update this SKILL.md only for real, reproducible drift.
