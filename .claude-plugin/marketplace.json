@@ -8,22 +8,25 @@
   },
   "plugins": [
     {
-      "name": "draft-hold",
-      "description": "Park a draft message in macOS Notes (provenance-stamped with the Claude Code session UUID, iCloud-synced) for the operator to edit, then read it back before sending. Notes is the source of truth; Stickies is a best-effort view-only mirror.",
+      "name": "notes-commander",
+      "description": "macOS Notes organizer + human-in-the-loop drafts. Inventory every account/folder, export all notes to local markdown+manifest snapshots, reorganize safely (folderize/move/merge, dry-run first, no delete verb), audit-and-propose taxonomy, and the migrated draft-hold skill - all on one hardened AppleScript engine (silent-failure detection, transient-error retry, read-back verify).",
       "version": "22.12.1",
-      "source": "./plugins/draft-hold",
+      "source": "./plugins/notes-commander",
       "category": "productivity",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
       "keywords": [
-        "draft",
-        "notes",
         "apple-notes",
-        "stickies",
+        "notes",
+        "organizer",
+        "export",
+        "backup",
+        "folderize",
+        "draft",
         "human-in-the-loop",
-        "review",
+        "applescript",
         "macos",
         "provenance"
       ],
@@ -114,7 +117,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "22.12.1",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -262,7 +265,7 @@
     },
     {
       "name": "floating-clock",
-      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "description": "Always-on-top floating desktop clock for macOS \u2014 borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
       "version": "22.12.1",
       "source": "./plugins/floating-clock",
       "category": "utilities",
@@ -397,7 +400,7 @@
     },
     {
       "name": "pushover-commander",
-      "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
+      "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright \u2014 the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
       "version": "22.12.1",
       "source": "./plugins/pushover-commander",
       "category": "devops",

@@ -92,7 +92,7 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (37)
+## All Plugins (39)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
@@ -116,11 +116,14 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [itp-hooks](./itp-hooks/CLAUDE.md)
 - [kokoro-tts](./kokoro-tts/CLAUDE.md)
 - [link-tools](./link-tools/CLAUDE.md)
+- [macos-font-defaults](./macos-font-defaults/CLAUDE.md)
 - [macro-keyboard](./macro-keyboard/CLAUDE.md) — also has skill-level CLAUDE.mds (first plugin to adopt the deeper layer; see [macro-keyboard/CLAUDE.md](./macro-keyboard/CLAUDE.md#skills) for the per-skill table)
 - [media-tools](./media-tools/CLAUDE.md)
 - [minimax](./minimax/CLAUDE.md)
 - [mise](./mise/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
+- [notes-commander](./notes-commander/CLAUDE.md) — absorbs the retired draft-hold plugin (2026-07-18) as its `draft-hold` skill
+- [openwolf](./openwolf/CLAUDE.md)
 - [plugin-dev](./plugin-dev/CLAUDE.md)
 - [productivity-tools](./productivity-tools/CLAUDE.md)
 - [pushover-commander](./pushover-commander/CLAUDE.md)
@@ -131,6 +134,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [statusline-tools](./statusline-tools/CLAUDE.md)
 - [tlg](./tlg/CLAUDE.md)
 - [tts-tg-sync](./tts-tg-sync/CLAUDE.md)
+- [whatsapp-commander](./whatsapp-commander/CLAUDE.md)
 
 ## Toolchain
 

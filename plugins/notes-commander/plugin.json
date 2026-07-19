@@ -1,0 +1,9 @@
+{
+  "name": "notes-commander",
+  "version": "22.12.1",
+  "description": "macOS Notes organizer + human-in-the-loop drafts. Full read/export wiring (inventory, markdown+manifest snapshots to local storage), reorganization primitives (folderize, move, merge — dry-run first, snapshot required), an audit skill that proposes a better taxonomy, and the migrated draft-hold skill — all on one hardened AppleScript engine (silent-failure detection, transient-error retry, read-back verify).",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
