@@ -164,6 +164,8 @@ fi
 
 ## Step 3: Execute
 
+**Zero-commits gate (check FIRST):** if `git log --oneline "$(git describe --tags --abbrev=0)..HEAD"` is empty AND the tree is clean, there is **nothing to release** — `release:full` would no-op at semantic-release. Report that HEAD == the latest tag and offer the useful alternatives instead: `mise run release:status` (report), or the pipeline's **sync + verify phases only** (`mise run release:sync && mise run release:verify`) to re-assert that live runtime artifacts (marketplace clone, plugin cache, installed/enabled lists, synced commands) exactly match the released version. _Evidence (2026-07-19): invoked on cc-skills ~30 min after a release had shipped; zero commits since the tag; operator chose sync+verify — confirmed all 39 plugins consistent across the four artifact stores without a wasted no-op pipeline run._
+
 ```bash
 # Pre-release sync
 git pull origin main
