@@ -1,0 +1,29 @@
+---
+name: notes-export
+description: Export/back up EVERY macOS Notes note (all accounts, all folders) to local storage as markdown files plus a JSON manifest — the safety net to run BEFORE any reorganization, and the corpus the notes-audit skill analyzes. Read-only against Notes; writes only to ~/.local/share/notes-commander/export/. TRIGGERS - export my notes, back up notes, notes snapshot, dump notes to disk, notes backup before reorganizing.
+allowed-tools: Bash, Read
+---
+
+# notes-export — full local snapshot of Apple Notes
+
+One command captures everything Notes holds into a timestamped local snapshot:
+
+```bash
+NC="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/notes-commander/scripts/notes.ts"
+bun "$NC" export                     # → ~/.local/share/notes-commander/export/<stamp>/
+bun "$NC" export --out /path/to/dir  # explicit destination
+```
+
+What a snapshot contains:
+
+- **One markdown file per note**, under `<account>/<folder>/…` mirroring the Notes hierarchy. Each file has YAML frontmatter (`account`, `folder`, `id`, `modified`) and the note body as plain text (decoded via `textutil`, UTF-8-safe, CJK-safe).
+- **`manifest.json`** — every folder (with counts) and every note (id, name, modified, relative file path, char count). This is the machine-readable index for audits and diffs.
+- Filenames are sanitized (`safeFilename`) and suffixed with the note's core-data id (`.p1234.md`), so same-titled notes never collide.
+
+## Rules
+
+- **Run this before any `notes-organize` operation** — it is the undo story. Notes has no API-level undo; a snapshot does.
+- The default root (`~/.local/share/notes-commander/export/`) is deliberately OUTSIDE any git repo so note content can never be accidentally committed. Don't redirect `--out` into a repo.
+- Snapshots are full (not incremental); each run creates a new timestamped dir. Old snapshots are plain dirs — delete them manually when no longer wanted.
+- `Recently Deleted` is deliberately skipped (restore a note in the Notes UI first if you want it captured).
+- A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). Transient `-600`/`-1712` launch races retry automatically.
