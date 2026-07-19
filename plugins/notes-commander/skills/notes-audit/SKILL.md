@@ -6,6 +6,8 @@ allowed-tools: Bash, Read
 
 # notes-audit — analyze, then PROPOSE (never act unilaterally)
 
+> **Self-Evolving skill** — if the smell table stops matching how the operator actually organizes (new smells found, false positives), evolve the table in this SKILL.md; see the Post-Execution Reflection at the bottom.
+
 This skill is an analysis workflow, not a script: you (Claude) gather the data with the
 plugin's CLIs, reason over it, and present a proposal. **No reorganization happens in this
 skill** — execution belongs to `notes-organize`, only after operator approval.
@@ -45,3 +47,7 @@ Present, in this order:
 
 Then STOP and get explicit approval. On approval, hand off to `notes-organize` and follow its
 safety protocol (snapshot → dry-run → execute → verify counts).
+
+## Post-Execution Reflection
+
+After an audit, check: (1) did the operator reject/modify parts of the proposal? Their reasoning is a missing smell or a wrong default — encode it in the smell table. (2) Did any proposal require a capability the tooling lacks (tags, cross-account)? Confirm it's listed under manual items. (3) Did sampling miss something the operator knew about a folder? Note the folder type so the next audit samples it deeper. Update only for real, reproducible gaps.
