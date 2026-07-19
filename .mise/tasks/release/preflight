@@ -484,6 +484,29 @@ HOOK_TESTS_FAILED=$( { grep -oE 'Test files FAILED:[[:space:]]+[0-9]+' /tmp/hook
 echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_TESTS_FAILED:-0} failed)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide hook regression suite"
 
+# Check 4e2: Marketplace-wide Bun UNIT suite (2026-07-19 wire-up of the
+# test-marketplace-bun-unit-suite… mise task into the release gate). Runs
+# every git-TRACKED *.test.ts / *.test.mjs in one `bun test` pass (747+
+# tests: itp-hooks TS hooks, notes-commander engine, gmail-commander
+# drafts, …), excluding only the live browser+passkey integration test
+# (env-dependent, not a unit regression). Before this check existed the
+# TypeScript unit suites ran ONLY when someone remembered `bun test` by
+# hand — Check 4e covers the *.sh regression tests but never the TS
+# suites, so a formatter/engine regression could ship to Layer 3 with a
+# green release (gap found 2026-07-18 while hardening draft-hold).
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Running marketplace-wide Bun unit suite (tracked *.test.ts/mjs)..."
+if ! mise run test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration >/tmp/bun-unit-suite.log 2>&1; then
+    echo "  ✗ Bun unit suite FAILED — see /tmp/bun-unit-suite.log"
+    tail -20 /tmp/bun-unit-suite.log
+    exit 1
+fi
+# Loose-coupled defensive grep (same iter-70 discipline as Check 4e).
+BUN_UNIT_PASSED=$( { grep -oE '^[[:space:]]*[0-9]+ pass' /tmp/bun-unit-suite.log || true; } | head -1 | awk '{print $1}' || echo 0)
+BUN_UNIT_FAILED=$( { grep -oE '^[[:space:]]*[0-9]+ fail' /tmp/bun-unit-suite.log || true; } | head -1 | awk '{print $1}' || echo 0)
+echo "  ✓ Bun unit suite: ${BUN_UNIT_PASSED:-0} tests passed (${BUN_UNIT_FAILED:-0} failed)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 4e2: marketplace-wide bun unit suite (tracked *.test.ts/mjs)"
+
 # Iter-134: Phase A — parallel fan-out of all 17 marketplace audits (Checks
 # 4f-4v). Each audit's mise-run subprocess writes its existing /tmp/<key>.log
 # path plus iter-134 sidecars (.exit, .elapsed_ms). The subsequent Check 4f-4v
