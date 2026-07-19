@@ -1,3 +1,10 @@
+## [22.12.1](https://github.com/terrylica/cc-skills/compare/v22.12.0...v22.12.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **draft-hold:** create-then-swap replace to prevent orphaned drafts ([abb73fc](https://github.com/terrylica/cc-skills/commit/abb73fcb203998d082782ac13add3cc28fc1630a))
+
 # [22.12.0](https://github.com/terrylica/cc-skills/compare/v22.11.0...v22.12.0) (2026-07-19)
 
 
