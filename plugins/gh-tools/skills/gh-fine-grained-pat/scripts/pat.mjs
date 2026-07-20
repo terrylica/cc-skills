@@ -107,6 +107,28 @@ async function session({ requireAuth = true } = {}) {
   await launchChrome();
   const { browser, ctx } = await connect();
   if (requireAuth && !(await isAuthedViaRequest(ctx))) {
+    // Autonomous FULL login (extends ADR 2026-06-26 beyond sudo-only): when the
+    // session cookie has expired, navigating to settings redirects to /login,
+    // whose "Sign in with a passkey" button is already covered by autosudo's
+    // tryPasskey regex. One Touch-ID unlock of the gated blob re-arms the
+    // profile cookie; the manual `pat login` path remains the fallback.
+    // (Found live 2026-07-19: expired cookie + GH_PAT_AUTONOMOUS=1 died here
+    // without ever reaching the autonomous machinery.)
+    const account = process.env.GH_PAT_ACCOUNT;
+    if (process.env.GH_PAT_AUTONOMOUS === "1" && account) {
+      console.error(`• session expired — attempting autonomous login as '${account}'…`);
+      const loginPage = await gotoSettings(ctx);
+      try {
+        const { autonomousSudo } = await import("./autosudo.mjs");
+        await autonomousSudo(loginPage, account);
+      } catch (e) {
+        console.error(`autonomous login failed (${e.message})`);
+      }
+      if (await isAuthedViaRequest(ctx)) {
+        console.error(`✓ autonomous login (${account})`);
+        return { browser, ctx, page: await gotoSettings(ctx) };
+      }
+    }
     await browser.close();
     die("not logged in. Run `node scripts/pat.mjs login`, sign into GitHub in the Chrome window, then retry.");
   }
