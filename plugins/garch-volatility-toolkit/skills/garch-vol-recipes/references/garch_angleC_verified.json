@@ -1,0 +1,26 @@
+{
+  "2bps": {
+    "ensemble_baseline_sr": 0.4908,
+    "ensemble_baseline_psr": 0.7076,
+    "ensemble_volsized_sr": 0.9989,
+    "ensemble_volsized_psr": 0.8596,
+    "ensemble_delta_sr": 0.5081,
+    "perseed_mean_lift": 0.3791,
+    "perseed_p": 0.0,
+    "perseed_win": "20/20",
+    "turnover_baseline": 0.3237,
+    "turnover_volsized": 0.4383
+  },
+  "7bps": {
+    "ensemble_baseline_sr": -1.6385,
+    "ensemble_baseline_psr": 0.0352,
+    "ensemble_volsized_sr": -1.6174,
+    "ensemble_volsized_psr": 0.0427,
+    "ensemble_delta_sr": 0.0211,
+    "perseed_mean_lift": 0.0315,
+    "perseed_p": 0.541588,
+    "perseed_win": "9/20",
+    "turnover_baseline": 0.3237,
+    "turnover_volsized": 0.4383
+  }
+}

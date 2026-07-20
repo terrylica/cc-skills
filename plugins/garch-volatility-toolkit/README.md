@@ -2,16 +2,21 @@
 
 Walk-forward GARCH(1,1) and GJR(1,1) volatility forecasting for portfolio construction. Includes recipes, leakage traps, and campaign results from testing on 20 seeds (BTC/ETH/SOL/AVAX futures, 2025-26 test window).
 
-## Campaign Results
+## Campaign Results (honest)
 
-Two experiments on realistic data:
+A negative-to-marginal result set — **not** a deployable edge. Independently re-verified ensemble
+net-Sharpe (equal-weight 20 seeds, non-IID PSR); see
+[CAMPAIGN_VERDICT.md](./skills/garch-vol-recipes/references/CAMPAIGN_VERDICT.md).
 
-| Approach             | Lift (2bps)   | Lift (7bps)   | Significance     | Best For              |
-| -------------------- | ------------- | ------------- | ---------------- | --------------------- |
-| **GJR vol-scaling**  | +0.449 Sharpe | +0.274 Sharpe | p<0.0001, t=8.92 | Primary vol lever     |
-| **DCC de-weighting** | +0.054 Sharpe | +0.054 Sharpe | p<0.0001, t=5.49 | Risk management hedge |
+| Overlay (ensemble Sharpe) | 2 bps                      | 7 bps               | Verdict                                   |
+| ------------------------- | -------------------------- | ------------------- | ----------------------------------------- |
+| **GJR vol-scaling**       | +0.49→**+1.00** (PSR→0.86) | +0.02, p=0.54, 9/20 | Real @2bps, **cost-fragile — dies @7bps** |
+| **DCC de-weighting**      | +0.49→+0.56 (PSR→0.73)     | −1.64→−1.58         | Economically immaterial                   |
 
-Both statistically significant across all 20 seeds. GJR is 8.3× stronger and more consistent.
+GARCH information does not create a retail-cost-surviving edge here; GJR vol-sizing is a
+low-cost/maker-venue lever only. Per-seed p<0.0001 figures were inflated (deterministic overlay on
+correlated seeds) and are not used. This toolkit's value is the **methodology** (walk-forward fitting
+recipes + leakage traps), not an alpha claim.
 
 ## Quick Links
 
