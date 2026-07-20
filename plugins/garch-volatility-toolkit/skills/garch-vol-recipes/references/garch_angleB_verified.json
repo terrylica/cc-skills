@@ -1,0 +1,26 @@
+{
+  "2bps": {
+    "ensemble_baseline_sr": 0.4908,
+    "ensemble_baseline_psr": 0.7076,
+    "ensemble_deweight_sr": 0.5618,
+    "ensemble_deweight_psr": 0.7334,
+    "ensemble_delta_sr": 0.071,
+    "perseed_mean_lift": 0.0542,
+    "perseed_p": 3e-06,
+    "perseed_win": "19/20",
+    "turnover_baseline": 0.3237,
+    "turnover_deweight": 0.3153
+  },
+  "7bps": {
+    "ensemble_baseline_sr": -1.6385,
+    "ensemble_baseline_psr": 0.0352,
+    "ensemble_deweight_sr": -1.5839,
+    "ensemble_deweight_psr": 0.0406,
+    "ensemble_delta_sr": 0.0546,
+    "perseed_mean_lift": 0.0423,
+    "perseed_p": 0.000105,
+    "perseed_win": "18/20",
+    "turnover_baseline": 0.3237,
+    "turnover_deweight": 0.3153
+  }
+}
