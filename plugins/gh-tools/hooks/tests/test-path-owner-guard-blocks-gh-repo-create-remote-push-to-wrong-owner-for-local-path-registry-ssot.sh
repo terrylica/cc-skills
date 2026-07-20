@@ -90,9 +90,15 @@ echo "[7] git push to explicit terrylica URL in ~/vj → DENY"
 IFS=$'\t' read -r rc out < <(run "$VJ" '"git push git@github.com:terrylica/x.git main"')
 if is_deny "$out"; then pass "wrong push destination blocked"; else err "expected deny, got rc=$rc out=$out"; fi
 
-echo "[8] ALLOW_OWNER_MISMATCH=1 escape hatch → ALLOW"
+echo "[8] ALLOW_OWNER_MISMATCH=1 escape hatch (hook-process env) → ALLOW"
 IFS=$'\t' read -r rc out < <(run "$VJ" '"gh repo create foo"' ALLOW_OWNER_MISMATCH=1)
 if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "escape hatch allows"; else err "expected allow, got rc=$rc out=$out"; fi
+
+echo "[8b] ALLOW_OWNER_MISMATCH=1 as an IN-COMMAND prefix → ALLOW"
+# The real-world form: the override is part of the command string; the hook process never
+# inherits it. Regression for the 2026-07-19 live-fire bug (env-only check made this a no-op).
+IFS=$'\t' read -r rc out < <(run "$VJ" '"ALLOW_OWNER_MISMATCH=1 gh repo create terrylica/foo"')
+if [ "$rc" = 0 ] && [ -z "$out" ]; then pass "in-command prefix allows"; else err "expected allow, got rc=$rc out=$out"; fi
 
 echo "[9] unmapped path /tmp → FAIL-OPEN"
 IFS=$'\t' read -r rc out < <(run "/tmp" '"gh repo create foo"')
