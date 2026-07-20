@@ -32,8 +32,12 @@ if ((data.tool_name ?? "") !== "Bash") process.exit(0);
 const command = data.tool_input?.command ?? "";
 if (!command) process.exit(0);
 
-// Deliberate escape hatch.
-if (process.env.ALLOW_OWNER_MISMATCH === "1") process.exit(0);
+// Deliberate escape hatch. The prefix form (`ALLOW_OWNER_MISMATCH=1 <command>`) lives INSIDE the
+// command string — the hook process never inherits it — so detect it textually as well.
+// (Bug found on first live fire, 2026-07-19: env-only check made the documented override a no-op.)
+if (process.env.ALLOW_OWNER_MISMATCH === "1" || /\bALLOW_OWNER_MISMATCH=1\b/.test(command)) {
+  process.exit(0);
+}
 
 const isRepoCreate = /\bgh\s+repo\s+create\b/.test(command);
 const isRemoteSet = /\bgit\s+remote\s+(?:add|set-url)\b/.test(command);
