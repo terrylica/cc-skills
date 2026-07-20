@@ -117,7 +117,7 @@
     },
     {
       "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback \u2014 unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
+      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
       "version": "22.13.2",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
@@ -265,7 +265,7 @@
     },
     {
       "name": "floating-clock",
-      "description": "Always-on-top floating desktop clock for macOS \u2014 borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
+      "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
       "version": "22.13.2",
       "source": "./plugins/floating-clock",
       "category": "utilities",
@@ -400,7 +400,7 @@
     },
     {
       "name": "pushover-commander",
-      "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright \u2014 the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
+      "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
       "version": "22.13.2",
       "source": "./plugins/pushover-commander",
       "category": "devops",
@@ -946,6 +946,28 @@
         "textedit",
         "stickies",
         "defaults"
+      ],
+      "strict": false
+    },
+    {
+      "name": "garch-volatility-toolkit",
+      "description": "Walk-forward GARCH(1,1) and GJR(1,1) volatility forecasting. DCC de-weighting overlay (+0.054 Sharpe), GJR inverse vol-scaling (+0.449 Sharpe). Campaign results from 20 seeds on BTC/ETH/SOL/AVAX, 2025-26 test window.",
+      "version": "1.0.0",
+      "source": "./plugins/garch-volatility-toolkit",
+      "category": "trading",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "garch",
+        "volatility",
+        "gjr",
+        "forecasting",
+        "position-sizing",
+        "risk-management",
+        "dcc",
+        "correlation"
       ],
       "strict": false
     }
