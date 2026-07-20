@@ -12,6 +12,7 @@ import {
   bodyToHtml,
   contentPresent,
   entityLeaks,
+  terminateLegacyEntities,
   escapeHtml,
   FS,
   isNoteId,
@@ -142,4 +143,34 @@ test("safeFilename strips path-hostile characters and bounds length", () => {
   expect(safeFilename("", "fallback")).toBe("fallback");
   expect(safeFilename("正常中文名", "x")).toBe("正常中文名");
   expect(safeFilename("x".repeat(300), "f").length).toBeLessThanOrEqual(120);
+});
+
+// Regression: a note storing `Write-Host "x"; $y` comes back from Notes raw as
+// `Write-Host &quotx&quot; $y`. Without terminating the bare entities first,
+// textutil consumes the author's `;` as the closing `&quot;` and the semicolon
+// vanishes — silently corrupting any staged PowerShell/C/Java/JS. Verified live
+// against macOS Notes 2026-07-20.
+test("terminateLegacyEntities preserves an author semicolon that follows a quote", () => {
+  expect(terminateLegacyEntities("Write-Host &quotx&quot; $y.Remove()")).toBe(
+    "Write-Host &quot;x&quot;; $y.Remove()",
+  );
+});
+
+test("terminateLegacyEntities terminates bare entities so a parser decodes them", () => {
+  expect(terminateLegacyEntities("a &amp b &lt c &gt d")).toBe("a &amp; b &lt; c &gt; d");
+  expect(terminateLegacyEntities("&quot")).toBe("&quot;");
+});
+
+test("terminateLegacyEntities does not rescan its own replacements", () => {
+  // A literal `&amp;` typed by the author is stored by Notes as `&ampamp;`
+  // (Notes escapes the `&`). One substitution must yield `&amp;amp;`, which a
+  // parser decodes back to the literal `&amp;` — not a runaway rewrite.
+  expect(terminateLegacyEntities("&ampampquot")).toBe("&amp;ampquot");
+  expect(terminateLegacyEntities("the &amplifier works")).toBe("the &amp;lifier works");
+});
+
+test("terminateLegacyEntities leaves entity-free text untouched", () => {
+  expect(terminateLegacyEntities("plain; text with no entities")).toBe(
+    "plain; text with no entities",
+  );
 });
