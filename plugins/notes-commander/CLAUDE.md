@@ -10,7 +10,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Architecture (load-bearing)
 
-- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts` (16 tests). AppleScript payloads live in the consumers, not here.
+- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `terminateLegacyEntities`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts` (20 tests). AppleScript payloads live in the consumers, not here.
 - **`scripts/notes.ts`** — organizer CLI: `inventory` / `export` / `mkdir` / `move-note` / `rename-folder` / `merge-folder` / `doctor`. FS/RS-delimited (U+0001/U+0002) record streams from AppleScript, parsed by `parseRecords` (AppleScript has no JSON).
 - **`scripts/draft-hold.ts`** — the draft-hold engine, now importing the shared core; `new` verifies a real note id + read-back (entity leaks, content presence) by default.
 - **Skills reference scripts via the Layer-2 marketplace mirror path** (`$HOME/.claude/plugins/marketplaces/cc-skills/plugins/notes-commander/scripts/…`).
@@ -39,4 +39,4 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Testing
 
-`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): 16 pure-helper tests. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).
+`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): 20 pure-helper tests. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).

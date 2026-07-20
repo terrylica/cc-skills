@@ -260,11 +260,36 @@ export function runOsaOrDie(script: string, args: string[], maxAttempts = 3): st
   return r.stdout;
 }
 
+/**
+ * Terminate Notes' semicolon-less legacy entities BEFORE handing HTML to a real
+ * parser, so an author's literal `;` is not swallowed as an entity terminator.
+ *
+ * Notes' AppleScript `body` getter emits the semicolon-LESS form (`&quot`, `&amp`,
+ * `&lt`, …) — verified 2026-06-29, and again 2026-07-20 where a note storing
+ * `Write-Host "x"; $y` came back raw as `Write-Host &quotx&quot; $y`. That is
+ * ambiguous to any real HTML parser: textutil reads the closing `&quot` plus the
+ * author's `;` as ONE entity and silently drops the semicolon, so the text
+ * round-trips as `Write-Host "x" $y`. Any staged code containing `";` — most
+ * PowerShell, C, Java, JavaScript — is corrupted with no error and no warning,
+ * which is fatal for this plugin's whole purpose (staging text a human will SEND).
+ *
+ * Appending `;` to every bare entity is unconditionally correct here, because
+ * Notes escapes every `&` it stores: a literal `&amp;` typed by the author comes
+ * back as `&ampamp;`, never as `&amp;`. So a terminated entity in Notes output can
+ * only ever be bare-entity + the author's own semicolon.
+ *
+ * The `/g` replace scans the SOURCE left-to-right and never rescans what it just
+ * wrote, so `&ampquot` → `&amp;quot` (one substitution), not a runaway.
+ */
+export function terminateLegacyEntities(bodyHtml: string): string {
+  return bodyHtml.replace(/&(quot|amp|lt|gt|apos|nbsp)/g, "&$1;");
+}
+
 /** Decode Notes body HTML to plain text with a real HTML parser (never sed). */
 export function htmlToText(bodyHtml: string): string {
   // textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
   const r = spawnSync("textutil", ["-stdin", "-stdout", "-convert", "txt", "-format", "html"], {
-    input: `<meta charset="utf-8">${bodyHtml}`,
+    input: `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`,
     encoding: "utf8",
   });
   return r.stdout ?? "";
