@@ -1,0 +1,9 @@
+{
+  "name": "garch-volatility-toolkit",
+  "version": "1.0.0",
+  "description": "Walk-forward GARCH(1,1) and GJR(1,1) volatility forecasting. Position-sizing overlays tested on 20 seeds. GJR vol-scaling +0.45 Sharpe (2bps), DCC de-weighting +0.05 Sharpe.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
