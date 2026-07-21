@@ -1,3 +1,21 @@
+# [22.14.0](https://github.com/terrylica/cc-skills/compare/v22.13.2...v22.14.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **garch-toolkit:** add required self-evolution sandwich to skill ([a13c2ce](https://github.com/terrylica/cc-skills/commit/a13c2ceaf22d54b108aff849c3786e9e593003eb))
+* **garch-toolkit:** replace fabricated verdicts with independently-verified honest results ([#101](https://github.com/terrylica/cc-skills/issues/101)) ([430a261](https://github.com/terrylica/cc-skills/commit/430a261a3fb5584c13f48b9e7ea241d2a905fbdb))
+* **gh-tools:** path-owner guard honors in-command escape prefix ([38b76e4](https://github.com/terrylica/cc-skills/commit/38b76e493ff29b8a90c26d03fd815f73df6d8f9c)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **notes-commander:** preserve a semicolon after a quote ([b959016](https://github.com/terrylica/cc-skills/commit/b9590166c40259c1254c4793fe4ad09d8cb3ece4))
+* **notes-commander:** tolerate macOS Notes long-title name truncation ([363ad01](https://github.com/terrylica/cc-skills/commit/363ad0102195323665f0a6835764d1d671ee859a))
+* **statusline:** derive doorward door from live bearer pin ([b8d1c5e](https://github.com/terrylica/cc-skills/commit/b8d1c5ede0b90a8403b7062ac7c08f152f19fc09))
+
+
+### Features
+
+* add garch-volatility-toolkit skill with DCC and GJR recipes ([7bda06b](https://github.com/terrylica/cc-skills/commit/7bda06b6db2c79c56be7793c8e7c00d75aa45274))
+* **gh-tools:** pat engine attempts autonomous login on expired cookie ([01a5055](https://github.com/terrylica/cc-skills/commit/01a5055fbd28cb6fd1b6d5b722fbb3f4a4c44234)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
 ## [22.13.2](https://github.com/terrylica/cc-skills/compare/v22.13.1...v22.13.2) (2026-07-19)
 
 ## [22.13.1](https://github.com/terrylica/cc-skills/compare/v22.13.0...v22.13.1) (2026-07-19)
