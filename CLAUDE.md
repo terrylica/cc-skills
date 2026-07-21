@@ -109,13 +109,13 @@ cc-skills/
 
 ## Key Files
 
-| File                                   | Purpose                 |
-| -------------------------------------- | ----------------------- |
-| `.claude-plugin/marketplace.json`      | Plugin registry (SSoT)  |
-| `.releaserc.yml`                       | semantic-release config |
-| `scripts/validate-plugins.mjs`         | Plugin validation       |
-| `scripts/sync-hooks-to-settings.sh`    | Hook synchronization    |
-| `scripts/sync-commands-to-settings.sh` | Command synchronization |
+| File                                   | Purpose                                                 |
+| -------------------------------------- | ------------------------------------------------------- |
+| `.claude-plugin/marketplace.json`      | Plugin registry (SSoT)                                  |
+| `release.config.cjs`                   | semantic-release config (body-preserving release notes) |
+| `scripts/validate-plugins.mjs`         | Plugin validation                                       |
+| `scripts/sync-hooks-to-settings.sh`    | Hook synchronization                                    |
+| `scripts/sync-commands-to-settings.sh` | Command synchronization                                 |
 
 ## Link Conventions
 

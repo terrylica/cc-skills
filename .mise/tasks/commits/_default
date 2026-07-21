@@ -92,7 +92,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
   All four ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}commits:advise${ITER156_ANSI_COLOR_RESET} invocation forms above now include the iter-161
   semver-bump preview overlay: maps the {type, breaking-change marker}
   pair to the actual MAJOR/MINOR/PATCH/NONE bump that semantic-release
-  will apply per cc-skills .releaserc.yml release rules. Closes the
+  will apply per cc-skills release.config.cjs release rules. Closes the
   conventional-commits ecosystem advisor gap — commitlint, commitizen,
   and conventional-pre-commit all stop at grammar conformance and never
   preview the bump. Available in both human-readable and --json modes;
