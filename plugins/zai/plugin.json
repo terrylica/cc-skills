@@ -1,0 +1,9 @@
+{
+  "name": "zai",
+  "version": "0.1.0",
+  "description": "Z.ai GLM Coding Plan (Pro) as a COMPLEMENTARY consultant + toolbelt for Claude Code — NOT a replacement for Haiku/Sonnet/Opus. One `zai` CLI (fast/deep GLM-5.2, ~1M context, vision, bundled web_search_prime/web_reader MCP, quota) + ask-glm skill + glm subagent + /glm command. Every capability empirically verified (2026-07-21): 8 chat models, thinking:{disabled|enabled}+reasoning_effort, 131072 output cap, vision glm-4.6v, anthropic-compat endpoint, MCP tools over SSE. No embeddings/image-gen/video (plan-gated).",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
