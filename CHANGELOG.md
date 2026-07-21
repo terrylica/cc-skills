@@ -1,3 +1,15 @@
+# [22.15.0](https://github.com/terrylica/cc-skills/compare/v22.14.0...v22.15.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **alpha-forge-preship:** G4 flags dead EonLabs-Spartan org URLs post-migration ([a5af9f2](https://github.com/terrylica/cc-skills/commit/a5af9f246de2fd4a53059eea223a475b4a09931c))
+
+
+### Features
+
+* **itp-hooks:** add release-notes extensiveness guard ([ec5af0f](https://github.com/terrylica/cc-skills/commit/ec5af0f6d38273123a38f840a8f8c5ebd892051a))
+
 # [22.14.0](https://github.com/terrylica/cc-skills/compare/v22.13.2...v22.14.0) (2026-07-21)
 
 
