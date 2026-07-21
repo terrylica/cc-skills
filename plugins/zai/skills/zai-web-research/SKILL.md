@@ -10,6 +10,10 @@ Your Z.ai Coding Plan bundles a web-search + web-reader toolset (1000 calls/mont
 grounded answers; Claude does the analysis (Claude is injection-resistant — the right place for
 untrusted web content).
 
+> **Self-Evolving Skill**: improves through use. If a bundled tool's params changed, a tool went
+> offline, the MCP handshake shifted, or the monthly allowance moved — fix this file + the `zai`
+> plugin's `references/CAPABILITIES.md` immediately, don't defer. Re-verify with `zai quota`.
+
 ## Commands
 
 ```bash
@@ -29,3 +33,10 @@ zai read https://example.com                            # fetch a URL → clean 
 Notes: `web_reader`/`zread` were occasionally flaky during probing — retry once on error. Search
 counts against the shared monthly MCP allowance (`zai quota`). `web_search_prime` verified working
 2026-07-21. Full surface: `references/CAPABILITIES.md`.
+
+## Post-Execution Reflection
+
+0. **Locate yourself.** — Confirm this is the canonical `skills/zai-web-research/SKILL.md` before editing.
+1. **What broke?** — `zai websearch`/`zai read` errored or returned a new shape → fix here + `references/CAPABILITIES.md`.
+2. **What drifted?** — A tool's params/quota changed, or web_reader/zread reliability shifted → update the matrix.
+3. **Log it.** — Append the trigger + fix to the `zai` plugin CLAUDE.md "Recent changes".
