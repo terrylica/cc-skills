@@ -16,6 +16,7 @@ import {
 	FS,
 	isNoteId,
 	isTransientOsaError,
+	matchNoteIds,
 	NOTES_NAME_ELLIPSIS,
 	noteNameMatchesTitle,
 	parseRecords,
@@ -58,6 +59,49 @@ test("noteNameMatchesTitle: a bare ellipsis (no prefix) never matches", () => {
 
 test("noteNameMatchesTitle: a non-truncated name that merely differs does not match", () => {
 	expect(noteNameMatchesTitle("Draft A", "Draft B")).toBe(false);
+});
+
+// ── matchNoteIds: the single home for title→note-id resolution (draft-hold + move-note) ──
+
+test("matchNoteIds: exact name resolves to its id", () => {
+	const index = [
+		{ id: "p1", name: "Alpha" },
+		{ id: "p2", name: "Beta" },
+	];
+	expect(matchNoteIds(index, "Beta")).toEqual(["p2"]);
+});
+
+test("matchNoteIds: an exact match is preferred over a truncated collision", () => {
+	// A short note literally named "Report" AND a long note truncated to "Report…" both exist;
+	// the exact one must win so a title never accidentally resolves to a longer note.
+	const index = [
+		{ id: "pShort", name: "Report" },
+		{ id: "pLong", name: `Report${NOTES_NAME_ELLIPSIS}` },
+	];
+	expect(matchNoteIds(index, "Report")).toEqual(["pShort"]);
+});
+
+test("matchNoteIds: falls back to a truncated match when no exact name matches", () => {
+	const title =
+		"CPC Scanners — Procurement Intelligence & Deliverables (2026-07-20)";
+	const index = [
+		{ id: "pX", name: "Unrelated" },
+		{ id: "pHit", name: `CPC Scanners — Procurement Intelligence${NOTES_NAME_ELLIPSIS}` },
+	];
+	expect(matchNoteIds(index, title)).toEqual(["pHit"]);
+});
+
+test("matchNoteIds: no match yields an empty array", () => {
+	expect(matchNoteIds([{ id: "p1", name: "Alpha" }], "Zeta")).toEqual([]);
+	expect(matchNoteIds([], "anything")).toEqual([]);
+});
+
+test("matchNoteIds: duplicate exact titles surface every id (ambiguity for the caller)", () => {
+	const index = [
+		{ id: "p1", name: "Done" },
+		{ id: "p2", name: "Done" },
+	];
+	expect(matchNoteIds(index, "Done")).toEqual(["p1", "p2"]);
 });
 
 test("hard-wrapped prose reflows into ONE paragraph (the core guarantee)", () => {
