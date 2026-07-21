@@ -1,3 +1,39 @@
+# [22.16.0](https://github.com/terrylica/cc-skills/compare/v22.15.0...v22.16.0) (2026-07-21)
+
+
+### Features
+
+* **zai:** Z.ai GLM Coding Plan as complementary consultant + toolbelt ([13f1be9](https://github.com/terrylica/cc-skills/commit/13f1be92951f2e9684b04d4bcc8afe948dd16345))
+Zhipu GLM-5.2 (and the full Z.ai Coding Plan surface) exposed to Claude Code as an
+on-demand COMPLEMENT to Claude — never a replacement for the Haiku/Sonnet/Opus tiers
+or their routing. Built from a 12-area empirical capability probe (202 live API
+calls, 0 errors).
+
+Completed
+- scripts/zai.ts: one Bun CLI — chat (fast thinking:disabled / deep thinking:enabled
+  + reasoning_effort low|medium|high|max), ~1M-token context via --file/stdin, vision
+  (glm-4.6v), websearch + read (bundled web_search_prime / web_reader MCP over SSE
+  JSON-RPC), models (+ latest-model drift check), quota, doctor. Key from SCS
+  (vault get glm api_key); proxy stripped in-process.
+- Surfaces mirroring the catgpt pattern: ask-glm skill (autonomous consult),
+  zai-web-research skill (bundled web tools), glm subagent (isolated verdict), /glm.
+- references/CAPABILITIES.md: verified capability matrix + drift contract — 8 chat
+  models, reasoning knobs, 131072 output ceiling, ~1.03M input (measured), param
+  matrix, vision, anthropic-compat endpoint, MCP tools; plan-gated: no embeddings,
+  image-gen, or video-gen.
+- Registered in marketplace.json + plugins/CLAUDE.md (41 plugins, validate passes).
+
+Latest-model audit
+- Every area on the newest id (chat/reasoning glm-5.2, vision glm-4.6v); nothing
+  newer exists. Pins live in one home (CHAT_MODEL/VISION_MODEL); zai models
+  drift-checks the live catalog.
+
+Behavioral impact
+- Complementary-only by design: Haiku keeps the web-analysis role (prompt-injection
+  resistance); GLM is a called tool. No change to Claude Code model routing.
+
+No breaking changes.
+
 # [22.15.0](https://github.com/terrylica/cc-skills/compare/v22.14.0...v22.15.0) (2026-07-21)
 
 
