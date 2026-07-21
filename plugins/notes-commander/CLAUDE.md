@@ -10,7 +10,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Architecture (load-bearing)
 
-- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `terminateLegacyEntities`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts` (20 tests). AppleScript payloads live in the consumers, not here.
+- **`scripts/lib/notes-core.ts`** — the ONE shared engine. Pure helpers (`isNoteId`, `isTransientOsaError`, `entityLeaks`, `terminateLegacyEntities`, `contentPresent`, `bodyToHtml`, `parseRecords`, `safeFilename`, `noteNameMatchesTitle`, `matchNoteIds`) + `runOsa` (osascript with bounded retry on transient AppleEvent errors only). Pure parts unit-tested in `notes-core.test.ts` (30 tests). AppleScript payloads live in the consumers, not here.
 - **`scripts/notes.ts`** — organizer CLI: `inventory` / `export` / `mkdir` / `move-note` / `rename-folder` / `merge-folder` / `doctor`. FS/RS-delimited (U+0001/U+0002) record streams from AppleScript, parsed by `parseRecords` (AppleScript has no JSON).
 - **`scripts/draft-hold.ts`** — the draft-hold engine, now importing the shared core; `new` verifies a real note id + read-back (entity leaks, content presence) by default.
 - **Skills reference scripts via the Layer-2 marketplace mirror path** (`$HOME/.claude/plugins/marketplaces/cc-skills/plugins/notes-commander/scripts/…`).
@@ -26,6 +26,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 5. **textutil decode keeps the `<meta charset="utf-8">` prefix** (Latin-1 mojibake otherwise) and is the only entity decoder (Notes emits semicolon-less `&quot`). Never sed.
 6. **Batch AppleScript property fetches** (`body of every note of f`) — per-note Apple Events are quadratically slow.
 7. Tags have **no AppleScript API**; cross-account `move` is unsupported. Both are documented manual actions, not bugs.
+8. **Title→note-id resolution lives in ONE place: `matchNoteIds` (over a folder's `(id,name)` index).** macOS truncates a long note NAME with a trailing `…`, so exact `whose name is <title>` misses long titles. Both `draft-hold` (get/sticky/dedup) and `notes move-note` fetch the index, resolve the title in TS (exact, then truncation-tolerant per `noteNameMatchesTitle`), and act by **id**. Never re-implement name-matching in an AppleScript payload — that duplicate rule was removed 2026-07-20; keep it single-sourced.
 
 ## Skills
 
@@ -39,4 +40,4 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 
 ## Testing
 
-`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): 20 pure-helper tests. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).
+`bun test` from the plugin dir (or repo root — colocated `*.test.ts` discovered automatically): 30 pure-helper tests. Live round-trip: `bun scripts/notes.ts doctor` (create → read-back verify → delete probe note + inventory count).
