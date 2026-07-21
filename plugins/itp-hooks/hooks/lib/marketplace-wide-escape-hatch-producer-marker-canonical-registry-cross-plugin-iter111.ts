@@ -325,6 +325,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a `pueue` command that targets a remote daemon (the guard normally enforces local-only targeting to prevent accidentally queueing work on the wrong host). NOTE: pueue-local-guard is NOT YET migrated to the iter-107 helper (iter-112+ candidate); this registry entry is forward-looking and the audit treats this marker as known even before the migration lands.",
     },
     {
+      markerNameTokenIncludingSuffix: "RELEASE-NOTES-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/posttooluse-reminder.ts",

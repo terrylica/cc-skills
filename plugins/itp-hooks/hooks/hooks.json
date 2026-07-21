@@ -144,6 +144,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-release-notes-extensiveness-guard.ts",
+            "timeout": 8000,
+            "description": "Hard-blocks release/tag commands whose notes are not extensive + human-readable (needs a narrative paragraph AND a point-form list). Covers `gh release create|edit` (--notes/--notes-file text), annotated semver `git tag -m/-F`, and semantic-release / `mise run release[:*]` (inspects releasable commit BODIES since last tag — the notes source). Escape hatch: RELEASE-NOTES-OK: <≥10-char reason>. Fail-open. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md. Spoke: docs/release-notes-extensiveness-guard.md. ADR 2026-07-21."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5000,
             "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection — MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"

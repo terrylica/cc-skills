@@ -118,6 +118,10 @@ declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
     # iter-107 canonical helper, closing the iter-111-surfaced registry-
     # consistency gap. Cohort grows from 8 → 9 members.
     "plugins/itp-hooks/hooks/posttooluse-reminder.ts"
+    # 2026-07-21 addition: release-notes-extensiveness-guard reads the
+    # RELEASE-NOTES-OK marker via the iter-107 canonical helper (CASE_SENSITIVE /
+    # FILE_WIDE, ≥10-char reason). Cohort grows from 9 → 10 members.
+    "plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts"
 )
 
 declare -a MIGRATED_HOOKS_USING_SHARED_HELPER=()

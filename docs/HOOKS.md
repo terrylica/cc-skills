@@ -114,6 +114,17 @@ echo '{"error": "Operation not permitted"}'
 exit 2
 ```
 
+**Reason-gated escape hatch on a hard block.** A hard block should still carry a
+deliberate safety valve unless the operation can never succeed. The
+`release-notes-extensiveness-guard` (see
+[itp-hooks spoke](../plugins/itp-hooks/docs/release-notes-extensiveness-guard.md))
+hard-blocks release/tag commands whose notes lack a narrative paragraph plus a
+point-form list, but accepts `RELEASE-NOTES-OK: <≥10-char reason>` in the command
+for a genuinely un-narratable release. The marker is registered in the iter-111
+canonical escape-hatch registry and detected via the iter-107 shared helper —
+follow that pattern (register + detect via the helper) for any new marker, never
+a hand-rolled regex.
+
 ## hooks.json Structure
 
 ```json

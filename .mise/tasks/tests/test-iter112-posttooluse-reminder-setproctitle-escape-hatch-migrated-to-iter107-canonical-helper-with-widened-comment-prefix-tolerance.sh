@@ -60,15 +60,17 @@ else
     assert_fails "Case 4: iter-111 registry still carries the pre-iter-112 'not yet via the iter-107 canonical helper' caveat"
 fi
 
-# ─── Case 5: iter-110 strict audit passes with the 9-member cohort ────────
+# ─── Case 5: iter-110 strict audit passes with the current cohort ─────────
+# Cohort size grew 8 (pre-iter-112) → 9 (iter-112 setproctitle) → 10
+# (2026-07-21 release-notes-extensiveness-guard). Assert on the current count.
 set +e
 iter110_audit_output=$(bash "$ITER110_STRICT_INVENTORY_AUDIT_ABSOLUTE_PATH" 2>&1)
 iter110_audit_exit_code=$?
 set -e
-if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 9 canonical cohort members import the shared helper"* ]]; then
-    assert_passes "Case 5: iter-110 strict audit passes with the new 9-member canonical cohort (was 8 pre-iter-112)"
+if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 10 canonical cohort members import the shared helper"* ]]; then
+    assert_passes "Case 5: iter-110 strict audit passes with the current 10-member canonical cohort"
 else
-    assert_fails "Case 5: iter-110 strict audit did not recognize 9-member cohort (exit=$iter110_audit_exit_code)"
+    assert_fails "Case 5: iter-110 strict audit did not recognize 10-member cohort (exit=$iter110_audit_exit_code)"
 fi
 
 # ─── Case 6: widened-comment-prefix tolerance via programmatic probe ──────
