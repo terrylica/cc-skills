@@ -51,8 +51,8 @@ Check if the repo has release tasks configured:
 # Check for release:full task
 mise tasks ls 2>/dev/null | grep -q "release:full" && echo "✓ Release tasks configured" || echo "✗ No release tasks — run /mise:run-full-release to scaffold"
 
-# Check for .releaserc.yml
-ls .releaserc.yml .releaserc.json .releaserc 2>/dev/null && echo "✓ semantic-release configured" || echo "✗ No semantic-release config"
+# Check for semantic-release config (any cosmiconfig-discovered form)
+ls release.config.cjs release.config.js .releaserc.yml .releaserc.json .releaserc 2>/dev/null && echo "✓ semantic-release configured" || echo "✗ No semantic-release config"
 
 # Check GH_ACCOUNT
 echo "GH_ACCOUNT: ${GH_ACCOUNT:-not set}"
@@ -79,11 +79,10 @@ Tasks (32 total):
   release: full, dry, status, preflight, version, sync, verify, clean, hooks
   dev: lint, format, test
 
-Release: ✓ Configured (release:full + .releaserc.yml)
+Release: ✓ Configured (release:full + release.config.cjs)
 Config: .mise.toml (42 lines)
 ═══════════════════════════════════════════
 ```
-
 
 ## Post-Execution Reflection
 

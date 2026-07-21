@@ -33,8 +33,30 @@
  * Spoke: plugins/itp-hooks/docs/release-notes-extensiveness-guard.md
  */
 
-// ────────────────────────────────────────────────────────────────────────
-//  Tunable thresholds (named exports so operators can adjust after real use)
+// ════════════════════════════════════════════════════════════════════════
+//  TUNABLE THRESHOLDS — the single home for the "how extensive is enough" bar
+// ════════════════════════════════════════════════════════════════════════
+//
+//  All six knobs live here (named exports) so tuning after real-world use is a
+//  one-file edit with an obvious landing spot. They split into two independent
+//  paths, matching the two ways a release is measured:
+//
+//    • NOTES-TEXT path — `gh release …` / `git tag …` inline notes. A body
+//      passes only when it has BOTH a narrative paragraph AND a point-form list:
+//        NARRATIVE_MIN_CHARS · NARRATIVE_MIN_SENTENCES · POINT_FORM_MIN_BULLETS
+//
+//    • COMMIT-BODY path — semantic-release / `mise run release`, where notes are
+//      derived from commit bodies. Passes when the releasable commits since the
+//      last tag are collectively substantial:
+//        COMMIT_AGGREGATE_MIN_CHARS · COMMIT_RICH_PARAGRAPH_MIN_CHARS · COMMIT_THIN_BODY_CHARS
+//
+//  Rationale for the current values (raised from the initial set 2026-07-21 on
+//  operator request for a stricter bar): a genuine "why + what" release note is
+//  ~3 sentences of prose plus ≥4 bullets; anything thinner reads as a commit
+//  dump. Lower them if the bar produces false blocks on legitimately small
+//  releases; raise them to force more detail. Keep the two paths in the same
+//  ballpark so `gh release` notes and semantic-release notes demand comparable
+//  substance. The spoke's threshold table mirrors these values — update both.
 // ────────────────────────────────────────────────────────────────────────
 
 /** A narrative paragraph must reach this many characters of prose. */
