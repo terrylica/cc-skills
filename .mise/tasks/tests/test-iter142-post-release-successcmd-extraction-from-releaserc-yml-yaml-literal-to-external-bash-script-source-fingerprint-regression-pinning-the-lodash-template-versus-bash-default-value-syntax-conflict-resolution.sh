@@ -6,7 +6,7 @@ set -euo pipefail
 ITER142_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER142_REPO_ROOT"
 
-ITER142_RELEASERC_YML_PATH=".releaserc.yml"
+ITER142_RELEASE_CONFIG_PATH="release.config.cjs"
 ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_RELATIVE_PATH="scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
 ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH="$ITER142_REPO_ROOT/$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_RELATIVE_PATH"
 
@@ -151,33 +151,41 @@ iter142_assert_present \
     "$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH" \
     'Step 7: jsDelivr-CDN-purge'
 
-# ─── Group D: .releaserc.yml no longer embeds the bash heredoc ─────────────────
+# ─── Group D: release.config.cjs no longer embeds the bash heredoc ────────────
 echo ""
-echo "GROUP D (4 assertions): .releaserc.yml structural cleanup"
+echo "GROUP D (4 assertions): release.config.cjs structural cleanup"
 
 iter142_assert_absent \
-    "D1: .releaserc.yml no longer contains VERIFY_PLUGIN_EOF heredoc marker" \
-    "$ITER142_RELEASERC_YML_PATH" \
+    "D1: release.config.cjs no longer contains VERIFY_PLUGIN_EOF heredoc marker" \
+    "$ITER142_RELEASE_CONFIG_PATH" \
     'VERIFY_PLUGIN_EOF'
 
-# D2: regex anchored to lines that are NOT YAML comments — explanatory comments
-# in .releaserc.yml legitimately mention the forbidden pattern when describing
-# the bug. We forbid the pattern in active YAML content (non-`#`-leading lines).
-ITER142_FORBIDDEN_BASH_DEFAULT_VALUE_IN_ACTIVE_YAML_CODE_PATTERN='^[[:space:]]*[^#[:space:]].*\$\{[A-Z_]+:-[^}]*\}'
+# D2: regex anchored to lines that are NOT JS comments — explanatory comments in
+# release.config.cjs legitimately mention the forbidden pattern when describing
+# the bug. We forbid the pattern in active JS content (lines whose first
+# non-space char is not `#`, `/`, or `*`, i.e. not a `//`/`/*`/` *` comment).
+ITER142_FORBIDDEN_BASH_DEFAULT_VALUE_IN_ACTIVE_CODE_PATTERN='^[[:space:]]*[^#/*[:space:]].*\$\{[A-Z_]+:-[^}]*\}'
 iter142_assert_absent \
-    "D2: .releaserc.yml active (non-comment) lines no longer contain bash default-value parameter expansion (the lodash-conflict trigger)" \
-    "$ITER142_RELEASERC_YML_PATH" \
-    "$ITER142_FORBIDDEN_BASH_DEFAULT_VALUE_IN_ACTIVE_YAML_CODE_PATTERN"
+    "D2: release.config.cjs active (non-comment) lines no longer contain bash default-value parameter expansion (the lodash-conflict trigger)" \
+    "$ITER142_RELEASE_CONFIG_PATH" \
+    "$ITER142_FORBIDDEN_BASH_DEFAULT_VALUE_IN_ACTIVE_CODE_PATTERN"
 
 iter142_assert_absent \
-    "D3: .releaserc.yml no longer contains iter-140 helper definitions inline" \
-    "$ITER142_RELEASERC_YML_PATH" \
+    "D3: release.config.cjs no longer contains iter-140 helper definitions inline" \
+    "$ITER142_RELEASE_CONFIG_PATH" \
     '__iter140_(start|end)_post_release_successcmd_step'
 
+# D4: the successCmd is a JS template literal invoking the extracted script. The
+# lodash version placeholder is assembled via the RELEASE_VERSION_PLACEHOLDER
+# variable (kept a variable so biome's noTemplateCurlyInString does not fire on a
+# literal ${nextRelease.version}); the placeholder's presence in the exported
+# config is separately pinned by test/release-config-body-surfacing.test.ts. Here
+# we pin only that successCmd invokes the extracted iter-142 script (pattern has
+# no `$`, so no SC2016 / no suppression directive needed).
 iter142_assert_present \
-    "D4: .releaserc.yml successCmd invokes the extracted iter-142 script with \${nextRelease.version} argv[1]" \
-    "$ITER142_RELEASERC_YML_PATH" \
-    'successCmd: "\./scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict\.sh \$\{nextRelease\.version\}"'
+    "D4: release.config.cjs successCmd invokes the extracted iter-142 script (template literal)" \
+    "$ITER142_RELEASE_CONFIG_PATH" \
+    'successCmd: `\./scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict\.sh '
 
 # ─── Group E: shellcheck-clean glob replacements for SC2012/SC2045 inherited ──
 echo ""
