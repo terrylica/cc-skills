@@ -970,6 +970,33 @@
         "correlation"
       ],
       "strict": false
+    },
+    {
+      "name": "zai",
+      "description": "Z.ai GLM Coding Plan (Pro) as a COMPLEMENTARY consultant + toolbelt for Claude Code (does not replace Haiku/Sonnet/Opus). One zai CLI: fast/deep GLM-5.2, ~1M context, vision (glm-4.6v), bundled web_search_prime/web_reader MCP, quota. Plus ask-glm skill, glm subagent, /glm command. Every capability empirically verified 2026-07-21 (202 live calls).",
+      "version": "0.1.0",
+      "source": "./plugins/zai",
+      "category": "ai",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "zai",
+        "glm",
+        "glm-5.2",
+        "zhipu",
+        "openai-compatible",
+        "anthropic-compatible",
+        "reasoning-model",
+        "mcp",
+        "web-search",
+        "vision",
+        "1m-context",
+        "complementary-model",
+        "chinese-llm-provider"
+      ],
+      "strict": false
     }
   ]
 }
