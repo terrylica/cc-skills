@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 26 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 27 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (18; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (19; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
@@ -31,6 +31,7 @@ Jump directly to any of the 26 registered markers below. Markers are listed alph
 - [`MINI-INNGEST-OK`](#mini-inngest-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
+- [`RELEASE-NOTES-OK`](#release-notes-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
 - [`SSoT-OK`](#ssot-ok)
 
@@ -62,7 +63,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (18 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (19 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -336,6 +337,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # PUEUE-LOCAL-OK
+```
+
+## `RELEASE-NOTES-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.
+
+**Example usage**:
+
+```
+# RELEASE-NOTES-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `SETPROCTITLE-OK`
