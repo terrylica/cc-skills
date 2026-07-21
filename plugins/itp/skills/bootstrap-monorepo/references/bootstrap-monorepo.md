@@ -543,6 +543,56 @@ release-full:
 > The `@semantic-release/exec` plugin uses Lodash templates — avoid bash `${VAR:-default}`
 > syntax inside exec commands.
 
+#### Extensive release notes (surface the commit BODY, not just the subject)
+
+**Doctrine**: every release must carry extensive, human-readable notes — a narrative
+paragraph (the _why_) **and** a point-form list (the _what_). SSoT:
+`~/.claude/release-notes-doctrine-CLAUDE.md`; enforced globally by the `itp-hooks`
+release-notes-extensiveness-guard (hard-blocks thin `gh release` / `git tag` /
+semantic-release commands).
+
+**Gotcha**: the default `@semantic-release/release-notes-generator` (Angular preset)
+renders **only each commit's subject line** — its `writerOpts.transform` drops the
+body. So rich multi-paragraph Conventional-Commit bodies never reach the published
+notes. To surface them you need a JS `writerOpts` (a function YAML cannot hold), so use
+a **`release.config.cjs`** instead of `.releaserc.yml` (delete the YAML — cosmiconfig
+finds `.releaserc.{yaml,yml}` **before** `release.config.cjs`, so a leftover YAML shadows
+the JS config):
+
+```js
+// release.config.cjs — body-preserving notes. The writer merges { ...commit, ...patch },
+// so returning the body (and a commitPartial that prints {{body}}) surfaces it.
+const COMMIT_PARTIAL_WITH_BODY =
+  "…the Angular commit.hbs verbatim…\n{{~#if body}}\n\n{{body}}\n{{~/if}}\n";
+module.exports = {
+  branches: ["main"],
+  plugins: [
+    /* …analyzer, changelog, git, github… */
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        writerOpts: {
+          // reproduce the Angular preset's transform (type→"Features"/…, scope, subject
+          // autolink, ref de-dup) and add `body: commit.body` to the returned object
+          transform: (commit, context) => ({
+            /* …preset fields…, */ body: commit.body,
+          }),
+          commitPartial: COMMIT_PARTIAL_WITH_BODY,
+        },
+      },
+    ],
+  ],
+};
+```
+
+> **Reference implementation** (copy this, don't re-derive): `cc-skills`
+> `release.config.cjs` — the full verbatim commit template, the faithful
+> body-preserving transform, and the lodash-`${nextRelease.version}`-placeholder
+> handling, pinned by `test/release-config-body-surfacing.test.ts`. For the manual /
+> per-release path (or repos that skip the JS config), `mise run release:augment --
+--tag <tag> --notes-file <path>` edits the GitHub Release through the same
+> extensiveness gate (`scripts/augment-release-notes.mjs`).
+
 ### Case B — per-project monorepo releases (the standard)
 
 **Why a fork.** Stock semantic-release has **no path filter** — its `commitPaths` option is silently

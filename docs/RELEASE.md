@@ -43,7 +43,20 @@ mise run release:full         # Complete 6-phase workflow
 mise run release:dry          # Dry-run preview
 mise run release:hooks        # Install hooks only
 mise run release:clean        # Clean old cache versions
+mise run release:augment -- --tag <tag> --notes-file <path>   # Replace a GitHub Release body with gated extensive notes
 ```
+
+### Extensive release notes
+
+Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form list
+(the _what_) — doctrine SSoT `~/.claude/release-notes-doctrine-CLAUDE.md`, enforced by the
+`itp-hooks` release-notes-extensiveness-guard. Two mechanisms surface the substance:
+
+- **Automatic (in-generator)**: `release.config.cjs` carries a body-preserving
+  `writerOpts` so the full multi-paragraph commit **body** appears under each entry (the
+  default Angular preset renders subject-only). Pinned by `test/release-config-body-surfacing.test.ts`.
+- **Manual / cross-repo**: `mise run release:augment -- --tag <tag> --notes-file <path>`
+  edits the GitHub Release through the same extensiveness gate (`scripts/augment-release-notes.mjs`).
 
 ## Commit Conventions
 
@@ -140,7 +153,7 @@ Operator-tunable Top-N count: set `ITER144_TOP_N_SLOWEST_PLUGIN_LIFECYCLE_STEPS_
 | ---- | ----------------------------------- | ----- | --------------------------------------------------------------------- | -------- |
 | 1    | `semantic-release:get-git-auth-url` | ~1700 | One `git push --dry-run --no-verify` round-trip to verify push access | iter-146 |
 | 2    | `semantic-release:get-tags`         | ~2300 | Walk all 882 tags + read all 877 sibling notes refs                   | iter-145 |
-| 3    | `semantic-release:config`           | ~140  | Load `.releaserc.yml` + plugin config resolution                      | —        |
+| 3    | `semantic-release:config`           | ~140  | Load `release.config.cjs` + plugin config resolution                  | —        |
 | 4    | `semantic-release:plugins`          | ~16   | Plugin loading + verifyConditions invocation                          | —        |
 | 5    | `semantic-release:git`              | ~15   | Internal git utility calls                                            | —        |
 | 6    | `semantic-release:get-commits`      | ~11   | List commits since last tag                                           | —        |
@@ -249,7 +262,7 @@ The cc-skills conventional-commits arc ships **11 operator-facing tools** across
 | **PRE-COMMIT ADVISE (gate)**    | iter-153 | `mise run commits:advise --strict -- "<subj>"`  | Exit non-zero on silent-fail-class violations                                                                               |
 | **PRE-COMMIT AUTO-DETECT**      | iter-154 | `mise run commits:advise` (no args, TTY)        | Reads `.git/COMMIT_EDITMSG` during editor-launched commit                                                                   |
 | **PRE-COMMIT (body-aware)**     | iter-162 | `mise run commits:advise --message-file <path>` | Full multi-line message — OR's iter-162 §13 BREAKING CHANGE footer detection with subject `!` marker                        |
-| **SEMVER-BUMP PREVIEW**         | iter-161 | (overlay on every `commits:advise` invocation)  | Maps {type, breaking marker} → MAJOR/MINOR/PATCH/NONE per cc-skills .releaserc.yml                                          |
+| **SEMVER-BUMP PREVIEW**         | iter-161 | (overlay on every `commits:advise` invocation)  | Maps {type, breaking marker} → MAJOR/MINOR/PATCH/NONE per cc-skills release.config.cjs                                      |
 | **NEXT-VERSION PREVIEW**        | iter-164 | (overlay on every `commits:advise` invocation)  | Resolves iter-161 bump label to concrete next version (e.g. `vCUR → vNEXT`) via semver.org §2 increment rules               |
 | **PENDING-RELEASE PREVIEW**     | iter-165 | `mise run commits:pending-release`              | Aggregates iter-161 bump labels across ALL commits since most-recent tag → reports next release version + triggering commit |
 | **PENDING-RELEASE (AI)**        | iter-165 | `mise run commits:pending-release --json`       | Machine-readable aggregate preview, stable iter165_schema_version=1                                                         |
@@ -826,13 +839,13 @@ The defensive pattern above reduces the blast radius if you forget — but the o
 
 ## Key Files
 
-| File                                | Purpose                        |
-| ----------------------------------- | ------------------------------ |
-| `.releaserc.yml`                    | semantic-release configuration |
-| `.mise/tasks/release:*`             | mise release tasks             |
-| `scripts/release-preflight.sh`      | Preflight validation           |
-| `scripts/sync-hooks-to-settings.sh` | Hook synchronization           |
-| `scripts/sync-versions.mjs`         | Version alignment across files |
+| File                                | Purpose                                                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `release.config.cjs`                | semantic-release configuration (body-preserving notes writerOpts; converted from `.releaserc.yml` 2026-07-21) |
+| `.mise/tasks/release:*`             | mise release tasks                                                                                            |
+| `scripts/release-preflight.sh`      | Preflight validation                                                                                          |
+| `scripts/sync-hooks-to-settings.sh` | Hook synchronization                                                                                          |
+| `scripts/sync-versions.mjs`         | Version alignment across files                                                                                |
 
 ## Related Documentation
 

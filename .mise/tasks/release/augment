@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Replace a GitHub Release body with an extensive, human-readable notes file, gated through the itp-hooks release-notes-extensiveness bar (narrative paragraph + point-form list). The MANUAL / cross-repo companion to release.config.cjs's in-generator body surfacing — use for a one-off fix-up or in repos that do not customize the notes generator. Wraps scripts/augment-release-notes.mjs (which reuses the guard's own measurer). Pass args after `--`, e.g.: mise run release:augment -- --tag v1.2.3 --notes-file NOTES.md [--repo owner/repo] [--dry-run] [--force]. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md."
+set -euo pipefail
+
+REPO_ROOT="${MISE_PROJECT_ROOT:-$(git rev-parse --show-toplevel)}"
+exec bun "$REPO_ROOT/scripts/augment-release-notes.mjs" "$@"

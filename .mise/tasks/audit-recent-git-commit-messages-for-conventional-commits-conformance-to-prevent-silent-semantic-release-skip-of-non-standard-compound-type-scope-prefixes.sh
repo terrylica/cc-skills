@@ -72,8 +72,8 @@ STRICT_MODE_GATE_RELEASE_PIPELINE_ON_NONCONFORMANCE=0
 GIT_REVISION_SPEC_OVERRIDE_FOR_ARBITRARY_RANGE=""
 
 # Recognized conventional-commits types, MATCHED against the
-# .releaserc.yml commit-analyzer release-rules configuration.
-# Update this set if .releaserc.yml's release-rules block changes.
+# release.config.cjs commit-analyzer release-rules configuration.
+# Update this set if release.config.cjs's release-rules block changes.
 RECOGNIZED_CONVENTIONAL_COMMITS_RELEASE_TRIGGERING_TYPES=(
     feat fix perf revert docs chore style refactor test build ci
 )
