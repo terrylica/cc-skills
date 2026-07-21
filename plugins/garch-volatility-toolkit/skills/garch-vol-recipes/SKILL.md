@@ -10,6 +10,8 @@ allowed-tools: Read, Bash
 
 # GARCH Volatility Toolkit
 
+> **Self-Evolving skill** — if a recipe drifts from what actually reproduces (model spec, cost regime, campaign Sharpe numbers, library API), fix this SKILL.md in the same change; see the Post-Execution Reflection at the bottom.
+
 Walk-forward GARCH(1,1) and GJR(1,1) recipes for volatility forecasting and portfolio construction. Tested on 20 seeds, 2025-26 test window, 2bps and 7bps cost regimes.
 
 > **Campaign Results (honest)**: A negative-to-marginal result set, not a deployable edge. GJR
@@ -300,6 +302,10 @@ def smart_scale(vol_forecast, ref_vol, threshold_pct=0.2):
 - Glosten, L., Jagannathan, R., & Runkle, D. (1993). "On the Relation between the Expected Value and the Volatility of the Nominal Excess Return on Stocks." Journal of Finance.
 - Bollerslev, T. (1986). "Generalized Autoregressive Conditional Heteroskedasticity." Journal of Econometrics.
 - Nelson, D. (1991). "Conditional Heteroskedasticity in Asset Returns." Econometric Reviews.
+
+## Post-Execution Reflection
+
+After using a recipe, check before closing: (1) Did the fit reproduce the quoted campaign result within noise, or did the numbers drift? Update the figures here if the model/data/cost regime changed. (2) Did a no-lookahead boundary need re-checking (walk-forward split, standardization window)? If a leak was possible, document the guard. (3) Did an `arch`/library API change break a snippet? Fix the snippet, not just your local copy. Only update for real, reproducible drift — not speculation.
 
 ---
 
