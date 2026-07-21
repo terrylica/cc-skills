@@ -82,7 +82,7 @@ result = rng.standard_normal(10)
 
 ### G4: URL Fork Validator
 
-**Detects**: Fork URLs (terrylica/) vs org URLs (EonLabs-Spartan/)
+**Detects**: Fork URLs (terrylica/) vs org URLs (Eon-Labs/)
 **Prevents**: C7 (link rot from fork references)
 **Effectiveness**: 100%
 **False Positives**: 0%

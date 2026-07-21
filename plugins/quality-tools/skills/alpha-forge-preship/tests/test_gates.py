@@ -54,7 +54,7 @@ class TestG4URL:
                 os.unlink(f.name)
 
     def test_accepts_org_url(self):
-        code = "See EonLabs-Spartan/alpha-forge"
+        code = "See Eon-Labs/alpha-forge"
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             f.write(code)
             f.flush()
