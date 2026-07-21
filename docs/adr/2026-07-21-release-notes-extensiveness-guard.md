@@ -19,9 +19,12 @@ form, enforced automatically rather than by memory.
 Research into the 2025 idiom (Keep a Changelog, Common Changelog, semantic-release
 FAQ) converges on a hybrid: keep semantic-release + Conventional Commits for the
 machinery, but adopt the Keep a Changelog human-first discipline and the Common
-Changelog audit trail. Crucially, semantic-release derives its notes from
-**commit message bodies**, so the durable leverage point is the multi-paragraph
-Conventional-Commit body.
+Changelog audit trail. The durable leverage point is the multi-paragraph
+Conventional-Commit **body**, where the reasoning must exist. Note (verified on
+v22.15.0): the DEFAULT semantic-release release-notes generator renders only each
+commit's **subject line**, not the body — so a rich body satisfies the guard and
+preserves the reasoning in git, but the published notes are made extensive by
+augmenting the GitHub Release body (or customizing the generator template).
 
 Decisions locked with the operator (AskUserQuestion): source = rich commit bodies
 
