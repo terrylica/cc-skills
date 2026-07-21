@@ -19,7 +19,7 @@
 ### G4: URL Fork Validator (Pre-commit)
 
 - **File**: `gates/g4_url_validation.py`
-- **Detects**: Fork URLs (terrylica/) vs org URLs (EonLabs-Spartan/)
+- **Detects**: Fork URLs (terrylica/) vs org URLs (Eon-Labs/)
 - **Prevents**: C7 (link rot)
 - **ROI**: 100% effectiveness, 0% false positives
 - **Trigger**: Pre-commit hook

@@ -29,7 +29,24 @@ def test_detects_fork_url():
 
 
 def test_allows_org_url():
-    '''Test that org URLs don't trigger warnings.'''
+    '''Test that the canonical org URLs (Eon-Labs) don't trigger warnings.'''
+    code = '''
+# Reference: https://github.com/Eon-Labs/alpha-forge/issues/42
+# See: https://github.com/Eon-Labs/alpha-forge/issues/43
+'''
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(code)
+        f.flush()
+
+        try:
+            issues = validate_org_urls(f.name)
+            assert len(issues) == 0
+        finally:
+            os.unlink(f.name)
+
+
+def test_detects_stale_org_url():
+    '''Test detection of the dead EonLabs-Spartan org URLs (migrated to Eon-Labs 2026-07).'''
     code = '''
 # Reference: https://github.com/EonLabs-Spartan/alpha-forge/issues/42
 # See: https://github.com/EonLabs-Spartan/alpha-forge/issues/43
@@ -37,10 +54,11 @@ def test_allows_org_url():
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
         f.write(code)
         f.flush()
-        
+
         try:
             issues = validate_org_urls(f.name)
-            assert len(issues) == 0
+            assert len(issues) == 2
+            assert all(issue['type'] == 'STALE_ORG_URL' for issue in issues)
         finally:
             os.unlink(f.name)
 
