@@ -10,6 +10,10 @@ GLM-5.2 is a large off-fleet model (Z.ai Coding Plan). Use it to **complement**,
 an independent cross-check, or a 1M-context read Claude's tier can't hold. Round-trips stay off the main
 thread — you run the CLI and relay the crisp result.
 
+> **Self-Evolving Skill**: improves through use. If a `zai` flag changed, a GLM model was renamed or
+> deprecated, an endpoint moved, or a limit shifted — fix this file + the `zai` plugin's
+> `references/CAPABILITIES.md` immediately, don't defer. Re-verify with `zai doctor` / `zai models`.
+
 ## When to reach for it
 
 - **Second opinion / disagreement check** on a non-trivial solution → `zai chat --deep`.
@@ -41,3 +45,10 @@ zai vision --image /path/shot.png "what error is shown?"      # image analysis (
 - Quota is shared with other GLM work — avoid gratuitous `--deep`/1M calls. `zai quota` to check.
 
 Full verified capability surface: `references/CAPABILITIES.md` in the `zai` plugin.
+
+## Post-Execution Reflection
+
+0. **Locate yourself.** — Confirm this is the canonical `skills/ask-glm/SKILL.md` before editing.
+1. **What broke?** — A `zai` subcommand/flag errored or GLM's output shape changed → fix here + `references/CAPABILITIES.md`.
+2. **What drifted?** — `zai models` flagged a newer model than the pin, or a capability moved → update the matrix + `CHAT_MODEL`/`VISION_MODEL`.
+3. **Log it.** — Append the trigger + fix to the `zai` plugin CLAUDE.md "Recent changes".
