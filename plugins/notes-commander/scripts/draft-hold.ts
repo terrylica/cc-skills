@@ -30,7 +30,7 @@ import {
 	FOLDER_DEFAULT,
 	htmlToText,
 	isNoteId,
-	noteNameMatchesTitle,
+	matchNoteIds,
 	parseRecords,
 	runOsa,
 	runOsaOrDie,
@@ -143,13 +143,9 @@ function folderNoteIndex(folder: string): Array<{ id: string; name: string }> {
 	);
 }
 
-/** Resolve a title to a note id within a folder: exact name first, then truncation-tolerant. */
+/** Resolve a title to a note id within a folder (exact-then-truncation-tolerant; first match). */
 function resolveNoteIdInFolder(folder: string, title: string): string | null {
-	const index = folderNoteIndex(folder);
-	const exact = index.find((n) => n.name === title);
-	if (exact) return exact.id;
-	const truncated = index.find((n) => noteNameMatchesTitle(n.name, title));
-	return truncated ? truncated.id : null;
+	return matchNoteIds(folderNoteIndex(folder), title)[0] ?? null;
 }
 
 /** Body HTML of the note whose (possibly truncated) name matches `title`, or the sentinel if none. */
@@ -208,9 +204,8 @@ function main(): void {
 					);
 			}
 			// Self-heal: remove any OLDER note in this folder sharing the (possibly truncated) title.
-			for (const other of folderNoteIndex(folder)) {
-				if (other.id !== id && noteNameMatchesTitle(other.name, title))
-					runOsa(OSA_DELETE_BY_ID, [other.id]);
+			for (const otherId of matchNoteIds(folderNoteIndex(folder), title)) {
+				if (otherId !== id) runOsa(OSA_DELETE_BY_ID, [otherId]);
 			}
 			console.log(id);
 			break;
