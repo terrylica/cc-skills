@@ -115,6 +115,28 @@ export function noteNameMatchesTitle(
 	return false;
 }
 
+/**
+ * Ids of the notes in a folder's `(id, name)` index whose stored name resolves to `title`.
+ * Prefers EXACT-name matches; only when there are none does it fall back to truncation-tolerant
+ * matches (macOS truncates a long name with a trailing ellipsis — see `noteNameMatchesTitle`).
+ * Returns `[]` (nothing matched) or, when several notes share the title, every matching id so the
+ * caller can decide how to treat the ambiguity.
+ *
+ * This is the SINGLE home for title→note-id resolution. Both `draft-hold` (get/sticky/dedup) and
+ * `notes move-note` route through it, so the exact-then-truncated rule can never drift between two
+ * hand-maintained copies (it previously lived once here in TS and once inline in AppleScript).
+ */
+export function matchNoteIds(
+	index: ReadonlyArray<{ id: string; name: string }>,
+	title: string,
+): string[] {
+	const exact = index.filter((n) => n.name === title);
+	if (exact.length > 0) return exact.map((n) => n.id);
+	return index
+		.filter((n) => noteNameMatchesTitle(n.name, title))
+		.map((n) => n.id);
+}
+
 // ── the Notes-HTML formatter (prose reflows; lists per-item; fences verbatim) ─
 
 // A list item: optional indent, then a bullet (-, *, +, •, ·) or "1." / "1)" / "a." / "a)",

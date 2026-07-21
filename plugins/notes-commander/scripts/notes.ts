@@ -30,6 +30,7 @@ import {
 	entityLeaks,
 	htmlToText,
 	isNoteId,
+	matchNoteIds,
 	PATH_SEP,
 	parseRecords,
 	runOsaOrDie,
@@ -234,42 +235,29 @@ on run {acctName, parentPath, newName}
   return "ok"
 end run`;
 
-const OSA_MOVE = `${OSA_COMMON}
-on run {acctName, fromPath, toPath, titleOrId, byId}
+// (id, name) index of one path-resolved folder's notes — FS (U+0001) between fields, RS (U+0002)
+// after each note — so title→id resolution happens in TS via parseRecords + matchNoteIds (the
+// single home for the exact-then-truncation-tolerant rule; no name-matching AppleScript here).
+const OSA_NOTE_INDEX_BY_PATH = `${OSA_COMMON}
+on run {acctName, folderPath}
+  set f to my resolveFolder(acctName, folderPath)
+  tell application "Notes"
+    set out to ""
+    repeat with n in notes of f
+      set out to out & (id of n) & my fs() & (name of n) & my rs()
+    end repeat
+    return out
+  end tell
+end run`;
+
+// Move a note identified by its STABLE id (resolved in TS) between two path-resolved folders.
+const OSA_MOVE_BY_ID = `${OSA_COMMON}
+on run {acctName, fromPath, toPath, noteId}
   set src to my resolveFolder(acctName, fromPath)
   set dst to my resolveFolder(acctName, toPath)
   tell application "Notes"
-    if byId is "yes" then
-      set matches to (every note of src whose id is titleOrId)
-    else
-      set matches to (every note of src whose name is titleOrId)
-      if (count of matches) is 0 then
-        -- macOS Notes truncates a long note name with a trailing ellipsis (U+2026), so an exact
-        -- name match misses long-titled notes. Fall back to matching that truncated prefix.
-        -- (Mirror of noteNameMatchesTitle in lib/notes-core.ts -- keep the two rules in step.)
-        -- Capture matches by ID, then re-resolve: a live (notes of src) reference held past the
-        -- loop fails with -1728 once membership changes (same gotcha as the folderize helper below).
-        set foundIds to {}
-        repeat with n in (notes of src)
-          set nm to name of n
-          if (nm ends with "…") and (length of nm) > 1 then
-            if titleOrId starts with (text 1 thru -2 of nm) then set end of foundIds to (id of n)
-          end if
-        end repeat
-        set matches to {}
-        repeat with fid in foundIds
-          set matches to matches & (every note of src whose id is (fid as string))
-        end repeat
-      end if
-    end if
-    if (count of matches) is 0 then error "note not found in source folder: " & titleOrId
-    if (count of matches) > 1 then
-      set idList to ""
-      repeat with m in matches
-        set idList to idList & (id of m) & linefeed
-      end repeat
-      error "AMBIGUOUS: " & (count of matches) & " notes share that title. Re-run with --id one of:" & linefeed & idList
-    end if
+    set matches to (every note of src whose id is noteId)
+    if (count of matches) is 0 then error "note id not found in source folder: " & noteId
     move (item 1 of matches) to dst
   end tell
   return "ok"
@@ -512,24 +500,32 @@ function cmdMoveNote(flags: Flags): void {
 		die(
 			'usage: notes.ts move-note "<title>" --from "Path" --to "Path" [--account A] [--id NOTEID] [--dry-run]',
 		);
-	const byId = typeof flags.opts.id === "string";
-	const needle = byId ? (flags.opts.id as string) : title;
+	const account = requireAccount(flags);
+
+	// Resolve the note id: an explicit --id wins; otherwise index the source folder and match the
+	// title through the shared matchNoteIds (exact, else truncation-tolerant) — the SAME rule the
+	// draft-hold skill uses, so there is no second copy to keep in sync.
+	let noteId = typeof flags.opts.id === "string" ? flags.opts.id : "";
+	if (!noteId) {
+		const index = parseRecords(
+			runOsaOrDie(OSA_NOTE_INDEX_BY_PATH, [account, from]),
+		).map(([id, name]) => ({ id: id ?? "", name: name ?? "" }));
+		const ids = matchNoteIds(index, title);
+		if (ids.length === 0) die(`note not found in source folder: ${title}`);
+		if (ids.length > 1)
+			die(
+				`AMBIGUOUS: ${ids.length} notes share that title. Re-run with --id one of:\n${ids.join("\n")}`,
+			);
+		noteId = ids[0];
+	}
+
+	const label = flags.opts.id ? `note id ${noteId}` : `"${title}"`;
 	if (flags.opts["dry-run"]) {
-		console.log(
-			`DRY-RUN: would move ${byId ? `note id ${needle}` : `"${title}"`} from "${from}" to "${to}"`,
-		);
+		console.log(`DRY-RUN: would move ${label} from "${from}" to "${to}"`);
 		return;
 	}
-	runOsaOrDie(OSA_MOVE, [
-		requireAccount(flags),
-		from,
-		to,
-		needle,
-		byId ? "yes" : "no",
-	]);
-	console.log(
-		`✓ moved ${byId ? `note id ${needle}` : `"${title}"`}: "${from}" → "${to}"`,
-	);
+	runOsaOrDie(OSA_MOVE_BY_ID, [account, from, to, noteId]);
+	console.log(`✓ moved ${label}: "${from}" → "${to}"`);
 }
 
 function cmdRenameFolder(flags: Flags): void {
