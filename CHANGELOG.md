@@ -1,3 +1,21 @@
+## [22.16.1](https://github.com/terrylica/cc-skills/compare/v22.16.0...v22.16.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **devops-tools:** redact leaked HAIKU_PROVIDER key from launchd example ([798f9c9](https://github.com/terrylica/cc-skills/commit/798f9c93de0bb13b2e321ba0397b56aa9146b983)), closes [#89](https://github.com/terrylica/cc-skills/issues/89) [#89](https://github.com/terrylica/cc-skills/issues/89)
+A live provider API key was committed in the claude-code-proxy-patterns
+launchd-configuration reference (a plist EnvironmentVariables example),
+reported publicly in issue #89. This removes it from HEAD and replaces it with a
+non-secret placeholder plus a prominent note to source provider keys from a
+secrets manager (1Password "Claude Automation" vault / Doppler / SCS) and keep
+the generated plist out of git.
+
+IMPORTANT: redaction at HEAD is secondary. The real remediation is rotation —
+the exposed key must be revoked and reissued in the provider dashboard, after
+which the leaked value (still present in git history, intentionally not
+force-scrubbed to avoid rewriting a public repo with forks and open PRs) is
+
 # [22.16.0](https://github.com/terrylica/cc-skills/compare/v22.15.0...v22.16.0) (2026-07-21)
 
 
