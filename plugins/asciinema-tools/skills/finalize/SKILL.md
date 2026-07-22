@@ -81,10 +81,24 @@ AskUserQuestion:
 
 ### Phase 3: Stop Running Processes
 
+Pass the PID list to this block, plus `--force` when the user invoked
+`/asciinema-tools:finalize` with `--force`. The block parses `--force` out of
+its own arguments — separate `bash` heredocs are separate processes, so `$FORCE`
+must be resolved in the same block that acts on it (a standalone parse phase
+would not survive across blocks).
+
 ```bash
 /usr/bin/env bash << 'STOP_EOF'
-# Arguments: PID list
-PIDS="$@"
+# Arguments: PID list, plus optional --force (documented in argument-hint).
+# Split flags from PIDs so the documented --force flag actually takes effect.
+FORCE=false
+PIDS=""
+for arg in "$@"; do
+  case "$arg" in
+    --force) FORCE=true ;;
+    *) PIDS="$PIDS $arg" ;;
+  esac
+done
 
 for PID in $PIDS; do
   echo "Stopping PID $PID..."
