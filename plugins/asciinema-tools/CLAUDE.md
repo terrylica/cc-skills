@@ -65,3 +65,16 @@ Full terminal recording lifecycle: record sessions, stream to GitHub, convert to
 | 1    | ripgrep | 50-200ms    | Curated keyword search    |
 | 2    | YAKE    | 1-5s        | Auto-discover keywords    |
 | 3    | TF-IDF  | 5-30s       | Topic modeling (optional) |
+
+## Shell access (issue #98)
+
+Several skills (analyze, asciinema-analyzer, asciinema-cast-format,
+asciinema-converter, asciinema-player, plus the daemon/recorder helpers) declare
+broad `Bash` in `allowed-tools` — **by design**. These are local
+recording/conversion tools that invoke `asciinema`, `agg`, `ffmpeg`, ripgrep, and
+other varied commands, so a scoped `Bash(cmd:*)` allowlist would be brittle and
+high-maintenance. Note that `allowed-tools` gates _capability_, not auto-approval:
+every command still goes through the normal Claude Code permission prompts unless
+the operator has explicitly allowlisted it in settings. An external scanner
+flagged this as "unrestricted shell approval" (#98); it is intentional, not a
+defect.
