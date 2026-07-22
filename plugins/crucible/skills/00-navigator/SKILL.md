@@ -1,7 +1,7 @@
 ---
 name: crucible-navigator
 description: starting a new research campaign, entering a new Claude Code session on a research repo, or when unsure which methodology.
-allowed-tools: Read, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
 # crucible-navigator — Research campaign orientation

@@ -1,7 +1,7 @@
 ---
 name: crucible-research-foundations
 description: Validate findings, design shuffled nulls, check label leakage, review causal features. TRIGGERS - shuffled null, label leakage
-allowed-tools: Read, Grep, Glob
+allowed-tools: Read, Write, Edit, Grep, Glob
 ---
 
 # Research Foundations — 6 epistemic disciplines

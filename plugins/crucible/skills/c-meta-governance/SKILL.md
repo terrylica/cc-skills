@@ -1,7 +1,7 @@
 ---
 name: crucible-meta-governance
 description: deciding whether to pivot or persist, whether to ship or hold, whether to scope-narrow a partial pass, how to manage.
-allowed-tools: Read, Grep, Glob
+allowed-tools: Read, Write, Edit, Grep, Glob
 ---
 
 # Meta-governance — 6 decision-layer patterns
