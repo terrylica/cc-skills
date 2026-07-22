@@ -50,7 +50,7 @@ pueue add -- bash -c 'cd ~/project && uv run python my_script.py'
 | Export in `.bashrc`        | Yes               | **No**    | **No**  | Depends     | Varies         |
 | **python-dotenv + `.env`** | **Yes**           | **Yes**   | **Yes** | **Yes**     | **Yes**        |
 
-**Cross-reference**: See `distributed-job-safety` skill -- [G-15](../distributed-job-safety/references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables), [AP-16](../distributed-job-safety/SKILL.md)
+**Cross-reference**: See `distributed-job-safety` skill -- [G-15](../../distributed-job-safety/references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables), [AP-16](../../distributed-job-safety/SKILL.md)
 
 ---
 
