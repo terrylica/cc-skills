@@ -106,6 +106,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [doc-tools](./doc-tools/CLAUDE.md)
 - [dotfiles-tools](./dotfiles-tools/CLAUDE.md)
 - [floating-clock](./floating-clock/CLAUDE.md)
+- [garch-volatility-toolkit](./garch-volatility-toolkit/CLAUDE.md) — walk-forward GARCH/GJR vol forecasting; methodology, not an alpha claim (honest negative-to-marginal results)
 - [gemini-deep-research](./gemini-deep-research/CLAUDE.md)
 - [gh-tools](./gh-tools/CLAUDE.md)
 - [git-town-workflow](./git-town-workflow/CLAUDE.md)

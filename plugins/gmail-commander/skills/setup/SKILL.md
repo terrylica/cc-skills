@@ -153,7 +153,7 @@ launchctl list | grep gmail-commander || echo "Not registered"
 
 ## No OAuth Credentials?
 
-Direct user to: [gmail-api-setup.md](../skills/gmail-access/references/gmail-api-setup.md)
+Direct user to: [gmail-api-setup.md](../gmail-access/references/gmail-api-setup.md)
 
 ---
 

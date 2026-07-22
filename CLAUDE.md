@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **37 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **41 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -46,9 +46,9 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Resume Context            | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `mise run cli-spec` / `cli-spec-check`                  |
 
-### Plugin CLAUDE.md Files (37/37)
+### Plugin CLAUDE.md Files (41/41)
 
-All 37 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+All 41 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
 **Emerging deeper layer**: skill-level CLAUDE.mds (one per skill, sibling to `SKILL.md`) are appearing where a skill is large enough that maintainers need a separate compass from the user-invocable instructions. First adopter: [`plugins/macro-keyboard/skills/{configure-macro-keyboard,emit-fn-key-on-macos,diagnose-hid-keycodes}/CLAUDE.md`](./plugins/macro-keyboard/CLAUDE.md). Add one to your skill if SKILL.md is starting to mix "what to do when invoked" with "what to know before editing".
 
@@ -87,8 +87,8 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 37 plugins)
-├── plugins/                         ← 37 marketplace plugins (each has CLAUDE.md)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 41 plugins)
+├── plugins/                         ← 41 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
@@ -127,7 +127,7 @@ cc-skills/
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 39 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. (Surfaced by the 2026-07-08 graph-housekeeping audit; deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).)
+Recurring architectural patterns across the 41 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. (Surfaced by the 2026-07-08 graph-housekeeping audit; deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).)
 
 | Pattern                   | What it is                                                                                                                          | Exemplars to copy                                                                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
