@@ -31,7 +31,7 @@ zai models | zai quota | zai doctor
 
 - **`ask-glm` skill** — Claude autonomously consults GLM for a second opinion / big-context read.
 - **`glm` subagent** — delegate an isolated GLM consult that returns a crisp verdict.
-- **`/glm`** — manual consult.
+- **`/zai:glm`** — manual consult (the `glm` skill; was `/glm`).
 
 ## Highlights (verified)
 
