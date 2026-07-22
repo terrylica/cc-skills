@@ -89,6 +89,12 @@ This plugin is **not finalized**. Every skill has `references/evolution-log.md` 
 - Demoted principles move to `references/archive/` with `superseded_by` and `resurrect_if` fields
 - Plugin-level changes are appended to `docs/evolution/plugin-evolution.jsonl`
 
+**Tool grant (all 5 skills):** every skill's Post-Execution Reflection edits its own
+SKILL.md in-place and appends to `references/evolution-log.md`, so all five now
+declare `Write, Edit` in `allowed-tools` (fixes #94 — `00-navigator`,
+`a-research-foundations`, and `c-meta-governance` previously granted only
+`Read, Glob, Grep`, silently blocking their self-evolution step).
+
 ## Cross-plugin
 
 - Original methodology files: `findings/methodology/` (the 10 original principles)
