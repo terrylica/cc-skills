@@ -192,7 +192,7 @@ DATABASE_URL=$(op read "$SUPABASE_DB_URL_REF" 2>/dev/null) && psql "$DATABASE_UR
 
 ## No API Credentials?
 
-Direct user to: [calcom-api-setup.md](../skills/calcom-access/references/calcom-api-setup.md)
+Direct user to: [calcom-api-setup.md](../calcom-access/references/calcom-api-setup.md)
 
 ---
 
