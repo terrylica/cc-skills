@@ -2,8 +2,18 @@
 #MISE description="Iter-167 single-batched-git-log-fan-in perf regression test. Iter-165 originally invoked git log 2N+1 times per pending-release computation (1 for SHA list + 2 per commit for subject + body), making fork+exec overhead dominate at large N. Iter-167 collapses this to a single git log call with NUL-byte field separators parsed in pure bash via three IFS= read -r -d '' calls per record. Empirical benchmark at N=50 synthetic commits on Apple Silicon shows about 5x speedup (1184ms baseline median to 228ms optimized median, ~956ms absolute time saved). Test asserts (a) iter-165 source contains the canonical iter-167 NUL-separator pattern (format string '%H%x00%s%x00%b%x00') proving fan-in optimization is in place, (b) iter-165 source does NOT contain the pre-iter-167 'git log -1 --format' per-commit pattern (proves 2N-fork code removed), (c) post-iter-167 latency at N=50 stays under 700ms median across 3 runs (well below 1184ms pre-iter-167 baseline; headroom for CI variance), (d) post-iter-167 produces IDENTICAL classification output as the same N=50 scenario (correctness invariant — optimization must preserve aggregator semantics). Test also emits raw benchmark numbers (min/median/max) for operator reference."
 set -euo pipefail
 
+# Absolute dir of THIS script — resolved before any cd so the shared perf-timing
+# lib loads even when a caller sets AUDIT_REPO_ROOT_OVERRIDE / changes cwd.
+ITER167_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 ITER167_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER167_REPO_ROOT"
+
+# Shared perf-timing gate control (CC_SKILLS_SKIP_PERF_TIMING). Downgrades the
+# load-sensitive Group D wall-clock assertion to informational under the release
+# preflight; structural/correctness assertions (Groups A-C) always gate.
+# shellcheck source=/dev/null
+source "$ITER167_SCRIPT_DIR/../../../scripts/lib/perf-timing-skip.sh"
 
 ITER167_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER167_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
 
@@ -197,7 +207,12 @@ echo "    pre-iter-167 baseline: ~1184ms median (5-run measurement, same N=50 sc
 
 ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS=700
 ITER167_TOTAL_ASSERTIONS_EVALUATED=$((ITER167_TOTAL_ASSERTIONS_EVALUATED + 1))
-if perl -e "exit !(${ITER167_BENCHMARK_MEDIAN_MILLISECONDS} < ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS})"; then
+if perf_timing_skip_active; then
+    # Load-sensitive absolute-cap check downgraded to informational (release
+    # preflight sets CC_SKILLS_SKIP_PERF_TIMING). The NUL-separator structural
+    # pins in Groups A-C still gate; run this test standalone to enforce timing.
+    echo "  ⊘ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms — perf timing NOT gated (CC_SKILLS_SKIP_PERF_TIMING set; threshold ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms)"
+elif perl -e "exit !(${ITER167_BENCHMARK_MEDIAN_MILLISECONDS} < ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS})"; then
     echo "  ✓ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms < ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms threshold (perf regression guard) — speedup vs ~1184ms baseline: ≈$(perl -e "printf '%.2f', 1184 / ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}")×"
 else
     echo "  ✗ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms exceeded ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms threshold — single-batched-git-log-fan-in optimization may have regressed"
