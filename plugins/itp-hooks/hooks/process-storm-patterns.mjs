@@ -39,22 +39,18 @@ export const PATTERNS = {
     ],
   },
 
-  // CRITICAL: gh CLI credential helper recursion patterns # PROCESS-STORM-OK
-  // Only block subshell patterns that trigger credential helper loops.
-  // Direct gh commands (gh api, gh issue, gh pr) are safe from Claude Code
-  // Bash tool — recursion only happens inside hooks/credential helpers.
-  gh_recursion: {
-    severity: "critical",
-    description: "gh CLI subshell patterns that cause credential helper recursion",
-    patterns: [
-      // GH_TOKEN=$(gh auth ...) subshell pattern (credential helper recursion)
-      /GH_TOKEN\s*=\s*\$\(\s*gh\s+auth/i,
-      // GITHUB_TOKEN=$(gh auth ...) subshell pattern
-      /GITHUB_TOKEN\s*=\s*\$\(\s*gh\s+auth/i,
-      // $(gh auth token) in any subshell context
-      /\$\(\s*gh\s+auth\s+(token|status)/i,
-    ],
-  },
+  // NOTE (issue #91, 2026-07): the former `gh_recursion` category was REMOVED.
+  // This file self-exempts via the PROCESS-STORM-OK marker — it necessarily
+  // contains the very strings it once matched. The removed patterns flagged
+  // token CAPTURE into a shell variable — `GH_TOKEN=$(gh auth …)`,
+  // `GITHUB_TOKEN=$(gh auth …)`, and `$(gh auth token|status)` anywhere — but
+  // capturing a token is a one-shot read, NOT recursion. The genuine recursion
+  // vector (a git credential.helper / GIT_ASKPASS pointing at gh auth) is already
+  // covered by `credential_storm` below, so the capture patterns added no
+  // protection while producing two real false positives: the canonical
+  // multi-identity push (`export GH_TOKEN="$(gh auth token)"; git push`) and any
+  // heredoc/doc that merely MENTIONS the pattern (they matched command TEXT, not
+  // an executed subshell).
 
   // CRITICAL: Git credential helper recursion
   credential_storm: {
@@ -143,7 +139,6 @@ export const DEFAULT_CONFIG = {
   enabled: true,
   categories: {
     fork_bomb: true,
-    gh_recursion: true,
     credential_storm: true,
     mise_fork: true,
     python_storm: true,

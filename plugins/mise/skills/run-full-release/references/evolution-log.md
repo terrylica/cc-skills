@@ -16,6 +16,8 @@
 
 **Evidence**: After exporting the token with the escape hatch, preflight → version → verify → postflight all passed; the tag was created, GitHub release published, marketplace synced, tree clean. Verified same session.
 
+**RESOLVED (2026-07, issue #91)**: gap (2) is fixed at the source — the storm guard's `gh_recursion` capture patterns were removed (token capture is a one-shot read, not recursion; the real vector lives in `credential_storm`). `export GH_TOKEN="$(gh auth token)"` is no longer flagged, so the inline `# PROCESS-STORM-OK` in the Step 3 block is now belt-and-suspenders rather than required (kept for compatibility with older cached guards that predate the fix). Gap (1) — preflight's `GH_TOKEN` presence check — is unchanged.
+
 ## 2026-06-02: `.gitignore`-in-WIP Stash Trap (curve-dental v2.9.4) <!-- # SSoT-OK -->
 
 **Trigger**: During a curve-dental release the working tree was dirty with mixed WIP. Choosing "stash WIP → release → restore" and running `git stash -u` reverted an uncommitted `.gitignore` whose only changes were ignore rules for local-only PII dirs (`correspondence/`, `site/`, `cdanet/`, `.wrangler/`, `.mise.local.toml`). Reverting `.gitignore` un-ignored those dirs, which then surfaced as `??` untracked — failing `release:preflight`'s clean-tree gate AND momentarily exposing clinical PII to accidental staging.

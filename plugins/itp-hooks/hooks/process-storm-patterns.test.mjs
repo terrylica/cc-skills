@@ -4,6 +4,10 @@
  * Run with: bun test process-storm-patterns.test.mjs
  *
  * GitHub Issue: https://github.com/anthropics/claude-code/issues/13439
+ *
+ * PROCESS-STORM-OK: this test file necessarily contains the very fixture
+ * strings the guard matches (token captures, credential.helper recursion), so
+ * it self-exempts from the process-storm PreToolUse guard.
  */
 
 import { describe, test, expect } from "bun:test";
@@ -30,27 +34,45 @@ describe("Fork Bomb Patterns", () => {
   });
 });
 
-describe("gh Recursion Patterns", () => {
-  test("detects gh auth token", () => {
-    const content = 'TOKEN=$(gh auth token)';
-    const findings = detectPatterns(content, DEFAULT_CONFIG.categories);
-    expect(findings.length).toBeGreaterThan(0);
-    expect(findings[0].category).toBe("gh_recursion");
-    expect(findings[0].severity).toBe("critical");
+// PROCESS-STORM-OK: the fixtures in this block intentionally contain the
+// token-capture / credential-helper strings the guard matches.
+describe("gh token capture is NOT a storm (issue #91)", () => {
+  // Capturing a token into a variable is a one-shot read, not recursion. The
+  // former gh_recursion capture patterns only produced false positives; the
+  // real recursion vector is covered by credential_storm (asserted below).
+  test("does NOT flag TOKEN=$(gh auth token) capture", () => {
+    const findings = detectPatterns("TOKEN=$(gh auth token)", DEFAULT_CONFIG.categories);
+    expect(findings.length).toBe(0);
   });
 
-  test("does NOT detect direct gh api (safe from Bash tool)", () => {
-    // Direct gh commands are safe — only subshell patterns cause recursion
-    const content = 'gh api user --jq .login';
+  test("does NOT flag the canonical multi-identity push", () => {
+    const content = 'export GH_TOKEN="$(gh auth token)" && git push origin main';
     const findings = detectPatterns(content, DEFAULT_CONFIG.categories);
     expect(findings.length).toBe(0);
   });
 
-  test("detects GH_TOKEN=$(gh auth ...)", () => {
-    const content = 'GH_TOKEN=$(gh auth token 2>/dev/null)';
+  test("does NOT flag GITHUB_TOKEN=$(gh auth ...) capture", () => {
+    const findings = detectPatterns("GITHUB_TOKEN=$(gh auth token 2>/dev/null)", DEFAULT_CONFIG.categories);
+    expect(findings.length).toBe(0);
+  });
+
+  test("does NOT flag a heredoc/doc that merely mentions $(gh auth token)", () => {
+    const content = "cat <<EOF\nRun: export GH_TOKEN=$(gh auth token)\nEOF";
+    const findings = detectPatterns(content, DEFAULT_CONFIG.categories);
+    expect(findings.length).toBe(0);
+  });
+
+  test("does NOT flag direct gh api (safe from Bash tool)", () => {
+    const findings = detectPatterns("gh api user --jq .login", DEFAULT_CONFIG.categories);
+    expect(findings.length).toBe(0);
+  });
+
+  test("STILL flags real credential-helper recursion (credential_storm)", () => {
+    const content = "git config credential.helper '!gh auth token'";
     const findings = detectPatterns(content, DEFAULT_CONFIG.categories);
     expect(findings.length).toBeGreaterThan(0);
-    expect(findings[0].category).toBe("gh_recursion");
+    expect(findings[0].category).toBe("credential_storm");
+    expect(findings[0].severity).toBe("critical");
   });
 });
 
