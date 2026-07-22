@@ -1,3 +1,35 @@
+## [22.16.2](https://github.com/terrylica/cc-skills/compare/v22.16.1...v22.16.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* **itp-hooks:** drop gh_recursion false-positives on safe token capture ([bbe0705](https://github.com/terrylica/cc-skills/commit/bbe0705c84cdd468767f9b4b9f8bf73d58c2c341)), closes [#91](https://github.com/terrylica/cc-skills/issues/91)
+The process-storm guard's `gh_recursion` category blocked any command that
+captured a GitHub token into a shell variable — the `GH_TOKEN=`/`GITHUB_TOKEN=`
+assignment-from-subshell forms and a `gh auth token`/`gh auth status` command
+substitution anywhere. But capturing a token is a one-shot read, not recursion.
+The genuine recursion vector — a git credential.helper / GIT_ASKPASS that shells
+out to `gh auth` — is already covered by the separate `credential_storm`
+category. So the capture patterns added no protection while producing two real
+false positives, both hit repeatedly in this repo's own release sessions: the
+canonical multi-identity push (capture a token, then push as a non-default `gh`
+account) and any heredoc, commit message, or doc that merely MENTIONS the
+pattern (they matched command TEXT, not an executed subshell — e.g. writing this
+very changelog entry).
+
+Removing the three capture patterns loses zero protection and removes the
+papercut. Verified end-to-end: the safe capture now returns allow while a real
+`credential.helper '!gh auth'` still denies via credential_storm.
+
+- Remove the `gh_recursion` category from process-storm-patterns.mjs (patterns +
+  DEFAULT_CONFIG entry), leaving a note that credential_storm covers the real
+  vector
+- Invert the tests: safe token capture, the multi-identity push, and a
+  heredoc-mention are asserted NOT flagged; a credential.helper recursion is
+  asserted STILL flagged as credential_storm (16 pass)
+- Mark the run-full-release evolution-log papercut RESOLVED; its inline
+  PROCESS-STORM-OK escape hatch is now belt-and-suspenders, not required
+
 ## [22.16.1](https://github.com/terrylica/cc-skills/compare/v22.16.0...v22.16.1) (2026-07-22)
 
 
