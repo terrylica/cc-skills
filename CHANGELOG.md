@@ -1,3 +1,50 @@
+# [22.17.0](https://github.com/terrylica/cc-skills/compare/v22.16.3...v22.17.0) (2026-07-22)
+
+
+### Bug Fixes
+
+* **zai:** add required self-evolution sandwich to the glm skill ([26eea83](https://github.com/terrylica/cc-skills/commit/26eea83cb080c52799bf451dc04197f083c246d5))
+The release preflight's self-evolution sandwich check requires every SKILL.md
+to carry a "Self-Evolving Skill" reminder in its top 25 body lines and a
+"## Post-Execution Reflection" section near the bottom. The freshly-migrated
+glm skill (converted from the old raw command, which was not subject to the
+check) lacked both, so preflight hard-failed before tagging v22.17.0.
+
+- Add the Self-Evolving reminder banner under the skill heading.
+- Add a Post-Execution Reflection with two concrete reflection prompts
+  (zai-call/flag drift → fix here + CAPABILITIES.md; wrong-surface routing →
+  sharpen the description).
+- Verified against scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
+  (self_evolving=1, reflection within the last 15 lines).
+
+This unblocks the v22.17.0 release; no behavioral change to the consult itself.
+
+
+### Features
+
+* **zai:** migrate manual /glm from a raw command to a /zai:glm skill ([d5a4b39](https://github.com/terrylica/cc-skills/commit/d5a4b390579cb97b5ab3c2ea5b790baf4d6c0beb))
+zai was the only plugin in the marketplace shipping a plugin-root
+`commands/` directory (`commands/glm.md`, the bare `/glm` alias). The
+release verifier's Check 6 flags any such directory as a pre-migration
+"legacy commands/" leftover, so every release printed a false ✗ for zai.
+Rather than teach the verifier an exception, this converts the manual
+consult into a skill — skills are the marketplace's canonical command
+surface (they auto-expose as `/plugin:skill`), so the verifier passes
+cleanly with no allowlist and zai follows the same convention as the other
+40 plugins.
+
+- Add `skills/glm/SKILL.md` with `disable-model-invocation: true`, so it
+  fires ONLY when the user types `/zai:glm` — it does not compete with the
+  autonomous `ask-glm` skill for model-initiated consults. Body is the same
+  `zai chat $ARGUMENTS` passthrough, with the same argument-hint.
+- Remove `commands/glm.md` and the now-empty `commands/` dir.
+- Update the zai CLAUDE.md file-map + Recent-changes, the README surface
+  list, and the user hub so no doc still advertises the old `/glm`.
+
+Behavioral change: the bare `/glm` alias is gone; invoke as `/zai:glm`.
+`ask-glm` (autonomous cross-check) and the `glm` subagent are unchanged.
+This also permanently clears the recurring release-verifier ✗.
+
 ## [22.16.3](https://github.com/terrylica/cc-skills/compare/v22.16.2...v22.16.3) (2026-07-22)
 
 
