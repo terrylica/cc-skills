@@ -36,11 +36,15 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
         <key>SuccessfulExit</key><false/>
     </dict>
 
-    <!-- Environment variables passed to the proxy -->
+    <!-- Environment variables passed to the proxy.
+         SECURITY: never commit a real provider key here. Source it from your
+         secrets manager (1Password "Claude Automation" vault / Doppler / SCS)
+         and inject at plist-generation time; keep the generated plist out of
+         git. The placeholder below is intentionally not a real key. -->
     <key>EnvironmentVariables</key>
     <dict>
         <key>PORT</key><string>8082</string>
-        <key>HAIKU_PROVIDER_API_KEY</key><string>sk-cp-49GSmHBfC0c65pvYrFoZZy8xEjOVxXrUiTIJn65ynTvgzoiGEvM7q9V5dYYe6PwjMfZaGelKoE2oTq1hKnttv8ODm36O8gklUIi1eaTVOKbPILlIPfNcM0E</string>
+        <key>HAIKU_PROVIDER_API_KEY</key><string>REPLACE_WITH_HAIKU_PROVIDER_API_KEY</string>
         <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
         <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
     </dict>
