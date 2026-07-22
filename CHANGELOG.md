@@ -1,3 +1,44 @@
+## [22.16.3](https://github.com/terrylica/cc-skills/compare/v22.16.2...v22.16.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* **asciinema-tools:** wire finalize --force flag to actually take effect ([aef0411](https://github.com/terrylica/cc-skills/commit/aef04112102b8741ee4a22c41ffcc78a888c5e1b)), closes [#92](https://github.com/terrylica/cc-skills/issues/92)
+The finalize skill documents a --force flag (argument-hint + Arguments
+table) and Phase 3 gates SIGKILL on `[[ "$FORCE" == "true" ]]`, but nothing
+ever assigned $FORCE from the invocation arguments. The flag was silently
+dead: a user passing --force against a process that ignored SIGTERM/SIGINT
+would see "Use --force for SIGKILL" and then... nothing, because the branch
+that sends `kill -9` could never be reached. Phase 3 now parses its own
+arguments, splitting the documented --force flag out of the PID list so the
+escalation path works as advertised.
+
+- Add an arg-parse loop at the top of the Phase 3 block: `--force` sets
+  FORCE=true, everything else accumulates into PIDS.
+- Parse inside the same block that consumes $FORCE — separate `bash`
+  heredocs are separate processes, so a standalone "parse phase" (as the
+  external PR proposed) would not survive across blocks. This is the durable
+  fix for the SKILL.md multi-block execution model.
+- Add an instruction telling the caller to pass --force through to the
+  Phase 3 block when the user invoked finalize with --force.
+- No behavioral change when --force is absent: FORCE defaults to false and
+  the graceful SIGTERM → SIGINT path is unchanged.
+
+Fix authored independently (not merged from the external report) per the
+contribution policy; credit to the reporter in the issue/PR thread.
+* **crucible:** grant Write/Edit so self-evolving skills can self-evolve ([09a7cc7](https://github.com/terrylica/cc-skills/commit/09a7cc78c10973c0e047ee115394f9c07675658e)), closes [#94](https://github.com/terrylica/cc-skills/issues/94) [#94](https://github.com/terrylica/cc-skills/issues/94) [#94](https://github.com/terrylica/cc-skills/issues/94)
+Every crucible skill carries a "Self-Evolving Skill" banner plus a
+Post-Execution Reflection that instructs the agent to edit the SKILL.md
+in-place and append to references/evolution-log.md. But three of the five
+skills declared only `Read, Glob, Grep` in allowed-tools, so that
+self-evolution step was structurally impossible — the agent was told to
+write, then denied the tool to do it. This aligns the whole plugin: all
+five skills can now perform the reflection they document. `b-investigation-
+methodology` and `d-emergent-resurrection` already granted Write/Edit; this
+brings the remaining three into line.
+
+- 00-navigator: `Read, Glob, Grep` → `Read, Write, Edit, Glob, Grep`
+
 ## [22.16.2](https://github.com/terrylica/cc-skills/compare/v22.16.1...v22.16.2) (2026-07-22)
 
 
