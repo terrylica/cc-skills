@@ -9,14 +9,14 @@ verified 2026-07-21** via 202 live API calls; the drift-checkable matrix is [`re
 
 ## What this plugin ships
 
-| Layer                  | Path                               | Role                                                                                                                                         |
-| ---------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLI (the engine)       | `scripts/zai.ts`                   | one Bun CLI: `chat` (fast/deep, ~1M via `--file`), `vision`, `websearch`, `read`, `models`, `quota`, `doctor`. Symlink → `~/.local/bin/zai`. |
-| Capability matrix      | `references/CAPABILITIES.md`       | the empirical SSoT: endpoints, 8 models, reasoning knobs, param matrix, MCP tools, what's gated                                              |
-| ask-glm skill          | `skills/ask-glm/SKILL.md`          | Claude **autonomously** consults GLM-5.2 (second opinion / big-context) — `allowed-tools: Bash`                                              |
-| zai-web-research skill | `skills/zai-web-research/SKILL.md` | Claude uses `zai websearch`/`zai read` (bundled MCP) for grounded research                                                                   |
-| glm subagent           | `agents/glm.md`                    | delegated, isolated GLM consult that returns a crisp verdict (Haiku orchestrator shells out)                                                 |
-| /glm command           | `commands/glm.md`                  | manual consult                                                                                                                               |
+| Layer                  | Path                               | Role                                                                                                                                                                                        |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLI (the engine)       | `scripts/zai.ts`                   | one Bun CLI: `chat` (fast/deep, ~1M via `--file`), `vision`, `websearch`, `read`, `models`, `quota`, `doctor`. Symlink → `~/.local/bin/zai`.                                                |
+| Capability matrix      | `references/CAPABILITIES.md`       | the empirical SSoT: endpoints, 8 models, reasoning knobs, param matrix, MCP tools, what's gated                                                                                             |
+| ask-glm skill          | `skills/ask-glm/SKILL.md`          | Claude **autonomously** consults GLM-5.2 (second opinion / big-context) — `allowed-tools: Bash`                                                                                             |
+| zai-web-research skill | `skills/zai-web-research/SKILL.md` | Claude uses `zai websearch`/`zai read` (bundled MCP) for grounded research                                                                                                                  |
+| glm subagent           | `agents/glm.md`                    | delegated, isolated GLM consult that returns a crisp verdict (Haiku orchestrator shells out)                                                                                                |
+| glm skill (`/zai:glm`) | `skills/glm/SKILL.md`              | manual consult; `disable-model-invocation: true` so it fires only on the user's `/zai:glm` (was `commands/glm.md`, migrated to a skill 2026-07-22 so no plugin ships a raw `commands/` dir) |
 
 ## Critical invariants (don't break these)
 
@@ -68,3 +68,8 @@ zai models && zai quota
   vision `glm-4.6v`; nothing newer exists). Pins moved to one home (`CHAT_MODEL`/`VISION_MODEL` in
   `scripts/zai.ts`, read by chat/vision/doctor) + `zai models` drift-check. Details:
   [`references/CAPABILITIES.md`](./references/CAPABILITIES.md) § "Latest-model verification".
+- **2026-07-22** — Migrated the manual consult from a raw `commands/glm.md` to a
+  `skills/glm/SKILL.md` skill (`/zai:glm`, `disable-model-invocation: true`). zai was the only
+  plugin shipping a plugin-root `commands/` dir, which tripped the release verifier's "legacy
+  commands/" check on every release; skills are the marketplace's canonical command surface. The
+  bare `/glm` alias is gone — invoke as `/zai:glm`. `ask-glm` (autonomous) is unchanged.
