@@ -1,0 +1,32 @@
+{
+  "$schema": "../schema/access-spec.schema.json",
+  "account_id": "00000000000000000000000000000000",
+  "vault_scope": "my-project-access",
+  "org": {
+    "name": "Example Team",
+    "team_domain_candidates": ["example-team", "example-team-ca"]
+  },
+  "idps": {
+    "onetimepin": true,
+    "github": {
+      "client_id_vault_path": "github_oauth.client_id",
+      "client_secret_vault_path": "github_oauth.client_secret"
+    }
+  },
+  "service_tokens": [{ "name": "project-cli", "duration": "8760h" }],
+  "apps": [
+    {
+      "domain": "my-worker.example-account.workers.dev",
+      "name": "Field-device app (long session)",
+      "session_duration": "730h",
+      "allow_emails": ["person-work@example.com", "person-personal@example.com"],
+      "service_token_names": ["project-cli"]
+    },
+    {
+      "domain": "my-brief.example-account.workers.dev",
+      "name": "Reading material (short session)",
+      "session_duration": "168h",
+      "allow_emails": ["person-work@example.com"]
+    }
+  ]
+}

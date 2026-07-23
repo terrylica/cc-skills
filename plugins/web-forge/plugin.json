@@ -1,0 +1,9 @@
+{
+  "name": "web-forge",
+  "version": "0.1.0",
+  "description": "Supervised dashboard automation for API-less operations - persistent-profile CDP harness, secrets-safe token/OAuth-app forging, declarative Cloudflare Access walls",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}
