@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/terrylica/cc-skills/plugins/web-forge/skills/cf-access-wall/schema/access-spec.schema.json",
+  "title": "cf-access-wall spec",
+  "description": "Declarative, PII-optional spec for putting a set of hostnames behind Cloudflare Access (Zero Trust). The spec instance lives in the PROJECT repo (it may carry team emails); this schema is the agnostic contract. Idempotent executor: ../scripts/setup-access.mjs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["account_id", "vault_scope", "apps"],
+  "properties": {
+    "account_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "Cloudflare account id that owns the hostnames."
+    },
+    "vault_scope": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SCS vault scope holding cf.api_token (scoped: Access apps/policies + IdPs + orgs + service tokens, Edit) and receiving minted service-token credentials."
+    },
+    "org": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Zero Trust org (team domain). Omit if the account already has one — the executor GETs first and never overwrites.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "team_domain_candidates": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,61}$" },
+          "minItems": 1,
+          "description": "Tried in order until one is globally available; '.cloudflareaccess.com' is appended."
+        }
+      }
+    },
+    "idps": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onetimepin": {
+          "type": "boolean",
+          "default": true,
+          "description": "Built-in emailed 6-digit code — the non-technical path; zero external setup."
+        },
+        "github": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["client_id_vault_path", "client_secret_vault_path"],
+          "description": "GitHub IdP; the OAuth app is forged separately (gh-oauth-app.mjs) with callback https://<team>.cloudflareaccess.com/cdn-cgi/access/callback.",
+          "properties": {
+            "client_id_vault_path": { "type": "string" },
+            "client_secret_vault_path": { "type": "string" }
+          }
+        }
+      }
+    },
+    "service_tokens": {
+      "type": "array",
+      "description": "Non-browser clients (CLIs, CI). Minted once; client_id/secret land in the vault scope under the DOT-separated paths service_token.<name>.client_id|client_secret.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "duration": { "type": "string", "default": "8760h", "pattern": "^[0-9]+h$" }
+        }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain", "name", "allow_emails"],
+        "properties": {
+          "domain": {
+            "type": "string",
+            "minLength": 4,
+            "description": "Hostname to protect. *.workers.dev works directly (verified 2026-07-23) — no zone or custom domain required."
+          },
+          "name": { "type": "string", "minLength": 1 },
+          "session_duration": {
+            "type": "string",
+            "default": "24h",
+            "pattern": "^[0-9]+[hm]$",
+            "description": "Per-app session. Field-device apps (e.g. a chairside recorder) warrant the 730h maximum so in-field links never re-auth mid-task."
+          },
+          "allow_emails": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "format": "email" },
+            "description": "The allow-list. Covers BOTH login paths: OTP asserts the typed email; GitHub asserts the account's verified email — list every identity a person may arrive with."
+          },
+          "service_token_names": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Service tokens (by name from service_tokens) granted a non_identity policy on this app."
+          }
+        }
+      }
+    }
+  }
+}
