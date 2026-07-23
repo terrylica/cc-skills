@@ -59,6 +59,8 @@
 //  substance. The spoke's threshold table mirrors these values — update both.
 // ────────────────────────────────────────────────────────────────────────
 
+import { extractFlagValue, extractFlagValues } from "./lib/shell-arg-extractor.ts";
+
 /** A narrative paragraph must reach this many characters of prose. */
 export const NARRATIVE_MIN_CHARS = 240;
 /** …and contain at least this many sentence terminators (`.`/`!`/`?`). */
@@ -104,32 +106,6 @@ export interface ReleaseCommandClassification {
 /** Values we cannot statically resolve (command substitution / variables). */
 function isUnmeasurableValue(raw: string): boolean {
   return /\$\(|`|\$\{?[A-Za-z_]/.test(raw);
-}
-
-/**
- * Extract a flag value from a raw segment, honoring `=`, whitespace, and single
- * or double quotes. Naive on nested/escaped quotes (fail-open by design).
- * Returns `{ present: true }` with no `value` for a bare/flag-only match.
- */
-function extractFlagValue(
-  segment: string,
-  flags: string[],
-): { present: boolean; value?: string } {
-  for (const flag of flags) {
-    const f = flag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const valued = new RegExp(`(?:^|\\s)${f}(?:=|\\s+)(?:"([^"]*)"|'([^']*)'|(\\S+))`, "s");
-    const m = segment.match(valued);
-    if (m) return { present: true, value: m[1] ?? m[2] ?? m[3] ?? "" };
-    const bare = new RegExp(`(?:^|\\s)${f}(?=\\s|$)`);
-    if (bare.test(segment)) return { present: true };
-  }
-  return { present: false };
-}
-
-/** Collect ALL `-m <msg>` occurrences (git tag concatenates them by blank line). */
-function extractAllMessageFlags(segment: string): string[] {
-  const re = /(?:^|\s)(?:-m|--message)(?:=|\s+)(?:"([^"]*)"|'([^']*)'|(\S+))/gs;
-  return Array.from(segment.matchAll(re), (m) => m[1] ?? m[2] ?? m[3] ?? "");
 }
 
 /** First line of the command, trimmed — used for the deny-message preview. */
@@ -192,7 +168,7 @@ function classifyGitTag(command: string, afterTag: string): ReleaseCommandClassi
     }
     return { isRelease: true, kind: "git-tag-message", segment, notesFile: file.value };
   }
-  const messages = extractAllMessageFlags(afterTag);
+  const messages = extractFlagValues(afterTag, ["-m", "--message"]);
   if (messages.length > 0) {
     if (messages.some(isUnmeasurableValue)) {
       return { isRelease: true, kind: "git-tag-message", segment, notesUnmeasurable: true };

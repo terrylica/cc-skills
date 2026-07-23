@@ -14,8 +14,13 @@
  */
 
 import { discoverProject, formatDiscoveryResult } from './sred-discovery';
-import { type PreToolUseInput } from './pretooluse-helpers.ts';
+import type { PreToolUseInput } from './pretooluse-helpers.ts';
 import { trackHookError } from "./lib/hook-error-tracker.ts";
+import {
+  extractCatHeredoc,
+  extractFlagValueDetailed,
+  hasUnparseableCatHeredoc,
+} from "./lib/shell-arg-extractor.ts";
 
 // ============================================================================
 // CONFIGURATION
@@ -187,86 +192,68 @@ git log --since="2026-01-01" --until="2026-03-31" \\
 // COMMIT MESSAGE EXTRACTION
 // ============================================================================
 
-interface ExtractionResult {
+export interface ExtractionResult {
   found: boolean;
   message: string;
   method: 'heredoc' | 'file' | 'double-quote' | 'single-quote' | 'heredoc-bypass' | 'none';
 }
 
 /**
- * Extract commit message from git command using multiple strategies.
+ * Extract commit message from a `git commit` command using multiple strategies.
  *
  * Handles:
  * 1. Heredoc patterns: -m "$(cat <<'EOF'...EOF)" or -m "$(cat <<EOF...EOF)"
  * 2. File flag: -F <file> or --file=<file>
  * 3. Standard quotes: -m "message" or -m 'message'
- * 4. Command substitution with nested quotes
  *
  * Returns { found: false } when:
  * - No -m or -F flag detected (editor mode)
  * - Heredoc detected but unparseable (allows git hook to validate)
- * - File flag with path we can't/shouldn't read synchronously
+ * - File flag present (we don't read the file synchronously)
+ *
+ * The low-level shell parsing (heredoc + quoted-arg tokenizing) is delegated to
+ * the shared `shell-arg-extractor` lib; the git-commit-specific escape
+ * reconstruction (`\n`→newline etc.) and the `method` bookkeeping stay here.
  */
-function extractCommitMessage(command: string): ExtractionResult {
-  // Strategy 1: Detect heredoc patterns and extract content
-  // Matches: -m "$(cat <<'EOF'\n...\nEOF\n)"  or  -m "$(cat <<EOF\n...\nEOF\n)"
-  const heredocMatch = command.match(
-    /-m\s+["']\$\(cat\s+<<['"]?(\w+)['"]?\s*([\s\S]*?)\1\s*\)["']/
-  );
-  if (heredocMatch) {
-    const content = heredocMatch[2]
-      .replace(/^\n/, '')   // Remove leading newline after delimiter
-      .replace(/\n$/, '');  // Remove trailing newline before delimiter
-    return { found: true, message: content, method: 'heredoc' };
+export function extractCommitMessage(command: string): ExtractionResult {
+  // Strategy 1: cat-heredoc — -m "$(cat <<EOF ... EOF)" (quoted or bare delimiter).
+  const heredoc = extractCatHeredoc(command);
+  if (heredoc) {
+    return { found: true, message: heredoc.body, method: 'heredoc' };
   }
 
-  // Strategy 1b: Detect heredoc pattern that we can't fully parse
-  // If command contains heredoc syntax but regex didn't capture it,
-  // allow through for git commit-msg hook to validate
-  if (/-m\s+["']\$\(cat\s+<</.test(command)) {
-    // Heredoc detected but complex/multiline - let git hook handle
+  // Strategy 1b: heredoc syntax present but not fully parseable → let git validate.
+  if (hasUnparseableCatHeredoc(command)) {
     return { found: false, message: '', method: 'heredoc-bypass' };
   }
 
-  // Strategy 2: File flag (-F <file> or --file=<file>)
-  // Note: We allow through rather than reading file synchronously
-  // because the file might not exist yet or path resolution is complex
-  const fileMatch = command.match(/-F\s+(\S+)|--file[=\s](\S+)/);
-  if (fileMatch) {
-    const filePath = fileMatch[1] || fileMatch[2];
-    // For synchronous file reading, we could do:
-    // const file = Bun.file(filePath);
-    // if (await file.exists()) { ... }
-    // But since this is in the hot path and file may not exist,
-    // allow through for git hook validation
+  // Strategy 2: file flag (-F <file> / --file=<file>) → allow through (not read here).
+  const fileFlag = extractFlagValueDetailed(command, ['-F', '--file']);
+  if (fileFlag.present && fileFlag.value) {
     return { found: false, message: '', method: 'file' };
   }
 
-  // Strategy 3: Double-quoted message with proper escaping
-  // Use a more sophisticated pattern that handles escaped quotes and command substitution
-  // Match: -m "..." where ... can contain \", \\, or any non-quote char
-  const doubleQuoteMatch = command.match(/-m\s+"((?:[^"\\]|\\.)*)"/);
-  if (doubleQuoteMatch) {
-    const message = doubleQuoteMatch[1]
-      .replace(/\\n/g, '\n')   // Handle escaped newlines
-      .replace(/\\t/g, '\t')   // Handle escaped tabs
-      .replace(/\\"/g, '"')    // Handle escaped double quotes
-      .replace(/\\\\/g, '\\'); // Handle escaped backslashes
-    return { found: true, message, method: 'double-quote' };
+  // Strategy 3/4: inline -m "…" / -m '…'. The shared tokenizer yields the shell-
+  // decoded value + quote kind; we then apply the same `\n`/`\t` (and, for double
+  // quotes, `\"`/`\\`) reconstruction the original guard used so multi-line
+  // messages authored with escape sequences validate correctly.
+  const dashM = extractFlagValueDetailed(command, ['-m']);
+  if (dashM.present && dashM.value !== undefined) {
+    if (dashM.quote === 'double') {
+      const message = dashM.value
+        .replace(/\\n/g, '\n')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      return { found: true, message, method: 'double-quote' };
+    }
+    if (dashM.quote === 'single') {
+      const message = dashM.value.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      return { found: true, message, method: 'single-quote' };
+    }
   }
 
-  // Strategy 4: Single-quoted message (no escape processing needed in shell)
-  // Match: -m '...' where ... is everything until closing single quote
-  // Note: In shell, single quotes preserve everything literally
-  const singleQuoteMatch = command.match(/-m\s+'([^']*)'/);
-  if (singleQuoteMatch) {
-    const message = singleQuoteMatch[1]
-      .replace(/\\n/g, '\n')   // Handle escaped newlines (for consistency)
-      .replace(/\\t/g, '\t');  // Handle escaped tabs
-    return { found: true, message, method: 'single-quote' };
-  }
-
-  // No -m flag or unrecognized pattern - editor mode or complex command
+  // No -m flag or unrecognized pattern - editor mode or complex command.
   return { found: false, message: '', method: 'none' };
 }
 
@@ -643,5 +630,7 @@ async function main(): Promise<never> {
   return process.exit(result.exitCode);
 }
 
-// Run main
-void main();
+// Run main only as a direct entrypoint; stay importable for tests.
+if (import.meta.main) {
+  void main();
+}
