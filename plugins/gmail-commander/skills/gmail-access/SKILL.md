@@ -695,6 +695,10 @@ done
 
 ## Evolution Log
 
+- **2026-07-22 — a PreToolUse body guard now ENFORCES single-line paragraphs + plain prose.**
+  - _Trigger_: despite the 2026-07-10 fix, vendor-outreach drafts were authored from markdown files **hard-wrapped at ~100 columns** and containing raw markdown. Because `toHtmlBody()` turns every authored newline into a `<br>`, each wrap became a literal break → the recipient saw a column of short, mid-sentence lines; and because the CLI HTML-escapes the body without rendering markdown, `**bold**`/backticks/`[text](url)`/headings/tables showed literally.
+  - _Fix_: a PreToolUse guard (`itp-hooks` → `pretooluse-gmail-body-guard.ts`, detector SSoT `hooks/lib/gmail-body-detector.ts`) **denies** a `gmail draft`/`draft-update` whose inline `--body` or `--body-file` content contains mid-sentence prose line breaks (HARD-WRAP) or high-signal raw markdown (RAW MARKDOWN). Escape hatch `GMAIL-BODY-OK`. Spoke: `plugins/itp-hooks/docs/gmail-body-guard.md`.
+  - _Authoring rule (unchanged, now enforced)_: write each **paragraph as ONE unbroken line** — long lines reflow in the reader's window; keep only intended breaks (list items, the `Best,`/name sign-off) on their own line. Do NOT pre-wrap the body at 72/80/100 columns, and send **plain prose** — do NOT paste raw markdown expecting it to render.
 - **2026-07-10 — drafts hard-wrapped at recipient → switched to HTML (multipart/alternative).**
   - _Trigger_: sent drafts (Curve-Dental correspondence) showed short, fixed-width lines / looked chopped in Gmail. Original cause: `text/plain` with no wrapping guidance, so clients hard-wrap long paragraphs.
   - _First attempt (WRONG for Gmail) — `format=flowed`_: emitted RFC 3676 `format=flowed` with 72-col soft breaks. **Gmail does NOT reliably reflow format=flowed**, and the 72-col breaks are shown literally in Gmail's compose/draft view — so the drafts still looked wrapped/"truncated". Do not use format=flowed for Gmail-destined mail.
