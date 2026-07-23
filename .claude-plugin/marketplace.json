@@ -1,6 +1,6 @@
 {
   "name": "cc-skills",
-  "version": "22.17.0",
+  "version": "22.18.0",
   "description": "Claude Code Skills Marketplace",
   "owner": {
     "name": "Terry Li",
@@ -10,7 +10,7 @@
     {
       "name": "notes-commander",
       "description": "macOS Notes organizer + human-in-the-loop drafts. Inventory every account/folder, export all notes to local markdown+manifest snapshots, reorganize safely (folderize/move/merge, dry-run first, no delete verb), audit-and-propose taxonomy, and the migrated draft-hold skill - all on one hardened AppleScript engine (silent-failure detection, transient-error retry, read-back verify).",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/notes-commander",
       "category": "productivity",
       "author": {
@@ -35,7 +35,7 @@
     {
       "name": "agent-reach",
       "description": "Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/agent-reach",
       "category": "productivity",
       "author": {
@@ -65,7 +65,7 @@
     {
       "name": "asciinema-tools",
       "description": "Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/asciinema-tools",
       "category": "utilities",
       "author": {
@@ -90,7 +90,7 @@
     {
       "name": "calcom-commander",
       "description": "Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/calcom-commander",
       "category": "productivity",
       "author": {
@@ -118,7 +118,7 @@
     {
       "name": "claude-tts-companion",
       "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/claude-tts-companion",
       "category": "productivity",
       "author": {
@@ -140,7 +140,7 @@
     {
       "name": "cli-anything",
       "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/cli-anything",
       "category": "development",
       "author": {
@@ -166,7 +166,7 @@
     {
       "name": "crucible",
       "description": "Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns. Covers epistemic foundations (causality, nulls, record-keeping), investigation patterns (multi-lens agents, adversarial gates, per-trade enrichment), decision layer (constraint-pivot, supersede-not-rewrite), and emergent resurrection (failure archive with resurrect_if conditions).",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -187,7 +187,7 @@
     {
       "name": "devops-tools",
       "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/devops-tools",
       "category": "devops",
       "author": {
@@ -222,7 +222,7 @@
     {
       "name": "doc-tools",
       "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/doc-tools",
       "category": "documents",
       "author": {
@@ -247,7 +247,7 @@
     {
       "name": "dotfiles-tools",
       "description": "Chezmoi dotfile management via natural language workflows",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/dotfiles-tools",
       "category": "utilities",
       "author": {
@@ -266,7 +266,7 @@
     {
       "name": "floating-clock",
       "description": "Always-on-top floating desktop clock for macOS — borderless NSPanel with persistent positioning, timer-driven updates, persistent position via NSUserDefaults.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/floating-clock",
       "category": "utilities",
       "author": {
@@ -288,7 +288,7 @@
     {
       "name": "gemini-deep-research",
       "description": "Gemini Deep Research via browser automation: Playwright CDP, 8-step flow, 40k+ char research reports",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/gemini-deep-research",
       "category": "ai",
       "author": {
@@ -309,7 +309,7 @@
     {
       "name": "gh-tools",
       "description": "GitHub workflow automation: GFM link validation, WebFetch enforcement, issue management, fork intelligence",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/gh-tools",
       "category": "development",
       "author": {
@@ -330,7 +330,7 @@
     {
       "name": "git-town-workflow",
       "description": "Prescriptive git-town workflow enforcement for fork-based development: fork creation, contribution workflow, enforcement hooks that block forbidden raw git commands",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/git-town-workflow",
       "category": "devops",
       "author": {
@@ -353,7 +353,7 @@
     {
       "name": "gmail-commander",
       "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/gmail-commander",
       "category": "productivity",
       "author": {
@@ -379,7 +379,7 @@
     {
       "name": "graphify-tools",
       "description": "Multimodal knowledge graphs via Graphify-Labs/graphify: turn code + docs + PDFs + images into a queryable graph (graph.html, Obsidian vault, agent wiki). Complements codegraph (symbol-level) with concept-level cross-corpus structure.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/graphify-tools",
       "category": "quality",
       "author": {
@@ -401,7 +401,7 @@
     {
       "name": "pushover-commander",
       "description": "Pushover end-to-end: send notifications (+image), emergency priority-2 with receipt polling, HEADLESS pushover.net web-control (create/delete apps + custom sounds via Playwright — the only way to mint an app token, no API exists), monospace incident-report PNG rendering, UUID/JSONL verbatim audit + quota/heartbeat, /loop briefings. Public + generic; per-user secrets stay private under ~/.claude.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/pushover-commander",
       "category": "devops",
       "author": {
@@ -432,7 +432,7 @@
     {
       "name": "html-showcase",
       "description": "Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, contractor portfolios, telemetry dashboards). Single design-system SSoT served via jsDelivr CDN; pages stay pure HTML with optional per-page CSS overrides.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/html-showcase",
       "category": "documents",
       "author": {
@@ -456,7 +456,7 @@
     {
       "name": "itp",
       "description": "Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, formatting, and release automation",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/itp",
       "category": "productivity",
       "author": {
@@ -478,7 +478,7 @@
     {
       "name": "itp-hooks",
       "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/itp-hooks",
       "category": "enforcement",
       "author": {
@@ -503,7 +503,7 @@
     {
       "name": "kokoro-tts",
       "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/kokoro-tts",
       "category": "devops",
       "author": {
@@ -523,7 +523,7 @@
     {
       "name": "link-tools",
       "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/link-tools",
       "category": "quality",
       "author": {
@@ -545,7 +545,7 @@
     {
       "name": "macro-keyboard",
       "description": "Configure cheap 3-key USB-C/Bluetooth macro pads on macOS with Karabiner-Elements: emit real Fn, remap per-device, diagnose mystery keycodes. Includes worked example: Jieli/Free3-P (VID 0x4c4a USB / 0x04E8 BT).",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/macro-keyboard",
       "category": "productivity",
       "author": {
@@ -593,7 +593,7 @@
     {
       "name": "media-tools",
       "description": "YouTube audio download, iOS device media transfer, and HEIC-to-JPEG photo-share workflows",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/media-tools",
       "category": "utilities",
       "author": {
@@ -614,7 +614,7 @@
     {
       "name": "minimax",
       "description": "MiniMax M-series production wiring: OpenAI-compat quirks, hybrid prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/minimax",
       "category": "ai",
       "author": {
@@ -637,7 +637,7 @@
     {
       "name": "openwolf",
       "description": "Wraps the third-party openwolf npm middleware (token-saving project memory for Claude Code). Installs the global binary, runs openwolf init in the current project, surfaces status, and provides a clean removal path that openwolf itself does not ship.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/openwolf",
       "category": "productivity",
       "author": {
@@ -660,7 +660,7 @@
     {
       "name": "mise",
       "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/mise",
       "category": "productivity",
       "author": {
@@ -680,7 +680,7 @@
     {
       "name": "mql5",
       "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/mql5",
       "category": "trading",
       "author": {
@@ -702,7 +702,7 @@
     {
       "name": "plugin-dev",
       "description": "Plugin and skill development: structure validation, silent failure auditing, skill architecture meta-skill with TodoWrite templates",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/plugin-dev",
       "category": "development",
       "author": {
@@ -725,7 +725,7 @@
     {
       "name": "productivity-tools",
       "description": "Slash command factory and calendar event management with tiered sound alarms",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/productivity-tools",
       "category": "productivity",
       "author": {
@@ -749,7 +749,7 @@
     {
       "name": "quality-tools",
       "description": "Code quality and validation: clone detection, multi-agent E2E validation, performance profiling, schema testing",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/quality-tools",
       "category": "quality",
       "author": {
@@ -771,7 +771,7 @@
     {
       "name": "quant-research",
       "description": "Quantitative research metrics: SOTA evaluation for range bars, Sharpe ratios with daily aggregation, ML prediction quality (IC, autocorrelation), crypto-specific considerations",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/quant-research",
       "category": "trading",
       "author": {
@@ -797,7 +797,7 @@
     {
       "name": "rust-tools",
       "description": "SOTA Rust tooling - refactoring, profiling, benchmarking, testing, SIMD, dependency audit",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/rust-tools",
       "category": "development",
       "author": {
@@ -828,7 +828,7 @@
     {
       "name": "ssh-tunnel-companion",
       "description": "SSH tunnel persistence for bigblack ClickHouse via launchd + sleepwatcher",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
@@ -846,7 +846,7 @@
     {
       "name": "statusline-tools",
       "description": "Custom status line with git status indicators",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/statusline-tools",
       "category": "utilities",
       "author": {
@@ -863,7 +863,7 @@
     {
       "name": "tlg",
       "description": "Telegram user-account messaging via MTProto (GramJS, Bun TypeScript) - send messages as yourself, list dialogs, 1Password credentials",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/tlg",
       "category": "productivity",
       "author": {
@@ -883,7 +883,7 @@
     {
       "name": "tts-tg-sync",
       "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/tts-tg-sync",
       "category": "devops",
       "requires": [
@@ -910,7 +910,7 @@
     {
       "name": "whatsapp-commander",
       "description": "WhatsApp messaging - wa.me click-to-chat deep links (default, ToS-safe) and WhatsApp Business Cloud API sends. Function/enum-driven Bun TypeScript.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/whatsapp-commander",
       "category": "productivity",
       "author": {
@@ -930,7 +930,7 @@
     {
       "name": "macos-font-defaults",
       "description": "Point macOS's user fixed-pitch font and per-app fixed-width fonts (TextEdit plain text, Stickies default note) at a chosen font (default JetBrains Mono NL). Idempotent, parameterized, reproducible on a fresh machine. Does not touch Terminal/editors or Apple Notes.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/macos-font-defaults",
       "category": "productivity",
       "author": {
@@ -952,7 +952,7 @@
     {
       "name": "garch-volatility-toolkit",
       "description": "Walk-forward GARCH(1,1) and GJR(1,1) volatility forecasting. DCC de-weighting overlay (+0.054 Sharpe), GJR inverse vol-scaling (+0.449 Sharpe). Campaign results from 20 seeds on BTC/ETH/SOL/AVAX, 2025-26 test window.",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/garch-volatility-toolkit",
       "category": "trading",
       "author": {
@@ -974,7 +974,7 @@
     {
       "name": "zai",
       "description": "Z.ai GLM Coding Plan (Pro) as a COMPLEMENTARY consultant + toolbelt for Claude Code (does not replace Haiku/Sonnet/Opus). One zai CLI: fast/deep GLM-5.2, ~1M context, vision (glm-4.6v), bundled web_search_prime/web_reader MCP, quota. Plus ask-glm skill, glm subagent, /glm command. Every capability empirically verified 2026-07-21 (202 live calls).",
-      "version": "22.17.0",
+      "version": "22.18.0",
       "source": "./plugins/zai",
       "category": "ai",
       "author": {

@@ -1,3 +1,21 @@
+# [22.18.0](https://github.com/terrylica/cc-skills/compare/v22.17.0...v22.18.0) (2026-07-23)
+
+
+### Features
+
+* **itp-hooks:** add gmail draft body guard ([e453002](https://github.com/terrylica/cc-skills/commit/e453002dba437df6a6755853fc9671a90bf89c62)), closes [hi#signal](https://github.com/hi/issues/signal)
+Add a PreToolUse Bash guard that blocks a `gmail draft`/`draft-update` whose body
+would render badly in the recipient's inbox, before the draft is created. Traced
+from a vendor-outreach incident where drafts arrived visually "chopped" and with
+raw markdown showing literally: the gmail CLI turns every authored newline into
+an HTML <br> (so a fixed-column-wrapped paragraph becomes a column of short
+mid-sentence lines) and HTML-escapes the body without rendering markdown. The
+guard enforces the gmail skill's own doctrine — single-line paragraphs, plain
+prose — which was documented but previously unenforced.
+
+- hooks/lib/gmail-body-detector.ts: pure detector with detectHardWraps (a
+  mid-sentence break where line A ends "open", is >=50 cols, and line B
+
 # [22.17.0](https://github.com/terrylica/cc-skills/compare/v22.16.3...v22.17.0) (2026-07-22)
 
 
