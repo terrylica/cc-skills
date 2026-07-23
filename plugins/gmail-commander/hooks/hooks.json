@@ -1,5 +1,18 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/gmail-draft-guard.sh",
+            "timeout": 10000,
+            "description": "Block ad-hoc Gmail drafts-API writes — Gmail hard-folds ingested text/plain at ~72 cols (regression 2026-07-23), so every draft create/replace must go through scripts/gmail-draft.ts (multipart/alternative + text/html, wrap-immune, unwraps formatter-wrapped sources). Escape hatch: GMAIL_DRAFT_ADHOC_OK=1"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

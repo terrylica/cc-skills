@@ -84,6 +84,32 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires,
 | `KOKORO_HOST`                 | No       | Kokoro TTS host for voice digest (default: `littleblack`)                                 |
 | `KOKORO_PORT`                 | No       | Kokoro TTS port (default: `8090`)                                                         |
 
+## Canonical Gmail draft builder + guard (2026-07-23)
+
+**Every Gmail draft create/replace goes through `scripts/gmail-draft.ts`** — enforced by the
+PreToolUse(Bash) hook `hooks/gmail-draft-guard.sh`, which BLOCKS ad-hoc drafts-API writes
+(escape hatch: prefix the command with `GMAIL_DRAFT_ADHOC_OK=1`; read-only GET fetches pass).
+
+**Why (regression 2026-07-23):** Gmail re-encodes ingested `text/plain` raw messages and
+hard-folds long lines at ~72 columns, so ad-hoc drafts (python + MIMEText — often built from
+markdown a formatter hook had already re-wrapped) show forced mid-paragraph line breaks in the
+compose window. The builder is structurally immune: it unwraps blank-line-separated paragraphs
+and produces `multipart/alternative` with a `text/html` part (source newlines never render — the
+draft reflows exactly like one composed in Gmail's own editor).
+
+```bash
+bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \
+  --account <tokenbase>            # token base name in ~/.claude/tools/gmail-tokens/
+  --body <file.md>                 # body text; paragraphs unwrap, URLs auto-link
+  --from 'Name <addr@gmail.com>' \
+  [--reply-to <messageId>]         # derives Subject/In-Reply-To/References/threadId
+  [--to a@b] [--cc c@d] [--subject '…'] [--replace <staleDraftId>]
+# stdout: {"draftId":"…","threadId":"…","account":"…"}
+```
+
+Gotcha the builder also absorbs: Gmail's `drafts.update` rejects with `400 Message not a draft`
+on threaded drafts — the tool always creates-then-deletes (`--replace`) instead of updating.
+
 ## Conventions
 
 - **Hooks**: Use `$HOME`-based paths, never `$CLAUDE_PLUGIN_ROOT`
