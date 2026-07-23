@@ -44,6 +44,8 @@
  * never trips the detector.
  */
 
+import { computeFencedCodeLineMask } from "./markdown-fence-scanner.ts";
+
 export type TableIssueSeverity = "error" | "info";
 
 export type TableIssueCode =
@@ -126,13 +128,6 @@ function isIndentedAsCodeBlock(rawLine: string): boolean {
   return /^(?: {4,}|\t)/.test(rawLine);
 }
 
-/** Opening/closing fence marker (``` or ~~~, 3+), indented <4 spaces. */
-function fenceMarkerOf(rawLine: string): { char: string; len: number } | null {
-  const m = rawLine.match(/^( {0,3})(`{3,}|~{3,})/);
-  if (!m) return null;
-  return { char: m[2][0], len: m[2].length };
-}
-
 // ────────────────────────────────────────────────────────────────────────
 //  Public API — detection
 // ────────────────────────────────────────────────────────────────────────
@@ -146,24 +141,7 @@ export function detectBrokenTables(content: string): TableIssue[] {
   const issues: TableIssue[] = [];
 
   // First pass: mark which lines are inside a fenced code block (skipped).
-  const inFence: boolean[] = Array.from({ length: lines.length }, () => false);
-  let openFence: { char: string; len: number } | null = null;
-  for (let i = 0; i < lines.length; i++) {
-    const fence = fenceMarkerOf(lines[i]);
-    if (fence) {
-      if (!openFence) {
-        openFence = fence;
-        inFence[i] = true; // the opening fence line itself
-        continue;
-      }
-      if (fence.char === openFence.char && fence.len >= openFence.len) {
-        inFence[i] = true; // the closing fence line itself
-        openFence = null;
-        continue;
-      }
-    }
-    inFence[i] = openFence !== null;
-  }
+  const inFence = computeFencedCodeLineMask(lines);
 
   let i = 0;
   while (i < lines.length) {
