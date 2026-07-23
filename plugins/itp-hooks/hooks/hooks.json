@@ -144,6 +144,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-gmail-body-guard.ts",
+            "timeout": 5000,
+            "description": "Denies a `gmail draft` / `draft-update` whose body would render badly in the recipient's inbox, before the bad draft is created. Two failure modes: (1) HARD-WRAP — the gmail CLI turns every authored newline into an HTML <br> (gmail-drafts.ts toHtmlBody), so a paragraph wrapped at ~72/80/100 cols renders as a column of short mid-sentence lines instead of reflowing; (2) RAW MARKDOWN — the CLI HTML-escapes the body and does not render markdown, so **bold**/`code`/[text](url)/# headings/|tables| show literally. Inspects inline --body and --body-file content. Escape hatch: GMAIL-BODY-OK anywhere in the command. Fail-open (missing/unreadable body-file skipped). Doctrine: gmail-commander/skills/gmail-access/SKILL.md 2026-07-22. Spoke: docs/gmail-body-guard.md."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-release-notes-extensiveness-guard.ts",
             "timeout": 8000,
             "description": "Hard-blocks release/tag commands whose notes are not extensive + human-readable (needs a narrative paragraph AND a point-form list). Covers `gh release create|edit` (--notes/--notes-file text), annotated semver `git tag -m/-F`, and semantic-release / `mise run release[:*]` (inspects releasable commit BODIES since last tag — the notes source). Escape hatch: RELEASE-NOTES-OK: <≥10-char reason>. Fail-open. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md. Spoke: docs/release-notes-extensiveness-guard.md. ADR 2026-07-21."
