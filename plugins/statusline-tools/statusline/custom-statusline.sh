@@ -1015,6 +1015,8 @@ def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state
     #   flapping (yellow)  ← pool degraded OR canary transient
     #   since-boot (gray)  ← canary never-succeeded-since-router-start config bug
     #   healthy (green)    ← both signals report no failure
+    #   unproven (gray)    ← no recent request carried forward-path evidence
+    #   no-health-signal (red) ← doorward exposed neither health block at all
     if pool_resilience_state == 'total-outage':
         return 'outage'
     if canary_classification_four_state == 'recent-degradation':
@@ -1027,6 +1029,16 @@ def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state
         return 'flapping'
     if canary_classification_four_state == 'since-start-failure':
         return 'since-boot'
+    # Contract break outranks 'unproven': a missing signal is a defect to fix,
+    # whereas an unproven one is a normal idle state.
+    if canary_classification_four_state == 'no-health-signal':
+        return 'no-health-signal'
+    # 'unproven' + a healthy pool is the ordinary idle case. It must NOT collapse
+    # to 'healthy' (we have no forward-path evidence) and must NOT fall through
+    # to 'unknown', which the renderer alarms on in red. A quiet fleet is not an
+    # incident; claiming either health or failure here would be a fabrication.
+    if canary_classification_four_state == 'unproven':
+        return 'unproven'
     if canary_classification_four_state == 'healthy' and pool_resilience_state == 'healthy':
         return 'healthy'
     return 'unknown'
@@ -1054,30 +1066,94 @@ try:
     pool_error_accounts_count = int(pool.get('error_accounts', 0) or 0)
     rotation_working_set_size = schedulable_active_accounts_count + pool_error_accounts_count
 
+    # ── Tolerant reader: new access-log-derived block, else legacy canary ──
+    #
+    # doorward is migrating OFF the synthetic canary (ccmax-monitor#30: monitoring
+    # must never spend inference). The new block derives forward-path health from
+    # real forwarded requests that already happened, so it costs nothing.
+    #
+    # Precedence is deliberate and must not be reordered:
+    #   1. upstream_health_observed_from_forwarded_request_log  (new, zero-token)
+    #   2. canary_self_test                                    (legacy, synthetic)
+    #   3. neither                                             (explicit unknown)
+    #
+    # This reader ships BEFORE doorward changes, so a statusline on any host keeps
+    # working against either binary during the rollout. Do NOT collapse it to the
+    # new field alone until every doorward in the fleet emits it — an old binary
+    # would then render 'no-health-signal' red across the whole fleet.
+    upstream_health = d.get('upstream_health_observed_from_forwarded_request_log') or {}
     canary = d.get('canary_self_test', {}) or {}
-    canary_consecutive_failures_count = int(canary.get('consecutive_failures', 0) or 0)
-    canary_lifetime_success_runs_count = int(canary.get('success_runs', 0) or 0)
-    canary_lifetime_total_runs_count = int(canary.get('total_runs', 0) or 0)
-    canary_consecutive_failure_alarm_threshold = int(
-        canary.get('consecutive_failure_threshold', 3) or 3
-    )
-    canary_configured_interval_seconds = int(
-        canary.get('configured_interval_secs', 300) or 300
-    )
-    canary_last_observed_http_status_code = canary.get('last_observed_http_status_code', 0)
 
-    # L1b four-state classification (unchanged from prior edit).
-    if canary_consecutive_failures_count == 0:
-        canary_classification_four_state = 'healthy'
-    elif (
-        canary_lifetime_success_runs_count == 0
-        and canary_consecutive_failures_count == canary_lifetime_total_runs_count
-    ):
-        canary_classification_four_state = 'since-start-failure'
-    elif canary_consecutive_failures_count < canary_consecutive_failure_alarm_threshold:
-        canary_classification_four_state = 'transient'
+    if upstream_health:
+        # NEW PATH — evidence from real traffic.
+        observed_state = str(upstream_health.get('state') or 'unproven').strip()
+        forwarded_in_window = int(upstream_health.get('forwarded_requests_in_window', 0) or 0)
+        failed_in_window = int(upstream_health.get('failed_requests_in_window', 0) or 0)
+        observation_window_seconds = int(
+            upstream_health.get('observation_window_secs', 300) or 300
+        )
+        # 'unproven' is NOT a failure — it means no recent request carried
+        # evidence either way (idle fleet, or fresh restart). Rendering it as a
+        # failure would page the operator for being idle, which is the exact
+        # trap the deep-probe conversion hit first.
+        if observed_state == 'serving':
+            canary_classification_four_state = 'healthy'
+        elif observed_state == 'degraded':
+            canary_classification_four_state = 'recent-degradation'
+        else:
+            canary_classification_four_state = 'unproven'
+        # The evidence token replaces the canary's single HTTP status: a ratio is
+        # what this signal actually knows. Empty while serving (nothing to say).
+        canary_last_observed_http_status_code = 0
+        # Only render the ratio when there IS evidence to summarize. A bare
+        # '0/0' on an idle fleet looks like a measurement; it is the absence of
+        # one, and the 'unproven' label already says that.
+        canary_evidence_token_for_render = (
+            f'{failed_in_window}/{forwarded_in_window}'
+            if (forwarded_in_window > 0 and canary_classification_four_state != 'healthy')
+            else ''
+        )
+        canary_failure_duration_seconds_lower_bound_override = (
+            observation_window_seconds
+            if canary_classification_four_state == 'recent-degradation' else 0
+        )
+        canary_consecutive_failures_count = failed_in_window
+    elif canary:
+        # LEGACY PATH — synthetic canary. Unchanged L1b four-state classification.
+        canary_consecutive_failures_count = int(canary.get('consecutive_failures', 0) or 0)
+        canary_lifetime_success_runs_count = int(canary.get('success_runs', 0) or 0)
+        canary_lifetime_total_runs_count = int(canary.get('total_runs', 0) or 0)
+        canary_consecutive_failure_alarm_threshold = int(
+            canary.get('consecutive_failure_threshold', 3) or 3
+        )
+        canary_configured_interval_seconds = int(
+            canary.get('configured_interval_secs', 300) or 300
+        )
+        canary_last_observed_http_status_code = canary.get('last_observed_http_status_code', 0)
+        if canary_consecutive_failures_count == 0:
+            canary_classification_four_state = 'healthy'
+        elif (
+            canary_lifetime_success_runs_count == 0
+            and canary_consecutive_failures_count == canary_lifetime_total_runs_count
+        ):
+            canary_classification_four_state = 'since-start-failure'
+        elif canary_consecutive_failures_count < canary_consecutive_failure_alarm_threshold:
+            canary_classification_four_state = 'transient'
+        else:
+            canary_classification_four_state = 'recent-degradation'
+        canary_evidence_token_for_render = None  # renderer uses the HTTP status
+        canary_failure_duration_seconds_lower_bound_override = None
     else:
-        canary_classification_four_state = 'recent-degradation'
+        # NEITHER field present. This is a real contract break (doorward answered
+        # /v1/router-status but exposes no forward-path health at all), so say so
+        # loudly rather than defaulting to 'healthy' — a monitor that reports
+        # health it cannot observe is worse than one that admits ignorance.
+        canary_classification_four_state = 'no-health-signal'
+        canary_consecutive_failures_count = 0
+        canary_last_observed_http_status_code = 0
+        canary_evidence_token_for_render = ''
+        canary_failure_duration_seconds_lower_bound_override = 0
+        canary_configured_interval_seconds = 300
 
     # Gate-status binary (legacy primitive retained for backward-compat with
     # the existing $doorward_status check that triggers render-or-suppress).
@@ -1086,11 +1162,16 @@ try:
     else:
         legacy_gate_status_binary = 'healthy'
 
-    # L1d new primitives.
-    canary_last_observed_http_status_for_render = \
-        passthrough_official_canary_http_status_for_render(
-            canary_last_observed_http_status_code,
-        )
+    # L1d new primitives. The type-code slot carries whichever evidence the
+    # active signal actually has: the canary's official HTTP status (legacy) or
+    # the access-log failure ratio (new). Never both, never invented.
+    if canary_evidence_token_for_render is not None:
+        canary_last_observed_http_status_for_render = canary_evidence_token_for_render
+    else:
+        canary_last_observed_http_status_for_render = \
+            passthrough_official_canary_http_status_for_render(
+                canary_last_observed_http_status_code,
+            )
     pool_resilience_state_machine_label = \
         derive_pool_resilience_state_machine_label_from_schedulable_and_rotation_size(
             schedulable_active_accounts_count, rotation_working_set_size,
@@ -1099,14 +1180,22 @@ try:
         compose_unified_state_name_for_render_label_from_canary_class_and_pool_state(
             canary_classification_four_state, pool_resilience_state_machine_label,
         )
-    canary_failure_duration_seconds_lower_bound = (
-        canary_consecutive_failures_count * canary_configured_interval_seconds
-    )
+    # Duration. Legacy multiplies consecutive failures by the tick interval (a
+    # lower bound). The new signal has no tick cadence, so it reports the
+    # observation window instead — the honest statement is 'degraded across the
+    # last <window>', not a fabricated streak length.
+    if canary_failure_duration_seconds_lower_bound_override is not None:
+        canary_failure_duration_seconds_lower_bound = \
+            canary_failure_duration_seconds_lower_bound_override
+    else:
+        canary_failure_duration_seconds_lower_bound = (
+            canary_consecutive_failures_count * canary_configured_interval_seconds
+        )
     canary_failure_duration_humanized_short_form = (
         format_seconds_as_humanized_short_duration_with_no_ago_suffix(
             canary_failure_duration_seconds_lower_bound,
         )
-        if canary_consecutive_failures_count > 0 else ''
+        if canary_failure_duration_seconds_lower_bound > 0 else ''
     )
 
     print(
@@ -1728,11 +1817,15 @@ echo -e "$line1"
 #   doorward_pool_error_accounts_count                      (int)
 #   doorward_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
 #   doorward_canary_consecutive_failures                    (int)
-#   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unknown}
+#   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unproven, no-health-signal, unknown}
+#     (the name says "four_state" for wire compatibility with the L4 aggregator;
+#      the vocabulary grew when doorward's zero-token access-log health landed.
+#      'unproven' = no recent request carried evidence; 'no-health-signal' =
+#      doorward exposed neither the new nor the legacy health block.)
 #   doorward_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
 #   doorward_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
 #   doorward_canary_real_traffic_damper_engaged             (bool)
-#   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unknown}
+#   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, unknown}
 #   doorward_local_ccmax_claude_wrapper_version             (semver str, e.g. "1.93.0")
 #   doorward_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
 #   doorward_wrapper_skew_present                           (bool, wrapper < floor)
@@ -1828,6 +1921,21 @@ if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; th
         since-boot)
             severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}✗${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
             unified_state_name_visible_label_token=" ${BRIGHT_BLACK}since-boot${RESET}"
+            ;;
+        unproven)
+            # Calm on purpose. No recent request carried forward-path evidence
+            # (idle fleet or fresh doorward restart), so there is nothing to
+            # alarm about — and nothing to certify either. Do NOT move this into
+            # the red fallback: that would page the operator for being idle.
+            severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}·${RESET}"
+            unified_state_name_visible_label_token=" ${BRIGHT_BLACK}unproven${RESET}"
+            ;;
+        no-health-signal)
+            # doorward answered but exposed neither health block. That is a
+            # contract break in the binary, not a fleet outage — yellow, and
+            # named so the operator knows to look at the deployed version.
+            severity_glyph_with_optional_type_code_and_duration="${YELLOW}?${RESET}"
+            unified_state_name_visible_label_token=" ${YELLOW}no-health-signal${RESET}"
             ;;
         flapping)
             severity_glyph_with_optional_type_code_and_duration="${YELLOW}⚠${canary_last_observed_http_status_for_render} ${canary_failure_duration_humanized_short_form}${RESET}"
