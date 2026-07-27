@@ -132,6 +132,32 @@ test("list markers each get their own line; a wrapped continuation joins its ite
 	expect(html).toContain("<div>- third item</div>");
 });
 
+test("a lead-in line directly above a list does NOT absorb the list items", () => {
+	// Regression (2026-07-27): renderTextBlock classified a paragraph by its FIRST line only,
+	// so "Pick one:\n- a\n- b" (no blank line) was treated as prose and reflowJoin()ed the
+	// markers into the lead-in — the list silently vanished. Hit twice while staging a real
+	// draft; the author had to know an undocumented "blank line before a list" rule.
+	const html = bodyToHtml("解决办法有两个，你倾向哪个？\n- 升级到 Heavy\n- 调高默认值");
+	expect(html).toContain("<div>解决办法有两个，你倾向哪个？</div>");
+	expect(html).toContain("<div>- 升级到 Heavy</div>");
+	expect(html).toContain("<div>- 调高默认值</div>");
+});
+
+test("a lead-in above a numbered list keeps each item on its own line", () => {
+	const html = bodyToHtml("Pick one:\n1. promote the devices\n2. raise the default");
+	expect(html).toContain("<div>Pick one:</div>");
+	expect(html).toContain("<div>1. promote the devices</div>");
+	expect(html).toContain("<div>2. raise the default</div>");
+});
+
+test("multi-line lead-in prose above a list reflows, then the list splits", () => {
+	const html = bodyToHtml("First half\nsecond half of the same sentence:\n- item one");
+	expect(html).toContain(
+		"<div>First half second half of the same sentence:</div>",
+	);
+	expect(html).toContain("<div>- item one</div>");
+});
+
 test("numbered and lettered list markers are recognized", () => {
 	const html = bodyToHtml("1. alpha\n2) beta\na. gamma");
 	expect(html).toContain("<div>1. alpha</div>");
