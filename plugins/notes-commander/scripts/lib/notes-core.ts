@@ -222,21 +222,18 @@ function renderTextBlock(lines: string[]): string[] {
 
 	const html: string[] = [];
 	for (const p of paras) {
-		if (LIST_RE.test(p[0])) {
-			// group into items; a non-marker continuation line reflows into the current item
-			const items: string[][] = [];
-			let item: string[] = [];
-			for (const l of p) {
-				if (LIST_RE.test(l)) {
-					if (item.length) items.push(item);
-					item = [l];
-				} else {
-					item.push(l);
-				}
-			}
-			if (item.length) items.push(item);
-			for (const it of items)
-				html.push(`<div>${escapeHtml(reflowJoin(it))}</div>`);
+		// A paragraph may be all prose, all list, or a lead-in line IMMEDIATELY followed by
+		// list items with no blank line between ("Pick one:\n- a\n- b"). Deciding on p[0]
+		// alone classified that last shape as prose and reflowJoin()ed the markers into the
+		// lead-in, silently destroying the list — authors then had to know the undocumented
+		// "leave a blank line before a list" rule. Split at the FIRST marker instead.
+		const firstMarker = p.findIndex((l) => LIST_RE.test(l));
+		if (firstMarker > 0) {
+			// lead-in prose, then the list
+			html.push(`<div>${escapeHtml(reflowJoin(p.slice(0, firstMarker)))}</div>`);
+			html.push(...renderListItems(p.slice(firstMarker)));
+		} else if (firstMarker === 0) {
+			html.push(...renderListItems(p));
 		} else {
 			// prose: reflow the whole paragraph into ONE line — Notes wraps it naturally
 			html.push(`<div>${escapeHtml(reflowJoin(p))}</div>`);
@@ -244,6 +241,22 @@ function renderTextBlock(lines: string[]): string[] {
 		html.push("<div><br></div>");
 	}
 	return html;
+}
+
+/** Render list lines one <div> per item; a non-marker continuation line reflows into its item. */
+function renderListItems(lines: string[]): string[] {
+	const items: string[][] = [];
+	let item: string[] = [];
+	for (const l of lines) {
+		if (LIST_RE.test(l)) {
+			if (item.length) items.push(item);
+			item = [l];
+		} else {
+			item.push(l);
+		}
+	}
+	if (item.length) items.push(item);
+	return items.map((it) => `<div>${escapeHtml(reflowJoin(it))}</div>`);
 }
 
 /**
