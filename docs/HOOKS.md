@@ -1227,7 +1227,7 @@ Adversarial web research surfaced a previously-undiscovered silent-context-degra
 | -------------------------------------------- | ---------------------------------- | --------------------------------------------- |
 | `posttooluse-vale-claude-md.ts` (iter-104 ★) | N vale findings per CLAUDE.md edit | 50-200+ findings; ~5-20K chars                |
 | `posttooluse-ty-type-check.ts`               | N ty diagnostics per `.py` edit    | Variable; can exceed 10K on multi-error edits |
-| `posttooluse-tsgo-type-check.ts`             | N tsgo errors per `.ts` edit       | Same                                          |
+| `posttooluse-tsc-type-check.ts`              | N tsc errors per `.ts` edit        | Same                                          |
 | `posttooluse-oxlint-check.ts`                | N oxlint findings per JS/TS edit   | Same                                          |
 | `posttooluse-biome-lint.ts`                  | N biome findings per JS/TS edit    | Same                                          |
 | `posttooluse-ssot-principles.ts`             | N ast-grep anti-pattern findings   | Bounded by ast-grep result count              |
@@ -1281,7 +1281,7 @@ Iter-104 established the canonical truncation helper `truncateHookOutputToStayBe
 | ------------------------------------------------------------ | -------------------------------------------------------- | -------- |
 | `posttooluse-vale-claude-md.ts`                              | N vale findings on CLAUDE.md edit (50-200+, ~5-20K)      | iter-104 |
 | `posttooluse-ty-type-check.ts`                               | ty diagnostic stream per .py/.pyi edit                   | iter-105 |
-| `posttooluse-tsgo-type-check.ts`                             | tsgo diagnostic stream per project check                 | iter-105 |
+| `posttooluse-tsc-type-check.ts`                              | tsc diagnostic stream per project check                  | iter-105 |
 | `posttooluse-oxlint-check.ts`                                | oxlint correctness+suspicious findings                   | iter-105 |
 | `posttooluse-biome-lint.ts`                                  | biome complementary-rules findings                       | iter-105 |
 | `posttooluse-ssot-principles.ts`                             | ast-grep anti-pattern matches (multi-language fan-out)   | iter-105 |
