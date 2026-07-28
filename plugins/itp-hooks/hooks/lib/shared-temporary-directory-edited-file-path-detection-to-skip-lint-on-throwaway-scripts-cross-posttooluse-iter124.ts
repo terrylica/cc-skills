@@ -6,7 +6,7 @@
  *  Why this file exists (operator directive 2026-06-17)
  * ════════════════════════════════════════════════════════════════════════
  *
- * The PostToolUse edit-time linters (ty, tsgo, oxlint, biome, ssot-principles,
+ * The PostToolUse edit-time linters (ty, tsc, oxlint, biome, ssot-principles,
  * vale) fire on EVERY Write/Edit of an eligible file — including throwaway
  * scratch scripts an agent drops into a temp directory (`/tmp/foo.py`,
  * `$TMPDIR/scratch.ts`, a `mktemp` workspace). Carefully type-checking and

@@ -25,7 +25,7 @@
  * Grep, Edit, Write, Task, mcp__*, WebSearch, etc.) — but only Bash
  * spawns the subprocess class that can orphan. Read/Glob/Grep are
  * in-process; Edit/Write trigger PostToolUse formatter hooks (ty,
- * biome, oxlint, tsgo) but those use Bun.spawnSync (synchronously
+ * biome, oxlint, tsc) but those use Bun.spawnSync (synchronously
  * awaited) so their subprocesses cannot orphan past the tool call
  * boundary. Narrowing eliminates ~12-17ms of wasted CPU+battery per
  * non-Bash call. Twin of iter-63's PreToolUse matcher narrowing on

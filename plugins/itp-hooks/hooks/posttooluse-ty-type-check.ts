@@ -18,7 +18,7 @@
  * ─── Iter-95 architectural change ─────────────────────────────────────────
  *
  * Iter-94 inlined the async-spawn + install-reminder gate-file helpers
- * directly in this file (verbatim copies between ty + tsgo). With iter-95
+ * directly in this file (verbatim copies between ty + tsc). With iter-95
  * adding oxlint + biome (3rd + 4th subhooks), 4 copies of the same
  * helpers would drift. Iter-95 hoists them to
  * `lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts`

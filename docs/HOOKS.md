@@ -739,7 +739,7 @@ Iter-92 is the **first project in the post-arc PostToolUse orchestration phase**
 
 > "An async PostToolUse hook **cannot reliably inject `additionalContext` next to the tool result**, since the model will have already advanced before the hook finishes. The documented timing — PreToolUse, PostToolUse, PostToolUseFailure, and PostToolBatch place additionalContext next to the tool result — **assumes synchronous completion**. The async flag is therefore intended for side effects like logs, notifications, and backups, **not for the self-correction feedback loop**, which requires the hook to complete before Claude's next model request."
 
-The schema-reasoning argument iter-89 used was incomplete: PostToolUse CAN'T DENY but it CAN INJECT CONTEXT via `{decision: "block", reason}` or `additionalContext`. **Context injection requires synchronous completion just as much as deny does.** Type checkers (`ty`, `tsgo`, `oxlint`, `biome`) and reminder hooks both rely on this same-turn timing — making any of them async breaks the feedback loop that lets Claude self-correct without operator intervention.
+The schema-reasoning argument iter-89 used was incomplete: PostToolUse CAN'T DENY but it CAN INJECT CONTEXT via `{decision: "block", reason}` or `additionalContext`. **Context injection requires synchronous completion just as much as deny does.** Type checkers (`ty`, `tsc`, `oxlint`, `biome` — iter-126 migration: tsc replaces frozen tsgo) and reminder hooks both rely on this same-turn timing — making any of them async breaks the feedback loop that lets Claude self-correct without operator intervention.
 
 **Iter-92 eligibility-classifier task** (`audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh`):
 
@@ -761,7 +761,7 @@ The audit task discovers every PostToolUse hooks.json entry marketplace-wide, re
 
 - Case 1: audit exits 0 (informational; never blocks release pipeline)
 - Case 2: ≥15 PostToolUse hooks discovered marketplace-wide (found 17)
-- Cases 3a-d: 4 type-check / lint hooks (`ty`, `tsgo`, `oxlint`, `biome`) all classified as `[C]` context-injecting
+- Cases 3a-d: 4 type-check / lint hooks (`ty`, `tsc`, `oxlint`, `biome` — iter-126 migration: tsc replaces frozen tsgo) all classified as `[C]` context-injecting
 - Case 4: at least one `additionalContext`-emitting hook flagged (e.g., `rust-sota-reminder`)
 - Cases 5a-c: explicit iter-89 strict-dominance correction banner present; Path A explicitly RULED OUT; Path B recommended as viable replacement
 - Case 6: NO PreToolUse hooks leak into PostToolUse audit (event-type filter correctness)
@@ -779,15 +779,15 @@ Iter-93 is the **first concrete step of Path B** after the iter-92 audit ruled o
 
 **The new PostToolUseSubhookContract** (separate file from the iter-84 PreToolUse contract, `lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts`):
 
-| Field                          | PreToolUse (iter-84)                            | PostToolUse (iter-93)                                         |
-| ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------- |
-| Decision discriminant          | `"allow" \| "deny" \| "ask"`                    | `"noop" \| "additional_context"`                              |
-| Orchestrator iteration policy  | Serial, first-non-allow short-circuits          | Parallel via `Promise.all`, **runs all subhooks**             |
-| Aggregation                    | None — single decision wins                     | Delimiter-joined into one consolidated reason                 |
-| Wire emission                  | `permissionDecision: "allow"\|"deny"\|"ask"`    | `{decision: "block", reason}` JSON                            |
-| Silent-pass shape              | Single allow JSON                               | Empty stdout (exit 0) when ALL subhooks return noop           |
-| File I/O allowed on no-op path | NO (Edit-path scope-to-changed-lines exception) | YES (PostToolUse fires AFTER side effects durable)            |
-| Typical timeoutMs              | 3000-5000ms                                     | 4000-8000ms (heavier subhooks: ty, tsgo, oxlint, biome, vale) |
+| Field                          | PreToolUse (iter-84)                            | PostToolUse (iter-93)                                        |
+| ------------------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
+| Decision discriminant          | `"allow" \| "deny" \| "ask"`                    | `"noop" \| "additional_context"`                             |
+| Orchestrator iteration policy  | Serial, first-non-allow short-circuits          | Parallel via `Promise.all`, **runs all subhooks**            |
+| Aggregation                    | None — single decision wins                     | Delimiter-joined into one consolidated reason                |
+| Wire emission                  | `permissionDecision: "allow"\|"deny"\|"ask"`    | `{decision: "block", reason}` JSON                           |
+| Silent-pass shape              | Single allow JSON                               | Empty stdout (exit 0) when ALL subhooks return noop          |
+| File I/O allowed on no-op path | NO (Edit-path scope-to-changed-lines exception) | YES (PostToolUse fires AFTER side effects durable)           |
+| Typical timeoutMs              | 3000-5000ms                                     | 4000-8000ms (heavier subhooks: ty, tsc, oxlint, biome, vale) |
 
 The wire-emission row is the load-bearing distinction: PostToolUse cannot use `permissionDecision` (silently dropped per iter-66 schema — the tool already ran by the time the hook fires). The documented Anthropic-schema mechanism for **context injection** on PostToolUse is `{decision: "block", reason}` — the keyword "block" is a misnomer here; it's how Claude surfaces the reason as a system reminder NEXT to the tool result (synchronous timing required — see iter-92).
 
@@ -819,7 +819,7 @@ The wire-emission row is the load-bearing distinction: PostToolUse cannot use `p
 
 **Iter-93 architectural-symmetry surfacing**: the two orchestrators (iter-84 PreToolUse + iter-93 PostToolUse) deliberately use DIFFERENT iteration models because their wire-emission contracts differ — first-deny-short-circuit is correct for PreToolUse (a single deny is decisive), parallel-all is correct for PostToolUse (every additional_context payload contributes signal Claude needs). Future maintainers should resist the temptation to "unify" them via a single base class — the asymmetry encodes a real schema-level constraint.
 
-### Iter-94: PostToolUse arc progress — tsgo inlined (2/15) + async-Bun.spawn perf correction + provenance-prefix aggregation
+### Iter-94: PostToolUse arc progress — tsc inlined (2/15, renamed from tsgo in iter-126) + async-Bun.spawn perf correction + provenance-prefix aggregation
 
 Iter-94 is a **2nd-subhook migration + a critical performance correction** of an iter-93 mistake. The adversarial multi-perspective audit at the top of this iteration surfaced two issues:
 

@@ -9,7 +9,7 @@
  *
  * If oxlint is not installed, surfaces a once-per-session install reminder.
  *
- * Iter-95 architectural decisions (mirror the iter-94 tsgo conventions):
+ * Iter-95 architectural decisions (mirror the iter-94 tsc conventions):
  *   1. Async Bun.spawn from inception (no spawnSync legacy)
  *   2. Dual-export naming-drift acknowledgement: precise algorithm-encoding
  *      name `classifyOxlintCorrectnessAndSuspiciousCategoryLintOnEditedJavaScriptOrTypeScriptFileForPostToolUseOrchestrator`

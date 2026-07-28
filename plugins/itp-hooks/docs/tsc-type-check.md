@@ -36,7 +36,7 @@ Runs `tsc --noEmit --singleThreaded` after every Write/Edit of a `.ts`/`.tsx` fi
 
 ### Algorithm
 
-Encoded in `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator`; re-exported as `classifyTscTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks (ty, oxlint, biome). Includes backward-compatibility alias `classifyTsgoTypeCheckForPostToolUseOrchestrator` for grep-based migration.
+Encoded in `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator`; re-exported as `classifyTscTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks (ty, oxlint, biome).
 
 ### Standalone CLI
 

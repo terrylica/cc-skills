@@ -63,7 +63,7 @@ fi
 # both names now encode `tsc`, and the retired tsgo-era alias must be gone.
 if grep -q "classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH" && \
    grep -q "classifyTscTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH" && \
-   ! grep -q "export const classifyTscTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH"; then
+   ! grep -q "export const classifyTsgoTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH"; then
     assert_passes "Case 3: tsc-type-check exports BOTH precise algorithm name + symmetric-naming alias, with the retired tsgo alias removed"
 else
     assert_fails "Case 3: tsc dual-export naming pattern missing, or the retired tsgo-era alias is still exported"
