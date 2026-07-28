@@ -139,7 +139,7 @@ files_using_modern_text_count=0
 for source_file_absolute_path in \
     "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" \
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts" \
-    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsgo-type-check.ts" \
+    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts" \
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts" \
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-biome-lint.ts" \
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts" \
