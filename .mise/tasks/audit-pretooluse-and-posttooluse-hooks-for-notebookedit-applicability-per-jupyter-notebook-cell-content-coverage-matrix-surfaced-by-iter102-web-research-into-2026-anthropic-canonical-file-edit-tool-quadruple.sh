@@ -122,7 +122,7 @@ declare -a NOTEBOOKEDIT_APPLICABILITY_MATRIX=(
     "pretooluse-fake-data-guard.mjs|content-pattern|POTENTIALLY-APPLICABLE|fake/placeholder data patterns can appear in notebook cells"
     "pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts|content-pattern|POTENTIALLY-APPLICABLE|CLAUDE_PLUGIN_ROOT path references unlikely in notebooks but possible"
     "posttooluse-ty-type-check.ts|content-pattern|NOT-APPLICABLE-VIA-NOTEBOOKEDIT|ty operates on .py files; notebooks are .ipynb. Notebook code is checkable via nbqa but that is a separate tool integration"
-    "posttooluse-tsgo-type-check.ts|content-pattern|NOT-APPLICABLE-VIA-NOTEBOOKEDIT|tsgo operates on .ts/.tsx files; notebooks rarely contain TypeScript"
+    "posttooluse-tsc-type-check.ts|content-pattern|NOT-APPLICABLE-VIA-NOTEBOOKEDIT|tsgo operates on .ts/.tsx files; notebooks rarely contain TypeScript"
     "posttooluse-oxlint-check.ts|content-pattern|NOT-APPLICABLE-VIA-NOTEBOOKEDIT|oxlint operates on .js/.ts files only"
     "posttooluse-biome-lint.ts|content-pattern|NOT-APPLICABLE-VIA-NOTEBOOKEDIT|biome operates on .js/.ts files only"
     "posttooluse-vale-claude-md.ts|file-path-suffix|NOT-APPLICABLE|CLAUDE.md only"
