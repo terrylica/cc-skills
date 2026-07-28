@@ -67,3 +67,11 @@ on a single screen: **GitHub** for developers, **emailed 6-digit code** for non-
 - eonfleet (`eon.ccmax.uk`, April 2026): GitHub-SSO-only variant on a custom domain
   (ccmax-monitor repo: `production/cloudflare_access_jwt_verifier.py` for server-side JWT
   verification when the origin must double-check).
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did Cloudflare API calls succeed?** — If not, verify the scope-token has Access permissions and the account ID is correct.
+2. **Is authentication enforced on the deployed URLs?** — Unauthenticated requests must 302 to the login page; service-token requests must succeed.
+3. **Did the spec match the actual deployment?** — If Cloudflare's API/dashboard drifted, update the reference scripts and this skill's documentation.

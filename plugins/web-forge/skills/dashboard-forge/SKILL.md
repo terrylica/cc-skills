@@ -104,3 +104,11 @@ casually (anti-fragility: don't destabilize a working credential forge for DRY p
 `~/work/project-a/scripts/access-bootstrap/` — the 2026-07-23 run that canonicalized this
 skill: Cloudflare scoped-token forge + GitHub OAuth-app forge + idempotent Access bootstrap,
 end-to-end in one supervised session (decision record: that repo's compliance README §D10).
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did the dashboard automation succeed?** — If selectors failed or the flow changed, update the forge script and add a drift note to the Vendor Quirks section.
+2. **Were secrets stored safely?** — Verify no secrets appear in screenshots, argv, or stdout—only in the SCS vault.
+3. **Did the supervised step succeed?** — If the human had to intervene (2FA, sudo, account switch), document the new quirk for future runs.
