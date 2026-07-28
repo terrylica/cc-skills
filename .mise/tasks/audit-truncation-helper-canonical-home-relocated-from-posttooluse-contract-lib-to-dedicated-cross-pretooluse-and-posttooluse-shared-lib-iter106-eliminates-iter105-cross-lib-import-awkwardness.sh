@@ -130,7 +130,7 @@ echo "  ✓ Step 2: PostToolUse contract lib re-exports from iter-106 shared lib
 declare -a EIGHT_COHORT_HOOK_RELATIVE_PATHS=(
     "plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts"
     "plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
-    "plugins/itp-hooks/hooks/posttooluse-tsgo-type-check.ts"
+    "plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
     "plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
     "plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
