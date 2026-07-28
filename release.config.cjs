@@ -192,7 +192,29 @@ module.exports = {
     [
       "@semantic-release/commit-analyzer",
       {
+        // A breaking change must NEVER be able to ship as a minor bump.
+        // It silently did on 2026-07-27: two commits marked `feat(...)!:` with
+        // bodies opening `BREAKING:` were both analyzed as ordinary features,
+        // cutting v22.19.0 where v23.0.0 was intended. Two independent gaps
+        // combined, and each is closed below.
+        //
+        // Gap 1 — the `!` shorthand. The Angular preset predates it and does
+        // not treat `feat!:` / `feat(scope)!:` as breaking; only the
+        // conventionalcommits preset does. `{ breaking: true }` below is
+        // evaluated by commit-analyzer against the parsed commit AFTER
+        // parserOpts run, so pairing it with the noteKeywords fix makes both
+        // spellings land on a major.
+        //
+        // Gap 2 — the footer token. Conventional Commits requires the exact
+        // token `BREAKING CHANGE` (or `BREAKING-CHANGE`). A body starting
+        // `BREAKING:` is NOT recognized by the default parser and is treated
+        // as ordinary prose. Rather than rely on every author remembering the
+        // two-word form, the bare `BREAKING` keyword is accepted here too.
+        parserOpts: {
+          noteKeywords: ["BREAKING CHANGE", "BREAKING-CHANGE", "BREAKING"],
+        },
         releaseRules: [
+          { breaking: true, release: "major" },
           { type: "docs", release: "patch" },
           { type: "chore", release: "patch" },
           { type: "style", release: "patch" },
@@ -212,6 +234,15 @@ module.exports = {
     [
       "@semantic-release/release-notes-generator",
       {
+        // MUST mirror commit-analyzer's parserOpts above. The two plugins parse
+        // the commit range independently, so a noteKeywords list set on only
+        // one of them yields the split-brain failure mode where the analyzer
+        // correctly bumps major but the published notes carry no "BREAKING
+        // CHANGES" section — the bump is right and the changelog silently lies
+        // about why. Keep these two lists in lockstep.
+        parserOpts: {
+          noteKeywords: ["BREAKING CHANGE", "BREAKING-CHANGE", "BREAKING"],
+        },
         writerOpts: {
           transform: transformCommitPreservingBody,
           commitPartial: COMMIT_PARTIAL_WITH_BODY,
