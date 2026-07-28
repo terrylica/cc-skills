@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-94 regression test for the PostToolUse orchestrator second-subhook migration plus async-Bun.spawn perf correction. Verifies (1) tsgo-type-check inlined as 2nd subhook with dual-export precise+alias names; (2) orchestrator registry now has ≥2 entries; (3) NEITHER inlined classifier uses Bun.spawnSync (parallelism-defeat anti-pattern per Bun docs + 2026 community guidance); (4) the iter-94 static audit task passes cleanly; (5) hooks.json no longer wires standalone tsgo; (6) aggregator now emits [orchestrator-subhook: <name>] provenance prefix per section (iter-94 usability enhancement); (7) ty-type-check and tsgo-type-check both expose the executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain helper pattern; (8) standalone backward-compat preserved via import.meta.main; (9) microbenchmark task discoverable + runs to completion."
+#MISE description="Iter-94 regression test for the PostToolUse orchestrator second-subhook migration plus async-Bun.spawn perf correction. Verifies (1) tsc-type-check inlined as 2nd subhook with dual-export precise+alias names; (2) orchestrator registry now has ≥2 entries; (3) NEITHER inlined classifier uses Bun.spawnSync (parallelism-defeat anti-pattern per Bun docs + 2026 community guidance); (4) the iter-94 static audit task passes cleanly; (5) hooks.json no longer wires standalone tsgo; (6) aggregator now emits [orchestrator-subhook: <name>] provenance prefix per section (iter-94 usability enhancement); (7) ty-type-check and tsc-type-check both expose the executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain helper pattern; (8) standalone backward-compat preserved via import.meta.main; (9) microbenchmark task discoverable + runs to completion."
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -8,7 +8,7 @@ SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
 POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
 TY_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
-TSGO_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsgo-type-check.ts"
+TSC_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
 STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
 MICROBENCHMARK_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/benchmark-posttooluse-orchestrator-async-bun-spawn-parallelism-gain-versus-hypothetical-spawnsync-serialization-iter94-empirical-confirmation.sh"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
@@ -16,7 +16,7 @@ HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 for required_file_absolute_path in \
     "$POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH" \
     "$TY_TYPE_CHECK_ABSOLUTE_PATH" \
-    "$TSGO_TYPE_CHECK_ABSOLUTE_PATH" \
+    "$TSC_TYPE_CHECK_ABSOLUTE_PATH" \
     "$STATIC_AUDIT_TASK_ABSOLUTE_PATH" \
     "$MICROBENCHMARK_TASK_ABSOLUTE_PATH" \
     "$HOOKS_JSON_ABSOLUTE_PATH"; do
@@ -56,9 +56,9 @@ else
 fi
 
 # ─── Case 3: dual-export naming-drift acknowledgement for tsgo ────────────────
-if grep -q "classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH" && \
-   grep -q "classifyTsgoTypeCheckForPostToolUseOrchestrator" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH"; then
-    assert_passes "Case 3: tsgo-type-check exports BOTH precise algorithm name + symmetric-naming alias"
+if grep -q "classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH" && \
+   grep -q "classifyTsgoTypeCheckForPostToolUseOrchestrator" "$TSC_TYPE_CHECK_ABSOLUTE_PATH"; then
+    assert_passes "Case 3: tsc-type-check exports BOTH precise algorithm name + symmetric-naming alias"
 else
     assert_fails "Case 3: tsgo dual-export naming pattern missing"
 fi
@@ -68,18 +68,18 @@ fi
 # would PREPEND a second "0" line to the captured output. Use `|| true` so the
 # fallback adds nothing (we want grep's own "0" stdout when there are no matches).
 ty_spawnsync_violations=$(grep -cE '^[[:space:]]*Bun\.spawnSync\(|^[[:space:]]*(const|let|var)[[:space:]]+[A-Za-z]+[[:space:]]*=[[:space:]]*Bun\.spawnSync\(' "$TY_TYPE_CHECK_ABSOLUTE_PATH" 2>/dev/null || true)
-tsgo_spawnsync_violations=$(grep -cE '^[[:space:]]*Bun\.spawnSync\(|^[[:space:]]*(const|let|var)[[:space:]]+[A-Za-z]+[[:space:]]*=[[:space:]]*Bun\.spawnSync\(' "$TSGO_TYPE_CHECK_ABSOLUTE_PATH" 2>/dev/null || true)
+tsc_spawnsync_violations=$(grep -cE '^[[:space:]]*Bun\.spawnSync\(|^[[:space:]]*(const|let|var)[[:space:]]+[A-Za-z]+[[:space:]]*=[[:space:]]*Bun\.spawnSync\(' "$TSC_TYPE_CHECK_ABSOLUTE_PATH" 2>/dev/null || true)
 ty_spawnsync_violations=${ty_spawnsync_violations:-0}
-tsgo_spawnsync_violations=${tsgo_spawnsync_violations:-0}
+tsc_spawnsync_violations=${tsc_spawnsync_violations:-0}
 if [[ "${ty_spawnsync_violations:-0}" -eq 0 ]]; then
     assert_passes "Case 4a: posttooluse-ty-type-check.ts has NO Bun.spawnSync invocations (iter-94 async refactor)"
 else
     assert_fails "Case 4a: ${ty_spawnsync_violations} Bun.spawnSync invocation(s) in ty-type-check (defeats Promise.all parallelism)"
 fi
-if [[ "${tsgo_spawnsync_violations:-0}" -eq 0 ]]; then
-    assert_passes "Case 4b: posttooluse-tsgo-type-check.ts has NO Bun.spawnSync invocations (async-from-day-one)"
+if [[ "${tsc_spawnsync_violations:-0}" -eq 0 ]]; then
+    assert_passes "Case 4b: posttooluse-tsc-type-check.ts has NO Bun.spawnSync invocations (async-from-day-one)"
 else
-    assert_fails "Case 4b: ${tsgo_spawnsync_violations} Bun.spawnSync invocation(s) in tsgo-type-check"
+    assert_fails "Case 4b: ${tsc_spawnsync_violations} Bun.spawnSync invocation(s) in tsc-type-check"
 fi
 
 # ─── Case 5: static audit task passes cleanly ─────────────────────────────────
@@ -94,12 +94,12 @@ else
 fi
 
 # ─── Case 6: hooks.json no longer wires standalone tsgo ───────────────────────
-case6_tsgo_standalone_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("/posttooluse-tsgo-type-check.ts"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
+case6_tsc_standalone_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("/posttooluse-tsc-type-check.ts"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
 case6_orchestrator_count=$(jq -r '[.hooks.PostToolUse[] | select(.hooks[].command | test("posttooluse-edit-time-orchestrator-aggregating"))] | length' "$HOOKS_JSON_ABSOLUTE_PATH")
-if [[ "$case6_tsgo_standalone_count" == "0" ]]; then
+if [[ "$case6_tsc_standalone_count" == "0" ]]; then
     assert_passes "Case 6a: hooks.json no longer wires standalone tsgo (iter-94 removal — only via orchestrator import)"
 else
-    assert_fails "Case 6a: standalone tsgo still wired ${case6_tsgo_standalone_count} time(s)"
+    assert_fails "Case 6a: standalone tsgo still wired ${case6_tsc_standalone_count} time(s)"
 fi
 if [[ "$case6_orchestrator_count" == "1" ]]; then
     assert_passes "Case 6b: hooks.json wires exactly 1 orchestrator entry under PostToolUse"
@@ -131,7 +131,7 @@ fi
 # (encoded maxBuffer safety-net addition + made the concurrent drain
 # invariant explicit in the name). Accept EITHER name.
 if grep -qE "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAnd(StreamDrain|ConcurrentStreamDrainAndMaxBufferGuardrail)" "$TY_TYPE_CHECK_ABSOLUTE_PATH" && \
-   grep -qE "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAnd(StreamDrain|ConcurrentStreamDrainAndMaxBufferGuardrail)" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH"; then
+   grep -qE "executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAnd(StreamDrain|ConcurrentStreamDrainAndMaxBufferGuardrail)" "$TSC_TYPE_CHECK_ABSOLUTE_PATH"; then
     assert_passes "Case 8: both ty + tsgo use the executeBunSubprocessAsync... helper (iter-94 inline or iter-95 shared-lib)"
 else
     assert_fails "Case 8: async-spawn helper pattern not consistent across both subhooks"
@@ -139,8 +139,8 @@ fi
 
 # ─── Case 9: standalone backward-compat (import.meta.main guard) ──────────────
 if grep -q "import.meta.main" "$TY_TYPE_CHECK_ABSOLUTE_PATH" && \
-   grep -q "import.meta.main" "$TSGO_TYPE_CHECK_ABSOLUTE_PATH"; then
-    assert_passes "Case 9: both ty-type-check + tsgo-type-check retain import.meta.main guard for standalone CLI"
+   grep -q "import.meta.main" "$TSC_TYPE_CHECK_ABSOLUTE_PATH"; then
+    assert_passes "Case 9: both ty-type-check + tsc-type-check retain import.meta.main guard for standalone CLI"
 else
     assert_fails "Case 9: import.meta.main guard missing from one of the subhooks"
 fi
