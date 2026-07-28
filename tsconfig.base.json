@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    // TS7 CANONICAL CONFIGURATION (TypeScript 7.0.2+)
+    // SSoT: plugins/itp/skills/bootstrap-monorepo/templates/tsconfig.base.json
+    // This file is the single source of truth for TypeScript 7 config shape across the estate.
+    // Reference: ~/.claude/typescript-latest-CLAUDE.md
+
+    // Strictly enforced in all new repos
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "module": "ESNext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "lib": ["ESNext"],
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+
+    // New in TS7: changed defaults
+    // stableTypeOrdering: true (cannot be disabled; omitted here as it is read-only)
+    // noUncheckedSideEffectImports: true (explicitly surfaced for overrides when needed)
+    "noUncheckedSideEffectImports": true,
+
+    // TS7 baseline: no baseUrl (TS5102 hard error if set)
+    // If paths: values are needed, every entry MUST start with ./ or ../ to avoid TS5090.
+    // Example (per-package override): "paths": { "@/": ["./src/"], "@lib/": ["./src/lib/"] }
+
+    // OMITTED DELIBERATELY — per-repo (not base) configuration:
+    // "types": ["bun"]  ← each repo must declare this explicitly; TS7 default is []
+    //                     which stops resolving @types/*, process, describe, JSX globals.
+    //                     Bare name only: ["bun"], ["node"], ["node", "react", "react-dom"]
+    //                     NEVER @types/bun, bun-types, or other variants.
+  }
+}
