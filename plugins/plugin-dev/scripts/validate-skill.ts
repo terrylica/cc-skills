@@ -327,7 +327,8 @@ async function validateLinks(
 
   for await (const file of glob.scan({ cwd: skillPath, absolute: true })) {
     const relativePath = relative(skillPath, file);
-    const firstDir = relativePath.split("/")[0];
+    const pathParts = relativePath.split("/");
+    const firstDir = pathParts[0] ?? relativePath;
     if (!SKIP_DIRECTORIES.has(firstDir)) {
       mdFiles.push(file);
     }
@@ -641,7 +642,8 @@ function validateSelfEvolution(skillPath: string, content: string): ValidationRe
     const totalLines = lines.length;
     let reflectionLine = 0;
     for (let i = 0; i < totalLines; i++) {
-      if (/^##\s+Post-Execution Reflection/.test(lines[i])) {
+      const line = lines[i];
+      if (line && /^##\s+Post-Execution Reflection/.test(line)) {
         reflectionLine = i + 1; // 1-indexed
       }
     }
@@ -807,7 +809,12 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  const inputPath = resolve(positionals[0]);
+  const firstPositional = positionals[0];
+  if (!firstPositional) {
+    fatalError("argument parsing", new Error("No input path provided"));
+  }
+
+  const inputPath = resolve(firstPositional);
 
   if (!existsSync(inputPath)) {
     fatalError("path resolution", new Error(`Path not found: ${inputPath}`));

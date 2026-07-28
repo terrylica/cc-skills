@@ -278,10 +278,14 @@ export function generateAskUserQuestions(
     questions.push({
       question: r.clarificationQuestion!,
       header: formatHeader(r.check),
-      options: r.clarificationOptions!.map((opt) => ({
-        label: opt.split(" (")[0], // Extract label before any parenthetical
-        description: opt,
-      })),
+      options: r.clarificationOptions!.map((opt) => {
+        const splitLabel = opt.split(" (");
+        const label = splitLabel[0] ?? opt;
+        return {
+          label,
+          description: opt,
+        };
+      }),
       multiSelect: false,
     });
   }

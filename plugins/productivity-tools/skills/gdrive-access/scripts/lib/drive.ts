@@ -31,17 +31,20 @@ export async function createDriveClient(): Promise<drive_v3.Drive> {
  * Transform Drive API file to DriveFile type
  */
 function formatFile(file: drive_v3.Schema$File): DriveFile {
-	return {
+	const result: DriveFile = {
 		id: file.id ?? "",
 		name: file.name ?? "",
 		mimeType: file.mimeType ?? "",
-		size: file.size ?? undefined,
-		modifiedTime: file.modifiedTime ?? undefined,
-		createdTime: file.createdTime ?? undefined,
-		parents: file.parents ?? undefined,
-		webViewLink: file.webViewLink ?? undefined,
-		webContentLink: file.webContentLink ?? undefined,
 	};
+
+	if (file.size) result.size = file.size;
+	if (file.modifiedTime) result.modifiedTime = file.modifiedTime;
+	if (file.createdTime) result.createdTime = file.createdTime;
+	if (file.parents) result.parents = file.parents;
+	if (file.webViewLink) result.webViewLink = file.webViewLink;
+	if (file.webContentLink) result.webContentLink = file.webContentLink;
+
+	return result;
 }
 
 /**
@@ -338,6 +341,7 @@ export async function syncFolder(
 
 	for (let i = 0; i < files.length; i++) {
 		const file = files[i];
+		if (!file) continue;
 		onProgress?.(i + 1, files.length, file.name);
 
 		if (file.mimeType === "application/vnd.google-apps.folder") {

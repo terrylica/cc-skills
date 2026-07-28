@@ -410,11 +410,11 @@ function parseArgs(argv: readonly string[]): { command: Command; options: Option
     }
   }
   const options: Options = {
-    name: collected.name,
-    newName: collected.newName,
-    slug: collected.slug,
-    file: collected.file,
-    icon: collected.icon,
+    ...(collected.name ? { name: collected.name } : {}),
+    ...(collected.newName ? { newName: collected.newName } : {}),
+    ...(collected.slug ? { slug: collected.slug } : {}),
+    ...(collected.file ? { file: collected.file } : {}),
+    ...(collected.icon ? { icon: collected.icon } : {}),
     desc: collected.desc ?? "",
     url: collected.url ?? "",
     reveal,

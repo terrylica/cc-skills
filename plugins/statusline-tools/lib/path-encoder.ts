@@ -61,7 +61,7 @@ export function getRepoName(cwd: string): string {
     // https://github.com/user/repo.git -> repo
     // https://github.com/user/repo -> repo
     const match = remoteUrl.match(/\/([^/]+?)(\.git)?$/);
-    if (match) {
+    if (match?.[1]) {
       return match[1];
     }
   } catch {

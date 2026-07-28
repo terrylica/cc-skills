@@ -84,7 +84,7 @@
 // Marketplace cohort hooks (iter-104+iter-105) adopting the helper:
 //   - posttooluse-vale-claude-md.ts          (iter-104 baseline)
 //   - posttooluse-ty-type-check.ts           (iter-105 scope)
-//   - posttooluse-tsgo-type-check.ts         (iter-105 scope)
+//   - posttooluse-tsc-type-check.ts          (iter-105 scope)
 //   - posttooluse-oxlint-check.ts            (iter-105 scope)
 //   - posttooluse-biome-lint.ts              (iter-105 scope)
 //   - posttooluse-ssot-principles.ts         (iter-105 scope)

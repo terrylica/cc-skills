@@ -99,6 +99,7 @@ import type {
 } from "./lib/pretooluse-subhook-contract-for-in-process-orchestrator-inlining-iter84.ts";
 import { classifyFileSizeGuardForOrchestrator } from "./pretooluse-file-size-guard.ts";
 import { classifyVersionGuardForOrchestrator } from "./pretooluse-version-guard.ts";
+import { classifyTypeScriptVersionGuardForOrchestrator } from "./pretooluse-typescript-version-guard.ts";
 import { classifyHoistedDepsGuardForOrchestrator } from "./pretooluse-hoisted-deps-guard.ts";
 import { classifyGpuOptimizationGuardForOrchestrator } from "./pretooluse-gpu-optimization-guard.ts";
 import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygiene-guard.ts";
@@ -123,6 +124,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyVersionGuardForOrchestrator,
     description:
       "Blocks Write/Edit on markdown files that introduce hardcoded version strings (semver, calver, pre-release tags) outside CHANGELOG/HISTORY/ADR/planning paths. Forces use of <version> placeholder pattern (SSoT discipline). Iter-85 inlined; fast O(1) extension+path filter pre-empts the regex scan on non-markdown files.",
+  },
+  {
+    name: "typescript-version-guard",
+    timeoutMs: 3000,
+    classify: classifyTypeScriptVersionGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on package.json files that declare TypeScript < 7.x (the Go-native tsc era). Forces upgrade from pre-7 versions via 'typescript': 'latest' (+ commit lockfile), or enforces dual-install compat alias 'typescript': 'npm:@typescript/typescript6@^6.0.2' + '@typescript/native': 'npm:typescript@latest' for compiler-embedding tools (Volar/Vue/Svelte/Astro, Angular templates, typescript-eslint, ts-morph) that cannot run on TS 7.0's missing programmatic API (available 7.1+). Iter-92 inlined; O(1) basename filter pre-empts regex scan on non-package.json files. Iter-15 fix: Edit may target a region NOT containing ALLOW-LEGACY-TS marker but file on disk has it — async fs.read via Bun.file() honors the escape hatch. Sanctions @typescript/typescript6 compat alias explicitly; naive major-version regex would misread the '6' and wrongly block the Volar migration path. SSoT: ~/.claude/typescript-latest-CLAUDE.md.",
   },
   {
     name: "hoisted-deps-guard",
