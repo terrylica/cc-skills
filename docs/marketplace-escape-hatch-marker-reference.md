@@ -11,10 +11,11 @@
 
 ## Quick navigation
 
-Jump directly to any of the 27 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 28 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (19; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (20; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
+- [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
@@ -63,9 +64,26 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (19 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (20 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
+
+## `ALLOW-LEGACY-TS`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md
+
+**Example usage**:
+
+```
+# ALLOW-LEGACY-TS
+```
 
 ## `BASH-LAUNCHD-OK`
 
