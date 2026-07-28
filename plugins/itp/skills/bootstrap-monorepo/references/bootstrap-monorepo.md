@@ -746,9 +746,6 @@ release:
    docs use `<version>` placeholders or an `SSoT-OK` escape hatch.
 6. **Inline suppressions** (`# noqa`, `# type: ignore`, `// biome-ignore`) require codes +
    justification, or use config-level overrides; bare suppressions are banned by hooks.
-7. **SR&ED commit trailers** (optional, Canada CRA): `SRED-Type:` / `SRED-Claim:` trailers +
-   the `sred-commit-guard` hook from itp-hooks — see the legacy reference's SR&ED section,
-   which remains current.
 
 ## Success Criteria
 
