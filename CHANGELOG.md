@@ -1,3 +1,97 @@
+# [23.0.0](https://github.com/terrylica/cc-skills/compare/v22.19.0...v23.0.0) (2026-07-28)
+
+
+### Bug Fixes
+
+* **release:** treat `!` and bare `BREAKING:` as major-bump markers ([4272766](https://github.com/terrylica/cc-skills/commit/4272766027570583f0b0e2062a3d29835eeb841e))
+
+
+### Documentation
+
+* **release:** add the v23 migration guide for marketplace consumers ([b8231cb](https://github.com/terrylica/cc-skills/commit/b8231cb5f9a7640362396a32b7e2c9a0ee1d29ce))
+
+
+### BREAKING CHANGES
+
+* **release:** This release announces three breaking changes to every
+consumer of the cc-skills marketplace. Two of them were implemented in v22.19.0
+but shipped without a major-version signal, because of the semantic-release
+parser gaps fixed earlier in this same release. They are announced properly
+here.
+
+1. TypeScript below 7 is blocked by default, with no configuration.
+   Two itp-hooks PreToolUse guards now refuse a pre-7 TypeScript:
+   `pretooluse-typescript-version-guard` blocks a Write/Edit of a package.json
+   declaring `typescript` below 7 (and tsconfig options TypeScript 7 rejects
+   outright), and `pretooluse-typescript-legacy-install-command-guard` blocks
+   Bash install commands that would install one. There is deliberately no
+   setting to disable them — an opt-in guard protects only the people who
+   already knew to opt in. Still accepted: `"typescript": "latest"`, any
+   explicit 7.x range, and the sanctioned dual-install compat alias for tooling
+   that embeds the compiler programmatically (Volar-based tooling, Angular
+   template checking, typescript-eslint, ts-morph), since TypeScript 7.0 ships
+   no programmatic API until 7.1. Deliberate legacy pins escape via the
+   file-wide `ALLOW-LEGACY-TS` marker.
+
+2. `/mise:sred-commit` is removed, along with the sred-commit-guard hook, the
+   sred-discovery library, and their tests. Commits no longer require or
+   validate `SRED-Type:` / `SRED-Claim:` trailers. CHANGELOG history is
+   untouched and the governing ADR is marked superseded rather than deleted, so
+   the decision trail survives.
+
+3. Breaking changes now actually cut a major release. Consumers pinning a caret
+   range get correct semver signalling instead of an unannounced breaking
+   change buried inside a minor bump.
+
+The guide itself covers the upgrade path in detail: what still passes each
+guard, how to use the escape hatch, the full list of tsconfig options
+TypeScript 7 removed, and the `TS5090` non-relative-paths trap that follows
+deleting `baseUrl`.
+
+It also documents the two package-manager traps that make a TypeScript 7
+migration look finished when it is not — `bun add -d typescript@latest` writes
+a resolved caret range rather than the literal `"latest"`, and under npm the
+`@typescript-eslint` peer chain can drag `typescript@latest` *down* to a 6.x
+release, so the type-check gate goes green while running the wrong compiler.
+The guide's central instruction is therefore to verify
+`./node_modules/.bin/tsc --version` prints 7.x rather than trusting a green
+gate or a correct-looking specifier.
+
+Finally it explains, rather than hides, why v22.19.0 exists: that tag is left
+published rather than retracted, because rewriting a pushed tag breaks every
+consumer that already resolved it. Consumers are told to treat v22.19.0 as if
+it were v23.0.0 and to check whether their builds have already started blocking
+pre-7 TypeScript.
+* **release:** A commit that marks itself breaking now actually cuts a major
+release. Previously it could silently ship as a minor, and on 2026-07-27 it
+did: `feat(itp-hooks)!: add TypeScript 7 conformance guards` and
+`feat(mise)!: remove SR&ED commit guard` — both with bodies opening
+`BREAKING:` — were analyzed as ordinary features and released as v22.19.0
+where v23.0.0 was intended.
+
+Two independent gaps combined, and each is closed here:
+
+- The `!` shorthand. The Angular preset this config builds on predates
+  `feat!:` / `feat(scope)!:` and does not treat it as breaking; only the
+  conventionalcommits preset does. A `{ breaking: true, release: "major" }`
+  release rule now catches it.
+- The footer token. Conventional Commits requires the exact token
+  `BREAKING CHANGE` (or `BREAKING-CHANGE`); a body opening `BREAKING:` is not
+  recognized by the default parser and is read as ordinary prose. Rather than
+  depend on every author recalling the two-word form, `noteKeywords` now
+  accepts the bare `BREAKING` keyword too.
+
+The same `parserOpts.noteKeywords` list is set on BOTH commit-analyzer and
+release-notes-generator. They parse the commit range independently, so setting
+it on only one produces a split-brain failure where the analyzer correctly bumps
+major but the published notes carry no BREAKING CHANGES section — the version is
+right while the changelog silently lies about why. The inline comments record
+that these two lists must stay in lockstep.
+
+Impact for marketplace consumers: releases that should have been major will now
+be major. Anyone pinning a caret range picks up correct semver signalling rather
+than an unannounced breaking change inside a minor bump.
+
 # [22.19.0](https://github.com/terrylica/cc-skills/compare/v22.18.0...v22.19.0) (2026-07-28)
 
 
