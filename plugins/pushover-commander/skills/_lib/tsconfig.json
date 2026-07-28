@@ -1,14 +1,7 @@
 {
+  "extends": "../../../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "types": ["bun-types"],
+    "types": ["bun"],
     "lib": ["ESNext", "DOM"]
   },
   "include": ["pushover_core.ts", "pushover_headless_web_control.ts", "batch_create_pushover_apps.ts"]

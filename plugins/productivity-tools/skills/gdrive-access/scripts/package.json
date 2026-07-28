@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^22.0.0",
-    "typescript": "^5"
+    "typescript": "latest"
   },
   "dependencies": {
     "@googleapis/drive": "^8.0.0"

@@ -9,7 +9,7 @@
     "satori": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest",
-    "typescript": "latest"
+    "@types/bun": "latest",
+    "typescript": "^7.0.2"
   }
 }
