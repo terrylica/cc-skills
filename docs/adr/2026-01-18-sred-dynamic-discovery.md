@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded
 date: 2026-01-18
 decision-maker: [Terry Li]
 consulted:
@@ -8,11 +8,17 @@ research-method: single-agent
 clarification-iterations: 8
 perspectives:
   [UpstreamIntegration, EcosystemArtifact, ProviderToOtherComponents]
+superseded-date: 2026-07-27
+superseded-reason: SR&ED commit tracking was abandoned by operator decision — the guard was removed as unused dead code (never registered in hooks.json since January 2026).
 ---
 
 # ADR: SR&ED Dynamic Project Discovery via Claude Agent SDK
 
 **Design Spec**: [Implementation Spec](/docs/design/2026-01-18-sred-dynamic-discovery/spec.md)
+
+> **🔴 SUPERSEDED (2026-07-27)**: This ADR and its implementation are obsolete. The `sred-commit-guard` hook
+> was deleted as unused dead code, and SR&ED commit tracking was abandoned. This document is retained for historical
+> reference only.
 
 ## Context and Problem Statement
 

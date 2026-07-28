@@ -1,16 +1,19 @@
 ---
 adr: 2026-01-18-sred-dynamic-discovery
 source: ~/.claude/plans/piped-spinning-dawn.md
-implementation-status: completed
+implementation-status: obsolete
 phase: phase-2
 last-updated: 2026-01-18
+superseded-date: 2026-07-27
+superseded-reason: SR&ED commit tracking was abandoned by operator decision — the guard was removed as unused dead code.
 ---
 
 # SR&ED Project Discovery: Forked Haiku Session via Claude Agent SDK
 
 **ADR**: [SR&ED Dynamic Project Discovery ADR](/docs/adr/2026-01-18-sred-dynamic-discovery.md)
 
-> Dynamic SR&ED project identifier discovery using Claude Agent SDK to spawn isolated Haiku sessions from PreToolUse hooks.
+> **🔴 SUPERSEDED (2026-07-27)**: This specification is obsolete. The `sred-commit-guard` hook was deleted as unused dead code,
+> and SR&ED commit tracking was abandoned. This document is retained for historical reference only.
 
 ## CRA Compliance Notes
 

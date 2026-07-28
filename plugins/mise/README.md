@@ -1,19 +1,18 @@
 # mise
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Commands](https://img.shields.io/badge/Commands-4-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Commands](https://img.shields.io/badge/Commands-4-blue.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 User-global mise workflow commands: run release pipelines, check environment status, and discover tasks across any repo.
 
 ## Commands
 
-| Command                  | Description                                                        | Trigger Keywords                                                                       |
-| ------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `/mise:run-full-release` | Run the current repo's mise release pipeline with auto-scaffolding | `mise release`, `full release`, `version bump`, `release automation`                   |
-| `/mise:show-env-status`  | Show mise environment: tools, env vars, tasks, release readiness   | `mise status`, `mise env`, `repo status`, `environment check`                          |
-| `/mise:list-repo-tasks`  | List mise tasks grouped by namespace with dependency info          | `mise tasks`, `task list`, `show tasks`, `available tasks`                             |
-| `/mise:sred-commit`      | Create a git commit with SR&ED (CRA tax credit) trailers           | `sred commit`, `sred`, `cra commit`, `tax credit commit`, `scientific research commit` |
+| Command                  | Description                                                        | Trigger Keywords                                                     |
+| ------------------------ | ------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| `/mise:run-full-release` | Run the current repo's mise release pipeline with auto-scaffolding | `mise release`, `full release`, `version bump`, `release automation` |
+| `/mise:show-env-status`  | Show mise environment: tools, env vars, tasks, release readiness   | `mise status`, `mise env`, `repo status`, `environment check`        |
+| `/mise:list-repo-tasks`  | List mise tasks grouped by namespace with dependency info          | `mise tasks`, `task list`, `show tasks`, `available tasks`           |
 
 ## Installation
 
@@ -58,14 +57,6 @@ Shows installed tools, environment variables (non-sensitive), available tasks gr
 # Filter to a specific namespace
 /mise:list-repo-tasks release
 ```
-
-### SR&ED Commits
-
-```bash
-/mise:sred-commit
-```
-
-Creates a conventional commit with SR&ED trailers (`SRED-Type`, `SRED-Claim`) for Canada CRA Scientific Research & Experimental Development tax credit compliance.
 
 ## What This Plugin Does NOT Do
 
