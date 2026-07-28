@@ -31,7 +31,7 @@
 # Iter-105 marketplace state (post-application):
 #   - posttooluse-vale-claude-md.ts ........... ★ wraps via helper (iter-104)
 #   - posttooluse-ty-type-check.ts ............ ★ wraps via helper (iter-105)
-#   - posttooluse-tsgo-type-check.ts .......... ★ wraps via helper (iter-105)
+#   - posttooluse-tsc-type-check.ts .......... ★ wraps via helper (iter-105)
 #   - posttooluse-oxlint-check.ts ............. ★ wraps via helper (iter-105)
 #   - posttooluse-biome-lint.ts ............... ★ wraps via helper (iter-105)
 #   - posttooluse-ssot-principles.ts .......... ★ wraps via helper (iter-105)
@@ -50,7 +50,7 @@
 # reasons are static template strings of bounded length) are excluded.
 #
 # Escape hatch: hooks with legitimately-bounded output (e.g., the
-# install-reminder static-string emissions in ty/tsgo/oxlint/biome
+# install-reminder static-string emissions in ty/tsc/oxlint/biome
 # spawnFailed branches) can mark their emission site with
 # `// HOOK-OUTPUT-SIZE-CAP-OK: <reason ≥ 10 chars>` on the same line or
 # within the 3 preceding lines.
@@ -100,7 +100,7 @@ echo ""
 declare -a HOOKS_REQUIRING_CANONICAL_TRUNCATION_HELPER_PER_ITER105_INVARIANT=(
     "plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts"
     "plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
-    "plugins/itp-hooks/hooks/posttooluse-tsgo-type-check.ts"
+    "plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
     "plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
     "plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
