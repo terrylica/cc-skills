@@ -50,7 +50,8 @@ describe("typescript-version-drift-guard integration", () => {
       encoding: "utf8",
     });
     expect(result.success).toBe(true);
-    const json = JSON.parse(result.stdout || "{}");
+    const stdout = result.stdout instanceof Buffer ? result.stdout.toString() : result.stdout;
+    const json = JSON.parse(stdout || "{}");
     expect(json.name).toBe("typescript-version-drift-guard");
   });
 
@@ -60,7 +61,8 @@ describe("typescript-version-drift-guard integration", () => {
       encoding: "utf8",
     });
     expect(result.success).toBe(true);
-    expect(result.stdout).toContain("1.0.0");
+    const stdout = result.stdout instanceof Buffer ? result.stdout.toString() : result.stdout;
+    expect(stdout).toContain("1.0.0");
   });
 
   test("CLI with invalid flag exits 2 (usage error)", () => {
