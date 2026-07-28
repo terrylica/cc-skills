@@ -65,7 +65,31 @@ ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER150_RENDERER_DEFAULT_TEN_COMMITS=100  
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER153_ADVISOR_DEFAULT_HUMAN_READABLE_MODE=200  # measured median 41ms × 4.9 headroom (HOT PATH: every git commit)
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER153_ADVISOR_JSON_STRICT_AI_AGENT_AUTOMATION_MODE=250  # measured median 53ms × 4.7 headroom
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER152_COMMITS_HEALTH_FIVE_PANEL_DASHBOARD=300  # measured median 61ms × 4.9 headroom (slowest absolute in toolkit; iter-175+ candidate for iter-167 batched-git-log perf treatment)
-ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER165_PENDING_RELEASE_AGGREGATOR_POST_ITER167_OPTIMIZATION=200  # measured median 36ms × 5.5 headroom (already iter-167-optimized; regression here means iter-167 NUL-delim fan-in broke)
+# ─── A5 cap is BACKLOG-PROPORTIONAL, not a fixed millisecond constant ─────────
+# The iter-165 aggregator walks every commit between the last release tag and
+# HEAD, so its wall-clock is O(pending commits). A fixed cap silently conflates
+# two very different events: "the aggregator's code got slower" (a real
+# regression) and "more commits are awaiting release" (normal, and self-clearing
+# the moment a release cuts). That produced a false positive here: at a
+# 23-commit backlog the median rose to 191-280ms and flapped either side of the
+# old flat 200ms cap, failing the release gate for a reason unrelated to the
+# aggregator — and self-deadlocking, since the gate blocked the very release
+# that would have cleared the backlog.
+#
+# Modelling the two cost terms separately keeps each one's sensitivity:
+#
+#   cap = FIXED_PROCESS_STARTUP_BUDGET + (PER_PENDING_COMMIT_BUDGET x backlog)
+#
+# The constant term stays pinned at the original 200ms (measured median 36ms x
+# 5.5 headroom), so a genuine startup regression — e.g. the iter-167 NUL-delim
+# fan-in breaking — is caught exactly as sensitively as before. The linear term
+# is new: a two-point fit over the original 36ms-at-small-backlog baseline and a
+# measured ~200ms median at a 23-commit backlog implies ~7ms per pending commit,
+# carried at the 3x headroom this harness already uses elsewhere. The 3x absorbs
+# the error inherent in a two-point fit; re-derive from more points if the
+# aggregator is ever rewritten.
+ITER174_ITER165_AGGREGATOR_FIXED_PROCESS_STARTUP_BUDGET_MILLISECONDS_INDEPENDENT_OF_BACKLOG_SIZE=200
+ITER174_ITER165_AGGREGATOR_PER_PENDING_RELEASE_COMMIT_BUDGET_MILLISECONDS_AT_THREE_X_HEADROOM=21  # measured median 36ms × 5.5 headroom (already iter-167-optimized; regression here means iter-167 NUL-delim fan-in broke)
 ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1500  # measured median 530ms × 2.8 headroom (operator-facing, runs 15 timed health checks; iter-177 replaced perl Time::HiRes with bash 5+ EPOCHREALTIME zero-fork builtin saving ~135ms; cap is intentionally tighter (2.8x not 4-5x) since this is the slowest absolute script in the toolkit and any further sub-linear-scaling check addition deserves an explicit baseline re-pin)
 
 ITER174_TOTAL_ASSERTIONS_EVALUATED=0
@@ -411,9 +435,26 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER152_COMMITS_HEALTH_FIVE_PANEL_DASHBOARD" \
     bash "$ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH"
 
+# A5's cap is derived at run time from the CURRENT pending-release backlog (see
+# the budget-model comment beside the two constants above). Counting commits
+# since the most recent tag mirrors exactly the range the aggregator itself
+# walks, so the cap tracks the workload the measurement actually performs.
+# Fail-open to a zero backlog when there is no tag (fresh clone, first release):
+# that degrades the assertion to the original fixed 200ms constant term rather
+# than erroring out of the harness.
+ITER174_ITER165_PENDING_RELEASE_COMMIT_BACKLOG_SIZE_AT_MEASUREMENT_TIME=$(
+    git -C "$ITER174_REPO_ROOT" rev-list --count \
+        "$(git -C "$ITER174_REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo HEAD)"..HEAD 2>/dev/null || echo 0
+)
+ITER174_ITER165_BACKLOG_PROPORTIONAL_CAP_MILLISECONDS=$((
+    ITER174_ITER165_AGGREGATOR_FIXED_PROCESS_STARTUP_BUDGET_MILLISECONDS_INDEPENDENT_OF_BACKLOG_SIZE
+    + ITER174_ITER165_AGGREGATOR_PER_PENDING_RELEASE_COMMIT_BUDGET_MILLISECONDS_AT_THREE_X_HEADROOM
+    * ITER174_ITER165_PENDING_RELEASE_COMMIT_BACKLOG_SIZE_AT_MEASUREMENT_TIME
+))
+
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
-    "A5: iter-165 pending-release aggregator (every release:preflight, post-iter-167)" \
-    "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER165_PENDING_RELEASE_AGGREGATOR_POST_ITER167_OPTIMIZATION" \
+    "A5: iter-165 pending-release aggregator (every release:preflight, post-iter-167; backlog=${ITER174_ITER165_PENDING_RELEASE_COMMIT_BACKLOG_SIZE_AT_MEASUREMENT_TIME} commits)" \
+    "$ITER174_ITER165_BACKLOG_PROPORTIONAL_CAP_MILLISECONDS" \
     bash "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH"
 
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
