@@ -45,7 +45,7 @@
  *   - Once-per-session work → most invocations are sub-ms gate-claim noop
  *   - No subprocess spawn (purely static reminder text) → no timeout risk
  *   - Overlaps with ALL existing inlined classifiers via extension union
- *     (.py with ty + ssot; .ts with tsgo+oxlint+biome+ssot; .rs/.go/.java/
+ *     (.py with ty + ssot; .ts with tsc+oxlint+biome+ssot; .rs/.go/.java/
  *     .kt/.rb with ssot) — the orchestrator's Promise.all wins
  *
  * Gate: fires once per session via atomic O_EXCL gate-file (shared helper).
@@ -204,7 +204,7 @@ export async function classifyMemoryEfficiencyBestPracticesReminderOncePerSessio
 }
 
 /**
- * Symmetric-naming alias matching the sibling subhooks (ty, tsgo, oxlint,
+ * Symmetric-naming alias matching the sibling subhooks (ty, tsc, oxlint,
  * biome, vale, ssot-principles). The precise algorithm-encoding name above
  * captures the once-per-session-static-reminder nature; this alias is what
  * the orchestrator imports.

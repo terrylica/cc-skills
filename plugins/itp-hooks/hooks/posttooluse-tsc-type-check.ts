@@ -200,12 +200,12 @@ Typical runtime: ~200ms full-project check.`,
   }
 }
 
-// For backward compatibility with existing orchestrator imports.
+// Symmetric-naming alias matching the sibling subhooks (ty, oxlint, biome,
+// ssot-principles), all of which the orchestrator imports as
+// `classify<Tool><Concern>ForPostToolUseOrchestrator`. The precise name above
+// encodes the actual algorithm; this alias keeps the orchestrator's import
+// block scannable as a single uniform column.
 export const classifyTscTypeCheckForPostToolUseOrchestrator =
-  classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator;
-
-// Alias for old tsgo naming (helps with grep-based refactoring if needed).
-export const classifyTsgoTypeCheckForPostToolUseOrchestrator =
   classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator;
 
 // ══════════════════════════════════════════════════════════════════════════

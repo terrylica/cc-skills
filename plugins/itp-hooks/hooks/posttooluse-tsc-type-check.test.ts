@@ -139,7 +139,7 @@ describe("posttooluse-tsc-type-check", () => {
     });
   });
 
-  describe("export aliases for backward compatibility", () => {
+  describe("symmetric-naming export alias for the orchestrator import block", () => {
     it("should export classifyTscTypeCheckForPostToolUseOrchestrator alias", async () => {
       const { classifyTscTypeCheckForPostToolUseOrchestrator } = await import(
         "./posttooluse-tsc-type-check.ts"
@@ -148,12 +148,18 @@ describe("posttooluse-tsc-type-check", () => {
       expect(typeof classifyTscTypeCheckForPostToolUseOrchestrator).toBe("function");
     });
 
-    it("should export classifyTsgoTypeCheckForPostToolUseOrchestrator alias (deprecated naming)", async () => {
-      const { classifyTsgoTypeCheckForPostToolUseOrchestrator } = await import(
-        "./posttooluse-tsc-type-check.ts"
-      );
-      expect(classifyTsgoTypeCheckForPostToolUseOrchestrator).toBeDefined();
-      expect(typeof classifyTsgoTypeCheckForPostToolUseOrchestrator).toBe("function");
+    it("should alias the precise algorithm-encoding name, not a separate implementation", async () => {
+      const {
+        classifyTscTypeCheckForPostToolUseOrchestrator,
+        classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator:
+          preciseAlgorithmEncodingExport,
+      } = await import("./posttooluse-tsc-type-check.ts");
+      expect(classifyTscTypeCheckForPostToolUseOrchestrator).toBe(preciseAlgorithmEncodingExport);
+    });
+
+    it("should NOT re-export the retired tsgo-era alias (@typescript/native-preview is frozen)", async () => {
+      const moduleExports = await import("./posttooluse-tsc-type-check.ts");
+      expect("classifyTsgoTypeCheckForPostToolUseOrchestrator" in moduleExports).toBe(false);
     });
   });
 
