@@ -14,7 +14,7 @@ ITER105_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-pretooluse-and-po
 declare -a EIGHT_COHORT_HOOK_ABSOLUTE_PATHS=(
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-vale-claude-md.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
-    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsgo-type-check.ts"
+    "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
     "$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ssot-principles.ts"
