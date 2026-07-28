@@ -229,34 +229,34 @@ function formatInstallCommandDenialReason(
  */
 export async function classifyTypeScriptLegacyInstallCommandForOrchestrator(
   input: PreToolUseInput,
-): Promise<{ decision: "allow" } | { decision: "deny"; reason: string }> {
+): Promise<{ verdict: "allow" } | { verdict: "deny"; reason: string }> {
   const { tool_name, tool_input = {} } = input;
 
   // Only check Bash commands
   if (tool_name !== "Bash") {
-    return { decision: "allow" };
+    return { verdict: "allow" };
   }
 
   // Skip in plan mode
   if (isPlanMode(input).inPlanMode) {
-    return { decision: "allow" };
+    return { verdict: "allow" };
   }
 
   const command = tool_input.command || "";
 
   // Not an install command — nothing to check
   if (!isInstallCommand(command)) {
-    return { decision: "allow" };
+    return { verdict: "allow" };
   }
 
   // Check for environment escape hatch
   if (command.startsWith("ALLOW_LEGACY_TS=1 ")) {
-    return { decision: "allow" };
+    return { verdict: "allow" };
   }
 
   // Check for inline marker escape hatch
   if (hasFileWideEscapeHatchMarkerInContent(command, { markerNameTokenIncludingSuffix: "ALLOW-LEGACY-TS" })) {
-    return { decision: "allow" };
+    return { verdict: "allow" };
   }
 
   // Extract all TypeScript specifiers from the command
@@ -275,7 +275,7 @@ export async function classifyTypeScriptLegacyInstallCommandForOrchestrator(
         },
         command,
       );
-      return { decision: "deny", reason };
+      return { verdict: "deny", reason };
     }
 
     // Special case: the sanctioned compat alias. The evaluator will detect it,
@@ -289,12 +289,12 @@ export async function classifyTypeScriptLegacyInstallCommandForOrchestrator(
 
     if (isBlockingTypeScriptVersionSpecifierVerdict(verdict)) {
       const reason = formatInstallCommandDenialReason(token, verdict, command);
-      return { decision: "deny", reason };
+      return { verdict: "deny", reason };
     }
   }
 
   // All specifiers passed; allow the command
-  return { decision: "allow" };
+  return { verdict: "allow" };
 }
 
 // ────────────────────────────────────────────────────────────────────────
@@ -308,7 +308,7 @@ async function main() {
   try {
     const result = await classifyTypeScriptLegacyInstallCommandForOrchestrator(input);
 
-    if (result.decision === "allow") {
+    if (result.verdict === "allow") {
       allow();
     } else {
       deny(result.reason);
