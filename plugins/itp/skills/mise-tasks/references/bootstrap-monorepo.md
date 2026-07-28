@@ -4,8 +4,11 @@
 > **moon + proto + Bun (Nx-convergent)** stack at
 > [../../bootstrap-monorepo/references/bootstrap-monorepo.md](../../bootstrap-monorepo/references/bootstrap-monorepo.md).
 > This Pants + mise document remains valid ONLY for maintaining repos that already use it;
-> migrate per-repo, parity-first. The SR&ED section below remains current and is referenced
-> by the new document.
+> migrate per-repo, parity-first.
+>
+> **⚠️ SR&ED sections SUPERSEDED (2026-07-27)**: SR&ED commit tracking was abandoned by operator
+> decision — the guard was removed as unused dead code. Historical SR&ED sections below are retained
+> for reference only and should not be used for new work.
 
 ## Table of Contents
 
@@ -45,14 +48,7 @@
   - [Release Commands](#release-commands)
   - [Update .gitignore](#update-gitignore)
   - [First Release](#first-release)
-  - [SR&ED Commit Integration](#sred-commit-integration)
 - [Performance Insights: Language Selection](#performance-insights-language-selection)
-- [SR&ED Commit Conventions (Canada CRA)](#sred-commit-conventions-canada-cra)
-  - [CRA Eligibility Criteria](#cra-eligibility-criteria)
-  - [SR&ED Commit Types](#sred-commit-types)
-  - [Commit Message Examples](#commit-message-examples)
-  - [SR&ED Documentation Structure](#sred-documentation-structure)
-  - [GitHub Labels for SR&ED](#github-labels-for-sred)
 
 > **Role**: You are a Principal Software Architect specializing in AI-native monorepo design.
 > **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code.
@@ -1103,32 +1099,10 @@ npm install
 
 # 2. Commit release infrastructure
 git add package.json .releaserc.yml .mise/tasks/release/
-git commit -m "build: add semantic-release configuration and mise tasks
-
-SRED-Type: support-work
-SRED-Claim: RELEASE-INFRA"
+git commit -m "build: add semantic-release configuration and mise tasks"
 
 # 3. Run first release
 mise run release:full
-```
-
-### SR&ED Commit Integration
-
-If using SR&ED commit conventions (see SR&ED section below), commits must include trailers:
-
-```
-<type>(<scope>): <description>
-
-<body>
-
-SRED-Type: <category>
-SRED-Claim: <claim-id>
-```
-
-The `sred-commit-guard` hook (from itp-hooks) validates this format. Install via:
-
-```bash
-/itp:tether install
 ```
 
 ---
@@ -1163,309 +1137,28 @@ Based on real benchmarks with 1M data points (trading fitness calculations):
 
 ---
 
-## SR&ED Commit Conventions (Canada CRA)
-
-For projects claiming Scientific Research & Experimental Development (SR&ED) tax credits, commits must document work that maps to CRA's eligibility criteria.
-
-### CRA Eligibility Criteria
-
-| Criterion                     | Description                                       | Commit Evidence Needed        |
-| ----------------------------- | ------------------------------------------------- | ----------------------------- |
-| **Technological Uncertainty** | What couldn't be achieved using standard practice | `uncertainty:`, `experiment:` |
-| **Technological Advancement** | New knowledge or capability gained                | `advancement:`, `benchmark:`  |
-| **Scientific Content**        | Systematic investigation or search                | `research:`, `hypothesis:`    |
-| **Experimental Development**  | Iterative testing to resolve uncertainty          | `experiment:`, `iteration:`   |
-
-### SR&ED Commit Types
-
-Extend conventional commits with SR&ED-specific prefixes:
-
-```
-<type>(<scope>): <description>
-
-[optional body with SR&ED context]
-
-[optional footer: SR&ED-CLAIM: <claim-id>]
-```
-
-**Standard Types** (conventional commits):
-
-| Type       | Purpose                 | SR&ED Relevance                   |
-| ---------- | ----------------------- | --------------------------------- |
-| `feat`     | New feature             | May support advancement           |
-| `fix`      | Bug fix                 | Rarely eligible                   |
-| `docs`     | Documentation           | Supports systematic investigation |
-| `refactor` | Code restructuring      | Rarely eligible                   |
-| `test`     | Adding tests            | Supports experimental development |
-| `perf`     | Performance improvement | May support advancement           |
-| `chore`    | Maintenance             | Not eligible                      |
-
-**SR&ED-Specific Types** (CRA-aligned):
-
-| Type          | CRA Mapping               | Description                                    |
-| ------------- | ------------------------- | ---------------------------------------------- |
-| `experiment`  | Experimental Development  | Hypothesis testing, controlled experiments     |
-| `research`    | Scientific Content        | Literature review, prior art analysis          |
-| `uncertainty` | Technological Uncertainty | Document what standard practice couldn't solve |
-| `advancement` | Technological Advancement | Document new knowledge or capability achieved  |
-| `hypothesis`  | Scientific Content        | Formulate and document testable hypotheses     |
-| `analysis`    | Scientific Content        | Data analysis, results interpretation          |
-| `iteration`   | Experimental Development  | Iterative cycles to resolve uncertainty        |
-| `benchmark`   | Technological Advancement | Quantitative proof of advancement              |
-
-### Commit Message Examples
-
-**Documenting Technological Uncertainty**:
-
-```
-uncertainty(ith-python): standard Sharpe ratio insufficient for epoch detection
-
-The conventional Sharpe ratio calculation doesn't account for time-varying
-volatility regimes. Standard practice (rolling windows) fails to identify
-discrete fitness epochs where strategy performance exceeds drawdown-adjusted
-thresholds.
-
-Attempted approaches that failed:
-- Rolling 30-day Sharpe windows: too noisy, false positives
-- EWMA-weighted returns: loses epoch boundary precision
-- Standard drawdown metrics: no TMAEG concept exists
-
-SR&ED-CLAIM: 2026-Q1-ITH
-```
-
-**Documenting Experimental Work**:
-
-```
-experiment(core-rust): test SIMD vectorization for ITH epoch detection
-
-Hypothesis: SIMD intrinsics can accelerate excess_gain_excess_loss by 4x+
-over scalar implementation for datasets > 100K points.
-
-Methodology:
-- Control: scalar Rust implementation (current)
-- Treatment: AVX2 vectorized implementation
-- Dataset: synthetic NAV series, 1M points, 100 iterations
-
-Expected outcome: Sub-linear scaling with data size due to cache efficiency.
-
-SR&ED-CLAIM: 2026-Q1-ITH
-```
-
-**Documenting Technological Advancement**:
-
-```
-advancement(ith-python): Numba JIT achieves near-native performance
-
-Technological advancement achieved: Python+Numba matches Rust performance
-for numerical ITH calculations, eliminating need for FFI complexity.
-
-Benchmark results (1M data points):
-- Python+Numba: 5.5ms (ITH analysis)
-- Rust native: 4.0ms (1.4x faster, within acceptable range)
-- TypeScript: 10.3ms (baseline comparison)
-
-This advances the state of practice by proving JIT-compiled Python is
-viable for production trading fitness analysis, previously assumed to
-require native code.
-
-SR&ED-CLAIM: 2026-Q1-ITH
-```
-
-**Documenting Hypothesis Testing**:
-
-```
-hypothesis(core-bun): TypeScript strict mode improves type safety at runtime
-
-Hypothesis: Enabling strict:true in tsconfig.json will catch array boundary
-errors at compile time that currently cause silent NaN propagation.
-
-Test plan:
-1. Enable strict mode
-2. Fix all compile-time errors
-3. Run existing test suite
-4. Measure NaN-related failures before/after
-
-Expected outcome: Zero runtime NaN errors from array access patterns.
-
-SR&ED-CLAIM: 2026-Q1-ITH
-```
-
-### SR&ED Documentation Structure
-
-Create `docs/SRED.md` to aggregate claim evidence:
-
-```markdown
-# SR&ED Claim Evidence
-
-## Claim Period: 2026-Q1
-
-### Project: ITH (Investment Time Horizon) Analysis
-
-**Technological Uncertainty**:
-
-- Standard fitness metrics (Sharpe, Sortino) don't capture epoch-based performance
-- No existing solution for TMAEG (Target Maximum Acceptable Excess Gain) calculation
-- Uncertainty in optimal JIT compilation strategy for numerical Python
-
-**Technological Advancement**:
-
-- Novel ITH epoch detection algorithm
-- Proof that Numba JIT matches native Rust for trading calculations
-- Cross-language type system via JSON Schema code generation
-
-**Systematic Investigation**:
-
-- Benchmark-driven development with controlled experiments
-- Iterative refinement of TMAEG calculation methodology
-- Comparative analysis across Python, Rust, TypeScript implementations
-
-### Commit Log (SR&ED Tagged)
-
-| Date       | Commit Hash | Type        | Description                     |
-| ---------- | ----------- | ----------- | ------------------------------- |
-| 2026-01-15 | abc123      | uncertainty | Standard Sharpe insufficient    |
-| 2026-01-16 | def456      | experiment  | SIMD vectorization test         |
-| 2026-01-17 | ghi789      | advancement | Numba achieves near-native perf |
-
-### Time Allocation
-
-| Activity                 | Hours | % of Total |
-| ------------------------ | ----- | ---------- |
-| Experimental Development | 40    | 50%        |
-| Applied Research         | 24    | 30%        |
-| Documentation & Analysis | 16    | 20%        |
-```
-
-### Git Log Extraction for Claims
-
-Extract SR&ED-tagged commits for claim preparation:
-
-```bash
-# List all SR&ED commits
-git log --oneline --grep="SR&ED-CLAIM"
-
-# Extract by claim ID
-git log --grep="SR&ED-CLAIM: 2026-Q1-ITH" --format="%h|%ad|%s" --date=short
-
-# Generate claim summary
-git log --grep="SR&ED-CLAIM" --format="| %ad | %h | %s |" --date=short > docs/sred-commits.md
-```
-
-### GitHub Labels for SR&ED
-
-```bash
-# SR&ED claim tracking labels
-gh label create "sred:uncertainty" --color "D93F0B" --description "Documents technological uncertainty"
-gh label create "sred:advancement" --color "0E8A16" --description "Documents technological advancement"
-gh label create "sred:experiment" --color "1D76DB" --description "Experimental development work"
-gh label create "sred:research" --color "5319E7" --description "Scientific research activity"
-gh label create "sred:eligible" --color "FBCA04" --description "Potentially SR&ED eligible"
-```
-
-### SR&ED Commit Enforcement (Claude Code Hook)
-
-Enforce dual commit types (conventional + SR&ED) via PreToolUse hook.
-
-**Recommended format** (Git trailers for metadata):
-
-```
-<conventional-type>(<scope>): <description>
-
-<body>
-
-SRED-Type: <category>
-SRED-Claim: <claim-id>
-```
-
-**Why Git trailers?**
-
-| Approach                         | Parser Support | Extractable              | Recommendation        |
-| -------------------------------- | -------------- | ------------------------ | --------------------- |
-| `feat/experiment:` (dual prefix) | Breaks parsers | No                       | Avoid                 |
-| `feat(sred):` (scope)            | Good           | Partial                  | OK for categorization |
-| `SRED-Type:` (trailer)           | Excellent      | `git interpret-trailers` | **Best for metadata** |
-
-**Hook installation** (add to `~/.claude/settings.json`):
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/sred-commit-guard.sh",
-            "timeout": 5000
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-**Git commit-msg hook** (for non-Claude commits):
-
-```bash
-#!/bin/bash
-# .githooks/commit-msg
-exec bash /path/to/sred-commit-guard.sh --git-hook "$1"
-```
-
-Enable with: `git config core.hooksPath .githooks`
-
-**Extract SR&ED data for claims**:
-
-```bash
-# All SRED-Type values from commits
-git log --format='%(trailers:key=SRED-Type,valueonly)' | grep -v '^$' | sort | uniq -c
-
-# Export for claim reporting
-git log --since="2026-01-01" --format="%ad|%s|%(trailers:key=SRED-Type,valueonly)|%(trailers:key=SRED-Claim,valueonly)" --date=short
-```
-
----
-
 ## Success Criteria
 
 The bootstrap is complete when:
 
 **Infrastructure (Phases 0-5)**:
 
-- [ ] All `CLAUDE.md` files exist and link correctly
-- [ ] `pants list ::` shows all targets (or `mise run affected` for lightweight variant)
-- [ ] `pants --changed-since=origin/main list` runs without error
-- [ ] `mise tasks` shows convenience wrappers
-- [ ] `.mcp.json` is valid JSON
-- [ ] Each package has BUILD file (or package.json/Cargo.toml/pyproject.toml)
-- [ ] `logs/` directory exists (gitignored)
-- [ ] Initial commit is made
+- [ ] `.mise/tasks/` directory created with YAML files
+- [ ] `pyproject.toml` with `[tool.poetry]` section
+- [ ] `package.json` (if using Bun/TypeScript)
+- [ ] `Cargo.toml` (if using Rust)
+- [ ] `.github/workflows/` with CI pipeline
+- [ ] All language toolchains pass `mise run check-full`
 
-**Types (Phase 6)**:
+**Architecture & Documentation (Phases 2, 3)**:
 
-- [ ] JSON Schema files exist in `packages/shared-types/schemas/`
-- [ ] `scripts/generate-types.sh` generates valid code for all languages
-- [ ] Generated types are referenced in package CLAUDE.md files
+- [ ] `README.md` covers quick start + architecture
+- [ ] Root `CLAUDE.md` follows hub-and-spoke pattern
+- [ ] Each package has a `CLAUDE.md` or `README.md` (no dead spokes)
+- [ ] Type definitions file (`types.ts`, `py.typed`, etc.) present
+- [ ] GitHub labels created + documented
 
-**GitHub (Phase 7)**:
-
-- [ ] Repository has description set
-- [ ] Repository has relevant topics (5-10 recommended)
-- [ ] Standard labels created (pkg:_, type:_)
-- [ ] LICENSE file exists in root
-- [ ] README.md has badges, quick start, package table
-- [ ] git-town configured with main branch
-
-**SR&ED Documentation (Optional)**:
-
-- [ ] `docs/SRED.md` created with claim structure
-- [ ] SR&ED labels created (sred:uncertainty, sred:advancement, etc.)
-- [ ] Commit message convention documented
-- [ ] Git log extraction scripts available
-
-**Release Workflow (Phase 8)**:
+**CI/CD Readiness (Phase 8)**:
 
 - [ ] `package.json` exists with semantic-release dependencies
 - [ ] `.releaserc.yml` configuration present
@@ -1626,9 +1319,3 @@ doSomething(value); // OK
 **Type Systems**:
 
 - [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/schema) - Cross-language type definitions
-
-**SR&ED (Canada)**:
-
-- [CRA SR&ED Program](https://www.canada.ca/en/revenue-agency/services/scientific-research-experimental-development-tax-incentive-program.html) - Official program page
-- [SR&ED Eligibility Criteria](https://www.canada.ca/en/revenue-agency/services/scientific-research-experimental-development-tax-incentive-program/eligibility-work-sred-tax-incentives.html) - What qualifies
-- [SR&ED Claim Guide T4088](https://www.canada.ca/en/revenue-agency/services/forms-publications/publications/t4088.html) - Claiming procedures
