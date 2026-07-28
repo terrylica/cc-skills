@@ -76,6 +76,8 @@ import {
   buildPostToolUseAdditionalContextDecision,
   isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 import { tryAtomicallyClaimOncePerSessionGenericReminderGateFileForReminderByName } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts";
@@ -116,17 +118,60 @@ function isTypeScriptRelevantFile(filePath: string | undefined): boolean {
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
+ * Walk upward from the edited file to the directory that owns it — the nearest
+ * ancestor holding a `.git` or a `package.json` — so the drift sweep can be
+ * scoped to one project instead of the whole estate. Returns null when the file
+ * sits outside any recognizable project, in which case the caller skips the
+ * sweep rather than falling back to an unbounded one.
+ */
+function locateNearestEnclosingProjectRootByWalkingUpwardFromEditedFile(
+  editedFilePath: string,
+): string | null {
+  let currentDirectory = dirname(editedFilePath);
+  // Bounded walk: filesystem root terminates it, but cap iterations anyway so a
+  // pathological symlink cycle cannot spin a hook that runs on every edit.
+  for (let ascent = 0; ascent < 40; ascent++) {
+    if (
+      existsSync(resolve(currentDirectory, ".git")) ||
+      existsSync(resolve(currentDirectory, "package.json"))
+    ) {
+      return currentDirectory;
+    }
+    const parentDirectory = dirname(currentDirectory);
+    if (parentDirectory === currentDirectory) return null;
+    currentDirectory = parentDirectory;
+  }
+  return null;
+}
+
+/**
  * Run the typescript-version-drift-guard to get concrete drift report.
  * Falls back to generic message if guard errors or times out.
+ *
+ * SCOPED TO ONE PROJECT, deliberately. An unscoped run sweeps every root
+ * (~/eon, ~/vj, ~/own) and takes ~22 seconds — far past the 5s budget below, so
+ * it timed out on EVERY invocation and the reminder silently degraded to the
+ * generic message while still stalling each edit for the full five seconds. The
+ * failure was invisible: a timeout returns null, which is indistinguishable
+ * here from "no drift found".
+ *
+ * Scoping is also the more useful behaviour. The reminder fires because of a
+ * file the operator just edited, so drift in THAT project is actionable, while
+ * drift in an unrelated checkout is noise they cannot act on from here. The
+ * estate-wide sweep remains available from the CLI and the release preflight,
+ * where 22 seconds is affordable.
  */
-async function getConcreteTypeScriptDriftReport(): Promise<string | null> {
+async function getConcreteTypeScriptDriftReport(editedFilePath: string): Promise<string | null> {
   try {
+    const projectRoot = locateNearestEnclosingProjectRootByWalkingUpwardFromEditedFile(editedFilePath);
+    if (projectRoot === null) return null;
+
     // Try to run the drift guard with a 5-second timeout
     const { executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail } =
       await import("./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95.ts");
 
     const result = await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
-      ["typescript-version-drift-guard", "--json"],
+      ["typescript-version-drift-guard", "--json", "--roots", projectRoot],
       { timeoutMs: 5000 },
     );
 
@@ -173,8 +218,18 @@ async function getConcreteTypeScriptDriftReport(): Promise<string | null> {
   }
 }
 
-export async function buildTypeScriptUpgradeReminderMessage(): Promise<string> {
-  const driftReport = await getConcreteTypeScriptDriftReport();
+/**
+ * `editedFilePath` scopes the concrete drift sweep to the project that owns the
+ * edited file. Omitting it (as unit tests do) skips the sweep entirely and
+ * returns the generic reminder — deliberately, since the alternative default of
+ * sweeping every root costs ~22 seconds and would always exceed the subprocess
+ * budget anyway.
+ */
+export async function buildTypeScriptUpgradeReminderMessage(
+  editedFilePath?: string,
+): Promise<string> {
+  const driftReport =
+    editedFilePath === undefined ? null : await getConcreteTypeScriptDriftReport(editedFilePath);
 
   const baseMessage = [
     `[TS-7] TypeScript 7 (Go-native tsc) is the standard.`,
@@ -240,7 +295,7 @@ export async function classifyTypeScriptUpgradeReminderForPostToolUseOrchestrato
     }
 
     // Emit the reminder (now async to invoke drift guard)
-    const message = await buildTypeScriptUpgradeReminderMessage();
+    const message = await buildTypeScriptUpgradeReminderMessage(filePath);
     return buildPostToolUseAdditionalContextDecision(
       truncateHookOutputToStayBelowClaudeFileSpilloverThreshold(message),
     );
