@@ -217,8 +217,18 @@ function shouldSkipPath(path: string, includeWorktrees: boolean): boolean {
   const basename = path.split("/").pop() ?? "";
   const nameParts = path.split("/");
 
-  // Exclude vendored third-party clones
-  const vendoredPatterns = ["ralph-reference-repos", "nt/repos", "cc-skills-garch-fix", "cc-skills-interactive-json-form"];
+  // Exclude vendored third-party clones and research archives
+  const vendoredPatterns = [
+    "ralph-reference-repos",
+    "nt/repos",
+    "cc-skills-garch-fix",
+    "cc-skills-interactive-json-form",
+    "sred-analysis",
+    ".uv-cache",
+    ".venv",
+    "site-packages",
+    "labextensions",
+  ];
   if (vendoredPatterns.some((p) => path.includes(p))) {
     return true;
   }
@@ -249,6 +259,28 @@ function shouldSkipPath(path: string, includeWorktrees: boolean): boolean {
 }
 
 /**
+ * How deep below each configured root to look for a package.json.
+ *
+ * This was 3, which silently halved the sweep: it found 12 packages when the
+ * estate had 24. Everything nested further down was invisible while the tool
+ * still reported a confident "0 drift" — e.g. `ccmax-monitor/services/
+ * team-console`, `legal-docs-source/skills/eon-timedoctor`, `crown-intl/apps/
+ * web` (three levels under its root on its own), and all six cc-skills plugin
+ * packages. 10 comfortably covers the deepest real package while still
+ * bounding the walk; the exclusion list below, not the depth limit, is what
+ * keeps node_modules and vendored clones out.
+ */
+const PACKAGE_JSON_DISCOVERY_MAXIMUM_DIRECTORY_DEPTH_BELOW_ROOT = 10;
+
+/**
+ * Upper bound on package.json results per root, to stop a pathological tree
+ * from hanging the sweep. Deliberately far above the real count (the largest
+ * root currently yields ~185) so it never binds in practice — and if it ever
+ * does bind, it warns rather than truncating in silence.
+ */
+const PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP = 500;
+
+/**
  * Recursively find all package.json files using find command (fast, avoids recursion).
  */
 function findPackageJsonFiles(root: string, includeWorktrees: boolean): string[] {
@@ -259,9 +291,28 @@ function findPackageJsonFiles(root: string, includeWorktrees: boolean): string[]
   if (shouldSkipPath(root, includeWorktrees)) return results;
 
   try {
-    const cmd = `find "${root}" -maxdepth 3 -name package.json 2>/dev/null | grep -v node_modules | head -500`;
+    const cmd =
+      `find "${root}" -maxdepth ${PACKAGE_JSON_DISCOVERY_MAXIMUM_DIRECTORY_DEPTH_BELOW_ROOT}` +
+      ` -name package.json 2>/dev/null | grep -v node_modules` +
+      ` | head -${PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP}`;
     const output = execSync(cmd, { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
     const paths = output.trim().split("\n").filter(Boolean);
+
+    // A silently-truncated sweep is the failure mode this whole tool exists to
+    // prevent: it would report a confident "0 drift" over a set that quietly
+    // stopped short, which reads as "everything is conformant" when it means
+    // "I did not look at everything". The cap stays (it bounds a pathological
+    // walk) but hitting it is now LOUD. Discovery previously ran at maxdepth 3
+    // and silently missed half the estate's packages for exactly this reason —
+    // the difference being that nothing announced the shortfall.
+    if (paths.length >= PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP) {
+      console.error(
+        `WARNING: package.json discovery under ${root} hit the ` +
+          `${PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP}-result cap. Results are TRUNCATED and ` +
+          `this run's "no drift" verdict does not cover the whole tree. Raise ` +
+          `PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP or narrow --roots.`,
+      );
+    }
 
     // Filter out excluded paths
     for (const p of paths) {
