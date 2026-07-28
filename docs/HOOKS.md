@@ -927,15 +927,15 @@ Iter-97 is a **6th-subhook migration + 3 adversarial-audit remediations**. This 
 
 **The parallelism-fan-out milestone**. Pre-iter-97, the 5 inlined classifiers had DISJOINT extension filters:
 
-| Classifier      | Extensions matched                           |
-| --------------- | -------------------------------------------- |
-| ty-type-check   | `.py`, `.pyi`                                |
-| tsgo-type-check | `.ts`, `.tsx`                                |
-| oxlint-check    | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
-| biome-lint      | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
-| vale-claude-md  | `.md` (only CLAUDE.md)                       |
+| Classifier     | Extensions matched                           |
+| -------------- | -------------------------------------------- |
+| ty-type-check  | `.py`, `.pyi`                                |
+| tsc-type-check | `.ts`, `.tsx` (renamed from tsgo iter-126)   |
+| oxlint-check   | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
+| biome-lint     | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs` |
+| vale-claude-md | `.md` (only CLAUDE.md)                       |
 
-Note that even tsgo/oxlint/biome overlap on `.ts`/`.tsx`/`.js`/`.jsx` — but the cold-start savings dominated because the heavy work in each is a SUBPROCESS spawn (ty/tsgo/oxlint/biome/vale binaries) so `Promise.all` was already buying real wall-clock parallelism for those overlapping cases. Iter-97 adds `ssot-principles` which overlaps EVERYTHING `.py`/`.ts`/`.tsx`/`.js`/`.jsx`/`.rs`/`.go`/`.java`/`.kt`/`.rb`. Wall-clock measurement now structurally converges to MAX(subhook), not SUM(subhook) — the iter-93 design goal made empirical.
+Note that even tsc/oxlint/biome overlap on `.ts`/`.tsx`/`.js`/`.jsx` — but the cold-start savings dominated because the heavy work in each is a SUBPROCESS spawn (ty/tsc/oxlint/biome/vale binaries) so `Promise.all` was already buying real wall-clock parallelism for those overlapping cases. Iter-97 adds `ssot-principles` which overlaps EVERYTHING `.py`/`.ts`/`.tsx`/`.js`/`.jsx`/`.rs`/`.go`/`.java`/`.kt`/`.rb`. Wall-clock measurement now structurally converges to MAX(subhook), not SUM(subhook) — the iter-93 design goal made empirical.
 
 **Audit-driven finding 1 (latent /tmp temp-file race)**. The pre-iter-97 `posttooluse-ssot-principles.ts` wrote proposed content to a FIXED scratch path under `/tmp` keyed only by the file-extension suffix (`/tmp/.claude-ssot-scan` + extname). Two concurrent Claude sessions writing the same extension would corrupt each other's scan buffer. Iter-97 fix: PostToolUse fires AFTER the tool executes, so the file IS on disk with new content by the time we run — scan `filePath` directly, eliminating the temp-file branch entirely. **No race possible.** This is the kind of subtle bug that adversarial audit + filesystem-concurrency-thinking finds before it bites in production.
 
