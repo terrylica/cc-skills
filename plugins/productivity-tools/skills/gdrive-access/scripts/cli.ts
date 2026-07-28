@@ -253,8 +253,8 @@ async function main() {
 				const file = await createDoc(client, {
 					htmlPath,
 					name: values.name ?? "",
-					parentId: values.parent,
-					updateId: values.update,
+					...(values.parent ? { parentId: values.parent } : {}),
+					...(values.update ? { updateId: values.update } : {}),
 				});
 				if (asJson) {
 					printJson(file);

@@ -205,10 +205,10 @@ export async function listEmails(client: gmail_v1.Gmail, options: ListOptions): 
   const res = await client.users.messages.list({
     userId: "me",
     maxResults: options.maxResults,
-    labelIds: options.labelIds,
+    ...(options.labelIds ? { labelIds: options.labelIds } : {}),
   });
 
-  const messageIds = res.data.messages?.map((m) => m.id!) ?? [];
+  const messageIds = res.data.messages?.map((m: gmail_v1.Schema$Message) => m.id ?? "").filter(Boolean) ?? [];
   return fetchMessages(client, messageIds);
 }
 
@@ -271,9 +271,11 @@ export async function exportEmails(
   const emails: Email[] = [];
 
   for (let i = 0; i < messageIds.length; i++) {
+    const messageId = messageIds[i];
+    if (!messageId) continue;
     const msg = await client.users.messages.get({
       userId: "me",
-      id: messageIds[i],
+      id: messageId,
       format: "full",
     });
     emails.push(formatMessage(msg.data, true));

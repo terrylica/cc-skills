@@ -66,6 +66,7 @@ export async function saveInlineImages(
   const saved: SavedImage[] = [];
   for (let i = 0; i < images.length; i++) {
     const img = images[i];
+    if (!img) continue;
     const filename = sanitizeFilename(img.filename, i);
     const filePath = join(dir, filename);
     const data = await fetchAttachmentData(client, email.id, img.attachmentId);
@@ -104,6 +105,7 @@ export async function saveAttachments(
   const saved: SavedAttachment[] = [];
   for (let i = 0; i < attachments.length; i++) {
     const att = attachments[i];
+    if (!att) continue;
     const filename = sanitizeFilename(att.filename, i);
     const filePath = join(dir, filename);
     const data = await fetchAttachmentData(client, email.id, att.attachmentId);

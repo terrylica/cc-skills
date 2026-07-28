@@ -436,7 +436,7 @@ async function handleSend({ profile, pos, flags }: Ctx): Promise<RunResult> {
       const sent: any = await client.sendMessage(recipient as any, {
         message: body,
         parseMode: mode as any,
-        replyTo,
+        ...(replyTo !== undefined ? { replyTo } : {}),
       });
       ids.push(Number(sent.id));
     }
@@ -490,9 +490,10 @@ async function handleSendFile({ profile, pos, flags }: Ctx): Promise<RunResult> 
   }
   const client = await connectAuthed(profile);
   try {
+    const caption = flags.get("--caption");
     await client.sendFile(recipient as any, {
       file,
-      caption: flags.get("--caption"),
+      ...(caption ? { caption } : {}),
       voiceNote: flags.has("--voice"),
       videoNote: flags.has("--video-note"),
       forceDocument: flags.has("--document"),
