@@ -117,7 +117,7 @@ export interface AsyncSubprocessExecutionOptions {
  * exit, non-zero exit, spawn-failed-to-start, timed-out). Never throws —
  * every error path collapses to a flagged result.
  *
- * Iter-95 hoist from ty/tsgo classifiers — every PostToolUse type-checker
+ * Iter-95 hoist from ty/tsc classifiers — every PostToolUse type-checker
  * + linter classifier shares this exact spawn pattern (run external
  * binary, capture stdout/stderr, respect orchestrator timeout, fail-open
  * on every error). Centralizing prevents drift between sibling subhooks.
@@ -195,13 +195,13 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
  *
  * Race-safe because `O_CREAT | O_EXCL` is atomic at the POSIX layer — if
  * multiple PostToolUse subhooks all detect missing-binary at once (e.g.,
- * ty + tsgo + oxlint + biome all uninstalled when the orchestrator fires
+ * ty + tsc + oxlint + biome all uninstalled when the orchestrator fires
  * on a .ts file), each calls this with their own `toolName` so each gets
  * an independent once-per-session reminder. Within a single tool, only
  * ONE classifier-invocation wins the race; the losers see EEXIST and
  * treat as "already reminded".
  *
- * @param toolName e.g. "ty", "tsgo", "oxlint", "biome" — used as the
+ * @param toolName e.g. "ty", "tsc", "oxlint", "biome" — used as the
  *                 unique-per-tool gate-file prefix
  * @param sessionId Claude session ID (or "unknown" if absent)
  */
@@ -244,7 +244,7 @@ export function tryAtomicallyClaimOncePerSessionInstallReminderGateFileForToolBy
  *   - GENERIC reminder:  /tmp/.claude-${reminder}-reminder/${sid}.reminded
  *
  * The install-reminder shape is preserved verbatim for backward-compat with
- * existing ty/tsgo/oxlint/biome classifiers (and their forensic gate-file
+ * existing ty/tsc/oxlint/biome classifiers (and their forensic gate-file
  * paths). The generic shape is what ssot-principles + memory-efficiency-
  * reminder + any future "once per session, fire a static reminder" classifier
  * needs.

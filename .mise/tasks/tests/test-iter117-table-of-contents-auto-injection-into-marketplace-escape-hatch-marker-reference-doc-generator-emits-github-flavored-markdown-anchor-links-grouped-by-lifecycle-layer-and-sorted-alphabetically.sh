@@ -127,15 +127,21 @@ RUNTIME_HOOK_TOC_ENTRIES_IN_ORDER=$(awk '
     }
 ' "$ITER117_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")
 
-# Expected order is the registry-sorted order (alphabetical). Note: SSoT-OK
-# sorts AFTER SETPROCTITLE-OK because JavaScript's Array.toSorted()
-# uses default UTF-16 code-unit comparison where uppercase letters precede
-# lowercase ones — so the sort order is:
-#   ... SETPROCTITLE-OK < SSoT-OK
-# (uppercase 'S' < uppercase 'S', then 'E' < 'S', so SETPROCTITLE < SSoT;
-# the lowercase 'o' in SSoT comes AFTER the uppercase 'S' in SSoT-OK position
-# 3 — but both tokens start with 'S' and the comparison continues char-by-char).
-EXPECTED_RUNTIME_HOOK_SORT_ORDER=$(printf '%s\n' "${ITER111_BASELINE_RUNTIME_HOOK_MARKER_TOKENS[@]}")
+# Expected order is the registry tokens SORTED, not the order they happen to be
+# DECLARED in the registry source. Those two coincided until iter-126 appended
+# `ALLOW-LEGACY-TS` to the end of the registry: the generator emitted it first
+# (correctly — it sorts) while this assertion still expected declaration order,
+# so a correct generator failed a stale test. Sorting here makes the assertion
+# test what it claims to test — "the generator sorts" — instead of silently
+# depending on the registry being hand-maintained in alphabetical order.
+#
+# `LC_ALL=C sort` reproduces JavaScript's `Array.toSorted()` default exactly:
+# both compare by raw code unit, so uppercase letters precede lowercase ones.
+# That is why SETPROCTITLE-OK sorts BEFORE SSoT-OK — both start with 'S', and
+# at position 2 'E' (0x45) < 'S' (0x53). A locale-aware sort would collate
+# case-insensitively and get this pair backwards, so the LC_ALL=C is
+# load-bearing, not incidental.
+EXPECTED_RUNTIME_HOOK_SORT_ORDER=$(printf '%s\n' "${ITER111_BASELINE_RUNTIME_HOOK_MARKER_TOKENS[@]}" | LC_ALL=C sort)
 if [[ "$RUNTIME_HOOK_TOC_ENTRIES_IN_ORDER" == "$EXPECTED_RUNTIME_HOOK_SORT_ORDER" ]]; then
     assert_passes "Case 5: TOC runtime-hook entries in correct alphabetical order matching iter-111 registry sort"
 else
