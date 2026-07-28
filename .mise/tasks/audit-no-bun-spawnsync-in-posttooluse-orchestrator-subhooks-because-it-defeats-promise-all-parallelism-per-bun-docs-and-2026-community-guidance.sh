@@ -122,7 +122,7 @@ done
 echo ""
 echo "  Fix: replace Bun.spawnSync(...) with Bun.spawn(...) (async). Use the"
 echo "  iter-94 helper executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndStreamDrain"
-echo "  in posttooluse-ty-type-check.ts / posttooluse-tsgo-type-check.ts as the"
+echo "  in posttooluse-ty-type-check.ts / posttooluse-tsc-type-check.ts as the"
 echo "  reference template."
 echo ""
 echo "  If the spawnSync is genuinely safe (standalone-CLI-only, never reached"
