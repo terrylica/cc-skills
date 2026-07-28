@@ -354,6 +354,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a hardcoded version string (e.g., `v1.2.3`) in a markdown file that the version-guard would otherwise block as a single-source-of-truth violation. Mixed-case spelling `SSoT-OK` is grandfathered (NOT renamed to `SSOT-OK`) because operators have been using this exact spelling since the version-guard was first authored.",
     },
+    {
+      markerNameTokenIncludingSuffix: "ALLOW-LEGACY-TS",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md",
+    },
   ] as const;
 
 /**

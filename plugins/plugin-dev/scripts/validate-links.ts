@@ -141,7 +141,8 @@ async function validateLinks(skillPath: string): Promise<{
 
   for await (const file of glob.scan({ cwd: skillPath, absolute: true })) {
     const relativePath = relative(skillPath, file);
-    const firstDir = relativePath.split("/")[0];
+    const pathParts = relativePath.split("/");
+    const firstDir = pathParts[0] ?? relativePath;
     if (!SKIP_DIRECTORIES.has(firstDir)) {
       mdFiles.push(file);
     }

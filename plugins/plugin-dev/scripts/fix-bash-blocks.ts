@@ -97,9 +97,10 @@ function fixFile(filepath: string, dryRun: boolean): number {
 
         // Generate unique EOF marker
         let marker = generateEofMarker(block, filepath);
-        eofCounter[marker] = (eofCounter[marker] || 0) + 1;
-        if (eofCounter[marker] > 1) {
-          marker = `${marker}_${eofCounter[marker]}`;
+        const currentCount = (eofCounter[marker] ?? 0) + 1;
+        eofCounter[marker] = currentCount;
+        if (currentCount > 1) {
+          marker = `${marker}_${currentCount}`;
         }
 
         fixes++;
