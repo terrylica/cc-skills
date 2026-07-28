@@ -69,7 +69,7 @@ import {
 // contract lib where iter-104 pragmatically introduced it).
 import { truncateHookOutputToStayBelowClaudeFileSpilloverThreshold } from "./lib/shared-truncation-helper-against-claude-file-spillover-threshold-cross-pretooluse-and-posttooluse-iter106.ts";
 import { classifyTyTypeCheckForPostToolUseOrchestrator } from "./posttooluse-ty-type-check.ts";
-import { classifyTsgoTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsgo-type-check.ts";
+import { classifyTscTypeCheckForPostToolUseOrchestrator } from "./posttooluse-tsc-type-check.ts";
 import { classifyOxlintCheckForPostToolUseOrchestrator } from "./posttooluse-oxlint-check.ts";
 import { classifyBiomeLintForPostToolUseOrchestrator } from "./posttooluse-biome-lint.ts";
 import { classifyValeClaudeMdForPostToolUseOrchestrator } from "./posttooluse-vale-claude-md.ts";
@@ -77,6 +77,7 @@ import { classifySsotPrinciplesForPostToolUseOrchestrator } from "./posttooluse-
 import { classifyMemoryEfficiencyReminderForPostToolUseOrchestrator } from "./posttooluse-memory-efficiency-reminder.ts";
 import { classifyClaudeMdSizeBudgetForPostToolUseOrchestrator } from "./posttooluse-claude-md-size-budget-reminder.ts";
 import { classifyPythonPreferenceNudgeForPostToolUseOrchestrator } from "./posttooluse-python-preference-nudge.ts";
+import { classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator } from "./posttooluse-typescript-upgrade-reminder.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -99,11 +100,11 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
       "Runs `ty check <file> --python-version 3.14 --output-format concise` after every Write/Edit of a .py/.pyi file. ~4.7ms incremental (60x faster than mypy → hook-viable). Iter-93 first inlined PostToolUse subhook (kicks off the iter-93+ PostToolUse Write|Edit consolidation arc analogous to iter-84→iter-91 PreToolUse arc). Iter-94 refactor: spawnSync → Bun.spawn (async) so the orchestrator's Promise.all actually achieves OS-level parallelism with sibling subhooks (per Bun docs + 2026 community guidance — spawnSync inside Promise.all yields ZERO parallelism because it blocks the event loop). Lightest-first registry position: FIRST (cheap O(1) extension+venv filter pre-empts the ty subprocess spawn). Surfaces install reminder once per session on ENOENT from posix_spawn. Algorithm encoded in `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (re-exported as `classifyTyTypeCheckForPostToolUseOrchestrator` for symmetric naming with sibling subhooks).",
   },
   {
-    name: "tsgo-type-check",
+    name: "tsc-type-check",
     timeoutMs: 5000,
-    classify: classifyTsgoTypeCheckForPostToolUseOrchestrator,
+    classify: classifyTscTypeCheckForPostToolUseOrchestrator,
     description:
-      "Runs `tsgo --noEmit` after every Write/Edit of a .ts/.tsx file. tsgo is the native Go TypeScript compiler (~170ms full project check). Iter-94 second inlined PostToolUse subhook (2/15 in the iter-93+ migration arc). Async Bun.spawn from day one (no spawnSync legacy). Project-scoped: walks up to find the nearest tsconfig.json directory and runs from there, then filters output to errors referencing the edited file's tsconfig-relative path (avoids basename collisions when two index.ts files live in different project subdirs). Lightest-first registry position: SECOND (cheap O(1) .ts/.tsx extension filter pre-empts the tsgo subprocess spawn). Algorithm encoded in `classifyTsgoNativeGoTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator` (re-exported as `classifyTsgoTypeCheckForPostToolUseOrchestrator` for symmetric naming).",
+      "Runs `tsc --noEmit --singleThreaded` after every Write/Edit of a .ts/.tsx file. Native TypeScript 7+ compiler (Go-based, included in typescript@latest). Iter-126 migration from tsgo (@typescript/native-preview is now FROZEN/DEPRECATED). Project-scoped: walks up to find the nearest tsconfig.json directory and runs from there, then filters output to errors referencing the edited file's tsconfig-relative path (avoids basename collisions when two index.ts files live in different project subdirs). Prefers: project's local node_modules/.bin/tsc → PATH tsc → fallback reminder. Passes --singleThreaded to avoid 4-worker checker spawn per keystroke-ish edit on dev machines (I/O-dominated workload). Async Bun.spawn with 4000ms cooperative timeout. Surfaces install reminder once per session on ENOENT. Algorithm encoded in `classifyNativeTypeScriptCompilerProjectScopedTypeCheckForPostToolUseOrchestrator` (re-exported as `classifyTscTypeCheckForPostToolUseOrchestrator` for symmetric naming; dual-aliased as `classifyTsgoTypeCheckForPostToolUseOrchestrator` for grep-based migration).",
   },
   {
     name: "oxlint-check",
@@ -153,6 +154,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifyPythonPreferenceNudgeForPostToolUseOrchestrator,
     description:
       "After every Write/Edit of a .py file, emits a non-blocking language-preference reminder UNLESS that specific file is explicitly allowed (with a non-empty reason) in an ancestor python-allowlist.toml. Encodes the `~/.claude/principles-CLAUDE.md` §\"Language selection default\" doctrine (Bun/TS over Python greenfield; Go over Rust) at edit time. NO blanket suppression — every .py is allowed individually (centralized TOML, lychee/gitleaks/CODEOWNERS lineage; reason-gated + PR-reviewed, no content-hash pinning). The ONE implicit exemption is ephemeral temp-dir scratch via the shared iter-124 helper. Pure filesystem-walk classifier, no subprocess; cheap O(1) .py extension + non-first-party-segment pre-filter (skips /.venv/, /node_modules/, /site-packages/, …) pre-empts the ancestor-allowlist walk. Malformed individual allowlist files contribute ZERO entries (no blanket silence) — stricter than a generic fail-open. Algorithm in classifyPythonPreferenceNudgeForPostToolUseOrchestrator (operator directive 2026-06-25).",
+  },
+  {
+    name: "typescript-upgrade-reminder",
+    timeoutMs: 2000,
+    classify: classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator,
+    description:
+      "Surfaces a TypeScript 7 upgrade reminder ONCE PER SESSION on the first eligible code-file Write/Edit (.ts/.tsx/.mts/.cts, package.json, tsconfig.json). Encodes the iter-92 TypeScript version-guard doctrine (~/.claude/typescript-latest-CLAUDE.md): greenfield policy is \"typescript\": \"latest\" + commit lockfile; compiler-embedding tools (Volar, Angular, typescript-eslint, ts-morph) use dual-install compat alias (TS 6.0 API unavailable in 7.0; restored 7.1+). Reminder content names the highest-yield breaking changes (types defaults to [], strict defaults true, baseUrl/downlevelIteration/target/moduleResolution/module/esModuleInterop hard errors, rootDir defaults to ./), perf knobs (--checkers, --builders, --singleThreaded), and invites surfacing concrete refactor opportunities. ONE implicit exemption: ephemeral temp-dir scratch via the shared iter-124 helper (throwaway scripts not worth nudging). Pure O(1) extension + temp-scratch + once-per-session gate-claim (atomic O_EXCL filesystem operation). Algorithm in classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator (operator directive 2026-07-24).",
   },
 ];
 

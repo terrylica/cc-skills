@@ -211,17 +211,23 @@ export function updateRegistry(
   // Check if session already in chain (deduplication)
   if (existing?.currentSessionId === sessionId) {
     // Same session, just update metadata
+    const gitBranch = getGitBranch(cwd);
+    const modelValue = model || existing._userExtensions?.model;
+    const costValue = costUsd ?? existing._userExtensions?.costUsd;
+
+    const userExtensionsValue: UserExtensions = {
+      repoHash: hashPath(cwd),
+      repoName: getRepoName(cwd),
+      ...(gitBranch ? { gitBranch } : {}),
+      ...(modelValue ? { model: modelValue } : {}),
+      ...(costValue !== undefined ? { costUsd: costValue } : {}),
+    };
+
     const updated: SessionRegistry = {
       ...existing,
       updatedAt: Date.now(),
       _managedBy: PROVENANCE_MARKER,
-      _userExtensions: {
-        repoHash: hashPath(cwd),
-        repoName: getRepoName(cwd),
-        gitBranch: getGitBranch(cwd),
-        model: model || existing._userExtensions?.model,
-        costUsd: costUsd ?? existing._userExtensions?.costUsd,
-      },
+      _userExtensions: userExtensionsValue,
     };
 
     const success = writeRegistry(cwd, updated);
@@ -240,7 +246,8 @@ export function updateRegistry(
   }
 
   // New session - append to chain
-  const shortId = sessionId.split("-")[0];
+  const parts = sessionId.split("-");
+  const shortId = parts[0] ?? sessionId;
   const timestamp = new Date().toISOString();
   const newEntry: ChainEntry = { sessionId, shortId, timestamp };
 
@@ -252,19 +259,22 @@ export function updateRegistry(
     chain = chain.slice(-MAX_CHAIN_LENGTH);
   }
 
+  const gitBranch = getGitBranch(cwd);
+  const userExtensionsForNew: UserExtensions = {
+    repoHash: hashPath(cwd),
+    repoName: getRepoName(cwd),
+    ...(gitBranch ? { gitBranch } : {}),
+    ...(model ? { model } : {}),
+    ...(costUsd !== undefined ? { costUsd } : {}),
+  };
+
   const registry: SessionRegistry = {
     version: 1,
     currentSessionId: sessionId,
     chain,
     updatedAt: Date.now(),
     _managedBy: PROVENANCE_MARKER,
-    _userExtensions: {
-      repoHash: hashPath(cwd),
-      repoName: getRepoName(cwd),
-      gitBranch: getGitBranch(cwd),
-      model,
-      costUsd,
-    },
+    _userExtensions: userExtensionsForNew,
   };
 
   const success = writeRegistry(cwd, registry);

@@ -285,22 +285,31 @@ async function cmdRender(a: Args): Promise<void> {
 }
 
 async function cmdSend(a: Args, emergency: boolean): Promise<void> {
+  const title = a.flags.title;
+  const attach = a.flags.attach;
+  const sound = a.flags.sound;
+  const url = a.flags.url;
+  const urlTitle = a.flags["url-title"];
+  const retry = a.flags.retry ? Number(a.flags.retry) : undefined;
+  const expire = a.flags.expire ? Number(a.flags.expire) : undefined;
+  const ttl = a.flags.ttl ? Number(a.flags.ttl) : undefined;
+
   const j = await sendMessage({
     app: a.flags.app ?? "test",
-    title: a.flags.title,
+    ...(title ? { title } : {}),
     message: a.flags.message ?? "",
     priority: emergency ? 2 : a.flags.priority ? Number(a.flags.priority) : 0,
-    attach: a.flags.attach,
-    sound: a.flags.sound,
-    url: a.flags.url,
-    urlTitle: a.flags["url-title"],
+    ...(attach ? { attach } : {}),
+    ...(sound ? { sound } : {}),
+    ...(url ? { url } : {}),
+    ...(urlTitle ? { urlTitle } : {}),
     html: a.bools.has("html"),
     monospace: a.bools.has("monospace"),
-    retry: a.flags.retry ? Number(a.flags.retry) : undefined,
-    expire: a.flags.expire ? Number(a.flags.expire) : undefined,
+    ...(retry !== undefined ? { retry } : {}),
+    ...(expire !== undefined ? { expire } : {}),
     // --ttl <seconds>: routine sends self-delete from devices (official
     // API param; the API ignores it on priority 2 and we skip setting it).
-    ttl: a.flags.ttl ? Number(a.flags.ttl) : undefined,
+    ...(ttl !== undefined ? { ttl } : {}),
     force: a.bools.has("force"),
   });
   console.log(JSON.stringify({ status: j.status, request: j.request, receipt: j.receipt ?? null }));
@@ -341,13 +350,14 @@ async function cmdLoopBrief(a: Args): Promise<void> {
   ].join("\n");
   const png = `/tmp/po_brief_${kind}.png`;
   await renderReport(lines, png);
+  const sound = a.flags.sound;
   await sendMessage({
     app: a.flags.app ?? "test",
     title: a.flags.title ?? `Loop ${ku}: ${proj}`,
     message: `${ku} — ${reason}`,
     priority: kind === "blocked" || a.bools.has("emergency") ? 2 : 1,
     attach: png,
-    sound: a.flags.sound,
+    ...(sound ? { sound } : {}),
   });
   console.error(`po loop-brief: sent ${ku} briefing`);
 }

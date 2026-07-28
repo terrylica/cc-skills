@@ -215,7 +215,7 @@ async function main() {
       case "list": {
         const emails = await listEmails(client, {
           maxResults,
-          labelIds: values.label,
+          ...(values.label ? { labelIds: values.label } : {}),
         });
         if (asJson) {
           printJson(emails);
@@ -253,7 +253,7 @@ async function main() {
 
         const result = await readEmailWithImages(client, messageId, {
           saveImages: shouldSaveImages,
-          outputDir: imageDir,
+          ...(imageDir ? { outputDir: imageDir } : {}),
         });
         if (!result) {
           console.error("Error: Email not found");
@@ -315,11 +315,11 @@ async function main() {
 
         const result = await createDraft(client, {
           to,
-          from,
+          ...(from ? { from } : {}),
           subject,
           body,
-          replyToMessageId: replyTo,
-          attachments,
+          ...(replyTo ? { replyToMessageId: replyTo } : {}),
+          ...(attachments && attachments.length > 0 ? { attachments } : {}),
         });
 
         if (asJson) {
@@ -394,11 +394,11 @@ async function main() {
 
         const result = await updateDraft(client, draftId, {
           to,
-          from,
+          ...(from ? { from } : {}),
           subject,
           body,
-          replyToMessageId: replyTo,
-          attachments,
+          ...(replyTo ? { replyToMessageId: replyTo } : {}),
+          ...(attachments && attachments.length > 0 ? { attachments } : {}),
         });
 
         if (asJson) {

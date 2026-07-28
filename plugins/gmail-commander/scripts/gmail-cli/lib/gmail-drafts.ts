@@ -110,9 +110,10 @@ export function encodeMimeHeader(value: string): string {
  */
 export function encodeAddressHeader(value: string): string {
   const m = value.match(/^\s*(.*?)\s*(<[^>]+>)\s*$/);
-  if (!m) return encodeMimeHeader(value);
-  const [, display, addr] = m;
-  if (!display) return addr;
+  if (!m?.[2]) return encodeMimeHeader(value);
+  const display = m[1];
+  const addr = m[2];
+  if (!display || display === "") return addr;
   return `${encodeMimeHeader(display)} ${addr}`;
 }
 
@@ -481,27 +482,37 @@ export async function createDraft(
 
   const fromAddress = options.from ?? detectedFrom;
   const raw = await buildRawMessage(options.to, options.subject, options.body, {
-    inReplyTo,
-    references,
-    from: fromAddress,
-    attachments: options.attachments,
+    ...(inReplyTo ? { inReplyTo } : {}),
+    ...(references ? { references } : {}),
+    ...(fromAddress ? { from: fromAddress } : {}),
+    ...(options.attachments && options.attachments.length > 0 ? { attachments: options.attachments } : {}),
   });
+
+  const messagePayload: gmail_v1.Schema$Message = {
+    raw,
+    ...(threadId ? { threadId } : {}),
+  };
+
+  const requestPayload: gmail_v1.Schema$Draft = {
+    message: messagePayload,
+  };
 
   const res = await client.users.drafts.create({
     userId: "me",
-    requestBody: {
-      message: {
-        raw,
-        threadId,
-      },
-    },
+    requestBody: requestPayload,
   });
 
-  return {
-    draftId: res.data.id ?? "",
-    messageId: res.data.message?.id ?? "",
-    threadId: res.data.message?.threadId ?? undefined,
-    fromAddress: fromAddress,
+  const resultThreadId = res.data?.message?.threadId;
+  const result: DraftResult = {
+    draftId: res.data?.id ?? "",
+    messageId: res.data?.message?.id ?? "",
+    fromAddress: fromAddress || "",
     fromAutoDetected: !options.from && !!detectedFrom,
   };
+
+  if (resultThreadId) {
+    result.threadId = resultThreadId;
+  }
+
+  return result;
 }
