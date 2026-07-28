@@ -9,14 +9,14 @@
  * (6/15 in the iter-93+ migration arc). This is the FIRST migration that
  * creates REAL Promise.all parallel fan-out — ssot-principles overlaps:
  *   - `.py`            with ty (existing iter-93 subhook)
- *   - `.ts`/`.tsx`     with tsgo + oxlint + biome (iter-94/95 subhooks)
+ *   - `.ts`/`.tsx`     with tsc + oxlint + biome (iter-94/95 subhooks)
  *   - `.js`/`.jsx`     with oxlint + biome (iter-95 subhooks)
  *
  * Pre-iter-97 the orchestrator's parallelism was THEORETICAL — no two
  * subhooks shared extension filters, so each Write|Edit triggered at most
  * one classifier doing real work. Iter-97 finally exercises the
  * `Promise.all` parallel-spawn machinery: on a .ts edit, the orchestrator
- * now fans out to tsgo + oxlint + biome + ssot-principles concurrently,
+ * now fans out to tsc + oxlint + biome + ssot-principles concurrently,
  * with the wall-clock close to MAX(subhook) rather than SUM(subhook).
  *
  * ─── Iter-97 adversarial audit findings (also remediated here) ────────────
@@ -351,7 +351,7 @@ export async function classifySsotPrinciplesAstGrepBasedAntiPatternDetectionOnce
 }
 
 /**
- * Symmetric-naming alias matching the sibling subhooks (ty, tsgo, oxlint,
+ * Symmetric-naming alias matching the sibling subhooks (ty, tsc, oxlint,
  * biome, vale). The precise algorithm-encoding name above carries the
  * "AstGrep-based" detail; the alias is what the orchestrator imports.
  */
