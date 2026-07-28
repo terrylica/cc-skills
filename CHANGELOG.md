@@ -1,3 +1,90 @@
+## [23.0.1](https://github.com/terrylica/cc-skills/compare/v23.0.0...v23.0.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** scope the upgrade reminder's drift sweep to one project ([ef7f99a](https://github.com/terrylica/cc-skills/commit/ef7f99af6cde313d9a87bf54c9d38ecc099c0a46))
+Widening drift-guard discovery from `-maxdepth 3` to `-maxdepth 10` (previous
+commit) took a full estate sweep from fast to ~22 seconds. The once-per-session
+TypeScript upgrade reminder shells out to that guard under a 5-second budget, so
+after the widening it timed out on EVERY invocation.
+
+The failure was silent by construction: a timeout returns null, which this code
+path cannot distinguish from "no drift found". The reminder therefore degraded
+to its generic message while still stalling each qualifying edit for the full
+five seconds — strictly worse than before, and invisible in the output.
+
+The sweep is now scoped to the project that owns the edited file:
+
+- `locateNearestEnclosingProjectRootByWalkingUpwardFromEditedFile` walks up from
+  the edited file to the nearest ancestor holding a `.git` or `package.json`,
+  and the guard is invoked with `--roots <that directory>`. The walk is capped
+  at 40 ascents so a pathological symlink cycle cannot spin a hook that runs on
+  every edit.
+- Measured: ~22000ms unscoped, ~1000ms scoped against this repo — comfortably
+  inside the 5-second budget, so the reminder produces a real drift report again
+  instead of always falling back.
+- `buildTypeScriptUpgradeReminderMessage` now takes an optional edited-file
+  path. Omitting it skips the sweep and returns the generic reminder, rather
+  than defaulting to an estate-wide sweep that could never fit the budget.
+
+Scoping is also the more useful behaviour, not merely the faster one. The
+reminder fires because of a file the operator just edited, so drift in THAT
+project is actionable, whereas drift in an unrelated checkout is noise they
+cannot act on from where they are standing. The estate-wide sweep remains
+available from the CLI and the release preflight, where 22 seconds is
+affordable.
+
+Fixes the `returns noop on any exception` unit test, which was failing at
+5001ms — the assertion was fine; it was waiting out the guaranteed timeout.
+* **itp-hooks:** widen drift-guard discovery that missed half the estate ([46fc8db](https://github.com/terrylica/cc-skills/commit/46fc8dbd9ba550296b91a5724e98482df0b54506))
+The TypeScript version drift guard swept only `-maxdepth 3` below each root, so
+it found 12 packages where the estate has 24 — and then reported a confident
+`{"drift": 0}` over that half-set. A guard that says "no drift" when it means
+"I did not look at everything" is worse than no guard, because it actively
+manufactures confidence.
+
+Everything nested deeper than three levels was invisible:
+
+- `eon/ccmax-monitor/services/team-console`
+- `eon/legal-docs-source/skills/eon-timedoctor`
+- `eon/claude-sys/mac-minis/h2wfc1wbq6ny_home-to-workflow-fulfilment-centre`
+- `vj/collab/crown-intl/apps/web` — its repo root already sits three levels
+  under `~/vj`, so the package could never have been reached
+- all six cc-skills plugin packages that declare `typescript`, meaning the tool
+  was not even watching its own repository
+
+Changes:
+
+- Depth raised from 3 to 10, hoisted into the named constant
+  `PACKAGE_JSON_DISCOVERY_MAXIMUM_DIRECTORY_DEPTH_BELOW_ROOT` so the value is
+  greppable and carries the reason it exists. Exclusion of `node_modules`,
+  vendored clones and `*-ts7` worktrees is unchanged — that list, not the depth
+  limit, is what keeps the sweep honest.
+- Exclusions extended to `sred-analysis`, `.uv-cache`, `.venv`,
+  `site-packages` and `labextensions`, so raising the depth surfaces real
+  first-party packages rather than Python virtualenv and JupyterLab noise.
+- The per-root result cap is now the named constant
+  `PACKAGE_JSON_DISCOVERY_PER_ROOT_RESULT_CAP` and WARNS when hit. It bounds a
+  pathological walk, but silently truncating would reintroduce the exact
+  failure mode being fixed here in a new shape. The largest root currently
+  yields ~185 against a cap of 500, so it does not bind today.
+
+Regression tests pin the invariants that were violated: discovery finds a
+package nested several directories deep, still excludes `node_modules` at any
+depth, excludes uv-cache directories, and continues to classify the sanctioned
+`@typescript/typescript6` compat alias as conformant rather than as drift.
+
+Result: 24 packages discovered (up from 12), 11 with a resolved installed
+compiler version, 0 drift, 1 sanctioned dual-install alias (`eon/kb`).
+
+Recorded so it is not re-investigated: installed-version resolution was briefly
+suspected of returning null for every package. It was not. That reading came
+from probing a field named `installed` when the field is `installedVersions`,
+an object. Verified against the pre-fix code, which already resolved versions
+correctly through Bun's symlinked `node_modules/typescript`. No change was made
+to the resolution path.
+
 # [23.0.0](https://github.com/terrylica/cc-skills/compare/v22.19.0...v23.0.0) (2026-07-28)
 
 
