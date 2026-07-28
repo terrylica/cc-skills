@@ -31,8 +31,25 @@ Use this skill when:
 | **moon**       | Project graph + task orchestration + caching + affected detection (`moon ci`)      |
 | **Bun**        | TS runtime for every script, CLI, glue tool, and test; root workspaces             |
 | **uv / cargo** | Python / Rust engines invoked natively from moon `script:` tasks                   |
+| **TypeScript** | Type-safe control plane (7.0.2+); see **TypeScript Configuration** below           |
 
 TypeScript is the control plane; other languages are engines behind language-neutral contracts (JSON Schema 2020-12 / proto) with drift gates and parity tests.
+
+## TypeScript Configuration
+
+This skill scaffolds **`tsconfig.base.json`** as the canonical reference implementation for all new repositories. Boilerplate path: `[templates/tsconfig.base.json](templates/tsconfig.base.json)` — the single source of truth for TS7 config shape.
+
+Each new monorepo receives a root `tsconfig.base.json` with:
+
+- `moduleResolution: bundler`, `target: ESNext`, `strict: true`, `noEmit`, `skipLibCheck`
+- `allowImportingTsExtensions`, `lib: ["ESNext"]`, `verbatimModuleSyntax`, `noUncheckedIndexedAccess`, `noImplicitOverride`, `exactOptionalPropertyTypes`
+- **`types` is deliberately omitted from the base** — TS7 defaults it to `[]` (stopping resolution of `@types/*`, `process`, JSX globals). Every package declares its own via `"types": ["bun"]` or `["node"]` etc. — bare name only, never `@types/bun` or `bun-types`.
+
+Package-level `tsconfig.json` files extend the base and add their own `types` array + any legitimate package-specific overrides.
+
+**Reference**: `~/.claude/typescript-latest-CLAUDE.md` (applies estate-wide). Package.json declares `"typescript": "latest"` (TS7.0.2+).
+
+For TS 7 migration details and per-repo adoption: consult the bootstrapped skill docstrings and the upstream reference.
 
 ## Language-Selection Default (greenfield tiebreaker)
 
