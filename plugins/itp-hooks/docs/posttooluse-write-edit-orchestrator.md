@@ -20,10 +20,10 @@ Runs ALL subhooks in parallel via `Promise.all` (no short-circuit, unlike PreToo
 
 **Projection**: `(15-1) × 17ms ≈ 238ms` per Write|Edit cold-start savings (using iter-87's empirically-corrected 17ms per-subhook cost).
 
-## Inlined Subhooks (7/15 complete as of iter-98)
+## Inlined Subhooks (7/15 complete as of iter-98, iter-126 tsc migration)
 
 1. **ty-type-check** (iter-93) → Python static type check (--python-version 3.14)
-2. **tsgo-type-check** (iter-94) → TypeScript type check (project-scoped)
+2. **tsc-type-check** (iter-126 migrated from tsgo) → TypeScript type check (project-scoped, native tsc)
 3. **oxlint-check** (iter-95) → Correctness + suspicious lint (JS/TS)
 4. **biome-lint** (iter-95) → Complementary lint (catches oxlint gaps)
 5. **vale-claude-md** (iter-96) → Vale terminology on CLAUDE.md (informational)
@@ -54,7 +54,7 @@ See [HOOKS.md "Iter-93: PostToolUse edit-time orchestrator kick-off"](../../../d
 See individual spoke docs:
 
 - [ty-type-checker.md](./ty-type-checker.md)
-- [tsgo-type-check.md](./tsgo-type-check.md)
+- [tsc-type-check.md](./tsc-type-check.md)
 - [oxlint-check.md](./oxlint-check.md)
 - [biome-lint.md](./biome-lint.md)
 - [vale-terminology-enforcement.md](./vale-terminology-enforcement.md)
@@ -73,6 +73,7 @@ See individual spoke docs:
 | 98   | memory-efficiency-reminder | 7     | Once-per-session gate via atomic claim helper                                                                                                     |
 | —    | claude-md-size-budget      | 8     | CLAUDE.md char-budget (90% of 40k) refactor reminder                                                                                              |
 | —    | python-preference-nudge    | 9     | Per-`.py` language-preference nudge; ancestor `python-allowlist.toml` (reason-gated); temp-scratch exempt — [spoke](./python-preference-nudge.md) |
+| 126  | tsc-type-check (migrated)  | 2     | TypeScript 7 native tsc replaces frozen tsgo; `--singleThreaded` tuning for dev machines                                                          |
 
 ## Iter-98 Bug Fix: Silent Context Drop
 
