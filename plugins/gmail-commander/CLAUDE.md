@@ -90,6 +90,11 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires,
 PreToolUse(Bash) hook `hooks/gmail-draft-guard.sh`, which BLOCKS ad-hoc drafts-API writes
 (escape hatch: prefix the command with `GMAIL_DRAFT_ADHOC_OK=1`; read-only GET fetches pass).
 
+→ **Four guards now stand between a composed message and a draft** (builder enforcement, mojibake
+detection, a builder test gate, and a post-write read-back). What each is _observed_ to do, how
+two of them were caught silently not working, and the both-directions checks to re-run after
+touching any of them: [`docs/draft-integrity-guards.md`](./docs/draft-integrity-guards.md).
+
 **Why (regression 2026-07-23):** Gmail re-encodes ingested `text/plain` raw messages and
 hard-folds long lines at ~72 columns, so ad-hoc drafts (python + MIMEText — often built from
 markdown a formatter hook had already re-wrapped) show forced mid-paragraph line breaks in the
