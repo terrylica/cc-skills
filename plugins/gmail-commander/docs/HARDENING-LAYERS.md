@@ -1,4 +1,4 @@
-# Gmail Draft Builder Hardening — Three Defense Layers
+# Gmail Draft Builder Hardening — Five Defense Layers
 
 **Date**: 2026-07-29 | **Regression**: em-dash subjects rendered as mojibake | **Fix commit**: 545ed863
 
@@ -12,9 +12,74 @@ A draft sent to the client had its Subject rendered as:
 
 **Root cause**: RFC 5322 headers are 7-bit ASCII only. The Subject was interpolated raw, so the UTF-8 bytes of an em dash (U+2014 = `e2 80 94`) travelled unlabeled and Gmail rendered them as Latin-1 (`â`, `€`, `"` — three characters for one).
 
-**Immediate fix** (commit 545ed863): RFC 2047-encode non-ASCII header values in `buildMime()` and guard the module with `import.meta.main` so functions can be imported for testing.
+**Comprehensive defense**: The builder now has **five independent defense layers** that catch encoding regressions at different stages. Each catches a different failure mode; none is a substitute for another:
 
-**This adds three ADDITIONAL independent defense layers** — each catches a different failure mode, none is a substitute for another, and all three prevent shipping the same bug again:
+1. **LAYER 0** (function level): RFC 2047-encode non-ASCII headers in `buildMime()` — prevents raw UTF-8 from leaving the encoder.
+2. **LAYER 2** (pre-upload): Validate MIME structure and Subject round-trip before sending — catches encoder bugs locally.
+3. **LAYER 1** (post-upload): Read the draft back from Gmail and verify it matches what was sent — catches transmission/API errors.
+4. **LAYER 3** (guard level): Test-gate hook blocks drafts when tests fail — prevents shipping broken builder.
+5. **LAYER 4** (test level): Unit tests + MIME round-trip smoke test — ensures encoder functions are tested and correct.
+
+---
+
+## LAYER 0 — RFC 2047 Header Encoding
+
+**File**: `scripts/gmail-draft.ts:encodeHeaderValueAsRfc2047EncodedWordIfNonAscii()`
+
+**What it does**: Encodes non-ASCII header values (like a Subject with an em dash) into RFC 2047 base64 encoded-words before building the MIME message.
+
+**Why it matters**: RFC 5322 prohibits non-ASCII bytes in headers. Without this, UTF-8 bytes travel raw and get misinterpreted as Latin-1 by mail clients. This is the root cause of the 2026-07-29 mojibake.
+
+**How it works**:
+
+1. Detects if a header value contains non-ASCII (byte length ≠ string length).
+2. If pure ASCII, leaves it untouched (readable in logs/diffs).
+3. If non-ASCII, base64-encodes the UTF-8 bytes and wraps them in `=?UTF-8?B?...?=` markers.
+4. Chunks long values into multiple encoded-words (RFC 2047 limit: 75 chars each).
+5. Adjacent encoded-words are joined with spaces (RFC 2047 specifies whitespace as non-significant).
+
+**Applied to**: `Subject` header only (Address headers like `From` are deliberately excluded; they need a real address parser).
+
+---
+
+## LAYER 2 — Pre-Upload MIME Validation
+
+**File**: `scripts/gmail-draft.ts:validateMimeBeforeUpload()`
+
+**What it does**: Before uploading to Gmail, validates that the MIME message we're about to send can round-trip correctly:
+
+- Subject header round-trips (if non-ASCII, verifies RFC 2047 encoding decodes to the original).
+- MIME structure is well-formed (boundary present, multipart/alternative declared).
+
+**Why it matters**: LAYER 0 encodes the Subject, but does the encoding work? This layer catches encoder bugs before they leave the machine (no wasted API call, no stale draft).
+
+**How it works**:
+
+1. Parses the raw MIME string to extract headers and detect MIME structure.
+2. Decodes the Subject header (if RFC 2047 encoded) and asserts it matches the original subject.
+3. Verifies the MIME boundary is present and correctly formatted.
+
+**Fails-loud**: Exits non-zero with a detailed error if validation fails. The error names the specific header or structure that broke.
+
+---
+
+## LAYER 1 — Post-Upload Round-Trip Verification
+
+**File**: `scripts/gmail-draft.ts:assertCreatedDraftMatchesWhatWeSent()`
+
+**What it does**: After creating the draft on Gmail, immediately reads it back via `GET /drafts/{draftId}?format=full` and asserts that what Gmail returns matches what we sent.
+
+**Why it matters**: LAYER 2 validates what we're about to send, but transmission or Gmail's own re-encoding can corrupt it. This layer checks the final result.
+
+**How it works**:
+
+1. Fetches the newly created draft with full MIME details (format=full).
+2. Extracts the Subject header from Gmail's response.
+3. Decodes it (RFC 2047 decoding is idempotent on raw ASCII).
+4. Asserts it matches the original subject exactly.
+5. Checks that the multipart structure is intact (text/plain part is present and non-empty).
+
+**Fails-loud**: Exits non-zero and reports the full chain (input → sent → received → decoded) so you can see exactly where the corruption happened.
 
 ---
 
@@ -106,19 +171,21 @@ bun test scripts/gmail-draft.test.ts
 
 ---
 
-## Why Three Layers?
+## Why Five Layers?
 
-Each layer catches different failure modes:
+Each layer catches different failure modes; together they prevent the same bug from shipping:
 
-| Layer | Catches              | Example Failure                                                                                          |
-| ----- | -------------------- | -------------------------------------------------------------------------------------------------------- |
-| 2     | Function unreachable | `export function encodeHeaderValueAsRfc2047EncodedWordIfNonAscii() { ... }` cannot be imported or tested |
-| 3     | Broken test suite    | Test file syntax error, test deleted, test logic wrong; guard rejects all drafts                         |
-| 4     | Encoding logic error | RFC 2047 encoder produces invalid output; smoke test catches it before any draft ships                   |
+| Layer | Mechanism                | Catches                 | Example Failure                                                     |
+| ----- | ------------------------ | ----------------------- | ------------------------------------------------------------------- |
+| 0     | Function                 | Raw UTF-8 in headers    | Subject header not encoded → Gmail mojibake                         |
+| 2     | Pre-upload validation    | Encoder bugs (local)    | RFC 2047 encoder produces invalid output → detected before API call |
+| 1     | Post-upload verification | Transmission/API errors | Gmail corrupts the message in transit → detected before using draft |
+| 3     | Guard hook               | Broken builder          | Test file broken or deleted → guard rejects all drafts              |
+| 4     | Test coverage            | Uncovered code paths    | Encoder function unreachable → test suite catches changes           |
 
-**Together**: If encoder breaks → Layer 4 test catches it → Layer 3 guard prevents draft → Layer 2 makes Layer 4 possible.
+**Defense-in-depth**: Each layer is independent. A failure in one doesn't weaken the others.
 
-**None is a substitute for another**: All three are defense-in-depth.
+**The seal**: LAYER 0 encodes the Subject → LAYER 2 validates it locally → LAYER 1 verifies it survived → LAYER 3 prevents broken code shipping → LAYER 4 keeps encoder tested.
 
 ---
 
