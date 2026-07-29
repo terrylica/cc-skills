@@ -32,11 +32,15 @@ interface Args {
   account: string;
   body: string;
   from: string;
-  replyTo?: string;
-  to?: string;
-  cc?: string;
-  subject?: string;
-  replace?: string;
+  replyTo?: string | undefined;
+  // `| undefined` is REQUIRED, not noise: tsconfig sets exactOptionalPropertyTypes, under which
+  // `to?: string` accepts an ABSENT key but rejects an explicit `undefined`. parseArgs() always
+  // supplies every key (get() returns undefined for a missing flag), so the explicit form is the
+  // honest type. Latent since the file was written; surfaced 2026-07-29.
+  to?: string | undefined;
+  cc?: string | undefined;
+  subject?: string | undefined;
+  replace?: string | undefined;
 }
 
 const get = (name: string): string | undefined => {
@@ -104,11 +108,72 @@ function toHtml(paras: string[]): string {
 const b64url = (s: string): string => Buffer.from(s).toString("base64url");
 const b64wrap = (s: string): string => (Buffer.from(s, "utf-8").toString("base64").match(/.{1,76}/g) ?? []).join("\r\n");
 
+/**
+ * RFC 2047 encoded-word for any header value containing non-ASCII.
+ *
+ * WHY (regression 2026-07-29, and why the earlier body fix did not cover it):
+ * RFC 5322 headers are 7-bit ASCII ONLY. The BODY of this message is already correct — it declares
+ * `charset="UTF-8"` and base64-encodes, which is why body prose renders fine. The Subject header was
+ * emitted RAW, so its UTF-8 bytes travelled unlabelled and Gmail rendered them as Latin-1:
+ *
+ *     "Charting update — privacy matter"   →   "Charting update â€" privacy matter"
+ *
+ * An em dash is `e2 80 94`; read as Latin-1 that is exactly `â`, `€`, `"`. Any non-ASCII character
+ * hits this — em dash, curly quotes, accented names, CJK.
+ *
+ * This was NOT a regression of the earlier hard-fold fix. That fix addressed body WRAPPING. Subject
+ * encoding is an adjacent surface on the same message that was never covered — which is the more
+ * useful lesson: a message has several independently-encoded parts, and fixing one proves nothing
+ * about its siblings.
+ *
+ * Base64 (`B`) rather than quoted-printable (`Q`) because the payload is usually punctuation-dense
+ * prose where Q-encoding is barely shorter and far harder to eyeball. Encoded-words are capped at 75
+ * chars each per the RFC, so long subjects are split into multiple whitespace-separated words, which
+ * every mail client re-joins.
+ */
+export function encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(headerValue: string): string {
+  // UTF-8 byte length exceeds JS string length if and only if some character is outside ASCII:
+  // every code point below 0x80 encodes to exactly one byte, and everything above needs two or more.
+  // Preferred over a `[^\x00-\x7F]` regex, which smuggles control characters into the source.
+  const containsNonAscii = Buffer.byteLength(headerValue, "utf-8") !== headerValue.length;
+  if (!containsNonAscii) return headerValue;
+
+  // 75 = RFC 2047 limit for a whole encoded-word, minus the `=?UTF-8?B?` prefix and `?=` suffix.
+  const maxBase64PayloadLength = 75 - "=?UTF-8?B?".length - "?=".length;
+  // Base64 expands 3 bytes -> 4 chars, so chunk the SOURCE BYTES to stay under the char budget.
+  const maxSourceBytesPerWord = Math.floor(maxBase64PayloadLength / 4) * 3;
+
+  const sourceBytes = Buffer.from(headerValue, "utf-8");
+  const encodedWords: string[] = [];
+  for (let offset = 0; offset < sourceBytes.length; offset += maxSourceBytesPerWord) {
+    // Slicing BYTES can split a multi-byte character; Buffer.toString("base64") is byte-exact, and
+    // the decoder concatenates the decoded bytes of adjacent words before interpreting them as
+    // UTF-8, so a character split across two words still reassembles correctly.
+    const chunk = sourceBytes.subarray(offset, offset + maxSourceBytesPerWord);
+    encodedWords.push(`=?UTF-8?B?${chunk.toString("base64")}?=`);
+  }
+  // Adjacent encoded-words are joined with a space, which RFC 2047 defines as non-significant.
+  return encodedWords.join(" ");
+}
+
+/**
+ * Headers whose ENTIRE value is free text and may therefore be encoded wholesale.
+ *
+ * Address headers (From/To/Cc/Bcc/Reply-To) are deliberately EXCLUDED. RFC 2047 forbids an
+ * encoded-word inside an address specification: encoding `Ricky <rickychanbc@gmail.com>` wholesale
+ * would produce `=?UTF-8?B?...?=` where a parser expects an addr-spec, and the message would become
+ * undeliverable rather than merely ugly. Only the display-name PART of an address may be encoded,
+ * which needs a real address parser — out of scope here, and unnecessary while every sender identity
+ * in this repo is ASCII. If a non-ASCII display name is ever needed, encode just that token; do not
+ * add address headers to this set.
+ */
+const FREE_TEXT_HEADERS_SAFE_TO_ENCODE = new Set(["Subject"]);
+
 function buildMime(headers: Record<string, string>, plain: string, html: string): string {
   const boundary = `b${crypto.randomUUID().replaceAll("-", "")}`;
   const head = Object.entries(headers)
     .filter(([, v]) => v)
-    .map(([k, v]) => `${k}: ${v}`)
+    .map(([k, v]) => `${k}: ${FREE_TEXT_HEADERS_SAFE_TO_ENCODE.has(k) ? encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(v) : v}`)
     .join("\r\n");
   return [
     head,
@@ -131,42 +196,49 @@ function buildMime(headers: Record<string, string>, plain: string, html: string)
 }
 
 // ── main ──
+//
+// Guarded so the module can be IMPORTED for unit tests. Without this, `import { … }` executed
+// parseArgs() at import time and exited with a usage error — which is why the header encoder had no
+// test until 2026-07-29. A script whose functions cannot be imported cannot be proven correct.
+if (import.meta.main) {
 
-const args = parseArgs();
-const at = await accessToken(args.account);
-
-let threadId: string | undefined;
-let subject = args.subject;
-let inReplyTo: string | undefined;
-let references: string | undefined;
-if (args.replyTo) {
-  const m = await api(at, `messages/${args.replyTo}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=Subject`);
-  const hs = Object.fromEntries(((m.payload as { headers: Array<{ name: string; value: string }> }).headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
-  threadId = m.threadId as string;
-  inReplyTo = hs["message-id"];
-  references = `${hs.references ?? ""} ${hs["message-id"] ?? ""}`.trim() || undefined;
-  subject = subject ?? (hs.subject?.startsWith("Re:") ? hs.subject : `Re: ${hs.subject}`);
+  
+  const args = parseArgs();
+  const at = await accessToken(args.account);
+  
+  let threadId: string | undefined;
+  let subject = args.subject;
+  let inReplyTo: string | undefined;
+  let references: string | undefined;
+  if (args.replyTo) {
+    const m = await api(at, `messages/${args.replyTo}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=Subject`);
+    const hs = Object.fromEntries(((m.payload as { headers: Array<{ name: string; value: string }> }).headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
+    threadId = m.threadId as string;
+    inReplyTo = hs["message-id"];
+    references = `${hs.references ?? ""} ${hs["message-id"] ?? ""}`.trim() || undefined;
+    subject = subject ?? (hs.subject?.startsWith("Re:") ? hs.subject : `Re: ${hs.subject}`);
+  }
+  if (!subject) throw new Error("no --subject and no --reply-to to derive it from");
+  
+  const md = await Bun.file(args.body).text();
+  const paras = paragraphs(md);
+  const mime = buildMime(
+    {
+      From: args.from,
+      To: args.to ?? "",
+      Cc: args.cc ?? "",
+      Subject: subject,
+      "In-Reply-To": inReplyTo ?? "",
+      References: references ?? "",
+    },
+    paras.join("\n\n") + "\n",
+    toHtml(paras),
+  );
+  
+  const draft = await api(at, "drafts", "POST", { message: { raw: b64url(mime), ...(threadId ? { threadId } : {}) } });
+  if (args.replace) {
+    await api(at, `drafts/${args.replace}`, "DELETE").catch((e: unknown) => console.error(`(stale draft ${args.replace} delete failed: ${(e as Error).message})`));
+  }
+  const out = { draftId: draft.id as string, threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null, account: args.account };
+  console.log(JSON.stringify(out));
 }
-if (!subject) throw new Error("no --subject and no --reply-to to derive it from");
-
-const md = await Bun.file(args.body).text();
-const paras = paragraphs(md);
-const mime = buildMime(
-  {
-    From: args.from,
-    To: args.to ?? "",
-    Cc: args.cc ?? "",
-    Subject: subject,
-    "In-Reply-To": inReplyTo ?? "",
-    References: references ?? "",
-  },
-  paras.join("\n\n") + "\n",
-  toHtml(paras),
-);
-
-const draft = await api(at, "drafts", "POST", { message: { raw: b64url(mime), ...(threadId ? { threadId } : {}) } });
-if (args.replace) {
-  await api(at, `drafts/${args.replace}`, "DELETE").catch((e: unknown) => console.error(`(stale draft ${args.replace} delete failed: ${(e as Error).message})`));
-}
-const out = { draftId: draft.id as string, threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null, account: args.account };
-console.log(JSON.stringify(out));
