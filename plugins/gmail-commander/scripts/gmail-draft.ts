@@ -227,8 +227,15 @@ async function assertCreatedDraftMatchesWhatWeSent(
   originalSubject: string,
 ): Promise<void> {
   // Fetch the draft we just created, fully decoded (format=full).
+  //
+  // NOTE the shape: the drafts endpoint returns `{ id, message: { payload } }` — the payload is
+  // nested under `message`, NOT at the top level. Reading `fetchedDraft.payload` yields undefined and
+  // this verifier then throws on every single draft, which is exactly what it did when first written
+  // (2026-07-29): a verification layer that fails closed on correct input blocks all mail and teaches
+  // people to delete it.
   const fetchedDraft = await api(at, `drafts/${draftId}?format=full`);
-  const payload = fetchedDraft.payload as {
+  const draftMessage = (fetchedDraft.message ?? {}) as Record<string, unknown>;
+  const payload = draftMessage.payload as {
     headers?: Array<{ name: string; value: string }>;
     mimeType?: string;
     parts?: Array<{ mimeType?: string; body?: { data?: string } }>;
