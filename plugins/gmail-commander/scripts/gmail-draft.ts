@@ -86,17 +86,113 @@ async function api(at: string, path: string, method = "GET", body?: unknown): Pr
 
 // ── body conversion ──
 
-/** Blank-line blocks with internal newlines unwrapped to spaces — formatter-wrap immunity. */
+/**
+ * A list item marker: `-`, `*`, `+`, `\u2022`, or an ordered form like `1.` `2)` `a.` `iv.`.
+ *
+ * Deliberately anchored and requiring trailing whitespace, so a sentence beginning "- " is a list
+ * item but an em-dash aside or a negative number mid-prose is not.
+ */
+const LIST_ITEM_MARKER_PATTERN = /^\s{0,3}(?:[-*+\u2022]|\d{1,2}[.)]|[a-z]{1,3}[.)])\s+/i;
+
+/** One rendered block: reflowed prose, or a list whose items must each keep their own line. */
+export type BodyBlock =
+  | { kind: "prose"; text: string }
+  | { kind: "list"; leadIn: string | null; items: string[] };
+
+/**
+ * Split the body into blocks, unwrapping prose but PRESERVING list structure.
+ *
+ * WHY THIS IS NOT JUST "unwrap every newline" (regression found 2026-07-29)
+ * ------------------------------------------------------------------------
+ * It used to be. Every blank-line block had its internal newlines replaced with spaces, which is
+ * correct and necessary for prose — it is what makes the draft immune to a formatter having
+ * hard-wrapped the source. But it silently destroyed every list. A nine-item question checklist,
+ * written one item per line, arrived in the recipient's inbox as a single run-on paragraph:
+ *
+ *     - Q1 - DR. EXAMPLE - Do you want... - Q2 - EITHER - "second phase"... - Q3 - EITHER - ...
+ *
+ * That is worse than ugly. The whole point of that checklist was to let two busy clients answer by
+ * number without reading the message twice, and collapsing it removed exactly the structure that made
+ * it usable. Five separate lists in one client email were affected, including the explanation of the
+ * five-stage model the message is organised around.
+ *
+ * THE LEAD-IN CASE, which is the one that is easy to get wrong: a block may begin with a sentence and
+ * then continue into a list. Classifying the block by its FIRST line alone would treat the whole thing
+ * as prose and fold the items back in. So the block is split at the FIRST line matching the marker
+ * pattern: everything before it reflows as prose, everything from it on renders per item. (The
+ * notes-commander engine hit precisely this bug on 2026-07-27 and fixed it the same way; the rule is
+ * duplicated here rather than shared because these two engines have no common package.)
+ *
+ * A wrapped continuation line — indented, no marker — is joined back onto its item, so a long item
+ * that a formatter wrapped stays one item.
+ */
+export function splitBodyIntoBlocks(md: string): BodyBlock[] {
+  const blocks: BodyBlock[] = [];
+  for (const rawBlock of md.replaceAll("\r\n", "\n").split(/\n{2,}/)) {
+    const lines = rawBlock.split("\n").filter((l) => l.trim().length > 0);
+    if (lines.length === 0) continue;
+
+    const firstMarkerIndex = lines.findIndex((l) => LIST_ITEM_MARKER_PATTERN.test(l));
+    if (firstMarkerIndex === -1) {
+      const text = lines.join(" ").replaceAll(/\s+/g, " ").trim();
+      if (text) blocks.push({ kind: "prose", text });
+      continue;
+    }
+
+    const leadInLines = lines.slice(0, firstMarkerIndex);
+    const leadIn = leadInLines.join(" ").replaceAll(/\s+/g, " ").trim() || null;
+
+    const items: string[] = [];
+    for (const line of lines.slice(firstMarkerIndex)) {
+      if (LIST_ITEM_MARKER_PATTERN.test(line)) {
+        items.push(line.trim());
+      } else if (items.length > 0) {
+        // A wrapped continuation of the previous item, not a new one.
+        items[items.length - 1] = `${items[items.length - 1]} ${line.trim()}`.replaceAll(/\s+/g, " ");
+      }
+    }
+    blocks.push({ kind: "list", leadIn, items });
+  }
+  return blocks;
+}
+
+/** Back-compat shim: the flat paragraph list, for callers that only need prose. */
 function paragraphs(md: string): string[] {
-  return md
-    .replaceAll("\r\n", "\n")
-    .split(/\n{2,}/)
-    .map((b) => b.trim().replaceAll(/\s*\n\s*/g, " "))
-    .filter(Boolean);
+  return splitBodyIntoBlocks(md).flatMap((b) => (b.kind === "prose" ? [b.text] : b.items));
+}
+
+/** Render blocks as the text/plain part: prose reflowed, list items one per line. */
+export function blocksToPlainText(blocks: BodyBlock[]): string {
+  return `${blocks
+    .map((b) => (b.kind === "prose" ? b.text : [b.leadIn, ...b.items].filter(Boolean).join("\n")))
+    .join("\n\n")}\n`;
 }
 
 const escapeHtml = (s: string): string => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 const linkify = (s: string): string => s.replaceAll(/(https?:\/\/[^\s<>"()]+[^\s<>"().,;:!?])/g, '<a href="$1">$1</a>');
+
+/**
+ * Render blocks as the text/html part.
+ *
+ * Lists become real `<ul><li>` so the recipient's client lays them out as a list; the leading marker
+ * character is stripped because the `<li>` supplies its own bullet. Ordered markers are kept as text
+ * inside the item, since the author's numbering (Q1, Q9, (a), (b)) is meaningful and must not be
+ * renumbered by the client.
+ */
+export function blocksToHtml(blocks: BodyBlock[]): string {
+  const render = (s: string): string => linkify(escapeHtml(s));
+  const body = blocks
+    .map((b) => {
+      if (b.kind === "prose") return `<p>${render(b.text)}</p>`;
+      const lead = b.leadIn ? `<p>${render(b.leadIn)}</p>\n` : "";
+      const items = b.items
+        .map((item) => `<li>${render(item.replace(/^\s{0,3}[-*+\u2022]\s+/, ""))}</li>`)
+        .join("\n");
+      return `${lead}<ul>\n${items}\n</ul>`;
+    })
+    .join("\n");
+  return `<div dir="ltr">\n${body}\n</div>`;
+}
 
 function toHtml(paras: string[]): string {
   const body = paras.map((p) => `<p>${linkify(escapeHtml(p))}</p>`).join("\n");
@@ -372,7 +468,7 @@ if (import.meta.main) {
   if (!subject) throw new Error("no --subject and no --reply-to to derive it from");
 
   const md = await Bun.file(args.body).text();
-  const paras = paragraphs(md);
+  const blocks = splitBodyIntoBlocks(md);
   const mime = buildMime(
     {
       From: args.from,
@@ -382,8 +478,8 @@ if (import.meta.main) {
       "In-Reply-To": inReplyTo ?? "",
       References: references ?? "",
     },
-    paras.join("\n\n") + "\n",
-    toHtml(paras),
+    blocksToPlainText(blocks),
+    blocksToHtml(blocks),
   );
 
   // ── LAYER 2: Validate the MIME before sending ──
