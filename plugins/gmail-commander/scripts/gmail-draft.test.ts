@@ -93,3 +93,70 @@ test("LAYER 4: a MIME message with non-ASCII Subject round-trips correctly", () 
   // The round-trip must preserve the original subject exactly.
   expect(decodedSubject).toBe(testSubject);
 });
+
+// ── list preservation (regression 2026-07-29) ──
+//
+// A nine-item question checklist, written one item per line, arrived in a client inbox as a single
+// run-on paragraph because every internal newline was unwrapped to a space. Prose MUST unwrap (that
+// is the hard-fold immunity this builder exists for) and lists MUST NOT. Both directions asserted.
+import { blocksToHtml, blocksToPlainText, splitBodyIntoBlocks } from "./gmail-draft.ts";
+
+test("prose still unwraps — a formatter-wrapped paragraph becomes one line", () => {
+  const blocks = splitBodyIntoBlocks("This sentence was\nhard-wrapped by a\nformatter hook.");
+  expect(blocks).toEqual([{ kind: "prose", text: "This sentence was hard-wrapped by a formatter hook." }]);
+  expect(blocksToPlainText(blocks)).toBe("This sentence was hard-wrapped by a formatter hook.\n");
+});
+
+test("REGRESSION: a list keeps one item per line instead of collapsing into a paragraph", () => {
+  const blocks = splitBodyIntoBlocks("- Q1 — first\n- Q2 — second\n- Q3 — third");
+  expect(blocks).toEqual([{ kind: "list", leadIn: null, items: ["- Q1 — first", "- Q2 — second", "- Q3 — third"] }]);
+  expect(blocksToPlainText(blocks)).toBe("- Q1 — first\n- Q2 — second\n- Q3 — third\n");
+});
+
+test("a lead-in sentence before a list reflows as prose WITHOUT eating the list", () => {
+  // Classifying the block by its first line alone would fold the items into the sentence.
+  const blocks = splitBodyIntoBlocks("The options as we\nsee them:\n- (a) wait\n- (b) warn now");
+  expect(blocks).toEqual([
+    { kind: "list", leadIn: "The options as we see them:", items: ["- (a) wait", "- (b) warn now"] },
+  ]);
+});
+
+test("a wrapped continuation line rejoins its own item rather than becoming a new one", () => {
+  const blocks = splitBodyIntoBlocks("- Q9 — a long question that a formatter\n  wrapped across two lines\n- Q8 — short");
+  expect(blocks[0]).toEqual({
+    kind: "list",
+    leadIn: null,
+    items: ["- Q9 — a long question that a formatter wrapped across two lines", "- Q8 — short"],
+  });
+});
+
+test("ordered and lettered markers count as list items too", () => {
+  for (const marker of ["1.", "2)", "a.", "iv."]) {
+    const blocks = splitBodyIntoBlocks(`${marker} one\n${marker} two`);
+    expect(blocks[0]?.kind).toBe("list");
+  }
+});
+
+test("prose containing an em-dash aside is NOT mistaken for a list", () => {
+  const blocks = splitBodyIntoBlocks("We found — while checking something else — a problem.");
+  expect(blocks[0]?.kind).toBe("prose");
+});
+
+test("HTML renders a real <ul>, strips the bullet char, and keeps authored numbering", () => {
+  const html = blocksToHtml(splitBodyIntoBlocks("Pick one:\n- (a) wait\n- (b) warn"));
+  expect(html).toContain("<p>Pick one:</p>");
+  expect(html).toContain("<ul>");
+  expect(html).toContain("<li>(a) wait</li>"); // leading "- " removed, "(a)" preserved
+  expect(html).not.toContain("<li>- (a) wait</li>");
+});
+
+test("URLs inside list items are still linkified and text still escaped", () => {
+  const html = blocksToHtml(splitBodyIntoBlocks("- see https://example.com/x\n- and <b>not html</b>"));
+  expect(html).toContain('<a href="https://example.com/x">https://example.com/x</a>');
+  expect(html).toContain("&lt;b&gt;not html&lt;/b&gt;");
+});
+
+test("blank lines still separate blocks, and empty input yields nothing", () => {
+  expect(splitBodyIntoBlocks("one\n\ntwo")).toHaveLength(2);
+  expect(splitBodyIntoBlocks("\n\n   \n")).toHaveLength(0);
+});
