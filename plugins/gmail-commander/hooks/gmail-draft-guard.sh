@@ -24,25 +24,43 @@ set -euo pipefail
 # Fail-closed on test failure or runner-missing: a builder without passing tests is not to be trusted.
 # Cache keyed on mtime so batch operations scale (a typical batch does not rerun tests per draft).
 #
-GMAIL_DRAFT_BUILDER="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
-GMAIL_DRAFT_TEST_FILE="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.test.ts"
-GMAIL_DRAFT_TEST_CACHE="${HOME}/.claude/.cache/gmail-draft-builder-test.cache"  # JSON: { mtime, result }
+GMAIL_DRAFT_SCRIPTS_DIR="${HOME}/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts"
+GMAIL_DRAFT_TEST_FILE="${GMAIL_DRAFT_SCRIPTS_DIR}/gmail-draft.test.ts"
+GMAIL_DRAFT_TEST_CACHE="${HOME}/.claude/.cache/gmail-draft-builder-test.cache"  # JSON: { fingerprint, result }
+
+# Fingerprint EVERY input that can change the test outcome, not just the builder.
+#
+# WHY (bug found 2026-07-29 by exercising the gate in both directions): the cache was keyed on
+# `gmail-draft.ts`'s mtime alone. Appending a deliberately failing test to gmail-draft.test.ts left
+# the builder's mtime untouched, so the gate took a stale "pass" cache hit and PERMITTED the draft
+# write. A gate that green-lights a builder whose tests are red is worse than no gate, because it
+# reports safety it never checked. The test file, the builder, and every sibling module the suite
+# imports are all inputs — so all of them are in the key.
+function compute_builder_test_input_fingerprint() {
+  # Sorted for determinism; path+size+mtime per file. Any add/remove/edit changes the digest.
+  find "$GMAIL_DRAFT_SCRIPTS_DIR" -type f -name '*.ts' 2>/dev/null \
+    | LC_ALL=C sort \
+    | while IFS= read -r ts_file; do
+        stat -f '%N %z %m' "$ts_file" 2>/dev/null || true
+      done \
+    | shasum -a 256 | cut -d' ' -f1
+}
 
 function verify_builder_health() {
-  local current_mtime
-  current_mtime=$(stat -f%m "$GMAIL_DRAFT_BUILDER" 2>/dev/null || echo "0")
+  local current_fingerprint
+  current_fingerprint=$(compute_builder_test_input_fingerprint)
 
-  # Check cache: if builder is unchanged and cache passed, skip re-test.
+  # Check cache: if NO test input changed and the cached run passed, skip re-testing.
   if [[ -f "$GMAIL_DRAFT_TEST_CACHE" ]]; then
     local cached
     cached=$(cat "$GMAIL_DRAFT_TEST_CACHE" 2>/dev/null || echo "{}")
-    local cached_mtime
+    local cached_fingerprint
     local cached_result
-    cached_mtime=$(printf '%s' "$cached" | grep -o '"mtime":[0-9]*' | cut -d: -f2 || echo "0")
+    cached_fingerprint=$(printf '%s' "$cached" | grep -o '"fingerprint":"[^"]*"' | cut -d'"' -f4 || echo "")
     cached_result=$(printf '%s' "$cached" | grep -o '"result":"[^"]*"' | cut -d'"' -f4 || echo "")
 
-    if [[ "$cached_mtime" == "$current_mtime" && "$cached_result" == "pass" ]]; then
-      return 0  # cache hit, tests passed
+    if [[ -n "$current_fingerprint" && "$cached_fingerprint" == "$current_fingerprint" && "$cached_result" == "pass" ]]; then
+      return 0  # cache hit, tests passed against exactly these inputs
     fi
   fi
 
@@ -82,15 +100,15 @@ ${test_output}
 Until the builder tests pass, no Gmail drafts can be sent. Escape hatch:
 GMAIL_DRAFT_TEST_GATE_SKIP=1 (use only for debugging; most uses indicate a real bug).
 MSG
-    # Update cache with failure so we don't re-run on every invocation.
-    mkdir -p "$(dirname "$GMAIL_DRAFT_TEST_CACHE")"
-    printf '{"mtime":%s,"result":"fail"}' "$current_mtime" > "$GMAIL_DRAFT_TEST_CACHE"
+    # Deliberately DO NOT cache the failure. Only a passing run is cacheable: a red suite must be
+    # re-run every time so that the moment it goes green the gate opens on evidence, not on an
+    # expiring record. (The previous code wrote a "fail" entry the read path never honoured.)
     return 1
   fi
 
-  # Tests passed; cache the result.
+  # Tests passed against exactly these inputs; cache that fact.
   mkdir -p "$(dirname "$GMAIL_DRAFT_TEST_CACHE")"
-  printf '{"mtime":%s,"result":"pass"}' "$current_mtime" > "$GMAIL_DRAFT_TEST_CACHE"
+  printf '{"fingerprint":"%s","result":"pass"}' "$current_fingerprint" > "$GMAIL_DRAFT_TEST_CACHE"
   return 0
 }
 
