@@ -9,6 +9,12 @@
             "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/gmail-draft-guard.sh",
             "timeout": 10000,
             "description": "Block ad-hoc Gmail drafts-API writes — Gmail hard-folds ingested text/plain at ~72 cols (regression 2026-07-23), so every draft create/replace must go through scripts/gmail-draft.ts (multipart/alternative + text/html, wrap-immune, unwraps formatter-wrapped sources). Escape hatch: GMAIL_DRAFT_ADHOC_OK=1"
+          },
+          {
+            "type": "command",
+            "command": "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/hooks/gmail-mojibake-detector.sh",
+            "timeout": 10000,
+            "description": "LAYER 2: Detect UTF-8-read-as-Latin-1 mojibake in draft Subject/body (regression 2026-07-29). Blocks when Subject or body file contains byte sequences like E2 80 94 that, when misinterpreted, produce corrupted text. Escape hatch: GMAIL_MOJIBAKE_OK=1 (for deliberately quoted mojibake). Complements Layer 1 (RFC 2047 encoding in the builder) and Layer 3 (canonical text sources)."
           }
         ]
       }
