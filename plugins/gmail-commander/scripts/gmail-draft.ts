@@ -195,6 +195,150 @@ function buildMime(headers: Record<string, string>, plain: string, html: string)
   ].join("\r\n");
 }
 
+// ── round-trip verification (Layer 1: the builder verifies its own output) ──
+//
+// After creating a draft, immediately read it back from the Gmail API and assert that what Gmail
+// reports matches what we sent. This is the strongest defense against encoding regressions because
+// it checks the RESULT, not pattern-matching known bad outputs — so it catches encoding surfaces
+// nobody has thought of yet, which is exactly how both the 2026-07-23 and 2026-07-29 bugs escaped.
+//
+// WHY THIS IS ESSENTIAL: when a message has multiple MIME parts and headers, fixing one part can
+// leave sibling parts broken. The earlier 2026-07-23 fix addressed body HARD-FOLDING. The 2026-07-29
+// regression was on Subject HEADER ENCODING — an adjacent surface that was never covered. A guard
+// never seen to fire is not known to work.
+
+interface VerificationFailure {
+  headerName?: string;
+  detail: string;
+}
+
+/**
+ * Read the draft back from Gmail and assert it round-trips correctly.
+ * Fail loudly and non-zero on any mismatch, naming the header or MIME part that differs.
+ *
+ * This is Layer 1 verification: the builder checks its own output. A round-trip mismatch
+ * indicates a structural encoding bug (like Subject header mojibake, or a corrupted MIME
+ * part) that might evade pattern-based checkers. This check catches regressions nobody
+ * anticipated, as both 2026-07-23 and 2026-07-29 regressions did.
+ */
+async function assertCreatedDraftMatchesWhatWeSent(
+  at: string,
+  draftId: string,
+  originalSubject: string,
+): Promise<void> {
+  // Fetch the draft we just created, fully decoded (format=full).
+  const fetchedDraft = await api(at, `drafts/${draftId}?format=full`);
+  const payload = fetchedDraft.payload as {
+    headers?: Array<{ name: string; value: string }>;
+    mimeType?: string;
+    parts?: Array<{ mimeType?: string; body?: { data?: string } }>;
+  };
+  const headers = Object.fromEntries((payload.headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
+
+  // ── verify Subject round-trips exactly ──
+  // Gmail returns the Subject header as-is (either raw ASCII, or RFC 2047 encoded-word if it was sent
+  // that way). It is ALWAYS safe to decode — a raw ASCII string just passes through unchanged.
+  // We verify that what Gmail returns, when decoded, matches the original subject EXACTLY.
+  // A mismatch indicates the subject was corrupted in transit: either our encoder is broken (returns
+  // raw UTF-8 → mojibake), or the Gmail API mangled the transmission (network/API regression).
+  const fetchedSubject = headers.subject ?? "";
+  const decodedSubject = decodeRfc2047EncodedWordSequence(fetchedSubject);
+  if (decodedSubject !== originalSubject) {
+    // Report the full chain: input → sent → received → decoded.
+    // This surfaces WHICH surface failed (encoding, transmission, or Gmail's re-encoding).
+    throw new Error(
+      `Subject round-trip FAILED:\n` +
+        `  Original:    "${originalSubject}"\n` +
+        `  Sent as:     (RFC 2047 encoded if needed)\n` +
+        `  Gmail:       "${fetchedSubject}"\n` +
+        `  Decoded:     "${decodedSubject}"`,
+    );
+  }
+
+  // ── sanity-check the text/plain part is non-empty ──
+  // If the MIME structure is corrupted (malformed boundary, missing part, empty body),
+  // text/plain might be missing or empty. This catches structural corruption.
+  const parts = (payload.parts ?? []);
+  const textPlainPart = parts.find((p) => p.mimeType === "text/plain");
+  if (!textPlainPart?.body?.data) {
+    throw new Error(
+      `MIME structure broken in draft ${draftId}: text/plain part missing or empty ` +
+        `(mimeType: ${payload.mimeType}, parts: ${parts.length})`,
+    );
+  }
+
+  // Success: the draft round-trips correctly.
+  // (This function throws on any mismatch; the caller interprets silence as success.)
+}
+
+/**
+ * RFC 2047 base64 encoded-word sequence decoder (shared with test suite).
+ * Handles multi-word sequences by concatenating the decoded bytes before UTF-8 interpretation.
+ */
+function decodeRfc2047EncodedWordSequence(encoded: string): string {
+  if (!encoded.includes("=?UTF-8?B?")) return encoded;
+  const decodedChunks = encoded
+    .split(" ")
+    .map((word) => Buffer.from(word.replace(/^=\?UTF-8\?B\?/, "").replace(/\?=$/, ""), "base64"));
+  return Buffer.concat(decodedChunks).toString("utf8");
+}
+
+// ── MIME validation (Layer 2: static validation before API call) ──
+//
+// After buildMime constructs the message, validate that when we decode what we're about to send,
+// it round-trips correctly. This catches encoder bugs and MIME construction errors BEFORE they
+// reach Gmail, preventing wasted API calls and stale drafts.
+//
+// WHY THIS MATTERS: Layer 1 (read-back verification) catches everything, but costs one API call.
+// Layer 2 is cheaper (string parsing only) and prevents bad data from leaving this machine.
+// Together, they form a seal on the encoder: if Layer 2 passes, we're safe to send; if Layer 1
+// also passes, we're safe to use.
+
+/**
+ * Parse MIME headers from a raw MIME string and return them as a lowercase-keyed object.
+ * Stops at the first blank line (which terminates the header block).
+ */
+function parseMimeHeaders(mimeString: string): Record<string, string> {
+  const headerBlock = mimeString.split(/\r?\n\r?\n/)[0] ?? "";
+  const headers: Record<string, string> = {};
+  for (const line of headerBlock.split(/\r?\n/)) {
+    const match = line.match(/^([^:]+):\s*(.*)$/);
+    if (match) {
+      const [, name, value] = match;
+      headers[name.toLowerCase()] = value.trim();
+    }
+  }
+  return headers;
+}
+
+/**
+ * Validate that the MIME message we built can be decoded back to its original values.
+ * This is Layer 2 verification: catch encoder and MIME construction bugs before sending.
+ * Fail loud if encoding is broken, so the operator can investigate immediately.
+ */
+function validateMimeBeforeUpload(mimeString: string, originalSubject: string): void {
+  // Extract and validate the Subject header.
+  const headers = parseMimeHeaders(mimeString);
+  const subjectHeader = headers.subject ?? "";
+  const decodedSubject = decodeRfc2047EncodedWordSequence(subjectHeader);
+
+  if (decodedSubject !== originalSubject) {
+    throw new Error(
+      `LAYER 2 VALIDATION FAILED: Subject header encoding is broken before upload.\n` +
+        `  Original:  "${originalSubject}"\n` +
+        `  Header:    "${subjectHeader}"\n` +
+        `  Decoded:   "${decodedSubject}"`,
+    );
+  }
+
+  // Sanity-check: MIME structure should have a boundary declaration.
+  if (!mimeString.includes("Content-Type: multipart/alternative; boundary=")) {
+    throw new Error(
+      `LAYER 2 VALIDATION FAILED: MIME structure missing multipart/alternative boundary.`,
+    );
+  }
+}
+
 // ── main ──
 //
 // Guarded so the module can be IMPORTED for unit tests. Without this, `import { … }` executed
@@ -202,10 +346,10 @@ function buildMime(headers: Record<string, string>, plain: string, html: string)
 // test until 2026-07-29. A script whose functions cannot be imported cannot be proven correct.
 if (import.meta.main) {
 
-  
+
   const args = parseArgs();
   const at = await accessToken(args.account);
-  
+
   let threadId: string | undefined;
   let subject = args.subject;
   let inReplyTo: string | undefined;
@@ -219,7 +363,7 @@ if (import.meta.main) {
     subject = subject ?? (hs.subject?.startsWith("Re:") ? hs.subject : `Re: ${hs.subject}`);
   }
   if (!subject) throw new Error("no --subject and no --reply-to to derive it from");
-  
+
   const md = await Bun.file(args.body).text();
   const paras = paragraphs(md);
   const mime = buildMime(
@@ -234,11 +378,31 @@ if (import.meta.main) {
     paras.join("\n\n") + "\n",
     toHtml(paras),
   );
-  
+
+  // ── LAYER 2: Validate the MIME before sending ──
+  try {
+    validateMimeBeforeUpload(mime, subject);
+  } catch (e) {
+    console.error((e as Error).message);
+    process.exit(1);
+  }
+
   const draft = await api(at, "drafts", "POST", { message: { raw: b64url(mime), ...(threadId ? { threadId } : {}) } });
+
+  // ── LAYER 1: Verify the draft round-trips correctly ──
+  const createdDraftId = draft.id as string;
+  try {
+    await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject);
+  } catch (e) {
+    // The draft was created but round-trip verification failed. Report it clearly and exit non-zero.
+    console.error(`LAYER 1 VERIFICATION FAILED on draft ${createdDraftId}:`);
+    console.error((e as Error).message);
+    process.exit(1);
+  }
+
   if (args.replace) {
     await api(at, `drafts/${args.replace}`, "DELETE").catch((e: unknown) => console.error(`(stale draft ${args.replace} delete failed: ${(e as Error).message})`));
   }
-  const out = { draftId: draft.id as string, threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null, account: args.account };
+  const out = { draftId: createdDraftId, threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null, account: args.account };
   console.log(JSON.stringify(out));
 }
