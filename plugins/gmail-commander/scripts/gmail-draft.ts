@@ -560,23 +560,30 @@ if (import.meta.main) {
 
   const message = { raw: b64url(mime), ...(threadId ? { threadId } : {}) };
 
-  // REPLACE IS AN UPDATE, NOT A CREATE-THEN-DELETE.
+  // REPLACING A DRAFT: create the new one, delete the old one, then PROVE only one is left.
   //
-  // The old path created the new draft and then DELETEd the old one with the failure swallowed by a
-  // `.catch()`, so a failed delete left TWO drafts in the account and still printed a success line
-  // on stdout with exit 0. For an operator whose standing rule is "everything aggregates into ONE
-  // draft, never split", that is the worst available failure mode — and it is silent.
+  // The old path did the first two and swallowed a delete failure with `.catch()`, so a failed
+  // delete left TWO drafts in the account and still printed a success line on stdout with exit 0.
+  // For an operator whose standing rule is "everything aggregates into ONE draft, never split",
+  // that is the worst available failure mode, and it is silent.
   //
-  // Gmail's drafts.update replaces the message in place, so there is no window in which zero or two
-  // drafts exist, and the draft id stays STABLE across revisions instead of changing on every edit.
-  // A stable id is what lets a handoff note name the draft once instead of accumulating a trail of
-  // superseded ids, which is how the wrong draft gets sent.
-  const draft = args.replace
-    ? await api(at, `drafts/${args.replace}`, "PUT", { id: args.replace, message })
-    : await api(at, "drafts", "POST", { message });
+  // `drafts.update` (PUT) looks like the better answer — it revises in place, so no window exists in
+  // which zero or two drafts live, and the id stays stable across revisions. It was tried and
+  // MEASURED against the live account on 2026-07-30, and it does not work for the case that matters:
+  //
+  //   standalone draft  → HTTP 200, body updated, id unchanged
+  //   threaded REPLY    → HTTP 400 "Message not a draft", for all four request shapes
+  //                       (message only / +threadId / +id / +id+threadId)
+  //
+  // Almost every client draft is a threaded reply, so PUT would fail exactly where it is needed.
+  // Create-then-delete therefore stays. What changes is that the outcome is VERIFIED rather than
+  // assumed: the delete failure is fatal, and afterwards the thread is listed and must contain
+  // exactly one draft. The guarantee comes from the check, not from which endpoint was called.
+  const draft = await api(at, "drafts", "POST", { message });
 
   // ── LAYER 1: Verify the draft round-trips correctly ──
-  const createdDraftId = (draft.id as string) ?? args.replace!;
+  const createdDraftId = draft.id as string;
+  const createdThreadId = ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId;
   try {
     await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject);
   } catch (e) {
@@ -586,11 +593,43 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  // No delete step: the update above replaced the draft in place, so there is no stale copy to
-  // clean up and no failure path that can leave two drafts behind.
+  if (args.replace) {
+    // NOT swallowed. If the stale draft survives, the operator has two drafts of the same message
+    // and no way to know which one they are about to send.
+    try {
+      await api(at, `drafts/${args.replace}`, "DELETE");
+    } catch (e) {
+      console.error(
+        `FAILED to delete the superseded draft ${args.replace} after creating ${createdDraftId}: ${(e as Error).message}\n` +
+          `TWO drafts of this message now exist. Delete ${args.replace} before sending anything.`,
+      );
+      process.exit(1);
+    }
+  }
+
+  // ── LAYER 5 (2026-07-30): prove the one-draft invariant instead of assuming it ──
+  //
+  // Both steps above can report success and still leave the account in the wrong state — a delete
+  // that 204s against an id that was never the live draft, or an earlier revision nobody cleaned up.
+  // The only claim worth making is about what is actually there NOW, so ask.
+  if (createdThreadId) {
+    const listed = (await api(at, "drafts?maxResults=100")) as {
+      drafts?: Array<{ id: string; message?: { threadId?: string } }>;
+    };
+    const inThread = (listed.drafts ?? []).filter((d) => d.message?.threadId === createdThreadId);
+    if (inThread.length > 1) {
+      console.error(
+        `ONE-DRAFT INVARIANT VIOLATED: thread ${createdThreadId} now holds ${inThread.length} drafts ` +
+          `(${inThread.map((d) => d.id).join(", ")}). Exactly one was expected — a message must not be ` +
+          `split across drafts. Delete the superseded ones before sending.`,
+      );
+      process.exit(1);
+    }
+  }
+
   const out = {
     draftId: createdDraftId,
-    threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null,
+    threadId: createdThreadId ?? null,
     account: args.account,
     replaced: args.replace ?? null,
   };
