@@ -80,6 +80,15 @@ export async function drainBunSubprocessReadableStreamToUtf8TextSwallowingErrors
 //  Async subprocess execution with cooperative timeout + crash isolation
 // ══════════════════════════════════════════════════════════════════════════
 
+import {
+  armResidentMemoryWatchdogThatSigkillsSubprocessAboveCeiling,
+  releaseMachineWideConcurrencySlotSwallowingAllFilesystemErrors,
+  tryAcquireMachineWideConcurrencySlotForGuardedSubprocess,
+  wrapArgvWithKernelEnforcedCpuSecondsCeiling,
+  type AcquiredConcurrencySlot,
+  type ResidentMemoryWatchdogHandle,
+} from "./subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124";
+
 export interface AsyncSubprocessExecutionResult {
   exitCode: number | null;
   stdoutText: string;
@@ -96,6 +105,21 @@ export interface AsyncSubprocessExecutionResult {
    * orchestrator's wall-clock doesn't get held hostage by a runaway tool.
    */
   timedOut: boolean;
+  /**
+   * `true` when the RSS watchdog SIGKILLed the subprocess for exceeding the memory
+   * ceiling. Distinct from `timedOut`: the tool was not slow, it was consuming the
+   * machine. Callers should surface this rather than swallow it — silence is how the
+   * 2026-07-30 fault recurred after its first reboot.
+   */
+  killedForExceedingMemoryCeiling?: boolean;
+  /** Peak RSS in MB the watchdog observed, 0 when it never needed to poll. */
+  observedPeakResidentMegabytes?: number;
+  /**
+   * `true` when every machine-wide concurrency slot was busy and the run was SKIPPED.
+   * Not a failure: a type check is advisory, so declining to run one is strictly safer
+   * than queueing a hook behind an unrelated session's subprocess.
+   */
+  skippedBecauseConcurrencySlotsBusy?: boolean;
 }
 
 export interface AsyncSubprocessExecutionOptions {
@@ -108,6 +132,23 @@ export interface AsyncSubprocessExecutionOptions {
    * killed. Defaults to 8MiB per Bun docs guidance. Bounds runaway output.
    */
   maxBufferBytes?: number;
+  /**
+   * Opt-in resource guard for tools that can allocate without bound.
+   *
+   * Set to the tool's name (e.g. "ty") to enable, per incident 2026-07-30, when four
+   * concurrent `ty` processes reached 73 GB combined and froze the machine. `timeoutMs`
+   * did NOT prevent it: those processes were 7-9 s old and already at 15-21 GB, having
+   * outlived a 4 s SIGTERM deadline. Duration is the wrong axis.
+   *
+   * Enabling this adds, in order of leverage: a machine-wide concurrency slot (the
+   * incident needed FOUR simultaneous processes), an RSS watchdog that SIGKILLs past a
+   * ceiling (the only memory bound macOS offers — every memory rlimit returns EINVAL
+   * here), and a kernel-enforced `ulimit -t` CPU ceiling as a backstop.
+   *
+   * Costs nothing on the common path: the watchdog's first poll is deferred past the
+   * duration of a normal check, so a healthy subprocess is never probed at all.
+   */
+  residentMemoryGuardedToolName?: string;
 }
 
 /**
@@ -139,8 +180,34 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
   const abortSignal = AbortSignal.timeout(options.timeoutMs);
   const maxBufferBytes =
     options.maxBufferBytes ?? DEFAULT_SUBPROCESS_OUTPUT_MAX_BUFFER_BYTES_PER_BUN_DOCS_SAFETY_NET;
+
+  // ── Resource guard (opt-in per tool; see incident 2026-07-30 in the guard module) ──
+  const guardedToolName = options.residentMemoryGuardedToolName;
+  let concurrencySlot: AcquiredConcurrencySlot | null = null;
+  if (guardedToolName) {
+    concurrencySlot = tryAcquireMachineWideConcurrencySlotForGuardedSubprocess(guardedToolName);
+    if (!concurrencySlot) {
+      // Every slot busy. SKIP rather than queue: this runs inside a PostToolUse hook, so
+      // waiting would put the user's edit behind another session's subprocess, and the
+      // check it would have performed is advisory.
+      return {
+        exitCode: null,
+        stdoutText: "",
+        stderrText: "",
+        spawnFailed: false,
+        timedOut: false,
+        skippedBecauseConcurrencySlotsBusy: true,
+      };
+    }
+  }
+  // `ulimit -t` is applied OUTSIDE the try so the argv used for spawning is the guarded
+  // one on every path. exec'ing keeps the reported pid equal to the real tool's pid,
+  // which the RSS watchdog below depends on.
+  const argvToSpawn = guardedToolName ? wrapArgvWithKernelEnforcedCpuSecondsCeiling(argv) : [...argv];
+  let residentMemoryWatchdog: ResidentMemoryWatchdogHandle | null = null;
+
   try {
-    const subprocess = Bun.spawn(argv, {
+    const subprocess = Bun.spawn(argvToSpawn, {
       cwd: options.cwd,
       stdout: "pipe",
       stderr: "pipe",
@@ -150,6 +217,12 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
       // killSignal (defaults to SIGTERM)." Iter-95 safety-net add.
       maxBuffer: maxBufferBytes,
     });
+
+    if (guardedToolName) {
+      residentMemoryWatchdog = armResidentMemoryWatchdogThatSigkillsSubprocessAboveCeiling(
+        subprocess.pid,
+      );
+    }
 
     const [stdoutText, stderrText] = await Promise.all([
       drainBunSubprocessReadableStreamToUtf8TextSwallowingErrors(
@@ -167,6 +240,9 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
       stderrText: stderrText.trim(),
       spawnFailed: false,
       timedOut: false,
+      killedForExceedingMemoryCeiling:
+        residentMemoryWatchdog?.wasKilledForExceedingMemoryCeiling() ?? false,
+      observedPeakResidentMegabytes: residentMemoryWatchdog?.observedPeakResidentMegabytes() ?? 0,
     };
   } catch (raw: unknown) {
     // Two failure modes collapse here:
@@ -179,7 +255,16 @@ export async function executeBunSubprocessAsyncWithAbortSignalCooperativeTimeout
       stderrText: raw instanceof Error ? raw.message : String(raw),
       spawnFailed: !isAbortError,
       timedOut: isAbortError,
+      killedForExceedingMemoryCeiling:
+        residentMemoryWatchdog?.wasKilledForExceedingMemoryCeiling() ?? false,
+      observedPeakResidentMegabytes: residentMemoryWatchdog?.observedPeakResidentMegabytes() ?? 0,
     };
+  } finally {
+    // Both must run on EVERY path. A leaked watchdog would keep polling a dead pid; a
+    // leaked slot would shrink the machine-wide budget until the stale-reclaim age
+    // expired, and enough leaks would silently disable type checking altogether.
+    residentMemoryWatchdog?.disarm();
+    releaseMachineWideConcurrencySlotSwallowingAllFilesystemErrors(concurrencySlot);
   }
 }
 
