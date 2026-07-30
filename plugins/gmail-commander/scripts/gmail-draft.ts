@@ -320,7 +320,16 @@ export function encodeHeaderValueAsRfc2047EncodedWordIfNonAscii(headerValue: str
  */
 const FREE_TEXT_HEADERS_SAFE_TO_ENCODE = new Set(["Subject"]);
 
-function buildMime(headers: Record<string, string>, plain: string, html: string): string {
+/**
+ * Assemble the multipart/alternative message.
+ *
+ * EXPORTED FOR TESTS (2026-07-30). The suite covered every piece — block splitting, plain-text
+ * rendering, HTML rendering, header encoding — and never once assembled a whole message, so the two
+ * defects that actually reached the client (welded list bullets, and a mojibake em-dash Subject) were
+ * both caught by a human reading Gmail rather than by a test. A builder whose output is never
+ * assembled in a test is a builder whose output is never checked.
+ */
+export function buildMime(headers: Record<string, string>, plain: string, html: string): string {
   const boundary = `b${crypto.randomUUID().replaceAll("-", "")}`;
   const head = Object.entries(headers)
     .filter(([, v]) => v)
@@ -474,7 +483,7 @@ function parseMimeHeaders(mimeString: string): Record<string, string> {
  * This is Layer 2 verification: catch encoder and MIME construction bugs before sending.
  * Fail loud if encoding is broken, so the operator can investigate immediately.
  */
-function validateMimeBeforeUpload(mimeString: string, originalSubject: string): void {
+export function validateMimeBeforeUpload(mimeString: string, originalSubject: string): void {
   // Extract and validate the Subject header.
   const headers = parseMimeHeaders(mimeString);
   const subjectHeader = headers.subject ?? "";

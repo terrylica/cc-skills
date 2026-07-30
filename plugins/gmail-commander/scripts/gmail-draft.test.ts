@@ -212,3 +212,125 @@ describe("URL parentheses — a reference link must survive its own path", () =>
     expect(out.match(/href="/g)).toHaveLength(1);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// END-TO-END MIME ASSEMBLY (added 2026-07-30)
+//
+// Everything above tests a PIECE. Nothing above assembled a whole message, and that is precisely
+// where both real defects lived: the welded-bullet body and the mojibake em-dash Subject each
+// survived a green suite and were caught by a human opening Gmail. These tests take a realistic
+// markdown body all the way to the bytes that would be uploaded, then decode those bytes back.
+//
+// Decoding the base64 parts is the point. Asserting on the markdown, or on the intermediate
+// blocks, would re-assert the assumption instead of testing the artifact — the same vacuous shape
+// as the read-back that "matched: True" because it collapsed the whitespace it was meant to check.
+// ─────────────────────────────────────────────────────────────────────────────
+import { buildMime, validateMimeBeforeUpload, splitBodyIntoBlocks, blocksToPlainText, blocksToHtml } from "./gmail-draft.ts";
+
+/** Pull one decoded MIME part out of an assembled message, by its Content-Type. */
+function decodePart(mime: string, contentType: string): string {
+  const parts = mime.split(/--b[0-9a-f]{32}/);
+  const part = parts.find((p) => p.includes(`Content-Type: ${contentType}`));
+  if (!part) throw new Error(`no ${contentType} part in the assembled message`);
+  const body = part.split("\r\n\r\n").slice(1).join("\r\n\r\n").trim();
+  return Buffer.from(body.replaceAll("\r\n", ""), "base64").toString("utf8");
+}
+
+/** A body shaped like the real client drafts: lead-in prose, then a list, then a closing line. */
+const CLINIC_BODY = [
+  "Hi Alex — three things from this morning, all checked before writing.",
+  "",
+  "- Brianna's caveat is withdrawn; her recording was fine.",
+  "- Three page defects, not two — I miscounted the first time.",
+  "- Tonsil values now print one way instead of eight.",
+  "",
+  "Nothing here needs action from you today.",
+].join("\n");
+
+const assemble = (subject: string, md: string): string => {
+  const blocks = splitBodyIntoBlocks(md);
+  return buildMime(
+    { From: "a@b.co", To: "c@d.co", Cc: "", Subject: subject, "In-Reply-To": "", References: "" },
+    blocksToPlainText(blocks),
+    blocksToHtml(blocks),
+  );
+};
+
+describe("end-to-end MIME assembly", () => {
+  test("list bullets survive assembly as SEPARATE lines — the welded-paragraph defect", () => {
+    const plain = decodePart(assemble("Three things", CLINIC_BODY), 'text/plain; charset="UTF-8"');
+    // The defect welded these into one run-on paragraph containing '. - '.
+    expect(plain).not.toContain(". - ");
+    for (const bullet of ["Brianna's caveat", "Three page defects", "Tonsil values"]) {
+      const line = plain.split("\n").find((l) => l.includes(bullet));
+      expect(line).toBeDefined();
+      // each bullet is alone on its line, not carrying a sibling
+      expect(line!.includes("Three page defects") && line!.includes("Tonsil values")).toBe(false);
+    }
+  });
+
+  test("the HTML part carries a real list, not paragraphs pretending to be one", () => {
+    const html = decodePart(assemble("Three things", CLINIC_BODY), 'text/html; charset="UTF-8"');
+    expect(html).toContain("<ul>");
+    expect(html.match(/<li>/g)).toHaveLength(3);
+  });
+
+  test("both alternatives carry the same three bullets — a fix to one part must not skip the other", () => {
+    const mime = assemble("Three things", CLINIC_BODY);
+    const plain = decodePart(mime, 'text/plain; charset="UTF-8"');
+    const html = decodePart(mime, 'text/html; charset="UTF-8"');
+    for (const bullet of ["Brianna", "Three page defects", "Tonsil values"]) {
+      expect(plain).toContain(bullet);
+      expect(html).toContain(bullet);
+    }
+  });
+
+  test("an em-dash Subject is RFC 2047 encoded in the header and decodes back intact", () => {
+    const subject = "Correction — three things, one of them mine";
+    const mime = assemble(subject, CLINIC_BODY);
+    expect(mime).toContain("Subject: =?UTF-8?B?");
+    expect(mime).not.toContain("â€”"); // the mojibake that actually shipped
+    // The builder's own validator is the round-trip proof.
+    expect(() => validateMimeBeforeUpload(mime, subject)).not.toThrow();
+  });
+
+  test("an ASCII Subject is left alone rather than needlessly encoded", () => {
+    const mime = assemble("Plain ascii subject", CLINIC_BODY);
+    expect(mime).toContain("Subject: Plain ascii subject");
+    expect(mime).not.toContain("=?UTF-8?B?");
+  });
+
+  test("the structure is a well-formed multipart/alternative with a closing boundary", () => {
+    const mime = assemble("Three things", CLINIC_BODY);
+    const boundary = /boundary="(b[0-9a-f]{32})"/.exec(mime)?.[1];
+    expect(boundary).toBeDefined();
+    expect(mime.split(`--${boundary}`).length - 1).toBe(3); // two openers + the closer
+    expect(mime.trimEnd().endsWith(`--${boundary}--`)).toBe(true);
+  });
+
+  test("empty headers are dropped — which is how a reply once addressed NOBODY", () => {
+    // buildMime filters falsy values, so To:"" vanishes silently. The caller now refuses a
+    // recipient-less draft; this pins the builder behaviour that made that refusal necessary.
+    const mime = buildMime({ From: "a@b.co", To: "", Subject: "s" }, "p", "<p>h</p>");
+    expect(mime).not.toContain("To:");
+    expect(mime).toContain("From: a@b.co");
+  });
+});
+
+describe("validateMimeBeforeUpload — proven in BOTH directions", () => {
+  test("it PASSES a correctly assembled message", () => {
+    const subject = "Correction — with an em dash";
+    expect(() => validateMimeBeforeUpload(assemble(subject, CLINIC_BODY), subject)).not.toThrow();
+  });
+
+  test("it THROWS when the Subject header is mojibake", () => {
+    // Exactly the 2026-07-29 regression: UTF-8 bytes read as Latin-1 in a raw header.
+    const broken = assemble("x", CLINIC_BODY).replace("Subject: x", "Subject: Correction â€” three things");
+    expect(() => validateMimeBeforeUpload(broken, "Correction — three things")).toThrow(/LAYER 2 VALIDATION FAILED/);
+  });
+
+  test("it THROWS when the multipart boundary declaration is missing", () => {
+    const broken = assemble("x", CLINIC_BODY).replace('Content-Type: multipart/alternative; boundary=', "Content-Type: text/plain; x=");
+    expect(() => validateMimeBeforeUpload(broken, "x")).toThrow(/missing multipart\/alternative boundary/);
+  });
+});
