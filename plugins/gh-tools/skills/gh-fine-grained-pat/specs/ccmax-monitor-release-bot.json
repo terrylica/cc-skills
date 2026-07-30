@@ -1,0 +1,10 @@
+{
+  "$schema": "../schema/token-spec.schema.json",
+  "name": "ccmax-monitor-release-bot",
+  "description": "semantic-release for terrylica/ccmax-monitor: push tags/commits, publish GitHub Releases + binary assets, comment on issues & PRs. Injected as GH_TOKEN via `vault run ccmax-release`. Closes issue #32, which recorded the stopgap of borrowing the operator's ambient `gh auth token` (a gho_* OAuth token carrying gist+read:org+repo across ALL repos) — bound to one human's interactive login, unusable unattended, and far broader than a release needs. Scoped to this repo only.",
+  "expiration": "none",
+  "repositoryAccess": { "mode": "selected", "repos": ["terrylica/ccmax-monitor"] },
+  "permissions": {
+    "repository": { "Contents": "write", "Issues": "write", "Pull requests": "write" }
+  }
+}
