@@ -7,7 +7,8 @@
 // cannot be proven correct.
 //
 // Run: bun test plugins/gmail-commander/scripts/gmail-draft.test.ts
-import { test, expect } from "bun:test";
+import { test, expect, describe } from "bun:test";
+import { escapeAndLinkify } from "./gmail-draft.ts";
 import { encodeHeaderValueAsRfc2047EncodedWordIfNonAscii } from "./gmail-draft.ts";
 
 /** Decode an RFC 2047 base64 encoded-word sequence back to the original string. */
@@ -159,4 +160,55 @@ test("URLs inside list items are still linkified and text still escaped", () => 
 test("blank lines still separate blocks, and empty input yields nothing", () => {
   expect(splitBodyIntoBlocks("one\n\ntwo")).toHaveLength(2);
   expect(splitBodyIntoBlocks("\n\n   \n")).toHaveLength(0);
+});
+
+// ── 2026-07-30: findings from an adversarial audit of this builder ────────────────────────────────
+// Context worth keeping: the list and RFC 2047 fixes above already existed and were already correct,
+// but they lived ONLY in the installed marketplace clone — nine commits that were never pushed. A
+// draft staged by invoking the copy in ~/eon/cc-skills therefore hit both bugs again on 2026-07-30.
+// The code was never the whole problem; see docs/draft-integrity-guards.md.
+
+describe("URL parentheses — a reference link must survive its own path", () => {
+  test("a paren inside the path stays inside the link", () => {
+    const out = escapeAndLinkify("see https://en.wikipedia.org/wiki/Parser_(software) for more");
+    expect(out).toContain('href="https://en.wikipedia.org/wiki/Parser_(software)"');
+    expect(out).not.toContain("_(software) for");
+  });
+
+  test("a paren the PROSE opened is not swallowed by the link", () => {
+    // The counter-case that makes the fix non-trivial: same character, opposite meaning.
+    const out = escapeAndLinkify("(see https://x.dev/a)");
+    expect(out).toContain('href="https://x.dev/a"');
+    expect(out).toContain("</a>)");
+  });
+
+  test("a full stop after a parenthesised path is prose; the paren is not", () => {
+    const out = escapeAndLinkify("https://en.wikipedia.org/wiki/Foo_(bar).");
+    expect(out).toContain('href="https://en.wikipedia.org/wiki/Foo_(bar)"');
+    expect(out).toContain("</a>.");
+  });
+
+  test("a query string with & produces a valid href", () => {
+    expect(escapeAndLinkify("https://x.dev/a?p=1&q=2")).toBe('<a href="https://x.dev/a?p=1&amp;q=2">https://x.dev/a?p=1&amp;q=2</a>');
+  });
+
+  test("a URL in angle brackets does not absorb the closing bracket", () => {
+    // Escape-then-linkify produced href="…&gt" here; the raw-split order is what fixes it.
+    const out = escapeAndLinkify("<https://x.dev/a>");
+    expect(out).toContain('href="https://x.dev/a"');
+    expect(out).not.toContain('&gt;"');
+  });
+
+  test("ordinary prose with no URL is escaped and otherwise untouched", () => {
+    // An apostrophe is deliberately NOT escaped: it is harmless in text content, and every attribute
+    // this builder emits is delimited with double quotes (which ARE escaped). Escaping it would only
+    // make a client's surname render as "O&#39;Sullivan" in any client that mishandles entities.
+    expect(escapeAndLinkify("Austin O'Sullivan & Co <client>")).toBe("Austin O'Sullivan &amp; Co &lt;client&gt;");
+  });
+
+  test("a double quote adjacent to a link cannot break out of the href attribute", () => {
+    const out = escapeAndLinkify('he said "go to https://x.dev/a" today');
+    expect(out).toContain("&quot;");
+    expect(out.match(/href="/g)).toHaveLength(1);
+  });
 });
