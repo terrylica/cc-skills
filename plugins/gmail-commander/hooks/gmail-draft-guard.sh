@@ -113,6 +113,9 @@ MSG
 }
 
 
+# The ONE copy of the builder that is supported: the installed marketplace build.
+CANONICAL_TOOL="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
+
 INPUT=$(cat 2>/dev/null || true)
 CMD=$(printf '%s' "$INPUT" | python3 -c 'import json,sys
 try: print(json.load(sys.stdin).get("tool_input",{}).get("command",""))
@@ -121,20 +124,53 @@ except Exception: print("")' 2>/dev/null || true)
 [ -z "$CMD" ] && exit 0
 case "$CMD" in
   *GMAIL_DRAFT_ADHOC_OK=1*) exit 0 ;;                      # explicit, auditable escape hatch
-  *scripts/gmail-draft.ts*)
+  *"$CANONICAL_TOOL"*)
     # LAYER 3: Canonical tool invoked — verify builder health before allowing the draft write.
     if [[ "${GMAIL_DRAFT_TEST_GATE_SKIP:-}" != "1" ]]; then
       verify_builder_health || exit $?
     fi
     exit 0
     ;;
+  *scripts/gmail-draft.ts*)
+    # LAYER 4 (2026-07-30): the right TOOL from the WRONG COPY.
+    #
+    # This rule used to allow any path ending in `scripts/gmail-draft.ts`. On 2026-07-29 the builder
+    # was hardened — RFC 2047 headers, list preservation, MIME validation — and those nine commits
+    # lived ONLY in the installed marketplace clone. A client email was then staged the next day by
+    # invoking `~/eon/cc-skills/.../gmail-draft.ts`, a source checkout nine commits behind, and it
+    # re-introduced BOTH fixed bugs: three evidence bullets welded into one run-on paragraph, and an
+    # em dash in the subject line delivered as "â€”". The guard permitted every step of it.
+    #
+    # Naming the right tool is not enough when two copies of it exist.
+    cat >&2 <<MSG
+BLOCKED: gmail-draft.ts invoked from a copy that is not the installed marketplace build.
+
+  invoked : (a path other than the canonical one)
+  expected: $CANONICAL_TOOL
+
+A source checkout can be many commits behind the installed plugin. On 2026-07-30 one was nine behind
+and re-introduced two already-fixed bugs into an email to a client — welded lists and a
+mojibake subject line.
+
+If you are deliberately testing a local build, prefix the command with GMAIL_DRAFT_ADHOC_OK=1.
+MSG
+    exit 2
+    ;;
 esac
 
 if printf '%s' "$CMD" | grep -qE 'users/me/drafts|gmail\.googleapis\.com[^ ]*draft'; then
-  # Write detection is deliberately COARSE (quote-escaping variants defeated a precise regex):
-  # any POST/PUT/PATCH token in a drafts-API command blocks. Read-only GET fetches pass; a rare
-  # false positive is a loud pointer to the canonical tool, not damage — and the escape hatch exists.
-  if printf '%s' "$CMD" | grep -qE '(POST|PUT|PATCH)'; then
+  # Detect a WRITE by finding an actual HTTP METHOD, not the mere presence of the word.
+  #
+  # The old test was `grep -qE '(POST|PUT|PATCH)'` anywhere in the command, and it was wrong in both
+  # directions at once. It is case-SENSITIVE, so `curl -X put .../drafts` sailed straight through. And
+  # it matched the substring in ordinary prose, so on 2026-07-30 a read-only GET was blocked because
+  # the operator had written `echo "still intact after the failed PUT?"` earlier in the same line.
+  # A guard that blocks reads while permitting writes is worse than no guard: it teaches people to
+  # reach for the escape hatch by reflex, and then it is not there when it matters.
+  METHOD_RE='(-X|--request)[[:space:]]*=?[[:space:]]*"?'"'"'?(POST|PUT|PATCH|DELETE)|"method"[[:space:]]*:[[:space:]]*"?(POST|PUT|PATCH|DELETE)|method[[:space:]]*=[[:space:]]*"?(POST|PUT|PATCH|DELETE)'
+  # curl POSTs implicitly when handed a body, with no method token anywhere in the command.
+  IMPLICIT_POST_RE='(^|[[:space:]])(-d|--data|--data-raw|--data-binary|--data-urlencode|-F|--form|-T|--upload-file)([[:space:]]|=)'
+  if printf '%s' "$CMD" | grep -qiE "$METHOD_RE" || printf '%s' "$CMD" | grep -qE "$IMPLICIT_POST_RE"; then
     cat >&2 <<'MSG'
 BLOCKED: ad-hoc Gmail drafts-API write. Use the canonical builder instead:
 
