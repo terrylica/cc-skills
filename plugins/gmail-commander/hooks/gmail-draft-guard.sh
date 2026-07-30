@@ -114,7 +114,14 @@ MSG
 
 
 # The ONE copy of the builder that is supported: the installed marketplace build.
-CANONICAL_TOOL="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
+#
+# Matched on the SUFFIX, not the absolute path. Callers legitimately write the same file three ways —
+# `~/.claude/...`, `$HOME/.claude/...`, `/Users/me/.claude/...` — and a literal comparison against the
+# expanded form rejected the first two. It rejected the very command this guard's own error message
+# tells you to run, which is how a guard trains people to bypass it. The suffix cannot collide with a
+# source checkout, because only the installed tree contains `.claude/plugins/marketplaces/`.
+CANONICAL_SUFFIX=".claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
+CANONICAL_TOOL="$HOME/$CANONICAL_SUFFIX"
 
 INPUT=$(cat 2>/dev/null || true)
 CMD=$(printf '%s' "$INPUT" | python3 -c 'import json,sys
@@ -124,7 +131,7 @@ except Exception: print("")' 2>/dev/null || true)
 [ -z "$CMD" ] && exit 0
 case "$CMD" in
   *GMAIL_DRAFT_ADHOC_OK=1*) exit 0 ;;                      # explicit, auditable escape hatch
-  *"$CANONICAL_TOOL"*)
+  *"$CANONICAL_SUFFIX"*)
     # LAYER 3: Canonical tool invoked — verify builder health before allowing the draft write.
     if [[ "${GMAIL_DRAFT_TEST_GATE_SKIP:-}" != "1" ]]; then
       verify_builder_health || exit $?
