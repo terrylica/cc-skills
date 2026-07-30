@@ -134,3 +134,49 @@ Two of them, `scripts/LAYER1-VERIFICATION-PROOF.ts` and `test-layer1-proof.ts`, 
 `scripts/gmail-draft.test.ts`, which `bun test` runs and Layer 3 gates.
 
 If a guard changes, change this file in the same commit, and re-run the table above.
+
+## 2026-07-30 — the guards were right and the draft was still corrupt
+
+A day after the hardening above, an email to the client was staged with three evidence bullets
+welded into one run-on paragraph and an em dash in the subject delivered as `â€”`. Both bugs were
+already fixed. Both fixes were already installed. Neither ran.
+
+**The nine hardening commits existed in exactly one place** — the installed marketplace clone at
+`~/.claude/plugins/marketplaces/cc-skills`. They were never pushed to origin and never present in the
+`~/eon/cc-skills` checkout. The draft was staged by invoking the builder at the `~/eon` path, nine
+commits behind, and it re-introduced both defects verbatim.
+
+Three separate things had to be true for that to reach a client, and each is now closed:
+
+| what failed | why it was possible | closed by |
+| --- | --- | --- |
+| the fix was not where the code ran | nine commits unpushed, in one directory | pushed; the working checkout is synced |
+| the stale copy was invokable | the guard allowed any path ending `scripts/gmail-draft.ts` | the guard names the installed COPY, not just the filename |
+| the corruption passed verification | the read-back compared bodies after collapsing whitespace | see below |
+
+**The verification failure is the one worth internalising.** The check said `matches: True`. It
+compared the staged body against the source after `" ".join(text.split())` — which collapses exactly
+the newlines that had been destroyed. It could not have failed, for any input, on this defect. A
+read-back that normalises away the property under test is not evidence; it is a second copy of the
+assumption. Structural assertions replaced it: count the `<li>`, assert no paragraph contains `". - "`,
+decode the subject and look for the mojibake marker, and list the thread to prove exactly one draft.
+
+**The guard itself was wrong in both directions, twice, in one day.** Its write detector was
+`grep -qE '(POST|PUT|PATCH)'` over the whole command: case-sensitive, so `curl -X put .../drafts`
+sailed through, and substring-matching, so a read-only GET was blocked because the same line contained
+`echo "…the failed PUT?"`. Blocking reads while permitting writes is worse than no guard — it trains
+the operator to reach for `GMAIL_DRAFT_ADHOC_OK=1` by reflex, and then the hatch is already in their
+fingers when the guard is right. Then the fix itself rejected `~/.claude/...`, the exact command the
+guard's own error message prints, and blocked `bun test` on the builder. Both were caught by
+dogfooding within minutes, and both are now in the probe.
+
+`hooks/gmail-draft-guard.probe.sh` asserts 18 cases in both directions. Run it after ANY change to the
+guard: `GMAIL_DRAFT_ADHOC_OK=1 bash hooks/gmail-draft-guard.probe.sh` (the hatch is required because
+the probe's own argument strings would otherwise trip the guard that runs it).
+
+**`drafts.update` was tried and rejected on evidence.** Replacing a draft in place would avoid the
+window in which two drafts exist and would keep the id stable. Measured against the live account:
+HTTP 200 on a standalone draft, HTTP 400 `Message not a draft` on a threaded reply, for all four
+request shapes. Almost every client draft is a threaded reply. Create-then-delete stays; the delete
+failure is now fatal rather than swallowed, and the thread is listed afterwards to prove exactly one
+draft remains.
