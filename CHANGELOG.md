@@ -1,3 +1,431 @@
+# [23.1.0](https://github.com/terrylica/cc-skills/compare/v23.0.1...v23.1.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **gmail-commander:** key the layer-3 test gate on every test input, not just the builder mtime ([2437aad](https://github.com/terrylica/cc-skills/commit/2437aad0d8c93bff0b1f28bd73fb6e4c9b5ba686))
+The layer-3 gate runs the gmail-draft builder's test suite before permitting a draft write, and
+caches the verdict so a batch of drafts does not re-run tests per message. The cache was keyed on
+`scripts/gmail-draft.ts`'s mtime alone.
+
+Exercising the gate in BOTH directions exposed the hole. Appending a deliberately failing test to
+`gmail-draft.test.ts` leaves the builder's mtime untouched, so the gate took a stale "pass" cache
+hit and PERMITTED the write — the suite was red and the gate said go. Reviewing the script would
+never have shown this; only running it did. This is the third guard in two days found broken while
+believed working, and the second found only by watching it on input it was supposed to reject.
+
+A gate that green-lights a red suite is worse than no gate: it reports a safety check it never
+performed, and everything downstream is then trusted on that report.
+
+Changes:
+
+- `compute_builder_test_input_fingerprint()` digests path+size+mtime of every `*.ts` under
+  `scripts/`, sorted for determinism. The builder, the test file, and every sibling module the
+  suite imports are all inputs, so all of them are in the cache key. Any add, remove, or edit
+  changes the digest and forces a re-run.
+- Only a PASS is cached. The old code wrote a `"fail"` entry that the read path never honoured —
+  dead code that read as if failures were remembered. A red suite is now re-run every time, so the
+  gate opens the moment it goes green, on evidence rather than an expiring record.
+- Empty-fingerprint guard: if `find`/`shasum` yield nothing, the cache cannot hit, so a broken
+  fingerprint degrades to always-re-test rather than always-permit.
+
+Verified by exercising all six paths (each observed, not inferred):
+
+  1. healthy builder, cold cache      -> permit (0)
+  2. healthy builder, warm cache      -> permit (0)
+  3. BROKEN test, warm cache          -> refuse (1)   <- silently permitted before this commit
+  4. test restored                    -> permit (0)
+  5. unrelated bash command           -> permit (0)
+  6. ad-hoc drafts-API POST           -> block  (2)   <- layer 1, unaffected
+
+The rule this keeps re-teaching: a guard nobody has watched FIRE, and nobody has watched STAY
+SILENT on good input, is not known to work. Both directions, or it does not count.
+* **gmail-commander:** prove the one-draft invariant instead of assuming it ([5bc5eb1](https://github.com/terrylica/cc-skills/commit/5bc5eb16288a16375d42acfd5cb475d40eba4572))
+Three corrections to the replace path, two of them to code written an hour earlier
+in this same session.
+
+DRAFTS.UPDATE DOES NOT WORK FOR THE CASE THAT MATTERS
+
+The previous commit switched --replace to `drafts.update` (PUT) on the reasoning
+that revising in place leaves no window with zero or two drafts and keeps the id
+stable. Sound reasoning, wrong API. Measured against the live account:
+
+  standalone draft  → HTTP 200, body updated, id unchanged
+  threaded reply    → HTTP 400 "Message not a draft", all four request shapes
+                      (message only / +threadId / +id / +id+threadId)
+
+Almost every client draft is a threaded reply, so PUT fails exactly where it is
+needed. The comment in gmail-cli's updateDraft calling delete-then-create
+"equivalent and simpler" was right about the outcome, if not the reason.
+
+So create-then-delete stays, and the guarantee moves to where it belongs: the
+delete failure is now FATAL rather than swallowed by a `.catch()`, and afterwards the
+thread is listed and must hold exactly one draft. Both steps can report success and
+still leave the wrong state — a 204 against an id that was never the live draft, an
+earlier revision nobody cleaned up — so the only claim worth making is about what is
+actually there now. Ask, do not assume.
+
+THE GUARD BLOCKED ITS OWN ADVERTISED COMMAND
+
+The stale-copy rule compared against `$HOME/...` expanded, so `~/.claude/...` — the
+exact spelling in the guard's own error message — was rejected. Now matched on the
+path suffix; only the installed tree contains `.claude/plugins/marketplaces/`.
+
+THE GUARD BLOCKED DEVELOPING THE PLUGIN
+
+It fired on any command mentioning `gmail-draft.ts`, so `bun test`, `bun build`,
+`grep` and `cat` all needed the escape hatch. That is how a hatch stops meaning
+anything: reach for it by reflex often enough and it is already in your fingers when
+the guard is right. The rule now requires the builder's own flags
+(--account/--body/--from), which nothing but a real invocation carries.
+
+Both directions, 18 cases, committed beside the guard: three spellings of the
+canonical path, four ways of working ON the file, a read, a read whose prose says
+"PUT", an unrelated command — all ALLOW. The stale checkout and seven ad-hoc write
+spellings — all BLOCK.
+* **gmail-commander:** RFC 2047-encode non-ASCII headers — em-dash subjects were mojibake ([545ed86](https://github.com/terrylica/cc-skills/commit/545ed863caefbbae51575ff3692a944cb514148b))
+Reported from a real client draft: the subject rendered as
+
+    Charting update â€" privacy matter, Mallampati fix, word list, and clarifications...
+
+An em dash is UTF-8 `e2 80 94`; read as Latin-1 that is exactly `â`, `€`, `"`.
+
+THIS WAS NOT A REGRESSION OF THE 2026-07-23 FIX, and the distinction matters for how we prevent the
+next one. That fix addressed body HARD-FOLDING and still works — the body of this very draft rendered
+correctly, which is why nobody caught the header. The body is built as multipart/alternative with
+`charset="UTF-8"` and base64 (lines 119-125); the Subject was interpolated RAW into the header block,
+and RFC 5322 headers are 7-bit ASCII only. Body and headers are independently-encoded surfaces on the
+same message, and fixing one proved nothing about the other.
+
+Three changes, each closing a different part of the gap:
+
+1. `encodeHeaderValueAsRfc2047EncodedWordIfNonAscii()` — base64 encoded-words, chunked so no word
+   exceeds the RFC's 75-char cap. Chunking is on BYTES, so a multi-byte character can straddle a
+   boundary; decoders concatenate adjacent words' bytes before interpreting UTF-8, so it round-trips.
+   Non-ASCII detection uses `Buffer.byteLength !== .length` rather than a `[^\x00-\x7F]` regex, which
+   would smuggle control characters into the source.
+
+2. Applied ONLY to `FREE_TEXT_HEADERS_SAFE_TO_ENCODE` (currently Subject). Address headers are
+   deliberately excluded: RFC 2047 forbids an encoded-word inside an address specification, so
+   encoding `Ricky <addr>` wholesale would make the message UNDELIVERABLE rather than merely ugly.
+   Only a display-name token may be encoded, which needs a real address parser — out of scope, and
+   unnecessary while every sender identity here is ASCII.
+
+3. Main block guarded with `import.meta.main`. Until now importing this module ran parseArgs() and
+   exited with a usage error, so NONE of its functions could be unit-tested — which is the actual
+   reason this bug shipped. A script whose functions cannot be imported cannot be proven correct.
+
+Also fixes a latent TS2375: under `exactOptionalPropertyTypes`, `to?: string` rejects an explicit
+`undefined`, and parseArgs() always supplies every key.
+
+Tests: 4, including the exact broken subject, ASCII pass-through, the 75-char cap, and multi-byte
+characters split across encoded-word boundaries. Verified end-to-end against the live draft — Gmail
+now reports the em dash correctly.
+* **gmail-commander:** stop the body builder collapsing every list into a run-on paragraph ([c71dd29](https://github.com/terrylica/cc-skills/commit/c71dd29b0f1eb931a2496ac17539be4db2226939))
+The builder unwrapped every newline inside a blank-line block. For prose that is correct and is the
+whole reason this tool exists — it makes a draft immune to a formatter hook having hard-wrapped the
+source, which is what Gmail then folds at ~72 columns. But it applied to lists too, and silently
+destroyed them.
+
+Found by reading the delivered MIME of a real client email rather than the source that produced it. A
+nine-item question checklist, written one item per line so two busy clients could answer by number
+without reading the message twice, arrived as:
+
+  - Q1 - DR. EXAMPLE - Do you want... - Q2 - EITHER - "second phase"... - Q3 - EITHER - ...
+
+Five separate lists in that one message were affected, including the explanation of the five-stage
+model the whole email is organised around, and a three-option decision put to the practice owner. The
+collapse removed precisely the structure that made the message answerable, which is worse than making
+it ugly.
+
+`splitBodyIntoBlocks()` now returns typed blocks — prose or list — so the two are rendered differently:
+text/plain keeps one item per line, and text/html emits a real `<ul><li>`. The leading bullet character
+is stripped for `<li>` (the element supplies its own), but authored numbering like `Q1` or `(a)` is
+kept as item text, because a client renumbering the author's own labels would break every reference to
+them elsewhere in the message.
+
+THE LEAD-IN CASE is the one worth not getting wrong, and it is why classification is per-block rather
+than per-line: a block often opens with a sentence and then continues into a list ("The options as we
+see them:" followed by three options). Testing only the first line would classify the whole block as
+prose and fold the items back in. The block is therefore split at the FIRST line matching a marker —
+everything before reflows, everything after renders per item. The notes-commander engine hit exactly
+this bug on 2026-07-27 and fixed it the same way; the rule is duplicated rather than shared because
+the two engines have no common package, and both headers now say so.
+
+A wrapped continuation line — indented, no marker — rejoins its own item, so a long item that a
+formatter wrapped stays one item instead of splitting in two.
+
+Both directions are asserted, since a fix that preserved lists by no longer unwrapping prose would
+reintroduce the original hard-fold bug this builder was written to prevent: 10 new tests covering
+prose-still-unwraps, list-preserved, lead-in-then-list, wrapped-continuation, ordered/lettered markers,
+an em-dash aside NOT being mistaken for a list, `<ul>` structure, linkification and escaping inside
+items, and empty input. 14 pass, 0 fail.
+* **gmail-commander:** the copy rule rejected the command it tells you to run ([df31d84](https://github.com/terrylica/cc-skills/commit/df31d848909589e3916b78828a956f4f196a9d6e))
+The stale-copy check compared the invoked path against `$HOME/.claude/...` expanded.
+Callers legitimately write that same file three ways — `~/.claude/...`,
+`$HOME/.claude/...`, and the absolute path — and only the third matched. So the guard
+blocked `bun ~/.claude/.../gmail-draft.ts`, which is verbatim the command its OWN
+error message instructs you to use.
+
+Caught by dogfooding it one command later. A guard that refuses its own advertised
+invocation does not get fixed by the person it blocks; it gets bypassed, and then it
+is not there when it matters. That failure mode is why this file already carries a
+both-directions rule.
+
+Now matched on the path SUFFIX. Only the installed tree contains
+`.claude/plugins/marketplaces/`, so a source checkout still cannot satisfy it, and
+every spelling of the real path does.
+
+The probe is now committed beside the guard rather than living in /tmp, because the
+guard has been wrong in both directions twice in one day and the next change should
+have to prove itself the same way. `GMAIL_DRAFT_ADHOC_OK=1 bash
+hooks/gmail-draft-guard.probe.sh` — the hatch is required because the probe's own
+argument strings would otherwise trip the guard that runs it.
+
+14 cases: three spellings of the canonical path, a read, a read whose prose contains
+"PUT", an unrelated command, the stale checkout, and seven ad-hoc write spellings
+including lowercase `-X put`, `-XPATCH`, `--request delete`, curl's implicit POST via
+`-d` and `--data-binary`, and a python inline call.
+* **gmail-commander:** the guard named the right tool but not the right copy of it ([406d93d](https://github.com/terrylica/cc-skills/commit/406d93d8e3f92902acb19831227fc751bf4e0a01))
+The builder was hardened on 2026-07-29 — RFC 2047 headers, list preservation, MIME
+validation, a test gate. Nine commits. They lived ONLY in the installed marketplace
+clone: not on origin, not in the working checkout.
+
+On 2026-07-30 an email to a client was staged by invoking
+`~/eon/cc-skills/.../gmail-draft.ts`, nine commits behind, and re-introduced both
+already-fixed bugs. Three evidence bullets welded into one run-on paragraph with
+hyphens mid-sentence, and an em dash in the subject delivered as "â€”". The guard
+permitted every step, because its allow-rule matched any path ending in
+`scripts/gmail-draft.ts`.
+
+Naming the right tool is not enough when two copies of it exist. The nine commits are
+now pushed, and four things changed here.
+
+THE GUARD NOW NAMES THE COPY
+
+An invocation of a `gmail-draft.ts` that is not the installed marketplace build is
+blocked, with the invoked and expected paths side by side. Deliberate local testing
+takes the existing GMAIL_DRAFT_ADHOC_OK=1 hatch.
+
+THE WRITE DETECTOR WAS WRONG IN BOTH DIRECTIONS AT ONCE
+
+It was `grep -qE '(POST|PUT|PATCH)'` anywhere in the command.
+
+Case-sensitive, so `curl -X put .../drafts` sailed through — a write, permitted. And
+it matched the substring in ordinary prose, so a read-only GET was blocked because
+the same line contained `echo "still intact after the failed PUT?"` — a read,
+refused. That is the worst possible pairing: it teaches people to reach for the
+escape hatch by reflex, and then it is not there when it matters.
+
+Now it looks for an actual method — `-X`/`--request` in any case, `-XPUT` with no
+space, `"method": "..."` — plus curl's IMPLICIT post, which has no method token
+anywhere in the command and was never detected at all.
+
+Twelve cases asserted in both directions: lowercase put, -XPATCH, --request delete,
+implicit -d, a python inline call, and the stale-copy invocation all BLOCK; a GET, a
+GET whose prose says PUT, the installed builder, the escape hatch, and an unrelated
+command all ALLOW.
+
+REPLACE IS AN UPDATE, NOT A CREATE-THEN-DELETE
+
+`--replace` created the new draft and then DELETEd the old one with the failure
+swallowed by a `.catch()`, so a failed delete left TWO drafts and still printed a
+success line with exit 0. For an operator whose standing rule is "everything
+aggregates into ONE draft, never split", that is the worst available failure mode,
+and it is silent. It now uses drafts.update, which replaces in place: no window in
+which zero or two drafts exist, and the draft id stays STABLE across revisions
+instead of accumulating a trail of superseded ids — which is how the wrong draft
+eventually gets sent.
+
+TWO SMALLER ONES, BOTH FOUND BY ADVERSARIAL AUDIT
+
+A URL containing parentheses was truncated at the first one, so
+`…/wiki/Parser_(software)` linked only as far as `…/Parser` and left `_(software)`
+as loose text beside a broken link. Parens are legal in a path (RFC 3986); where the
+URL genuinely ends before one — prose like "(see https://x.dev/a)" — the trailing
+paren is removed by a balance test, which is the only way to tell the two apart.
+Escaping now happens on the raw split rather than before matching, so a URL in angle
+brackets no longer absorbs a trailing "&gt" into its href.
+
+A reply with no --to produced a draft addressed to NOBODY: `To` defaulted to "" and
+was dropped by the empty-value filter, so the operator got a clean success line and a
+draft that could never be sent. A reply now inherits the parent's Reply-To/From, and
+a draft with no recipient at all is refused outright.
+
+7 new tests (21 pass). Guard proven in both directions on 12 cases.
+* **gmail-commander:** the two new "guards" were both broken — one inverted, one failed closed ([5f186c3](https://github.com/terrylica/cc-skills/commit/5f186c385a9c0229b7aaffb42f2e3bcf3f90e8de))
+An automated pass added three hardening layers. Two of them would have broken the Gmail path entirely,
+in opposite directions. Both are fixed here; neither was caught by the pass's own verification, which
+reported "all five layers verified".
+
+1. THE MOJIBAKE DETECTOR WAS INVERTED. It matched byte sequence `e2 80`, on the stated premise that
+   "E2 80 XX is ALWAYS problematic (never appears in legitimate UTF-8)". That premise is false:
+
+       legitimate em dash "—"                        = e2 80 94   <-- it BLOCKED this
+       em dash mis-decoded as Latin-1, re-encoded    = c3 a2 c2 80 c2 94   <-- it PASSED this
+
+   So it blocked every correct message containing an em dash — including the client draft this whole
+   effort exists to send — while letting actual mojibake through untouched. Now matches the
+   double-encode fingerprint (`c3 a2 c2` / `c3 83 c2`), which is the UTF-8 encoding of the Latin-1
+   misreading and is vanishingly rare in genuine text. Proven both directions: legitimate em dash
+   passes, real mojibake blocks.
+
+2. THE READ-BACK VERIFIER FAILED ON EVERY DRAFT. The drafts endpoint returns
+   `{ id, message: { payload } }` — payload is nested under `message`. It read `fetchedDraft.payload`,
+   got undefined, and threw `undefined is not an object` on correct input. A verification layer that
+   fails closed on valid input blocks all mail and gets deleted by whoever it blocks, which is worse
+   than having no layer at all.
+
+The lesson is the same one this bug class keeps teaching: a guard nobody has watched FIRE — and, just
+as importantly, nobody has watched STAY SILENT on good input — is not known to work. Both directions
+must be exercised. Verified end-to-end afterwards by re-issuing the real client draft: builder runs,
+Layer 1 passes, subject renders with a correct em dash.
+* **gmail-commander:** verify the one-draft state, drop the PUT path ([92ea484](https://github.com/terrylica/cc-skills/commit/92ea4846c5903f28dea0a76c4703cece5acbac5f))
+The previous commit's message described this change; the edit itself never ran,
+because the command carrying it was blocked by the very guard being fixed. The file
+still called drafts.update. Caught by running the builder for real rather than
+trusting that the commit matched its own message.
+
+Measured against the live account: drafts.update returns HTTP 200 on a standalone
+draft with a stable id, and HTTP 400 'Message not a draft' on a threaded reply for
+all four request shapes. Almost every client draft is a threaded reply, so PUT fails
+exactly where it is needed.
+
+Create-then-delete stays; the guarantee moves to verification. The delete failure is
+now fatal instead of swallowed, and the thread is then listed and must hold exactly
+one draft. Both steps can report success and still leave the wrong state, so the only
+claim worth making is about what is actually there now.
+
+
+### Features
+
+* **gh-tools:** add the ccmax-monitor release-bot token spec ([0534dcc](https://github.com/terrylica/cc-skills/commit/0534dcc54ce6f0bf6e455ead5fc0e17f0a8a5c6f)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+Sibling specs are all tracked; this one was left untracked and blocked the
+release preflight's clean-tree check. Declarative only — repo scope, three
+repository permissions, no token value (the value goes straight to the SCS
+vault as ccmax-release, per the skill's design).
+* **gmail-commander:** five-layer hardening against RFC 2047 encoding regressions ([70b17b5](https://github.com/terrylica/cc-skills/commit/70b17b577833d2b3046d5769e53d5378cba28e37))
+REGRESSION 2026-07-29: A draft's em-dash Subject was rendered as mojibake
+("â€") because the RFC 2047 encoder had zero test coverage — the function
+could not even be imported for testing (module exited at import time).
+
+ADD FIVE INDEPENDENT DEFENSE LAYERS:
+
+LAYER 0 (function): RFC 2047-encode non-ASCII headers in buildMime() —
+  prevents raw UTF-8 from leaving the encoder.
+
+LAYER 2 (pre-upload): Validate MIME structure and Subject round-trip
+  before sending — catches encoder bugs locally, no wasted API call.
+
+LAYER 1 (post-upload): Read draft back from Gmail and verify it matches
+  what was sent — catches transmission/API corruption.
+
+LAYER 3 (gate): Test-gate guard hook blocks drafts when tests fail —
+  prevents shipping broken builder. Caches test results keyed on builder
+  mtime for performance (batch operations scale, file change invalidates).
+
+LAYER 4 (test): Unit tests + MIME round-trip smoke test — ensures encoder
+  functions are tested and correct, prevents repeating the "untestable
+  function" mistake.
+
+EACH LAYER CATCHES DIFFERENT FAILURE MODES:
+- Layer 0 encodes
+- Layer 2 validates locally
+- Layer 1 verifies on Gmail
+- Layer 3 prevents broken code shipping
+- Layer 4 keeps encoder tested
+
+NONE IS A SUBSTITUTE FOR ANOTHER: all three are defense-in-depth.
+
+FILES CHANGED:
+- hooks/gmail-draft-guard.sh: LAYER 3 (test-gate + caching)
+- scripts/gmail-draft.test.ts: LAYER 4 (MIME round-trip smoke test)
+- scripts/gmail-draft.ts: LAYER 0, 1, 2 (encoding, validation, verification)
+- docs/HARDENING-LAYERS.md: architecture + operational notes (NEW)
+
+VERIFICATION:
+- All 5 tests pass (encodeHeaderValueAsRfc2047EncodedWordIfNonAscii,
+  pure-ASCII passthrough, 75-char RFC limit, multi-byte reassembly,
+  MIME round-trip smoke test)
+- Guard allows drafts when builder is healthy
+- Guard rejects drafts when tests fail (proof: break test, guard blocks)
+- Guard uses cache: ~15ms first run, <1ms cached (mtime-keyed)
+- Escape hatches documented (GMAIL_DRAFT_TEST_GATE_SKIP=1)
+
+RELATED COMMIT: 545ed863 (RFC 2047 encoding + import.meta.main guard)
+* **itp-hooks:** bound hook subprocess memory and concurrency ([caed416](https://github.com/terrylica/cc-skills/commit/caed4165621f711feea4097fc7acdbb9f8e00a63))
+On 2026-07-30 this machine froze hard enough to need a power cycle, twice in 38
+minutes. The kernel's own jetsam report names the cause, and it was not the app
+anyone suspected:
+
+    /Library/Logs/DiagnosticReports/JetsamEvent-2026-07-30-115148.ips
+    largestProcess: ty
+    ty x5   ->  73,442 MB   (21.0 / 19.1 / 15.8 / 15.8 GB + 7 MB)
+    iTerm2        1,547 MB
+    compressor    157,861 -> 1,163,083 pages between the 11:15 and 11:51 events
+
+`ty` is spawned by this plugin's PostToolUse hook after EVERY .py/.pyi Write|Edit,
+in EVERY concurrent Claude Code session. Four sessions were editing Python at
+once. Measured normal behaviour on that same project: 35-47 MB for one file,
+119 MB for the whole project, 473 MB for four concurrent whole-project runs. So
+15-21 GB per process is a tool pathology, not a scaling curve -- but nothing in
+the hook bounded it, and the fault recurred after its own reboot because nothing
+ever reported it either.
+
+The guardrails already present could not have stopped this. AbortSignal.timeout
+bounds DURATION: the report shows those processes were 7.2-8.9 s old and already
+at 15.8-21.0 GB, having outlived the 4 s deadline -- and Bun's default killSignal
+is SIGTERM, which a process cannot honour promptly while the compressor thrashes.
+maxBuffer bounds OUTPUT SIZE, which was never the problem.
+
+macOS offers no kernel memory cap. Probed directly through libc on this kernel:
+RLIMIT_AS, RLIMIT_RSS, RLIMIT_DATA and RLIMIT_STACK all return EINVAL(22) at
+every value from 0.1 GB to 64 GB, and `ulimit -v`/`-d` are rejected outright with
+"setrlimit failed: invalid argument". RLIMIT_CPU is the sole memory-adjacent
+limit this kernel accepts, and it is genuinely enforced (SIGXCPU, verified).
+Advice to "just set ulimit -v" is folklore here.
+
+So the guard is three layers, ordered by leverage:
+
+- Machine-wide concurrency slots (default 2). The incident REQUIRED four
+  simultaneous processes, so this is the only layer that helps when each process
+  is individually plausible but the fleet is not. O_EXCL slot files under /tmp,
+  reclaimed by holder liveness (kill(pid,0)) with an age backstop for pid reuse.
+  Non-blocking by design: a type check is advisory, so a busy slot SKIPS rather
+  than queueing a hook behind an unrelated session's subprocess.
+- RSS watchdog, SIGKILL above 1500 MB (~12x the measured whole-project peak).
+  The only real memory bound obtainable on macOS. SIGKILL and never SIGTERM,
+  because the incident showed SIGTERM'd processes surviving seconds at 20 GB.
+- Kernel-enforced `ulimit -t` CPU ceiling via `sh -c '...; exec ...'`, so a
+  runaway still dies if this Bun process is itself starved and its timer never
+  runs. `exec` keeps the reported pid equal to the tool's, which the watchdog
+  needs.
+
+Free on the hot path: the watchdog's first poll is deferred 300 ms, past a normal
+check's entire lifetime, so a healthy subprocess is never probed and spawns no
+`ps` at all. Only an already-misbehaving process pays.
+
+A memory kill is surfaced to the operator, not swallowed -- silence is exactly
+how this recurred after its first reboot.
+
+The guard is opt-in per tool via `residentMemoryGuardedToolName` and lives in the
+shared spawn helper, so tsc/oxlint/biome can adopt it without duplication. Only
+`ty` is enabled here.
+
+Tests: 11 new, covering slot exhaustion at exactly N, dead-holder reclaim,
+live-holder protection, SIGKILL above ceiling, no false positive below it, disarm
+after exit (pid-reuse safety), argv quoting against filename injection (asserted
+behaviourally -- the escaped text does appear in the command string, so a
+substring assertion would fail while the code is correct), and that RLIMIT_CPU is
+still enforced by this kernel. Every allocation is capped at 120 MB so the suite
+can never reproduce the failure it guards. Full suite: 948 pass, 0 fail.
+
+Verified end to end through the real helper: four simultaneous guarded runs ->
+exactly 2 ran, 2 skipped; a 132 MB peak correctly NOT killed.
+
+SRED-Type: support-work
+SRED-Claim: CC-SKILLS
+
 ## [23.0.1](https://github.com/terrylica/cc-skills/compare/v23.0.0...v23.0.1) (2026-07-28)
 
 
