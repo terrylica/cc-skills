@@ -169,7 +169,62 @@ export function blocksToPlainText(blocks: BodyBlock[]): string {
 }
 
 const escapeHtml = (s: string): string => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
-const linkify = (s: string): string => s.replaceAll(/(https?:\/\/[^\s<>"()]+[^\s<>"().,;:!?])/g, '<a href="$1">$1</a>');
+/**
+ * A bare http(s) URL, as a SPLIT pattern so the surrounding prose can be escaped separately.
+ *
+ * Parentheses are deliberately ALLOWED inside the match. RFC 3986 permits them in a path, and the
+ * previous character class excluded them, so `https://en.wikipedia.org/wiki/Parser_(software)` linked
+ * only as far as `…/Parser` and left `_(software)` as loose text beside a broken link. Where the URL
+ * genuinely ends before a paren — prose like "(see https://x.dev/a)" — the trailing paren is removed
+ * afterwards by a BALANCE test, which is the only way to tell those two cases apart.
+ */
+const URL_SPLIT_PATTERN = /(https?:\/\/[^\s<>"'[\]]+)/g;
+
+/** Sentence punctuation that trails a URL in prose and is not part of the address. */
+const URL_TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+/**
+ * Split a matched URL into the address and whatever prose punctuation trailed it.
+ *
+ * Two passes, because they interact: "…/Foo_(bar)." must lose the full stop and KEEP the paren,
+ * while "(see …/a)." must lose both.
+ */
+function splitUrlFromTrailingProse(raw: string): { url: string; tail: string } {
+  let url = raw;
+  let tail = "";
+  const punctuation = URL_TRAILING_PUNCTUATION.exec(url);
+  if (punctuation) {
+    tail = punctuation[0];
+    url = url.slice(0, -punctuation[0].length);
+  }
+  // An unbalanced ")" closes a bracket the PROSE opened, not one the URL did.
+  while (url.endsWith(")") && (url.match(/\)/g) ?? []).length > (url.match(/\(/g) ?? []).length) {
+    url = url.slice(0, -1);
+    tail = `)${tail}`;
+  }
+  return { url, tail };
+}
+
+/**
+ * Escape text and linkify bare URLs in ONE pass over the RAW string.
+ *
+ * Escaping first and linkifying after runs the matcher over "&amp;" and "&gt;", so a URL written
+ * inside angle brackets absorbs a trailing "&gt" into its href. Splitting the raw text and escaping
+ * each side separately avoids that class entirely.
+ */
+export function escapeAndLinkify(text: string): string {
+  // Odd indices are the captured URLs; even indices are the prose between them.
+  return text
+    .split(URL_SPLIT_PATTERN)
+    .map((part, index) => {
+      if (index % 2 === 0) return escapeHtml(part);
+      const { url, tail } = splitUrlFromTrailingProse(part);
+      if (!url) return escapeHtml(part);
+      const safe = escapeHtml(url);
+      return `<a href="${safe}">${safe}</a>${escapeHtml(tail)}`;
+    })
+    .join("");
+}
 
 /**
  * Render blocks as the text/html part.
@@ -180,7 +235,7 @@ const linkify = (s: string): string => s.replaceAll(/(https?:\/\/[^\s<>"()]+[^\s
  * renumbered by the client.
  */
 export function blocksToHtml(blocks: BodyBlock[]): string {
-  const render = (s: string): string => linkify(escapeHtml(s));
+  const render = (s: string): string => escapeAndLinkify(s);
   const body = blocks
     .map((b) => {
       if (b.kind === "prose") return `<p>${render(b.text)}</p>`;
@@ -195,7 +250,7 @@ export function blocksToHtml(blocks: BodyBlock[]): string {
 }
 
 function toHtml(paras: string[]): string {
-  const body = paras.map((p) => `<p>${linkify(escapeHtml(p))}</p>`).join("\n");
+  const body = paras.map((p) => `<p>${escapeAndLinkify(p)}</p>`).join("\n");
   return `<div dir="ltr">\n${body}\n</div>`;
 }
 
@@ -457,22 +512,35 @@ if (import.meta.main) {
   let subject = args.subject;
   let inReplyTo: string | undefined;
   let references: string | undefined;
+  let inheritedTo: string | undefined;
   if (args.replyTo) {
-    const m = await api(at, `messages/${args.replyTo}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=Subject`);
+    const m = await api(
+      at,
+      `messages/${args.replyTo}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Reply-To`,
+    );
     const hs = Object.fromEntries(((m.payload as { headers: Array<{ name: string; value: string }> }).headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
     threadId = m.threadId as string;
     inReplyTo = hs["message-id"];
     references = `${hs.references ?? ""} ${hs["message-id"] ?? ""}`.trim() || undefined;
     subject = subject ?? (hs.subject?.startsWith("Re:") ? hs.subject : `Re: ${hs.subject}`);
+    // A reply with no --to produced a draft addressed to NOBODY: `To` defaulted to "" and was then
+    // dropped by buildMime's empty-value filter, so the operator got a clean success line and a draft
+    // that could never be sent. Inherit the parent's Reply-To/From, which is what a reply means.
+    inheritedTo = hs["reply-to"] ?? hs.from;
   }
   if (!subject) throw new Error("no --subject and no --reply-to to derive it from");
+
+  const to = args.to ?? inheritedTo;
+  if (!to && !args.cc) {
+    throw new Error("draft would have no recipient: pass --to (or --cc), or --reply-to a message whose sender can be inherited");
+  }
 
   const md = await Bun.file(args.body).text();
   const blocks = splitBodyIntoBlocks(md);
   const mime = buildMime(
     {
       From: args.from,
-      To: args.to ?? "",
+      To: to ?? "",
       Cc: args.cc ?? "",
       Subject: subject,
       "In-Reply-To": inReplyTo ?? "",
@@ -490,10 +558,25 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  const draft = await api(at, "drafts", "POST", { message: { raw: b64url(mime), ...(threadId ? { threadId } : {}) } });
+  const message = { raw: b64url(mime), ...(threadId ? { threadId } : {}) };
+
+  // REPLACE IS AN UPDATE, NOT A CREATE-THEN-DELETE.
+  //
+  // The old path created the new draft and then DELETEd the old one with the failure swallowed by a
+  // `.catch()`, so a failed delete left TWO drafts in the account and still printed a success line
+  // on stdout with exit 0. For an operator whose standing rule is "everything aggregates into ONE
+  // draft, never split", that is the worst available failure mode — and it is silent.
+  //
+  // Gmail's drafts.update replaces the message in place, so there is no window in which zero or two
+  // drafts exist, and the draft id stays STABLE across revisions instead of changing on every edit.
+  // A stable id is what lets a handoff note name the draft once instead of accumulating a trail of
+  // superseded ids, which is how the wrong draft gets sent.
+  const draft = args.replace
+    ? await api(at, `drafts/${args.replace}`, "PUT", { id: args.replace, message })
+    : await api(at, "drafts", "POST", { message });
 
   // ── LAYER 1: Verify the draft round-trips correctly ──
-  const createdDraftId = draft.id as string;
+  const createdDraftId = (draft.id as string) ?? args.replace!;
   try {
     await assertCreatedDraftMatchesWhatWeSent(at, createdDraftId, subject);
   } catch (e) {
@@ -503,9 +586,13 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  if (args.replace) {
-    await api(at, `drafts/${args.replace}`, "DELETE").catch((e: unknown) => console.error(`(stale draft ${args.replace} delete failed: ${(e as Error).message})`));
-  }
-  const out = { draftId: createdDraftId, threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null, account: args.account };
+  // No delete step: the update above replaced the draft in place, so there is no stale copy to
+  // clean up and no failure path that can leave two drafts behind.
+  const out = {
+    draftId: createdDraftId,
+    threadId: ((draft.message as Record<string, unknown>)?.threadId as string) ?? threadId ?? null,
+    account: args.account,
+    replaced: args.replace ?? null,
+  };
   console.log(JSON.stringify(out));
 }
