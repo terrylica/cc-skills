@@ -139,6 +139,13 @@ case "$CMD" in
     exit 0
     ;;
   *scripts/gmail-draft.ts*)
+    # Only an INVOCATION is interesting. Reading, grepping, type-checking or `bun test`-ing the file
+    # is not staging a draft, and blocking those made plugin development itself require the escape
+    # hatch on every command — which is precisely how a hatch stops meaning anything. The builder's
+    # own required flags are the discriminator: nothing else passes --account/--body/--from.
+    if ! printf %s "$CMD" | grep -qE -- '--(account|body|from)([[:space:]]|=)'; then
+      exit 0
+    fi
     # LAYER 4 (2026-07-30): the right TOOL from the WRONG COPY.
     #
     # This rule used to allow any path ending in `scripts/gmail-draft.ts`. On 2026-07-29 the builder

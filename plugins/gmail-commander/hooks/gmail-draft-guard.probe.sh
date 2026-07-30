@@ -40,4 +40,12 @@ probe BLOCK 'implicit POST via -d'   "curl -d '{}' $DRAFTS"
 probe BLOCK 'implicit via --data-binary' "curl --data-binary @m.json $DRAFTS"
 probe BLOCK 'python inline method'   "python3 -c 'requests.request(method=\"POST\", url=\"$DRAFTS\")'"
 
+echo "MUST ALLOW — working ON the builder is not staging a draft"
+# Blocking these made plugin development itself require the escape hatch on every command, which is
+# how a hatch stops meaning anything. The builder's own required flags are the discriminator.
+probe ALLOW 'bun test the builder suite' "bun test $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.test.ts"
+probe ALLOW 'bun build the builder'      "bun build $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts --target=bun"
+probe ALLOW 'grep the builder'           "grep -n linkify $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
+probe ALLOW 'read the builder'           "cat $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
+
 exit "$fail"
