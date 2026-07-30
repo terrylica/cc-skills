@@ -101,7 +101,15 @@ export async function classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchest
     const tyExecutionResult =
       await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
         ["ty", "check", filePath, "--python-version", "3.14", "--output-format", "concise"],
-        { timeoutMs: TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS },
+        {
+          timeoutMs: TY_SUBPROCESS_COOPERATIVE_TIMEOUT_MILLISECONDS,
+          // Incident 2026-07-30: four concurrent `ty` reached 73 GB and froze the
+          // machine (jetsam named ty as largestProcess; iTerm2 was 1.5 GB). The
+          // timeout above did not help — those processes were 7-9 s old and already
+          // at 15-21 GB, having outlived a 4 s SIGTERM. Duration is the wrong axis;
+          // this bounds memory and concurrency instead.
+          residentMemoryGuardedToolName: "ty",
+        },
       );
 
     if (tyExecutionResult.spawnFailed) {
@@ -124,6 +132,31 @@ ty is 60x faster than mypy (4.7ms incremental) — fast enough to run on every e
     }
 
     if (tyExecutionResult.timedOut) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+
+    // Slots busy => another session is already type-checking. Advisory check, skip quietly.
+    if (tyExecutionResult.skippedBecauseConcurrencySlotsBusy) {
+      return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
+    }
+
+    // A memory kill is NOT swallowed. The 2026-07-30 fault recurred within 38 minutes of
+    // its own reboot precisely because nothing ever said it had happened — the machine
+    // just froze twice. One line here is the difference between a known tool bug and
+    // another power-cycle.
+    if (tyExecutionResult.killedForExceedingMemoryCeiling) {
+      return buildPostToolUseAdditionalContextDecision(
+        `[TY] Type check ABORTED — ty exceeded its memory ceiling (peak ~${Math.round(
+          tyExecutionResult.observedPeakResidentMegabytes ?? 0,
+        )} MB) and was killed.
+
+This is the 2026-07-30 failure mode: four concurrent ty processes reached 73 GB and froze
+the machine. Normal ty usage on a whole project is ~119 MB, so this indicates a ty bug on
+this input, not a large project.
+
+Type checking was skipped for this edit. Nothing else is affected.
+Consider: \`uv tool upgrade ty\` (installed build may predate a fix), and report the file
+that triggered it upstream at https://github.com/astral-sh/ty/issues`,
+      );
+    }
 
     if (tyExecutionResult.exitCode === 2 || tyExecutionResult.exitCode === 101) {
       return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
