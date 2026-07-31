@@ -10,6 +10,7 @@ This file is the hub. Facts live in exactly one place:
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | How to parse a document, flags, backends    | [`skills/unlimited-ocr-parse-document/SKILL.md`](skills/unlimited-ocr-parse-document/SKILL.md) |
 | How to split a composite figure into panels | [`skills/unlimited-ocr-segment-figure/SKILL.md`](skills/unlimited-ocr-segment-figure/SKILL.md) |
+| How to batch parse a folder with resume     | [`skills/unlimited-ocr-batch-folder/SKILL.md`](skills/unlimited-ocr-batch-folder/SKILL.md)     |
 | Every measurement, with hardware and date   | [`references/EMPIRICAL.md`](references/EMPIRICAL.md)                                           |
 | Every trap, with the evidence that found it | [`references/PITFALLS.md`](references/PITFALLS.md)                                             |
 | Why this plugin is Python                   | [`python-allowlist.toml`](python-allowlist.toml)                                               |
@@ -154,8 +155,8 @@ Nothing to install. `uv run` materialises the script's own dependencies from its
 3. **This CLI never sends more than one image per forward pass.** Measured: single-pass multi-image
    recovered 1 of 3, 4 of 5 and 0 of 10 pages; one call per page recovered 100 % in every
    condition. The model's headline multi-page capability is deliberately unused.
-4. **Tables come back as HTML by default, but convert to pipe-markdown with the default flag.**
-   Measured: 88 of 103 real tables. Pass `--table-format pipe` (default) to convert HTML to
-   pipe-markdown, or `--table-format html` to keep raw HTML.
+4. **The MODEL writes tables as HTML `<table>`, never pipe-markdown** — measured at 88 of 103 real
+   tables, the other 15 as prose. The CLI converts them for you: `--table-format` defaults to
+   `pipe`. Pass `--table-format html` to keep the model's own serialization.
 
 Full list, with evidence: [`references/PITFALLS.md`](references/PITFALLS.md).

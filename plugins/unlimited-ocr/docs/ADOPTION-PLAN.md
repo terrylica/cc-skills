@@ -1,6 +1,6 @@
 # Unlimited-OCR adoption plan
 
-**Status as of 2026-07-30.** The plugin exists and is committed (`feat(unlimited-ocr): local
+**Status as of 2026-07-31.** The plugin exists and is committed (`feat(unlimited-ocr): local
 document parsing on MLX and CUDA`). This file tracks what remains: proving the code, and deciding
 where the model actually earns its place in the work already on this machine.
 
@@ -34,7 +34,7 @@ Every one of these encodes a finding that cost real measurement to obtain. A reg
 `collapse_math_character_spacing` would silently reintroduce the cross-model-agreement failure it
 was written to prevent, and nothing would fail.
 
-**Delivered: `tests/test_pure_functions.py`, 58 tests, 0.19 s, no GPU/network/weights.** Verified by
+**Delivered: `tests/test_pure_functions.py`, 87 tests, ~0.2 s, no GPU/network/weights.** Verified by
 independent mutation testing rather than by inspection — six mutations applied to production, all
 six caught. Two real defects were found in the process: the withheld-prompt gate could be disabled
 without any test noticing, and `find_spec` raised instead of answering on a Mac without mlx, so
@@ -52,6 +52,11 @@ this line of work should be dropped rather than pursued.
 uniformly across all nine decades returned hundreds to thousands of characters per page from a plain
 text-layer read. Existing extraction already measures 97.9 % word recall against an independent
 vision benchmark. There is nothing to OCR. Recorded in the hub so the idea is not re-proposed.
+
+**REOPENED 2026-07-31, on one narrow ground only.** The drop verdict answered "is there text to
+recover?", and the answer is still no. It never asked whether TASC's FIGURES were segmented — they
+were not, and figure segmentation is the one capability nothing else in this stack has. That is a
+different question from OCR and is tracked as its own experiment below. The OCR verdict stands.
 
 ## Phase 3 — wire it where it belongs — MEASURED
 
@@ -74,13 +79,27 @@ vision benchmark. There is nothing to OCR. Recorded in the hub so the idea is no
   rather than stage 05's gate. Evidence, including both corrections:
   [`references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](../references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
 
-- **quantml stages 08/09 — SPECIFIED, NOT BUILT.** Academic PDFs remain the strongest fit, but this
-  work stops at the plugin boundary. Nothing under `~/eon/quantml` has been modified.
+- **`--table-format`, defaulting to pipe-markdown — DONE.** The model emits HTML `<table>` for 88 of
+  103 real tables and never pipe-markdown, so any markdown assembled from its output embedded raw
+  HTML and any comparison against another reader measured markup. Shipped with the converter that
+  the stage 05 measurement needed, hardened against six reviewer-found defects.
+
+- **quantml stages 08/09 and a no-gate audit reader — IN PROGRESS.** Stage 08 is parsing rather than
+  voting, so no agreement gate applies and it remains the strongest fit. Stage 09 is being measured
+  the same way stage 05 was, against its OWN gate, before anything is wired. The audit reader needs
+  no gate at all and is the use the stage 05 verdict explicitly left open.
 
 ## Phase 4 — release
 
-`feat` bumps the whole repository (uniform versioning, currently 23.1.0 → 23.2.0, all 43 plugins).
-That blast radius is why it is a separate, deliberate step rather than a side effect.
+Uniform versioning: any `feat` bumps the whole repository and all 43 plugins together. That blast
+radius is why releasing is a separate, deliberate step rather than a side effect.
+
+- **23.2.0 — SHIPPED 2026-07-31.** Carried the plugin, the stage 05 verdict and its reversal.
+  One lesson recorded there: semantic-release renders `feat` and `fix` bodies into the notes and
+  DROPS `docs` bodies, so the retracted stage 05 verdict was published while its retraction was not.
+  Both the GitHub release and the changelog were annotated by hand. A correction that must appear in
+  generated notes has to ship as `fix`.
+- **23.3.0 — PENDING.** `--table-format` is a `feat`, so the bump is already MINOR.
 
 ---
 
@@ -92,3 +111,6 @@ That blast radius is why it is a separate, deliberate step rather than a side ef
 | Can it serve as a third reader in quantml stage 05?           | Run it over every `FORMULA` and `TABLE` image in the corpus that already carries both existing transcriptions, and score with stage 05's own `findDiscrepancy()` gate. | **ANSWERED: NO** — 0/24 formulas, 1/103 tables, 0 deadlocks broken (see [`references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](../references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md)) |
 | Is the TASC corpus scanned?                                   | Phase 2.                                                                                                                                      | DONE                                                                                                                 |
 | Does `--collapse-math-spacing` ever corrupt valid LaTeX?      | Phase 1 — property tests over `\left\{`, `\begin{array}`, multi-letter commands, and text mode.                                               | DONE                                                                                                                 |
+| Can it serve as a third reader in quantml stage **09**?       | Render all 198 math regions at 300 DPI from their stored bounding boxes, run the model per region, and score with stage 09's OWN gate (`normalizeLatexForSemanticComparison` + exact match) — not a similarity ratio. | IN FLIGHT |
+| Does segmenting TASC figures recover anything the text layer cannot? | Sample real TASC pages, segment, and compare against what the born-digital text layer already yields. If nothing, the drop verdict stands unchanged. | OPEN |
+| Does it disagree usefully with the settled quantml corpus?    | Transcribe corpus images and report disagreements for a human. No gate, no writeback — so none of the stage 05 agreement problems apply. | OPEN |

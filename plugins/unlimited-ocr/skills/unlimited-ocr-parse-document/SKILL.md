@@ -116,10 +116,10 @@ If you need the _content_ of a chart, use
 [`unlimited-ocr-segment-figure`](../unlimited-ocr-segment-figure/SKILL.md) to crop each panel and
 hand the crops to a model that does describe images.
 
-**It writes tables as HTML by default, but can convert to pipe-markdown.** Measured over 103 real
-tables: 88 came back as `<table>` markup and 15 as prose; none as pipe-markdown. Pass
-`--table-format pipe` (the default) to convert HTML `<table>` to pipe-markdown before output; use
-`--table-format html` to keep raw HTML. Pipe-markdown is suitable for concatenating into markdown
+**The model writes tables as HTML `<table>`, never as pipe-markdown.** Measured over 103 real
+tables: 88 came back as `<table>` markup and 15 as prose; none as pipe-markdown. The CLI converts
+them for you — `--table-format` defaults to `pipe`; pass `--table-format html` to keep the model's
+own serialization. Pipe-markdown is suitable for concatenating into markdown
 documents and for comparing against other readers (M3, GLM-4.6v) which emit pipe-markdown natively.
 
 Other limits, all with evidence, in [`../../references/PITFALLS.md`](../../references/PITFALLS.md):
