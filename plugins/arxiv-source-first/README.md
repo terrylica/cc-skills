@@ -22,14 +22,14 @@ Same paper, same formulas, two routes — arXiv:2605.00501:
 
 | | Authors' LaTeX | Unlimited-OCR on the PDF |
 | --- | --- | --- |
-| Mean token overlap vs source | — | 0.948 |
-| Exact after normalisation | — | 0 of 28 |
-| **Compiles under pdfTeX** | **27/28** | **44/55 — 80 %** |
-| Unbalanced braces | 0 of 28 | 21 of 55 |
+| Mean token overlap vs source | — | 0.958 |
+| Exact after normalisation | — | 13 of 55 |
+| **Compiles under pdfTeX** | **54/55 — 98 %** | **27/55 — 49 %** |
+| Unbalanced braces | 0 of 55 | 21 of 55 |
 
 The lone source failure is an author-defined macro the minimal test preamble does not load.
 
-A mean similarity of 0.948 and a one-in-five compile failure describe the same data. Similarity
+A mean similarity of 0.958 and a fifty-percent compile rate describe the same data. Similarity
 answers "does this look like the formula"; it cannot answer "can I use this".
 
 ## When to OCR instead
