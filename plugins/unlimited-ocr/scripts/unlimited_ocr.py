@@ -137,8 +137,10 @@ DETECTION_MARKER_PATTERN = re.compile(
 #: The normalised coordinate ceiling the model emits against.
 DETECTION_COORDINATE_SPACE = 1000
 
-#: Tokenizer artefacts that leak into decoded text on the MLX path.
-TOKENIZER_ARTEFACT_REPLACEMENTS = (("Ġ", " "), ("Ċ", "\n"))
+#: Reverse of the GPT-2 byte-level-BPE alphabet: surface character -> the byte it stands for.
+#:
+#: Built once at import. See `decode_byte_level_bpe_surface_form` for why this is needed at all.
+BYTE_LEVEL_BPE_SURFACE_CHARACTER_TO_BYTE: dict[str, int] = {}
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
 
@@ -188,11 +190,66 @@ class ParseResult:
 # ─────────────────────────────────────────────────────────────── text repair
 
 
-def strip_tokenizer_artefacts(text: str) -> str:
-    """Undo the byte-level BPE markers mlx-vlm leaves in decoded output."""
-    for needle, replacement in TOKENIZER_ARTEFACT_REPLACEMENTS:
-        text = text.replace(needle, replacement)
-    return text
+def _build_byte_level_bpe_surface_alphabet() -> dict[int, str]:
+    """
+    The GPT-2 byte-level-BPE alphabet: byte value -> the printable character standing in for it.
+
+    Bytes that are already printable ASCII map to themselves; every other byte is displaced into a
+    private range so that any byte sequence is representable as printable text. This is the standard
+    construction shared by GPT-2, RoBERTa, DeepSeek and this model's tokenizer.
+    """
+    printable_bytes = (
+        list(range(ord("!"), ord("~") + 1))
+        + list(range(ord("\u00a1"), ord("\u00ac") + 1))
+        + list(range(ord("\u00ae"), ord("\u00ff") + 1))
+    )
+    surface_codepoints = printable_bytes[:]
+    displaced = 0
+    for byte_value in range(2**8):
+        if byte_value not in printable_bytes:
+            printable_bytes.append(byte_value)
+            surface_codepoints.append(2**8 + displaced)
+            displaced += 1
+    return {b: chr(c) for b, c in zip(printable_bytes, surface_codepoints)}
+
+
+BYTE_LEVEL_BPE_SURFACE_CHARACTER_TO_BYTE.update(
+    {surface: byte for byte, surface in _build_byte_level_bpe_surface_alphabet().items()}
+)
+
+
+def decode_byte_level_bpe_surface_form(text: str) -> str:
+    """
+    Recover real UTF-8 from the byte-level-BPE surface form mlx-vlm returns.
+
+    WITHOUT THIS, EVERY NON-ASCII CHARACTER IS DESTROYED. The MLX path hands back the tokenizer's
+    surface form rather than decoded text, so each BYTE of a multi-byte UTF-8 character arrives as
+    its own stand-in character. Chinese is the obvious casualty and it is total:
+
+        8æľĪ                          ->  8月
+        åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ  ->  反向日内逆转的频率
+        âĳł                           ->  ①
+
+    That is not cosmetic on a Chinese corpus — it is the difference between a transcription and
+    nothing. It went unnoticed at first because the early test images were formula-only or English,
+    where the surface form and the decoded text coincide.
+
+    An earlier version replaced only `Ġ` with a space and `Ċ` with a newline. Those two are the
+    same phenomenon: `Ġ` is the surface form of byte 0x20 and `Ċ` of byte 0x0A. Patching the two
+    most visible symptoms left every other byte mangled, and it also explains the stray `âľī`
+    previously recorded as an isolated mojibake of `✉` — it was never isolated.
+
+    Characters absent from the alphabet are passed through as themselves, so text that has ALREADY
+    been decoded survives unchanged and the function is safe to apply to either form.
+    """
+    recovered_bytes = bytearray()
+    for character in text:
+        byte_value = BYTE_LEVEL_BPE_SURFACE_CHARACTER_TO_BYTE.get(character)
+        if byte_value is None:
+            recovered_bytes.extend(character.encode("utf-8"))
+        else:
+            recovered_bytes.append(byte_value)
+    return recovered_bytes.decode("utf-8", errors="replace")
 
 
 def collapse_math_character_spacing(text: str) -> str:
@@ -512,7 +569,7 @@ class UnlimitedOcrRunner:
                 repetition_penalty=repetition_penalty,
                 verbose=False,
             )
-            return strip_tokenizer_artefacts(getattr(output, "text", str(output)))
+            return decode_byte_level_bpe_surface_form(getattr(output, "text", str(output)))
 
         model, tokenizer, _ = self._load()
         with tempfile.TemporaryDirectory() as output_dir:
@@ -529,7 +586,7 @@ class UnlimitedOcrRunner:
                 ngram_window=128,
                 save_results=False,
             )
-        return strip_tokenizer_artefacts(result if isinstance(result, str) else str(result))
+        return decode_byte_level_bpe_surface_form(result if isinstance(result, str) else str(result))
 
 
 # ─────────────────────────────────────────────────────────────── input handling
