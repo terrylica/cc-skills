@@ -1,3 +1,250 @@
+# [23.3.0](https://github.com/terrylica/cc-skills/compare/v23.2.0...v23.3.0) (2026-07-31)
+
+
+### Bug Fixes
+
+* **arxiv-source-first:** correct ground-truth numbers I got wrong ([6cff9ec](https://github.com/terrylica/cc-skills/commit/6cff9ec61f2e242bc3fd8b1399b9ccb6916785a8))
+The measurement shipped in d8227ca6 reported 28 ground-truth equations and an
+80 % OCR compile rate. Both were artifacts of this project's own tooling. The
+honest figures:
+
+                                    authors' LaTeX   OCR of the PDF
+    display equations                     55              55 candidates
+    mean token overlap                     —              0.958
+    exact after normalisation              —              13 of 55
+    COMPILES UNDER pdfTeX               54/55 (98%)     27/55 (49%)
+    unbalanced braces                    0/55            21/55
+
+FEWER THAN HALF the formulas read off the PDF compile. The retracted 80 % made
+OCR look merely lossy; 49 % makes it unusable without a TeX gate.
+
+FOUR BUGS, EVERY ONE CAUGHT BY A DISAGREEMENT RATHER THAN BY INSPECTION.
+
+1. The extractor was blind to raw `\[ … \]` delimiters and only scanned
+   `\begin{env}`. Caught when it reported 5 equations for arXiv:2402.02592 where
+   OCR reported 14 — the OCR was right. On the measured paper this hid 27 OF 55
+   equations, so the published "28" was barely half the paper. An extractor that
+   silently returns a subset is worse than one that fails, because the number it
+   returns looks like an answer.
+
+2. Reused job directories across the two compile batches: the second batch found
+   the first batch's leftover formula.pdf and scored a pass for it. THIS PRODUCED
+   THE 80 %. Caught only because the OCR figure moved from 44/55 to 54/55 when
+   nothing but the SOURCE input had changed — an impossible result. Directories
+   are now namespaced by batch.
+
+3. A shared -output-directory across concurrent jobs, which made the harness
+   report 0 of 28 for the authors' own published LaTeX.
+
+4. A `.timeout()` call that does not exist on Bun 1.3, throwing a TypeError that a
+   bare `catch {}` recorded as a failed compile.
+
+Bugs 3 and 4 were already documented; 1 and 2 are new, and 2 is the one that
+mattered because it produced a plausible number rather than an absurd one. A
+harness that reports 0/28 for a published paper gets questioned immediately. One
+that reports 80 % gets believed and published.
+
+All four are now recorded in the reference document under "Three harness bugs",
+kept deliberately: the pattern is that every one surfaced from two measurements
+disagreeing, never from re-reading the code.
+
+Propagated the corrected figures to the plugin README, the skill, unlimited-ocr's
+pitfall 13 and its hub item 5, which all quoted the retracted 80 %.
+
+Verified: 44 plugins validate, sandwich intact, every relative link resolves, and
+both compile batches re-run from clean directories.
+* **itp-hooks:** Migrate Stop hook to guarded async subprocess execution ([ead3c4b](https://github.com/terrylica/cc-skills/commit/ead3c4bd360400f807682b2de20166941d182c28))
+Incident 2026-07-31: Unguarded ty project-wide check reached 14.4 GB on session
+exit. Multiple concurrent sessions exiting can trigger several whole-tree `ty check
+.` runs simultaneously — the exact pattern that caused 2026-07-30 (73 GB across 4
+concurrent runs, kernel freeze). The Stop hook now uses the async spawn path with
+full resource guards: machine-wide concurrency slots, RSS watchdog (1500 MB ceiling),
+and kernel-enforced CPU ceiling, reusing infrastructure from iter-95 shared helper
+and iter-124 watchdog.
+
+Stop hook mirrors per-file PostToolUse check (which is guarded) rather than being a
+separate unguarded path. Duration is wrong axis; memory and concurrency are the
+layers that matter. Includes 5 new tests.
+* **itp-hooks:** restore pueue-wrap-guard to the last PreToolUse slot ([8e2b566](https://github.com/terrylica/cc-skills/commit/8e2b566748a5d598ec3823d7e0b26b0e725e0991)), closes [#15897](https://github.com/terrylica/cc-skills/issues/15897)
+The headless-claude-p-guard was registered as a new matcher group appended AFTER
+
+
+### Features
+
+* **arxiv-source-first:** read papers from source, not rendering ([3ea2c8b](https://github.com/terrylica/cc-skills/commit/3ea2c8bb2069643f9b689262442fedcbff8fc128))
+A session in ~/eon/alpha-forge left one item explicitly open: several specific
+figures from arXiv:2605.00501 "could not be verified — treat as unverified until
+someone reads the PDF", and one number quoted alongside them was outright
+fabricated. Reading the PDF was the wrong instruction. For an arXiv paper the PDF
+is a RENDERING of something obtainable losslessly.
+
+arxiv.org/e-print/<id> serves the authors' own LaTeX. It carries the exact
+formulas, their labels, and which of them are stated propositions rather than
+steps inside a proof — structure that does not survive into a rendering, so no
+vision model can recover it at any quality.
+
+THE MEASUREMENT THAT MOTIVATES THE PLUGIN. Same paper, same formulas, two routes:
+
+                                    authors' LaTeX   OCR of the PDF
+    mean token overlap vs source          —              0.948
+    exact after normalisation             —              0 of 28
+    COMPILES UNDER pdfTeX               27/28          44/55  (80%)
+    unbalanced braces                    0/28           21/55
+
+Every prior accuracy claim about OCR on this machine compared one model against
+ANOTHER MODEL — agreement, not correctness. An e-print is not a second opinion,
+it is the answer key, and this is the first time one has been used.
+
+A mean similarity of 0.948 and a one-in-five compile failure describe the same
+data. Similarity answers "does this look like the formula"; it cannot answer "can
+I use this", and the two come apart exactly where it matters — a dropped brace
+costs two percent of similarity and one hundred percent of usability.
+
+A NEW DEFECT IN UNLIMITED-OCR, recorded there as pitfall 13: it fuses a LaTeX
+command with the identifier that follows. `\neqi` for `\neq i` (5 times),
+`\DeltaRankIC` for `\Delta\text{RankIC}` (2), `\equivP`, `\logP` — with the
+correctly-spaced form appearing ZERO times, so it is systematic. The obvious
+suspect was our own --collapse-math-spacing; that was tested directly and returns
+all four inputs unchanged. The fusion is the model's. It is fluent, plausible,
+scores 0.97 against the true formula, and does not compile.
+
+WHAT SHIPS. A Rust extractor (pulldown-latex) emitting one record per display
+equation with its label, environment, enclosing theorem environment and title,
+whether the authors boxed it, the verbatim LaTeX and MathML — 28 of 28 rendered on
+the test paper. A Rust validity oracle for parse-and-brace-balance checks. A Bun
+harness that compiles each formula with a real TeX engine, which is the only test
+that answers the usability question.
+
+Tools live under skills/ rather than a top-level tools/ because the L3 cache
+populator strips everything outside hooks, skills, commands, agents and
+plugin.json — the iter-78 guard caught the first layout and it would have failed
+silently at runtime.
+
+ONE HARNESS CAVEAT KEPT ON THE RECORD, because it nearly became the finding. The
+compile test first reported 0 of 28 for the authors' own published LaTeX. Two
+bugs: all jobs shared one -output-directory so concurrent runs clobbered each
+other's .aux files, and the Bun shell chain called .timeout(), which does not
+exist on Bun 1.3, so every job threw a TypeError that a bare catch{} swallowed and
+reported as a failed compile. A published paper failing to compile is not a
+finding, it is a broken instrument. The catch is now .nothrow() plus an explicit
+"the harness, not the formula, is broken" throw.
+
+Verified: 44 plugins validate, 87 unlimited-ocr tests pass, the extractor builds
+and runs from its new home, every relative link resolves, and the skill carries
+both halves of the self-evolution sandwich.
+* **doc-tools:** route academic PDFs per page; settle TASC ([c22e00e](https://github.com/terrylica/cc-skills/commit/c22e00e038094338bc44181a4215e304bca25952))
+PER-PAGE ROUTING. academic-pdf-to-gfm classified a whole PDF as Type A, B or C
+and recommended one tool for all of it. That is too coarse to be safe. A single
+paper is routinely clean born-digital prose on most pages and equation- or
+figure-dense on a few, and the pages where Unlimited-OCR wins are not the pages
+where it silently loses.
+
+The silent loss is the reason this matters rather than being a refinement: the
+model localises a chart and transcribes ZERO characters inside it, so a
+chart-heavy page routed to it yields a WELL-FORMED result with all chart content
+missing. Nothing looks wrong. Per-page routing detects those pages and sends them
+somewhere else instead of discovering the hole downstream. Every mention of the
+model in the skill carries that limitation.
+
+TASC FIGURE SEGMENTATION: MEASURED, AND THE ANSWER IS NO. The OCR verdict for
+TASC was already NO — 100% born-digital, 97.9% word recall — and stands. The
+narrow question it never asked was whether SEGMENTING its figures recovers
+anything, since segmentation is the one capability nothing else in this stack has.
+
+Measured on 3 real pages spanning 1990, 2000 and 2010. Segmentation itself works
+well: 17, 26 and 21 regions detected, and the two candlestick charts on the 2000
+page cropped precisely with annotations and labels intact. But every chart region
+returned 0 characters, which is the documented behaviour rather than a fault, and
+TASC's existing text layer already captures the figure CAPTIONS in full. So the
+crops carry no information the corpus lacks unless an external describer is added,
+and that describer — not the segmentation — would be doing the work.
+
+A NO recorded as carefully as a YES, with the measurement that produced it, so the
+idea is not re-proposed on intuition.
+
+Also fixed here: the per-page rewrite replaced two working cross-plugin links with
+`../../unlimited-ocr/...` where the skill sits two directories below the plugin
+root, so both resolved to nothing. Restored to `../../../` and verified against
+the filesystem rather than by eye.
+
+Verified: marketplace validator green at 43 plugins, all doc-tools skills carry
+both halves of the self-evolution sandwich, and every relative link in the changed
+file resolves except one deliberate placeholder inside a worked example.
+* **unlimited-ocr:** batch folder parsing, and the stage 09 verdict ([cfd1b6f](https://github.com/terrylica/cc-skills/commit/cfd1b6f5e704285f7207a12a0ad8561fb25c0e18))
+BATCH FOLDER SKILL. A new skill and script parse an arbitrary folder of PDFs and
+images, so the flags and traps are wired in once instead of re-derived per use:
+one image per forward pass (PITFALLS 3 measured 1/3, 4/5, 0/10 recovered when
+batched), the chart-emptiness warning printed BEFORE the run rather than
+discovered after it, the withheld prompt modes, and per-file repetition status so
+a batch surfaces WHICH files tripped the guard instead of one aggregate code.
+
+It checkpoints. Results are written to the output folder before manifest.jsonl is
+appended, and the manifest is append-only, so a line implies its output exists.
+Verified by running it twice: the second run reports "All 2 files already
+processed" rather than redoing the work. This exists because this session lost 15
+minutes of model time to an external SIGKILL when a long run held everything in
+memory and wrote once at the end.
+
+STAGE 09 IS A NO, AND THE REASON IS NEW. All 198 math regions rendered from their
+stored bounding boxes at 300 DPI and run through the model, 13 minutes local. Under
+stage 09's OWN gate — normalizeLatexForSemanticComparison, not a similarity score
+chosen for the document — it agrees with neither incumbent on 0 of 198 and breaks
+0 of 147 deadlocks. Bridges do not rescue it: stripping layout markers, deleting
+all whitespace and unwrapping single-token braces reaches 4-5 of 106 where the
+existing pair reaches 24.
+
+The finding worth carrying elsewhere is why. 92 of 198 regions came back COMPLETELY
+EMPTY, and crop WIDTH predicts it while height barely moves:
+
+    returned text      106 regions   median width 772px   median height 98px
+    returned nothing    92 regions   median width 181px   median height 78px
+
+181px at 300 DPI is 0.6 inches — an inline fragment lifted out of a paragraph.
+This is a document layout parser: handed something that is already a single region
+with no surrounding page, it often finds no document structure and says nothing.
+FEED IT THE PAGE, NOT THE REGION. That is the opposite of the usual advice for
+vision models, and it determines how the stage 08 work gets built.
+
+It also does not merely stay silent on narrow crops. One returned fluent unrelated
+prose — "the elements are not possible to be empty, but they can be empty or
+empty" — against an image containing a policy-gradient expression. 11 of 198
+tripped the repetition guard, which is what caught it.
+
+A methodology error in that measurement is recorded rather than hidden: the first
+scoring pass left <|det|> layout markers in the output, which guarantees zero
+string agreement by itself. Stripping them moves the bridged ceiling from 2 to 5
+and moves the gate figure not at all, so the 0 survives — but it was found by
+inspecting samples, not by trusting the number.
+
+DOCUMENTATION CONTRADICTIONS FIXED. Three places said tables "come back as HTML by
+default, but convert to pipe-markdown with the default flag" — asserting both
+defaults in one sentence. The model writes HTML; the CLI converts; the flag
+defaults to pipe. Stated that way now in the hub, the parse skill and the batch
+skill.
+
+Verified: 87 tests pass, marketplace validator green at 43 plugins, all three
+skills carry both halves of the self-evolution sandwich, and the batch parser was
+run end-to-end on real images with its resume path exercised.
+* **unlimited-ocr:** convert HTML tables to pipe-markdown by default ([0397e5b](https://github.com/terrylica/cc-skills/commit/0397e5b5dfddbd7de6ad082b3e0a7af59fb36643)), closes [#160](https://github.com/terrylica/cc-skills/issues/160) [#x00A0](https://github.com/terrylica/cc-skills/issues/x00A0)
+The model emits HTML <table> markup and never pipe-markdown — measured at 88 of
+103 real TABLE images, with the other 15 coming back as prose. Anything that
+concatenated the output into a markdown document therefore embedded raw HTML,
+which most renderers pass through silently, and anything that compared the output
+against another reader's markdown was comparing markup rather than reading.
+
+`parse` now takes --table-format pipe|html, defaulting to PIPE. This is a
+behaviour change for existing callers, stated at every mention in the docs: pass
+--table-format html to keep the model's own serialization untouched.
+
+The naive converter that was good enough to MEASURE the problem (it took gate
+agreement from 1/103 to 62/103 in the stage 05 head-to-head) was not good enough
+to ship. Three independent reviewers were pointed at it and found six defects,
+five of which are fixed here and all of which were re-verified by execution
+rather than by reading the patch:
+
+  nested tables      a non-greedy regex stopped at the FIRST </table>, leaving
+                     stray </td></tr></table> in the output — now depth-counted
+
 # [23.2.0](https://github.com/terrylica/cc-skills/compare/v23.1.0...v23.2.0) (2026-07-31)
 
 > [!WARNING]
