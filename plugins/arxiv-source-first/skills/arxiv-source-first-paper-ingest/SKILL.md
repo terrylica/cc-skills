@@ -15,8 +15,8 @@ losslessly, so do not read the rendering.**
 `\label`s, and — critically — which formulas are _stated propositions_ rather than intermediate
 steps inside a proof. None of that survives into a PDF, so no vision model can recover it.
 
-Measured on one real paper, OCR of the PDF reached **0.948 mean token similarity** to the source and
-**only 80 % of its formulas compiled**, against 100 % for the source. Full numbers, including a
+Measured on one real paper, OCR of the PDF reached **0.958 mean token similarity** to the source and
+**only 49 % of its formulas compiled**, against 98 % for the source. Full numbers, including a
 systematic model defect that similarity cannot see, in
 [`../../references/OCR-VERSUS-AUTHOR-LATEX-GROUND-TRUTH.md`](../../references/OCR-VERSUS-AUTHOR-LATEX-GROUND-TRUTH.md).
 
@@ -76,7 +76,7 @@ right".
 
 | Approach                                 | Why it loses to the source                                                                                             |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| OCR the PDF with a vision model          | Lossy by construction. Measured 80 % compile rate, and it invents fused commands like `\neqi` that read plausibly.     |
+| OCR the PDF with a vision model          | Lossy by construction. Measured 49 % compile rate, and it invents fused commands like `\neqi` that read plausibly.     |
 | `pdftotext` / PyMuPDF text layer         | Cannot express mathematics at all — a displayed equation is glyph positioning, not a string. Returns broken fragments. |
 | Ask a language model to recall the paper | No provenance, and the failure mode is confident fabrication of specific numbers.                                      |
 | `ar5iv.org/abs/<id>`                     | Genuinely good, and it is LaTeXML over this same source. Use it to READ; use this to EXTRACT machine-readable records. |
