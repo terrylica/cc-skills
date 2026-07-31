@@ -137,3 +137,16 @@ degenerate repetition, multi-page page-dropping, and why "Unlimited" is not unli
 
 Exit 1 is not a crash and not a success. The CLI detects loops structurally (a short chunk repeating
 in the tail), so a NEW loop is caught, not just the known one.
+
+---
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did it exit 1?** — repetition was detected. Record which prompt mode and image type triggered it
+   in `references/PITFALLS.md` § 3; the measured base rate is ~4 % on tables.
+2. **Did a prompt mode behave differently than documented?** — the two withheld modes are withheld on
+   measured evidence. If one now works, update the withholding reason and its test, not just the doc.
+3. **Did the output need reformatting downstream?** — tables come back as HTML. If you wrote a
+   converter, it belongs in this plugin rather than in the calling project.

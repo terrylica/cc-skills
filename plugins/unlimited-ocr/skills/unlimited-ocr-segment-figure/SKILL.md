@@ -99,3 +99,17 @@ and "what you got" is how a segmentation job quietly under-delivers.
   time you point this at a new document class — the nine-panel result was checked by eye before it
   was written down here.
 - This does not describe anything. It cuts. Pair it with a describer.
+
+---
+
+## Post-Execution Reflection
+
+After this skill completes, check before closing:
+
+1. **Did any crop clip its content?** — raise `--pad-pixels` and record the document class that
+   needed it. The default of 12 exists because 0 clipped axis labels off every panel of a real figure.
+2. **Were fewer regions emitted than the figure visibly contains?** — the model omitted a box, not
+   the CLI. Note the document class in `references/PITFALLS.md`; silent under-delivery is the failure
+   mode this skill warns about.
+3. **Did you pair it with a describer?** — this skill cuts and never describes. If the describer
+   needed a specific crop size or format, write that requirement down here.
