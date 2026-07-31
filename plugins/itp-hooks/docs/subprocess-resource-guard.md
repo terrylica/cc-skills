@@ -8,8 +8,9 @@
 `hooks/lib/subprocess-resident-memory-watchdog-and-machine-wide-concurrency-slot-guard-iter124.ts`
 
 Bounds hook-spawned subprocesses that can allocate without limit. Opt-in per tool via
-`residentMemoryGuardedToolName` on the shared spawn helper. Currently enabled for `ty` only;
-`tsc`/`oxlint`/`biome` spawn through the same helper and can adopt it by adding one field.
+`residentMemoryGuardedToolName` on the shared spawn helper. Currently enabled for `ty` on BOTH
+the per-file PostToolUse check AND the project-wide Stop hook; `tsc`/`oxlint`/`biome` spawn
+through the same helper and can adopt it by adding one field.
 
 ---
 
@@ -31,7 +32,13 @@ session. Four sessions were editing Python at once. Measured normal behaviour on
 project: **35–47 MB** for one file, **119 MB** for the whole project, **473 MB** for four
 concurrent whole-project runs. 15–21 GB is a tool pathology, not a scaling curve.
 
-**The pre-existing guardrails could not have stopped it.** `AbortSignal.timeout(4000)`
+2026-07-31: An unguarded Stop-hook run reached **14.4 GB** and was killed by the kernel at
+17 minutes old. The Stop hook runs on session exit, so multiple concurrent sessions exiting
+could trigger several whole-tree `ty check .` runs simultaneously — exactly the pattern that
+caused 2026-07-30. The fix: migrate the Stop hook to the async spawn path with full resource
+guards, reusing the infrastructure from the iter-95 shared helper and iter-124 watchdog.
+
+**The pre-existing guardrails could not have stopped either incident.** `AbortSignal.timeout(4000)`
 bounds DURATION — but the report shows those processes were **7.2–8.9 s old and already at
 15.8–21.0 GB**, having outlived the 4 s deadline, and Bun's default `killSignal` is SIGTERM,
 which a process cannot honour promptly while the compressor thrashes. `maxBuffer` bounds
@@ -69,9 +76,9 @@ under `/tmp` (cleared on boot), reclaimed by holder liveness (`kill(pid,0)`) wit
 backstop for pid reuse.
 
 **Non-blocking by design.** A busy slot **skips** the check rather than queueing — this runs
-inside a PostToolUse hook, so waiting would put the user's edit behind another session's
-subprocess, and a type check is advisory. Failing open by doing _less_ is the only safe
-direction.
+inside a PostToolUse hook (and on Stop-hook exit), so waiting would put the user's edit
+behind another session's subprocess, and a type check is advisory. Failing open by doing
+_less_ is the only safe direction.
 
 ### 2. RSS watchdog — SIGKILL above 1500 MB
 
@@ -117,9 +124,18 @@ To disable for a tool, drop `residentMemoryGuardedToolName` from its spawn optio
 
 ## When it fires
 
-The ty subhook surfaces a memory kill to the operator rather than swallowing it — silence is
+The ty subhooks surface a memory kill to the operator rather than swallowing it — silence is
 how the 2026-07-30 fault recurred after its own reboot. The message names the observed peak
 and points at `uv tool upgrade ty` plus the upstream issue.
+
+---
+
+## Protected paths
+
+| Path                                              | When                      | Guard status                                                                              |
+| ------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------- |
+| `posttooluse-ty-type-check.ts` (per-file)         | After every .py/.pyi edit | ✅ guarded (iter-124 watchdog + machine-wide concurrency slots since incident 2026-07-30) |
+| `stop-ty-project-check.ts` (project-wide on exit) | Stop hook on session exit | ✅ guarded (iter-124 watchdog + machine-wide concurrency slots since incident 2026-07-31) |
 
 ---
 
