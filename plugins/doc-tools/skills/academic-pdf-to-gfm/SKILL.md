@@ -12,30 +12,171 @@ A battle-tested workflow for converting academic/research PDF papers into GitHub
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-## Quick Start (3 Steps)
+## Quick Start — Per-Page Routing Workflow
+
+**Do NOT try to apply a single extraction method to the entire PDF.** Modern academic papers mix text, tables, and figures; route each page individually.
+
+### Step 1: Render all pages at 300 DPI
 
 ```bash
-# Step 1: Extract prose (best structure preservation)
-uv run --python 3.14 --with pymupdf4llm python3 -c "
-import pymupdf4llm
-md = pymupdf4llm.to_markdown('paper.pdf')
-open('paper-raw.md', 'w').write(md)
-"
+# Generate PNG for every page at 300 DPI
+uv run --python 3.14 --with pymupdf python3 << 'EOF'
+import fitz, os
+doc = fitz.open('paper.pdf')
+os.makedirs("pages", exist_ok=True)
+for i in range(len(doc)):
+    pix = doc[i].get_pixmap(matrix=fitz.Matrix(300/72, 300/72), alpha=False)
+    pix.save(f"pages/page{i:04d}.png")
+    print(f"Page {i}: {pix.width}×{pix.height}")
+EOF
+```
 
-# Step 2: Extract images
+### Step 2: Detect page type for each page
+
+```bash
+# Locate the Unlimited-OCR script. If installed via marketplace, it will be in the cc-skills plugin directory.
+# If running from the cc-skills repo directly:
+S=${S:-~/eon/cc-skills/plugins/unlimited-ocr/scripts/unlimited_ocr.py}
+
+# For each page, run Unlimited-OCR and inspect the <|det|> markers
+for img in pages/page*.png; do
+    echo "=== $(basename $img) ==="
+    uv run --no-project $S parse --input "$img" --collapse-math-spacing --quiet 2>&1 | \
+        grep "<|det|>" | cut -d'>' -f2 | cut -d' ' -f1 | sort | uniq -c
+done
+```
+
+### Step 3: Route each page
+
+Based on the detected `<|det|>` markers:
+
+| Detected                                      | Route to                                     | Command                                                 |
+| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `text` only (no `equation`, `image`, `chart`) | pymupdf4llm or pdftotext                     | See Tool Comparison below                               |
+| `equation` or `table` present                 | Unlimited-OCR (with `--table-format pipe`)   | `uv run --no-project $S parse --input page.png`         |
+| `image` or `chart` present                    | Segment + describe                           | Use `unlimited-ocr-segment-figure` skill + vision model |
+| Mixed (`table` + `image`)                     | Unlimited-OCR for table + segment for images | Split the output, route images separately               |
+
+### Step 4: Assemble and validate
+
+```bash
+# Concatenate all page outputs
+cat pages/page*.md > paper-raw.md
+
+# Extract embedded images (optional)
 uv run --python 3.14 --with pymupdf python3 references/extract-images.py paper.pdf
 
-# Step 3: Validate math before pushing
-node references/validate-math.mjs paper.md
+# Validate math before pushing
+node references/validate-math.mjs paper-raw.md --fix
 ```
 
 ---
 
-## CRITICAL: Detect PDF Type First
+## Tool Comparison (by page type)
 
-**This determines the entire workflow.** Getting it wrong wastes hours.
+**A single academic PDF is routinely born-digital prose on most pages and equation-dense or figure-dense on a few.** Routing the entire document as one type wastes capability and silently loses content.
 
-### Type A — Word-Generated PDF (Most Modern Academic Papers)
+### The Per-Page Routing Strategy
+
+For every page in the PDF:
+
+1. **Render at 300 DPI** to a PNG (required for Unlimited-OCR accuracy; 150 DPI hallucinates silently)
+2. **Detect page type** by running Unlimited-OCR locally (~2.4 s/page on Apple Silicon)
+3. **Route based on what the model found**:
+   - **Text-only pages** (no math, no charts): extract with `pymupdf4llm` or `pdftotext` (cheaper, preserves structure)
+   - **Equation-bearing pages**: use Unlimited-OCR output (returns real LaTeX, e.g. `\left\{ \begin{array} ... \end{array} \right\}`)
+   - **Chart-bearing pages**: segment with Unlimited-OCR, hand each panel to a vision model for description (verified 2026-07-31: charts return empty text from Unlimited-OCR)
+   - **Fallback**: if a page's text-layer extraction is too thin, re-run through Unlimited-OCR
+
+### Why Per-Page Matters
+
+**The silent failure.** Unlimited-OCR localizes charts with perfect bounding boxes and returns zero characters inside. A user who routes the entire document as "Type C, use Unlimited-OCR" on chart-heavy input loses all chart content AND GETS A WELL-FORMED RESULT, so nothing looks wrong until the output is reviewed.
+
+**Verified (2026-07-31)**: Unlimited-OCR detects charts (via `<|det|>chart` markers) and returns perfect bounding boxes but zero text inside. Pages containing only charts (no text, equations, or tables) would indeed render empty; per-page routing catches this and routes those pages to text-layer extraction or manual inspection instead.
+
+### Page Type Detection (Measured at 300 DPI)
+
+Run Unlimited-OCR on every page and inspect the `<|det|>` markers:
+
+| If the output contains                     | Infer                               | Route to                                                                           |
+| ------------------------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `text` regions, no `equation` or `chart`   | Text-only page                      | `pymupdf4llm` or `pdftotext` (fallback: Unlimited-OCR)                             |
+| `equation` regions                         | Math-bearing page                   | Unlimited-OCR (returns real LaTeX)                                                 |
+| `chart` regions                            | Figure-bearing page                 | Segment + describe (use `unlimited-ocr-segment-figure` then a chart-reading model) |
+| Empty output (zero characters, no regions) | Page likely unhandled by text layer | Retry with Unlimited-OCR or manual inspection                                      |
+
+### Example: TimeMixer (ICLR 2024, 28 pages)
+
+**Verified 2026-07-31 on `/Users/terryli/eon/quantml/data/papers/a599/b338e44af70d8e9c87be3c5417bde7864b2c92074e1346703f3e2b641e3d.pdf`:**
+
+#### Page 0 — Title page with abstract (route to text extraction)
+
+```bash
+# Render at 300 DPI
+uv run --python 3.14 --with pymupdf python3 -c "
+import fitz
+doc = fitz.open('timemixer-iclr-2024.pdf')
+pix = doc[0].get_pixmap(matrix=fitz.Matrix(300/72, 300/72), alpha=False)
+pix.save('page0.png')
+"
+
+# Detect structure
+S=~/eon/cc-skills/plugins/unlimited-ocr/scripts/unlimited_ocr.py
+uv run --no-project $S parse --input page0.png --collapse-math-spacing --quiet 2>&1 | head -15
+```
+
+**Output (actual):**
+
+```
+<|det|>header [173, 33, 482, 49]<|/det|>Published as a conference paper at ICLR 2024
+<|det|>title [172, 99, 818, 149]<|/det|>TIMEMIXER: DECOMPOSABLE MULTISCALE MIXING FOR TIME SERIES FORECASTING
+<|det|>text [181, 170, 777, 200]<|/det|>Shiyu Wang \( ^{1,*} \) , Haixu Wu \( ^{2,*} \) , Xiaoming Shi \( ^{1} \) , Tengge Hu \( ^{2} \) , Huakun Luo \( ^{2} \) , Lintao Ma \( ^{1✉} \) , James Y. Zhang \( ^{1} \) , Jun Zhou \( ^{1✉} \)
+<|det|>text [182, 200, 781, 243]<|/det|>\( ^{1} \) Ant Group, Hangzhou, China  \( ^{2} \) Tsinghua University, Beijing, China {weiming.wsy,lintao.mlt,peter.sxm,james.z,jun.zhoujun}@antgroup.com, {wuhx23,htg21,luhk19}@mails.tsinghua.edu.cn
+<|det|>title [452, 279, 547, 293]<|/det|>ABSTRACT
+<|det|>text [230, 311, 770, 575]<|/det|>Time series forecasting is widely used in extensive applications, such as traffic planning…
+```
+
+**Routing decision:** Only `header`, `title`, `text` regions detected. No `equation`, no `chart` → **route to pymupdf4llm or pdftotext** (faster, preserves structure).
+
+#### Page 6 — Benchmark table (route to Unlimited-OCR)
+
+```bash
+uv run --no-project $S parse --input page6.png --collapse-math-spacing --quiet 2>&1 | head -20
+```
+
+**Output (actual):**
+
+```
+<|det|>text [187, 114, 812, 129]<|/det|>Table 1: Summary of benchmarks. Forecastability is one minus the entropy of Fourier domain.
+<|det|>table [175, 131, 825, 287]<|/det|>| Tasks | Dataset | Variate | Predict Length | Frequency | Forecastability | Information |
+| Long-term forecasting | ETT (4 subsets) | 7 | 96~720 | 15 mins | 0.46 | Temperature |
+| Weather | 21 | 96~720 | 10 mins | 0.75 | Weather |
+| Solar-Energy | 137 | 96~720 | 10min | 0.33 | Electricity |
+…
+```
+
+**Routing decision:** `table` detected → **keep Unlimited-OCR output** (already in pipe-markdown format, `--table-format pipe` converts any HTML to markdown).
+
+#### Page 7 — Figure and table mixed (route Unlimited-OCR for table only)
+
+```bash
+uv run --no-project $S parse --input page7.png --collapse-math-spacing --quiet 2>&1 | head -30
+```
+
+**Output (actual):**
+
+```
+<|det|>table [186, 174, 819, 384]<|/det|>| Case | Decompose | Past mixing | Future mixing | M4 | PEMS04 | ETTm1 |
+…
+```
+
+**Note:** Page 7 contains 6 embedded image objects in the PDF (verified via PyMuPDF), but Unlimited-OCR's 300-DPI screenshot rendering does not detect `image` or `image_caption` regions. Extract images separately via `references/extract-images.py` and route them to a vision model for description.
+
+**Routing decision:** `table` detected → **keep Unlimited-OCR output**; extract embedded images separately and hand to a vision model for description (see `unlimited-ocr-segment-figure` skill).
+
+### Type Classification (Historical, kept for reference)
+
+**Type A — Word-Generated PDF (Type A: most modern academic papers)**
 
 **Signs**: Embedded fonts, copyable text, Unicode math chars when you copy-paste (∑, π, α, β, γ, →)
 
@@ -43,62 +184,38 @@ node references/validate-math.mjs paper.md
 
 **Consequence**: OCR tools like `marker-pdf` **cannot extract LaTeX** — they see text like "γ₄" not `\gamma_4`. They may return empty output or crash silently.
 
-**Recommended approach** (verified on TimeMixer ICLR 2024 paper):
-
-1. Use `pymupdf4llm` for prose extraction
-2. **Extract math using Unlimited-OCR** — render the PDF page at 300 DPI and parse it locally:
-
-   ```bash
-   # Render page as PNG at 300 DPI
-   uv run --python 3.14 --with pymupdf python3 -c "
-   import fitz
-   doc = fitz.open('paper.pdf')
-   pix = doc[0].get_pixmap(matrix=fitz.Matrix(300/72, 300/72), alpha=False)
-   pix.save('page.png')
-   "
-
-   # Parse with Unlimited-OCR (free, offline, ~2.4 s per page on Apple Silicon)
-   S=~/eon/cc-skills/plugins/unlimited-ocr/scripts/unlimited_ocr.py
-   uv run --no-project $S parse --input page.png --collapse-math-spacing
-   ```
-
-   This returns real LaTeX (e.g., `\left\{ \begin{array} ... \end{array} \right\}` for piecewise definitions) that render correctly in GitHub GFM. Math comes back character-spaced by default; the `--collapse-math-spacing` flag repairs it for cross-model comparison.
-
-3. **Fallback**: If Unlimited-OCR output is wrong for a specific formula, manually transcribe it from the screenshot. Start with the machine output and edit it — faster than starting from zero.
-
-**How to confirm Type A**: Run `marker-pdf` — if output is empty or has zero math content, it's Type A.
-
-### Type B — LaTeX-Generated PDF
+**Type B — LaTeX-Generated PDF**
 
 **Signs**: Computer Modern fonts, precise mathematical spacing, arxiv.org source available
 
 **Math encoding**: Glyph-mapped — structure is partially extractable
 
-**Approach**: `pymupdf4llm` or `pdftotext` for text. If arxiv source exists, extract directly from `.tex` (vastly preferred over PDF conversion).
-
-### Type C — Scanned/Image PDF
+**Type C — Scanned/Image PDF**
 
 **Signs**: All pages are raster images, zero copyable text
 
-**Approach**: OCR pipeline — `Unlimited-OCR` is the recommended first choice for text, tables, and equations; `marker-pdf` and `tesseract` are alternatives.
+### Table Format Notice
 
-**Note**: Unlimited-OCR does NOT describe charts — it localizes them and returns empty text. Use [`unlimited-ocr-segment-figure`](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md) to crop chart panels for a downstream vision model.
+Tables from Unlimited-OCR come back as HTML `<table>` markup (measured by Baidu at ~88% of real tables). The CLI converts them to pipe-markdown by default (`--table-format pipe`), which is suitable for markdown documents. If you are comparing outputs across readers, pipe-markdown is the canonical form.
 
 ---
 
 ## Tool Comparison
 
-| Tool            | Best For                        | Install                            | Key Limitation                                        |
-| --------------- | ------------------------------- | ---------------------------------- | ----------------------------------------------------- |
-| `pymupdf4llm`   | Type A/B prose (best structure) | `uv run --with pymupdf4llm`        | Math as Unicode, not LaTeX                            |
-| `Unlimited-OCR` | Type C scanned; Type A math     | `uv run --no-project` (no install) | Does NOT describe charts (use segment-figure instead) |
-| `pdftotext`     | Quick plain text                | `brew install poppler`             | Loses table structure                                 |
-| `markitdown`    | Alternative prose               | `uv run --with 'markitdown[pdf]'`  | Slight over-spacing; same math limit                  |
-| `marker-pdf`    | Type C scanned (alternative)    | `pip install marker-pdf`           | **Fails silently on Type A** (Unicode text bug)       |
+| Tool              | Page type                    | Install                            | Pros                                                                         | Cons                                                          |
+| ----------------- | ---------------------------- | ---------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **pymupdf4llm**   | Text-only, native text layer | `uv run --with pymupdf4llm`        | Best structure preservation, fast                                            | Math comes as Unicode, not LaTeX                              |
+| **pdftotext**     | Text-only, plain extraction  | `brew install poppler`             | Very fast, minimal deps                                                      | Loses table structure entirely                                |
+| **Unlimited-OCR** | Tables, math, mixed pages    | `uv run --no-project` (no install) | Real LaTeX formulas, tables as pipe-markdown, layout boxes, 300 DPI accurate | Returns empty text for charts; use `segment-figure` for those |
+| **markitdown**    | Text-only alternative        | `uv run --with 'markitdown[pdf]'`  | Reasonable structure                                                         | Slight over-spacing; same math limit as pymupdf4llm           |
+| **marker-pdf**    | Scanned PDFs (Type C only)   | `pip install marker-pdf`           | Works on scanned images                                                      | **Never use on Type A/B** — fails silently (Unicode text bug) |
 
-**Never trust `marker-pdf` output on Type A/B PDFs** — the apparent "success" with empty math sections is the failure mode.
+**Recommendation**: For per-page routing:
 
-**Unlimited-OCR verdict** (measured on the TimeMixer ICLR 2024 paper at 300 DPI, and on 24 Chinese formula images from the quantml corpus): strong on text and formulas — it agreed with MiniMax-M3 more often than GLM-4.6v did on that formula sample. Table quality was **not** measured, so it is not claimed here. It returns zero characters for chart regions while emitting perfect bounding boxes. Use [`unlimited-ocr-segment-figure`](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md) to split chart-heavy pages before sending crops to a vision model.
+- **Text-only pages** → `pymupdf4llm` (preserves formatting) or `pdftotext` (speed)
+- **Tables/math pages** → Unlimited-OCR (returns real LaTeX and pipe-markdown tables)
+- **Chart-bearing pages** → Unlimited-OCR (detects charts but returns empty text; route to segment-figure skill + vision model for descriptions)
+- **Mixed pages** → Unlimited-OCR (handles tables and layout detection in one pass; segment images separately)
 
 ---
 
@@ -400,8 +517,8 @@ For papers with 10+ equations, use this multi-agent pattern:
 
 | Skill                                                                                                           | Relationship                                                      |
 | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [unlimited-ocr-parse-document](../../unlimited-ocr/skills/unlimited-ocr-parse-document/SKILL.md)                | Extract text/math from PDFs locally (Type A/C PDFs, ~2.4 s/page)  |
-| [unlimited-ocr-segment-figure](../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md)                | Crop multi-panel figures (charts, diagrams) for downstream models |
+| [unlimited-ocr-parse-document](../../../unlimited-ocr/skills/unlimited-ocr-parse-document/SKILL.md)                | Extract text/math from PDFs locally (Type A/C PDFs, ~2.4 s/page)  |
+| [unlimited-ocr-segment-figure](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md)                | Crop multi-panel figures (charts, diagrams) for downstream models |
 | [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md)                                                      | Opposite direction: markdown → PDF                                |
 | [documentation-standards](../documentation-standards/SKILL.md)                                                  | GFM formatting standards                                          |
 | [quant-research:opendeviation-eval-metrics](../../../quant-research/skills/opendeviation-eval-metrics/SKILL.md) | Worked example: `references/how-to-use-the-sharpe-ratio-2026.md`  |
