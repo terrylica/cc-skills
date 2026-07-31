@@ -91,6 +91,37 @@ fn find_environment_spans(text: &str, environment_name: &str) -> Vec<(usize, usi
     spans
 }
 
+/// Display math written with raw delimiters rather than a named environment.
+///
+/// FOUND BY DISAGREEMENT, 2026-07-31. On arXiv:2402.02592 this extractor reported 5 equations while
+/// an OCR pass over the same PDF reported 14. The OCR was right and this tool was blind: that paper
+/// writes five of its display blocks as `\[ … \]` and this scanner only looked for
+/// `\begin{env} … \end{env}`. An extractor that silently returns a subset is worse than one that
+/// fails, because the number it reports looks like an answer.
+const RAW_DISPLAY_MATH_DELIMITER_PAIRS: &[(&str, &str)] = &[("\\[", "\\]"), ("$$", "$$")];
+
+/// Spans of display math delimited by `\[ … \]` or `$$ … $$`, non-nesting by construction.
+fn find_raw_delimited_display_math_spans(text: &str, open: &str, close: &str) -> Vec<(usize, usize)> {
+    let mut spans = Vec::new();
+    let mut cursor = 0usize;
+    while let Some(relative_open) = text[cursor..].find(open) {
+        let absolute_open = cursor + relative_open;
+        // An escaped `\\[` opens a line-break option, not display math.
+        let preceded_by_backslash = absolute_open > 0 && text.as_bytes()[absolute_open - 1] == b'\\';
+        let body_start = absolute_open + open.len();
+        let Some(relative_close) = text[body_start..].find(close) else { break };
+        let body_end = body_start + relative_close;
+        if !preceded_by_backslash {
+            spans.push((body_start, body_end));
+        }
+        cursor = body_end + close.len();
+        if cursor >= text.len() {
+            break;
+        }
+    }
+    spans
+}
+
 fn line_number_at_byte_offset(text: &str, offset: usize) -> usize {
     text[..offset.min(text.len())].bytes().filter(|b| *b == b'\n').count() + 1
 }
@@ -179,8 +210,21 @@ fn main() {
             .to_string_lossy()
             .to_string();
 
+        let mut spans_with_origin: Vec<(usize, usize, String)> = Vec::new();
         for environment_name in DISPLAY_MATH_ENVIRONMENT_NAMES {
-            for (body_start, body_end) in find_environment_spans(&text, environment_name) {
+            for span in find_environment_spans(&text, environment_name) {
+                spans_with_origin.push((span.0, span.1, (*environment_name).to_string()));
+            }
+        }
+        for (open, close) in RAW_DISPLAY_MATH_DELIMITER_PAIRS {
+            let origin = if *open == "$$" { "$$…$$" } else { "\\[…\\]" };
+            for span in find_raw_delimited_display_math_spans(&text, open, close) {
+                spans_with_origin.push((span.0, span.1, origin.to_string()));
+            }
+        }
+
+        {
+            for (body_start, body_end, environment_name) in spans_with_origin {
                 let body = &text[body_start..body_end];
                 let (enclosing, title) = find_enclosing_theorem_environment(&text, body_start);
                 let cleaned = strip_non_mathematical_directives(body);
@@ -191,7 +235,7 @@ fn main() {
                 records.push(ExtractedDisplayEquation {
                     source_file: relative.clone(),
                     opening_line_number: line_number_at_byte_offset(&text, body_start),
-                    environment_name: (*environment_name).to_string(),
+                    environment_name: environment_name.clone(),
                     label: extract_label(body),
                     enclosing_theorem_environment: enclosing,
                     enclosing_theorem_title: title,

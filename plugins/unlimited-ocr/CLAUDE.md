@@ -160,7 +160,7 @@ Nothing to install. `uv run` materialises the script's own dependencies from its
    `pipe`. Pass `--table-format html` to keep the model's own serialization.
 5. **It fuses a LaTeX command with the identifier after it** — `\neqi` where `\neq i` belongs,
    measured 4 times on one paper with the correct form appearing ZERO times. Fluent, plausible,
-   scores 0.97 token overlap against the true formula, and does not compile. Only 80 % of its
-   recovered formulas compiled under pdfTeX on a paper where 100 % of the authors' source did.
+   scores 0.97 token overlap against the true formula, and does not compile. Only 49 % of its
+   recovered formulas compiled under pdfTeX on a paper where 98 % of the authors' source did.
 
 Full list, with evidence: [`references/PITFALLS.md`](references/PITFALLS.md).
