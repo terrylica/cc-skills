@@ -251,8 +251,8 @@ given `\sum_ {j \neq i} x`, `P \equiv P (...)`, `\log P` and `\Delta \text{RankI
 returns each unchanged. The fusion is in the model's own output.
 
 Why this matters more than four occurrences suggests: the result is fluent, plausible, scores 0.97
-token overlap against the true formula, and **does not compile**. Across that paper, 44 of 55
-recovered formulas compiled under pdfTeX — 80 % — against 28 of 28 for the source. A reader skimming
+token overlap against the true formula, and **does not compile**. Across that paper, 27 of 55
+recovered formulas compiled under pdfTeX — 49 % — against 54 of 55 for the source. A reader skimming
 the markdown will not catch it; only a TeX engine will.
 
 **If you need formulas you will actually run, check them with a TeX engine, and prefer the source

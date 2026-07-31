@@ -55,8 +55,12 @@ function wrapForEngine(latexBody: string): string {
     : `\\[\n${body}\n\\]\n`;
 }
 
-async function compileOne(item: FormulaUnderTest, index: number): Promise<CompileOutcome> {
-  const directory = join(WORK_ROOT, `job_${String(index).padStart(3, "0")}`);
+async function compileOne(batch: string, item: FormulaUnderTest, index: number): Promise<CompileOutcome> {
+  // Namespaced by BATCH as well as index. Without the batch segment the second batch reuses the
+  // first batch's directories, finds its leftover formula.pdf, and reports a pass for every job the
+  // first batch happened to compile — which silently made the OCR score converge on the source
+  // score. A harness that reuses output directories is measuring its own leftovers.
+  const directory = join(WORK_ROOT, batch, `job_${String(index).padStart(3, "0")}`);
   mkdirSync(directory, { recursive: true });
   const texPath = join(directory, "formula.tex");
   writeFileSync(texPath, `${PREAMBLE}${wrapForEngine(item.latex)}\\end{document}\n`);
@@ -84,11 +88,11 @@ async function compileOne(item: FormulaUnderTest, index: number): Promise<Compil
   return { label: item.label, compiled, firstTexError };
 }
 
-async function compileAll(items: FormulaUnderTest[], heading: string): Promise<CompileOutcome[]> {
+async function compileAll(batch: string, items: FormulaUnderTest[], heading: string): Promise<CompileOutcome[]> {
   const outcomes: CompileOutcome[] = [];
   for (let start = 0; start < items.length; start += MAX_CONCURRENT_TEX_ENGINES) {
     const slice = items.slice(start, start + MAX_CONCURRENT_TEX_ENGINES);
-    outcomes.push(...(await Promise.all(slice.map((item, i) => compileOne(item, start + i)))));
+    outcomes.push(...(await Promise.all(slice.map((item, i) => compileOne(batch, item, start + i)))));
   }
   const compiled = outcomes.filter((o) => o.compiled).length;
   console.log(heading);
@@ -110,5 +114,5 @@ mkdirSync(WORK_ROOT, { recursive: true });
 const sourceFormulas = JSON.parse(await Bun.file("/tmp/lambdarankic/validity_source.json").text()) as FormulaUnderTest[];
 const ocrFormulas = JSON.parse(await Bun.file("/tmp/lambdarankic/validity_ocr.json").text()) as FormulaUnderTest[];
 
-await compileAll(sourceFormulas, "AUTHORS' OWN LATEX (arXiv e-print source) — the control");
-await compileAll(ocrFormulas, "UNLIMITED-OCR READING THE RENDERED PDF");
+await compileAll("authors-latex", sourceFormulas, "AUTHORS' OWN LATEX (arXiv e-print source) — the control");
+await compileAll("unlimited-ocr", ocrFormulas, "UNLIMITED-OCR READING THE RENDERED PDF");
