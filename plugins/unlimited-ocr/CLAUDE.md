@@ -94,12 +94,19 @@ What Unlimited-OCR can legitimately do there:
 Being free and local matters here for a concrete reason: the cross-reference phase once died against
 an upload quota after ~140 of 529 images. A local reader has no quota.
 
-### 4. TASC archive (~7,200 articles)
+### 4. TASC archive (~7,200 articles) — ASSESSED, AND THE ANSWER IS NO
 
-Potentially the largest volume, and **unassessed**. Whether it helps depends entirely on whether
-those PDFs are born-digital or scanned; if they carry a real text layer, OCR adds nothing. Establish
-that before doing any work — the smallest experiment is to render a handful of pages from the
-1982–1999 volumes and compare a text-layer extraction against a parse.
+Ranked last deliberately: it was the largest volume on the machine and it is **not a candidate**.
+
+Fifty documents sampled uniformly across all nine decades (1982–2022) returned **hundreds to
+thousands of characters per page** from a plain PyMuPDF text-layer read. The corpus is entirely
+born-digital; there are no scanned page images to OCR. Its existing extraction already measures
+**97.9 % word recall** against an independent vision benchmark, with 99.9 % agreement against a
+second extractor.
+
+Running OCR over it could only lose accuracy. **Do not pursue this.** An honest negative saves the
+effort, and recording it stops the idea being re-proposed every time someone notices the corpus is
+big.
 
 ---
 
@@ -120,10 +127,11 @@ Nothing to install. `uv run` materialises the script's own dependencies from its
 
 ## The three things most likely to bite you
 
-1. **`document parsing.`** — the prompt in the upstream README — decodes infinite garbage on MLX.
-   Use `Free OCR.` (the CLI default, and it refuses the other one).
+1. **Two of the three documented prompt modes are broken.** `document parsing.` decodes infinite
+   garbage; `Multi page parsing.` hallucinates `industrydocuments` onto a single image. Use
+   `Free OCR.` — the CLI default, and it refuses both of the others with the measured reason.
 2. **Charts come back empty.** By design. Segment them instead.
-3. **Multi-page single-pass dropped a page** on near-identical pages. For archives, one call per
-   page.
+3. **This CLI never sends more than one image per forward pass.** The model's headline multi-page
+   mode is deliberately unused: a five-page run returned four pages with no error.
 
 Full list, with evidence: [`references/PITFALLS.md`](references/PITFALLS.md).
