@@ -110,12 +110,30 @@ before: c u r p d f = t r i a n g (l o w, h i g h, v o l)
 after:  curpdf = triang (low, high, vol)
 ```
 
-### Uncommon glyphs can come back mojibaked
+### The MLX path returns the tokenizer's SURFACE FORM, not decoded text
 
-Parsing page 1 of an ICLR 2024 paper, the corresponding-author envelope `✉` was returned as `âľī` —
-UTF-8 bytes surfacing as if decoded latin-1. Ordinary CJK and Latin text was unaffected across every
-test. Treat rare symbols (dingbats, some ligatures) as unreliable and worth a spot check; do not
-assume the whole page is corrupt because one glyph is.
+**This was recorded wrongly in an earlier version of this file, which claimed "ordinary CJK and
+Latin text was unaffected across every test". That claim was false — it had simply never been
+tested on CJK.** The early test images were formula-only or English, where the surface form and
+the decoded text coincide.
+
+mlx-vlm returns byte-level-BPE surface characters, so every BYTE of a multi-byte UTF-8 character
+arrives as its own stand-in character. On a Chinese corpus this is not degradation, it is total
+loss:
+
+```
+8æľĪ                          ->  8月
+åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ  ->  反向日内逆转的频率
+æĺŁæľŁåħŃ                     ->  星期六
+âĳł                           ->  ①
+```
+
+The stray `âľī` previously filed here as an isolated mojibake of `✉` was never isolated — it was
+the same defect, visible in English only because English is mostly ASCII.
+
+`decode_byte_level_bpe_surface_form` reverses the standard GPT-2 byte-level-BPE alphabet and
+recovers all of it. ASCII, and therefore all LaTeX, passes through byte-for-byte. Applying it to
+already-decoded text is a no-op, so it is safe on either form. Eight tests pin the behaviour.
 
 ### It transcribes the source faithfully, including the source's mistakes
 

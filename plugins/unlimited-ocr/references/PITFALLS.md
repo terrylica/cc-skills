@@ -116,7 +116,27 @@ Default is 12 px. Raise it for figures with outboard captions.
 
 ---
 
-## 7. Model loading writes to stdout and corrupts `--format json`
+## 7. Non-ASCII is DESTROYED unless the byte-level-BPE surface form is decoded
+
+The MLX path hands back the tokenizer's surface form rather than decoded text. Every byte of a
+multi-byte UTF-8 character arrives as its own stand-in, so `8月` becomes `8æľĪ` and
+`反向日内逆转的频率` becomes `åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ`. On a Chinese corpus that is not
+degradation, it is total loss.
+
+**It hid for a long time because ASCII is a fixed point of the encoding.** The first test images
+were formula-only or English; LaTeX and English prose survive untouched, so the output looked
+perfect. This file previously recorded a stray `âľī` as an isolated mojibake of `✉` in an English
+paper — that was the same defect all along, merely rare enough in English to look like a one-off.
+
+`decode_byte_level_bpe_surface_form` reverses the standard alphabet. Anyone calling mlx-vlm
+directly rather than through this CLI must do the same, or their Chinese output is worthless.
+
+**The lesson generalises: a test corpus that shares an alphabet with the failure mode cannot see
+it.** Test on the script you actually care about.
+
+---
+
+## 8. Model loading writes to stdout and corrupts `--format json`
 
 `mlx-vlm`'s loader prints half a dozen tokenizer lines (`Add pad token = …`, `Added chat tokens`) to
 **stdout**. In JSON mode they land in front of the document and every downstream `json.load` dies
@@ -128,7 +148,7 @@ corrupted by its own progress logging is not machine-readable.
 
 ---
 
-## 8. A PEP 723 header makes `ty` ignore the repository's config
+## 9. A PEP 723 header makes `ty` ignore the repository's config
 
 Discovered while getting this plugin's type check clean, and reproduced in isolation:
 
@@ -149,7 +169,7 @@ hierarchy rather than the "suppress it" branch.
 
 ---
 
-## 9. `find_spec` RAISES for a submodule whose parent is missing
+## 10. `find_spec` RAISES for a submodule whose parent is missing
 
 `importlib.util.find_spec` returns `None` for an absent top-level module but **raises
 `ModuleNotFoundError` for a submodule whose parent package is absent**. So
@@ -163,7 +183,7 @@ The probe now catches `ModuleNotFoundError` and `ValueError` per module and reco
 
 ---
 
-## 10. Hosted alternatives are thinner than they look
+## 11. Hosted alternatives are thinner than they look
 
 - **Baidu Cloud** does publish this model as a hosted OCR API. Account creation on the international
   platform accepts international phone numbers, but identity verification is required for most

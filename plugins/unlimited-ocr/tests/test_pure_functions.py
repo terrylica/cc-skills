@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from unlimited_ocr import (
     PROMPT_MODES,
+    decode_byte_level_bpe_surface_form,
     build_argument_parser,
     command_parse,
     PROMPT_MODES_WITHHELD_BY_DEFAULT,
@@ -776,6 +777,54 @@ class TestPromptModesWithheldByDefault:
         with pytest.raises(SystemExit):
             command_parse(args)
         assert "REFUSED" not in capsys.readouterr().err
+
+
+class TestDecodeByteLevelBpeSurfaceForm:
+    """
+    Recovering real UTF-8 from the tokenizer's surface form.
+
+    The MLX path returns byte-level-BPE surface characters, so every BYTE of a multi-byte UTF-8
+    character arrives as its own stand-in. On a Chinese corpus that is not degradation, it is
+    total loss: '反向日内逆转的频率' arrives as 'åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ'.
+
+    Oracle: the GPT-2 byte-level-BPE alphabet, shared by GPT-2, RoBERTa, DeepSeek and this model's
+    tokenizer. Expected values below were verified against the real source images.
+    """
+
+    def test_chinese_month_recovers(self):
+        assert decode_byte_level_bpe_surface_form("8æľĪ") == "8月"
+
+    def test_chinese_sentence_recovers(self):
+        assert decode_byte_level_bpe_surface_form("åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ") == "反向日内逆转的频率"
+
+    def test_chinese_weekday_recovers(self):
+        assert decode_byte_level_bpe_surface_form("æĺŁæľŁåħŃ") == "星期六"
+
+    def test_circled_digit_recovers(self):
+        """The same defect that turned ✉ into âľī in an English paper."""
+        assert decode_byte_level_bpe_surface_form("âĳł") == "①"
+
+    def test_ascii_latex_passes_through_untouched(self):
+        """LaTeX is pure ASCII and must survive byte-for-byte, or every formula would be corrupted."""
+        for latex in [r"NR_{i,t}", r"\frac{\sum_{d=1}^{T}}{T}", r"\left\{ \begin{array}{l}"]:
+            assert decode_byte_level_bpe_surface_form(latex) == latex
+
+    def test_space_and_newline_surface_forms_become_real_whitespace(self):
+        """`Ġ` is byte 0x20 and `Ċ` is byte 0x0A — the two symptoms an earlier version patched."""
+        assert decode_byte_level_bpe_surface_form("aĠb") == "a b"
+        assert decode_byte_level_bpe_surface_form("aĊb") == "a\nb"
+
+    def test_already_decoded_text_is_left_alone(self):
+        """
+        Must be safe to apply to text that is already correct.
+
+        Real Chinese characters are absent from the surface alphabet, so they pass through as
+        themselves rather than being mangled a second time.
+        """
+        assert decode_byte_level_bpe_surface_form("反向日内") == "反向日内"
+
+    def test_empty_string(self):
+        assert decode_byte_level_bpe_surface_form("") == ""
 
 
 if __name__ == "__main__":
