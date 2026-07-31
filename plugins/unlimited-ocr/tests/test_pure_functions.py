@@ -2,6 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = ["pytest>=8.0.0", "pymupdf>=1.24.0"]
 # ///
+# FILE-SIZE-OK
 """Tests for unlimited_ocr.py pure logic functions.
 
 Oracle Source: references/EMPIRICAL.md and references/PITFALLS.md
@@ -41,6 +42,7 @@ from unlimited_ocr import (
     looks_like_degenerate_repetition,
     _select_page_indices,
     collect_input_images,
+    convert_html_tables_to_pipe_markdown,
 )
 
 
@@ -825,6 +827,211 @@ class TestDecodeByteLevelBpeSurfaceForm:
 
     def test_empty_string(self):
         assert decode_byte_level_bpe_surface_form("") == ""
+
+
+# =============================================================================
+# CRITICAL TEST: convert_html_tables_to_pipe_markdown
+# =============================================================================
+
+
+class TestConvertHtmlTablesToPipeMarkdown:
+    """Convert HTML <table> markup to pipe-markdown.
+
+    MEASURED FACT (PITFALLS.md § 12, 2026-07-30): Unlimited-OCR emits HTML <table> for
+    88 of 103 TABLE images. M3 and GLM-4.6v emit pipe-markdown. Raw HTML breaks agreement
+    metrics and embeds markup in markdown output. This function bridges that gap.
+
+    Test oracle: A reference implementation that was measured to work (agreement from 1/103
+    to 62/103) collecting <table>...</table> blocks, <tr>...</tr> rows, <th|td>...</td|th>
+    cells, stripping inner tags, decoding &nbsp;, collapsing whitespace, joining with ' | ',
+    and wrapping in pipes. Tests improve on that baseline.
+    """
+
+    def test_simple_table_with_data_cells_converts(self):
+        """Simplest case: <table><tr><td>A</td><td>B</td></tr></table> -> | A | B |"""
+        html = "<table><tr><td>A</td><td>B</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| A | B |" in result
+        # No header separator line (no <th> tags)
+        assert "| --- |" not in result
+
+    def test_table_with_header_row_generates_separator(self):
+        """<th> tags signal a header; next row becomes a separator."""
+        html = "<table><tr><th>Name</th><th>Value</th></tr><tr><td>A</td><td>B</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| Name | Value |" in result
+        assert "| --- | --- |" in result
+        assert "| A | B |" in result
+
+    def test_html_entities_decoded_in_cells(self):
+        """&nbsp;, &lt;, &gt;, &amp; and other entities are decoded."""
+        html = "<table><tr><td>Space&nbsp;here</td><td>&lt;tag&gt;</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "Space here" in result
+        assert "<tag>" in result
+
+    def test_pipes_in_cell_text_are_escaped(self):
+        """Literal pipe characters in cells are escaped with backslash."""
+        html = "<table><tr><td>a | b</td><td>c | d</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert r"a \| b" in result or "a \\| b" in result
+        assert r"c \| d" in result or "c \\| d" in result
+
+    def test_inner_html_tags_stripped_from_cells(self):
+        """<b>, <i>, <span>, etc. inside cells are removed; text is kept."""
+        html = "<table><tr><td><b>Bold</b> text</td><td><i>Italic</i></td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "Bold text" in result
+        assert "Italic" in result
+        assert "<b>" not in result
+        assert "<i>" not in result
+
+    def test_multiple_tables_all_converted(self):
+        """Multiple <table> blocks in one output are all converted."""
+        html = (
+            "<table><tr><td>Table 1</td></tr></table>"
+            "Some text between tables"
+            "<table><tr><td>Table 2</td></tr></table>"
+        )
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| Table 1 |" in result
+        assert "| Table 2 |" in result
+        assert "Some text between tables" in result
+
+    def test_text_outside_tables_passes_through_untouched(self):
+        """Non-table content before, between, after tables remains unchanged."""
+        html = "Start text\n<table><tr><td>Cell</td></tr></table>\nEnd text"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "Start text" in result
+        assert "End text" in result
+        assert "| Cell |" in result
+
+    def test_empty_table_skipped(self):
+        """A <table> with no <tr> or empty cells is skipped and does not corrupt output."""
+        html = "Before\n<table></table>\nAfter"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "Before" in result
+        assert "After" in result
+        # Empty table should not leave a broken table in output
+        assert "| |" not in result or result.count("| |") < 2  # Allow only reasonable counts
+
+    def test_rows_padded_to_consistent_column_count(self):
+        """Rows with fewer cells than the first row are padded with empty cells."""
+        html = "<table><tr><td>A</td><td>B</td><td>C</td></tr><tr><td>X</td><td>Y</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        lines = [line for line in result.split("\n") if line.strip().startswith("|")]
+        # Each row should have 3 cells (A/B/C width)
+        assert len(lines) >= 2
+        for line in lines:
+            cell_count = line.count("|") - 1  # pipes delimit and end; n+1 pipes = n cells
+            assert cell_count >= 3, f"Row {line!r} has {cell_count} cells, expected >= 3"
+
+    def test_whitespace_collapsed_in_cells(self):
+        """Leading/trailing and internal whitespace runs are collapsed to single spaces."""
+        html = "<table><tr><td>  Text   with   spaces  </td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "Text with spaces" in result
+        # Should not have multiple consecutive spaces
+        assert "   " not in result
+
+    def test_newlines_in_cell_content_collapsed(self):
+        """Newlines inside cells are collapsed (part of whitespace collapsing)."""
+        html = "<table><tr><td>Line1\nLine2\nLine3</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        # Whitespace collapsing should join the lines
+        assert "Line1 Line2 Line3" in result
+
+    def test_malformed_table_without_closing_tag_skipped(self):
+        """A <table> without a closing </table> is skipped; surrounding text is kept."""
+        html = "Before <table><tr><td>Cell</td></tr> After"
+        result = convert_html_tables_to_pipe_markdown(html)
+        # The unclosed table won't match the regex, so it won't be converted
+        # But "Before" and "After" text should remain
+        assert "Before" in result
+        assert "After" in result
+
+    def test_mixed_th_and_td_in_same_row_treated_as_header(self):
+        """If a row has any <th> tags, it becomes the header."""
+        html = (
+            "<table><tr><th>Header1</th><th>Header2</th></tr>"
+            "<tr><td>Data1</td><td>Data2</td></tr></table>"
+        )
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| Header1 | Header2 |" in result
+        assert "| --- | --- |" in result
+        assert "| Data1 | Data2 |" in result
+
+    def test_colspan_and_rowspan_documented_behaviour(self):
+        """colspan/rowspan are NOT supported; cells with these attrs are processed as normal cells.
+
+        This is a documented limitation: the converter handles flat cell grids.
+        colspan/rowspan require rendering-like layout logic which is out of scope.
+        """
+        html = "<table><tr><td colspan='2'>Merged</td><td>C</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        # The colspan attribute is in the tag and gets stripped; cell text is extracted
+        assert "Merged" in result
+        # The number of cells in the output is not 2 (as colspan intended) but whatever
+        # the regex found. This is acceptable and documented.
+
+    def test_idempotence_apply_twice_equals_apply_once(self):
+        """Applying the conversion twice should equal applying it once."""
+        html = "<table><tr><td>A</td></tr></table>"
+        once = convert_html_tables_to_pipe_markdown(html)
+        twice = convert_html_tables_to_pipe_markdown(once)
+        assert once == twice, "Function is not idempotent"
+
+    def test_table_at_document_start_and_end(self):
+        """Tables at the very start and very end of input are handled."""
+        html_start = "<table><tr><td>First</td></tr></table> text"
+        result = convert_html_tables_to_pipe_markdown(html_start)
+        assert "| First |" in result
+        assert "text" in result
+
+        html_end = "text <table><tr><td>Last</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html_end)
+        assert "text" in result
+        assert "| Last |" in result
+
+    def test_case_insensitive_tag_matching(self):
+        """HTML tags are case-insensitive; <TABLE>, <TR>, <TD> etc. are handled."""
+        html = "<TABLE><TR><TD>Cell</TD></TR></TABLE>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| Cell |" in result
+
+    def test_self_closing_br_in_cells_removed(self):
+        """Self-closing tags like <br/> inside cells are stripped along with other tags."""
+        html = "<table><tr><td>Line1<br/>Line2</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        # <br/> is stripped as a tag; the resulting text is joined with collapsed whitespace
+        assert "Line1" in result and "Line2" in result
+        # The exact spacing depends on whitespace collapsing; the text is there
+        assert "| Line1" in result or "Line1 Line2" in result
+
+    def test_special_characters_in_cell_preserved(self):
+        """Non-entity special characters (Chinese, emoji, accented) are preserved."""
+        html = "<table><tr><td>中文</td><td>Café</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "中文" in result
+        assert "Café" in result
+
+    def test_only_nbsp_entity_in_cell_becomes_space(self):
+        """&nbsp; specifically becomes a space (the most common entity in model output)."""
+        html = "<table><tr><td>A&nbsp;B&nbsp;C</td></tr></table>"
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "A B C" in result
+
+    def test_extremely_nested_tags_inner_content_extracted(self):
+        """Deeply nested tags are all stripped; only the text content survives."""
+        html = (
+            "<table><tr><td>"
+            "<div><span><b><i>Text</i></b></span></div>"
+            "</td></tr></table>"
+        )
+        result = convert_html_tables_to_pipe_markdown(html)
+        assert "| Text |" in result
+        assert "<div>" not in result
+        assert "<span>" not in result
 
 
 if __name__ == "__main__":
