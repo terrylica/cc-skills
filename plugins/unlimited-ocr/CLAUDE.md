@@ -71,28 +71,44 @@ Nothing in the current pipeline can split a nine-panel figure into nine images. 
 the crops are accurate. Handing a chart-describing model one panel at a time instead of a collage is
 a straightforward quality improvement that does not replace anything.
 
-### 3. quantml stage 05 — as a THIRD reader, never as a replacement
-
-This needs stating carefully, because the obvious move is wrong.
+### 3. quantml stage 05 — YES, as a third reader for FORMULA images
 
 quantml deliberately runs **two independent vision models** (MiniMax-M3 and GLM-4.6v) and treats
-their agreement as evidence of correctness. Agreement is ~22 %; that is not a quality score, it is
-two systems with different failure modes converging. Swapping one out for a third model does not
-improve that design — it just changes whose blind spots you inherit.
+their agreement as evidence of correctness. A third reader is worth adding only if it is genuinely
+independent AND accurate enough that its vote means something; a weak third reader manufactures
+false majorities, which is worse than none.
 
-What Unlimited-OCR can legitimately do there:
+**Measured on 24 FORMULA images from the live corpus, 2026-07-30** — every Unlimited-OCR
+transcription produced by actually running the model. Full evidence:
+[`references/QUANTML-FORMULA-HEAD-TO-HEAD.md`](references/QUANTML-FORMULA-HEAD-TO-HEAD.md).
 
-- **Add a third independent reader for FORMULA and TABLE images**, which is exactly where corroboration
-  is most valuable and where this model is strongest. Three readers turn a 2-way disagreement into a
-  majority.
-- **It cannot read CHART images at all**, so it must never be routed to them.
-- **Its LaTeX will disagree with everything by default.** It emits `c u r p d f` where the others
-  emit `curpdf`. The two render identically, but a byte comparison scores every formula as a
-  disagreement. `--collapse-math-spacing` exists for precisely this and would have to run before
-  any agreement check.
+| Pair                              | Mean similarity on canonicalised LaTeX |
+| --------------------------------- | -------------------------------------- |
+| M3 ↔ GLM-4.6v (the existing pair) | 0.811                                  |
+| **M3 ↔ Unlimited-OCR**            | **0.838**                              |
+| GLM-4.6v ↔ Unlimited-OCR          | 0.755                                  |
 
-Being free and local matters here for a concrete reason: the cross-reference phase once died against
-an upload quota after ~140 of 529 images. A local reader has no quota.
+It agrees with M3 slightly _more_ than GLM does — independent, not an outlier, not redundant.
+
+**The number that decides it: 8 of the 24 images carry a material M3/GLM disagreement, and the
+third reader takes a clear side in 7 of them** — five times with M3, twice with GLM. On
+`68b99c3f4017.jpg`, checked by eye against the image, GLM emitted visibly corrupted LaTeX
+(`==========` where `=` belongs), M3 was exactly right, and Unlimited-OCR independently matched M3.
+Two readers deadlock there. Three resolve it correctly.
+
+**It is a corroborator, never an arbiter.** It is not more accurate than M3: on `17e7c844edb2.jpg`
+it wrote `RET.OC` twice where the image says `RET_CO` then `RET_OC` — a semantic error M3 avoided.
+
+Conditions on any integration:
+
+- `--collapse-math-spacing` must run **before** any agreement comparison. It emits `c u r p d f`
+  where the others emit `curpdf`; identical rendered, never equal as bytes.
+- **Never route `CHART` images to it.** It localises charts and transcribes nothing inside them —
+  silence that looks like an answer.
+- `TABLE` is plausible but was **not** measured. Measure before extending.
+
+Being free and local matters concretely: the cross-reference phase once died against an upload quota
+after ~140 of 529 images. A local reader has no quota.
 
 ### 4. TASC archive (~7,200 articles) — ASSESSED, AND THE ANSWER IS NO
 

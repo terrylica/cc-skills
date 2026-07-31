@@ -43,13 +43,30 @@ node references/validate-math.mjs paper.md
 
 **Consequence**: OCR tools like `marker-pdf` **cannot extract LaTeX** — they see text like "γ₄" not `\gamma_4`. They may return empty output or crash silently.
 
-**Required approach**:
+**Recommended approach** (verified on TimeMixer ICLR 2024 paper):
 
 1. Use `pymupdf4llm` for prose extraction
-2. **Manually transcribe all equations** from PDF screenshots — there is no shortcut
-3. Read each formula visually, write LaTeX by hand
+2. **Extract math using Unlimited-OCR** — render the PDF page at 300 DPI and parse it locally:
 
-**How to confirm**: Run `marker-pdf` — if output is empty or has zero math content, it's Type A.
+   ```bash
+   # Render page as PNG at 300 DPI
+   uv run --python 3.14 --with pymupdf python3 -c "
+   import fitz
+   doc = fitz.open('paper.pdf')
+   pix = doc[0].get_pixmap(matrix=fitz.Matrix(300/72, 300/72), alpha=False)
+   pix.save('page.png')
+   "
+
+   # Parse with Unlimited-OCR (free, offline, ~2.4 s per page on Apple Silicon)
+   S=~/eon/cc-skills/plugins/unlimited-ocr/scripts/unlimited_ocr.py
+   uv run --no-project $S parse --input page.png --collapse-math-spacing
+   ```
+
+   This returns real LaTeX (e.g., `\left\{ \begin{array} ... \end{array} \right\}` for piecewise definitions) that render correctly in GitHub GFM. Math comes back character-spaced by default; the `--collapse-math-spacing` flag repairs it for cross-model comparison.
+
+3. **Fallback**: If Unlimited-OCR output is wrong for a specific formula, manually transcribe it from the screenshot. Start with the machine output and edit it — faster than starting from zero.
+
+**How to confirm Type A**: Run `marker-pdf` — if output is empty or has zero math content, it's Type A.
 
 ### Type B — LaTeX-Generated PDF
 
@@ -63,20 +80,25 @@ node references/validate-math.mjs paper.md
 
 **Signs**: All pages are raster images, zero copyable text
 
-**Approach**: OCR pipeline — `marker-pdf` is best option, or `tesseract`
+**Approach**: OCR pipeline — `Unlimited-OCR` is the recommended first choice for text, tables, and equations; `marker-pdf` and `tesseract` are alternatives.
+
+**Note**: Unlimited-OCR does NOT describe charts — it localizes them and returns empty text. Use [`unlimited-ocr-segment-figure`](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md) to crop chart panels for a downstream vision model.
 
 ---
 
 ## Tool Comparison
 
-| Tool          | Best For                        | Install                           | Key Limitation                                  |
-| ------------- | ------------------------------- | --------------------------------- | ----------------------------------------------- |
-| `pymupdf4llm` | Type A/B prose (best structure) | `uv run --with pymupdf4llm`       | Math as Unicode, not LaTeX                      |
-| `pdftotext`   | Quick plain text                | `brew install poppler`            | Loses table structure                           |
-| `markitdown`  | Alternative prose               | `uv run --with 'markitdown[pdf]'` | Slight over-spacing; same math limit            |
-| `marker-pdf`  | Type C scanned only             | `pip install marker-pdf`          | **Fails silently on Type A** (Unicode text bug) |
+| Tool            | Best For                        | Install                            | Key Limitation                                        |
+| --------------- | ------------------------------- | ---------------------------------- | ----------------------------------------------------- |
+| `pymupdf4llm`   | Type A/B prose (best structure) | `uv run --with pymupdf4llm`        | Math as Unicode, not LaTeX                            |
+| `Unlimited-OCR` | Type C scanned; Type A math     | `uv run --no-project` (no install) | Does NOT describe charts (use segment-figure instead) |
+| `pdftotext`     | Quick plain text                | `brew install poppler`             | Loses table structure                                 |
+| `markitdown`    | Alternative prose               | `uv run --with 'markitdown[pdf]'`  | Slight over-spacing; same math limit                  |
+| `marker-pdf`    | Type C scanned (alternative)    | `pip install marker-pdf`           | **Fails silently on Type A** (Unicode text bug)       |
 
 **Never trust `marker-pdf` output on Type A/B PDFs** — the apparent "success" with empty math sections is the failure mode.
+
+**Unlimited-OCR verdict** (measured on the TimeMixer ICLR 2024 paper at 300 DPI, and on 24 Chinese formula images from the quantml corpus): strong on text and formulas — it agreed with MiniMax-M3 more often than GLM-4.6v did on that formula sample. Table quality was **not** measured, so it is not claimed here. It returns zero characters for chart regions while emitting perfect bounding boxes. Use [`unlimited-ocr-segment-figure`](../../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md) to split chart-heavy pages before sending crops to a vision model.
 
 ---
 
@@ -376,11 +398,13 @@ For papers with 10+ equations, use this multi-agent pattern:
 
 ## Related Skills
 
-| Skill                                                                                                           | Relationship                                                     |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md)                                                      | Opposite direction: markdown → PDF                               |
-| [documentation-standards](../documentation-standards/SKILL.md)                                                  | GFM formatting standards                                         |
-| [quant-research:opendeviation-eval-metrics](../../../quant-research/skills/opendeviation-eval-metrics/SKILL.md) | Worked example: `references/how-to-use-the-sharpe-ratio-2026.md` |
+| Skill                                                                                                           | Relationship                                                      |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [unlimited-ocr-parse-document](../../unlimited-ocr/skills/unlimited-ocr-parse-document/SKILL.md)                | Extract text/math from PDFs locally (Type A/C PDFs, ~2.4 s/page)  |
+| [unlimited-ocr-segment-figure](../../unlimited-ocr/skills/unlimited-ocr-segment-figure/SKILL.md)                | Crop multi-panel figures (charts, diagrams) for downstream models |
+| [pandoc-pdf-generation](../pandoc-pdf-generation/SKILL.md)                                                      | Opposite direction: markdown → PDF                                |
+| [documentation-standards](../documentation-standards/SKILL.md)                                                  | GFM formatting standards                                          |
+| [quant-research:opendeviation-eval-metrics](../../../quant-research/skills/opendeviation-eval-metrics/SKILL.md) | Worked example: `references/how-to-use-the-sharpe-ratio-2026.md`  |
 
 ## Post-Execution Reflection
 
