@@ -1,0 +1,6 @@
+{
+  "name": "arxiv-source-first",
+  "version": "1.0.0",
+  "description": "Read an arXiv paper from the authors' own LaTeX rather than OCR-ing its PDF. Fetches the e-print source, extracts every display equation with its label, environment and enclosing proposition, renders each to MathML via a Rust pulldown-latex tool, and validates usability by compiling each formula with a real TeX engine. Includes the ground-truth measurement showing OCR of the same paper reaches 0.948 mean similarity but only 80% compile rate.",
+  "author": { "name": "Terry Li", "url": "https://github.com/terrylica" }
+}
