@@ -68,10 +68,10 @@ Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/postt
 
 ### Stop Hooks
 
-| Hook                         | Purpose                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit — [schema notes](./docs/stop-hooks.md)           |
-| `stop-ty-project-check.ts`   | Project-wide ty type check on exit (only if .py files were edited) — [spoke](./docs/ty-type-checker.md) |
+| Hook                         | Purpose                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `stop-hook-error-summary.ts` | Summarizes hook errors from the session on Claude exit — [schema notes](./docs/stop-hooks.md)                                |
+| `stop-ty-project-check.ts`   | Project-wide ty type check on exit with resource guards (only if .py files were edited) — [spoke](./docs/ty-type-checker.md) |
 
 ## Spoke Docs Index
 
