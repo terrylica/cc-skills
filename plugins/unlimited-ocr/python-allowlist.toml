@@ -34,3 +34,12 @@ written in Python; no TypeScript abstraction exists. Tests are deterministic, re
 weights or GPU, and finish in <1s. Follows the documented PEP 723 + pytest convention from
 cc-skills/plugins/productivity-tools/skills/notion-sdk/tests/.
 """
+
+[[allow]]
+path   = "references/multipage_integrity_experiment.py"
+reason = """
+The archived probe that measured single-pass multi-image page loss (PITFALLS section 3). It calls
+mlx-vlm's Python API directly, deliberately bypassing the CLI, because the CLI does not expose the
+multi-image path being tested. Kept executable and PEP 723 self-contained so the measurement can be
+reproduced rather than taken on trust.
+"""
