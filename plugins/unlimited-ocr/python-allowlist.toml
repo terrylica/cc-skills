@@ -43,3 +43,13 @@ mlx-vlm's Python API directly, deliberately bypassing the CLI, because the CLI d
 multi-image path being tested. Kept executable and PEP 723 self-contained so the measurement can be
 reproduced rather than taken on trust.
 """
+
+[[allow]]
+path   = "scripts/unlimited_ocr_batch_folder_parser.py"
+reason = """
+Batch folder parser with checkpoint/resume. Wraps the unlimited_ocr.py CLI for each file, enforcing
+per-image processing and incremental manifest.jsonl updates. Reuses the existing CLI via subprocess
+rather than duplicating the inference and parsing logic. PEP 723 self-contained, no virtualenv needed.
+Both machines (MLX on Apple Silicon, transformers on CUDA) are Python-only runtimes; wrapping in
+TypeScript would add a language boundary for zero benefit.
+"""

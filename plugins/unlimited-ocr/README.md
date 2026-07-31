@@ -24,6 +24,7 @@ Nothing to install: `uv run` reads the script's PEP 723 header and materialises 
 | ------------------------------ | --------------------------------------------------------- |
 | `unlimited-ocr-parse-document` | image / PDF / directory → markdown + LaTeX + layout boxes |
 | `unlimited-ocr-segment-figure` | composite figure → one cropped image per detected panel   |
+| `unlimited-ocr-batch-folder`   | batch parse a folder with checkpoint/resume               |
 
 ## Read this before trusting it
 
