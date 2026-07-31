@@ -116,6 +116,12 @@ If you need the _content_ of a chart, use
 [`unlimited-ocr-segment-figure`](../unlimited-ocr-segment-figure/SKILL.md) to crop each panel and
 hand the crops to a model that does describe images.
 
+**It writes tables as HTML, not as pipe-markdown.** Measured over 103 real tables: 88 came back as
+`<table>` markup and 15 as prose; none as pipe-markdown. Concatenating the output into a markdown
+document therefore embeds raw HTML, which most renderers pass through silently. Convert it if your
+downstream consumer expects markdown tables — and always convert before comparing this model's
+output against another reader's, or the comparison measures the markup.
+
 Other limits, all with evidence, in [`../../references/PITFALLS.md`](../../references/PITFALLS.md):
 degenerate repetition, multi-page page-dropping, and why "Unlimited" is not unlimited.
 

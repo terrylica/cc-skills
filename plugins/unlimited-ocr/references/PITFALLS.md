@@ -203,3 +203,26 @@ The probe now catches `ModuleNotFoundError` and `ValueError` per module and reco
   on OpenRouter, Replicate, Together, or Fal.
 
 Self-hosting on hardware you already own is not a fallback here; it is the primary path.
+
+---
+
+## 12. It serializes tables as HTML, not as pipe-markdown
+
+Measured over 103 TABLE images from the quantml corpus: Unlimited-OCR emitted an HTML `<table>` for
+**88** of them and prose for the other 15. Zero pipe-markdown. The two vision models quantml already
+runs (MiniMax-M3, GLM-4.6v) emitted pipe-markdown for 205 of the same 206 readings.
+
+This matters far more than a formatting preference:
+
+- Any pipeline that **compares** this model's output against another reader's is comparing HTML with
+  markdown and will score a near-total disagreement no matter how well either model read the image.
+  A serialization bridge is required before any such comparison means anything — a ~15-line
+  HTML-`<tr>`/`<td>`-to-pipe renderer took agreement from 1/103 to 62/103 in
+  [`QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
+- Any pipeline that **concatenates** its output into a markdown document gets raw HTML in the middle
+  of the markdown. Most renderers pass it through, so this fails silently and looks fine.
+
+Its HTML is also considerably more verbose: mean output length across those 103 images was 2913
+characters against M3's 858 and GLM's 1374, for a median row count (12) that sits between the two
+(9 and 13). The extra characters are markup, not content — which is exactly why any similarity or
+overlap metric applied to the raw output is measuring the markup.
