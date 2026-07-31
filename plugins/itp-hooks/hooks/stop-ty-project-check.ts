@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Stop hook: ty project-wide type check
+ * Stop hook: ty project-wide type check with subprocess resource guards
  *
  * Runs `ty check .` on session exit to catch cross-file type errors
  * that per-file PostToolUse checks miss.
@@ -10,24 +10,44 @@
  * 2. ty is installed
  * 3. CWD is a Python project (pyproject.toml or *.py files present)
  *
+ * ─── Incident 2026-07-31 ─────────────────────────────────────────────────────
+ *
+ * The previous sync implementation had NO resource guard. This Stop hook runs on
+ * session exit, so multiple concurrent sessions exiting could trigger several
+ * whole-tree `ty check .` runs simultaneously — exactly the pattern that caused
+ * 2026-07-30 to freeze the machine (four concurrent runs, 73 GB combined, kernel
+ * jetsam named ty as largestProcess). Incident this machine: one unguarded Stop-hook
+ * run reached 14.4 GB and was killed by the kernel at 17 minutes. The fix: use the
+ * async spawn path with full resource guards — machine-wide concurrency slots,
+ * RSS watchdog, and kernel-enforced CPU ceiling — reusing the infrastructure from
+ * the iter-95 shared helper and iter-124 watchdog.
+ *
+ * This now mirrors the per-file PostToolUse check (which IS guarded) rather than
+ * being a separate unguarded path. Duration is wrong axis; memory and concurrency
+ * are the layers that matter.
+ *
  * CRITICAL: Always runs with --python-version 3.14 (project policy: Python 3.14 ONLY).
  * Uses --exit-zero to prevent non-zero exit codes from failing the hook.
  *
  * Output: { additionalContext: "..." } for informational, non-blocking output.
- * Fail-open everywhere -- outputs {} on any error.
+ * Fail-open everywhere -- outputs {} on any error, never blocks session end.
  */
 
 import { existsSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import {
+  executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
+} from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95";
 
 // --- Constants ---
 
 const EDIT_GATE_DIR = "/tmp/.claude-ty-edits";
 const MAX_DIAGNOSTIC_LINES = 20;
+const TY_SUBPROCESS_TIMEOUT_MILLISECONDS = 15000; // 15s budget for project-wide check
 
 // --- Main ---
 
-function main(): void {
+async function main(): Promise<void> {
   // Check gate: were any Python files edited this session?
   let hasEdits = false;
   try {
@@ -81,23 +101,53 @@ function main(): void {
     return;
   }
 
-  // Run ty check on the entire project
-  const result = Bun.spawnSync(
-    ["ty", "check", ".", "--output-format", "concise", "--python-version", "3.14", "--exit-zero"],
-    {
-      stdout: "pipe",
-      stderr: "pipe",
-      timeout: 15000, // 15s budget for project-wide check
-    }
-  );
+  // Run ty check on the entire project via the guarded async spawn path
+  const tyExecutionResult =
+    await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
+      ["ty", "check", ".", "--output-format", "concise", "--python-version", "3.14", "--exit-zero"],
+      {
+        cwd,
+        timeoutMs: TY_SUBPROCESS_TIMEOUT_MILLISECONDS,
+        // Incident 2026-07-31: one unguarded Stop-hook run reached 14.4 GB and was killed by
+        // the kernel at 17 minutes old. Multiple concurrent sessions exiting would spawn
+        // several whole-tree checks simultaneously — the exact pattern that caused 2026-07-30
+        // to freeze the machine (73 GB across 4 concurrent runs). This guard bounds memory and
+        // concurrency via the same mechanism the per-file PostToolUse check uses, reusing the
+        // iter-95 shared helper and iter-124 watchdog.
+        residentMemoryGuardedToolName: "ty",
+      },
+    );
 
   // Always cleanup gate files after running
   cleanup();
 
+  // Handle resource-guard outcomes
+  if (tyExecutionResult.skippedBecauseConcurrencySlotsBusy) {
+    // Every slot busy; a concurrent session's check is already running. This is safe — we
+    // skip rather than queue, and a type check is advisory.
+    console.log(JSON.stringify({}));
+    return;
+  }
+
+  if (tyExecutionResult.killedForExceedingMemoryCeiling) {
+    // The watchdog SIGKILLed this for exceeding the 1500 MB ceiling. This is not a normal
+    // failure to swallow; silence is how 2026-07-30 recurred after its own reboot.
+    const peakMB = tyExecutionResult.observedPeakResidentMegabytes ?? 0;
+    const summary = `[TY] Project type check MEMORY LIMIT exceeded (peak ${peakMB} MB). ` +
+      `Upgrade ty or report to https://github.com/astral-sh/ty/issues/4147`;
+    console.log(JSON.stringify({ additionalContext: summary }));
+    return;
+  }
+
+  if (tyExecutionResult.timedOut) {
+    // The subprocess was aborted after 15 s. This is less severe than a memory kill but
+    // still worth reporting to the operator.
+    console.log(JSON.stringify({ additionalContext: "[TY] Project type check timed out (15s)" }));
+    return;
+  }
+
   // Collect output
-  const stdout = result.stdout?.toString().trim() || "";
-  const stderr = result.stderr?.toString().trim() || "";
-  const output = stdout || stderr;
+  const output = tyExecutionResult.stdoutText || tyExecutionResult.stderrText;
 
   if (!output) {
     // Clean project -- no diagnostics
@@ -156,7 +206,8 @@ function cleanup(): void {
 }
 
 try {
-  main();
+  // Async main
+  await main();
 } catch {
   // Fail-open -- Stop hook must never block session end
   console.log(JSON.stringify({}));
