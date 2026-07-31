@@ -32,6 +32,14 @@ produce either garbage or nothing, and none of them are obvious from the upstrea
      characters. That is correct behaviour for a layout parser and a total surprise if you expected
      an image captioner. `segment` turns that limitation into a feature.
 
+ONE IMAGE PER FORWARD PASS, DELIBERATELY. The model's headline capability is parsing dozens of
+pages in a single pass, and this CLI does not use it. A five-page single-pass run on the RTX 4090
+returned FOUR pages — one silently absent, no error — and the prompt that mode requires
+hallucinates on any single image. For archive work, where a dropped page is unrecoverable and
+undetectable, per-page calls are the safe construction: each page is independently verifiable and
+the loop detector sees each one on its own. The cost is throughput, which is not the scarce
+resource here.
+
 Every number above was measured, not read. Provenance: references/EMPIRICAL.md.
 
 SUBCOMMANDS
@@ -76,8 +84,24 @@ PROMPT_MODES: dict[str, str] = {
     "document-parsing": "document parsing.",
 }
 
-#: The one prompt mode measured to decode degenerate repetition until max_tokens on MLX.
-KNOWN_LOOPING_PROMPT_MODE = "document-parsing"
+#: Prompt modes withheld unless explicitly forced, each mapped to the failure MEASURED for it.
+#:
+#: They are kept in PROMPT_MODES rather than deleted so the failures stay nameable and
+#: reproducible — a mode that silently disappears teaches the next person nothing, and they will
+#: reach for the upstream README and hit the same wall.
+PROMPT_MODES_WITHHELD_BY_DEFAULT: dict[str, str] = {
+    "document-parsing": (
+        "decodes degenerate repetition ('parsing.parsing.parsing…') until max_tokens on the MLX "
+        "backend. This is the prompt the upstream README documents. A repetition penalty does not "
+        "stop it and neither does the chat template — only the prompt choice does."
+    ),
+    "multi-page": (
+        "HALLUCINATES on a single image: deterministically prepends the word 'industrydocuments', "
+        "which appears nowhere in the source, on every run. It is designed for a multi-image "
+        "forward pass that this CLI deliberately does not perform (see the module docstring), so "
+        "on the one-image-per-call path it has no correct use."
+    ),
+}
 
 #: Rendering DPI for PDF pages.
 #:
@@ -189,13 +213,13 @@ def collapse_math_character_spacing(text: str) -> str:
     letter_gap = re.compile(r"(?<=[A-Za-z]) (?=[A-Za-z])")
 
     def repair(match: re.Match[str]) -> str:
-        body = match.group("body")
-        # Applied repeatedly: one pass only closes alternate gaps in a run like "c u r".
-        previous = None
-        while previous != body:
-            previous = body
-            body = letter_gap.sub("", body)
-        return match.group("open") + body + match.group("close")
+        # ONE PASS IS SUFFICIENT, and this was verified rather than assumed. Both lookarounds are
+        # ZERO-WIDTH, so consecutive gaps in a run like "c u r p d f" are non-overlapping matches
+        # and `sub` closes all of them in a single scan. An earlier version looped until the string
+        # stopped changing, justified by a comment claiming one pass "only closes alternate gaps".
+        # That claim was false, and a mutation test proved the loop unreachable-by-effect: removing
+        # it changed no output anywhere in the suite.
+        return match.group("open") + letter_gap.sub("", match.group("body")) + match.group("close")
 
     for opener, closer in ((r"\\\[", r"\\\]"), (r"\\\(", r"\\\)"), (r"\$", r"\$")):
         pattern = re.compile(
@@ -309,11 +333,20 @@ def detect_available_backends() -> dict[str, dict[str, Any]]:
     else:
         # Probed with find_spec rather than a bare import, so availability is answered without
         # importing anything, and no unused-import suppression is needed.
-        missing = [
-            name
-            for name in ("mlx.core", "mlx_vlm", "mlx_vlm.models.unlimited_ocr")
-            if importlib.util.find_spec(name) is None
-        ]
+        #
+        # THE try/except IS LOAD-BEARING, NOT DEFENSIVE PADDING. `find_spec` returns None for a
+        # missing TOP-LEVEL module but RAISES ModuleNotFoundError for a submodule whose parent is
+        # absent — so `find_spec("mlx.core")` on a Mac without mlx installed raises rather than
+        # answering. Uncaught, `doctor` crashed with a traceback on exactly the machine it exists
+        # to help: a Mac where the backend is not yet installed. Caught by a test that drove the
+        # real command with no backend present.
+        missing = []
+        for module_name in ("mlx.core", "mlx_vlm", "mlx_vlm.models.unlimited_ocr"):
+            try:
+                if importlib.util.find_spec(module_name) is None:
+                    missing.append(module_name)
+            except (ModuleNotFoundError, ValueError):
+                missing.append(module_name)
         if missing:
             mlx["reason"] = f"missing module(s): {', '.join(missing)}"
         else:
@@ -569,16 +602,13 @@ def collect_input_images(
 
 
 def command_parse(args: argparse.Namespace) -> int:
-    if (
-        args.prompt_mode == KNOWN_LOOPING_PROMPT_MODE
-        and not args.allow_known_looping_prompt
-    ):
+    withheld_reason = PROMPT_MODES_WITHHELD_BY_DEFAULT.get(args.prompt_mode)
+    if withheld_reason is not None and not args.allow_withheld_prompt_mode:
         print(
-            f"[unlimited-ocr] REFUSED: prompt mode {KNOWN_LOOPING_PROMPT_MODE!r} "
-            f"({PROMPT_MODES[KNOWN_LOOPING_PROMPT_MODE]!r}) decodes degenerate repetition until\n"
-            "                max_tokens on the MLX backend. It is the prompt the upstream README\n"
-            "                documents, which is exactly why it is named here rather than removed.\n"
-            "                Use --prompt-mode free-ocr, or --allow-known-looping-prompt to force.",
+            f"[unlimited-ocr] REFUSED: prompt mode {args.prompt_mode!r} "
+            f"({PROMPT_MODES[args.prompt_mode]!r})\n"
+            f"    {withheld_reason}\n"
+            "    Use --prompt-mode free-ocr, or --allow-withheld-prompt-mode to force it anyway.",
             file=sys.stderr,
         )
         return 2
@@ -796,7 +826,7 @@ def command_spec(args: argparse.Namespace) -> int:
             "cuda": DEFAULT_CUDA_MODEL_IDENTIFIER,
         },
         "prompt_modes": PROMPT_MODES,
-        "known_looping_prompt_mode": KNOWN_LOOPING_PROMPT_MODE,
+        "prompt_modes_withheld_by_default": PROMPT_MODES_WITHHELD_BY_DEFAULT,
         "detection_coordinate_space": DETECTION_COORDINATE_SPACE,
         "defaults": {
             "pdf_render_dpi": DEFAULT_PDF_RENDER_DPI,
@@ -819,13 +849,13 @@ def command_spec(args: argparse.Namespace) -> int:
                     "--format": "markdown | json | raw",
                     "--strip-det": "remove <|det|> markers, keeping block structure",
                     "--collapse-math-spacing": "rejoin 'c u r p d f' into 'curpdf' inside math",
-                    "--allow-known-looping-prompt": "permit the prompt measured to loop",
+                    "--allow-withheld-prompt-mode": "force a measured-broken prompt mode",
                     "--quiet": "suppress progress on stderr",
                 },
                 "exit_codes": {
                     "0": "parsed, no degenerate repetition detected",
                     "1": "parsed, but repetition suspected in at least one output",
-                    "2": "usage or input error",
+                    "2": "usage or input error, including a withheld prompt mode",
                 },
             },
             "segment": {
@@ -883,7 +913,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--collapse-math-spacing", action="store_true", dest="collapse_math_spacing"
     )
     parse_cmd.add_argument(
-        "--allow-known-looping-prompt", action="store_true", dest="allow_known_looping_prompt"
+        "--allow-withheld-prompt-mode",
+        action="store_true",
+        dest="allow_withheld_prompt_mode",
+        help="force a prompt mode that measurement showed to be broken (see spec for the reason)",
     )
     add_shared_model_flags(parse_cmd)
     parse_cmd.set_defaults(handler=command_parse)

@@ -17,15 +17,23 @@ mathematics, tables, and a `<|det|>` bounding box for every block it found.
 
 ---
 
-## The one rule: use `Free OCR.`, never `document parsing.`
+## The one rule: `Free OCR.` is the only prompt mode that works
 
-The prompt the upstream README documents — `<image>document parsing.` — decodes
-`parsing.parsing.parsing…` until it exhausts `max_tokens` on the MLX backend. Same weights, same
-image, same seed, `Free OCR.` returns perfect output in 2.4 s.
+Of the three prompt modes the upstream project documents, **two are broken on MLX** and both are
+refused by this CLI with exit 2 and a printed reason:
 
-The CLI defaults to the working prompt and **refuses** the broken one (exit 2) unless you pass
-`--allow-known-looping-prompt`. It is kept nameable rather than deleted so the failure stays
-reproducible.
+| Mode | Measured behaviour |
+| --- | --- |
+| `free-ocr` | **works** — correct output with layout boxes in 2.4 s. The default. |
+| `document-parsing` | decodes `parsing.parsing.parsing…` until `max_tokens`. This is the prompt the upstream README documents. |
+| `multi-page` | deterministically hallucinates the word `industrydocuments` onto a single image. |
+
+`--allow-withheld-prompt-mode` forces one anyway. They are kept nameable rather than deleted so the
+failures stay reproducible.
+
+**This CLI sends one image per forward pass, always.** The model's headline multi-page capability is
+deliberately unused — a five-page single-pass run dropped a page with no error, which is the worst
+failure mode there is for an archive. Per-page is slower and verifiable.
 
 ---
 

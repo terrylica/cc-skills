@@ -5,7 +5,9 @@ Every entry below was hit while building this plugin. Measurements and hardware 
 
 ---
 
-## 1. The prompt the upstream README documents produces infinite garbage on MLX
+## 1. TWO of the three documented prompt modes are broken on MLX
+
+### 1a. `document parsing.` produces infinite garbage
 
 **What happens.** `<image>document parsing.` — verbatim from the project README — decodes
 `parsing.parsing.parsing.parsing…` until `max_tokens`. 2,048 tokens of it, at 242 tok/s, taking
@@ -17,9 +19,20 @@ correct output with layout boxes in 2.4 s.
 **Not fixed by the obvious remedies.** Adding `repetition_penalty=1.05` does not stop it. Applying
 the chat template does not stop it. The prompt is the variable.
 
-**Defence in this plugin.** `--prompt-mode` defaults to `free-ocr`, and `document-parsing` is
-**refused with exit 2** unless `--allow-known-looping-prompt` is passed. It is kept in the enum
-rather than deleted so the failure remains nameable and reproducible.
+### 1b. `Multi page parsing.` HALLUCINATES on a single image
+
+Given one image containing three formulas and nothing else, this prompt deterministically prepends
+the word **`industrydocuments`** — text that appears nowhere in the source. Reproduced on
+consecutive runs; `Free OCR.` on the same image never does it.
+
+It is a prompt designed for a multi-image forward pass. This CLI sends one image per call by
+design (see §3), so the mode has no correct use here at all.
+
+**Defence in this plugin.** `--prompt-mode` defaults to `free-ocr`. Both `document-parsing` and
+`multi-page` are **refused with exit 2**, each with its measured reason printed, unless
+`--allow-withheld-prompt-mode` is passed. They are kept in the enum rather than deleted so the
+failures stay nameable and reproducible — a mode that silently disappears teaches the next person
+nothing, and they will reach for the upstream README and hit the same wall.
 
 **Why this is dangerous in general.** The upstream CUDA path defends against degenerate decoding
 with an n-gram blocker (`no_repeat_ngram_size=35, ngram_window=128`). `mlx-vlm` has **no equivalent
@@ -43,7 +56,7 @@ chart-reading model can take them one at a time. Localisation is the thing this 
 
 ---
 
-## 3. Multi-page single-pass can silently drop a page
+## 3. Single-pass multi-page is deliberately not exposed
 
 A five-page synthetic PDF whose pages were near-identical (same boilerplate, only a page number
 differing) came back with **four pages**. Page 5 was absent, and a stray `<|/det|>` fragment leaked
@@ -51,14 +64,22 @@ into page 3's text.
 
 The same three near-duplicate pages parsed **one call per page** all retained their unique markers.
 
-**The working hypothesis** — consistent with the evidence but not yet isolated — is the n-gram
-repetition blocker spanning the whole multi-page generation and suppressing legitimately repeated
-content. It is exactly what you would expect from `no_repeat_ngram_size=35` applied across pages
-that share 35-token runs.
+**The n-gram hypothesis is refuted for this CLI, on a technicality that matters.** The CLI loops
+over images and issues **one call per image**, so the repetition blocker is scoped per image and can
+never span pages. Cross-page suppression is not possible here by construction. The mechanism behind
+the 4090 observation, which used the model's own multi-image entry point, remains unexplained.
 
-**Practical rule.** For an archive where completeness matters, prefer **one call per page** and
-reconcile afterwards. Reserve single-pass multi-page for documents with genuinely varied pages, and
-count the `<PAGE>` markers against the page count you sent. A dropped page produces no error.
+**The design decision that follows.** This CLI does not expose single-pass multi-page at all. The
+model's headline capability — dozens of pages in one forward pass with a constant KV cache — is
+deliberately unused, because:
+
+- a page vanished with no error in the one multi-page run that was measured, and an undetectable
+  loss is the worst possible failure mode for an archive;
+- the prompt that mode requires hallucinates on a single image (§1b);
+- per-page calls make every page independently verifiable, and let the loop detector see each page
+  on its own rather than averaged across a long generation.
+
+The cost is throughput, which is not the scarce resource here.
 
 ---
 
@@ -128,7 +149,21 @@ hierarchy rather than the "suppress it" branch.
 
 ---
 
-## 9. Hosted alternatives are thinner than they look
+## 9. `find_spec` RAISES for a submodule whose parent is missing
+
+`importlib.util.find_spec` returns `None` for an absent top-level module but **raises
+`ModuleNotFoundError` for a submodule whose parent package is absent**. So
+`find_spec("mlx.core")` on a Mac that has never installed mlx does not answer "no" — it throws.
+
+Uncaught, `doctor` crashed with a traceback on precisely the machine it exists to serve: a Mac where
+the backend is not yet installed. Found by a test that drove the real command with no backend
+present, not by reading the code.
+
+The probe now catches `ModuleNotFoundError` and `ValueError` per module and records it as missing.
+
+---
+
+## 10. Hosted alternatives are thinner than they look
 
 - **Baidu Cloud** does publish this model as a hosted OCR API. Account creation on the international
   platform accepts international phone numbers, but identity verification is required for most
