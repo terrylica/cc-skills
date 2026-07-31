@@ -56,32 +56,42 @@ chart-reading model can take them one at a time. Localisation is the thing this 
 
 ---
 
-## 3. Single-pass multi-page is deliberately not exposed
+## 3. Single-pass multi-image LOSES CONTENT on MLX — measured, not suspected
 
-A five-page synthetic PDF whose pages were near-identical (same boilerplate, only a page number
-differing) came back with **four pages**. Page 5 was absent, and a stray `<|/det|>` fragment leaked
-into page 3's text.
+The 4090 probe sent a five-page synthetic PDF through the model's own multi-image entry point and
+got **four** pages back, with no error. That raised a hypothesis: the n-gram repetition blocker
+spanning the whole generation, suppressing legitimately repeated content across pages.
 
-The same three near-duplicate pages parsed **one call per page** all retained their unique markers.
+**The hypothesis is refuted, and the truth is worse.** Measured on the MLX backend, 2026-07-30 —
+each page carries one unmistakable unique marker, and the count is how many markers survive:
 
-**The n-gram hypothesis is refuted for this CLI, on a technicality that matters.** The CLI loops
-over images and issues **one call per image**, so the repetition blocker is scoped per image and can
-never span pages. Cross-page suppression is not possible here by construction. The mechanism behind
-the 4090 observation, which used the model's own multi-image entry point, remains unexplained.
+| Pages share boilerplate? | Pages | Markers recovered, ONE forward pass | Markers recovered, ONE CALL PER PAGE |
+| --- | --- | --- | --- |
+| identical | 3 | 1 | **3** |
+| identical | 5 | 4 | **5** |
+| identical | 10 | **0** | **10** |
+| varied | 3 | 1 | **3** |
+| varied | 5 | **0** | **5** |
+| varied | 10 | **0** | **10** |
 
-**The design decision that follows.** This CLI does not expose single-pass multi-page at all. The
-model's headline capability — dozens of pages in one forward pass with a constant KV cache — is
-deliberately unused, because:
+Two things fall out of that table.
 
-- a page vanished with no error in the one multi-page run that was measured, and an undetectable
-  loss is the worst possible failure mode for an archive;
-- the prompt that mode requires hallucinates on a single image (§1b);
-- per-page calls make every page independently verifiable, and let the loop detector see each page
-  on its own rather than averaged across a long generation.
+**Content similarity is NOT the mechanism.** Pages with completely different text fare no better
+than identical ones — 1, 0, 0 against 1, 4, 0. Had repetition suppression been the cause, the varied
+condition would have survived. It did not, so the explanation is something about multi-image
+handling itself, not about what the pages contain.
 
-The cost is throughput, which is not the scarce resource here.
+**Per-page is perfect in every condition — 3 of 3, 5 of 5, 10 of 10, six times out of six.** That is
+not a marginal preference; it is the difference between a complete transcription and, at ten pages,
+nothing recoverable at all.
 
----
+**This is why the CLI sends one image per forward pass and offers no way to do otherwise.** The
+model's headline capability — dozens of pages in a single pass with a constant KV cache — does not
+survive contact with the MLX path as invoked here. The CUDA/transformers path did better in the one
+run measured (four of five pages) but was still lossy, so this is not purely an MLX defect.
+
+The cost of per-page is throughput, which is not the scarce resource. The cost of single-pass is
+silent, unrecoverable data loss, which is the worst failure an archive can have.
 
 ## 4. "Unlimited" is not unlimited, and the paper says so
 
