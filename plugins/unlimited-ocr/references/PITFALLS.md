@@ -229,3 +229,33 @@ Its HTML is also considerably more verbose: mean output length across those 103 
 characters against M3's 858 and GLM's 1374, for a median row count (12) that sits between the two
 (9 and 13). The extra characters are markup, not content — which is exactly why any similarity or
 overlap metric applied to the raw output is measuring the markup.
+
+---
+
+## 13. It fuses a LaTeX command with the identifier that follows it
+
+Measured 2026-07-31 against ground truth — the authors' own LaTeX for arXiv:2605.00501, obtained
+from the e-print source and compared with the model's reading of the same paper's PDF:
+
+| Model emitted  | Should be             | Occurrences | Correctly-spaced form appears |
+| -------------- | --------------------- | ----------: | ----------------------------: |
+| `\neqi`        | `\neq i`              |           5 |                         **0** |
+| `\DeltaRankIC` | `\Delta\text{RankIC}` |           2 |                         **0** |
+| `\equivP`      | `\equiv P`            |           1 |                         **0** |
+| `\logP`        | `\log P`              |           1 |                         **0** |
+
+The correct form appears **zero** times, so this is systematic rather than occasional.
+
+**It is NOT `--collapse-math-spacing`.** That was the obvious suspect and it was tested directly:
+given `\sum_ {j \neq i} x`, `P \equiv P (...)`, `\log P` and `\Delta \text{RankIC}`, the function
+returns each unchanged. The fusion is in the model's own output.
+
+Why this matters more than four occurrences suggests: the result is fluent, plausible, scores 0.97
+token overlap against the true formula, and **does not compile**. Across that paper, 44 of 55
+recovered formulas compiled under pdfTeX — 80 % — against 28 of 28 for the source. A reader skimming
+the markdown will not catch it; only a TeX engine will.
+
+**If you need formulas you will actually run, check them with a TeX engine, and prefer the source
+when one exists.** For arXiv papers it always does — see the `arxiv-source-first` plugin, and
+[`../../arxiv-source-first/references/OCR-VERSUS-AUTHOR-LATEX-GROUND-TRUTH.md`](../../arxiv-source-first/references/OCR-VERSUS-AUTHOR-LATEX-GROUND-TRUTH.md)
+for the full comparison.
