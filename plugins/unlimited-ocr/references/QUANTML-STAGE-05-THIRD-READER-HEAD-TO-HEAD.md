@@ -20,7 +20,8 @@ resolve the cases where those two deadlock?
 Agreement here is not a similarity score of my choosing. It is
 `findDiscrepancy(a, b, type) === null` — quantml stage 05's own gate, extracted **verbatim by
 script** from `pipeline/05-ocr/cross_reference.ts`, with the only edits being `export` and widening
-one parameter's type. Measuring against anything else is measuring the wrong thing, which is a
+one parameter's type. (quantml has since moved it to `pipeline/shared/transcription_agreement_gate.ts`
+and put it under test, as a direct result of this audit.) Measuring against anything else is measuring the wrong thing, which is a
 mistake this document made twice before getting it right (see "Three wrong measurements", below).
 
 ---
@@ -118,17 +119,29 @@ evidence.
 
 ---
 
-## Two defects this measurement found in quantml
+## Three defects this measurement found in quantml
 
-Neither is caused by Unlimited-OCR; both were surfaced by pointing a third reader at the gate.
+None is caused by Unlimited-OCR; all three were surfaced by pointing a third reader at the gate.
 
-1. **`findDiscrepancy` has no tests and is not exported.** It is the single most
+1. **`findDiscrepancy` had no tests and was not exported.** It is the single most
    correctness-critical decision in stage 05 — it decides what enters the corpus as corroborated —
-   and it lives as a private function inside a ~700-line stage script with zero direct coverage.
+   and it lived as a private function inside a ~700-line stage script with zero direct coverage.
    Every measurement in this document had to extract it by script to exercise it at all.
+   **Fixed in quantml `57cdcf6`/`a3c57c6`**: moved to `pipeline/shared/transcription_agreement_gate.ts`,
+   exported, and covered by 26 characterization tests that pin these numbers.
 2. **Jaccard word-overlap is size-sensitive, and the thresholds do not account for it.** Two
    correct transcriptions of the same table can fail the 0.75 gate purely because one is three
    times longer. The existing M3/GLM pair agrees on only 30 of 103 tables, and this is part of why.
+   Recorded in quantml as trap 18, deliberately not fixed — the thresholds were chosen empirically
+   and loosening them to admit a new reader is the mistake this whole document argues against.
+
+A third defect turned up only because the gate was being replayed over quantml's own report:
+`status: "aligned"` is written both for genuine first-try independent agreement and for agreement
+reached **inside** the convergence loop, after each model has been shown what the other said. Of the
+179 records quantml calls `aligned_first_try`, **99 are**; the other 80 came out of the loop. Corpus
+content is unaffected — both statuses carry the same provenance tier — but that tier is documented
+as "two _independent_ models produced text that agreed", which is not what happened for the 198
+records that agreed inside the loop. quantml trap 20.
 
 ---
 

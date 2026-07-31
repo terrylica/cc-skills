@@ -77,7 +77,7 @@ a straightforward quality improvement that does not replace anything.
 produced by actually running the model. Full evidence:**
 [`references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
 
-Agreement is decided by `findDiscrepancy()` in `pipeline/05-ocr/cross_reference.ts` — exact match
+Agreement is decided by `findDiscrepancy()` — exact match
 after normalisation, then a per-type Jaccard threshold. Extracted verbatim by script and run over
 both samples:
 
@@ -107,9 +107,12 @@ reversal used stage **09**'s `normalizeLatexForSemanticComparison`, which is not
 all. Right answer, wrong function. Find the test the target system actually applies before scoring
 against it.
 
-Two defects in quantml surfaced by this and worth filing there: `findDiscrepancy` is untested and
-unexported despite deciding what enters the corpus as corroborated, and its Jaccard is
-size-sensitive in a way the thresholds do not account for.
+Three defects in quantml surfaced by this, all now recorded there: `findDiscrepancy` was untested
+and unexported despite deciding what enters the corpus as corroborated (fixed — extracted to
+`pipeline/shared/transcription_agreement_gate.ts` with 26 tests); its Jaccard is size-sensitive in a
+way the thresholds do not account for (trap 18, deliberately not fixed); and `status: "aligned"`
+conflates first-try independent agreement with agreement reached after each model was shown the
+other's answer — 99 of the 179 so labelled are genuine (trap 20).
 
 ### 4. TASC archive (~7,200 articles) — ASSESSED, AND THE ANSWER IS NO
 
