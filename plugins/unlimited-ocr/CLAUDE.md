@@ -154,8 +154,8 @@ Nothing to install. `uv run` materialises the script's own dependencies from its
 3. **This CLI never sends more than one image per forward pass.** Measured: single-pass multi-image
    recovered 1 of 3, 4 of 5 and 0 of 10 pages; one call per page recovered 100 % in every
    condition. The model's headline multi-page capability is deliberately unused.
-4. **Tables come back as HTML `<table>`, never as pipe-markdown.** 88 of 103 real tables; the rest
-   prose. Anything that concatenates the output into markdown, or compares it against another
-   reader's markdown, needs a serialization bridge first.
+4. **Tables come back as HTML by default, but convert to pipe-markdown with the default flag.**
+   Measured: 88 of 103 real tables. Pass `--table-format pipe` (default) to convert HTML to
+   pipe-markdown, or `--table-format html` to keep raw HTML.
 
 Full list, with evidence: [`references/PITFALLS.md`](references/PITFALLS.md).

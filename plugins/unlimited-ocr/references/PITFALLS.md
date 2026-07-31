@@ -66,13 +66,13 @@ spanning the whole generation, suppressing legitimately repeated content across 
 each page carries one unmistakable unique marker, and the count is how many markers survive:
 
 | Pages share boilerplate? | Pages | Markers recovered, ONE forward pass | Markers recovered, ONE CALL PER PAGE |
-| --- | --- | --- | --- |
-| identical | 3 | 1 | **3** |
-| identical | 5 | 4 | **5** |
-| identical | 10 | **0** | **10** |
-| varied | 3 | 1 | **3** |
-| varied | 5 | **0** | **5** |
-| varied | 10 | **0** | **10** |
+| ------------------------ | ----- | ----------------------------------- | ------------------------------------ |
+| identical                | 3     | 1                                   | **3**                                |
+| identical                | 5     | 4                                   | **5**                                |
+| identical                | 10    | **0**                               | **10**                               |
+| varied                   | 3     | 1                                   | **3**                                |
+| varied                   | 5     | **0**                               | **5**                                |
+| varied                   | 10    | **0**                               | **10**                               |
 
 Two things fall out of that table.
 
@@ -212,15 +212,18 @@ Measured over 103 TABLE images from the quantml corpus: Unlimited-OCR emitted an
 **88** of them and prose for the other 15. Zero pipe-markdown. The two vision models quantml already
 runs (MiniMax-M3, GLM-4.6v) emitted pipe-markdown for 205 of the same 206 readings.
 
+A `--table-format pipe` flag (the default) converts HTML `<table>` markup to pipe-markdown before
+output. Pass `--table-format html` to keep raw HTML.
+
 This matters far more than a formatting preference:
 
-- Any pipeline that **compares** this model's output against another reader's is comparing HTML with
-  markdown and will score a near-total disagreement no matter how well either model read the image.
-  A serialization bridge is required before any such comparison means anything — a ~15-line
-  HTML-`<tr>`/`<td>`-to-pipe renderer took agreement from 1/103 to 62/103 in
+- Any pipeline that **compares** this model's output against another reader's can now compare
+  markdown-to-markdown instead of HTML-to-markdown. A ~15-line HTML-`<tr>`/`<td>`-to-pipe
+  renderer took agreement from 1/103 to 62/103 in
   [`QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
-- Any pipeline that **concatenates** its output into a markdown document gets raw HTML in the middle
-  of the markdown. Most renderers pass it through, so this fails silently and looks fine.
+- Any pipeline that **concatenates** its output into a markdown document gets pipe-markdown tables
+  by default, which render correctly. Use `--table-format html` to get raw HTML if your downstream
+  expects it.
 
 Its HTML is also considerably more verbose: mean output length across those 103 images was 2913
 characters against M3's 858 and GLM's 1374, for a median row count (12) that sits between the two
