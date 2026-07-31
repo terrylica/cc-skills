@@ -1,5 +1,18 @@
 # [23.2.0](https://github.com/terrylica/cc-skills/compare/v23.1.0...v23.2.0) (2026-07-31)
 
+> [!WARNING]
+> **One claim in this release's notes is retracted by a later commit in the same release.** The
+> `feat(doc-tools)` entry below announces *"QUANTML STAGE 05: YES, AS A THIRD READER FOR FORMULA
+> IMAGES."* That verdict is wrong and was reversed in `5023abf1`, which shipped in this same version.
+> semantic-release renders `feat` and `fix` bodies but not `docs` bodies, so the claim is generated
+> here and its retraction is not. The measured answer is **NO** for both formulas and tables: scored
+> against quantml stage 05's own agreement gate rather than a similarity ratio of the author's
+> choosing, the candidate third reader agrees with neither incumbent on 0 of 24 formulas and 1 of 103
+> tables, and breaks 0 of the 19 and 73 deadlocks respectively. Evidence, including the three wrong
+> measurements that preceded the right one, in
+> `plugins/unlimited-ocr/references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`. Nothing was built
+> against the retracted verdict.
+
 
 ### Bug Fixes
 
@@ -104,7 +117,7 @@ chart content and see a well-formed result. Two claims the first draft made were
 quality was asserted but never measured, and cross-plugin links used absolute GitHub URLs where the
 house convention is relative paths.
 
-QUANTML STAGE 05: YES, AS A THIRD READER FOR FORMULA IMAGES. quantml runs two independent vision
+QUANTML STAGE 05: YES, AS A THIRD READER FOR FORMULA IMAGES. **[RETRACTED IN 5023abf1, SAME RELEASE — the measured answer is NO; see the warning at the top of this release's section.]** quantml runs two independent vision
 models and treats their agreement as evidence. Whether a third was worth adding had never been
 measured, so it was: 24 FORMULA images from the live corpus, every Unlimited-OCR transcription
 produced by actually running the model.
