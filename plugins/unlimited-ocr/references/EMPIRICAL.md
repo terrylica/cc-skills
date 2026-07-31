@@ -191,6 +191,23 @@ version is stated as future work.
 
 ---
 
+## Throughput on real corpus images (MLX, this Mac)
+
+Two batches from the live quantml corpus, run through `scripts/unlimited_ocr.py parse` one image per
+invocation — process start, model load, and inference each time, so these are end-to-end wall clock
+per image and not a warm-loop steady state.
+
+| Batch                 | n   | Median | Min   | Max    | Degenerate repetition | Empty output |
+| --------------------- | --- | ------ | ----- | ------ | --------------------- | ------------ |
+| `FORMULA` images      | 24  | ≈ 7 s  | 2.2 s | 38.2 s | 0                     | 0            |
+| `TABLE` images        | 103 | 4.8 s  | 1.5 s | 39.4 s | 4                     | 1            |
+
+The 4 degenerate-repetition detections out of 103 are the guard in `parse` firing on real input, not
+a synthetic case — roughly 4 %, on tables, with the default `free-ocr` prompt. Budget for it.
+
+Full analysis of what those transcriptions were worth:
+[`QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
+
 ## Reproducing all of this
 
 ```bash

@@ -61,21 +61,18 @@ vision benchmark. There is nothing to OCR. Recorded in the hub so the idea is no
   the chart limitation stated at every mention so nobody swaps it in and silently loses chart
   content. The example was executed against a real ICLR 2024 paper before being written down.
 
-- **quantml stage 05 — MEASURED, and the answer is YES**, as a third reader for `FORMULA` images
-  only. 24 FORMULA images from the live corpus, every Unlimited-OCR transcription produced by
-  actually running the model. Mean similarity to M3 is **0.838**, higher than the existing
-  M3↔GLM pair at 0.811. **8 of the 24 carry a material M3/GLM disagreement and the third reader
-  takes a clear side in 7** — the case the design is for. It is a corroborator, not an arbiter: on
-  one image it made a semantic error M3 avoided. Evidence:
-  [`references/QUANTML-FORMULA-HEAD-TO-HEAD.md`](../references/QUANTML-FORMULA-HEAD-TO-HEAD.md).
-
-  **A first attempt at this measurement had to be discarded.** It concluded "operationally
-  infeasible — cannot execute reliably" and "M3 achieves 100 % correctness", having never run the
-  model once (a dependency-solver timeout was mistaken for the model failing) and having taken M3's
-  own `verification.accurate` flag as independent evidence of M3's accuracy. Both conclusions are
-  false: all 24 images ran on the first attempt, and M3 is demonstrably not always right. The
-  discarded document is deleted rather than corrected, because its verdict and its evidence were
-  both fabricated.
+- **quantml stage 05 — MEASURED, and the answer is NO.** 127 images, model actually run: 24 FORMULA
+  and 103 TABLE. Scored against `findDiscrepancy()` — stage 05's own agreement gate, extracted
+  verbatim by script rather than approximated. Unlimited-OCR agrees with M3 on **0 of 24** formulas
+  and **1 of 103** tables, and breaks **none** of the 19 formula or 73 table deadlocks. FORMULA has
+  no fix: three progressively aggressive bridges all land on zero. TABLE has one — the model emits
+  HTML `<table>` where both incumbents emit pipe-markdown, and bridging that lifts it to 42 of 73
+  deadlocks broken — but **40 of those 42 side with GLM and 2 with M3** while row counts are
+  balanced, because the gate's Jaccard is size-sensitive and Unlimited-OCR is 3.4× more verbose than
+  M3. Its vote would be decided by the other reader's verbosity. Two earlier verdicts in this plan
+  were wrong: a YES from a similarity ratio, then a NO scored against stage **09**'s normalizer
+  rather than stage 05's gate. Evidence, including both corrections:
+  [`references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](../references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md).
 
 - **quantml stages 08/09 — SPECIFIED, NOT BUILT.** Academic PDFs remain the strongest fit, but this
   work stops at the plugin boundary. Nothing under `~/eon/quantml` has been modified.
@@ -91,7 +88,7 @@ That blast radius is why it is a separate, deliberate step rather than a side ef
 
 | Question                                                      | Experiment                                                                                                                                    | Status                                                                                                               |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| ~~Does multi-page single-pass drop near-duplicate pages?~~ | **ANSWERED 2026-07-30.** It loses content regardless of similarity: single-pass recovered 1/3, 4/5, 0/10 (identical) and 1/3, 0/5, 0/10 (varied); per-page recovered 100 % in all six. See PITFALLS § 3. | OPEN                                                                                                                 |
-| Is it better than M3/GLM on Chinese formulas?                 | No head-to-head evidence exists. Run all three over the same `FORMULA` sample from the quantml corpus and compare against the images by hand. | **ANSWERED: NO** (see [`references/QUANTML-FORMULA-HEAD-TO-HEAD.md`](../references/QUANTML-FORMULA-HEAD-TO-HEAD.md)) |
+| ~~Does multi-page single-pass drop near-duplicate pages?~~ | **ANSWERED 2026-07-30.** It loses content regardless of similarity: single-pass recovered 1/3, 4/5, 0/10 (identical) and 1/3, 0/5, 0/10 (varied); per-page recovered 100 % in all six. See PITFALLS § 3. | DONE                                                                                                                 |
+| Can it serve as a third reader in quantml stage 05?           | Run it over every `FORMULA` and `TABLE` image in the corpus that already carries both existing transcriptions, and score with stage 05's own `findDiscrepancy()` gate. | **ANSWERED: NO** — 0/24 formulas, 1/103 tables, 0 deadlocks broken (see [`references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md`](../references/QUANTML-STAGE-05-THIRD-READER-HEAD-TO-HEAD.md)) |
 | Is the TASC corpus scanned?                                   | Phase 2.                                                                                                                                      | DONE                                                                                                                 |
 | Does `--collapse-math-spacing` ever corrupt valid LaTeX?      | Phase 1 — property tests over `\left\{`, `\begin{array}`, multi-letter commands, and text mode.                                               | DONE                                                                                                                 |
