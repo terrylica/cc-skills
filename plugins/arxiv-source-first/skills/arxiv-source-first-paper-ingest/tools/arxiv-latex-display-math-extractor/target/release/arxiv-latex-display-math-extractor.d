@@ -1,0 +1,1 @@
+/Users/<you>/eon/cc-skills/plugins/arxiv-source-first/skills/arxiv-source-first-paper-ingest/tools/arxiv-latex-display-math-extractor/target/release/arxiv-latex-display-math-extractor: /Users/<you>/eon/cc-skills/plugins/arxiv-source-first/skills/arxiv-source-first-paper-ingest/tools/arxiv-latex-display-math-extractor/src/main.rs
