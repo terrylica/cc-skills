@@ -1,0 +1,9 @@
+{
+  "name": "unlimited-ocr",
+  "version": "1.0.0",
+  "description": "Local document parsing with baidu/Unlimited-OCR (MIT, 3B-total/500M-active MoE): markdown + LaTeX + layout bounding boxes, on Apple Silicon via MLX or an NVIDIA GPU via transformers. Ships the empirically-established working invocation — the prompt the upstream README documents decodes infinite garbage on MLX — plus a figure segmenter that turns the model's refusal to describe charts into a pre-processing step.",
+  "author": {
+    "name": "Terry Li",
+    "url": "https://github.com/terrylica"
+  }
+}

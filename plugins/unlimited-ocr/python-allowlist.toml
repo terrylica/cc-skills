@@ -1,0 +1,27 @@
+# python-allowlist.toml — why this plugin ships Python rather than Bun/TypeScript.
+#
+# The house default is Bun/TypeScript for greenfield work (see ~/.claude/principles-CLAUDE.md
+# § "Language selection default"). That default is explicitly overridden by "SOTA-native
+# ecosystem", and local vision-model inference is the clearest possible case of one: the model's
+# only two runtimes are `mlx-vlm` (Apple Silicon) and `torch` + `transformers` (CUDA), both of
+# which are Python-only libraries with no TypeScript binding of any kind.
+#
+# A TypeScript CLI here would not avoid Python — it would shell out to a Python process, so the
+# repo would carry BOTH languages plus a serialisation boundary between them, to run the same
+# inference. That is strictly worse than one Python file.
+#
+# This also matches the polyglot-kernel doctrine: the hot/shared kernel is language-neutral
+# (safetensors weights + a documented prompt/output contract) and Python is the CONSUMER, not the
+# source of truth. The output contract lives in references/EMPIRICAL.md and is emitted
+# machine-readably by `unlimited_ocr.py spec`, so a future Bun caller can consume it without
+# reading a line of this Python.
+
+[[allow]]
+path   = "scripts/unlimited_ocr.py"
+reason = """
+Local Unlimited-OCR inference. Both supported runtimes are Python-only (mlx-vlm on Apple Silicon,
+torch + transformers on CUDA); no TypeScript binding exists for either. A TS wrapper would still
+spawn Python, adding a language and an IPC boundary for zero benefit. PDF rasterisation uses
+PyMuPDF, also Python-only. The CLI contract is emitted as JSON via `spec`, so non-Python callers
+are first-class consumers.
+"""
