@@ -1,3 +1,223 @@
+# [23.2.0](https://github.com/terrylica/cc-skills/compare/v23.1.0...v23.2.0) (2026-07-31)
+
+
+### Bug Fixes
+
+* **disk-hygiene:** Phase 1 read the wrong APFS volume ([9864c63](https://github.com/terrylica/cc-skills/commit/9864c633332e439ad347f72872fa0c2d18e8d3a6))
+Under-reported disk use by 70x.
+
+The skill opened every audit with `df -h /`, which on APFS (Catalina onward) is
+the SEALED READ-ONLY system volume with a fixed ~10GB footprint. On a real audit
+today it reported "10Gi used, 185Gi avail" for a machine that was actually 707GB
+used and 80% full. All user and application data lives on /System/Volumes/Data.
+
+This is worse than a cosmetic error: it inverts the skill's conclusion. An agent
+trusting that headline would reasonably decide there was nothing to clean and
+stop before Phase 2.5 — where 109.6 GB of Rust `target/` was waiting, including
+one 66GB directory untouched since March.
+
+- Phase 1 and Template A now use `df -h /System/Volumes/Data`, with an inline
+  comment giving the reason and the measured 10Gi-vs-707GB discrepancy, so the
+  next reader does not "simplify" it back to `/`.
+- Cache table: the uv row listed only ~/Library/Caches/uv/, but uv kept 21GB at
+  ~/.cache/uv/ here — the Phase 2 size probe printed N/A while the largest cache
+  on the machine sat unmeasured. Row now lists both locations. (`uv cache clean`
+  finds it either way; only the measurement was blind.)
+- Evolution log entry with the full evidence.
+
+Verified in the same session: 175.8 GB reclaimed (185GB → 356GB free, 80% → 61%).
+Three existing safeguards confirmed still correct — the heredoc/pueue workaround,
+the Cargo.toml-sibling guard (correctly skipped a name-only `target` match), and
+the rustup-pin warning (1.93/1.94.x/1.95 were pinned and would have auto-reinstalled).
+* **unlimited-ocr:** add the missing Post-Execution Reflection sections ([0e0bda4](https://github.com/terrylica/cc-skills/commit/0e0bda46788048f3b29653177d13c9bcaec39d03))
+Both skills shipped without the bottom half of the self-evolution sandwich. The
+marketplace validator passes without it — the sandwich is checked only by
+release preflight, which is where this surfaced, one commit after the skills
+were already pushed.
+
+The two sections are specific rather than boilerplate. The parse skill's asks
+about exit 1 (repetition detected, measured base rate ~4 % on tables), about a
+withheld prompt mode behaving differently than its measured evidence says, and
+about downstream reformatting — because the model emits HTML tables and any
+converter written to cope with that belongs in this plugin rather than in the
+calling project. The segment skill's asks about clipped crops (the default
+--pad-pixels 12 exists because 0 clipped the axis labels off every panel of a
+real nine-panel figure), about the model omitting a region box, which is the
+silent under-delivery this skill already warns about, and about what the paired
+describer needed.
+* **unlimited-ocr:** decode the tokenizer surface form ([9cb03c1](https://github.com/terrylica/cc-skills/commit/9cb03c1156ed6058bea5c601c8cda207270c62c2))
+The MLX path returns the tokenizer byte-level-BPE SURFACE FORM rather than decoded text. Every byte
+of a multi-byte UTF-8 character arrives as its own stand-in character, so on a Chinese corpus the
+output is not degraded, it is destroyed:
+
+    8æľĪ                          ->  8月
+    åıįåĲĳæĹ¥åĨħéĢĨè½¬çļĦé¢ĳçİĩ  ->  反向日内逆转的频率
+    æĺŁæľŁåħŃ                     ->  星期六
+    âĳł                           ->  ①
+
+`decode_byte_level_bpe_surface_form` reverses the standard GPT-2 byte-level-BPE alphabet and
+recovers all of it. ASCII is a fixed point of that encoding, so LaTeX passes through byte-for-byte;
+characters outside the alphabet pass through as themselves, making the function a no-op on text
+that is already decoded and therefore safe to apply to either form.
+
+WHY IT SURVIVED THIS LONG, WHICH IS THE MORE USEFUL LESSON. Every image tested until now was either
+formula-only or English. ASCII is exactly where the surface form and the decoded text coincide, so
+the output looked flawless on a corpus that could not reveal the defect. It surfaced the first time
+the model was pointed at a page with real Chinese prose on it — which is the entire corpus this
+plugin was built for. A test corpus that shares an alphabet with the failure mode cannot see it.
+
+An earlier version replaced only `Ġ` with a space and `Ċ` with a newline. Those are not two quirks:
+`Ġ` is the surface form of byte 0x20 and `Ċ` of byte 0x0A. Patching the two most visible symptoms
+left every other byte mangled and made the underlying cause harder to see, not easier.
+
+It also explains something previously filed as unrelated. `references/EMPIRICAL.md` recorded a stray
+`âľī` in an English paper as an isolated mojibake of `✉`, alongside the claim that "ordinary CJK and
+Latin text was unaffected across every test". That claim was FALSE — CJK had never been tested — and
+the `âľī` was never isolated. Both are corrected in place rather than quietly deleted.
+
+Eight tests pin the decoder: each Chinese sample above, the circled digit, LaTeX passthrough, the
+`Ġ`/`Ċ` surface forms, idempotence on already-decoded text, and the empty string. 66 tests pass.
+
+A calibration point recorded while verifying this, because it cuts against the model's benchmark
+reputation: on `17e7c844edb2.jpg` the true formula is `I{RET_CO...} * I{RET_OC...}`, verified by eye
+against the source image. MiniMax-M3 transcribed both terms exactly right. GLM-4.6v got CO/OC right
+but wrote `.` for `_`. Unlimited-OCR wrote `RET.OC` TWICE — a semantic error, not a formatting one.
+One image is not a benchmark, but it is a concrete reason to keep treating this model as a third
+corroborating reader rather than a replacement for either existing one.
+
+
+### Features
+
+* **doc-tools:** offer Unlimited-OCR for PDF math ([75c5f4f](https://github.com/terrylica/cc-skills/commit/75c5f4f2c5c23289df35b0fe3a76e5be9449dc9e))
+Two integrations, both grounded in measurement rather than expectation.
+
+DOC-TOOLS. The academic-pdf-to-gfm skill told users, for Word-generated (Type A) PDFs, to
+"**Manually transcribe all equations** from PDF screenshots — there is no shortcut", and pointed
+Type C scanned PDFs at marker-pdf or tesseract. There is now a shortcut, and it is better than both:
+render at 300 DPI and parse locally. The example in the skill was executed against a real ICLR 2024
+paper before it was written down, and returns correct LaTeX including `\tag{}`, `\mathbf{}` and
+nested subscripts.
+
+Every mention carries the chart limitation, because the failure is silent: the model localises a
+chart and returns zero characters, so a user swapping tools on chart-heavy input would lose all
+chart content and see a well-formed result. Two claims the first draft made were removed — table
+quality was asserted but never measured, and cross-plugin links used absolute GitHub URLs where the
+house convention is relative paths.
+
+QUANTML STAGE 05: YES, AS A THIRD READER FOR FORMULA IMAGES. quantml runs two independent vision
+models and treats their agreement as evidence. Whether a third was worth adding had never been
+measured, so it was: 24 FORMULA images from the live corpus, every Unlimited-OCR transcription
+produced by actually running the model.
+
+    M3 <-> GLM-4.6v  (the existing pair)   0.811
+    M3 <-> Unlimited-OCR                   0.838
+    GLM-4.6v <-> Unlimited-OCR             0.755
+
+It agrees with M3 slightly more than GLM does — independent without being an outlier, which is
+exactly the band a useful third opinion occupies.
+
+The number that decides it: **8 of the 24 images carry a material M3/GLM disagreement, and the third
+reader takes a clear side in 7** — five times with M3, twice with GLM. That split matters; a reader
+that always sided with M3 would be measuring M3 rather than the image.
+
+On `68b99c3f4017.jpg`, verified by eye against the source: GLM emitted visibly corrupted LaTeX
+(`==================` where `=` belongs, `RV*{i,t}` for `RV_{i,t}`), M3 was exactly right, and
+Unlimited-OCR independently matched M3. Two readers deadlock on that image. Three resolve it
+correctly. That is the whole argument, and it is one image in twenty-four rather than a hypothetical.
+
+It is a corroborator and never an arbiter. On `17e7c844edb2.jpg` the image reads
+`I{RET_CO...} * I{RET_OC...}`; Unlimited-OCR wrote `RET.OC` twice, a semantic error M3 avoided —
+while getting the same symbols right in the surrounding Chinese prose on the same image.
+
+A FIRST ATTEMPT AT THIS MEASUREMENT WAS DISCARDED AND ITS DOCUMENT DELETED. It concluded
+"operationally infeasible — cannot execute reliably" and "M3 achieves 100 % correctness", having
+never run the model once: a dependency-solver timeout was read as the model failing, per-image
+runtime was estimated at 5–15 s without measuring, and M3's own `verification.accurate` flag was
+taken as independent evidence of M3's accuracy — which is circular. Both conclusions are false. All
+24 images completed on the first attempt at 2.2–38 s each with zero degenerate repetition, and M3 is
+demonstrably not always right. A 473-line document titled "head-to-head" that contained no
+Unlimited-OCR transcriptions at all was removed rather than patched, because its verdict and its
+evidence were both invented. It is replaced by one written from real runs.
+
+Conditions carried into every document that mentions the integration: `--collapse-math-spacing` must
+precede any agreement comparison or cosmetic character-spacing scores every formula as a
+disagreement; CHART images must never be routed to this model; and TABLE was not measured, so it is
+not claimed.
+
+Nothing under ~/eon/quantml is modified. The integration is specified, not built.
+
+Verified: 66 tests pass, `ty` clean with zero inline suppressions, marketplace validator green at
+43 plugins / 0 errors, and both new cross-plugin links resolve on disk.
+* **unlimited-ocr:** local document parsing on MLX and CUDA ([11a0c5e](https://github.com/terrylica/cc-skills/commit/11a0c5ed39f2ceb9bbc2761383335b0ff4cb95df))
+Baidu released Unlimited-OCR on 2026-06-18 (MIT, 20.8k stars): a 3B-total / 500M-ACTIVATED MoE
+document parser that replaces every decoder attention layer with Reference Sliding Window
+Attention, holding the KV cache constant while decoding. It parses a page into markdown with LaTeX
+mathematics, tables, and a bounding box per block. This plugin makes it usable here.
+
+IT RUNS ON BOTH MACHINES, WHICH WAS NOT OBVIOUS. The reference implementation is CUDA-only — 14+
+unconditional `.cuda()` call sites and `torch.autocast("cuda")`, with bfloat16 unsupported on MPS,
+so the torch path is closed on Apple Silicon. But `mlx-vlm` 0.6.8 ships `unlimited_ocr` as a
+FIRST-CLASS model module (with `RingSlidingKVCache`, the R-SWA implementation), and
+`mlx-community/Unlimited-OCR-mxfp8` is a 3.66 GB pack whose configs route to it correctly.
+Measured on the M3 Max: 2.4 s per image, 5.17 GB peak, output BYTE-IDENTICAL to the RTX 4090's
+bf16 run on the same image. The laptop is the primary path; the 4090 is for bulk.
+
+THE HEADLINE FINDING IS THAT THE DOCUMENTED PROMPT IS BROKEN. `<image>document parsing.`, verbatim
+from the upstream README, decodes `parsing.parsing.parsing…` until max_tokens on MLX — 2,048 tokens
+of nothing in 47 s. `Free OCR.` on the same weights, same image, same seed returns perfect output
+with layout boxes in 2.4 s. A repetition penalty does not fix it; the chat template does not fix
+it; only the prompt does. The upstream CUDA path is defended by an n-gram blocker
+(no_repeat_ngram_size=35) that mlx-vlm has no equivalent for, so Apple Silicon has NO structural
+defence — only prompt choice. The CLI therefore defaults to the working prompt and REFUSES the
+documented one with exit 2, keeping it nameable so the failure stays reproducible.
+
+Added:
+
+- `unlimited-ocr-parse-document` — image / PDF / directory to markdown, LaTeX and layout boxes.
+- `unlimited-ocr-segment-figure` — crops a composite figure into one image per detected panel.
+  This exists because the model LOCALISES charts and transcribes nothing inside them: on a
+  nine-panel matplotlib figure it emitted nine perfectly-placed boxes and zero characters, not even
+  the legible panel titles. That is a dead end as transcription and excellent as segmentation, so
+  the limitation becomes a pre-processing step — one chart per prompt beats a nine-panel collage.
+- `scripts/unlimited_ocr.py` — one PEP 723 CLI (`parse`, `segment`, `doctor`, `spec`), nothing to
+  install. `spec` emits the flag contract as JSON per the CLI-first doctrine; `doctor` reports each
+  backend's availability and, when it is absent, why.
+- `--collapse-math-spacing`, which is not cosmetic. The model emits `curpdf` as `c u r p d f`;
+  those render identically in LaTeX but are not byte-identical, so any pipeline scoring agreement
+  between two transcribers marks every formula a disagreement without it.
+
+Behaviours found by inspecting artefacts rather than reports, and fixed here:
+
+- the loader wrote tokenizer chatter to STDOUT, so `--format json` produced a document no parser
+  could read; loading is now wrapped in `redirect_stdout(sys.stderr)`
+- `Path("paper.pdf#page_0001").stem` is `paper`, so every page of a PDF overwrote the same file;
+  the output stem is now carried explicitly rather than derived from a human-facing label
+- crops at zero padding clipped the axis labels off all nine test panels, so `--pad-pixels`
+  defaults to 12
+- a repetition detector that works structurally, so a NEW loop is caught, not just the known one
+
+Honest limits are documented rather than softened, in references/PITFALLS.md: the paper itself
+concedes in §7 that it "cannot achieve truly unlimited parsing under a finite context length",
+because prefill still grows with pages; quality decays with page count (edit distance 0.0362 at 2
+pages to 0.1069 at 40+); a five-page single-pass run DROPPED a page when the pages were
+near-identical, while per-page calls kept everything; and rare glyphs can come back mojibaked (an
+envelope dingbat returned as `âľī`).
+
+The benchmark claim is also stated precisely. Unlimited-OCR scores 93.23 on OmniDocBench v1.5,
++6.22 over the next model and ahead of Qwen3-VL 235B and Gemini-2.5 Pro. On v1.6, against the 2026
+field, it scores 93.92 versus Qianfan-OCR's 93.90 — a tie — and its table score falls below a 1B
+model's. Both numbers are in the same table of the same paper; quoting only the first would turn
+"competitive at a fraction of the size" into "dominates everything", and only one of those is true.
+
+Verified: `ty` clean with zero inline suppressions, marketplace validator passes at 43 plugins /
+238 skills / 0 errors, and every claim above traces to a run recorded in references/EMPIRICAL.md.
+
+Also fixed a tooling trap while getting the type check clean: a PEP 723 header makes `ty` treat a
+script as its own project root, so a repository-level `ty.toml` override silently does not apply to
+it (reproduced in isolation — same file, header on vs off). Resolved by importing the optional
+backends through `importlib.import_module`, which is honest about their being runtime-selected and
+needs no suppression at all, rather than by adding config that would not have worked.
+
 # [23.1.0](https://github.com/terrylica/cc-skills/compare/v23.0.1...v23.1.0) (2026-07-30)
 
 
