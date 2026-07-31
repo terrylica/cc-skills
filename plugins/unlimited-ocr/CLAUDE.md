@@ -147,7 +147,8 @@ Nothing to install. `uv run` materialises the script's own dependencies from its
    garbage; `Multi page parsing.` hallucinates `industrydocuments` onto a single image. Use
    `Free OCR.` — the CLI default, and it refuses both of the others with the measured reason.
 2. **Charts come back empty.** By design. Segment them instead.
-3. **This CLI never sends more than one image per forward pass.** The model's headline multi-page
-   mode is deliberately unused: a five-page run returned four pages with no error.
+3. **This CLI never sends more than one image per forward pass.** Measured: single-pass multi-image
+   recovered 1 of 3, 4 of 5 and 0 of 10 pages; one call per page recovered 100 % in every
+   condition. The model's headline multi-page capability is deliberately unused.
 
 Full list, with evidence: [`references/PITFALLS.md`](references/PITFALLS.md).
