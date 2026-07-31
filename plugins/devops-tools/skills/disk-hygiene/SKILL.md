@@ -26,7 +26,7 @@ Use this skill when:
 ### Template A - Full Disk Audit
 
 ```
-1. Run disk overview (df -h / and major directories)
+1. Run disk overview (df -h /System/Volumes/Data && major directories)
 2. Audit developer caches (uv, brew, pip, npm, cargo, rustup, Docker)
 3. Scan in-repo build artifacts (Rust target/, .venv, node_modules — often the biggest, see Phase 2.5)
 4. Scan for forgotten large files (>50MB, not accessed in 180+ days)
@@ -70,7 +70,12 @@ Get the lay of the land before diving into specifics.
 ```bash
 /usr/bin/env bash << 'OVERVIEW_EOF'
 echo "=== Disk Overview ==="
-df -h /
+# MUST be /System/Volumes/Data, NOT `/`. On APFS (Catalina+) `/` is the SEALED
+# READ-ONLY system volume and reports a fixed ~10GB used — it is not your disk.
+# Verified 2026-07-31: `df -h /` said "10Gi used, 185Gi avail" on a machine that
+# was actually 707GB used and 80% full. Reading `/` will make you conclude there
+# is nothing to clean.
+df -h /System/Volumes/Data
 
 echo ""
 echo "=== Major Directories ==="
@@ -91,7 +96,7 @@ OVERVIEW_EOF
 
 | Cache       | Location                                         | Typical Size  | Clean Command                                                           |
 | ----------- | ------------------------------------------------ | ------------- | ----------------------------------------------------------------------- |
-| uv          | `~/Library/Caches/uv/`                           | 5-15 GB       | `uv cache clean`                                                        |
+| uv          | `~/Library/Caches/uv/` **or `~/.cache/uv/`** | 5-15 GB       | `uv cache clean`                                                        |
 | Homebrew    | `~/Library/Caches/Homebrew/`                     | 3-10 GB       | `brew cleanup --prune=all`                                              |
 | pip         | `~/Library/Caches/pip/`                          | 0.5-2 GB      | `pip cache purge`                                                       |
 | npm         | `~/.npm/_cacache/`                               | 0.5-2 GB      | `npm cache clean --force`                                               |

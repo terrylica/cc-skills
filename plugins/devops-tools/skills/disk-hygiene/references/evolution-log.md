@@ -2,6 +2,37 @@
 
 Reverse chronological - newest on top.
 
+## 2026-07-31 — Phase 1 read the WRONG VOLUME and under-reported disk use by 70x
+
+**Trigger**: A full audit opened with the skill's own `df -h /`, which reported
+**10Gi used, 185Gi avail** — a machine that appeared almost empty. The truth was
+**707GB used, 80% full**. On APFS (Catalina onward) `/` is the sealed READ-ONLY
+system volume with a fixed ~10GB footprint; all user and application data lives
+on `/System/Volumes/Data`. Every number in Phase 1's headline was meaningless,
+and an agent trusting it would reasonably conclude there was nothing to clean and
+stop before reaching Phase 2.5 — where 109.6 GB of `target/` was waiting.
+
+**Fix**: `df -h /System/Volumes/Data` in Phase 1 and in Template A, with an
+inline comment stating why `/` is wrong and citing the measured 10Gi-vs-707GB
+discrepancy so the next reader does not "simplify" it back.
+
+**Also corrected**: the uv cache row listed only `~/Library/Caches/uv/`; on this
+machine uv kept **21 GB** at `~/.cache/uv/` and the Phase 2 size probe printed
+`N/A` while the real cache was the single largest one present. Row now lists both
+locations. (`uv cache clean` finds it either way — only the _measurement_ was blind.)
+
+**Evidence**: 2026-07-31 audit, terryli's MBP. Total reclaimed **175.8 GB**
+(185GB → 356GB free, 80% → 61% full): 113.9 GB build artifacts, 34.7 GB caches,
+27.2 GB retired forks. Largest single item: `fork-tools/flowsurface/target` at
+**66 GB, untouched since 2026-03-14**.
+
+**Confirmed still accurate**: the 2026-05-09 heredoc/pueue-hook workaround (used
+pre-emptively, worked); the Cargo.toml-sibling guard (correctly skipped
+`fork-tools/opengrep/src/target`, a name match with no crate); and the
+rustup-pin warning — 1.93/1.94.x/1.95 were pinned by `rust-toolchain.toml` /
+`.prototools` files and would have auto-reinstalled, leaving only 1.96.0/1.96.1
+safely removable.
+
 ## 2026-06-29 — In-repo build artifacts were invisible; added Phase 2.5
 
 **Trigger**: A deep multi-round audit on terryli's MBP had already reclaimed ~140 GB from caches/apps/VMs, yet the largest single category was still untouched because the skill never looked _inside_ repos: 62 GB of Rust `target/` (one repo's `target/` alone was 35 GB) plus 20 GB of Python `.venv` across ~50 repos. The Phase 1/2 scans only walk `~/Library` and the dev-cache dirs, so compiler/dependency output in the code tree was structurally invisible.
