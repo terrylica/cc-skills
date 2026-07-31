@@ -53,16 +53,32 @@ uniformly across all nine decades returned hundreds to thousands of characters p
 text-layer read. Existing extraction already measures 97.9 % word recall against an independent
 vision benchmark. There is nothing to OCR. Recorded in the hub so the idea is not re-proposed.
 
-## Phase 3 — wire it where it belongs
+## Phase 3 — wire it where it belongs — MEASURED
 
-Only after phases 1 and 2, and only where the evidence supports it.
+- **`doc-tools:academic-pdf-to-gfm` — DONE.** That skill previously instructed users to
+  "**Manually transcribe all equations** from PDF screenshots — there is no shortcut" for Type A
+  PDFs, and recommended `marker-pdf`/`tesseract` for Type C. Both now lead with Unlimited-OCR, with
+  the chart limitation stated at every mention so nobody swaps it in and silently loses chart
+  content. The example was executed against a real ICLR 2024 paper before being written down.
 
-- **quantml stages 08/09** — academic PDFs. The strongest fit: quantml already renders pages and
-  transcribes them with a vision model because a PDF text layer cannot yield formulas.
-- **quantml stage 05** — a THIRD reader for `FORMULA` and `TABLE` images only. Never a replacement
-  for either existing reader, never routed to `CHART`. Requires `--collapse-math-spacing` upstream
-  of any agreement check, or every formula scores as a disagreement.
-- **`doc-tools:academic-pdf-to-gfm`** — should point at this plugin as the local option.
+- **quantml stage 05 — MEASURED, and the answer is YES**, as a third reader for `FORMULA` images
+  only. 24 FORMULA images from the live corpus, every Unlimited-OCR transcription produced by
+  actually running the model. Mean similarity to M3 is **0.838**, higher than the existing
+  M3↔GLM pair at 0.811. **8 of the 24 carry a material M3/GLM disagreement and the third reader
+  takes a clear side in 7** — the case the design is for. It is a corroborator, not an arbiter: on
+  one image it made a semantic error M3 avoided. Evidence:
+  [`references/QUANTML-FORMULA-HEAD-TO-HEAD.md`](../references/QUANTML-FORMULA-HEAD-TO-HEAD.md).
+
+  **A first attempt at this measurement had to be discarded.** It concluded "operationally
+  infeasible — cannot execute reliably" and "M3 achieves 100 % correctness", having never run the
+  model once (a dependency-solver timeout was mistaken for the model failing) and having taken M3's
+  own `verification.accurate` flag as independent evidence of M3's accuracy. Both conclusions are
+  false: all 24 images ran on the first attempt, and M3 is demonstrably not always right. The
+  discarded document is deleted rather than corrected, because its verdict and its evidence were
+  both fabricated.
+
+- **quantml stages 08/09 — SPECIFIED, NOT BUILT.** Academic PDFs remain the strongest fit, but this
+  work stops at the plugin boundary. Nothing under `~/eon/quantml` has been modified.
 
 ## Phase 4 — release
 
@@ -73,9 +89,9 @@ That blast radius is why it is a separate, deliberate step rather than a side ef
 
 ## Open questions, and the smallest experiment that settles each
 
-| Question                                                      | Experiment                                                                                                                                    |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Does multi-page single-pass really drop near-duplicate pages? | Parse N synthetic pages differing only in a marker, single-pass vs per-page, count surviving markers. Per-page already verified to keep all.  |
-| Is it better than M3/GLM on Chinese formulas?                 | No head-to-head evidence exists. Run all three over the same `FORMULA` sample from the quantml corpus and compare against the images by hand. |
-| Is the TASC corpus scanned?                                   | Phase 2.                                                                                                                                      |
-| Does `--collapse-math-spacing` ever corrupt valid LaTeX?      | Phase 1 — property tests over `\left\{`, `\begin{array}`, multi-letter commands, and text mode.                                               |
+| Question                                                      | Experiment                                                                                                                                    | Status                                                                                                               |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Does multi-page single-pass really drop near-duplicate pages? | Parse N synthetic pages differing only in a marker, single-pass vs per-page, count surviving markers. Per-page already verified to keep all.  | OPEN                                                                                                                 |
+| Is it better than M3/GLM on Chinese formulas?                 | No head-to-head evidence exists. Run all three over the same `FORMULA` sample from the quantml corpus and compare against the images by hand. | **ANSWERED: NO** (see [`references/QUANTML-FORMULA-HEAD-TO-HEAD.md`](../references/QUANTML-FORMULA-HEAD-TO-HEAD.md)) |
+| Is the TASC corpus scanned?                                   | Phase 2.                                                                                                                                      | DONE                                                                                                                 |
+| Does `--collapse-math-spacing` ever corrupt valid LaTeX?      | Phase 1 — property tests over `\left\{`, `\begin{array}`, multi-letter commands, and text mode.                                               | DONE                                                                                                                 |
