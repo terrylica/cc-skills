@@ -7,6 +7,7 @@
 #   "mlx-vlm>=0.6.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
 # ]
 # ///
+# FILE-SIZE-OK
 """
 unlimited_ocr.py — one CLI for baidu/Unlimited-OCR document parsing, on either local backend.
 
@@ -317,6 +318,300 @@ def strip_detection_markers(text: str) -> str:
     if current is not None:
         blocks.append(current)
     return "\n\n".join("\n".join(b) for b in blocks).strip()
+
+
+def convert_html_tables_to_pipe_markdown(text: str) -> str:
+    """
+    Convert HTML <table> markup to pipe-markdown, leaving non-table content untouched.
+
+    MEASURED FACT (PITFALLS.md § 12, 2026-07-30): Unlimited-OCR emits HTML <table> for 88 of 103
+    TABLE images, while other readers (M3, GLM-4.6v) emit pipe-markdown. Raw HTML in markdown breaks
+    agreement metrics and embeds raw markup in concatenated output. This function bridges that gap.
+
+    Transformation rules:
+    - Each <table>...</table> block becomes a pipe-markdown table with header separator (|---|)
+    - Cell content is extracted by stripping inner HTML tags
+    - HTML entities (&nbsp;, &lt;, etc.) are decoded to their character equivalents
+    - Pipes (|) in cell text are escaped with backslash to prevent table corruption
+    - <th> elements trigger a header separator row; no separator if all <td>
+    - Multiple tables in one output are all converted independently
+    - Malformed or unterminated <table> elements are skipped with a warning to stderr
+    - Non-table content (text before, between, after tables) passes through untouched
+    - Empty tables (no <tr> or empty rows) are skipped
+
+    Header detection: if ANY row contains <th>, that row becomes a header. The next row becomes
+    the separator (|---|---|...). If NO <th> in entire table, there is no separator line.
+    """
+    # HTML entity decoding map: named entities and common numeric equivalents.
+    # Includes both named entities (e.g., &nbsp;) and their numeric forms (&#160;, &#x00A0;).
+    # Measured on 103 TABLE images from quantml corpus; numeric entities (&#160;) were found
+    # in live model output and must be decoded to match agreement baselines.
+    entity_decode_map = {
+        "&nbsp;": " ",
+        "&#160;": " ",   # numeric form of &nbsp;
+        "&#xa0;": " ",   # hex form of &nbsp; (lowercase)
+        "&#xA0;": " ",   # hex form of &nbsp; (uppercase)
+        "&lt;": "<",
+        "&#60;": "<",
+        "&gt;": ">",
+        "&#62;": ">",
+        "&amp;": "&",
+        "&#38;": "&",
+        "&quot;": '"',
+        "&#34;": '"',
+        "&#39;": "'",
+        "&apos;": "'",
+        "&mdash;": "—",
+        "&#8212;": "—",
+        "&ndash;": "–",
+        "&#8211;": "–",
+        "&ldquo;": """,
+        "&#8220;": """,
+        "&rdquo;": """,
+        "&#8221;": """,
+        "&lsquo;": "'",
+        "&#8216;": "'",
+        "&rsquo;": "'",
+        "&#8217;": "'",
+        "&times;": "×",
+        "&#215;": "×",
+        "&divide;": "÷",
+        "&#247;": "÷",
+        "&plusmn;": "±",
+        "&#177;": "±",
+        "&deg;": "°",
+        "&#176;": "°",
+    }
+
+    def decode_html_entities_in_cell(cell_text: str) -> str:
+        """
+        Decode HTML entities: named (&nbsp;), numeric (&#160;), and hex (&#x00A0;) forms.
+        Preserve already-decoded text (replaces only when entity form is present).
+        """
+        result = cell_text
+
+        # First, decode named entities from the map
+        for entity, char in entity_decode_map.items():
+            result = result.replace(entity, char)
+
+        # Then decode numeric entities: &#NNNNN; (decimal) -> chr(NNNNN)
+        def decode_numeric_entity(match: re.Match[str]) -> str:
+            entity_str = match.group(1)
+            try:
+                code_point = int(entity_str)
+                return chr(code_point)
+            except (ValueError, OverflowError):
+                return match.group(0)  # Return unchanged if conversion fails
+
+        result = re.sub(r"&#(\d+);", decode_numeric_entity, result)
+
+        # Then decode hex entities: &#xNNNN; or &#xNNNN; (case-insensitive) -> chr(0xNNNN)
+        def decode_hex_entity(match: re.Match[str]) -> str:
+            hex_str = match.group(1)
+            try:
+                code_point = int(hex_str, 16)
+                return chr(code_point)
+            except (ValueError, OverflowError):
+                return match.group(0)  # Return unchanged if conversion fails
+
+        result = re.sub(r"&#x([0-9a-fA-F]+);", decode_hex_entity, result)
+
+        return result
+
+    def escape_pipe_in_cell(cell_text: str) -> str:
+        """
+        Escape literal pipe characters so they do not corrupt the table.
+        Only escape pipes that are not already preceded by a backslash (to avoid double-escaping).
+        """
+        # Replace unescaped pipes: pipes NOT preceded by backslash
+        # Use negative lookbehind: (?<!\\) = "not preceded by backslash"
+        return re.sub(r"(?<!\\)\|", r"\|", cell_text)
+
+    def extract_cell_text(cell_html: str) -> str:
+        """
+        Extract plain text from cell HTML: strip dangerous tag content, strip all inner tags,
+        decode entities, collapse whitespace.
+
+        Removes entire <script>, <style>, <object>, <embed> elements to prevent embedding
+        code or markup. Other tags (b, i, span, etc.) have their delimiters removed but are
+        safe because they don't contain executable content. Nested tags like <b><i>text</i></b>
+        are handled: all angle-bracket content is removed.
+        """
+        # Strip dangerous tags entirely: <script>...</script>, <style>...</style>, etc.
+        # These must be removed completely, not just their delimiters.
+        text = re.sub(r"<(script|style|object|embed)[^>]*>.*?</\1>", "", cell_html, flags=re.DOTALL | re.IGNORECASE)
+        # Strip remaining inner tags (everything in angle brackets)
+        text = re.sub(r"<[^>]+>", "", text)
+        # Decode HTML entities
+        text = decode_html_entities_in_cell(text)
+        # Collapse whitespace: leading/trailing and internal sequences
+        text = " ".join(text.split())
+        return text
+
+    def convert_one_table(table_html: str) -> str | None:
+        """
+        Convert one <table> block to pipe-markdown, or return None if unrecoverable.
+
+        Returns the markdown table (one or more lines) or None if the table is empty/malformed.
+
+        NOTE: This function handles only flat (non-nested) tables. Nested tables are not supported
+        because pipe-markdown has no column-spanning mechanism. If nested tables are detected,
+        the function will attempt to extract the innermost table's content, which may lose outer
+        table structure.
+        """
+        # Extract <tr> elements
+        rows_match = re.findall(r"<tr[^>]*>(.*?)</tr>", table_html, re.DOTALL | re.IGNORECASE)
+        if not rows_match:
+            return None  # No rows found
+
+        rows: list[list[str]] = []
+        has_header = False
+
+        for row_html in rows_match:
+            # Extract <th> and <td> cells. <th> tags signal a header row.
+            cells_th = re.findall(r"<th[^>]*>(.*?)</th>", row_html, re.DOTALL | re.IGNORECASE)
+            cells_td = re.findall(r"<td[^>]*>(.*?)</td>", row_html, re.DOTALL | re.IGNORECASE)
+
+            if cells_th:
+                has_header = True
+                cells = cells_th
+            elif cells_td:
+                cells = cells_td
+            else:
+                continue  # Row with no cells; skip it
+
+            # Extract text from each cell
+            cell_texts = [extract_cell_text(cell) for cell in cells]
+
+            # Escape pipes in cell text
+            cell_texts = [escape_pipe_in_cell(text) for text in cell_texts]
+
+            # Skip empty rows (all cells blank after extraction)
+            if not any(cell_texts):
+                continue
+
+            rows.append(cell_texts)
+
+        if not rows:
+            return None  # No extractable rows
+
+        # Determine column count from the first row
+        col_count = len(rows[0])
+        if col_count == 0:
+            return None
+
+        # Build markdown table
+        lines: list[str] = []
+
+        # If we detected a header, the first row is the header
+        if has_header and len(rows) > 0:
+            header_row = rows[0]
+            # Pad short rows to column count
+            header_row = (header_row + [""] * col_count)[:col_count]
+            lines.append("| " + " | ".join(header_row) + " |")
+            # Add separator row
+            lines.append("| " + " | ".join(["---"] * col_count) + " |")
+            # Add data rows (starting from the second row)
+            for data_row in rows[1:]:
+                # Warn if row is longer than expected
+                if len(data_row) > col_count:
+                    print(
+                        f"[unlimited-ocr] warning: row has {len(data_row)} cells, "
+                        f"truncating to {col_count} to match table width",
+                        file=sys.stderr,
+                    )
+                data_row = (data_row + [""] * col_count)[:col_count]
+                lines.append("| " + " | ".join(data_row) + " |")
+        else:
+            # No header detected; all rows are data rows
+            for data_row in rows:
+                # Warn if row is longer than expected
+                if len(data_row) > col_count:
+                    print(
+                        f"[unlimited-ocr] warning: row has {len(data_row)} cells, "
+                        f"truncating to {col_count} to match table width",
+                        file=sys.stderr,
+                    )
+                data_row = (data_row + [""] * col_count)[:col_count]
+                lines.append("| " + " | ".join(data_row) + " |")
+
+        return "\n".join(lines) if lines else None
+
+    # Main: find all <table> blocks and convert them
+    # For nested tables: simple non-greedy matching fails because <table>...<table>...</table>
+    # stops at the FIRST </table>, leaving stray HTML. This function finds each <table> and
+    # walks forward to its MATCHING </table> by counting nesting depth.
+
+    def find_balanced_table_blocks(text: str) -> list[tuple[int, int]]:
+        """
+        Find all <table>...</table> blocks by matching balanced opening/closing tags.
+        Returns list of (start_pos, end_pos) tuples where start includes '<table', end after '</table>'.
+        """
+        blocks = []
+        pos = 0
+
+        while pos < len(text):
+            # Find next <table opening tag
+            table_open_match = re.search(r"<table[^>]*>", text[pos:], re.IGNORECASE)
+            if not table_open_match:
+                break
+
+            table_start = pos + table_open_match.start()
+            search_start = pos + table_open_match.end()
+
+            # Count nesting depth: increment on <table>, decrement on </table>
+            depth = 1
+            search_pos = search_start
+            found_close = False
+
+            while search_pos < len(text) and depth > 0:
+                # Find the next <table or </table> tag (whichever comes first)
+                table_open = re.search(r"<table[^>]*>", text[search_pos:], re.IGNORECASE)
+                table_close = re.search(r"</table>", text[search_pos:], re.IGNORECASE)
+
+                # Determine which tag comes first
+                if table_close is None:
+                    # No more closing tags; this table is unclosed
+                    break
+
+                if table_open is None or table_open.start() >= table_close.start():
+                    # No opening tag, or closing tag comes first
+                    close_pos = search_pos + table_close.end()
+                    depth -= 1
+                    if depth == 0:
+                        blocks.append((table_start, close_pos))
+                        pos = close_pos
+                        found_close = True
+                    search_pos = close_pos
+                else:
+                    # Opening tag comes before closing tag
+                    depth += 1
+                    search_pos += table_open.end()
+
+            # If we didn't find a matching close tag, skip past this opening and continue
+            if not found_close:
+                pos = search_start
+
+        return blocks
+
+    matched_blocks = find_balanced_table_blocks(text)
+    result = text
+
+    # Process blocks in reverse order so position shifts don't affect earlier blocks
+    for table_start, table_end in reversed(matched_blocks):
+        table_html = text[table_start:table_end]
+        converted = convert_one_table(table_html)
+        if converted is None:
+            # Malformed or empty table; skip it with a note to stderr
+            print(
+                f"[unlimited-ocr] warning: skipped malformed or empty <table>",
+                file=sys.stderr,
+            )
+            result = result[:table_start] + result[table_end:]
+        else:
+            result = result[:table_start] + converted + result[table_end:]
+
+    return result
 
 
 def parse_detected_regions(
@@ -702,6 +997,8 @@ def command_parse(args: argparse.Namespace) -> int:
         if args.collapse_math_spacing:
             text = collapse_math_character_spacing(text)
         markdown = strip_detection_markers(text) if args.strip_det else text
+        if args.table_format == "pipe":
+            markdown = convert_html_tables_to_pipe_markdown(markdown)
 
         # An unreadable image costs only the PIXEL boxes; the normalised boxes and all text
         # survive, so this degrades rather than fails. Narrowed to the errors PIL actually
@@ -906,6 +1203,7 @@ def command_spec(args: argparse.Namespace) -> int:
                     "--format": "markdown | json | raw",
                     "--strip-det": "remove <|det|> markers, keeping block structure",
                     "--collapse-math-spacing": "rejoin 'c u r p d f' into 'curpdf' inside math",
+                    "--table-format": "pipe | html (default: pipe); convert HTML <table> to pipe-markdown",
                     "--allow-withheld-prompt-mode": "force a measured-broken prompt mode",
                     "--quiet": "suppress progress on stderr",
                 },
@@ -974,6 +1272,13 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action="store_true",
         dest="allow_withheld_prompt_mode",
         help="force a prompt mode that measurement showed to be broken (see spec for the reason)",
+    )
+    parse_cmd.add_argument(
+        "--table-format",
+        default="pipe",
+        choices=["pipe", "html"],
+        dest="table_format",
+        help="convert HTML <table> markup to pipe-markdown (pipe) or leave as HTML (html)",
     )
     add_shared_model_flags(parse_cmd)
     parse_cmd.set_defaults(handler=command_parse)

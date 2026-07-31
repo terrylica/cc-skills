@@ -22,11 +22,11 @@ mathematics, tables, and a `<|det|>` bounding box for every block it found.
 Of the three prompt modes the upstream project documents, **two are broken on MLX** and both are
 refused by this CLI with exit 2 and a printed reason:
 
-| Mode | Measured behaviour |
-| --- | --- |
-| `free-ocr` | **works** — correct output with layout boxes in 2.4 s. The default. |
+| Mode               | Measured behaviour                                                                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------- |
+| `free-ocr`         | **works** — correct output with layout boxes in 2.4 s. The default.                                      |
 | `document-parsing` | decodes `parsing.parsing.parsing…` until `max_tokens`. This is the prompt the upstream README documents. |
-| `multi-page` | deterministically hallucinates the word `industrydocuments` onto a single image. |
+| `multi-page`       | deterministically hallucinates the word `industrydocuments` onto a single image.                         |
 
 `--allow-withheld-prompt-mode` forces one anyway. They are kept nameable rather than deleted so the
 failures stay reproducible.
@@ -116,11 +116,11 @@ If you need the _content_ of a chart, use
 [`unlimited-ocr-segment-figure`](../unlimited-ocr-segment-figure/SKILL.md) to crop each panel and
 hand the crops to a model that does describe images.
 
-**It writes tables as HTML, not as pipe-markdown.** Measured over 103 real tables: 88 came back as
-`<table>` markup and 15 as prose; none as pipe-markdown. Concatenating the output into a markdown
-document therefore embeds raw HTML, which most renderers pass through silently. Convert it if your
-downstream consumer expects markdown tables — and always convert before comparing this model's
-output against another reader's, or the comparison measures the markup.
+**It writes tables as HTML by default, but can convert to pipe-markdown.** Measured over 103 real
+tables: 88 came back as `<table>` markup and 15 as prose; none as pipe-markdown. Pass
+`--table-format pipe` (the default) to convert HTML `<table>` to pipe-markdown before output; use
+`--table-format html` to keep raw HTML. Pipe-markdown is suitable for concatenating into markdown
+documents and for comparing against other readers (M3, GLM-4.6v) which emit pipe-markdown natively.
 
 Other limits, all with evidence, in [`../../references/PITFALLS.md`](../../references/PITFALLS.md):
 degenerate repetition, multi-page page-dropping, and why "Unlimited" is not unlimited.
