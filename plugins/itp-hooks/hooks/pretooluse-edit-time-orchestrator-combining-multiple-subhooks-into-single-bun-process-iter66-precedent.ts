@@ -106,6 +106,7 @@ import { classifyMiseHygieneGuardForOrchestrator } from "./pretooluse-mise-hygie
 import { classifyPyiStubGuardForOrchestrator } from "./pretooluse-pyi-stub-guard.ts";
 import { classifyNativeBinaryGuardForOrchestrator } from "./pretooluse-native-binary-guard.ts";
 import { classifyValeClaudeMdGuardForOrchestrator } from "./pretooluse-vale-claude-md-guard.ts";
+import { classifyShellScriptSafetyGuardForOrchestrator } from "./pretooluse-shell-script-safety-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -124,6 +125,13 @@ const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegis
     classify: classifyVersionGuardForOrchestrator,
     description:
       "Blocks Write/Edit on markdown files that introduce hardcoded version strings (semver, calver, pre-release tags) outside CHANGELOG/HISTORY/ADR/planning paths. Forces use of <version> placeholder pattern (SSoT discipline). Iter-85 inlined; fast O(1) extension+path filter pre-empts the regex scan on non-markdown files.",
+  },
+  {
+    name: "shell-script-safety-guard",
+    timeoutMs: 3000,
+    classify: classifyShellScriptSafetyGuardForOrchestrator,
+    description:
+      "Blocks Write/Edit on shell scripts that introduce two mechanically-decidable defects: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) defeats set -e errexit. Iter-119; O(1) extension+shebang fastpath pre-empts regex scan on non-shell files. Escape hatch: SHELL-SAFETY-OK marker (FILE_WIDE). For Edit: flags only net-new defects.",
   },
   {
     name: "typescript-version-guard",

@@ -345,6 +345,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes(\"# SETPROCTITLE-OK\")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.",
     },
     {
+      markerNameTokenIncludingSuffix: "SHELL-SAFETY-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 8,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a shell script (Write/Edit on .sh/.bash/.zsh or shebang-declared files) that introduces mechanically-decidable defects detected by the shell-script-safety-guard: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident, empirical fact A); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) silently defeats set -e errexit (empirical fact D). REQUIRES a ≥8-character reason after the colon (enforces intentionality — shorthand like 'legacy' is too terse, 'legacy error-handling' or 'temporary workaround' acceptable). Used sparingly when the script's purpose genuinely requires the risky pattern — split assignments and else branches are strongly preferred. Reason-gated doctrine SSoT: ~/.claude/CLAUDE.md § 'Empirically verified bash semantics (probed 2026-08-02)'.",
+    },
+    {
       markerNameTokenIncludingSuffix: "SSoT-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-version-guard.ts",
