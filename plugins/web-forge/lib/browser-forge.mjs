@@ -167,6 +167,132 @@ export function assertIdentity(actual, expected, resource) {
   }
 }
 
+/**
+ * Click a control by role + EXACT accessible name, refusing when the name is ambiguous.
+ *
+ * Why this exists (Azure Portal, 2026-08-02): `getByRole("button", { name: /register/i }).first()`
+ * matched TWO controls — `"Close content 'Register an application'"` at index 0 and the real
+ * `"Register"` submit at index 1. The fuzzy `.first()` DISMISSED the blade, Playwright reported a
+ * successful click, and the app was never created. Two runs were lost to it, and the second created
+ * a duplicate resource once the truth was found. Substring matching on accessible names is unsafe on
+ * any console that puts the blade title inside its close button's label — which is most of them.
+ *
+ * Exact-first, and on a miss it THROWS with the candidate list rather than guessing, so the failure
+ * names the drift instead of silently doing the wrong thing.
+ */
+export async function clickExact(page, role, name, { timeout = 20_000, index = 0 } = {}) {
+  const exact = page.getByRole(role, { name, exact: true });
+  const n = await exact.count();
+  if (n === 0) {
+    const fuzzy = page.getByRole(role, { name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") });
+    const cands = [];
+    for (let i = 0; i < (await fuzzy.count()); i++) {
+      cands.push(await fuzzy.nth(i).getAttribute("aria-label").catch(() => null) ?? (await fuzzy.nth(i).innerText().catch(() => "")).trim().slice(0, 60));
+    }
+    throw new Error(
+      `clickExact: no ${role} with exact name "${name}". Fuzzy candidates: ${JSON.stringify(cands)}. ` +
+        "Pick the exact accessible name from that list — do NOT fall back to .first().",
+    );
+  }
+  await exact.nth(index).click({ timeout });
+  return { matched: n, index };
+}
+
+/**
+ * Enumerate the interactive controls on a page (or every frame), for locator discovery.
+ *
+ * Consoles that render blades in iframes make page-level selectors silently miss; and accessible
+ * names are often nothing like the visible text. Run this BEFORE writing a locator instead of
+ * guessing and re-running — it is the fastest way out of a `waitForSelector` timeout.
+ */
+export async function probeControls(page, { allFrames = true, limit = 60 } = {}) {
+  const frames = allFrames ? page.frames() : [page.mainFrame()];
+  const out = [];
+  for (const f of frames) {
+    const els = await f
+      .evaluate((lim) => {
+        const r = [];
+        for (const e of document.querySelectorAll("input,textarea,button,select,[role=button],[role=tab]")) {
+          const label = e.getAttribute("aria-label") ?? e.getAttribute("placeholder") ?? e.textContent?.trim()?.slice(0, 50) ?? "";
+          if (label) r.push({ tag: e.tagName.toLowerCase(), type: e.getAttribute("type") ?? e.getAttribute("role") ?? "", label });
+          if (r.length >= lim) break;
+        }
+        return r;
+      }, limit)
+      .catch(() => []);
+    if (els.length) out.push({ frame: f.url().slice(0, 120), controls: els });
+  }
+  return out;
+}
+
+/**
+ * Capture a bearer token the SPA holds in memory, by reading it off a real outbound request.
+ *
+ * Modern consoles (Azure Portal, and every MSAL/OIDC SPA of that generation) keep access tokens in
+ * memory, NOT in localStorage — a localStorage sweep on the Azure Portal returns nothing at all.
+ * But the token is on the wire of every API call the page makes, so attaching to `request` and
+ * reading the Authorization header yields it without touching internals.
+ *
+ * This is what converts a fragile click-through into a REST call: with an ARM token the whole Azure
+ * role-assignment wizard collapses into one idempotent PUT (see skills/azure-provision).
+ *
+ * CACHED BLADES ISSUE NO REQUEST. Navigating to a view the SPA already has hydrated produces no
+ * traffic and the capture silently yields null — which reads exactly like "no permission". Hence the
+ * reload retry, and hence returning null rather than throwing: the caller decides.
+ *
+ * The token is a CREDENTIAL. Never log it; log `decodeJwtClaims()` instead.
+ */
+export async function captureBearer(page, hostMatch, { navUrl, timeoutMs = 30_000, reloadOnMiss = true } = {}) {
+  // Event-driven, not a poll loop: the handler RESOLVES the promise, so there is no shared flag for a
+  // reader (human or linter) to have to reason about.
+  let resolveToken;
+  const seen = new Promise((resolve) => {
+    resolveToken = resolve;
+  });
+  const onReq = (r) => {
+    if (!r.url().includes(hostMatch)) return;
+    const auth = r.headers().authorization;
+    if (auth?.startsWith("Bearer ")) resolveToken(auth.slice(7));
+  };
+  // An async helper rather than a promise-chain continuation: a bare chained callback reads as a
+  // floating promise to both a human and a silent-failure scanner, even inside a race that cannot leak.
+  const expire = async () => {
+    await sleep(timeoutMs);
+    return null;
+  };
+  const withTimeout = () => Promise.race([seen, expire()]);
+
+  page.on("request", onReq);
+  try {
+    if (navUrl) await page.goto(navUrl, { waitUntil: "domcontentloaded" }).catch(() => {});
+    let token = await withTimeout();
+    if (token == null && reloadOnMiss) {
+      await page.reload({ waitUntil: "domcontentloaded" }).catch(() => {});
+      token = await withTimeout();
+    }
+    return token;
+  } finally {
+    page.off("request", onReq);
+  }
+}
+
+/**
+ * Decode a JWT's claims WITHOUT verifying it — for logging and identity preflight only.
+ *
+ * Never treat this as authentication; it is how you answer "whose token did I just capture, for
+ * which audience, and for how long" so `assertIdentity()` has something real to compare. Returns
+ * null on anything that is not a three-part JWT.
+ */
+export function decodeJwtClaims(token) {
+  const parts = String(token ?? "").split(".");
+  if (parts.length !== 3) return null;
+  try {
+    return JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
 /** Dismiss common cookie/consent overlays (OneTrust & friends) that swallow clicks. */
 export async function dismissConsent(page) {
   const clicked = await page
