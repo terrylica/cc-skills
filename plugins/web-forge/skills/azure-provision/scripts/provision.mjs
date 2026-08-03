@@ -17,9 +17,10 @@ import { readFileSync } from "node:fs";
 import { vaultGet, vaultSet } from "../../../lib/browser-forge.mjs";
 
 const CONTRIBUTOR_NOTE = "Contributor cannot create role assignments — that is deliberate.";
-const specPath = process.argv[2];
+const DRY = process.argv.includes("--dry-run");
+const specPath = process.argv.find((a) => a.endsWith(".json"));
 if (!specPath) {
-  console.error("usage: node provision.mjs <spec.json>");
+  console.error("usage: node provision.mjs <spec.json> [--dry-run]");
   process.exit(2);
 }
 const spec = JSON.parse(readFileSync(specPath, "utf8"));
@@ -72,6 +73,10 @@ console.log(`→ authenticated as the service principal; ${CONTRIBUTOR_NOTE}`);
 // so the poll is not decoration.
 for (const ns of ["Microsoft.CognitiveServices", "microsoft.insights"]) {
   const prov = await call("GET", `${SUB}/providers/${ns}`, undefined, "2021-04-01");
+  if (prov.registrationState !== "Registered" && DRY) {
+    console.log(`  provider ${ns}: ${prov.registrationState} — would register`);
+    continue;
+  }
   if (prov.registrationState !== "Registered") {
     console.log(`  provider ${ns} is ${prov.registrationState} — registering`);
     await call("POST", `${SUB}/providers/${ns}/register`, undefined, "2021-04-01");
@@ -85,7 +90,10 @@ for (const ns of ["Microsoft.CognitiveServices", "microsoft.insights"]) {
 }
 
 // ── resource group (idempotent PUT) ──────────────────────────────────────────────────────────────
-if (rg) {
+if (rg && DRY) {
+  const g = await call("GET", `${SUB}/resourcegroups/${rg.name}`, undefined, "2021-04-01");
+  console.log(`  resource group ${rg.name}: ${g.status === 404 ? "WOULD CREATE" : "exists — would adopt"}`);
+} else if (rg) {
   const r = await call("PUT", `${SUB}/resourcegroups/${rg.name}`, { location: rg.location }, "2021-04-01");
   if (!r.ok) throw new Error(`resource group ${rg.name}: HTTP ${r.status} ${JSON.stringify(r.error ?? {}).slice(0, 200)}`);
   console.log(`  resource group ${rg.name} @ ${rg.location}: ${r.properties?.provisioningState ?? "ok"}`);
@@ -132,6 +140,10 @@ for (const res of resources) {
   const path = `${SUB}/resourceGroups/${rg.name}/providers/Microsoft.CognitiveServices/accounts/${res.name}`;
 
   const existing = await call("GET", path, undefined, "2023-05-01");
+  if (DRY) {
+    console.log(`  ${res.name}: ${existing.status === 404 ? "WOULD CREATE" : `exists (${existing.kind}/${existing.sku?.name}) — would ADOPT`}`);
+    continue;
+  }
   if (existing.status === 404) {
     const created = await call("PUT", path, { location, kind: res.kind, sku: { name: res.sku }, properties: { customSubDomainName: res.name } }, "2023-05-01");
     if (!created.ok) throw new Error(`create ${res.name}: HTTP ${created.status} ${JSON.stringify(created.error ?? {}).slice(0, 240)}\n  NOTE: the name doubles as a GLOBALLY unique custom subdomain; a clash needs a different name.`);
@@ -179,6 +191,12 @@ try {
   console.error(`  (vault manifest refresh failed, non-fatal: ${e.message.slice(0, 120)})`);
 }
 
+if (DRY) {
+  // Say what actually happened. A dry run that reports "provisioned, exercised and vaulted" is the
+  // same class of lie as an HTTP 200 on a document Azure never read.
+  console.log("\n✓ DRY RUN — auth, provider state and adopt/create detection were exercised for real; nothing was created, exercised or vaulted.");
+  process.exit(0);
+}
 if (failures > 0) {
   console.error(`\n✗ ${failures} resource(s) failed acceptance; their credentials were NOT written.`);
   process.exit(1);
