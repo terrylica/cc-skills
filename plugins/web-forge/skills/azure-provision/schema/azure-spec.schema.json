@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://terrylica.dev/schemas/web-forge/azure-spec.schema.json",
+  "title": "Azure provisioning spec",
+  "description": "Declarative input for web-forge's azure-provision skill: mint a service principal through a portal session, then provision resources unattended. Instances live in the consuming project repo, never in cc-skills.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["identity", "subscription", "servicePrincipal", "resources"],
+  "properties": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantDomain", "expectedAccount"],
+      "description": "Identity preflight. Checked with assertIdentity() BEFORE anything is created, because a resource minted under the wrong signed-in account is a silent disaster.",
+      "properties": {
+        "tenantDomain": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The Entra tenant's domain, e.g. contoso.onmicrosoft.com. Used in error messages only."
+        },
+        "expectedAccount": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The account that MUST be signed in, e.g. admin@contoso.ca. Compared against the captured token's upn with any federation prefix stripped (a guest/MSA account arrives as 'live.com#admin@contoso.ca')."
+        }
+      }
+    },
+    "subscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "description": "Subscription GUID. Discover it from the portal's Subscriptions blade first — note that `az account list` returning [] proves nothing while the CLI is Conditional-Access blocked."
+        }
+      }
+    },
+    "servicePrincipal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["displayName", "vault"],
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "App registration display name. Must be unique in the tenant: minting refuses if more than one already matches, rather than adding another."
+        },
+        "secretDescription": {
+          "type": "string",
+          "description": "Label shown on the client secret in the portal. Defaults to a web-forge marker."
+        },
+        "roleDefinitionId": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+          "description": "Built-in role GUID to assign at subscription scope. Defaults to Contributor (b24988ac-6180-42a0-ab88-20f7382dd24c). Contributor deliberately CANNOT create further role assignments — do not upgrade to Owner without a reason."
+        },
+        "vault": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scope", "clientIdPath", "clientSecretPath", "tenantIdPath"],
+          "description": "Where the minted credential is written. All four are required together: a client id without its tenant, or a secret without its client id, is unusable.",
+          "properties": {
+            "scope": { "type": "string", "minLength": 1, "description": "SCS vault scope name." },
+            "clientIdPath": { "type": "string", "minLength": 1, "description": "Dot-path for the application (client) id." },
+            "clientSecretPath": { "type": "string", "minLength": 1, "description": "Dot-path for the client secret. Written via `vault set --stdin`; never argv." },
+            "tenantIdPath": { "type": "string", "minLength": 1, "description": "Dot-path for the tenant id, taken from the captured token's `tid` claim." },
+            "subscriptionIdPath": { "type": "string", "minLength": 1, "description": "Optional dot-path for the subscription id, so consumers need only one scope." }
+          }
+        }
+      }
+    },
+    "resourceGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "location"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "Resource group name, created if absent." },
+        "location": { "type": "string", "minLength": 1, "description": "Azure region, e.g. canadacentral. Pick for data residency, not latency, when PHI/PII is involved." }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Cognitive Services accounts to provision. Each writes its key AND endpoint together — see the `credentials` requirement.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "kind", "sku", "credentials"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 64,
+            "description": "Resource name, which also becomes the custom subdomain. This is GLOBALLY unique across all of Azure — a name already used in someone else's subscription will fail, so migrations typically need a suffix."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["SpeechServices", "TextAnalytics", "CognitiveServices", "FormRecognizer", "ComputerVision", "OpenAI"],
+            "description": "Cognitive Services account kind."
+          },
+          "sku": { "type": "string", "minLength": 1, "description": "SKU name, e.g. F0 (free, one per kind per subscription) or S0." },
+          "location": { "type": "string", "minLength": 1, "description": "Overrides resourceGroup.location for this resource." },
+          "credentials": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scope", "keyPath", "endpointPath"],
+            "description": "Key and endpoint are written TOGETHER and both are required. Rotating a key while an endpoint stayed a hardcoded literal elsewhere produced a production HTTP 401 ('invalid subscription key or wrong API endpoint'); modelling them as one unit makes that class of drift impossible here.",
+            "properties": {
+              "scope": { "type": "string", "minLength": 1, "description": "SCS vault scope." },
+              "keyPath": { "type": "string", "minLength": 1, "description": "Dot-path for key1." },
+              "endpointPath": { "type": "string", "minLength": 1, "description": "Dot-path for the resource endpoint URL." },
+              "regionPath": { "type": "string", "minLength": 1, "description": "Optional dot-path for the region — required by Speech SDKs that take a region rather than an endpoint." },
+              "preserveExistingAs": { "type": "string", "minLength": 1, "description": "Optional prefix. If set, any existing value at each path is copied to `<prefix>_<path>` before being overwritten, so a migration stays reversible." }
+            }
+          },
+          "acceptanceCheck": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "description": "Proves the resource DETECTS, not merely authenticates. A 200 on a trivial call is not evidence the resource works.",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["pii-entities", "speech-token", "none"],
+                "description": "pii-entities: POST synthetic text, require >= minEntities back. speech-token: require an issueToken 200 with a non-trivial token."
+              },
+              "sampleText": { "type": "string", "description": "Synthetic probe text. MUST NOT contain real personal data." },
+              "minEntities": { "type": "integer", "minimum": 1, "description": "Minimum entities the probe must return for the check to pass." }
+            }
+          }
+        }
+      }
+    },
+    "teardownBrowser": {
+      "type": "boolean",
+      "description": "Kill the automation Chrome when minting finishes (default true). Set false to keep the session for a follow-up run."
+    }
+  }
+}
