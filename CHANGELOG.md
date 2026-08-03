@@ -1,3 +1,22 @@
+# [23.5.0](https://github.com/terrylica/cc-skills/compare/v23.4.1...v23.5.0) (2026-08-03)
+
+
+### Features
+
+* **azure-provision:** add --dry-run ([dd955ab](https://github.com/terrylica/cc-skills/commit/dd955abfe67cfbdb8bb7c7eab9d313bfc00fc24b))
+Proves the script against a real tenant without mutating it. Auth, provider-registration
+state, and the create-vs-adopt decision all run for real; every mutation is skipped. That
+is the half worth exercising, because the idempotent adopt-existing path is what the DOM
+version lacked and is how a duplicate app registration got created.
+
+Verified against the live client tenant: service-principal auth succeeded, both providers
+reported Registered, the resource group and both Cognitive Services accounts were correctly
+detected as existing and reported as ADOPT rather than CREATE.
+
+The completion line is dry-run aware. The first version still printed 'all resources
+provisioned, exercised, and vaulted' after a run that did none of those things — the same
+class of false success report as an HTTP 200 on a document Azure never read.
+
 ## [23.4.1](https://github.com/terrylica/cc-skills/compare/v23.4.0...v23.4.1) (2026-08-03)
 
 
