@@ -1,3 +1,41 @@
+## [23.4.1](https://github.com/terrylica/cc-skills/compare/v23.4.0...v23.4.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **azure-provision:** register microsoft.insights too, not just CognitiveServices ([4d72946](https://github.com/terrylica/cc-skills/commit/4d7294602b90f7c7978405212a1f1514cdb0d598))
+A new Azure subscription starts with EVERY resource provider unregistered, and the second one
+bites later and more confusingly than the first: resources create fine, then the first attempt to
+attach a metric alert or action group fails with HTTP 409 'The subscription is not registered to
+use namespace microsoft.insights'. Hit for real while recreating the retired account's free-tier
+quota alerts on the client tenant. Registering both up front turns a mid-run 409 into a step that
+just happens. Registration is genuinely async — insights took ~84 seconds to reach Registered — so
+the poll loop is load-bearing, not decoration.
+* **statusline:** bound doorward-state.jsonl, which had reached 257 MB ([890e501](https://github.com/terrylica/cc-skills/commit/890e501583be9e7d99493c87be8d506673f9611b))
+The L2 statistics surface appends ~889 bytes on every statusline render and
+nothing ever pruned it. Measured 2026-08-02 on the operator's Mac:
+
+  257,728,077 bytes across 289,604 lines
+
+A quarter of a gigabyte of telemetry about a gateway, growing without limit. The
+cost is not only disk: the L4 pusher `tail -n 1`s this file every 30 s, so every
+read walked a file that only ever got longer.
+
+Adds the same 10 MB cascade rotation (.1/.2/.3, ~40 MB ceiling) that doorward's
+own structured access log already uses — one stat() per render, which is nothing
+next to the work the statusline already does.
+
+Failure stays silent, as everything on the render path must be, but the silence
+is now bounded to the ROTATION rather than to the file's existence: a rotation
+that cannot happen degrades to "keep appending", which is exactly the
+pre-existing behaviour rather than a new failure mode.
+
+Rotation verified functionally against a copy with a 100-byte cap: the live file
+rotates, .1 is created, and appends continue. shellcheck clean.
+
+The existing backlog was trimmed in place to the most recent 10 MB (11,803 lines
+retained) and the L4 pusher verified still working against it.
+
 # [23.4.0](https://github.com/terrylica/cc-skills/compare/v23.3.0...v23.4.0) (2026-08-03)
 
 
