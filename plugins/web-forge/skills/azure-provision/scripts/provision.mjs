@@ -64,18 +64,25 @@ const call = async (method, path, body, apiVersion) => {
 const SUB = `/subscriptions/${subscription.id}`;
 console.log(`→ authenticated as the service principal; ${CONTRIBUTOR_NOTE}`);
 
-// ── provider registration (new subscriptions start NotRegistered) ────────────────────────────────
-const prov = await call("GET", `${SUB}/providers/Microsoft.CognitiveServices`, undefined, "2021-04-01");
-if (prov.registrationState !== "Registered") {
-  console.log(`  provider Microsoft.CognitiveServices is ${prov.registrationState} — registering`);
-  await call("POST", `${SUB}/providers/Microsoft.CognitiveServices/register`, undefined, "2021-04-01");
-  for (let i = 0; i < 30; i++) {
-    const p = await call("GET", `${SUB}/providers/Microsoft.CognitiveServices`, undefined, "2021-04-01");
-    if (p.registrationState === "Registered") break;
-    await new Promise((r) => setTimeout(r, 4000));
+// ── provider registration (a new subscription starts with EVERY provider NotRegistered) ──────────
+// `microsoft.insights` is here because it bites separately and later: resources create fine, then the
+// first attempt to attach an alert or action group fails with HTTP 409 "The subscription is not
+// registered to use namespace 'microsoft.insights'". Registering it up front turns a confusing
+// mid-run 409 into a step that just happens. Registration is async — measured at ~84s for insights,
+// so the poll is not decoration.
+for (const ns of ["Microsoft.CognitiveServices", "microsoft.insights"]) {
+  const prov = await call("GET", `${SUB}/providers/${ns}`, undefined, "2021-04-01");
+  if (prov.registrationState !== "Registered") {
+    console.log(`  provider ${ns} is ${prov.registrationState} — registering`);
+    await call("POST", `${SUB}/providers/${ns}/register`, undefined, "2021-04-01");
+    for (let i = 0; i < 40; i++) {
+      const p = await call("GET", `${SUB}/providers/${ns}`, undefined, "2021-04-01");
+      if (p.registrationState === "Registered") break;
+      await new Promise((r) => setTimeout(r, 4000));
+    }
   }
+  console.log(`  provider ${ns}: Registered`);
 }
-console.log("  provider: Registered");
 
 // ── resource group (idempotent PUT) ──────────────────────────────────────────────────────────────
 if (rg) {
