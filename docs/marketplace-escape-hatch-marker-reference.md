@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 28 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 29 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (20; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (21; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
@@ -34,6 +34,7 @@ Jump directly to any of the 28 registered markers below. Markers are listed alph
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
 - [`RELEASE-NOTES-OK`](#release-notes-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
+- [`SHELL-SAFETY-OK`](#shell-safety-ok)
 - [`SSoT-OK`](#ssot-ok)
 
 **Audit-task markers** (8; consumed by `.mise/` audit tasks once per release-preflight):
@@ -64,7 +65,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (20 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (21 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -389,6 +390,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # SETPROCTITLE-OK
+```
+
+## `SHELL-SAFETY-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 8 characters |
+
+**What it does**: Allow a shell script (Write/Edit on .sh/.bash/.zsh or shebang-declared files) that introduces mechanically-decidable defects detected by the shell-script-safety-guard: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident, empirical fact A); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) silently defeats set -e errexit (empirical fact D). REQUIRES a ≥8-character reason after the colon (enforces intentionality — shorthand like 'legacy' is too terse, 'legacy error-handling' or 'temporary workaround' acceptable). Used sparingly when the script's purpose genuinely requires the risky pattern — split assignments and else branches are strongly preferred. Reason-gated doctrine SSoT: ~/.claude/CLAUDE.md § 'Empirically verified bash semantics (probed 2026-08-02)'.
+
+**Example usage**:
+
+```
+# SHELL-SAFETY-OK: explain the deliberate exception here in at least 8 characters
 ```
 
 ## `SSoT-OK`
