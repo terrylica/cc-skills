@@ -1,0 +1,60 @@
+{
+  "$schema": "../schema/azure-spec.schema.json",
+  "identity": {
+    "tenantDomain": "contoso.onmicrosoft.com",
+    "expectedAccount": "admin@contoso.example"
+  },
+  "subscription": {
+    "id": "00000000-0000-0000-0000-000000000000"
+  },
+  "servicePrincipal": {
+    "displayName": "contoso-automation",
+    "secretDescription": "pipeline automation (SCS: azure-sp)",
+    "roleDefinitionId": "b24988ac-6180-42a0-ab88-20f7382dd24c",
+    "vault": {
+      "scope": "azure-sp",
+      "clientIdPath": "client_id",
+      "clientSecretPath": "client_secret",
+      "tenantIdPath": "tenant_id",
+      "subscriptionIdPath": "subscription_id"
+    }
+  },
+  "resourceGroup": {
+    "name": "contoso-rg",
+    "location": "canadacentral"
+  },
+  "resources": [
+    {
+      "name": "contoso-stt-cac",
+      "kind": "SpeechServices",
+      "sku": "S0",
+      "credentials": {
+        "scope": "azure-speech",
+        "keyPath": "key",
+        "endpointPath": "endpoint",
+        "regionPath": "region",
+        "preserveExistingAs": "old"
+      },
+      "acceptanceCheck": {
+        "kind": "speech-token"
+      }
+    },
+    {
+      "name": "contoso-pii-cac",
+      "kind": "TextAnalytics",
+      "sku": "F0",
+      "credentials": {
+        "scope": "azure-pii",
+        "keyPath": "key",
+        "endpointPath": "endpoint",
+        "preserveExistingAs": "old"
+      },
+      "acceptanceCheck": {
+        "kind": "pii-entities",
+        "sampleText": "The patient Wilhelmina Fairweather-Ashcombe, born 2019-04-02, saw Dr. Ellery Pemberton-Vaux.",
+        "minEntities": 3
+      }
+    }
+  ],
+  "teardownBrowser": true
+}

@@ -91,6 +91,37 @@ for the worked template). UI automation is the crowbar, not the workflow.
   `oauth_application[name|url|callback_url]`. "Generate a new client secret" triggers sudo mode;
   a FRESH login usually has a sudo grace window — create the app right after login and the secret
   generation is prompt-free. Client secrets render as a 40-hex blob.
+- **Azure Portal — ambiguous accessible names** (2026-08-02): every blade's close button is labelled
+  `"Close content '<Blade Title>'"`, so on "Register an application" a fuzzy
+  `getByRole("button", {name:/register/i}).first()` matches the CLOSE button, not the submit. It
+  clicks, Playwright reports success, the blade shuts and nothing is created. Cost two runs, and the
+  second created a DUPLICATE once the truth surfaced. Use `clickExact()` — it refuses on a non-exact
+  name and prints the candidate list (verified live: `["Close content 'Register an application'","Register"]`).
+- **Azure Portal — two elements match `input[placeholder*="Search"]`** (2026-08-02): the page-wide
+  search in the masthead matches BEFORE any blade's own filter. Typing the role name into it left the
+  role grid unfiltered, so an exact row lookup found 0 rows and the wizard advanced with no role
+  selected. Anchor on the distinctive placeholder (`"Search by role name, description, permission, or ID"`).
+- **Azure Portal — a list view can lie about creation** (2026-08-02): after successfully creating an
+  app registration as a GUEST (`#EXT#`) user, **App registrations → Owned applications** said "This
+  account isn't listed as an owner of any applications in this directory." True (a guest creator is not
+  auto-assigned owner) and deeply misleading. Ground truth is the **notifications pane** ("Successfully
+  created application X") or the **All applications** tab. Never confirm a mutation from the same
+  console's default list view.
+- **Azure Portal — tokens are in memory, not localStorage** (2026-08-02): an MSAL SPA of this
+  generation keeps ARM/Graph access tokens in memory; a localStorage sweep returns nothing. Capture
+  them off the wire with `captureBearer(page, "management.azure.com" | "graph.microsoft.com")`. With an
+  ARM token the whole 3-tab role-assignment wizard collapses into one idempotent `PUT` (HTTP 201 first
+  try) — the clearest instance of the Hybrid rule in this log.
+- **Azure Portal — a cached blade issues no request** (2026-08-02): navigating to a view the SPA has
+  already hydrated produces zero traffic, so token capture silently yields `null`, which reads exactly
+  like "no permission". `captureBearer` retries with a `reload()` for this reason. The
+  App-registrations LIST blade reliably re-queries Graph; the Entra Overview blade often does not.
+- **Azure — the Portal and the CLI are DIFFERENT Entra apps** (2026-08-02): portal
+  `c44b4083-3bb0-49c1-b47d-974e53cbdf3c`, CLI `04b07795-8ddb-461a-bbee-02f9e1bf7b46`. A Conditional
+  Access policy scoped to the CLI (`AADSTS530035`, "Device state: Unregistered") therefore does **not**
+  block the portal. This asymmetry is what makes a browser forge the only way in — and note that
+  `az account list` then returns `[]`, which is a consequence of the block and **not** evidence that no
+  subscription exists.
 
 ## Relationship to gh-fine-grained-pat
 
