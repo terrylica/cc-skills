@@ -1,3 +1,116 @@
+# [23.4.0](https://github.com/terrylica/cc-skills/compare/v23.3.0...v23.4.0) (2026-08-03)
+
+
+### Features
+
+* **itp-hooks:** add shell-script-safety-guard ([0aaf2e4](https://github.com/terrylica/cc-skills/commit/0aaf2e41149fef3971c77b1b78e9d02a0603961f))
+Adds a PreToolUse subhook that blocks the two shell defects which are always
+wrong and mechanically decidable, and deliberately declines to police anything
+else. Both rules come from an incident on 2026-08-02 in which the `css` launcher
+printed "Exact resume failed (exit 0)" -- a message that reads as success while
+reporting failure -- and thereby hid a session-collapse bug for months.
+
+RULE 1, STATUS-LOSS-AFTER-IF: `$?` read after an `else`-less `fi`. When the
+condition fails no branch runs, so `$?` is 0 and every failure reports success.
+RULE 2, MASKED-COMMAND-SUBSTITUTION: `local|export|readonly|declare NAME=$(cmd)`.
+The declaration keyword is itself a command whose status (always 0) wins, which
+ALSO silently defeats `set -e` -- a script can look strict while swallowing every
+failure in a declared assignment.
+
+Every rule boundary was established by probing this machine with `bash -c` rather
+than from memory, and the folklore turned out to be wrong in both directions.
+`$?` inside an `else` is CORRECT, as is `local rc=$?` (the expansion is evaluated
+before `local` runs). `$?` after `done`/`esac`/`}` carries a real status and is
+frequently intended. Only command SUBSTITUTION is swallowed, and only `fi` has
+the no-branch-ran hole. Facts A-H are encoded as named test cases.
+
+Scope is set by measurement, not ambition: an audit of 19 scripts found 11 that
+omit `set -euo pipefail` for good reason -- an accumulate-then-report guard, a
+watchdog that must survive transient SSH failures, a diagnostic whose job is to
+keep going. Enforcing strict mode would be wrong 58% of the time, and a guard
+that is usually wrong gets switched off, taking the correct rules with it.
+
+- Add the pure detector plus 62 tests, and the subhook wrapping it (net-new-only
+  on Edit/MultiEdit, `SHELL-SAFETY-OK: <reason>` FILE_WIDE escape hatch requiring
+  an 8-char reason, fail-open on any internal error).
+- Register in the edit-time orchestrator at position 2 (lightest-first: an O(1)
+  extension/shebang fastpath) and in the iter-111 escape-hatch marker registry.
+- Validate against 222 authored shell scripts. Final state: 9 flags, all true
+  positives, including `date -Iseconds` (GNU-only, fails on BSD date) and `jq`
+  parse failures silently swallowed in cns-tunnel-listener.
+
+Five defects were found and fixed before wiring, four of them by a hand-written
+case list that the generated unit tests had missed:
+
+- Single-line `if cmd; then exit 0; fi` was never flagged. The line-based depth
+  scan saw `fi`, `continue`d, and so never noticed the `if` on the same line.
+  Replaced with token-level matching, which also fixes nested-`else` attribution.
+- `local out=$(cmd) || true` and `local x=$(a && b)` were skipped by a blanket
+  "ignore lines containing || or &&" rule. That suppressed real defects instead
+  of fixing the regex; the first is still fully masked, since the `||` tests
+  `local`'s status, which is always 0, so the handler can never fire.
+- Declarations carrying flags (`local -r`, `declare -a`) were not matched.
+- Heredoc bodies were flagged. They are printed data, not executed code -- two
+  such templates live in devops-tools/session-chronicle, and flagging them would
+  have blocked edits to files with no defect at all.
+
+Two remaining false positives were removed by narrowing rather than by blanket
+skips: `$?` preceded by a command separator on its own line binds to that command
+(install-workspace-launcher:258), and `local x="$(cmd || fallback)"` has already
+handled failure inside the substitution. Vendored upstream paths (.build,
+node_modules, vendor, third_party, site-packages) are now out of scope.
+
+Test suite: 1044 pass, 0 fail.
+
+SRED-Type: support-work
+SRED-Claim: ITERM2-SCRIPTS
+* **web-forge:** azure-provision skill — service-principal bootstrap with zero DOM automation ([91fc50a](https://github.com/terrylica/cc-skills/commit/91fc50a760ff8fb4b686bf7df7f57ebf7d798cd8))
+Azure's Portal and CLI are different Entra applications, so a Conditional Access policy scoped to
+the CLI (04b07795-…, error 530035 "Device state: Unregistered") leaves the portal (c44b4083-…)
+working — and `az login` has no client-id override. That asymmetry is the whole opportunity: walk
+through the portal once, mint a service principal, and every later run is unattended because
+client-credentials auth is not gated by user Conditional Access. The first implementation drove the
+portal's DOM and it was miserable. Every blade's close button is labelled "Close content '<Blade
+Title>'", so a fuzzy getByRole match on /register/i clicks CLOSE rather than the submit; it reports
+success, and nothing is created. Two runs were lost to it and the second created a duplicate app
+registration once the truth surfaced. The fix turned out not to be better selectors. Measured on a
+live session, the portal's OWN Graph token carries Application.ReadWrite.All,
+AppRoleAssignment.ReadWrite.All and RoleManagement.ReadWrite.Directory — everything needed to create
+the app, its secret and its role assignment over REST. So the skill captures the token off the wire
+and POSTs. Zero selectors, zero blade navigation, nothing to drift: the browser contributes a TOKEN,
+not clicks, which is this plugin's Hybrid rule taken to its limit.
+
+* feat(browser-forge): `captureBearer(page, host, {navUrl, reloadOnMiss})` — reads a bearer token
+  off a real outbound request. This generation of MSAL SPA keeps tokens in memory, not localStorage,
+  so a storage sweep of the Azure Portal returns nothing at all. Retries with a reload because a
+  CACHED blade issues no request and the capture then silently yields null, which reads exactly like
+  "no permission"
+* feat(browser-forge): `clickExact(page, role, name)` — exact-name clicking that REFUSES on a
+  non-exact match and prints the candidate list, instead of `.first()` silently picking the wrong
+  control. Verified live: it returns `["Close content 'Register an application'", "Register"]`
+* feat(browser-forge): `decodeJwtClaims(token)` — unverified claim decode for logging and identity
+  preflight, so `assertIdentity` has something real to compare and the token itself is never logged
+* feat(browser-forge): `probeControls(page, {allFrames})` — enumerate interactive controls across
+  frames, for locator discovery before writing a selector rather than after a timeout
+* feat(azure-provision): `mint-sp.mjs` (browser for the login only; Graph for the app, service
+  principal and secret; ARM for the role assignment) and `provision.mjs` (unattended: provider
+  registration, resource group, Cognitive Services accounts, acceptance-tested before any credential
+  is written). Both are GET-before-POST idempotent — the DOM version was not, which is precisely how
+  the duplicate got created
+* feat(azure-provision): JSON Schema 2020-12 spec. Key and endpoint are a REQUIRED pair, because a
+  rotation that moved the key while an endpoint stayed a hardcoded literal elsewhere produced a
+  production HTTP 401; `additionalProperties: false` throughout so a typo'd key is rejected rather
+  than silently dropped. Verified in both directions against the example
+* fix(azure-provision): verification uses an in-process client-credentials POST, never
+  `az login --service-principal -p <secret>` — that CLI form puts the secret in argv where any user
+  can read it from `ps`, in plain violation of this plugin's own secrets rule
+* docs(dashboard-forge): seven Azure Portal entries in the Vendor Quirks drift log, including the
+  one that generalises furthest — a console's default list view can report that a resource does not
+  exist immediately after successfully creating it (a guest creator is not auto-assigned owner), so
+  never confirm a mutation from the same console's list view; the notifications pane is ground truth
+* docs(itp-hooks): headless `claude -p` semantics — omitting `--effort` defaults to `high` rather
+  than disabling reasoning
+
 # [23.3.0](https://github.com/terrylica/cc-skills/compare/v23.2.0...v23.3.0) (2026-07-31)
 
 
