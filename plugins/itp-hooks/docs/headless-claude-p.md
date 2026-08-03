@@ -14,7 +14,7 @@ artifact.
 
 ---
 
-## The five things that will bite you
+## The six things that will bite you
 
 ### 1. Omitting `--effort` is NOT "no reasoning" — it is `high`
 
@@ -58,7 +58,37 @@ The error goes to **stderr**. A probe that captures only stdout sees an empty st
 not careful — reports "no thinking blocks found", which is a false negative, not a finding.
 **A zero-line capture is a broken probe, never a negative result.**
 
-### 5. Thinking _existence_ is observable; thinking _content_ is not
+### 5. High effort can trip a ~300 s STREAM IDLE TIMEOUT and return zero output
+
+The most damaging failure found, because it looks like a model limitation and is not.
+
+On a dense ~27 k-token prompt, `claude-sonnet-5 --effort max` thinks **silently** — emitting no stream
+chunks — long enough that the client's stream-idle timeout fires. Reproduced twice, deterministically:
+
+```
+exit code   1
+stdout      { "type":"result", "is_error":true, "stop_reason":"stop_sequence",
+              "result":"API Error: Stream idle timeout - no chunks received",
+              "duration_ms":302975, "usage":{"output_tokens":0} }
+stderr      <fleet-identity banner only>
+```
+
+**Your own request timeout does not protect you.** That call had a 900 s budget and died at ~303 s: the
+idle timer counts _silence between chunks_, not total duration. Raising `timeoutMs` changes nothing.
+
+Consequences worth internalising:
+
+- **`--effort max` is not safe for bulk work on large prompts.** The same pipeline succeeded at
+  `--effort low` in ~29 s/call. Higher effort is not simply "slower" — past a threshold it returns
+  **nothing at all**.
+- **The failure is content-dependent, so it hides.** Sparse prompts answer fast and pass; dense ones
+  think longer and die. In one 4-window extraction the two intake windows succeeded (legitimately
+  charting nothing) while the two clinically dense windows timed out — so the run produced a
+  _complete, valid, empty_ result instead of an error.
+- **On a non-zero exit the cause is in STDOUT, not stderr.** stderr holds only the banner. Any handler
+  that reports stderr on failure discards the real message. Read stdout's `result` field.
+
+### 6. Thinking _existence_ is observable; thinking _content_ is not
 
 Blocks arrive as `{type:"thinking", thinking:"", signature:"<~1680 chars>"}`, and there are **no
 `thinking_delta` events**. You can prove _that_ the model reasoned. You cannot read _what_ it reasoned.
