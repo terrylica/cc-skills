@@ -1881,6 +1881,32 @@ doorward_state_jsonl_log_record_for_this_render="{\
 \"doorward_pin_mode_active\":\"${ccmax_pin_mode}\",\
 \"doorward_bearer_mode_routing_active\":${doorward_bearer_mode_routing_active_boolean_serialized}\
 }"
+# Size-bounded with cascade rotation, matching the 10MB/.1/.2/.3 convention
+# doorward's own structured access log already uses.
+#
+# WHY: this appends ~889 bytes on EVERY statusline render, and nothing ever
+# pruned it. Measured 2026-08-02 on the operator's Mac: 257,728,077 bytes across
+# 289,604 lines — a quarter of a gigabyte of telemetry about a gateway, growing
+# without limit. The L4 pusher `tail -n 1`s this file every 30s, so the cost is
+# not only disk: every read walks a file that only ever gets longer.
+#
+# The check is a single stat() per render, which is nothing next to the work the
+# statusline already does. Rotation keeps 3 generations (~40MB ceiling).
+#
+# Failure stays silent by design — the statusline must never block or error on
+# telemetry persistence — but note that "silent" here is bounded to the ROTATION,
+# not to the whole file's existence: a rotation that cannot happen degrades to
+# "keep appending", which is the pre-existing behaviour, not a new failure.
+doorward_state_jsonl_log_max_bytes_before_rotation=10485760
+doorward_state_jsonl_log_current_size_bytes=$(
+    stat -f %z "${doorward_state_jsonl_log_absolute_path}" 2>/dev/null || echo 0
+)
+if [ "${doorward_state_jsonl_log_current_size_bytes}" -gt "${doorward_state_jsonl_log_max_bytes_before_rotation}" ] 2>/dev/null; then
+    rm -f "${doorward_state_jsonl_log_absolute_path}.3" 2>/dev/null
+    mv -f "${doorward_state_jsonl_log_absolute_path}.2" "${doorward_state_jsonl_log_absolute_path}.3" 2>/dev/null
+    mv -f "${doorward_state_jsonl_log_absolute_path}.1" "${doorward_state_jsonl_log_absolute_path}.2" 2>/dev/null
+    mv -f "${doorward_state_jsonl_log_absolute_path}" "${doorward_state_jsonl_log_absolute_path}.1" 2>/dev/null
+fi
 echo "${doorward_state_jsonl_log_record_for_this_render}" >> "${doorward_state_jsonl_log_absolute_path}" 2>/dev/null
 
 doorward_inline=""
