@@ -2,6 +2,48 @@
 
 Reverse chronological - newest on top.
 
+## 2026-08-03b — The dependent-service guard checked only the repo ROOT, and a venv can be present but incomplete
+
+**Trigger**: The guard added earlier the same day reported `~/eon/tasc` healthy
+(`.venv=ok`, `node_modules=—`) while `com.tasc.serve` had been crash-looping
+**11,593 times over ~32 hours**. Both readings were technically true and together
+useless.
+
+**Two distinct defects:**
+
+1. **Root-only manifest walk.** The check walks up from the launchd program to the
+   FIRST `package.json`/`pyproject.toml` and stops. `tasc` has `pyproject.toml` at
+   the root, so it reported `.venv=ok` and treated node deps as not-applicable —
+   but the service needs **`ts/node_modules`**, one directory down, which was
+   missing (`Cannot find module 'ajv/dist/2020'`, 11,637 log occurrences). Fix:
+   enumerate every manifest in the repo (maxdepth 3, excluding `node_modules/` and
+   `.venv/`) and check each one's sibling directory.
+2. **Present ≠ complete.** After restoring `ts/node_modules` the service still
+   failed with `ModuleNotFoundError: No module named 'numpy'`. The `.venv` existed
+   and imported `pymupdf` fine, because `uv sync` installs only the DEFAULT
+   dependency group; `tasc` declares its embedding deps under
+   `[dependency-groups] embed`. Resolved with `uv sync --group embed`. A directory
+   existing is not evidence the dependencies are installed.
+
+**Also corrected in this pass**: the crash loop was NOT caused by the disk
+cleanup — it began ~2026-08-02 14:00 local, roughly 32 h before. Checking that
+before assuming culpability mattered, because the previous entry's incident made
+"the cleanup broke it" the tempting default.
+
+**Adversarial verification earned its keep.** Before deleting a 4.48 GB
+`TASC 1982-2022` archive from Downloads, a second agent independently re-derived
+the redundancy claim: 4,662 PDFs in both locations, **matching MD5 checksums**
+sampled across 1982–2022, the repo copy gitignored by design and documented in
+its README, and extraction proven one-way (PDF → JSONL is lossy). Verdict
+CONFIRMED SAFE, deleted. The same pass **REFUTED** two other "obviously stale"
+installers — a MiniMax dmg whose version matched what was installed, and a
+`Claude.dmg` whose app had been modified after the download — both kept.
+
+**Measurement note worth carrying**: a `du -sh ~/.Trash` reading of 14G in Phase 1
+could not be reproduced later (0B, 0 items, confirmed by `du`, `find`, `ls` and
+`stat` agreeing). Cause unestablished. Recorded as unresolved rather than
+explained away.
+
 ## 2026-08-03 — The biggest win was an app's own quarantined wreckage, and a sparse file lied by 16x
 
 **Trigger**: A full audit two days after the 2026-07-31 pass, which had left the
