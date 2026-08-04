@@ -2,6 +2,53 @@
 
 Reverse chronological - newest on top.
 
+## 2026-08-03 — The biggest win was an app's own quarantined wreckage, and a sparse file lied by 16x
+
+**Trigger**: A full audit two days after the 2026-07-31 pass, which had left the
+volume at 61 % / 356 GB free. It was back to **82 % / 167 GB free** — 189 GB
+consumed in 48 hours. Phases 1, 2 and 2.5 all came back small (in-repo artifacts
+were only 12 GB, down from 109 GB), so the existing phases could not explain it.
+
+**What actually found it**: a plain top-level `du` of `$HOME`, which no phase
+prescribed. `~/.mempalace` was **190 GB** — larger than every cache, every repo
+and every `Library` subdirectory combined.
+
+**Two new failure modes, both now documented in Phase 3:**
+
+1. **Sparse files make `ls -l` lie.** The offending file reported **2,831 GB
+   apparent** against **174 GB allocated** — an impossible number on a 926 GB
+   disk. Anything sizing candidates with `ls -l` or `find -size` would have been
+   wildly misled; `du` was correct throughout.
+2. **Applications quarantine their own wreckage under self-describing names.**
+   The 175 GB lived in one directory literally named
+   `<uuid>.corrupt-20260802-160712.drift-20260802-160712`. MemPalace had detected
+   corruption from a 3-day crash loop, set the collection aside, and rebuilt a
+   healthy 882 MB replacement. The disk symptom and a separate 3-day service
+   outage were the same root cause. Added a marker-grep (`*corrupt*`, `.drift-*`,
+   `.pre-rebuild-*`, `.bak-*`, `.quarantine*`) plus a three-part safety proof
+   (no live fd, unreferenced in the app's manifest, healthy replacement exists).
+
+**Also added — the dependent-service check, promoted from a note to a required
+step.** The 2026-07-31 pass deleted `catgpt-gateway/node_modules`; its watchdog
+then failed 95 times and its restart attempts drove a Chrome launch that raised a
+macOS TCC prompt the user reported as a mystery. Phase 2.5 now builds the
+exclusion list from `~/Library/LaunchAgents/*.plist` BEFORE deleting, prints each
+skip so the guard is visible, and re-asserts the manifest→directory pairing
+afterwards. On this run it correctly protected `tasc`, `opendeviationbar-patterns`
+and `iterm2-scripts-moon`.
+
+**Evidence**: total reclaimed **219 GB** (730 → 510 GB used, 82 % → 57 % full):
+185.75 GB MemPalace (174.53 corrupt quarantine + 11.22 two pre-rebuild backups),
+20.05 GB caches (uv 10.40 at `~/.cache/uv`, huggingface 3.91, go-build 3.54,
+Homebrew 2.2), 10.53 GB in-repo artifacts. Post-cleanup verification found no new
+launchd failures; `com.tasc.serve` exit 1 was pre-existing with 11,593 runs and an
+intact `.venv`.
+
+**Sizing datum worth reusing**: a healthy MemPalace index is **~0.5× its source
+corpus** (4.05 GB index / 8.43 GB of `~/.claude/projects` JSONL = 0.48×), growing
+~0.15 GB/day against ~0.30 GB/day of corpus. Any multiple of that ratio is
+pathological, not "a big index".
+
 ## 2026-07-31 — Phase 1 read the WRONG VOLUME and under-reported disk use by 70x
 
 **Trigger**: A full audit opened with the skill's own `df -h /`, which reported

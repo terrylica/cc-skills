@@ -96,7 +96,7 @@ OVERVIEW_EOF
 
 | Cache       | Location                                         | Typical Size  | Clean Command                                                           |
 | ----------- | ------------------------------------------------ | ------------- | ----------------------------------------------------------------------- |
-| uv          | `~/Library/Caches/uv/` **or `~/.cache/uv/`** | 5-15 GB       | `uv cache clean`                                                        |
+| uv          | `~/Library/Caches/uv/` **or `~/.cache/uv/`**     | 5-15 GB       | `uv cache clean`                                                        |
 | Homebrew    | `~/Library/Caches/Homebrew/`                     | 3-10 GB       | `brew cleanup --prune=all`                                              |
 | pip         | `~/Library/Caches/pip/`                          | 0.5-2 GB      | `pip cache purge`                                                       |
 | npm         | `~/.npm/_cacache/`                               | 0.5-2 GB      | `npm cache clean --force`                                               |
@@ -182,6 +182,39 @@ TARGET_CLEAN_EOF
 find ~/eon ~/own -maxdepth 5 -type d -name .venv -prune -exec rm -rf {} +
 ```
 
+### ⚠️ CHECK FOR DEPENDENT SERVICES FIRST — this is not optional
+
+`node_modules` and `.venv` are only "safe to bulk-delete" for repos nobody is
+_running_. On 2026-07-31 a bulk delete took out `catgpt-gateway/node_modules`;
+its launchd watchdog then failed 95 times and, in trying to restart the gateway,
+drove a Chrome launch that raised a macOS TCC prompt. The user reported it as a
+mysterious permission pop-up, and the disk cleanup was two steps removed from the
+symptom.
+
+Build the exclusion list BEFORE deleting anything:
+
+```bash
+/usr/bin/env bash << 'DEPCHECK_EOF'
+# Every repo backing a live launchd job — never delete artifacts inside these.
+for p in "$HOME"/Library/LaunchAgents/*.plist; do
+    prog=$(plutil -extract ProgramArguments.0 raw "$p" 2>/dev/null) || continue
+    case "$prog" in "$HOME"/*) ;; *) continue ;; esac
+    d=$(dirname "$prog")
+    for _ in 1 2 3 4 5; do
+        { [ -f "$d/package.json" ] || [ -f "$d/pyproject.toml" ]; } && break
+        d=$(dirname "$d"); [ "$d" = "$HOME" ] && break
+    done
+    [ "$d" = "$HOME" ] && continue      # walked out; not a real repo match
+    echo "$d"
+done | sort -u
+DEPCHECK_EOF
+```
+
+Then `SKIP` any candidate path under one of those roots, and **print the skip** so
+the operator can see the guard fired. After cleanup, re-run the same list and
+assert each repo still has the manifest-matching directory (`package.json` →
+`node_modules`, `pyproject.toml` → `.venv`).
+
 **Caveats:**
 
 - Run `pgrep -fl 'cargo build|rustc|zig build'` first — never delete artifacts for a repo whose build/test is **currently running**.
@@ -221,6 +254,43 @@ while read -r f; do
 done | sort
 STALE_EOF
 ```
+
+### Two traps when hunting big files
+
+**1. Apparent size ≠ allocated size (sparse files).** `ls -l` and `find -size`
+report the file's _logical_ extent; `du` reports blocks actually on disk. A
+corrupted index or a database with a runaway seek produces a sparse file where
+these differ by orders of magnitude. Measured 2026-08-03 on a ChromaDB HNSW file:
+
+```
+ls -l  link_lists.bin  ->  2831.5 GB   (apparent — impossible on a 926 GB disk)
+du -h  link_lists.bin  ->  174 GB      (actual)
+```
+
+Always size candidates with `du`. If `ls -l` reports more than the disk holds,
+you have found a sparse file — and usually a bug worth reporting upstream, not
+just disk to reclaim. **Never `cp` such a file** (a naive copy expands the holes).
+
+**2. Applications quarantine their own wreckage — look for self-labelled dirs.**
+Well-behaved data stores rename a damaged collection rather than deleting it, and
+the new name states the diagnosis. Grep the biggest directory for these markers:
+
+```bash
+find "$BIG_DIR" -maxdepth 2 -name '*corrupt*' -o -name '*.drift-*' \
+     -o -name '*.pre-rebuild-*' -o -name '*.bak-*' -o -name '*.quarantine*'
+```
+
+Before deleting one, prove it is unreferenced and superseded:
+
+- no live process holds an fd inside it — `lsof -p <pid> | grep <dir>` returns 0;
+- the app's own index/manifest does not mention its UUID;
+- a healthy replacement exists and the app has completed a run since.
+
+Real case: `~/.mempalace` had grown to **190 GB**, of which **175 GB** was one
+directory named `<uuid>.corrupt-20260802-160712.drift-20260802-160712` — the app
+had already diagnosed and set aside the damage from a 3-day crash loop, and a
+healthy 882 MB collection had replaced it. Deleting it took the volume from 82 %
+to 60 % full in one command.
 
 ### Common Forgotten File Types
 
