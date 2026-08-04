@@ -215,6 +215,29 @@ the operator can see the guard fired. After cleanup, re-run the same list and
 assert each repo still has the manifest-matching directory (`package.json` →
 `node_modules`, `pyproject.toml` → `.venv`).
 
+> **⚠️ Check EVERY manifest in the repo, not just the one at the root.** The
+> version above walks up from the launchd program to the first `package.json` or
+> `pyproject.toml` and stops — so for a repo whose service code lives in a
+> subdirectory it verifies the wrong thing. Measured 2026-08-03 on `~/eon/tasc`:
+> the root has `pyproject.toml` (so the check reported `.venv=ok` and
+> `node_modules=—`, i.e. "not applicable") while the service actually needs
+> **`ts/node_modules`**, which was missing. The guard reported the repo healthy
+> while its launchd job had been crash-looping 11,593 times. Enumerate instead:
+>
+> ```bash
+> find "$repo" -name package.json -not -path '*/node_modules/*' -maxdepth 3 \
+>   | while read -r m; do d=$(dirname "$m"); [ -d "$d/node_modules" ] || echo "MISSING $d/node_modules"; done
+> find "$repo" -name pyproject.toml -not -path '*/.venv/*' -maxdepth 3 \
+>   | while read -r m; do d=$(dirname "$m"); [ -d "$d/.venv" ] || echo "MISSING $d/.venv"; done
+> ```
+>
+> Also note a Python venv can be present and still incomplete: `uv sync` installs
+> only the default dependency group. `tasc` declared its embedding deps under
+> `[dependency-groups] embed`, so the venv existed, imported `pymupdf` fine, and
+> failed on `import numpy` until `uv sync --group embed` was run. **A directory
+> existing is not the same as the dependencies being installed** — where a repo
+> documents a group/extra, restore it.
+
 **Caveats:**
 
 - Run `pgrep -fl 'cargo build|rustc|zig build'` first — never delete artifacts for a repo whose build/test is **currently running**.
