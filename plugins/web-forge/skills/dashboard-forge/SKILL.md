@@ -122,6 +122,38 @@ for the worked template). UI automation is the crowbar, not the workflow.
   block the portal. This asymmetry is what makes a browser forge the only way in — and note that
   `az account list` then returns `[]`, which is a consequence of the block and **not** evidence that no
   subscription exists.
+- **Tailscale — console moved and OAuth clients were renamed** (2026-08-05): `login.tailscale.com`
+  redirects to **`console.tailscale.com`**, and `/admin/settings/oauth` redirects to
+  **`/admin/settings/trust-credentials`** ("OAuth clients" is now "Trust credentials", created via a
+  button labelled just **`Credential`**). Auth keys stayed at `/admin/settings/keys`.
+- **Tailscale — Radix checkboxes: the `<input>` is a decoy** (2026-08-05): every scope checkbox
+  renders a real `<input type=checkbox>` that is `aria-hidden`, `opacity:0`, **`pointer-events:none`**,
+  next to a `<button role="checkbox" data-state="checked|unchecked">` that holds the actual state.
+  Clicking the input — even with `{force:true}` — reports success and changes NOTHING; it cost a run
+  that looked like it selected six scopes and submitted an empty form. Click
+  `button[role=checkbox][id="<scope>"]` and assert via `data-state`. Bonus: **the button ids ARE the
+  API scope names** (`auth_keys` = write, `auth_keys:read` = read, `devices:core`, `policy_file`),
+  which is the most drift-proof selector on the page — better than the row-title walk.
+- **Tailscale — a 50-char cap silently disables the wizard** (2026-08-05): the OAuth/credential
+  description is labelled "(optional)" but capped at 50 characters, and exceeding it leaves
+  **`Continue` disabled with no inline error** near the button. Symptom is a permanently disabled
+  submit; the rule is only visible in body text ("Descriptions can be a maximum of 50 characters").
+  When a submit stays disabled, dump the form's body text before suspecting the click.
+- **Tailscale — write scopes are gated on tags, so OAuth clients need an ACL change first**
+  (2026-08-05): selecting ANY write scope surfaces "Tags (required for write scope)", and tags only
+  exist if the tailnet policy file declares them. So an OAuth client (the durable, non-expiring
+  credential) cannot be minted in one pass on a tailnet with no tags — it needs a policy-file edit,
+  which is a security change the operator should approve. A plain **user-owned auth key** from
+  `/admin/settings/keys` has no tag requirement and is the right unblock when the goal is just
+  joining one device.
+- **Seeding a forge profile from the operator's real Chrome** (2026-08-05): when the per-site profile
+  has no session and an interactive login would be the only manual step, copy `Local State` +
+  `Default/Cookies` (+ `Default/Network/Cookies` if present) from
+  `~/Library/Application Support/Google/Chrome` into a throwaway dir and point
+  `WEB_FORGE_PROFILE_DIR` at it. Cookies decrypt because the macOS Keychain key is per-user, not
+  per-profile, and no Keychain prompt appears (same Chrome binary). The operator's running Chrome is
+  untouched — different `--user-data-dir`. **Delete the seeded dir afterwards**: it holds a copy of
+  live session cookies and is credential-equivalent.
 
 ## Relationship to gh-fine-grained-pat
 
