@@ -9,7 +9,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-subprocess-stdin-inlet-guard.ts",
             "timeout": 5000,
-            "description": "Bash subprocess stdin inlet guard — pre-disconnects stdin via < /dev/null wrap on Bash invocations (iter-63 narrowed matcher from `*` to `Bash`: only Bash spawns the subprocess class with TTY-contention risk; non-Bash tools (Read/Glob/Grep/Edit/Write/mcp__*) save ~12-17ms cold-start each)"
+            "description": "Bash subprocess stdin inlet guard \u2014 pre-disconnects stdin via < /dev/null wrap on Bash invocations (iter-63 narrowed matcher from `*` to `Bash`: only Bash spawns the subprocess class with TTY-contention risk; non-Bash tools (Read/Glob/Grep/Edit/Write/mcp__*) save ~12-17ms cold-start each)"
           }
         ]
       },
@@ -40,18 +40,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts",
             "timeout": 15000,
-            "description": "Iter-84 → iter-91 in-process orchestrator: PreToolUse Write|Edit migration arc COMPLETE (8/8 subhooks inlined). Combines all 8 Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching community 8-15ms benchmarks surfaced by iter-86 web research and Bun 1.3 single-digit-ms cold-start range surfaced by iter-89 web research). Final-state savings ≈ (8-1) × 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard, file-size-guard, vale-claude-md-guard. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout — idiomatic 2026 Web Platform API pattern). PreToolUse additionalContext silent-drop NON-USE invariant verified marketplace-wide (iter-90 audit per GitHub #15664). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task. Next orchestration candidate (task #96): PostToolUse Write|Edit consolidation via Anthropic's Jan-2026 `async: true` flag (Path A — strict-dominant over orchestrator inlining for PostToolUse since the schema cannot deny)."
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
-            "timeout": 5000,
-            "description": "Iter-78 edit-time companion to iter-77 release-time Check 4k — blocks edits that introduce references to ${CLAUDE_PLUGIN_ROOT}/<segment>/ where <segment> is NOT in the cache-populator allowlist {hooks, skills, commands, agents, plugin.json}; belt-and-suspenders defense (stdout JSON deny + stderr diagnostic + exit 2) per GitHub #37210"
+            "description": "Iter-84 \u2192 iter-91 in-process orchestrator: PreToolUse Write|Edit migration arc COMPLETE (8/8 subhooks inlined). Combines all 8 Write|Edit subhooks into ONE bun process, amortizing the EMPIRICAL ~17ms per-saved-subhook cold-start cost (iter-87 microbenchmark verified; supersedes iter-80's ~44ms estimate which included payload-handling overhead, matching community 8-15ms benchmarks surfaced by iter-86 web research and Bun 1.3 single-digit-ms cold-start range surfaced by iter-89 web research). Final-state savings \u2248 (8-1) \u00d7 17 = ~119ms per Write|Edit (not iter-81's 308ms projection). Inlined subhooks (registry-order, lightest-first deny-wins): version-guard, hoisted-deps-guard, mise-hygiene-guard, pyi-stub-guard, native-binary-guard, gpu-optimization-guard, file-size-guard, vale-claude-md-guard. Belt-and-suspenders deny+ask defense per GH #37210 / iter-78 (stdout JSON + stderr + exitCode=2 with stdout-drain-await per iter-85 audit hardening). Process-level unhandledRejection fail-open handler. Per-subhook cooperative timeout via AbortSignal.timeout() (iter-87 refactor from Symbol-sentinel + raw setTimeout \u2014 idiomatic 2026 Web Platform API pattern). PreToolUse additionalContext silent-drop NON-USE invariant verified marketplace-wide (iter-90 audit per GitHub #15664). Subhook contract violations gated preventively by iter-86 audit task. Empirical savings curve continuously validated by iter-87 benchmark task. Next orchestration candidate (task #96): PostToolUse Write|Edit consolidation via Anthropic's Jan-2026 `async: true` flag (Path A \u2014 strict-dominant over orchestrator inlining for PostToolUse since the schema cannot deny)."
           }
         ]
       },
@@ -73,7 +62,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-webfetch-fallback-guard.ts",
             "timeout": 5000,
-            "description": "Unconditionally blocks the upstream-broken built-in WebFetch (claude.ai Cloudflare pre-check returns 403 to CLI clients → 'unable to fetch from <domain>'; proven NOT proxy/network 2026-06-22). Denies with the curl → agent-reach → WebSearch fallback chain; matcher WebFetch sidesteps the #55889 Bash-matcher context-drop bug and deny+reason is the Claude-visible channel. No escape hatch (WebFetch never succeeds in CLI); if Anthropic fixes the bug, disable this hook. SSoT: ~/.claude/webfetch-fallback-CLAUDE.md"
+            "description": "Unconditionally blocks the upstream-broken built-in WebFetch (claude.ai Cloudflare pre-check returns 403 to CLI clients \u2192 'unable to fetch from <domain>'; proven NOT proxy/network 2026-06-22). Denies with the curl \u2192 agent-reach \u2192 WebSearch fallback chain; matcher WebFetch sidesteps the #55889 Bash-matcher context-drop bug and deny+reason is the Claude-visible channel. No escape hatch (WebFetch never succeeds in CLI); if Anthropic fixes the bug, disable this hook. SSoT: ~/.claude/webfetch-fallback-CLAUDE.md"
           }
         ]
       },
@@ -146,7 +135,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-gmail-body-guard.ts",
             "timeout": 5000,
-            "description": "Denies a `gmail draft` / `draft-update` whose body would render badly in the recipient's inbox, before the bad draft is created. Two failure modes: (1) HARD-WRAP — the gmail CLI turns every authored newline into an HTML <br> (gmail-drafts.ts toHtmlBody), so a paragraph wrapped at ~72/80/100 cols renders as a column of short mid-sentence lines instead of reflowing; (2) RAW MARKDOWN — the CLI HTML-escapes the body and does not render markdown, so **bold**/`code`/[text](url)/# headings/|tables| show literally. Inspects inline --body and --body-file content. Escape hatch: GMAIL-BODY-OK anywhere in the command. Fail-open (missing/unreadable body-file skipped). Doctrine: gmail-commander/skills/gmail-access/SKILL.md 2026-07-22. Spoke: docs/gmail-body-guard.md."
+            "description": "Denies a `gmail draft` / `draft-update` whose body would render badly in the recipient's inbox, before the bad draft is created. Two failure modes: (1) HARD-WRAP \u2014 the gmail CLI turns every authored newline into an HTML <br> (gmail-drafts.ts toHtmlBody), so a paragraph wrapped at ~72/80/100 cols renders as a column of short mid-sentence lines instead of reflowing; (2) RAW MARKDOWN \u2014 the CLI HTML-escapes the body and does not render markdown, so **bold**/`code`/[text](url)/# headings/|tables| show literally. Inspects inline --body and --body-file content. Escape hatch: GMAIL-BODY-OK anywhere in the command. Fail-open (missing/unreadable body-file skipped). Doctrine: gmail-commander/skills/gmail-access/SKILL.md 2026-07-22. Spoke: docs/gmail-body-guard.md."
           }
         ]
       },
@@ -157,7 +146,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-release-notes-extensiveness-guard.ts",
             "timeout": 8000,
-            "description": "Hard-blocks release/tag commands whose notes are not extensive + human-readable (needs a narrative paragraph AND a point-form list). Covers `gh release create|edit` (--notes/--notes-file text), annotated semver `git tag -m/-F`, and semantic-release / `mise run release[:*]` (inspects releasable commit BODIES since last tag — the notes source). Escape hatch: RELEASE-NOTES-OK: <≥10-char reason>. Fail-open. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md. Spoke: docs/release-notes-extensiveness-guard.md. ADR 2026-07-21."
+            "description": "Hard-blocks release/tag commands whose notes are not extensive + human-readable (needs a narrative paragraph AND a point-form list). Covers `gh release create|edit` (--notes/--notes-file text), annotated semver `git tag -m/-F`, and semantic-release / `mise run release[:*]` (inspects releasable commit BODIES since last tag \u2014 the notes source). Escape hatch: RELEASE-NOTES-OK: <\u226510-char reason>. Fail-open. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md. Spoke: docs/release-notes-extensiveness-guard.md. ADR 2026-07-21."
           }
         ]
       },
@@ -189,7 +178,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pueue-wrap-guard.ts",
             "timeout": 5000,
-            "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection — MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"
+            "description": "Pueue auto-wrap + OP_SERVICE_ACCOUNT_TOKEN injection \u2014 MUST be LAST PreToolUse entry (mitigates GitHub #15897 multi-hook updatedInput aggregation bug)"
           }
         ]
       }
@@ -202,7 +191,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-subprocess-orphan-cleanup.ts",
             "timeout": 5000,
-            "description": "Bash subprocess orphan cleanup — removes zombie/TTY-holding orphans spawned by Bash invocations (iter-64 narrowed matcher from `*` to `Bash`: only Bash spawns subprocesses that can orphan; Read/Glob/Grep/Edit/Write are in-process; async:true from iter-57 already prevented user-latency cost, but matcher narrowing also eliminates ~12-17ms CPU+battery waste per non-Bash call)",
+            "description": "Bash subprocess orphan cleanup \u2014 removes zombie/TTY-holding orphans spawned by Bash invocations (iter-64 narrowed matcher from `*` to `Bash`: only Bash spawns subprocesses that can orphan; Read/Glob/Grep/Edit/Write are in-process; async:true from iter-57 already prevented user-latency cost, but matcher narrowing also eliminates ~12-17ms CPU+battery waste per non-Bash call)",
             "async": true
           }
         ]
@@ -229,7 +218,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pushover-budget-reminder.ts",
             "timeout": 5000,
-            "description": "Pushover message-budget nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17, since PreToolUse additionalContext is silently dropped esp. for Bash per GitHub #19432/#55889). Detects Pushover message construction in Python/Go/TypeScript/Bash via precision-anchored rules (api.pushover.net on a non-comment line + a real send call, OR a known lib/CLI: gregdel SendMessage, chump/.send_message, new Pushover, a pushover-client import, pushover-notify CLI). Reminds Claude to use the full budget — message 1024 / title 250 / url 512 / url_title 100 UTF-8 chars — front-load IDs (preview truncates), spend title+url side channels, and render overflow/CEO-readable provenance as a ≤5MB PNG attachment. Never blocks real work. Escape hatch: PUSHOVER-BUDGET-OK. Detection verified 0 FP / 0 FN against 51 adversarial spike fixtures (Py/Go/TS/Bash) under hooks/tests/pushover-budget-fixtures/."
+            "description": "Pushover message-budget nudge (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17, since PreToolUse additionalContext is silently dropped esp. for Bash per GitHub #19432/#55889). Detects Pushover message construction in Python/Go/TypeScript/Bash via precision-anchored rules (api.pushover.net on a non-comment line + a real send call, OR a known lib/CLI: gregdel SendMessage, chump/.send_message, new Pushover, a pushover-client import, pushover-notify CLI). Reminds Claude to use the full budget \u2014 message 1024 / title 250 / url 512 / url_title 100 UTF-8 chars \u2014 front-load IDs (preview truncates), spend title+url side channels, and render overflow/CEO-readable provenance as a \u22645MB PNG attachment. Never blocks real work. Escape hatch: PUSHOVER-BUDGET-OK. Detection verified 0 FP / 0 FN against 51 adversarial spike fixtures (Py/Go/TS/Bash) under hooks/tests/pushover-budget-fixtures/."
           }
         ]
       },
@@ -265,7 +254,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-markdown-table-guard.ts",
             "timeout": 5000,
-            "description": "Per-edit GFM table structural guard (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks). On a .md/.markdown Write/Edit/MultiEdit, reads the file from disk and runs the shared pure detector (lib/markdown-table-detector.ts). Fires ONLY on render-breaking ERRORS that prettier/markdownlint canNOT auto-fix — unescaped `|` inflating a row's cell count (the #1 LLM-table bug; GFM treats `|` as a delimiter even inside code spans, and Prettier corrupts such tables per prettier#10164/#11410), header/separator column-count mismatch, table indented ≥4 spaces (parsed as a code block), or an alignment token like :--: pasted into a data row. Info-class nits (short rows, missing blank lines) stay silent because the Stop-hook markdown-lint auto-fixes them. Fenced code blocks are skipped so example broken tables in docs don't trip it. Escape hatch: MD-TABLE-OK (iter-111 canonical registry). Temp-scratch exempt (iter-124 shared helper). Spoke: docs/markdown-table-guard.md."
+            "description": "Per-edit GFM table structural guard (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks). On a .md/.markdown Write/Edit/MultiEdit, reads the file from disk and runs the shared pure detector (lib/markdown-table-detector.ts). Fires ONLY on render-breaking ERRORS that prettier/markdownlint canNOT auto-fix \u2014 unescaped `|` inflating a row's cell count (the #1 LLM-table bug; GFM treats `|` as a delimiter even inside code spans, and Prettier corrupts such tables per prettier#10164/#11410), header/separator column-count mismatch, table indented \u22654 spaces (parsed as a code block), or an alignment token like :--: pasted into a data row. Info-class nits (short rows, missing blank lines) stay silent because the Stop-hook markdown-lint auto-fixes them. Fenced code blocks are skipped so example broken tables in docs don't trip it. Escape hatch: MD-TABLE-OK (iter-111 canonical registry). Temp-scratch exempt (iter-124 shared helper). Spoke: docs/markdown-table-guard.md."
           }
         ]
       },
@@ -276,7 +265,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts",
             "timeout": 15000,
-            "description": "Iter-93→iter-100 PostToolUse edit-time orchestrator (8/15 subhooks inlined: ty-type-check + tsc-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder + claude-md-size-budget). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit → Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research — pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
+            "description": "Iter-93\u2192iter-100 PostToolUse edit-time orchestrator (8/15 subhooks inlined: ty-type-check + tsc-type-check + oxlint-check + biome-lint + vale-claude-md + ssot-principles + memory-efficiency-reminder + claude-md-size-budget). MULTI-AGGREGATION semantics + iter-95 conditional-provenance-prefix + iter-95 shared lib helpers + iter-94 async-Bun.spawn parallelism + iter-94 spawnSync-regression static audit. Iter-96 enhancements (timeout-aware additional_context, Bun.stdin.text() idiomatic 2026 API, 256KiB maxBuffer right-sizing). Iter-97 milestone (first REAL Promise.all parallel fan-out via ssot-principles extension-union overlap). Iter-98 enhancements (memory-efficiency-reminder inlined as 7th + silent-context-drop bug fixed + once-per-session gate-file helper hoisted to shared lib). Iter-99 marketplace-wide preventive audit for silent-context-drop pattern + preflight Check 4n. Iter-100 (THIS RELEASE): broadens matcher Write|Edit \u2192 Write|Edit|MultiEdit per 2026 Anthropic + community best-practice surfaced by web research \u2014 pre-iter-100 the orchestrator silent-allowed on MultiEdit (Claude's multi-edit-to-one-file tool call) leaving 7 inlined subhooks NEVER firing on that input class; iter-100 closes the coverage gap. Per-classifier tool_name guards now route through the new canonical contract helper isFileEditToolNameHonoredByPostToolUseContextInjectingSubhook so future Anthropic tool-name additions update ONE constant, not N classifier files. Per iter-92 audit, async:true is ruled out for context-injecting hooks because async breaks same-turn timing required for Claude's self-correction feedback loop. Contract at lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts."
           }
         ]
       },
@@ -287,7 +276,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-invented-fallback-reminder.ts",
             "timeout": 5000,
-            "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values — prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
+            "description": "Invented-fallback display-value nudge (soft; emits {decision:block,reason} \u2014 the Claude-visible PostToolUse channel per ADR 2025-12-17; never blocks real work). Enforces the official-values policy (operator directive 2026-06-11, statusline arc): display values derive from OFFICIAL names/values \u2014 prefer omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for duplicated constants. Fires ONLY on net-new introductions (Edit new_string hits > old_string hits) of canonical invented-fallback shapes on non-comment lines of code files: ${var:-Unknown|N/A|?} parameter-expansion defaults, ?? / || \"Unknown\"|\"N/A\" nullish-or fallbacks, Python or/.get(...,\"Unknown\") fallbacks, jq // \"Unknown\" alternatives. Tests/fixtures exempt. Escape hatch: INVENTED-FALLBACK-OK (registered in the iter-111 canonical marker registry). 17 bun tests pin detection."
           }
         ]
       }
