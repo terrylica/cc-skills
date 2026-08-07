@@ -351,9 +351,13 @@ Exit code 0 if all plugins FRESH or NOT-CACHED; exit code 1 if any STALE-CACHE d
 | `schemas/**`               | NO                 | JSON schemas                    |
 | `LICENSE` / `CHANGELOG.md` | NO                 | Distribution metadata           |
 
-**Operator-impact implications**:
+> **⚠ SUPERSEDED 2026-08-05 — the table above no longer describes reality.** Re-measured on macOS: `diff -rq` of the L2 marketplace mirror against the live L3 cache directory returns exactly ONE difference per plugin (the `.in_use` marker Claude Code adds) for `notes-commander`, `itp-hooks`, `doc-tools` and `gmail-commander`. The canonical "stripped" example is present in the latest cached version of **all 27** cc-skills plugins that ship one, and `docs/`, `tests/`, `lib/`, `Sources/`, `launchd/`, `assets/`, `schemas/`, `templates/` and `libexec/` appear across the 508 cached plugin-version directories. **The populator copies the whole plugin tree; nothing is stripped.** The iter-78 edit-time guard built on this premise was unregistered the same day — see [layer3-stripped-path-guard.md](../plugins/itp-hooks/docs/layer3-stripped-path-guard.md). The measurements below are retained as a historical record of what the populator once did.
 
-1. If your hook references `${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh` it WILL FAIL at runtime — `scripts/` is stripped from L3. Either move helper scripts under `hooks/` (which IS cached) or invoke them via absolute path from the marketplace mirror.
+**Operator-impact implications** (as understood pre-2026-08-05; point 1 no longer holds):
+
+<!-- LAYER3-STRIPPED-PATH-OK: quoting the retired guard's own premise to mark it superseded -->
+
+1. ~~If your hook references `${CLAUDE_PLUGIN_ROOT}/scripts/foo.sh` it WILL FAIL at runtime — `scripts/` is stripped from L3.~~ **No longer true**: that directory is cached. The genuine constraint is a different one — `${CLAUDE_PLUGIN_ROOT}` is substituted in `hooks.json` (and injected into the hook's env), but it is NOT a shell variable in the Bash tool, so a **SKILL.md** must resolve paths with `cc-plugin-root <plugin>` instead. See [skill-plugin-root-guard.md](../plugins/itp-hooks/docs/skill-plugin-root-guard.md).
 
 2. SKILL.md is cached, but skill-internal `references/` subdirs under `skills/<skill>/references/` ARE cached (because they're under `skills/**`). So skill references work.
 

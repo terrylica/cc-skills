@@ -1,6 +1,32 @@
 #!/usr/bin/env bash
-#MISE description="Iter-77 preventive audit gate scanning every hook source file for references to plugin-root-level subtrees NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json) which silently fail at L3 runtime. Default scans all hooks; --verbose shows per-violation context; --escape-hatch-marker shows the LAYER3-STRIPPED-PATH-OK marker syntax."
+#MISE description="[PREMISE SUPERSEDED 2026-08-05 — retained as a MANUAL probe, no longer a release gate] Iter-77 audit scanning every hook source file for references to plugin-root-level subtrees NOT in the iter-76 cache-populator allowlist. The populator no longer strips anything, so this reports on a condition that cannot currently occur; re-run it only to re-check whether Anthropic has reinstated the filter. Default scans all hooks; --verbose shows per-violation context; --escape-hatch-marker shows the LAYER3-STRIPPED-PATH-OK marker syntax."
 
+# ██ PREMISE SUPERSEDED 2026-08-05 — DEREGISTERED FROM THE RELEASE PREFLIGHT.
+# ██
+# ██ This audit was Check 4k, a hard `exit 1` gate. It is no longer wired into
+# ██ .mise/tasks/release/preflight. The script still works and is kept as a
+# ██ manual probe, but its premise — that the L2→L3 cache populator strips
+# ██ plugin-root subtrees outside the allowlist — does not hold today:
+# ██
+# ██   * `diff -rq` of ~/.claude/plugins/marketplaces/cc-skills/plugins/<p>
+# ██     against the live L3 cache directory returns exactly ONE difference for
+# ██     each of notes-commander, itp-hooks, doc-tools and gmail-commander —
+# ██     the `.in_use` marker Claude Code adds. L3 is a byte-identical copy.
+# ██   * scripts/ (the canonical "stripped" example below) is present in the
+# ██     latest cached version of ALL 27 cc-skills plugins that ship one.
+# ██   * docs/, tests/, lib/, Sources/, launchd/, assets/, schemas/, templates/
+# ██     and libexec/ all appear across the 508 cached plugin-version dirs.
+# ██
+# ██ Its edit-time twin (pretooluse-iter78-layer3-stripped-path-edit-time-guard)
+# ██ was unregistered the same day after three false positives in one session.
+# ██ Evidence + rationale: plugins/itp-hooks/docs/layer3-stripped-path-guard.md
+# ██ The live hazard instead: plugins/itp-hooks/docs/skill-plugin-root-guard.md
+# ██
+# ██ Re-register ONLY if a fresh L2-vs-L3 diff shows real stripping again.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ORIGINAL HEADER (retained for provenance):
+#
 # Iter-77 preventive audit gate for the iter-76 cache-populator-filter
 # forensic finding. Documented in docs/HOOKS.md "Iter-76 Cache-Populator-
 # Filter Forensic Finding" section, this audit prevents the same kind

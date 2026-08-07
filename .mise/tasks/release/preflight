@@ -133,7 +133,13 @@ iter134_parallelizable_preflight_audit_metadata_records_keyed_by_existing_log_pa
     "inverse-pretooluse-schema-audit|audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events|"
     "wildcard-matcher-audit|audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation|"
     "stop-hook-additional-context-audit|audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json|"
-    "iter77-l3-stripped-path-audit|audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime|"
+# RETIRED 2026-08-05 — Check 4k (iter-77) deregistered from the parallel audit
+# batch along with its gate below. Premise superseded: the L2→L3 cache populator
+# no longer strips anything (`diff -rq` of the L2 mirror against the live L3
+# cache returns only `.in_use`, and scripts/ is present in the latest cached
+# version of all 27 plugins that ship one). The audit script is retained as a
+# manual probe. See plugins/itp-hooks/docs/layer3-stripped-path-guard.md.
+#   "iter77-l3-stripped-path-audit|audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime|"
     "iter82-conventional-commits-conformance|audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes|"
     "iter86-orchestrator-subhook-contract-static-check|audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main|"
     "iter99-posttooluse-silent-context-drop-audit|audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context|"
@@ -687,30 +693,32 @@ SHAC_VIOL=$( { grep -oE 'EMISSION-VIOLATION \(silent-drop risk\):[[:space:]]+[0-
 echo "  ✓ Pentad-member additionalContext: ${SHAC_SCANNED:-0} scanned (${SHAC_CLEAN:-0} clean + ${SHAC_OK:-0} with-ok-marker, ${SHAC_VIOL:-0} violations)"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContext-silently-dropped pentad audit (iter-67/68/69 gate)" "iter134-audit-batch"
 
-# Check 4k: Iter-77 hook-source L3-stripped-path audit. Acts on the
-# iter-76 cache-populator-filter forensic discovery (docs/HOOKS.md): the
-# Claude Code plugin cache populator strips any plugin-root-level
-# subtree NOT in {hooks, skills, commands, agents}. Hook source code
-# referencing ${CLAUDE_PLUGIN_ROOT}/<non-allowlisted-segment>/ resolves
-# to a missing file at L3 runtime and fails SILENTLY. Iter-77 found one
-# real instance (link-tools/hooks/stop-link-check.py's lychee.toml
-# fallback) and ships this gate to prevent recurrence. Blocks tag
-# publish so a regression cannot escape to Layer 3 operator caches
-# (see iter-42 docs/HOOKS.md for cache lifecycle).
-__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file iter77-l3-stripped-path-audit
-echo "→ Running iter-77 L3-stripped-path audit (hook source code)..."
-if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter77-l3-stripped-path-audit; then
-    echo "  ✗ L3-stripped-path audit FAILED — see /tmp/iter77-l3-stripped-path-audit.log"
-    tail -25 /tmp/iter77-l3-stripped-path-audit.log
-    exit 1
-fi
-# Loose-coupled defensive grep (per iter-70 brittle-banner hardening).
-L3SP_SCANNED=$( { grep -oE 'Hook source files scanned:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-L3SP_VIOL_FOUND=$( { grep -oE 'L3-stripped-path references found:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-L3SP_WITH_OK=$( { grep -oE 'With LAYER3-STRIPPED-PATH-OK escape hatch:[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-L3SP_UNJUSTIFIED=$( { grep -oE 'Unjustified violations \(silent-fail risk\):[[:space:]]+[0-9]+' /tmp/iter77-l3-stripped-path-audit.log || true; } | grep -oE '[0-9]+$' | head -1 || echo 0)
-echo "  ✓ L3-stripped-path: ${L3SP_SCANNED:-0} files scanned (${L3SP_VIOL_FOUND:-0} refs found, ${L3SP_WITH_OK:-0} with-ok-marker, ${L3SP_UNJUSTIFIED:-0} unjustified)"
-__preflight_timing_report_phase_elapsed_milliseconds "Check 4k: L3-stripped-path audit (iter-77 gate)" "iter134-audit-batch"
+# Check 4k: RETIRED 2026-08-05 — premise superseded, gate removed.
+#
+# The gate enforced the iter-76 forensic finding that the L2→L3 cache populator
+# strips every plugin-root subtree outside {hooks, skills, commands, agents,
+# plugin.json}, so a hook referencing ${CLAUDE_PLUGIN_ROOT}/<other>/ would
+# silently resolve to a missing file at L3 runtime.
+#
+# Re-measured 2026-08-05: that is no longer how the populator behaves.
+#   * `diff -rq` of ~/.claude/plugins/marketplaces/cc-skills/plugins/<p> against
+#     the live L3 cache dir returns exactly ONE difference for each of
+#     notes-commander, itp-hooks, doc-tools and gmail-commander — the `.in_use`
+#     marker Claude Code adds. The L3 cache is a byte-identical full copy.
+#   * scripts/ — the canonical "stripped" example — is present in the latest
+#     cached version of ALL 27 cc-skills plugins that ship one.
+#
+# A gate whose precondition can no longer occur cannot catch a regression; it
+# can only reject legitimate code. Its edit-time twin
+# (pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts) was unregistered
+# the same day after emitting three false positives in one session.
+#
+# The audit script is RETAINED as a manual probe (it still runs standalone and
+# would re-detect real stripping if Anthropic ever reinstates the filter):
+#   bash .mise/tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh
+#
+# Rationale + evidence: plugins/itp-hooks/docs/layer3-stripped-path-guard.md
+# Replacement concern (the live hazard): plugins/itp-hooks/docs/skill-plugin-root-guard.md
 
 # Check 4l: Iter-82 conventional-commits-conformance validator. Acts on
 # the iter-77/80/81 silent-release-skip forensic finding: compound

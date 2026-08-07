@@ -1,5 +1,36 @@
 #!/usr/bin/env bun
 /**
+ * ██ RETIRED 2026-08-05 — UNREGISTERED FROM hooks.json. DO NOT RE-REGISTER
+ * ██ WITHOUT NEW EVIDENCE. The file and its test task are kept so the
+ * ██ iter-107 escape-hatch-helper baseline test and the iter-111 marker
+ * ██ registry keep their reference implementation.
+ *
+ * WHY RETIRED: the premise below — "the Layer-2 to Layer-3 cache populator
+ * strips every plugin-root subtree outside {hooks, skills, commands, agents,
+ * plugin.json}" — is no longer true, and a guard whose premise is false
+ * produces only false positives. It fired three times in one session on
+ * documentation and test fixtures that merely MENTIONED a path.
+ *
+ * Evidence gathered 2026-08-05:
+ *   * `diff -rq` of the L2 marketplace mirror against the live L3 cache dir
+ *     for notes-commander, itp-hooks, doc-tools and gmail-commander returns
+ *     exactly ONE difference each — the `.in_use` marker Claude Code adds.
+ *     The L3 cache is a byte-identical full copy; nothing is stripped.
+ *   * `scripts/` is present in the latest cached version of ALL 27 cc-skills
+ *     plugins that ship one (it was the canonical "stripped" example).
+ *   * Across 508 cached plugin-version directories the populator preserves
+ *     docs/, tests/, lib/, Sources/, launchd/, assets/, schemas/, templates/,
+ *     libexec/ and more — i.e. the allowlist premise never matched reality
+ *     at the time this guard was written, or the populator changed since.
+ *
+ * The real, still-live hazard in this area is the OPPOSITE one, and is now
+ * covered by `pretooluse-skill-plugin-root-guard.ts`: CLAUDE_PLUGIN_ROOT is
+ * not a shell variable, so referencing it from a SKILL.md body (rather than
+ * from a manifest) silently resolves to an empty string.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * ORIGINAL HEADER (retained verbatim for provenance):
+ *
  * PreToolUse hook: Iter-78 Layer-3 Stripped-Path Edit-Time Guard
  *
  * Edit-time companion to the iter-77 release-time Check 4k audit gate.
@@ -161,7 +192,9 @@ function detectLayer3StrippedPathReferencesInContentBlob(
     );
     for (const singleRegexMatch of perLineMatchIterator) {
       const extractedFirstPathSegment = singleRegexMatch[1];
-      if (LAYER_3_PRESERVED_PLUGIN_ROOT_SEGMENTS.has(extractedFirstPathSegment)) {
+      if (
+        LAYER_3_PRESERVED_PLUGIN_ROOT_SEGMENTS.has(extractedFirstPathSegment)
+      ) {
         continue;
       }
       // Iter-107: delegate escape-hatch lookup to the canonical shared
