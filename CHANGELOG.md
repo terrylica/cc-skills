@@ -1,3 +1,140 @@
+# [23.6.0](https://github.com/terrylica/cc-skills/compare/v23.5.0...v23.6.0) (2026-08-07)
+
+
+### Bug Fixes
+
+* **notes-commander:** draft-hold could not find its own entrypoint ([8d46603](https://github.com/terrylica/cc-skills/commit/8d46603195cabdea933bd9bfbaf4345a4de62f0c))
+`/notes-commander:draft-hold` died with exit 127:
+
+    (eval):1: no such file or directory: /skills/draft-hold/draft-hold.sh
+
+SKILL.md instructed callers to use
+`DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`. That variable
+is not exported into the Bash tool, and the bare spelling is never
+substituted on any code path, so zsh expanded it to empty. The result
+looked like an absolute path, which reads as a missing FILE rather than a
+missing VARIABLE — the reason this took forensics rather than a glance.
+
+- resolve via `"$(cc-plugin-root notes-commander)/…"`, which returns the
+  live installed version
+- record the rule as a plugin invariant, and retire the stale companion
+  claim that the L3 cache strips `scripts/` (it does not: scripts/ is
+  present in the latest cached version of all 27 plugins that ship one, so
+  the shim's relative resolution works from L3 and its L2 fallback is now
+  belt-and-suspenders)
+
+Also removes the sibling waste in the same flow: the transcript showed two
+extra steps spent hunting the session UUID for the provenance footer.
+`CLAUDE_CODE_SESSION_ID` is already exported into the Bash environment
+(verified: it matches the `~/.claude/projects/<slug>/<uuid>.jsonl` name),
+so the skill now forwards it directly.
+
+Behavioral impact: the resolved path is the INSTALLED version rather than
+the marketplace clone. Previously, callers who used the
+`${CLAUDE_PLUGIN_ROOT:-<mirror>}` idiom silently ran marketplace-HEAD code.
+* **release:** stop the formatter from breaking generated artifacts ([52b6ce2](https://github.com/terrylica/cc-skills/commit/52b6ce2abdfd8282945626f18e01cb66fdc728f6))
+The repo had no `.prettierignore`, so two generated files that are
+byte-compared against a fresh regeneration were fair game for any
+formatter pass:
+
+  cli_spec.json                               gate: mise run cli-spec-check
+  docs/marketplace-escape-hatch-marker-...md  gate: iter-113 + Check 4u
+
+Neither generator emits prettier-styled output, so formatting either one
+guarantees the next regeneration differs. That is precisely what happened
+this session: a formatter prettified the marker reference after it was
+regenerated, and four generator tests plus the release preflight went red
+for a reason unrelated to the change under test — the tables had simply
+had their pipes aligned.
+
+Adds `.prettierignore` covering both artifacts (each annotated with its
+generator and its gate, so the pairing is discoverable), plus the usual
+build/vendor output. Regenerates the marker reference back to raw
+generator output.
+
+The convention to carry forward: a generated artifact with a drift gate
+gets a `.prettierignore` entry in the same commit as its generator.
+
+
+### Features
+
+* **cc-plugin-root:** resolve a plugin's live install path ([8c7dbc8](https://github.com/terrylica/cc-skills/commit/8c7dbc8811f755f2d5c97f4d2f678f604c77ae3e))
+`CLAUDE_PLUGIN_ROOT` is not a shell variable, so every skill that wrote
+`"$CLAUDE_PLUGIN_ROOT/…"` was handing the shell an unset name. Binary
+forensics on the shipping Claude Code CLI pins the exact semantics:
+
+- the substitution helper is `e.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, path)`,
+  so BRACES ARE PART OF THE MATCH — bare `$CLAUDE_PLUGIN_ROOT` is
+  unsubstitutable everywhere, plugin manifests included
+- `${CLAUDE_PLUGIN_ROOT:-fallback}` does not match either, because the
+  regex needs the closing brace right after the name; that idiom "works"
+  only by always taking the fallback
+- the variable IS injected into hook and MCP/LSP subprocess environments,
+  and IS substituted in hooks.json / .mcp.json / .lsp.json — but never
+  reaches the Bash tool
+
+Globbing the version cache is the other trap: it retains every previously
+installed version, and the highest semver is routinely marked
+`.orphaned_at` (10 of 11 for notes-commander at the time of writing).
+
+`scripts/cc-plugin-root <plugin>` reads `installed_plugins.json` and prints
+the path Claude Code actually loaded:
+
+    SCRIPT="$(cc-plugin-root doc-tools)/skills/terminal-print/run.sh"
+
+- tolerates both registry schemas (current `{version, plugins:{…}}` and the
+  older flat map) so a schema bump cannot break every skill at once
+- jq when present, python3 fallback otherwise — both verified
+- exits 1 with actionable stderr when a plugin is not installed or its
+  recorded directory is missing; exits 2 on usage error
+
+Records the rule in the root hub next to the other repo-wide policies, and
+adds a row to the plugin-patterns registry so a new plugin author lands on
+it. `/itp:setup` links the resolver into `~/.local/bin/`.
+* **itp-hooks:** guard skill markdown against unusable plugin-root refs ([be66f57](https://github.com/terrylica/cc-skills/commit/be66f579a054d1c2a1aa16d96d2de59472039756))
+Adds `skill-plugin-root-guard` as a subhook of the PreToolUse Write|Edit
+orchestrator — not a new hooks.json entry, so it costs no extra bun
+cold-start per edit. Registry position is early: an O(1) path filter
+(`/skills/` + `.md`) then an O(1) content sentinel, with the single disk
+read deferred until a real candidate violation exists.
+
+Denies three shapes, each provably broken rather than merely discouraged:
+
+  BARE_SPELLING             `$CLAUDE_PLUGIN_ROOT` — no braces, so the
+                            substitution regex cannot match it anywhere
+  NON_SUBSTITUTING_DEFAULT  the `:-fallback` form — the regex needs the
+                            closing brace right after the name, so this
+                            silently always takes the fallback
+  BRACED_IN_SHELL_CONTEXT   the braced form on a non-manifest line — a
+                            SKILL.md body is served to the model verbatim
+
+JSON manifest lines (key-value or array-element shape) keep the braced
+form and are exempt, because pasting them into hooks.json is correct.
+
+Corrects the upstream cause. `advanced-topics.md` and `path-patterns.md`
+documented the rule EXACTLY INVERTED — "available in skill loading, NOT in
+hooks" — which is backwards on both halves and is why the draft-hold
+author reached for it confidently. Replaced with a per-context matrix
+derived from the binary, not from recollection.
+
+- escape hatch `SKILL-PLUGIN-ROOT-OK: <reason ≥10 chars>`, FILE_WIDE and
+  honored from the on-disk copy on Edit, so docs ABOUT the variable stay
+  editable without per-line markers
+- registered in the iter-111 canonical marker registry; the generated
+  marker reference is regenerated (iter-113/115/117 tests green)
+- 18 tests, including that a bare spelling inside a JSON manifest line is
+  still denied — bare never substitutes, even there
+* **notes-commander:** promote [label](url) to real Notes anchors ([aeba96c](https://github.com/terrylica/cc-skills/commit/aeba96c81f9894f6e72f463c360ff91bb80ab109)), closes [#470](https://github.com/terrylica/cc-skills/issues/470)
+draft-hold could only ever emit naked URLs. `escapeHtml()` was applied to
+every prose and list line, so an `<a href>` could only render as literal
+`&lt;a href…`. A weekly report with 16 PR references was unreadable.
+
+The investigation nearly ended in a false negative. A probe note written
+with `<a href>` reads back as `<u>#470</u>`, which looks exactly like
+"Notes stripped the link" — but the operator's own hand-made link reads
+back the same way. The getter is lossy, not the setter. Confirmed by
+decompressing `ZICNOTEDATA.ZDATA` from `NoteStore.sqlite`: the visible-text
+
 # [23.5.0](https://github.com/terrylica/cc-skills/compare/v23.4.1...v23.5.0) (2026-08-03)
 
 
