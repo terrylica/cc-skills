@@ -107,6 +107,7 @@ import { classifyPyiStubGuardForOrchestrator } from "./pretooluse-pyi-stub-guard
 import { classifyNativeBinaryGuardForOrchestrator } from "./pretooluse-native-binary-guard.ts";
 import { classifyValeClaudeMdGuardForOrchestrator } from "./pretooluse-vale-claude-md-guard.ts";
 import { classifyShellScriptSafetyGuardForOrchestrator } from "./pretooluse-shell-script-safety-guard.ts";
+import { classifySkillPluginRootGuardForOrchestrator } from "./pretooluse-skill-plugin-root-guard.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (first-deny-wins, lightest-first)
@@ -118,78 +119,86 @@ import { classifyShellScriptSafetyGuardForOrchestrator } from "./pretooluse-shel
 // short-circuits on first deny/ask, so the cheapest filters win the most
 // when the registry grows.
 
-const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegistryEntry[] = [
-  {
-    name: "version-guard",
-    timeoutMs: 3000,
-    classify: classifyVersionGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on markdown files that introduce hardcoded version strings (semver, calver, pre-release tags) outside CHANGELOG/HISTORY/ADR/planning paths. Forces use of <version> placeholder pattern (SSoT discipline). Iter-85 inlined; fast O(1) extension+path filter pre-empts the regex scan on non-markdown files.",
-  },
-  {
-    name: "shell-script-safety-guard",
-    timeoutMs: 3000,
-    classify: classifyShellScriptSafetyGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on shell scripts that introduce two mechanically-decidable defects: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) defeats set -e errexit. Iter-119; O(1) extension+shebang fastpath pre-empts regex scan on non-shell files. Escape hatch: SHELL-SAFETY-OK marker (FILE_WIDE). For Edit: flags only net-new defects.",
-  },
-  {
-    name: "typescript-version-guard",
-    timeoutMs: 3000,
-    classify: classifyTypeScriptVersionGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on package.json files that declare TypeScript < 7.x (the Go-native tsc era). Forces upgrade from pre-7 versions via 'typescript': 'latest' (+ commit lockfile), or enforces dual-install compat alias 'typescript': 'npm:@typescript/typescript6@^6.0.2' + '@typescript/native': 'npm:typescript@latest' for compiler-embedding tools (Volar/Vue/Svelte/Astro, Angular templates, typescript-eslint, ts-morph) that cannot run on TS 7.0's missing programmatic API (available 7.1+). Iter-92 inlined; O(1) basename filter pre-empts regex scan on non-package.json files. Iter-15 fix: Edit may target a region NOT containing ALLOW-LEGACY-TS marker but file on disk has it — async fs.read via Bun.file() honors the escape hatch. Sanctions @typescript/typescript6 compat alias explicitly; naive major-version regex would misread the '6' and wrongly block the Volar migration path. SSoT: ~/.claude/typescript-latest-CLAUDE.md.",
-  },
-  {
-    name: "hoisted-deps-guard",
-    timeoutMs: 4000,
-    classify: classifyHoistedDepsGuardForOrchestrator,
-    description:
-      "Blocks pyproject.toml Write/Edit that violates any of 3 monorepo policies: (1) root-only pyproject.toml [except maturin PyO3 crates that must co-locate with Cargo.toml], (2) [tool.uv.sources] paths escaping git root, (3) [dependency-groups] in sub-packages. Iter-86 inlined; O(1) filename-suffix fastpath skips non-pyproject.toml writes, then spawns git rev-parse subprocess only for actual pyproject.toml edits.",
-  },
-  {
-    name: "mise-hygiene-guard",
-    timeoutMs: 3000,
-    classify: classifyMiseHygieneGuardForOrchestrator,
-    description:
-      "Blocks mise.toml Write/Edit that violates 2 hygiene policies: (1) secrets (api keys, tokens, passwords) detected in shared mise.toml [should be in .mise.local.toml instead], (2) line count exceeds 100 [suggests hub-spoke refactoring with [task_config].includes]. Iter-88 inlined; O(1) filename-allowlist + ignore-list fastpath skips non-mise.toml writes (including the intentionally-secret-bearing .mise.local.toml).",
-  },
-  {
-    name: "pyi-stub-guard",
-    timeoutMs: 3000,
-    classify: classifyPyiStubGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on Python `__init__.py` / `__init__.pyi` files that contain top-level class/def/decorator definitions (PEP 561 + clean-package-structure: init files MUST be thin re-export layers, definitions belong in dedicated modules). Iter-89 inlined; O(1) `__init__.py`/`__init__.pyi` filename-suffix fastpath skips all non-init Python writes. Algorithm encoded in `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator` (re-exported as `classifyPyiStubGuardForOrchestrator` for symmetric naming with sibling subhooks). Escape hatch: `# INIT-MONOLITH-OK` comment in content. Re-export-dominated-write heuristic exempts files where ≥70% of meaningful lines are imports.",
-  },
-  {
-    name: "native-binary-guard",
-    timeoutMs: 4000,
-    classify: classifyNativeBinaryGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on macOS launchd-related files (under ~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) that introduce shell scripts or plist `<string>/bin/bash</string>` / `<string>...something.sh</string>` ProgramArguments references. Forces compiled native binaries (Swift preferred) so launchd services show proper names in System Settings > Login Items instead of a generic 'bash' entry. Iter-90 inlined; O(1) launchd-directory-substring fastpath replaces the standalone-mode raw-stdin keyword prefilter (cheaper because orchestrator already JSON-parsed the input). Algorithm encoded in `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator` (re-exported as `classifyNativeBinaryGuardForOrchestrator` for symmetric naming). Iter-15 fix preserved: Edit may target a region NOT containing `BASH-LAUNCHD-OK` marker but the file on disk has it — async fs.readFile via Bun.file() honors the file-wide opt-out. Hardening: a bare interpreter as launchd arg0 (Program or first ProgramArguments entry) — /bin/bash, /bin/sh, bun, node, python, env, etc. — is DENIED for .plist files EVEN WITH the BASH-LAUNCHD-OK marker, because Login Items shows basename(arg0); the marker waives 'must be a native binary' but NOT 'arg0 must be a NAMED script/binary so the panel is identifiable'. Escape hatch: `# BASH-LAUNCHD-OK` (or `<!-- BASH-LAUNCHD-OK -->` in plists) — bash is allowed, but only via a named arg0 script.",
-  },
-  {
-    name: "gpu-optimization-guard",
-    timeoutMs: 4000,
-    classify: classifyGpuOptimizationGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on Python PyTorch training scripts missing mandatory GPU optimizations (AMP, torch.compile, DataLoader num_workers/pin_memory, auto-batch-size, cudnn.benchmark, device availability check). Iter-87 inlined; O(1) .py extension + test-file filename fastpath pre-empts the PyTorch training-script regex scan, then async loads .claude/gpu-optimization-guard.json config only when training script is detected.",
-  },
-  {
-    name: "file-size-guard",
-    timeoutMs: 4500,
-    classify: classifyFileSizeGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit operations that would produce files exceeding the per-extension line-count threshold (default 1000 lines, configurable via .claude/file-size-guard.json). Iter-84 first inlined subhook; does sync fs.readFileSync for Edit operations (~1-2ms typical).",
-  },
-  {
-    name: "vale-claude-md-guard",
-    timeoutMs: 12000,
-    classify: classifyValeClaudeMdGuardForOrchestrator,
-    description:
-      "Blocks Write/Edit on CLAUDE.md files with vale lint warning-or-error findings (terminology config at ~/.claude/.vale.ini). Iter-91 inlined (FINAL SUBHOOK — completes the iter-84→iter-91 PreToolUse Write|Edit migration arc). Heaviest classifier in the registry: spawns external `vale` subprocess against a tempfile holding the proposed content. Typical wall-clock: 100-300ms. timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines without spurious AbortSignal.timeout() trips. Registry position LAST per lightest-first rule — Edit-path scope-to-changed-lines (±3-line buffer) heuristic preserved. Algorithm encoded in `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator` (re-exported as `classifyValeClaudeMdGuardForOrchestrator` for symmetric naming with sibling subhooks).",
-  },
-];
+const PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PreToolUseSubhookRegistryEntry[] =
+  [
+    {
+      name: "version-guard",
+      timeoutMs: 3000,
+      classify: classifyVersionGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on markdown files that introduce hardcoded version strings (semver, calver, pre-release tags) outside CHANGELOG/HISTORY/ADR/planning paths. Forces use of <version> placeholder pattern (SSoT discipline). Iter-85 inlined; fast O(1) extension+path filter pre-empts the regex scan on non-markdown files.",
+    },
+    {
+      name: "shell-script-safety-guard",
+      timeoutMs: 3000,
+      classify: classifyShellScriptSafetyGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on shell scripts that introduce two mechanically-decidable defects: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) defeats set -e errexit. Iter-119; O(1) extension+shebang fastpath pre-empts regex scan on non-shell files. Escape hatch: SHELL-SAFETY-OK marker (FILE_WIDE). For Edit: flags only net-new defects.",
+    },
+    {
+      name: "skill-plugin-root-guard",
+      timeoutMs: 3000,
+      classify: classifySkillPluginRootGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit/MultiEdit on skill markdown (any .md under a skills/ directory) that references CLAUDE_PLUGIN_ROOT in a shape the runtime cannot honor. Three deniable kinds: BARE_SPELLING (bare $CLAUDE_PLUGIN_ROOT — the substitution regex requires braces, so it is unsubstitutable everywhere, manifests included), NON_SUBSTITUTING_DEFAULT (the braced form carrying a ':-fallback' shell default — the regex needs the closing brace right after the name, so this silently always takes the hardcoded fallback and pins the skill to the L2 marketplace clone instead of the installed version), and BRACED_IN_SHELL_CONTEXT (the braced form on a non-JSON line — a SKILL.md body is served to the model verbatim on the Skill-tool path, so nothing substitutes it and Bash sees an unset variable). JSON manifest lines (key-value or array-element shape) keep the braced form and are exempt. Origin: the 2026-08-05 /notes-commander:draft-hold exit-127 incident, whose upstream cause was two reference docs teaching the rule inverted. Steers to the cc-plugin-root resolver (scripts/cc-plugin-root), which reads installed_plugins.json for the LIVE install path rather than globbing the version cache (which retains orphaned versions). Registry position EARLY — O(1) path filter (/skills/ substring + .md suffix) then an O(1) content-sentinel check; the single disk read is deferred until a real candidate violation exists. Escape hatch: FILE_WIDE `SKILL-PLUGIN-ROOT-OK: <reason ≥10 chars>`, honored in the proposed text or in the on-disk file (iter-15 pattern) so docs ABOUT the variable stay editable.",
+    },
+    {
+      name: "typescript-version-guard",
+      timeoutMs: 3000,
+      classify: classifyTypeScriptVersionGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on package.json files that declare TypeScript < 7.x (the Go-native tsc era). Forces upgrade from pre-7 versions via 'typescript': 'latest' (+ commit lockfile), or enforces dual-install compat alias 'typescript': 'npm:@typescript/typescript6@^6.0.2' + '@typescript/native': 'npm:typescript@latest' for compiler-embedding tools (Volar/Vue/Svelte/Astro, Angular templates, typescript-eslint, ts-morph) that cannot run on TS 7.0's missing programmatic API (available 7.1+). Iter-92 inlined; O(1) basename filter pre-empts regex scan on non-package.json files. Iter-15 fix: Edit may target a region NOT containing ALLOW-LEGACY-TS marker but file on disk has it — async fs.read via Bun.file() honors the escape hatch. Sanctions @typescript/typescript6 compat alias explicitly; naive major-version regex would misread the '6' and wrongly block the Volar migration path. SSoT: ~/.claude/typescript-latest-CLAUDE.md.",
+    },
+    {
+      name: "hoisted-deps-guard",
+      timeoutMs: 4000,
+      classify: classifyHoistedDepsGuardForOrchestrator,
+      description:
+        "Blocks pyproject.toml Write/Edit that violates any of 3 monorepo policies: (1) root-only pyproject.toml [except maturin PyO3 crates that must co-locate with Cargo.toml], (2) [tool.uv.sources] paths escaping git root, (3) [dependency-groups] in sub-packages. Iter-86 inlined; O(1) filename-suffix fastpath skips non-pyproject.toml writes, then spawns git rev-parse subprocess only for actual pyproject.toml edits.",
+    },
+    {
+      name: "mise-hygiene-guard",
+      timeoutMs: 3000,
+      classify: classifyMiseHygieneGuardForOrchestrator,
+      description:
+        "Blocks mise.toml Write/Edit that violates 2 hygiene policies: (1) secrets (api keys, tokens, passwords) detected in shared mise.toml [should be in .mise.local.toml instead], (2) line count exceeds 100 [suggests hub-spoke refactoring with [task_config].includes]. Iter-88 inlined; O(1) filename-allowlist + ignore-list fastpath skips non-mise.toml writes (including the intentionally-secret-bearing .mise.local.toml).",
+    },
+    {
+      name: "pyi-stub-guard",
+      timeoutMs: 3000,
+      classify: classifyPyiStubGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on Python `__init__.py` / `__init__.pyi` files that contain top-level class/def/decorator definitions (PEP 561 + clean-package-structure: init files MUST be thin re-export layers, definitions belong in dedicated modules). Iter-89 inlined; O(1) `__init__.py`/`__init__.pyi` filename-suffix fastpath skips all non-init Python writes. Algorithm encoded in `classifyInitFileTopLevelDefinitionMonolithGuardForOrchestrator` (re-exported as `classifyPyiStubGuardForOrchestrator` for symmetric naming with sibling subhooks). Escape hatch: `# INIT-MONOLITH-OK` comment in content. Re-export-dominated-write heuristic exempts files where ≥70% of meaningful lines are imports.",
+    },
+    {
+      name: "native-binary-guard",
+      timeoutMs: 4000,
+      classify: classifyNativeBinaryGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on macOS launchd-related files (under ~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) that introduce shell scripts or plist `<string>/bin/bash</string>` / `<string>...something.sh</string>` ProgramArguments references. Forces compiled native binaries (Swift preferred) so launchd services show proper names in System Settings > Login Items instead of a generic 'bash' entry. Iter-90 inlined; O(1) launchd-directory-substring fastpath replaces the standalone-mode raw-stdin keyword prefilter (cheaper because orchestrator already JSON-parsed the input). Algorithm encoded in `classifyMacosLaunchdNativeBinaryRequiredGuardForOrchestrator` (re-exported as `classifyNativeBinaryGuardForOrchestrator` for symmetric naming). Iter-15 fix preserved: Edit may target a region NOT containing `BASH-LAUNCHD-OK` marker but the file on disk has it — async fs.readFile via Bun.file() honors the file-wide opt-out. Hardening: a bare interpreter as launchd arg0 (Program or first ProgramArguments entry) — /bin/bash, /bin/sh, bun, node, python, env, etc. — is DENIED for .plist files EVEN WITH the BASH-LAUNCHD-OK marker, because Login Items shows basename(arg0); the marker waives 'must be a native binary' but NOT 'arg0 must be a NAMED script/binary so the panel is identifiable'. Escape hatch: `# BASH-LAUNCHD-OK` (or `<!-- BASH-LAUNCHD-OK -->` in plists) — bash is allowed, but only via a named arg0 script.",
+    },
+    {
+      name: "gpu-optimization-guard",
+      timeoutMs: 4000,
+      classify: classifyGpuOptimizationGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on Python PyTorch training scripts missing mandatory GPU optimizations (AMP, torch.compile, DataLoader num_workers/pin_memory, auto-batch-size, cudnn.benchmark, device availability check). Iter-87 inlined; O(1) .py extension + test-file filename fastpath pre-empts the PyTorch training-script regex scan, then async loads .claude/gpu-optimization-guard.json config only when training script is detected.",
+    },
+    {
+      name: "file-size-guard",
+      timeoutMs: 4500,
+      classify: classifyFileSizeGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit operations that would produce files exceeding the per-extension line-count threshold (default 1000 lines, configurable via .claude/file-size-guard.json). Iter-84 first inlined subhook; does sync fs.readFileSync for Edit operations (~1-2ms typical).",
+    },
+    {
+      name: "vale-claude-md-guard",
+      timeoutMs: 12000,
+      classify: classifyValeClaudeMdGuardForOrchestrator,
+      description:
+        "Blocks Write/Edit on CLAUDE.md files with vale lint warning-or-error findings (terminology config at ~/.claude/.vale.ini). Iter-91 inlined (FINAL SUBHOOK — completes the iter-84→iter-91 PreToolUse Write|Edit migration arc). Heaviest classifier in the registry: spawns external `vale` subprocess against a tempfile holding the proposed content. Typical wall-clock: 100-300ms. timeoutMs=12000ms is generous to accommodate slow-disk / cold-cache machines without spurious AbortSignal.timeout() trips. Registry position LAST per lightest-first rule — Edit-path scope-to-changed-lines (±3-line buffer) heuristic preserved. Algorithm encoded in `classifyValeTerminologyConformanceOnClaudeMdGuardForOrchestrator` (re-exported as `classifyValeClaudeMdGuardForOrchestrator` for symmetric naming with sibling subhooks).",
+    },
+  ];
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Per-subhook execution with cooperative timeout + crash isolation
@@ -224,7 +233,9 @@ async function awaitAbortSignalAsTimeoutSentinelPromiseRejection(
       reject(signal.reason);
       return;
     }
-    signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    signal.addEventListener("abort", () => reject(signal.reason), {
+      once: true,
+    });
   });
 }
 
@@ -254,7 +265,9 @@ async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
   try {
     const decision: PreToolUseSubhookDecision = await Promise.race([
       entry.classify(input),
-      awaitAbortSignalAsTimeoutSentinelPromiseRejection(cooperativeTimeoutAbortSignal),
+      awaitAbortSignalAsTimeoutSentinelPromiseRejection(
+        cooperativeTimeoutAbortSignal,
+      ),
     ]);
 
     return {
@@ -293,7 +306,8 @@ async function executeSubhookWithCooperativeTimeoutAndCrashIsolation(
 //  Orchestrator entry point
 // ══════════════════════════════════════════════════════════════════════════
 
-const ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX = "[pretooluse-edit-time-orchestrator]";
+const ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX =
+  "[pretooluse-edit-time-orchestrator]";
 
 /**
  * Emit a deny/ask decision with belt-and-suspenders defense per GH #37210
@@ -326,11 +340,11 @@ function emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo(
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: decisionKind,
-      permissionDecisionReason:
-        `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${subhookName} → ${decisionKind.toUpperCase()}\n${reason}`,
+      permissionDecisionReason: `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} ${subhookName} → ${decisionKind.toUpperCase()}\n${reason}`,
     },
   };
-  const serializedJsonLine = JSON.stringify(stdoutBlockingDecisionJsonPayload) + "\n";
+  const serializedJsonLine =
+    JSON.stringify(stdoutBlockingDecisionJsonPayload) + "\n";
 
   // (2) stderr diagnostic — fire synchronously so it's queued before we wait on stdout
   process.stderr.write(
@@ -344,7 +358,9 @@ function emitBeltAndSuspendersBlockingDecisionWithStdoutDrainBeforeExitCodeTwo(
   // accepts the bytes, eliminating the race the iter-84 audit flagged
   // where process.exit(2) before drain could truncate the JSON payload.
   return new Promise<void>((resolve) => {
-    const writeAcceptedByKernel = process.stdout.write(serializedJsonLine, () => resolve());
+    const writeAcceptedByKernel = process.stdout.write(serializedJsonLine, () =>
+      resolve(),
+    );
     if (writeAcceptedByKernel) {
       // Already drained synchronously; the callback will still fire on
       // next tick but we don't have to wait for it.
@@ -366,7 +382,10 @@ async function main(): Promise<void> {
 
   // Iterate registry in order; first deny/ask short-circuits.
   for (const entry of PRETOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY) {
-    const result = await executeSubhookWithCooperativeTimeoutAndCrashIsolation(entry, input);
+    const result = await executeSubhookWithCooperativeTimeoutAndCrashIsolation(
+      entry,
+      input,
+    );
 
     if (result.timedOut) {
       process.stderr.write(
@@ -414,14 +433,19 @@ process.on("unhandledRejection", (reason: unknown) => {
   process.stderr.write(
     `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} unhandledRejection: ${message} — fail-open allow\n`,
   );
-  trackHookError("pretooluse-edit-time-orchestrator/unhandledRejection", message);
+  trackHookError(
+    "pretooluse-edit-time-orchestrator/unhandledRejection",
+    message,
+  );
   // Don't allow() here — main() will still complete and emit allow normally.
   // Explicit allow() here would emit duplicate JSON to stdout.
 });
 
 main().catch((err) => {
   const message = err instanceof Error ? err.message : String(err);
-  process.stderr.write(`${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} fatal: ${message}\n`);
+  process.stderr.write(
+    `${ORCHESTRATOR_DIAGNOSTIC_LOG_PREFIX} fatal: ${message}\n`,
+  );
   trackHookError("pretooluse-edit-time-orchestrator", message);
   allow(); // Fail-open at the outermost layer
 });
