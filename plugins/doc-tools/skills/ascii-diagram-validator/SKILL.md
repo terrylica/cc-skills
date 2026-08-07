@@ -60,7 +60,7 @@ Cross:   ╬
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/ARCHITECTURE.md
+uv run "$(cc-plugin-root doc-tools)/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py" docs/ARCHITECTURE.md
 PREFLIGHT_EOF
 ```
 
@@ -68,7 +68,7 @@ PREFLIGHT_EOF
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF_2'
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/*.md
+uv run "$(cc-plugin-root doc-tools)/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py" docs/*.md
 PREFLIGHT_EOF_2
 ```
 
@@ -76,7 +76,7 @@ PREFLIGHT_EOF_2
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF_3'
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/
+uv run "$(cc-plugin-root doc-tools)/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py" docs/
 PREFLIGHT_EOF_3
 ```
 
@@ -132,7 +132,7 @@ When Claude Code creates or edits ASCII diagrams:
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF_4'
 # After editing docs/ARCHITECTURE.md
-uv run ${CLAUDE_PLUGIN_ROOT}/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py docs/ARCHITECTURE.md
+uv run "$(cc-plugin-root doc-tools)/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py" docs/ARCHITECTURE.md
 
 # If errors found, Claude Code can read the output and fix:
 # docs/ARCHITECTURE.md:45:12: error: vertical connector '│' at column 12 has no matching character above
@@ -172,7 +172,6 @@ PREFLIGHT_EOF_4
 | Exit code 2 unexpected      | warnings only mode            | Use --warn-only flag to treat warnings as success   |
 | Can't find validation error | Complex nested diagram        | Check line numbers in output, validate section only |
 | Unicode chars not rendering | Terminal font missing glyphs  | Use font with full Unicode box-drawing support      |
-
 
 ## Post-Execution Reflection
 

@@ -27,7 +27,8 @@ After the first pass, it re-scans for survivors and retries with method 3.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/cleanup_deleted.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/cleanup_deleted.ts"
 
 # Scan only (no deletions)
 bun "$SCRIPT" --dry-run

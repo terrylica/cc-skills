@@ -10,8 +10,8 @@ description: Diagnose the po Pushover plugin and check remaining monthly quota. 
 Self-test + quota for the po plugin, via the TS core.
 
 ```bash
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" doctor   # full self-test (JSON)
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" quota     # {limit, remaining, reset}
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" doctor   # full self-test (JSON)
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" quota     # {limit, remaining, reset}
 ```
 
 `doctor` checks: creds (op→Keychain), `/users/validate.json`, monthly quota, the expected custom sounds

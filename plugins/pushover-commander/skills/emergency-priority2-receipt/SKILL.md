@@ -10,7 +10,7 @@ description: Send a Pushover EMERGENCY (priority 2) alert that repeats until ack
 Priority-2 emergency notification with receipt polling, via the TS core `pushover_core.ts emergency`.
 
 ```bash
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" emergency \
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" emergency \
   --title "Title" --message "what happened + the one action needed" \
   [--retry 30] [--expire 300] [--sound piano] [--attach report.png] [--app main|test]
 ```

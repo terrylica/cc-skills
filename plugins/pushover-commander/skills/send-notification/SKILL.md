@@ -12,7 +12,7 @@ Send a Pushover notification via the TypeScript core `pushover_core.ts` (Bun). S
 ## Usage
 
 ```bash
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" send \
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" send \
   --message "your message" --title "Title" [--priority N] [--attach image.png] \
   [--sound NAME] [--url https://link] [--url-title "link title"] [--html|--monospace] [--app main|test] [--force]
 ```

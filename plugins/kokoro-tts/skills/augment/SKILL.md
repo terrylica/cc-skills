@@ -15,16 +15,16 @@ Upgrade MLX-Audio dependencies, re-download the model, and update bundled script
 ### Step 1: Pre-upgrade health check
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --health
 cat ~/.local/share/kokoro/version.json
 ```
 
 ### Step 2: Execute upgrade
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --upgrade
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --upgrade
 ```
 
 This upgrades:
@@ -37,8 +37,8 @@ This upgrades:
 ### Step 3: Post-upgrade verification
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --health
 cat ~/.local/share/kokoro/version.json
 
 # Test synthesis
@@ -52,9 +52,9 @@ cat ~/.local/share/kokoro/version.json
 If upgrade breaks TTS, do a clean reinstall:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --uninstall
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --uninstall
+bash "$ROOT/scripts/kokoro-install.sh" --install
 ```
 
 Model cache is preserved across uninstall, so reinstall reuses the cached model.

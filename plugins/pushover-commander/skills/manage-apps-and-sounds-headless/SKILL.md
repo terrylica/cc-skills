@@ -13,11 +13,11 @@ pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA
 2026-05-30), so plain Playwright + system Chrome works.
 
 ```bash
-export PO_EMAIL="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" login_email)"
-export PO_PW="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" login_password)"
-export PO_USER="$(bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" user_key)"   # create-app token disambiguation
+export PO_EMAIL="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_email)"
+export PO_PW="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_password)"
+export PO_USER="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" user_key)"   # create-app token disambiguation
 WEB() { env -u HTTPS_PROXY -u HTTP_PROXY \
-  bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_headless_web_control.ts" "$@"; }
+  bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_headless_web_control.ts" "$@"; }
 
 WEB apps                                              # list application names
 WEB create-app --name "My App" --desc "..." --reveal # create app, print its API token (--reveal = full)
@@ -34,11 +34,11 @@ Pushover custom sounds: **MP3 only, < 500 KB, ≤ 30 s** (iOS won't play longer)
 
 ```bash
 # 1) discover free MP3 jingles (Mixkit free license, attribution optional)
-bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/find_jingles.sh" win        # or game musical alarm celebration
-bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/find_jingles.sh" tag/happy  # stock-music tags (longer tracks)
+bash "$(cc-plugin-root pushover-commander)/skills/_lib/find_jingles.sh" win        # or game musical alarm celebration
+bash "$(cc-plugin-root pushover-commander)/skills/_lib/find_jingles.sh" tag/happy  # stock-music tags (longer tracks)
 
 # 2) trim + LOUDNESS-NORMALIZE + size-fit to a compliant sound (loudnorm I=-10, peak -1dB, <500KB)
-bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/make_custom_sound.sh" <url|file> out.mp3 [start_s] [dur] [bitrate]
+bash "$(cc-plugin-root pushover-commander)/skills/_lib/make_custom_sound.sh" <url|file> out.mp3 [start_s] [dur] [bitrate]
 #   -> JSON {kb, dur, max_db, mean_db, under_500kb}; non-zero exit if >=500KB (then lower bitrate)
 
 # 3) upload it

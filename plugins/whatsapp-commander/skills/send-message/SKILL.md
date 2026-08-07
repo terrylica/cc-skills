@@ -49,7 +49,7 @@ captures a clean URL. It **exits 2** if the body has emoji/astral chars (they wo
 
 ```bash
 /usr/bin/env bash << 'WA_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/whatsapp-commander}/scripts/wa-cli.ts"
+SCRIPT="$(cc-plugin-root whatsapp-commander)/scripts/wa-cli.ts"
 
 # Tier 1 — build a click-to-chat link (the recommended default; BMP-only body, round-trip verified)
 bun "$SCRIPT" link "+1 (604) 816-8818" "Hi Iris — short note and a link: https://example.com/x"

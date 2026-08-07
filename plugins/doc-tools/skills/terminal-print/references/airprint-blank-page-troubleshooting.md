@@ -94,7 +94,7 @@ If the channel test prints but PDFs don't, the printer's IPP-Everywhere PDF inte
 
 ```bash
 # Run the helper script (or do it manually below)
-"${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/doc-tools}/skills/terminal-print/assets/setup-socket-9100-queue.sh"
+"$(cc-plugin-root doc-tools)/skills/terminal-print/assets/setup-socket-9100-queue.sh"
 ```
 
 What that script does, manually:

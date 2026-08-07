@@ -8,8 +8,8 @@ Run validator:
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
-# Environment-agnostic path (explicit fallback for marketplace installation)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+# Resolve plugin root using cc-plugin-root helper
+PLUGIN_DIR="$(cc-plugin-root itp)"
 uv run "$PLUGIN_DIR/skills/implement-plan-preflight/scripts/preflight_validator.py" $ADR_ID
 PREFLIGHT_EOF
 ```
