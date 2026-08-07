@@ -48,4 +48,44 @@ probe ALLOW 'bun build the builder'      "bun build $HOME/eon/cc-skills/plugins/
 probe ALLOW 'grep the builder'           "grep -n linkify $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
 probe ALLOW 'read the builder'           "cat $HOME/eon/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts"
 
+echo "MUST BLOCK — LAYER 5: the write lives INSIDE the script (command line names nothing)"
+# Regression cover for 2026-08-07: `bun <script>.ts` and `bash /tmp/<script>.sh` both staged client
+# drafts with hard-wrapped bodies while every command-string layer reported ALLOW.
+FIX="$(mktemp -d)"
+trap 'rm -rf "$FIX"' EXIT
+
+cat >"$FIX/mailer.ts" <<'EOF'
+const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+  method: "POST", body: JSON.stringify({ message: { raw } }),
+});
+EOF
+cat >"$FIX/mailer.py" <<'EOF'
+req = urllib.request.Request("https://gmail.googleapis.com/gmail/v1/users/me/drafts", method="POST")
+EOF
+cat >"$FIX/mailer.sh" <<'EOF'
+curl -X POST https://gmail.googleapis.com/gmail/v1/users/me/drafts -d @msg.json
+EOF
+chmod +x "$FIX/mailer.sh"
+
+probe BLOCK 'bun <script>.ts that POSTs'      "bun $FIX/mailer.ts --execute"
+probe BLOCK 'python3 <script>.py that POSTs'  "python3 $FIX/mailer.py"
+probe BLOCK 'bash <script>.sh that POSTs'     "bash $FIX/mailer.sh"
+probe BLOCK 'uv run python <script>.py'       "uv run --python 3.14 python $FIX/mailer.py"
+probe BLOCK 'compound: cd then bun <script>'  "cd /tmp && bun $FIX/mailer.ts"
+
+echo "MUST ALLOW — LAYER 5 must not block reading, testing, or read-only mailers"
+cat >"$FIX/reader.ts" <<'EOF'
+const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts?maxResults=100");
+EOF
+cat >"$FIX/unrelated.ts" <<'EOF'
+console.log("no mail here"); const method = "POST";
+EOF
+probe ALLOW 'cat the offending script'    "cat $FIX/mailer.ts"
+probe ALLOW 'grep the offending script'   "grep -n drafts $FIX/mailer.ts"
+probe ALLOW 'bun test near a mailer'      "bun test $FIX/mailer.ts"
+probe ALLOW 'bun build a mailer'          "bun build $FIX/mailer.ts --target=bun"
+probe ALLOW 'script that only GETs'       "bun $FIX/reader.ts"
+probe ALLOW 'script with POST but no API' "bun $FIX/unrelated.ts"
+probe ALLOW 'script path that does not exist' "bun $FIX/nope.ts"
+
 exit "$fail"

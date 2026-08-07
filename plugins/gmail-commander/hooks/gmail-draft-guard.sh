@@ -172,20 +172,19 @@ MSG
     ;;
 esac
 
-if printf '%s' "$CMD" | grep -qE 'users/me/drafts|gmail\.googleapis\.com[^ ]*draft'; then
-  # Detect a WRITE by finding an actual HTTP METHOD, not the mere presence of the word.
-  #
-  # The old test was `grep -qE '(POST|PUT|PATCH)'` anywhere in the command, and it was wrong in both
-  # directions at once. It is case-SENSITIVE, so `curl -X put .../drafts` sailed straight through. And
-  # it matched the substring in ordinary prose, so on 2026-07-30 a read-only GET was blocked because
-  # the operator had written `echo "still intact after the failed PUT?"` earlier in the same line.
-  # A guard that blocks reads while permitting writes is worse than no guard: it teaches people to
-  # reach for the escape hatch by reflex, and then it is not there when it matters.
-  METHOD_RE='(-X|--request)[[:space:]]*=?[[:space:]]*"?'"'"'?(POST|PUT|PATCH|DELETE)|"method"[[:space:]]*:[[:space:]]*"?(POST|PUT|PATCH|DELETE)|method[[:space:]]*=[[:space:]]*"?(POST|PUT|PATCH|DELETE)'
-  # curl POSTs implicitly when handed a body, with no method token anywhere in the command.
-  IMPLICIT_POST_RE='(^|[[:space:]])(-d|--data|--data-raw|--data-binary|--data-urlencode|-F|--form|-T|--upload-file)([[:space:]]|=)'
-  if printf '%s' "$CMD" | grep -qiE "$METHOD_RE" || printf '%s' "$CMD" | grep -qE "$IMPLICIT_POST_RE"; then
-    cat >&2 <<'MSG'
+# HTTP-write detection, defined once and used by BOTH the command-string layers and LAYER 5.
+#
+# Two shapes exist and a file can contain either: a curl invocation (`-X POST`, or implicit via a
+# body flag) or code (`method: "POST"`). The first LAYER 5 draft only matched the quoted/code form,
+# so a shell script running `curl -X POST .../drafts` was ALLOWED — caught by the probe, which is
+# the entire reason the probe asserts both directions.
+METHOD_RE='(-X|--request)[[:space:]]*=?[[:space:]]*"?'"'"'?(POST|PUT|PATCH|DELETE)|"method"[[:space:]]*:[[:space:]]*"?(POST|PUT|PATCH|DELETE)|method[[:space:]]*[:=][[:space:]]*"?(POST|PUT|PATCH|DELETE)|"(POST|PUT|PATCH|DELETE)"|'"'"'(POST|PUT|PATCH|DELETE)'"'"''
+# curl POSTs implicitly when handed a body, with no method token anywhere.
+IMPLICIT_POST_RE='(^|[[:space:]])(-d|--data|--data-raw|--data-binary|--data-urlencode|-F|--form|-T|--upload-file)([[:space:]]|=)'
+ENDPOINT_RE='users/me/drafts|gmail\.googleapis\.com[^ ]*draft'
+
+emit_adhoc_block_message() {
+  cat >&2 <<'MSG'
 BLOCKED: ad-hoc Gmail drafts-API write. Use the canonical builder instead:
 
   bun ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts --account <tokenbase> --body <file.md> \
@@ -196,6 +195,70 @@ forced mid-paragraph line breaks in the compose window (regression 2026-07-23). 
 multipart/alternative with a text/html part (wrap-immune) and unwraps formatter-wrapped sources.
 Escape hatch (deliberate ad-hoc use): prefix the command with GMAIL_DRAFT_ADHOC_OK=1.
 MSG
+}
+
+# ── LAYER 5 (2026-08-07): the write is INSIDE a script file, where the command string cannot see it.
+#
+# Layers 1–4 all pattern-match $CMD. That surface is blind to the most ordinary shape a caller takes:
+#
+#     bun correspondence/replace-gmail-drafts.ts --execute
+#
+# — which contains no endpoint, no method, and no curl flag, because the fetch() lives in the file.
+# Verified ALLOW by every prior layer. This is not hypothetical and not new: it has now happened
+# three times against the same client mailbox — `bash /tmp/[redacted].sh` earlier the same day,
+# and a Bun script that evening. Both shipped the exact defect Layer 1 exists to prevent (a body
+# carrying a formatter's ~100-col hard wrapping, delivered as text/plain and hard-folded again by
+# Gmail into forced mid-sentence breaks), and one also shipped a mojibaked Subject.
+#
+# The guard was never weak at what it inspected. It inspected the wrong surface for this caller.
+# So: when the command EXECUTES a script, read that script and apply the same test to its contents.
+#
+# Fail-open throughout (unreadable file, weird quoting, no match) — advisory infrastructure must
+# never wedge a session. A missed detection costs one bad draft; a wedged shell costs the day.
+INTERPRETER_RE='(^|[[:space:];&|(])(bun|bunx|node|deno|tsx|ts-node|python|python3|ruby|perl|bash|sh|zsh)([[:space:]]|$)'
+DIRECT_EXEC_RE='(^|[[:space:];&|(])\./[^[:space:]]+'
+
+if printf '%s' "$CMD" | grep -qE "$INTERPRETER_RE" || printf '%s' "$CMD" | grep -qE "$DIRECT_EXEC_RE"; then
+  # `bun test` / `bun build` / `deno check` operate ON a file without running it as a program.
+  # Blocking those would make working on any mailer require the escape hatch, which is how a hatch
+  # stops meaning anything (the same reasoning as the LAYER 1 read-vs-invoke discriminator above).
+  if ! printf '%s' "$CMD" | grep -qE '(^|[[:space:]])(bun[[:space:]]+(test|build|x|install|add|pm)|deno[[:space:]]+(check|lint|fmt|test))([[:space:]]|$)'; then
+    for tok in $CMD; do
+      # Strip quoting/redirection noise a naive word-split leaves attached.
+      tok="${tok#[\"\']}"; tok="${tok%[\"\']}"; tok="${tok#./}"
+      case "$tok" in
+        *.ts|*.js|*.mjs|*.cjs|*.py|*.sh|*.zsh|*.rb|*.pl) ;;
+        *) continue ;;
+      esac
+      [ -f "$tok" ] || continue
+      # Endpoint AND a write verb in the same file. Inside a script a bare "POST" is a method, not
+      # prose, so the looser test that was wrong for one-liners is right here.
+      if grep -qE "$ENDPOINT_RE" "$tok" 2>/dev/null \
+         && { grep -qiE "$METHOD_RE" "$tok" 2>/dev/null || grep -qE "$IMPLICIT_POST_RE" "$tok" 2>/dev/null; }; then
+        printf 'BLOCKED: %s writes to the Gmail drafts API directly.\n\n' "$tok" >&2
+        emit_adhoc_block_message
+        cat >&2 <<'MSG'
+
+(Detected by reading the script, not the command line — LAYER 5. The command you ran named no
+endpoint and no HTTP method, which is exactly why the earlier layers passed it.)
+MSG
+        exit 2
+      fi
+    done
+  fi
+fi
+
+if printf '%s' "$CMD" | grep -qE "$ENDPOINT_RE"; then
+  # Detect a WRITE by finding an actual HTTP METHOD, not the mere presence of the word.
+  #
+  # The old test was `grep -qE '(POST|PUT|PATCH)'` anywhere in the command, and it was wrong in both
+  # directions at once. It is case-SENSITIVE, so `curl -X put .../drafts` sailed straight through. And
+  # it matched the substring in ordinary prose, so on 2026-07-30 a read-only GET was blocked because
+  # the operator had written `echo "still intact after the failed PUT?"` earlier in the same line.
+  # A guard that blocks reads while permitting writes is worse than no guard: it teaches people to
+  # reach for the escape hatch by reflex, and then it is not there when it matters.
+  if printf '%s' "$CMD" | grep -qiE "$METHOD_RE" || printf '%s' "$CMD" | grep -qE "$IMPLICIT_POST_RE"; then
+    emit_adhoc_block_message
     exit 2
   fi
 fi
