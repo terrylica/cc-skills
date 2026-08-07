@@ -1,3 +1,5 @@
+<!-- SKILL-PLUGIN-ROOT-OK: documents the correct and incorrect usages deliberately -->
+
 **Skill**: [Skill Architecture](../SKILL.md)
 
 ## Part 2.5: Critical Formatting Bugs (MUST READ)
@@ -208,17 +210,43 @@ my-plugin/
 
 **Available events**: `PreToolUse`, `PostToolUse`, `Stop` (see Hooks Development Guide in repo docs)
 
-> **Anti-Pattern: `$CLAUDE_PLUGIN_ROOT` in hooks.json**
+> **`${CLAUDE_PLUGIN_ROOT}` — where it works, and where it silently doesn't** (corrected 2026-08-05)
 >
-> `$CLAUDE_PLUGIN_ROOT` is available inside Claude Code's plugin execution context (skill loading) but is **NOT** a shell environment variable. Hook commands from `hooks.json` are synced verbatim to `~/.claude/settings.json` and executed as shell commands, where `$CLAUDE_PLUGIN_ROOT` resolves to empty string → "Module not found" errors.
+> An earlier revision of this table had it backwards. Verified by disassembling the shipping
+> Claude Code binary (2026-08-05): the substitution helper is
+> `e.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginPath)` and hook subprocesses are spawned with
+> `env.CLAUDE_PLUGIN_ROOT` set. Two consequences that trip people up:
 >
-> | Variable              | Available In              | Works in hooks.json? |
-> | --------------------- | ------------------------- | -------------------- |
-> | `$CLAUDE_PLUGIN_ROOT` | Plugin skill loading only | **NO**               |
-> | `$HOME`               | All shell contexts        | **YES**              |
-> | `$CLAUDE_PROJECT_DIR` | Hook stdin JSON only      | **NO** (not env var) |
+> 1. **Braces are mandatory.** Only the exact literal `${CLAUDE_PLUGIN_ROOT}` is substituted.
+>    The bare `$CLAUDE_PLUGIN_ROOT` is never substituted anywhere — and neither is
+>    `${CLAUDE_PLUGIN_ROOT:-fallback}`, because the regex requires the closing brace right
+>    after the name. (That idiom still "works", but only by always taking the fallback.)
+> 2. **It is not a Bash-tool variable.** It is never exported into the shell the model runs
+>    commands in, so a SKILL.md body that writes `"$CLAUDE_PLUGIN_ROOT/skills/x/run.sh"`
+>    expands it to empty and calls `/skills/x/run.sh` → exit 127.
 >
-> **Always use `$HOME`-based absolute paths in hooks.json commands.**
+> | Context                                            | `${CLAUDE_PLUGIN_ROOT}` works? | Why                                                          |
+> | -------------------------------------------------- | ------------------------------ | ------------------------------------------------------------ |
+> | A plugin's own `hooks/hooks.json`                  | **YES**                        | Substituted at load; also injected into the hook's env       |
+> | `.mcp.json` / `.lsp.json` / monitor commands       | **YES**                        | Same substitution pass; also set in the subprocess env       |
+> | Hook command copied into `~/.claude/settings.json` | **NO**                         | Not plugin-associated — nothing substitutes, no env var      |
+> | A `SKILL.md` body (Bash the model runs)            | **NO**                         | Served verbatim on the Skill-tool path; not in the shell env |
+> | `$HOME`                                            | YES                            | A real shell variable in every context                       |
+> | `$CLAUDE_PROJECT_DIR`                              | in hooks only                  | Substituted + set for hooks; also arrives in hook stdin JSON |
+>
+> **In `hooks.json`, prefer `${CLAUDE_PLUGIN_ROOT}`** — it is the documented, version-correct
+> form. Use `$HOME`-based absolute paths only for hooks you hand-write into `settings.json`.
+>
+> **In a `SKILL.md`, never reference it at all.** Resolve the plugin's live install path with
+> the `cc-plugin-root` helper (`scripts/cc-plugin-root`), which reads
+> `~/.claude/plugins/installed_plugins.json`:
+>
+> ```bash
+> SCRIPT="$(cc-plugin-root my-plugin)/skills/my-skill/run.sh"
+> ```
+>
+> Do **not** glob `~/.claude/plugins/cache/<mp>/<plugin>/*` and take the highest version —
+> that directory retains every past version and the highest one is often orphaned.
 
 ### When to Use Hooks
 
@@ -234,4 +262,4 @@ my-plugin/
 3. **Fail silently** - Hooks should not block Claude Code operation on failure
 4. **File-based communication** - Write to notification directories rather than calling APIs directly from hooks
 5. **Provide a management command** - Include a `/plugin:hooks` command for install/uninstall/status (see [Command-Skill Duality](./invocation-control.md))
-6. **Use `$HOME`-based absolute paths** - Never use `$CLAUDE_PLUGIN_ROOT` in hook commands (see anti-pattern above)
+6. **Use `${CLAUDE_PLUGIN_ROOT}` in `hooks.json`** - braces required; fall back to `$HOME`-based absolute paths only for hooks hand-written into `settings.json`. Never reference it from a `SKILL.md` body — use `cc-plugin-root <plugin>` there (see the table above)

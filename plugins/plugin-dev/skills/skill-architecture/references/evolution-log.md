@@ -1,3 +1,5 @@
+<!-- SKILL-PLUGIN-ROOT-OK: historical log quoting the anti-patterns verbatim -->
+
 # Evolution Log
 
 > **Convention**: Reverse chronological order (newest on top, oldest at bottom). Prepend new entries.
@@ -134,17 +136,20 @@ Documentation alignment requires auditing against multiple official sources simu
 
 ### Anti-Patterns Documented
 
-1. **`$CLAUDE_PLUGIN_ROOT` in hooks.json**: This env var only exists inside Claude Code's internal plugin skill loading context, not as a shell environment variable. Hook commands must use `$HOME`-based absolute paths.
-2. **Empty TOML table sections**: mise rejects `[hooks.enter]` containing only comments (no key-value pairs). Either add a key or remove the section.
+1. **`$CLAUDE_PLUGIN_ROOT` (bare, no braces)**: Never substituted. Always use `${CLAUDE_PLUGIN_ROOT}` (braced) in manifests.
+2. **`${CLAUDE_PLUGIN_ROOT:-fallback}` in SKILL.md**: Never substituted (braces-close-immediately rule). The fallback always activates, silently pinning to marketplace.
+3. **`${CLAUDE_PLUGIN_ROOT}` in SKILL.md at all**: Should use `cc-plugin-root` helper instead (resolved 2026-08-05).
+4. **Empty TOML table sections**: mise rejects `[hooks.enter]` containing only comments (no key-value pairs). Either add a key or remove the section.
 
 ### Changes Made
 
-1. **advanced-topics.md**: Replaced `$CLAUDE_PLUGIN_ROOT` example with `$HOME`-based path, added anti-pattern callout with comparison table, fixed guideline #6
-2. **lifecycle-reference.md** (itp-hooks): Clarified `CLAUDE_PLUGIN_ROOT` documentation, added both anti-patterns to Common Pitfalls table
+1. **advanced-topics.md** (2026-08-05): Corrected with binary analysis; added authoritative table showing where `${CLAUDE_PLUGIN_ROOT}` works (manifests + hook env) vs. doesn't (SKILL.md, settings.json). Added `cc-plugin-root` helper guidance.
+2. **path-patterns.md** (2026-08-05): Comprehensive rewrite; migrated SKILL.md guidance from fallbacks to `cc-plugin-root`. Added `LAYER3-STRIPPED-PATH-OK` annotations for unsafe-pattern code examples.
+3. **lifecycle-reference.md** (itp-hooks): Clarified `CLAUDE_PLUGIN_ROOT` documentation, added both anti-patterns to Common Pitfalls table
 
 ### Key Insight
 
-Plugin context variables (`CLAUDE_PLUGIN_ROOT`) are available when Claude Code loads skills but NOT when hook commands execute as shell processes from settings.json. The sync script copies hooks.json commands verbatim without variable resolution. Only standard shell env vars (`$HOME`) are safe in hook commands.
+Plugin context variables (`CLAUDE_PLUGIN_ROOT`) are injected into hook subprocess envs and substituted in manifest files at load time, but they are never exported into the Bash shell where a `SKILL.md` body executes. For skills, use the authoritative `installed_plugins.json` registry via the `cc-plugin-root` helper — this resolves to the actual installed version, not a stale marketplace mirror.
 
 ---
 

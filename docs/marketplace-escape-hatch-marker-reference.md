@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 29 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 30 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (21; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (22; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
@@ -35,6 +35,7 @@ Jump directly to any of the 29 registered markers below. Markers are listed alph
 - [`RELEASE-NOTES-OK`](#release-notes-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
 - [`SHELL-SAFETY-OK`](#shell-safety-ok)
+- [`SKILL-PLUGIN-ROOT-OK`](#skill-plugin-root-ok)
 - [`SSoT-OK`](#ssot-ok)
 
 **Audit-task markers** (8; consumed by `.mise/` audit tasks once per release-preflight):
@@ -65,18 +66,18 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (21 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (22 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
 ## `ALLOW-LEGACY-TS`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                |
+| **Window-semantics mode** | `FILE_WIDE`                                                                                                                                     |
+| **Reason policy**         | Bare marker accepted (no reason required)                                                                                                       |
 
 **What it does**: Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md
 
@@ -88,12 +89,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `BASH-LAUNCHD-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-native-binary-guard.ts` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-native-binary-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                          |
+| **Window-semantics mode** | `FILE_WIDE`                                                 |
+| **Reason policy**         | Bare marker accepted (no reason required)                   |
 
 **What it does**: Allow a bash-shebang script OR a plist `/bin/bash` ProgramArguments reference in a macOS launchd file (~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) — the hook normally requires a compiled native binary so System Settings > Login Items shows the executable's actual name instead of generic 'bash'. Accepted in plist files as `<!-- BASH-LAUNCHD-OK -->`.
 
@@ -105,12 +106,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `CARGO-TTY-SKIP`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                   |
+| ------------------------- | ------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                      |
+| **Window-semantics mode** | `FILE_WIDE`                                             |
+| **Reason policy**         | Bare marker accepted (no reason required)               |
 
 **What it does**: Opt OUT of cargo-tty-guard's automatic PUEUE-wrapping of `cargo bench/test/build` commands. Use when the operator has confirmed there is no TTY-suspension risk (e.g., cargo invocation already redirects stdin) — the guard will pass the command through unchanged instead of redirecting to PUEUE.
 
@@ -122,12 +123,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `CARGO-TTY-WRAP`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                   |
+| ------------------------- | ------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                      |
+| **Window-semantics mode** | `FILE_WIDE`                                             |
+| **Reason policy**         | Bare marker accepted (no reason required)               |
 
 **What it does**: Opt IN to cargo-tty-guard's PUEUE-wrapping even when the heuristic doesn't trigger automatically. Used when the operator knows their cargo invocation will inherit a contested TTY and wants the daemon path explicitly.
 
@@ -139,12 +140,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `CROWN-JEWEL-PLAIN-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                                        |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                             |
+| **Window-semantics mode** | `FILE_WIDE`                                                                  |
+| **Reason policy**         | Bare marker accepted (no reason required)                                    |
 
 **What it does**: Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).
 
@@ -156,12 +157,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `CWD-DELETE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                               |
+| ------------------------- | --------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                  |
+| **Window-semantics mode** | `FILE_WIDE`                                         |
+| **Reason policy**         | Bare marker accepted (no reason required)           |
 
 **What it does**: Allow a bash command that the cwd-deletion-guard would otherwise block as a CWD-deleting `rm -rf` (or equivalent). Used when the operator has verified the rm target is safe (e.g., target is a sibling, not the CWD itself, and the regex false-positives).
 
@@ -173,12 +174,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `FGPAT-REMINDER-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                                  |
+| ------------------------- | ---------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                       |
+| **Window-semantics mode** | `FILE_WIDE`                                                            |
+| **Reason policy**         | Bare marker accepted (no reason required)                              |
 
 **What it does**: Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.
 
@@ -190,12 +191,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `FILE-SIZE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                   |
+| ------------------------- | ------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                        |
+| **Window-semantics mode** | `FILE_WIDE`                                             |
+| **Reason policy**         | Bare marker accepted (no reason required)               |
 
 **What it does**: Allow a file to exceed file-size-guard's per-extension warn/block thresholds. Default marker token; can be overridden per-project via `.claude/file-size-guard.json` `escapeComment` field — but the helper always runs in CASE_SENSITIVE mode (substring match on the literal token, regardless of marker spelling).
 
@@ -207,12 +208,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `INIT-MONOLITH-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pyi-stub-guard.ts` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                  |
+| ------------------------- | ------------------------------------------------------ |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-pyi-stub-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                     |
+| **Window-semantics mode** | `FILE_WIDE`                                            |
+| **Reason policy**         | Bare marker accepted (no reason required)              |
 
 **What it does**: Allow top-level `class`/`def`/decorator definitions in a Python `__init__.py` or `__init__.pyi` file. The hook normally enforces PEP 561 + clean-package-structure (init files MUST be thin re-export layers); this opt-out covers legitimate cases like temporary scaffolding or libraries that genuinely require the monolith shape.
 
@@ -224,12 +225,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `INLINE-IGNORE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `SAME_LINE_ONLY` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                       |
+| ------------------------- | ----------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                            |
+| **Window-semantics mode** | `SAME_LINE_ONLY`                                            |
+| **Reason policy**         | Bare marker accepted (no reason required)                   |
 
 **What it does**: Allow a single inline lint-suppression comment (covering the four families: Python ruff suppressions, Python ty type-checker suppressions, ESLint per-line and per-block suppressions, and the Bun-ecosystem fast-linter suppressions) on the SAME LINE as this marker. Used when a tool/library limitation genuinely requires the suppression — config-file-level suppression in ruff/ty/oxlint/biome configuration files is still strongly preferred when possible.
 
@@ -241,12 +242,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `INVENTED-FALLBACK-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                               |
+| ------------------------- | ------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                    |
+| **Window-semantics mode** | `FILE_WIDE`                                                         |
+| **Reason policy**         | Bare marker accepted (no reason required)                           |
 
 **What it does**: Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.
 
@@ -258,12 +259,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `LAYER3-STRIPPED-PATH-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `SAME_LINE_OR_PRECEDING_N_LINES` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                    |
+| **Window-semantics mode** | `SAME_LINE_OR_PRECEDING_N_LINES`                                                    |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                 |
 
 **What it does**: Allow a `${CLAUDE_PLUGIN_ROOT}/<segment>/` reference where `<segment>` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., `LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike`). Marker is honored on the same line OR within the preceding 3 lines.
 
@@ -275,12 +276,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `MANUAL-PAT-PAGE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                         |
+| ------------------------- | ------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                              |
+| **Window-semantics mode** | `FILE_WIDE`                                                   |
+| **Reason policy**         | Bare marker accepted (no reason required)                     |
 
 **What it does**: Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.
 
@@ -292,12 +293,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `MD-TABLE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                         |
+| ------------------------- | ------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                              |
+| **Window-semantics mode** | `FILE_WIDE`                                                   |
+| **Reason policy**         | Bare marker accepted (no reason required)                     |
 
 **What it does**: Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.
 
@@ -309,12 +310,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `MINI-INNGEST-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                          |
+| ------------------------- | -------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                               |
+| **Window-semantics mode** | `FILE_WIDE`                                                    |
+| **Reason policy**         | Bare marker accepted (no reason required)                      |
 
 **What it does**: Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).
 
@@ -326,12 +327,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `PROCESS-STORM-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/process-storm-patterns.mjs` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                |
+| ------------------------- | ---------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/process-storm-patterns.mjs` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                   |
+| **Window-semantics mode** | `FILE_WIDE`                                          |
+| **Reason policy**         | Bare marker accepted (no reason required)            |
 
 **What it does**: Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.
 
@@ -343,12 +344,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `PUEUE-LOCAL-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pueue-local-guard.ts` |
-| **Case-sensitivity mode** | `CASE_INSENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                     |
+| ------------------------- | --------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-pueue-local-guard.ts` |
+| **Case-sensitivity mode** | `CASE_INSENSITIVE`                                        |
+| **Window-semantics mode** | `FILE_WIDE`                                               |
+| **Reason policy**         | Bare marker accepted (no reason required)                 |
 
 **What it does**: Allow a `pueue` command that targets a remote daemon (the guard normally enforces local-only targeting to prevent accidentally queueing work on the wrong host). NOTE: pueue-local-guard is NOT YET migrated to the iter-107 helper (iter-112+ candidate); this registry entry is forward-looking and the audit treats this marker as known even before the migration lands.
 
@@ -360,12 +361,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `RELEASE-NOTES-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                     |
+| ------------------------- | ------------------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                          |
+| **Window-semantics mode** | `FILE_WIDE`                                                               |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                       |
 
 **What it does**: Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.
 
@@ -377,14 +378,14 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `SETPROCTITLE-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-reminder.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                             |
+| ------------------------- | ------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/posttooluse-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                  |
+| **Window-semantics mode** | `FILE_WIDE`                                       |
+| **Reason policy**         | Bare marker accepted (no reason required)         |
 
-**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
+**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `#` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `//`, `<!--`, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
 
 **Example usage**:
 
@@ -394,12 +395,12 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ## `SHELL-SAFETY-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Reason required after colon — minimum 8 characters |
+| Field                     | Value                                                             |
+| ------------------------- | ----------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                  |
+| **Window-semantics mode** | `FILE_WIDE`                                                       |
+| **Reason policy**         | Reason required after colon — minimum 8 characters                |
 
 **What it does**: Allow a shell script (Write/Edit on .sh/.bash/.zsh or shebang-declared files) that introduces mechanically-decidable defects detected by the shell-script-safety-guard: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident, empirical fact A); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) silently defeats set -e errexit (empirical fact D). REQUIRES a ≥8-character reason after the colon (enforces intentionality — shorthand like 'legacy' is too terse, 'legacy error-handling' or 'temporary workaround' acceptable). Used sparingly when the script's purpose genuinely requires the risky pattern — split assignments and else branches are strongly preferred. Reason-gated doctrine SSoT: ~/.claude/CLAUDE.md § 'Empirically verified bash semantics (probed 2026-08-02)'.
 
@@ -409,14 +410,31 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # SHELL-SAFETY-OK: explain the deliberate exception here in at least 8 characters
 ```
 
+## `SKILL-PLUGIN-ROOT-OK`
+
+| Field                     | Value                                                           |
+| ------------------------- | --------------------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-skill-plugin-root-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                |
+| **Window-semantics mode** | `FILE_WIDE`                                                     |
+| **Reason policy**         | Reason required after colon — minimum 10 characters             |
+
+**What it does**: Allow skill markdown (any `.md` under a `skills/` directory) to reference `CLAUDE_PLUGIN_ROOT` in a shape the runtime cannot honor — the bare `$CLAUDE_PLUGIN_ROOT` spelling, the `${CLAUDE_PLUGIN_ROOT:-fallback}` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., `SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.
+
+**Example usage**:
+
+```
+# SKILL-PLUGIN-ROOT-OK: explain the deliberate exception here in at least 10 characters
+```
+
 ## `SSoT-OK`
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-version-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
+| Field                     | Value                                                 |
+| ------------------------- | ----------------------------------------------------- |
+| **Consumer hook**         | `plugins/itp-hooks/hooks/pretooluse-version-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                      |
+| **Window-semantics mode** | `FILE_WIDE`                                           |
+| **Reason policy**         | Bare marker accepted (no reason required)             |
 
 **What it does**: Allow a hardcoded version string (e.g., `v1.2.3`) in a markdown file that the version-guard would otherwise block as a single-source-of-truth violation. Mixed-case spelling `SSoT-OK` is grandfathered (NOT renamed to `SSOT-OK`) because operators have been using this exact spelling since the version-guard was first authored.
 
@@ -432,11 +450,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `ESCAPE-HATCH-AUDIT-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                       |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                    |
 
 **What it does**: Opt out of the iter-110 STRICT-BLOCK escape-hatch-marker detection invariant for a specific hook source file. This invariant enforces that every consumer hook in the canonical cohort routes its marker detection through the iter-107 shared helper. Use this opt-out ONLY for a documented architectural exception (e.g., a future hook that must use bash-grep detection rather than the helper for performance-critical reasons in a verified hot path). Requires ≥10-character justification after the colon.
 
@@ -448,11 +466,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `HOOK-OUTPUT-SIZE-CAP-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                                                                                    |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                                                                                         |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                                                                                      |
 
 **What it does**: Opt out of the iter-105 marketplace-wide unbounded-emission truncation-helper invariant for a specific PreToolUse or PostToolUse hook classifier. The invariant enforces that every classifier wraps its decision-reason output through the iter-106 canonical truncation helper to stay below Claude's 10,000-character hook-output file-spillover threshold. Use this opt-out for classifiers whose reason emission is provably bounded by a smaller invariant (e.g., a 500-char fixed-format message). Requires ≥10-character justification.
 
@@ -464,11 +482,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `MATCHER-NO-MULTIEDIT-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                                                                |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                                                             |
 
 **What it does**: Opt out of the iter-101 matcher-hygiene invariant for a specific hook entry. The invariant enforces that any hook matcher containing `Write|Edit` also includes `MultiEdit` (because MultiEdit is a distinct tool name in the Claude Code tool schema — pre-iter-100 hooks that matched `Write|Edit` silently skipped MultiEdit invocations). Use this opt-out for the rare hook that deliberately ignores MultiEdit (e.g., a hook that only operates on single-file Write operations and has no semantic for batch edits). Requires ≥10-character justification.
 
@@ -480,11 +498,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `ORDERING-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                            |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                         |
 
 **What it does**: Opt out of the iter-61 pueue-wrap-guard last-entry ordering invariant for a specific hook entry. The invariant enforces that `pretooluse-pueue-wrap-guard.ts` is the LAST PreToolUse Bash-matcher entry in any `hooks.json`, mitigating GitHub anthropics/claude-code#15897 (multi-hook updatedInput aggregation last-writer-wins bug). Use this opt-out only when a downstream PreToolUse hook MUST run after pueue-wrap-guard (rare). Requires ≥10-character justification.
 
@@ -496,11 +514,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `POSTTOOLUSE-RAW-STDOUT-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                                                    |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                                                 |
 
 **What it does**: Opt out of the iter-99 raw-stdout-emission invariant for a specific PostToolUse TypeScript hook. The invariant enforces that PostToolUse hooks emit ONLY decision-JSON to stdout (per the official Anthropic schema, non-JSON stdout from PostToolUse is silently dropped from Claude's context and only reaches operator transcripts). Use this opt-out for hooks that emit raw stdout INTENTIONALLY as transcript-only debug output (e.g., the iter-66 Stop-orchestrator stderr-aggregation path). Requires ≥10-character justification.
 
@@ -512,11 +530,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `SPAWN-SYNC-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                 |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                              |
 
 **What it does**: Opt out of the iter-94 no-Bun.spawnSync invariant for a specific PostToolUse orchestrator subhook. The invariant enforces that classifiers inlined into the iter-93 PostToolUse multi-aggregation orchestrator use `Bun.spawn` (async) rather than `Bun.spawnSync` — the latter halts the JS event loop and defeats `Promise.all` parallelism (per Bun docs + 2026 community guidance). Use this opt-out for subhooks where a verified architectural constraint requires synchronous semantics. Requires ≥10-character justification.
 
@@ -528,11 +546,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `STOP-HOOK-ADDITIONAL-CONTEXT-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                                                    |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                                                 |
 
 **What it does**: Opt out of the iter-67 / iter-68 / iter-69 Stop/SubagentStop/SessionEnd/PreCompact/Notification additionalContext-emission silent-drop pentad invariant for a specific hook source file. The invariant enforces that the five lifecycle-tail event types emit ONLY {decision, reason} per the official Anthropic schema (additionalContext from these events is silently read by NO consumer and dropped from Claude's context). Use this opt-out for hooks that emit additionalContext INTENTIONALLY to make iter-66-style stderr-route output explicit. Requires ≥10-character justification.
 
@@ -544,11 +562,11 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 ## `WILDCARD-MATCHER-OK` (audit-task)
 
-| Field | Value |
-| ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
+| Field                     | Value                                                                                                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Consumer audit task**   | `.mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE`                                                                                                                                                                                      |
+| **Reason policy**         | Reason required after colon — minimum 10 characters                                                                                                                                                   |
 
 **What it does**: Opt out of the iter-65 wildcard-matcher invariant for a specific Pre/PostToolUse hook entry. The invariant enforces that no hook matcher is `*` or null (because wildcard matchers cold-start bun on every tool call, costing ~12-17ms CPU/latency per non-meaningful invocation — measured by the iter-80 bun-startup-floor profiler). Use this opt-out for hooks that legitimately need to fire on every tool call regardless of tool name (rare; usually a more specific matcher exists). Requires ≥10-character justification.
 
