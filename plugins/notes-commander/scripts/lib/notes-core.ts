@@ -32,6 +32,34 @@ export function escapeHtml(s: string): string {
 }
 
 /**
+ * Markdown inline link `[label](url)` — the ONLY markup this formatter turns into real HTML.
+ *
+ * Notes stores a genuine link attribute when the AppleScript `body` SETTER is handed an `<a
+ * href>` (verified 2026-08-05 against the NoteStore.sqlite protobuf: the href lands in the
+ * attribute run while the visible text run holds only the label). The `body` GETTER, however,
+ * strips every anchor down to `<u>label</u>` — so a read-back can confirm the LABEL survived but
+ * can NEVER confirm the URL did. Read-back verification is therefore link-blind by construction;
+ * do not "fix" it by asserting hrefs appear in the getter output, they never will.
+ *
+ * Scheme allow-list is deliberate: an unrecognised scheme (`javascript:`, `data:`, a bare path)
+ * renders as literal text rather than becoming a live link in a document a human will click.
+ */
+const INLINE_LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
+
+/** PURE, TESTED: escape a line for Notes HTML, promoting `[label](url)` to a real anchor. */
+export function renderInline(s: string): string {
+	let out = "";
+	let last = 0;
+	for (const m of s.matchAll(INLINE_LINK_RE)) {
+		const at = m.index ?? 0;
+		out += escapeHtml(s.slice(last, at));
+		out += `<a href="${escapeHtml(m[2])}">${escapeHtml(m[1])}</a>`;
+		last = at + m[0].length;
+	}
+	return out + escapeHtml(s.slice(last));
+}
+
+/**
  * A Notes note id looks like `x-coredata://<store-uuid>/ICNote/p123`. Creation asserts the
  * returned value is one of these — on macOS 26 `osascript` can exit 0 yet not create the note
  * (a silent AppleEvent no-op), returning "" / "missing value" / an error string instead.
@@ -230,13 +258,13 @@ function renderTextBlock(lines: string[]): string[] {
 		const firstMarker = p.findIndex((l) => LIST_RE.test(l));
 		if (firstMarker > 0) {
 			// lead-in prose, then the list
-			html.push(`<div>${escapeHtml(reflowJoin(p.slice(0, firstMarker)))}</div>`);
+			html.push(`<div>${renderInline(reflowJoin(p.slice(0, firstMarker)))}</div>`);
 			html.push(...renderListItems(p.slice(firstMarker)));
 		} else if (firstMarker === 0) {
 			html.push(...renderListItems(p));
 		} else {
 			// prose: reflow the whole paragraph into ONE line — Notes wraps it naturally
-			html.push(`<div>${escapeHtml(reflowJoin(p))}</div>`);
+			html.push(`<div>${renderInline(reflowJoin(p))}</div>`);
 		}
 		html.push("<div><br></div>");
 	}
@@ -256,7 +284,7 @@ function renderListItems(lines: string[]): string[] {
 		}
 	}
 	if (item.length) items.push(item);
-	return items.map((it) => `<div>${escapeHtml(reflowJoin(it))}</div>`);
+	return items.map((it) => `<div>${renderInline(reflowJoin(it))}</div>`);
 }
 
 /**
