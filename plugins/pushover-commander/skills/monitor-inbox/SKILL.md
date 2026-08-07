@@ -17,7 +17,7 @@ Model = **on-demand pull** (run `pull` when asked; no background daemon).
 ## Commands
 
 ```bash
-CORE="${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_inbox.ts"
+CORE="$(cc-plugin-root pushover-commander)/skills/_lib/pushover_inbox.ts"
 
 # One-time, INTERACTIVE — mints a receive-device. Prompts for the Pushover ACCOUNT
 # email + password (password is MASKED, used once in-memory, NEVER stored). Only the

@@ -5,6 +5,15 @@ allowed-tools: Bash, Read, Write, AskUserQuestion
 disable-model-invocation: false
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # Telegram CLI Setup
 
 One-time (or re-)authentication of a personal Telegram account for the GramJS CLI.
@@ -20,7 +29,8 @@ implementation in 2026-06; old `~/.local/share/telethon/*.session` files are not
 reused — accounts log in once more here.)
 
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 ```
 
 ## Profiles

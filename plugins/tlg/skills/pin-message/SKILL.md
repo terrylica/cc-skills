@@ -19,7 +19,8 @@ Pin or unpin messages in chats, groups, and channels.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Pin a message (with notification)
 bun "$SCRIPT" pin <chat> <message_id>

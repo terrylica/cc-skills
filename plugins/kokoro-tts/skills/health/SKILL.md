@@ -25,8 +25,8 @@ Run 6 health checks to verify the Kokoro TTS engine installation.
 ## Execution
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --health
 ```
 
 ## Failure Recommendations
@@ -44,7 +44,6 @@ bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
 | ----------------- | -------------- | ------------------------------------------------ |
 | All checks fail   | Not installed  | Run `/kokoro-tts:install` first                  |
 | Only import fails | Venv corrupted | `kokoro-install.sh --uninstall` then `--install` |
-
 
 ## Post-Execution Reflection
 

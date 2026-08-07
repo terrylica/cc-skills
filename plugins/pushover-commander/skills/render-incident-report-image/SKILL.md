@@ -19,7 +19,7 @@ Render a clean monospace report PNG via the TS core `pushover_core.ts render` (S
 ## Usage
 
 ```bash
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" render \
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" render \
   --in report.txt --out /tmp/report.png            # or: cat report.txt | bun .../pushover_core.ts render --out /tmp/report.png
 # then attach with send-notification --attach /tmp/report.png
 ```

@@ -47,8 +47,9 @@ Options:
 IDLE_THRESHOLD="${1:-30}"
 ZSTD_LEVEL="${2:-3}"
 
-TEMPLATE_PATH="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/asciinema-tools}/scripts/asciinema-chunker.plist.template"
-DAEMON_PATH="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/asciinema-tools}/scripts/idle-chunker-daemon.sh"
+PLUGIN_ROOT="$(cc-plugin-root asciinema-tools)"
+TEMPLATE_PATH="$PLUGIN_ROOT/scripts/asciinema-chunker.plist.template"
+DAEMON_PATH="$PLUGIN_ROOT/scripts/idle-chunker-daemon.sh"
 PLIST_PATH="$HOME/Library/LaunchAgents/com.cc-skills.asciinema-chunker.plist"
 
 # Validate required files exist

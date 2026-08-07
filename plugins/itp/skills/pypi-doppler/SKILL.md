@@ -65,8 +65,8 @@ This skill provides **local-only PyPI publishing** using Doppler for secure cred
 
 ```bash
 /usr/bin/env bash << 'DOPPLER_EOF'
-# Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+# Resolve plugin root using cc-plugin-root helper
+PLUGIN_DIR="$(cc-plugin-root itp)"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
 DOPPLER_EOF
@@ -163,8 +163,8 @@ git pull origin main
 
 ```bash
 /usr/bin/env bash << 'GIT_EOF'
-# First time: copy script from skill to your project (environment-agnostic)
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+# First time: copy script from skill to your project (resolve plugin root via cc-plugin-root)
+PLUGIN_DIR="$(cc-plugin-root itp)"
 cp "$PLUGIN_DIR/skills/pypi-doppler/scripts/publish-to-pypi.sh" scripts/
 chmod +x scripts/publish-to-pypi.sh
 

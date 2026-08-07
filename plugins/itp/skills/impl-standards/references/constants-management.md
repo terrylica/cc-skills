@@ -93,9 +93,9 @@ For version management, delegate to the repo's mise release pipeline (`mise run 
 Before release, audit for hardcoded values:
 
 ```bash
-# Requires CLAUDE_PLUGIN_ROOT to be set (available in plugin context)
-# For manual runs, set to your plugin installation directory
-uv run --script "$CLAUDE_PLUGIN_ROOT/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
+# Resolve plugin root using cc-plugin-root helper
+ROOT="$(cc-plugin-root itp)"
+uv run --script "$ROOT/skills/code-hardcode-audit/scripts/audit_hardcodes.py" -- src/
 ```
 
 See [`code-hardcode-audit` skill](../../code-hardcode-audit/SKILL.md) for details.

@@ -29,7 +29,8 @@ wires their own 1Password item + Pushover account. See
 
    ```bash
    mkdir -p ~/.claude/pushover-commander.private
-   cp "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover-commander.local.env.example" \
+   ROOT="$(cc-plugin-root pushover-commander)"
+   cp "$ROOT/skills/_lib/pushover-commander.local.env.example" \
       ~/.claude/pushover-commander.private/pushover-commander.local.env
    chmod 600 ~/.claude/pushover-commander.private/pushover-commander.local.env
    # edit it: set PUSHOVER_OP_VAULT + PUSHOVER_OP_ITEM (your 1Password item)
@@ -38,13 +39,15 @@ wires their own 1Password item + Pushover account. See
 2. **TS core deps** (for send / render / emergency):
 
    ```bash
-   cd "${CLAUDE_PLUGIN_ROOT}/skills/_lib" && bun install
+   ROOT="$(cc-plugin-root pushover-commander)"
+   cd "$ROOT/skills/_lib" && bun install
    ```
 
 3. **Send a test:**
 
    ```bash
-   env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" \
+   ROOT="$(cc-plugin-root pushover-commander)"
+   env -u HTTPS_PROXY -u HTTP_PROXY bun "$ROOT/skills/_lib/pushover_core.ts" \
      send --message "hello from pushover-commander" --title test
    ```
 

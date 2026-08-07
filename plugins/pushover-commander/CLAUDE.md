@@ -48,11 +48,11 @@ website-only action. To mint one programmatically:
 
 ```bash
 # creds come from your private config via resolve_pushover_secret.sh
-export PO_EMAIL="$(bash skills/_lib/resolve_pushover_secret.sh login_email)"
-export PO_PW="$(bash skills/_lib/resolve_pushover_secret.sh login_password)"
-export PO_USER="$(bash skills/_lib/resolve_pushover_secret.sh user_key)"
+export PO_EMAIL="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_email)"
+export PO_PW="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_password)"
+export PO_USER="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" user_key)"
 env -u HTTPS_PROXY -u HTTP_PROXY \
-  bun skills/_lib/pushover_headless_web_control.ts create-app --name "my-app" --reveal
+  bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_headless_web_control.ts" create-app --name "my-app" --reveal
 ```
 
 Drives system Chrome via Playwright; pushover.net login is plain email/password

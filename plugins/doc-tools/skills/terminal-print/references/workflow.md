@@ -141,7 +141,7 @@ The PostScript Level 3 interpreter on the same printer is reliable. `socket://IP
 ### Setup the bypass queue (one-time)
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/setup-socket-9100-queue.sh"
+"$(cc-plugin-root doc-tools)/skills/terminal-print/assets/setup-socket-9100-queue.sh"
 ```
 
 The script auto-discovers the printer via Bonjour, probes TCP/9100, and creates a CUPS queue named `HP_3101_PS9100` with the `Generic PostScript Printer` PPD. See [airprint-blank-page-troubleshooting.md](airprint-blank-page-troubleshooting.md) for the full diagnostic protocol.

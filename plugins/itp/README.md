@@ -1,9 +1,9 @@
 # ITP Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-11-blue.svg)]()
-[![Commands](https://img.shields.io/badge/Commands-4-green.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-11-blue.svg)](<>)
+[![Commands](https://img.shields.io/badge/Commands-4-green.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 Execute approved plans from Claude Code's **Plan Mode** through an ADR-driven 4-phase workflow: preflight → implementation → formatting → release.
 
@@ -449,9 +449,17 @@ cpanm Graph::Easy
 
 After manual installation, restart Claude Code for skills to be discovered.
 
-### ${CLAUDE_PLUGIN_ROOT} not set
+### ${CLAUDE_PLUGIN_ROOT} not available in skills
 
-For manual installation, use `~/.claude/` paths. The `${CLAUDE_PLUGIN_ROOT}` variable is only available in plugin context.
+For skills, use the `cc-plugin-root` helper instead. The `${CLAUDE_PLUGIN_ROOT}` variable is only substituted in plugin manifests (`hooks.json`, `.mcp.json`), not in SKILL.md or shell commands run from skills.
+
+**In a skill**, resolve the plugin path via:
+
+```bash
+PLUGIN_DIR="$(cc-plugin-root itp)"
+```
+
+For manual installation without the marketplace, use `~/.claude/` paths directly.
 
 ### Permission errors with npm
 

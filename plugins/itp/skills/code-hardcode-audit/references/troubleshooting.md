@@ -55,8 +55,8 @@ Error: Semgrep rules not found: /path/to/assets/semgrep-hardcode-rules.yaml
 
 ```bash
 /usr/bin/env bash << 'TROUBLESHOOTING_SCRIPT_EOF'
-# Environment-agnostic path
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+# Resolve plugin root using cc-plugin-root helper
+PLUGIN_DIR="$(cc-plugin-root itp)"
 ls "$PLUGIN_DIR/skills/code-hardcode-audit/assets/semgrep-hardcode-rules.yaml"
 TROUBLESHOOTING_SCRIPT_EOF
 ```

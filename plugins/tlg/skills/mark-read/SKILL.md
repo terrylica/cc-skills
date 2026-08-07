@@ -19,7 +19,8 @@ Mark all messages in a chat as read, clearing unread badges and mentions.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Mark a chat as read
 bun "$SCRIPT" mark-read <chat_id_or_username>

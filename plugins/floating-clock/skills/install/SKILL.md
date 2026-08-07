@@ -4,6 +4,15 @@ description: "Build FloatingClock from source and install to /Applications, then
 allowed-tools: Bash
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # /floating-clock:install
 
 Install the FloatingClock macOS app from this plugin's source to `/Applications/` so it's available from Spotlight, Launchpad, and Finder.
@@ -15,7 +24,7 @@ Install the FloatingClock macOS app from this plugin's source to `/Applications/
 1. Resolve plugin root:
 
    ```bash
-   PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/floating-clock}"
+   PLUGIN_ROOT="$(cc-plugin-root floating-clock)"
    if [ ! -f "$PLUGIN_ROOT/Makefile" ]; then
      echo "ERROR: plugin root not found at $PLUGIN_ROOT" >&2
      exit 1

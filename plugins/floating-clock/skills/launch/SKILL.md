@@ -19,7 +19,7 @@ if [ -d /Applications/FloatingClock.app ]; then
   open /Applications/FloatingClock.app
   echo "Launched from /Applications/"
 else
-  PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/floating-clock}"
+  PLUGIN_ROOT="$(cc-plugin-root floating-clock)"
   LOCAL_APP="$PLUGIN_ROOT/build/FloatingClock.app"
   if [ -d "$LOCAL_APP" ]; then
     open "$LOCAL_APP"

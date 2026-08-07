@@ -62,8 +62,8 @@ Tailscale terminates TLS automatically using its own MagicDNS cert.
 ### Per-repo setup (one command)
 
 ```bash
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-bash "$PLUGIN/skills/page-template/scripts/install.sh"
+ROOT="$(cc-plugin-root html-showcase)"
+bash "$ROOT/skills/page-template/scripts/install.sh"
 ```
 
 That's it. `install.sh` is the one-shot bootstrap: it copies the three
@@ -89,9 +89,10 @@ That additionally copies `templates/index.html`,
 If you'd rather copy by hand, the four-line manual form still works:
 
 ```bash
-cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py ./scripts/
-cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/check-orphan-pages.py ./scripts/
-cp $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/site.sh ./scripts/
+ROOT="$(cc-plugin-root html-showcase)"
+cp "$ROOT/skills/page-template/scripts/build-nav.py" ./scripts/
+cp "$ROOT/skills/page-template/scripts/check-orphan-pages.py" ./scripts/
+cp "$ROOT/skills/page-template/scripts/site.sh" ./scripts/
 echo '**/.published.json' >> .gitignore
 ```
 

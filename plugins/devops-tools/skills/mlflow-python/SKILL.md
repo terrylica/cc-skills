@@ -54,7 +54,8 @@ export MLFLOW_TRACKING_PASSWORD="<password>"
 
 ```bash
 /usr/bin/env bash << 'SKILL_SCRIPT_EOF'
-cd ${CLAUDE_PLUGIN_ROOT}/skills/mlflow-python
+ROOT="$(cc-plugin-root devops-tools)"
+cd "$ROOT/skills/mlflow-python"
 uv run scripts/query_experiments.py experiments
 SKILL_SCRIPT_EOF
 ```
@@ -65,7 +66,8 @@ SKILL_SCRIPT_EOF
 
 ```bash
 /usr/bin/env bash << 'SKILL_SCRIPT_EOF_2'
-cd ${CLAUDE_PLUGIN_ROOT}/skills/mlflow-python
+ROOT="$(cc-plugin-root devops-tools)"
+cd "$ROOT/skills/mlflow-python"
 uv run scripts/log_backtest.py \
   --experiment "crypto-backtests" \
   --run-name "btc_momentum_v2" \
@@ -176,7 +178,6 @@ See [migration-from-cli.md](./references/migration-from-cli.md) for detailed map
 | Run creation fails      | Experiment doesn't exist     | Use `create_experiment.py` to create first          |
 | Metric history empty    | Wrong run_id or metric name  | Verify run_id with `query_experiments.py runs`      |
 | Returns CSV parse error | Wrong date format or columns | Check CSV has date index and returns column         |
-
 
 ## Post-Execution Reflection
 

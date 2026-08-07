@@ -6,6 +6,15 @@ argument-hint: "[--site <name>] [--force] [--repo <path>]"
 disable-model-invocation: false
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # /html-showcase:setup — install the pipeline into a repo
 
 > **Self-Evolving Skill**: If a step here is wrong or a workaround was needed, fix this file immediately, don't defer. Only update for real, reproducible issues.
@@ -53,8 +62,8 @@ The skill follows the four-phase setup pattern used by other cc-skills plugins (
 Resolve the install script and run `--check` to see what's missing without writing anything.
 
 ```bash
-INSTALL="${CLAUDE_PLUGIN_ROOT}/skills/page-template/scripts/install.sh"
-[[ -f "$INSTALL" ]] || INSTALL="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase/skills/page-template/scripts/install.sh"
+ROOT="$(cc-plugin-root html-showcase)"
+INSTALL="$ROOT/skills/page-template/scripts/install.sh"
 
 bash "$INSTALL" --check
 ```

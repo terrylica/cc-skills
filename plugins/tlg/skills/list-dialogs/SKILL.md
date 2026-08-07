@@ -19,7 +19,8 @@ List all chats, groups, and channels visible to your personal Telegram account.
 
 ```bash
 /usr/bin/env bash << 'DIALOGS_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Default profile
 bun "$SCRIPT" dialogs

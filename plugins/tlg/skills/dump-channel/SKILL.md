@@ -20,7 +20,8 @@ Archive a complete Telegram channel/group/chat to NDJSON + downloaded media file
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Full dump: NDJSON + all media (photos, videos, documents)
 bun "$SCRIPT" dump @ChannelName ./output/ChannelName
@@ -66,7 +67,7 @@ Each line is a JSON object with these fields:
 | `date`            | string      | ISO 8601 timestamp with timezone                |
 | `text`            | string/null | Full message text (no truncation)               |
 | `has_media`       | bool        | Whether message contains media                  |
-| `media_type`      | string/null | GramJS class name (MessageMediaPhoto, etc.)   |
+| `media_type`      | string/null | GramJS class name (MessageMediaPhoto, etc.)     |
 | `media_file`      | string/null | Filename in media/ dir (e.g., "6.jpg")          |
 | `views`           | int/null    | View count (channels only)                      |
 | `forwards`        | int/null    | Forward count                                   |
