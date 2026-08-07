@@ -9,6 +9,7 @@
  */
 import { expect, test } from "bun:test";
 import {
+	renderInline,
 	bodyToHtml,
 	contentPresent,
 	entityLeaks,
@@ -327,4 +328,52 @@ test("terminateLegacyEntities leaves entity-free text untouched", () => {
 	expect(terminateLegacyEntities("plain; text with no entities")).toBe(
 		"plain; text with no entities",
 	);
+});
+
+// ── inline markdown links ─────────────────────────────────────────────────────
+// Notes' AppleScript `body` SETTER stores a real link attribute for `<a href>`; the GETTER
+// strips it to `<u>label</u>`. So these tests are the ONLY place the href is observable —
+// a live read-back can never confirm it (verified 2026-08-05 against NoteStore.sqlite).
+
+test("renderInline promotes [label](url) to a real anchor", () => {
+	expect(renderInline("see [#470](https://github.com/o/r/pull/470) now")).toBe(
+		'see <a href="https://github.com/o/r/pull/470">#470</a> now',
+	);
+});
+
+test("renderInline handles several links on one line and keeps surrounding text", () => {
+	expect(renderInline("[a](https://x.test/1) and [b](https://x.test/2).")).toBe(
+		'<a href="https://x.test/1">a</a> and <a href="https://x.test/2">b</a>.',
+	);
+});
+
+test("renderInline still escapes HTML outside and inside the label", () => {
+	expect(renderInline('a < b & [x"y](https://x.test/p)')).toBe(
+		'a &lt; b &amp; <a href="https://x.test/p">x&quot;y</a>',
+	);
+});
+
+test("renderInline refuses non-http(s)/mailto schemes, rendering them as literal text", () => {
+	// A live `javascript:` link in a document a human will click is the failure this prevents.
+	expect(renderInline("[click](javascript:alert(1))")).toBe(
+		"[click](javascript:alert(1))",
+	);
+	expect(renderInline("[f](file:///etc/passwd)")).toBe("[f](file:///etc/passwd)");
+	expect(renderInline("[rel](/local/path)")).toBe("[rel](/local/path)");
+});
+
+test("renderInline leaves ordinary brackets and bare URLs alone", () => {
+	expect(renderInline("array[0] and https://x.test/bare")).toBe(
+		"array[0] and https://x.test/bare",
+	);
+});
+
+test("bodyToHtml links inside list items and prose, but NOT inside a fence", () => {
+	const html = bodyToHtml(
+		"- ref [#470](https://x.test/470)\n\n```\nliteral [#470](https://x.test/470)\n```",
+	);
+	expect(html).toContain('<a href="https://x.test/470">#470</a>');
+	// the fenced copy must survive as visible characters, not become a second anchor
+	expect(html).toContain("[#470](https://x.test/470)");
+	expect(html.match(/<a href=/g)?.length).toBe(1);
 });
