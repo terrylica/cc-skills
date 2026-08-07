@@ -1,0 +1,35 @@
+# Prettier exclusions.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# GENERATED ARTIFACTS UNDER A BYTE-COMPARISON DRIFT GATE
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# These files are emitted by a generator and then byte-compared against a fresh
+# regeneration by a release gate. Their generators do not emit prettier-styled
+# output, so formatting them makes the gate fail on the NEXT regeneration —
+# the artifact on disk would no longer equal what the generator produces.
+#
+# This bit us on 2026-08-05: a formatter pass prettified the marker reference
+# after it was regenerated, and four generator tests plus the release preflight
+# went red for a reason that had nothing to do with the change under test.
+#
+# If you add a generated artifact with a drift gate, add it here in the same
+# commit as the generator.
+
+# Generator: scripts/cli_spec.py  ·  Gate: `mise run cli-spec-check`
+cli_spec.json
+
+# Generator: .mise/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh
+# Gate: iter-113 byte-identical regeneration test + preflight Check 4u
+docs/marketplace-escape-hatch-marker-reference.md
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BUILD / VENDOR OUTPUT
+# ─────────────────────────────────────────────────────────────────────────────
+
+node_modules/
+.build/
+dist/
+graphify-out/
+*.lock
+bun.lock
