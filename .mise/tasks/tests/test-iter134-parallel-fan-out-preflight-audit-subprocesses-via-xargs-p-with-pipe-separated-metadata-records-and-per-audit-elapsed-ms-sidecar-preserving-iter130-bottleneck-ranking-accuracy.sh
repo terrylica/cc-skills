@@ -120,15 +120,24 @@ assert_substring_present \
 
 # Count the records by counting `|<TASK-NAME>|` patterns (each record has
 # exactly two PIPEs: between key+task and between task+extra-args).
-# Use awk to count occurrences of the canonical record opening for ALL 17
+# Use awk to count occurrences of the canonical record opening for ALL
 # audit keys to verify the array hasn't been truncated.
+#
+# Expected count was 17 until 2026-08-05, when Check 4k (the iter-77
+# L3-stripped-path audit) was retired: the L2→L3 cache populator no longer
+# strips anything, so the gate could only ever reject correct code. Its
+# record is left commented in the array with the evidence. If you retire or
+# add a batch audit, update this number IN THE SAME COMMIT — a stale count
+# here fails the whole release preflight, and the failure message points at
+# the array rather than at your change.
+readonly ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT=16
 iter134_metadata_record_count_actual=$(echo "$preflight_script_source" | grep -cE '^[[:space:]]+"[a-z][a-z0-9-]+\|audit-|^[[:space:]]+"iter[0-9]+[a-z-]*\|(audit-|generate-)')
-if [[ "$iter134_metadata_record_count_actual" -eq 17 ]]; then
+if [[ "$iter134_metadata_record_count_actual" -eq "$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Tier 1.B3: iter-134 metadata array has exactly 17 records (all Checks 4f-4v covered)"
+    echo "  ✓ PASS: Tier 1.B3: iter-134 metadata array has exactly $ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT records (all batch Checks covered)"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-    echo "  ✗ FAIL: Tier 1.B3: iter-134 metadata array record count mismatch (expected 17, got $iter134_metadata_record_count_actual)"
+    echo "  ✗ FAIL: Tier 1.B3: iter-134 metadata array record count mismatch (expected $ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT, got $iter134_metadata_record_count_actual)"
 fi
 
 # ─── Tier 1.C: xargs worker uses cut -d"|" (not default TAB) ─────────────
@@ -172,9 +181,9 @@ assert_substring_present \
 iter134_exit_checker_callsite_count=$(grep -cF '__iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file' "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH")
 # Subtract 1 for the function definition itself (it appears in its own header).
 iter134_exit_checker_callsite_count=$((iter134_exit_checker_callsite_count - 1))
-if [[ "$iter134_exit_checker_callsite_count" -ge 17 ]]; then
+if [[ "$iter134_exit_checker_callsite_count" -ge "$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Tier 1.E1: iter-134 exit-code checker called from $iter134_exit_checker_callsite_count callsites (≥17 = all Checks 4f-4v use the helper)"
+    echo "  ✓ PASS: Tier 1.E1: iter-134 exit-code checker called from $iter134_exit_checker_callsite_count callsites (≥$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT = every batch Check uses the helper)"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
     echo "  ✗ FAIL: Tier 1.E1: iter-134 exit-code checker callsite count below threshold (expected ≥17, got $iter134_exit_checker_callsite_count)"
@@ -182,12 +191,12 @@ fi
 
 iter134_timing_seed_callsite_count=$(grep -cF '__iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elapsed_ms_sidecar_file' "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH")
 iter134_timing_seed_callsite_count=$((iter134_timing_seed_callsite_count - 1))
-if [[ "$iter134_timing_seed_callsite_count" -ge 17 ]]; then
+if [[ "$iter134_timing_seed_callsite_count" -ge "$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Tier 1.E2: iter-134 timing-seed helper called from $iter134_timing_seed_callsite_count callsites (≥17 = iter-130 ranking accuracy preserved)"
+    echo "  ✓ PASS: Tier 1.E2: iter-134 timing-seed helper called from $iter134_timing_seed_callsite_count callsites (≥$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT = iter-130 ranking accuracy preserved)"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-    echo "  ✗ FAIL: Tier 1.E2: iter-134 timing-seed helper callsite count below threshold (expected ≥17, got $iter134_timing_seed_callsite_count)"
+    echo "  ✗ FAIL: Tier 1.E2: iter-134 timing-seed helper callsite count below threshold (expected ≥$ITER134_EXPECTED_PARALLEL_BATCH_AUDIT_RECORD_COUNT, got $iter134_timing_seed_callsite_count)"
 fi
 
 # ─── Tier 1.F: adaptive lane heuristic preserves iter-128 invariants ─────
@@ -247,25 +256,31 @@ else
         "$iter135_preflight_integration_output" \
         "Top 10 slowest preflight checks"
 
-    # Tier 2.C: every Check 4f-4v reports >50ms (proving timing-seed worked).
-    # If the seed helper broke, all Check 4f-4v would report ~1ms (just the
-    # sidecar-read post-processing time). We verify that Check 4k (typically
-    # the slowest single audit at ~370-510ms) reports >100ms.
-    # Regex defensive: `grep -oE '[0-9]+'` matches BOTH the elapsed-ms number
-    # AND the `4` in `Check 4k`. Trailing `head -1` extracts only the first
-    # (which is the elapsed-ms — the ranking line emits "Check 4k:" AFTER
-    # the "phase elapsed: NNNms" prefix). Don't simplify away the final head -1.
-    iter135_check_4k_elapsed_ms_extracted=$(echo "$iter135_preflight_integration_output" \
-        | grep -oE 'phase elapsed: [0-9]+ms \(Check 4k:' \
-        | head -1 \
+    # Tier 2.C: at least one parallel-batch Check reports >100ms, proving the
+    # timing-seed helper worked. If the seed broke, EVERY batch member would
+    # report ~1ms (just the sidecar-read post-processing time).
+    #
+    # 2026-08-05: this assertion used to name Check 4k specifically, because it
+    # was the slowest single audit (~370-510ms). Check 4k was then retired (its
+    # premise — that the L2→L3 cache populator strips non-allowlisted subtrees —
+    # no longer holds), and this test failed for a reason unrelated to what it
+    # exists to prove. Anchoring a timing assertion to one named check makes the
+    # test brittle against exactly the kind of cleanup we want to stay cheap.
+    #
+    # It now takes the MAX across every `Check 4<letter>` in the batch, so
+    # retiring or reordering any single check cannot break it.
+    iter135_slowest_batch_check_elapsed_ms=$(echo "$iter135_preflight_integration_output" \
+        | grep -oE 'phase elapsed: [0-9]+ms \(Check 4[a-z]:' \
+        | grep -oE 'elapsed: [0-9]+ms' \
         | grep -oE '[0-9]+' \
-        | head -1)
-    if [[ -n "$iter135_check_4k_elapsed_ms_extracted" ]] && [[ "$iter135_check_4k_elapsed_ms_extracted" -gt 100 ]]; then
+        | sort -n \
+        | tail -1)
+    if [[ -n "$iter135_slowest_batch_check_elapsed_ms" ]] && [[ "$iter135_slowest_batch_check_elapsed_ms" -gt 100 ]]; then
         ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-        echo "  ✓ PASS: Tier 2.C1: Check 4k elapsed=${iter135_check_4k_elapsed_ms_extracted}ms (>100ms confirms iter-134 timing-seed preserves iter-130 accuracy)"
+        echo "  ✓ PASS: Tier 2.C1: slowest batch Check elapsed=${iter135_slowest_batch_check_elapsed_ms}ms (>100ms confirms iter-134 timing-seed preserves iter-130 accuracy)"
     else
         ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER135_PARALLEL_AUDIT_FAN_OUT_REGRESSION_TEST + 1))
-        echo "  ✗ FAIL: Tier 2.C1: Check 4k elapsed=${iter135_check_4k_elapsed_ms_extracted:-MISSING}ms (expected >100ms; timing-seed may be broken)"
+        echo "  ✗ FAIL: Tier 2.C1: slowest batch Check elapsed=${iter135_slowest_batch_check_elapsed_ms:-MISSING}ms (expected >100ms; timing-seed may be broken)"
     fi
 
     # Tier 2.D: whole-script wall-clock improvement.
