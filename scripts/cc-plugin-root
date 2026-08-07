@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# cc-plugin-root — print the absolute path of an INSTALLED Claude Code plugin.
+#
+# WHY THIS EXISTS
+# ---------------
+# `${CLAUDE_PLUGIN_ROOT}` is NOT a shell environment variable. Claude Code:
+#   * text-substitutes the exact literal `${CLAUDE_PLUGIN_ROOT}` (braces
+#     REQUIRED) inside plugin manifests — hooks/hooks.json, .mcp.json, .lsp.json,
+#     monitor commands; and
+#   * injects CLAUDE_PLUGIN_ROOT into the environment of hook and MCP/LSP
+#     subprocesses it spawns.
+# It is never present in the Bash tool's environment, and a SKILL.md body is
+# served to the model verbatim on the Skill-tool path (no substitution at all).
+# So a skill that writes "$CLAUDE_PLUGIN_ROOT/skills/x/run.sh" expands it to the
+# empty string and calls "/skills/x/run.sh" → exit 127.
+#
+# Globbing the version cache is also wrong: ~/.claude/plugins/cache/<mp>/<plugin>/
+# retains every previously-installed version, and the highest semver directory is
+# frequently an orphaned one. This resolver reads the authoritative install
+# record instead, so it always returns the version Claude Code actually loaded.
+#
+# USAGE
+#   cc-plugin-root <plugin> [marketplace]          # default marketplace: cc-skills
+#   cc-plugin-root --version-of <plugin> [mp]      # print installed version instead
+#
+# Prints the path on stdout and exits 0; on failure prints the reason on stderr
+# and exits non-zero (1 = not installed / bad record, 2 = usage error).
+#
+# Example (in a SKILL.md):
+#   DH="$(cc-plugin-root notes-commander)/skills/draft-hold/draft-hold.sh"
+
+set -euo pipefail
+
+readonly MARKETPLACE_DEFAULT="cc-skills"
+readonly REGISTRY="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/installed_plugins.json"
+
+want_version=false
+if [[ "${1:-}" == "--version-of" ]]; then
+  want_version=true
+  shift
+fi
+
+plugin="${1:-}"
+marketplace="${2:-$MARKETPLACE_DEFAULT}"
+
+if [[ -z "$plugin" ]]; then
+  echo "usage: cc-plugin-root [--version-of] <plugin> [marketplace]" >&2
+  exit 2
+fi
+
+if [[ ! -f "$REGISTRY" ]]; then
+  echo "cc-plugin-root: no plugin registry at $REGISTRY" >&2
+  exit 1
+fi
+
+key="${plugin}@${marketplace}"
+field="installPath"
+if [[ "$want_version" == true ]]; then
+  field="version"
+fi
+
+# Split declaration from assignment so `set -e` still sees the real exit code.
+# The registry is currently {"version": N, "plugins": {"<name>@<mp>": [ ... ]}},
+# but earlier builds stored the "<name>@<mp>" map at the top level. Accept both
+# shapes rather than pinning to one — a schema bump must not silently break
+# every skill's entrypoint resolution.
+value=""
+rc=0
+if command -v jq >/dev/null 2>&1; then
+  value=$(jq -r --arg k "$key" --arg f "$field" \
+    '((.plugins // .)[$k][0][$f]) // empty' "$REGISTRY") || rc=$?
+else
+  value=$(REG="$REGISTRY" KEY="$key" FIELD="$field" python3 -c '
+import json, os, sys
+with open(os.environ["REG"], encoding="utf-8") as fh:
+    data = json.load(fh)
+table = data.get("plugins") if isinstance(data.get("plugins"), dict) else data
+entries = (table or {}).get(os.environ["KEY"]) or []
+sys.stdout.write(str(entries[0].get(os.environ["FIELD"], "")) if entries else "")
+') || rc=$?
+fi
+
+if ((rc != 0)); then
+  echo "cc-plugin-root: failed to read $REGISTRY (exit $rc)" >&2
+  exit 1
+fi
+
+if [[ -z "$value" ]]; then
+  echo "cc-plugin-root: '$key' is not installed (no entry in $REGISTRY)" >&2
+  echo "cc-plugin-root: install it with  /plugin install ${plugin}@${marketplace}" >&2
+  exit 1
+fi
+
+if [[ "$want_version" == true ]]; then
+  printf '%s\n' "$value"
+  exit 0
+fi
+
+if [[ ! -d "$value" ]]; then
+  echo "cc-plugin-root: registry entry for '$key' points at a missing directory:" >&2
+  echo "cc-plugin-root:   $value" >&2
+  echo "cc-plugin-root: reinstall or update the plugin, then retry." >&2
+  exit 1
+fi
+
+printf '%s\n' "$value"
