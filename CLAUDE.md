@@ -114,8 +114,27 @@ cc-skills/
 | `.claude-plugin/marketplace.json`      | Plugin registry (SSoT)                                  |
 | `release.config.cjs`                   | semantic-release config (body-preserving release notes) |
 | `scripts/validate-plugins.mjs`         | Plugin validation                                       |
+| `scripts/cc-plugin-root`               | Resolve a plugin's live install path (see below)        |
 | `scripts/sync-hooks-to-settings.sh`    | Hook synchronization                                    |
 | `scripts/sync-commands-to-settings.sh` | Command synchronization                                 |
+
+## Skills resolve plugin paths with `cc-plugin-root`, never `$CLAUDE_PLUGIN_ROOT`
+
+`CLAUDE_PLUGIN_ROOT` is **not** a shell variable. Claude Code substitutes the exact literal
+`${CLAUDE_PLUGIN_ROOT}` inside plugin _manifests_ (`hooks/hooks.json`, `.mcp.json`, `.lsp.json`) and
+injects it into hook/MCP _subprocess_ environments — it never reaches the Bash tool, and a SKILL.md
+body is served to the model verbatim. A skill that references it gets an empty string.
+
+```bash
+SCRIPT="$(cc-plugin-root <plugin-name>)/skills/<skill>/run.sh"   # in a SKILL.md
+"command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/handler.ts"           # in hooks.json — braced, correct
+```
+
+`scripts/cc-plugin-root` reads `~/.claude/plugins/installed_plugins.json`, so it returns the version
+Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never glob the version cache
+— it retains orphaned versions. Enforced by **skill-plugin-root-guard**; escape `SKILL-PLUGIN-ROOT-OK`.
+
+→ [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md)
 
 ## Link Conventions
 
@@ -129,13 +148,14 @@ cc-skills/
 
 Recurring architectural patterns across the 41 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. (Surfaced by the 2026-07-08 graph-housekeeping audit; deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).)
 
-| Pattern                   | What it is                                                                                                                          | Exemplars to copy                                                                                                                                              |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **setup + health skills** | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                       | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [kokoro-tts](./plugins/kokoro-tts/CLAUDE.md) |
-| **Credential resolution** | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                      | [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [graphify-tools](./plugins/graphify-tools/CLAUDE.md) (fleet-key pattern)                               |
-| **Per-skill CLAUDE.md**   | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
-| **Backend/routing SSoT**  | Plugins with multiple env/endpoint choices centralize them in one `references/*.md`, skills point there                             | [graphify-tools/references/backends.md](./plugins/graphify-tools/references/backends.md)                                                                       |
-| **Evolution log**         | Dated "trigger → fix → evidence" entries at the bottom of a skill/plugin doc, appended not rewritten                                | itp-hooks, minimax, graphify-tools                                                                                                                             |
+| Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [kokoro-tts](./plugins/kokoro-tts/CLAUDE.md) |
+| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [graphify-tools](./plugins/graphify-tools/CLAUDE.md) (fleet-key pattern)                               |
+| **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
+| **Backend/routing SSoT**   | Plugins with multiple env/endpoint choices centralize them in one `references/*.md`, skills point there                                          | [graphify-tools/references/backends.md](./plugins/graphify-tools/references/backends.md)                                                                       |
+| **Evolution log**          | Dated "trigger → fix → evidence" entries at the bottom of a skill/plugin doc, appended not rewritten                                             | itp-hooks, minimax, graphify-tools                                                                                                                             |
+| **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-hold](./plugins/notes-commander/skills/draft-hold/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md)               |
 
 > These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional and validated (graph audit rejected "dedupe the boilerplate" as a false positive). Only `diff`-proven byte-identical logic is real duplication.
 
