@@ -7,6 +7,15 @@ model: haiku
 disable-model-invocation: false
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 > **Navigation**: [Plugin CLAUDE.md](../../CLAUDE.md) | [Root CLAUDE.md](../../../../CLAUDE.md)
 
 # Status Line Setup
@@ -59,7 +68,7 @@ Parse `$ARGUMENTS` and run the management script:
 
 ```bash
 /usr/bin/env bash << 'SETUP_SCRIPT_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools}"
+PLUGIN_DIR="$(cc-plugin-root statusline-tools)"
 ACTION="${ARGUMENTS:-status}"
 bash "$PLUGIN_DIR/scripts/manage-statusline.sh" $ACTION
 SETUP_SCRIPT_EOF

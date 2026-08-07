@@ -228,8 +228,8 @@ telemetry views, weekly digests), the bigblack tailnet path is the
 lowest-friction option. Adopting it in any repo is **one command**:
 
 ```bash
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-bash "$PLUGIN/skills/page-template/scripts/install.sh"
+ROOT="$(cc-plugin-root html-showcase)"
+bash "$ROOT/skills/page-template/scripts/install.sh"
 ```
 
 That installs all three pipeline scripts (`build-nav.py`,
@@ -307,16 +307,17 @@ The fastest path: run the installer to bootstrap the pipeline scripts +
 a starter site, then iterate.
 
 ```bash
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
+ROOT="$(cc-plugin-root html-showcase)"
 
 # 1. Bootstrap the pipeline + starter site directory
-bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
+bash "$ROOT/skills/page-template/scripts/install.sh" --site contractor-site
 
 # 2. (Optional) Add one or more sections under contractor-site/
 mkdir -p contractor-site/2026-05-02-first-section
-cp "$PLUGIN/skills/page-template/templates/section-index.html" \
+ROOT="$(cc-plugin-root html-showcase)"
+cp "$ROOT/skills/page-template/templates/section-index.html" \
    contractor-site/2026-05-02-first-section/index.html
-cp "$PLUGIN/skills/page-template/templates/index.html" \
+cp "$ROOT/skills/page-template/templates/index.html" \
    contractor-site/2026-05-02-first-section/page-a.html
 
 # 3. Fill {{ PLACEHOLDERS }} in the HTML, then build the sitemap + nav
@@ -333,12 +334,12 @@ open contractor-site/site-map.html
 Or, if you'd rather copy the templates by hand without the installer:
 
 ```bash
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
+ROOT="$(cc-plugin-root html-showcase)"
 DEST=/path/to/your-site
 mkdir -p "$DEST"
-cp "$PLUGIN/skills/page-template/templates/index.html"   "$DEST/"
-cp "$PLUGIN/skills/page-template/templates/lychee.toml"  "$DEST/"
-python3 "$PLUGIN/skills/page-template/scripts/build-nav.py" --root "$DEST"
+cp "$ROOT/skills/page-template/templates/index.html"   "$DEST/"
+cp "$ROOT/skills/page-template/templates/lychee.toml"  "$DEST/"
+python3 "$ROOT/skills/page-template/scripts/build-nav.py" --root "$DEST"
 ```
 
 `site.sh` falls back to the plugin-shipped `build-nav.py` when no copy

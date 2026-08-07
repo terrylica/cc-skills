@@ -21,7 +21,7 @@ ToS-gray. See [`skills/send-message/SKILL.md`](skills/send-message/SKILL.md) and
 `scripts/wa-cli.ts` — function/enum-driven **Bun TypeScript** (run directly, no build):
 
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/whatsapp-commander}/scripts/wa-cli.ts"
+SCRIPT="$(cc-plugin-root whatsapp-commander)/scripts/wa-cli.ts"
 bun "$SCRIPT" link "+1 604 816 8818" "message"   # Tier 1 → prints a wa.me URL
 bun "$SCRIPT" send 16048168818 "message"          # Tier 3 → Cloud API (needs env creds)
 ```

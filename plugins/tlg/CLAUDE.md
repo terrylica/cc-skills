@@ -61,7 +61,8 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 ## Quick Reference
 
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Messaging
 bun "$SCRIPT" send <to> "text"

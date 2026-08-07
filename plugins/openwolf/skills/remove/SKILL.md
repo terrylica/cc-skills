@@ -39,7 +39,7 @@ Use AskUserQuestion. List all six removal targets above. Offer:
 ```bash
 PROJECT_ROOT="$(pwd)"
 PROJECT_BASE="$(basename "$PROJECT_ROOT")"
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/openwolf}"
+PLUGIN_DIR="$(cc-plugin-root openwolf)"
 ```
 
 ### Step 3: Run the removal script

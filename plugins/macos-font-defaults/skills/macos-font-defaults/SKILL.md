@@ -4,6 +4,8 @@ description: Set macOS's "user fixed-pitch font" and per-app fixed-width fonts (
 allowed-tools: Bash
 ---
 
+<!-- SKILL-PLUGIN-ROOT-OK: explains why this variable must not be used here -->
+
 # macos-font-defaults — set the system fixed-width font
 
 > **Self-Evolving skill** — if a macOS release changes these defaults keys or Stickies' storage, fix this SKILL.md and `apply.sh`; see the Post-Execution Reflection at the bottom.
@@ -11,7 +13,12 @@ allowed-tools: Bash
 macOS has **no single system-wide monospaced-font setting**. This skill sets the three
 levers that exist, in one idempotent command:
 
-`APPLY="$CLAUDE_PLUGIN_ROOT/skills/macos-font-defaults/apply.sh"`
+Resolve the script first — `$CLAUDE_PLUGIN_ROOT` is NOT a shell variable and expands to empty
+in a Bash call (it exists only inside plugin manifests and hook/MCP subprocesses):
+
+```bash
+APPLY="$(cc-plugin-root macos-font-defaults)/skills/macos-font-defaults/apply.sh"
+```
 
 | Lever                                 | What it controls                                                                                |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------- |

@@ -38,8 +38,8 @@ launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.terryli.kokoro-tts-ser
 ### Step 3: Uninstall
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --uninstall
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --uninstall
 ```
 
 ### Step 4: (Optional) Remove model cache
@@ -59,7 +59,6 @@ rm -f ~/Library/LaunchAgents/com.terryli.kokoro-tts-server.plist
 ## Post-Removal
 
 To reinstall later: `/kokoro-tts:install`
-
 
 ## Post-Execution Reflection
 

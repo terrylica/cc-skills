@@ -19,7 +19,8 @@ Delete one or multiple messages from a chat. By default deletes for everyone.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Delete for everyone (default)
 bun "$SCRIPT" delete <chat> <message_id>

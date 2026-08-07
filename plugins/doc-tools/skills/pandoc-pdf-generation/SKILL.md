@@ -26,7 +26,7 @@ Use this skill when:
 
 ### Single Source of Truth Pattern
 
-This skill provides production-proven assets in `${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/`:
+This skill provides production-proven assets in `$(cc-plugin-root doc-tools)/skills/pandoc-pdf-generation/assets/`:
 
 - `table-spacing-template.tex` - Production-tuned LaTeX preamble (booktabs, colortbl, ToC fixes)
 - `build-pdf.sh` - Universal auto-detecting build script
@@ -36,7 +36,7 @@ This skill provides production-proven assets in `${CLAUDE_PLUGIN_ROOT}/skills/pa
 ```bash
 /usr/bin/env bash << 'DETECT_EOF'
 # Create symlink once per project (git-friendly)
-ln -s ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/build-pdf.sh build-pdf.sh
+ln -s "$(cc-plugin-root doc-tools)/skills/pandoc-pdf-generation/assets/build-pdf.sh" build-pdf.sh
 
 # Auto-detect single .md file in directory (landscape default)
 ./build-pdf.sh
@@ -104,7 +104,7 @@ pandoc document.md \
   --number-sections \
   -V geometry:margin=1in \
   -V mainfont="DejaVu Sans" \
-  -H ${CLAUDE_PLUGIN_ROOT}/skills/pandoc-pdf-generation/assets/table-spacing-template.tex
+  -H "$(cc-plugin-root doc-tools)/skills/pandoc-pdf-generation/assets/table-spacing-template.tex"
 SKILL_SCRIPT_EOF
 ```
 

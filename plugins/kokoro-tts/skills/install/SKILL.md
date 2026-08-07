@@ -4,6 +4,15 @@ description: "Install Kokoro TTS engine on Apple Silicon. TRIGGERS - install kok
 allowed-tools: Read, Bash, Glob, AskUserQuestion
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # Install Kokoro TTS
 
 Install the Kokoro TTS engine: Apple Silicon verification, Python 3.14 venv, MLX-Audio dependencies, model download, and verification synthesis.
@@ -35,8 +44,8 @@ command -v uv && echo "OK: uv found" || echo "FAIL: Install with 'brew install u
 ### Step 2: Install
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --install
 ```
 
 This performs:
@@ -52,8 +61,8 @@ This performs:
 ### Step 3: Verify
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/kokoro-tts}"
-bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
+ROOT="$(cc-plugin-root kokoro-tts)"
+bash "$ROOT/scripts/kokoro-install.sh" --health
 ```
 
 All 6 checks should pass. Print "Installation complete — run /kokoro-tts:health to verify".
@@ -67,7 +76,6 @@ All 6 checks should pass. Print "Installation complete — run /kokoro-tts:healt
 | Model download slow | Large first download | Wait for HuggingFace download        |
 | Permission denied   | Script not +x        | `chmod +x scripts/kokoro-install.sh` |
 | Venv already exists | Previous install     | Run `--uninstall` then `--install`   |
-
 
 ## Post-Execution Reflection
 

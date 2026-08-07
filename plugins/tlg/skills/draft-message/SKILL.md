@@ -39,7 +39,8 @@ If `EXPIRED`, run `/tlg:setup` first.
 
 ```bash
 /usr/bin/env bash << 'DRAFT_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Draft a plain-text message labelled for a group
 bun "$SCRIPT" draft -1003958083153 "Plain text draft goes here"

@@ -16,7 +16,7 @@ Run a sequence of read-only checks. Safe to invoke at any time — does
 not modify files, does not touch NSUserDefaults.
 
 ```bash
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/floating-clock}"
+PLUGIN_ROOT="$(cc-plugin-root floating-clock)"
 APP_SYS="/Applications/FloatingClock.app"
 APP_LOCAL="$PLUGIN_ROOT/build/FloatingClock.app"
 

@@ -19,7 +19,8 @@ Create groups, supergroups, or channels and optionally invite users.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Create supergroup (default)
 bun "$SCRIPT" create-group "My Group" --about "Group description"

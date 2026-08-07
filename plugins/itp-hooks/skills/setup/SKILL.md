@@ -7,6 +7,15 @@ model: haiku
 disable-model-invocation: false
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # ITP Hooks Setup
 
 Verify and install dependencies for the itp-hooks plugin:
@@ -25,7 +34,7 @@ Run dependency check:
 
 ```bash
 /usr/bin/env bash << 'SETUP_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks}"
+PLUGIN_DIR="$(cc-plugin-root itp-hooks)"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
 SETUP_EOF
 ```
@@ -36,7 +45,7 @@ SETUP_EOF
 
 ```bash
 /usr/bin/env bash << 'CHECK_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks}"
+PLUGIN_DIR="$(cc-plugin-root itp-hooks)"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
 CHECK_EOF
 ```
@@ -71,7 +80,7 @@ options:
 
 ```bash
 /usr/bin/env bash << 'INSTALL_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks}"
+PLUGIN_DIR="$(cc-plugin-root itp-hooks)"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 INSTALL_EOF
 ```

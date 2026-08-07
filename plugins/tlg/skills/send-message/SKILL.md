@@ -67,7 +67,8 @@ Each continuation chunk gets a `<i>(Part N/M)</i>` header prepended so recipient
 
 ```bash
 /usr/bin/env bash << 'SEND_EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Default: plain text (use only for single-line unformatted messages)
 bun "$SCRIPT" send @username "Hello"

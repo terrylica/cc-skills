@@ -1,3 +1,5 @@
+<!-- SKILL-PLUGIN-ROOT-OK: hooks.json templates legitimately use the braced form -->
+
 # Hook Templates
 
 Copy-paste templates for common hook patterns.

@@ -29,7 +29,7 @@ escape under review.
 ## Quick start
 
 ```bash
-SCAN=${CLAUDE_PLUGIN_ROOT}/skills/markdown-table-validator/scripts/scan_markdown_tables.ts
+SCAN="$(cc-plugin-root doc-tools)/skills/markdown-table-validator/scripts/scan_markdown_tables.ts"
 
 # Report problems in one file (exit 1 if any render-breaking error)
 bun "$SCAN" path/to/FILE.md

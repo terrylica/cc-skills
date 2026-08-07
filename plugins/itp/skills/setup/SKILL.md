@@ -32,6 +32,7 @@ DO NOT:
 
 ```
 TodoWrite with todos:
+- "Setup: Bootstrap cc-plugin-root resolver" | pending | "Bootstrapping path resolver"
 - "Setup: Detect platform (macOS/Linux)" | pending | "Detecting platform"
 - "Setup: Check Core Tools (uv, gh, prettier)" | pending | "Checking Core Tools"
 - "Setup: Check ADR Diagram Tools (cpanm, graph-easy)" | pending | "Checking ADR Tools"
@@ -51,11 +52,45 @@ TodoWrite with todos:
 
 Mark each todo as `in_progress` before starting, `completed` when done.
 
+### Todo 0: Bootstrap the `cc-plugin-root` resolver
+
+Every later step resolves plugin paths with `cc-plugin-root`, so install it first. This is the ONE
+place a marketplace-mirror path is hardcoded — it is the bootstrap, and by definition cannot use the
+resolver it is installing. Idempotent; safe to re-run.
+
+```bash
+/usr/bin/env bash << 'SETUP_EOF'
+set -euo pipefail
+if command -v cc-plugin-root >/dev/null 2>&1; then
+  echo "cc-plugin-root: already on PATH ($(command -v cc-plugin-root))"
+  exit 0
+fi
+SRC="$HOME/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root"
+if [[ ! -f "$SRC" ]]; then
+  echo "cc-plugin-root: not found at $SRC — update the marketplace first:" >&2
+  echo "  claude plugin marketplace update cc-skills" >&2
+  exit 1
+fi
+mkdir -p "$HOME/.local/bin"
+chmod +x "$SRC"
+ln -sfn "$SRC" "$HOME/.local/bin/cc-plugin-root"
+echo "cc-plugin-root: linked -> $HOME/.local/bin/cc-plugin-root"
+command -v cc-plugin-root >/dev/null 2>&1 \
+  || echo "WARNING: ~/.local/bin is not on PATH — add it to your shell profile." >&2
+SETUP_EOF
+```
+
+**Why it exists**: the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable — Claude Code substitutes it only
+inside plugin manifests and sets it only in hook/MCP subprocess environments, so a skill that uses it
+gets an empty string. `cc-plugin-root <plugin>` reads `~/.claude/plugins/installed_plugins.json` and
+prints the live install path instead. See the
+[skill-plugin-root guard spoke](../../../itp-hooks/docs/skill-plugin-root-guard.md).
+
 ### Todo 1: Detect Platform
 
 ```bash
 /usr/bin/env bash << 'SETUP_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+PLUGIN_DIR="$(cc-plugin-root itp)"
 source "$PLUGIN_DIR/scripts/install-dependencies.sh" --detect-only
 SETUP_EOF
 ```
@@ -194,7 +229,7 @@ Run installation commands for missing tools only:
 
 ```bash
 /usr/bin/env bash << 'SETUP_EOF_2'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+PLUGIN_DIR="$(cc-plugin-root itp)"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --install
 SETUP_EOF_2
 ```
@@ -211,7 +246,7 @@ Re-run checks to confirm tools are now available:
 
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp}"
+PLUGIN_DIR="$(cc-plugin-root itp)"
 bash "$PLUGIN_DIR/scripts/install-dependencies.sh" --check
 PREFLIGHT_EOF
 ```

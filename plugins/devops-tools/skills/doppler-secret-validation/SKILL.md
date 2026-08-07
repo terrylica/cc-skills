@@ -63,7 +63,8 @@ Use the bundled validation script:
 
 ```bash
 /usr/bin/env bash << 'VALIDATE_EOF'
-cd ${CLAUDE_PLUGIN_ROOT}/skills/doppler-secret-validation
+ROOT="$(cc-plugin-root devops-tools)"
+cd "$ROOT/skills/doppler-secret-validation"
 uv run scripts/validate_secret.py \
   --project PROJECT \
   --config CONFIG \
@@ -92,9 +93,9 @@ Use the bundled auth test script (adapt test_api_authentication() for specific A
 
 ```bash
 /usr/bin/env bash << 'CONFIG_EOF'
-cd ${CLAUDE_PLUGIN_ROOT}/skills/doppler-secret-validation
+ROOT="$(cc-plugin-root devops-tools)"
 doppler run --project PROJECT --config CONFIG -- \
-  uv run scripts/test_api_auth.py \
+  "$ROOT/skills/doppler-secret-validation/scripts/test_api_auth.py" \
     --secret SECRET_NAME \
     --api-url API_ENDPOINT
 CONFIG_EOF
@@ -195,17 +196,16 @@ CONFIG_EOF_3
 
 ## Troubleshooting
 
-| Issue                       | Cause                          | Solution                                              |
-| --------------------------- | ------------------------------ | ----------------------------------------------------- |
-| Secret not found            | Wrong project/config specified | Verify with `doppler secrets ls --project X --config` |
-| Auth test fails with 401    | Token expired or invalid       | Regenerate token, re-add to Doppler                   |
-| doppler run hangs           | CLI waiting for input          | Add `--no-interactive` flag                           |
-| Token prefix mismatch       | Wrong token type used          | Check expected format (pypi-, ghp-, AKIA, etc.)       |
-| Validation script not found | Wrong directory context        | Ensure CLAUDE_PLUGIN_ROOT is set correctly            |
-| Secret retrieval empty      | Secret name typo               | List secrets: `doppler secrets ls --project X`        |
-| mise cache stale            | Duration expired               | Clear cache or reduce duration setting                |
-| Multiple configs confusion  | Secrets differ across envs     | Use explicit --config flag for each command           |
-
+| Issue                       | Cause                          | Solution                                                                                    |
+| --------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| Secret not found            | Wrong project/config specified | Verify with `doppler secrets ls --project X --config`                                       |
+| Auth test fails with 401    | Token expired or invalid       | Regenerate token, re-add to Doppler                                                         |
+| doppler run hangs           | CLI waiting for input          | Add `--no-interactive` flag                                                                 |
+| Token prefix mismatch       | Wrong token type used          | Check expected format (pypi-, ghp-, AKIA, etc.)                                             |
+| Validation script not found | Wrong directory context        | Use `cc-plugin-root devops-tools` to find the plugin root, then `cd` to the skill directory |
+| Secret retrieval empty      | Secret name typo               | List secrets: `doppler secrets ls --project X`                                              |
+| mise cache stale            | Duration expired               | Clear cache or reduce duration setting                                                      |
+| Multiple configs confusion  | Secrets differ across envs     | Use explicit --config flag for each command                                                 |
 
 ## Post-Execution Reflection
 

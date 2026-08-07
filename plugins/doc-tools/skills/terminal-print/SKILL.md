@@ -40,7 +40,7 @@ Clipboard → Strip ANSI → Markdown code block → pandoc/xelatex → PDF → 
 
 ```bash
 /usr/bin/env bash << 'PRINT_EOF'
-SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/doc-tools}/skills/terminal-print"
+SKILL_DIR="$(cc-plugin-root doc-tools)/skills/terminal-print"
 bash "$SKILL_DIR/assets/print-terminal.sh"
 PRINT_EOF
 ```
@@ -51,7 +51,7 @@ Run with arguments by modifying the execution block:
 
 ```bash
 /usr/bin/env bash << 'PRINT_EOF'
-SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/doc-tools}/skills/terminal-print"
+SKILL_DIR="$(cc-plugin-root doc-tools)/skills/terminal-print"
 bash "$SKILL_DIR/assets/print-terminal.sh" --no-preview
 PRINT_EOF
 ```
@@ -72,7 +72,7 @@ PRINT_EOF
 ```bash
 # Copy terminal output in iTerm2, then:
 /usr/bin/env bash << 'EOF'
-bash "${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/print-terminal.sh"
+bash "$(cc-plugin-root doc-tools)/skills/terminal-print/assets/print-terminal.sh"
 EOF
 ```
 
@@ -80,7 +80,7 @@ EOF
 
 ```bash
 /usr/bin/env bash << 'EOF'
-bash "${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/print-terminal.sh" --file ~/session.log
+bash "$(cc-plugin-root doc-tools)/skills/terminal-print/assets/print-terminal.sh" --file ~/session.log
 EOF
 ```
 
@@ -88,7 +88,7 @@ EOF
 
 ```bash
 /usr/bin/env bash << 'EOF'
-bash "${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/print-terminal.sh" --no-print
+bash "$(cc-plugin-root doc-tools)/skills/terminal-print/assets/print-terminal.sh" --no-print
 EOF
 ```
 
@@ -133,10 +133,10 @@ Strong fingerprint of the **HP LaserJet Pro MFP 3101/3108/3201/3208/3301/3308 Ai
 
 ```bash
 # 1. One-time setup of bypass queue (socket-9100 + Generic PostScript PPD)
-"${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/setup-socket-9100-queue.sh"
+"$(cc-plugin-root doc-tools)/skills/terminal-print/assets/setup-socket-9100-queue.sh"
 
 # 2. Reprint with --bypass-airprint
-bash "${CLAUDE_PLUGIN_ROOT}/skills/terminal-print/assets/print-terminal.sh" --bypass-airprint
+bash "$(cc-plugin-root doc-tools)/skills/terminal-print/assets/print-terminal.sh" --bypass-airprint
 ```
 
 **Full diagnostic playbook with command sequences and decision tree:** see [airprint-blank-page-troubleshooting.md](references/airprint-blank-page-troubleshooting.md).

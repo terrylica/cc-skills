@@ -7,6 +7,8 @@ model: haiku
 disable-model-invocation: true
 ---
 
+<!-- SKILL-PLUGIN-ROOT-OK: diagnostic block that probes for the variable on purpose -->
+
 # gh-tools Hooks Manager
 
 Manage gh-tools hook installation in `~/.claude/settings.json`.
@@ -44,6 +46,8 @@ set -euo pipefail
 ACTION="${ARGUMENTS:-status}"
 
 # Auto-detect plugin root
+# Note: $CLAUDE_PLUGIN_ROOT is injected into hook/MCP processes only, not skills.
+# For skill scripts, use: cc-plugin-root <plugin-name>
 detect_plugin_root() {
     if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" ]]; then
         echo "$CLAUDE_PLUGIN_ROOT"

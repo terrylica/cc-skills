@@ -34,9 +34,9 @@ not customizing the kernel and you don't need any per-page color tweaks.
 # 1. Copy the templates into your destination
 DEST=/path/to/where/your-page/lives
 mkdir -p "$DEST"
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-cp "$PLUGIN/skills/page-template/templates/index.html" "$DEST/"
-cp "$PLUGIN/skills/page-template/templates/lychee.toml" "$DEST/"
+ROOT="$(cc-plugin-root html-showcase)"
+cp "$ROOT/skills/page-template/templates/index.html" "$DEST/"
+cp "$ROOT/skills/page-template/templates/lychee.toml" "$DEST/"
 
 # 2. Fill in the {{ PLACEHOLDERS }} in index.html with real content.
 #    Keep the structure; replace only text and links.
@@ -46,7 +46,7 @@ open "$DEST/index.html"
 
 # 4. Verify integrity
 lychee --config "$DEST/lychee.toml" "$DEST/**/*.html"
-python3 "$PLUGIN/skills/page-template/scripts/check-orphan-pages.py" "$DEST/"
+python3 "$ROOT/skills/page-template/scripts/check-orphan-pages.py" "$DEST/"
 ```
 
 **What URL your page links to:** `@main` (always-latest) during the kernel's
@@ -68,8 +68,8 @@ shared kernel).
 ```bash
 # 1. Same as Consumer, plus copy the override example
 DEST=/path/to/your-page
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-cp "$PLUGIN/skills/page-template/templates/overrides.css.example" "$DEST/overrides.css"
+ROOT="$(cc-plugin-root html-showcase)"
+cp "$ROOT/skills/page-template/templates/overrides.css.example" "$DEST/overrides.css"
 
 # 2. Edit overrides.css — uncomment the variables you want to override.
 #    Override file is tiny: just a :root {} block of CSS variables.

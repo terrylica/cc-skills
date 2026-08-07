@@ -10,9 +10,9 @@ description: List or validate Pushover notification sounds (built-in plus this a
 Enumerate/validate sounds via the TS core `pushover_core.ts sounds`.
 
 ```bash
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" sounds list                # name<TAB>label
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" sounds has piano            # exit 0 if present
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" sounds resolve piano pianobar  # echo first that exists
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" sounds list                # name<TAB>label
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" sounds has piano            # exit 0 if present
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" sounds resolve piano pianobar  # echo first that exists
 ```
 
 ## Notes (verified 2026-05-30)

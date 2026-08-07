@@ -21,7 +21,8 @@ and app tokens never live in this repo — they live privately under your own
 
    ```bash
    mkdir -p ~/.claude/pushover-commander.private
-   cp "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover-commander.local.env.example" \
+   ROOT="$(cc-plugin-root pushover-commander)"
+   cp "$ROOT/skills/_lib/pushover-commander.local.env.example" \
       ~/.claude/pushover-commander.private/pushover-commander.local.env
    chmod 600 ~/.claude/pushover-commander.private/pushover-commander.local.env
    ```
@@ -36,7 +37,7 @@ and app tokens never live in this repo — they live privately under your own
 3. **Verify** it resolves (should print your user key, no error):
 
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/skills/_lib/resolve_pushover_secret.sh" user_key
+   bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" user_key
    ```
 
 ## How resolution works

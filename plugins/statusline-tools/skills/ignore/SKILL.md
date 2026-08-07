@@ -88,7 +88,7 @@ Parse `$ARGUMENTS` and run the management script:
 
 ```bash
 /usr/bin/env bash << 'IGNORE_SCRIPT_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools}"
+PLUGIN_DIR="$(cc-plugin-root statusline-tools)"
 bash "$PLUGIN_DIR/scripts/manage-ignore.sh" $ARGUMENTS
 IGNORE_SCRIPT_EOF
 ```

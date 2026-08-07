@@ -86,8 +86,8 @@ require() {
 # fall back to the canonical copy that ships with this skill so a repo can
 # call site.sh before it has copied the script in. Resolution order:
 #   1. <repo>/scripts/build-nav.py
-#   2. $CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/build-nav.py
-#      (set automatically by Claude Code when the skill is invoked)
+#   2. $(cc-plugin-root html-showcase)/skills/page-template/scripts/build-nav.py
+#      (injected into the environment when the skill is invoked from Claude Code)
 #   3. Canonical install path: ~/.claude/plugins/marketplaces/cc-skills/...
 resolve_build_nav() {
   if [[ -f "$REPO_ROOT/scripts/build-nav.py" ]]; then
@@ -126,7 +126,7 @@ cmd_nav() {
   if [[ -z "$build_nav" ]]; then
     echo "✗ build-nav.py not found." >&2
     echo "  Easiest fix: invoke /html-showcase:setup from Claude Code." >&2
-    echo "  Manual fix:  bash \$CLAUDE_PLUGIN_ROOT/skills/page-template/scripts/install.sh" >&2
+    echo "  Manual fix:  bash \$(cc-plugin-root html-showcase)/skills/page-template/scripts/install.sh" >&2
     exit 1
   fi
   echo "→ regenerating site-map + auto-nav for $local_dir"
@@ -405,10 +405,9 @@ Environment overrides:
   SITE_BIGBLACK_SSH       SSH alias (default: bigblack)
   SITE_BIGBLACK_ROOT      Remote root (default: /home/tca/sites)
   SITE_BASE_URL           Public URL (default: https://bigblack.tail0f299b.ts.net:8448)
-  CLAUDE_PLUGIN_ROOT      Plugin install path (set automatically by Claude
-                          Code when this script is invoked via the skill;
-                          used as a fallback when scripts/build-nav.py is
-                          not present in the consuming repo)
+  CLAUDE_PLUGIN_ROOT      Plugin install path (injected when the skill is
+                          invoked from Claude Code; used as a fallback when
+                          scripts/build-nav.py is not present in the consuming repo)
   PAGEFIND_BIN            Override path to the pagefind binary (default:
                           ~/.local/bin/pagefind, falling back to PATH)
 EOF

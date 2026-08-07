@@ -24,7 +24,8 @@ If `EXPIRED`, run `/tlg:setup` first (uses 3-step non-interactive auth pattern).
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Send a photo/image (auto-detected)
 bun "$SCRIPT" send-file @username /path/to/photo.jpg

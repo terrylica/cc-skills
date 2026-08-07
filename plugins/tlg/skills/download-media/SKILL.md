@@ -19,7 +19,8 @@ Download photos, videos, documents, and other media from Telegram messages.
 
 ```bash
 /usr/bin/env bash << 'EOF'
-SCRIPT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tlg}/scripts/tg-cli.ts"
+ROOT="$(cc-plugin-root tlg)"
+SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 # Step 1: Find message ID with media
 bun "$SCRIPT" read <chat> -n 10

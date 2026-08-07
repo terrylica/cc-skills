@@ -32,7 +32,7 @@ Parse `$ARGUMENTS` and run the management script:
 
 ```bash
 /usr/bin/env bash << 'HOOKS_SCRIPT_EOF'
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/dotfiles-tools}"
+PLUGIN_DIR="$(cc-plugin-root dotfiles-tools)"
 ACTION="${ARGUMENTS:-status}"
 bash "$PLUGIN_DIR/scripts/manage-hooks.sh" $ACTION
 HOOKS_SCRIPT_EOF

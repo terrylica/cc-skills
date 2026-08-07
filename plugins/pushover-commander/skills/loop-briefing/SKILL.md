@@ -11,11 +11,11 @@ The original goal skill: a contextually-invoked briefing for autonomous `/loop` 
 
 ```bash
 # BLOCKED — needs a decision now (emergency, alarms until you ack):
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" loop-brief \
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" loop-brief \
   --kind blocked --reason "must choose auth method" --body /tmp/decision_options.txt
 
 # DONE — no meaningful work remains (high priority, no alarm):
-env -u HTTPS_PROXY -u HTTP_PROXY bun "${CLAUDE_PLUGIN_ROOT}/skills/_lib/pushover_core.ts" loop-brief \
+env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" loop-brief \
   --kind done --reason "all tasks complete, matrix exhausted"
 ```
 

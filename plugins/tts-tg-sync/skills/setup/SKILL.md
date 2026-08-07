@@ -6,6 +6,15 @@ argument-hint: "[--check|--install]"
 disable-model-invocation: false
 ---
 
+> **Prerequisite — `cc-plugin-root`.** This skill resolves its scripts with `cc-plugin-root <plugin>`
+> (the `CLAUDE_PLUGIN_ROOT` placeholder is not a shell variable and expands to empty). If the command is missing, run
+> `/itp:setup` (its first step installs it), or link it directly:
+>
+> ```bash
+> mkdir -p ~/.local/bin && ln -sfn \
+>   ~/.claude/plugins/marketplaces/cc-skills/scripts/cc-plugin-root ~/.local/bin/cc-plugin-root
+> ```
+
 # TTS Telegram Sync Setup
 
 Full-stack bootstrap: Kokoro TTS engine, Telegram bot, BotFather token, secrets, symlinks.
@@ -44,7 +53,7 @@ PREFLIGHT_EOF
 Run the Kokoro TTS engine installer:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
+PLUGIN_DIR="$(cc-plugin-root tts-tg-sync)"
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --install
 ```
 
@@ -73,7 +82,7 @@ Use AskUserQuestion to ask if user has an existing bot token or needs to create 
 Create symlinks in `~/.local/bin/` for all TTS shell scripts:
 
 ```bash
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
+PLUGIN_DIR="$(cc-plugin-root tts-tg-sync)"
 mkdir -p ~/.local/bin
 for script in tts_kokoro.sh tts_kokoro_audition.sh tts_read_clipboard.sh tts_read_clipboard_wrapper.sh tts_speed_up.sh tts_speed_down.sh tts_speed_reset.sh; do
     ln -sf "$PLUGIN_DIR/scripts/$script" ~/.local/bin/"$script"
@@ -84,7 +93,7 @@ done
 
 ```bash
 # Test Kokoro health
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/tts-tg-sync}"
+PLUGIN_DIR="$(cc-plugin-root tts-tg-sync)"
 bash "$PLUGIN_DIR/scripts/kokoro-install.sh" --health
 
 # Test bot connectivity

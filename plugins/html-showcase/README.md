@@ -1,9 +1,9 @@
 # html-showcase Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
-[![Commands](https://img.shields.io/badge/Commands-2-green.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)](<>)
+[![Commands](https://img.shields.io/badge/Commands-2-green.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 Sitemap-organized **static HTML mini-sites** with a CDN-served CSS kernel and an auto-discovered, auto-fitting navigation rail. **The filesystem layout IS the navigation graph** — drop HTML files in directories, run one script, and the sitemap + per-page rail rewrite themselves.
 
@@ -29,8 +29,8 @@ Static HTML pages that record structured technical work — audits, commits, met
 
 ```bash
 # 1. Bootstrap the pipeline into any repo (idempotent, non-destructive)
-PLUGIN=${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/cc-skills/plugins/html-showcase}
-bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
+ROOT="$(cc-plugin-root html-showcase)"
+bash "$ROOT/skills/page-template/scripts/install.sh" --site contractor-site
 
 # 2. Author HTML files in contractor-site/ and any contractor-site/<slug>/
 #    Fill in the {{ PLACEHOLDERS }} in the templates, then build the sitemap:
