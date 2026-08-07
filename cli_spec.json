@@ -1248,6 +1248,251 @@
       "title": "plugins/tts-tg-sync/scripts/tts_generate.py",
       "type": "object"
     },
+    "plugins/unlimited-ocr/scripts/unlimited_ocr.py": {
+      "additionalProperties": false,
+      "description": "Document parsing with baidu/Unlimited-OCR (MLX on Apple Silicon, CUDA on NVIDIA).",
+      "properties": {
+        "--allow-withheld-prompt-mode": {
+          "default": false,
+          "description": "force a prompt mode that measurement showed to be broken (see spec for the reason)",
+          "type": "boolean",
+          "x-dest": "allow_withheld_prompt_mode",
+          "x-option-strings": [
+            "--allow-withheld-prompt-mode"
+          ]
+        },
+        "--backend": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "mlx",
+            "cuda"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--backend"
+          ]
+        },
+        "--categories": {
+          "type": "string",
+          "x-option-strings": [
+            "--categories"
+          ]
+        },
+        "--collapse-math-spacing": {
+          "default": false,
+          "type": "boolean",
+          "x-dest": "collapse_math_spacing",
+          "x-option-strings": [
+            "--collapse-math-spacing"
+          ]
+        },
+        "--dpi": {
+          "type": "integer",
+          "x-option-strings": [
+            "--dpi"
+          ]
+        },
+        "--format": {
+          "default": "text",
+          "enum": [
+            "text",
+            "json"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--format"
+          ]
+        },
+        "--input": {
+          "type": "string",
+          "x-option-strings": [
+            "--input"
+          ]
+        },
+        "--max-tokens": {
+          "type": "integer",
+          "x-dest": "max_tokens",
+          "x-option-strings": [
+            "--max-tokens"
+          ]
+        },
+        "--min-pixels": {
+          "default": 16,
+          "type": "integer",
+          "x-dest": "min_pixels",
+          "x-option-strings": [
+            "--min-pixels"
+          ]
+        },
+        "--model": {
+          "description": "override the model identifier",
+          "type": "string",
+          "x-option-strings": [
+            "--model"
+          ]
+        },
+        "--output": {
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--pad-pixels": {
+          "description": "grow each crop on all sides before clamping, to keep axis labels and captions",
+          "type": "integer",
+          "x-dest": "pad_pixels",
+          "x-option-strings": [
+            "--pad-pixels"
+          ]
+        },
+        "--pages": {
+          "type": "string",
+          "x-option-strings": [
+            "--pages"
+          ]
+        },
+        "--prompt-mode": {
+          "default": "free-ocr",
+          "type": "string",
+          "x-dest": "prompt_mode",
+          "x-option-strings": [
+            "--prompt-mode"
+          ]
+        },
+        "--quiet": {
+          "default": false,
+          "type": "boolean",
+          "x-option-strings": [
+            "--quiet"
+          ]
+        },
+        "--repetition-penalty": {
+          "type": "number",
+          "x-dest": "repetition_penalty",
+          "x-option-strings": [
+            "--repetition-penalty"
+          ]
+        },
+        "--strip-det": {
+          "default": false,
+          "type": "boolean",
+          "x-dest": "strip_det",
+          "x-option-strings": [
+            "--strip-det"
+          ]
+        },
+        "--table-format": {
+          "default": "pipe",
+          "description": "convert HTML <table> markup to pipe-markdown (pipe) or leave as HTML (html)",
+          "enum": [
+            "pipe",
+            "html"
+          ],
+          "type": "string",
+          "x-dest": "table_format",
+          "x-option-strings": [
+            "--table-format"
+          ]
+        },
+        "--version": {
+          "type": "string",
+          "x-option-strings": [
+            "--version"
+          ]
+        }
+      },
+      "required": [
+        "--input",
+        "--input",
+        "--output"
+      ],
+      "title": "plugins/unlimited-ocr/scripts/unlimited_ocr.py",
+      "type": "object"
+    },
+    "plugins/unlimited-ocr/scripts/unlimited_ocr_batch_folder_parser.py": {
+      "additionalProperties": false,
+      "description": "Batch parse a folder of PDFs and images with checkpoint/resume.",
+      "properties": {
+        "--allow-withheld-prompt": {
+          "default": false,
+          "description": "Force a withheld prompt mode",
+          "type": "boolean",
+          "x-option-strings": [
+            "--allow-withheld-prompt"
+          ]
+        },
+        "--backend": {
+          "default": "auto",
+          "description": "Backend (default: auto)",
+          "enum": [
+            "auto",
+            "mlx",
+            "cuda"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--backend"
+          ]
+        },
+        "--collapse-math": {
+          "default": false,
+          "description": "Rejoin character-spaced math",
+          "type": "boolean",
+          "x-option-strings": [
+            "--collapse-math"
+          ]
+        },
+        "--folder": {
+          "description": "Input folder (required)",
+          "type": "string",
+          "x-option-strings": [
+            "--folder"
+          ]
+        },
+        "--output": {
+          "description": "Output folder (required)",
+          "type": "string",
+          "x-option-strings": [
+            "--output"
+          ]
+        },
+        "--quiet": {
+          "default": false,
+          "description": "Suppress per-file progress to stderr",
+          "type": "boolean",
+          "x-option-strings": [
+            "--quiet"
+          ]
+        },
+        "--strip-det": {
+          "default": false,
+          "description": "Remove layout bounding box markers",
+          "type": "boolean",
+          "x-option-strings": [
+            "--strip-det"
+          ]
+        },
+        "--table-format": {
+          "default": "pipe",
+          "description": "Table format (default: pipe)",
+          "enum": [
+            "html",
+            "pipe"
+          ],
+          "type": "string",
+          "x-option-strings": [
+            "--table-format"
+          ]
+        }
+      },
+      "required": [
+        "--folder",
+        "--output"
+      ],
+      "title": "plugins/unlimited-ocr/scripts/unlimited_ocr_batch_folder_parser.py",
+      "type": "object"
+    },
     "scripts/cli_spec.py": {
       "additionalProperties": false,
       "description": "Generate / verify cc-skills' machine-readable Python cli_spec.json SSoT.",
