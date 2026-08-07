@@ -293,7 +293,8 @@ def build_query(args: argparse.Namespace) -> tuple[str, list]:
             m.expressive_send_style_id,
             m.cache_has_attachments,
             a.transfer_name,
-            a.mime_type
+            a.mime_type,
+            m.ROWID as msg_rowid
         FROM message m
         JOIN chat_message_join cmj ON m.ROWID = cmj.message_id
         JOIN chat c ON cmj.chat_id = c.ROWID
@@ -515,7 +516,8 @@ def _resolve_message(
         0: ts, 1: is_from_me, 2: text, 3: attributedBody,
         4: thread_originator_guid, 5: date_retracted, 6: date_edited,
         7: is_audio_message, 8: service, 9: expressive_send_style_id,
-        10: cache_has_attachments, 11: transfer_name, 12: mime_type
+        10: cache_has_attachments, 11: transfer_name, 12: mime_type,
+        13: msg_rowid (m.ROWID — dedup key only, not emitted)
 
     Pitfall protections:
         - Retracted messages (date_retracted > 0): EXCLUDED — content wiped by iOS,
@@ -526,7 +528,8 @@ def _resolve_message(
     """
     (ts, is_from_me, text, attr_body, thread_guid,
      date_retracted, date_edited, is_audio, service,
-     send_style, has_attachments, attachment_name, mime_type) = row
+     send_style, has_attachments, attachment_name, mime_type,
+     _msg_rowid) = row
 
     # Pitfall #14: Retracted messages — EXCLUDE deterministically
     # Both parties know these were retracted. Content is unrecoverable.
@@ -626,12 +629,16 @@ def _print_messages(conn: sqlite3.Connection, args: argparse.Namespace) -> None:
     seen_ts = set()  # deduplicate rows from attachment JOIN
 
     for row in cur:
-        ts = row[0]
-        is_from_me = row[1]
-        text = row[2]
         # Deduplicate: LEFT JOIN on attachments can produce duplicate rows
         # for messages with multiple attachments. Keep only the first.
-        dedup_key = (ts, is_from_me, text or "")
+        #
+        # Key on m.ROWID — the only column that is unique per message. A key of
+        # (ts, is_from_me, m.text) silently DROPPED distinct messages: `ts` is
+        # second-precision, and `m.text` is NULL for every attributedBody-only
+        # message, so two different messages sent in the same second by the same
+        # sender collapsed into one. Measured cost on a real 4,982-message
+        # thread: 46 messages lost, invisible in the output.
+        dedup_key = row[13]
         if dedup_key in seen_ts:
             continue
         seen_ts.add(dedup_key)
