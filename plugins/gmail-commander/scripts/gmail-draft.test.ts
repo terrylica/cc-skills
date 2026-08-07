@@ -334,3 +334,73 @@ describe("validateMimeBeforeUpload — proven in BOTH directions", () => {
     expect(() => validateMimeBeforeUpload(broken, "x")).toThrow(/missing multipart\/alternative boundary/);
   });
 });
+
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+// findForcedLineBreaksInRenderedHtml — the DETECTIVE half of the wrap guarantee (2026-08-07).
+//
+// Every other control here is preventive and checks the INPUT. This one reads the draft that was
+// actually produced. It exists because three client emails shipped with forced mid-sentence breaks
+// while every preventive layer reported green — the failure the tool is named for had no detector.
+// ───────────────────────────────────────────────────────────────────────────────────────────────
+import { findForcedLineBreaksInRenderedHtml } from "./gmail-draft.ts";
+
+describe("findForcedLineBreaksInRenderedHtml", () => {
+  // MUST PASS: exactly what blocksToHtml emits. Newlines separate TAGS and that is legal.
+  test("clean render from blocksToHtml reports no violations", () => {
+    const html = blocksToHtml(
+      splitBodyIntoBlocks("First paragraph that a formatter\nwrapped across two lines.\n\n- item one\n- item two\n"),
+    );
+    expect(findForcedLineBreaksInRenderedHtml(html)).toEqual([]);
+  });
+
+  test("newlines between tags are legal, not violations", () => {
+    const html = '<div dir="ltr">\n<p>one</p>\n<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n</div>';
+    expect(findForcedLineBreaksInRenderedHtml(html)).toEqual([]);
+  });
+
+  test("a genuinely long single-line paragraph is fine (that is the point of reflowing)", () => {
+    const html = `<div dir="ltr">\n<p>${"word ".repeat(400).trim()}</p>\n</div>`;
+    expect(findForcedLineBreaksInRenderedHtml(html)).toEqual([]);
+  });
+
+  // MUST FAIL: the real defect, in each shape it has actually taken.
+  test("DETECTS a newline inside <p> — source hard-wrapping that survived", () => {
+    const html = '<div dir="ltr">\n<p>I had a note drafted this morning saying the transcripts\nwere still waiting on you.</p>\n</div>';
+    const v = findForcedLineBreaksInRenderedHtml(html);
+    expect(v).toHaveLength(1);
+    expect(v[0]).toMatch(/newline inside <p>/);
+  });
+
+  test("DETECTS a newline inside <li>", () => {
+    const html = '<div dir="ltr">\n<ul>\n<li>a real fault, with a\nclinical consequence</li>\n</ul>\n</div>';
+    expect(findForcedLineBreaksInRenderedHtml(html)[0]).toMatch(/newline inside <li>/);
+  });
+
+  test("DETECTS an explicit <br>, including <br/> and <BR>", () => {
+    for (const br of ["<br>", "<br/>", "<br />", "<BR>"]) {
+      const v = findForcedLineBreaksInRenderedHtml(`<div dir="ltr">\n<p>a${br}b</p>\n</div>`);
+      expect(v.length).toBeGreaterThan(0);
+      expect(v[0]).toMatch(/explicit <br>/);
+    }
+  });
+
+  test("reports EVERY offending paragraph, not just the first", () => {
+    const html = '<div dir="ltr">\n<p>one\ntwo</p>\n<p>fine</p>\n<p>three\nfour</p>\n</div>';
+    expect(findForcedLineBreaksInRenderedHtml(html)).toHaveLength(2);
+  });
+
+  // The regression that actually shipped: a ~100-col formatter-wrapped body passed through as-is.
+  test("DETECTS the 2026-08-07 shape — a formatter-wrapped body rendered without reflowing", () => {
+    const hardWrapped = [
+      "I had a note drafted this morning saying the transcripts were still waiting on you. It was",
+      "wrong. You have left 64 comments across five of the seven documents, and you finished number",
+      "3 at 12:08.",
+    ].join("\n");
+    const naive = `<div dir="ltr">\n<p>${hardWrapped}</p>\n</div>`;
+    expect(findForcedLineBreaksInRenderedHtml(naive).length).toBeGreaterThan(0);
+
+    // …and the builder's own path on the SAME source is clean. Both directions, one test.
+    const viaBuilder = blocksToHtml(splitBodyIntoBlocks(hardWrapped));
+    expect(findForcedLineBreaksInRenderedHtml(viaBuilder)).toEqual([]);
+  });
+});

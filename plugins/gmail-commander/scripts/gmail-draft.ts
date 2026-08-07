@@ -249,6 +249,45 @@ export function blocksToHtml(blocks: BodyBlock[]): string {
   return `<div dir="ltr">\n${body}\n</div>`;
 }
 
+/**
+ * Find forced line breaks in the rendered HTML — the defect this whole tool exists to prevent.
+ *
+ * WHY THIS EXISTS (2026-08-07). Every guard around this builder is PREVENTIVE: use the right tool,
+ * from the right copy, with green tests. Not one of them ever looked at the draft that came out. So
+ * a correct invocation was trusted and never verified, and the one failure mode the tool is named
+ * for — a paragraph arriving with hard breaks mid-sentence — had no detector anywhere in the stack.
+ * On 2026-08-07 a client email was staged three times with exactly that defect; each time it was
+ * caught by a human reading the compose window, which is not a control.
+ *
+ * THE INVARIANT, from `blocksToHtml`: newlines separate TAGS (`</p>\n<ul>`, `</li>\n<li>`) and never
+ * appear INSIDE a `<p>` or `<li>` text run, because prose blocks are reflowed to a single line
+ * before rendering. So a newline inside a text run means the source's hard wrapping survived, and a
+ * `<br>` means something injected an explicit break. Either is the bug.
+ *
+ * Pure and exported so the suite can exercise it in both directions without touching the network.
+ */
+const snippetForViolation = (s: string): string => {
+  const flat = s.replace(/\n/g, "\\n");
+  return flat.length > 90 ? `${flat.slice(0, 90)}…` : flat;
+};
+
+export function findForcedLineBreaksInRenderedHtml(html: string): string[] {
+  const violations: string[] = [];
+
+  if (/<br\b/i.test(html)) {
+    violations.push(`explicit <br> in rendered HTML — this builder never emits one: ${snippetForViolation(/.{0,40}<br\b.{0,40}/is.exec(html)?.[0] ?? "")}`);
+  }
+  for (const tag of ["p", "li"] as const) {
+    const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "gi");
+    for (const m of html.matchAll(re)) {
+      if (m[1]?.includes("\n")) {
+        violations.push(`newline inside <${tag}> — source hard-wrapping survived into the render: ${snippetForViolation(m[1])}`);
+      }
+    }
+  }
+  return violations;
+}
+
 function toHtml(paras: string[]): string {
   const body = paras.map((p) => `<p>${escapeAndLinkify(p)}</p>`).join("\n");
   return `<div dir="ltr">\n${body}\n</div>`;
@@ -431,6 +470,31 @@ async function assertCreatedDraftMatchesWhatWeSent(
     throw new Error(
       `MIME structure broken in draft ${draftId}: text/plain part missing or empty ` +
         `(mimeType: ${payload.mimeType}, parts: ${parts.length})`,
+    );
+  }
+
+  // ── the draft must actually RENDER as reflowed paragraphs ──
+  //
+  // This is the detective half of the wrap guarantee. Everything else in this stack is preventive
+  // (right tool, right copy, green tests), and preventive controls verify the INPUT. Until
+  // 2026-08-07 nothing ever read the produced draft to confirm the one property the tool is named
+  // for, so three client emails were staged with forced mid-sentence breaks and each was caught by
+  // a human squinting at the compose window. Gmail's editor renders the text/html part, so that is
+  // the part whose rendering has to be asserted.
+  const textHtmlPart = parts.find((p) => p.mimeType === "text/html");
+  if (!textHtmlPart?.body?.data) {
+    throw new Error(
+      `MIME structure broken in draft ${draftId}: text/html part missing or empty. Gmail's compose ` +
+        `window renders this part; without it the draft falls back to text/plain, which Gmail ` +
+        `hard-folds at ~72 cols — the exact defect this builder exists to prevent.`,
+    );
+  }
+  const renderedHtml = Buffer.from(textHtmlPart.body.data, "base64url").toString("utf8");
+  const forcedBreaks = findForcedLineBreaksInRenderedHtml(renderedHtml);
+  if (forcedBreaks.length > 0) {
+    throw new Error(
+      `Rendered HTML contains ${forcedBreaks.length} forced line break(s) in draft ${draftId} — the ` +
+        `recipient would see hard breaks mid-sentence:\n  ${forcedBreaks.join("\n  ")}`,
     );
   }
 
