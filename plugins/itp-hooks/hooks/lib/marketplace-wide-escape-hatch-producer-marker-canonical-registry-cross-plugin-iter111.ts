@@ -275,6 +275,19 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         `Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
     },
     {
+      markerNameTokenIncludingSuffix: "SKILL-PLUGIN-ROOT-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-skill-plugin-root-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        // Backslash-escaped `\${...}` inside a template string prevents biome's
+        // noTemplateCurlyInString lint from misreading the bash-style env-var
+        // reference as an unintended interpolation placeholder.
+        `Allow skill markdown (any \`.md\` under a \`skills/\` directory) to reference \`CLAUDE_PLUGIN_ROOT\` in a shape the runtime cannot honor — the bare \`$CLAUDE_PLUGIN_ROOT\` spelling, the \`\${CLAUDE_PLUGIN_ROOT:-fallback}\` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., \`SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable\`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.`,
+    },
+    {
       markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",
@@ -342,7 +355,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes(\"# SETPROCTITLE-OK\")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.",
+        'Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.',
     },
     {
       markerNameTokenIncludingSuffix: "SHELL-SAFETY-OK",
