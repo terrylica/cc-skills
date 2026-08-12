@@ -6,6 +6,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # MT5 Tick Collection Operations
 
+> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
 > ## ⚠️ HOST SUPERSEDED — 2026-08-07
 >
 > **MetaTrader 5 no longer runs on bigblack.** It runs **exclusively on the FXView broker VPS**
@@ -15,15 +17,15 @@ allowed-tools: Read, Bash, Grep, Glob
 >
 > **On the VPS the topology is Windows scheduled tasks, not Linux systemd:**
 >
-> | Concern | bigblack (retired) | FXView VPS (current) |
-> | --- | --- | --- |
-> | Terminal | `mt5.service` under Wine, `DISPLAY=:99` | `terminal64.exe`, native Windows, real session |
-> | Tick rings | `/dev/shm/tick_ring_<SYM>` | `C:\odb-tickrings\tick_ring_<SYM>` |
-> | Ring → bus | — | `odb-tapegateway.exe` → task `OdbTickRingToNatsTapeGateway` |
-> | Bus | — | `nats-server.exe` `:4222` → task `OdbTapeBusNatsJetStreamServer` |
-> | Orders | — | order-service `:50060` → task `ODB-MT5-OrderService` |
-> | Symbols | EUR/GBP/XAU/XAG | **EUR/GBP/XAU only** (silver excluded per directive 2026-05-26) |
-> | Service control | `systemctl` | `Get-ScheduledTask` / `Start-ScheduledTask` |
+> | Concern         | bigblack (retired)                      | FXView VPS (current)                                             |
+> | --------------- | --------------------------------------- | ---------------------------------------------------------------- |
+> | Terminal        | `mt5.service` under Wine, `DISPLAY=:99` | `terminal64.exe`, native Windows, real session                   |
+> | Tick rings      | `/dev/shm/tick_ring_<SYM>`              | `C:\odb-tickrings\tick_ring_<SYM>`                               |
+> | Ring → bus      | —                                       | `odb-tapegateway.exe` → task `OdbTickRingToNatsTapeGateway`      |
+> | Bus             | —                                       | `nats-server.exe` `:4222` → task `OdbTapeBusNatsJetStreamServer` |
+> | Orders          | —                                       | order-service `:50060` → task `ODB-MT5-OrderService`             |
+> | Symbols         | EUR/GBP/XAU/XAG                         | **EUR/GBP/XAU only** (silver excluded per directive 2026-05-26)  |
+> | Service control | `systemctl`                             | `Get-ScheduledTask` / `Start-ScheduledTask`                      |
 >
 > Reach it with `ssh fxview-mt5`. PowerShell over SSH eats `$_` under shell quoting — pass commands
 > base64-encoded via `powershell -NoProfile -EncodedCommand <base64-utf16le>`.
@@ -35,10 +37,7 @@ allowed-tools: Read, Bash, Grep, Glob
 > Canonical: `opendeviationbar-patterns/docs/adr/2026-08-07-retire-bigblack-as-a-metatrader-host-…md`
 > and `docs/decision-register-metatrader-hosting-and-market-data-source-provenance.md`.
 
-
 Operate, monitor, and troubleshoot the zero-gap tick collection system running on Linux via Wine.
-
-> **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## When to Use This Skill
 
