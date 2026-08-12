@@ -177,6 +177,6 @@ See [docs/LESSONS.md](./docs/LESSONS.md).
 
 ## Active Project
 
-**[claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)** — the Swift macOS companion binary (Telegram bot + Kokoro TTS + subtitle overlay) has its own CLAUDE.md as the SSoT. Project description, constraints, stack, conventions, architecture, and critical invariants live there. **Do not duplicate them here** — pre-2026-04-07 the root had a full copy and it drifted (wrong model path, wrong audio playback description).
+**[claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)** — the Swift macOS companion binary (Telegram bot + Kokoro TTS + subtitle overlay) has its own CLAUDE.md as the SSoT. Project description, constraints, stack, conventions, architecture, and critical invariants live there. **Do not duplicate them here** — a second copy drifts out of sync with the SSoT; the model path and the audio-playback description are the fields that rot first.
 
 Quick hand-off: read `plugins/claude-tts-companion/CLAUDE.md` when the user mentions TTS, karaoke subtitles, Telegram bot, session notifications, `tts_kokoro.sh`, or anything under `plugins/claude-tts-companion/`.
