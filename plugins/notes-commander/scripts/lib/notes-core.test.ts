@@ -26,7 +26,7 @@ import {
 	terminateLegacyEntities,
 } from "./notes-core.ts";
 
-// ── formatter (migrated from draft-hold, byte-identical behavior) ────────────
+// ── formatter (migrated from draft-park, byte-identical behavior) ────────────
 
 test("escapeHtml encodes the four HTML-significant characters", () => {
 	expect(escapeHtml('a & b < c > d "e"')).toBe(
@@ -62,7 +62,7 @@ test("noteNameMatchesTitle: a non-truncated name that merely differs does not ma
 	expect(noteNameMatchesTitle("Draft A", "Draft B")).toBe(false);
 });
 
-// ── matchNoteIds: the single home for title→note-id resolution (draft-hold + move-note) ──
+// ── matchNoteIds: the single home for title→note-id resolution (draft-park + move-note) ──
 
 test("matchNoteIds: exact name resolves to its id", () => {
 	const index = [

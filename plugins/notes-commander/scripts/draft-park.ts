@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
- * draft-hold.ts — Bun/TypeScript engine for the draft-hold skill (notes-commander plugin).
+ * draft-park.ts — Bun/TypeScript engine for the draft-park skill (notes-commander plugin).
  *
  * Migrated from the standalone draft-hold plugin (2026-07-18) onto the shared notes-core
- * engine, gaining its hardening:
+ * engine, gaining its hardening (skill + engine renamed draft-hold → draft-park 2026-08-12):
  *   • SILENT-FAILURE DETECTION — `new` asserts Notes returned a real note id
  *     (x-coredata://…); on macOS 26 osascript can exit 0 yet create nothing.
  *   • BOUNDED RETRY — transient AppleEvent errors (-600/-1712/"not running") retry with
@@ -14,10 +14,10 @@
  *     prose reflows (blank line = paragraph), lists stay per-item, ``` fences verbatim.
  *
  * Commands (unchanged surface):
- *   draft-hold.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify]
- *   draft-hold.ts get "<title>" [--folder NAME] [--body-only]
- *   draft-hold.ts list [--folder NAME]
- *   draft-hold.ts sticky "<title>" [--folder NAME]
+ *   draft-park.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify]
+ *   draft-park.ts get "<title>" [--folder NAME] [--body-only]
+ *   draft-park.ts list [--folder NAME]
+ *   draft-park.ts sticky "<title>" [--folder NAME]
  */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -43,7 +43,7 @@ function nowStamp(): string {
 
 function footerHtml(session: string, project: string): string {
 	const sess = session ? `session ${escapeHtml(session)} | ` : "";
-	return `<div><br></div><div><tt>------</tt></div><div><tt>Held by Claude Code | ${sess}${escapeHtml(project)} | ${nowStamp()}</tt></div>`;
+	return `<div><br></div><div><tt>------</tt></div><div><tt>Parked by Claude Code | ${sess}${escapeHtml(project)} | ${nowStamp()}</tt></div>`;
 }
 
 export function buildNoteBody(
@@ -181,7 +181,7 @@ function main(): void {
 
 	switch (cmd) {
 		case "new": {
-			if (!title) die("usage: draft-hold.ts new <title>  (body on stdin)");
+			if (!title) die("usage: draft-park.ts new <title>  (body on stdin)");
 			const raw = readFileSync(0, "utf8");
 			const body = buildNoteBody(title, raw, session, project);
 			const id = runOsaOrDie(OSA_NEW, [folder, body]);
@@ -211,7 +211,7 @@ function main(): void {
 			break;
 		}
 		case "get": {
-			if (!title) die("usage: draft-hold.ts get <title> [--body-only]");
+			if (!title) die("usage: draft-park.ts get <title> [--body-only]");
 			const full = htmlToText(getBodyByTitle(folder, title));
 			console.log(bodyOnlyFlag ? bodyOnly(full) : collapseBlanks(full));
 			break;
@@ -221,7 +221,7 @@ function main(): void {
 			break;
 		}
 		case "sticky": {
-			if (!title) die("usage: draft-hold.ts sticky <title>");
+			if (!title) die("usage: draft-park.ts sticky <title>");
 			const plain = `Draft (edit in Notes -> ${folder} -> ${title})\n\n${htmlToText(getBodyByTitle(folder, title))}`;
 			spawnSync("pbcopy", [], { input: plain });
 			const gui = `tell application "Stickies" to activate
@@ -245,10 +245,10 @@ end tell`;
 		}
 		default:
 			die(
-				"usage: draft-hold.ts {new <title>|get <title>|list|sticky <title>} [--session UUID] [--project NAME] [--folder NAME] [--no-verify]",
+				"usage: draft-park.ts {new <title>|get <title>|list|sticky <title>} [--session UUID] [--project NAME] [--folder NAME] [--no-verify]",
 			);
 	}
 }
 
-// Only run the CLI when executed directly (bun draft-hold.ts …), not when imported by tests.
+// Only run the CLI when executed directly (bun draft-park.ts …), not when imported by tests.
 if (import.meta.main) main();

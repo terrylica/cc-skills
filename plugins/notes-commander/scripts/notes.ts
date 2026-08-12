@@ -504,7 +504,7 @@ function cmdMoveNote(flags: Flags): void {
 
 	// Resolve the note id: an explicit --id wins; otherwise index the source folder and match the
 	// title through the shared matchNoteIds (exact, else truncation-tolerant) — the SAME rule the
-	// draft-hold skill uses, so there is no second copy to keep in sync.
+	// draft-park skill uses, so there is no second copy to keep in sync.
 	let noteId = typeof flags.opts.id === "string" ? flags.opts.id : "";
 	if (!noteId) {
 		const index = parseRecords(

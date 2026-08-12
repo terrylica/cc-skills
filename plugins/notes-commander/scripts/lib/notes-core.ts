@@ -2,7 +2,7 @@
  * notes-core.ts — shared engine for the notes-commander plugin.
  *
  * One home for everything that talks to macOS Notes via AppleScript, so every skill
- * (draft-hold, inventory, export, organize, doctor) inherits the same hardening:
+ * (draft-park, inventory, export, organize, doctor) inherits the same hardening:
  *   • runOsa() — osascript with BOUNDED RETRY on transient AppleEvent errors
  *     (-600/-609/-1712 "app not running"/"timed out"), which recent macOS throws
  *     intermittently. Permission/syntax errors are NOT retried (retry can't fix them).
@@ -10,10 +10,10 @@
  *   • entityLeaks()/contentPresent() — read-back integrity checks for the documented
  *     Notes quirks (semicolon-less `&quot` entities; textutil charset mojibake).
  *   • bodyToHtml() — the unit-tested prose-reflow formatter (fences verbatim, lists
- *     per-item, CJK-aware joins) that draft-hold pioneered.
+ *     per-item, CJK-aware joins) that draft-park (then named draft-hold) pioneered.
  *
  * Everything exported here that doesn't spawn a process is PURE and unit-tested in
- * notes-core.test.ts. AppleScript payloads live in the consumers (notes.ts, draft-hold.ts).
+ * notes-core.test.ts. AppleScript payloads live in the consumers (notes.ts, draft-park.ts).
  */
 import { spawnSync } from "node:child_process";
 
@@ -121,7 +121,7 @@ export function contentPresent(inputBody: string, readback: string): boolean {
  * macOS Notes derives a note's `name` from its first line but TRUNCATES a long first line, storing a
  * name that ends with this ellipsis (U+2026) and is NOT equal to the intended title. Exact
  * `whose name is <title>` / `note <title> of folder` lookups therefore MISS long-titled notes — a real
- * failure hit 2026-07-20: a 66-char draft-hold title stored as `…(2026-07-20…`, so the read-back verify
+ * failure hit 2026-07-20: a 66-char draft-park title stored as `…(2026-07-20…`, so the read-back verify
  * (false CONTENT-MISMATCH) and `move-note` (false "note not found") both failed on a note that existed.
  */
 export const NOTES_NAME_ELLIPSIS = "…";
@@ -150,7 +150,7 @@ export function noteNameMatchesTitle(
  * Returns `[]` (nothing matched) or, when several notes share the title, every matching id so the
  * caller can decide how to treat the ambiguity.
  *
- * This is the SINGLE home for title→note-id resolution. Both `draft-hold` (get/sticky/dedup) and
+ * This is the SINGLE home for title→note-id resolution. Both `draft-park` (get/sticky/dedup) and
  * `notes move-note` route through it, so the exact-then-truncated rule can never drift between two
  * hand-maintained copies (it previously lived once here in TS and once inline in AppleScript).
  */
