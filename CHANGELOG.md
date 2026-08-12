@@ -1,3 +1,45 @@
+# [25.0.0](https://github.com/terrylica/cc-skills/compare/v24.0.0...v25.0.0) (2026-08-12)
+
+
+* feat(marketplace)!: remove graphify-tools and reconcile the plugin index ([746d31c](https://github.com/terrylica/cc-skills/commit/746d31c31cdf38c619caadd2a344dd83e4e8c5af))
+Graphify is retired. codegraph already covers the code-graph niche, and the
+concept-graph layer was not earning the generated artifacts, the per-commit
+background rebuild, or a dedicated sub2api credential.
+
+Removed in this repo:
+- plugins/graphify-tools/ (8 files) and its marketplace.json entry
+- graphify-out/ from .gitignore and .prettierignore
+- the graphify-tools exemplars from the Common Plugin Patterns registry
+
+Removed on the operator machine (not versioned here):
+- .git/hooks/post-commit and post-checkout - both 100% graphify, start-to-end
+  delimited, firing a detached rebuild on every commit
+- the graphifyy uv tool (v0.9.41) and its graphify / graphify-mcp launchers
+- 37 generated graphify-out/ directories (~372 MB total: 349 MB at the repo
+  root plus 22 MB scattered under plugins/*/) and ~/.cache/graphify-*.log
+- the graphify-tools@cc-skills entry in ~/.claude/settings.json
+
+Reconciliation caught while removing it:
+- The "Evolution log" row in the patterns registry recommended dated
+  "appended not rewritten" entries at the bottom of plugin docs. That
+  contradicts b4e4f8f2, which deleted exactly those sections; row removed.
+- Plugin count was stated as 41 in five places while 44 existed. Now 43.
+- plugins/CLAUDE.md was missing unlimited-ocr and web-forge entirely, and
+  arxiv-source-first is registered with no CLAUDE.md at all. The index now
+  lists all 43 and names the arxiv-source-first gap; the root claim is
+  corrected from 43/43 to 42/43 rather than left overstated.
+- Pruned three further dead enabledPlugins entries in ~/.claude/settings.json
+  (autoloop, chronicle-share, draft-hold) - it held 47 for 43 plugins.
+
+CHANGELOG.md retains its graphify entries: it is the designated history home.
+
+
+### BREAKING CHANGES
+
+* the graphify-tools plugin is removed from the marketplace.
+Anyone who installed it should run /plugin uninstall graphify-tools and
+`uv tool uninstall graphifyy`.
+
 # [24.0.0](https://github.com/terrylica/cc-skills/compare/v23.6.0...v24.0.0) (2026-08-12)
 
 
