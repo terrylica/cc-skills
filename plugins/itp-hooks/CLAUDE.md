@@ -4,11 +4,7 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [gh-tools CLAUDE.md](../gh-tools/CLAUDE.md)
 
-## Overview
-
-This plugin provides PreToolUse and PostToolUse hooks that enforce development standards, prevent common mistakes, and ensure compliance with project requirements.
-
-**Hub-and-spoke note (2026-06-11)**: this file was refactored from 112k chars to a slim hub (the size guard fires over 40k — Claude Code will not fully load larger files). Every section body and every long table-cell narrative moved VERBATIM to [`docs/`](./docs/) spokes — one clause + a link remains here. The former full-table snapshot docs were DISSOLVED 2026-06-11 (snapshots drift): every original table-cell narrative now lives in its per-hook spoke under [`docs/`](./docs/), linked from each table row below.
+**Keep this file a slim hub**: the size guard fires over 40k chars, and Claude Code will not fully load a larger file. Section bodies and long table-cell narratives belong in per-hook [`docs/`](./docs/) spokes — one clause plus a link stays here, linked from each table row below. Do not reintroduce full-table snapshot docs; snapshots drift out of sync with the spokes.
 
 ## Hooks
 
