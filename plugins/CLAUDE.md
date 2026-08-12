@@ -123,7 +123,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [minimax](./minimax/CLAUDE.md)
 - [mise](./mise/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
-- [notes-commander](./notes-commander/CLAUDE.md) — absorbs the retired draft-hold plugin (2026-07-18) as its `draft-hold` skill
+- [notes-commander](./notes-commander/CLAUDE.md) — absorbs the retired draft-hold plugin (2026-07-18) as its `draft-park` skill (renamed from `draft-hold` 2026-08-12)
 - [openwolf](./openwolf/CLAUDE.md)
 - [plugin-dev](./plugin-dev/CLAUDE.md)
 - [productivity-tools](./productivity-tools/CLAUDE.md)

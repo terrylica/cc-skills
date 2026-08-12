@@ -1,12 +1,14 @@
 ---
-name: draft-hold
-description: Park a draft message/text in macOS Notes for the operator to review and edit, then read it back before acting (e.g. before sending to a real person). Notes is the source of truth (AppleScript CRUD, iCloud-synced, provenance-stamped with the Claude Code session UUID); Stickies is a best-effort view-only desktop mirror. Use whenever you draft something a human should confirm/edit before it is sent or committed — messages, replies, announcements, anything outbound. TRIGGERS - hold this draft, park the message, let me edit first, draft for my approval, save to notes for review, read back the draft.
+name: draft-park
+description: Park a draft message/text in macOS Notes for the operator to review and edit, then read it back before acting (e.g. before sending to a real person). Notes is the source of truth (AppleScript CRUD, iCloud-synced, provenance-stamped with the Claude Code session UUID); Stickies is a best-effort view-only desktop mirror. Use whenever you draft something a human should confirm/edit before it is sent or committed — messages, replies, announcements, anything outbound. TRIGGERS - park this draft, park the message, hold this draft, let me edit first, draft for my approval, save to notes for review, read back the draft.
 allowed-tools: Bash, Read
 ---
 
 <!-- SKILL-PLUGIN-ROOT-OK: explains why this variable must not be used here -->
 
-# draft-hold — human-in-the-loop drafts via macOS Notes
+# draft-park — human-in-the-loop drafts via macOS Notes
+
+> Renamed from `draft-hold` on 2026-08-12. Invoke as `/notes-commander:draft-park`; there is no `draft-hold` alias. Evolution-log entries dated before the rename keep the old name — that is the accurate historical record, not drift.
 
 > **Self-Evolving skill** — if macOS Notes/Stickies behavior drifts from what's below, fix this SKILL.md and the shared engine `scripts/lib/notes-core.ts` (+ a case in `notes-core.test.ts`); see the Post-Execution Reflection at the bottom.
 
@@ -15,10 +17,10 @@ When you compose something a human should confirm or edit before it goes out (a 
 **Resolve the entrypoint first** — `$CLAUDE_PLUGIN_ROOT` is NOT a shell variable and expands to empty here (it exists only inside plugin manifests and hook/MCP subprocesses; see the `$CLAUDE_PLUGIN_ROOT` invariant in the plugin CLAUDE.md). Never glob the version cache either — it retains orphaned versions. Use the resolver:
 
 ```bash
-DH="$(cc-plugin-root notes-commander)/skills/draft-hold/draft-hold.sh"
+DP="$(cc-plugin-root notes-commander)/skills/draft-park/draft-park.sh"
 ```
 
-`draft-hold.sh` is a thin shim that `exec`s the **Bun/TypeScript engine** `scripts/draft-hold.ts`, built on the plugin's shared `notes-core` engine (which also powers `notes-inventory`/`notes-export`/`notes-organize`).
+`draft-park.sh` is a thin shim that `exec`s the **Bun/TypeScript engine** `scripts/draft-park.ts`, built on the plugin's shared `notes-core` engine (which also powers `notes-inventory`/`notes-export`/`notes-organize`).
 
 ## Formatting is handled in code — just write naturally
 
@@ -40,25 +42,25 @@ The engine (formatter in `scripts/lib/notes-core.ts`, unit-tested in `notes-core
 1. **Park the draft** (body on STDIN):
 
    ```bash
-   CLAUDE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" "$DH" new "<title>" --project "<repo-or-context>" <<'EOF'
+   CLAUDE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" "$DP" new "<title>" --project "<repo-or-context>" <<'EOF'
    Hi <name> — <your drafted message>...
    EOF
    ```
 
    Creates/replaces a note in the **"Claude Drafts"** folder with a provenance footer (session UUID + project + timestamp). Tell the operator: _"Draft is in Notes → Claude Drafts → <title>; edit it there, then tell me to send."_
 
-2. **(Optional) desktop mirror** — `"$DH" sticky "<title>"` pops a view-only Stickies note (needs Accessibility permission). Notes stays authoritative.
+2. **(Optional) desktop mirror** — `"$DP" sticky "<title>"` pops a view-only Stickies note (needs Accessibility permission). Notes stays authoritative.
 
 3. **Read it back** before acting — ALWAYS re-read, since the operator may have edited it:
 
    ```bash
-   "$DH" get "<title>"              # full note (heading + message + provenance footer)
-   "$DH" get "<title>" --body-only  # JUST the sendable message (no heading, no footer)
+   "$DP" get "<title>"              # full note (heading + message + provenance footer)
+   "$DP" get "<title>" --body-only  # JUST the sendable message (no heading, no footer)
    ```
 
    Use `--body-only` to get exactly the text to send/paste — it strips the title heading and everything from the `------` provenance separator onward. Show the operator the exact current text, get explicit go-ahead, then send/commit.
 
-4. `"$DH" list` enumerates held drafts.
+4. `"$DP" list` enumerates parked drafts.
 
 ## macOS quirks this skill handles for you
 
@@ -73,7 +75,7 @@ The engine (formatter in `scripts/lib/notes-core.ts`, unit-tested in `notes-core
 **The Bash tool already has it**: Claude Code exports `CLAUDE_CODE_SESSION_ID` (verified 2026-08-05 — matches the `~/.claude/projects/<slug>/<uuid>.jsonl` name). So just forward it, and don't go hunting:
 
 ```bash
-CLAUDE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" "$DH" new "<title>" …
+CLAUDE_SESSION_ID="$CLAUDE_CODE_SESSION_ID" "$DP" new "<title>" …
 ```
 
 Only if that variable is empty: the `statusline-tools:session-info` skill reports the UUID, or read the newest `*.jsonl` under `~/.claude/projects/<project-slug>/`. If genuinely unavailable, omit it (the footer drops the token — never write a placeholder).
@@ -87,6 +89,7 @@ Only if that variable is empty: the `statusline-tools:session-info` skill report
 
 ## Evolution log
 
+- **2026-08-12 — renamed `draft-hold` → `draft-park`.** _Trigger_: operator directive — "park" is the verb the skill's own docs and triggers already used ("park it in macOS Notes", "park the message"), while "hold" read as a queue/blocking state. _Scope_: skill dir `skills/draft-hold/` → `skills/draft-park/`, shim `draft-hold.sh` → `draft-park.sh`, engine `scripts/draft-hold.ts` → `scripts/draft-park.ts`, call-site variable `$DH` → `$DP`, and every live cross-reference (plugin CLAUDE.md/README/plugin.json, marketplace.json, root + plugins CLAUDE.md, `scripts/cc-plugin-root` usage example, macos-font-defaults' Notes-mono cross-reference, and the operator's live `~/.claude` instructions). **No `draft-hold` alias exists** — the slash command is `/notes-commander:draft-park` only. _Deliberately NOT rewritten_: CHANGELOG.md, the entries below this one, and the itp-hooks skill-plugin-root-guard forensics — those describe events that happened under the old name, and back-dating a rename into them would make the incident record wrong. _Behavior_: unchanged — same subcommands, same flags, same "Claude Drafts" Notes folder, so previously parked notes are still found by `get`/`list`. The one content change: the provenance footer now reads `Parked by Claude Code` (was `Held by`). Nothing parses it — `bodyOnly()` cuts at the `------` separator — so notes written under the old wording read back identically.
 - **2026-08-05 (b) — the skill could not find its own entrypoint (`exit 127`).** _Trigger_: `/notes-commander:draft-hold` invoked from another repo died on `(eval):1: no such file or directory: /skills/draft-hold/draft-hold.sh`. _Root cause_: this SKILL.md told the caller to use `DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`, but **`CLAUDE_PLUGIN_ROOT` is not a shell variable**. Claude Code substitutes the exact literal `${CLAUDE_PLUGIN_ROOT}` (braces REQUIRED — the helper is `e.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginPath)`) inside plugin manifests, and injects the var into hook/MCP subprocess envs — never into the Bash tool. The bare `$…` spelling used here is unsubstitutable on every path, so it reached zsh as an unset var, expanded to empty, and produced an absolute-looking `/skills/…` path — which reads like a missing file, not a missing variable. Two upstream causes made it likely: the repo's own `advanced-topics.md` and `lifecycle-reference.md` documented the rule **exactly backwards** ("available in skill loading, NOT in hooks" — it is the reverse), and the recovery path was equally unsound: globbing the version cache and taking the highest semver picked `23.4.1`, which is marked `.orphaned_at` (live was `23.5.0`). _Fix_: added `scripts/cc-plugin-root` (reads `~/.claude/plugins/installed_plugins.json`, tolerates both registry schemas, jq with a python3 fallback, symlinked into `~/.local/bin/`); this SKILL.md now resolves `DH="$(cc-plugin-root notes-commander)/skills/draft-hold/draft-hold.sh"`; both reference docs corrected; the stale "L3 cache strips `scripts/`" claim retired. Also stopped the sibling waste in this same flow: `CLAUDE_CODE_SESSION_ID` is already exported into the Bash env, so the provenance UUID no longer needs hunting. _Evidence_: resolver returns the live `23.5.0` path via both jq and python3 backends and under both registry shapes; negative cases exit 1/2 with actionable stderr; the resolved `draft-hold.sh` and `scripts/draft-hold.ts` both exist.
 - **2026-08-05 (a) — every URL had to be shown naked, because the formatter escaped anchors.** _Trigger_: staging a weekly report whose 16 PR references made the prose unreadable; the operator asked for `#470`-style link text and supplied a screenshot of a working link in Notes, proving Notes supports them. _Root cause_: `escapeHtml()` was applied to every prose and list line, so an `<a href>` could only ever render as literal `&lt;a href…`. _The trap that nearly ended the investigation_: a probe note written with `<a href>` read back as `<u>#470</u>`, which looks exactly like "Notes stripped the link" — I nearly concluded the setter was broken. The operator's OWN hand-made link read back as `<u>link text</u>` too, which is what exposed the real shape: the **getter** is lossy, not the setter. Confirmed by decompressing `ZICNOTEDATA.ZDATA` from `NoteStore.sqlite` — the probe note's visible text was `See #470 and #472.` while the hrefs sat in the attribute run. A read-back-only check would have produced a false negative and no links. _Fix_: added pure, unit-tested `renderInline()` promoting `[label](url)` → `<a href>` at the three prose/list call sites (fences stay verbatim, so a fenced `[x](url)` renders literally); `http(s)`/`mailto` allow-list so a `javascript:` link can never be minted into a document a human will click. _Evidence_: 6 new unit tests (**39 pass, 0 fail**), plus a live round-trip verified against the SQLite protobuf — 16 hrefs stored, zero URLs leaked into visible prose.
 - **2026-07-27 — a lead-in line silently ate the list under it.** _Trigger_: staging a real reply draft, `解决办法有两个，你倾向哪个？` immediately followed by two `-` bullets (no blank line) came back from `get --body-only` as ONE run-on line, bullets and all. Hit twice in the same session, in two different notes. _Root cause_: `renderTextBlock()` classified each blank-line-delimited paragraph by testing **`p[0]` only** — so a paragraph whose first line is prose was rendered wholly as prose, and `reflowJoin()` folded the following `-`/`1.` markers into it. The list was destroyed with no error. This contradicted SKILL.md, which promised list markers "each stay on their own line", and left an undocumented "you must leave a blank line before a list" rule that authors could only learn by being bitten. _Fix_: split each paragraph at the FIRST line matching `LIST_RE` — lead-in lines reflow as prose, everything from the first marker on renders per-item via the new extracted `renderListItems()` helper (also removes the duplicated item-grouping loop). All three shapes now work: all-prose, all-list, and lead-in-then-list. _Evidence_: 3 new unit tests (CJK lead-in + bullets, English lead-in + numbered list, multi-line lead-in that must still reflow before splitting); **33 pass, 0 fail**.

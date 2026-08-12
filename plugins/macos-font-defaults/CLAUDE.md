@@ -17,7 +17,7 @@ preference now and re-applies it on a fresh machine.
 - Covers: standard-text-system apps that ask for the user fixed-pitch font (e.g. TextEdit
   plain text), and Stickies new notes.
 - Does NOT cover: Terminal/iTerm/VS Code (own settings), Apple Notes (hardcoded mono face;
-  only its per-note "Monostyled" style — see the `draft-hold` plugin), or system UI.
+  only its per-note "Monostyled" style — see `notes-commander`'s `draft-park` skill), or system UI.
 
 ## Skill
 

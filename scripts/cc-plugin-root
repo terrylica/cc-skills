@@ -27,7 +27,7 @@
 # and exits non-zero (1 = not installed / bad record, 2 = usage error).
 #
 # Example (in a SKILL.md):
-#   DH="$(cc-plugin-root notes-commander)/skills/draft-hold/draft-hold.sh"
+#   DP="$(cc-plugin-root notes-commander)/skills/draft-park/draft-park.sh"
 
 set -euo pipefail
 
