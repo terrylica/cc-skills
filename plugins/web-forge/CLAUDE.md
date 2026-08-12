@@ -29,6 +29,16 @@
    vendor's real API as a GET-before-POST idempotent bootstrap.
 6. Profile dirs under `~/.local/share/web-forge/` hold live login sessions — sensitive, never
    committed, credential-equivalent.
+7. **Never confirm a mutation from the same console's default list view.** Promoted from a
+   vendor quirk to an invariant on 2026-08-12 under the rule of two: Azure Portal's "Owned
+   applications" denied an app registration it had just created, and Google Admin's Groups list
+   rendered "your organization doesn't have any groups yet" after a group was created. Both were
+   convincing and both were false. Confirm from a DIFFERENT system — ideally one that would fail
+   on a non-existent object, so the confirmation is a real test rather than a second opinion.
+8. **A borrowed session is not an owned one.** Driving a browser a human already authenticated
+   (AppleScript + `execute javascript`) is legitimate where a passkey or step-up must not be
+   automated — you type inside a door somebody else opened, and never touch the credential. It
+   has no sandbox: it can see every other tab. Never quit or restart the operator's browser.
 
 ## Boundary with gh-fine-grained-pat (gh-tools)
 

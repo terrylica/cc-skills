@@ -67,6 +67,53 @@ scoped credential. Everything after that goes through the vendor's REAL API with
 credential, written as an **idempotent GET-before-POST bootstrap** (see the cf-access-wall skill
 for the worked template). UI automation is the crowbar, not the workflow.
 
+## Borrowed-session mode — driving a browser the HUMAN already logged into
+
+A third mode, distinct from launching a per-site profile over CDP. Instead of owning a session,
+you **borrow one that is already open** in the operator's own Chrome and drive it via AppleScript:
+
+```applescript
+tell application "Google Chrome"
+  execute (tab N of window M) javascript "…"
+end tell
+```
+
+Requires **View → Developer → Allow JavaScript from Apple Events** (persisted per profile as
+`browser.allow_javascript_apple_events` in `Preferences` — grep it to check before promising
+anything). You then have full DOM read/write with no driver, no profile copy, and no port.
+
+**When it is the RIGHT tool:** the console is behind a passkey / hardware-key / step-up flow that
+you must not automate, and a human session already exists. You never touch the credential — you
+type inside a door somebody else opened. That distinction is the whole justification, and it is
+worth stating out loud in whatever you write afterwards.
+
+**When it is the WRONG tool:** anything unattended, anything needing isolation, anything that
+should not be able to see the operator's other tabs. It has no sandbox by construction.
+
+Hard-won rules, each one paid for:
+
+- **Address tabs by URL, never by index.** `activate` and `set index` REORDER windows, so an
+  index captured a moment ago can point somewhere else by the time you use it. Re-resolve on
+  every call. Make the URL needle specific — `"admin.google.com"` will happily match a different
+  admin tab and you will read the wrong page and believe it.
+- **Read the JS from a FILE** (`set js to read POSIX file "/tmp/step.js" as «class utf8»`).
+  Interpolating JS through bash → osascript → AppleScript string literals mangles quotes and
+  backslashes in ways that fail silently or, worse, alter the script.
+- **`offsetParent` is null for `position: fixed`,** which is how essentially every Material/modal
+  dialog is rendered. A "is it visible" filter built on `offsetParent !== null` therefore hides
+  the dialog you are looking for and you conclude the form never opened. Use
+  `getBoundingClientRect()` width/height instead.
+- **Framework inputs need the NATIVE setter.** Assigning `el.value` updates the DOM but leaves
+  Angular/React/Closure's model stale, so the form submits empty. Use
+  `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el, v)` then
+  dispatch `input` + `change` (+ `blur`). Read the value back and assert it.
+- **Verify what is under the point before any coordinate-based click** —
+  `document.elementFromPoint(x,y)` and compare to the intended element. In an admin console a
+  mis-aimed click is not a failed test, it is an unintended action.
+- **Chrome can be RUNNING with zero windows and refuse `open -a`.** `make new window` via Apple
+  Events still works. Never quit or restart the operator's browser to "fix" it; you will destroy
+  their tabs.
+
 ## Secrets discipline (non-negotiable)
 
 - Values ride PIPES: `vault set --stdin <scope> <path>` (SCS vault). Never argv, never stdout,
@@ -154,6 +201,64 @@ for the worked template). UI automation is the crowbar, not the workflow.
   per-profile, and no Keychain prompt appears (same Chrome binary). The operator's running Chrome is
   untouched — different `--user-data-dir`. **Delete the seeded dir afterwards**: it holds a copy of
   live session cookies and is credential-equivalent.
+
+- **`shot()` used to report phantom screenshots** (fixed 2026-08-07): it wrapped `page.screenshot`
+  in `.catch(() => {})` and returned the intended path regardless, so a failed capture printed a
+  confident `[shot] …png` for a file that never existed (caught live — a 30 s font-loading timeout
+  on the Lark console, path printed with `existsSync === false`). Screenshots are the only evidence
+  a forge has when a selector misses, so a phantom one makes "capture failed" indistinguishable
+  from "the page was blank". It now returns `null` and says `FAILED` on both the throw path and the
+  resolved-but-no-file path. **Callers must treat `null` as "no evidence", never as a path.**
+- **Lark/Feishu developer console — the scope table is VIRTUALIZED** (2026-08-05): `document
+.querySelectorAll("tr")` returns **1** and `[role="row"]` returns **0**; rows are
+  `div.virtual-table__row` and only ~25 exist in the DOM at once, so scroll-and-scrape silently
+  under-reports. Never enumerate it by scrolling — type into the scope filter instead, anchored on
+  its distinctive placeholder `input[placeholder^="E.g."]` (the masthead "Search documentation" box
+  matches a generic `input[placeholder*="Search"]` FIRST — the same trap as the Azure entry above).
+- **Lark console — "More" in Security Settings is a section anchor, not a button** (2026-08-07):
+  `getByText("More", {exact:true})` matches exactly one node, and clicking it times out at 10 s with
+  no visible cause. Scroll and read the whole page instead of clicking.
+- **Feishu docs are JS-gated but expose a markdown twin** (2026-08-07): fetching a doc page yields
+  only its title, but the HTML advertises `<link rel="alternate" type="text/markdown">` — append
+  `.md` to the doc URL and `curl` returns the full text, Chinese included. The Chinese pages carry
+  detail the English ones omit (the app-level "refresh `user_access_token`" switch appears only
+  there). Wrong slugs answer `This document is not found`, so probe a few rather than assuming one.
+
+- **Chrome silently ignores `--remote-debugging-port` on the DEFAULT data directory**
+  (2026-08-12): Chrome starts normally, the flag appears in `ps`, and the port never binds. The
+  only signal is one line on stderr — `DevTools remote debugging requires a non-default data
+  directory. Specify this using --user-data-dir.` — which is invisible if stderr goes to a log
+  nobody reads. `curl 127.0.0.1:<port>/json/version` then fails with "connection refused" and
+  looks like a dead browser rather than a rejected flag. **Diagnose with
+  `lsof -nP -iTCP -sTCP:LISTEN -a -p <pid>`**: a Chrome that is up but listening on nothing is
+  this, every time. Always pass an explicit `--user-data-dir` alongside the debugging port —
+  which the harness already does, and which is exactly why the harness works and ad-hoc
+  invocations do not.
+
+- **Google Admin console — the group list lies after a write** (2026-08-12): immediately after
+  creating a group, **Directory → Groups** still rendered the empty state, *"Your organization
+  doesn't have any groups yet"*, for long enough to read as a failure. The group existed the
+  whole time. **This is the SECOND vendor to do this** — see the Azure "a list view can lie about
+  creation" entry above — so treat it as a rule rather than a quirk: *never confirm a mutation
+  from the same console's default list view.* Confirm from a DIFFERENT system. Here the proof was
+  that GCP's `setIamPolicy` **rejects members that do not exist** and accepted the new group, so
+  the IAM grant doubled as the existence check.
+- **Google Admin console — repeated clicks STACK duplicate dialogs** (2026-08-12): clicking
+  "Create group" twice (e.g. once via `.click()`, once via a synthetic pointer sequence when the
+  first appeared to do nothing) leaves TWO form instances in the DOM. A later "fill the field with
+  this aria-label" then hits an arbitrary one and the visible form stays empty. Reload to a clean
+  state before filling, and assert the field count is exactly 1 first.
+- **Google Admin console — controls are Closure `div[role=button]` with obfuscated classes**
+  (2026-08-12): e.g. `class="U26fgb O0WRkf oG5Srb …"`. Never build a CSS-path selector; match on
+  visible text or `aria-label`. Plain `.click()` DOES work on them — if a click appears to do
+  nothing, suspect that you are reading the wrong tab before you conclude the click failed.
+- **Google Admin console — a preset flips to "Custom" when you narrow a sub-setting**
+  (2026-08-12): choosing the `Restricted` access-type preset and then setting "Who can join" to
+  *Only invited users* relabels Access type as **Custom**. That is correct and expected, not a
+  failed selection. Assert on the SUB-SETTINGS you care about, never on the preset label.
+- **Google Admin console — `/ac/groups/new` is not a deep link** (2026-08-12): it answers
+  `Error 400 (Bad Request)`. There is no URL that opens the create dialog; you must click through
+  from `/ac/groups`.
 
 ## Relationship to gh-fine-grained-pat
 
