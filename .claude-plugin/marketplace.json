@@ -254,13 +254,7 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": [
-        "chezmoi",
-        "dotfiles",
-        "configuration",
-        "sync",
-        "git"
-      ],
+      "keywords": ["chezmoi", "dotfiles", "configuration", "sync", "git"],
       "strict": false
     },
     {
@@ -373,28 +367,6 @@
         "1password",
         "mise",
         "bun"
-      ],
-      "strict": false
-    },
-    {
-      "name": "graphify-tools",
-      "description": "Multimodal knowledge graphs via Graphify-Labs/graphify: turn code + docs + PDFs + images into a queryable graph (graph.html, Obsidian vault, agent wiki). Complements codegraph (symbol-level) with concept-level cross-corpus structure.",
-      "version": "24.0.0",
-      "source": "./plugins/graphify-tools",
-      "category": "quality",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "knowledge-graph",
-        "graphify",
-        "multimodal",
-        "concept-graph",
-        "obsidian",
-        "wiki",
-        "token-efficiency",
-        "codegraph-complement"
       ],
       "strict": false
     },
@@ -833,12 +805,7 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": [
-        "ssh",
-        "tunnel",
-        "clickhouse",
-        "launchd"
-      ],
+      "keywords": ["ssh", "tunnel", "clickhouse", "launchd"],
       "strict": false,
       "source": "./plugins/ssh-tunnel-companion",
       "category": "devops"
@@ -853,11 +820,7 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": [
-        "statusline",
-        "status-bar",
-        "git-status"
-      ],
+      "keywords": ["statusline", "status-bar", "git-status"],
       "strict": false
     },
     {
@@ -886,9 +849,7 @@
       "version": "24.0.0",
       "source": "./plugins/tts-tg-sync",
       "category": "devops",
-      "requires": [
-        "kokoro-tts"
-      ],
+      "requires": ["kokoro-tts"],
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"

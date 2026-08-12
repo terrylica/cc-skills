@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **41 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **43 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -46,9 +46,9 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Resume Context            | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `mise run cli-spec` / `cli-spec-check`                  |
 
-### Plugin CLAUDE.md Files (41/41)
+### Plugin CLAUDE.md Files (42/43)
 
-All 41 plugins have their own CLAUDE.md with Hub+Sibling navigation links. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
+42 of 43 plugins have their own CLAUDE.md with Hub+Sibling navigation links; `arxiv-source-first` is the gap — add one before extending it. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
 **Emerging deeper layer**: skill-level CLAUDE.mds (one per skill, sibling to `SKILL.md`) are appearing where a skill is large enough that maintainers need a separate compass from the user-invocable instructions. First adopter: [`plugins/macro-keyboard/skills/{configure-macro-keyboard,emit-fn-key-on-macos,diagnose-hid-keycodes}/CLAUDE.md`](./plugins/macro-keyboard/CLAUDE.md). Add one to your skill if SKILL.md is starting to mix "what to do when invoked" with "what to know before editing".
 
@@ -87,7 +87,7 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 41 plugins)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 43 plugins)
 ├── plugins/                         ← 41 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
@@ -146,15 +146,13 @@ Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never g
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 41 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. (Surfaced by the 2026-07-08 graph-housekeeping audit; deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).)
+Recurring architectural patterns across the 43 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. Deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).
 
 | Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                              |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [kokoro-tts](./plugins/kokoro-tts/CLAUDE.md) |
-| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [graphify-tools](./plugins/graphify-tools/CLAUDE.md) (fleet-key pattern)                               |
+| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                                         |
 | **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
-| **Backend/routing SSoT**   | Plugins with multiple env/endpoint choices centralize them in one `references/*.md`, skills point there                                          | [graphify-tools/references/backends.md](./plugins/graphify-tools/references/backends.md)                                                                       |
-| **Evolution log**          | Dated "trigger → fix → evidence" entries at the bottom of a skill/plugin doc, appended not rewritten                                             | itp-hooks, minimax, graphify-tools                                                                                                                             |
 | **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md)               |
 
 > These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional and validated (graph audit rejected "dedupe the boilerplate" as a false positive). Only `diff`-proven byte-identical logic is real duplication.

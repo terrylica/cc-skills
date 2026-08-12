@@ -30,6 +30,5 @@ docs/marketplace-escape-hatch-marker-reference.md
 node_modules/
 .build/
 dist/
-graphify-out/
 *.lock
 bun.lock
