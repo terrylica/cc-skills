@@ -41,7 +41,7 @@ Always run `check` first and show the operator the current values before `apply`
 
 - **Terminal / iTerm / VS Code / editors** keep their own font settings — unchanged.
 - **Apple Notes** hardcodes its monospaced face and cannot be redirected to a custom font.
-  Its only mono lever is the per-note **Monostyled** style (the `draft-hold` skill uses it).
+  Its only mono lever is the per-note **Monostyled** style (the `draft-park` skill uses it).
 - This is **not** a system-UI font override; menus/Finder are unaffected.
 
 ## Notes
