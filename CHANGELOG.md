@@ -1,3 +1,274 @@
+# [24.0.0](https://github.com/terrylica/cc-skills/compare/v23.6.0...v24.0.0) (2026-08-12)
+
+
+* feat(notes-commander)!: rename draft-hold skill to draft-park ([924bbe6](https://github.com/terrylica/cc-skills/commit/924bbe6b293bafe906b18910dc3671d3ab0a48ad))
+Operator directive. "Park" is the verb this skill's own prose and TRIGGERS already
+used everywhere that mattered — "park it in macOS Notes so the operator can edit it",
+"park the message", "let me edit first" — while "hold" read as a queue or a blocking
+state, which is not what the skill does. The name now matches the behaviour: you park
+a draft somewhere a human can edit it, and you read it back before you act.
+
+Nothing about the workflow changed. Same four subcommands, same flags, same "Claude
+Drafts" Notes folder, same hardened AppleScript engine underneath. Notes parked before
+this rename are still found by `get` and `list` — the rename touches names and paths,
+never the note-resolution path.
+
+WHAT MOVED
+
+- skills/draft-hold/ -> skills/draft-park/
+- skills/draft-park/draft-hold.sh -> draft-park.sh
+- scripts/draft-hold.ts -> scripts/draft-park.ts
+- the SKILL.md call-site variable $DH -> $DP
+
+All three moves are R100 renames, so `git log --follow` still reaches the full history
+of each file, including the 2026-08-05 exit-127 forensics.
+
+WHAT ELSE WAS UPDATED
+
+Every LIVE reference, in and out of the repo, so nothing points at a path that no
+longer resolves:
+
+- plugins/notes-commander/{CLAUDE.md,README.md,plugin.json}
+- .claude-plugin/marketplace.json (plugin description)
+- CLAUDE.md and plugins/CLAUDE.md (hub links + the reuse registry row)
+- scripts/cc-plugin-root (the usage example in its header)
+- scripts/notes.ts, scripts/lib/notes-core.ts, scripts/lib/notes-core.test.ts comments
+- plugins/macos-font-defaults (its Notes-Monostyled cross-reference, which also called
+  draft-hold a "plugin" — it has been a skill of notes-commander since 2026-07-18)
+
+The operator's own live instructions under ~/.claude were updated in the same pass
+(mempalace-usage, decisions-people, collaborators.toml). Those are outside this repo
+and therefore outside this commit, but they would have gone stale the moment this
+shipped.
+
+ONE BEHAVIOURAL CHANGE, DELIBERATE
+
+The provenance footer stamped into every note now reads "Parked by Claude Code" rather
+than "Held by Claude Code". Nothing parses it: `bodyOnly()` cuts the note at the
+`------` separator that precedes the footer, and no test or downstream consumer asserts
+on the wording. Notes written under the old wording read back byte-identically.
+
+WHAT WAS DELIBERATELY NOT RENAMED
+
+History stays accurate. Back-dating the new name into a record of something that
+happened under the old one would make the record wrong, which is worse than a reader
+meeting an obsolete name in a dated entry:
+
+- CHANGELOG.md (semantic-release generated)
+- SKILL.md evolution-log entries dated before 2026-08-12
+- the itp-hooks skill-plugin-root-guard docs, hook comments and test fixtures, which
+  forensically describe the 2026-08-05 `/notes-commander:draft-hold` exit-127 incident
+- .mise/tasks comments recording gaps found "while hardening draft-hold"
+
+A rename banner at the top of SKILL.md plus a dated evolution-log entry tell a future
+reader which names are current and which are historical, so the split is discoverable
+rather than looking like drift.
+
+VERIFICATION
+
+- `bun test plugins/notes-commander` — 39 pass, 0 fail
+- `bun scripts/validate-plugins.mjs` — 0 errors, 44 plugins, 241 skills
+- the renamed shim executes and resolves its engine (`usage: draft-park.ts ...`)
+- a four-lens adversarial sweep (missed references incl. $DH/draftHold/DRAFT_HOLD
+  spellings, link and doc integrity, gates and runtime, semantic coherence) with every
+  candidate finding independently refuted before reporting: zero rename defects. The
+  only confirmed findings were pre-existing and unrelated — root CLAUDE.md still claims
+  41 plugins where the registry has 44.
+
+
+### Bug Fixes
+
+* **gmail-commander:** guard reads script CONTENTS, not just the command line (LAYER 5) ([ad84f86](https://github.com/terrylica/cc-skills/commit/ad84f861cb884f89da97d881551b2f40db76a4cb))
+The draft guard blocked ad-hoc Gmail drafts-API writes by pattern-matching the Bash
+command string. That surface is blind to the most ordinary shape a caller takes:
+
+    bun correspondence/replace-gmail-drafts.ts --execute
+
+No endpoint, no HTTP method, no curl flag — the fetch() lives inside the file. Every
+existing layer reported ALLOW.
+
+This is not hypothetical and not new. It has now happened three times against the same
+client mailbox, twice on 2026-08-07 alone: once via `bash /tmp/[redacted].sh`
+and again that evening via a Bun script. Both shipped the exact defect LAYER 1 exists to
+prevent — a body carrying a formatter's ~100-col hard wrapping, emitted as text/plain and
+hard-folded again by Gmail into forced mid-sentence breaks in the compose window. One also
+shipped a mojibaked Subject (`â€"`), because MIME headers carry no charset and the
+Content-Type charset governs only the body.
+
+The guard was never weak at what it inspected. It inspected the wrong surface for this
+class of caller — the same "ask what the tool was able to see" failure the guard's own
+comments document for earlier regressions. It produced no output, and no output was read
+as compliance.
+
+WHAT CHANGED
+
+- LAYER 5: when a command EXECUTES a script (bun/node/deno/tsx/python/ruby/perl/bash/sh/zsh,
+  or `./path`), read that file and apply the same endpoint+write test to its contents.
+  Fail-open throughout — unreadable file, odd quoting, or no match all permit. Advisory
+  infrastructure must never wedge a session: a missed detection costs one bad draft, a
+  wedged shell costs the day.
+- Reading, grepping, `bun test`, `bun build`, `deno check|lint|fmt` are explicitly NOT
+  execution. Blocking those would make working on any mailer require the escape hatch on
+  every command, which is how a hatch stops meaning anything (same reasoning as the
+  existing LAYER 1 read-vs-invoke discriminator).
+- METHOD_RE / IMPLICIT_POST_RE / ENDPOINT_RE hoisted to single definitions shared by the
+  command-string layers and LAYER 5, instead of LAYER 5 carrying a weaker private copy.
+- Block message extracted to emit_adhoc_block_message() so both paths stay in step.
+
+WHY THE HOIST WAS NECESSARY (caught by the probe, not by review)
+
+The first LAYER 5 draft matched only the quoted/code form (`method: "POST"`), so a shell
+script running `curl -X POST .../drafts` — a bare, unquoted POST — was still ALLOWED. The
+both-directions probe failed on exactly that case. A file can contain either shape, so both
+call sites now share one definition rather than two that drift.
+
+PROOF (probe: 18 -> 30 cases, all green, both directions)
+
+MUST BLOCK, newly covered:
+  - bun <script>.ts that POSTs          - python3 <script>.py that POSTs
+  - bash <script>.sh using curl -X POST - uv run python <script>.py
+  - compound `cd /tmp && bun <script>`
+
+MUST ALLOW, to prove it is not over-broad:
+  - cat / grep the offending script     - bun test, bun build near a mailer
+  - a script that only GETs drafts      - a script with "POST" but no drafts endpoint
+  - a script path that does not exist
+
+Replayed against the two real commands that shipped defects today: both now BLOCK. The
+corrected caller — which delegates to the canonical builder — correctly ALLOWs.
+
+KNOWN REMAINING GAP (not addressed here)
+
+Every layer is preventive: right tool, right copy, builder tests green. Nothing is
+detective — no layer ever inspects the draft that was actually produced to confirm the
+paragraphs reflowed. A PostToolUse read-back asserting no <br> and no newline inside a <p>
+would close it, and belongs in the builder, which already reads back to prove a --replace
+left exactly one draft.
+* **gmail-commander:** verify the created draft actually reflowed ([265421d](https://github.com/terrylica/cc-skills/commit/265421d2dad27dc034dc395a973e4c0f1acd8762))
+Adds the detective half of the wrap guarantee. Every existing control is
+preventive — right tool, right copy, green tests — and preventive controls
+check the INPUT. Nothing ever read the draft that came out, so a correct
+invocation was trusted and never verified, and the one failure mode this
+tool is named for had no detector anywhere in the stack.
+
+On 2026-08-07 a client email was staged three times with forced
+mid-sentence breaks. Each time it was caught by a human reading the
+compose window, which is not a control.
+
+WHAT CHANGED
+
+- findForcedLineBreaksInRenderedHtml(html): pure, exported. Flags an
+  explicit <br> (this builder never emits one) and any newline inside a
+  <p> or <li> text run.
+- assertCreatedDraftMatchesWhatWeSent now decodes the text/html part of
+  the draft it just created and throws on any violation. It also fails
+  when the text/html part is missing entirely: without it Gmail's compose
+  window falls back to text/plain, which it hard-folds at ~72 cols.
+
+THE INVARIANT IT ASSERTS
+
+blocksToHtml puts newlines BETWEEN tags (</p>\n<ul>, </li>\n<li>) and
+never inside a text run, because prose is reflowed to one line before
+rendering. So a newline inside <p> or <li> means the source's hard
+wrapping survived into the render. That is the bug, stated as a property.
+
+PROOF, both directions
+
+Unit: 31 -> 39 tests. Clean blocksToHtml output reports zero violations;
+newlines between tags are legal; a 400-word single-line paragraph is
+legal. Detected: newline in <p>, newline in <li>, <br> / <br/> / <BR>,
+and multiple offenders reported rather than just the first. One test
+feeds the real 2026-08-07 shape — a ~100-col formatter-wrapped body —
+through the naive path (violations) and the builder path (clean).
+
+End-to-end: the renderer was mutated to inject a <br> and the builder run
+against a live scratch draft. It created the draft and then FAILED:
+
+  LAYER 1 VERIFICATION FAILED on draft r388211948582517175:
+  Rendered HTML contains 1 forced line break(s) ...
+    explicit <br> in rendered HTML - this builder never emits one
+
+Unmutated, the same body succeeded. Both scratch drafts were deleted.
+
+NOTE ON ORDERING: verification runs after create and before the --replace
+delete, so a failed check leaves the new draft behind and the old one
+intact. That is deliberate — the reverse order can empty a mailbox on a
+failed create.
+* **imessage-query:** dedupe on message ROWID, not (timestamp, sender, text) ([1798e42](https://github.com/terrylica/cc-skills/commit/1798e428cdfe71c6aa07bf51e54605036694a74a))
+The decoder silently dropped 46 messages from a 4,958-message thread export.
+
+Modern iMessage stores its body in `attributedBody` (an NSAttributedString blob)
+and leaves `m.text` NULL. The dedupe key was (timestamp, is_from_me, m.text), so
+every NULL-text message in the same second collapsed to ONE row -- exactly the
+messages the decoder exists to recover. Two people typing in the same second, or
+one long message split across parts, lost content with no error and no warning.
+
+Dedupe on `m.ROWID`, which is unique by construction.
+
+Proven in both directions on the real chat.db: the 46 recovered messages are
+present after the change and absent before it, and the total for a thread with
+no NULL-text collisions is byte-identical either way.
+* **mql5:** restore tick-collection-ops' self-evolution marker ([7b25d9c](https://github.com/terrylica/cc-skills/commit/7b25d9c2d403cf76ce128ec77d0418f6ca62c41d))
+Release preflight's Check 4b (self-evolution sandwich) failed with "mql5:tick-collection-ops:
+missing Self-Evolving reminder at top", blocking the release.
+
+The marker was never deleted — it was pushed out of range. 13cfd0e4 inserted the 28-line
+"⚠️ HOST SUPERSEDED — 2026-08-07" callout directly under the H1, which moved the
+Self-Evolving reminder from body line ~8 to body line ~36. The gate
+(scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk) only scans the first
+25 body lines after the closing frontmatter separator, so the reminder became invisible to it
+while still being present in the file. That is why the failure surfaced now, one commit after
+an edit that touched neither the marker nor the gate.
+
+- moved the Self-Evolving reminder above the HOST SUPERSEDED callout, immediately under the H1
+- removed the now-duplicate copy that sat below the intro line
+- the two consecutive blockquotes are separated by a blank line, so they render as two distinct
+  callouts rather than merging
+
+Scanner output is now `1 214 222` — marker present, Post-Execution Reflection at line 214 of
+222 (8 lines from the end, inside the 15-line bottom window). Both halves of the sandwich pass.
+
+Worth noting for the next author: any large banner inserted under a skill's H1 can silently
+evict the marker the same way, because the gate measures POSITION, not presence.
+* **web-forge:** shot() reported screenshots it never wrote ([ce06d11](https://github.com/terrylica/cc-skills/commit/ce06d111a4110395ea076eb82fe67fa156e08db8))
+The breadcrumb screenshot helper wrapped `page.screenshot` in `.catch(() => {})` and
+then returned the intended path unconditionally. A failed capture therefore printed a
+confident `[shot] /tmp/web-forge/<ts>-<name>.png` for a file that did not exist —
+verified 2026-08-07, when a 30 s font-loading timeout on the Lark console produced a
+logged path whose `existsSync` was false.
+
+That is the worst possible failure for this particular helper. Screenshots are the ONLY
+evidence a forge has when a selector misses, so a phantom one sends the next step
+reading a file that is not there, and "the shot is missing" gets misread as "the page
+was blank" — an agent then concludes the navigation failed when it actually succeeded,
+and retries or aborts a dashboard action for the wrong reason.
+
+- the swallowing `.catch(() => {})` is replaced by a real try/catch that logs
+  `[shot] FAILED <name>: <first line of the error>` and returns null
+- a post-capture `existsSync` check catches the other shape, where `page.screenshot`
+  resolves but no file lands on disk, and likewise logs FAILED and returns null
+- the success path is unchanged: it still logs the path and returns it
+
+`existsSync` was already imported in this module. The single call site,
+skills/cf-access-wall/scripts/gh-oauth-app.mjs:57, awaits `shot()` without using the
+return value, so widening the return type to `string | null` breaks nothing.
+
+This closes a doc/code split-brain rather than opening one: dashboard-forge/SKILL.md
+already documents this under "shot() used to report phantom screenshots (fixed
+2026-08-07)". That documentation shipped while the code fix sat uncommitted in the
+working tree, so until this commit the released docs described a fix the released code
+did not contain.
+
+
+### BREAKING CHANGES
+
+* `/notes-commander:draft-hold` no longer exists and there is no alias.
+Invoke `/notes-commander:draft-park` instead. Any script calling the skill by path must
+move from `skills/draft-hold/draft-hold.sh` to `skills/draft-park/draft-park.sh`, and
+anything invoking the engine directly from `scripts/draft-hold.ts` must use
+`scripts/draft-park.ts`. Drafts parked before the rename are unaffected and remain
+readable with `draft-park get`.
+
 # [23.6.0](https://github.com/terrylica/cc-skills/compare/v23.5.0...v23.6.0) (2026-08-07)
 
 
