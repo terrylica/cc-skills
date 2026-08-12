@@ -83,9 +83,7 @@ Live menubar control of the companion runs through SwiftBar plugins. The compani
 
 **Deployment**: scripts live in this repo (SSoT); SwiftBar reads them via symlinks at `~/Library/Application Support/SwiftBar/Plugins/`. To deploy after edits, the symlinks pick up changes automatically — just trigger `open "swiftbar://refreshplugin?name=claude-hq.10s.sh"`.
 
-**Performance refactor (2026-05-18)**: 4 HTTP fetches parallelized, jq consolidated to one call per blob, python3 float-compare loop replaced with bash `printf %.1f`. Wall time 435 ms → 222 ms (1.96× faster), CPU per refresh 0.36 s → 0.19 s (47% less).
-
-**Naming history**: `claude-hq-actions.sh` was renamed from `nc-action.sh` 2026-05-18 — the original name predated the curl-based implementation. Old `.bak` copies remain at `~/Library/Application Support/SwiftBar/Plugins/*.pre-symlink.bak` and can be deleted once the new scripts have a few days of stability.
+**Performance budget**: keep the 4 HTTP fetches parallelized, `jq` consolidated to one call per blob, and float comparison in bash `printf %.1f` rather than a python3 loop. Hold ~222 ms wall and ~0.19 s CPU per refresh — serializing the fetches or adding a per-field `jq` regresses it to ~435 ms / 0.36 s.
 
 **Planned (Task #2)**: full SSE migration — companion exposes `/events`, a new streamable plugin replaces the polling shell plugin. Eliminates the 10 s refresh cadence and the per-refresh fork/exec overhead.
 

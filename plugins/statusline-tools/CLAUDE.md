@@ -63,7 +63,7 @@ Dependency: `brew install scc` (Go binary, single-shot — no daemon).
 
 The statusline reads doorward (the cc-router admission gateway in front of sub2api on bigblack el02) on every render and surfaces gate health, rotation pool size, canary state, and local ccmax-claude wrapper version. This integration is **optional** — public cc-skills users without doorward/tailnet membership see graceful degradation (no curl reaches the endpoint, the entire segment is suppressed when no other ccmax signal exists).
 
-> **What changed (2026-05-13):** the prior implementation read the legacy `localhost:18095/api/status` endpoint and rendered an OAuth account email + 5h/7d quota windows. Under the new architecture, the ccmax-claude PTY wrapper sets `ANTHROPIC_BASE_URL=https://bigblack.tail0f299b.ts.net:8450` and doorward picks from a rotation pool of OAuth accounts dynamically per-request. The local keychain's OAuth account is therefore no longer the credential that's actually being used, and the 5h/7d quota numbers describe a credential the user isn't consuming. We replaced both with the four signals below, which reflect the live pipeline.
+> **Do not surface the local keychain's OAuth account or its 5h/7d quota windows here**, and do not read `localhost:18095/api/status`. The ccmax-claude PTY wrapper sets `ANTHROPIC_BASE_URL=https://bigblack.tail0f299b.ts.net:8450`, and doorward picks from a rotation pool per-request — so the local credential is not the one being consumed, and its quota numbers describe spend the user isn't making. Surface the four signals below instead; they reflect the live pipeline.
 
 ### What it shows
 

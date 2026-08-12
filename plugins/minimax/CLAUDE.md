@@ -37,24 +37,10 @@ exploration campaign and extended (2026-06-01) with a live-probed **MiniMax-M3**
 5. **MiniMax errors are HTTP 200 + `base_resp.status_code`** (or an `error` envelope) — not HTTP 4xx.
    Both skills' parsers depend on this.
 6. **Both locked snapshots are review-gated** — bump only after auditing a tripwire diff, never blindly.
-
-## Recent changes
-
-- **2026-06-23** — Re-locked the M3 capability snapshot (output ceiling 512000 → 524288; `n>1`
-  now silently dropped, not rejected) and **ported the verify/probe scripts to a single Bun CLI**
-  `scripts/m3-cli.ts` (`verify` · `probe` · `context-probe` · `bench`) — pure Bun, no
-  `uv`/`requests`/`pillow`; vision now uses the committed `fixtures/vision-banana-7295.png`. The
-  model is read from the `MINIMAX_MODEL` SSoT. All four subcommands validated live; `verify` exits 0.
-  Also re-probed the input ceiling: **raised ~512K → ~1M** (docs' 1M claim now holds; 1,048,576
-  rejected), but **deep retrieval regressed** — the 400K needle now misses (2/2) vs retrieved on
-  06-01, so reliable retrieval is ≤ ~256K; 1M prefill latency ~235 s.
-
-- **2026-06-01** — Added the M3 layer: `skills/m3/SKILL.md`, `references/M3-EMPIRICAL.md`,
-  `references/fixtures/m3-capabilities-locked-2026-06-23.json`, `scripts/m3-{probe,context-probe,bench}.py`
-  - `_m3_common.py` + `m3-verify`. Refreshed `fixtures/models-list-locked.json` to include `MiniMax-M3`
-    (catalog tripwire was correctly firing on the new model). Both tripwires verified green live.
-    Key M3 facts: 512K input ceiling (docs claim 1M — not on this key), 512K output cap, `n=1`,
-    native vision ✅, `reasoning_split:true` = clean output, no `M3-highspeed` on this key.
+7. **M3's usable input is far smaller than its accepted input.** The API accepts ~1M tokens
+   (1,048,576 is rejected), but deep retrieval regresses well below the ceiling — a 400K needle
+   misses. Budget **≤ ~256K for reliable retrieval**; a 1M prefill costs ~235 s. Output caps at
+   **524,288**, and `n>1` is **silently dropped, not rejected** — never infer `n` was honoured.
 
 ## Verify everything
 

@@ -39,11 +39,6 @@ The graph is a powerful lens, but it has structural blind spots. Confirmed empir
 
 **Recipe when doing graph-driven housekeeping**: degree→dead-code, repeated-norm_label→dup, community→cohesion, `imports`/`calls` cycles→refactor — but ALWAYS adversarially verify each candidate against the real repo (default: it's intentional design) before proposing a change.
 
-## Smoke test provenance (2026-07-07)
+**Expected scale for a plugin-sized target** (`plugins/statusline-tools/`, 24 code + 15 docs): ~344 nodes, ~484 edges, ~26 communities, 100% EXTRACTED edges, ~$0.14 on gemini-2.5-flash via the two-step `extract` → `cluster-only` flow. Treat a large deviation as a signal that extraction misfired.
 
-Target: `plugins/statusline-tools/` (24 code + 15 docs). Result: 344 nodes, 484 edges, 26 communities; 100% EXTRACTED edges; cost $0.14 (gemini-2.5-flash). God node #1 = `statusline-tools Plugin`; report correctly surfaced the doorward-integration and telemetry-analytics communities. Two-step flow used: `extract` → `cluster-only`.
-
-## Provenance
-
-- 2026-07-07: plugin created. Operator asked whether Graphify-Labs/graphify (79.5k★) was ever installed — it wasn't; codegraph covered the code-graph niche before graphify existed/was known. Decided complementary, wrapped as 4 skills per AskUserQuestion round: new dedicated plugin, uv install, all four capability skills, smoke-tested on this repo.
-- 2026-07-07 (follow-up): operator asked graphify to use "our LLM" like markmind/harpa. Surveyed `~/eon/ccmax-monitor` → sub2api OpenAI gateway (`eon.25u.com:8450/v1`). Provisioned a dedicated `graphify` sub2api user (id 102, group 5, $50, key id 20148) per the harpa/markmind doctrine; stored in 1Password `2eeg5h4n3st6kcmt3icjhfjiiy`. Verified graphify `--backend openai` → Opus 4.8 end-to-end (needs `GRAPHIFY_LLM_TEMPERATURE=omit`). Also tested MiniMax-M3 (`api.minimax.io`, 1Password `e54cb3ujopexslaq7loywpuycm`): works, richer extraction, but ~5 min/6 files. Backend routing SSoT → `references/backends.md`.
+Backend routing, credentials and per-backend gotchas: [`references/backends.md`](./references/backends.md) (SSoT).

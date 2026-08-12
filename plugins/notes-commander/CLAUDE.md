@@ -6,7 +6,7 @@
 
 ## Why
 
-The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders across 3 accounts, mixed EN/中文 naming, near-empty folders next to 100+-note dumping grounds, tags barely used. Organizing it safely needs _wiring first_: full read + export to local storage (the undo story), then deliberate folderization primitives, then an audit that proposes before anything moves. `draft-park` (previously its own plugin, and named `draft-hold` until 2026-08-12) already owned the hardened Notes/AppleScript know-how, so it migrated in as one skill of this plugin (2026-07-18) rather than duplicating the engine.
+The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders across 3 accounts, mixed EN/中文 naming, near-empty folders next to 100+-note dumping grounds, tags barely used. Organizing it safely needs _wiring first_: full read + export to local storage (the undo story), then deliberate folderization primitives, then an audit that proposes before anything moves. `draft-park` owns the hardened Notes/AppleScript know-how and lives here as one skill of this plugin rather than duplicating the engine.
 
 ## Architecture (load-bearing)
 
@@ -14,8 +14,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 - **`scripts/notes.ts`** — organizer CLI: `inventory` / `export` / `mkdir` / `move-note` / `rename-folder` / `merge-folder` / `doctor`. FS/RS-delimited (U+0001/U+0002) record streams from AppleScript, parsed by `parseRecords` (AppleScript has no JSON).
 - **`scripts/draft-park.ts`** — the draft-park engine, now importing the shared core; `new` verifies a real note id + read-back (entity leaks, content presence) by default.
 - **Skills resolve their entrypoint with `cc-plugin-root`** — `SH="$(cc-plugin-root notes-commander)/skills/<skill>/<script>"`. That helper (`scripts/cc-plugin-root`, symlinked to `~/.local/bin/`) reads `~/.claude/plugins/installed_plugins.json`, so it returns the version Claude Code actually loaded. Do NOT glob `~/.claude/plugins/cache/cc-skills/notes-commander/*` — 10 of the 11 cached versions there are marked `.orphaned_at`, and the highest semver is routinely one of them.
-  <!-- LAYER3-STRIPPED-PATH-OK: documenting the historical claim, not using the pattern -->
-  Historical note (corrected 2026-08-05): this file used to say the Layer-3 operator cache "strips `scripts/`", so skills had to hardcode the Layer-2 marketplace-mirror path. That is no longer true — `scripts/` is present in the latest cached version of **all 27** cc-skills plugins that ship one, this plugin included. The shim's relative resolution (`$here/../../scripts/draft-park.ts`) therefore succeeds from the L3 cache too; its L2 fallback is now belt-and-suspenders rather than the primary path.
+  `scripts/` is present in the latest cached version of **all 27** cc-skills plugins that ship one, this plugin included, so the shim's relative resolution (`$here/../../scripts/draft-park.ts`) resolves from the L3 cache; its L2 marketplace-mirror fallback is belt-and-suspenders, not the primary path.
 
 ## Critical invariants
 
@@ -28,6 +27,7 @@ The operator's Notes tree grew sporadic — ~30 mostly-flat iCloud folders acros
 7. Tags have **no AppleScript API**; cross-account `move` is unsupported. Both are documented manual actions, not bugs.
 8. **`$CLAUDE_PLUGIN_ROOT` must never appear in a SKILL.md.** It is not a shell variable — Claude Code substitutes the exact literal `${CLAUDE_PLUGIN_ROOT}` (braces required) inside plugin manifests and sets it in hook/MCP subprocess envs only. A skill body is served to the model verbatim, so the reference reaches Bash as an unset var, expands to empty, and calls `/skills/…` → exit 127. This is exactly how `/notes-commander:draft-hold` broke on 2026-08-05. Use `"$(cc-plugin-root notes-commander)/…"`. Note `${CLAUDE_PLUGIN_ROOT:-fallback}` is NOT a fix either — the substitution regex needs the closing brace right after the name, so that idiom silently always takes the fallback.
 9. **Title→note-id resolution lives in ONE place: `matchNoteIds` (over a folder's `(id,name)` index).** macOS truncates a long note NAME with a trailing `…`, so exact `whose name is <title>` misses long titles. Both `draft-park` (get/sticky/dedup) and `notes move-note` fetch the index, resolve the title in TS (exact, then truncation-tolerant per `noteNameMatchesTitle`), and act by **id**. Never re-implement name-matching in an AppleScript payload — that duplicate rule was removed 2026-07-20; keep it single-sourced.
+10. **Quit Notes before setting the body of an existing note.** While the Notes UI holds the note open, `set body of n to …` fails with AppleEvent error `-10000`. Also resolve the id to a variable inside the `tell` block (`set n to note id "…"`) — the one-liner `set body of note id "…" to …` fails even when the note is closed. Read paths are unaffected by both.
 
 ## Skills
 

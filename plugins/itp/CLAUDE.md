@@ -4,9 +4,7 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [itp-hooks CLAUDE.md](../itp-hooks/CLAUDE.md)
 
-## Overview
-
-Execute approved plans from Claude Code's Plan Mode through an ADR-driven 4-phase workflow: preflight → implementation → formatting → release. The neutral acronym "ITP" avoids action inference that caused Claude to skip preflight.
+**Keep the acronym neutral**: "ITP" avoids the action inference that caused Claude to skip preflight. Do not rename it to a verb.
 
 ## 4-Phase Workflow
 

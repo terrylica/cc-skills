@@ -4,10 +4,6 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [plugins/CLAUDE.md](../CLAUDE.md)
 
-## Overview
-
-Automates Google's Gemini Deep Research through Chrome DevTools Protocol (CDP). Connects to a persistent Chrome instance, drives the Gemini web UI through the full Deep Research workflow, and extracts the final markdown report.
-
 ## Architecture
 
 ```

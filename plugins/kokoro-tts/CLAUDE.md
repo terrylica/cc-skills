@@ -4,11 +4,7 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [tts-tg-sync CLAUDE.md](../tts-tg-sync/CLAUDE.md) | [plugins/CLAUDE.md](../CLAUDE.md)
 
-## Overview
-
-Universal plugin for on-device text-to-speech using [MLX-Audio](https://github.com/Blaizzy/mlx-audio) Kokoro-82M on Apple Silicon. Provides install, health check, HTTP server, voice synthesis, upgrade, remove, and diagnostics skills.
-
-**Platform requirement**: macOS Apple Silicon (M1+). No Intel, Linux, or ONNX fallback.
+**Platform requirement**: macOS Apple Silicon (M1+), via [MLX-Audio](https://github.com/Blaizzy/mlx-audio) Kokoro-82M. No Intel, Linux, or ONNX fallback.
 
 ## Architecture
 

@@ -4,10 +4,6 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [itp-hooks CLAUDE.md](../itp-hooks/CLAUDE.md)
 
-## Overview
-
-This plugin provides GitHub CLI enforcement through hooks and skills for PR creation, issue management, and gh CLI best practices.
-
 ## Hooks
 
 ### PreToolUse Hooks
@@ -101,13 +97,13 @@ The `webfetch-github-guard.sh` hook soft-blocks WebFetch for github.com URLs:
 
 **ADR**: [/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
 
-## Repo Identity Guard (2026-02-09)
+## Repo Identity Guard
 
 The `gh-repo-identity-guard.mjs` hook blocks gh CLI write operations when the authenticated user lacks push access to the target repository.
 
-### Incident
+### Why it exists
 
-On 2026-02-09, Issue #6 was posted to `work/client-career-opportunities` by `terrylica` (wrong account). Root cause: `GH_TOKEN` set to `terrylica` from global mise config; project-specific config had a parse error preventing override.
+A parse error in a project-level mise config silently falls back to the global `GH_TOKEN` instead of failing, so `gh` writes land under whichever account that token belongs to — with no error to notice. The guard catches the mismatch before the write, not after.
 
 ### Guard Behavior
 

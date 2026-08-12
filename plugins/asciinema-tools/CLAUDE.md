@@ -4,10 +4,6 @@
 
 **Hub**: [Root CLAUDE.md](../../CLAUDE.md) | **Sibling**: [devops-tools CLAUDE.md](../devops-tools/CLAUDE.md)
 
-## Overview
-
-Full terminal recording lifecycle: record sessions, stream to GitHub, convert to searchable text, and extract insights with semantic analysis. Includes a launchd daemon for background idle-chunking.
-
 ## Skills
 
 - [analyze](./skills/analyze/SKILL.md)
