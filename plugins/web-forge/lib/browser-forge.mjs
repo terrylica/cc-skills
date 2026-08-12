@@ -316,10 +316,29 @@ export async function dismissConsent(page) {
 export const DEFAULT_SHOT_DIR = "/tmp/web-forge";
 
 /** Breadcrumb screenshot. NEVER call on a secret-reveal page — DOM-extract instead. */
+/**
+ * Screenshot a step, returning the path — or `null` if the capture failed.
+ *
+ * It used to swallow the error (`.catch(() => {})`) and return the intended path regardless,
+ * so a failed capture printed a confident `[shot] /tmp/web-forge/…png` for a file that was
+ * never written (verified 2026-08-07: a 30 s font-loading timeout on the Lark console printed
+ * a path with `existsSync === false`). Screenshots are the ONLY evidence a forge has when a
+ * selector misses, so a phantom one sends the next step reading a file that does not exist —
+ * and "the shot is missing" gets misread as "the page was blank".
+ */
 export async function shot(page, name, dir = DEFAULT_SHOT_DIR) {
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `${Date.now()}-${name}.png`);
-  await page.screenshot({ path: file, fullPage: false }).catch(() => {});
+  try {
+    await page.screenshot({ path: file, fullPage: false });
+  } catch (e) {
+    console.log(`  [shot] FAILED ${name}: ${String(e.message).split("\n")[0]}`);
+    return null;
+  }
+  if (!existsSync(file)) {
+    console.log(`  [shot] FAILED ${name}: screenshot resolved but wrote no file`);
+    return null;
+  }
   console.log(`  [shot] ${file}`);
   return file;
 }
