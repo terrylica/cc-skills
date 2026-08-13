@@ -227,7 +227,7 @@ Hard-won rules, each one paid for:
 - **Chrome silently ignores `--remote-debugging-port` on the DEFAULT data directory**
   (2026-08-12): Chrome starts normally, the flag appears in `ps`, and the port never binds. The
   only signal is one line on stderr — `DevTools remote debugging requires a non-default data
-  directory. Specify this using --user-data-dir.` — which is invisible if stderr goes to a log
+directory. Specify this using --user-data-dir.` — which is invisible if stderr goes to a log
   nobody reads. `curl 127.0.0.1:<port>/json/version` then fails with "connection refused" and
   looks like a dead browser rather than a rejected flag. **Diagnose with
   `lsof -nP -iTCP -sTCP:LISTEN -a -p <pid>`**: a Chrome that is up but listening on nothing is
@@ -236,11 +236,11 @@ Hard-won rules, each one paid for:
   invocations do not.
 
 - **Google Admin console — the group list lies after a write** (2026-08-12): immediately after
-  creating a group, **Directory → Groups** still rendered the empty state, *"Your organization
-  doesn't have any groups yet"*, for long enough to read as a failure. The group existed the
+  creating a group, **Directory → Groups** still rendered the empty state, _"Your organization
+  doesn't have any groups yet"_, for long enough to read as a failure. The group existed the
   whole time. **This is the SECOND vendor to do this** — see the Azure "a list view can lie about
-  creation" entry above — so treat it as a rule rather than a quirk: *never confirm a mutation
-  from the same console's default list view.* Confirm from a DIFFERENT system. Here the proof was
+  creation" entry above — so treat it as a rule rather than a quirk: _never confirm a mutation
+  from the same console's default list view._ Confirm from a DIFFERENT system. Here the proof was
   that GCP's `setIamPolicy` **rejects members that do not exist** and accepted the new group, so
   the IAM grant doubled as the existence check.
 - **Google Admin console — repeated clicks STACK duplicate dialogs** (2026-08-12): clicking
@@ -254,11 +254,39 @@ Hard-won rules, each one paid for:
   nothing, suspect that you are reading the wrong tab before you conclude the click failed.
 - **Google Admin console — a preset flips to "Custom" when you narrow a sub-setting**
   (2026-08-12): choosing the `Restricted` access-type preset and then setting "Who can join" to
-  *Only invited users* relabels Access type as **Custom**. That is correct and expected, not a
+  _Only invited users_ relabels Access type as **Custom**. That is correct and expected, not a
   failed selection. Assert on the SUB-SETTINGS you care about, never on the preset label.
 - **Google Admin console — `/ac/groups/new` is not a deep link** (2026-08-12): it answers
   `Error 400 (Bad Request)`. There is no URL that opens the create dialog; you must click through
   from `/ac/groups`.
+- **Seeding a forge profile with copied cookies NO LONGER WORKS FOR GOOGLE** (2026-08-13): the
+  "Seeding a forge profile from the operator's real Chrome" recipe above is now **dead for
+  `accounts.google.com`**. 109 `google.com` cookies copied cleanly out of the operator's profile and
+  the very first navigation still landed on the sign-in page — Google binds sessions to the profile's
+  device key (DBSC), so a cookie copy authenticates nothing. The recipe remains valid for vendors that
+  do plain cookie sessions; budget a supervised login for Google and do not plan a run around
+  borrowing its session. **Symptom to recognize:** a clean copy, a plausible cookie count, and an
+  immediate redirect to sign-in — which reads as "I copied the wrong profile" and is not.
+- **Google's sign-in identifier input is `type="text"`, not `type="email"`** (2026-08-13): the field is
+  `#identifierId`. A guarded `input[type="email"]` fill therefore matches ZERO nodes and, if the fill
+  is wrapped in `if (await field.count())`, does nothing at all — the screenshot then shows an empty
+  box, which reads as "the form rejected my value" rather than "my selector missed". Anchor on
+  `#identifierId`. (Same family as the Azure/Lark placeholder traps: a selector that matches nothing is
+  far more expensive to diagnose than one that matches the wrong thing, because the failure is silent.)
+- **Chrome ignores `--profile-directory` when another Chrome owns a DIFFERENT `--user-data-dir`**
+  (2026-08-13): with a leftover forge Chrome running, `open -a "Google Chrome" --args
+--profile-directory="Profile 22" <url>` and the direct-binary equivalent both print _"Opening in
+  existing browser session"_ and open **nothing** — no window, no error, exit 0. AppleScript then
+  enumerates the FORGE's tabs, so `tell application "Google Chrome"` silently drives the wrong browser.
+  Check `ps -axo pid,command | grep "[G]oogle Chrome" | grep -v " --type="` for a stray
+  `--user-data-dir` **before** trusting borrowed-session mode, and note two Chrome PIDs can coexist
+  where only one receives Apple Events. Prefer an explicit CDP profile over fighting for the default.
+- **Masking a value you have not validated hides the ERROR, not the secret** (2026-08-13): piping a
+  token-minting command through `2>&1 | sed 's/./x/g'` to keep a secret out of the transcript printed a
+  confident row of `x`s for what was actually `ERROR: Reauthentication failed…`. The masking made a
+  failure indistinguishable from success, and the next call's 401 was the only clue. Mask **lengths and
+  exit codes** (`len=${#TOK} rc=$?`), never a raw stream you have not first checked is a value —
+  `${#TOK}` would have read `0` and ended it immediately.
 
 ## Relationship to gh-fine-grained-pat
 
