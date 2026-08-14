@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-08-13: Self-hosted deployment retired — this skill is now public-API only
+
+**Trigger**: The operator asked to prioritize Firecrawl's official public "website to markdown" service for a small, occasional conversion volume, and to retire the self-hosted instances as no longer active.
+
+**Correction to the stated premise**: littleblack's Firecrawl was **not** dead. It answered HTTP 200 in 21 ms with five containers up five weeks. bigblack (`el02`) was already clean. The instance was therefore retired deliberately, not reaped — worth recording, because "assume it's already gone" would have left a live service running.
+
+**What was removed** (littleblack, user `yca`): containers `firecrawl-{api-1,nuq-postgres-1,rabbitmq-1,redis-1,playwright-service-1}`; images `firecrawl-api`, `firecrawl-playwright-service`, `firecrawl-nuq-postgres`, `rabbitmq:3-management`, `redis:alpine`; plus volume and build-cache prune. **~18 GB reclaimed (61.99 → 44.04 GB).** Port 3002 refuses connections. The compose directory `/home/kab/firecrawl` was permission-denied, so removal was done by container name rather than `docker compose down`. sub2api (3 containers) and clickhouse-server were explicitly preserved.
+
+**Validation that justified the switch** — public Firecrawl v2 vs Jina Reader on two `chatgpt.com/share/*` links:
+
+| Link | Firecrawl `v2/scrape`                       | Jina `r.jina.ai` | Jina coverage |
+| ---- | ------------------------------------------- | ---------------- | ------------- |
+| 1    | 57,616 chars · 76 headings · 128 table rows | 9,397 · 12 · 22  | **17%**       |
+| 2    | 136,590 chars · 85 headings · 69 table rows | 15,960 · 13 · 9  | **12%**       |
+
+Neither hit the login wall, so this is a coverage difference, not an auth failure. Jina truncated mid-sentence; Firecrawl reached the true footer both times. Firecrawl's extra bulk was content, not boilerplate. Jina also needs `-H "x-timeout: 30"` or it returns ~321 bytes of login chrome.
+
+**Skill changes**: SKILL.md 38,700 → 31,934 chars. Section 5 (Self-Hosted Operations) excised to a six-line retirement fence. The four `self-hosted-*.md` reference docs (~16 KB) deleted. All base URLs repointed to `https://api.firecrawl.dev`; v1 → v2 with the `search` response-shape difference documented in `api-endpoint-reference.md`. The health-check surface was removed outright — the public API has no health endpoint, so gating a run on liveness is now an anti-pattern rather than a best practice.
+
+**Downstream reconciliation**: `devops-tools/CLAUDE.md` (self-hosted services table), `gemini-deep-research` (client default, CLI default, help text, options table), and `gh-tools:research-archival` (decision tree, scrape block, troubleshooting, `url-routing.md`) were all repointed in the same change.
+
+---
+
 ## 2026-05-27 (b): Antifragile reconciliation of the morning's URL-routing guard
 
 **Trigger**: A live session later the same day invoked the skill on a `chatgpt.com/share/*` URL and hit a contradiction — the morning's URL-routing guard said "route AI chat shares out to `Skill(gh-tools:research-archival)`, this skill cannot handle them," while Section 5's port-routing table explicitly listed `Gemini/ChatGPT shares → Port 3003 (Needs JS rendering)`. The operator (Claude) had to make a judgment call mid-flow, chose Section 5, and port 3003 returned a 75 KB / 1,734-line scrape successfully. Section 5 was right; the guard was overcautious.

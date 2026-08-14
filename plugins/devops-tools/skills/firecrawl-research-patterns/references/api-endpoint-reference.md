@@ -2,11 +2,11 @@
 
 Firecrawl self-hosted API contracts for the two endpoints used in research workflows, plus health check.
 
-**Base URL**: `http://littleblack:3002` (Tailscale primary, no API key needed; legacy ZeroTier fallback at `172.25.236.1:3002`)
+**Base URL**: `https://api.firecrawl.dev` (public API, no key needed)
 
 ---
 
-## POST /v1/search
+## POST /v2/search
 
 Combined search + scrape. Searches the web for a query and returns scraped markdown for each result.
 
@@ -57,17 +57,17 @@ Combined search + scrape. Searches the web for a query and returns scraped markd
 
 ### Error Responses
 
-| Status  | Meaning                         | Action                                                                               |
-| ------- | ------------------------------- | ------------------------------------------------------------------------------------ |
-| 400     | Invalid request (missing query) | Check request body                                                                   |
-| 408     | Search timeout                  | Retry with shorter query or fewer results                                            |
-| 500     | Internal server error           | Check Firecrawl logs, restart if needed                                              |
-| 502/503 | Service unavailable             | Container may be dead — see [self-hosted-operations.md](./self-hosted-operations.md) |
+| Status  | Meaning                         | Action                                                              |
+| ------- | ------------------------------- | ------------------------------------------------------------------- |
+| 400     | Invalid request (missing query) | Check request body                                                  |
+| 408     | Search timeout                  | Retry with shorter query or fewer results                           |
+| 500     | Internal server error           | Transient — retry once, then fall back to Jina Reader               |
+| 502/503 | Service unavailable             | Transient upstream blip — retry once, then fall back to Jina Reader |
 
 ### curl Example
 
 ```bash
-curl -s -X POST http://littleblack:3002/v1/search \
+curl -s -X POST https://api.firecrawl.dev/v2/search \
    -H "Content-Type: application/json" \
    -d '{
       "query": "transformer attention mechanism",
@@ -87,7 +87,7 @@ async function firecrawlSearch(
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
   try {
-    const res = await fetch("http://littleblack:3002/v1/search", {
+    const res = await fetch("https://api.firecrawl.dev/v2/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -113,7 +113,7 @@ async function firecrawlSearch(
 
 ---
 
-## POST /v1/scrape
+## POST /v2/scrape
 
 Single URL scrape. Fetches a specific URL and returns its content as markdown.
 
@@ -161,13 +161,13 @@ Single URL scrape. Fetches a specific URL and returns its content as markdown.
 
 ```bash
 # Simple static page
-curl -s -X POST http://littleblack:3002/v1/scrape \
+curl -s -X POST https://api.firecrawl.dev/v2/scrape \
    -H "Content-Type: application/json" \
    -d '{"url":"https://arxiv.org/abs/2401.12345","formats":["markdown"]}' \
    | jq -r '.data.markdown'
 
 # JS-heavy page (wait for rendering)
-curl -s -X POST http://littleblack:3002/v1/scrape \
+curl -s -X POST https://api.firecrawl.dev/v2/scrape \
    -H "Content-Type: application/json" \
    -d '{"url":"https://dl.acm.org/doi/10.1145/12345","formats":["markdown"],"waitFor":3000}' \
    | jq -r '.data.markdown'
@@ -184,7 +184,7 @@ async function firecrawlScrape(
   const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
   try {
-    const res = await fetch("http://littleblack:3002/v1/scrape", {
+    const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -210,49 +210,24 @@ async function firecrawlScrape(
 
 ---
 
-## GET /v1/health
+## Endpoint facts
 
-Health check endpoint. Use before starting a research session.
+| Property | Value                                                 |
+| -------- | ----------------------------------------------------- |
+| Base URL | `https://api.firecrawl.dev`                           |
+| API key  | Not required — the public API answers unauthenticated |
+| Network  | Public internet; no tunnel, no tailnet                |
+| Liveness | No health endpoint. Handle per-request failures.      |
 
-### Response (200 OK)
+## v1 vs v2 on the public API (verified 2026-08-13)
 
-```json
-{
-  "status": "ok"
-}
-```
+Both `/v1/*` and `/v2/*` answer unauthenticated, but **search response shapes differ** — do not
+swap the version without changing the parser:
 
-### curl Example
+| Endpoint    | Success shape              |
+| ----------- | -------------------------- |
+| `v1/search` | `data: [ {...} ]`          |
+| `v2/search` | `data: { web: [ {...} ] }` |
 
-```bash
-curl -sf http://littleblack:3002/v1/health && echo "Firecrawl OK" || echo "Firecrawl UNHEALTHY"
-```
-
-### fetch() Example
-
-```typescript
-async function checkFirecrawlHealth(): Promise<boolean> {
-  try {
-    const res = await fetch("http://littleblack:3002/v1/health", {
-      signal: AbortSignal.timeout(5_000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-```
-
----
-
-## Self-Hosted Specifics
-
-| Property           | Value                                              |
-| ------------------ | -------------------------------------------------- |
-| Base URL           | `http://littleblack:3002`                          |
-| API key            | Not required (self-hosted, no auth)                |
-| Network            | Tailscale (must be connected)                      |
-| Host               | littleblack                                        |
-| Wrapper (optional) | `http://littleblack:3003/scrape?url=URL&name=NAME` |
-
-The wrapper at `:3003` saves markdown to disk and returns a file URL. For programmatic research workflows, prefer the direct API at `:3002` — it gives you full control over the response.
+`v1/scrape` and `v2/scrape` both return `data.markdown`. Prefer **v2** — a malformed body to
+`v1/scrape` is answered with _"please review the v2 API documentation"_, so v1 is on the way out.

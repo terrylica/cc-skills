@@ -6,16 +6,16 @@ Decision tree for choosing the best retrieval method based on paper source. Opti
 
 ## Routing Table
 
-| Source                | Best Method                     | Why                                                                                      | Fallback                            | `waitFor` |
-| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------- | --------- |
-| arxiv.org             | Port 3003 (`/scrape?url=...`)   | **+17% more content** than Jina (99KB vs 85KB), 13 figures vs 12, identical to port 3002 | Jina Reader (when littleblack down) | No        |
-| Semantic Scholar      | API (`api.semanticscholar.org`) | Structured JSON, free, rate-limited                                                      | Firecrawl search for paper title    | No        |
-| ACL Anthology         | Firecrawl `/v1/scrape`          | Clean HTML, free access                                                                  | Direct PDF download                 | No        |
-| NeurIPS/ICML/ICLR     | Firecrawl `/v1/scrape`          | JS-rendered proceedings pages                                                            | Firecrawl search by title           | 2000      |
-| IEEE Xplore           | Firecrawl `/v1/scrape`          | Heavy JS SPA                                                                             | Author's personal website           | 3000      |
-| ACM Digital Library   | Firecrawl `/v1/scrape`          | Heavy JS SPA                                                                             | Author's personal website           | 3000      |
-| Author blogs/websites | Jina Reader (`r.jina.ai`)       | Static HTML, fast, clean output                                                          | Firecrawl `/v1/scrape`              | No        |
-| Google Scholar        | Firecrawl `/v1/search`          | Needs JS rendering for results                                                           | Direct search query reformulation   | No        |
+| Source                | Best Method                     | Why                                                                                              | Fallback                          | `waitFor` |
+| --------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------- | --------- |
+| arxiv.org             | Public API (`POST /v2/scrape`)  | **+17% more content** than Jina (99KB vs 85KB), 13 figures vs 12, same content as the public API | Jina Reader (static pages only)   | No        |
+| Semantic Scholar      | API (`api.semanticscholar.org`) | Structured JSON, free, rate-limited                                                              | Firecrawl search for paper title  | No        |
+| ACL Anthology         | Firecrawl `/v2/scrape`          | Clean HTML, free access                                                                          | Direct PDF download               | No        |
+| NeurIPS/ICML/ICLR     | Firecrawl `/v2/scrape`          | JS-rendered proceedings pages                                                                    | Firecrawl search by title         | 2000      |
+| IEEE Xplore           | Firecrawl `/v2/scrape`          | Heavy JS SPA                                                                                     | Author's personal website         | 3000      |
+| ACM Digital Library   | Firecrawl `/v2/scrape`          | Heavy JS SPA                                                                                     | Author's personal website         | 3000      |
+| Author blogs/websites | Jina Reader (`r.jina.ai`)       | Static HTML, fast, clean output                                                                  | Firecrawl `/v2/scrape`            | No        |
+| Google Scholar        | Firecrawl `/v2/search`          | Needs JS rendering for results                                                                   | Direct search query reformulation | No        |
 
 ---
 
@@ -31,14 +31,16 @@ arxiv.org/html/2401.12345     → full HTML paper (preferred for LLM)
 arxiv.org/pdf/2401.12345      → PDF (less useful for text extraction)
 ```
 
-**Primary**: Port 3003 (Firecrawl wrapper) — empirically gets 17% more content than Jina:
+**Primary**: Firecrawl `POST /v2/scrape` — empirically gets 17% more content than Jina:
 
 ```bash
-curl "http://littleblack:3003/scrape?url=https://arxiv.org/html/2401.12345&name=paper-slug"
-# Returns: {"url":"http://littleblack:8080/paper-slug-TIMESTAMP.md","file":"..."}
+curl -sS -X POST https://api.firecrawl.dev/v2/scrape \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://arxiv.org/html/2401.12345","formats":["markdown"]}' \
+  | jq -r '.data.markdown' > paper.md
 ```
 
-**Fallback** (when littleblack is down): Jina Reader:
+**Fallback** (simple static pages only — Jina truncates JS-rendered pages): Jina Reader:
 
 ```bash
 curl -s "https://r.jina.ai/https://arxiv.org/html/2401.12345" -o paper.md
@@ -46,10 +48,9 @@ curl -s "https://r.jina.ai/https://arxiv.org/html/2401.12345" -o paper.md
 
 **Empirically validated (arXiv:2312.00752v2, Mamba paper, March 2026)**:
 
-- Port 3003: 99,104 bytes, 1,267 lines, 13 figures (absolute inline URLs ✅)
+- Firecrawl: 99,104 bytes, 1,267 lines, 13 figures (absolute inline URLs ✅)
 - Jina Reader: 84,832 bytes, 596 lines, 12 figures (absolute inline URLs ✅)
 - Both emit absolute figure URLs — no URL reconstruction needed
-- The earlier session timeout was machine downtime, not a routing issue — port 3003 reaches arxiv.org fine when littleblack is online
 
 **Math rendering gap** (empirically validated): Both Jina and Firecrawl double all equations — each equation appears as Unicode render + raw LaTeX source in the same table cell with `\displaystyle` prefixes, no `$...$` delimiters. Unreadable on GitHub for humans; LaTeX is still parseable by LLMs. For human-readable GFM math, use Pandoc from the arXiv LaTeX source tarball (`--to gfm+tex_math_dollars`) — produces proper `$inline$` and ` ```math ``` ` blocks GitHub renders, but paper-specific custom macros (`\A`, `\B`, `\R`, etc.) need the preamble's `\newcommand` definitions prepended (see Section 6 of SKILL.md).
 
@@ -95,12 +96,12 @@ figure_urls:
 - Files are `x1.png`, `x2.png`, … (sequential, 1-indexed); first 404 means no more figures
 - Some papers use `.svg` or `.jpg`; probe `.png` first, then alternatives
 - Version suffix: `https://arxiv.org/html/2401.12345v2/` for a specific version
-- Port 3003 already embeds these as inline absolute URLs — just extract them with `grep -oE 'https://arxiv.org/html/[^)]+\.png'`
+- Firecrawl already embeds these as inline absolute URLs — just extract them with `grep -oE 'https://arxiv.org/html/[^)]+\.png'`
 
 **Fallback**: If `/html/` is unavailable (older papers), use Firecrawl to scrape `/abs/`:
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/scrape", {
+const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -130,7 +131,7 @@ const paper = await fetch(
 **Fallback**: If API rate-limited or paper not indexed, search via Firecrawl:
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/search", {
+const res = await fetch("https://api.firecrawl.dev/v2/search", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -146,7 +147,7 @@ const res = await fetch("http://littleblack:3002/v1/search", {
 These use JS-rendered pages. Always use `waitFor`:
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/scrape", {
+const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -162,7 +163,7 @@ const res = await fetch("http://littleblack:3002/v1/scrape", {
 Heavy JS SPAs that require extended wait times:
 
 ```typescript
-const res = await fetch("http://littleblack:3002/v1/scrape", {
+const res = await fetch("https://api.firecrawl.dev/v2/scrape", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({

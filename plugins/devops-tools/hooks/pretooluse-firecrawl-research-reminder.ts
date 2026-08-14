@@ -19,7 +19,7 @@ interface HookInput {
   tool_input: {
     url?: string;
     prompt?: string;
-    query?: string;  // WebSearch query
+    query?: string; // WebSearch query
   };
 }
 
@@ -60,8 +60,8 @@ const ACADEMIC_DOMAINS = [
 // Search query patterns that indicate academic research
 const RESEARCH_QUERY_PATTERNS = [
   /\barxiv\b/i,
-  /\bpaper\b.*\b(20[12]\d)\b/i,   // "paper 2024"
-  /\b(20[12]\d)\b.*\bpaper\b/i,   // "2024 paper"
+  /\bpaper\b.*\b(20[12]\d)\b/i, // "paper 2024"
+  /\b(20[12]\d)\b.*\bpaper\b/i, // "2024 paper"
   /\bresearch\s+paper\b/i,
   /\bacademic\s+paper\b/i,
   /\bpeer[- ]reviewed\b/i,
@@ -89,8 +89,11 @@ function main(): void {
   }
 
   // Fast path: check raw input for any academic keyword before parsing JSON
-  const hasAcademicSignal = ACADEMIC_DOMAINS.some(d => rawInput.includes(d))
-    || /arxiv|doi\.org|preprint|research\s+paper|\bpaper\b.*20[12]\d|20[12]\d.*\bpaper\b|peer.reviewed|conference\s+paper|\bpublication\b/i.test(rawInput);
+  const hasAcademicSignal =
+    ACADEMIC_DOMAINS.some((d) => rawInput.includes(d)) ||
+    /arxiv|doi\.org|preprint|research\s+paper|\bpaper\b.*20[12]\d|20[12]\d.*\bpaper\b|peer.reviewed|conference\s+paper|\bpublication\b/i.test(
+      rawInput,
+    );
 
   if (!hasAcademicSignal) {
     console.log("{}");
@@ -124,7 +127,7 @@ function main(): void {
     // Check for PDF URLs (common for papers)
     if (!isAcademic && /\.pdf$/i.test(url)) {
       // PDF from any domain could be a paper — check if query/prompt mentions research
-      if (RESEARCH_QUERY_PATTERNS.some(p => p.test(query))) {
+      if (RESEARCH_QUERY_PATTERNS.some((p) => p.test(query))) {
         isAcademic = true;
         matchedSignal = "PDF + research context";
       }
@@ -155,19 +158,21 @@ WHY:
 - WebFetch fails on PDFs (returns binary), JS-heavy sites (IEEE, ACM), and paywalls
 - Firecrawl routes papers optimally: arxiv → direct HTML, Semantic Scholar → API, others → JS-rendered scrape
 - Persists raw corpus with academic frontmatter for re-analysis
-- Self-hosted on bigblack (Tailscale) — no rate limits
+- Public API at api.firecrawl.dev — no API key, no host to keep alive
 
 QUICK FIX for arxiv:
   Use /html/ instead of /abs/ or /pdf/:
   https://arxiv.org/html/<ID>  ← full paper as readable HTML`;
 
   // Soft reminder: allow the operation but show the reason to Claude
-  console.log(JSON.stringify({
-    hookSpecificOutput: {
-      permissionDecision: "allow",
-      permissionDecisionReason: reason
-    }
-  }));
+  console.log(
+    JSON.stringify({
+      hookSpecificOutput: {
+        permissionDecision: "allow",
+        permissionDecisionReason: reason,
+      },
+    }),
+  );
 }
 
 main();

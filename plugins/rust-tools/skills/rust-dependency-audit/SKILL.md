@@ -37,13 +37,13 @@ Comprehensive dependency audit workflow using four complementary tools: freshnes
 4. **Fallback: Firecrawl scrape** (if WebFetch fails — JS-heavy pages, rate limits, incomplete data):
 
    ```bash
-   curl -s -X POST http://littleblack:3002/v1/scrape \
+   curl -s -X POST https://api.firecrawl.dev/v2/scrape \
      -H "Content-Type: application/json" \
      -d '{"url": "https://crates.io/crates/{crate_name}", "formats": ["markdown"], "waitFor": 0}' \
      | jq -r '.data.markdown'
    ```
 
-   Requires Tailscale connectivity. See `/devops-tools:firecrawl-research-patterns` for full API reference.
+   Public API — no key, no tailnet. See `/devops-tools:firecrawl-research-patterns` for full API reference.
 
 ## When to Use
 

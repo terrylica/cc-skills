@@ -1,8 +1,8 @@
 # devops-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-17-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-17-blue.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 DevOps automation plugin for Claude Code: ClickHouse Cloud management, Doppler credentials, secret validation, MLflow queries, notifications, and session recovery.
 
@@ -122,11 +122,10 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 ### Firecrawl Research Patterns
 
-- Programmatic search and scrape via self-hosted Firecrawl (bigblack (Tailscale))
+- Programmatic search and scrape via the public Firecrawl API (`api.firecrawl.dev`, no key required)
 - Academic paper routing (arxiv, Semantic Scholar, IEEE, ACM DL)
 - Recursive deep research protocol with corpus persistence
-- Self-hosted operations: Docker Compose, health checks, recovery
-- Tailscale network integration
+- Jina Reader as the fallback for simple static pages
 
 ### ML Data Pipeline Architecture
 

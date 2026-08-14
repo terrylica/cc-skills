@@ -100,99 +100,49 @@ Route scrape requests based on URL pattern. See [url-routing.md](./references/ur
 ### Decision Tree
 
 ```
-URL contains chatgpt.com/share/
-  → Jina Reader (https://r.jina.ai/{URL})
+Any JS-rendered share link (chatgpt.com/share/, gemini.google.com/share/, claude.ai/artifacts/)
+  → Firecrawl public API (POST https://api.firecrawl.dev/v2/scrape)
   → Use curl (not WebFetch — it summarizes instead of returning raw)
 
-URL contains gemini.google.com/share/
-  → Firecrawl (JS-heavy SPA)
-  → Preflight: ping -c1 -W2 littleblack
-
-URL contains claude.ai/artifacts/ or is a static web page
-  → Jina Reader (https://r.jina.ai/{URL})
-  → Use WebFetch or curl
+Simple static page
+  → Either works. Jina Reader (https://r.jina.ai/{URL}) is one GET and fine here.
 ```
 
-### Firecrawl Scrape (with Health Check + Auto-Revival)
+**Default to Firecrawl.** Measured 2026-08-13 on two `chatgpt.com/share/*` links, Jina returned
+**17% and 12%** of Firecrawl's content and truncated mid-sentence; Firecrawl reached the true page
+footer both times. Jina also needs `-H "x-timeout: 30"` or it returns ~321 bytes of login chrome.
 
-**CRITICAL**: Firecrawl containers can show "Up" in `docker ps` while internal processes are dead (RAM/CPU overload crashes the worker inside the container). Always perform a deep health check before scraping.
+### Firecrawl Scrape
+
+No health check, no preflight, no revival. The public API needs no key and has no host to be down —
+handle a failed request per request rather than gating the run on a liveness probe.
 
 ```bash
 /usr/bin/env bash << 'SCRAPE_EOF'
 set -euo pipefail
 
-# Step 1: Check Tailscale connectivity (littleblack primary, ZeroTier legacy at 172.25.236.1)
-if ! ping -c1 -W2 littleblack >/dev/null 2>&1; then
-  echo "ERROR: Firecrawl host unreachable. Check Tailscale: tailscale status"
-  exit 1
-fi
-
-# Step 2: Deep health check — test actual API response, not just container status
-# Port 3003 (wrapper) may accept TCP but return empty if Firecrawl API (3002) is dead inside
-HTTP_CODE=$(ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
-  -X POST http://localhost:3002/v1/scrape \
+# waitFor gives the SPA time to render; without it a share link returns the shell.
+RESPONSE=$(curl -sS --max-time 180 -X POST https://api.firecrawl.dev/v2/scrape \
   -H "Content-Type: application/json" \
-  -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
+  -d "$(jq -n --arg u "$URL" \
+        '{url: $u, formats: ["markdown"], waitFor: 8000, timeout: 60000}')")
 
-if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
-  echo "WARNING: Firecrawl API unhealthy (HTTP $HTTP_CODE). Attempting revival..."
-
-  # Step 2a: Check docker logs for WORKER STALLED (RAM/CPU overload)
-  ssh littleblack 'docker logs firecrawl-api-1 --tail 20 2>&1 | grep -i "stalled\|error\|exit" || true'
-
-  # Step 2b: Restart the critical containers
-  ssh littleblack 'docker restart firecrawl-api-1 firecrawl-playwright-service-1' 2>/dev/null
-  echo "Containers restarted. Waiting 20s for API to initialize..."
-  sleep 20
-
-  # Step 2c: Verify recovery
-  HTTP_CODE=$(ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
-    -X POST http://localhost:3002/v1/scrape \
-    -H "Content-Type: application/json" \
-    -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
-
-  if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
-    echo "ERROR: Firecrawl still unhealthy after restart (HTTP $HTTP_CODE)."
-    echo "Manual intervention needed. Try: ssh littleblack 'cd ~/firecrawl && docker compose up -d --force-recreate'"
-    echo "Falling back to Jina Reader: https://r.jina.ai/${URL}"
-    exit 1
-  fi
-  echo "Firecrawl recovered successfully."
-fi
-
-# Step 3: Scrape via wrapper
-CONTENT=$(curl -s --max-time 120 "http://littleblack:3003/scrape?url=${URL}&name=${SLUG}")
+CONTENT=$(printf '%s' "$RESPONSE" | jq -r '.data.markdown // empty')
 
 if [ -z "$CONTENT" ]; then
-  echo "ERROR: Scrape returned empty. Try Jina fallback: https://r.jina.ai/${URL}"
+  echo "ERROR: Firecrawl returned no markdown:" >&2
+  printf '%s\n' "$RESPONSE" | head -c 400 >&2
+  echo "Retry once, then fall back to: curl -H 'x-timeout: 30' https://r.jina.ai/${URL}" >&2
   exit 1
 fi
 
-echo "$CONTENT"
+printf '%s\n' "$CONTENT"
 SCRAPE_EOF
 ```
 
-### Known Failure Mode: Container "Up" But Processes Dead
-
-**Symptom**: `docker ps` shows containers with status "Up 4 days" but `curl localhost:3002` returns connection reset.
-
-**Root cause**: Firecrawl worker exhausts RAM/CPU (observed: `cpuUsage=0.998, memoryUsage=0.858`). Internal Node.js processes exit but Docker container stays alive because the entrypoint shell is still running.
-
-**Diagnosis**:
-
-```bash
-ssh bigblack 'docker logs firecrawl-api-1 --tail 50 2>&1 | grep -E "STALLED|cpuUsage|exit"'
-# Look for: WORKER STALLED {"cpuUsage":0.998,"memoryUsage":0.858}
-```
-
-**Fix**: `docker restart` (not `docker compose restart` — may require permissions to compose directory):
-
-```bash
-ssh bigblack 'docker restart firecrawl-api-1 firecrawl-playwright-service-1'
-sleep 20  # Wait for API initialization
-# Verify:
-ssh bigblack 'curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/v1/scrape'
-```
+> **Do not reintroduce a self-hosted Firecrawl.** The littleblack deployment (ports 3002/3003, five
+> containers) was retired 2026-08-13 and reclaimed ~18 GB. It required health checks, container
+> restarts, and WORKER-STALLED triage that the public API makes unnecessary at this volume.
 
 ---
 
@@ -318,17 +268,16 @@ After modifying THIS skill:
 
 ## Troubleshooting
 
-| Issue                         | Cause                              | Fix                                                                       |
-| ----------------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
-| Wrong account posting         | GH_TOKEN mismatch                  | Check `mise env \| grep GH_TOKEN`, verify `GH_ACCOUNT`                    |
-| Body exceeds 65536 chars      | GitHub API limit                   | Split across issue body + first comment                                   |
-| Firecrawl unreachable         | Tailscale down                     | `tailscale ping bigblack`, check `tailscale status`                       |
-| Firecrawl "Up" but dead       | Container alive, processes crashed | `docker restart firecrawl-api-1 firecrawl-playwright-service-1`, wait 20s |
-| Firecrawl WORKER STALLED      | RAM/CPU overload (>85% mem)        | Same as above; check `docker logs firecrawl-api-1 --tail 50`              |
-| Scrape returns empty          | JS-heavy page timeout              | Increase Firecrawl timeout, try Jina fallback                             |
-| Jina returns login page shell | Gemini login wall (not rendered)   | Must use Firecrawl for `gemini.google.com/share/*` URLs                   |
-| mise parse error              | Stale .mise.toml syntax            | Run `mise doctor`, check `[hooks.enter]` syntax                           |
-| Identity guard blocks         | Non-owner account                  | `export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`                |
+| Issue                         | Cause                            | Fix                                                                        |
+| ----------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
+| Wrong account posting         | GH_TOKEN mismatch                | Check `mise env \| grep GH_TOKEN`, verify `GH_ACCOUNT`                     |
+| Body exceeds 65536 chars      | GitHub API limit                 | Split across issue body + first comment                                    |
+| Firecrawl returns no markdown | Transient API failure            | Retry once, then fall back to Jina with `-H "x-timeout: 30"`               |
+| Scrape returns the page shell | SPA had not rendered yet         | Raise `waitFor` (8000 → 15000) and `timeout` in the request body           |
+| Jina returns ~321 bytes       | Missing timeout header           | Add `-H "x-timeout: 30"` — without it Jina returns login chrome            |
+| Jina output truncated         | Jina under-covers JS-heavy pages | Expected — use Firecrawl; Jina got 17%/12% coverage in the 2026-08-13 test |
+| mise parse error              | Stale .mise.toml syntax          | Run `mise doctor`, check `[hooks.enter]` syntax                            |
+| Identity guard blocks         | Non-owner account                | `export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`                 |
 
 ## References
 

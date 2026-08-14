@@ -1,12 +1,14 @@
 ---
 name: firecrawl-research-patterns
-description: Programmatic Firecrawl usage, self-hosted operations, academic paper routing, recursive deep research, and raw corpus persistence.
+description: Programmatic Firecrawl usage via the public API, academic paper routing, recursive deep research, and raw corpus persistence.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Firecrawl Research Patterns
 
-Programmatic patterns for using self-hosted Firecrawl in research workflows — search, scrape, route academic papers, run recursive deep research, and persist raw results for future re-analysis. Also covers self-hosted deployment, health checks, and recovery.
+Programmatic patterns for using Firecrawl in research workflows — search, scrape, route academic papers, run recursive deep research, and persist raw results for future re-analysis.
+
+**Use the public Firecrawl API. There is no self-hosted instance.** `POST https://api.firecrawl.dev/v2/scrape` answers without an API key, which covers the low-volume, occasional conversions this repo actually does. Rate limits and queueing are acceptable — do not stand up a private deployment to avoid them.
 
 For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools:research-archival)`.
 
@@ -22,23 +24,32 @@ For archiving AI chat conversations (ChatGPT/Gemini shares), see `Skill(gh-tools
 
 AI chat share URLs (`chatgpt.com/share/*`, `chat.openai.com/share/*`, `gemini.google.com/share/*`, `g.co/gemini/share/*`, `claude.ai/share/*`, `claude.ai/chat/*`) can be processed by **either** this skill or `Skill(gh-tools:research-archival)`. Pick by **intent**, not URL pattern:
 
-| Your intent                                                                        | Skill                               | Output                                                                         |
-| ---------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
-| One-off read / extract conversation text for analysis                              | **This skill** — port 3003 (Sec. 5) | Markdown file on Caddy; no frontmatter, no Issue, no provenance.               |
-| Long-term archive with identity verification, frontmatter, GitHub Issue cross-link | `Skill(gh-tools:research-archival)` | `docs/research/YYYY-MM-DD-{slug}-{type}.md` + issue with Discovery Provenance. |
-| Already have the file, just need to scrape extra content into the same corpus file | **This skill**                      | Append-mode workflow under your control.                                       |
+| Your intent                                                                        | Skill                                | Output                                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| One-off read / extract conversation text for analysis                              | **This skill** — public API (Sec. 1) | Markdown file on Caddy; no frontmatter, no Issue, no provenance.               |
+| Long-term archive with identity verification, frontmatter, GitHub Issue cross-link | `Skill(gh-tools:research-archival)`  | `docs/research/YYYY-MM-DD-{slug}-{type}.md` + issue with Discovery Provenance. |
+| Already have the file, just need to scrape extra content into the same corpus file | **This skill**                       | Append-mode workflow under your control.                                       |
 
 > **Both paths share the same Firecrawl backend.** `research-archival` calls Firecrawl too — it adds an archival layer on top. There is no scraping capability gap between the two; the difference is what happens to the bytes after they come back.
 
-**WebFetch limitation, regardless of intent**: Claude Code hard-blocks `WebFetch` against `chatgpt.com`. Use Firecrawl (this skill, any port) or Jina Reader instead. Verified 2026-05-27.
+**WebFetch limitation, regardless of intent**: Claude Code hard-blocks `WebFetch` against `chatgpt.com`. Use Firecrawl.
 
-**Empirical note** (2026-05-27): port 3003 successfully scrapes ChatGPT shares — `curl :3003/scrape?url=...&name=...` returned a 75 KB / 1,734-line markdown for a real ChatGPT share via the Caddy two-step pattern (see Section 5). Earlier guidance that said "route AI chat shares out" was overcautious and contradicted Section 5's port table.
+**Prefer Firecrawl over Jina Reader for chat shares — Jina silently truncates.** Measured 2026-08-13 on two `chatgpt.com/share/*` URLs, same moment, both returning HTTP 200 with no error:
+
+| Link | Firecrawl `v2/scrape`                       | Jina `r.jina.ai`                          | Jina coverage |
+| ---- | ------------------------------------------- | ----------------------------------------- | ------------- |
+| 1    | 57,616 chars · 76 headings · 128 table rows | 9,397 chars · 12 headings · 22 table rows | **17%**       |
+| 2    | 136,590 chars · 85 headings · 69 table rows | 15,960 chars · 13 headings · 9 table rows | **12%**       |
+
+Firecrawl reached the true end of both pages (the `Sources` / `ChatGPT is AI and can make mistakes.` footer). Jina stopped mid-sentence — link 1 ended at `"I would spend money on **Synol"`. Neither hit the login wall and Firecrawl's extra bulk was not nav boilerplate (its most-repeated line is blank). **A truncated Jina result looks like a successful short page**, which is the dangerous failure: there is no error to catch.
+
+Jina also needs `-H "x-timeout: 30"` at all — the default returns ~321 bytes of login chrome (`"Log in to get answers"`) with only a soft `Warning:` line. Keep Jina as a fallback for simple static pages; do not use it for chat shares or anything JS-rendered.
 
 ### Template A — Single Firecrawl Search + Persist
 
 ```
-1. Health check — GET http://littleblack.tail0f299b.ts.net:3002/ (expect 200 + {"message":"Firecrawl API",...}; NEVER use /v1/health — it 404s)
-2. Execute search — POST /v1/search with query, limit, scrapeOptions
+1. No health check needed — the public API has no self-hosted liveness concern. Handle per-request failures instead (Section 1).
+2. Execute search — POST /v2/search with query, limit, scrapeOptions
 3. Persist raw results — save each result page to docs/research/corpus/ with frontmatter
 4. Update corpus index — append entries to docs/research/corpus-index.jsonl
 5. Extract findings — summarize key learnings from raw corpus files
@@ -58,10 +69,10 @@ AI chat share URLs (`chatgpt.com/share/*`, `chat.openai.com/share/*`, `gemini.go
 ### Template C — Full Recursive Deep Research with Corpus
 
 ```
-1. Health check — GET http://littleblack.tail0f299b.ts.net:3002/ (expect 200 + Firecrawl banner; NEVER /v1/health — it 404s)
+1. No health check needed — the public API has no self-hosted liveness concern. Handle per-request failures instead (Section 1).
 2. Initialize parameters — set breadth (default 4), depth (default 2), concurrency (default 2)
 3. Generate search queries — LLM generates N queries from topic + prior learnings
-4. Execute searches — Firecrawl /v1/search for each query via p-limit(concurrency)
+4. Execute searches — Firecrawl /v2/search for each query via p-limit(concurrency)
 5. Persist raw results — save ALL scraped pages to docs/research/corpus/ with provenance
 6. Extract learnings — LLM extracts key findings + follow-up questions per result set
 7. Recurse — for each follow-up, recurse with breadth=ceil(breadth/2), depth=depth-1
@@ -85,7 +96,7 @@ AI chat share URLs (`chatgpt.com/share/*`, `chat.openai.com/share/*`, `gemini.go
 Use when paper contains architecture diagrams, result plots, attention maps, or any critical visual content.
 
 ```
-1. Scrape text — use port 3003 (preferred, preserves absolute image URLs) or Jina fallback
+1. Scrape text — use the public API (`/v2/scrape`, preserves absolute image URLs) or Jina fallback
 2. Detect figures — scan scraped markdown for ![alt](URL) patterns with .png/.jpg/.svg
 3. Extract figure URLs — for arXiv: probe https://arxiv.org/html/{id}v{n}/x{N}.png until 404
 4. Keep URLs inline — DO NOT rewrite to local relative paths (breaks GitHub rendering)
@@ -99,29 +110,18 @@ Use when paper contains architecture diagrams, result plots, attention maps, or 
 
 ## Section 1 — Programmatic Firecrawl Usage
 
-**Instance**: Self-hosted on **littleblack** — Debian 12 (bookworm), kernel 6.1.0-31, hostname `kab`, login user `yca`, RTX 2080 Ti, 62 GiB RAM. No API key required for any Firecrawl endpoint.
-
-| Access path        | URL base                                    | When to use                                                                                  |
-| ------------------ | ------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Tailscale FQDN     | `http://littleblack.tail0f299b.ts.net:3002` | **Preferred.** Works on every tailnet-attached client regardless of MagicDNS resolver state. |
-| Tailscale IP       | `http://100.78.106.112:3002`                | Bypasses DNS entirely; stable while the tailnet device exists.                               |
-| Tailscale MagicDNS | `http://littleblack:3002`                   | Conditional — only when bare-name resolution works (see preflight below).                    |
-| Same-LAN direct    | `http://192.168.1.67:3002`                  | Only when the client is on the Telus PureFibre LAN (`eno1` interface).                       |
-| Legacy ZeroTier    | `http://172.25.236.1:3002`                  | Fragile fallback (`ztksetviym` interface). Prefer Tailscale.                                 |
-
-**MagicDNS preflight** (run before relying on bare `littleblack`):
+**Endpoint**: the public API at `https://api.firecrawl.dev`. No API key, no host, no tunnel — it answers unauthenticated.
 
 ```bash
-# macOS — does the OS resolver know about the bare name?
-dscacheutil -q host -a name littleblack | grep -q '^ip_address'  && echo OK || echo MISSING
-
-# Cross-platform — does any path resolve?
-getent hosts littleblack 2>/dev/null || ping -c1 -W1 littleblack 2>&1 | head -1
+curl -sS -X POST https://api.firecrawl.dev/v2/scrape \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"<URL>","formats":["markdown"],"waitFor":8000,"timeout":60000}'
+# -> {"success":true,"data":{"markdown":"..."}}
 ```
 
-If preflight returns `MISSING` / "cannot resolve", **use the FQDN row.** SSH happens to work because `~/.ssh/config` hard-codes the FQDN under the `Host littleblack` alias — that's an SSH-only shortcut, not a system-wide DNS facility. Bare `littleblack` over HTTP fails silently as `HTTP 000` when the resolver doesn't have it; the failure mode is invisible without `ping`/`dscacheutil`. Confirmed broken on `m3max` (this Mac) as of 2026-05-27.
+**Always send `waitFor`** for JS-rendered pages (SPAs, chat shares, dashboards). Without it the scrape can return the pre-hydration shell — which for a login-walled SPA is the login chrome, not the content, and it returns HTTP 200 while doing so. A 200 is not proof of extraction; check for content you expect.
 
-SSH (for ops, not API calls): `ssh littleblack` — defined in `~/.ssh/config` as `HostName littleblack.tail0f299b.ts.net`, `User yca`, `IdentityFile ~/.ssh/id_ed25519_zerotier_np`.
+**Do not resurrect a self-hosted deployment.** One ran on littleblack:3002 (5 containers: api, playwright-service, nuq-postgres, rabbitmq, redis) and was retired 2026-08-13, reclaiming ~18 GB. The public API covers this repo's volume. Standing one up again trades ~18 GB and five long-running containers for rate limits nobody was hitting.
 
 ### Why `fetch()` Instead of `@mendable/firecrawl-js` SDK
 
@@ -131,24 +131,24 @@ The official SDK uses `jiti` for dynamic imports, which is incompatible with Bun
 
 | Endpoint          | Purpose               | When to Use                                       |
 | ----------------- | --------------------- | ------------------------------------------------- |
-| `POST /v1/search` | Search + scrape combo | Research queries — returns multiple scraped pages |
-| `POST /v1/scrape` | Single URL scrape     | Known URL — extract markdown from one page        |
+| `POST /v2/search` | Search + scrape combo | Research queries — returns multiple scraped pages |
+| `POST /v2/scrape` | Single URL scrape     | Known URL — extract markdown from one page        |
 
 See [api-endpoint-reference.md](./references/api-endpoint-reference.md) for full request/response contracts.
 
 ### Quick Examples
 
-Use the FQDN base URL — works on every tailnet-attached client regardless of MagicDNS resolver state. Pull from `$FIRECRAWL_BASE` env var if your project sets one, otherwise hard-code the FQDN:
+Use the public API base. Pull from `$FIRECRAWL_BASE` env var if your project sets one, otherwise hard-code the FQDN:
 
 ```typescript
 const FIRECRAWL_BASE =
-  process.env.FIRECRAWL_BASE ?? "http://littleblack.tail0f299b.ts.net:3002";
+  process.env.FIRECRAWL_BASE ?? "https://api.firecrawl.dev";
 ```
 
 **Search** (returns multiple results with markdown):
 
 ```typescript
-const res = await fetch(`${FIRECRAWL_BASE}/v1/search`, {
+const res = await fetch(`${FIRECRAWL_BASE}/v2/search`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -163,7 +163,7 @@ const { data } = await res.json(); // data: [{ url, markdown, metadata }]
 **Scrape** (single URL):
 
 ```typescript
-const res = await fetch(`${FIRECRAWL_BASE}/v1/scrape`, {
+const res = await fetch(`${FIRECRAWL_BASE}/v2/scrape`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -194,38 +194,6 @@ try {
 }
 ```
 
-### Health Check
-
-> **There is no `/v1/health` endpoint on this Firecrawl build.** Probing it returns HTTP 404 (Express's HTML error page), which looks like a service-down signal but isn't. Use the root `/` endpoint, which returns HTTP 200 with `{"message":"Firecrawl API","documentation_url":"https://docs.firecrawl.dev"}`. Confirmed 2026-05-27 against ports 3002 / FQDN / IP.
-
-```typescript
-// Quick health check before starting a research session.
-// Uses the Tailscale FQDN — works regardless of MagicDNS resolver state.
-const FIRECRAWL_BASE = "http://littleblack.tail0f299b.ts.net:3002";
-const res = await fetch(`${FIRECRAWL_BASE}/`);
-if (!res.ok) {
-  throw new Error(
-    `Firecrawl unreachable (${res.status}) — see self-hosted-operations.md and self-hosted-troubleshooting.md`,
-  );
-}
-const banner = await res.json();
-if (banner.message !== "Firecrawl API") {
-  throw new Error(
-    `Unexpected root response: ${JSON.stringify(banner).slice(0, 200)}`,
-  );
-}
-```
-
-For a true end-to-end probe (proves the full search/scrape stack works, not just the HTTP listener), `POST /v1/scrape` against `https://example.com` and check `success: true`:
-
-```bash
-curl -s --max-time 15 -X POST \
-  "http://littleblack.tail0f299b.ts.net:3002/v1/scrape" \
-  -H 'Content-Type: application/json' \
-  -d '{"url":"https://example.com","formats":["markdown"]}' \
-  | python3 -c "import sys, json; d=json.load(sys.stdin); print('OK' if d.get('success') else 'FAIL')"
-```
-
 ---
 
 ## Section 2 — Academic Paper Routing
@@ -236,14 +204,14 @@ Route paper retrieval to the most effective method based on source. Full decisio
 
 | Source            | Best Method                           | Fallback                  |
 | ----------------- | ------------------------------------- | ------------------------- |
-| arxiv.org         | Direct HTML (`/html/ID`)              | Firecrawl `/v1/scrape`    |
+| arxiv.org         | Direct HTML (`/html/ID`)              | Firecrawl `/v2/scrape`    |
 | Semantic Scholar  | API (`api.semanticscholar.org`)       | Firecrawl search by title |
-| ACL Anthology     | Firecrawl `/v1/scrape`                | Direct PDF download       |
-| NeurIPS/ICML/ICLR | Firecrawl `/v1/scrape` with `waitFor` | Search by title           |
+| ACL Anthology     | Firecrawl `/v2/scrape`                | Direct PDF download       |
+| NeurIPS/ICML/ICLR | Firecrawl `/v2/scrape` with `waitFor` | Search by title           |
 | IEEE Xplore       | Firecrawl with `waitFor: 3000`        | Author's website          |
 | ACM DL            | Firecrawl with `waitFor: 3000`        | Author's website          |
-| Author blogs      | Jina Reader (`r.jina.ai`)             | Firecrawl `/v1/scrape`    |
-| Google Scholar    | Firecrawl `/v1/search`                | Direct search query       |
+| Author blogs      | Jina Reader (`r.jina.ai`)             | Firecrawl `/v2/scrape`    |
+| Google Scholar    | Firecrawl `/v2/search`                | Direct search query       |
 
 ### DOI Resolution
 
@@ -266,7 +234,7 @@ The iterative search → extract → recurse → synthesize pattern. Full step-b
 deepResearch(topic, breadth=4, depth=2, concurrency=2):
    1. Generate N search queries (N = breadth) from topic + prior learnings
    2. For each query (via p-limit concurrency):
-      a. Firecrawl /v1/search → get results
+      a. Firecrawl /v2/search → get results
       b. PERSIST each raw result to docs/research/corpus/
       c. Extract learnings + follow-up questions
    3. For each follow-up question:
@@ -282,7 +250,7 @@ deepResearch(topic, breadth=4, depth=2, concurrency=2):
 | ------------- | ------- | --- | ------------------------------------------------------- |
 | `breadth`     | 4       | —   | Number of parallel search queries per level             |
 | `depth`       | 2       | 5   | Recursion levels (depth > 5 yields diminishing returns) |
-| `concurrency` | 2       | —   | Parallel Firecrawl requests (self-hosted, be gentle)    |
+| `concurrency` | 2       | —   | Parallel Firecrawl requests (public API — be gentle)    |
 | `limit`       | 5       | —   | Results per search query                                |
 | `timeout`     | 15000ms | —   | Per-search timeout                                      |
 
@@ -331,7 +299,7 @@ Full format specification in [corpus-persistence-format.md](./references/corpus-
 source_url: https://arxiv.org/html/2401.12345
 scraped_at: "2026-02-25T14:30:00Z"
 scraper: firecrawl
-firecrawl_endpoint: /v1/search
+firecrawl_endpoint: /v2/search
 search_query: "mixture of experts scaling"
 result_index: 2
 research_session: "2026-02-25-moe-scaling"
@@ -371,97 +339,11 @@ content_tokens_approx: 4200
 
 ---
 
-## Section 5 — Self-Hosted Operations
+## Section 5 — Retired: self-hosted operations
 
-The Firecrawl instance runs on **littleblack** (Debian 12, RTX 2080 Ti, hostname `kab`). System uptime is in the 100+ day range; Firecrawl is stable on this host. No API key needed. For the full access matrix (Tailscale FQDN / IP / MagicDNS, same-LAN, legacy ZeroTier), see Section 1 "Instance". Section 5 examples use the **Tailscale FQDN** (`littleblack.tail0f299b.ts.net`) since it works on every tailnet-attached client regardless of resolver state — substitute any path from the Section 1 table when appropriate.
-
-| Port | Service           | Type   | Purpose                                            |
-| ---- | ----------------- | ------ | -------------------------------------------------- |
-| 3002 | Firecrawl API     | Docker | Core scraping engine (direct API)                  |
-| 3003 | Scraper Wrapper   | Bun    | JS-rendered SPAs, saves to file, returns Caddy URL |
-| 3004 | Cloudflare Bypass | Bun    | curl-impersonate for Cloudflare-protected sites    |
-| 8080 | Caddy             | Binary | Serves saved markdown from firecrawl-output/       |
-
-**When to use which port:**
-
-| Site Type              | Port | Why                                           |
-| ---------------------- | ---- | --------------------------------------------- |
-| arXiv / standard pages | 3003 | Playwright JS rendering, preserves image URLs |
-| Claude artifacts       | 3004 | Cloudflare blocks Playwright                  |
-| Gemini/ChatGPT shares  | 3003 | Needs JS rendering (SPA)                      |
-| Other Cloudflare sites | 3004 | If 3003 gets a Cloudflare challenge           |
-
-**Two-step pattern** — port 3003 and 3004 do not return markdown directly. They scrape, save to Caddy-served storage, and return a JSON pointer. You then fetch the markdown from the returned Caddy URL. (Discovered 2026-05-27 — earlier snippets that ran a single `curl :3003/scrape?...` and treated the response body as the scraped content were silently wrong: that body is `{"url":"...","file":"..."}`, not markdown.)
-
-```bash
-BASE="http://littleblack.tail0f299b.ts.net"   # FQDN — works without MagicDNS
-URL="https://chatgpt.com/share/<id>"          # or any JS-rendered page
-NAME="chatgpt-metric-stack-2026-05-27"        # slug — NO whitespace or special chars
-
-# URL-encode the target (avoid Python's trailing newline — use end='')
-ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''), end='')" "$URL")
-
-# Step 1 — POST scrape request, get JSON pointer
-SCRAPE_JSON=$(curl -s --max-time 90 "${BASE}:3003/scrape?url=${ENC}&name=${NAME}")
-echo "$SCRAPE_JSON"
-# → {"url":"http://172.25.236.1:8080/<NAME>-<timestamp>.md","file":"<NAME>-<timestamp>.md"}
-
-# Step 2 — extract Caddy URL, rewrite host to FQDN (the JSON returns the legacy ZeroTier IP),
-# then fetch the actual markdown
-FILE=$(echo "$SCRAPE_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['file'])")
-curl -s --max-time 30 "${BASE}:8080/${FILE}" -o "/tmp/${FILE}"
-wc -c "/tmp/${FILE}"   # sanity-check that content actually arrived
-```
-
-> **The JSON response embeds the legacy ZeroTier IP** (`http://172.25.236.1:8080/...`) — do NOT follow that URL directly if ZeroTier isn't reachable from your client. Always reconstruct the Caddy URL using your preferred host base (`${BASE}:8080/${FILE}`), as shown above.
-
-**Shell-quoting trap** (`zsh`/`bash`): the `&` in `?url=X&name=Y` is fine inside double quotes, but if you splice `$(...)` command substitution mid-URL, any trailing newline from Python's `print()` becomes `%0A` in the encoded URL and the server rejects the malformed target silently. Always use `end=''` in the encoder or pipe through `tr -d '\n'`.
-
-**Cloudflare-bypass wrapper** (port 3004) follows the same POST → Caddy two-step:
-
-```bash
-curl -s --max-time 90 "${BASE}:3004/scrape-cf?url=${ENC}&name=${NAME}"
-# → same JSON shape; same Caddy GET to retrieve the markdown
-```
-
-**Health probes** — none of these services expose a `/v1/health` or `/health` endpoint. Probe the root and inspect the response body for the service's identity string:
-
-```bash
-BASE="http://littleblack.tail0f299b.ts.net"
-
-# Port 3002 — Firecrawl API
-# Healthy: HTTP 200, body contains '"message":"Firecrawl API"'
-curl -s --max-time 4 "${BASE}:3002/" | grep -q '"Firecrawl API"' && echo "3002 OK" || echo "3002 DOWN"
-
-# Port 3003 — Scraper wrapper
-# Healthy: HTTP 400, body contains 'Usage: /scrape?url=' (service up, rejects missing params)
-curl -s --max-time 4 "${BASE}:3003/" | grep -q 'Usage: /scrape' && echo "3003 OK" || echo "3003 DOWN"
-
-# Port 3004 — Cloudflare bypass wrapper
-# Healthy: HTTP 200, body contains '"service":"cloudflare-bypass-scraper"'
-curl -s --max-time 4 "${BASE}:3004/" | grep -q 'cloudflare-bypass-scraper' && echo "3004 OK" || echo "3004 DOWN"
-
-# Port 8080 — Caddy
-# Healthy: HTTP 200 (directory listing)
-curl -s --max-time 4 -o /dev/null -w '%{http_code}\n' "${BASE}:8080/" | grep -q '^200$' && echo "8080 OK" || echo "8080 DOWN"
-
-# Real end-to-end probe — proves /v1/scrape works against a known-good URL
-curl -s --max-time 15 -X POST "${BASE}:3002/v1/scrape" \
-  -H 'Content-Type: application/json' \
-  -d '{"url":"https://example.com","formats":["markdown"]}' \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK' if d.get('success') else 'FAIL')"
-```
-
-> **Do not** probe `/v1/health`, `/health`, or `/v0/health` on port 3002 — all three return HTTP 404 (Express's HTML error page), which looks like a service-down signal but isn't. Confirmed 2026-05-27.
-
-For architecture diagrams, health checks, recovery commands, and deployment details, see:
-
-- [Self-Hosted Operations](./references/self-hosted-operations.md) — Architecture, health checks, recovery commands
-- [Self-Hosted Bootstrap Guide](./references/self-hosted-bootstrap-guide.md) — Fresh installation (7 steps)
-- [Self-Hosted Best Practices](./references/self-hosted-best-practices.md) — Docker restart policies, monitoring
-- [Self-Hosted Troubleshooting](./references/self-hosted-troubleshooting.md) — Symptom-based diagnosis
-
----
+The self-hosted deployment (littleblack:3002, plus ports 3003/3004 behind Caddy) was **retired
+2026-08-13**. Its containers, images and build cache are gone and ~18 GB was reclaimed. Use the
+public API in Section 1. Do not reintroduce a private deployment for this repo's volume.
 
 ## Section 6 — Image and Figure Capture
 
@@ -519,7 +401,7 @@ Each figure must appear inline in the corpus markdown as an absolute URL so GitH
 
 ### Extracting Existing Inline URLs from Scraped Markdown
 
-When port 3003 (Playwright) already embedded absolute URLs in the scraped markdown, extract them for the frontmatter catalog:
+Firecrawl embeds absolute image URLs in the scraped markdown. Extract them for the frontmatter catalog:
 
 ```bash
 CORPUS_FILE="docs/research/corpus/2026-03-13-mamba-ssm.md"
@@ -538,7 +420,7 @@ The YAML frontmatter catalogs all figure source URLs for provenance. The markdow
 ---
 source_url: https://arxiv.org/html/2312.00752v2
 scraped_at: "2026-03-13T00:00:00Z"
-scraper: firecrawl-port3003
+scraper: firecrawl
 tags: [ssm, state-space-model, mamba, sequence-modeling]
 content_tokens_approx: 4200
 has_figures: true
@@ -560,7 +442,7 @@ figure_urls:
   "file": "corpus/2026-03-13-mamba-ssm.md",
   "scraped_at": "2026-03-13T00:00:00Z",
   "session": "2026-03-13-mamba-ssm",
-  "scraper": "firecrawl-port3003",
+  "scraper": "firecrawl",
   "has_figures": true,
   "figure_count": 12,
   "figure_urls": [
@@ -570,25 +452,22 @@ figure_urls:
 }
 ```
 
-### Port 3003 vs Jina Reader: Empirical Comparison (arXiv)
+### Firecrawl vs Jina Reader: Empirical Comparison (arXiv)
 
 **Validated on arXiv:2312.00752v2 (Mamba paper) — both scrapers running, same URL:**
 
 | Scraper                  | Bytes  | Lines | Words  | Figures (absolute inline) | Math on GitHub                         |
 | ------------------------ | ------ | ----- | ------ | ------------------------- | -------------------------------------- |
-| Port 3003 (Firecrawl)    | 99,104 | 1,267 | 13,182 | 13 ✅                     | ❌ doubled Unicode+LaTeX, no `$...$`   |
-| Port 3002 (direct API)   | 99,104 | 1,267 | 13,182 | 13 ✅ (identical to 3003) | ❌ doubled Unicode+LaTeX, no `$...$`   |
+| Firecrawl `/v2/scrape`   | 99,104 | 1,267 | 13,182 | 13 ✅                     | ❌ doubled Unicode+LaTeX, no `$...$`   |
 | Jina Reader              | 84,832 | 596   | 10,761 | 12 ✅                     | ❌ doubled Unicode+LaTeX, no `$...$`   |
 | Pandoc from LaTeX source | —      | —     | —      | via `\includegraphics`    | ✅ `$inline$` + ` ```math ``` ` blocks |
 
-**Verdict**: Firecrawl (port 3002/3003) gets **17% more bytes, 2.1× more lines, 22% more words, 1 extra figure** vs Jina. Port 3002 and 3003 produce identical markdown (3003 just wraps 3002 and saves to Caddy). **Both emit absolute inline figure URLs** — no URL reconstruction needed from either scraper.
-
-**Note on the earlier session timeout**: The March 2026 session failure was machine downtime (littleblack was offline), not a routing issue. When littleblack is up, port 3003 reaches arxiv.org fine.
+**Verdict**: Firecrawl gets **17% more bytes, 2.1× more lines, 22% more words, 1 extra figure** than Jina on this paper — consistent with the far larger gap measured on chat shares. **Both emit absolute inline figure URLs**, so no URL reconstruction is needed from either scraper.
 
 **Recommended arXiv workflow**:
 
-1. Port 3003 (preferred) — more complete content, figures inline, saves to Caddy
-2. Jina Reader (fallback when littleblack is down) — 17% less content but still gets absolute figure URLs
+1. Firecrawl `POST /v2/scrape` (preferred) — more complete content, figures inline
+2. Jina Reader (fallback, static pages only) — 17% less content but still gets absolute figure URLs
 3. Probe loop to build `figure_urls` frontmatter catalog regardless of scraper used
 4. For human-readable math on GitHub: Pandoc from arXiv LaTeX source (see below)
 
@@ -598,7 +477,7 @@ figure_urls:
 
 #### Firecrawl/Jina Math Output: Unreadable on GitHub
 
-Both Firecrawl (port 3002/3003) and Jina Reader extract math by doubling content — each equation appears as a Unicode render followed immediately by raw LaTeX source, packed into markdown table cells with `\displaystyle` prefixes and `\\bm{}` escaping. Example from the empirical test:
+Both Firecrawl and Jina Reader extract math by doubling content — each equation appears as a Unicode render followed immediately by raw LaTeX source, packed into markdown table cells with `\displaystyle` prefixes and `\\bm{}` escaping. Example from the empirical test:
 
 ```
 |     | h′​(t)\\displaystyle h^{\\prime}(t) | \=𝑨​h​(t)+𝑩​x​(t)\\displaystyle=\\bm{A}h(t)+\\bm{B}x(t) |     | (1a) |
@@ -673,30 +552,27 @@ cat preamble-block.md "${ARXIV_ID}-pandoc.md" > "${ARXIV_ID}-with-macros.md"
 
 ## Anti-Patterns
 
-| #   | Anti-Pattern                                  | Why It Fails                                                                               | Correct Approach                                                                                                                                     |
-| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Using `@mendable/firecrawl-js` SDK            | `jiti` dynamic imports break in Bun                                                        | Direct `fetch()` calls                                                                                                                               |
-| 2   | Searching paywalled sites without `waitFor`   | JS SPAs return empty shell                                                                 | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                                 |
-| 3   | Setting depth > 5                             | Exponential query explosion, diminishing returns                                           | Cap at depth 5 (`clampDepth()`)                                                                                                                      |
-| 4   | No timeout on `fetch()`                       | Hangs indefinitely on unreachable pages                                                    | Always use `AbortController` with 15s timeout                                                                                                        |
-| 5   | Not trimming long page content                | Exceeds LLM context window                                                                 | `trimToTokenLimit(text, 25_000)` per page                                                                                                            |
-| 6   | Aborting on partial failure                   | Loses all completed work                                                                   | Log failures, continue with remaining queries                                                                                                        |
-| 7   | Probing `/v1/health` for health               | Returns HTTP 404 — endpoint doesn't exist; HTML 404 page looks like service-down but isn't | `GET /` against port 3002, check body contains `"Firecrawl API"`. See Section 1 Health Check.                                                        |
-| 8   | Saving only synthesis without raw originals   | Loses source material, prevents re-analysis                                                | Always persist raw Firecrawl markdown to corpus                                                                                                      |
-| 9   | Rewriting figure URLs to local relative paths | Relative paths like `./figures/x1.png` break on GitHub — images don't render               | Keep absolute URLs inline in markdown body (`![Fig](https://arxiv.org/html/{id}/x1.png)`); catalog in frontmatter `figure_urls` list — see Section 6 |
+| #   | Anti-Pattern                                  | Why It Fails                                                                 | Correct Approach                                                                                                                                     |
+| --- | --------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Using `@mendable/firecrawl-js` SDK            | `jiti` dynamic imports break in Bun                                          | Direct `fetch()` calls                                                                                                                               |
+| 2   | Searching paywalled sites without `waitFor`   | JS SPAs return empty shell                                                   | Use `waitFor: 3000` for IEEE, ACM DL                                                                                                                 |
+| 3   | Setting depth > 5                             | Exponential query explosion, diminishing returns                             | Cap at depth 5 (`clampDepth()`)                                                                                                                      |
+| 4   | No timeout on `fetch()`                       | Hangs indefinitely on unreachable pages                                      | Always use `AbortController` with 15s timeout                                                                                                        |
+| 5   | Not trimming long page content                | Exceeds LLM context window                                                   | `trimToTokenLimit(text, 25_000)` per page                                                                                                            |
+| 6   | Aborting on partial failure                   | Loses all completed work                                                     | Log failures, continue with remaining queries                                                                                                        |
+| 7   | Gating a run on a liveness check              | The public API has no health endpoint and no host to be down                 | Handle per-request failures: retry once, then fall back. See Section 1.                                                                              |
+| 8   | Saving only synthesis without raw originals   | Loses source material, prevents re-analysis                                  | Always persist raw Firecrawl markdown to corpus                                                                                                      |
+| 9   | Rewriting figure URLs to local relative paths | Relative paths like `./figures/x1.png` break on GitHub — images don't render | Keep absolute URLs inline in markdown body (`![Fig](https://arxiv.org/html/{id}/x1.png)`); catalog in frontmatter `figure_urls` list — see Section 6 |
 
 ---
 
 ## References
 
-- [API Endpoint Reference](./references/api-endpoint-reference.md) — `/v1/search` and `/v1/scrape` contracts
+- [API Endpoint Reference](./references/api-endpoint-reference.md) — `/v2/search` and `/v2/scrape` contracts
 - [Academic Paper Routing](./references/academic-paper-routing.md) — Decision tree for paper sources
 - [Recursive Research Protocol](./references/recursive-research-protocol.md) — Step-by-step recursive pattern
 - [Corpus Persistence Format](./references/corpus-persistence-format.md) — Raw content archival format + directory layout
-- [Self-Hosted Operations](./references/self-hosted-operations.md) — Architecture, health checks, recovery
-- [Self-Hosted Bootstrap Guide](./references/self-hosted-bootstrap-guide.md) — Fresh installation guide
-- [Self-Hosted Best Practices](./references/self-hosted-best-practices.md) — Docker restart policies, monitoring
-- [Self-Hosted Troubleshooting](./references/self-hosted-troubleshooting.md) — Symptom-based diagnosis and recovery
+- [Evolution Log](./references/evolution-log.md) — Dated change history for this skill
 
 ## Post-Execution Reflection
 

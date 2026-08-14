@@ -4,111 +4,70 @@ Route scrape requests to the correct backend based on URL pattern.
 
 ## Routing Table
 
-| URL Pattern                 | Scraper     | Why                                                | Endpoint                         |
-| --------------------------- | ----------- | -------------------------------------------------- | -------------------------------- |
-| `chatgpt.com/share/*`       | Jina Reader | Cleaner markdown than Firecrawl (no escaped chars) | `https://r.jina.ai/{URL}`        |
-| `gemini.google.com/share/*` | Firecrawl   | JS-heavy SPA, needs headless browser               | `http://littleblack:3003/scrape` |
-| `claude.ai/artifacts/*`     | Jina Reader | Static content, no JS rendering needed             | `https://r.jina.ai/{URL}`        |
-| Other web pages             | Jina Reader | Default fallback for static pages                  | `https://r.jina.ai/{URL}`        |
+| URL Pattern                 | Scraper   | Why                                      | Endpoint                                   |
+| --------------------------- | --------- | ---------------------------------------- | ------------------------------------------ |
+| `chatgpt.com/share/*`       | Firecrawl | JS-rendered SPA; Jina truncates it badly | `POST https://api.firecrawl.dev/v2/scrape` |
+| `gemini.google.com/share/*` | Firecrawl | JS-heavy SPA, needs a headless browser   | `POST https://api.firecrawl.dev/v2/scrape` |
+| `claude.ai/artifacts/*`     | Firecrawl | JS-rendered                              | `POST https://api.firecrawl.dev/v2/scrape` |
+| Simple static pages         | Either    | Jina is one GET and adequate             | `https://r.jina.ai/{URL}`                  |
 
-> **2026-02-09 finding**: ChatGPT share URLs moved from Firecrawl to Jina Reader.
-> Firecrawl produced escaped markdown (`\*\*bold\*\*`) and included ChatGPT UI chrome.
-> Jina Reader via `curl` produces clean, structured conversation output.
+**Default to Firecrawl for anything JS-rendered.** On two `chatgpt.com/share/*` links measured
+2026-08-13, Jina returned 9,397 and 15,960 chars against Firecrawl's 57,616 and 136,590 — **17% and
+12% coverage** — and truncated mid-sentence, while Firecrawl reached the true page footer both
+times. The extra bulk was real content (76 vs 12 headings, 128 vs 22 table rows), not boilerplate.
 
-## Firecrawl (Self-Hosted)
+## Firecrawl (public API)
 
-**Host**: `littleblack` — Tailscale primary (`littleblack.tail0f299b.ts.net:3003`), legacy ZeroTier fallback (`172.25.236.1:3003`)
-
-### Preflight Check (3-Step Deep Health Check)
-
-A simple `ping` is **insufficient** — containers can be "Up" while internal processes are dead from RAM/CPU overload.
+**Base**: `https://api.firecrawl.dev` — public internet, **no API key required**, no tunnel, no
+tailnet, no host to be down. There is no health endpoint; do not probe for one.
 
 ```bash
-# Step 1: Tailscale connectivity
-ping -c1 -W2 littleblack >/dev/null 2>&1 && echo "Network: OK" || echo "Network: UNREACHABLE"
-
-# Step 2: Deep API health — test actual scrape capability
-HTTP_CODE=$(ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
-  -X POST http://localhost:3002/v1/scrape \
+curl -sS --max-time 180 -X POST https://api.firecrawl.dev/v2/scrape \
   -H "Content-Type: application/json" \
-  -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"' 2>/dev/null || echo "000")
-echo "API health: HTTP $HTTP_CODE"
-
-# Step 3: If unhealthy, check logs for WORKER STALLED
-if [ "$HTTP_CODE" = "000" ] || [ "$HTTP_CODE" = "502" ] || [ "$HTTP_CODE" = "503" ]; then
-  echo "UNHEALTHY — checking logs..."
-  ssh littleblack 'docker logs firecrawl-api-1 --tail 20 2>&1 | grep -iE "stalled|error|exit" || echo "No error indicators found"'
-fi
+  -d "$(jq -n --arg u "$URL" \
+        '{url: $u, formats: ["markdown"], waitFor: 8000, timeout: 60000}')" \
+  | jq -r '.data.markdown // empty'
 ```
 
-### Auto-Revival (If Unhealthy)
+**Parameters that matter**:
 
-```bash
-# Restart critical containers (not docker compose — may lack permissions to compose dir)
-ssh littleblack 'docker restart firecrawl-api-1 firecrawl-playwright-service-1'
-sleep 20  # Wait for API initialization
+- `waitFor` — milliseconds to let the SPA render. Without it a share link returns the app shell.
+  Raise to 15000 if output looks like chrome rather than content.
+- `timeout` — server-side cap, in milliseconds.
 
-# Verify recovery
-ssh littleblack 'curl -sf -o /dev/null -w "%{http_code}" --max-time 10 \
-  -X POST http://localhost:3002/v1/scrape \
-  -H "Content-Type: application/json" \
-  -d "{\"url\":\"https://example.com\",\"formats\":[\"markdown\"]}"'
-# Expected: 200
-```
+**Use v2, not v1.** Both answer unauthenticated, but the `search` response shape differs
+(`v1: data: [...]` vs `v2: data: {web: [...]}`) and v1 is being sunset — a malformed v1 body is
+answered with _"please review the v2 API documentation"_.
 
-If still unhealthy after restart, escalate to full recreate:
+> **Do not reintroduce a self-hosted Firecrawl.** The littleblack deployment (ports 3002/3003) was
+> retired 2026-08-13, reclaiming ~18 GB. At this repo's volume the public API is sufficient, and it
+> removes the health-check, container-restart and WORKER-STALLED triage the self-hosted stack needed.
 
-```bash
-ssh littleblack 'cd ~/firecrawl && docker compose up -d --force-recreate'
-```
-
-### Scrape Command
-
-```bash
-curl -s --max-time 120 "http://littleblack:3003/scrape?url=${URL}&name=${SLUG}"
-```
-
-**Parameters**:
-
-- `url` - Full URL to scrape (URL-encoded)
-- `name` - Slug for the scrape job (used in logs)
-
-### Response
-
-Returns markdown content directly. Check for non-empty response.
-
-## Jina Reader (Fallback)
+## Jina Reader (fallback)
 
 **Endpoint**: `https://r.jina.ai/{URL}`
 
-### Usage via WebFetch
-
-```
-WebFetch(url="https://r.jina.ai/https://example.com/page", prompt="Extract all content")
-```
-
-### Usage via curl
-
 ```bash
-curl -s "https://r.jina.ai/${URL}"
+curl -s -H "x-timeout: 30" "https://r.jina.ai/${URL}"
 ```
+
+The `x-timeout` header is **required** — without it, a JS-rendered page returns ~321 bytes of login
+chrome that reads like a successful scrape. Always check the byte count before trusting the output.
 
 ## Fallback Chain
 
 ```
-1. Route to primary scraper (Firecrawl or Jina based on URL pattern)
-2. If Firecrawl fails → try Jina Reader
-3. If Jina fails → report failure (do not silently continue)
+1. Firecrawl public API
+2. If Firecrawl returns no `.data.markdown` → retry once (transient), then Jina Reader
+3. If Jina also fails → report failure (do not silently continue)
 ```
 
 ## Troubleshooting
 
-| Issue                          | Diagnosis                          | Fix                                                                       |
-| ------------------------------ | ---------------------------------- | ------------------------------------------------------------------------- |
-| Firecrawl connection refused   | Tailscale not connected            | `tailscale status`, join network                                          |
-| Firecrawl "Up" but dead        | Container alive, processes crashed | `docker restart firecrawl-api-1 firecrawl-playwright-service-1`, wait 20s |
-| Firecrawl WORKER STALLED       | RAM/CPU overload (>85% mem)        | Same as above; check `docker logs firecrawl-api-1 --tail 50`              |
-| Firecrawl timeout              | Page too complex                   | Increase timeout, try Jina fallback                                       |
-| Jina returns login page shell  | Gemini/ChatGPT login wall          | Must use Firecrawl for JS-heavy SPA share URLs                            |
-| Jina returns truncated content | Page is JS-heavy                   | Use Firecrawl instead                                                     |
-| Empty response                 | URL requires auth                  | Cannot scrape — note in frontmatter                                       |
+| Issue                          | Diagnosis                        | Fix                                             |
+| ------------------------------ | -------------------------------- | ----------------------------------------------- |
+| Firecrawl returns no markdown  | Transient API failure            | Retry once, then fall back to Jina              |
+| Response is the page shell     | SPA had not rendered             | Raise `waitFor` to 15000 and `timeout` to 90000 |
+| Jina returns ~321 bytes        | Missing `x-timeout` header       | Add `-H "x-timeout: 30"`                        |
+| Jina returns truncated content | Jina under-covers JS-heavy pages | Expected — use Firecrawl                        |
+| Empty response from both       | URL requires auth                | Cannot scrape — note it in the frontmatter      |

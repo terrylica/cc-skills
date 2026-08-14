@@ -11,7 +11,7 @@ Step-by-step protocol for the iterative search → extract → recurse → synth
 | `breadth`     | 4       | 1–10       | Search queries generated per recursion level |
 | `depth`       | 2       | 1–5        | Maximum recursion depth (capped at 5)        |
 | `concurrency` | 2       | 1–4        | Parallel Firecrawl requests via `p-limit`    |
-| `limit`       | 5       | 1–10       | Results per Firecrawl `/v1/search` call      |
+| `limit`       | 5       | 1–10       | Results per Firecrawl `/v2/search` call      |
 | `timeout`     | 15000ms | 5000–60000 | Per-search request timeout                   |
 
 ### Query Budget Estimation
@@ -31,23 +31,7 @@ For breadth=4, depth=3: approximately 4 + 8 + 8 = 20 total search queries.
 
 ## Protocol Steps
 
-### Step 1: Health Check
-
-Verify Firecrawl is reachable before starting. A failed health check saves minutes of wasted API calls.
-
-```typescript
-try {
-  await fetch("http://littleblack:3002/v1/health", {
-    signal: AbortSignal.timeout(5_000),
-  });
-} catch {
-  // Abort — see self-hosted-operations.md and troubleshooting.md references
-}
-```
-
-If health check fails, do NOT proceed. Report the failure and suggest checking the Firecrawl deployment.
-
-### Step 2: Generate Search Queries
+### Step 1: Generate Search Queries
 
 Given the research topic and any prior learnings, generate N search queries (N = breadth).
 
@@ -61,9 +45,9 @@ const queries = await generateSerpQueries(topic, breadth, priorLearnings);
 
 The LLM generates diverse queries that avoid duplicating prior learnings. Each query has an explicit `researchGoal` used to focus follow-up recursion.
 
-### Step 3: Execute Searches
+### Step 2: Execute Searches
 
-For each query, call Firecrawl `/v1/search` with concurrency control via `p-limit`.
+For each query, call Firecrawl `/v2/search` with concurrency control via `p-limit`.
 
 ```typescript
 import pLimit from "p-limit";
@@ -74,7 +58,7 @@ const results = await Promise.all(
   queries.map((q) =>
     limit(async () => {
       const searchResult = await firecrawlSearch(
-        "http://littleblack:3002",
+        "https://api.firecrawl.dev",
         q.query,
         { timeout: 15_000, limit: 5 },
       );
@@ -84,7 +68,7 @@ const results = await Promise.all(
 );
 ```
 
-### Step 4: Persist Raw Results
+### Step 3: Persist Raw Results
 
 **CRITICAL**: Save each scraped page to `docs/research/corpus/` BEFORE any LLM processing. This ensures raw content survives even if the session is interrupted.
 
@@ -96,7 +80,7 @@ For each search result page:
 
 See [corpus-persistence-format.md](./corpus-persistence-format.md) for the exact file format.
 
-### Step 5: Extract Learnings
+### Step 4: Extract Learnings
 
 For each set of search results, pass the scraped content to an LLM to extract:
 
@@ -116,7 +100,7 @@ const extracted = await processSerpResult(
 // Returns: { learnings: string[], followUpQuestions: string[] }
 ```
 
-### Step 6: Recurse
+### Step 5: Recurse
 
 For each follow-up question, recurse with halved breadth and decremented depth.
 
@@ -134,7 +118,7 @@ Follow-up research directions: ${followUpQuestions.join("\n- ")}`;
 
 **Why halve breadth**: Deeper levels explore narrower sub-topics. Halving breadth prevents exponential query explosion while maintaining focus.
 
-### Step 7: Base Case
+### Step 6: Base Case
 
 When `depth = 0`, return accumulated learnings without further recursion.
 
@@ -144,7 +128,7 @@ if (depth === 0) {
 }
 ```
 
-### Step 8: Early Stopping
+### Step 7: Early Stopping
 
 Stop recursion early when all new learnings duplicate prior ones (no new information being discovered):
 
@@ -158,7 +142,7 @@ if (newLearnings.length === 0) {
 }
 ```
 
-### Step 9: Synthesize Final Report
+### Step 8: Synthesize Final Report
 
 Pass all accumulated learnings to an LLM for a structured markdown report.
 
@@ -173,7 +157,7 @@ The report should:
 - Highlight areas of consensus and disagreement across sources
 - Note gaps where information was unavailable
 
-### Step 10: Write Session Report
+### Step 9: Write Session Report
 
 Save the synthesized report to `docs/research/sessions/YYYY-MM-DD-{topic-slug}.md`.
 
