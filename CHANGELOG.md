@@ -1,3 +1,47 @@
+# [26.0.0](https://github.com/terrylica/cc-skills/compare/v25.0.0...v26.0.0) (2026-08-14)
+
+
+* feat(firecrawl)!: retire self-hosted Firecrawl for the public API ([88b24d3](https://github.com/terrylica/cc-skills/commit/88b24d30c1108c7ac173eb98b7a7ca81a043325a)), closes [#7](https://github.com/terrylica/cc-skills/issues/7) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+The self-hosted Firecrawl deployment is gone. Every skill, hook and script
+that scraped through it now calls the public API at `https://api.firecrawl.dev`,
+which answers unauthenticated and needs no host, key or tunnel. At this repo's
+volume — occasional, small conversions — the rate limits are irrelevant, and
+losing the deployment removes an entire class of operational failure: health
+probes, container restarts, and WORKER-STALLED triage.
+
+The retired instance was found ALIVE, not dead. littleblack:3002 answered
+HTTP 200 in 21 ms with five containers up five weeks, so it was shut down
+deliberately rather than reaped. bigblack was already clean. Removing the
+containers, images, volumes and build cache reclaimed ~18 GB (61.99 → 44.04 GB);
+sub2api and clickhouse-server on the same host were left untouched.
+
+This also reverses a routing decision from 2026-02-09. That entry sent
+`chatgpt.com/share/*` to Jina Reader because Firecrawl emitted escaped
+markdown. Measured again on two share links, Jina returned 17% and 12% of
+Firecrawl's content and truncated mid-sentence while Firecrawl reached the
+true page footer — and the February escaping complaint no longer reproduces
+on v2. A truncated Jina result is the dangerous failure mode here: it returns
+HTTP 200 and looks like a short page, so there is no error to catch.
+
+- Retire the self-hosted deployment; delete the four `self-hosted-*.md`
+  reference docs (~16 KB) and excise SKILL.md Section 5 to a retirement fence
+- Repoint every base URL at `https://api.firecrawl.dev`; unify 26 endpoint
+  references from `/v1/*` to `/v2/*` and document the `search` response-shape
+  difference so the version cannot be swapped without changing the parser
+- Route all JS-rendered share links to Firecrawl; keep Jina as a static-page
+  fallback and record that it needs `-H "x-timeout: 30"` or it returns ~321
+  bytes of login chrome
+- Remove the health-check surface: the public API has no health endpoint, so
+
+
+### BREAKING CHANGES
+
+* The default Firecrawl endpoint is now the public API rather
+than a self-hosted host. `FIRECRAWL_URL` and `--firecrawl-url` still override
+it, but the gemini-deep-research default changed from `http://localhost:3002`
+to `https://api.firecrawl.dev` and requests moved from `/v1/scrape` to
+`/v2/scrape`. The four `self-hosted-*.md` reference docs were deleted.
+
 # [25.0.0](https://github.com/terrylica/cc-skills/compare/v24.0.0...v25.0.0) (2026-08-12)
 
 
