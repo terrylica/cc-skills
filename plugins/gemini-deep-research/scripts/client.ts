@@ -30,7 +30,7 @@ export interface DeepResearchClientOptions {
   autoConfirm?: boolean;
   /** Callback for progress updates */
   onProgress?: (message: string) => void;
-  /** Firecrawl endpoint for scraping share links. Default: http://localhost:3002 */
+  /** Firecrawl API base for scraping share links. Default: https://api.firecrawl.dev */
   firecrawlUrl?: string;
   /** Whether to extract share link and scrape via Firecrawl. Default: false */
   enableFirecrawl?: boolean;
@@ -71,12 +71,18 @@ export class GeminiDeepResearchClient {
   private readonly enableFirecrawl: boolean;
 
   constructor(options: DeepResearchClientOptions = {}) {
-    this.cdpUrl = options.cdpUrl ?? process.env.CHROME_CDP_URL ?? "http://127.0.0.1:9222";
+    this.cdpUrl =
+      options.cdpUrl ?? process.env.CHROME_CDP_URL ?? "http://127.0.0.1:9222";
     this.maxResearchTimeMs = options.maxResearchTimeMs ?? 30 * 60 * 1000;
     this.pollIntervalMs = options.pollIntervalMs ?? 5000;
     this.autoConfirm = options.autoConfirm ?? true;
-    this.log = options.onProgress ?? ((msg: string) => console.log(`[DeepResearch] ${msg}`));
-    this.firecrawlUrl = options.firecrawlUrl ?? process.env.FIRECRAWL_URL ?? "http://localhost:3002";
+    this.log =
+      options.onProgress ??
+      ((msg: string) => console.log(`[DeepResearch] ${msg}`));
+    this.firecrawlUrl =
+      options.firecrawlUrl ??
+      process.env.FIRECRAWL_URL ??
+      "https://api.firecrawl.dev";
     this.enableFirecrawl = options.enableFirecrawl ?? false;
   }
 
@@ -107,16 +113,21 @@ export class GeminiDeepResearchClient {
 
     const connectedBrowser = await chromium.connectOverCDP(wsUrl);
     const contexts = connectedBrowser.contexts();
-    this.context = contexts.length > 0 ? contexts[0] : await connectedBrowser.newContext();
+    this.context =
+      contexts.length > 0 ? contexts[0] : await connectedBrowser.newContext();
 
     const pages = this.context.pages();
-    const geminiPage = pages.find((p: Page) => p.url().includes("gemini.google.com"));
+    const geminiPage = pages.find((p: Page) =>
+      p.url().includes("gemini.google.com"),
+    );
     if (geminiPage) {
       this.log("Found existing Gemini page");
       this.page = geminiPage;
     } else {
       this.page = await this.context.newPage();
-      await this.page.goto("https://gemini.google.com/app", { waitUntil: "domcontentloaded" });
+      await this.page.goto("https://gemini.google.com/app", {
+        waitUntil: "domcontentloaded",
+      });
     }
 
     this.initialized = true;
@@ -136,7 +147,10 @@ export class GeminiDeepResearchClient {
     for (const selector of selectorGroup) {
       try {
         const el = this.page!.locator(selector).first();
-        await el.waitFor({ state: "visible", timeout: Math.min(timeout, 2000) });
+        await el.waitFor({
+          state: "visible",
+          timeout: Math.min(timeout, 2000),
+        });
         this.log(`Found ${label} via: ${selector}`);
         return el;
       } catch {
@@ -149,7 +163,8 @@ export class GeminiDeepResearchClient {
   // ── Deep Research flow ──
 
   async research(query: string): Promise<DeepResearchResult> {
-    if (!this.page) throw new Error("Client not initialized — call init() first");
+    if (!this.page)
+      throw new Error("Client not initialized — call init() first");
 
     const startTime = Date.now();
 
@@ -173,10 +188,13 @@ export class GeminiDeepResearchClient {
       // Step 2: Activate Deep Research mode via Tools button
       this.log("Activating Deep Research mode...");
 
-      const alreadyActive = await this.findElement(SELECTORS.DEEP_RESEARCH_ACTIVE, {
-        timeout: 2000,
-        label: "Deep Research active chip",
-      });
+      const alreadyActive = await this.findElement(
+        SELECTORS.DEEP_RESEARCH_ACTIVE,
+        {
+          timeout: 2000,
+          label: "Deep Research active chip",
+        },
+      );
 
       if (!alreadyActive) {
         const toolsBtn = await this.findElement(SELECTORS.TOOLS_BUTTON, {
@@ -193,16 +211,23 @@ export class GeminiDeepResearchClient {
         this.log("Clicked Tools button, waiting for drawer...");
         await new Promise((r) => setTimeout(r, 1500));
 
-        const deepResearchBtn = await this.findElement(SELECTORS.DEEP_RESEARCH_TRIGGER, {
-          timeout: 5000,
-          label: "Deep Research item",
-        });
+        const deepResearchBtn = await this.findElement(
+          SELECTORS.DEEP_RESEARCH_TRIGGER,
+          {
+            timeout: 5000,
+            label: "Deep Research item",
+          },
+        );
 
         if (!deepResearchBtn) {
           // Fallback: text-based DOM search in overlay
-          this.log("Selector-based search failed, trying text-based search in overlay...");
+          this.log(
+            "Selector-based search failed, trying text-based search in overlay...",
+          );
           const found = await this.page!.evaluate(() => {
-            const items = document.querySelectorAll("toolbox-drawer-item button");
+            const items = document.querySelectorAll(
+              "toolbox-drawer-item button",
+            );
             for (const item of items) {
               if ((item.textContent ?? "").trim() === "Deep research") {
                 (item as HTMLElement).click();
@@ -224,10 +249,13 @@ export class GeminiDeepResearchClient {
         }
         await new Promise((r) => setTimeout(r, 1500));
 
-        const activeCheck = await this.findElement(SELECTORS.DEEP_RESEARCH_ACTIVE, {
-          timeout: 5000,
-          label: "Deep Research active verification",
-        });
+        const activeCheck = await this.findElement(
+          SELECTORS.DEEP_RESEARCH_ACTIVE,
+          {
+            timeout: 5000,
+            label: "Deep Research active verification",
+          },
+        );
         if (!activeCheck) {
           this.log("Warning: Could not verify Deep Research mode activation");
         } else {
@@ -239,10 +267,14 @@ export class GeminiDeepResearchClient {
 
       // Step 3: Type query into input
       this.log("Typing query...");
-      const input = await this.findElement(SELECTORS.INPUT, { timeout: 10000, label: "input" });
+      const input = await this.findElement(SELECTORS.INPUT, {
+        timeout: 10000,
+        label: "input",
+      });
       if (!input) {
         throw new Error(
-          "Could not find input element. Selectors tried:\n" + SELECTORS.INPUT.join("\n"),
+          "Could not find input element. Selectors tried:\n" +
+            SELECTORS.INPUT.join("\n"),
         );
       }
       await input.click();
@@ -252,7 +284,10 @@ export class GeminiDeepResearchClient {
 
       // Step 4: Click send
       this.log("Clicking send...");
-      const sendBtn = await this.findElement(SELECTORS.SEND, { timeout: 5000, label: "send" });
+      const sendBtn = await this.findElement(SELECTORS.SEND, {
+        timeout: 5000,
+        label: "send",
+      });
       if (sendBtn) {
         const isDisabled = await sendBtn.isDisabled();
         if (!isDisabled) {
@@ -289,7 +324,8 @@ export class GeminiDeepResearchClient {
           }
           return parts.join("\n");
         }, SELECTORS.RESEARCH_PLAN);
-        if (planText) this.log(`Research plan found (${planText.length} chars)`);
+        if (planText)
+          this.log(`Research plan found (${planText.length} chars)`);
       } catch {
         this.log("Could not extract research plan text");
       }
@@ -299,11 +335,16 @@ export class GeminiDeepResearchClient {
       // started automatically (Gemini sometimes skips confirmation). Poll for enabled, then click.
       if (this.autoConfirm) {
         if (confirmBtn) {
-          this.log("Waiting for confirm button to become enabled (up to 60s)...");
+          this.log(
+            "Waiting for confirm button to become enabled (up to 60s)...",
+          );
           let buttonEnabled = false;
           for (let i = 0; i < 60; i++) {
             const disabled = await confirmBtn.isDisabled().catch(() => true);
-            if (!disabled) { buttonEnabled = true; break; }
+            if (!disabled) {
+              buttonEnabled = true;
+              break;
+            }
             await new Promise((r) => setTimeout(r, 1000));
           }
           if (buttonEnabled) {
@@ -311,17 +352,25 @@ export class GeminiDeepResearchClient {
             this.log("Confirmed research plan — research starting...");
           } else {
             // Button stayed disabled — research likely auto-started. Check for research steps.
-            const hasSteps = await this.page!.evaluate(() =>
-              document.querySelectorAll('[class*="research-step"]').length > 0
+            const hasSteps = await this.page!.evaluate(
+              () =>
+                document.querySelectorAll('[class*="research-step"]').length >
+                0,
             ).catch(() => false);
             if (hasSteps) {
-              this.log("Confirm button disabled but research steps detected — research auto-started");
+              this.log(
+                "Confirm button disabled but research steps detected — research auto-started",
+              );
             } else {
-              this.log("Confirm button remained disabled — proceeding to poll anyway");
+              this.log(
+                "Confirm button remained disabled — proceeding to poll anyway",
+              );
             }
           }
         } else {
-          this.log("No confirm button found — research may have started automatically");
+          this.log(
+            "No confirm button found — research may have started automatically",
+          );
         }
       } else {
         this.log("Auto-confirm disabled — waiting for manual confirmation...");
@@ -334,7 +383,9 @@ export class GeminiDeepResearchClient {
       const report = await this.pollForCompletion();
 
       const durationMs = Date.now() - startTime;
-      this.log(`Research completed in ${Math.round(durationMs / 1000)}s (${report.length} chars)`);
+      this.log(
+        `Research completed in ${Math.round(durationMs / 1000)}s (${report.length} chars)`,
+      );
 
       const result: DeepResearchResult = {
         report,
@@ -351,7 +402,9 @@ export class GeminiDeepResearchClient {
           const firecrawlMd = await this.scrapeWithFirecrawl(shareLink);
           if (firecrawlMd) {
             result.firecrawlMarkdown = firecrawlMd;
-            this.log(`Firecrawl scraped ${firecrawlMd.length} chars from share link`);
+            this.log(
+              `Firecrawl scraped ${firecrawlMd.length} chars from share link`,
+            );
           }
         }
       }
@@ -360,7 +413,9 @@ export class GeminiDeepResearchClient {
     } catch (err) {
       const durationMs = Date.now() - startTime;
       const errorMessage = err instanceof Error ? err.message : String(err);
-      this.log(`Research failed after ${Math.round(durationMs / 1000)}s: ${errorMessage}`);
+      this.log(
+        `Research failed after ${Math.round(durationMs / 1000)}s: ${errorMessage}`,
+      );
       return { report: "", completed: false, durationMs, error: errorMessage };
     }
   }
@@ -370,7 +425,11 @@ export class GeminiDeepResearchClient {
     let stableCount = 0;
     const stableThreshold = 3;
 
-    for (let elapsed = 0; elapsed < this.maxResearchTimeMs; elapsed += this.pollIntervalMs) {
+    for (
+      let elapsed = 0;
+      elapsed < this.maxResearchTimeMs;
+      elapsed += this.pollIntervalMs
+    ) {
       await new Promise((r) => setTimeout(r, this.pollIntervalMs));
 
       const micVisible = await this.findElement(SELECTORS.MIC_BUTTON, {
@@ -392,7 +451,9 @@ export class GeminiDeepResearchClient {
 
       // Completion: mic visible + report text > 500 chars + stable for 2+ polls
       if (micVisible && textLen > 500 && stableCount >= 2) {
-        this.log(`Report complete: ${textLen} chars, stable for ${stableCount} polls`);
+        this.log(
+          `Report complete: ${textLen} chars, stable for ${stableCount} polls`,
+        );
         return reportText!;
       }
 
@@ -466,7 +527,9 @@ export class GeminiDeepResearchClient {
         const dialog = document.querySelector("create-social-media-dialog");
         if (!dialog) return null;
         const text = (dialog.textContent ?? "").trim();
-        const match = text.match(/(https?:\/\/)?gemini\.google\.com\/share\/[a-z0-9]+/i);
+        const match = text.match(
+          /(https?:\/\/)?gemini\.google\.com\/share\/[a-z0-9]+/i,
+        );
         return match ? match[0] : null;
       });
       if (link) {
@@ -485,7 +548,8 @@ export class GeminiDeepResearchClient {
   async scrapeWithFirecrawl(shareUrl: string): Promise<string | null> {
     this.log(`Scraping ${shareUrl} via Firecrawl...`);
     try {
-      const resp = await fetch(`${this.firecrawlUrl}/v1/scrape`, {
+      // v2, not v1: the two differ in `search` response shape and v1 is being sunset.
+      const resp = await fetch(`${this.firecrawlUrl}/v2/scrape`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -498,14 +562,19 @@ export class GeminiDeepResearchClient {
         this.log(`Firecrawl HTTP ${resp.status}`);
         return null;
       }
-      const data = (await resp.json()) as { success: boolean; data?: { markdown?: string } };
+      const data = (await resp.json()) as {
+        success: boolean;
+        data?: { markdown?: string };
+      };
       if (!data.success || !data.data?.markdown) {
         this.log("Firecrawl returned no markdown");
         return null;
       }
       return data.data.markdown;
     } catch (err) {
-      this.log(`Firecrawl error: ${err instanceof Error ? err.message : String(err)}`);
+      this.log(
+        `Firecrawl error: ${err instanceof Error ? err.message : String(err)}`,
+      );
       return null;
     }
   }

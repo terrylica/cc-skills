@@ -40,7 +40,7 @@ function parseArgs(argv: string[]): CliConfig {
   let cdpUrl = process.env.CHROME_CDP_URL ?? "http://127.0.0.1:9222";
   let autoConfirm = true;
   let enableFirecrawl = false;
-  let firecrawlUrl = process.env.FIRECRAWL_URL ?? "http://localhost:3002";
+  let firecrawlUrl = process.env.FIRECRAWL_URL ?? "https://api.firecrawl.dev";
   let timeoutMin = 30;
   let outputPath: string | null = null;
   let outputDir: string | null = null;
@@ -61,8 +61,10 @@ function parseArgs(argv: string[]): CliConfig {
       enableFirecrawl = true;
     } else if (arg === "--timeout" && args[i + 1]) {
       const val = parseInt(args[++i], 10);
-      if (isNaN(val) || val <= 0 || val > 120) {
-        console.error(`Error: --timeout must be 1-120 minutes, got: ${args[i]}`);
+      if (Number.isNaN(val) || val <= 0 || val > 120) {
+        console.error(
+          `Error: --timeout must be 1-120 minutes, got: ${args[i]}`,
+        );
         process.exit(1);
       }
       timeoutMin = val;
@@ -84,7 +86,7 @@ Options:
   --cdp-url URL       Chrome CDP endpoint (default: $CHROME_CDP_URL or http://127.0.0.1:9222)
   --no-confirm        Don't auto-confirm the research plan
   --firecrawl         Enable Firecrawl scraping of share link
-  --firecrawl-url URL Firecrawl endpoint (default: $FIRECRAWL_URL or http://localhost:3002)
+  --firecrawl-url URL Firecrawl endpoint (default: $FIRECRAWL_URL or https://api.firecrawl.dev)
   --timeout MINUTES   Max research time (default: 30)
   --output PATH       Write report to specific file path
   --output-dir DIR    Auto-save report to DIR/{date}-{slug}.md
@@ -98,13 +100,23 @@ Options:
 
   const query = positional.join(" ");
   if (!healthCheck && !query) {
-    console.error('Error: No research query provided. Usage: npx tsx research.ts "your query"');
+    console.error(
+      'Error: No research query provided. Usage: npx tsx research.ts "your query"',
+    );
     process.exit(1);
   }
 
   return {
-    query, cdpUrl, autoConfirm, enableFirecrawl, firecrawlUrl,
-    timeoutMin, outputPath, outputDir, healthCheck, skipPreflight,
+    query,
+    cdpUrl,
+    autoConfirm,
+    enableFirecrawl,
+    firecrawlUrl,
+    timeoutMin,
+    outputPath,
+    outputDir,
+    healthCheck,
+    skipPreflight,
   };
 }
 
@@ -117,17 +129,24 @@ async function runHealthCheck(cdpUrl: string): Promise<boolean> {
   // 1. CDP reachability
   try {
     const resp = await fetch(`${cdpUrl}/json/version`);
-    const data = (await resp.json()) as { webSocketDebuggerUrl?: string; Browser?: string };
+    const data = (await resp.json()) as {
+      webSocketDebuggerUrl?: string;
+      Browser?: string;
+    };
     console.log(`  CDP: REACHABLE at ${cdpUrl}`);
     console.log(`  Browser: ${data.Browser ?? "unknown"}`);
 
     // 2. Connect and check for Gemini page + login
     if (data.webSocketDebuggerUrl) {
       try {
-        const browser = await chromium.connectOverCDP(data.webSocketDebuggerUrl);
+        const browser = await chromium.connectOverCDP(
+          data.webSocketDebuggerUrl,
+        );
         const ctx = browser.contexts()[0];
         const pages = ctx.pages();
-        const geminiPage = pages.find((p) => p.url().includes("gemini.google.com"));
+        const geminiPage = pages.find((p) =>
+          p.url().includes("gemini.google.com"),
+        );
 
         if (geminiPage) {
           console.log(`  Gemini page: FOUND (${geminiPage.url()})`);
@@ -140,18 +159,23 @@ async function runHealthCheck(cdpUrl: string): Promise<boolean> {
           });
 
           if (loginRequired) {
-            console.log("  Login: REQUIRED — please log in manually in the Chrome window");
+            console.log(
+              "  Login: REQUIRED — please log in manually in the Chrome window",
+            );
           } else {
             console.log("  Login: OK");
             healthy = true;
           }
         } else {
-          console.log("  Gemini page: NOT FOUND — navigate to gemini.google.com/app");
+          console.log(
+            "  Gemini page: NOT FOUND — navigate to gemini.google.com/app",
+          );
         }
 
         await browser.close();
       } catch (connErr: unknown) {
-        const msg = connErr instanceof Error ? connErr.message : String(connErr);
+        const msg =
+          connErr instanceof Error ? connErr.message : String(connErr);
         console.log(`  Browser connection: FAILED — ${msg}`);
       }
     } else {
@@ -161,7 +185,7 @@ async function runHealthCheck(cdpUrl: string): Promise<boolean> {
     console.log(`  CDP: UNREACHABLE at ${cdpUrl}`);
     console.log(
       "\n  Launch Chrome with:\n" +
-        '  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\\n' +
+        "  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\\n" +
         "    --remote-debugging-port=9222 \\\n" +
         '    --user-data-dir="$HOME/.local/share/gemini-profile" \\\n' +
         '    "https://gemini.google.com/app"',
@@ -198,7 +222,9 @@ async function main() {
     console.log("── Preflight ──\n");
     const healthy = await runHealthCheck(config.cdpUrl);
     if (!healthy) {
-      console.error("\nPreflight failed. Fix the issues above before running research.");
+      console.error(
+        "\nPreflight failed. Fix the issues above before running research.",
+      );
       console.error("Run with --health to re-check after fixing.");
       process.exit(1);
     }
@@ -208,8 +234,12 @@ async function main() {
   console.log(`╔══════════════════════════════════════════════════╗`);
   console.log(`║  Gemini Deep Research                            ║`);
   console.log(`╚══════════════════════════════════════════════════╝`);
-  console.log(`Query: ${config.query.slice(0, 80)}${config.query.length > 80 ? "..." : ""}`);
-  console.log(`CDP: ${config.cdpUrl} | Timeout: ${config.timeoutMin}min | Auto-confirm: ${config.autoConfirm}`);
+  console.log(
+    `Query: ${config.query.slice(0, 80)}${config.query.length > 80 ? "..." : ""}`,
+  );
+  console.log(
+    `CDP: ${config.cdpUrl} | Timeout: ${config.timeoutMin}min | Auto-confirm: ${config.autoConfirm}`,
+  );
   console.log();
 
   const client = new GeminiDeepResearchClient({
@@ -218,7 +248,8 @@ async function main() {
     autoConfirm: config.autoConfirm,
     enableFirecrawl: config.enableFirecrawl,
     firecrawlUrl: config.firecrawlUrl,
-    onProgress: (msg) => console.log(`[${new Date().toISOString().slice(11, 19)}] ${msg}`),
+    onProgress: (msg) =>
+      console.log(`[${new Date().toISOString().slice(11, 19)}] ${msg}`),
   });
 
   // Graceful shutdown on Ctrl+C
@@ -238,13 +269,18 @@ async function main() {
   console.log("\n" + "═".repeat(60));
 
   if (result.completed) {
-    console.log(`Status: COMPLETED in ${Math.round(result.durationMs / 1000)}s`);
+    console.log(
+      `Status: COMPLETED in ${Math.round(result.durationMs / 1000)}s`,
+    );
     console.log(`Report: ${result.report.length} chars`);
     if (result.plan) console.log(`Plan: ${result.plan.length} chars`);
     if (result.shareLink) console.log(`Share: ${result.shareLink}`);
-    if (result.firecrawlMarkdown) console.log(`Firecrawl: ${result.firecrawlMarkdown.length} chars`);
+    if (result.firecrawlMarkdown)
+      console.log(`Firecrawl: ${result.firecrawlMarkdown.length} chars`);
   } else {
-    console.log(`Status: FAILED after ${Math.round(result.durationMs / 1000)}s`);
+    console.log(
+      `Status: FAILED after ${Math.round(result.durationMs / 1000)}s`,
+    );
     console.log(`Error: ${result.error}`);
   }
 
@@ -278,7 +314,9 @@ async function main() {
     console.log(`\nReport written to: ${finalOutputPath}`);
   } else if (result.report) {
     console.log("\n" + result.report.slice(0, 500) + "...\n");
-    console.log(`(${result.report.length} chars total — use --output to save full report)`);
+    console.log(
+      `(${result.report.length} chars total — use --output to save full report)`,
+    );
   }
 }
 

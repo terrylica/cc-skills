@@ -158,15 +158,15 @@ Selectors last verified: **2026-03-13** (Tools button: now `button.toolbox-drawe
 
 ## Options Reference
 
-| Option              | Default                 | Description                                 |
-| ------------------- | ----------------------- | ------------------------------------------- |
-| `cdpUrl`            | `http://127.0.0.1:9222` | Chrome CDP endpoint                         |
-| `maxResearchTimeMs` | `1800000` (30 min)      | Max wait for research completion            |
-| `pollIntervalMs`    | `5000` (5s)             | How often to check for completion           |
-| `autoConfirm`       | `true`                  | Auto-click "Start research" on plan         |
-| `enableFirecrawl`   | `false`                 | Extract share link + scrape via Firecrawl   |
-| `firecrawlUrl`      | `http://localhost:3002` | Self-hosted Firecrawl endpoint              |
-| `--no-preflight`    | (preflight runs)        | Skip automatic health check before research |
+| Option              | Default                     | Description                                 |
+| ------------------- | --------------------------- | ------------------------------------------- |
+| `cdpUrl`            | `http://127.0.0.1:9222`     | Chrome CDP endpoint                         |
+| `maxResearchTimeMs` | `1800000` (30 min)          | Max wait for research completion            |
+| `pollIntervalMs`    | `5000` (5s)                 | How often to check for completion           |
+| `autoConfirm`       | `true`                      | Auto-click "Start research" on plan         |
+| `enableFirecrawl`   | `false`                     | Extract share link + scrape via Firecrawl   |
+| `firecrawlUrl`      | `https://api.firecrawl.dev` | Public Firecrawl API base (no key needed)   |
+| `--no-preflight`    | (preflight runs)            | Skip automatic health check before research |
 
 ## Completion Detection
 
