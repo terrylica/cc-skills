@@ -41,11 +41,12 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 Services run on two GPU workstations: **gpu-host** (RTX 4090) for primary compute, **small-host** (RTX 2080 Ti) for secondary workloads. Access via Tailscale primary path or legacy ZeroTier fallback.
 
-| Service    | Host        | Port | Tunnel          | Skill                                             |
-| ---------- | ----------- | ---- | --------------- | ------------------------------------------------- |
-| ClickHouse | gpu-host    | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
-| VNC (MT5)  | gpu-host    | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
-| Firecrawl  | small-host | 3002 | —               | `Skill(devops-tools:firecrawl-research-patterns)` |
+| Service    | Host     | Port | Tunnel          | Skill                                             |
+| ---------- | -------- | ---- | --------------- | ------------------------------------------------- |
+| ClickHouse | gpu-host | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
+| VNC (MT5)  | gpu-host | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
+
+> Do not add a self-hosted Firecrawl here. It ran on small-host:3002 until 2026-08-13 and was retired for the public API at `https://api.firecrawl.dev` — see `Skill(devops-tools:firecrawl-research-patterns)`.
 
 **ClickHouse (gpu-host)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
 

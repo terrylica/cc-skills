@@ -64,7 +64,7 @@ plugins/gemini-deep-research/
 
 ## Cross-References
 
-- Firecrawl scraping: [devops-tools](../devops-tools/CLAUDE.md) (self-hosted Firecrawl patterns)
+- Firecrawl scraping: [devops-tools](../devops-tools/CLAUDE.md) — use the public API at `https://api.firecrawl.dev`; there is no self-hosted instance
 
 ## Skills
 

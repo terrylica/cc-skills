@@ -58,7 +58,7 @@ YYYY-MM-DD-{slug}.md
 source_url: https://arxiv.org/html/2401.12345
 scraped_at: "2026-02-25T14:30:00Z"
 scraper: firecrawl
-firecrawl_endpoint: /v1/search
+firecrawl_endpoint: /v2/search
 search_query: "mixture of experts scaling"
 result_index: 2
 research_session: "2026-02-25-moe-scaling"
@@ -73,9 +73,9 @@ content_tokens_approx: 4200
 | `source_url`            | URL      | Yes                    | Original URL that was scraped                 |
 | `scraped_at`            | ISO 8601 | Yes                    | UTC timestamp of scrape                       |
 | `scraper`               | Enum     | Yes                    | `firecrawl`, `jina-reader`, or `direct`       |
-| `firecrawl_endpoint`    | String   | If scraper=firecrawl   | `/v1/search` or `/v1/scrape`                  |
-| `search_query`          | String   | If endpoint=/v1/search | The search query that found this page         |
-| `result_index`          | Number   | If endpoint=/v1/search | Position in search results (0-based)          |
+| `firecrawl_endpoint`    | String   | If scraper=firecrawl   | `/v2/search` or `/v2/scrape`                  |
+| `search_query`          | String   | If endpoint=/v2/search | The search query that found this page         |
+| `result_index`          | Number   | If endpoint=/v2/search | Position in search results (0-based)          |
 | `research_session`      | String   | Yes                    | Session slug (links to session report)        |
 | `depth_level`           | Number   | Yes                    | Recursion depth when scraped (1 = top level)  |
 | `claude_code_uuid`      | UUID     | Yes                    | Claude Code session that performed the scrape |
