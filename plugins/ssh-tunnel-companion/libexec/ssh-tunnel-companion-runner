@@ -11,8 +11,20 @@
 #   localhost:18123 → bigblack:8123  (ClickHouse HTTP)
 #   localhost:18081 → bigblack:8081  (SSE sidecar — crypto ODB live bars)
 #   localhost:18082 → bigblack:8082  (fxview-sidecar — forex live tick SSE)
-#   localhost:18095 → bigblack:8095  (ccmax-monitor dashboard API)
 #   localhost:5900  → bigblack:5900  (VNC — x11vnc, MT5/WINE on display :99)
+#
+# A fifth forward (:18095) was removed 2026-08-15 after the service behind it was
+# retired. The lesson generalises, which is why it is recorded here:
+#
+# `-L` binds the LOCAL port EAGERLY and only dials the remote on first use, so a
+# dead remote never trips ExitOnForwardFailure. The port simply sits there
+# LISTENING and answering nothing — which reads to every later caller as "that
+# service is reachable here". A forward advertising a service that cannot exist
+# is worse than no forward, and it fails a health check that only tests whether
+# the port is bound.
+#
+# So: when removing a service, remove its forward in the same change, and verify
+# a forward by making a REQUEST through it, never by checking that it is bound.
 
 set -euo pipefail
 
@@ -31,6 +43,5 @@ exec /usr/bin/ssh \
   -L 18123:localhost:8123 \
   -L 18081:localhost:8081 \
   -L 18082:localhost:8082 \
-  -L 18095:localhost:8095 \
   -L 5900:localhost:5900 \
   bigblack
