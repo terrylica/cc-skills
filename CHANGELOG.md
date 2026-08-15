@@ -1,3 +1,30 @@
+## [26.0.1](https://github.com/terrylica/cc-skills/compare/v26.0.0...v26.0.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **ssh-tunnel-companion:** remove dead :18095 forward ([32c8110](https://github.com/terrylica/cc-skills/commit/32c8110785b822b9e1d2fa4e5c45356f520e2cd0))
+The tunnel carried five `-L` forwards; the service behind :18095 was
+decommissioned and nothing has listened on the remote port since.
+
+Worth recording because the failure mode is silent and general:
+
+`-L` binds the LOCAL port EAGERLY and only dials the remote on first
+use, so a dead remote never trips ExitOnForwardFailure. The listener
+comes up, the tunnel reports healthy, and the port sits there accepting
+connections it can never serve — which reads to every later caller as
+"that service is reachable here".
+
+Two consequences:
+
+- A health check that asks "is the port bound?" passes forever on a
+  forward that can never work. Verify by making a REQUEST through it.
+- Removing a service and leaving its forward behind converts a clean
+  absence into a misleading presence.
+
+The remaining four forwards were re-verified after this change (a real
+query through :18123 returned 200), not merely observed to be bound.
+
 # [26.0.0](https://github.com/terrylica/cc-skills/compare/v25.0.0...v26.0.0) (2026-08-14)
 
 
