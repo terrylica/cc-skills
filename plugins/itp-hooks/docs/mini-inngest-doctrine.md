@@ -4,7 +4,32 @@
 
 **Status**: Soft nudge (non-blocking reminder via PostToolUse channel, per ADR 2025-12-17)
 
-**Operator directive**: 2026-07-06
+**Operator directive**: 2026-07-06 · **Substrate retargeted**: 2026-08-15
+
+> ### ⚠️ The substrate is RESTATE, not Inngest (2026-08-15)
+>
+> The name is historical. This hook now nudges toward deploying as a **Restate tenant** on the Mac
+> mini via `bun ../_engine/deploy.ts <tenant>` from a mini folder under
+> `~/eon/claude-sys/mac-minis/`. Anything below still describing Inngest apps, `mini-deploy`,
+> `~/vj/cpc/mini-platform` or `~/vj/cpc/mini-services` is **historical** — those paths no longer
+> exist.
+>
+> Why it changed: the operator ruled _"Inngest has long been retired"_, ADR 0004 §5-F deleted the
+> last two Inngest-era launchd plists on 2026-08-15 (freeing ports 3210/3211), and the mini now runs
+> six Restate tenants behind one `restate-server` singleton.
+>
+> Why it was worth fixing rather than ignoring: the hook was telling every author to build on a dead
+> engine at paths that do not exist, so authors were **escaping it instead of following it** — the
+> platform's own `mac-minis/_engine/CLAUDE.md` carries a `MINI-INNGEST-OK` marker whose comment says
+> Restate supersedes Inngest. A hook that people routinely suppress teaches suppressing hooks in
+> general, which costs far more than the original wrong target.
+>
+> **The escape marker is still `MINI-INNGEST-OK`, deliberately.** Renaming it would silently
+> un-escape every file already using it across `~/own/amonic`, `~/eon/claude-sys` and this repo,
+> turning a docs correction into a fleet-wide false-positive storm. The detection heuristic is also
+> unchanged — the underlying principle (_don't hand-roll a bespoke local cron/StartInterval script
+> for work that belongs on the always-on mini_) survived the migration intact. Only the guidance was
+> wrong.
 
 ---
 

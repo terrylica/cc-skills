@@ -2,14 +2,37 @@
 /**
  * PostToolUse hook: mini-inngest-doctrine soft nudge.
  *
- * Policy (operator directive 2026-07-06)
- * ──────────────────────────────────────
+ * Policy (operator directive 2026-07-06; SUBSTRATE RETARGETED 2026-08-15)
+ * ──────────────────────────────────────────────────────────────────────
  * External/web-facing services and off-web monitors belong on the Mac Mini
- * as Inngest applications (the shared, durable workflow engine), deployed
- * via the `mini-deploy` CLI from ~/vj/cpc/mini-platform, with tenant
- * services in ~/vj/cpc/mini-services. This hook emits a soft, non-blocking
- * nudge (decision:"block" does NOT undo the tool per ADR 2025-12-17) when
- * the agent appears to be setting up such a service locally/manually instead.
+ * as RESTATE tenants (the shared durable-execution engine), deployed with
+ * `bun ../_engine/deploy.ts <tenant>` from a mini folder under
+ * ~/eon/claude-sys/mac-minis/. This hook emits a soft, non-blocking nudge
+ * (decision:"block" does NOT undo the tool per ADR 2025-12-17) when the agent
+ * appears to be setting up such a service locally/manually instead.
+ *
+ * ── WHY THE GUIDANCE CHANGED, BUT THE HOOK DID NOT ──────────────────────────
+ * This originally nudged toward INNGEST at ~/vj/cpc/mini-platform. Inngest is
+ * retired: the operator ruled "Inngest has long been retired", ADR 0004 §5-F
+ * deleted the last two Inngest-era launchd plists on 2026-08-15, and the mini
+ * now runs six Restate tenants behind one restate-server singleton.
+ *
+ * So the hook was telling every author to build on a dead engine, at paths that
+ * no longer exist — and authors were escaping it rather than following it. The
+ * platform's own ~/eon/claude-sys/mac-minis/_engine/CLAUDE.md carries a
+ * MINI-INNGEST-OK marker whose comment says Restate supersedes Inngest, i.e.
+ * people were suppressing a hook that enforced a dead doctrine. That teaches
+ * escaping hooks in general, which is far more expensive than the original bug.
+ *
+ * The PRINCIPLE survived the migration untouched — do not hand-roll a bespoke
+ * local cron/StartInterval script for work that belongs on the always-on mini —
+ * so the detection heuristic is unchanged and only the guidance was corrected.
+ *
+ * THE ESCAPE MARKER IS DELIBERATELY STILL `MINI-INNGEST-OK`, despite naming a
+ * retired engine. Renaming it would silently un-escape every file already using
+ * it across ~/own/amonic, ~/eon/claude-sys and this repo, turning a docs fix
+ * into a fleet-wide false-positive storm. A slightly stale marker name is much
+ * cheaper than that.
  *
  * Trigger heuristic: the tool payload (Bash command, or Write/Edit content)
  * matches web-facing / off-web-monitoring signals — launchd/LaunchAgent plist
@@ -207,14 +230,17 @@ export function detectMiniInngestDoctrineFire(input: HookInput): {
 
 export function buildReminder(): string {
   return [
+    // Prefix deliberately still says MINI-INNGEST, matching the escape marker below. Renaming the
+    // user-visible token while the marker it pairs with stays MINI-INNGEST-OK would make the nudge
+    // harder to silence, not easier — the reader would have no way to guess the marker from it.
     "[MINI-INNGEST] External/web-facing service or off-web monitor detected.",
-    "These belong on the Mac Mini as Inngest workflow applications (the shared, durable workflow engine).",
+    "These belong on the Mac Mini as a RESTATE tenant (the shared durable-execution engine),",
+    "not as a bespoke local cron/launchd StartInterval script on your laptop.",
     "Deployment path:",
-    "  1. Define the tenant service in ~/vj/cpc/mini-services/",
-    "  2. Deploy via the mini-deploy CLI: ~/vj/cpc/mini-platform",
-    "  3. Access the Mac Mini Inngest UI at: https://terrys-mac-mini.tail0f299b.ts.net/ (tailnet only)",
-    "Note: 'Inngest' here = the workflow engine, distinct from the 'coa ingest' CLI command.",
-    "See the homelab skill for detailed setup instructions.",
+    "  1. Add the tenant to mini.config.ts + services/<name>/ in",
+    "     ~/eon/claude-sys/mac-minis/<serial>_<nickname>/",
+    "  2. Deploy:  cd <that mini dir> && bun ../_engine/deploy.ts <tenant>",
+    "  3. Inspect: restate services list / restate invocations list (on the mini)",
     "Escape hatch: add MINI-INNGEST-OK to this file if this is intentionally local-only.",
   ].join("\n");
 }

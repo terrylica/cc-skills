@@ -369,9 +369,16 @@ describe("Edge cases", () => {
     });
     expect(result.parsed).not.toBeNull();
     const reason = (result.parsed as any).reason;
-    expect(reason).toContain("mini-deploy");
-    expect(reason).toContain("mini-services");
-    expect(reason).toContain("homelab skill");
+    // RETARGETED 2026-08-15. This used to assert "mini-deploy", "mini-services" and "homelab skill"
+    // — the Inngest-era deployment path at ~/vj/cpc/mini-platform. Inngest is retired (ADR 0004 §5-F
+    // deleted the last Inngest launchd plists; the mini runs six Restate tenants), so those strings
+    // pinned guidance that would send an author to paths which no longer exist. The nudge now points
+    // at the real deploy path, and the test follows the doctrine rather than freezing the old one.
+    expect(reason).toContain("RESTATE tenant");
+    expect(reason).toContain("deploy.ts");
+    expect(reason).toContain("mac-minis");
+    // The escape marker is deliberately unchanged: renaming it would silently un-escape every file
+    // already using MINI-INNGEST-OK across amonic, claude-sys and this repo.
     expect(reason).toContain("MINI-INNGEST-OK");
   });
 });
