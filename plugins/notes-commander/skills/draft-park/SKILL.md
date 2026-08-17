@@ -58,7 +58,16 @@ The engine (formatter in `scripts/lib/notes-core.ts`, unit-tested in `notes-core
    "$DP" get "<title>" --body-only  # JUST the sendable message (no heading, no footer)
    ```
 
-   Use `--body-only` to get exactly the text to send/paste — it strips the title heading and everything from the `------` provenance separator onward. Show the operator the exact current text, get explicit go-ahead, then send/commit.
+   Use `--body-only` to get exactly the text to send/paste. Add `--for whatsapp` to convert markdown
+   into the channel's own syntax, and `--copy` to put the result straight on the clipboard so there is
+   no hand-selection step to get wrong:
+
+   ```bash
+   "$DP" get "<title>" --for whatsapp --copy   # sendable text → clipboard, warnings on stderr
+   ```
+
+   `--for` and `--copy` both imply `--body-only`. stdout is always exactly the sendable bytes;
+   warnings go to stderr, so piping stays clean. Show the operator the exact current text, get explicit go-ahead, then send/commit.
 
 4. `"$DP" list` enumerates parked drafts.
 
@@ -83,11 +92,46 @@ Only if that variable is empty: the `statusline-tools:session-info` skill report
 ## Rules
 
 - **Never send/commit from memory** — always `get` the note first; the operator may have changed it.
+- **Never hand-copy the note out of the Notes UI.** The provenance footer is selectable text sitting
+  right underneath the message; on 2026-08-17 it was pasted into a client WhatsApp group, disclosing
+  `Parked by Claude Code`, a session UUID and a repo path. Use `--body-only` (or `--copy`), which now
+  also REFUSES to emit any text still containing the footer.
+- **Write URLs inline, never as `[label](url)`, in anything you intend to SEND.** Notes stores the
+  href but its AppleScript getter strips it, so the URL cannot come back. `new` refuses such links
+  with the inline form to use instead; `--allow-lossy-links` overrides for a note meant to be read in
+  Notes rather than sent.
 - Notes is the source of truth. Stickies cannot be read back (no AppleScript dictionary), so never treat a sticky as the live draft.
 - There is no scriptable deep-link to a specific note (`open x-coredata://…` fails; `applenotes:` links are UI-only) — reference drafts by **folder + title**.
 - First run prompts once for Automation permission to control Notes.
 
 ## Evolution log
+
+- **2026-08-17 — three ways a parked draft reached a recipient WRONG, all found in one afternoon after
+  a real client message went out damaged.** _Trigger_: a message to a client's reviewer
+  arrived truncated to 38% of its length, carrying internal provenance, and studded with 20 literal
+  `**`. _Root causes and fixes_:
+  1. **Silent truncation, and it was injection-shaped.** `bodyOnly()` broke at the FIRST line matching
+     `/^------\s*$/`, but the footer it strips is always LAST — so an author's dash rule cut the
+     message there (1,760 of 4,635 chars). The Notes UI showed the whole note, and the sendable text
+     is only ever read by the human pasting it, so nothing looked wrong. The severity is WHOSE text
+     can trigger it: drafts quote client comments, patient transcripts and Drive comments verbatim,
+     so a dash rule written outside this machine could choose the cut point. Now `findFooterStart()`
+     scans from the END and requires BOTH signals (the rule AND a following `Parked by Claude Code`
+     line), so prose dashes are ignored and a quoted footer cannot pull the cut upwards.
+  2. **URLs cannot survive a markdown link, and the existing verify only caught it by luck.** Parking
+     `[the rules portal](https://…)` and reading back yields `the rules portal` — URL absent, not
+     mangled. `contentPresent()` compares only the first **24 characters** of the first line, so it
+     catches a link near the start and passes GREEN on one further in (measured both ways). `new` now
+     REFUSES markdown links and prints the inline form to use; `--allow-lossy-links` escapes it and
+     relaxes the content check, loudly.
+  3. **Markdown is not what the channel speaks.** `--for whatsapp` converts `**bold**` → `*bold*`,
+     headings → bold, and flattens `[label](url)` → `label: url`, warning on stderr about anything it
+     cannot map (inline code, tables). Fenced blocks are left verbatim. `--copy` writes the sendable
+     text to the clipboard, removing the hand-copy step that leaked the footer, and says so rather
+     than silently replacing the clipboard.
+  _Evidence_: 25 new unit tests (64 total, 0 fail), each proved in both directions, plus a mutation
+  check confirming the pre-fix code genuinely exhibits failures 1 and 2 — so the regression tests are
+  not vacuous.
 
 - **2026-08-12 — renamed `draft-hold` → `draft-park`.** _Trigger_: operator directive — "park" is the verb the skill's own docs and triggers already used ("park it in macOS Notes", "park the message"), while "hold" read as a queue/blocking state. _Scope_: skill dir `skills/draft-hold/` → `skills/draft-park/`, shim `draft-hold.sh` → `draft-park.sh`, engine `scripts/draft-hold.ts` → `scripts/draft-park.ts`, call-site variable `$DH` → `$DP`, and every live cross-reference (plugin CLAUDE.md/README/plugin.json, marketplace.json, root + plugins CLAUDE.md, `scripts/cc-plugin-root` usage example, macos-font-defaults' Notes-mono cross-reference, and the operator's live `~/.claude` instructions). **No `draft-hold` alias exists** — the slash command is `/notes-commander:draft-park` only. _Deliberately NOT rewritten_: CHANGELOG.md, the entries below this one, and the itp-hooks skill-plugin-root-guard forensics — those describe events that happened under the old name, and back-dating a rename into them would make the incident record wrong. _Behavior_: unchanged — same subcommands, same flags, same "Claude Drafts" Notes folder, so previously parked notes are still found by `get`/`list`. The one content change: the provenance footer now reads `Parked by Claude Code` (was `Held by`). Nothing parses it — `bodyOnly()` cuts at the `------` separator — so notes written under the old wording read back identically.
 - **2026-08-05 (b) — the skill could not find its own entrypoint (`exit 127`).** _Trigger_: `/notes-commander:draft-hold` invoked from another repo died on `(eval):1: no such file or directory: /skills/draft-hold/draft-hold.sh`. _Root cause_: this SKILL.md told the caller to use `DH="$CLAUDE_PLUGIN_ROOT/skills/draft-hold/draft-hold.sh"`, but **`CLAUDE_PLUGIN_ROOT` is not a shell variable**. Claude Code substitutes the exact literal `${CLAUDE_PLUGIN_ROOT}` (braces REQUIRED — the helper is `e.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginPath)`) inside plugin manifests, and injects the var into hook/MCP subprocess envs — never into the Bash tool. The bare `$…` spelling used here is unsubstitutable on every path, so it reached zsh as an unset var, expanded to empty, and produced an absolute-looking `/skills/…` path — which reads like a missing file, not a missing variable. Two upstream causes made it likely: the repo's own `advanced-topics.md` and `lifecycle-reference.md` documented the rule **exactly backwards** ("available in skill loading, NOT in hooks" — it is the reverse), and the recovery path was equally unsound: globbing the version cache and taking the highest semver picked `23.4.1`, which is marked `.orphaned_at` (live was `23.5.0`). _Fix_: added `scripts/cc-plugin-root` (reads `~/.claude/plugins/installed_plugins.json`, tolerates both registry schemas, jq with a python3 fallback, symlinked into `~/.local/bin/`); this SKILL.md now resolves `DH="$(cc-plugin-root notes-commander)/skills/draft-hold/draft-hold.sh"`; both reference docs corrected; the stale "L3 cache strips `scripts/`" claim retired. Also stopped the sibling waste in this same flow: `CLAUDE_CODE_SESSION_ID` is already exported into the Bash env, so the provenance UUID no longer needs hunting. _Evidence_: resolver returns the live `23.5.0` path via both jq and python3 backends and under both registry shapes; negative cases exit 1/2 with actionable stderr; the resolved `draft-hold.sh` and `scripts/draft-hold.ts` both exist.
