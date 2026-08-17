@@ -31,29 +31,27 @@ setStateFile(stateFile);
 
 // --- Main ---
 
-async function main() {
-  if (!acquireLock(PID_FILE)) {
-    console.error("Another gmail-commander-bot instance is running. Exiting.");
-    process.exit(1);
-  }
+/**
+ * Build the fully-wired bot WITHOUT starting a transport.
+ *
+ * Extracted so there is exactly ONE definition of "what this bot does" shared by two very different
+ * runtimes: the standalone long-polling daemon below, and the Restate `GmailBot` tenant on the mca
+ * mini, which owns its own durable poll chain and feeds updates in via `bot.handleUpdate()`.
+ * Duplicating the wiring into the tenant was the obvious alternative and was rejected: the
+ * compose/reply session flow is ~90 lines of stateful branching, and two copies of it would drift
+ * silently, with the divergence only ever showing up as a user-visible misbehaviour in one of them.
+ *
+ * Deliberately does NOT: acquire the PID lock, install signal handlers, start polling, or register
+ * the periodic timers. Those belong to whoever owns the process lifecycle.
+ */
+export async function buildBot() {
+  const config = loadBotCredentials();
+  const bot = createTelegramBot(config);
+  const state = loadBotState();
 
-  // Graceful shutdown
-  const cleanup = () => {
-    releaseLock(PID_FILE);
-    auditLog("bot.shutdown");
-    process.exit(0);
-  };
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
-
-  try {
-    const config = loadBotCredentials();
-    const bot = createTelegramBot(config);
-    const state = loadBotState();
-
-    // Register commands and callbacks
-    registerCommands(bot, state, config.chatId, pendingSessions);
-    registerCallbacks(bot, state);
+  // Register commands and callbacks
+  registerCommands(bot, state, config.chatId, pendingSessions);
+  registerCallbacks(bot, state);
 
     // Handle text messages for pending sessions (compose/reply body input)
     bot.on("message:text", async (ctx) => {
@@ -153,8 +151,41 @@ async function main() {
       }
     });
 
-    // Register native menu commands
+  // Register native menu commands.
+  //
+  // NON-FATAL BY DESIGN. This is a NETWORK call, and letting it throw out of startup is what made
+  // the laptop daemon crash-loop: `Fatal: Network request for 'setMyCommands' failed!` → exit 1 →
+  // KeepAlive relaunch → repeat, every time the lid closed or wifi flapped. The command MENU is a
+  // cosmetic affordance in Telegram's UI; every command still works without it. Trading a working
+  // bot for a pretty menu was never the right trade.
+  try {
     await setCommandMenu(bot);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    auditLog("bot.command_menu_failed", { error: msg });
+    console.error(`Command menu registration failed (non-fatal, commands still work): ${msg}`);
+  }
+
+  return { bot, state, config };
+}
+
+async function main() {
+  if (!acquireLock(PID_FILE)) {
+    console.error("Another gmail-commander-bot instance is running. Exiting.");
+    process.exit(1);
+  }
+
+  // Graceful shutdown
+  const cleanup = () => {
+    releaseLock(PID_FILE);
+    auditLog("bot.shutdown");
+    process.exit(0);
+  };
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+
+  try {
+    const { bot, state, config } = await buildBot();
 
     auditLog("bot.started", { chatId: config.chatId });
     console.error(`Gmail Commander Bot started (chat: ${config.chatId})`);
@@ -179,4 +210,10 @@ async function main() {
   }
 }
 
-main();
+// Only take over the process when RUN as a script. Importing this module (the Restate GmailBot
+// tenant does exactly that, to reuse buildBot) must never acquire the PID lock or start a second
+// long-poll — Telegram permits only ONE getUpdates consumer per token, so an accidental import
+// would silently fight the real poller and make both unreliable.
+if (import.meta.main) {
+  main();
+}
