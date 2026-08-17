@@ -9,8 +9,20 @@
 import { auditLog } from "./audit.js";
 import { join } from "path";
 
-/** Resolve the gmail CLI binary path relative to this plugin */
+/**
+ * Resolve the gmail CLI binary.
+ *
+ * GMAIL_CLI_BIN overrides the location. The default below assumes a marketplace-installed plugin on
+ * the operator's own Mac, which is true for interactive use and FALSE anywhere the plugin is merely
+ * imported — notably the Restate `gmail-commander` tenant on the mca mini, which bundles this module
+ * but has no `~/.claude/plugins` tree. Before the override existed, every Gmail-touching command on
+ * that host failed with `ENOENT ... posix_spawn '/Users/mca/.claude/plugins/.../gmail-cli/gmail'`,
+ * while /help and /status (which touch no Gmail) worked — an unusually misleading partial outage.
+ */
 function getGmailCli(): string {
+  const override = process.env.GMAIL_CLI_BIN;
+  if (override) return override;
+
   const pluginPath = join(
     process.env.HOME || "~",
     ".claude", "plugins", "marketplaces", "cc-skills",

@@ -300,6 +300,9 @@ export function registerCommands(
       const result = query({
         prompt,
         options: {
+          // See agent-router.ts: a bundled SDK cannot find its own vendored CLI, so point it at an
+          // explicit binary when CLAUDE_BIN is set (the mca tenant sets it). Harmless when unset.
+          ...(process.env.CLAUDE_BIN ? { pathToClaudeCodeExecutable: process.env.CLAUDE_BIN } : {}),
           model: model as "haiku",
           maxTurns: 1,
           persistSession: false,
@@ -444,11 +447,24 @@ export function registerCommands(
 
     try {
       const drafts = await listDrafts(20);
-      const formatted = formatEmailList(drafts);
+
+      // DraftSummary carries draftId/messageId — it has NO `id` field. This code used `draft.id`,
+      // which was `undefined` at runtime: formatEmailList renders an `id`-bearing shape, and every
+      // "Read #N" button was registered against undefined. It went unnoticed because the plugin's
+      // own tsconfig is looser; the mini's strict TS 7 build surfaced it as TS2339/TS2345.
+      // messageId (not draftId) is the correct identity here: the read path fetches a MESSAGE.
+      const asEmails = drafts.map((d) => ({
+        id: d.messageId,
+        from: d.from,
+        subject: d.subject,
+        date: d.date,
+        snippet: d.snippet,
+      }));
+      const formatted = formatEmailList(asEmails);
 
       const keyboard = new InlineKeyboard();
-      for (let i = 0; i < Math.min(drafts.length, 10); i++) {
-        const draft = drafts[i]!;
+      for (let i = 0; i < Math.min(asEmails.length, 10); i++) {
+        const draft = asEmails[i]!;
         const cbId = registerCallback(ctx.chat.id, draft.id, draft.from, draft.subject);
         keyboard.text(`Read #${i + 1}`, `read:${cbId}`).row();
       }
