@@ -41,9 +41,16 @@ function nowStamp(): string {
 	return (r.stdout ?? "").trim();
 }
 
+/**
+ * The separator and the first words of the footer line. `bodyOnly()` matches on BOTH, so a lone
+ * dash-rule in the author's prose is no longer mistaken for the start of the footer.
+ */
+export const FOOTER_SEPARATOR_RE = /^------\s*$/;
+export const FOOTER_LEAD = "Parked by Claude Code";
+
 function footerHtml(session: string, project: string): string {
 	const sess = session ? `session ${escapeHtml(session)} | ` : "";
-	return `<div><br></div><div><tt>------</tt></div><div><tt>Parked by Claude Code | ${sess}${escapeHtml(project)} | ${nowStamp()}</tt></div>`;
+	return `<div><br></div><div><tt>------</tt></div><div><tt>${FOOTER_LEAD} | ${sess}${escapeHtml(project)} | ${nowStamp()}</tt></div>`;
 }
 
 export function buildNoteBody(
@@ -56,11 +63,47 @@ export function buildNoteBody(
 	return titleHtml + bodyToHtml(body) + footerHtml(session, project);
 }
 
-function bodyOnly(full: string): string {
+/**
+ * Where the provenance footer begins, or -1 when the note carries none.
+ *
+ * ── WHY THIS IS NOT "THE FIRST LINE OF DASHES" ───────────────────────────────────────────────────
+ *
+ * It used to be, and on 2026-08-17 that truncated a real client message to a real client. The author
+ * used a six-dash line as a visual divider mid-message; `bodyOnly` stopped there and returned 1,760 of
+ * 4,635 characters. Nothing warned anyone — the Notes UI showed the whole message, and the sendable
+ * text is only ever inspected by the human who is about to paste it.
+ *
+ * The severity is not the typo, it is WHOSE TEXT CAN TRIGGER IT. Drafts routinely quote third-party
+ * content verbatim — client review comments, patient transcripts, Drive comments. So a dash rule
+ * written by someone outside this machine could silently cut an outbound message at a point they
+ * chose. That makes it an injection, not a formatting bug.
+ *
+ * TWO SIGNALS, NOT ONE. The footer is `------` followed by a line starting `Parked by Claude Code`.
+ * Requiring both means prose dashes are ignored, and searching from the END means a quoted copy of a
+ * footer earlier in the body cannot pull the cut point upwards either.
+ */
+export function findFooterStart(lines: string[]): number {
+	for (let i = lines.length - 1; i >= 0; i--) {
+		if (!FOOTER_SEPARATOR_RE.test(lines[i] ?? "")) continue;
+		// The footer line is the next non-blank after the rule. Anything else is the author's own rule.
+		for (let j = i + 1; j < lines.length; j++) {
+			const next = (lines[j] ?? "").trim();
+			if (next === "") continue;
+			return next.startsWith(FOOTER_LEAD) ? i : -1;
+		}
+		// A trailing rule with nothing after it is prose, not a footer.
+		return -1;
+	}
+	return -1;
+}
+
+export function bodyOnly(full: string): string {
+	const lines = full.split("\n");
+	const footerAt = findFooterStart(lines);
+	const body = footerAt === -1 ? lines : lines.slice(0, footerAt);
 	const out: string[] = [];
 	let state: "pre" | "title" | "body" = "pre";
-	for (const line of full.split("\n")) {
-		if (/^------\s*$/.test(line)) break;
+	for (const line of body) {
 		const blank = line.trim() === "";
 		if (state === "pre") {
 			if (blank) continue;
@@ -73,7 +116,133 @@ function bodyOnly(full: string): string {
 		}
 		out.push(line);
 	}
+	// Trailing blank lines are an artefact of cutting the footer off, never authored content.
+	while (out.length > 0 && (out.at(-1) ?? "").trim() === "") out.pop();
 	return out.join("\n");
+}
+
+// ── CHANNEL RENDERING ────────────────────────────────────────────────────────────────────────────
+//
+// A parked draft is written in markdown, and every channel it gets pasted into speaks something else.
+// On 2026-08-17 a message to a client reviewer arrived with TWENTY literal `**` in it, because
+// WhatsApp bold is a SINGLE asterisk. She read a wall of punctuation and asked whether she was even
+// looking at the right thing.
+//
+// The intervention is deliberately CONVERT-AND-WARN rather than refuse. Refusing to park a draft
+// containing a heading would make the tool obstructive for the email and iMessage cases, which have
+// different rules again; converting silently would hide from the author that their `[label](url)` no
+// longer exists as a link. So: rewrite what maps cleanly, and say on stderr what did not — stdout
+// stays exactly the sendable text so `--copy` and shell pipelines are unaffected.
+
+export interface ChannelRenderResult {
+  text: string;
+  warnings: string[];
+}
+
+/**
+ * Markdown → WhatsApp. WhatsApp understands `*bold*`, `_italic_`, `~strike~` and ```` ``` ```` blocks,
+ * and nothing else — it has no headings, no inline code, and no link syntax at all.
+ */
+export function renderForWhatsApp(markdown: string): ChannelRenderResult {
+  const warnings: string[] = [];
+  const lines = markdown.split("\n");
+  let inFence = false;
+  const out = lines.map((line) => {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      return line;
+    }
+    // Inside a fence the text is verbatim by contract — rewriting it would corrupt the very thing the
+    // author fenced to protect.
+    if (inFence) return line;
+
+    let l = line;
+    // `**bold**` → `*bold*`. Done before any single-asterisk handling so the pair is consumed first.
+    if (l.includes("**")) l = l.replace(/\*\*(.+?)\*\*/g, "*$1*");
+    // A markdown heading has no WhatsApp equivalent; bold is the closest honest rendering.
+    const heading = /^(#{1,6})\s+(.*)$/.exec(l);
+    if (heading) l = `*${heading[2]}*`;
+    // `[label](url)` — WhatsApp would show the literal brackets and the URL would not be clickable,
+    // so the URL is promoted to visible text. Losing it silently is the failure worth preventing.
+    if (/\[[^\]]*\]\([^)]*\)/.test(l)) {
+      l = l.replace(/\[([^\]]*)\]\(([^)]*)\)/g, (_m, label: string, url: string) => (label.trim() === "" ? url : `${label}: ${url}`));
+      warnings.push("markdown links were flattened to 'label: url' — WhatsApp has no link syntax");
+    }
+    if (/`[^`]+`/.test(l)) warnings.push("inline `code` has no WhatsApp equivalent; the backticks will show literally");
+    if (/^\s*\|.*\|\s*$/.test(l)) warnings.push("a markdown TABLE will render as raw pipes in WhatsApp");
+    return l;
+  });
+  return { text: out.join("\n"), warnings: [...new Set(warnings)] };
+}
+
+export const CHANNEL_RENDERERS: Record<string, (s: string) => ChannelRenderResult> = {
+  whatsapp: renderForWhatsApp,
+  // `plain` strips nothing and warns about nothing — the explicit "I know what I am doing" choice, so
+  // that omitting --for is not silently equivalent to asserting the channel is markdown-aware.
+  plain: (s: string) => ({ text: s, warnings: [] }),
+};
+
+/**
+ * Refuse to hand over text still carrying the provenance footer.
+ *
+ * The footer reached a client group on 2026-08-17 because the human copied the note out of the Notes
+ * UI, where `Parked by Claude Code | session <uuid> | <repo>` is just more selectable text. This is the
+ * backstop for that: any path that produces sendable text asserts the footer is gone, so a future
+ * change to the stripping logic cannot quietly start leaking it again.
+ */
+/**
+ * Markdown links whose URL provably cannot reach the recipient.
+ *
+ * ── THE MEASUREMENT ──────────────────────────────────────────────────────────────────────────────
+ *
+ * Parking `Please review [the rules portal](https://…/rules-portal-…/) today.` and reading it back
+ * with --body-only returns, verbatim: `Please review the rules portal today.` The URL is GONE — not
+ * mangled, absent. `renderInline` turns the markdown into a real `<a href>` (Notes genuinely stores
+ * the href, confirmed in the 2026-08-05 evolution log against NoteStore.sqlite), but AppleScript's
+ * body GETTER returns `<u>label</u>` with no href. The markdown is consumed on the way in and the URL
+ * is dropped on the way out.
+ *
+ * ── WHY THIS IS A REFUSAL AND NOT A WARNING ──────────────────────────────────────────────────────
+ *
+ * The Notes UI shows a working, clickable link, so the author has every reason to believe the message
+ * is fine. The recipient gets an instruction to go and look at something, with nothing to click. This
+ * tool exists to stage text a human will SEND; a message that silently loses the thing it is asking
+ * someone to open is not a formatting nit.
+ *
+ * It is caught at `new`, because by `get` the URL no longer exists to recover. The fix for the author
+ * is one keystroke — write the URL inline — so refusing costs nothing and removes the failure mode
+ * rather than announcing it. `--allow-lossy-links` keeps the door open for a note meant to be READ in
+ * Notes rather than sent.
+ */
+export function findLossyMarkdownLinks(body: string): { label: string; url: string }[] {
+  const found: { label: string; url: string }[] = [];
+  let inFence = false;
+  for (const line of body.split("\n")) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    // A fenced link is literal text by contract and is never turned into an anchor, so its URL
+    // survives read-back intact. Flagging it would be a false positive.
+    if (inFence) continue;
+    for (const m of line.matchAll(/\[([^\]]*)\]\((https?:\/\/[^)]+|mailto:[^)]+)\)/g)) {
+      found.push({ label: m[1] ?? "", url: m[2] ?? "" });
+    }
+  }
+  return found;
+}
+
+export class ProvenanceLeakError extends Error {}
+
+export function assertNoProvenanceLeak(sendable: string): void {
+  if (sendable.includes(FOOTER_LEAD)) {
+    // THROWS rather than calling die(). A guard that exits the process is a guard no test can assert
+    // on in both directions, which is the exact failure class this hardening pass exists to remove.
+    // The CLI catches it and dies there, so the operator-facing behaviour is unchanged.
+    throw new ProvenanceLeakError(
+      `the sendable text still contains "${FOOTER_LEAD}" — that is internal provenance and must never reach a recipient`,
+    );
+  }
 }
 
 // ---- AppleScript payloads ----
@@ -170,12 +339,18 @@ function main(): void {
 	}).stdout.trim();
 	let bodyOnlyFlag = false;
 	let verify = true;
+	let channel = "";
+	let copyToClipboard = false;
+	let allowLossyLinks = false;
 	for (let i = idx; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === "--session") session = argv[++i] ?? "";
 		else if (a === "--project") project = argv[++i] ?? "";
 		else if (a === "--folder") folder = argv[++i] ?? "";
 		else if (a === "--body-only") bodyOnlyFlag = true;
+		else if (a === "--for") channel = argv[++i] ?? "";
+		else if (a === "--copy") copyToClipboard = true;
+		else if (a === "--allow-lossy-links") allowLossyLinks = true;
 		else if (a === "--no-verify") verify = false;
 	}
 
@@ -183,6 +358,18 @@ function main(): void {
 		case "new": {
 			if (!title) die("usage: draft-park.ts new <title>  (body on stdin)");
 			const raw = readFileSync(0, "utf8");
+			const lossy = findLossyMarkdownLinks(raw);
+			if (lossy.length > 0 && !allowLossyLinks) {
+				die(
+					`✗ REFUSING: ${lossy.length} markdown link(s) whose URL CANNOT survive read-back.\n` +
+						lossy.map((l) => `    [${l.label}](${l.url})`).join("\n") +
+						`\n\n  Notes stores the href but its AppleScript getter strips it, so \`get --body-only\` would\n` +
+						`  return "${lossy[0]?.label}" with no URL — and the Notes UI would still show a working link,\n` +
+						`  so nothing would look wrong. Write the URL inline instead:\n` +
+						`    ${lossy[0]?.label}: ${lossy[0]?.url}\n` +
+						`  Or pass --allow-lossy-links if this note is meant to be READ in Notes, not sent.`,
+				);
+			}
 			const body = buildNoteBody(title, raw, session, project);
 			const id = runOsaOrDie(OSA_NEW, [folder, body]);
 			if (!isNoteId(id))
@@ -198,7 +385,12 @@ function main(): void {
 					die(
 						`✗ ENTITY-LEAK on read-back (${leaks.join(", ")}): the draft saved but decoding drifted — do not trust get output until fixed.`,
 					);
-				if (!contentPresent(raw, back))
+				// `--allow-lossy-links` is an explicit statement that the author accepts the link text not
+				// round-tripping, so the content check must not then fail for that very reason. It is
+				// relaxed only for that flag, and said out loud — a silently skipped verify is how the
+				// original defect stayed hidden.
+				if (allowLossyLinks) console.error("⚠ content-presence check relaxed: --allow-lossy-links was passed, so the read-back is expected to differ");
+				else if (!contentPresent(raw, back))
 					die(
 						"✗ CONTENT-MISMATCH: the saved note does not contain the drafted text. Check the note in Notes before trusting it.",
 					);
@@ -211,9 +403,36 @@ function main(): void {
 			break;
 		}
 		case "get": {
-			if (!title) die("usage: draft-park.ts get <title> [--body-only]");
+			if (!title) die("usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy]");
 			const full = htmlToText(getBodyByTitle(folder, title));
-			console.log(bodyOnlyFlag ? bodyOnly(full) : collapseBlanks(full));
+			// --for and --copy both imply the SENDABLE text: rendering the title heading and the
+			// provenance footer for a channel, or onto the clipboard, is never what anyone wants.
+			const wantsSendable = bodyOnlyFlag || channel !== "" || copyToClipboard;
+			let text = wantsSendable ? bodyOnly(full) : collapseBlanks(full);
+			if (channel !== "") {
+				const render = CHANNEL_RENDERERS[channel];
+				if (!render) die(`✗ unknown --for channel '${channel}'; known: ${Object.keys(CHANNEL_RENDERERS).join(", ")}`);
+				const rendered = render(text);
+				text = rendered.text;
+				// stderr, so stdout stays exactly the sendable bytes for piping and --copy.
+				for (const w of rendered.warnings) console.error(`⚠ ${w}`);
+			}
+			if (wantsSendable) {
+				try {
+					assertNoProvenanceLeak(text);
+				} catch (e) {
+					die(`✗ REFUSING: ${(e as Error).message}`);
+				}
+			}
+			if (copyToClipboard) {
+				// Removes the hand-copy step that leaked the footer into a client group. Announced on
+				// stderr rather than done quietly: the clipboard is global state, and silently replacing
+				// whatever the human had copied is its own small betrayal.
+				const p = spawnSync("pbcopy", { input: text });
+				if (p.status !== 0) die("✗ pbcopy failed — the text was NOT copied; paste manually from the printed output");
+				console.error(`✓ ${text.length} chars copied to the clipboard — your previous clipboard contents were replaced`);
+			}
+			console.log(text);
 			break;
 		}
 		case "list": {
