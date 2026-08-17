@@ -29,8 +29,11 @@
  */
 
 import { parseArgs } from "node:util";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { measureNotesExtensiveness } from "../plugins/itp-hooks/hooks/release-notes-extensiveness-patterns.ts";
+import { reflowMarkdown, isAlreadyFlat } from "./reflow-release-notes.ts";
 
 function printHelp() {
   // The banner above is the SSoT; keep this in sync with it.
@@ -79,6 +82,34 @@ try {
   fail(`cannot read --notes-file '${values["notes-file"]}': ${err instanceof Error ? err.message : err}`);
 }
 
+/**
+ * REFLOW BEFORE ANYTHING ELSE — the doctrine's other half, now enforced in code.
+ *
+ * This script already enforced the EXTENSIVENESS half of the release-notes doctrine (narrative +
+ * point form) while leaving the NEVER-hard-wrap half to the author's memory. A prose contract only
+ * holds if every caller remembers it, and the evidence that nobody does is in the published history:
+ * the v26.0.1 body went out wrapped at ~68-71 columns.
+ *
+ * The wrapping is not sloppiness. Git commit BODIES are correctly hard-wrapped at ~72 columns and
+ * release notes are assembled from them, so the wrap is RIGHT in the commit and WRONG in the release.
+ * That makes the conversion the publisher's job, not the author's discipline.
+ *
+ * We reflow rather than reject: rejecting would send the author back to hand-unwrap text that a
+ * formatter will re-wrap the next time the file is touched.
+ */
+const wasWrapped = !isAlreadyFlat(notes);
+if (wasWrapped) {
+  const before = notes.split("\n").length;
+  notes = reflowMarkdown(notes);
+  console.log(
+    `[augment-release-notes] reflowed hard-wrapped prose before publishing ` +
+      `(${before} source lines → ${notes.split("\n").length}); GitHub renders a newline inside a paragraph as <br>, ` +
+      `so the wrapped source would have rendered as mid-sentence breaks.`,
+  );
+} else {
+  console.log("[augment-release-notes] notes are already flat — no hard-wrapped prose found.");
+}
+
 const measurement = measureNotesExtensiveness(notes);
 if (!measurement.ok) {
   console.error("[augment-release-notes] notes are NOT extensive enough:");
@@ -101,7 +132,18 @@ if (values["dry-run"]) {
   process.exit(0);
 }
 
-const ghArgs = ["release", "edit", values.tag, "--notes-file", values["notes-file"]];
+/**
+ * Publish the REFLOWED text, not the file on disk.
+ *
+ * Pointing `gh` at the original --notes-file would silently discard the reflow above and publish the
+ * wrapped body anyway — the fix would appear to run, log success, and change nothing on the page,
+ * which is the most expensive kind of no-op. When nothing was reflowed this writes byte-identical
+ * content, so the temp-file path is the only path and cannot rot from disuse.
+ */
+const publishPath = wasWrapped ? join(tmpdir(), `augment-release-notes-${values.tag}.md`) : values["notes-file"];
+if (wasWrapped) writeFileSync(publishPath, notes, { mode: 0o600 });
+
+const ghArgs = ["release", "edit", values.tag, "--notes-file", publishPath];
 if (values.repo) ghArgs.push("--repo", values.repo);
 
 const proc = Bun.spawnSync(["gh", ...ghArgs], { stdout: "inherit", stderr: "inherit" });
