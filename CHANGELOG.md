@@ -1,3 +1,158 @@
+# [26.1.0](https://github.com/terrylica/cc-skills/compare/v26.0.1...v26.1.0) (2026-08-17)
+
+
+### Bug Fixes
+
+* **gmail-commander:** make the agent timeout configurable and stop /read emitting an empty message ([0942e37](https://github.com/terrylica/cc-skills/commit/0942e375559f7de81c583d66c2b1e818ba67e984))
+Two fixes found by driving every command against a live bot rather than by
+reading the code.
+
+AGENT_TIMEOUT_MS replaces a hard-coded 120_000. The right budget depends on the
+HOST, not on the code: every Agent SDK call spawns a fresh `claude` that re-reads
+a large system preamble before doing any work (measured on the mca mini at ~35k
+cache-creation tokens per invocation), and this router allows up to three
+tool-using turns. On that host two minutes was regularly exceeded, and a timeout
+did not merely fail the query -- three of them tripped the circuit breaker and
+disabled free-text routing for the whole 30-minute cooldown, turning a slow path
+into a dead one. The timeout message now reports the ACTUAL configured budget
+instead of the literal string "2 min", which would otherwise send the next reader
+hunting for a timeout that no longer exists.
+
+/read now explains an unresolvable id instead of failing on it. formatEmailReadView
+returns an empty string when the id does not resolve to a message -- which is what
+happens when a user passes the LIST POSITION printed by /inbox rather than the
+Gmail message id. That empty string went straight to editMessageText, which
+answered "400: Bad Request: message text is empty". The user therefore saw an
+error about OUR API call, phrased as though it were about their email. It now
+says no message was found for that id and points at where the real id comes from.
+* **gmail-commander:** make the bot reusable off-laptop, and fix three latent bugs ([c10d8dd](https://github.com/terrylica/cc-skills/commit/c10d8dd40652326fe1d3d42a363e85495561ac90))
+The gmail-commander bot now also runs as a Restate tenant on the mca Mac
+mini, which imports this plugin and drives grammY itself. Four changes were
+needed, three of which are bugs that were already wrong on the laptop.
+
+1. buildBot() is extracted and exported, and main() is guarded by
+   import.meta.main. The tenant owns its own durable poll chain and feeds
+   updates in via bot.handleUpdate(), so it needs the wiring WITHOUT a
+   transport. Duplicating the wiring into the tenant was the obvious
+   alternative and was rejected: the compose/reply session flow is ~90
+   lines of stateful branching and two copies would drift silently, with
+   the divergence surfacing only as user-visible misbehaviour in one of
+   them. The guard matters because Telegram permits exactly ONE getUpdates
+   consumer per token -- an unguarded import would start a second poller
+   and make both unreliable.
+
+2. setCommandMenu is now NON-FATAL. Letting it throw out of startup is
+   what made the laptop daemon crash-loop: "Fatal: Network request for
+   'setMyCommands' failed!" -> exit 1 -> KeepAlive relaunch -> repeat,
+   observed repeatedly through the night whenever the lid closed or wifi
+   flapped. The command menu is a cosmetic affordance; every command works
+   without it. Trading a working bot for a pretty menu was never right.
+
+3. /drafts used draft.id, which does not exist. DraftSummary carries
+   draftId/messageId, so draft.id was undefined at runtime: formatEmailList
+   renders an id-bearing shape, and every "Read #N" button was registered
+   against undefined. messageId is the correct identity because the read
+   path fetches a MESSAGE. This survived because the plugin's own tsconfig
+   is looser than the mini's; the strict TS 7 build surfaced it as
+   TS2339/TS2345.
+
+4. The gmail CLI path and the Claude executable are now overridable via
+   GMAIL_CLI_BIN and CLAUDE_BIN.
+   - getGmailCli() hardcoded a ~/.claude/plugins/marketplaces path that is
+     true only on the operator's laptop. Anywhere else, every Gmail-touching
+     command failed with ENOENT posix_spawn while /help and /status worked --
+     an unusually misleading partial outage.
+   - The Claude Agent SDK cannot locate its own vendored CLI once this
+     module is bundled, because it resolves that path relative to its
+     package directory. The symptom is a bare "claude code process exited
+     with code 1" even though `claude -p` works from the same shell with
+     the same env. pathToClaudeCodeExecutable is the supported escape hatch.
+
+All four are backwards compatible: every new env var falls back to the
+previous hardcoded behaviour when unset, so the standalone laptop daemon is
+unaffected.
+
+Also removes 301 MB of stale .bun-build cache from scripts/gmail-cli
+(gitignored build artifacts; the directory was 362 MB, now 61 MB).
+* **itp-hooks:** retarget the mini doctrine nudge from Inngest to Restate ([a8b59aa](https://github.com/terrylica/cc-skills/commit/a8b59aab1e75b9dda0683a9c5534010867a789f0))
+The hook was telling every author to build external/web-facing services as
+Inngest apps, deployed via a `mini-deploy` CLI at ~/vj/cpc/mini-platform with
+tenant services in ~/vj/cpc/mini-services. None of that exists any more.
+
+Inngest is retired: the operator ruled "Inngest has long been retired", ADR 0004
+§5-F deleted the last two Inngest-era launchd plists on 2026-08-15 (freeing
+ports 3210/3211), and the mini now runs six Restate tenants behind one
+restate-server singleton, deployed with `bun ../_engine/deploy.ts <tenant>` from
+~/eon/claude-sys/mac-minis/.
+
+WHY THIS WAS WORTH FIXING RATHER THAN TOLERATING. An enforcement hook pointing
+at a dead technology does not merely fail to help — authors escape it instead of
+following it, and the escape becomes the habit. The evidence was already in the
+tree: the platform's own mac-minis/_engine/CLAUDE.md carries a MINI-INNGEST-OK
+marker whose comment says Restate supersedes Inngest. People were suppressing a
+hook enforcing a dead doctrine. That teaches suppressing hooks in general, which
+costs far more than the original wrong target.
+
+WHAT DID NOT CHANGE, on purpose:
+- The DETECTION heuristic. The underlying principle survived the migration
+  intact: don't hand-roll a bespoke local cron/StartInterval script for work
+  that belongs on the always-on mini. Only the guidance was wrong.
+- The ESCAPE MARKER, still MINI-INNGEST-OK despite naming a retired engine.
+  Renaming it would silently un-escape every file already using it across
+  ~/own/amonic, ~/eon/claude-sys and this repo, turning a docs correction into a
+  fleet-wide false-positive storm. A stale marker name is much cheaper.
+- The nudge PREFIX, still "[MINI-INNGEST]". I briefly renamed it to
+  "[MINI-DOCTRINE]" and the tests caught it: the prefix is how a reader guesses
+  which marker silences the nudge, so renaming it while keeping the marker would
+  make the hook harder to escape, not easier.
+
+Tests: 24 pass. One assertion was updated rather than worked around — it pinned
+"mini-deploy" / "mini-services" / "homelab skill", i.e. it froze the OLD
+guidance and would have blocked any correction. It now asserts the real deploy
+path, so the test follows the doctrine instead of preserving it.
+
+Docs carry a superseded banner rather than a rewrite, so the historical Inngest
+content stays readable and attributable.
+
+
+### Features
+
+* **release:** enforce the no-hard-wrap rule in code, not in the author's memory ([649427a](https://github.com/terrylica/cc-skills/commit/649427a09bcd0797793c6c603c5e216e00dda609))
+The release-notes doctrine has two halves. This repo enforced one of them and
+trusted the other to discipline, and the published history shows how that went:
+the v26.0.1 body went out hard-wrapped at ~68-71 columns, which is exactly what
+the doctrine's "NEVER hard-wrap the release body" section forbids.
+
+WHY IT KEEPS HAPPENING. The wrapping is not sloppiness. Git commit BODIES are
+correctly hard-wrapped at ~72 columns, and release notes are assembled from
+them, so the same newline is RIGHT in the commit and WRONG in the release.
+GitHub renders release bodies with GFM hard line breaks, meaning a single
+newline inside a paragraph becomes a real <br>, so wrapped source renders as
+ragged mid-sentence breaks that ignore the reader's viewport instead of
+reflowing to it. It is invisible in the source and shows up only on the
+published page. Asking authors to remember this cannot work when a formatter
+re-wraps the file on the next touch.
+
+WHAT CHANGED. scripts/reflow-release-notes.ts ports the reference
+implementation the doctrine names (work/project-b), and augment-release-notes.mjs
+now reflows a body before publishing it rather than shipping the file verbatim.
+The publish step writes the REFLOWED text to a temp file and points gh at that;
+pointing gh at the original --notes-file would have silently discarded the
+reflow, logged success and changed nothing on the page, which is the most
+expensive kind of no-op.
+
+LIST ITEMS ARE THE CASE THAT MATTERS. A bullet whose text was wrapped must fold
+back onto one line too, because its tail is prose inside the item rather than a
+new block. Paragraphs reflowing correctly while bullets still break is the
+signature of a reflow that treats a list marker as "emit and move on" instead
+of "start a joinable block", and it is the failure the doctrine explicitly
+calls out. 14 tests cover it, including a mutation-style guard asserting that a
+body with flat paragraphs but ONE wrapped bullet is still reported as wrapped.
+
+Also corrects a docstring inherited from the upstream reference, which listed
+"list items" among the constructs preserved verbatim while its code correctly
+joined them — the comment said the opposite of what the code did.
+
 ## [26.0.1](https://github.com/terrylica/cc-skills/compare/v26.0.0...v26.0.1) (2026-08-15)
 
 
