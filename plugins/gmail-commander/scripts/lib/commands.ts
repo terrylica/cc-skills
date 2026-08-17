@@ -245,6 +245,24 @@ export function registerCommands(
         .url("Open in Gmail", `https://mail.google.com/mail/u/0/#inbox/${messageId}`);
 
       const formatted = formatEmailReadView(content);
+
+      // NEVER hand Telegram an empty string. editMessageText rejects it with
+      // "400: Bad Request: message text is empty", which surfaces to the user as a raw API error
+      // and tells them nothing about what actually went wrong. An empty render here means the id
+      // did not resolve to a message — e.g. `/read 1`, where the user passed a LIST INDEX instead
+      // of the Gmail message id that /inbox prints. Say that instead.
+      if (!formatted.trim()) {
+        await ctx.api.editMessageText(
+          ctx.chat.id,
+          thinking.message_id,
+          `<b>No message found</b> for id <code>${escapeHtml(messageId)}</code>.\n\n` +
+            `Use the id shown by /inbox or /search (a long hex string), not the list position.`,
+          { parse_mode: "HTML" }
+        );
+        auditLog("bot.read_empty", { messageId });
+        return;
+      }
+
       const chunks = chunkTelegramHtml(formatted, 4096);
 
       await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, chunks[0]!, {

@@ -23,7 +23,17 @@ import { auditLog } from "./audit.js";
 // --- Safety Controls ---
 
 let isExecuting = false; // Mutex — 1 query at a time
-const EXECUTION_TIMEOUT_MS = 120_000; // 2 minutes
+/**
+ * Wall-clock budget for one agent turn-set.
+ *
+ * Configurable because the right value depends on the HOST, not on the code. Every SDK call spawns
+ * a fresh `claude` process that re-reads a large system preamble before doing any work (measured on
+ * mca: ~35k cache-creation tokens per invocation), and this router allows up to 3 tool-using turns.
+ * On the mca mini that regularly exceeds the old hard-coded 2 minutes, which surfaced as
+ * "Agent timeout (2 min)" and then tripped the circuit breaker, disabling free-text routing
+ * entirely for the cooldown — a slow path being converted into a dead one.
+ */
+const EXECUTION_TIMEOUT_MS = Number(process.env.AGENT_TIMEOUT_MS ?? 120_000);
 const EDIT_THROTTLE_MS = 1500; // Telegram rate limit for edits
 
 const circuitOpts: CircuitBreakerOptions = {
@@ -152,7 +162,12 @@ export async function handleAgentQuery(
 
     // Timeout wrapper
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("Agent timeout (2 min)")), EXECUTION_TIMEOUT_MS);
+      // Report the ACTUAL budget, not a literal "2 min" — a message that contradicts the configured
+      // value sends the next reader hunting for a 2-minute timeout that no longer exists.
+      setTimeout(
+        () => reject(new Error(`Agent timeout (${Math.round(EXECUTION_TIMEOUT_MS / 1000)}s)`)),
+        EXECUTION_TIMEOUT_MS
+      );
     });
 
     const agentPromise = (async () => {
