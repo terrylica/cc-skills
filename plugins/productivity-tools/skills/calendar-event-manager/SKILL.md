@@ -55,16 +55,36 @@ Short sounds get missed and ignored. NEVER use sounds under 1.4 seconds.
 
 ### 4. Multiple Early Reminders Are Mandatory
 
-Minimum alarm tiers for any event:
+**Calendar accepts at most 5 alarms per event** (verified 2026-08-17 on a CalDAV
+calendar: adding a 6th silently evicts an earlier one, with no error). Budget the
+5 slots deliberately and do NOT spend one duplicating a Reminder that already
+fires at the same moment.
 
-| Tier            | Trigger   | Calendar Sound | Reminder          |
-| --------------- | --------- | -------------- | ----------------- |
-| 1 day before    | -1440 min | Blow           | "TOMORROW: ..."   |
-| Morning-of 9 AM | Absolute  | Sosumi         | "TODAY: ..."      |
-| 3 hours before  | -180 min  | Pop            | (via Calendar)    |
-| 1 hour before   | -60 min   | Glass          | (via Calendar)    |
-| 30 min before   | -30 min   | Ping           | (via Calendar)    |
-| At event time   | 0 min     | Funk           | Due-time reminder |
+Default alarm tiers:
+
+| Tier          | Trigger   | Calendar Sound | Reminder          |
+| ------------- | --------- | -------------- | ----------------- |
+| 1 day before  | -1439 min | Blow           | "TOMORROW: ..."   |
+| Night before  | -720 min  | Sosumi         | —                 |
+| 1 hour before | -60 min   | Glass          | (via Calendar)    |
+| 30 min before | -30 min   | Ping           | (via Calendar)    |
+| At event time | 0 min     | Funk           | Due-time reminder |
+
+Plus 3 Reminders: "TOMORROW:" (day before, 9 AM), "TODAY:" (morning-of), and the
+due-time one.
+
+> **Use -1439, never -1440.** An exact 1440-minute (24 h) offset is silently
+> dropped by Calendar — the alarm simply does not appear on read-back. Verified
+> twice on 2026-08-17. `-1439` persists.
+
+#### Early-morning events (before ~9:30 AM)
+
+The default tiers misfire for early events. Adjust:
+
+- The **morning-of 9 AM** Reminder fires _after_ an 08:30 event. Move it to
+  ~90 min before the event instead.
+- A **-180 min** tier on an 08:30 event rings at **05:30**, waking the user three
+  hours early. Drop it; use the night-before **-720** tier instead.
 
 ### 5. macOS Notification Settings Prerequisite
 
@@ -84,7 +104,7 @@ Open with: `open "x-apple.systempreferences:com.apple.Notifications-Settings.ext
 
 ```
 1. Extract event details (title, date, time, location, notes, RSVP)
-2. Create Calendar event with 6-tier sound alarms (Blow, Sosumi, Pop, Glass, Ping, Funk)
+2. Create Calendar event with 5-tier sound alarms (Blow, Sosumi, Glass, Ping, Funk)
 3. Create 3 Reminders (TOMORROW, TODAY morning, due-time)
 4. Verify event and reminders created
 5. Report full schedule to user
@@ -94,7 +114,7 @@ Open with: `open "x-apple.systempreferences:com.apple.Notifications-Settings.ext
 
 ```
 1. Ask user for: event name, date/time, duration, location
-2. Create Calendar event with 6-tier sound alarms
+2. Create Calendar event with 5-tier sound alarms (max Calendar allows)
 3. Create 3 Reminders
 4. Verify event and reminders created
 5. Report full schedule to user
@@ -169,8 +189,10 @@ tell application "Calendar"
     tell calendar "WRITABLE_CALENDAR_NAME"
         set newEvent to make new event with properties {summary:"EVENT_NAME", start date:startDate, end date:endDate, location:"LOCATION", description:"NOTES"}
         tell newEvent
-            make new sound alarm at end of sound alarms with properties {trigger interval:-1440, sound name:"Blow"}
-            make new sound alarm at end of sound alarms with properties {trigger interval:-180, sound name:"Pop"}
+            -- EXACTLY 5 alarms: a 6th silently evicts one of these.
+            -- -1439 not -1440: an exact 24h offset is silently dropped.
+            make new sound alarm at end of sound alarms with properties {trigger interval:-1439, sound name:"Blow"}
+            make new sound alarm at end of sound alarms with properties {trigger interval:-720, sound name:"Sosumi"}
             make new sound alarm at end of sound alarms with properties {trigger interval:-60, sound name:"Glass"}
             make new sound alarm at end of sound alarms with properties {trigger interval:-30, sound name:"Ping"}
             make new sound alarm at end of sound alarms with properties {trigger interval:0, sound name:"Funk"}
@@ -182,22 +204,63 @@ end tell
 
 ### Verification (always run after creation)
 
+Verification is NOT optional. Every failure logged in this file was silent —
+the create step returned success in all of them.
+
 ```applescript
 tell application "Calendar"
     tell calendar "WRITABLE_CALENDAR_NAME"
-        set matches to (every event whose summary is "EVENT_NAME" and start date > (current date))
-        repeat with e in matches
-            log (summary of e) & " | " & (start date of e) & " → " & (end date of e)
+        set e to first event whose summary contains "EVENT_NAME"
+        set out to (summary of e) & " | " & (start date of e) & " -> " & (end date of e) & linefeed
+        -- Read BOTH classes: Calendar reports sound alarms back as display alarms.
+        set out to out & "alarms=" & ((count of display alarms of e) + (count of sound alarms of e)) & linefeed
+        repeat with a in display alarms of e
+            set out to out & "  " & (trigger interval of a) & linefeed
         end repeat
+        repeat with a in sound alarms of e
+            set out to out & "  " & (trigger interval of a) & linefeed
+        end repeat
+        return out
     end tell
 end tell
 ```
 
+Confirm the alarm COUNT and every trigger interval — do not just confirm the
+event exists. Dropped alarms are the most common silent failure.
+
+### Calendar AppleScript bridge limitations (verified 2026-08-17)
+
+| Attempt                                          | Result                                      | Do this instead                                                                   |
+| ------------------------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------------- |
+| `repeat with e in (every event whose summary …)` | error -1728, "Can't get item 1"             | Collect `uid of (every event whose …)` first, then delete/act per uid             |
+| `count of (every alarm of e)`                    | syntax error -2741, no `alarm` class exists | Count `display alarms` + `sound alarms` separately                                |
+| `delete (first display alarm whose …)`           | error -10000, AppleEvent handler failed     | Individual alarms cannot be deleted — recreate the whole event                    |
+| `delete display alarm <index>`                   | error -10000                                | Same: recreate the event                                                          |
+| Read back `sound name` of a created alarm        | Reports 0 sound alarms, N display alarms    | Expected. `sound name` persists at the EventKit level; create sound alarms anyway |
+
 ### Paired Reminders Creation
+
+> **NEVER use `default list`.** On this machine it resolves to an empty
+> placeholder list literally named `DEFAULT_TASK_CALENDAR_NAME` (an
+> unsubstituted template string). `make new reminder in (default list)`
+> returns success and writes **nothing** — a total silent failure. Discover
+> the real list by name first and target it explicitly.
+
+```applescript
+-- Discover lists FIRST; never assume.
+tell application "Reminders"
+    set out to ""
+    repeat with l in lists
+        set out to out & name of l & " count=" & (count of reminders in l) & linefeed
+    end repeat
+    return out
+end tell
+```
 
 ```applescript
 tell application "Reminders"
-    set defaultList to default list
+    -- Target the real list BY NAME (usually "Reminders"), not `default list`.
+    set targetList to list "Reminders"
 
     -- Build date programmatically (same pattern as Calendar)
     set eventDate to current date
@@ -209,17 +272,28 @@ tell application "Reminders"
     set minutes of eventDate to 0
     set seconds of eventDate to 0
 
-    -- Due-time reminder
-    make new reminder in defaultList with properties {name:"EVENT_NAME", due date:eventDate, body:"LOCATION\nNOTES"}
-    -- Day-before
-    make new reminder in defaultList with properties {name:"TOMORROW: EVENT_NAME", due date:(eventDate - 1 * days), body:"Event tomorrow! LOCATION"}
-    -- Morning-of at 9 AM
-    set morningDate to eventDate
-    set hours of morningDate to 9
+    -- CRITICAL: `copy`, not `set`. `set x to eventDate` ALIASES the same date
+    -- object, so mutating x silently rewrites eventDate too (this corrupted a
+    -- due-time reminder to 07:00 on 2026-08-17). `copy` makes a real clone.
+    copy eventDate to morningDate
+    set hours of morningDate to 7
     set minutes of morningDate to 0
-    make new reminder in defaultList with properties {name:"TODAY: EVENT_NAME", due date:morningDate, body:"Today! LOCATION"}
+    set seconds of morningDate to 0
+
+    copy eventDate to dayBefore
+    set dayBefore to dayBefore - 1 * days
+    set hours of dayBefore to 9
+    set minutes of dayBefore to 0
+    set seconds of dayBefore to 0
+
+    make new reminder in targetList with properties {name:"NOW: EVENT_NAME", due date:eventDate, body:"LOCATION" & linefeed & "NOTES"}
+    make new reminder in targetList with properties {name:"TOMORROW: EVENT_NAME", due date:dayBefore, body:"Event tomorrow! LOCATION"}
+    make new reminder in targetList with properties {name:"TODAY: EVENT_NAME", due date:morningDate, body:"Today! LOCATION"}
 end tell
 ```
+
+Note `body:` must use `& linefeed &` — a literal `\n` inside an AppleScript
+string is the two characters backslash-n, not a newline.
 
 ---
 
@@ -228,7 +302,7 @@ end tell
 After modifying this skill:
 
 1. [ ] Sound reference table matches [sound-reference.md](./references/sound-reference.md)
-2. [ ] All 6 alarm tiers documented with correct sounds
+2. [ ] All 5 alarm tiers documented with correct sounds (Calendar caps at 5)
 3. [ ] BANNED sounds list is complete
 4. [ ] Hook file (`hooks/calendar-reminder-sync.ts`) aligned with skill rules
 5. [ ] AppleScript examples use `sound alarm` not `display alarm`
