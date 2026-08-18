@@ -387,6 +387,26 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
         "Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md",
     },
+    {
+      markerNameTokenIncludingSuffix: "GH-HARD-WRAP-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-github-hard-wrap-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a `gh release create|edit`, `gh issue create|edit|comment`, or `gh pr create|edit|comment` command whose prose text contains hard-wraps at a fixed column width. GitHub Flavored Markdown renders every newline as `<br>`, so prose wrapped at ~100 columns becomes columns of short mid-sentence lines instead of reflowing to the reader's window. The guard detects hard-wraps in --notes, --notes-file, --body, and --body-file arguments. It deliberately does NOT inspect git objects: hard wrapping at 72 columns is the correct convention for a commit or annotated-tag message, and the reflow belongs at the publish boundary. Add GH-HARD-WRAP-OK to the command when the hard-wrapping is intentional (e.g., an intentional code sample or ASCII table in a release note).",
+    },
+    {
+      markerNameTokenIncludingSuffix: "GMAIL-BODY-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-gmail-body-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).",
+    },
   ] as const;
 
 /**

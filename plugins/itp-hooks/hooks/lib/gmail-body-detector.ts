@@ -22,6 +22,10 @@
  * markdown. This module detects violations so the PreToolUse guard can block a
  * `gmail draft` before the bad draft is created.
  *
+ * Hard-wrap detection is now factored to hard-wrap-detector.ts (shared by
+ * GitHub-bound text guards too). Literal-markdown detection remains here
+ * (gmail-specific).
+ *
  * Pure (string in, findings out — no I/O). Fence scanning is delegated to the
  * shared markdown-fence-scanner; shell-command arg extraction to the shared
  * shell-arg-extractor. The file read for `--body-file` happens in the hook.
@@ -29,101 +33,10 @@
 
 import { computeFencedCodeLineMask } from "./markdown-fence-scanner.ts";
 import { extractFlagValues } from "./shell-arg-extractor.ts";
-
-// ════════════════════════════════════════════════════════════════════════
-//  Hard-wrap detection
-// ════════════════════════════════════════════════════════════════════════
-
-export interface WrapIssue {
-  /** 1-based line number of the line that breaks mid-sentence (line A). */
-  readonly line: number;
-  /** Trimmed visible width of line A (how wide the wrap point is). */
-  readonly width: number;
-  /** Short preview of the continuation line B (for the reminder). */
-  readonly nextPreview: string;
-}
-
-export interface DetectOptions {
-  /**
-   * Minimum trimmed width for line A to be considered a suspicious wrap point.
-   * Below this, a line that "ends open" is treated as a deliberately short line
-   * (salutation, sign-off) rather than a machine wrap. Default 50.
-   */
-  readonly minWrapWidth?: number;
-}
-
-const DEFAULT_MIN_WRAP_WIDTH = 50;
-
-/** A markdown table row: trimmed line starts with a pipe. */
-function isTableRow(rawLine: string): boolean {
-  return /^\s*\|/.test(rawLine);
-}
-
-/** An ATX heading (`# …` … `###### …`). */
-function isHeading(rawLine: string): boolean {
-  return /^ {0,3}#{1,6}\s/.test(rawLine);
-}
-
-/** A thematic break (`---`, `***`, `___`, optionally spaced). */
-function isThematicBreak(rawLine: string): boolean {
-  const t = rawLine.trim();
-  return /^(?:-\s*){3,}$/.test(t) || /^(?:\*\s*){3,}$/.test(t) || /^(?:_\s*){3,}$/.test(t);
-}
-
-/**
- * True when `line`, after stripping leading whitespace, begins a NEW structural
- * block element — so a break before it is intentional, not a prose wrap.
- */
-function beginsNewStructuralElement(line: string): boolean {
-  const t = line.replace(/^\s+/, "");
-  if (t === "") return false;
-  if (/^[-*+]\s/.test(t)) return true; // unordered list item
-  if (/^\d+[.)]\s/.test(t)) return true; // ordered list item
-  if (/^#{1,6}\s/.test(t)) return true; // heading
-  if (t.startsWith(">")) return true; // blockquote
-  if (t.startsWith("|")) return true; // table row
-  return false;
-}
-
-/** Line A "ends open" when its last non-space char is not a clause terminator. */
-function endsOpen(trimmedEnd: string): boolean {
-  if (trimmedEnd === "") return false;
-  const last = trimmedEnd[trimmedEnd.length - 1];
-  return !".!?:;".includes(last);
-}
-
-/** A short, single-line preview (whitespace-collapsed, capped). */
-function preview(line: string, max = 60): string {
-  const collapsed = line.replace(/\s+/g, " ").trim();
-  return collapsed.length > max ? collapsed.slice(0, max - 1) + "…" : collapsed;
-}
-
-/**
- * Scan an email body and return every hard-wrap (mid-sentence line break in a
- * prose paragraph), ordered by line number. Pure; never throws on normal input.
- */
-export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIssue[] {
-  const minWrapWidth = opts.minWrapWidth ?? DEFAULT_MIN_WRAP_WIDTH;
-  const lines = body.replace(/\r\n/g, "\n").split("\n");
-  const inFence = computeFencedCodeLineMask(lines);
-  const issues: WrapIssue[] = [];
-
-  for (let i = 0; i < lines.length - 1; i++) {
-    const a = lines[i];
-    const b = lines[i + 1];
-    if (inFence[i] || inFence[i + 1]) continue;
-    const aTrimEnd = a.replace(/\s+$/, "");
-    if (aTrimEnd === "" || b.trim() === "") continue; // blank ends the block
-
-    if (isTableRow(a) || isHeading(a) || isThematicBreak(a)) continue;
-    if (!endsOpen(aTrimEnd)) continue;
-    if (aTrimEnd.trim().length < minWrapWidth) continue;
-    if (beginsNewStructuralElement(b)) continue;
-
-    issues.push({ line: i + 1, width: aTrimEnd.trim().length, nextPreview: preview(b) });
-  }
-  return issues;
-}
+import { detectHardWraps, isHeading, isTableRow, isThematicBreak, type DetectOptions, type WrapIssue } from "./hard-wrap-detector.ts";
+// Re-export hard-wrap detection for consistency with other consumers (GitHub guard, etc.)
+export type { WrapIssue, DetectOptions } from "./hard-wrap-detector.ts";
+export { detectHardWraps, isHeading, isTableRow, isThematicBreak } from "./hard-wrap-detector.ts";
 
 // ════════════════════════════════════════════════════════════════════════
 //  Literal-markdown detection (high-signal, low-false-positive set)
