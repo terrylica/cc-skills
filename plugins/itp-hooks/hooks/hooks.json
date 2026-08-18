@@ -144,6 +144,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-github-hard-wrap-guard.ts",
+            "timeout": 5000,
+            "description": "Denies `gh release|issue|pr` commands whose prose contains hard-wraps at a fixed column width. GFM renders every `\\n` as `<br>`, so prose wrapped at ~100 cols becomes columns of short mid-sentence lines instead of reflowing to the reader's window. Inspects --notes/--notes-file (release) and --body/-b/--body-file (issue/pr). Git objects are out of scope: 72-column wrapping is correct for a commit or annotated-tag message. Escape hatch: GH-HARD-WRAP-OK. Fail-open. Independent of release-notes-extensiveness-guard."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-release-notes-extensiveness-guard.ts",
             "timeout": 8000,
             "description": "Hard-blocks release/tag commands whose notes are not extensive + human-readable (needs a narrative paragraph AND a point-form list). Covers `gh release create|edit` (--notes/--notes-file text), annotated semver `git tag -m/-F`, and semantic-release / `mise run release[:*]` (inspects releasable commit BODIES since last tag \u2014 the notes source). Escape hatch: RELEASE-NOTES-OK: <\u226510-char reason>. Fail-open. Doctrine: ~/.claude/release-notes-doctrine-CLAUDE.md. Spoke: docs/release-notes-extensiveness-guard.md. ADR 2026-07-21."
