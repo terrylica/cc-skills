@@ -121,6 +121,79 @@ describe("guarded surfaces", () => {
   }
 });
 
+// ── The gh api bypass ─────────────────────────────────────────────────────
+
+describe("gh api writes are guarded too", () => {
+  /**
+   * Without this, the rest of the guard is optional: `gh api` POSTs the same
+   * body to the same GFM surface and matches none of the porcelain patterns.
+   * Measured before the fix — `allow` for a body `gh release create` denied.
+   */
+  const writes: readonly [string, string][] = [
+    ["-f body= on releases", `gh api repos/o/r/releases -X POST -f body="${REAL_V240_OPENING}"`],
+    ["-f body= on issue comments", `gh api repos/o/r/issues/1/comments -f body='${REAL_V240_OPENING}'`],
+    ["--field body= on pulls", `gh api repos/o/r/pulls -X POST --field body="${REAL_V240_OPENING}"`],
+    ["--raw-field notes=", `gh api repos/o/r/releases -X PATCH --raw-field notes="${REAL_V240_OPENING}"`],
+  ];
+  for (const [name, command] of writes) {
+    it(`denies a wrapped body via ${name}`, async () => {
+      expect(await decisionOf(command)).toBe("deny");
+    });
+  }
+
+  it("allows a reflowed body through gh api", async () => {
+    expect(
+      await decisionOf(`gh api repos/o/r/releases -X POST -f body="${REFLOWED_V240_OPENING}"`),
+    ).toBe("allow");
+  });
+
+  it("allows a read-only gh api GET against the same endpoint", async () => {
+    expect(await decisionOf(`gh api repos/o/r/releases --jq '.[].tag_name'`)).toBe("allow");
+  });
+
+  it("allows a gh api write with no body field", async () => {
+    expect(await decisionOf(`gh api repos/o/r/releases -X POST -f tag_name=v1`)).toBe("allow");
+  });
+
+  it("allows gh api against an unrelated endpoint", async () => {
+    expect(await decisionOf(`gh api user`)).toBe("allow");
+  });
+
+  it("reads the .body field out of a --input JSON envelope", async () => {
+    const wrapped = join(dir, "payload-wrapped.json");
+    writeFileSync(wrapped, JSON.stringify({ tag_name: "v1", body: REAL_V240_OPENING }));
+    expect(await decisionOf(`gh api repos/o/r/releases -X POST --input ${wrapped}`)).toBe("deny");
+
+    const flat = join(dir, "payload-flat.json");
+    writeFileSync(flat, JSON.stringify({ tag_name: "v1", body: REFLOWED_V240_OPENING }));
+    expect(await decisionOf(`gh api repos/o/r/releases -X POST --input ${flat}`)).toBe("allow");
+  });
+});
+
+// ── Files that are not files ──────────────────────────────────────────────
+
+describe("a non-regular file is skipped, never read", () => {
+  /**
+   * `Bun.file(p).text()` on a FIFO blocks until a writer appears, so
+   * `--notes-file <(cat x)` or `/dev/stdin` would hang the hook until Claude
+   * Code's 5s timeout killed it. A guard that can hang is a guard that gets
+   * removed.
+   */
+  it("allows a FIFO without hanging", async () => {
+    const fifo = join(dir, "notes.fifo");
+    Bun.spawnSync(["mkfifo", fifo]);
+    expect(await decisionOf(`gh release create v1 --notes-file ${fifo}`)).toBe("allow");
+  });
+
+  it("allows /dev/stdin", async () => {
+    expect(await decisionOf(`gh release create v1 --notes-file /dev/stdin`)).toBe("allow");
+  });
+
+  it("allows a directory passed where a file was expected", async () => {
+    expect(await decisionOf(`gh release create v1 --notes-file ${dir}`)).toBe("allow");
+  });
+});
+
 // ── Not guarded, on purpose ───────────────────────────────────────────────
 
 describe("git objects are out of scope", () => {

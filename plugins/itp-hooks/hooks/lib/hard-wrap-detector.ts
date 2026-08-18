@@ -85,6 +85,36 @@ export function isYamlFrontMatterDelimiter(rawLine: string): boolean {
 }
 
 /**
+ * An indented code block: four spaces or a tab. Its line breaks are the code's
+ * own, and its lines routinely end without punctuation.
+ */
+export function isIndentedCodeBlock(rawLine: string): boolean {
+  return /^(?: {4,}|\t)\S/.test(rawLine);
+}
+
+/**
+ * A setext heading underline (`===` or `---` under the heading text). The line
+ * ABOVE one of these is a heading, not wrapped prose.
+ */
+export function isSetextUnderline(rawLine: string): boolean {
+  return /^\s{0,3}(?:=+|-+)\s*$/.test(rawLine) && rawLine.trim().length > 0;
+}
+
+/**
+ * A link reference definition (`[label]: url`) or footnote definition
+ * (`[^1]: text`). These stack one per line and end in a URL, so every line
+ * looks like an open-ended prose wrap.
+ */
+export function isReferenceDefinition(rawLine: string): boolean {
+  return /^\s{0,3}\[[^\]]+\]:\s/.test(rawLine);
+}
+
+/** An HTML block line (`<details>`, `<summary>`, `<br />`, a closing tag…). */
+export function isHtmlBlockLine(rawLine: string): boolean {
+  return /^\s{0,3}<\/?[A-Za-z!]/.test(rawLine);
+}
+
+/**
  * True when `line`, after stripping leading whitespace, begins a NEW structural
  * block element — so a break before it is intentional, not a prose wrap.
  */
@@ -96,14 +126,62 @@ function beginsNewStructuralElement(line: string): boolean {
   if (/^#{1,6}\s/.test(t)) return true; // heading
   if (t.startsWith(">")) return true; // blockquote
   if (t.startsWith("|")) return true; // table row
+  if (isThematicBreak(line)) return true; // horizontal rule
+  if (isSetextUnderline(line)) return true; // the line above is a heading
+  if (isReferenceDefinition(line)) return true; // link / footnote definition
+  if (isHtmlBlockLine(line)) return true; // raw HTML block
+  if (isIndentedCodeBlock(line)) return true; // indented code
   return false;
 }
+
+/**
+ * Sentence terminators. Includes CJK punctuation: a Chinese paragraph ends on
+ * `。`, not `.`, and the operator's corpora are Chinese. Omitting these made
+ * every correctly-formed Chinese sentence look like an open-ended wrap.
+ */
+const CLAUSE_TERMINATORS = ".!?:;。！？；：、）」』】";
 
 /** Line A "ends open" when its last non-space char is not a clause terminator. */
 function endsOpen(trimmedEnd: string): boolean {
   if (trimmedEnd === "") return false;
   const last = trimmedEnd[trimmedEnd.length - 1];
-  return !".!?:;".includes(last);
+  return !CLAUSE_TERMINATORS.includes(last);
+}
+
+/**
+ * Display columns, not code points. A wrap is a decision about how wide a line
+ * LOOKS, and an East Asian character occupies two terminal columns while
+ * counting as one `.length`. Measuring `.length` made a Chinese paragraph
+ * wrapped at 72 columns read as 36 — under `minWrapWidth`, therefore invisible.
+ */
+export function displayWidth(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    const cp = ch.codePointAt(0) ?? 0;
+    width += isFullWidthCodePoint(cp) ? 2 : 1;
+  }
+  return width;
+}
+
+/** East Asian Wide / Fullwidth ranges, per Unicode TR11. */
+function isFullWidthCodePoint(cp: number): boolean {
+  return (
+    cp >= 0x1100 &&
+    (cp <= 0x115f || // Hangul Jamo
+      cp === 0x2329 ||
+      cp === 0x232a ||
+      (cp >= 0x2e80 && cp <= 0xa4cf && cp !== 0x303f) || // CJK Radicals … Yi
+      (cp >= 0xa960 && cp <= 0xa97f) ||
+      (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul Syllables
+      (cp >= 0xf900 && cp <= 0xfaff) || // CJK Compatibility Ideographs
+      (cp >= 0xfe10 && cp <= 0xfe19) ||
+      (cp >= 0xfe30 && cp <= 0xfe6f) ||
+      (cp >= 0xff00 && cp <= 0xff60) || // Fullwidth forms
+      (cp >= 0xffe0 && cp <= 0xffe6) ||
+      (cp >= 0x1f300 && cp <= 0x1f64f) || // emoji
+      (cp >= 0x1f900 && cp <= 0x1f9ff) ||
+      (cp >= 0x20000 && cp <= 0x3fffd))
+  );
 }
 
 /** A short, single-line preview (whitespace-collapsed, capped). */
@@ -147,12 +225,17 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
     const aTrimEnd = a.replace(/\s+$/, "");
     if (aTrimEnd === "" || b.trim() === "") continue; // blank ends the block
 
+    // Line A is itself a construct whose break is structural, not a prose wrap.
     if (isTableRow(a) || isHeading(a) || isThematicBreak(a)) continue;
+    if (isSetextUnderline(a) || isReferenceDefinition(a)) continue;
+    if (isHtmlBlockLine(a) || isIndentedCodeBlock(a)) continue;
+
     if (!endsOpen(aTrimEnd)) continue;
-    if (aTrimEnd.trim().length < minWrapWidth) continue;
+    const width = displayWidth(aTrimEnd.trim());
+    if (width < minWrapWidth) continue;
     if (beginsNewStructuralElement(b)) continue;
 
-    issues.push({ line: i + 1, width: aTrimEnd.trim().length, nextPreview: preview(b) });
+    issues.push({ line: i + 1, width, nextPreview: preview(b) });
   }
   return issues;
 }

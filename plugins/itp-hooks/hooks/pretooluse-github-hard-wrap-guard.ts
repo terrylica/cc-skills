@@ -15,6 +15,8 @@
  *   - `gh pr create` → measure inline --body / -b text
  *   - `gh pr edit` → measure inline --body text
  *   - `gh pr comment` → measure inline --body / -b text
+ *   - `gh api` writing to a releases/issues/pulls endpoint → measure the
+ *     `body=`/`notes=` field, or the `.body` of an `--input` JSON envelope
  *
  * GFM hard-break surfaces:
  *   ✓ release notes, issue body, PR body, issue comments, PR comments
@@ -37,7 +39,7 @@
  * Operator directive: hard-wrapped prose must never be published to GitHub
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
@@ -97,6 +99,77 @@ function isGhIssueCommand(command: string): boolean {
 /** True when the command is a `gh pr` command (create/edit/comment). */
 function isGhPrCommand(command: string): boolean {
   return GH_PR.test(command);
+}
+
+/**
+ * `gh api` writing to a release / issue / pull endpoint.
+ *
+ * This is the bypass that makes the rest of the guard optional if left open:
+ * `gh api repos/o/r/releases -X POST -f body='<wrapped>'` publishes exactly the
+ * same body to exactly the same GFM surface, and matches none of the porcelain
+ * patterns above. Measured before the fix: `allow` for a body that
+ * `gh release create` denied.
+ */
+const GH_API = /\bgh\s+api\b/i;
+const GH_API_WRITE_TARGET = /\/(releases|issues|pulls)\b/i;
+const GH_API_MUTATING_METHOD = /(?:-X|--method)\s+(?:POST|PATCH|PUT)\b/i;
+
+function isGhApiWrite(command: string): boolean {
+  if (!GH_API.test(command) || !GH_API_WRITE_TARGET.test(command)) return false;
+  // An explicit mutating method, OR any field flag — `gh api` implies POST as
+  // soon as a field is supplied, so `-f body=…` with no `-X` still writes.
+  return GH_API_MUTATING_METHOD.test(command) || /\s(?:-f|-F|--field|--raw-field)\s/.test(command);
+}
+
+/**
+ * Read a file's text ONLY when it is a regular file.
+ *
+ * `Bun.file(p).text()` on a FIFO blocks until a writer appears, which for
+ * `--notes-file <(cat x)` or `--notes-file /dev/stdin` means the hook hangs
+ * until Claude Code's 5s timeout kills it. A guard that can hang is a guard
+ * that gets removed. Anything not a regular file is skipped — fail-open.
+ */
+/**
+ * `gh api` body fields, e.g. `-f body="…"` / `--field notes='…'`.
+ *
+ * The shared shell-arg extractor cannot do this: it splits on whitespace and
+ * only honours a quote that OPENS the value, whereas here the value is
+ * `body="…"` — the quote arrives after the `key=` prefix, so the extractor
+ * returned `body="This` and the whole bypass stayed open.
+ */
+function extractGhApiBodyFields(command: string): { field: string; text: string }[] {
+  const pattern = /(?:^|\s)(?:-f|-F|--field|--raw-field)[=\s]+(body|notes?)=(?:"([\s\S]*?)"|'([\s\S]*?)'|(\S+))/gi;
+  const found: { field: string; text: string }[] = [];
+  let m: RegExpExecArray | null = pattern.exec(command);
+  while (m !== null) {
+    found.push({ field: m[1] ?? "body", text: m[2] ?? m[3] ?? m[4] ?? "" });
+    m = pattern.exec(command);
+  }
+  return found;
+}
+
+/** The `body` string from a `gh api --input` JSON envelope, or null. */
+function extractJsonBodyField(raw: string): string | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const body = (parsed as Record<string, unknown>).body;
+      if (typeof body === "string") return body;
+    }
+  } catch {
+    // Not JSON we understand → skip, never block.
+  }
+  return null;
+}
+
+async function readRegularFileText(resolvedPath: string): Promise<string | null> {
+  try {
+    if (!existsSync(resolvedPath)) return null;
+    if (!statSync(resolvedPath).isFile()) return null;
+    return await Bun.file(resolvedPath).text();
+  } catch {
+    return null; // unreadable → skip, never block
+  }
 }
 
 interface TextSource {
@@ -169,7 +242,12 @@ async function main(): Promise<void> {
   }
 
   // Fast path: if none of the target patterns match, no guard needed.
-  if (!isGhReleaseCommand(command) && !isGhIssueCommand(command) && !isGhPrCommand(command)) {
+  if (
+    !isGhReleaseCommand(command) &&
+    !isGhIssueCommand(command) &&
+    !isGhPrCommand(command) &&
+    !isGhApiWrite(command)
+  ) {
     allow();
     return;
   }
@@ -187,14 +265,8 @@ async function main(): Promise<void> {
 
     const notesFiles = extractFlagValues(command, ["--notes-file", "-F"]);
     for (const rawPath of notesFiles) {
-      const resolved = resolveFilePath(rawPath, cwd);
-      if (!existsSync(resolved)) continue;
-      let text: string;
-      try {
-        text = await Bun.file(resolved).text();
-      } catch {
-        continue; // unreadable → skip, never block
-      }
+      const text = await readRegularFileText(resolveFilePath(rawPath, cwd));
+      if (text === null) continue;
       const issues = detectHardWraps(text);
       if (issues.length > 0)
         sources.push({ label: `--notes-file "${rawPath}"`, text, issues });
@@ -213,17 +285,31 @@ async function main(): Promise<void> {
     // The guard checks conservatively: if the flag is present, process it.
     const bodyFiles = extractFlagValues(command, ["--body-file"]);
     for (const rawPath of bodyFiles) {
-      const resolved = resolveFilePath(rawPath, cwd);
-      if (!existsSync(resolved)) continue;
-      let text: string;
-      try {
-        text = await Bun.file(resolved).text();
-      } catch {
-        continue; // unreadable → skip, never block
-      }
+      const text = await readRegularFileText(resolveFilePath(rawPath, cwd));
+      if (text === null) continue;
       const issues = detectHardWraps(text);
       if (issues.length > 0)
         sources.push({ label: `--body-file "${rawPath}"`, text, issues });
+    }
+  }
+
+  // ---- gh api: -f/--field/-F/--raw-field body=… ----
+  if (isGhApiWrite(command)) {
+    extractGhApiBodyFields(command).forEach(({ field, text }) => {
+      const issues = detectHardWraps(text);
+      if (issues.length > 0) sources.push({ label: `gh api -f ${field}=`, text, issues });
+    });
+
+    const inputPaths = extractFlagValues(command, ["--input"]).filter((p) => p !== "-");
+    for (const rawPath of inputPaths) {
+      const raw = await readRegularFileText(resolveFilePath(rawPath, cwd));
+      if (raw === null) continue;
+      // The payload is a JSON envelope; measure its body field, not the JSON.
+      const body = extractJsonBodyField(raw);
+      if (body === null) continue;
+      const issues = detectHardWraps(body);
+      if (issues.length > 0)
+        sources.push({ label: `gh api --input "${rawPath}" (.body)`, text: body, issues });
     }
   }
 
