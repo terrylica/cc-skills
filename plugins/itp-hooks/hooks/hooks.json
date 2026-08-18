@@ -146,7 +146,7 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-github-hard-wrap-guard.ts",
             "timeout": 5000,
-            "description": "Denies `gh release|issue|pr` commands whose prose contains hard-wraps at a fixed column width. GFM renders every `\\n` as `<br>`, so prose wrapped at ~100 cols becomes columns of short mid-sentence lines instead of reflowing to the reader's window. Inspects --notes/--notes-file (release) and --body/-b/--body-file (issue/pr). Git objects are out of scope: 72-column wrapping is correct for a commit or annotated-tag message. Escape hatch: GH-HARD-WRAP-OK. Fail-open. Independent of release-notes-extensiveness-guard."
+            "description": "Denies `gh release|issue|pr` and `gh api` commands whose prose contains hard-wraps at a fixed column width. GFM renders every `\\n` as `<br>`, so prose wrapped at ~100 cols becomes columns of short mid-sentence lines instead of reflowing to the reader's window. Inspects --notes/--notes-file (release), --body/-b/--body-file (issue/pr), and for `gh api` writes to releases/issues/pulls the body=/notes= field or an --input envelope's .body. Non-regular files (FIFO, /dev/stdin, directory) are skipped unread so the hook cannot hang. Git objects are out of scope: 72-column wrapping is correct for a commit or annotated-tag message. Escape hatch: GH-HARD-WRAP-OK. Fail-open. Independent of release-notes-extensiveness-guard."
           }
         ]
       },

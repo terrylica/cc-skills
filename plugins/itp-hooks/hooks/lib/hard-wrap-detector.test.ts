@@ -144,3 +144,86 @@ describe("detectHardWraps", () => {
     expect(issues[1]?.line).toBe(3);
   });
 });
+
+// ── Markdown constructs whose line breaks are structural ────────────────────
+//
+// This detector began life scanning Gmail bodies, which are plain prose. Wiring
+// it to `gh release`/`issue`/`pr` bodies put it in front of FULL markdown for
+// the first time, and every construct below was a false positive — a DENY on
+// legitimate text, which is a worse failure than missing a wrap.
+
+describe("does not flag constructs whose newlines carry meaning", () => {
+  const structural: readonly [string, string][] = [
+    [
+      "a setext heading underlined with =",
+      "A Release That Closes Several Long Standing Loops In The Pipeline\n=================================================================\n\nBody.",
+    ],
+    [
+      "a setext heading underlined with -",
+      "A Release That Closes Several Long Standing Loops In The Pipeline\n----------------------------------------------------------------\n\nBody.",
+    ],
+    [
+      "stacked link reference definitions",
+      "[spec]: https://example.com/a/very/long/path/to/the/specification/document\n[impl]: https://example.com/another/quite/long/path/to/the/implementation",
+    ],
+    [
+      "stacked footnote definitions",
+      "[^1]: A fairly long footnote body explaining the first point in detail here\n[^2]: Another fairly long footnote body explaining the second point in detail",
+    ],
+    [
+      "a raw HTML block",
+      "<details>\n<summary>A fairly long summary line that goes past the fifty char mark</summary>\n<p>Content</p>\n</details>",
+    ],
+    [
+      "an indented code block",
+      "Example:\n\n    const aVeryLongVariableNameHere = computeSomethingImportant(withArgs)\n    const anotherVeryLongVariableName = computeSomethingElse(withMoreArgs)",
+    ],
+    [
+      "a thematic break between two paragraphs",
+      "A paragraph that runs long enough to pass the width threshold comfortably\n\n---\n\nAnother paragraph that also runs long enough to pass the width threshold.",
+    ],
+  ];
+
+  for (const [name, text] of structural) {
+    it(`passes ${name}`, () => {
+      expect(detectHardWraps(text)).toEqual([]);
+    });
+  }
+});
+
+// ── CJK ─────────────────────────────────────────────────────────────────────
+
+describe("CJK prose", () => {
+  /**
+   * Two bugs met here. A Chinese sentence ends on `。`, which was not in the
+   * terminator set, so every correct sentence looked open-ended. And width was
+   * measured in code points, so a paragraph wrapped at 72 DISPLAY columns
+   * measured 36 — under minWrapWidth, therefore invisible. The two cancelled
+   * out into "CJK is never flagged either way", which reads as working.
+   */
+  const wrappedMidClause =
+    "这是一个关于量化研究的说明介绍了我们如何处理微信公众号的文章存档流程并且\n补充了对应的回归测试以防止再次出现同类问题。";
+
+  const properlyTerminated =
+    "这是关于量化研究的说明介绍我们如何处理微信公众号文章存档流程的完整方案。\n本次发布修复了若干与图片转写相关的缺陷并补充了对应的回归测试用例。";
+
+  it("flags a Chinese paragraph wrapped mid-clause", () => {
+    expect(detectHardWraps(wrappedMidClause).length).toBe(1);
+  });
+
+  it("reports the wrap in DISPLAY columns, not code points", () => {
+    // 36 characters of CJK occupy 72 terminal columns.
+    expect(detectHardWraps(wrappedMidClause)[0]?.width).toBe(72);
+  });
+
+  it("passes Chinese sentences that each end on a full-width stop", () => {
+    expect(detectHardWraps(properlyTerminated)).toEqual([]);
+  });
+
+  it("treats other CJK clause terminators as closing a line", () => {
+    for (const stop of ["！", "？", "；", "："]) {
+      const text = `这是关于量化研究的说明介绍我们如何处理微信公众号文章存档的方案${stop}\n本次发布修复了若干与图片转写相关的缺陷并补充了回归测试用例。`;
+      expect(detectHardWraps(text)).toEqual([]);
+    }
+  });
+});
