@@ -149,6 +149,21 @@ describe("does not fire on newlines that carry meaning", () => {
     expect(await decisionOf(`gh repo view --json name`)).toBe("allow");
   });
 
+  /**
+   * The guard must match its verb as an adjacent token sequence. Matching `gh`
+   * and `release create` as independent substrings makes any command that
+   * MENTIONS the pattern a match — which is how the sibling extensiveness guard
+   * blocked a heredoc whose prose quoted the command it watches for.
+   */
+  it("allows a command that merely writes about the guarded command", async () => {
+    const prose = `The guard denies gh release create when the body is wrapped, and the\nreason is that GFM turns every newline into a break element.`;
+    expect(await decisionOf(`cat >> notes.md <<'EOF'\n${prose}\nEOF`)).toBe("allow");
+  });
+
+  it("allows grepping for the guarded command", async () => {
+    expect(await decisionOf(`grep -rn "gh release create" docs/`)).toBe("allow");
+  });
+
   it("allows a non-Bash tool", async () => {
     const proc = Bun.spawn(["bun", HOOK_PATH], { stdin: "pipe", stdout: "pipe", stderr: "pipe" });
     proc.stdin.write(JSON.stringify({ tool_name: "Read", tool_input: { file_path: "/tmp/x" } }));
