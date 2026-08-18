@@ -67,25 +67,36 @@ function resolveFilePath(rawPath: string, cwd: string | undefined): string {
   return resolve(base, p);
 }
 
+/**
+ * Match the verb as an ADJACENT token sequence (`gh release create`), never as
+ * independent substrings anywhere in the command.
+ *
+ * Testing `/\bgh\s/` and `/\brelease\s+(create|edit)/` separately makes any
+ * command that merely MENTIONS the pattern a match — writing documentation
+ * about this guard, grepping for it, or committing a message that quotes it.
+ * The sibling release-notes-extensiveness-guard has that flaw and blocked a
+ * `cat >> notes.md` heredoc whose prose quoted the command it watches for.
+ */
+const adjacent = (noun: string, verbs: string) =>
+  new RegExp(String.raw`\bgh\s+${noun}\s+(?:${verbs})\b`, "i");
+
+const GH_RELEASE = adjacent("release", "create|edit");
+const GH_ISSUE = adjacent("issue", "create|edit|comment");
+const GH_PR = adjacent("pr", "create|edit|comment");
+
 /** True when the command is a `gh release` create or edit. */
 function isGhReleaseCommand(command: string): boolean {
-  const mentionsCli = /\bgh\s/i.test(command);
-  const mentionsRelease = /\brelease\s+(create|edit)/i.test(command);
-  return mentionsCli && mentionsRelease;
+  return GH_RELEASE.test(command);
 }
 
 /** True when the command is a `gh issue` command (create/edit/comment). */
 function isGhIssueCommand(command: string): boolean {
-  const mentionsCli = /\bgh\s/i.test(command);
-  const mentionsIssue = /\bissue\s+(create|edit|comment)/i.test(command);
-  return mentionsCli && mentionsIssue;
+  return GH_ISSUE.test(command);
 }
 
 /** True when the command is a `gh pr` command (create/edit/comment). */
 function isGhPrCommand(command: string): boolean {
-  const mentionsCli = /\bgh\s/i.test(command);
-  const mentionsPr = /\bpr\s+(create|edit|comment)/i.test(command);
-  return mentionsCli && mentionsPr;
+  return GH_PR.test(command);
 }
 
 interface TextSource {
