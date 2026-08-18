@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 30 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 32 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (22; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (24; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
@@ -23,6 +23,8 @@ Jump directly to any of the 30 registered markers below. Markers are listed alph
 - [`CWD-DELETE-OK`](#cwd-delete-ok)
 - [`FGPAT-REMINDER-OK`](#fgpat-reminder-ok)
 - [`FILE-SIZE-OK`](#file-size-ok)
+- [`GH-HARD-WRAP-OK`](#gh-hard-wrap-ok)
+- [`GMAIL-BODY-OK`](#gmail-body-ok)
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
@@ -66,7 +68,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (22 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (24 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -204,6 +206,40 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # FILE-SIZE-OK
+```
+
+## `GH-HARD-WRAP-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-github-hard-wrap-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a `gh release create|edit`, `gh issue create|edit|comment`, `gh pr create|edit|comment`, or `gh api` write-to-releases/issues/pulls command whose prose text contains hard-wraps at a fixed column width. GitHub Flavored Markdown renders every newline as `<br>`, so prose wrapped at ~100 columns becomes columns of short mid-sentence lines instead of reflowing to the reader's window. The guard detects hard-wraps in --notes, --notes-file, --body, --body-file, and in a `gh api` body=/notes= field or --input envelope's .body. It deliberately does NOT inspect git objects: hard wrapping at 72 columns is the correct convention for a commit or annotated-tag message, and the reflow belongs at the publish boundary. Add GH-HARD-WRAP-OK to the command when the hard-wrapping is intentional (e.g., an intentional code sample or ASCII table in a release note).
+
+**Example usage**:
+
+```
+# GH-HARD-WRAP-OK
+```
+
+## `GMAIL-BODY-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-gmail-body-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).
+
+**Example usage**:
+
+```
+# GMAIL-BODY-OK
 ```
 
 ## `INIT-MONOLITH-OK`
