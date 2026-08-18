@@ -1,3 +1,89 @@
+# [26.2.0](https://github.com/terrylica/cc-skills/compare/v26.1.0...v26.2.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* **itp-hooks:** close the gh api bypass and the markdown false positives ([cc2b012](https://github.com/terrylica/cc-skills/commit/cc2b012ea6953bdf35e7f76da02bd78c93181ff8))
+The guard was built against plain prose and then pointed at full markdown and
+at only the porcelain commands. Both assumptions were wrong, and an adversarial
+pass plus direct probing found the gaps before the release rather than after.
+
+THE BYPASS. `gh api repos/o/r/releases -X POST -f body='<wrapped>'` publishes
+the identical body to the identical GFM surface and matched none of the
+`gh release|issue|pr` patterns. Measured: allow, for a body that
+`gh release create` denied on the same run. That single hole made the rest of
+the guard optional. Now covered for releases/issues/pulls endpoints, reading
+the body=/notes= field or an --input envelope's .body. The shared shell-arg
+extractor could not do it — it splits on whitespace and only honours a quote
+that OPENS a value, so `-f body="This release..."` came back as `body="This`.
+
+THE FALSE POSITIVES, which matter more because this guard DENIES. Every one of
+these is legitimate markdown that would have been blocked fleet-wide: setext
+headings (both === and --- underlines), stacked link reference definitions,
+footnote definitions, raw HTML blocks, and indented code blocks. All of them
+end a line without punctuation and were read as wrapped prose. Seven cases,
+seven tests.
+
+CJK WAS INVISIBLE IN BOTH DIRECTIONS, which is why it looked fine. A Chinese
+sentence ends on `。`, which was not a terminator, so every correct sentence
+read as open-ended — and width was counted in code points, so a paragraph
+wrapped at 72 DISPLAY columns measured 36 and fell under the 50-column floor.
+One bug hid the other and the net effect was "CJK is never flagged either way".
+Terminators now include CJK punctuation and width is measured in display
+columns. The operator's corpora are Chinese; this was not hypothetical.
+
+A FIFO COULD HANG THE HOOK. `Bun.file(p).text()` on a FIFO blocks until a
+writer appears, so `--notes-file <(cat x)` or `/dev/stdin` would stall until
+Claude Code's 5s timeout killed it. Reads are now gated on the path being a
+regular file. A guard that can hang is a guard that gets removed.
+
+Verified end-to-end against the real bodies throughout: the original v2.4.0
+notes still report 81 wraps, the three repaired live releases still report 0.
+* **itp-hooks:** match guarded gh verbs as adjacent tokens ([cf45ca9](https://github.com/terrylica/cc-skills/commit/cf45ca95f848bd985e7207485b8c5afadb85ddb2))
+Found by tripping it. Appending a decision record that QUOTES the guarded
+command was blocked by the sibling release-notes-extensiveness-guard, which
+tests for the CLI name and the verb as two independent regexes over the whole
+command string. Anything that mentions the pattern therefore matches: prose
+about the guard, a grep for it, a commit message quoting it.
+
+The new hard-wrap guard was built with the same shape and inherited the same
+flaw. It now matches an adjacent token sequence, so the noun and verb must
+actually be consecutive. Two tests pin it: a heredoc whose prose describes the
+guarded command, and a grep for that command, are both allowed.
+
+The extensiveness guard still has the original flaw. Left alone deliberately —
+it is a separate hook with its own tests and its own false-negative risk if the
+match tightens, and the workaround (use Edit rather than a heredoc when the
+content quotes a guarded command) is recorded in the decision entry.
+* **notes-commander:** three ways a parked draft reached the wrong text ([b82873b](https://github.com/terrylica/cc-skills/commit/b82873be9f988fe47e6456f415643d7fab4286c9))
+
+
+### Features
+
+* **itp-hooks:** block hard-wrapped prose on GitHub publish surfaces ([dde871b](https://github.com/terrylica/cc-skills/commit/dde871b71390f096140c562c30e049da903c1956)), closes [#HARD-WRAP-OK](https://github.com/terrylica/cc-skills/issues/HARD-WRAP-OK)
+The previous commit taught THIS repo to reflow its own release notes. Seventeen
+minutes later quantml v2.4.0 was published from a different repo, by hand, with
+81 hard-wrap points in the body. The fix had been repo-local, so nothing outside
+cc-skills inherited it, and the doctrine went back to being a rule someone has
+to remember at the moment they type `gh release create`.
+
+WHAT WAS ALREADY THERE, AND WHY IT DIDN'T FIRE. Both halves of the guard existed
+and were registered in the same hooks.json. `detectHardWraps` had lived in
+lib/gmail-body-detector.ts since the Gmail work; run against the published
+v2.4.0 body it reports 81 issues and against v2.3.0 it reports 136 — it was
+correct the whole time, and wired only to `gmail draft`. Meanwhile
+pretooluse-release-notes-extensiveness-guard DOES gate `gh release` globally,
+but measures only length: narrative characters, sentence count, bullet count.
+All seven occurrences of "wrap" in its source are the word "wrapper". A guard
+that reads the body and a detector that finds the defect, in the same directory,
+never introduced.
+
+The detector is now lib/hard-wrap-detector.ts, MOVED rather than copied;
+gmail-body-detector re-exports it so the Gmail guard is untouched (its 40 tests
+still pass unchanged). pretooluse-github-hard-wrap-guard.ts denies `gh release
+create|edit` (--notes/--notes-file), and `gh issue`/`gh pr` create|edit|comment
+(--body/-b/--body-file). Fail-open throughout: an unreadable or absent file is
+
 # [26.1.0](https://github.com/terrylica/cc-skills/compare/v26.0.1...v26.1.0) (2026-08-17)
 
 
