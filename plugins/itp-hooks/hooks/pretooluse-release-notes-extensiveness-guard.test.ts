@@ -254,3 +254,91 @@ describe("hook wiring", () => {
     expect(decision(runHook(`gh release create v1.2.3`, "Read"))).toBe("allow");
   });
 });
+
+/**
+ * A long low-sentence block must not mask a real narrative elsewhere.
+ *
+ * The measurer used to keep only the LONGEST paragraph and judge that one. v27.0.1's
+ * notes carry a 4-sentence narrative AND an 11-row aligned redaction table; the table
+ * accumulates as a single 583-char "paragraph" whose lone sentence terminator is the full
+ * stop in "DR. EXAMPLE". Being longest, it became the paragraph under test and correct notes
+ * were refused.
+ *
+ * This matters more than a missed catch. A guard that blocks good notes trains authors to
+ * reach for the escape hatch, and the escape hatch then waves through the real misses too.
+ */
+describe("narrative detection is per-paragraph, not longest-paragraph", () => {
+  const NARRATIVE =
+    "This release completes a partial scrub shipped earlier. An audit swept every tracked " +
+    "file across five dimensions and verified each hit against both failure modes. " +
+    "Twenty-six identifiers survived verification. All of them are redacted here now.";
+
+  const ALIGNED_TABLE = [
+    "  corolla-cross-trade-in       -> vehicle-appraisal",
+    "  acct-000000                      -> example-account",
+    "  project-a                 -> example-client",
+    "  client-career-opportunities  -> example-job-board",
+    "  DR. EXAMPLE                    -> OWNER",
+    "  Alex, Iris                  -> {{CONTACT}}",
+  ].join("\n");
+
+  const BULLETS = ["* one", "* two", "* three", "* four"].join("\n");
+
+  it("accepts notes whose longest block is an aligned table", () => {
+    const notes = `${NARRATIVE}\n\n${ALIGNED_TABLE}\n\n${BULLETS}\n`;
+    expect(ALIGNED_TABLE.length).toBeGreaterThan(NARRATIVE.length);
+    expect(measureNotesExtensiveness(notes).hasNarrative).toBe(true);
+  });
+
+  it("order does not matter — the table first is still fine", () => {
+    expect(
+      measureNotesExtensiveness(`${ALIGNED_TABLE}\n\n${NARRATIVE}\n\n${BULLETS}\n`).hasNarrative,
+    ).toBe(true);
+  });
+
+  it("still REJECTS notes that genuinely have no narrative", () => {
+    // The fix must not turn the gate off. A table plus bullets and no prose still fails.
+    const measured = measureNotesExtensiveness(`${ALIGNED_TABLE}\n\n${BULLETS}\n`);
+    expect(measured.hasNarrative).toBe(false);
+    expect(measured.ok).toBe(false);
+  });
+
+  it("reports the near-miss prose rather than the longest block", () => {
+    // The old message said "583 chars / 1 sentences", pointing at a table and telling the
+    // author nothing about the prose they needed to lengthen.
+    const shortProse = "Too short. Still short. Yet short.";
+    const measured = measureNotesExtensiveness(`${shortProse}\n\n${ALIGNED_TABLE}\n\n${BULLETS}\n`);
+    expect(measured.hasNarrative).toBe(false);
+    expect(measured.narrativeChars).toBeLessThan(ALIGNED_TABLE.length);
+  });
+});
+
+/**
+ * The case that only the per-paragraph check catches.
+ *
+ * Preferring the most-sentences run fixes the aligned-table masking above, but it is not
+ * sufficient on its own: a SHORT high-sentence paragraph can outrank a LONG qualifying one
+ * and fail the char threshold on the qualifying paragraph's behalf. Only asking "did any
+ * paragraph meet both bars" is correct. Without this test the per-paragraph check could be
+ * reverted with the suite still green — verified by mutation.
+ */
+describe("a short punchy paragraph does not veto a long qualifying one", () => {
+  // Five sentences, comfortably under the 240-char narrative floor.
+  const SHORT_PUNCHY = "One. Two. Three. Four. Five.";
+
+  // Three sentences, comfortably over it.
+  const LONG_QUALIFYING =
+    "This release reworks how the publishing pipeline assembles its notes, because the " +
+    "previous path silently dropped most of the body before it ever reached the page. " +
+    "The parser, the template and the reflow each contributed a distinct failure. " +
+    "None of them showed up until rendered output was compared against the commit.";
+
+  const BULLETS = ["* one", "* two", "* three", "* four"].join("\n");
+
+  it("accepts when the qualifying paragraph is not the one with most sentences", () => {
+    expect(SHORT_PUNCHY.length).toBeLessThan(240);
+    expect(LONG_QUALIFYING.length).toBeGreaterThan(240);
+    const notes = `${SHORT_PUNCHY}\n\n${LONG_QUALIFYING}\n\n${BULLETS}\n`;
+    expect(measureNotesExtensiveness(notes).hasNarrative).toBe(true);
+  });
+});
