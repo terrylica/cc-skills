@@ -110,17 +110,28 @@ export const normalizeForCompare = (s: string): string => s.replace(/\r\n/g, "\n
 export const isAlreadyFlat = (input: string): boolean =>
   normalizeForCompare(reflowMarkdown(input)) === normalizeForCompare(input);
 
+/**
+ * The CLI entry point, deliberately inside an async IIFE rather than using top-level await.
+ *
+ * A top-level `await` marks the whole module async, and Node then refuses to `require()` it
+ * (`ERR_REQUIRE_ASYNC_MODULE`) — even though the await is on a branch that a `require` never
+ * takes. `release.config.cjs` is CommonJS and must reach `reflowMarkdown` so semantic-release
+ * reflows commit bodies before they reach the published notes, so this module has to stay
+ * require-able from CJS. Keeping the await one level down costs nothing and buys that.
+ */
 if (import.meta.main) {
-  const check = process.argv.includes("--check");
-  const input = await Bun.stdin.text();
-  const flat = reflowMarkdown(input);
-  if (check) {
-    if (isAlreadyFlat(input)) {
-      console.error("[reflow-release-notes] already flat — no hard-wrapped prose found.");
-      process.exit(0);
+  void (async () => {
+    const check = process.argv.includes("--check");
+    const input = await Bun.stdin.text();
+    const flat = reflowMarkdown(input);
+    if (check) {
+      if (isAlreadyFlat(input)) {
+        console.error("[reflow-release-notes] already flat — no hard-wrapped prose found.");
+        process.exit(0);
+      }
+      console.error("[reflow-release-notes] HARD-WRAPPED prose detected; reflowing would change this body.");
+      process.exit(1);
     }
-    console.error("[reflow-release-notes] HARD-WRAPPED prose detected; reflowing would change this body.");
-    process.exit(1);
-  }
-  process.stdout.write(flat);
+    process.stdout.write(flat);
+  })();
 }
