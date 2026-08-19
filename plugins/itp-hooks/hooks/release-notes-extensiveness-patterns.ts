@@ -231,8 +231,32 @@ export function measureNotesExtensiveness(text: string): ExtensivenessMeasuremen
   let paraChars = 0;
   let paraSentences = 0;
 
+  /**
+   * Does ANY paragraph qualify — not "does the LONGEST paragraph qualify".
+   *
+   * The previous form kept only the longest run and judged that one, so a long
+   * low-sentence block MASKED a perfectly good narrative elsewhere in the notes. Real
+   * false block: v27.0.1's notes carry a 4-sentence narrative, but their 11-row aligned
+   * redaction table accumulates as a single 583-char "paragraph" whose only sentence
+   * terminator is the full stop in "DR. EXAMPLE". Being longest, the table became the
+   * paragraph under test and the release was refused for having no narrative.
+   *
+   * A guard that rejects correct notes is worse than one that misses: it teaches authors
+   * to reach for the escape hatch, and the escape hatch then covers the real misses too.
+   */
+  let sawQualifyingParagraph = false;
+
   const flushParagraph = () => {
-    if (paraChars > bestNarrativeChars) {
+    if (paraChars >= NARRATIVE_MIN_CHARS && paraSentences >= NARRATIVE_MIN_SENTENCES) {
+      sawQualifyingParagraph = true;
+    }
+    // Retained only to describe the near miss in the failure message. Prefer the run with
+    // the most sentences, then the most characters: "583 chars / 1 sentence" pointed at a
+    // table and told the author nothing about the prose they actually needed to fix.
+    if (
+      paraSentences > bestNarrativeSentences ||
+      (paraSentences === bestNarrativeSentences && paraChars > bestNarrativeChars)
+    ) {
       bestNarrativeChars = paraChars;
       bestNarrativeSentences = paraSentences;
     }
@@ -257,8 +281,7 @@ export function measureNotesExtensiveness(text: string): ExtensivenessMeasuremen
   }
   flushParagraph();
 
-  const hasNarrative =
-    bestNarrativeChars >= NARRATIVE_MIN_CHARS && bestNarrativeSentences >= NARRATIVE_MIN_SENTENCES;
+  const hasNarrative = sawQualifyingParagraph;
   const hasPointForm = bulletCount >= POINT_FORM_MIN_BULLETS;
 
   if (!hasNarrative) {
