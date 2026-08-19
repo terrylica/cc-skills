@@ -60,9 +60,9 @@ Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form
 
 <!-- SSoT-OK: the release numbers below are historical incident references, not version pins -->
 
-#### Four ways the body used to arrive mangled (all fixed 2026-08-19)
+#### Five ways the body used to arrive mangled (all fixed 2026-08-19)
 
-All four sat BETWEEN the extensiveness guard and GitHub, so the guard passed bodies that
+All five sat BETWEEN the extensiveness guard and GitHub, so the guard passed bodies that
 rendered wrong. The PreToolUse guard could not see any of them either: it covers
 `gh release create`, and semantic-release publishes through the GitHub API. Pinned by
 `scripts/release-config-body-reflow.test.ts`, which asserts against **rendered** output —
@@ -86,8 +86,19 @@ a transform-only test passes while every release still looks wrong.
 - **Aligned blocks flattened.** CommonMark reads an indented-by-under-four block as
   ordinary prose, so the reflow joined hand-aligned tables into one line. Indented lines
   holding a run of 2+ interior spaces are now preserved.
+- **Angle brackets silently eaten.** GFM interprets raw HTML, so `Vec<T>` published as
+  "Vec" — the type parameter _deleted_, with no warning. `<details>` opened a collapsible
+  section that swallowed everything after it; `a<b and c>d` became bold. Every
+  angle-bracket occurrence in the last 400 commit bodies of this repo is prose or a CLI
+  placeholder (`<uuid>`, `<path>`, `<Command,Handler>`, `<verify|probe|bench>`), so
+  `scripts/escape-commit-body-html.ts` now escapes `<` outside code spans, fences and
+  markdown autolinks. Only `<` — escaping `>` would corrupt the `->` in aligned tables.
+  Escaping runs BEFORE the reflow, because the reflow treats a line starting with `<` as a
+  standalone HTML block and would otherwise leave that line hard-wrapped.
+  **If you ever want real HTML in a release body, put it in a notes file and use
+  `release:augment`; a commit message is plain text.**
 
-A fifth, in the guard itself: it judged the **longest** paragraph rather than asking
+A sixth, in the guard itself: it judged the **longest** paragraph rather than asking
 whether **any** paragraph qualified, so a long aligned table masked a real narrative and
 blocked correct notes. Fixed in `release-notes-extensiveness-patterns.ts`.
 
