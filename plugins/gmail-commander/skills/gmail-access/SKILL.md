@@ -65,15 +65,37 @@ $GMAIL_CLI list -n 1 2>&1 | head -5
 There is no `whoami` subcommand; map each cached token UUID to its mailbox by
 probing, then pick the one that fits the project:
 
+🔴 **Do NOT identify a mailbox from `list -n 1 --json | jq '.[0].to'`.** That reads the
+**recipient of the newest message**, not the mailbox owner. When the newest item is an
+outgoing draft or a sent message, it reports the person you wrote TO. Measured 2026-08-18:
+the `wc6vl…` token probed as an external correspondent's address while the mailbox is in
+fact `amonic@gmail.com` — a confident wrong answer in the one step whose entire job is to
+stop you acting on the wrong account.
+
+Ask Gmail who it is instead. `users/me/profile` is authoritative:
+
 ```bash
-# Which accounts are cached, and which mailbox does each resolve to?
+# Which accounts are cached, and which mailbox does each ACTUALLY own?
 for f in ~/.claude/tools/gmail-tokens/*.json; do
-  case "$(basename "$f")" in *.app-credentials.json|'*.json') continue ;; esac
+  case "$(basename "$f")" in *.app-credentials.json|*.bak|*.expired-*|*.dead-*|'*.json') continue ;; esac
   uuid=$(basename "$f" .json)
-  who=$(GMAIL_OP_UUID="$uuid" $GMAIL_CLI list -n 1 --json 2>/dev/null \
-        | jq -r '.[0].to // "(probe failed / token expired)"')
+  # Project-local helper that mints an access token from a cached refresh token.
+  tok=$(bash "${GMAIL_TOKEN_SCRIPT:?set to your project's gmail-access-token.sh}" "$uuid" 2>/dev/null | tail -1)
+  if [ -z "$tok" ]; then echo "$uuid → token mint failed"; continue; fi
+  who=$(curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
+          https://gmail.googleapis.com/gmail/v1/users/me/profile | jq -r .emailAddress)
   echo "$uuid → $who"
 done
+```
+
+The same endpoint answers "which aliases may I send as", which you need before any
+`--from`. `verificationStatus` must be `accepted`, and note which alias is `isDefault` —
+if the default is not the one you want, `--from` is mandatory, not optional:
+
+```bash
+curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
+  https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs \
+  | jq -r '.sendAs[] | "\(.sendAsEmail)\t\(.verificationStatus)\t\(if .isDefault then "DEFAULT" else "" end)"'
 ```
 
 A probe that returns `invalid_grant` means that account's refresh token is dead
@@ -227,7 +249,7 @@ $GMAIL_CLI list -n 10
 $GMAIL_CLI search "from:someone@example.com" -n 20
 
 # Search with date range
-$GMAIL_CLI search "from:alex after:2026/01/27" -n 10
+$GMAIL_CLI search "from:alice after:2026/01/27" -n 10
 
 # Read specific email with full body
 $GMAIL_CLI read <message_id>
@@ -276,7 +298,37 @@ $GMAIL_CLI draft --to "user@example.com" --subject "Re: Project" \
   --reply-to <message_id> \
   --body-file ./reply.txt \
   --attach ./diagram.pdf
+
+# List drafts with their draft IDs
+$GMAIL_CLI drafts -n 10
+
+# Replace a draft in place (delete + recreate — the draft ID CHANGES)
+$GMAIL_CLI draft-update <draft_id> --to "user@example.com" --from "me@example.com" \
+  --subject "Same subject" --body-file ./revised-body.txt
 ```
+
+### `drafts --json` field names
+
+The identifier field is **`draftId`**, not `id`. A `.id` selector silently yields
+`null` for every row rather than erroring, so a jq pipeline built on it looks like
+it worked and hands you nothing:
+
+```bash
+# WRONG — .id does not exist; prints "null" per draft and fails silently
+$GMAIL_CLI drafts -n 10 --json | jq -r '.[] | "\(.id)\t\(.subject)"'
+
+# RIGHT
+$GMAIL_CLI drafts -n 10 --json | jq -r '.[] | "\(.draftId)\t\(.subject)"'
+```
+
+Full row shape: `date`, `draftId`, `from`, `messageId`, `snippet`, `subject`,
+`threadId`, `to`. Note the two distinct identifiers — **`draftId`** is what
+`draft-update` and `draft-delete` take; **`messageId`** is what `read` takes.
+Passing one where the other belongs fails or returns the wrong record.
+
+**`draft-update` returns a NEW `draftId`** (it deletes and recreates). Any ID you
+noted earlier is dead the moment you update — re-list before a second update, and
+never cache a draft ID across edits.
 
 ## Inline Image Extraction
 
@@ -400,7 +452,7 @@ The canonical pattern for archiving a whole correspondence (verified on a
 1. **Scope with high-signal queries, not generic keywords.** A bare keyword
    (`"Acme"`) returns mostly newsletter noise. Prefer:
    - **domain**: `curvedental.com` (matches from/to/cc on the org)
-   - **participant**: `from:dr.alex.example@gmail.com OR to:…`
+   - **participant**: `from:someone@example.com OR to:…`
    - **project code**: any internal tag the sender uses (e.g. `1233V`)
 2. **Collect message IDs** from `search --json` (snippet-only) and curate the
    in-scope set out of the noise.
@@ -694,6 +746,20 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-08-18 — the account-verification probe reported the WRONG mailbox, and `GMAIL_OP_UUID` means two different things.**
+  - _Trigger_: drafting client correspondence that must go out as a specific send-as alias. Step 2.5 exists precisely to stop you acting on the wrong account, and it gave a confident wrong answer.
+  - _Defect 1_: the disambiguation snippet read `list -n 1 --json | jq '.[0].to'` — the **recipient of the newest message**, not the mailbox owner. The newest item was an outgoing draft, so the `wc6vl…` token reported an external correspondent's address when the mailbox is `amonic@gmail.com`. Anyone trusting it would have concluded they were authenticated as the counterparty.
+  - _Fix 1_: replaced with `users/me/profile` → `.emailAddress`, which is authoritative, plus a `settings/sendAs` probe so aliases and the DEFAULT alias are known before `--from` is chosen. That default matters: on this account it is `terry@eonlabs.com`, which correspondence policy forbids for client mail — so an omitted `--from` sends as the forbidden identity.
+  - _Defect 2, NOT yet fixed_: `GMAIL_OP_UUID` is overloaded. A project's `.mise.local.toml` may set it to the 1Password item **title** (e.g. `"amonic-gmail"`), while `gmail-access-token.sh` and the token cache key off the item **UUID** (`wc6vl….json`). Passing the title fails with `no token file`. Whether the compiled `gmail` CLI resolves titles via 1Password was **not** tested, because a wrong guess triggers a fresh OAuth browser consent. **Verify before "fixing" either side.**
+  - _Evidence_: `users/me/profile` → `amonic@gmail.com`; `settings/sendAs` → `rickychanbc@gmail.com` `verificationStatus=accepted`, `terry@eonlabs.com` `isDefault=true`. Draft `r6501695713107519416` created with an explicit `--from` and read back with the alias correct and no `terry` in the header.
+
+- **2026-08-18 — the body guard does NOT cover `scripts/gmail-draft.ts`, and markdown reached a real draft through that hole.**
+  - _Trigger_: an ad-hoc Gmail drafts-API write was correctly BLOCKED by `gmail-draft-guard.sh`, which redirected to `scripts/gmail-draft.ts`. That script accepts a markdown `--body` file and **is not covered by `pretooluse-gmail-body-guard.ts`**, which matches on `gmail draft` / `draft-update`. A client draft was authored through it with markdown and passed.
+  - _Symptom_: the stored `text/plain` carried **11 literal `**bold**` runs and 2 literal `##` headings**, and the `text/html` part contained no `<b>`/`<strong>` — the CLI HTML-ESCAPES the body, it does not render markdown. The recipient would have seen raw asterisks and hashes. Caught only because the operator opened the draft in Gmail and looked at it.
+  - _Fix_: rewrite via `draft-update` in plain prose. **Authoring rule applies to EVERY path into a draft, not just the guarded one**: one unbroken line per paragraph, no markdown, breaks only for list items and the sign-off.
+  - _Open_: the guard should match `gmail-draft.ts` too, or that script should reject markdown itself. Until then, treat the guard's silence as no evidence — verify the stored body: `read <id> --json | jq -r '.body' | grep -cE '\*\*|^#{1,6} '` should return 0.
+  - _Evidence_: draft `r4023096633097304797` (markdown, via `gmail-draft.ts`) vs its replacement `r6980772236558441151` (clean, via `draft-update`); the same-session proposal draft `r6501695713107519416` authored plain-prose scored 0/0.
 
 - **2026-07-22 — a PreToolUse body guard now ENFORCES single-line paragraphs + plain prose.**
   - _Trigger_: despite the 2026-07-10 fix, vendor-outreach drafts were authored from markdown files **hard-wrapped at ~100 columns** and containing raw markdown. Because `toHtmlBody()` turns every authored newline into a `<br>`, each wrap became a literal break → the recipient saw a column of short, mid-sentence lines; and because the CLI HTML-escapes the body without rendering markdown, `**bold**`/backticks/`[text](url)`/headings/tables showed literally.
