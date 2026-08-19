@@ -58,6 +58,39 @@ Release notes must carry BOTH a narrative paragraph (the _why_) and a point-form
 - **Manual / cross-repo**: `mise run release:augment -- --tag <tag> --notes-file <path>`
   edits the GitHub Release through the same extensiveness gate (`scripts/augment-release-notes.mjs`).
 
+<!-- SSoT-OK: the release numbers below are historical incident references, not version pins -->
+
+#### Four ways the body used to arrive mangled (all fixed 2026-08-19)
+
+All four sat BETWEEN the extensiveness guard and GitHub, so the guard passed bodies that
+rendered wrong. The PreToolUse guard could not see any of them either: it covers
+`gh release create`, and semantic-release publishes through the GitHub API. Pinned by
+`scripts/release-config-body-reflow.test.ts`, which asserts against **rendered** output —
+a transform-only test passes while every release still looks wrong.
+
+- **Silent truncation.** `conventional-commits-parser`'s default `fieldPattern` is
+  `/^-(.*?)-$/`, which a line of dashes matches. A setext heading underline or a
+  horizontal rule diverts every remaining body line into a field no template emits.
+  The v27.0.1 incident: 66 body lines in, 8 published. `fieldPattern` is now a
+  never-matching regex on **both** `commit-analyzer` and `release-notes-generator` —
+  they must mirror.
+- **Body swallowed by its bullet.** Handlebars strips the trailing newline of a line
+  holding a lone block tag, so the template's blank line collapsed and GFM read the body
+  as a lazy continuation of the `* subject` bullet. The template now carries two blank
+  lines so one survives.
+- **Hard-wrapped prose.** Commit bodies are correctly wrapped at ~72 columns; GFM turns
+  every newline inside a paragraph into a literal `<br>`. The transform reflows via
+  `scripts/reflow-release-notes.ts` — imported, never reimplemented, so it cannot drift
+  from `release:augment`. That module must stay free of top-level `await`, or Node refuses
+  the `require()` and the transform silently falls back to the raw body.
+- **Aligned blocks flattened.** CommonMark reads an indented-by-under-four block as
+  ordinary prose, so the reflow joined hand-aligned tables into one line. Indented lines
+  holding a run of 2+ interior spaces are now preserved.
+
+A fifth, in the guard itself: it judged the **longest** paragraph rather than asking
+whether **any** paragraph qualified, so a long aligned table masked a real narrative and
+blocked correct notes. Fixed in `release-notes-extensiveness-patterns.ts`.
+
 ## Commit Conventions
 
 All commit types trigger patch releases (marketplace constraint):
