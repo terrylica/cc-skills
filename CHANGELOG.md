@@ -1,3 +1,64 @@
+## [27.0.2](https://github.com/terrylica/cc-skills/compare/v27.0.1...v27.0.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **itp-hooks:** judge narrative per paragraph, not longest paragraph ([84f8355](https://github.com/terrylica/cc-skills/commit/84f83552303fba472207cdcd6ef098a08865948e))
+
+The release-notes extensiveness measurer kept only the LONGEST prose run and judged that one, so a long low-sentence block masked a perfectly good narrative elsewhere in the notes.
+
+Real false block, hit while repairing v27.0.1: those notes carry a 4-sentence 438-char narrative AND an 11-row aligned redaction table. The table accumulates as a single 583-char "paragraph" whose only sentence terminator is the full stop in "DR. EXAMPLE". Being longest, it became the paragraph under test, and correct, extensive notes were refused with "no narrative paragraph ... longest run = 583 chars / 1 sentences".
+
+A guard that rejects correct work is worse than one that misses. It teaches authors to reach for the escape hatch, and the escape hatch then waves through the real misses too.
+
+Two changes, each independently necessary and each mutation-tested:
+
+* hasNarrative now asks whether ANY paragraph met both bars, rather than whether the single retained run did. Preferring most-sentences alone is not sufficient -- a SHORT punchy paragraph can outrank a LONG qualifying one and fail the char threshold on its behalf.
+* the retained run, now used only for the failure message, prefers most sentences then most characters. "583 chars / 1 sentences" pointed at a table and told the author nothing about the prose to lengthen.
+
+The gate is not loosened: notes with a table and bullets but no prose still fail, pinned by test.
+
+6 tests. 1314/1314 bun unit tests, 107/107 hook regression files.
+
+* **release:** preserve hand-aligned blocks when reflowing notes ([170dc6b](https://github.com/terrylica/cc-skills/commit/170dc6bf178464b627b81d3205467daa62d94327))
+
+CommonMark treats a block indented by fewer than four spaces as ordinary paragraph text, so the reflow joined hand-aligned rows into one line. That is correct markdown and wrong output: a mapping table, a before/after list or a key/value block is columns the author lined up on purpose.
+
+Found while repairing v27.0.1, whose commit body maps eleven redacted identifiers in a 2-space-indented table. Reflowing produced a single ~500-character line.
+
+An indented line is now preserved verbatim when its interior holds a run of two or more spaces. The pattern is deliberately narrow: indentation ALONE would also match a wrapped bullet continuation, which must still fold back into its bullet -- that is the bug the reflow exists to fix, so matching it here would undo the module's whole purpose. Requiring the internal run of spaces is what separates a table from a sentence. A false positive leaves one paragraph hard-wrapped; a false negative destroys a table, and the asymmetry favours being slightly eager.
+
+Checked after the list-item test, so an aligned-looking bullet still behaves as a bullet.
+
+5 tests, including the wrapped-bullet-continuation case that pins the false positive. Mutation-tested: removing the branch fails 3 of them. 1309/1309 bun unit tests pass.
+
+* **release:** stop silently truncating and re-wrapping release notes ([790702b](https://github.com/terrylica/cc-skills/commit/790702b8605c96d1dba494d3804c1350b86db7c1))
+
+Three independent defects were mangling every published release. All three sit between the extensiveness guard and GitHub, which is why the guard passed bodies that rendered wrong.
+
+Silent truncation
+-----------------
+conventional-commits-parser's default fieldPattern is /^-(.*?)-$/, and a line of dashes matches it. A setext heading underline or a markdown horizontal rule puts the parser into field-capture mode and EVERY remaining body line is swallowed into a field no writer template emits -- not moved to the footer, not flagged, gone. Measured on v27.0.1's own commit: 66 body lines in, 8 published. fieldPattern is now a regex that cannot match, on BOTH commit-analyzer and release-notes-generator, which the config already required to mirror each other.
+
+Body swallowed by its own bullet
+--------------------------------
+Handlebars strips the trailing newline of a line holding a lone block tag, so the template's intended blank line collapsed and the body was emitted directly under the "* subject" bullet. GFM reads that as a lazy continuation and renders the whole body INSIDE the list item. The template now carries two blank lines so one survives the strip.
+
+Hard-wrapped prose
+------------------
+Commit bodies are correctly wrapped at ~72 columns; GFM turns every newline inside a paragraph into a literal <br>, so identical text is right in the commit and wrong on the release page. The transform now reflows via the existing reflow-release-notes module -- imported, not reimplemented, so it cannot drift from `mise run release:augment`.
+
+The PreToolUse guard could never have caught any of this: it covers `gh release create`, and semantic-release publishes through the GitHub API via @semantic-release/github.
+
+Notes
+-----
+* reflow-release-notes.ts moved its CLI's top-level await into an async IIFE. Top-level await marks the module async and Node then refuses to require() it, which would have made the transform fall back silently to the raw body.
+* Reflow failure is non-fatal by design: a reflow that throws must not abort an otherwise-correct release, so it logs and surfaces the raw body, which is exactly the old behaviour rather than a broken one.
+* 17 new tests assert against RENDERED output, not just the transform, because a transform-only test passes while releases still look wrong. Includes a control test proving the default parser truncates, so the fix cannot be deleted with the suite still green.
+* Both fixes mutation-tested: bypassing the reflow fails 3 tests, collapsing the blank line fails 2.
+
+Validation: 1304/1304 bun unit tests, 107/107 hook regression files.
+
 ## [27.0.1](https://github.com/terrylica/cc-skills/compare/v27.0.0...v27.0.1) (2026-08-19)
 
 
