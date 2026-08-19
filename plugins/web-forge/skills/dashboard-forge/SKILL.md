@@ -287,6 +287,34 @@ directory. Specify this using --user-data-dir.` — which is invisible if stderr
   failure indistinguishable from success, and the next call's 401 was the only clue. Mask **lengths and
   exit codes** (`len=${#TOK} rc=$?`), never a raw stream you have not first checked is a value —
   `${#TOK}` would have read `0` and ended it immediately.
+- **Apple Events `execute javascript` needs SYNCHRONOUS JS — a Promise serializes to nothing**
+  (2026-08-19): the idiomatic `(async () => { … })()` probe returns a `Promise`, which crosses the
+  Apple Event boundary as an **empty string**. The step reads as "the page returned no data", i.e.
+  exactly like a failed selector, and the natural response is to rewrite selectors that were fine.
+  Write borrowed-session steps as a plain synchronous IIFE returning `JSON.stringify(out)`; where a
+  step genuinely needs to wait, split it into two invocations with the sleep in the **shell**, not
+  in the page.
+- **GitHub's React issues UI exposes NO file input and NO React `onDrop`** (2026-08-19): attaching a
+  file to an issue comment used to mean driving `file-attachment` + `input[type=file]`. On the current
+  UI a DOM sweep finds **zero** `input[type=file]`, **zero** `<file-attachment>`, and **zero**
+  `__reactProps$*.onDrop` anywhere in the textarea's ancestor chain — the only evidence an upload path
+  exists is the hint text _"Paste, drop, or click to add files"_. Do not conclude uploading is
+  impossible: dispatching a synthetic `DragEvent` sequence (`dragenter`, `dragover`, `drop`) carrying a
+  `DataTransfer` with one `File` **at the textarea** works. Confirm it by checking `dispatchEvent`
+  returned `false` on the `drop` (i.e. `preventDefault` was called — the listener exists even though no
+  property exposes it), then poll the textarea for the injected
+  `[name](https://github.com/user-attachments/files/…)` markdown. Two follow-ons worth knowing: the
+  upload is **not** a page mutation, so GitHub's own CSP blocks an in-page authenticated `fetch` to
+  verify it; and navigating to the resulting URL **downloads** rather than renders, so the tab
+  self-closes — which reads as "the tab vanished, something broke" when it is the success path.
+  Verify from **outside** the browser instead (`shasum` the downloaded file against the original;
+  Chrome's `History` DB `downloads` table records `total_bytes` and `state`).
+- **Payload SIZE is rarely the Apple Events failure — quoting is** (2026-08-19): a 106 KB step script
+  (78 KB file base64-encoded) round-trips through `osascript` intact; a measured probe put a
+  104,576-char string through unharmed. The actual break was an **unterminated JS string literal**,
+  caused by emitting `var B64 = "` and then a newline before the payload. Keep any large literal on
+  **one physical line**, and when a big step fails, test the transport with a synthetic string of the
+  same length before blaming a limit that does not exist.
 
 ## Relationship to gh-fine-grained-pat
 
