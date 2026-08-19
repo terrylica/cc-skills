@@ -1,3 +1,33 @@
+## [27.0.3](https://github.com/terrylica/cc-skills/compare/v27.0.2...v27.0.3) (2026-08-19)
+
+
+### Bug Fixes
+
+* **release:** escape angle brackets so GFM stops eating commit prose ([c15bf67](https://github.com/terrylica/cc-skills/commit/c15bf673a4336abd456179edd5dc56b9db1bb05b))
+
+GitHub renders a release body as GFM, which INTERPRETS raw HTML. A commit body is plain text written by a human, so every angle bracket in it was being silently corrupted on the published page. Verified against GitHub's own /markdown API rather than assumed:
+
+  "generic Vec&lt;T> type"     ->  "generic Vec type"      type param DELETED
+  "a Map&lt;Command,Handler>"  ->  "a Map"                 DELETED
+  "a literal &lt;br> here"     ->  a real line break
+  "compare a&lt;b and c>d"     ->  "compare a" + bold      MANGLED
+  "a &lt;details> block"       ->  opens a collapsible section that swallows
+                                everything after it
+
+The deletion case is the serious one: content vanishes with no warning anywhere, which is the same signature as the four defects fixed earlier today -- right in the commit, wrong on the page, silent.
+
+Safe because there is no working HTML to break. Every angle-bracket occurrence in the last 400 commit bodies of this repo is prose or a CLI placeholder: &lt;br>, &lt;script>, &lt;table> discussed AS TAGS, and &lt;uuid>, &lt;path>, &lt;slug>, &lt;account>, &lt;Command,Handler>, &lt;verify|probe|bench> as syntax placeholders. Not one is intentional markup. If real HTML is ever wanted in a release body, the path is a notes file through `mise run release:augment`.
+
+Details:
+
+* Only `<` is escaped. Escaping `>` would corrupt the `->` arrows that fill this repo's aligned mapping tables.
+* Code spans, fenced blocks and markdown autolinks are left alone -- they already render literally, and escaping them would publish a visible `&lt;` or break a working link.
+* Escaping runs BEFORE the reflow, not after. The reflow treats a line starting with `<` as a standalone HTML block and refuses to join it, so a paragraph wrapping onto a line that begins with `<script>` would stay hard-wrapped. Escaping first makes it ordinary prose that folds.
+
+30 tests. Four of them re-verify the premise against the live GitHub renderer instead of trusting a comment, and skip rather than pass vacuously when the API is unreachable. Mutation-tested at BOTH levels: stubbing the escaper fails its own suite, and stubbing the CALL in release.config.cjs fails 4 wiring tests -- the first mutation run passed, which is exactly how the reflow sat correct-but-unused for 200 releases.
+
+1344/1344 bun unit tests, 107/107 hook regression files.
+
 ## [27.0.2](https://github.com/terrylica/cc-skills/compare/v27.0.1...v27.0.2) (2026-08-19)
 
 
