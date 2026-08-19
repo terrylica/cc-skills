@@ -1,3 +1,18 @@
+## [27.0.1](https://github.com/terrylica/cc-skills/compare/v27.0.0...v27.0.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **marketplace:** redact remaining third-party identifiers ([2080804](https://github.com/terrylica/cc-skills/commit/20808049664fdd0f14a2bf264042303b648289aa))
+v27.0.0 shipped a partial scrub. This completes it. An 11-agent audit swept all
+2602 tracked files across five dimensions (known-client strings, contact data,
+narrative docs + CHANGELOG, code and test fixtures, credential-adjacent ids) and
+adversarially verified each hit against BOTH failure modes: leaving real PII in
+a public repo, and over-scrubbing docs into uselessness. 26 identifiers survived
+verification; all are redacted here.
+
+What was still exposed
+
 # [27.0.0](https://github.com/terrylica/cc-skills/compare/v26.2.0...v27.0.0) (2026-08-19)
 
 
