@@ -16,6 +16,10 @@ set -euo pipefail
 # Debug logging (set DEBUG=1 to enable)
 DEBUG="${DEBUG:-0}"
 LOG_FILE="/tmp/tts_debug.log"
+# Always-on error sink. LOG_FILE only exists when DEBUG=1, which meant a
+# failure under BetterTouchTool left no trace anywhere; this one is
+# unconditional so there is always something to read after a silent failure.
+ERROR_LOG="/tmp/tts_errors.log"
 LOCK_FILE="/tmp/kokoro-tts.lock"
 
 debug_log() {
@@ -254,11 +258,28 @@ main() {
     debug_log "Using Supertonic M3 (speed: $TTS_SPEED)"
 
     echo "Speaking via Supertonic M3 (speed: $TTS_SPEED)"
-    if ! printf '%s' "$clipboard_content" | uv run --quiet --python 3.14 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>/dev/null; then
-        local exit_code=$?
+
+    # Exit-code handling, deliberately verbose about why:
+    #   `if ! cmd; then rc=$?` is WRONG twice over. Inside the then-branch $? is
+    #   the status of `! cmd` (i.e. 0, since the branch was taken), and `local
+    #   rc=$(...)`/`local rc=$?` resets $? to the status of `local` itself. The
+    #   old code therefore always reported "exit 0" on failure. Capture with
+    #   `|| rc=$?` and split declaration from assignment instead.
+    #
+    #   stderr is appended to a log rather than sent to /dev/null: discarding it
+    #   is what made this failure mode invisible from BetterTouchTool, whose
+    #   Result box shows stdout only.
+    local exit_code
+    exit_code=0
+    printf '%s' "$clipboard_content" \
+        | uv run --quiet --python 3.14 --with supertonic python3 "$SUPERTONIC_SPEAK" 2>>"$ERROR_LOG" \
+        || exit_code=$?
+
+    if ((exit_code != 0)); then
         debug_log "Supertonic failed (exit code: $exit_code) — no fallback (Kokoro-only policy)"
+        echo "Supertonic failed (exit $exit_code); stderr in $ERROR_LOG" >&2
         notify "TTS Error" "Supertonic synthesis failed (exit $exit_code)"
-        exit 1
+        exit "$exit_code"
     fi
 
     echo "TTS completed successfully"

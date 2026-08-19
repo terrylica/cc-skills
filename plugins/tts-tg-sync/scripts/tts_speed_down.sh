@@ -1,9 +1,23 @@
 #!/bin/bash
-# TTS Speed Down - decreases by 30 WPM
+# TTS Speed Down — -30 WPM. Applies to BOTH engines via tts_speed_set.sh.
+set -euo pipefail
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin"
+
 BTTCLI="/Applications/BetterTouchTool.app/Contents/SharedSupport/bin/bttcli"
-CURRENT=$("$BTTCLI" get_string_variable variable_name=TTS_SPEECH_RATE 2>/dev/null)
-CURRENT=${CURRENT:-220}
+
+SELF="$0"
+if RESOLVED=$(readlink -f "$0" 2>/dev/null); then SELF="$RESOLVED"; fi
+SCRIPT_DIR=$(cd "$(dirname "$SELF")" && pwd)
+
+# bttcli may be missing, fail, or return a non-numeric string — any of those
+# must fall back to the documented default rather than break the arithmetic.
+CURRENT=""
+if [[ -x "$BTTCLI" ]]; then
+    CURRENT=$("$BTTCLI" get_string_variable variable_name=TTS_SPEECH_RATE 2>/dev/null) || CURRENT=""
+fi
+[[ "$CURRENT" =~ ^[0-9]+$ ]] || CURRENT=220
+
 NEW=$((CURRENT - 30))
-[ $NEW -lt 90 ] && NEW=90
-"$BTTCLI" set_persistent_string_variable variable_name=TTS_SPEECH_RATE to=$NEW
-afplay /System/Library/Sounds/Tink.aiff &
+((NEW < 90)) && NEW=90
+
+exec "$SCRIPT_DIR/tts_speed_set.sh" "$NEW"
