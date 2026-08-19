@@ -1,3 +1,79 @@
+# [27.0.0](https://github.com/terrylica/cc-skills/compare/v26.2.0...v27.0.0) (2026-08-19)
+
+
+* feat!: remove the zai/GLM plugin ([fb161a6](https://github.com/terrylica/cc-skills/commit/fb161a6734b81e118ccf7f418df56a31fd9cc782))
+
+
+### Bug Fixes
+
+* **marketplace:** drop client-identifying strings from public content ([96b1e7f](https://github.com/terrylica/cc-skills/commit/96b1e7feeddc7ac7b8d1f639771c63ca4097372c))
+This repository is PUBLIC — `gh repo view` reports visibility PUBLIC, and the
+marketplace is installed by strangers with `claude plugin marketplace add`. Four
+tracked files carried strings that identify a private healthcare client of the
+operator: a real incorporated business name paired with a real gmail address in
+a unit-test fixture, the same client's honorific in a doc-comment example, their
+given name labelling an iMessage corpus, and their Cloudflare organization slug
+next to a private repository path. None of it was needed by any test, example or
+explanation, and all of it was reachable by anyone reading the repo.
+
+These were found while auditing a different change in the same repo, not by a
+report — which is the uncomfortable part, since they had already been published
+for weeks. The operator's own identities (terrylica, terry@eonlabs.com,
+amonic@gmail.com) are deliberate self-disclosure and are deliberately left
+alone; only third-party identities are redacted.
+
+Changes
+* **tts-tg-sync:** repair ⌥S hotkey broken by BTT's minimal PATH ([bc281f7](https://github.com/terrylica/cc-skills/commit/bc281f7a3d8ba57d54fa81a2dd6f141fc2605e9d))
+The BetterTouchTool ⌥S trigger stopped speaking entirely. Root cause, measured
+with `ps eww` on the live BetterTouchToolShellScriptRunner.xpc (PID 51539):
+BTT runs shell actions with
+
+    PATH=/usr/bin:/bin:/usr/sbin:/sbin
+
+Nothing under mise, homebrew or ~/.local/bin is reachable there. `uv` lives only
+at ~/.local/share/mise/installs/uv/..., so the guard at tts_read_clipboard.sh:239
+(`! command -v uv`) tripped and the script exited 1 before synthesising anything.
+
+The failure was invisible rather than loud: DEBUG defaults to 0 so
+/tmp/tts_debug.log was never created, and the uv invocation discarded stderr to
+/dev/null. BTT's own Result box shows stdout only, so it stayed blank.
+
+Changes
+
+
+### BREAKING CHANGES
+
+* the `zai` plugin is gone from this marketplace. `zai` CLI, `ask-glm` skill, `glm`
+subagent, `/zai:glm` and `/zai:zai-web-research` commands, and the bundled web_search_prime /
+web_reader MCP wiring all go with it. Anyone who installed `zai@cc-skills` should uninstall it; it
+will fail at the first call once the Z.ai key is revoked.
+
+Operator decision 2026-08-19. The Z.ai GLM subscription is being cancelled, so every path that reaches for GLM has to go
+before it starts returning 401s at the worst possible moment — mid-consult, inside a subagent,
+where it reads as a tool bug rather than an expired subscription.
+
+WHAT REPLACES IT, AND WHAT DOES NOT. GLM did two distinct jobs here:
+
+- A ~1M-token context window for documents too large for the session tier. This is REPLACED by
+  Claude Opus 5 through the operator's own sub2api gateway, where 1M context is native. That
+  replacement is private infrastructure and deliberately does NOT live in this public marketplace.
+- An INDEPENDENT second opinion from a different vendor's model. This is NOT replaced. Opus is the
+  same family as the caller, so a consult there is a fresh, unanchored pass — worth having, but not
+  evidence that "another model agreed". Anyone relying on the zai plugin for genuine model diversity
+  should reach for a different provider rather than assume the substitute covers it.
+
+The two Z.ai MCP servers (web_search_prime, web_reader) were removed from the operator's own client
+config in the same pass. The documented fallback chain for that capability is unchanged: curl →
+agent-reach → WebSearch → headless-Chrome visual check.
+
+The marketplace entry was removed by cutting the exact JSON object with brace counting rather than by
+re-serialising the file. A round-trip through a JSON encoder rewrote 34 unrelated lines — escaping
+every em-dash to — and expanding compact keyword arrays — which is a different change than the
+one intended and would have been committed silently. The diff is now 0 insertions, 27 deletions.
+
+CHANGELOG.md keeps its historical zai entries. A changelog is a record of what happened, not a
+description of current state, and rewriting it to hide a retired plugin would make it useless.
+
 # [26.2.0](https://github.com/terrylica/cc-skills/compare/v26.1.0...v26.2.0) (2026-08-18)
 
 
