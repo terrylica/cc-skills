@@ -62,8 +62,8 @@ on a single screen: **GitHub** for developers, **emailed 6-digit code** for non-
 
 ## Reference implementations
 
-- `~/work/project-a/scripts/access-bootstrap/` + that repo's compliance README §D10
-  (2026-07-23: exampleorg org, two workers.dev apps, OTP+GitHub, curve-cli service token).
+- A private client repo's `scripts/access-bootstrap/` + that repo's compliance README §D10
+  (2026-07-23: client CF org, two workers.dev apps, OTP+GitHub, a CLI service token).
 - eonfleet (`eon.ccmax.uk`, April 2026): GitHub-SSO-only variant on a custom domain
   (ccmax-monitor repo: `production/cloudflare_access_jwt_verifier.py` for server-side JWT
   verification when the origin must double-check).

@@ -8,7 +8,7 @@ Reverse chronological record of changes to this skill.
 
 ## 2026-02-15 — v4 Native Pitfall Protections + Full Metadata Extraction
 
-**Context**: After correcting the "voice message" misconception (actually retracted messages — pitfall #14) and discovering that `thread_originator_guid` provides inline quote context for 291 messages in the Alex chat, we upgraded the script to natively handle every known pitfall deterministically rather than relying on contextual documentation alone. Cross-referenced all 5 forked OSS repos and the full 92-column `message` schema to identify missing attributes.
+**Context**: After correcting the "voice message" misconception (actually retracted messages — pitfall #14) and discovering that `thread_originator_guid` provides inline quote context for 291 messages in the sample chat, we upgraded the script to natively handle every known pitfall deterministically rather than relying on contextual documentation alone. Cross-referenced all 5 forked OSS repos and the full 92-column `message` schema to identify missing attributes.
 
 **Changes**:
 

@@ -24,7 +24,7 @@ import {
   renderForWhatsApp,
 } from "./draft-park.ts";
 
-const REAL_FOOTER = ["", "------", `${FOOTER_LEAD} | session abc-123 | work/project-a | 2026-08-17 14:18 PDT`];
+const REAL_FOOTER = ["", "------", `${FOOTER_LEAD} | session abc-123 | example-org/example-repo | 2026-08-17 14:18 PDT`];
 /** A parked note as Notes returns it: bold title line, blank, body, then the provenance footer. */
 const parkedNote = (body: string[]): string => ["Alex — what to review", "", ...body, ...REAL_FOOTER].join("\n");
 
