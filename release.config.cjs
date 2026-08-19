@@ -154,7 +154,13 @@ function transformCommitPreservingBody(commit, context) {
 function reflowCommitBodyForGfm(body) {
   if (!body) return body;
   try {
-    return require("./scripts/reflow-release-notes.ts").reflowMarkdown(body);
+    // Escape BEFORE reflowing, not after. The reflow treats a line starting with `<` as a
+    // standalone HTML block and refuses to join it, so a paragraph that happens to wrap
+    // onto a line beginning with `<script>` would stay hard-wrapped. Escaping first makes
+    // that line ordinary prose, so it folds like the rest of its paragraph. Escaping after
+    // would fix the rendering and leave the line break.
+    const escaped = require("./scripts/escape-commit-body-html.ts").escapeCommitBodyHtml(body);
+    return require("./scripts/reflow-release-notes.ts").reflowMarkdown(escaped);
   } catch (error) {
     console.error(
       "[release.config] reflow unavailable, surfacing the raw commit body; the notes may " +
