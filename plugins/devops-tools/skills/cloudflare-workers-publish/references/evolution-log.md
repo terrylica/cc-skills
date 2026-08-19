@@ -37,7 +37,7 @@ A first deploy including the 109 MiB full-res ZIP failed with `Asset too large`.
 **Evidence**: `wrangler 4.106.0` rejects any single asset > 25 MiB at deploy time
 (`Cloudflare Workers supports assets with sizes of up to 25 MiB. We found a file …bundle.zip
 with a size of 109 MiB`). No flag raises it. The gallery + a 24 MiB downscaled, ZipCrypto-
-encrypted ZIP deployed fine to `corolla-cross-trade-in.acct-000000.workers.dev`.
+encrypted ZIP deployed fine to `vehicle-appraisal.example-account.workers.dev`.
 
 **Added**:
 

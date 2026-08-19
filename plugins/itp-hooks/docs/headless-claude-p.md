@@ -110,7 +110,7 @@ Identical from three unrelated temp cwds, so it is **user-level** (the Claude Co
 project's `CLAUDE.md`, but still pays this.
 
 **Consequence for anyone using `-p` as a plain LLM call:** your instructions are a minority of the
-model's context. In the project-a extractor, a 17,499-token client prompt was **23%** of what the
+model's context. In the example-client extractor, a 17,499-token client prompt was **23%** of what the
 model saw; the rest was coding-agent harness and unrelated policy (Python version rules, TypeScript
 rules, git worktree doctrine).
 

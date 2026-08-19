@@ -74,7 +74,7 @@ HEIC:
 - `heic-to-jpeg-bundle` converted HEIC → JPEG (2048px gallery tier + thumbnails) and built a
   **24 MiB** ZipCrypto-encrypted ZIP (`--zip-cap-mib 25` downscaled the ZIP tier to ~960px to
   fit).
-- The gallery + the 24 MiB ZIP deployed to Workers (`corolla-cross-trade-in.acct-000000.workers.dev`).
+- The gallery + the 24 MiB ZIP deployed to Workers (`vehicle-appraisal.example-account.workers.dev`).
   A first attempt with the 109 MiB full-res ZIP failed with `Asset too large` — that's CFW-16.
 - A GitHub **gist** (the gateway, already shared with dealers via a short link) was updated
   with the gallery link, the ZIP link, and the **password** — which was deliberately absent

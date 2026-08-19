@@ -1,6 +1,6 @@
 // setup-access.mjs — idempotent Cloudflare Access provisioning from a declarative spec.
 //
-// Generalized 2026-07-23 from the project-a access-bootstrap run (2nd occurrence after the
+// Generalized 2026-07-23 from the example-client access-bootstrap run (2nd occurrence after the
 // April eonfleet setup → rule of two → canonical). Every step GETs before it POSTs: re-running is
 // always safe, and a pre-existing org/idp/app/policy is adopted, never overwritten.
 //

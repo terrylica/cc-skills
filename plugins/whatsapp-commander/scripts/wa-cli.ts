@@ -54,7 +54,7 @@ class UsageError extends Error {}
 /** Remote API rejected the request → exit code 1. */
 class ApiError extends Error {}
 
-/** Strip every non-digit: "+1 (604) 816-8818" → "16048168818" (E.164, no plus). */
+/** Strip every non-digit: "+1 (555) 123-4567" → "15551234567" (E.164, no plus). */
 function normalizeNumber(raw: string): string {
   const digits = raw.replace(/\D+/g, "");
   if (digits.length < MIN_E164_DIGITS) {

@@ -318,7 +318,7 @@ RETRIEVE_EOF
 | -------------- | ---------------------------- |
 | Bucket         | `s3://eonlabs-findings`      |
 | Region         | `us-west-2`                  |
-| Account        | `050214414362`               |
+| Account        | `<company-aws-account-id>`               |
 | 1Password Item | `<chronicle-item>` |
 | Prefix         | `sessions/`                  |
 

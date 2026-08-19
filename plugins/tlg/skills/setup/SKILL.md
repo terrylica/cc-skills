@@ -37,7 +37,7 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 | Profile       | 1Password Item                   | Item UUID                    | Phone        |
 | ------------- | -------------------------------- | ---------------------------- | ------------ |
-| `eon`         | Telegram API - EonLabsOperations | `iqwxow2iidycaethycub7agfmm` | +16043008878 |
+| `eon`         | Telegram API - EonLabsOperations | `iqwxow2iidycaethycub7agfmm` | +15559876543 |
 | `missterryli` | Telegram API - missterryli (CN)  | `dk456cs3v2fjilppernryoro5a` | +86 (CN)     |
 
 ## Prerequisites

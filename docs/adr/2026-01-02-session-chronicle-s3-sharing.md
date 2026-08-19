@@ -261,8 +261,8 @@ graph { label: "Session Chronicle S3 Architecture"; flow: south; }
 | S3 Bucket             | `s3://eon-research-artifacts`       | `s3://eonlabs-findings`                |
 | S3 Prefix             | `session-chronicle/<id>/`           | `sessions/<id>/`                       |
 | 1Password Vault       | `Claude Automation`                 | `Claude Automation`                    |
-| 1Password Item ID     | `rfuaxz6fzsz5y7p6nmutsuyzoq`        | `<chronicle-item>`           |
-| AWS Account           | Personal (739013795786)             | Company (050214414362)                 |
+| 1Password Item ID     | `<personal-chronicle-item>`        | `<chronicle-item>`           |
+| AWS Account           | Personal (<personal-aws-account-id>)             | Company (<company-aws-account-id>)                 |
 | Local Structure       | `findings/provenance/provenance.jsonl` | `findings/sessions/<id>/iterations.jsonl` |
 
 **Architectural decision unchanged**: The core decision (S3 + 1Password + Brotli) remains valid. This amendment only changes operational details (which bucket, which item).

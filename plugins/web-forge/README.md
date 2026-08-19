@@ -33,5 +33,5 @@ node skills/cf-access-wall/scripts/setup-access.mjs path/to/access-spec.json
 Requires: node, `playwright-core` (repo root), Chrome, the SCS `vault` CLI.
 
 Provenance: generalized from the gh-fine-grained-pat harness (gh-tools) after the 2026-07-23
-project-a run proved it vendor-agnostic. Reference decision record: that project's
+example-client run proved it vendor-agnostic. Reference decision record: that project's
 security-and-compliance README §D10.

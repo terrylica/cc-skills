@@ -119,7 +119,7 @@ in production. Emit both, read both from the same place.
 
 ## Reference implementation
 
-`~/work/project-a` — the 2026-08-02 migration of a client's Speech + Language resources from a
+`~/work/example-client` — the 2026-08-02 migration of a client's Speech + Language resources from a
 personal Microsoft account into the client's own tenant, under a CA block. Decision record: that
 repo's `docs/security-and-compliance/README.md`.
 

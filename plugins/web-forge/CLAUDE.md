@@ -3,7 +3,7 @@
 > Supervised dashboard automation for operations with NO public API, plus the declarative
 > Cloudflare Access wall built on top of it. Canonicalized 2026-07-23 after the rule of two:
 > the gh-fine-grained-pat harness (April) drove a second vendor's dashboards unchanged
-> (project-a: Cloudflare scoped-token forge + GitHub OAuth-app forge + Access wall, one
+> (example-client: Cloudflare scoped-token forge + GitHub OAuth-app forge + Access wall, one
 > supervised session).
 
 ## Structure

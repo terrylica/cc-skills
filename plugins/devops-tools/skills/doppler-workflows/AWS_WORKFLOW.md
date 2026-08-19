@@ -279,7 +279,7 @@ Last comprehensive audit date.
 **Current Setup:**
 
 - **IAM User**: `terryli`
-- **Account ID**: `050214414362` (EonLabs)
+- **Account ID**: `<company-aws-account-id>` (EonLabs)
 - **Group**: `fullstack-eng`
 - **Region**: `us-west-2`
 

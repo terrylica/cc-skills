@@ -297,7 +297,7 @@ casually (anti-fragility: don't destabilize a working credential forge for DRY p
 
 ## Reference implementation
 
-`~/work/project-a/scripts/access-bootstrap/` — the 2026-07-23 run that canonicalized this
+`~/work/example-client/scripts/access-bootstrap/` — the 2026-07-23 run that canonicalized this
 skill: Cloudflare scoped-token forge + GitHub OAuth-app forge + idempotent Access bootstrap,
 end-to-end in one supervised session (decision record: that repo's compliance README §D10).
 

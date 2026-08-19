@@ -1,6 +1,6 @@
 // gh-oauth-app.mjs — forge a GitHub OAuth App (no creation API exists) with identity preflight.
 //
-// Generalized 2026-07-23 from the project-a Access run. The preflight is the lesson: an OAuth
+// Generalized 2026-07-23 from the example-client Access run. The preflight is the lesson: an OAuth
 // app was created under the WRONG GitHub account mid-forge (the human had switched logins) — now
 // the signed-in login is asserted against --expect-account BEFORE anything is created.
 //

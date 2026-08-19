@@ -238,7 +238,7 @@ function decodePart(mime: string, contentType: string): string {
 
 /** A body shaped like the real client drafts: lead-in prose, then a list, then a closing line. */
 const CLINIC_BODY = [
-  "Hi Alex — three things from this morning, all checked before writing.",
+  "Hi {{CONTACT}} — three things from this morning, all checked before writing.",
   "",
   "- Brianna's caveat is withdrawn; her recording was fine.",
   "- Three page defects, not two — I miscounted the first time.",

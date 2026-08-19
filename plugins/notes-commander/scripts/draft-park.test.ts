@@ -26,15 +26,15 @@ import {
 
 const REAL_FOOTER = ["", "------", `${FOOTER_LEAD} | session abc-123 | example-org/example-repo | 2026-08-17 14:18 PDT`];
 /** A parked note as Notes returns it: bold title line, blank, body, then the provenance footer. */
-const parkedNote = (body: string[]): string => ["Alex — what to review", "", ...body, ...REAL_FOOTER].join("\n");
+const parkedNote = (body: string[]): string => ["{{CONTACT}} — what to review", "", ...body, ...REAL_FOOTER].join("\n");
 
 describe("bodyOnly — what the recipient actually gets", () => {
   test("strips the real provenance footer", () => {
-    expect(bodyOnly(parkedNote(["Hello Alex."]))).toBe("Hello Alex.");
+    expect(bodyOnly(parkedNote(["Hello {{CONTACT}}."]))).toBe("Hello {{CONTACT}}.");
   });
 
   test("strips the title line, so the message does not start with its own subject", () => {
-    expect(bodyOnly(parkedNote(["Hello Alex."]))).not.toContain("Alex — what to review");
+    expect(bodyOnly(parkedNote(["Hello {{CONTACT}}."]))).not.toContain("{{CONTACT}} — what to review");
   });
 
   test("REGRESSION 2026-08-17: an author's dash rule mid-message no longer truncates the send", () => {
