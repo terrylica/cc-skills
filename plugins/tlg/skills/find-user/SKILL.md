@@ -29,7 +29,7 @@ bun "$SCRIPT" find-user @username
 bun "$SCRIPT" find-user 2124832490
 
 # By phone (must be in contacts)
-bun "$SCRIPT" find-user +16043008878
+bun "$SCRIPT" find-user +15559876543
 
 # Works for groups/channels too
 bun "$SCRIPT" find-user @channelname

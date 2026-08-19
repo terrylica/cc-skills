@@ -22,8 +22,8 @@ ToS-gray. See [`skills/send-message/SKILL.md`](skills/send-message/SKILL.md) and
 
 ```bash
 SCRIPT="$(cc-plugin-root whatsapp-commander)/scripts/wa-cli.ts"
-bun "$SCRIPT" link "+1 604 816 8818" "message"   # Tier 1 → prints a wa.me URL
-bun "$SCRIPT" send 16048168818 "message"          # Tier 3 → Cloud API (needs env creds)
+bun "$SCRIPT" link "+1 555 123 4567" "message"   # Tier 1 → prints a wa.me URL
+bun "$SCRIPT" send 15551234567 "message"          # Tier 3 → Cloud API (needs env creds)
 ```
 
 `Command`/`ExitCode`/`EnvVar` are enums; commands dispatch through an enum-keyed

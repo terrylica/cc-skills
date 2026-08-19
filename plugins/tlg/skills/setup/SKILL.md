@@ -37,7 +37,7 @@ SCRIPT="$ROOT/scripts/tg-cli.ts"
 
 | Profile       | 1Password Item                   | Item UUID                    | Phone        |
 | ------------- | -------------------------------- | ---------------------------- | ------------ |
-| `eon`         | Telegram API - ExampleOpsAccount | `<1password-item-id>` | +16043008878 |
+| `eon`         | Telegram API - ExampleOpsAccount | `<1password-item-id>` | +15559876543 |
 | `personal` | Telegram API - personal (CN)  | `<1password-item-id>` | +86 (CN)     |
 
 ## Prerequisites
