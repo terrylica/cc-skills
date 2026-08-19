@@ -1619,7 +1619,7 @@ Found by reading the delivered MIME of a real client email rather than the sourc
 nine-item question checklist, written one item per line so two busy clients could answer by number
 without reading the message twice, arrived as:
 
-  - Q1 - DR. EXAMPLE - Do you want... - Q2 - EITHER - "second phase"... - Q3 - EITHER - ...
+  - Q1 - OWNER - Do you want... - Q2 - EITHER - "second phase"... - Q3 - EITHER - ...
 
 Five separate lists in that one message were affected, including the explanation of the five-stage
 model the whole email is organised around, and a three-option decision put to the practice owner. The
@@ -2185,7 +2185,7 @@ All fixes preserve runtime semantics; strictness now passes green across plugins
 ### Features
 
 * **gmail-commander:** canonical Gmail draft builder + PreToolUse guard against ad-hoc drafts-API writes ([ac754c0](https://github.com/terrylica/cc-skills/commit/ac754c06498e353371f0e62e3fa81d4023e3106e))
-Regression 2026-07-23 (project-a session): a Gmail draft built ad hoc
+Regression 2026-07-23 (example-client session): a Gmail draft built ad hoc
 (python + MIMEText text/plain) showed forced mid-paragraph line breaks in the
 compose window. Two compounding causes: (1) Gmail's drafts API re-encodes
 ingested raw messages (base64 -> quoted-printable observed) and HARD-FOLDS

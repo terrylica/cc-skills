@@ -42,15 +42,30 @@ ACCOUNT=$(echo "$IDENTITY" | jq -r '.Account')
 USER_ARN=$(echo "$IDENTITY" | jq -r '.Arn')
 echo "✓ AWS Identity: $USER_ARN"
 
-# Verify expected account (company account)
-if [[ "$ACCOUNT" != "050214414362" ]]; then
-  echo "✗ AWS Account: WRONG (expected 050214414362, got $ACCOUNT)"
+# Verify expected account (company account).
+#
+# The account id is supplied by the environment rather than hardcoded: this repo
+# is PUBLIC, and an AWS account id is account-linkable (CloudTrail, resource
+# discovery, org-structure inference) even though it is not a secret. The GATE
+# itself is load-bearing — it is what stops a chronicle upload landing in the
+# wrong account — so the literal is parameterised, NOT deleted.
+#
+#   export CHRONICLE_AWS_ACCOUNT_ID=<the company account id>
+#
+# Fail closed: an unset variable aborts rather than silently skipping the check.
+EXPECTED_ACCOUNT="${CHRONICLE_AWS_ACCOUNT_ID:-}"
+if [[ -z "$EXPECTED_ACCOUNT" ]]; then
+  echo "✗ AWS Account: CHRONICLE_AWS_ACCOUNT_ID is not set — refusing to skip the account gate"
+  exit 1
+fi
+if [[ "$ACCOUNT" != "$EXPECTED_ACCOUNT" ]]; then
+  echo "✗ AWS Account: WRONG (expected \$CHRONICLE_AWS_ACCOUNT_ID, got $ACCOUNT)"
   exit 1
 fi
 echo "✓ AWS Account: $ACCOUNT"
 
 # Create test file
-echo '{"test":"validation","timestamp":"'$TEST_TIMESTAMP'"}' > "$TEMP_DIR/test-upload.json"
+printf '{"test":"validation","timestamp":"%s"}\n' "$TEST_TIMESTAMP" > "$TEMP_DIR/test-upload.json"
 brotli -9 -o "$TEMP_DIR/test-upload.json.br" "$TEMP_DIR/test-upload.json"
 
 # Upload test file

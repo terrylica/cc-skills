@@ -37,7 +37,7 @@ export WHATSAPP_PHONE_NUMBER_ID="$(op item get '<ITEM>' --vault 'Claude Automati
   does:
 
   ```bash
-  bun "$SCRIPT" send 16048168818 "Your appointment is confirmed."
+  bun "$SCRIPT" send 15551234567 "Your appointment is confirmed."
   ```
 
 - **Template** (required for first contact / outside the 24h window) — raw Graph API, since
@@ -49,7 +49,7 @@ export WHATSAPP_PHONE_NUMBER_ID="$(op item get '<ITEM>' --vault 'Claude Automati
     -H "Content-Type: application/json" \
     -d '{
       "messaging_product": "whatsapp",
-      "to": "16048168818",
+      "to": "15551234567",
       "type": "template",
       "template": { "name": "hello_world", "language": { "code": "en_US" } }
     }'

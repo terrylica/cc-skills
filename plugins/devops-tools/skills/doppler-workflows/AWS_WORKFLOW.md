@@ -279,7 +279,7 @@ Last comprehensive audit date.
 **Current Setup:**
 
 - **IAM User**: `<user>`
-- **Account ID**: `050214414362` (example-org)
+- **Account ID**: `<company-aws-account-id>` (example-org)
 - **Group**: `fullstack-eng`
 - **Region**: `us-west-2`
 

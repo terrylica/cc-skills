@@ -3,7 +3,7 @@
 // Provenance: generalized 2026-07-23 from gh-tools/gh-fine-grained-pat/scripts/browser.mjs (which
 // stays untouched as that skill's battle-tested private copy) after the same harness drove a
 // SECOND vendor's dashboard unchanged (Cloudflare token forge + GitHub OAuth-app forge for the
-// project-a Access wall — see that repo's scripts/access-bootstrap/). Rule of two → canonical.
+// example-client Access wall — see that repo's scripts/access-bootstrap/). Rule of two → canonical.
 //
 // Hard-won invariants (do not regress):
 //   • node ONLY — Bun's connectOverCDP times out.

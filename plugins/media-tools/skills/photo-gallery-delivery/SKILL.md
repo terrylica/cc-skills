@@ -93,7 +93,7 @@ A used-car buyer's Amazon Photos album of **125 HEIC** trade-in photos was unusa
 whose appraisal software couldn't open HEIC (the documented #1 blocker in their outreach).
 Flow: pulled all 125 originals (byte-verified) → converted to a 2048px JPEG gallery + a
 **24 MiB** ZipCrypto ZIP (`--zip-cap-mib 25` downscaled it to fit) → deployed gallery + ZIP to
-`corolla-cross-trade-in.acct-000000.workers.dev` (the 109 MiB full-res ZIP hit the 25 MiB cap, so
+`vehicle-appraisal.example-account.workers.dev` (the 109 MiB full-res ZIP hit the 25 MiB cap, so
 it was kept off Workers) → updated the dealer-facing gist with the gallery link, ZIP link, and
 the password. Because a tinyurl already pointed at the gist, ~22 already-sent dealer links
 upgraded to JPEGs with nothing re-sent.

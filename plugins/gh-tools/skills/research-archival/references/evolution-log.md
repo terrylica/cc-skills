@@ -30,7 +30,7 @@ Reverse chronological — newest entries on top.
 
 ## 2026-02-09 — Initial creation
 
-- Created from incident: wrong GitHub account posted Issue #6 to `work/client-career-opportunities`
+- Created from incident: wrong GitHub account posted Issue #6 to `work/example-job-board`
 - Skill codifies research archival workflow with mandatory identity preflight
 - Companion hook: `gh-repo-identity-guard.mjs` (PreToolUse)
 - Three TodoWrite templates: Full Archival (A), Save Only (B), Issue Only (C)

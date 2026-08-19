@@ -52,15 +52,15 @@ captures a clean URL. It **exits 2** if the body has emoji/astral chars (they wo
 SCRIPT="$(cc-plugin-root whatsapp-commander)/scripts/wa-cli.ts"
 
 # Tier 1 — build a click-to-chat link (the recommended default; BMP-only body, round-trip verified)
-bun "$SCRIPT" link "+1 (604) 816-8818" "Hi Iris — short note and a link: https://example.com/x"
+bun "$SCRIPT" link "+1 (555) 123-4567" "Hi {{CONTACT}} — short note and a link: https://example.com/x"
 
 # Tier 1 — body read from a file (multi-paragraph messages are awkward inline)
-bun "$SCRIPT" link 16048168818 --file ./whatsapp-message.txt
+bun "$SCRIPT" link 15551234567 --file ./whatsapp-message.txt
 
 # Tier 3 — actually send via the Business Cloud API (creds resolved into env first)
 export WHATSAPP_TOKEN="$(op item get <ITEM> --vault 'Claude Automation' --fields token --reveal)"
 export WHATSAPP_PHONE_NUMBER_ID="$(op item get <ITEM> --vault 'Claude Automation' --fields phone_number_id --reveal)"
-bun "$SCRIPT" send 16048168818 "Your appointment is confirmed."
+bun "$SCRIPT" send 15551234567 "Your appointment is confirmed."
 WA_EOF
 ```
 
@@ -104,7 +104,7 @@ untouched. That asymmetry (Chinese renders fine, emoji become `�`) is the diag
 it is NOT a source-encoding bug, so don't go re-saving the file as UTF-8 — the bytes are
 already correct.
 
-- Verified 2026-07-04 (CPC ↔ Iris zh-Hans report): all Chinese rendered correctly but
+- Verified 2026-07-04 (CPC ↔ {{CONTACT}} zh-Hans report): all Chinese rendered correctly but
   `👋 ✅ ❌` and keycap sequences (`1️⃣`) showed as `�` in WhatsApp. Source bytes were valid
   (`👋` = `f0 9f 91 8b`; the URL held `%F0%9F%91%8B`). Removing the emoji fixed it entirely.
 - Substitute BMP markers: headings `【…】`, bullets `-`, numbering `1)` / `2)`, quotes
@@ -133,7 +133,7 @@ problem — the mangling is specific to the Tier-1 click-to-chat deep link.
 
 The landing-page preview is a **fixed, scrollable box**. Long or list-heavy bodies scroll out
 of view and _look_ truncated, which reads as a bug to the recipient/operator even though the
-link carries everything. Two of the three round-trips in the CPC ↔ Iris case (2026-07-04) were
+link carries everything. Two of the three round-trips in the CPC ↔ {{CONTACT}} case (2026-07-04) were
 this false alarm, not real defects. So, for Tier-1:
 
 - **Keep it concise** (the CLI warns past ~700 chars). WhatsApp messages are read on phones;
@@ -176,10 +176,10 @@ this false alarm, not real defects. So, for Tier-1:
   the built URL and asserts it equals the input, printing `✓ link carries the full N-char
 body`. Lesson baked in: on Tier-1 the agent has no view of the rendered result, so verify
   what's verifiable (round-trip) and never assert preview behavior blind. Cost that motivated
-  this: one CPC ↔ Iris message took three user round-trips (emoji → dangling dash → false
+  this: one CPC ↔ {{CONTACT}} message took three user round-trips (emoji → dangling dash → false
   "truncated" preview) — all now caught before hand-off.
 
-- **2026-07-04 — emoji tofu on the Tier-1 link path.** A zh-Hans report (CPC ↔ Iris) rendered
+- **2026-07-04 — emoji tofu on the Tier-1 link path.** A zh-Hans report (CPC ↔ {{CONTACT}}) rendered
   all Chinese correctly but showed `👋 ✅ ❌` / keycaps as `�` in WhatsApp. Root cause: the
   `wa.me` → WhatsApp deep-link handoff drops astral-plane (4-byte) codepoints while BMP text,
   including CJK, survives — the source file and percent-encoded URL were both valid UTF-8.

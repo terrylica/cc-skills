@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // gh-repo-identity-guard.mjs - Block gh CLI writes based on permission level
 //
-// Incident: 2026-02-09 — Issue #6 posted to work/client-career-opportunities
+// Incident: 2026-02-09 — Issue #6 posted to work/example-job-board
 // by terrylica (wrong account). Root cause: GH_TOKEN set to wrong account via
 // global mise config; project-specific mise config had a parse error.
 //
