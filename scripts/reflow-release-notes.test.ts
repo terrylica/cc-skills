@@ -92,3 +92,46 @@ describe("isAlreadyFlat — the gate used by the publisher", () => {
     expect(isAlreadyFlat(`${body}\n\n`)).toBe(true);
   });
 });
+
+/**
+ * Hand-aligned blocks.
+ *
+ * CommonMark says an indented-by-less-than-four block is ordinary paragraph text, so the
+ * reflow was joining aligned rows into one line — correct markdown, wrong output. Found on
+ * v27.0.1, whose commit body maps eleven redacted identifiers in a 2-space-indented table
+ * that reflowed into a single ~500-character line.
+ */
+describe("reflowMarkdown — hand-aligned blocks", () => {
+  const TABLE = ["  alpha      -> one", "  beta       -> two", "  gamma-long -> three"].join("\n");
+
+  it("preserves an indented mapping table row-by-row", () => {
+    expect(reflowMarkdown(`${TABLE}\n`).trimEnd()).toBe(TABLE);
+  });
+
+  it("still folds the prose around the table", () => {
+    const src = `Intro that was\nwrapped.\n\n${TABLE}\n\nOutro that was\nwrapped.\n`;
+    const out = reflowMarkdown(src);
+    expect(out).toContain("Intro that was wrapped.");
+    expect(out).toContain("Outro that was wrapped.");
+    expect(out).toContain(TABLE);
+  });
+
+  it("does NOT strand a wrapped bullet continuation, which is merely indented", () => {
+    // The false positive this pattern is narrowed to avoid: indentation alone must not
+    // preserve a line, or every wrapped bullet stays broken — the exact bug the reflow exists
+    // to fix. A continuation has no internal run of 2+ spaces, so it still folds.
+    const src = "- a bullet that was\n  wrapped onto the next line\n";
+    expect(reflowMarkdown(src).trimEnd()).toBe("- a bullet that was wrapped onto the next line");
+  });
+
+  it("treats an indented line with aligned columns as a table, not bullet prose", () => {
+    const src = "- a bullet\n\n  key        value\n  other      thing\n";
+    const out = reflowMarkdown(src);
+    expect(out).toContain("  key        value\n  other      thing");
+  });
+
+  it("leaves a fenced block alone regardless, since fences already win", () => {
+    const src = "```\n  a    b\n  c    d\n```\n";
+    expect(reflowMarkdown(src).trimEnd()).toBe(src.trimEnd());
+  });
+});
