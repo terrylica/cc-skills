@@ -49,6 +49,25 @@ const STANDALONE = /^\s*(#{1,6}\s|>|\||---|\*\*\*|___|<)/;
 const EXPLICIT_BREAK = /\s{2,}$/;
 
 /**
+ * A hand-aligned block line: indented, with a run of 2+ spaces between non-space text.
+ *
+ * These are columns the author lined up — mapping tables, before/after lists, key/value
+ * pairs. CommonMark says an indented-by-less-than-four block is ordinary paragraph text,
+ * so the reflow was joining ten aligned rows into one unreadable line. That is *correct*
+ * markdown and *wrong* output.
+ *
+ * Found on v27.0.1, whose commit body maps eleven redacted identifiers in a 2-space-
+ * indented table; reflowing produced a single 500-character line.
+ *
+ * The pattern is deliberately narrow. Indentation ALONE would match wrapped bullet
+ * continuations, which must still fold back into their bullet. Requiring an internal run
+ * of 2+ spaces is what distinguishes a table from a sentence. The cost of a false
+ * positive is one paragraph left hard-wrapped; the cost of a false negative is a
+ * destroyed table, so the asymmetry favours this test being slightly eager.
+ */
+const ALIGNED_BLOCK_LINE = /^[ \t]+\S.*\S {2,}\S/;
+
+/**
  * Join hard-wrapped prose into one logical line per paragraph.
  * Blank lines remain the only paragraph separator, which is exactly how GFM reads them.
  */
@@ -80,6 +99,13 @@ export function reflowMarkdown(input: string): string {
       continue;
     }
     if (STANDALONE.test(line) || EXPLICIT_BREAK.test(line)) {
+      flush();
+      out.push(line.replace(/\s+$/, ""));
+      continue;
+    }
+    // Checked after LIST_ITEM would match, so an aligned-looking bullet still behaves as a
+    // bullet; only non-list indented rows are preserved verbatim.
+    if (ALIGNED_BLOCK_LINE.test(line) && !LIST_ITEM.test(line)) {
       flush();
       out.push(line.replace(/\s+$/, ""));
       continue;
