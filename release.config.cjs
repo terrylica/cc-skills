@@ -38,6 +38,26 @@ const DOLLAR_SIGN = "$";
 const RELEASE_VERSION_PLACEHOLDER = DOLLAR_SIGN + "{nextRelease.version}";
 
 /**
+ * Disable conventional-commits-parser's "extra field" syntax, which silently truncates
+ * release notes.
+ *
+ * The parser's default `fieldPattern` is /^-(.*?)-$/. A line of dashes matches it — so a
+ * setext heading underline (`----------` under a title) or a markdown horizontal rule
+ * puts the parser into field-capture mode, and EVERY REMAINING LINE of the commit body is
+ * swallowed into a bogus field that no writer template ever emits. Not moved to the
+ * footer, not flagged: gone.
+ *
+ * Measured on v27.0.1's commit, whose body uses setext underlines for its sections:
+ * 66 body lines in, 8 published. The release-notes-extensiveness guard passed it, because
+ * the guard measures the notes file — the loss happens downstream of the guard, between
+ * parsing and rendering.
+ *
+ * A regex that cannot match anything turns the feature off. Nothing in this repo uses
+ * `-field-` syntax, and a commit body is markdown, where dashes are ordinary.
+ */
+const NEVER_MATCHES = /(?!)/;
+
+/**
  * Body-preserving clone of conventional-changelog-angular's writerOpts.transform
  * (node_modules/conventional-changelog-angular/src/writer.js). Reproduced inline
  * — rather than imported — because the preset ships ESM and this config is CJS.
@@ -102,8 +122,46 @@ function transformCommitPreservingBody(commit, context) {
     shortHash,
     subject,
     references,
-    body: commit.body, // ← the one addition: surface the multi-paragraph body
+    // ← the one addition: surface the multi-paragraph body, REFLOWED.
+    //
+    // Reflowing here is not cosmetic. A commit body is correctly hard-wrapped at ~72
+    // columns; GitHub renders a release body as GFM, where every newline inside a
+    // paragraph becomes a literal <br>. So the identical text is RIGHT in the commit and
+    // WRONG on the release page, and surfacing it verbatim published v26.2.0 and v27.0.1
+    // with mid-sentence breaks.
+    //
+    // This is the only place the fix can live. The PreToolUse guard covers `gh release
+    // create`, but semantic-release publishes through the GitHub API via
+    // @semantic-release/github, which the guard never sees. `mise run release:augment`
+    // reflows too, and is the manual/cross-repo companion — it is not on this path.
+    body: reflowCommitBodyForGfm(commit.body),
   };
+}
+
+/**
+ * Reflow a commit body for GFM, reusing the ONE reflow implementation.
+ *
+ * Imported rather than reimplemented: a second copy of the wrap heuristics would drift
+ * from `mise run release:augment`, and the two paths publishing differently-shaped notes
+ * is the exact failure this is meant to end. `require()` of that ESM/TS module works
+ * because it has no top-level await — see the comment on its CLI block, which exists to
+ * keep it require-able from here.
+ *
+ * Failure is non-fatal by design. A reflow that throws must not abort a release that is
+ * otherwise correct, so the original body is surfaced and the reason is logged; the
+ * outcome is then exactly the old behaviour rather than a broken one.
+ */
+function reflowCommitBodyForGfm(body) {
+  if (!body) return body;
+  try {
+    return require("./scripts/reflow-release-notes.ts").reflowMarkdown(body);
+  } catch (error) {
+    console.error(
+      "[release.config] reflow unavailable, surfacing the raw commit body; the notes may " +
+        `render with mid-sentence line breaks: ${error?.message ?? error}`,
+    );
+    return body;
+  }
 }
 
 /**
@@ -172,7 +230,24 @@ const COMMIT_PARTIAL_WITH_BODY = `*{{#if scope}} **{{scope}}:**
   {{~/if}}{{/each}}
 {{~/if}}
 {{~!-- extensive body (release-notes-extensiveness doctrine) --}}
+{{~!--
+  TWO blank lines below, not one, and the count is load-bearing.
+
+  Handlebars treats a block tag alone on its line as "standalone" and strips that
+  line's trailing newline. So the obvious one-blank-line form emits only ONE newline,
+  the body lands directly under the bullet, and GFM reads it as a lazy continuation --
+  rendering the entire body INSIDE the list item. That is how v27.0.1 published: not
+  merely hard-wrapped, but swallowed by its own bullet.
+
+  With two, one newline survives the standalone strip and the surviving blank line
+  makes the body its own paragraph. Verified by rendering the real template in
+  scripts/release-config-body-reflow.test.ts rather than by reasoning about it.
+
+  Keep this comment free of backticks: it lives inside a JS template literal, and a
+  backtick here terminates the string rather than quoting anything.
+--}}
 {{~#if body}}
+
 
 {{body}}
 {{~/if}}
@@ -212,6 +287,7 @@ module.exports = {
         // two-word form, the bare `BREAKING` keyword is accepted here too.
         parserOpts: {
           noteKeywords: ["BREAKING CHANGE", "BREAKING-CHANGE", "BREAKING"],
+          fieldPattern: NEVER_MATCHES,
         },
         releaseRules: [
           { breaking: true, release: "major" },
@@ -242,6 +318,7 @@ module.exports = {
         // about why. Keep these two lists in lockstep.
         parserOpts: {
           noteKeywords: ["BREAKING CHANGE", "BREAKING-CHANGE", "BREAKING"],
+          fieldPattern: NEVER_MATCHES,
         },
         writerOpts: {
           transform: transformCommitPreservingBody,
