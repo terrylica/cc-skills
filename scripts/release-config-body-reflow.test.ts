@@ -225,6 +225,44 @@ describe("commit bodies are not truncated by markdown dashes", () => {
   });
 });
 
+/**
+ * The escaper must be WIRED IN, not merely present.
+ *
+ * escape-commit-body-html.test.ts proves the function is correct in isolation. That is not
+ * the same claim as "the published notes are escaped" — the reflow had exactly this gap,
+ * where a correct module sat unused on the automatic path for 200 releases. Verified by
+ * mutation: stubbing the escape call out of release.config.cjs fails these.
+ */
+describe("release.config.cjs escapes commit-body HTML", () => {
+  const bodyOf = (body: string) => realTransform()(commitWith(body), CONTEXT).body;
+
+  test("a generic type parameter survives instead of being deleted by GFM", () => {
+    expect(bodyOf("a Map<Command,Handler> here")).toContain("Map&lt;Command,Handler>");
+  });
+
+  test("a tag named in prose does not become a real tag", () => {
+    const out = bodyOf("GFM turns a newline into a literal <br>, so text is wrong.");
+    expect(out).toContain("&lt;br>");
+    expect(out).not.toContain("<br>");
+  });
+
+  test("a CLI placeholder is not swallowed", () => {
+    expect(bodyOf("pass <uuid> to the tool")).toContain("&lt;uuid>");
+  });
+
+  test("escaping composes with reflow and aligned-block preservation", () => {
+    // All three fixes on one body: escape, fold the prose, keep the table's rows and its
+    // `->` arrows. Any one of them regressing shows up here.
+    const out = bodyOf("A <uuid> and\nwrapped prose.\n\n  a    -> b\n  cc   -> d\n");
+    expect(out).toContain("A &lt;uuid> and wrapped prose.");
+    expect(out).toContain("  a    -> b\n  cc   -> d");
+  });
+
+  test("code spans are left literal, so notes do not publish a visible &lt;", () => {
+    expect(bodyOf("the type is `Vec<T>` exactly")).toContain("`Vec<T>`");
+  });
+});
+
 describe("the reflow module stays reachable from CommonJS", () => {
   test("release.config.cjs can require it — no top-level await", () => {
     // The regression this pins: adding a top-level `await` to reflow-release-notes.ts
