@@ -2,6 +2,22 @@
 
 Reverse chronological — newest entries on top.
 
+<!-- INVENTED-FALLBACK-OK: this log QUOTES retired code in order to record why it was retired.
+     The 2026-08-20 entry names `${OWNER_TYPE:-unknown}` as the pattern the INVENTED-FALLBACK hook
+     correctly rejected. It is prose about a deleted line, not a live fallback — the shipped
+     identity block in SKILL.md contains no parameter-expansion defaults. Removing the quotation
+     would delete the evidence for the fix. -->
+
+## 2026-08-20 — Identity preflight could never pass on an ORG repo; backlink template tripped the hard-wrap guard
+
+- **The identity check blocked every legitimate archival into a shared organisation repository.** It was `AUTH_USER != REPO_OWNER → block`, but on an org repo the owner is the **org**, so the comparison can never match however correct the credential is. Measured on `Eon-Labs/alpha-forge`: authenticated `terrylica`, owner `Eon-Labs`, `owner.type = Organization`, `permissions.push = true` — the correct identity, called a mismatch. Fixed by falling through to `owner.type == Organization && permissions.push == true` when equality fails. The equality path is kept as the fast offline case; the org path costs one API call and is only reached on mismatch.
+- **Reframed what the guard is actually asking.** Its purpose is to stop writes reaching the _wrong account_; "may this identity write here" is answered by `permissions.push`, not by string equality with the owner. Equality is a sufficient condition, never a necessary one.
+- Also hardened the slug parse: `REPO_SLUG` is now captured as `owner/repo` (so the org branch can call `gh api repos/$REPO_SLUG`) with `REPO_OWNER` derived from it, instead of scraping the owner alone.
+- **The skill's own canonical backlink template was rejected by `GH-HARD-WRAP-GUARD`.** Four stacked `Key: value` lines are indistinguishable from hard-wrapped prose to the hook, and GitHub renders each newline as `<br>` anyway. Replaced with a markdown list, which states "separate items" structurally — the meaning intended and the form the guard accepts. Explicitly recorded that `GH-HARD-WRAP-OK` is the wrong remedy here: the complaint was correct.
+- Added a general rule that **issue and PR bodies must be authored as unbroken paragraphs**, with an `awk` one-liner to check, since soft-wrapping editors hide the problem. Long lines are correct for prose; runs of ~80–100-column lines are the defect.
+- The mismatch diagnostic first used `${OWNER_TYPE:-unknown}`, and the `INVENTED-FALLBACK` hook rejected it — correctly. Substituting the word "unknown" reports a value GitHub never sent. Rewritten to print each field **only when present**, plus `gh`'s own exit code and the first line of its stderr when the API call itself failed. Absent is a state, and the honest rendering of a state is nothing at all.
+- New troubleshooting rows: the hard-wrap guard; the org-repo identity fall-through; and `gh pr create` reporting "you must first push the current branch" **after a successful push** when run from a linked worktree — pass `--head <branch> --base main` explicitly, and confirm with `git ls-remote --heads origin <branch>` rather than trusting the error.
+
 ## 2026-08-13 — Retire self-hosted Firecrawl; route everything JS-rendered to the public API
 
 - The littleblack deployment was **found alive**, not dead as assumed — HTTP 200 in 21 ms, 5 containers up 5 weeks. Retired deliberately rather than declared dead: containers, images, volumes and build cache removed, reclaiming ~18 GB (61.99 → 44.04 GB). Port 3002 now refuses connections. sub2api and clickhouse-server on the same host were preserved.

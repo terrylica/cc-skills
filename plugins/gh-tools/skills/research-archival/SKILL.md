@@ -74,22 +74,56 @@ else
 fi
 
 # Resolve target repo owner
-REPO_OWNER=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\([^/]*\)/.*|\1|p')
+REPO_SLUG=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\([^/]*/[^/.]*\).*|\1|p')
+REPO_OWNER=${REPO_SLUG%%/*}
 
 echo "Authenticated as: $AUTH_USER (via $AUTH_SOURCE)"
 echo "Target repo owner: $REPO_OWNER"
 
-if [ "$AUTH_USER" != "$REPO_OWNER" ]; then
-  echo ""
-  echo "MISMATCH — do NOT proceed with gh write commands"
-  echo "Fix: export GH_TOKEN=\$(~/.claude/tools/bin/gh-token-for-repo)"
-  exit 1
+if [ "$AUTH_USER" = "$REPO_OWNER" ]; then
+  echo "Identity verified (personal repo, owner == authenticated user)"
+  exit 0
 fi
-echo "Identity verified — safe to proceed"
+
+# NOT automatically a failure. On an ORGANISATION repo the owner is the org, never a user, so a
+# string comparison can never match however correct the credential is. The real question is
+# whether this identity may write here.
+API_RC=0
+REPO_JSON=$(gh api "repos/$REPO_SLUG" 2>/tmp/gh-identity-err) || API_RC=$?
+OWNER_TYPE=$(printf '%s' "$REPO_JSON" | jq -r '.owner.type // empty')
+CAN_PUSH=$(printf '%s' "$REPO_JSON" | jq -r '.permissions.push // empty')
+
+if [ "$OWNER_TYPE" = "Organization" ] && [ "$CAN_PUSH" = "true" ]; then
+  echo "Identity verified (organisation repo; $AUTH_USER holds push on $REPO_SLUG)"
+  exit 0
+fi
+
+echo ""
+echo "MISMATCH — do NOT proceed with gh write commands"
+# Print what GitHub actually returned. A field that is absent prints as nothing, because absent is
+# a state -- substituting a word like "unknown" would report a value GitHub never sent.
+[ -n "$OWNER_TYPE" ] && echo "  owner.type       : $OWNER_TYPE"
+[ -n "$CAN_PUSH" ] && echo "  permissions.push : $CAN_PUSH"
+[ "$API_RC" -ne 0 ] && echo "  gh exit code     : $API_RC"
+[ -s /tmp/gh-identity-err ] && echo "  gh stderr        : $(head -1 /tmp/gh-identity-err)"
+echo "Fix: export GH_TOKEN=\$(~/.claude/tools/bin/gh-token-for-repo)"
+exit 1
 IDENTITY_EOF
 ```
 
 **BLOCK if mismatch** — display diagnostic and do NOT continue to any `gh` write operation.
+
+> **Why the organisation branch exists.** The original check was `AUTH_USER != REPO_OWNER → block`.
+> On an organisation repository the owner is the **org**, so that comparison can never match no
+> matter how correct the credential is — it blocked every legitimate archival into a shared repo.
+> Measured 2026-08-20 on `Eon-Labs/alpha-forge`: authenticated `terrylica`, owner `Eon-Labs`,
+> `owner.type = Organization`, `permissions.push = true`. That is the correct identity, and the
+> check called it a mismatch.
+>
+> The guard's purpose is to stop writes going to the **wrong account**, and "may this identity write
+> here" is answered by `permissions.push`, not by string equality with the owner. The personal-repo
+> equality path is kept as the fast, offline case; the org path costs one API call and is only
+> reached when equality fails.
 
 ---
 
@@ -241,14 +275,37 @@ After issue creation, update the archived file's frontmatter with the issue URL 
 
 ## Canonical Backlink Comment
 
-Post a comment on the Issue linking back to the archived file:
+Post a comment on the Issue linking back to the archived file. **Metadata goes in a markdown list,
+not as consecutive prose lines:**
 
 ```
 **Archived**: `docs/research/YYYY-MM-DD-slug-source_type.md`
-Scraped: 2026-02-09T18:30:00Z
-Source: [chatgpt-share](https://chatgpt.com/share/...)
-Session: SESSION_UUID
+
+- **Scraped**: 2026-02-09T18:30:00Z — scraper, byte count, whether it reached the page footer
+- **Source**: [chatgpt-share](https://chatgpt.com/share/...)
+- **Session**: `SESSION_UUID`
+- **PR**: #NNN — commit `abcdef12`
 ```
+
+> **Do not restore the bare consecutive-line version.** GitHub renders every newline in a comment as
+> `<br>`, so four stacked `Key: value` lines are indistinguishable from hard-wrapped prose and the
+> `GH-HARD-WRAP-GUARD` PreToolUse hook **rejects the command** (measured 2026-08-20 — the previous
+> template in this file was itself the thing that tripped it). A list expresses "these are separate
+> items" structurally, which is both what is meant and what the guard accepts. Reaching for the
+> `GH-HARD-WRAP-OK` override here would suppress a correct complaint.
+
+### Every issue/PR body must be authored as unbroken paragraphs
+
+This applies to the Issue body and the PR body too, not just the backlink. Author each **paragraph**
+as ONE long line and let GitHub reflow it; keep breaks only for list items, headings, code blocks and
+blank lines. Editors that soft-wrap make this invisible — check with:
+
+```bash
+awk '{ if (length($0) > 100 && $0 !~ /^[-*|#> ]/) printf "L%d: %d cols\n", NR, length($0) }' body.md
+```
+
+Long lines are **expected and correct** for prose paragraphs; the failure mode is many lines of
+~80–100 columns in a row.
 
 ---
 
@@ -268,16 +325,19 @@ After modifying THIS skill:
 
 ## Troubleshooting
 
-| Issue                         | Cause                            | Fix                                                                        |
-| ----------------------------- | -------------------------------- | -------------------------------------------------------------------------- |
-| Wrong account posting         | GH_TOKEN mismatch                | Check `mise env \| grep GH_TOKEN`, verify `GH_ACCOUNT`                     |
-| Body exceeds 65536 chars      | GitHub API limit                 | Split across issue body + first comment                                    |
-| Firecrawl returns no markdown | Transient API failure            | Retry once, then fall back to Jina with `-H "x-timeout: 30"`               |
-| Scrape returns the page shell | SPA had not rendered yet         | Raise `waitFor` (8000 → 15000) and `timeout` in the request body           |
-| Jina returns ~321 bytes       | Missing timeout header           | Add `-H "x-timeout: 30"` — without it Jina returns login chrome            |
-| Jina output truncated         | Jina under-covers JS-heavy pages | Expected — use Firecrawl; Jina got 17%/12% coverage in the 2026-08-13 test |
-| mise parse error              | Stale .mise.toml syntax          | Run `mise doctor`, check `[hooks.enter]` syntax                            |
-| Identity guard blocks         | Non-owner account                | `export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`                 |
+| Issue                                                                                    | Cause                                                        | Fix                                                                                                                                              |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GH-HARD-WRAP-GUARD` rejects the command                                                 | Body authored as hard-wrapped prose                          | Reflow each paragraph to ONE line; use a list for stacked `Key: value` metadata. Do **not** reach for `GH-HARD-WRAP-OK` — the guard is right     |
+| Identity preflight blocks on an org repo                                                 | Owner is the org, so `AUTH_USER != REPO_OWNER` always        | Expected — the check now falls through to `owner.type == Organization` + `permissions.push == true`. If it still blocks, you genuinely lack push |
+| `gh pr create` says "you must first push the current branch" **after** a successful push | Run from a linked worktree; `gh` cannot resolve the upstream | Pass `--head <branch> --base main` explicitly. Confirm the branch is really remote with `git ls-remote --heads origin <branch>`                  |
+| Wrong account posting                                                                    | GH_TOKEN mismatch                                            | Check `mise env \| grep GH_TOKEN`, verify `GH_ACCOUNT`                                                                                           |
+| Body exceeds 65536 chars                                                                 | GitHub API limit                                             | Split across issue body + first comment                                                                                                          |
+| Firecrawl returns no markdown                                                            | Transient API failure                                        | Retry once, then fall back to Jina with `-H "x-timeout: 30"`                                                                                     |
+| Scrape returns the page shell                                                            | SPA had not rendered yet                                     | Raise `waitFor` (8000 → 15000) and `timeout` in the request body                                                                                 |
+| Jina returns ~321 bytes                                                                  | Missing timeout header                                       | Add `-H "x-timeout: 30"` — without it Jina returns login chrome                                                                                  |
+| Jina output truncated                                                                    | Jina under-covers JS-heavy pages                             | Expected — use Firecrawl; Jina got 17%/12% coverage in the 2026-08-13 test                                                                       |
+| mise parse error                                                                         | Stale .mise.toml syntax                                      | Run `mise doctor`, check `[hooks.enter]` syntax                                                                                                  |
+| Identity guard blocks                                                                    | Non-owner account                                            | `export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)`                                                                                       |
 
 ## References
 
