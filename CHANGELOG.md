@@ -1,3 +1,12 @@
+# [27.1.0](https://github.com/terrylica/cc-skills/compare/v27.0.3...v27.1.0) (2026-08-20)
+
+
+### Features
+
+* **doc-tools:** add teachback interactive explainer skill ([6bc95d3](https://github.com/terrylica/cc-skills/commit/6bc95d307cad243fcb2b9c09316ecbde43154293)), closes [Eon-Labs/alpha-forge#527](https://github.com/Eon-Labs/alpha-forge/issues/527) [Eon-Labs/alpha-forge#527](https://github.com/Eon-Labs/alpha-forge/issues/527)
+
+Promote teachback from Eon-Labs/alpha-forge, where it was built and
+
 ## [27.0.3](https://github.com/terrylica/cc-skills/compare/v27.0.2...v27.0.3) (2026-08-19)
 
 
