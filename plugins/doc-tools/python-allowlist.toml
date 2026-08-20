@@ -1,0 +1,52 @@
+# python-allowlist.toml — why the teachback skill ships Python rather than Bun/TypeScript.
+#
+# The house default is Bun/TypeScript for greenfield work (see ~/.claude/principles-CLAUDE.md
+# § "Language selection default"). The teachback verification gates are an existing-convention
+# override, not greenfield: they were built and hardened in Eon-Labs/alpha-forge#527 across eleven
+# review rounds and twenty-two fixed gate defects, and were promoted here verbatim. Rewriting them
+# in TypeScript at promotion time would have discarded that review history and re-run the risk it
+# bought down, on code whose whole purpose is to be trusted.
+#
+# They are also PEP 723 single-file scripts: `uv run --no-project --script <gate>.py` needs no
+# virtualenv, no lockfile and no install step, which is what lets the skill run in ANY project
+# without touching that project's toolchain. That property is the reason the promotion works at all.
+
+schema = "https://github.com/terrylica/cc-skills/blob/main/plugins/itp-hooks/schemas/python-allowlist.schema.json"
+
+[[allow]]
+path   = "skills/teachback/verify_explainer.py"
+reason = """
+Static verification gate for generated explainer HTML. Parses the document with beautifulsoup4 and
+asserts structural invariants. Promoted verbatim from Eon-Labs/alpha-forge#527; PEP 723 self-contained
+so `uv run --no-project --script` works in any project without a virtualenv.
+"""
+issue  = "Eon-Labs/alpha-forge#527"
+
+[[allow]]
+path   = "skills/teachback/verify_rendered.py"
+reason = """
+Rendered verification gate. Drives the page in a real browser via playwright, whose only first-class
+binding for this use is Python/Node; the gate shares its check vocabulary with verify_explainer.py, so
+splitting languages across the pair would fork that vocabulary. Promoted verbatim from
+Eon-Labs/alpha-forge#527; PEP 723 self-contained.
+"""
+issue  = "Eon-Labs/alpha-forge#527"
+
+[[allow]]
+path   = "skills/teachback/mutate_gate.py"
+reason = """
+Negative-fixture harness: mutates known-good explainer HTML and asserts each gate check actually
+fires. It discovers `.check(...)` call sites by parsing the other two gates with Python's own `ast`
+module — it must be written in the language it audits. Promoted verbatim from Eon-Labs/alpha-forge#527.
+"""
+issue  = "Eon-Labs/alpha-forge#527"
+
+[[allow]]
+path   = "skills/teachback/tests/test_check_discovery.py"
+reason = """
+pytest module pinning mutate_gate.py's `.check(...)` call-site discovery against every shape a check
+label can take. It imports mutate_gate.py by path via importlib and inspects Python AST nodes, so it
+must be Python. Follows the PEP 723 + pytest convention already used by
+plugins/unlimited-ocr/tests/ and plugins/productivity-tools/skills/notion-sdk/tests/.
+"""
+issue  = "Eon-Labs/alpha-forge#527"

@@ -1,8 +1,8 @@
 # doc-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-9-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-13-blue.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 Comprehensive documentation tools for Claude Code: ASCII diagram validation, documentation standards, LaTeX compilation, and Pandoc PDF generation.
 
@@ -10,17 +10,21 @@ Merged from `doc-tools` + `doc-build-tools` plugins.
 
 ## Skills
 
-| Skill                     | Description                                                        |
-| ------------------------- | ------------------------------------------------------------------ |
-| `ascii-diagram-validator` | Validates ASCII box-drawing diagram alignment in markdown files    |
-| `documentation-standards` | Markdown documentation standards for LLM-optimized architecture    |
-| `glossary-management`     | Manage terminology glossary with Vale vocabulary sync              |
-| `latex-build`             | Build automation with latexmk, live preview, dependency tracking   |
-| `latex-setup`             | macOS environment setup with MacTeX, Skim viewer, and SyncTeX      |
-| `latex-tables`            | Modern table creation with tabularray package                      |
-| `pandoc-pdf-generation`   | Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography |
-| `plotext-financial-chart` | ASCII financial line charts with dot marker for GitHub markdown    |
-| `terminal-print`          | Print iTerm2 terminal output to HP network printer via PDF         |
+| Skill                      | Description                                                            |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `academic-pdf-to-gfm`      | Convert academic PDFs to GitHub-flavored markdown                      |
+| `ascii-diagram-validator`  | Validates ASCII box-drawing diagram alignment in markdown files        |
+| `documentation-standards`  | Markdown documentation standards for LLM-optimized architecture        |
+| `glossary-management`      | Manage terminology glossary with Vale vocabulary sync                  |
+| `latex-build`              | Build automation with latexmk, live preview, dependency tracking       |
+| `latex-setup`              | macOS environment setup with MacTeX, Skim viewer, and SyncTeX          |
+| `latex-tables`             | Modern table creation with tabularray package                          |
+| `markdown-table-validator` | Validates markdown table structure and column alignment                |
+| `pandoc-pdf-generation`    | Markdown to PDF with XeLaTeX, section numbering, TOC, bibliography     |
+| `plotext-financial-chart`  | ASCII financial line charts with dot marker for GitHub markdown        |
+| `static-page-stack`        | Static HTML page stack conventions and build layout                    |
+| `teachback`                | Single-file interactive HTML explainer with MathJax, assessment, gates |
+| `terminal-print`           | Print iTerm2 terminal output to HP network printer via PDF             |
 
 ## Installation
 
@@ -43,6 +47,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - "create a LaTeX table" → latex-tables
 - "generate PDF from markdown", "convert to PDF" → pandoc-pdf-generation
 - "financial chart", "line chart", "price chart", "plotext" → plotext-financial-chart
+- "teach this back", "explainer page", "interactive lesson", "/teachback" → teachback
 - "print terminal", "print session output", "terminal to printer" → terminal-print
 
 ## Features
@@ -63,14 +68,16 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 ## Dependencies
 
-| Component | Required         | Installation                           |
-| --------- | ---------------- | -------------------------------------- |
-| MacTeX    | For LaTeX skills | `brew install --cask mactex`           |
-| Pandoc    | For PDF gen      | `brew install pandoc`                  |
-| Skim      | For PDF preview  | `brew install --cask skim`             |
-| Vale      | For glossary     | `brew install vale`                    |
-| plotext   | For charts       | `uv pip install plotext`               |
-| macOS     | For setup skill  | Required for MacTeX/Skim configuration |
+| Component | Required                         | Installation                                                        |
+| --------- | -------------------------------- | ------------------------------------------------------------------- |
+| MacTeX    | For LaTeX skills                 | `brew install --cask mactex`                                        |
+| Pandoc    | For PDF gen                      | `brew install pandoc`                                               |
+| Skim      | For PDF preview                  | `brew install --cask skim`                                          |
+| Vale      | For glossary                     | `brew install vale`                                                 |
+| plotext   | For charts                       | `uv pip install plotext`                                            |
+| uv        | For teachback gates              | `brew install uv` (gates are PEP 723 scripts; deps resolve per-run) |
+| Chromium  | For teachback rendered gate only | Bootstrapped automatically by `verify_rendered.py` on first use     |
+| macOS     | For setup skill                  | Required for MacTeX/Skim configuration                              |
 
 ## Troubleshooting
 
