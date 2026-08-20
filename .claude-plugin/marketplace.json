@@ -221,7 +221,7 @@
     },
     {
       "name": "doc-tools",
-      "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation",
+      "description": "Comprehensive documentation: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF generation, interactive HTML explainers",
       "version": "27.0.3",
       "source": "./plugins/doc-tools",
       "category": "documents",
@@ -240,7 +240,12 @@
         "pandoc",
         "pdf",
         "build",
-        "tables"
+        "tables",
+        "teachback",
+        "explainer",
+        "interactive-html",
+        "pedagogy",
+        "mathjax"
       ],
       "strict": false
     },
