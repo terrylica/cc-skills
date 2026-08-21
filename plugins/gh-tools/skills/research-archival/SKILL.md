@@ -240,6 +240,45 @@ Stop hook running `prettier --write` and `markdownlint-cli2 --fix`) makes a past
 to keep byte-identical**, so "is the copy still saying what the original said?" becomes a question you
 must answer on every commit. **With one copy there is no question.**
 
+### Enforcing one-copy: MEASURE the duplicate, never pattern-match a marker
+
+The first gate refused re-embedding by looking for the legacy `<!-- RAW-SCRAPE-BODY-BEGINS -->`
+comment. Review defeated it in one move: **append the whole transcript after a plain `---`, omit the
+marker, and the gate returns success** — while the test named `test_re_embedding_the_transcript_is_refused`
+stayed green, because that test built its fixture _using_ the marker. A pattern match presented as a
+structural guarantee, verified on the one input where the bug could not appear.
+
+Re-embedding is a **near-duplicate detection** problem, so use the standard measure for one:
+_containment_ over w-shingles, from Andrei Z. Broder, "On the resemblance and containment of
+documents", SEQUENCES 1997, `doi:10.1109/SEQUEN.1997.666900` — _"the containment c(A,B) of A in B is
+a number between 0 and 1 that, when close to 1, indicates that A is roughly contained within B"_, over
+_"the bag (multiset) of all shingles of size w contained in D"_.
+
+Four things make it work in practice:
+
+- **Containment, not resemblance.** The question is directional — how much of the _transcript_
+  reappears — and resemblance is symmetric, so a long editorial section would dilute it and mask a
+  full paste.
+- **Calibrate the threshold; do not choose it.** Measure the real archive and a ladder of partial
+  pastes. Ours: `0.0097` legitimate quoting → `0.1172` a tenth → `1.0000` the whole thing, so a `0.10`
+  limit sits ~10× above quoting and below every meaningful paste. Publish the ladder next to the
+  constant, or the number reads as a guess.
+- **Tokenise lowercased alphanumerics**, so the measure survives the very reformatting that made
+  byte-comparison impossible. A re-embedded transcript must still be caught after `prettier` runs.
+- **Sets, not multisets.** Broder defines a bag; a set answers "how much _distinct_ material was
+  reproduced", so pasting one fragment twenty times counts once — which is the right semantics here.
+
+**Scope the invariant to the repository, not to one file.** The second bypass was simply moving the
+copy: a sweep of only the archive that _pins_ the transcript reported success while a sibling `.md`
+held 100% of it. Sweep every markdown file, **and** measure their concatenation — twelve fragments
+each under the limit still reconstruct the transcript.
+
+State the two limits rather than claiming them away: **a single quoted line must still pass** (the
+archive itself legitimately quotes at ~1%, so any threshold that refuses one pasted line forbids
+quotation entirely), and **a heavily paraphrased re-embed defeats the measure** — at that point the
+documents genuinely differ and no automatic check can rule on whether meaning survived. That is the
+same undecidability that killed the normaliser; reviewer judgement is the only control.
+
 ### The `.txt` extension is load-bearing
 
 Store the raw scrape as `.txt`, not `.md`. Markdown tooling globs `*.md`; a raw scrape kept as `.md`
@@ -288,6 +327,18 @@ Editorial only, and it is worth writing properly because it is the part a human 
 Verify citations by **content** via the Crossref API, never by HTTP status — a 403 bot-wall and a 404
 are indistinguishable from the status line. When Crossref carries no abstract, say so and mark the
 claim unverified rather than implying it was checked.
+
+**Match every verbatim quotation back against the retrieved document programmatically**, and check the
+extraction before trusting the match. `textutil -convert txt -stdout` on a PDF returned exactly the
+file's byte count — the raw bytes passed straight through, reported as success — against which any
+quote would have "verified" into binary noise. Sanity-check extracted length against page count, then
+compare whitespace-insensitive and ligature-folded, since extraction mangles inter-word spacing.
+
+When the match fails, **find out which kind of failure it is before editing anything**. Ours failed
+twice: once because the extractor interpolated a page number mid-sentence (the quotation was
+faithful), and once because a `'` had been substituted for the source's `"` _inside_ quotation marks.
+The second is a modification of quoted text however small it looks, and it is the same defect as
+substituting spoken names for glyphs that would not extract.
 
 ---
 
