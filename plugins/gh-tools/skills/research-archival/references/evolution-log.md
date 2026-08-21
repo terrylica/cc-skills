@@ -8,6 +8,14 @@ Reverse chronological — newest entries on top.
      identity block in SKILL.md contains no parameter-expansion defaults. Removing the quotation
      would delete the evidence for the fix. -->
 
+## 2026-08-20 (later) — The identity preflight printed "Identity verified" while resolving NOTHING
+
+- **A false PASS, which is worse than the false BLOCK fixed earlier the same day.** Run on `terrylica/opendeviationbar-patterns` — a repo the credential legitimately owns — the check printed `Identity verified` having resolved **neither** side. Two independent defects lined up so that the comparison became `"" = ""`, which is true.
+- **Defect 1 — the token branch assumed `GH_TOKEN` is in the environment.** `gh` keeps the credential in the **OS keyring**, so on a correctly-configured machine `GH_TOKEN` is normally absent and `curl -H "Authorization: token "` returned empty. Asking `gh api user --jq .login` is not a fallback, it is the ordinary path; it is now the `else` branch, with the token branch kept ahead of it for CI.
+- **Defect 2 — the slug regex could not parse an SSH host alias.** This machine's own owner-per-path policy produces remotes like `git@github.com-terrylica:terrylica/repo.git`, where the character following `github.com` is `-`, not `:` or `/`. `github\.com[:/]` matched nothing. An optional `[^:/]*` now consumes the alias suffix. **The policy that makes the guard necessary is the same policy that broke it.**
+- **The real fix is neither regex: FAIL CLOSED.** An equality test between two possibly-empty strings reports success by default, so the block now exits non-zero when either side is unresolved, with a per-field diagnostic. _"Identity could not be RESOLVED" and "identity verified" are different states, and only one of them is safe to proceed from._ Verified against the live repo after the fix: resolves `terrylica` / `terrylica/opendeviationbar-patterns` and verifies for a reason.
+- Generalisable, and the reason this entry exists rather than a quiet patch: **a guard whose failure mode is silence is indistinguishable from a guard that works.** Prefer comparisons that cannot be satisfied by absence, and assert resolution before asserting agreement.
+
 ## 2026-08-20 — Identity preflight could never pass on an ORG repo; backlink template tripped the hard-wrap guard
 
 - **The identity check blocked every legitimate archival into a shared organisation repository.** It was `AUTH_USER != REPO_OWNER → block`, but on an org repo the owner is the **org**, so the comparison can never match however correct the credential is. Measured on `Eon-Labs/alpha-forge`: authenticated `terrylica`, owner `Eon-Labs`, `owner.type = Organization`, `permissions.push = true` — the correct identity, called a mismatch. Fixed by falling through to `owner.type == Organization && permissions.push == true` when equality fails. The equality path is kept as the fast offline case; the org path costs one API call and is only reached on mismatch.

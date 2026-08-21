@@ -64,21 +64,42 @@ The `gh-repo-identity-guard.mjs` PreToolUse hook provides a safety net, but this
 ```bash
 /usr/bin/env bash << 'IDENTITY_EOF'
 # Resolve authenticated user
-if [ -n "$GH_ACCOUNT" ]; then
+if [ -n "${GH_ACCOUNT:-}" ]; then
   AUTH_USER="$GH_ACCOUNT"
   AUTH_SOURCE="GH_ACCOUNT"
-else
+elif [ -n "${GH_TOKEN:-}" ]; then
   AUTH_USER=$(curl -sf --max-time 5 -H "Authorization: token $GH_TOKEN" \
     https://api.github.com/user 2>/dev/null | grep -o '"login":"[^"]*"' | cut -d'"' -f4)
   AUTH_SOURCE="API /user"
+else
+  # `gh` keeps the credential in the OS keyring, so GH_TOKEN is frequently absent from the
+  # environment on a correctly-configured machine. Asking gh is not a fallback, it is the
+  # normal path -- and omitting it made the API branch return empty on every keyring setup.
+  AUTH_USER=$(gh api user --jq .login 2>/dev/null)
+  AUTH_SOURCE="gh api user (keyring)"
 fi
 
-# Resolve target repo owner
-REPO_SLUG=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[:/]\([^/]*/[^/.]*\).*|\1|p')
+# Resolve target repo owner.
+# `github\.com` alone does NOT match an SSH host alias: this machine's own owner-per-path policy
+# gives remotes like `git@github.com-terrylica:terrylica/repo.git`, where the character after
+# `github.com` is `-`, not `:` or `/`. The optional `[^:/]*` consumes the alias suffix.
+REPO_SLUG=$(git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com[^:/]*[:/]\([^/]*/[^/.]*\).*|\1|p')
 REPO_OWNER=${REPO_SLUG%%/*}
 
-echo "Authenticated as: $AUTH_USER (via $AUTH_SOURCE)"
-echo "Target repo owner: $REPO_OWNER"
+echo "Authenticated as: ${AUTH_USER:-<unresolved>} (via $AUTH_SOURCE)"
+echo "Target repo owner: ${REPO_OWNER:-<unresolved>}"
+
+# FAIL CLOSED. If either side is empty the comparison below is "" = "" and the guard reports
+# SUCCESS while knowing nothing -- the exact green-signal-is-a-proxy failure this repo catalogues.
+# Observed 2026-08-20: an SSH-alias remote produced an empty owner, an absent GH_TOKEN produced an
+# empty user, and the check printed "Identity verified".
+if [ -z "${AUTH_USER:-}" ] || [ -z "${REPO_SLUG:-}" ]; then
+  echo ""
+  echo "BLOCKED — identity could not be RESOLVED, which is not the same as verified."
+  [ -z "${AUTH_USER:-}" ] && echo "  authenticated user : unresolved (set GH_ACCOUNT, or check \`gh auth status\`)"
+  [ -z "${REPO_SLUG:-}" ] && echo "  repo slug          : unresolved from $(git remote get-url origin 2>/dev/null || echo '<no origin>')"
+  exit 1
+fi
 
 if [ "$AUTH_USER" = "$REPO_OWNER" ]; then
   echo "Identity verified (personal repo, owner == authenticated user)"
