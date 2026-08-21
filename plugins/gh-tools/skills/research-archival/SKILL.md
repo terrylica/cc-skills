@@ -19,11 +19,14 @@ Scrape AI research conversations (ChatGPT, Gemini, Claude) and web pages, archiv
 ```
 1. Identity preflight — verify GH_ACCOUNT or resolve via curl /user
 2. Scrape URL — route to Firecrawl or Jina per url-routing.md
-3. Save to file — YYYY-MM-DD-{slug}-{source_type}.md with frontmatter
-4. Survey labels — gh label list, reuse existing, max 3-6
-5. Create GitHub Issue — use --body with heredoc or --body-file
-6. Update frontmatter — add github_issue_url and github_issue_number
-7. Post canonical backlink comment on Issue
+3. Save the RAW scrape — docs/research/raw/…{source_type}.raw-scrape.txt, byte-exact, never edited
+4. Record its sha256 — over the raw file's exact bytes
+5. Write the EDITORIAL .md — frontmatter incl. raw_scrape_path + raw_scrape_sha256, and a POINTER.
+   Do NOT paste the transcript in; see "File Saving — TWO artifacts, and never one"
+6. Survey labels — gh label list, reuse existing, max 3-6
+7. Create GitHub Issue — use --body with heredoc or --body-file
+8. Update frontmatter — add github_issue_url and github_issue_number
+9. Post canonical backlink comment on Issue
 ```
 
 ### Template B - Save Only (no issue)
@@ -31,7 +34,8 @@ Scrape AI research conversations (ChatGPT, Gemini, Claude) and web pages, archiv
 ```
 1. Identity preflight (still required for consistency)
 2. Scrape URL — route to Firecrawl or Jina per url-routing.md
-3. Save to file — YYYY-MM-DD-{slug}-{source_type}.md with frontmatter
+3. Save the RAW scrape as .raw-scrape.txt + record its sha256
+4. Write the EDITORIAL .md with the provenance pin and a pointer — never the transcript itself
 ```
 
 ### Template C - Issue Only (file already exists)
@@ -201,18 +205,47 @@ SCRAPE_EOF
 
 ---
 
-## File Saving
+## File Saving — TWO artifacts, and never one
 
-### Naming Convention
+An archival produces **two** files. This is the single most important thing on this page, because
+getting it wrong is expensive and the cost is invisible until someone tries to verify the archive.
 
 ```
-YYYY-MM-DD-{slug}-{source_type}.md
+docs/research/raw/YYYY-MM-DD-{slug}-{source_type}.raw-scrape.txt   the scrape, byte-exact, NEVER edited
+docs/research/YYYY-MM-DD-{slug}-{source_type}.md                   editorial + a POINTER to it
 ```
 
 - `slug` — kebab-case summary (max 50 chars)
 - `source_type` — from enum: `chatgpt`, `gemini`, `claude`, `web`
 
-**Default location**: `docs/research/` in the current project.
+### 🔴 Do NOT paste the transcript into the `.md`
+
+It is the obvious thing to do and it is wrong. **Alpha-forge PR #540 removed a duplicated transcript
+after five successive review rounds**, each of which found a class of meaning-changing edit that the
+equivalence checker certified as identical: structural markers erased (a quotation demoted to the
+author's own assertion), inline delimiters erased (`` `not` `` reading as the English word),
+identifiers and URL paths retargeted through `_` and again through `__`, table cell boundaries moved
+so an outcome attached to the wrong reference, and literal asterisks consumed inside escapes, fenced
+and indented code blocks, and raw HTML attributes.
+
+The last class is a **category error, not a bug**. [CommonMark 0.31.2](https://spec.commonmark.org/0.31.2/)
+specifies parsing in two phases — _"In the first phase, lines of input are consumed and the block
+structure of the document … is constructed. Text is assigned to these blocks but not parsed. … In the
+second phase, the raw text contents of paragraphs and headings are parsed into sequences of Markdown
+inline elements"_ — so a line-oriented normaliser has **no block phase** and cannot tell a paragraph
+from a fenced code block. No amount of further patching converges.
+
+Why the question arises at all: any repository whose tooling reformats markdown (here, the `itp-hooks`
+Stop hook running `prettier --write` and `markdownlint-cli2 --fix`) makes a pasted copy **impossible
+to keep byte-identical**, so "is the copy still saying what the original said?" becomes a question you
+must answer on every commit. **With one copy there is no question.**
+
+### The `.txt` extension is load-bearing
+
+Store the raw scrape as `.txt`, not `.md`. Markdown tooling globs `*.md`; a raw scrape kept as `.md`
+gets rewritten and its hash invalidated **without anyone touching it**. The extension makes the
+artifact immune by construction rather than by configuration — `.prettierignore` and
+`.gitattributes -text` are worth adding as defence in depth, but they are not the mechanism.
 
 ### YAML Frontmatter
 
@@ -222,16 +255,39 @@ See [frontmatter-schema.md](./references/frontmatter-schema.md) for the full fie
 ---
 source_url: https://chatgpt.com/share/...
 source_type: chatgpt-share
-scraped_at: "2026-02-09T18:30:00Z"
+scraped_at: "2026-02-09T18:30:00Z" # a REAL timestamp; never a rounded guess
+scraped_at_source: "how you obtained it, e.g. mtime of the scraper's output file"
+raw_scrape_path: docs/research/raw/YYYY-MM-DD-{slug}-{source_type}.raw-scrape.txt
+raw_scrape_sha256: "sha256 of the raw file's exact bytes"
+transcript_location: "not reproduced in this file; the sole copy is raw_scrape_path"
 model_name: gpt-4o
-custom_gpt_name: Cosmo
 claude_code_uuid: SESSION_UUID
 github_issue_url: ""
 github_issue_number: ""
 ---
 ```
 
+`raw_scrape_path` and `raw_scrape_sha256` are a **pair**. Declaring one without the other is worse
+than declaring neither: a hash with no file proves nothing, and a file with no hash is unverified
+while looking pinned. Gates should discover on **either** key so a half-declaration is refused rather
+than silently skipped.
+
 Leave `github_issue_url` and `github_issue_number` empty — update after Issue creation.
+
+### What goes in the `.md`
+
+Editorial only, and it is worth writing properly because it is the part a human reads:
+
+1. A **provenance warning** stating the transcript is not reproduced here and is untrusted AI output.
+2. An **audit note** — which citations were checked, by what method, and what was found. Distinguish
+   _identity_ checks (the DOI resolves to this title/author/venue) from _content_ checks (the source
+   actually says what the summary claims). They are different, and conflating them is the usual error.
+3. Any **known errors** in the source, stated where a reader will see them rather than only in the PR.
+4. A **pointer** to the `.txt` with its size and sha256.
+
+Verify citations by **content** via the Crossref API, never by HTTP status — a 403 bot-wall and a 404
+are indistinguishable from the status line. When Crossref carries no abstract, say so and mark the
+claim unverified rather than implying it was checked.
 
 ---
 
