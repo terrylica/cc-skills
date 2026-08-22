@@ -35,6 +35,42 @@ backup_settings() {
     cp "$SETTINGS" "$BACKUP_DIR/settings.json.backup.$ts"
 }
 
+# A settings.json is user-authored, so every level may be absent or null:
+# no `hooks` key at all, a matcher list that is null, a matcher entry whose
+# `hooks` array is missing, or a hook entry with no `command`. jq's `to_entries`
+# and `map` both abort on null ("null (null) has no keys"), which crashed this
+# script for anyone whose settings.json simply had no `hooks` key.
+#
+# Every accessor below therefore defaults before it dereferences, and the prune
+# is skipped entirely unless `.hooks` is genuinely an object — a non-object
+# `hooks` is malformed input this script must not silently rewrite.
+readonly MARKETPLACE_PATH_FRAGMENT='marketplaces/cc-skills/plugins/'
+
+readonly JQ_COUNT_MARKETPLACE_PATH_ENTRIES='
+    [ (if (.hooks | type) == "object" then .hooks else {} end)
+      | to_entries[]
+      | (.value // [])[]
+      | (.hooks // [])[]
+      | (.command // "")
+    ]
+    | map(select(contains($fragment)))
+    | length
+'
+
+readonly JQ_PRUNE_MARKETPLACE_PATH_ENTRIES='
+    def prune_matcher_entries:
+        [ (. // [])[]
+          | .hooks = [ (.hooks // [])[]
+                       | select(((.command // "") | contains($fragment)) | not) ]
+        ]
+        | map(select((.hooks | length) > 0));
+
+    if (.hooks | type) == "object"
+    then .hooks |= with_entries(.value |= prune_matcher_entries)
+    else .
+    end
+'
+
 main() {
     echo "→ Pruning cc-skills marketplace-path hook entries from settings.json..."
 
@@ -47,23 +83,14 @@ main() {
 
     # Count cc-skills entries before pruning so we can report what changed.
     local before_count
-    before_count=$(jq '
-        [.hooks // {} | to_entries[] | .value[]?.hooks[]?.command]
-        | map(select(. != null and contains("marketplaces/cc-skills/plugins/")))
-        | length
-    ' "$SETTINGS")
+    before_count=$(jq --arg fragment "$MARKETPLACE_PATH_FRAGMENT" \
+        "$JQ_COUNT_MARKETPLACE_PATH_ENTRIES" "$SETTINGS")
 
     # Per-hook filter: drop hooks whose command references the cc-skills
     # marketplace path; if a matcher entry's .hooks array becomes empty
     # after filtering, drop the matcher entry too.
-    jq '
-        .hooks |= with_entries(
-            .value |= (
-                map(.hooks |= map(select(.command | contains("marketplaces/cc-skills/plugins/") | not)))
-                | map(select(.hooks | length > 0))
-            )
-        )
-    ' "$SETTINGS" > /tmp/settings-pruned.$$.json
+    jq --arg fragment "$MARKETPLACE_PATH_FRAGMENT" \
+        "$JQ_PRUNE_MARKETPLACE_PATH_ENTRIES" "$SETTINGS" > /tmp/settings-pruned.$$.json
 
     if ! jq empty /tmp/settings-pruned.$$.json 2>/dev/null; then
         warn "Pruning produced invalid JSON — leaving settings.json untouched"
@@ -74,11 +101,8 @@ main() {
     mv /tmp/settings-pruned.$$.json "$SETTINGS"
 
     local after_count
-    after_count=$(jq '
-        [.hooks // {} | to_entries[] | .value[]?.hooks[]?.command]
-        | map(select(. != null and contains("marketplaces/cc-skills/plugins/")))
-        | length
-    ' "$SETTINGS")
+    after_count=$(jq --arg fragment "$MARKETPLACE_PATH_FRAGMENT" \
+        "$JQ_COUNT_MARKETPLACE_PATH_ENTRIES" "$SETTINGS")
 
     local removed=$((before_count - after_count))
     if [[ $removed -gt 0 ]]; then
