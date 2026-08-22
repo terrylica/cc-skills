@@ -1,0 +1,122 @@
+# yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
+#
+# The repo-level project. Every task here is a thin `script:` wrapper around a
+# standalone bash script in `tasks/` — the orchestrator is swappable, the
+# scripts are the truth (bootstrap-monorepo Nx-convergence rule 6). Each script
+# runs identically via `bash tasks/<path>` with no moon involved, which is what
+# makes replacing the orchestrator a config change rather than a rewrite.
+#
+# Task IDs use `-` because moon reserves `:` as the project/task separator.
+# `moon query tasks` renders this file as the machine-readable task surface.
+
+layer: "application"
+language: "bash"
+tags: ["layer-control-plane"]
+
+# Nothing here is a pure function of declared inputs — the audits scan the
+# working tree, the release talks to GitHub, the tests spawn subprocesses — so
+# caching is off by default and every task runs from the workspace root.
+taskOptions:
+  cache: false
+  runFromWorkspaceRoot: true
+
+tasks:
+  # ── Uniform vocabulary (Nx-convergence rule 2) ─────────────────────────────
+  test:
+    description: "Marketplace-wide Bun unit suite over every tracked .ts/.mjs test."
+    script: "bash tasks/test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration.sh"
+
+  test-hooks:
+    description: "Marketplace-wide hook regression suite (the bash test-file cohort under tasks/tests/)."
+    script: "bash tasks/test-marketplace-hook-regression-suite"
+
+  lint:
+    description: "Validate every plugin's registration, manifest and skill frontmatter."
+    script: "bun scripts/validate-plugins.mjs --strict"
+
+  check:
+    description: "Full local quality gate. Local-first CI/CD: this is what runs before a push, never GitHub Actions."
+    deps: ["~:lint", "~:test", "~:test-hooks"]
+
+  # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
+  cli-spec:
+    description: "Regenerate cli_spec.json from every argparse CLI in the marketplace."
+    script: "bash tasks/cli-spec.sh"
+
+  cli-spec-check:
+    description: "Fail if cli_spec.json has drifted from the CLIs on disk."
+    script: "bash tasks/cli-spec-check.sh"
+
+  # ── Release pipeline ───────────────────────────────────────────────────────
+  release-full:
+    description: "Primary release entry point: preflight, presync, semantic-release, marketplace sync, verify, chronicle, postflight. Requires GH_TOKEN and a clean tree."
+    script: "bash tasks/release/full"
+
+  release-dry:
+    description: "Preview the version bump and changelog without tagging, pushing or publishing."
+    script: "bash tasks/release/dry"
+
+  release-status:
+    description: "Current version, latest tag and release readiness."
+    script: "bash tasks/release/status"
+
+  release-preflight:
+    description: "Phase 1: validate every release prerequisite. Exits non-zero on any failure."
+    script: "bash tasks/release/preflight"
+
+  release-version:
+    description: "Phase 2: semantic-release version bump, changelog, git tag and GitHub release."
+    script: "bash tasks/release/version"
+
+  release-sync:
+    description: "Phase 3: marketplace clone update, hook installation and cache population."
+    script: "bash tasks/release/sync"
+
+  release-verify:
+    description: "Phase 4: cross-validate marketplace.json, plugin manifests and the installed cache for drift."
+    script: "bash tasks/release/verify"
+
+  release-postflight:
+    description: "Phase 5: lockfile drift, clean working directory and all-commits-pushed validation."
+    script: "bash tasks/release/postflight"
+
+  release-augment:
+    description: "Reflow and enrich published release notes for GFM."
+    script: "bash tasks/release/augment"
+
+  release-history:
+    description: "Soft-wrapped renderer for long-subject commit history."
+    script: "bash tasks/release/history"
+
+  release-clean:
+    description: "Remove release scratch state."
+    script: "bash tasks/release/clean"
+
+  # ── Conventional-commit tooling ────────────────────────────────────────────
+  commits-advise:
+    description: "Dry-run advisor: classify a proposed commit subject and preview its semver bump."
+    script: "bash tasks/commits/advise"
+
+  commits-health:
+    description: "Conformance report for recent commit subjects."
+    script: "bash tasks/commits/health"
+
+  commits-status:
+    description: "Commit-tooling status: hook installed, advisor reachable."
+    script: "bash tasks/commits/status"
+
+  commits-pending-release:
+    description: "What the next release would contain, and which commit triggers the bump."
+    script: "bash tasks/commits/pending-release"
+
+  commits-install-hook:
+    description: "Install the commit-msg git hook that runs the strict-mode advisor."
+    script: "bash tasks/commits/install-hook"
+
+  commits-uninstall-hook:
+    description: "Remove the commit-msg git hook."
+    script: "bash tasks/commits/uninstall-hook"
+
+  commits-perf-baseline:
+    description: "Wall-clock perf baseline harness for the conventional-commits tooling."
+    script: "bash tasks/commits/perf-baseline"

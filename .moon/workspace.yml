@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://moonrepo.dev/schemas/workspace.json
+#
+# Explicit project map — no glob soup (Nx-convergence rule 1). cc-skills ships
+# 42 Claude Code plugins, not 42 buildable packages: there is nothing to
+# compile, install or version independently, so a single repo-level project
+# owning the task surface is the honest model. Add a second project only when
+# something genuinely needs its own build graph and version.
+projects:
+  repo: "."
+
+vcs:
+  client: "git"
+  defaultBranch: "main"
