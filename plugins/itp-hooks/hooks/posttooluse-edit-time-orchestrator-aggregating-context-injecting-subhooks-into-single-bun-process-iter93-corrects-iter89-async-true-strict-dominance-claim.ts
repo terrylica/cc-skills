@@ -78,6 +78,7 @@ import { classifyMemoryEfficiencyReminderForPostToolUseOrchestrator } from "./po
 import { classifyClaudeMdSizeBudgetForPostToolUseOrchestrator } from "./posttooluse-claude-md-size-budget-reminder.ts";
 import { classifyPythonPreferenceNudgeForPostToolUseOrchestrator } from "./posttooluse-python-preference-nudge.ts";
 import { classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator } from "./posttooluse-typescript-upgrade-reminder.ts";
+import { classifyMarkdownHardWrapReminderForPostToolUseOrchestrator } from "./posttooluse-markdown-hard-wrap-reminder.ts";
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Subhook registry — order matters (aggregation order in the reason)
@@ -161,6 +162,13 @@ const POSTTOOLUSE_EDIT_TIME_ORCHESTRATOR_SUBHOOK_REGISTRY: PostToolUseSubhookReg
     classify: classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator,
     description:
       "Surfaces a TypeScript 7 upgrade reminder ONCE PER SESSION on the first eligible code-file Write/Edit (.ts/.tsx/.mts/.cts, package.json, tsconfig.json). Encodes the iter-92 TypeScript version-guard doctrine (~/.claude/typescript-latest-CLAUDE.md): greenfield policy is \"typescript\": \"latest\" + commit lockfile; compiler-embedding tools (Volar, Angular, typescript-eslint, ts-morph) use dual-install compat alias (TS 6.0 API unavailable in 7.0; restored 7.1+). Reminder content names the highest-yield breaking changes (types defaults to [], strict defaults true, baseUrl/downlevelIteration/target/moduleResolution/module/esModuleInterop hard errors, rootDir defaults to ./), perf knobs (--checkers, --builders, --singleThreaded), and invites surfacing concrete refactor opportunities. ONE implicit exemption: ephemeral temp-dir scratch via the shared iter-124 helper (throwaway scripts not worth nudging). Pure O(1) extension + temp-scratch + once-per-session gate-claim (atomic O_EXCL filesystem operation). Algorithm in classifyTypeScriptUpgradeReminderForPostToolUseOrchestrator (operator directive 2026-07-24).",
+  },
+  {
+    name: "markdown-hard-wrap-reminder",
+    timeoutMs: 2000,
+    classify: classifyMarkdownHardWrapReminderForPostToolUseOrchestrator,
+    description:
+      "After a Write/Edit/MultiEdit of a .md/.markdown file, reminds Claude when the edit INTRODUCED hard-wrapped prose (a paragraph broken mid-sentence at a fixed column). Covers the AUTHORING boundary that the sibling publish-boundary guards left open: pretooluse-github-hard-wrap-guard blocks `gh release|issue|pr|api`, release.config.cjs reflows semantic-release notes, and pretooluse-gmail-body-guard blocks Gmail drafts — but nothing watched a .md being written, and stop-markdown-lint runs prettier with `--prose-wrap preserve`, so a wrap authored into a file is preserved forever. Honest about the surface split (GFM spec 6.13): a repo .md renders FINE because soft breaks collapse to a space; the breakage happens when that prose reaches release notes / issue / PR / comment bodies, where every newline becomes a literal <br>. The always-applicable harm is diff noise (rewording one sentence re-diffs the whole paragraph). NET-NEW ONLY, and that is load-bearing: 193 of this repo's 1,114 tracked .md files (17%, 3,389 wrap points) are already hard-wrapped, so a contains-a-wrap hook would nag constantly on debt the current edit did not create. Edit/MultiEdit compare detectHardWraps(new_string).length against old_string; Write fires on any hit because PostToolUse runs after the write and no before-state survives (a whole-file Write is authoring anyway). Shares lib/hard-wrap-detector.ts with the gh + gmail guards. Escape hatch MD-HARD-WRAP-OK; temp-scratch exempt via the iter-124 helper. Pure single-pass scan, no subprocess, no file read — registry position LAST (cheap extension pre-filter). Algorithm in classifyMarkdownHardWrapReminderForPostToolUseOrchestrator (operator directive 2026-08-22).",
   },
 ];
 

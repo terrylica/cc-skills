@@ -143,10 +143,10 @@ export interface MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry 
  * Canonical registry — single source of truth for every marketplace
  * production escape-hatch marker.
  *
- * Iter-111 baseline: 11 entries (the consumer cohort from iter-110 plus
- * the cargo-tty-guard's two-marker opt-in/opt-out pair). Any new marker
- * MUST be registered here before its consumer hook can pass the iter-111
- * audit.
+ * Register every new marker here before its consumer hook ships — the
+ * marker-typo audit fails the release otherwise. Registration is also what
+ * generates `docs/marketplace-escape-hatch-marker-reference.md`, so an
+ * unregistered marker is invisible to operators looking for the way out.
  */
 export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: ReadonlyArray<MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry> =
   [
@@ -308,6 +308,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.",
     },
     {
+      markerNameTokenIncludingSuffix: "MD-HARD-WRAP-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-markdown-hard-wrap-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose.",
+    },
+    {
       markerNameTokenIncludingSuffix: "MINI-INNGEST-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts",
@@ -410,8 +420,8 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
   ] as const;
 
 /**
- * Convenience accessor: O(N) lookup by marker name (N is small — currently
- * 11 entries — so a Map isn't worth the construction cost).
+ * Convenience accessor: O(N) lookup by marker name. N stays small enough that
+ * a Map isn't worth its construction cost on a per-hook-invocation path.
  */
 export function lookupCanonicalRegistryEntryByMarkerNameTokenOrUndefinedWhenAbsent(
   markerNameTokenIncludingSuffix: string,
