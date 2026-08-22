@@ -46,3 +46,9 @@ __pycache__/
 tmp/
 .link-check-results.md
 .loop-state/
+
+# Rust build artifacts. The arxiv-source-first tools are invoked with
+# `cargo run --release --manifest-path ...`, which rebuilds from source, so a
+# committed target/ is never read — it only shipped ~75 MB of stale, arch-specific
+# objects to everyone who installs this marketplace. Cargo.lock stays tracked.
+target/
