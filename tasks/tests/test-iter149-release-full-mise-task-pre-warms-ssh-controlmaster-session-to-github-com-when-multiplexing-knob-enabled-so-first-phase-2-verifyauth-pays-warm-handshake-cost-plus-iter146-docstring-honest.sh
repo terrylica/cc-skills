@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-#MISE description="Iter-149 regression test pinning two deliverables: (a) .mise/tasks/release/full mise task gained an SSH ControlMaster pre-warm block lifted from iter-148's empirical-validation wrapper, gated on the same RELEASE_SSH_MULTIPLEXING_ENABLED knob as iter-147, that runs a `timeout 10 ssh -T -o BatchMode=yes -o ControlMaster=auto -o ControlPath=... -o ControlPersist=10m git@github.com` immediately AFTER the iter-147 GIT_SSH_COMMAND export, paying the cold SSH handshake cost upfront so the first in-pipeline Phase 2 verifyAuth git-push-dry-run invocation gets WARM cost (~1.8s per iter-148 measurement) instead of COLD cost (~6.0s per iter-148 BEFORE baseline) — saving ~4.2s on the first SSH op of every release where the knob is enabled; (b) scripts/iter146-...sh docstring replaces the original CONJECTURAL '10-15x speedup' claim with the iter-148-empirically-MEASURED 3.30x speedup truth (6051ms→1835ms p50, 4216ms saved per call), citing iter-148 wrapper methodology."
+#MISE description="Iter-149 regression test pinning two deliverables: (a) tasks/release/full mise task gained an SSH ControlMaster pre-warm block lifted from iter-148's empirical-validation wrapper, gated on the same RELEASE_SSH_MULTIPLEXING_ENABLED knob as iter-147, that runs a `timeout 10 ssh -T -o BatchMode=yes -o ControlMaster=auto -o ControlPath=... -o ControlPersist=10m git@github.com` immediately AFTER the iter-147 GIT_SSH_COMMAND export, paying the cold SSH handshake cost upfront so the first in-pipeline Phase 2 verifyAuth git-push-dry-run invocation gets WARM cost (~1.8s per iter-148 measurement) instead of COLD cost (~6.0s per iter-148 BEFORE baseline) — saving ~4.2s on the first SSH op of every release where the knob is enabled; (b) scripts/iter146-...sh docstring replaces the original CONJECTURAL '10-15x speedup' claim with the iter-148-empirically-MEASURED 3.30x speedup truth (6051ms→1835ms p50, 4216ms saved per call), citing iter-148 wrapper methodology."
 set -euo pipefail
 
 ITER149_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER149_REPO_ROOT"
 
-ITER149_RELEASE_FULL_MISE_TASK_RELATIVE_PATH=".mise/tasks/release/full"
+ITER149_RELEASE_FULL_MISE_TASK_RELATIVE_PATH="tasks/release/full"
 ITER149_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH="$ITER149_REPO_ROOT/$ITER149_RELEASE_FULL_MISE_TASK_RELATIVE_PATH"
 ITER149_ITER146_SETUP_SCRIPT_RELATIVE_PATH="scripts/iter146-configure-ssh-controlmaster-for-github-com-to-cache-ssh-connection-and-eliminate-repeat-handshake-cost-per-release-via-openssh-connection-multiplexing.sh"
 ITER149_ITER146_SETUP_SCRIPT_ABSOLUTE_PATH="$ITER149_REPO_ROOT/$ITER149_ITER146_SETUP_SCRIPT_RELATIVE_PATH"

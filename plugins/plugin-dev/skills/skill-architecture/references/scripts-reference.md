@@ -166,7 +166,7 @@ For releasing plugins, delegate to the repo's mise release pipeline:
 mise run release:full
 ```
 
-See `/mise:run-full-release` for the orchestrating skill. Repo-specific release logic lives in `.mise/tasks/release/`, not in a bundled skill.
+See `/mise:run-full-release` for the orchestrating skill. Repo-specific release logic lives in `tasks/release/`, not in a bundled skill.
 
 ## Shared Library Pattern
 

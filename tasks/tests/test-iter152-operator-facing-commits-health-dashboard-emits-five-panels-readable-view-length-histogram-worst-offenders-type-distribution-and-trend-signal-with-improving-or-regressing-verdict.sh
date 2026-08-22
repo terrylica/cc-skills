@@ -7,7 +7,7 @@ cd "$ITER152_REPO_ROOT"
 
 ITER152_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
 ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_RENDERER_SCRIPT_RELATIVE_PATH"
-ITER152_MISE_TASK_WRAPPER_RELATIVE_PATH=".mise/tasks/commits/health"
+ITER152_MISE_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/health"
 ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_MISE_TASK_WRAPPER_RELATIVE_PATH"
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=0

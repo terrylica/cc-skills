@@ -451,7 +451,7 @@ The only way to actually realize the 308ms-per-call savings projected by the ite
 
 Final state: 1 orchestrator entry for Write|Edit instead of 8 entries, saving (8-1) × 44 = 308ms per Write|Edit call.
 
-**Regression coverage**: [`.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-...-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh`](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter84-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh) — 10 assertions covering the non-Write/Edit fastpath, under-threshold allow, over-threshold belt-and-suspenders deny (stdout + stderr + exit 2), escape-hatch honoring, and standalone-classifier backward-compat (reason text without orchestrator prefix).
+**Regression coverage**: [`tasks/tests/test-pretooluse-edit-time-orchestrator-...-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh`](../tasks/tests/test-pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter84-allow-deny-ask-fastpath-and-belt-and-suspenders-deny.sh) — 10 assertions covering the non-Write/Edit fastpath, under-threshold allow, over-threshold belt-and-suspenders deny (stdout + stderr + exit 2), escape-hatch honoring, and standalone-classifier backward-compat (reason text without orchestrator prefix).
 
 ### Iter-85: version-guard migration + audit-driven orchestrator hardening
 
@@ -498,7 +498,7 @@ Iter-86 lands two concurrent deliverables: (1) third subhook inlined into the or
 - Registry now lightest-first ordered: `[version-guard, hoisted-deps-guard, file-size-guard]`. hoisted-deps-guard's O(1) `endsWith("pyproject.toml")` filter pre-empts the `git rev-parse` subprocess on non-pyproject.toml writes
 - Existing `pretooluse-hoisted-deps-guard.test.mjs` updated to point at `.ts` (no logic changes)
 
-**Preventive subhook-contract static checker** ([`audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh`](../.mise/tasks/audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main.sh)):
+**Preventive subhook-contract static checker** ([`audit-pretooluse-orchestrator-subhook-contract-violations-static-check-...sh`](../tasks/audit-pretooluse-orchestrator-subhook-contract-violations-static-check-no-stdin-stdout-exit-in-classifier-functions-and-import-meta-main-guard-on-standalone-main.sh)):
 
 Statically scans every `plugins/itp-hooks/hooks/*.ts` file that exports a `classify*ForOrchestrator` function and enforces two contract checks:
 
@@ -514,7 +514,7 @@ Two modes:
 
 Wired into `release:preflight` as Check 4m (informational), with loose-coupled defensive grep extraction per the iter-70 brittle-banner hardening pattern. Iter-87+ may flip to `--strict` once the contract stabilizes.
 
-**Regression coverage** ([`test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh`](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh)) — 14 assertions:
+**Regression coverage** ([`test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh`](../tasks/tests/test-pretooluse-edit-time-orchestrator-iter86-hoisted-deps-guard-inlined-plus-preventive-subhook-contract-static-checker-audit-task.sh)) — 14 assertions:
 
 - **Cases 1-2**: orchestrator denies sub-package pyproject.toml (POLICY 1 + POLICY 3 fixtures) with full belt-and-suspenders defense
 - **Case 3**: standalone `.ts` (renamed from `.mjs`) backward-compat without orchestrator prefix
@@ -554,7 +554,7 @@ The iter-84 cooperative-timeout used a unique `Symbol` sentinel + manual `setTim
 
 Cooperative-timeout semantic unchanged: classifiers still cannot be forcibly killed (no subprocess); AbortSignal merely signals the orchestrator to move on and log the laggard.
 
-**(3) Empirical microbenchmark CORRECTS iter-80/iter-81 savings projection** ([benchmark task](../.mise/tasks/benchmark-pretooluse-edit-time-orchestrator-amortized-bun-cold-start-savings-curve-versus-pre-orchestration-baseline-per-iter81-ranker-projection.sh))
+**(3) Empirical microbenchmark CORRECTS iter-80/iter-81 savings projection** ([benchmark task](../tasks/benchmark-pretooluse-edit-time-orchestrator-amortized-bun-cold-start-savings-curve-versus-pre-orchestration-baseline-per-iter81-ranker-projection.sh))
 
 The benchmark measures wall-clock latency of:
 
@@ -571,7 +571,7 @@ The benchmark measures wall-clock latency of:
 
 This **confirms iter-86's web-research hypothesis**: the iter-80 ~44ms measurement was inflated by stdin+JSON-parse + classifier-execution overhead, not pure bun cold-start. Community 8-15ms benchmarks (byteiota.com, PkgPulse 2026) were closer to truth. **Iter-91 final-state savings projection is now ~119ms per Write|Edit, not 308ms.** Still a meaningful win, but 2.6× smaller than originally projected. The orchestrator-as-architecture is correct; the magnitude needed empirical correction.
 
-**Regression coverage** ([12 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter87-gpu-optimization-guard-inlined-plus-abortsignal-timeout-refactor-replacing-symbol-sentinel.sh)):
+**Regression coverage** ([12 assertions, all pass](../tasks/tests/test-pretooluse-edit-time-orchestrator-iter87-gpu-optimization-guard-inlined-plus-abortsignal-timeout-refactor-replacing-symbol-sentinel.sh)):
 
 - Cases 1a-e: gpu-optimization-guard inlined → deny PyTorch training script (batch-size + AMP policies fire) with belt-and-suspenders + exit 2
 - Case 2: `# gpu-optimization-bypass` comment honored
@@ -605,7 +605,7 @@ The iter-88 adversarial audit enumerated `hooks.json` PostToolUse entries via `j
 
 The PostToolUse contract differs from `PreToolUseSubhookContract` in TWO ways: (a) the decision type collapses to `{kind: "noop"} | {kind: "additional_context", message}` since `deny`/`ask` are not honored on PostToolUse per the iter-66 schema findings, and (b) the orchestrator MUST aggregate `additionalContext` from multiple subhooks into a single stdout payload (vs PreToolUse's first-deny-short-circuit). This is queued as **task #96** (iter-92+, scheduled after the iter-89/90/91 PreToolUse migrations complete to avoid contract-design churn).
 
-**Regression coverage** ([13 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter88-mise-hygiene-guard-inlined-secrets-detection-and-line-count-policy-paths-plus-postooluse-orchestration-candidate-surfaced.sh)):
+**Regression coverage** ([13 assertions, all pass](../tasks/tests/test-pretooluse-edit-time-orchestrator-iter88-mise-hygiene-guard-inlined-secrets-detection-and-line-count-policy-paths-plus-postooluse-orchestration-candidate-surfaced.sh)):
 
 - Cases 1a-d: orchestrator denies `mise.toml` with hardcoded `API_KEY` via `mise-hygiene-guard` subhook attribution with belt-and-suspenders deny + exit 2 (POLICY 1 — secrets detection)
 - Case 2: `.mise.local.toml` ignore-list honored (secrets allowed there by design)
@@ -654,7 +654,7 @@ This finding ALSO retroactively validates the iter-84 PreToolUse orchestrator de
 - "HTTP hooks let you send hook events to a web server instead of running a local script... This opens up use cases that were previously awkward or impossible with command hooks, such as remote validation services that enforce team-wide policies." (Surfaces a third architectural alternative — long-lived HTTP server holding shared state — for task #96's evaluation.)
 - "Bun 1.3 starts in about 8ms to 15ms" — validates iter-87's empirical ~17ms per-saved-subhook correction over iter-80's ~44ms estimate.
 
-**Regression coverage** ([14 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter89-pyi-stub-guard-inlined-init-file-top-level-definition-monolith-detection-plus-postooluse-async-true-vs-orchestration-architecture-decision-surfaced.sh)):
+**Regression coverage** ([14 assertions, all pass](../tasks/tests/test-pretooluse-edit-time-orchestrator-iter89-pyi-stub-guard-inlined-init-file-top-level-definition-monolith-detection-plus-postooluse-async-true-vs-orchestration-architecture-decision-surfaced.sh)):
 
 - Cases 1a-d: orchestrator denies `__init__.py` with top-level `class Foo:` via pyi-stub-guard attribution with belt-and-suspenders + exit 2
 - Cases 2a-b: `__init__.pyi` with top-level `def` denied with stricter PEP 561 guidance
@@ -720,7 +720,7 @@ Per iter-87 empirical microbenchmark: ~17ms saved per inlined subhook. Final-sta
 - Registry `timeoutMs: 12000` (generous — vale typically 100-300ms, headroom for slow-disk machines).
 - hooks.json now contains **exactly ONE** `Write|Edit` matcher (the orchestrator) — verified via jq.
 
-**iter-91 regression test** ([13 assertions, all pass](../.mise/tasks/tests/test-pretooluse-edit-time-orchestrator-iter91-vale-claude-md-guard-inlined-completes-8-of-8-pretooluse-write-edit-migration-arc-with-empirical-119ms-savings-projection.sh)):
+**iter-91 regression test** ([13 assertions, all pass](../tasks/tests/test-pretooluse-edit-time-orchestrator-iter91-vale-claude-md-guard-inlined-completes-8-of-8-pretooluse-write-edit-migration-arc-with-empirical-119ms-savings-projection.sh)):
 
 - Case 1: non-CLAUDE.md write → allow (suffix fastpath)
 - Cases 2a-b: orchestrator imports + registers vale classifier
@@ -761,7 +761,7 @@ The audit task discovers every PostToolUse hooks.json entry marketplace-wide, re
 - **Path B (orchestrator inlining)**: viable for ALL hooks — preserves the synchronous `decision: "block"` context-injection contract. Requires building a `PostToolUseSubhookContract` analog to the iter-84 PreToolUse contract; the contract's decision type collapses to `{kind: "noop"} | {kind: "additional_context", message}` since `deny`/`ask` are not honored on PostToolUse per the iter-66 schema findings.
 - **Path C (HTTP hooks long-lived server)**: viable but requires server-lifecycle management; SOTA 2026 pattern surfaced by iter-89 research. Best suited for hooks that need shared in-process state (caches, loaded ML models). Out of scope for the current PostToolUse 9-hook registry which doesn't have shared state.
 
-**Iter-92 regression test** ([12 assertions, all pass](../.mise/tasks/tests/test-iter92-posttooluse-asynctrue-eligibility-audit-classifies-decision-block-emitting-hooks-as-context-injecting-async-unsafe-correcting-iter89-strict-dominance-claim.sh)):
+**Iter-92 regression test** ([12 assertions, all pass](../tasks/tests/test-iter92-posttooluse-asynctrue-eligibility-audit-classifies-decision-block-emitting-hooks-as-context-injecting-async-unsafe-correcting-iter89-strict-dominance-claim.sh)):
 
 - Case 1: audit exits 0 (informational; never blocks release pipeline)
 - Case 2: ≥15 PostToolUse hooks discovered marketplace-wide (found 17)
@@ -806,7 +806,7 @@ The wire-emission row is the load-bearing distinction: PostToolUse cannot use `p
    - Emits ONE consolidated `{decision: "block", reason: aggregate}` JSON — or NOTHING when every subhook returns `noop` (preserves legacy silent-allow semantics)
 3. **`posttooluse-ty-type-check.ts` refactored to dual-mode** (orchestrator-imported + standalone-CLI via `import.meta.main` guard): exports `classifyTyPythonTypeCheckOnEditedFileForPostToolUseOrchestrator` (precise algorithm-encoding name) AND `classifyTyTypeCheckForPostToolUseOrchestrator` (symmetric-naming alias for sibling-subhook consistency — same dual-export pattern iter-89/90/91 established)
 4. **hooks.json rewiring**: the standalone `posttooluse-ty-type-check.ts` Write|Edit PostToolUse entry is replaced by the orchestrator entry (timeout 15000ms, generous to accommodate the multi-subhook aggregation as the registry grows in iter-94+)
-5. **Iter-93 regression test** ([16 assertions, all pass](../.mise/tasks/tests/test-posttooluse-edit-time-orchestrator-iter93-ty-python-type-check-inlined-as-first-context-injecting-subhook-with-multi-aggregation-additional-context-merging-kicks-off-path-b-replacing-iter89-ruled-out-async-true-strategy.sh)):
+5. **Iter-93 regression test** ([16 assertions, all pass](../tasks/tests/test-posttooluse-edit-time-orchestrator-iter93-ty-python-type-check-inlined-as-first-context-injecting-subhook-with-multi-aggregation-additional-context-merging-kicks-off-path-b-replacing-iter89-ruled-out-async-true-strategy.sh)):
    - Cases 1a-c: contract discriminated-union shape + registry interface + helper exist
    - Cases 2a-b: orchestrator uses `Promise.all` (parallel multi-aggregation, NOT first-deny-short-circuit) + has aggregator function
    - Cases 3a-b: orchestrator emits `{decision:'block'}` (Anthropic-schema PostToolUse context-injection) and does NOT emit `permissionDecision` (which PostToolUse silently drops)
@@ -843,7 +843,7 @@ That meant the iter-93 orchestrator's `Promise.all` over N subhooks yielded **ze
 4. **`hooks.json` rewiring**: standalone `posttooluse-tsc-type-check.ts` PostToolUse entry removed (iter-126 update: the iter-94 tsgo entry was renamed tsc); orchestrator entry's description updated to reflect 2/15 and the iter-94 async-Bun.spawn rule.
 5. **Iter-94 static audit task** (`audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh`): parses the orchestrator's import graph, scans every classifier source file for `Bun.spawnSync(` invocations, filters out JSDoc continuation / `//` line comments / backtick-template-literal mentions (emission-pattern audit, not prose-mention audit — mirrors iter-90's PreToolUse additionalContext NON-USE audit pattern), and exits non-zero on any real invocation. Informational gate; release:preflight Check 4n candidate.
 6. **Iter-94 microbenchmark task** (`benchmark-posttooluse-orchestrator-async-bun-spawn-parallelism-gain-versus-hypothetical-spawnsync-serialization-iter94-empirical-confirmation.sh`): median-of-N=5 orchestrator wall-clock across 3 synthetic payloads (.txt non-applicable baseline / .py applicable / .ts applicable). On dev hardware (Apple Silicon M1 Max, 2026-05-21): all medians ≈ 22-26ms — the bun cold-start floor — because both subhooks short-circuit via O(1) extension+existsSync filters. The wall-clock gain from async vs sync becomes visible only when MULTIPLE subhooks actually spawn real subprocesses on the same payload (future state when oxlint, biome, etc. inline).
-7. **Iter-94 regression test** ([14 assertions, all pass](../.mise/tasks/tests/test-posttooluse-edit-time-orchestrator-iter94-tsc-inlined-as-second-subhook-plus-async-bun-spawn-refactor-defeats-the-spawnsync-promise-all-anti-pattern-with-provenance-prefix-aggregation-and-static-audit-gate.sh)): orchestrator imports BOTH classifiers, registry ≥ 2 entries, dual-export naming present, NEITHER classifier uses `Bun.spawnSync`, static audit task passes cleanly, hooks.json no longer wires standalone tsc, provenance-prefix-emitting aggregator function present, both classifiers use the shared async-spawn helper, both retain `import.meta.main` guard, orchestrator silent-noops on .txt, microbenchmark runs to completion.
+7. **Iter-94 regression test** ([14 assertions, all pass](../tasks/tests/test-posttooluse-edit-time-orchestrator-iter94-tsc-inlined-as-second-subhook-plus-async-bun-spawn-refactor-defeats-the-spawnsync-promise-all-anti-pattern-with-provenance-prefix-aggregation-and-static-audit-gate.sh)): orchestrator imports BOTH classifiers, registry ≥ 2 entries, dual-export naming present, NEITHER classifier uses `Bun.spawnSync`, static audit task passes cleanly, hooks.json no longer wires standalone tsc, provenance-prefix-emitting aggregator function present, both classifiers use the shared async-spawn helper, both retain `import.meta.main` guard, orchestrator silent-noops on .txt, microbenchmark runs to completion.
 8. **Iter-92 regression test follow-on update**: Case 3b now accepts EITHER standalone OR orchestrator-via-import as satisfying the [C] CONTEXT-INJECTING invariant — same migration-arc-decoupling pattern applied to Case 3a in iter-93.
 
 **Iter-94 forensic note (bash gotcha)**: my first iter-94 test failed Case 4a/4b because `grep -c PATTERN file || echo 0` PREPENDS a second "0" when grep exits non-zero (which it does for 0-match files). Fix: use `|| true` instead of `|| echo 0`. Documented here so future iterations avoid the same pitfall.
@@ -1298,9 +1298,9 @@ Iter-104 established the canonical truncation helper `truncateHookOutputToStayBe
 
 **Preventive infrastructure**:
 
-- **Audit task**: `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` — curated 8-hook cohort + per-hook static-grep for canonical-helper import + usage.
+- **Audit task**: `tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` — curated 8-hook cohort + per-hook static-grep for canonical-helper import + usage.
 - **Preflight gate**: Check 4q (informational, parallel to Check 4n/4o/4p — iter-99 silent-context-drop, iter-101 matcher-hygiene, iter-103 NotebookEdit applicability matrix).
-- **Regression test**: `.mise/tasks/tests/test-iter105-marketplace-wide-truncation-helper-invariant-audit-scales-iter104-single-hook-fix-to-eight-cohort-hooks-including-postooluse-orchestrator-aggregation-site-for-sum-overflow-defense.sh` — 8 assertions including cross-lib import works + orchestrator aggregation site wraps + iter-104 helper threshold (`MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000`) unchanged + cohort count = 8.
+- **Regression test**: `tasks/tests/test-iter105-marketplace-wide-truncation-helper-invariant-audit-scales-iter104-single-hook-fix-to-eight-cohort-hooks-including-postooluse-orchestrator-aggregation-site-for-sum-overflow-defense.sh` — 8 assertions including cross-lib import works + orchestrator aggregation site wraps + iter-104 helper threshold (`MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER = 9000`) unchanged + cohort count = 8.
 
 **Defense-in-depth synthesis (iter-105 expands to 6-layer marketplace stack)**:
 
@@ -1343,9 +1343,9 @@ Iter-105 documented a deferred follow-up: extract the truncation helper from the
 
 **Preventive infrastructure**:
 
-- **Audit task**: `.mise/tasks/audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness.sh` — verifies the 3 iter-106 invariants (file exists + literal exports + cohort hooks import from canonical home)
+- **Audit task**: `tasks/audit-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-cross-pretooluse-and-posttooluse-shared-lib-iter106-eliminates-iter105-cross-lib-import-awkwardness.sh` — verifies the 3 iter-106 invariants (file exists + literal exports + cohort hooks import from canonical home)
 - **Preflight gate**: Check 4r (informational, parallel to Check 4n/4o/4p/4q)
-- **Regression test**: `.mise/tasks/tests/test-iter106-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-shared-lib-with-eight-cohort-hooks-importing-directly-and-backward-compat-re-exports-preserved.sh` — 7 assertions
+- **Regression test**: `tasks/tests/test-iter106-truncation-helper-canonical-home-relocated-from-posttooluse-contract-lib-to-dedicated-shared-lib-with-eight-cohort-hooks-importing-directly-and-backward-compat-re-exports-preserved.sh` — 7 assertions
 - **Updated iter-104 + iter-105 tests**: file-location assumptions in the iter-104 + iter-105 tests rewritten to read from the iter-106 canonical home (where the literal definitions now live)
 
 **Defense-in-depth synthesis (iter-106 adds the canonical-home invariant on top of iter-105's marketplace cohort invariant)**:
@@ -1405,7 +1405,7 @@ Iter-106 documented a follow-up iter-107 candidate: a shared escape-hatch-marker
 
 **Preventive infrastructure**:
 
-- **Audit task**: `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` — enumerates hand-rolled marker detection patterns + reports migrated vs. hand-rolled counts
+- **Audit task**: `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` — enumerates hand-rolled marker detection patterns + reports migrated vs. hand-rolled counts
 - **Preflight gate**: Check 4s (informational, parallel to Check 4n/4o/4p/4q/4r)
 - **Regression test**: 8 assertions including 4 programmatic API probes (`SAME_LINE_ONLY` mode, `SAME_LINE_OR_PRECEDING_N_LINES` with N-line window boundary, `FILE_WIDE` + convenience wrapper, ≥10-char reason policy gate)
 - **Marketplace regression suite**: 44/44 PASS (was 43/43 before iter-107 test added)
@@ -2104,7 +2104,7 @@ Operators get a single discoverable artifact (20 marker sections in alphabetical
 | ---- | ---------------------------------------------------------------------------------------------------- |
 | 1    | iter-114 audit-task registry has all 4 documented exports                                            |
 | 2    | Registry contains all 8 iter-114 baseline audit markers                                              |
-| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `.mise/tasks/audit-*.sh` file |
+| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `tasks/audit-*.sh` file |
 | 4    | iter-113 doc generator renders all 8 audit-task marker sections in dedicated audit-task catalog      |
 | 5    | Lookup-by-name helper resolves known marker with full field set; returns undefined for unknown       |
 | 6    | iter-113 generator idempotency invariant still holds with two-registry input (no drift on `--check`) |
@@ -2277,7 +2277,7 @@ Iter-111 baseline: **12 entries** (the iter-110 cohort plus `SETPROCTITLE-OK` wh
 
 **2. Producer-side typo-detection audit**
 
-`.mise/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
+`tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
 
 - INCLUDES: every file under `plugins/<plugin>/` except `plugins/itp-hooks/hooks/` (consumers, not producers) and except `.mise/` (audit-marker family — different lifecycle layer, iter-112+ scope)
 - EXCLUDES: `tests/`, `docs/`, `references/`, `*.test.*`, `test-*`, `*_test.*`, `*.spec.*` (test fixtures use synthetic `FOO-OK`/`BAR-OK`/`BAZ-OK`/`QUX-OK` markers that aren't real)

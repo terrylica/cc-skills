@@ -9,8 +9,8 @@ ITER157_HOOK_SOURCE_RELATIVE_PATH="scripts/iter157-installable-commit-msg-git-ho
 ITER157_HOOK_SOURCE_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_HOOK_SOURCE_RELATIVE_PATH"
 ITER157_INSTALLER_RELATIVE_PATH="scripts/iter157-idempotent-installer-and-uninstaller-of-the-commit-msg-git-hook-managing-existing-hook-backup-restoration-with-cc-skills-managed-sentinel-marker-for-safe-detection-of-our-own-installs-vs-third-party.sh"
 ITER157_INSTALLER_ABSOLUTE_PATH="$ITER157_REPO_ROOT/$ITER157_INSTALLER_RELATIVE_PATH"
-ITER157_INSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/.mise/tasks/commits/install-hook"
-ITER157_UNINSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/.mise/tasks/commits/uninstall-hook"
+ITER157_INSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/tasks/commits/install-hook"
+ITER157_UNINSTALL_HOOK_MISE_TASK="$ITER157_REPO_ROOT/tasks/commits/uninstall-hook"
 
 ITER157_TOTAL_ASSERTIONS_EVALUATED=0
 ITER157_TOTAL_ASSERTIONS_FAILED=0

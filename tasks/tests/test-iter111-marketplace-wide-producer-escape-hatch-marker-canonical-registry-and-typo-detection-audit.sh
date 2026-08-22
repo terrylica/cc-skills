@@ -5,9 +5,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER111_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
-ITER111_TYPO_DETECTION_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
+ITER111_TYPO_DETECTION_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0

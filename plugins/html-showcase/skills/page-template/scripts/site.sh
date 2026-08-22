@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # site.sh — publish a static HTML directory to gpu-host via Tailscale.
 # Modeled on scripts/blob.sh from research-lab-repo. Adapt freely
-# into other repos: copy this file, copy .mise/tasks/site.toml, copy
+# into other repos: copy this file, copy tasks/site.toml, copy
 # scripts/check-orphan-pages.py, and you're done.
 #
 # Subcommands:

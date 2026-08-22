@@ -2,7 +2,7 @@
 #MISE description="Purge jsDelivr CDN cache for html-showcase assets (and any other plugin's assets/ dir). Use after editing the CSS kernel between releases — flips the CDN to serve the latest @main commit immediately instead of waiting up to 7 days."
 set -euo pipefail
 
-REPO_ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
+REPO_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$REPO_ROOT"
 
 PURGED=0

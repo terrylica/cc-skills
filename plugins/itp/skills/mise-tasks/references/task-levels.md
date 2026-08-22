@@ -37,7 +37,7 @@ run = "pytest tests/"
 - When to run it (phase context, safety notes)
 
 ```toml
-# File-based task equivalent (in .mise/tasks/release/preflight):
+# File-based task equivalent (in tasks/release/preflight):
 #MISE description="Phase 1 of 4: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, plugin validation, and releasable conventional commits since last tag. Exits non-zero on any failure."
 ```
 

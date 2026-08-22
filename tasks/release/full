@@ -2,6 +2,16 @@
 #MISE description="Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
 set -euo pipefail
 
+# The orchestrator is swappable; these scripts are the truth (bootstrap-monorepo
+# Nx-convergence rule 6). Resolve the repo root from this file's own location and
+# work from there, so the pipeline behaves identically under
+# `moon run repo:release-full`, a bare `bash tasks/release/full`, or whatever
+# runs it next. Phases below are invoked as plain `bash`, never through a
+# runner-specific `<runner> run <task>` indirection.
+CC_SKILLS_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$CC_SKILLS_REPO_ROOT"
+readonly CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR="$CC_SKILLS_REPO_ROOT/tasks/release"
+
 # Iter-139: RELEASE_TIMING_PROFILE opt-in pipeline-level wall-clock instrumentation.
 # Mirrors the iter-73 PREFLIGHT_TIMING_PROFILE pattern at one structural level up:
 # where iter-73 measures per-check timing INSIDE the preflight script, iter-139
@@ -222,7 +232,7 @@ echo ""
 # instrumentation can wrap it; functionally identical to a mise dep).
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 1: preflight (sixty test files + seventeen audits parallel-pre-warm + plugin manifest validation)" \
-    mise run release:preflight
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/preflight"
 
 # Phase 1.5: Pre-sync
 # Mirrors current HEAD to ~/.claude so the live environment reflects
@@ -230,34 +240,34 @@ __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_fo
 # Phase 3 post-sync; skips gracefully if local commits are unpushed.
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 1.5: presync (mirror current HEAD to live ~/.claude marketplace clone)" \
-    mise run release:presync
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/presync"
 
 # Phase 2: Version
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 2: version (semantic-release commit-analyzer + version-bump + changelog + git-tag + GitHub-release + jsDelivr-CDN-purge)" \
-    mise run release:version
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/version"
 
 # Phase 3: Sync
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 3: sync (post-release marketplace clone update + hook installation + cache population + jsDelivr smoke-test)" \
-    mise run release:sync
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/sync"
 
 # Phase 4: Verify
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 4: verify (cross-validate marketplace.json + plugin manifests + installed cache + enabled-plugins state for drift)" \
-    mise run release:verify
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/verify"
 
 # Phase 4.5: Session Chronicle (PRIVATE REPOS ONLY)
 # Bundles sanitized session JSONLs from the previous-release window into a
 # tarball attached to the GitHub release. Skips silently for public repos.
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 4.5: chronicle (sanitize-and-bundle session JSONLs from previous-release window; SKIPPED on public repos)" \
-    mise run release:chronicle
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/chronicle"
 
 # Phase 5: Postflight
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 5: postflight (lockfile-drift + working-directory-clean + all-commits-pushed-to-remote validation)" \
-    mise run release:postflight
+    bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/postflight"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════╗"

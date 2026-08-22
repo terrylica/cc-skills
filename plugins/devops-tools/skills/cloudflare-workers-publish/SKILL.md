@@ -65,7 +65,7 @@ Credential flow:
 4. [Execute] Store token + account ID in 1Password item fields
 5. [Execute] Create publish directory with wrangler.toml (3 fields only)
 6. [Execute] Create deploy script from skill template (parameterize 4 vars)
-7. [Execute] Create mise task wrapper in .mise/tasks/publish.toml
+7. [Execute] Create mise task wrapper in tasks/publish.toml
 8. [Execute] Add .wrangler/ to .gitignore
 9. [Execute] Add LFS tracking for large HTML files in .gitattributes
 10. [Verify] Enable workers.dev subdomain in Cloudflare dashboard
@@ -167,7 +167,7 @@ Or reference the working implementation: `rangebar-patterns/scripts/publish_find
 ### Phase 5: Create mise Task
 
 ```toml
-# .mise/tasks/publish.toml (CFW-13: bash in .sh file, not inline TOML)
+# tasks/publish.toml (CFW-13: bash in .sh file, not inline TOML)
 ["publish:site"]
 description = "Deploy published files to Cloudflare Workers (static)"
 run = "bash scripts/publish_myproject.sh"
@@ -178,7 +178,7 @@ Add to `.mise.toml` `[task_config] includes`:
 ```toml
 [task_config]
 includes = [
-    ".mise/tasks/publish.toml",
+    "tasks/publish.toml",
 ]
 ```
 
@@ -275,7 +275,7 @@ The working production deployment lives in `rangebar-patterns`:
 | --------------------------------- | -------------------------- |
 | `results/published/wrangler.toml` | Minimal Workers config     |
 | `scripts/publish_findings.sh`     | 3-phase deploy script      |
-| `.mise/tasks/publish.toml`        | mise task wrapper          |
+| `tasks/publish.toml`        | mise task wrapper          |
 | `.gitignore` (`.wrangler/`)       | Ignore wrangler temp files |
 | `.gitattributes`                  | LFS tracking for HTML      |
 

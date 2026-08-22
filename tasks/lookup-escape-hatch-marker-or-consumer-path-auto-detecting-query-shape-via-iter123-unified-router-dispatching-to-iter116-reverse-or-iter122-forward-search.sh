@@ -45,10 +45,10 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 ITER123_SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER123_REPO_ROOT="$(cd "$ITER123_SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+ITER123_REPO_ROOT="$(cd "$ITER123_SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER123_CLASSIFIER_LIBRARY_TYPESCRIPT_ABSOLUTE_PATH="$ITER123_REPO_ROOT/plugins/itp-hooks/hooks/lib/iter123-unified-lookup-query-shape-auto-detection-router-dispatching-to-iter116-reverse-or-iter122-forward-search-direction-based-on-slash-and-upper-kebab-case-marker-shape-heuristics.ts"
-ITER116_REVERSE_CLI_ABSOLUTE_PATH="$ITER123_REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
-ITER122_FORWARD_CLI_ABSOLUTE_PATH="$ITER123_REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_REVERSE_CLI_ABSOLUTE_PATH="$ITER123_REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER122_FORWARD_CLI_ABSOLUTE_PATH="$ITER123_REPO_ROOT/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 print_usage_and_exit_one() {
     echo "Usage: mise run $(basename "$0" .sh) [--json] [--direction=forward|reverse|auto] <query>"

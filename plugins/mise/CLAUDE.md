@@ -26,7 +26,7 @@ All mise plugin commands use **3-4 hyphenated words** for maximum readability:
 
 `/mise:run-full-release` serves dual purpose: runs existing release pipelines, or guides bootstrapping one for new repos. When no release tasks exist, it audits the repo's ecosystem and scaffolds an individualized 5-phase pipeline (preflight → version → publish → verify → postflight).
 
-Reference: cc-skills' own `.mise/tasks/release/` and `docs/RELEASE.md`.
+Reference: cc-skills' own `tasks/release/` and `docs/RELEASE.md`.
 
 ## Related Skills
 

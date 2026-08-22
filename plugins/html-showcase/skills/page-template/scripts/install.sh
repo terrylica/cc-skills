@@ -367,7 +367,7 @@ cat <<EOF
 ✓ install complete
 
 Next steps:
-  1. (Optional) Add shorthand mise tasks: drop a .mise/tasks/site.toml that
+  1. (Optional) Add shorthand mise tasks: drop a tasks/site.toml that
      wraps scripts/site.sh — see references/publishing.md for an example.
   2. Author HTML files in <site-dir>/ and any <site-dir>/<section-slug>/.
      Each subdir of the site root that contains *.html becomes a "section".

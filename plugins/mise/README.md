@@ -38,7 +38,7 @@ Commands are user-invoked via slash commands.
 /mise:run-full-release --status
 ```
 
-If the repo has no release tasks, the command audits the repo ecosystem (Python, Rust, Node) and scaffolds idiomatic `.mise/tasks/release/` tasks automatically.
+If the repo has no release tasks, the command audits the repo ecosystem (Python, Rust, Node) and scaffolds idiomatic `tasks/release/` tasks automatically.
 
 ### Check Environment Status
 

@@ -494,7 +494,7 @@ cc-skills/
 │   ├── sync-commands-to-settings.sh # Command synchronization
 │   ├── validate-plugins.mjs         # Plugin validation
 │   └── marketplace.schema.json      # JSON Schema for marketplace.json
-├── .mise/tasks/release/             # Release automation (6 phases — see below)
+├── tasks/release/             # Release automation (6 phases — see below)
 ├── docs/                            # ADRs, design docs, lessons-learned, troubleshooting
 ├── package.json                     # semantic-release
 └── README.md
@@ -523,7 +523,7 @@ mise run release:sync
 
 ### Release Phases
 
-`mise run release:full` runs all six phases in sequence — matches the canonical task description in `.mise/tasks/release/full`. Each phase is independently invokable.
+`mise run release:full` runs all six phases in sequence — matches the canonical task description in `tasks/release/full`. Each phase is independently invokable.
 
 | Phase | Task                 | Description                                                                                      |
 | ----- | -------------------- | ------------------------------------------------------------------------------------------------ |

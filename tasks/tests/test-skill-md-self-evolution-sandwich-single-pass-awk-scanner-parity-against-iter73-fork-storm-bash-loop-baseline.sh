@@ -3,7 +3,7 @@
 
 # Iter-74 parity regression test for the single-pass awk scanner that
 # replaces the iter-73-baseline 217-file × ~8-fork-exec-per-file storm
-# in `.mise/tasks/release/preflight` Check 4b (self-evolution sandwich).
+# in `tasks/release/preflight` Check 4b (self-evolution sandwich).
 #
 # The scanner-under-test:
 #   scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SCANNER_AWK_SCRIPT_PATH="$REPO_ROOT/scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk"
 
 if [[ ! -f "$SCANNER_AWK_SCRIPT_PATH" ]]; then

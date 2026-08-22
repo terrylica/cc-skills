@@ -24,7 +24,7 @@
 #      browsing without requiring a build step.
 #
 #   3. The companion test
-#      .mise/tasks/tests/test-iter113-marketplace-escape-hatch-marker-
+#      tasks/tests/test-iter113-marketplace-escape-hatch-marker-
 #      reference-doc-is-in-sync-with-iter111-canonical-registry.sh runs the
 #      generator and diffs the output against the on-disk doc. Drift is a
 #      release blocker (informational in iter-113, strict-promoted in
@@ -59,8 +59,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Generator lives at .mise/tasks/<this-script>.sh; repo root is two levels up.
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+# Generator lives at tasks/<this-script>.sh; repo root is two levels up.
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
 # shellcheck disable=SC2034  # used by parameter expansion inside the renderer heredoc below; shellcheck does not trace through heredoc bodies.
 ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
@@ -355,7 +355,7 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "",
     "1. Implement the consumer-side detection in the hook source file using \\\`hasFileWideEscapeHatchMarkerInContent(...)\\\` or \\\`detectEscapeHatchMarkerCoveringTargetSourceLine(...)\\\` from \\\`plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts\\\`.",
     "2. Add an entry to the registry at \\\`plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\\`.",
-    "3. Add the consumer hook to the iter-110 canonical-cohort array in \\\`.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...\\\`.",
+    "3. Add the consumer hook to the iter-110 canonical-cohort array in \\\`tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...\\\`.",
     "4. Re-run \\\`mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry\\\` to regenerate this document.",
     "5. Commit all four changes atomically.",
     "",

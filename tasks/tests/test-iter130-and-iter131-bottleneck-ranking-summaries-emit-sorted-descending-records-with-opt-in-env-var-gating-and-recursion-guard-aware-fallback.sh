@@ -10,9 +10,9 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/preflight"
-MARKETPLACE_HOOK_REGRESSION_SUITE_RUNNER_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/test-marketplace-hook-regression-suite"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/preflight"
+MARKETPLACE_HOOK_REGRESSION_SUITE_RUNNER_ABSOLUTE_PATH="$REPO_ROOT/tasks/test-marketplace-hook-regression-suite"
 
 ASSERTION_COUNT_PASSED_FOR_ITER132_BOTTLENECK_RANKING_REGRESSION_TEST=0
 ASSERTION_COUNT_FAILED_FOR_ITER132_BOTTLENECK_RANKING_REGRESSION_TEST=0

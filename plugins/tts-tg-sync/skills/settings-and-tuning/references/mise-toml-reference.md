@@ -33,7 +33,7 @@ TTS_SPEED = "1.25"
 # ... (see config-reference.md for full list)
 
 [task_config]
-includes = [".mise/tasks/bot.toml", ".mise/tasks/validate.toml"]
+includes = ["tasks/bot.toml", "tasks/validate.toml"]
 ```
 
 ### Secrets: .mise.local.toml

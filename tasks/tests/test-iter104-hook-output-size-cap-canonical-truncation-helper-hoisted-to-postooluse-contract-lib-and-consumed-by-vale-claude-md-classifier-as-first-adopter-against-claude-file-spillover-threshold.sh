@@ -5,7 +5,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 # Iter-104-original location (now a re-export bridge per iter-106). Kept as a
 # variable because Case 1 still verifies the symbol's presence here via the
 # backward-compat re-export — that re-export is the contract by which the

@@ -6,7 +6,7 @@ ITER165_TEST_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-tople
 cd "$ITER165_TEST_REPO_ROOT"
 
 ITER165_AGGREGATOR_SCRIPT_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
-ITER165_MISE_TASK_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/.mise/tasks/commits/pending-release"
+ITER165_MISE_TASK_ABSOLUTE_PATH="$ITER165_TEST_REPO_ROOT/tasks/commits/pending-release"
 
 ITER165_TOTAL_ASSERTIONS_EVALUATED=0
 ITER165_TOTAL_ASSERTIONS_FAILED=0

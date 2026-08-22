@@ -5,7 +5,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ORCHESTRATOR_HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts"
 STANDALONE_VERSION_GUARD_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-version-guard.ts"
 
