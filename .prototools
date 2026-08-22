@@ -1,0 +1,18 @@
+# proto — the only toolchain manager for this repo (jdx/mise is not used).
+# Replaces the former `.mise.toml [tools]` block. Install everything pinned
+# here on a fresh machine with a single `proto use`.
+#
+# Keep these pins concrete, never floating: the whole point of pinning is that
+# two machines resolve the same binaries.
+
+# Task orchestrator. Every entry point is a task in the root `moon.yml`.
+moon = "2.5.2"
+
+# Bun runs every script, CLI, hook and test in this marketplace.
+bun = "1.3.14"
+
+# Node exists ONLY for semantic-release, which does not support Bun
+# (semantic-release/semantic-release#3527). Nothing else here should reach for
+# it — if you are adding a Node dependency for anything other than the release
+# pipeline, reach for Bun instead.
+node = "25"
