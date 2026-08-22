@@ -16,10 +16,10 @@
 # If you add a generated artifact with a drift gate, add it here in the same
 # commit as the generator.
 
-# Generator: scripts/cli_spec.py  ·  Gate: `mise run cli-spec-check`
+# Generator: scripts/cli_spec.py  ·  Gate: `moon run repo:cli-spec-check`
 cli_spec.json
 
-# Generator: .mise/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh
+# Generator: tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh
 # Gate: iter-113 byte-identical regeneration test + preflight Check 4u
 docs/marketplace-escape-hatch-marker-reference.md
 
