@@ -15,7 +15,7 @@ cd "$ITER174_REPO_ROOT"
 # instead of a REGRESS — keeps this harness (and its iter-180/iter-181 callers)
 # from spuriously failing the release gate. Standalone runs enforce every cap.
 # shellcheck source=/dev/null
-source "$ITER174_SCRIPT_DIR/../../../scripts/lib/perf-timing-skip.sh"
+source "$ITER174_SCRIPT_DIR/../../scripts/lib/perf-timing-skip.sh"
 
 # ─── ITER-179 DUAL-MODE OUTPUT: HUMAN-READABLE DEFAULT OR --json FOR AI AGENTS ─
 # Pre-iter-179 the harness emitted only human-readable text. AI agents and CI
