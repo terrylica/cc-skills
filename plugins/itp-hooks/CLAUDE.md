@@ -63,6 +63,7 @@ Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/postt
 | `posttooluse-biome-lint.ts`                       | (inlined in iter-95 orchestrator)  | biome complementary-to-oxlint lint on JS/TS edits                                                                                                                                                                           |
 | `posttooluse-python-preference-nudge.ts`          | (inlined in iter-93 orchestrator)  | Non-blocking language-preference reminder on `.py` Write/Edit unless allowed (with reason) in an ancestor `python-allowlist.toml`; temp-scratch exempt — [spoke](./docs/python-preference-nudge.md)                         |
 | `posttooluse-mini-inngest-doctrine.ts`            | Bash\|Write\|Edit\|MultiEdit       | Soft nudge to host external/web-facing services on the Mac Mini + Inngest, not locally. Escape `MINI-INNGEST-OK` — [spoke](./docs/mini-inngest-doctrine.md); [ADR](../../docs/adr/2026-07-06-mini-inngest-doctrine-hook.md) |
+| `posttooluse-markdown-hard-wrap-reminder.ts`      | (inlined in iter-93 orchestrator)  | Reminds when a `.md` edit INTRODUCES hard-wrapped prose (net-new only). Escape `MD-HARD-WRAP-OK` — [spoke](./docs/markdown-hard-wrap-reminder.md)                                                                           |
 
 ### Stop Hooks
 
@@ -100,6 +101,7 @@ Per-hook narratives live in each row's spoke link. Orchestrator arc: [docs/postt
 | [mini-inngest-doctrine.md](./docs/mini-inngest-doctrine.md)                             | Mini-Inngest doctrine hook: nudge toward Mac Mini + Inngest for external/web-facing services; trigger heuristics, escape hatch                                                                                                          |
 | [release-notes-extensiveness-guard.md](./docs/release-notes-extensiveness-guard.md)     | Release-notes extensiveness hard-block: interception points, thresholds, fail-open rules, escape hatch; doctrine SSoT link                                                                                                              |
 | [gmail-body-guard.md](./docs/gmail-body-guard.md)                                       | Gmail draft body guard: blocks a `gmail draft` with a hard-wrapped body or raw markdown; wrap + literal-markdown heuristics, shared libs, escape hatch, fail-open                                                                       |
+| [markdown-hard-wrap-reminder.md](./docs/markdown-hard-wrap-reminder.md)                 | The GFM surface split (a repo `.md` reflows, release/issue/PR bodies render `<br>`), why the reminder is net-new, the four hard-wrap boundaries and which guard owns each, and the badge-row false positive                             |
 | [skill-plugin-root-guard.md](./docs/skill-plugin-root-guard.md)                         | Why `CLAUDE_PLUGIN_ROOT` works in manifests but not in skills, the three deniable shapes, the `cc-plugin-root` resolver, and why iter-78 was retired the same day                                                                       |
 
 ## Language Policy
