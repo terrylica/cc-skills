@@ -1,1 +1,0 @@
-/Users/<you>/eon/cc-skills/plugins/arxiv-source-first/skills/arxiv-source-first-paper-ingest/tools/latex-math-validity-oracle/target/release/latex-math-validity-oracle: /Users/<you>/eon/cc-skills/plugins/arxiv-source-first/skills/arxiv-source-first-paper-ingest/tools/latex-math-validity-oracle/src/main.rs
