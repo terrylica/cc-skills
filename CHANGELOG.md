@@ -1,3 +1,77 @@
+## [27.1.1](https://github.com/terrylica/cc-skills/compare/v27.1.0...v27.1.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **gh-tools:** identity preflight could never pass on org repos ([7a791bc](https://github.com/terrylica/cc-skills/commit/7a791bc3ac004e69431c64cb50af41c9840a508b)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#HARD-WRAP-OK](https://github.com/terrylica/cc-skills/issues/HARD-WRAP-OK)
+
+The check was `AUTH_USER != REPO_OWNER -> block`. On an organisation repository the owner is the ORG, never a user, so that comparison can never match however correct the credential is -- it blocked every legitimate archival into a shared repo.
+
+Measured on Eon-Labs/alpha-forge: authenticated terrylica, owner Eon-Labs, owner.type=Organization, permissions.push=true. The correct identity, and the preflight called it a mismatch.
+
+The guard exists to stop writes reaching the WRONG ACCOUNT, and "may this identity write here" is answered by permissions.push, not by string equality with the owner. Equality is sufficient, never necessary. The equality path stays as the fast offline case; the org fall-through costs one API call and is only reached on mismatch.
+
+Also in this change:
+
+- REPO_SLUG is parsed as owner/repo (needed for `gh api repos/$SLUG`), with REPO_OWNER derived from it.
+- The mismatch diagnostic no longer invents display tokens. The first draft used a `:-unknown` default and the INVENTED-FALLBACK hook rejected it, correctly -- "unknown" reports a value GitHub never sent. Each field now prints only when present, alongside gh's own exit code and the first line of its stderr on API failure.
+- The skill's own canonical backlink template tripped GH-HARD-WRAP-GUARD: four stacked `Key: value` lines are indistinguishable from hard-wrapped prose, and GitHub renders each newline as &lt;br> anyway. Replaced with a markdown list, which states
+
+* **research-archival:** an archive must be TWO files — embedding the transcript created a check nothing could pass ([3493eec](https://github.com/terrylica/cc-skills/commit/3493eecc49df3503d0756bec37920200208e2cc1)), closes [Eon-Labs/alpha-forge#540](https://github.com/Eon-Labs/alpha-forge/issues/540)
+
+The skill told you to save one .md, and the obvious reading was to paste the scrape into it. Every archive built that way carries a duplicate, and because any repository with markdown tooling reformats .md on save, that duplicate can never be byte-identical. So each commit silently posed the question 'is this copy still saying what the original said?' -- and that question is not answerable by text normalisation.
+
+It took five review rounds on Eon-Labs/alpha-forge to establish that. Each found a class of meaning-changing edit the equivalence checker certified as identical:
+
+  structural markers erased   a > quotation demoted to the author's own
+                              assertion; a heading demoted to prose
+  inline delimiters erased    `not` reading as the English word
+  identifiers/URLs retargeted a_b -> ab, then again at a__b__c -> abc
+  cell boundaries moved       an outcome reattached to the wrong reference
+  literal asterisks consumed  inside escapes, tilde- and backtick-fenced code
+                              blocks, indented code blocks, HTML attributes
+
+The last is a category error rather than the fifth bug. CommonMark 0.31.2 parses in two phases -- block structure first, inlines second -- so a line-oriented normaliser has NO block phase and cannot tell a paragraph from a fenced code block. Emphasis is specified as a delimiter-STACK procedure, and precedence is context-dependent. No sixth patch converges.
+
+THE FIX IS TO DELETE THE DUPLICATE, NOT TO PARSE BETTER
+
+With one copy there is no equivalence question: the gate is sha256(committed) == sha256(pinned), which has no bypass class because it has no interpretation step, and stays stdlib-only so CI runs it before any install.
+
+Changed here:
+  * both TodoWrite templates now produce TWO artifacts and say not to paste
+  * File Saving rewritten: raw scrape as .raw-scrape.txt, .md is editorial only
+  * frontmatter contract gains raw_scrape_path + raw_scrape_sha256 as a PAIR, plus transcript_location
+  * new guidance on what belongs in the editorial .md, including the identity-vs-content citation distinction and Crossref-by-content
+
+TWO THINGS I GOT WRONG THAT ARE NOW WRITTEN DOWN
+
+  * the .txt extension is the MECHANISM, not defence in depth. Markdown tooling globs *.md; .prettierignore protects only machines that read it.
+  * half-declared provenance is worse than none. A path without a hash looks pinned and is unverified. Discovery must match EITHER key, or a half declaration is not half-checked but NOT CHECKED AT ALL -- an archive pinning a hash and naming no file was silently skipped for a full day.
+
+Generalisable: when a check is hard to write, ask whether the artifact should exist. Five rounds went into making a comparison correct before anyone asked why there were two things to compare.
+
+Validated: quick_validate.py 'Skill is valid!'; validate-links.ts 'All links valid.'
+
+* **research-archival:** identity preflight reported "verified" while resolving nothing ([456383e](https://github.com/terrylica/cc-skills/commit/456383eec83aa7f538680aadef8e63c963891a97))
+
+A false PASS, which is strictly worse than the false BLOCK fixed earlier the same day. Run against `terrylica/opendeviationbar-patterns` -- a repo the credential legitimately owns -- the preflight printed "Identity verified" having resolved NEITHER side. Two independent defects lined up so the comparison became "" = "", which is true.
+
+DEFECT 1 -- the token branch assumed GH_TOKEN is in the environment. `gh` keeps the credential in the OS keyring, so on a correctly-configured machine GH_TOKEN is normally absent and the curl call sent `Authorization: token ` and returned empty. Asking `gh api user --jq .login` is not a fallback, it is the ordinary path; it is now the else branch, with the token branch kept ahead of it for CI.
+
+DEFECT 2 -- the slug regex could not parse an SSH host alias. The owner-per-path policy on this machine produces remotes like `git@github.com-terrylica:terrylica/repo.git`, where the character after `github.com` is `-`, not `:` or `/`, so `github\.com[:/]` matched nothing. An optional `[^:/]*` now consumes the alias suffix. The policy that makes the guard necessary is the same policy that broke it.
+
+THE REAL FIX IS NEITHER REGEX: FAIL CLOSED. An equality test between two possibly-empty strings reports success by default, so the block now exits non-zero when either side is unresolved, with a per-field diagnostic naming which one. "Identity could not be RESOLVED" and "identity verified" are different states and only one is safe to proceed from. Verified against the live repo after the fix: resolves terrylica / terrylica/opendeviationbar-patterns and verifies for a reason.
+
+Generalisable: a guard whose failure mode is SILENCE is indistinguishable from a guard that works. Prefer comparisons that cannot be satisfied by absence, and assert resolution before agreement.
+
+Post-change checklist run: quick_validate.py "Skill is valid!"; validate-links.ts "All links valid" (the latter needed `bun install` inside plugins/plugin-dev, since gray-matter is declared there and the root package.json has no workspaces -- a pre-existing environment gap, not a change here).
+
+Exercised end to end on the archival that found it: docs/research/2026-08-20-parsimony-... plus terrylica/opendeviationbar-patterns#152.
+
+* **tts-companion:** drop jdx/mise shims from the launchd PATH template ([0b8bf51](https://github.com/terrylica/cc-skills/commit/0b8bf51368f7bef269f70f3e363354d0cc9461bd))
+
+The bundled plist put ~/.local/share/mise/shims first in PATH, so every install of this plugin re-injected mise on machines that retired it (2026-08-21 fleet-wide: proto is the resolver, brew owns the CLIs). The PATH now leads with the canonical local dirs and keeps Homebrew next — the same string ~/.claude's toolchain contract (tools/toolchain/path.sh) declares as the managed prepend set.
+
 # [27.1.0](https://github.com/terrylica/cc-skills/compare/v27.0.3...v27.1.0) (2026-08-20)
 
 
