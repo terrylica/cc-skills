@@ -28,7 +28,7 @@
 		<key>HOME</key>
 		<string>/Users/<you></string>
 		<key>PATH</key>
-		<string>/Users/<you>/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<string>/Users/<you>/.local/bin:/Users/<you>/bin:/Users/<you>/.proto/shims:/Users/<you>/.bun/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 		<key>SHERPA_ONNX_PATH</key>
 		<string>/Users/<you>/fork-tools/sherpa-onnx/build-swift-macos/install</string>
 		<key>KOKORO_MODEL_PATH</key>
