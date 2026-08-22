@@ -6,7 +6,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 # ---------- Locate repo root ----------
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 
 # ---------- Output formatting ----------
 print_banner() {

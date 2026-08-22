@@ -76,7 +76,7 @@
 #     linearly with N because the eliminated work was 2N fork+exec of git
 #     log -1; at small N (<5 commits) overhead is dominated by shared-lib
 #     sourcing and the speedup is less dramatic. See iter-167 benchmark
-#     task .mise/tasks/tests/benchmark-iter167-*.sh for reproducible
+#     task tasks/tests/benchmark-iter167-*.sh for reproducible
 #     measurement.
 #     ASCII NUL is safe because git tree objects cannot contain NUL bytes
 #     (git's own internal data structures use NUL as field separator —

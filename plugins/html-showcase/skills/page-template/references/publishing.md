@@ -103,7 +103,7 @@ is missing, so the very first push works even before you commit your
 self-contained.
 
 (If you also want shorthand commands like `mise run site:push`, add a
-small `.mise/tasks/site.toml` that calls `scripts/site.sh`.)
+small `tasks/site.toml` that calls `scripts/site.sh`.)
 
 ### The publish workflow
 

@@ -5,8 +5,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
-AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh"
 
 if [[ ! -f "$AUDIT_TASK_ABSOLUTE_PATH" ]]; then
     echo "FAIL: audit task not found: $AUDIT_TASK_ABSOLUTE_PATH"

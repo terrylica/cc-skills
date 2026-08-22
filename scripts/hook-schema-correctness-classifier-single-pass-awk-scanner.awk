@@ -2,7 +2,7 @@
 # hook-schema-correctness-classifier-single-pass-awk-scanner.awk
 #
 # Iter-79 single-pass cross-file scanner that replaces the fork-exec
-# storm in `.mise/tasks/release/preflight` Check 4f (iter-60 PreToolUse
+# storm in `tasks/release/preflight` Check 4f (iter-60 PreToolUse
 # schema audit, 842ms) and Check 4h (iter-62 inverse PreToolUse schema
 # audit, 787ms). Reads every hook source file passed in argv, emits one
 # TSV record per file with the audit facts needed by the downstream

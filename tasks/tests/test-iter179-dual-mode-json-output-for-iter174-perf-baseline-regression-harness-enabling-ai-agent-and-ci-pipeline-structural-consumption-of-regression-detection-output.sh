@@ -5,7 +5,7 @@ set -euo pipefail
 ITER179_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER179_REPO_ROOT"
 
-ITER179_ITER174_HARNESS_ABSOLUTE_PATH="$ITER179_REPO_ROOT/.mise/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+ITER179_ITER174_HARNESS_ABSOLUTE_PATH="$ITER179_REPO_ROOT/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
 
 ITER179_TOTAL_ASSERTIONS_EVALUATED=0
 ITER179_TOTAL_ASSERTIONS_FAILED=0

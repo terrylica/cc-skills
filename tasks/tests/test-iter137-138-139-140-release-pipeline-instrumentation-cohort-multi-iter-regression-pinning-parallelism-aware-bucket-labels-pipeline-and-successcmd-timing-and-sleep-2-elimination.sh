@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-141 multi-iter source-fingerprint regression test pinning the release-pipeline-instrumentation cohort (iter-137 parallelism-aware iter-130 bucket-label ranking + iter-138 chronicle-slicing test relocation into iter-50/138 marketplace-suite auto-discovery + iter-139 RELEASE_TIMING_PROFILE pipeline-level per-phase timing in release/full orchestrator + iter-140 successCmd per-step timing helpers in .releaserc.yml + iter-140 sleep-2 elimination forensic invariant). Tier 1 only (source-fingerprint assertions, no Tier 2 integration — releases have side effects). Closes the every-iter-N-gets-a-regression-test discipline gap accumulated across four iters. Auto-discovered by the iter-50 marketplace-hook-regression-suite at .mise/tasks/tests/test-*.sh path."
+#MISE description="Iter-141 multi-iter source-fingerprint regression test pinning the release-pipeline-instrumentation cohort (iter-137 parallelism-aware iter-130 bucket-label ranking + iter-138 chronicle-slicing test relocation into iter-50/138 marketplace-suite auto-discovery + iter-139 RELEASE_TIMING_PROFILE pipeline-level per-phase timing in release/full orchestrator + iter-140 successCmd per-step timing helpers in .releaserc.yml + iter-140 sleep-2 elimination forensic invariant). Tier 1 only (source-fingerprint assertions, no Tier 2 integration — releases have side effects). Closes the every-iter-N-gets-a-regression-test discipline gap accumulated across four iters. Auto-discovered by the iter-50 marketplace-hook-regression-suite at tasks/tests/test-*.sh path."
 
 # Iter-141 combined regression test. Mirrors the iter-132 multi-iter pattern
 # (iter-130+iter-131 bottleneck-ranking-summary as one combined source-
@@ -20,8 +20,8 @@
 #             would distort iter-130 ranking actionability post-iter-134.
 #
 #   iter-138: Chronicle-slicing 37-assertion test relocated FROM
-#             .mise/tasks/release/test-chronicle-slicing TO
-#             .mise/tasks/tests/test-chronicle-slicing-37-assertion-*.sh
+#             tasks/release/test-chronicle-slicing TO
+#             tasks/tests/test-chronicle-slicing-37-assertion-*.sh
 #             so the iter-50 marketplace-suite auto-discovery glob
 #             `test-*.sh` picks it up. CHRONICLE_SCRIPT path inside the
 #             test patched to ../release/chronicle (chronicle producer
@@ -56,9 +56,9 @@
 
 set -uo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/preflight"
-RELEASE_FULL_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/full"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/preflight"
+RELEASE_FULL_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/full"
 RELEASERC_YML_ABSOLUTE_PATH="$REPO_ROOT/.releaserc.yml"
 # Iter-142: the iter-140 successCmd-internals instrumentation was EXTRACTED from
 # the .releaserc.yml YAML literal heredoc into an external script to resolve the
@@ -70,8 +70,8 @@ RELEASERC_YML_ABSOLUTE_PATH="$REPO_ROOT/.releaserc.yml"
 # pure code-relocation refactor that preserves behavior — invariants hold, just
 # in a different file — so iter-141 source-fingerprints still bind tightly.
 ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH_FOR_ITER140_HELPER_ASSERTIONS_AFTER_ITER142_RELOCATION="$REPO_ROOT/scripts/iter142-post-release-verification-with-iter140-per-step-timing-instrumentation-extracted-from-releaserc-yml-yaml-literal-to-avoid-lodash-template-versus-bash-parameter-expansion-syntax-conflict.sh"
-CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/tests/test-chronicle-slicing-37-assertion-stress-test-against-boundary-mtimes-jsonl-vs-brotli-subagent-recursion-and-visibility-gate-parsing.sh"
-LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH="$REPO_ROOT/.mise/tasks/release/test-chronicle-slicing"
+CHRONICLE_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-chronicle-slicing-37-assertion-stress-test-against-boundary-mtimes-jsonl-vs-brotli-subagent-recursion-and-visibility-gate-parsing.sh"
+LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH="$REPO_ROOT/tasks/release/test-chronicle-slicing"
 
 ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=0
 ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=0
@@ -171,7 +171,7 @@ echo "── ITER-138: chronicle-slicing test relocated into iter-50/138 marketp
 # 2.A: chronicle test is at the NEW location
 if [[ -f "$CHRONICLE_TEST_ABSOLUTE_PATH" ]] && [[ -x "$CHRONICLE_TEST_ABSOLUTE_PATH" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Iter-138.B1: chronicle test exists + executable at .mise/tasks/tests/test-chronicle-slicing-37-assertion-*.sh"
+    echo "  ✓ PASS: Iter-138.B1: chronicle test exists + executable at tasks/tests/test-chronicle-slicing-37-assertion-*.sh"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
     echo "  ✗ FAIL: Iter-138.B1: chronicle test missing or not executable at $CHRONICLE_TEST_ABSOLUTE_PATH"
@@ -180,7 +180,7 @@ fi
 # 2.B: chronicle test is NOT at the OLD location (regression: file moved back)
 if [[ ! -e "$LEGACY_CHRONICLE_TEST_RELEASE_DIR_PATH" ]]; then
     ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_PASSED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
-    echo "  ✓ PASS: Iter-138.B2: chronicle test ABSENT at legacy .mise/tasks/release/test-chronicle-slicing path (iter-138 relocation pinned)"
+    echo "  ✓ PASS: Iter-138.B2: chronicle test ABSENT at legacy tasks/release/test-chronicle-slicing path (iter-138 relocation pinned)"
 else
     ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER141_RELEASE_PIPELINE_INSTRUMENTATION_COHORT_REGRESSION_TEST + 1))
     echo "  ✗ FAIL: Iter-138.B2: chronicle test reintroduced at legacy location (iter-138 relocation regressed)"

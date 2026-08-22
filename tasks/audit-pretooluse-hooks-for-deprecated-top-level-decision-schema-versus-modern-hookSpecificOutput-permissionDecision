@@ -61,7 +61,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # this audit task itself. Always resolved from BASH_SOURCE, never
 # overridden. Used to locate the shared awk scanner script which
 # travels with the audit, not with the scanned fleet.
-AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # REPO_ROOT defaults to the cc-skills working tree. Override via
 # AUDIT_REPO_ROOT_OVERRIDE for testing the audit against a synthetic-

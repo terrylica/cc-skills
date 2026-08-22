@@ -2,7 +2,7 @@
 # test-audit-pueue-wrap-guard-last-entry-ordering-detects-violation-when-soft-nudge-hook-follows-pueue-wrap-guard-in-hooks-json.sh
 #
 # Regression test for the iter-61 pueue-wrap-guard ordering audit at
-# .mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-
+# tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-
 # entry-in-hooks-json-to-mitigate-github-15897-multi-hook-
 # updatedInput-aggregation-last-writer-wins-bug.
 #

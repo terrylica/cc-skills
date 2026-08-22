@@ -110,10 +110,14 @@ describe("classifyReleaseCommand", () => {
     expect(classifyReleaseCommand(`git tag -a nightly -m "x"`).isRelease).toBe(false);
   });
 
-  it("detects semantic-release and mise release wrappers", () => {
+  it("detects semantic-release and its task-runner wrappers", () => {
     expect(classifyReleaseCommand(`npx semantic-release`).kind).toBe("semantic-release");
-    expect(classifyReleaseCommand(`mise run release:full`).kind).toBe("semantic-release");
-    expect(classifyReleaseCommand(`mise run release`).kind).toBe("semantic-release");
+    // This marketplace's own entry point.
+    expect(classifyReleaseCommand(`moon run repo:release-full`).kind).toBe("semantic-release");
+    expect(classifyReleaseCommand(`moon run repo:release`).kind).toBe("semantic-release");
+    // Direct task-file execution — the runner-agnostic form every wrapper
+    // ultimately reduces to, and the one a consumer repo is most likely to use.
+    expect(classifyReleaseCommand(`bash tasks/release/full`).kind).toBe("semantic-release");
   });
 
   it("ignores unrelated git/gh commands", () => {

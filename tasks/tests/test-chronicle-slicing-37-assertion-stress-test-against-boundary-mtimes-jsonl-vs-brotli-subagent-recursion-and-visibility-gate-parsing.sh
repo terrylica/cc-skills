@@ -3,13 +3,13 @@
 set -uo pipefail
 
 # Locate the chronicle script we're testing.
-# Iter-138 relocation: this test moved from .mise/tasks/release/test-chronicle-slicing
-# to .mise/tasks/tests/test-chronicle-slicing-*.sh so the iter-50/iter-75
+# Iter-138 relocation: this test moved from tasks/release/test-chronicle-slicing
+# to tasks/tests/test-chronicle-slicing-*.sh so the iter-50/iter-75
 # marketplace-hook-regression-suite auto-discovers it (absorbs what was the
 # sequential Check 4d 670ms cost into Check 4e's xargs -P parallel batch where
 # it now runs concurrent with the ~1135ms longest test — net wall-clock save
 # ~670ms on preflight). The chronicle script remained at its original
-# .mise/tasks/release/chronicle canonical home (it's the release-phase chronicle
+# tasks/release/chronicle canonical home (it's the release-phase chronicle
 # producer, not a test artifact), so this test now reaches up one dir + over to
 # release/ for the script under test.
 CHRONICLE_SCRIPT="$(dirname "$0")/../release/chronicle"

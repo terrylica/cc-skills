@@ -2,7 +2,7 @@
 # test-audit-hooks-for-async-true-eligibility-classifies-each-of-the-eight-detection-layers-correctly-against-synthetic-fixtures.sh
 #
 # Regression test for the iter-57/58/59 async-eligibility audit task at
-# .mise/tasks/audit-hooks-for-async-true-eligibility-via-blocking-decision-
+# tasks/audit-hooks-for-async-true-eligibility-via-blocking-decision-
 # emission-detection.
 #
 # This audit is now LOAD-BEARING for safety: iter-58 demonstrated it

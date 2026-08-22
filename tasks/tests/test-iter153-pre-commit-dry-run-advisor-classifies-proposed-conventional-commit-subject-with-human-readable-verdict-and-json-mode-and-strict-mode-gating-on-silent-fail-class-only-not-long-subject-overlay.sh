@@ -7,7 +7,7 @@ cd "$ITER153_REPO_ROOT"
 
 ITER153_ADVISOR_SCRIPT_RELATIVE_PATH="scripts/iter153-operator-facing-pre-commit-dry-run-advisor-classifying-proposed-conventional-commit-subject-through-iter82-grammar-and-iter151-overlay-with-human-readable-verdict-default-and-json-output-mode-for-ai-agent-automation-pipeline-consumption.sh"
 ITER153_ADVISOR_SCRIPT_ABSOLUTE_PATH="$ITER153_REPO_ROOT/$ITER153_ADVISOR_SCRIPT_RELATIVE_PATH"
-ITER153_MISE_TASK_WRAPPER_RELATIVE_PATH=".mise/tasks/commits/advise"
+ITER153_MISE_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/advise"
 ITER153_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER153_REPO_ROOT/$ITER153_MISE_TASK_WRAPPER_RELATIVE_PATH"
 
 ITER153_TOTAL_ASSERTIONS_EVALUATED=0

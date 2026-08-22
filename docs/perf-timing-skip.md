@@ -25,7 +25,7 @@ still gates. Standalone runs (flag unset) enforce the timing fully, so perf
 regressions are still caught the moment anyone runs the test on purpose.
 
 Only the **release preflight** sets the flag, and only for its regression-suite
-invocation (`.mise/tasks/release/preflight`). Nothing else sets it.
+invocation (`tasks/release/preflight`). Nothing else sets it.
 
 ## Authoring a new perf-timing test
 

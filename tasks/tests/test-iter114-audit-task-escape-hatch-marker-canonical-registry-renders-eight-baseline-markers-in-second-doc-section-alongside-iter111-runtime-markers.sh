@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-#MISE description="Iter-114 regression test for the audit-task escape-hatch marker registry. Verifies (1) iter-114 audit-task registry TypeScript file exists with all documented exports (entry interface + registry array + lookup + list-all helpers); (2) registry contains all 8 iter-114 baseline audit markers (ESCAPE-HATCH-AUDIT-OK, HOOK-OUTPUT-SIZE-CAP-OK, MATCHER-NO-MULTIEDIT-OK, ORDERING-OK, POSTTOOLUSE-RAW-STDOUT-OK, SPAWN-SYNC-OK, STOP-HOOK-ADDITIONAL-CONTEXT-OK, WILDCARD-MATCHER-OK); (3) every registered audit marker references an EXISTING .mise/tasks/audit-*.sh consumer task file; (4) iter-113 doc generator renders audit-task section alongside runtime section in operator-facing reference doc with all 8 baseline audit markers; (5) lookup-by-name helper resolves known + returns undefined for unknown; (6) generator idempotency invariant still holds with the two-registry input."
+#MISE description="Iter-114 regression test for the audit-task escape-hatch marker registry. Verifies (1) iter-114 audit-task registry TypeScript file exists with all documented exports (entry interface + registry array + lookup + list-all helpers); (2) registry contains all 8 iter-114 baseline audit markers (ESCAPE-HATCH-AUDIT-OK, HOOK-OUTPUT-SIZE-CAP-OK, MATCHER-NO-MULTIEDIT-OK, ORDERING-OK, POSTTOOLUSE-RAW-STDOUT-OK, SPAWN-SYNC-OK, STOP-HOOK-ADDITIONAL-CONTEXT-OK, WILDCARD-MATCHER-OK); (3) every registered audit marker references an EXISTING tasks/audit-*.sh consumer task file; (4) iter-113 doc generator renders audit-task section alongside runtime section in operator-facing reference doc with all 8 baseline audit markers; (5) lookup-by-name helper resolves known + returns undefined for unknown; (6) generator idempotency invariant still holds with the two-registry input."
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
-ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
 
 ITER114_BASELINE_AUDIT_MARKER_TOKENS=(
     "ESCAPE-HATCH-AUDIT-OK"

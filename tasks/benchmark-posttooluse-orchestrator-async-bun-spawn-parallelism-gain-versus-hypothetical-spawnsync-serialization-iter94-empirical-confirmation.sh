@@ -5,7 +5,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
 
 NUMBER_OF_BENCHMARK_REPLICATES_PER_PAYLOAD=5
@@ -120,7 +120,7 @@ echo "  - When BOTH subhooks fire on the same payload (future state when"
 echo "    oxlint, biome, etc. are inlined), the iter-94 async-Bun.spawn refactor"
 echo "    means the wall-clock approaches MAX(subhook_i), not SUM. The"
 echo "    static audit at"
-echo "    .mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
+echo "    tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
 echo "    prevents regression."
 echo ""
 exit 0

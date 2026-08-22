@@ -17,7 +17,7 @@ mise run release:full
 
 ## 6-Phase Release Workflow
 
-The `release:full` task runs all six phases in sequence (matches the canonical task description in `.mise/tasks/release/full`).
+The `release:full` task runs all six phases in sequence (matches the canonical task description in `tasks/release/full`).
 
 | Phase      | Command                       | Description                                                                              |
 | ---------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
@@ -342,7 +342,7 @@ Then run `pre-commit install --hook-type commit-msg` once. The pre-commit framew
 
 - **iter-163** doctor coverage extension #1 — adds 3 CRITICAL checks (iter-161 lib + iter-162 lib + iter-153→iter-161→iter-162 footer-form end-to-end probe). Closes the silent-regression gap where missing/broken libs would not surface (advisor soft-fails to "UNAVAILABLE" preview).
 - **iter-166** doctor coverage extension #2 — adds 3 more CRITICAL checks (iter-164 lib + iter-165 aggregator script + iter-153→iter-161→iter-164→iter-165 chain probe using a `mktemp -d` synthetic git repo via `ITER165_REPO_ROOT_OVERRIDE`). Brings the doctor's `critical_passed` counter to 13.
-- **iter-167** single-batched-git-log-fan-in perf optimization — replaces iter-165's 2N+1-fork pattern (1 SHA list + 2 git logs per commit) with one `git log --format='%H%x00%s%x00%b%x00'` invocation parsed via NUL-delimited bash `read`. Empirically measured ≈**5.17× speedup at N=50** (1184ms baseline median → 228ms optimized median; 956ms absolute time saved). ASCII NUL is safe because git tree objects cannot contain NUL bytes (per `git-pretty-formats(1)` `%x00` specifier). Reproducible benchmark: `bash .mise/tasks/tests/test-iter167-*.sh`.
+- **iter-167** single-batched-git-log-fan-in perf optimization — replaces iter-165's 2N+1-fork pattern (1 SHA list + 2 git logs per commit) with one `git log --format='%H%x00%s%x00%b%x00'` invocation parsed via NUL-delimited bash `read`. Empirically measured ≈**5.17× speedup at N=50** (1184ms baseline median → 228ms optimized median; 956ms absolute time saved). ASCII NUL is safe because git tree objects cannot contain NUL bytes (per `git-pretty-formats(1)` `%x00` specifier). Reproducible benchmark: `bash tasks/tests/test-iter167-*.sh`.
 
 For deep dives into each tool's design contract, see the iter-150 through iter-167 subsections below.
 
@@ -402,7 +402,7 @@ mise run audit-recent-git-commit-messages-...
 mise run release:preflight    # Check 4l informational output
 ```
 
-Regression pin: `.mise/tasks/tests/test-iter151-...sh` (19 assertions across 6 groups covering structural validity, scaffolding declarations, length-measurement wiring, summary/diagnostic output, informational-only design invariant, and functional smoke test against the actual cc-skills repo).
+Regression pin: `tasks/tests/test-iter151-...sh` (19 assertions across 6 groups covering structural validity, scaffolding declarations, length-measurement wiring, summary/diagnostic output, informational-only design invariant, and functional smoke test against the actual cc-skills repo).
 
 ### Operator-Facing Commits Health Dashboard (iter-152)
 
@@ -439,7 +439,7 @@ ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 mise run commits:health
 
 **Tunables** (all with `ITER152_` prefix for namespace clarity): `COMMIT_COUNT_TO_ANALYZE` (default 10), `SUBJECT_HARD_CAP_THRESHOLD_CHARS` (default 72), `SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (default 50), `HISTOGRAM_BAR_WIDTH` (default 20 cols), `WORST_OFFENDER_CALLOUT_COUNT` (default 3).
 
-Regression pin: `.mise/tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, mise wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
+Regression pin: `tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, mise wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
 
 ### Pre-Commit Dry-Run Advisor (iter-153)
 
@@ -498,7 +498,7 @@ mise run commits:advise --strict -- "feat(scope)+docs: bad compound"
 - COMPOUND-PREFIX → "use a single type per commit, mention secondary scopes in the BODY"
 - MISSING-TYPE → "prefix the subject with one of the recognized types: feat fix perf revert docs chore style refactor test build ci"
 
-Regression pin: `.mise/tasks/tests/test-iter153-...sh` (24 assertions across 6 groups covering structural validity, SSoT grammar reuse, 4-way verdict classification, --json stable schema, --strict gating semantics with iter-151 informational-only invariant preservation, and scope/breaking/remediation extraction).
+Regression pin: `tasks/tests/test-iter153-...sh` (24 assertions across 6 groups covering structural validity, SSoT grammar reuse, 4-way verdict classification, --json stable schema, --strict gating semantics with iter-151 informational-only invariant preservation, and scope/breaking/remediation extraction).
 
 The **iter-150 → iter-151 → iter-152 → iter-153 arc** now spans the full conventional-commits lifecycle: **VIEW** (iter-150) → **DETECT** (iter-151) → **HEALTH SUMMARY** (iter-152) → **PRE-COMMIT ADVISE** (iter-153).
 
@@ -607,7 +607,7 @@ Subject: `refactor(release): iter-155 shared JSON-escape lib` (49 chars, under i
 
 ### Opt-In Per-Phase Wall-Clock Timing Instrumentation (iter-73)
 
-`.mise/tasks/release/preflight` ships with env-var-gated per-phase timing instrumentation. Default behavior is unchanged — no output, no measurable overhead. Set `PREFLIGHT_TIMING_PROFILE=1` in the environment to surface a `⧗ phase elapsed: Nms (label)` line after each visible `→` phase header, plus a whole-script total at the end. Useful when preflight feels slow and you want to know which phase dominates without spelunking through subprocess calls.
+`tasks/release/preflight` ships with env-var-gated per-phase timing instrumentation. Default behavior is unchanged — no output, no measurable overhead. Set `PREFLIGHT_TIMING_PROFILE=1` in the environment to surface a `⧗ phase elapsed: Nms (label)` line after each visible `→` phase header, plus a whole-script total at the end. Useful when preflight feels slow and you want to know which phase dominates without spelunking through subprocess calls.
 
 ```bash
 PREFLIGHT_TIMING_PROFILE=1 mise run release:preflight 2>&1 | grep '⧗'
@@ -823,12 +823,12 @@ Opt-in flag for the iter-135 regression test's serial-mode-opt-out integration t
 
 ```bash
 ITER135_RUN_SERIAL_MODE_INTEGRATION_TIER=1 \
-  bash .mise/tasks/tests/test-iter134-parallel-fan-out-preflight-audit-subprocesses-*.sh
+  bash tasks/tests/test-iter134-parallel-fan-out-preflight-audit-subprocesses-*.sh
 ```
 
 ```bash
 ITER132_RUN_PREFLIGHT_INTEGRATION_TIER=1 \
-  bash .mise/tasks/tests/test-iter130-and-iter131-bottleneck-ranking-summaries-*.sh
+  bash tasks/tests/test-iter130-and-iter131-bottleneck-ranking-summaries-*.sh
 ```
 
 #### `AUDIT_REPO_ROOT_OVERRIDE=/path/to/synthetic/fixture/repo` (iter-62)
@@ -838,7 +838,7 @@ Override the repo root scanned by audit tasks. Default unset — audits resolve 
 ```bash
 # Run iter-62 inverse-schema audit against a synthetic fixture
 AUDIT_REPO_ROOT_OVERRIDE=/tmp/fixture-fleet \
-  bash .mise/tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-...
+  bash tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-...
 ```
 
 #### `MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1` (iter-75)
@@ -847,7 +847,7 @@ AUDIT_REPO_ROOT_OVERRIDE=/tmp/fixture-fleet \
 
 ### Brittle-Banner-Grep Anti-Pattern (iter-69/70 lesson)
 
-`.mise/tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
+`tasks/release/preflight` parses audit task output by grep-extracting summary banners. **Hardcoded banner phrasing creates brittle coupling**: when an audit evolves its scope and renames its summary banner (e.g. iter-67 "Total registered Stop hooks scanned:" → iter-69 "Total registered pentad-member hooks scanned:" during the Stop → Stop+SubagentStop+SessionEnd+PreCompact+Notification pentad expansion), the preflight grep returns no match, `set -o pipefail` propagates the failure, and the gate silently aborts with no actionable diagnostic.
 
 #### Forensic case
 
@@ -876,8 +876,8 @@ Without defenses, a future audit rename ANYWHERE in the marketplace can crash pr
 
 When extending an audit's scope and renaming its summary banner, you MUST update **both** sites coherently in the same commit:
 
-- `.mise/tasks/tests/test-audit-*.sh` grep (regression test)
-- `.mise/tasks/release/preflight` grep (release gate)
+- `tasks/tests/test-audit-*.sh` grep (regression test)
+- `tasks/release/preflight` grep (release gate)
 
 The defensive pattern above reduces the blast radius if you forget — but the only way to ensure the gate keeps reporting accurate counts is coherent dual-site updates.
 
@@ -886,7 +886,7 @@ The defensive pattern above reduces the blast radius if you forget — but the o
 | File                                | Purpose                                                                                                       |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `release.config.cjs`                | semantic-release configuration (body-preserving notes writerOpts; converted from `.releaserc.yml` 2026-07-21) |
-| `.mise/tasks/release:*`             | mise release tasks                                                                                            |
+| `tasks/release:*`             | mise release tasks                                                                                            |
 | `scripts/release-preflight.sh`      | Preflight validation                                                                                          |
 | `scripts/sync-hooks-to-settings.sh` | Hook synchronization                                                                                          |
 | `scripts/sync-versions.mjs`         | Version alignment across files                                                                                |

@@ -7,7 +7,7 @@ cd "$ITER162_REPO_ROOT"
 
 ITER162_SHARED_LIB_RELATIVE_PATH="scripts/lib/iter162-conventional-commits-breaking-change-footer-token-detector-applying-uppercase-required-and-blank-line-separator-rules-per-conventional-commits-v1-section-13-and-semantic-release-commit-analyzer-default-angular-preset-behavior.sh"
 ITER162_SHARED_LIB_ABSOLUTE_PATH="$ITER162_REPO_ROOT/$ITER162_SHARED_LIB_RELATIVE_PATH"
-ITER162_ADVISOR_TASK_ABSOLUTE_PATH="$ITER162_REPO_ROOT/.mise/tasks/commits/advise"
+ITER162_ADVISOR_TASK_ABSOLUTE_PATH="$ITER162_REPO_ROOT/tasks/commits/advise"
 ITER162_ITER157_HOOK_SCRIPT_ABSOLUTE_PATH="$ITER162_REPO_ROOT/scripts/iter157-installable-commit-msg-git-hook-delegating-to-iter153-strict-mode-advisor-for-automatic-rejection-of-compound-prefix-and-missing-type-silent-fail-class-violations-at-commit-time-closing-the-natural-git-workflow-integration-gap.sh"
 
 ITER162_TOTAL_ASSERTIONS_EVALUATED=0

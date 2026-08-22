@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPT_UNDER_TEST="$REPO_ROOT/scripts/sync-hooks-to-settings.sh"
 FIXTURE_HOME_ROOT="$(mktemp -d -t sync-hooks-settings-shapes.XXXXXX)"
 trap 'rm -rf "$FIXTURE_HOME_ROOT"' EXIT

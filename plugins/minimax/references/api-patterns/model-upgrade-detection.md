@@ -4,7 +4,7 @@
 
 **Endpoint**: `GET /v1/models`
 **Tooling delivered**: 2026-04-29 (iter-41, T4.4)
-**Source**: [`bin/minimax-check-upgrade`](../../bin/minimax-check-upgrade) + [`.mise/tasks/minimax/check-upgrade`](../../.mise/tasks/minimax/check-upgrade)
+**Source**: [`bin/minimax-check-upgrade`](../../bin/minimax-check-upgrade) + [`tasks/minimax/check-upgrade`](../../tasks/minimax/check-upgrade)
 
 ## Why this exists
 
@@ -28,7 +28,7 @@ Exit codes: `0` = no change, `1` = upgrade detected, `2` = fetch/parse error.
 | ------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `minimax/api-patterns/fixtures/models-list-locked.json` | The frozen reference snapshot. Initialized from iter-1's catalog dump. |
 | `bin/minimax-check-upgrade`                             | The actual logic — bash + inline Python for the diff.                  |
-| `.mise/tasks/minimax/check-upgrade`                     | Thin mise wrapper. Adds `mise run minimax:check-upgrade` invocation.   |
+| `tasks/minimax/check-upgrade`                     | Thin mise wrapper. Adds `mise run minimax:check-upgrade` invocation.   |
 
 The diff lives in Python (inline heredoc) for two reasons:
 
@@ -117,9 +117,9 @@ The script is idempotent and stateless apart from the lock file — no concurren
 
 ### Mise task wrapper (consuming repo pattern)
 
-> **[plugin variant]** This pattern is documented (not shipped) — the amonic source-of-truth ships a one-line mise task at `~/own/amonic/.mise/tasks/minimax/check-upgrade` that hardcodes `${REPO_ROOT}/bin/minimax-check-upgrade`. That wrapper is too repo-specific to ship from this plugin; instead, copy this pattern into the consuming repo's `.mise/tasks/minimax/check-upgrade` file.
+> **[plugin variant]** This pattern is documented (not shipped) — the amonic source-of-truth ships a one-line mise task at `~/own/amonic/tasks/minimax/check-upgrade` that hardcodes `${REPO_ROOT}/bin/minimax-check-upgrade`. That wrapper is too repo-specific to ship from this plugin; instead, copy this pattern into the consuming repo's `tasks/minimax/check-upgrade` file.
 
-Drop this script into your consuming repo at `.mise/tasks/minimax/check-upgrade` (mark executable: `chmod +x`):
+Drop this script into your consuming repo at `tasks/minimax/check-upgrade` (mark executable: `chmod +x`):
 
 ```bash
 #!/usr/bin/env bash

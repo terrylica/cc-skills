@@ -2,7 +2,7 @@
 # test-audit-pretooluse-hooks-deprecated-schema-detection-classifies-modern-correct-helper-wrapped-no-decision-and-flags-deprecated-with-nonzero-exit.sh
 #
 # Regression test for the iter-60 PreToolUse schema-correctness audit at
-# .mise/tasks/audit-pretooluse-hooks-for-deprecated-top-level-decision-
+# tasks/audit-pretooluse-hooks-for-deprecated-top-level-decision-
 # schema-versus-modern-hookSpecificOutput-permissionDecision.
 #
 # The audit is a release:preflight gate candidate (iter-61 work) because

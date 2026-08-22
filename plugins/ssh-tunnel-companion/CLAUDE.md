@@ -63,7 +63,7 @@ make ping        # Tailscale connectivity check to bigblack
 
 ## Consumers
 
-- **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `.mise/tasks/infra.toml`).
+- **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `tasks/infra.toml`).
 - **statusline-tools** — `custom-statusline.sh` queries `localhost:18095/api/status` for ccmax-monitor account info.
 - **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on bigblack.
 - Any tool needing ClickHouse on bigblack via `localhost:18123`.

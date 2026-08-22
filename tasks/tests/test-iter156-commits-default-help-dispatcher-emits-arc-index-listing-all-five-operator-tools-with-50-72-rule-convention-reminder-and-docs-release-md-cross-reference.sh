@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-#MISE description="Iter-156 regression test pinning the operator-facing commits arc discoverability entry point. Asserts (a) .mise/tasks/commits/_default exists + executable + bash-clean + shellcheck-clean, (b) default-dispatcher output mentions all 5 operator tools by name (release:history, commits:health, commits:health --json, commits:advise, commits:advise --json) plus the iter-154 COMMIT_EDITMSG auto-detect mode, (c) iter-150 50/72 convention reminder is present with both thresholds (50 + 72), (d) canonical spec URLs are cited (conventionalcommits.org + cbea.ms), (e) docs/RELEASE.md cross-reference is present, (f) docs/RELEASE.md contains the Conventional-Commits Operator Toolkit Index section."
+#MISE description="Iter-156 regression test pinning the operator-facing commits arc discoverability entry point. Asserts (a) tasks/commits/_default exists + executable + bash-clean + shellcheck-clean, (b) default-dispatcher output mentions all 5 operator tools by name (release:history, commits:health, commits:health --json, commits:advise, commits:advise --json) plus the iter-154 COMMIT_EDITMSG auto-detect mode, (c) iter-150 50/72 convention reminder is present with both thresholds (50 + 72), (d) canonical spec URLs are cited (conventionalcommits.org + cbea.ms), (e) docs/RELEASE.md cross-reference is present, (f) docs/RELEASE.md contains the Conventional-Commits Operator Toolkit Index section."
 set -euo pipefail
 
 ITER156_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER156_REPO_ROOT"
 
-ITER156_DISPATCHER_RELATIVE_PATH=".mise/tasks/commits/_default"
+ITER156_DISPATCHER_RELATIVE_PATH="tasks/commits/_default"
 ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER156_REPO_ROOT/$ITER156_DISPATCHER_RELATIVE_PATH"
 ITER156_DOCS_RELEASE_MD_ABSOLUTE_PATH="$ITER156_REPO_ROOT/docs/RELEASE.md"
 
@@ -52,7 +52,7 @@ echo "GROUP A (3 assertions): default-help dispatcher structurally valid"
 
 ITER156_TOTAL_ASSERTIONS_EVALUATED=$((ITER156_TOTAL_ASSERTIONS_EVALUATED + 1))
 if [[ -x "$ITER156_DISPATCHER_ABSOLUTE_PATH" ]]; then
-    echo "  ✓ A1: dispatcher exists at .mise/tasks/commits/_default and is executable"
+    echo "  ✓ A1: dispatcher exists at tasks/commits/_default and is executable"
 else
     echo "  ✗ A1: dispatcher missing or not executable"
     ITER156_TOTAL_ASSERTIONS_FAILED=$((ITER156_TOTAL_ASSERTIONS_FAILED + 1))

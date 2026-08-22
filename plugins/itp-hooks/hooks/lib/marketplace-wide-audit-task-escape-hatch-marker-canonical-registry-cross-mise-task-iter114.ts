@@ -19,7 +19,7 @@
  *                audit markers checked once per release.
  *   - CONSUMER: runtime markers consumed via the iter-107 helper
  *               (typed TypeScript API); audit markers consumed via
- *               bash grep in a `.mise/tasks/audit-*.sh` script.
+ *               bash grep in a `tasks/audit-*.sh` script.
  *   - SCOPE: runtime markers suppress a per-file enforcement;
  *           audit markers suppress a marketplace-wide invariant check
  *           on a specific cohort of files (Stop hooks, PostToolUse
@@ -65,7 +65,7 @@
  *
  * # When adding a new audit marker
  *
- * 1. Add the grep-based detection in the `.mise/tasks/audit-*.sh`
+ * 1. Add the grep-based detection in the `tasks/audit-*.sh`
  *    file, typically of the form
  *    `grep -v "MARKER-NAME-OK"` or with a `-OK: reason` suffix gate.
  * 2. Add an entry to
@@ -84,7 +84,7 @@ export interface MarketplaceWideAuditTaskEscapeHatchMarkerCanonicalRegistryEntry
   readonly markerNameTokenIncludingSuffix: string;
 
   /**
-   * Repo-root-relative path to the `.mise/tasks/audit-*.sh` source file
+   * Repo-root-relative path to the `tasks/audit-*.sh` source file
    * that READS this marker via bash grep. The audit task's release-
    * blocking invariant is bypassed when the marker appears on the
    * relevant line(s).
@@ -140,7 +140,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "ESCAPE-HATCH-AUDIT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh",
+        "tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -149,7 +149,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "HOOK-OUTPUT-SIZE-CAP-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh",
+        "tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -158,7 +158,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "MATCHER-NO-MULTIEDIT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh",
+        "tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -167,7 +167,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "ORDERING-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh",
+        "tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -176,7 +176,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "POSTTOOLUSE-RAW-STDOUT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh",
+        "tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -185,7 +185,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "SPAWN-SYNC-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh",
+        "tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -194,7 +194,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "STOP-HOOK-ADDITIONAL-CONTEXT-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh",
+        "tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:
@@ -203,7 +203,7 @@ export const MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY:
     {
       markerNameTokenIncludingSuffix: "WILDCARD-MATCHER-OK",
       consumerAuditTaskSourceFileRelativePath:
-        ".mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh",
+        "tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh",
       caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       releaseInvariantSuppressedDescriptionForOperatorDocumentation:

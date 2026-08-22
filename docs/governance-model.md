@@ -67,7 +67,7 @@ The governance model addresses identified inconsistencies, assigns ownership, an
 | lychee.toml | @terryli | Update ignore patterns, CI integration |
 | sync-*.sh scripts | @terryli | Fix path issues, add new sync types |
 | .releaserc.yml | @terryli | Update on new release requirements |
-| .mise/tasks/ | @terryli | Maintain release tasks |
+| tasks/ | @terryli | Maintain release tasks |
 
 ### 2.3 Plugin Category Ownership
 

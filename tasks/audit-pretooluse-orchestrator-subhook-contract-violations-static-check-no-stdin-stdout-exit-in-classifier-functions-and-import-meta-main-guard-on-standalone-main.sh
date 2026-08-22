@@ -27,7 +27,7 @@ done
 
 # --- Locate repo root + hook dir ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK_OWN_REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+AUDIT_TASK_OWN_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$AUDIT_TASK_OWN_REPO_ROOT}"
 HOOK_DIRECTORY="$REPO_ROOT/plugins/itp-hooks/hooks"
 

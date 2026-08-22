@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-#MISE description="Iter-178 regression test pinning the operator-discoverable commits:perf-baseline mise task wrapper that delegates via exec to the iter-174 wall-clock perf-baseline regression harness. Pre-iter-178 the iter-174 harness was invocable only via the 160-character .mise/tasks/tests/test-iter174-… filename — undiscoverable in 'mise tasks ls' output. Operators wanting to run the perf check after editing toolkit scripts had no first-class command. Iter-178 closes this usability gap by adding .mise/tasks/commits/perf-baseline as a thin dispatcher wrapper (mirroring the iter-160 commits:status dispatcher pattern) that exec-delegates to the canonical iter-174 harness — zero logic duplication, single source of truth preserved. Test asserts (a) wrapper file exists + executable + bash-syntax-clean + shellcheck-clean, (b) wrapper has #MISE description metadata for mise-tasks-ls discoverability, (c) wrapper delegates to iter-174 harness via exec (not invocation duplication), (d) wrapper has soft-fail diagnostic when iter-174 harness is missing (operator-visible error, not silent), (e) iter-156 dispatcher banner mentions the new commits:perf-baseline task in its PERFORMANCE BENCHMARK section, (f) iter-156 dispatcher arc range updated from iter-169 to iter-178, (g) end-to-end smoke test: 'mise run commits:perf-baseline' invocation surfaces the iter-174 harness banner header + GROUP A header proving exec delegation works."
+#MISE description="Iter-178 regression test pinning the operator-discoverable commits:perf-baseline mise task wrapper that delegates via exec to the iter-174 wall-clock perf-baseline regression harness. Pre-iter-178 the iter-174 harness was invocable only via the 160-character tasks/tests/test-iter174-… filename — undiscoverable in 'mise tasks ls' output. Operators wanting to run the perf check after editing toolkit scripts had no first-class command. Iter-178 closes this usability gap by adding tasks/commits/perf-baseline as a thin dispatcher wrapper (mirroring the iter-160 commits:status dispatcher pattern) that exec-delegates to the canonical iter-174 harness — zero logic duplication, single source of truth preserved. Test asserts (a) wrapper file exists + executable + bash-syntax-clean + shellcheck-clean, (b) wrapper has #MISE description metadata for mise-tasks-ls discoverability, (c) wrapper delegates to iter-174 harness via exec (not invocation duplication), (d) wrapper has soft-fail diagnostic when iter-174 harness is missing (operator-visible error, not silent), (e) iter-156 dispatcher banner mentions the new commits:perf-baseline task in its PERFORMANCE BENCHMARK section, (f) iter-156 dispatcher arc range updated from iter-169 to iter-178, (g) end-to-end smoke test: 'mise run commits:perf-baseline' invocation surfaces the iter-174 harness banner header + GROUP A header proving exec delegation works."
 set -euo pipefail
 
 ITER178_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER178_REPO_ROOT"
 
-ITER178_PERF_BASELINE_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/.mise/tasks/commits/perf-baseline"
-ITER178_ITER174_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/.mise/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
-ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/.mise/tasks/commits/_default"
+ITER178_PERF_BASELINE_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/commits/perf-baseline"
+ITER178_ITER174_HARNESS_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER178_REPO_ROOT/tasks/commits/_default"
 
 ITER178_TOTAL_ASSERTIONS_EVALUATED=0
 ITER178_TOTAL_ASSERTIONS_FAILED=0
@@ -47,7 +47,7 @@ echo ""
 echo "GROUP A (4 assertions): commits:perf-baseline wrapper file structurally valid"
 
 iter178_assert_filesystem_predicate_holds_for_wrapper \
-    "A1: wrapper file exists at .mise/tasks/commits/perf-baseline" \
+    "A1: wrapper file exists at tasks/commits/perf-baseline" \
     "-f \"$ITER178_PERF_BASELINE_MISE_TASK_WRAPPER_ABSOLUTE_PATH\""
 
 iter178_assert_filesystem_predicate_holds_for_wrapper \

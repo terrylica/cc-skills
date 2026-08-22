@@ -127,7 +127,7 @@ export const HOOK_OUTPUT_TRUNCATION_MARKER_SUFFIX_FOR_CLAUDE_VISIBLE_AWARENESS_O
  *
  * Iter-106 stability invariant: this function's signature + behavior MUST
  * remain backward-compatible with the iter-104 baseline. Audit task
- * `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh`
+ * `tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh`
  * verifies marketplace-wide consumption; iter-106 regression test verifies the
  * shared-lib relocation + transitive re-export contract preservation.
  */

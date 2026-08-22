@@ -28,7 +28,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # Iter-75 recursion guard. The parity regression test for the parallel
 # runner (test-marketplace-hook-regression-suite-parallel-runner-iter75-
 # parity-against-iter50-sequential-baseline-and-iter54-fail-output-ux.sh)
-# lives in .mise/tasks/tests/ — which means THIS runner auto-discovers
+# lives in tasks/tests/ — which means THIS runner auto-discovers
 # and runs it. The parity test itself invokes THIS runner to verify
 # integration parity, which would cause infinite recursion without a
 # guard. Export this env var as a "I'm already inside the parent
@@ -39,7 +39,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # two-tier coverage exercises.
 export MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD=1
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  Marketplace Hook Regression Suite"
@@ -52,7 +52,7 @@ echo ""
 #   1. plugins/*/hooks/tests/test-*.sh
 #      Per-plugin hook regression tests (iter-50 original convention).
 #
-#   2. .mise/tasks/tests/test-*.sh
+#   2. tasks/tests/test-*.sh
 #      Repo-level infrastructure tests for mise tasks themselves —
 #      added iter-59 so the async-eligibility audit task (and any
 #      future load-bearing mise task) can have discoverable regression
@@ -73,13 +73,13 @@ done < <({
     # Same iter-125 bounded-depth pattern.
     find "$REPO_ROOT/plugins" -mindepth 4 -maxdepth 4 -type f \
          -name 'test-*.sh' -path '*/hooks/tests/*' 2>/dev/null
-    find "$REPO_ROOT/.mise/tasks/tests" -maxdepth 1 -name 'test-*.sh' -type f 2>/dev/null
+    find "$REPO_ROOT/tasks/tests" -maxdepth 1 -name 'test-*.sh' -type f 2>/dev/null
 } | sort)
 
 if [ "${#TEST_FILES[@]}" -eq 0 ]; then
     echo "⚠  No tests found at either discovery path:"
     echo "   - plugins/*/hooks/tests/test-*.sh   (per-plugin hook tests)"
-    echo "   - .mise/tasks/tests/test-*.sh       (infrastructure mise-task tests)"
+    echo "   - tasks/tests/test-*.sh       (infrastructure mise-task tests)"
     echo "   Add tests following these naming conventions to have them auto-discovered."
     exit 0
 fi

@@ -439,7 +439,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `#` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `//`, `<!--`, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
+**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
 
 **Example usage**:
 
@@ -506,7 +506,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
+| **Consumer audit task** | `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -522,7 +522,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
+| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hook-classifiers-for-unbounded-reason-emission-not-wrapped-in-canonical-truncation-helper-against-claude-file-spillover-threshold-iter105-marketplace-scale-of-iter104-single-hook-fix.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -538,7 +538,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
+| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -554,7 +554,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
+| **Consumer audit task** | `tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -570,7 +570,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
+| **Consumer audit task** | `tasks/audit-no-raw-stdout-emission-in-posttooluse-typescript-hooks-because-anthropic-schema-routes-non-json-stdout-to-operator-transcript-only-and-silently-drops-it-from-claude-context.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -586,7 +586,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
+| **Consumer audit task** | `tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -602,7 +602,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
+| **Consumer audit task** | `tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -618,7 +618,7 @@ These markers are honored by .mise/ audit tasks at release-preflight time — th
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer audit task** | `.mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
+| **Consumer audit task** | `tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
@@ -638,7 +638,7 @@ All markers follow the UPPER-KEBAB-CASE-OK shape (except `SSoT-OK` which is gran
 
 1. Implement the consumer-side detection in the hook source file using `hasFileWideEscapeHatchMarkerInContent(...)` or `detectEscapeHatchMarkerCoveringTargetSourceLine(...)` from `plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`.
 2. Add an entry to the registry at `plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`.
-3. Add the consumer hook to the iter-110 canonical-cohort array in `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
+3. Add the consumer hook to the iter-110 canonical-cohort array in `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
 4. Re-run `mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry` to regenerate this document.
 5. Commit all four changes atomically.
 

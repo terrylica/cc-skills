@@ -43,7 +43,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 ITER122_SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER122_REPO_ROOT="$(cd "$ITER122_SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+ITER122_REPO_ROOT="$(cd "$ITER122_SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER122_FORWARD_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$ITER122_REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-forward-search-accessor-by-marker-name-token-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter122.ts"
 
 print_usage_and_exit_one() {

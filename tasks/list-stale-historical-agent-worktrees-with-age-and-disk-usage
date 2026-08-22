@@ -27,7 +27,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # a typical sprint cycle is a cleanup candidate".
 AGE_THRESHOLD_DAYS="${WORKTREE_AGE_THRESHOLD_DAYS:-30}"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKTREES_PARENT_DIR="$REPO_ROOT/.claude/worktrees"
 
 echo "═══════════════════════════════════════════════════════════"

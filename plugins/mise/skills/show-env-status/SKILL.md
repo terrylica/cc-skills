@@ -62,7 +62,7 @@ echo "GH_ACCOUNT: ${GH_ACCOUNT:-not set}"
 
 ```bash
 # Show which mise config files are active
-ls .mise.toml mise.toml .mise/tasks/ 2>/dev/null
+ls .mise.toml mise.toml tasks/ 2>/dev/null
 ```
 
 ## Example Output Format

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-#MISE description="Iter-77 regression test for .mise/tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh. Synthesizes 5 fixture hook source files covering every classification branch (allowlisted, stripped-with-escape-hatch, stripped-without-escape-hatch, escape-hatch-too-short, multiple-refs-per-line) and asserts the audit's exit code + violation classification matches ground truth. Plus live-marketplace assertion: audit against the real hook source set must exit 0 (post-iter-77 fix). Catches regressions in the gate BEFORE release publishes a tag that would let an iter-76-class silent-failure bug escape to Layer 3."
+#MISE description="Iter-77 regression test for tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh. Synthesizes 5 fixture hook source files covering every classification branch (allowlisted, stripped-with-escape-hatch, stripped-without-escape-hatch, escape-hatch-too-short, multiple-refs-per-line) and asserts the audit's exit code + violation classification matches ground truth. Plus live-marketplace assertion: audit against the real hook source set must exit 0 (post-iter-77 fix). Catches regressions in the gate BEFORE release publishes a tag that would let an iter-76-class silent-failure bug escape to Layer 3."
 
 # Iter-77 regression test for the preventive L3-stripped-path audit gate.
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-AUDIT_TASK_PATH="$REPO_ROOT/.mise/tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+AUDIT_TASK_PATH="$REPO_ROOT/tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh"
 
 if [[ ! -f "$AUDIT_TASK_PATH" ]]; then
     echo "FAIL: Audit task not found at $AUDIT_TASK_PATH"

@@ -83,7 +83,7 @@ export type EscapeHatchMarkerReverseSearchHitWithRegistryProvenanceTag =
 /**
  * Reverse-lookup: given a consumer source file relative path (either a
  * hook source under `plugins/itp-hooks/hooks/` OR an audit task source
- * under `.mise/tasks/`), return every marker token that opts the caller
+ * under `tasks/`), return every marker token that opts the caller
  * out of that consumer's enforcement.
  *
  * Returns an empty array when no markers target the given path — caller

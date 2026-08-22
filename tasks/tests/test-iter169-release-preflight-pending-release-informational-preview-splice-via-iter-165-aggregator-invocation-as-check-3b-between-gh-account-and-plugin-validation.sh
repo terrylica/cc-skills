@@ -5,7 +5,7 @@ set -euo pipefail
 ITER169_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER169_REPO_ROOT"
 
-ITER169_RELEASE_PREFLIGHT_ABSOLUTE_PATH="$ITER169_REPO_ROOT/.mise/tasks/release/preflight"
+ITER169_RELEASE_PREFLIGHT_ABSOLUTE_PATH="$ITER169_REPO_ROOT/tasks/release/preflight"
 ITER169_ITER165_AGGREGATOR_ABSOLUTE_PATH="$ITER169_REPO_ROOT/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
 
 ITER169_TOTAL_ASSERTIONS_EVALUATED=0
@@ -112,9 +112,9 @@ fi
 # Verify the relative path computation from preflight task home resolves to the aggregator.
 ITER169_TOTAL_ASSERTIONS_EVALUATED=$((ITER169_TOTAL_ASSERTIONS_EVALUATED + 1))
 ITER169_PREFLIGHT_TASK_HOME_DIR="$(dirname "$ITER169_RELEASE_PREFLIGHT_ABSOLUTE_PATH")"
-ITER169_RESOLVED_AGGREGATOR_PATH_FROM_PREFLIGHT_TASK_HOME="$ITER169_PREFLIGHT_TASK_HOME_DIR/../../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER169_RESOLVED_AGGREGATOR_PATH_FROM_PREFLIGHT_TASK_HOME="$ITER169_PREFLIGHT_TASK_HOME_DIR/../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
 if [[ -x "$ITER169_RESOLVED_AGGREGATOR_PATH_FROM_PREFLIGHT_TASK_HOME" ]]; then
-    echo "  ✓ D2: preflight-task-relative ../../../scripts/iter165-...sh path resolution lands on the aggregator (preflight splice will fire correctly at runtime)"
+    echo "  ✓ D2: preflight-task-relative ../../scripts/iter165-...sh path resolution lands on the aggregator (preflight splice will fire correctly at runtime)"
 else
     echo "  ✗ D2: preflight-task-relative path resolution does NOT land on the aggregator — splice would silently SKIP"
     ITER169_TOTAL_ASSERTIONS_FAILED=$((ITER169_TOTAL_ASSERTIONS_FAILED + 1))

@@ -5,9 +5,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER123_CLASSIFIER_LIBRARY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/iter123-unified-lookup-query-shape-auto-detection-router-dispatching-to-iter116-reverse-or-iter122-forward-search-direction-based-on-slash-and-upper-kebab-case-marker-shape-heuristics.ts"
-ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-or-consumer-path-auto-detecting-query-shape-via-iter123-unified-router-dispatching-to-iter116-reverse-or-iter122-forward-search.sh"
+ITER123_UNIFIED_LOOKUP_CLI_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-or-consumer-path-auto-detecting-query-shape-via-iter123-unified-router-dispatching-to-iter116-reverse-or-iter122-forward-search.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0

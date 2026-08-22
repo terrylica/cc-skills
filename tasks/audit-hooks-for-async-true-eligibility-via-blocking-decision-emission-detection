@@ -68,7 +68,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # the audit against a synthetic-fixture fleet (iter-59 regression test
 # uses this to assert each detection layer's classification on a known-
 # constructed corpus).
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 echo "═══════════════════════════════════════════════════════════════════════════"
 echo "  Hook async:true Eligibility Audit"

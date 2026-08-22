@@ -75,7 +75,7 @@ postprocess_all() {
 Pattern for `mise run` commands that build pueue DAGs:
 
 ```toml
-# .mise/tasks/cache.toml
+# tasks/cache.toml
 ["cache:postprocess-all"]
 description = "Full post-fix pipeline via pueue: repopulate -> optimize -> detect (auto-chained)"
 run = "./scripts/pueue-populate.sh postprocess-all"

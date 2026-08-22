@@ -5,9 +5,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 # Real consumer paths picked from the registries — used to construct
 # synthetic typos (add a trailing 's', flip a letter, etc.) whose
@@ -159,7 +159,7 @@ ITER118_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGIST
     grep -hA1 -E '^\s*consumer(Hook|AuditTask)SourceFileRelativePath:' \
         "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
         "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts" \
-        | grep -oE '"(plugins|\.mise)/[^"]+"' | sort -u | wc -l | tr -d ' '
+        | grep -oE '"(plugins|tasks)/[^"]+"' | sort -u | wc -l | tr -d ' '
 )
 set +e
 CLI_UNRELATED_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$COMPLETELY_UNRELATED_PATH_GUARANTEED_TO_BE_FAR_FROM_EVERY_REGISTERED_PATH" 2>&1)

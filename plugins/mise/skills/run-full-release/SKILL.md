@@ -73,12 +73,12 @@ grep -E 'GH_TOKEN|GITHUB_TOKEN|UV_PUBLISH_TOKEN|CARGO_REGISTRY_TOKEN|NPM_TOKEN' 
 Read cc-skills' own release tasks as a working example — adapt, don't copy:
 
 ```bash
-ls $HOME/.claude/plugins/marketplaces/cc-skills/.mise/tasks/release/
+ls $HOME/.claude/plugins/marketplaces/cc-skills/tasks/release/
 ```
 
 Also read: `$HOME/.claude/plugins/marketplaces/cc-skills/docs/RELEASE.md`
 
-### 2c. Scaffold `.mise/tasks/release/`
+### 2c. Scaffold `tasks/release/`
 
 Create only the tasks this repo actually needs. The 5-phase pattern is:
 

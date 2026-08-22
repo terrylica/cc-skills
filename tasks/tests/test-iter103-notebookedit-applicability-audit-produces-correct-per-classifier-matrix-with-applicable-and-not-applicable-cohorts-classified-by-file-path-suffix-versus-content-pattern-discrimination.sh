@@ -5,8 +5,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
-AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple.sh"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-pretooluse-and-posttooluse-hooks-for-notebookedit-applicability-per-jupyter-notebook-cell-content-coverage-matrix-surfaced-by-iter102-web-research-into-2026-anthropic-canonical-file-edit-tool-quadruple.sh"
 
 if [[ ! -f "$AUDIT_TASK_ABSOLUTE_PATH" ]]; then
     echo "FAIL: audit task not found at $AUDIT_TASK_ABSOLUTE_PATH"

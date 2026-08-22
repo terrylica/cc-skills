@@ -12,7 +12,7 @@ Reverse-chronological log of skill improvements.
 
 - `results/published/wrangler.toml` — minimal Workers Static Assets config
 - `scripts/publish_findings.sh` — 3-phase deploy (1Password creds, index gen, wrangler deploy)
-- `.mise/tasks/publish.toml` — mise task wrapper
+- `tasks/publish.toml` — mise task wrapper
 
 **Gotchas documented**: 15 anti-patterns (CFW-01 through CFW-15) covering:
 

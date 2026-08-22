@@ -5,11 +5,11 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER107_SHARED_HELPER_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts"
 ITER78_GUARD_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts"
-ITER78_REGRESSION_TEST_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/tests/test-pretooluse-iter78-layer3-stripped-path-edit-time-guard-classifies-allowlisted-vs-stripped-segments-honors-escape-hatch-with-belt-and-suspenders-github37210-defense.sh"
-ITER107_INVENTORY_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh"
+ITER78_REGRESSION_TEST_ABSOLUTE_PATH="$REPO_ROOT/tasks/tests/test-pretooluse-iter78-layer3-stripped-path-edit-time-guard-classifies-allowlisted-vs-stripped-segments-honors-escape-hatch-with-belt-and-suspenders-github37210-defense.sh"
+ITER107_INVENTORY_AUDIT_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-with-recommendation-to-migrate-hand-rolled-patterns-to-iter107-canonical-shared-helper.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0

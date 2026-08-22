@@ -4,7 +4,7 @@
 # ██ PREMISE SUPERSEDED 2026-08-05 — DEREGISTERED FROM THE RELEASE PREFLIGHT.
 # ██
 # ██ This audit was Check 4k, a hard `exit 1` gate. It is no longer wired into
-# ██ .mise/tasks/release/preflight. The script still works and is kept as a
+# ██ tasks/release/preflight. The script still works and is kept as a
 # ██ manual probe, but its premise — that the L2→L3 cache populator strips
 # ██ plugin-root subtrees outside the allowlist — does not hold today:
 # ██
@@ -85,7 +85,7 @@ set -euo pipefail
 # Iter-35 bash-5.2-patsub-replacement-defense:
 shopt -u patsub_replacement 2>/dev/null || true
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ ! -d "$REPO_ROOT/plugins" ]]; then
     echo "✗ Expected plugins/ directory at $REPO_ROOT (script location-resolution failure)"
     exit 2

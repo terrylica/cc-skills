@@ -5,9 +5,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 # Well-known consumers picked deliberately from each registry's baseline.
 # These paths MUST stay in sync with the registries — a change here is
@@ -15,7 +15,7 @@ ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-e
 # or (b) a regression we want this test to surface.
 KNOWN_SINGLE_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
 KNOWN_MULTI_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts"
-KNOWN_AUDIT_TASK_CONSUMER_PATH=".mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
+KNOWN_AUDIT_TASK_CONSUMER_PATH="tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
 # Use a path with NO shared prefix with any registered consumer path so
 # the unknown-path branch deterministically lands in the full-list-dump
 # fallback (Levenshtein distance to every registered path exceeds the
@@ -203,7 +203,7 @@ ITER116_EXPECTED_DISTINCT_CONSUMER_PATH_COUNT_DERIVED_FROM_BOTH_CANONICAL_REGIST
     grep -hA1 -E '^\s*consumer(Hook|AuditTask)SourceFileRelativePath:' \
         "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts" \
         "$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts" \
-        | grep -oE '"(plugins|\.mise)/[^"]+"' | sort -u | wc -l | tr -d ' '
+        | grep -oE '"(plugins|tasks)/[^"]+"' | sort -u | wc -l | tr -d ' '
 )
 if [[ "$UNKNOWN_CONSUMER_TASK_EXIT_CODE" -eq 2 ]] && \
    [[ "$UNKNOWN_CONSUMER_TASK_OUTPUT" == *"No registered escape-hatch markers"* ]] && \

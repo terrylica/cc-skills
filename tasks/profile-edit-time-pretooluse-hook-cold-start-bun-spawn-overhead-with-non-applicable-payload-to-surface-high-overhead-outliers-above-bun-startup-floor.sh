@@ -45,8 +45,8 @@
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
-# Task lives at .mise/tasks/<task>.sh; repo root is two levels up.
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Task lives at tasks/<task>.sh; repo root is two levels up.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROFILER_RUNS_PER_HOOK_FOR_MEDIAN_STABILITY=5
 HIGH_OVERHEAD_OUTLIER_THRESHOLD_MILLISECONDS=50
 

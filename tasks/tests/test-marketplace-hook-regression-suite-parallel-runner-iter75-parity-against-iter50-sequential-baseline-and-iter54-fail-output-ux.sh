@@ -2,7 +2,7 @@
 #MISE description="Iter-75 parity regression test for the parallelized marketplace-hook-regression-suite runner. Synthesizes 3 fixture tests (2 pass + 1 fail) and exercises the xargs-P-with-per-test-temp-file-capture primitive directly to verify exit-code aggregation, per-test stdout capture, and the defensive missing-evidence path. Plus live-marketplace integration assertion: parallel runner against the real test suite must produce identical green-path counts to the iter-50 sequential reference. Catches regressions that would let parallelism corrupt the gate BEFORE release publishes a tag deploying broken concurrency semantics to operator Layer 3 caches (see iter-42 docs/HOOKS.md for cache lifecycle)."
 
 # Iter-75 parity regression test for the parallelized
-# .mise/tasks/test-marketplace-hook-regression-suite runner that replaces
+# tasks/test-marketplace-hook-regression-suite runner that replaces
 # the iter-50 sequential `for test_file in ...` baseline with an
 # xargs-P-with-per-test-temp-file-capture concurrency primitive.
 #
@@ -19,7 +19,7 @@
 #      ground truth.
 #
 #   2. LIVE-MARKETPLACE TIER — runs the actual production runner
-#      (.mise/tasks/test-marketplace-hook-regression-suite) against
+#      (tasks/test-marketplace-hook-regression-suite) against
 #      the real marketplace test set and asserts: exit code 0,
 #      PASS count matches discovered test count, FAIL count is 0.
 #      This is the iter-50/iter-74 green-path invariant.
@@ -33,8 +33,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-RUNNER_PATH="$REPO_ROOT/.mise/tasks/test-marketplace-hook-regression-suite"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+RUNNER_PATH="$REPO_ROOT/tasks/test-marketplace-hook-regression-suite"
 
 if [[ ! -f "$RUNNER_PATH" ]]; then
     echo "FAIL: Production runner not found at expected path: $RUNNER_PATH"
@@ -161,7 +161,7 @@ fi
 
 # --- Tier 2: Live-marketplace integration. The production runner against the real test set. ---
 #
-# Recursion guard: this test lives in .mise/tasks/tests/ and is auto-
+# Recursion guard: this test lives in tasks/tests/ and is auto-
 # discovered by the runner it tests. To avoid `runner → parity test →
 # runner → parity test → ...` infinite recursion, the production
 # runner exports a sentinel env var on entry. When this parity test

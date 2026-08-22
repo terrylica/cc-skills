@@ -331,10 +331,10 @@ A 4-phase release gate script is available at `plugins/rust-tools/scripts/rust-r
 ./plugins/rust-tools/scripts/rust-release-check.sh --skip-tests
 ```
 
-To use as a mise task in your project, copy the script and add to `.mise/tasks/`:
+To use as a mise task in your project, copy the script and add to `tasks/`:
 
 ```bash
-cp plugins/rust-tools/scripts/rust-release-check.sh .mise/tasks/release-check
+cp plugins/rust-tools/scripts/rust-release-check.sh tasks/release-check
 ```
 
 ### Phase Overview

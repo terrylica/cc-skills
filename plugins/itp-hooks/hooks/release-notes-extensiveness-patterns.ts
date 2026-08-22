@@ -118,10 +118,12 @@ function firstLine(command: string): string {
 function isSemanticReleaseCommand(command: string): boolean {
   const lower = command.toLowerCase();
   if (/\bsemantic-release\b/.test(lower)) return true;
-  // mise release wrappers: `mise run release`, `mise run release:full`, `mise release`
-  if (/\bmise\s+(?:run\s+)?release(?::[\w-]+)?\b/.test(lower)) return true;
-  // direct task-file execution
-  if (/\.mise\/tasks\/release\b/.test(lower)) return true;
+  // Task-runner wrappers. `moon run repo:release-full` is this marketplace's
+  // own entry point; the bare `<runner> run release…` shape is kept broad so a
+  // consumer repo on a different orchestrator is still guarded.
+  if (/\bmoon\s+run\s+[\w-]*:?release(?:[:-][\w-]+)?\b/.test(lower)) return true;
+  // Direct task-file execution, e.g. `bash tasks/release/full`.
+  if (/\btasks\/release\b/.test(lower)) return true;
   return false;
 }
 
