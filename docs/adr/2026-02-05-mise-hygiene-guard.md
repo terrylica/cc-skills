@@ -18,7 +18,7 @@ mise.toml files in shared repositories face two hygiene issues:
 
 mise provides solutions for both:
 
-- **Hub-spoke pattern**: Use `[task_config].includes` to reference task files in `.mise/tasks/` directory
+- **Hub-spoke pattern**: Use `[task_config].includes` to reference task files in `tasks/` directory
 - **Local overrides**: Use `.mise.local.toml` (highest precedence, gitignored) for secrets
 
 However, developers often don't know about these patterns until after the damage is done.
@@ -50,7 +50,7 @@ Triggers only for Write tool (full file content). Suggests hub-spoke refactoring
 ```toml
 # mise.toml (hub)
 [task_config]
-includes = [".mise/tasks/dev.toml", ".mise/tasks/release.toml"]
+includes = ["tasks/dev.toml", "tasks/release.toml"]
 ```
 
 ### 3. Ignores local files

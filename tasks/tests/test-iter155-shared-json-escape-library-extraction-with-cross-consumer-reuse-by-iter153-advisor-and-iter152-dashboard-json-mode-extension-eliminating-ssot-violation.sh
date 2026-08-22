@@ -163,7 +163,7 @@ echo ""
 echo "GROUP F (2 assertions): zero-behavior-change invariant — iter-153 + iter-154 regression tests still pass"
 
 ITER155_TOTAL_ASSERTIONS_EVALUATED=$((ITER155_TOTAL_ASSERTIONS_EVALUATED + 1))
-if "$ITER155_REPO_ROOT/.mise/tasks/tests/test-iter153-pre-commit-dry-run-advisor-classifies-proposed-conventional-commit-subject-with-human-readable-verdict-and-json-mode-and-strict-mode-gating-on-silent-fail-class-only-not-long-subject-overlay.sh" >/dev/null 2>&1; then
+if "$ITER155_REPO_ROOT/tasks/tests/test-iter153-pre-commit-dry-run-advisor-classifies-proposed-conventional-commit-subject-with-human-readable-verdict-and-json-mode-and-strict-mode-gating-on-silent-fail-class-only-not-long-subject-overlay.sh" >/dev/null 2>&1; then
     echo "  ✓ F1: iter-153 regression test still passes after iter-155 refactor (24/24)"
 else
     echo "  ✗ F1: iter-153 regression test FAILED — iter-155 refactor introduced behavior change"
@@ -171,7 +171,7 @@ else
 fi
 
 ITER155_TOTAL_ASSERTIONS_EVALUATED=$((ITER155_TOTAL_ASSERTIONS_EVALUATED + 1))
-if "$ITER155_REPO_ROOT/.mise/tasks/tests/test-iter154-advisor-pure-bash-json-escape-correctness-for-all-seven-rfc8259-special-chars-and-git-commit-editmsg-auto-detect-path-eliminating-python3-dependency-correctness-bug.sh" >/dev/null 2>&1; then
+if "$ITER155_REPO_ROOT/tasks/tests/test-iter154-advisor-pure-bash-json-escape-correctness-for-all-seven-rfc8259-special-chars-and-git-commit-editmsg-auto-detect-path-eliminating-python3-dependency-correctness-bug.sh" >/dev/null 2>&1; then
     echo "  ✓ F2: iter-154 regression test still passes after iter-155 refactor (16/16)"
 else
     echo "  ✗ F2: iter-154 regression test FAILED — iter-155 refactor introduced behavior change"

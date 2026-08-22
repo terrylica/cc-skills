@@ -5,8 +5,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 KNOWN_RUNTIME_HOOK_CONSUMER_PATH_FOR_JSON_PROBE="plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
 SYNTHETIC_TYPO_OF_KNOWN_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts"  # extra trailing 's' (distance 1)

@@ -60,7 +60,7 @@
  * # How the iter-111 typo audit uses this
  *
  * The audit task
- * `.mise/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh`
+ * `tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh`
  * greps the marketplace for `[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)` tokens in
  * **producer files** (anything not in `plugins/itp-hooks/hooks/` and not
  * in `.mise/`) and verifies each appears in this registry. Unknown tokens
@@ -76,7 +76,7 @@
  * 2. Add an entry to `MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY`
  *    below with all fields populated.
  * 3. Add the consumer hook to the iter-110 canonical-cohort array in
- *    `.mise/tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
+ *    `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
  * 4. Document the marker in `docs/HOOKS.md` under the relevant hook's section.
  *
  * # When removing a marker (deprecation)

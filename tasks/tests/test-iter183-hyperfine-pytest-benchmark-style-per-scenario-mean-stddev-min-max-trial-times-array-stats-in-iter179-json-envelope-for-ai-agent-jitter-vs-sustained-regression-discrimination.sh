@@ -5,8 +5,8 @@ set -euo pipefail
 ITER183_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER183_REPO_ROOT"
 
-ITER183_ITER174_HARNESS_ABSOLUTE_PATH="$ITER183_REPO_ROOT/.mise/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
-ITER183_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER183_REPO_ROOT/.mise/tasks/commits/_default"
+ITER183_ITER174_HARNESS_ABSOLUTE_PATH="$ITER183_REPO_ROOT/tasks/tests/test-iter174-empirical-wall-clock-perf-baseline-regression-harness-for-conventional-commits-toolkit-pinning-current-median-latencies-of-iter150-iter152-iter153-iter165-with-regression-detection-against-three-x-headroom-cap.sh"
+ITER183_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER183_REPO_ROOT/tasks/commits/_default"
 
 ITER183_TOTAL_ASSERTIONS_EVALUATED=0
 ITER183_TOTAL_ASSERTIONS_FAILED=0

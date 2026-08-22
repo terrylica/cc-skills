@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-116 operator-facing reverse-search: 'I want to opt out of THIS hook/audit-task — what marker do I write?' Takes a consumer source file relative path argument (e.g., plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts OR .mise/tasks/audit-...-iter106.sh) and reports every registered escape-hatch marker token that opts the caller out of that consumer's enforcement, spanning both the iter-111 RUNTIME-HOOK canonical registry and the iter-114 AUDIT-TASK canonical registry. Exits 0 when ≥1 marker found, exits 2 when no markers target the path, exits 1 on usage error."
+#MISE description="Iter-116 operator-facing reverse-search: 'I want to opt out of THIS hook/audit-task — what marker do I write?' Takes a consumer source file relative path argument (e.g., plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts OR tasks/audit-...-iter106.sh) and reports every registered escape-hatch marker token that opts the caller out of that consumer's enforcement, spanning both the iter-111 RUNTIME-HOOK canonical registry and the iter-114 AUDIT-TASK canonical registry. Exits 0 when ≥1 marker found, exits 2 when no markers target the path, exits 1 on usage error."
 
 # ────────────────────────────────────────────────────────────────────────
 # Iter-116 design rationale (operator-facing CLI side)
@@ -38,7 +38,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
 
 print_usage_and_exit_one() {
@@ -52,7 +52,7 @@ print_usage_and_exit_one() {
     echo "  consumer-source-file-relative-path"
     echo "      Repo-root-relative path to a hook source file (under"
     echo "      plugins/itp-hooks/hooks/) OR an audit task source file (under"
-    echo "      .mise/tasks/). Must match the registry-declared path exactly."
+    echo "      tasks/). Must match the registry-declared path exactly."
     echo ""
     echo "Flags:"
     echo "  --json   Iter-119: emit structured JSON to stdout for jq pipelines"

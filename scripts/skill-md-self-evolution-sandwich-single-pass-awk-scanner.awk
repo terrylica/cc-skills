@@ -2,7 +2,7 @@
 # skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
 #
 # Iter-74 single-pass cross-file scanner that replaces the iter-73-baseline
-# 217-file × ~8-fork-exec-per-file storm in `.mise/tasks/release/preflight`
+# 217-file × ~8-fork-exec-per-file storm in `tasks/release/preflight`
 # Check 4b (self-evolution sandwich). Reads every SKILL.md from the argv,
 # emits one TSV record per file with the audit facts needed by the
 # downstream bash post-processor in preflight:

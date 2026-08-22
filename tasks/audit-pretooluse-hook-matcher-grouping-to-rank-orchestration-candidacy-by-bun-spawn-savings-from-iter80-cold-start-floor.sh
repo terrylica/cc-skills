@@ -43,8 +43,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# Task lives at .mise/tasks/<task>.sh — repo root is two levels up.
-REPO_ROOT="$(cd "$REPO_ROOT/.." && pwd)"
+# Task lives at tasks/<task>.sh — repo root is one level up.
+# (depth=1, dotdots=1)
 
 # Per-hook bun-spawn cost calibrated from iter-80's profiler. If the
 # bun runtime changes materially (e.g., bun 2.x reduces cold-start),

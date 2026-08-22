@@ -34,8 +34,8 @@
 #      regression-suite invocation; nothing else sets it.
 #
 # SSoT for the convention + rationale: docs/perf-timing-skip.md
-# Consumers: .mise/tasks/tests/test-iter167-*.sh (Group D),
-#            .mise/tasks/tests/test-iter174-*.sh (per-scenario cap verdict; the
+# Consumers: tasks/tests/test-iter167-*.sh (Group D),
+#            tasks/tests/test-iter174-*.sh (per-scenario cap verdict; the
 #            harness that iter-180 / iter-181 invoke end-to-end).
 
 # Return 0 (true) when perf-timing assertions should be downgraded to

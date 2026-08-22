@@ -188,7 +188,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (i
       script regressed. Industry-standard regression-detection pattern
       (matches brew bench, criterion.rs, pytest-benchmark family).
       Iter-178 closed the discoverability gap where the underlying
-      iter-174 harness was invocable only via a 160-char .mise/tasks/
+      iter-174 harness was invocable only via a 160-char tasks/
       tests/ filename — undiscoverable in 'mise tasks ls' output.
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline --json${ITER156_ANSI_COLOR_RESET}
@@ -231,7 +231,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── QUALITY + PERFORMANCE (i
       optimized median, 956ms saved per invocation). ASCII NUL safe
       because git tree objects cannot contain NUL bytes (per
       git-pretty-formats(1) %x00 specifier). Reproducible benchmark:
-      \`bash .mise/tasks/tests/test-iter167-*.sh\`.
+      \`bash tasks/tests/test-iter167-*.sh\`.
 
   ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}iter-169 release:preflight pending-release informational preview${ITER156_ANSI_COLOR_RESET}
       — splices iter-165 aggregator into release:preflight as new

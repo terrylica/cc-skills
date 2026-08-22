@@ -89,7 +89,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 ITER121_AUDIT_SCRIPT_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ITER121_AUDIT_REPO_ROOT_ABSOLUTE="$(cd "$ITER121_AUDIT_SCRIPT_DIRECTORY_ABSOLUTE/../.." && pwd)"
+ITER121_AUDIT_REPO_ROOT_ABSOLUTE="$(cd "$ITER121_AUDIT_SCRIPT_DIRECTORY_ABSOLUTE/.." && pwd)"
 ITER111_RUNTIME_HOOK_REGISTRY_TYPESCRIPT_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
 ITER114_AUDIT_TASK_REGISTRY_TYPESCRIPT_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
 
@@ -342,7 +342,7 @@ echo "       (e.g., a 'see also pretooluse-FOO-guard.ts' parenthetical) so futur
 echo "       renames have a textual anchor that the iter-121 audit can verify."
 echo "    C. The audit's stoplist over-aggressively dropped a discriminating segment:"
 echo "       file an issue to refine the stoplist in"
-echo "       .mise/tasks/audit-iter121-canonical-registry-entry-description-..."
+echo "       tasks/audit-iter121-canonical-registry-entry-description-..."
 echo ""
 echo "  ⓘ This audit is INFORMATIONAL on iter-121 and never blocks release. Will be"
 echo "    promoted to STRICT-BLOCK in iter-122+ once baseline coverage is verified."

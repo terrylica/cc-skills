@@ -387,7 +387,7 @@ Delegate long-running, multi-step pipelines to [pueue](https://github.com/Nukeso
 ### mise Entry Points
 
 ```toml
-# .mise/tasks/cache.toml
+# tasks/cache.toml
 
 # Individual steps (can run standalone)
 ["cache:detect-overflow"]

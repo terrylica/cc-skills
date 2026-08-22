@@ -3,7 +3,7 @@
 ```
 mise (environment + task discovery)
   |-- .mise.toml [env] -> SSoT for defaults
-  |-- .mise/tasks/jobs.toml -> task definitions
+  |-- tasks/jobs.toml -> task definitions
   |     |-- mise run jobs:submit-all
   |     |     |-- submit-all.sh (orchestrator)
   |     |           |-- pueue add (per-unit, NOT per-query)

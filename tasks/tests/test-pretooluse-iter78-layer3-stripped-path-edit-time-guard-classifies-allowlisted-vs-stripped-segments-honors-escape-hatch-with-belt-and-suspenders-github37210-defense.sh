@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 HOOK_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts"
 
 if [[ ! -f "$HOOK_PATH" ]]; then

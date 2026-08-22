@@ -945,13 +945,13 @@ plugins:
 
 ### mise Release Tasks
 
-Create file-based tasks in `.mise/tasks/release/`:
+Create file-based tasks in `tasks/release/`:
 
 ```bash
-mkdir -p .mise/tasks/release
+mkdir -p tasks/release
 ```
 
-**.mise/tasks/release/preflight**:
+**tasks/release/preflight**:
 
 ```bash
 #!/usr/bin/env bash
@@ -1017,7 +1017,7 @@ echo "✓ All preflight checks passed"
 echo ""
 ```
 
-**.mise/tasks/release/version**:
+**tasks/release/version**:
 
 ```bash
 #!/usr/bin/env bash
@@ -1043,7 +1043,7 @@ echo "✓ Version phase complete"
 echo ""
 ```
 
-**.mise/tasks/release/full**:
+**tasks/release/full**:
 
 ```bash
 #!/usr/bin/env bash
@@ -1070,7 +1070,7 @@ echo ""
 Make tasks executable:
 
 ```bash
-chmod +x .mise/tasks/release/*
+chmod +x tasks/release/*
 ```
 
 ### Release Commands
@@ -1098,7 +1098,7 @@ package-lock.json  # Optional: some prefer to commit this
 npm install
 
 # 2. Commit release infrastructure
-git add package.json .releaserc.yml .mise/tasks/release/
+git add package.json .releaserc.yml tasks/release/
 git commit -m "build: add semantic-release configuration and mise tasks"
 
 # 3. Run first release
@@ -1143,7 +1143,7 @@ The bootstrap is complete when:
 
 **Infrastructure (Phases 0-5)**:
 
-- [ ] `.mise/tasks/` directory created with YAML files
+- [ ] `tasks/` directory created with YAML files
 - [ ] `pyproject.toml` with `[tool.poetry]` section
 - [ ] `package.json` (if using Bun/TypeScript)
 - [ ] `Cargo.toml` (if using Rust)
@@ -1162,7 +1162,7 @@ The bootstrap is complete when:
 
 - [ ] `package.json` exists with semantic-release dependencies
 - [ ] `.releaserc.yml` configuration present
-- [ ] `.mise/tasks/release/{preflight,version,full}` tasks created and executable
+- [ ] `tasks/release/{preflight,version,full}` tasks created and executable
 - [ ] `npm install` completes without errors
 - [ ] `mise run release:preflight` passes all checks
 - [ ] First release creates GitHub release with changelog

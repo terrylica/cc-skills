@@ -5,7 +5,7 @@ set -euo pipefail
 ITER151_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER151_REPO_ROOT"
 
-ITER151_VALIDATOR_TASK_RELATIVE_PATH=".mise/tasks/audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes.sh"
+ITER151_VALIDATOR_TASK_RELATIVE_PATH="tasks/audit-recent-git-commit-messages-for-conventional-commits-conformance-to-prevent-silent-semantic-release-skip-of-non-standard-compound-type-scope-prefixes.sh"
 ITER151_VALIDATOR_TASK_ABSOLUTE_PATH="$ITER151_REPO_ROOT/$ITER151_VALIDATOR_TASK_RELATIVE_PATH"
 
 ITER151_TOTAL_ASSERTIONS_EVALUATED=0

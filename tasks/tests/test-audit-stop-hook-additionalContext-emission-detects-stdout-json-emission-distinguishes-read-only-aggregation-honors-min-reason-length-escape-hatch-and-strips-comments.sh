@@ -2,7 +2,7 @@
 # test-audit-stop-hook-additionalContext-emission-detects-stdout-json-emission-distinguishes-read-only-aggregation-honors-min-reason-length-escape-hatch-and-strips-comments.sh
 #
 # Regression test for the iter-67 Stop-hook additionalContext-emission
-# audit at .mise/tasks/audit-stop-hooks-for-additionalContext-emission-
+# audit at tasks/audit-stop-hooks-for-additionalContext-emission-
 # which-claude-code-silently-drops-per-official-anthropic-schema-only-
 # decision-and-reason-fields-are-read-from-stop-hook-stdout-json.
 #

@@ -104,7 +104,7 @@ cc-skills/
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
 │   └── LESSONS.md                   ← Lessons learned
-└── .mise/tasks/                     ← Release automation (5 phases + postflight)
+└── tasks/                     ← Release automation (5 phases + postflight)
 ```
 
 ## Key Files

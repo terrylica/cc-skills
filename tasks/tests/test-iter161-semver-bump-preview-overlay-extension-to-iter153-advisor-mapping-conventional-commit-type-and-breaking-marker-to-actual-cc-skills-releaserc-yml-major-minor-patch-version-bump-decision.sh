@@ -7,7 +7,7 @@ cd "$ITER161_REPO_ROOT"
 
 ITER161_SHARED_LIB_RELATIVE_PATH="scripts/lib/iter161-semantic-release-version-bump-classifier-mapping-conventional-commit-type-and-breaking-change-marker-to-the-actual-major-minor-patch-bump-per-cc-skills-releaserc-yml-bump-rules-for-pre-commit-preview-overlay.sh"
 ITER161_SHARED_LIB_ABSOLUTE_PATH="$ITER161_REPO_ROOT/$ITER161_SHARED_LIB_RELATIVE_PATH"
-ITER161_ADVISOR_TASK_RELATIVE_PATH=".mise/tasks/commits/advise"
+ITER161_ADVISOR_TASK_RELATIVE_PATH="tasks/commits/advise"
 ITER161_ADVISOR_TASK_ABSOLUTE_PATH="$ITER161_REPO_ROOT/$ITER161_ADVISOR_TASK_RELATIVE_PATH"
 
 ITER161_TOTAL_ASSERTIONS_EVALUATED=0

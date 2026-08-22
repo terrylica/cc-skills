@@ -356,7 +356,7 @@ fi
 
 # ─── Check 5: iter-156 _default dispatcher (CRITICAL) ───────────────────────
 
-ITER160_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/.mise/tasks/commits/_default"
+ITER160_ITER156_DISPATCHER_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/tasks/commits/_default"
 if [[ -x "$ITER160_ITER156_DISPATCHER_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
         "$ITER160_ITER156_DISPATCHER_ABSOLUTE_PATH"

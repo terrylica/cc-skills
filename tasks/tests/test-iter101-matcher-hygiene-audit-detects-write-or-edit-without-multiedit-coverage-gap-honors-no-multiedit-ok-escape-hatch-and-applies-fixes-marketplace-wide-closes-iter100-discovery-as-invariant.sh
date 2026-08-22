@@ -5,8 +5,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
-AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-pretooluse-and-posttooluse-hook-matchers-for-write-or-edit-without-multiedit-coverage-gap-surfaced-by-iter100-postooluse-orchestrator-matcher-broadening-scaled-to-marketplace-invariant.sh"
 
 if [[ ! -f "$AUDIT_TASK_ABSOLUTE_PATH" ]]; then
     echo "FAIL: audit task not found at $AUDIT_TASK_ABSOLUTE_PATH"
@@ -53,7 +53,7 @@ run_audit_against_fixture_marketplace_tree() {
 
     # Copy the audit task into the fixture tree and rewrite REPO_ROOT to point
     # to the fixture. This isolates the test from the live marketplace.
-    sed -e "s|REPO_ROOT=\"\$(cd \"\$SCRIPT_DIR_ABSOLUTE/../..\" && pwd)\"|REPO_ROOT=\"$fixture_root\"|" \
+    sed -e "s|REPO_ROOT=\"\$(cd \"\$SCRIPT_DIR_ABSOLUTE/..\" && pwd)\"|REPO_ROOT=\"$fixture_root\"|" \
         "$AUDIT_TASK_ABSOLUTE_PATH" > "$fixture_audit_task"
     chmod +x "$fixture_audit_task"
 

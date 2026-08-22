@@ -246,7 +246,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 # Minimum length of STOP-HOOK-ADDITIONAL-CONTEXT-OK justification.
 MIN_OK_REASON_LENGTH=10

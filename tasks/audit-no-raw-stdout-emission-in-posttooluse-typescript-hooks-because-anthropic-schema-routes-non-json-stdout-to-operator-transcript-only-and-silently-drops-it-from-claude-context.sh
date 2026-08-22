@@ -34,8 +34,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# .mise/tasks/audit-*.sh → repo root is two levels up
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
+# tasks/audit-*.sh → repo root is two levels up
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 
 print_banner() {
     echo "════════════════════════════════════════════════════════════════════════════════"

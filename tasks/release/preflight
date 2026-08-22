@@ -9,6 +9,11 @@
 #MISE description="Phase 1 of 5: Validate all release prerequisites before version bump. Checks: clean working directory, GH_TOKEN presence and format, GH_ACCOUNT target, iter-169 pending-release informational preview (next version + triggering commit, post-iter-167 ~228ms), plugin validation via validate-plugins.mjs, and releasable conventional commits since last tag. Exits non-zero on any failure. Must pass before release:version can run."
 set -euo pipefail
 
+# Run from the repo root regardless of who invoked us (bootstrap-monorepo
+# Nx-convergence rule 6: the orchestrator is swappable, the script is the truth).
+# Every `bash tasks/...` path below is repo-root-relative and depends on this.
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 # Iter-73: Opt-in per-phase wall-clock timing instrumentation. Set
 # PREFLIGHT_TIMING_PROFILE=1 in the environment to emit "phase elapsed:
 # Nms" after each visible "→" phase header. Default behavior unchanged
@@ -186,10 +191,15 @@ __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per
             # Use cut -d"|" (PIPE delimiter). See array-definition header comment
             # for the BSD-xargs-collapses-TAB-to-SPACE empirical forensic.
             audit_log_sidecar_key="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f1)"
-            audit_mise_task_name="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f2)"
+            audit_task_name="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f2)"
             audit_extra_cli_args="$(echo "$pipe_separated_metadata_record" | cut -d"|" -f3)"
+            # Task name → script path. Most audits are `<name>.sh`; a few carry
+            # no extension. Try both rather than assuming, so a task rename
+            # cannot silently turn into a skipped audit.
+            audit_task_script_path="tasks/$audit_task_name.sh"
+            [ -f "$audit_task_script_path" ] || audit_task_script_path="tasks/$audit_task_name"
             audit_wall_clock_start_seconds_for_elapsed_ms_sidecar_capture="$EPOCHREALTIME"
-            if mise run "$audit_mise_task_name" $audit_extra_cli_args > "/tmp/$audit_log_sidecar_key.log" 2>&1; then
+            if bash "$audit_task_script_path" $audit_extra_cli_args > "/tmp/$audit_log_sidecar_key.log" 2>&1; then
                 echo 0 > "/tmp/$audit_log_sidecar_key.exit"
             else
                 echo "$?" > "/tmp/$audit_log_sidecar_key.exit"
@@ -380,7 +390,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 2-3: GH_TOKEN + GH_A
 # slowed preflight; post-iter-167's 228ms median is negligible vs. the
 # ~10-second preflight total.
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME="$(dirname "$0")/../../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
+ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME="$(dirname "$0")/../../scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
 if [[ -x "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" ]]; then
     echo "→ Iter-169 pending-release preview (informational, post-iter-167 ~228ms at N=50):"
     bash "$ITER169_PREFLIGHT_PENDING_RELEASE_PREVIEW_AGGREGATOR_ABSOLUTE_PATH_FROM_RELEASE_PREFLIGHT_TASK_HOME" 2>&1 | sed 's/^/    /' || true
@@ -411,7 +421,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4: plugin manifest v
 # of preflight wall time. Iter-74 target: ~500ms (~75% reduction). The
 # scanner and its parity regression test:
 #   scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk
-#   .mise/tasks/tests/test-skill-md-self-evolution-sandwich-single-pass-awk-scanner-parity-against-iter73-fork-storm-bash-loop-baseline.sh
+#   tasks/tests/test-skill-md-self-evolution-sandwich-single-pass-awk-scanner-parity-against-iter73-fork-storm-bash-loop-baseline.sh
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
@@ -456,7 +466,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registratio
 
 # Check 4d: ABSORBED into Check 4e by iter-138.
 # The chronicle-slicing 37-assertion regression test was relocated from
-# .mise/tasks/release/test-chronicle-slicing to .mise/tasks/tests/test-
+# tasks/release/test-chronicle-slicing to tasks/tests/test-
 # chronicle-slicing-*.sh so the iter-50/iter-75 marketplace-hook-regression-
 # suite auto-discovers it. Result: chronicle-slicing now runs INSIDE Check 4e's
 # xargs -P parallel batch (concurrent with the ~1135ms longest test rather
@@ -468,7 +478,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registratio
 # any failure with full per-test stdout.
 #
 # Operators previously running `mise run release:test-chronicle-slicing`
-# can now invoke `bash .mise/tasks/tests/test-chronicle-slicing-*.sh` (the
+# can now invoke `bash tasks/tests/test-chronicle-slicing-*.sh` (the
 # file is auto-executable; same script content).
 
 # Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
@@ -485,7 +495,7 @@ echo "→ Running marketplace-wide hook regression suite..."
 # make the machine too loaded to gate on absolute timing here without spurious
 # release blocks. Structural/correctness assertions still gate; standalone
 # `bash <test>` runs enforce timing fully. SSoT: docs/perf-timing-skip.md.
-if ! CC_SKILLS_SKIP_PERF_TIMING=1 mise run test-marketplace-hook-regression-suite >/tmp/hook-regression-test.log 2>&1; then
+if ! CC_SKILLS_SKIP_PERF_TIMING=1 bash tasks/test-marketplace-hook-regression-suite >/tmp/hook-regression-test.log 2>&1; then
     echo "  ✗ Hook regression suite FAILED — see /tmp/hook-regression-test.log"
     tail -20 /tmp/hook-regression-test.log
     exit 1
@@ -508,7 +518,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide
 # green release (gap found 2026-07-18 while hardening draft-hold).
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Running marketplace-wide Bun unit suite (tracked *.test.ts/mjs)..."
-if ! mise run test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration >/tmp/bun-unit-suite.log 2>&1; then
+if ! bash tasks/test-marketplace-bun-unit-suite-for-tracked-typescript-and-mjs-tests-excluding-live-browser-integration.sh >/tmp/bun-unit-suite.log 2>&1; then
     echo "  ✗ Bun unit suite FAILED — see /tmp/bun-unit-suite.log"
     tail -20 /tmp/bun-unit-suite.log
     exit 1
@@ -715,7 +725,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4j: additionalContex
 #
 # The audit script is RETAINED as a manual probe (it still runs standalone and
 # would re-detect real stripping if Anthropic ever reinstates the filter):
-#   bash .mise/tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh
+#   bash tasks/audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths-which-silently-fail-at-layer3-runtime.sh
 #
 # Rationale + evidence: plugins/itp-hooks/docs/layer3-stripped-path-guard.md
 # Replacement concern (the live hazard): plugins/itp-hooks/docs/skill-plugin-root-guard.md

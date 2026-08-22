@@ -35,11 +35,11 @@ This document catalogs all documentation-related tools, scripts, and automation 
 
 | Task                | Path                            | Purpose                  | Maturity |
 | ------------------- | ------------------------------- | ------------------------ | -------- |
-| `release/verify`    | `.mise/tasks/release/verify`    | Pre-release verification | **High** |
-| `release/sync`      | `.mise/tasks/release/sync`      | Post-release sync        | **High** |
-| `release/preflight` | `.mise/tasks/release/preflight` | Pre-flight checks        | **High** |
-| `release/full`      | `.mise/tasks/release/full`      | Full release pipeline    | **High** |
-| `release/dry`       | `.mise/tasks/release/dry`       | Dry-run release          | **High** |
+| `release/verify`    | `tasks/release/verify`    | Pre-release verification | **High** |
+| `release/sync`      | `tasks/release/sync`      | Post-release sync        | **High** |
+| `release/preflight` | `tasks/release/preflight` | Pre-flight checks        | **High** |
+| `release/full`      | `tasks/release/full`      | Full release pipeline    | **High** |
+| `release/dry`       | `tasks/release/dry`       | Dry-run release          | **High** |
 
 ### 5. Documentation Generators
 

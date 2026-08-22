@@ -2,7 +2,7 @@
 # test-audit-non-pretooluse-hooks-detects-wrong-field-permissionDecision-misuse-classifies-modern-correct-additionalContext-no-blocking-with-nonzero-exit-on-silent-fail.sh
 #
 # Regression test for the iter-62 INVERSE-schema audit at
-# .mise/tasks/audit-non-pretooluse-hooks-for-accidental-use-of-
+# tasks/audit-non-pretooluse-hooks-for-accidental-use-of-
 # pretooluse-only-hookSpecificOutput-permissionDecision-field-which-
 # silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-
 # sessionstart-sessionend-events.

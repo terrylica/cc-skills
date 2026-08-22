@@ -8,4 +8,4 @@
 
 **Matcher**: Bash
 
-Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry — enforced by [iter-61 audit](../../../.mise/tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh) wired into release:preflight Check 4g; mitigates [GitHub #15897](https://github.com/anthropics/claude-code/issues/15897) multi-hook updatedInput last-writer-wins bug)
+Auto-wraps long-running commands with pueue + injects OP_SERVICE_ACCOUNT_TOKEN for Claude Automation vault (MUST be LAST PreToolUse entry — enforced by [iter-61 audit](../../../tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh) wired into release:preflight Check 4g; mitigates [GitHub #15897](https://github.com/anthropics/claude-code/issues/15897) multi-hook updatedInput last-writer-wins bug)

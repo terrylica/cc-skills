@@ -5,9 +5,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER122_FORWARD_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-forward-search-accessor-by-marker-name-token-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter122.ts"
-ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER122_FORWARD_SEARCH_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-explanation-by-marker-name-token-via-iter122-forward-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 ASSERTION_PASSED_COUNT=0
 ASSERTION_FAILED_COUNT=0

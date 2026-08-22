@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-115 regression test for the strict-promotion of Check 4t (iter-111 producer-side escape-hatch-marker typo audit) + Check 4u (iter-113 registry-to-docs drift detector) from INFORMATIONAL to STRICT-BLOCK in .mise/tasks/release/preflight. Verifies (1) preflight file declares both checks as iter-115 STRICT-BLOCK and exits 1 on either audit failure; (2) Check 4t audit emits the 'AUDIT FOUND N' signal that the preflight wrapper extracts when a synthetic unregistered marker is injected into a producer file; (3) the preflight wrapper's bash-extraction logic for ITER111_UNREGISTERED_COUNT correctly parses the count back out and yields ≥1 on injected typo / 0 on clean baseline; (4) Check 4u --check mode exits non-zero AND emits 'DRIFT' on injected doc mutation while remaining exit-zero AND emitting 'no drift' on the unmutated baseline; (5) both audit tasks return to clean baseline after trap-driven restoration (preflight's own subsequent run would pass)."
+#MISE description="Iter-115 regression test for the strict-promotion of Check 4t (iter-111 producer-side escape-hatch-marker typo audit) + Check 4u (iter-113 registry-to-docs drift detector) from INFORMATIONAL to STRICT-BLOCK in tasks/release/preflight. Verifies (1) preflight file declares both checks as iter-115 STRICT-BLOCK and exits 1 on either audit failure; (2) Check 4t audit emits the 'AUDIT FOUND N' signal that the preflight wrapper extracts when a synthetic unregistered marker is injected into a producer file; (3) the preflight wrapper's bash-extraction logic for ITER111_UNREGISTERED_COUNT correctly parses the count back out and yields ≥1 on injected typo / 0 on clean baseline; (4) Check 4u --check mode exits non-zero AND emits 'DRIFT' on injected doc mutation while remaining exit-zero AND emitting 'no drift' on the unmutated baseline; (5) both audit tasks return to clean baseline after trap-driven restoration (preflight's own subsequent run would pass)."
 
 # ────────────────────────────────────────────────────────────────────────
 # Iter-115 design rationale
@@ -49,11 +49,11 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 
-PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/release/preflight"
-ITER111_PRODUCER_TYPO_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
-ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/.mise/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/preflight"
+ITER111_PRODUCER_TYPO_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
+ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
 
 # Producer file used as the synthetic-typo injection target. Chosen to be
@@ -136,7 +136,7 @@ fi
 # ─── Case 3: preflight extraction logic correctly counts injected unregistered markers ───
 #
 # Replay the EXACT extraction shape the iter-115 preflight uses (search
-# .mise/tasks/release/preflight for ITER111_UNREGISTERED_COUNT). We need
+# tasks/release/preflight for ITER111_UNREGISTERED_COUNT). We need
 # to re-inject + re-run to get a fresh log; this case verifies the
 # specific grep|sed|extract pipeline the preflight wrapper depends on.
 

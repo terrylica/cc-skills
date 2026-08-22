@@ -2,7 +2,7 @@
 # test-audit-wildcard-matcher-detects-star-and-null-matchers-classifies-with-and-without-ok-marker-escape-hatch-with-min-reason-length-and-exits-nonzero-on-violation.sh
 #
 # Regression test for the iter-65 wildcard-matcher audit at
-# .mise/tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-
+# tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-
 # matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-
 # causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.
 #

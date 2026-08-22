@@ -176,7 +176,7 @@ For <automation-repo> services on the current plan: **chat-completion + files + 
 | Artifact                                                                                                            | Purpose                                                        |
 | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | [`bin/minimax-check-upgrade`](../scripts/minimax-check-upgrade)                                                         | Polls `/v1/models`, diffs against locked snapshot, exits 0/1/2 |
-| [`.mise/tasks/minimax/check-upgrade`](~/own/<automation-repo>/.mise/tasks/minimax/check-upgrade)                                         | `mise run minimax:check-upgrade` (alias: `mm:check-upgrade`)   |
+| [`tasks/minimax/check-upgrade`](~/own/<automation-repo>/tasks/minimax/check-upgrade)                                         | `mise run minimax:check-upgrade` (alias: `mm:check-upgrade`)   |
 | [`config/plists/com.example.minimax-check-upgrade.plist`](../templates/launchd-check-upgrade.plist) | launchd plist for daily 09:00 polling (manual install)         |
 | [`minimax/api-patterns/fixtures/models-list-locked.json`](./fixtures/models-list-locked.json)          | Frozen reference for diff comparison                           |
 
