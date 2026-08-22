@@ -227,3 +227,122 @@ describe("CJK prose", () => {
     }
   });
 });
+
+// ── Badge / link-only rows (2026-08-22) ──────────────────────────────────────
+//
+// The ONE systematic false-positive class measured over this marketplace's
+// 1,114 tracked .md files: 87 of 3,389 detections were consecutive badge rows.
+// Each row is wide, ends on `)` rather than a clause terminator, and is
+// followed by another badge row — so every "prose that wraps" heuristic fires
+// on a construct that contains no prose at all.
+
+describe("link-only lines are structural, not wrapped prose", () => {
+  const BADGE_BLOCK = [
+    "[![Plugins](https://img.shields.io/badge/plugins-36-green.svg)](#plugins)",
+    "[![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)",
+    "[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)",
+  ].join("\n");
+
+  it("does not flag a run of linked shields.io badges", () => {
+    expect(detectHardWraps(BADGE_BLOCK)).toEqual([]);
+  });
+
+  it("does not flag plain link-only nav rows", () => {
+    const nav = [
+      "[Installation Guide](./docs/installation-and-first-run-walkthrough.md)",
+      "[Plugin Authoring Reference](./docs/plugin-authoring-reference.md)",
+    ].join("\n");
+    expect(detectHardWraps(nav)).toEqual([]);
+  });
+
+  it("does not flag prose that is followed by a badge row", () => {
+    const text = [
+      "This marketplace ships a large number of plugins covering many workflows here",
+      "[![Plugins](https://img.shields.io/badge/plugins-36-green.svg)](#plugins)",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("STILL flags prose that merely contains a link", () => {
+    const text = [
+      "See [the installation guide](./docs/install.md) for the full walkthrough of every",
+      "supported platform, including the Apple Silicon notes that most people need first.",
+    ].join("\n");
+    expect(detectHardWraps(text)).toHaveLength(1);
+  });
+});
+
+// ── Nested bullets (2026-08-22) ──────────────────────────────────────────────
+//
+// A sub-bullet's wrapped tail is indented 4+ spaces, which isIndentedCodeBlock
+// matched — so every line of a nested bullet was read as code and skipped, and
+// hard-wrapped sub-bullets were invisible to all four consumers. They reached a
+// published GitHub release page looking like a column of short lines.
+
+describe("nested list items are prose, not indented code", () => {
+  const NESTED_RELEASE_NOTE = [
+    "- **gates:** G1.3 no longer reports its own blindness as a failed release",
+    "",
+    "  - `github_release` is now tri-state. A 2xx or an AUTHENTICATED 4xx is an",
+    "    observation; an unauthenticated 401/403/404, any 5xx, or a transport",
+    "    failure is not, and is marked `indeterminate`.",
+    "  - The exit code stays non-zero for indeterminate. A gate that could not",
+    "    verify must not be green; the distinction belongs in the message, not",
+    "    in the exit status.",
+  ].join("\n");
+
+  it("flags wrapped sub-bullets in release-note shaped markdown", () => {
+    expect(detectHardWraps(NESTED_RELEASE_NOTE).length).toBeGreaterThan(0);
+  });
+
+  it("flags a wrapped THIRD-level bullet too", () => {
+    const deep = [
+      "- top",
+      "  - second",
+      "    - The third level item is also wrapped at a fixed column right here",
+      "      and continues onto the following line, which must still be caught.",
+    ].join("\n");
+    expect(detectHardWraps(deep)).toHaveLength(1);
+  });
+
+  it("flags a wrapped ORDERED sub-item", () => {
+    const ordered = [
+      "1. top",
+      "   1. The nested ordered item is wrapped at a fixed column right here so",
+      "      that it continues onto the following line and must be detected.",
+    ].join("\n");
+    expect(detectHardWraps(ordered)).toHaveLength(1);
+  });
+
+  it("leaves nested bullets alone when each is one unbroken line", () => {
+    const clean = [
+      "- **gates:** G1.3 no longer reports its own blindness as a failed release.",
+      "",
+      "  - `github_release` is now tri-state, and an unauthenticated 404 is marked indeterminate.",
+      "  - The exit code stays non-zero for indeterminate, because a gate that could not verify is not green.",
+    ].join("\n");
+    expect(detectHardWraps(clean)).toEqual([]);
+  });
+
+  it("STILL treats a genuine indented code block (no list context) as code", () => {
+    const code = [
+      "Run the following to reproduce the failure:",
+      "",
+      "    const aVeryLongVariableNameHere = computeSomething(argument, other)",
+      "    const anotherLongVariableName = computeSomethingElse(argument, more)",
+    ].join("\n");
+    expect(detectHardWraps(code)).toEqual([]);
+  });
+
+  it("closes the list context on dedent, so following code is still code", () => {
+    const mixed = [
+      "- a bullet item",
+      "",
+      "Back to a paragraph at column zero which ends the list context entirely.",
+      "",
+      "    const aVeryLongVariableNameHere = computeSomething(argument, other)",
+      "    const anotherLongVariableName = computeSomethingElse(argument, more)",
+    ].join("\n");
+    expect(detectHardWraps(mixed)).toEqual([]);
+  });
+});
