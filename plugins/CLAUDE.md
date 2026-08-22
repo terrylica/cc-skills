@@ -92,12 +92,12 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (43)
+## All Plugins (42)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
 - [agent-reach](./agent-reach/CLAUDE.md)
-- [arxiv-source-first](./arxiv-source-first/README.md) — no CLAUDE.md yet; add one before extending this plugin
+- [arxiv-source-first](./arxiv-source-first/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [claude-tts-companion](./claude-tts-companion/CLAUDE.md)
@@ -138,7 +138,6 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [unlimited-ocr](./unlimited-ocr/CLAUDE.md)
 - [web-forge](./web-forge/CLAUDE.md)
 - [whatsapp-commander](./whatsapp-commander/CLAUDE.md)
-- [zai](./zai/CLAUDE.md) — Z.ai GLM Coding Plan as a complementary consultant + toolbelt (empirically probed)
 
 ## Toolchain
 
