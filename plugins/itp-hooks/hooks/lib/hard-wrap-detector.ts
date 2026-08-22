@@ -115,10 +115,93 @@ export function isHtmlBlockLine(rawLine: string): boolean {
 }
 
 /**
+ * One markdown inline link or image, allowing ONE level of nesting in the label
+ * so a linked badge — `[![Plugins](shields.io/…)](#plugins)` — matches as a
+ * single unit. A flat `\[[^\]]*\]` cannot: `[^\]]*` stops at the `]` that closes
+ * the inner image, and the pattern then fails on the trailing `](#plugins)`.
+ */
+const INLINE_LINK_OR_IMAGE = String.raw`!?\[(?:[^\[\]]|!\[[^\]]*\]\([^()]*\))*\]\([^()\s]*(?:\s+"[^"]*")?\)`;
+
+/**
+ * A line whose ENTIRE visible content is inline links/images — a badge row, a
+ * nav strip, a bare `[Docs](url)` line. Measured on this marketplace's own
+ * corpus, consecutive badge rows were the ONE systematic false positive: each
+ * row is wide, ends on `)` (not a clause terminator), and is followed by
+ * another badge row, so every heuristic for "prose that wraps" fires on a
+ * construct that is not prose at all. 87 of 3,389 detections, all spurious.
+ *
+ * Deliberately requires the WHOLE line to be links. A prose line that merely
+ * CONTAINS a link (`See [our docs](url) for details.`) is still prose and is
+ * still measured — only a line with no prose left in it is structural.
+ */
+export function isLinkOnlyLine(rawLine: string): boolean {
+  const trimmed = rawLine.trim();
+  if (trimmed === "" || !trimmed.includes("](")) return false;
+  return new RegExp(String.raw`^(?:${INLINE_LINK_OR_IMAGE}\s*)+$`).test(trimmed);
+}
+
+/**
+ * Which lines are the CONTINUATION of a list item rather than free-standing
+ * indented code.
+ *
+ * This is load-bearing for nested bullets. A sub-bullet's wrapped tail is
+ * indented four or more spaces:
+ *
+ *     - `github_release` is now tri-state. A 2xx or an AUTHENTICATED 4xx is an
+ *       observation; an unauthenticated 401/403/404, any 5xx, or a transport
+ *       failure is not, and is marked `indeterminate`.
+ *
+ * and `isIndentedCodeBlock` matches any line indented four or more spaces. So
+ * before this mask existed, EVERY line of a nested bullet was read as code and
+ * skipped, and a hard-wrapped sub-bullet was invisible to all four consumers —
+ * including the `gh release` guard, which is how wrapped sub-bullets reached a
+ * published release page. Top-level bullets (two-space continuation) were
+ * caught; nested ones never were.
+ *
+ * CommonMark agrees: inside a list item, content indented to the item's content
+ * column is a continuation paragraph, not an indented code block. Code needs a
+ * further four spaces beyond that column — and in practice is fenced anyway,
+ * which the fence mask already handles.
+ *
+ * A blank line does NOT close the item: a list item may hold several
+ * paragraphs. Dedenting below the content column does.
+ */
+export function computeListContinuationLineMask(lines: readonly string[]): boolean[] {
+  const mask: boolean[] = Array.from({ length: lines.length }, () => false);
+  let contentIndent: number | null = null;
+
+  lines.forEach((line, index) => {
+    if (line.trim() === "") return; // blank keeps the item open
+
+    const marker = /^(\s*)(?:[-*+]|\d+[.)])\s+/.exec(line);
+    if (marker) {
+      // The item's content column — where its wrapped tail must line up.
+      contentIndent = marker[0].replace(/\t/g, "    ").length;
+      // The marker line counts as list context too. A third-level bullet
+      // (`    - text`) is itself indented four spaces, so without this it
+      // would be skipped as indented code before its own wrap was measured.
+      // Marking it is safe for the line-B path: `beginsNewStructuralElement`
+      // tests the list-item shape before the indented-code shape.
+      mask[index] = true;
+      return;
+    }
+
+    const indent = (/^\s*/.exec(line)?.[0] ?? "").replace(/\t/g, "    ").length;
+    if (contentIndent !== null && indent >= contentIndent) mask[index] = true;
+    else contentIndent = null; // dedented out of the list
+  });
+  return mask;
+}
+
+/**
  * True when `line`, after stripping leading whitespace, begins a NEW structural
  * block element — so a break before it is intentional, not a prose wrap.
+ *
+ * `isListContinuation` comes from `computeListContinuationLineMask`; when set,
+ * the indented-code test is suppressed because the indentation belongs to an
+ * enclosing list item, not to a code block.
  */
-function beginsNewStructuralElement(line: string): boolean {
+function beginsNewStructuralElement(line: string, isListContinuation = false): boolean {
   const t = line.replace(/^\s+/, "");
   if (t === "") return false;
   if (/^[-*+]\s/.test(t)) return true; // unordered list item
@@ -130,7 +213,9 @@ function beginsNewStructuralElement(line: string): boolean {
   if (isSetextUnderline(line)) return true; // the line above is a heading
   if (isReferenceDefinition(line)) return true; // link / footnote definition
   if (isHtmlBlockLine(line)) return true; // raw HTML block
-  if (isIndentedCodeBlock(line)) return true; // indented code
+  // Indentation inside a list item is the item's own continuation, not code.
+  if (!isListContinuation && isIndentedCodeBlock(line)) return true;
+  if (isLinkOnlyLine(line)) return true; // badge / nav row, not wrapped prose
   return false;
 }
 
@@ -198,6 +283,7 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
   const minWrapWidth = opts.minWrapWidth ?? DEFAULT_MIN_WRAP_WIDTH;
   const lines = body.replace(/\r\n/g, "\n").split("\n");
   const inFence = computeFencedCodeLineMask(lines);
+  const isListContinuation = computeListContinuationLineMask(lines);
 
   // Compute YAML front matter bounds (blocks 01-bounded range).
   // Front matter is `---` [content lines] `---`, only at start of file.
@@ -228,12 +314,14 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
     // Line A is itself a construct whose break is structural, not a prose wrap.
     if (isTableRow(a) || isHeading(a) || isThematicBreak(a)) continue;
     if (isSetextUnderline(a) || isReferenceDefinition(a)) continue;
-    if (isHtmlBlockLine(a) || isIndentedCodeBlock(a)) continue;
+    if (isHtmlBlockLine(a)) continue;
+    if (isIndentedCodeBlock(a) && !isListContinuation[i]) continue;
+    if (isLinkOnlyLine(a)) continue;
 
     if (!endsOpen(aTrimEnd)) continue;
     const width = displayWidth(aTrimEnd.trim());
     if (width < minWrapWidth) continue;
-    if (beginsNewStructuralElement(b)) continue;
+    if (beginsNewStructuralElement(b, isListContinuation[i + 1])) continue;
 
     issues.push({ line: i + 1, width, nextPreview: preview(b) });
   }
