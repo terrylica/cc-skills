@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 32 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 33 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (24; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (25; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
@@ -30,6 +30,7 @@ Jump directly to any of the 32 registered markers below. Markers are listed alph
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
 - [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
+- [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
 - [`MINI-INNGEST-OK`](#mini-inngest-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
@@ -68,7 +69,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (24 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (25 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -327,6 +328,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # MANUAL-PAT-PAGE-OK
 ```
 
+## `MD-HARD-WRAP-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-markdown-hard-wrap-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose.
+
+**Example usage**:
+
+```
+# MD-HARD-WRAP-OK
+```
+
 ## `MD-TABLE-OK`
 
 | Field | Value |
@@ -421,7 +439,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Bare marker accepted (no reason required) |
 
-**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
+**What it does**: Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `#` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `//`, `<!--`, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.
 
 **Example usage**:
 
