@@ -298,6 +298,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.",
     },
     {
+      markerNameTokenIncludingSuffix: "LEAK-TAXONOMY-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/posttooluse-leakage-taxonomy-reminder.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit/MultiEdit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to \"leaky, therefore reject\". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "MD-TABLE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts",
