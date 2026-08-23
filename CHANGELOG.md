@@ -1,3 +1,106 @@
+# [28.0.0](https://github.com/terrylica/cc-skills/compare/v27.1.1...v28.0.0) (2026-08-23)
+
+
+* refactor!: move .mise/tasks to tasks/, drop runner indirection ([6fcc5e7](https://github.com/terrylica/cc-skills/commit/6fcc5e7bb0e620c624dad16e22193fe673346812))
+
+jdx/mise is retired. `mise` is not installed here, the standing policy is that proto is the only toolchain manager, and the repo's documented release entry point `mise run release:full` therefore could not run at all.
+
+The task scripts were never really mise-specific — they are plain bash. What tied them to a runner was a handful of `mise run <task>` calls INSIDE them, which is exactly what the bootstrap-monorepo doctrine forbids: "no orchestrator-specific logic inside scripts; a task's script must run standalone from the repo root. The orchestrator is swappable; the scripts are the truth."
+
+- `.mise/tasks/` → `tasks/`. Runner-neutral, so it never needs renaming again. 156 tracked files moved with history preserved.
+- 132 files rewriting the `.mise/tasks` path, across docs, shell, TypeScript and awk.
+- Every internal `mise run X` replaced by `bash tasks/X`: the seven release phases, the preflight's regression-suite and bun-suite gates, and the iter-134 parallel audit fan-out (which resolves a task name to a script path by trying `.sh` and then bare, so a rename cannot silently become a skipped audit).
+- `release/full` and `release/preflight` now resolve the repo root from their own location and cd there, so they behave identically under any runner or none.
+- Root-resolution depth corrected repo-wide. Every script sat one directory deeper before, so each `../..` chain overshot by one level once moved — the single largest source of breakage, and silent: an overshooting `cd` lands outside the repo and `git ls-files` simply returns nothing, which reads as "no tests found" rather than as an error.
+- The release-notes guard no longer keys on `.mise/tasks/release`; it now recognises `moon run …:release…` and the runner-agnostic `bash tasks/release`.
+- Two registry tests derived an expected path count by grepping for `"(plugins|\.mise)/…"`; they now grep `tasks`.
+
+
+
+### Bug Fixes
+
+* **itp-hooks:** see hard wraps inside nested bullets, ignore badge rows ([da65b3f](https://github.com/terrylica/cc-skills/commit/da65b3fd41d551c321e90df5fd5dae55b76cb701))
+
+A sub-bullet's wrapped tail is indented four or more spaces, and isIndentedCodeBlock() matches any line indented four or more spaces. So every line of a nested bullet was read as an indented code block and skipped, and a hard-wrapped sub-bullet was invisible to all four consumers of this detector — including the `gh release` guard. That is how wrapped sub-bullets reached a published release page looking like a column of short mid-sentence lines.
+
+- computeListContinuationLineMask() tracks list context, so content indented to a list item's content column is read as a continuation paragraph rather than code. This is also what CommonMark says: inside a list item, code needs a further four spaces beyond that column.
+- The mask covers list MARKER lines too. A third-level bullet
+  (`    - text`) is itself indented four spaces and would otherwise be
+  skipped before its own wrap was ever measured.
+- Genuine indented code is still code — with no enclosing list, or after a dedent back to column zero. Fenced code was never affected.
+- isLinkOnlyLine() treats a line whose entire visible content is inline links or images as structural. Consecutive badge rows were the one systematic false positive: each is wide, ends on `)` rather than a clause terminator, and is followed by another badge row. A prose line that merely contains a link is still measured.
+
+Measured over the 1,114 tracked .md files in this repo: 193 files held 3,389 detections before; 169 files hold 3,411 after — 69 badge false positives removed, 91 previously invisible nested-bullet wraps found.
+
+Both fixes land in the shared library, so pretooluse-github-hard-wrap-guard and pretooluse-gmail-body-guard inherit them.
+
+* **perf-baseline:** correct relative path depth post-mise migration ([4f3a991](https://github.com/terrylica/cc-skills/commit/4f3a991740ca3920097f26ee0fcb040eec1dcafd))
+
+The iter-174 harness was sourcing perf-timing-skip.sh with a path one level too deep after moving from .mise/tasks/ to tasks/. Changed from ../../../scripts/lib/ to ../../scripts/lib/ to resolve correctly.
+
+All 8 perf-baseline regression tests now pass (iter174, iter178-184): 109 assertions. The tests need no changes beyond this single path fix — they were already designed for direct bash invocation (exec delegation, --json dual-mode, no mise dependency).
+
+* **scripts:** survive a settings.json that has no hooks key ([c135468](https://github.com/terrylica/cc-skills/commit/c135468b443b794eaa903fb6c01217fb57559914)), closes [#103](https://github.com/terrylica/cc-skills/issues/103)
+
+Reported from a clean Quick Install: sync-hooks-to-settings.sh died with `jq: error: null (null) has no keys` and pruned nothing.
+
+A settings.json is user-authored, so every level may be absent or null, and jq's to_entries and map both abort on null. The counting filter already defaulted with `.hooks // {}`, but the pruning filter walked `.hooks |= with_entries(...)` unguarded — so any user whose settings.json simply had no `hooks` key hit the crash on the documented install path.
+
+- The prune runs only when `.hooks` is genuinely an object. A non-object `hooks` is malformed input this script must not silently rewrite.
+- Every accessor defaults before it dereferences: a null matcher list, a matcher entry with no hooks array, and a hook entry with no command are all tolerated.
+- The marketplace path fragment is passed with --arg instead of being interpolated into the filter in three places.
+- New regression task covers eleven settings shapes, including the exact reported one, and asserts an unrelated foreign hook survives the prune rather than being emptied out with the cc-skills entries.
+
+
+
+### Features
+
+* **build:** adopt proto and moon as the task runner ([fa408e7](https://github.com/terrylica/cc-skills/commit/fa408e71085c20d2c3f8983bc1d28e1a99b263bf)), closes [semantic-release#3527](https://github.com/semantic-release/issues/3527) [#MISE](https://github.com/terrylica/cc-skills/issues/MISE)
+
+Replaces the `.mise.toml [tools]` block and `mise run` entry points with the stack the bootstrap-monorepo skill scaffolds for every repo here.
+
+- `.prototools` pins moon, bun and node concretely. Node is present ONLY for
+
+* **itp-hooks:** add leakage-taxonomy PostToolUse reminder subhook ([402b4d0](https://github.com/terrylica/cc-skills/commit/402b4d00db440c1f534a3a23143d1982123686c5))
+
+Injects the five-category temporal-leakage taxonomy ONCE PER SESSION when a Write/Edit contains language that ADJUDICATES leakage. Guards the OVER-ruling-out failure mode measured in the xaubot-ai audit, where agents flatten every temporal irregularity to "leakage", every "leakage" to "reject", and discard a valid result.
+
+NON-BLOCKING by construction: a deny here would commit the very error it guards, so it only ever returns noop or additional_context.
+
+Registered as a subhook in the existing PostToolUse orchestrator rather than a 19th top-level hook -- single bun process, registry position FIRST (pure regex, O(1) extension pre-filter, no subprocess, no file read on the common path).
+
+Detection is two-tiered on both sides, because with a once-per-session gate precision and recall are ONE axis: every false positive is also a false negative that spends the session shot before the real verdict. Leak terms split DOMAIN vs GENERIC, verdict terms DECISIVE vs WEAK, read OFF the corpus rather than guessed. Proximity tiered 200/100/80 chars, calibrated on measured distances. A 80-char sense window discards memory/heap, relu/torch, lexer, filtfilt, water and gitleaks senses.
+
+An adversarial verifier FAILED the first build outright at 0/16 recall: "leaky" had been listed as both a leak and a verdict term, so it satisfied the conjunction alone and the two-term rule was decorative. All 15 fires over 1,448 corpus sentences were that artifact.
+
+After the fix: 11/11 leak-bearing corpus documents fire, 0/10 naturalistic negatives, 0/60 leak-mentioning real repo files, 6/1198 on a random sample of which 5 are genuine research adjudications.
+
+Message pinned at &lt;=900 chars and &lt;=960 UTF-8 bytes by test, since it is paid on every fire. Escape LEAK-TAXONOMY-OK, registered in the marketplace-wide producer-marker registry (required -- the cross-plugin typo audit fails on any unregistered producer marker).
+
+Doctrine SSoT ~/.claude/leakage-taxonomy-CLAUDE.md. 1253 tests green.
+
+* **itp-hooks:** remind when a .md edit introduces hard-wrapped prose ([9c318a6](https://github.com/terrylica/cc-skills/commit/9c318a630856941e897fb8570f6cc8d7caf89c21))
+
+Three guards already covered the PUBLISH boundary: the gh release/issue/pr guard, release.config.cjs reflowing semantic-release notes, and the Gmail draft guard. Nothing watched the AUTHORING boundary, and nothing was going to repair it later either — stop-markdown-lint runs prettier with `--prose-wrap preserve`, so a wrap written into a .md is kept forever.
+
+- New posttooluse-markdown-hard-wrap-reminder subhook, inlined in the iter-93 orchestrator, fires on Write/Edit/MultiEdit of .md/.markdown.
+- NET-NEW only, and that is load-bearing: 169 tracked .md files in this repo are already hard-wrapped, so a contains-a-wrap hook would nag constantly about debt the current edit did not create. Edit and MultiEdit compare wrap counts before and after; Write reports every wrap because PostToolUse runs after the write and no before-state survives.
+- The comparison runs on the WHOLE FILE, not the edit fragment. An Edit fragment lifted from inside a fenced code block carries no fence marker, so scanning it alone read two shell commands in a bash block as wrapped prose. The before-state is reconstructed by undoing each replacement in reverse order, honouring replace_all, and added wraps are matched by shape rather than line number.
+- Reads only a regular file. Bun.file().text() on a FIFO blocks until a writer appears, which would hang the subhook on every edit.
+- Honest about the surface split (GFM spec 6.13): a repository .md renders fine because soft breaks collapse to a space. The breakage is in release notes, issue and PR bodies, and comments, where every newline becomes a literal &lt;br>. The always-present harm is diff noise.
+
+Escape hatch MD-HARD-WRAP-OK, registered in the iter-111 canonical registry; temp-scratch exempt. 32 hook tests, 35 detector tests.
+
+The registry's own header comments no longer quote a fixed entry count that had drifted from 11 to 27; they state the rule instead.
+
+
+
+### BREAKING CHANGES
+
+* the task scripts live at `tasks/` instead of `.mise/tasks/`.
+Anything invoking them by path must update. `mise run <task>` no longer works;
+use `moon run repo:<task>` or `bash tasks/<path>` directly.
+
 ## [27.1.1](https://github.com/terrylica/cc-skills/compare/v27.1.0...v27.1.1) (2026-08-22)
 
 
