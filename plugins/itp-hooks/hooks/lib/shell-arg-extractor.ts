@@ -196,3 +196,98 @@ export function hasUnparseableCatHeredoc(command: string, flag = "-m"): boolean 
   const esc = escapeRegExp(flag);
   return new RegExp(`${esc}\\s+["']\\$\\(cat\\s+<<`).test(command) && extractCatHeredoc(command, flag) === null;
 }
+
+export interface Heredoc {
+  /** The delimiter word, without quotes. */
+  readonly delimiter: string;
+  /** Body text between the opening line and the terminator, newlines intact. */
+  readonly body: string;
+  /**
+   * The path this heredoc was redirected into on its opening line — the `f` in
+   * `cat > f <<EOF`. Null when the heredoc was piped, consumed by a command, or
+   * redirected somewhere this parser does not recognise.
+   */
+  readonly redirectTarget: string | null;
+}
+
+/**
+ * A heredoc opener: `<<WORD`, `<<'WORD'`, `<<"WORD"`, `<<-WORD`, `<< WORD`.
+ *
+ * The negative lookahead on `<` is load-bearing: `<<<` is a here-STRING, which
+ * has no terminator line, and treating it as a heredoc would swallow the rest
+ * of the command as a body.
+ */
+const HEREDOC_OPENER = /<<-?\s*(?!<)(?:'([^']+)'|"([^"]+)"|([A-Za-z_][A-Za-z0-9_]*))/g;
+
+/** `> path` or `>> path` on the opening line (the heredoc's write target). */
+const REDIRECT_TARGET = /(?:^|\s)>>?\s*("([^"]+)"|'([^']+)'|([^\s|;&<>]+))/;
+
+/**
+ * Extract EVERY heredoc in a shell command, with the file each one is
+ * redirected into.
+ *
+ * Why this exists, precisely. A PreToolUse hook is handed a command STRING, not
+ * the filesystem the command is about to produce. The dominant way an agent
+ * publishes prose is:
+ *
+ *     cat > /tmp/body.md <<'EOF'
+ *     …prose…
+ *     EOF
+ *     gh issue comment 8 --body-file /tmp/body.md
+ *
+ * At hook time `/tmp/body.md` does not exist, so a guard that reads the path
+ * finds nothing and fails open. Measured 2026-08-24: the github-hard-wrap-guard
+ * returned `allow` for exactly this command and a hard-wrapped 88-line comment
+ * was published. Reading the heredoc body out of the command string is the only
+ * way to see that text before it is written.
+ *
+ * Conservative by construction: a `<<WORD` with no matching terminator line is
+ * not reported at all, so prose that merely MENTIONS heredoc syntax cannot
+ * manufacture a phantom body.
+ */
+export function extractHeredocs(command: string): Heredoc[] {
+  const lines = command.replace(/\r\n/g, "\n").split("\n");
+  const found: Heredoc[] = [];
+
+  let lineIndex = 0;
+  while (lineIndex < lines.length) {
+    const line = lines[lineIndex];
+    HEREDOC_OPENER.lastIndex = 0;
+    const openers = [...line.matchAll(HEREDOC_OPENER)].map((m) => m[1] ?? m[2] ?? m[3] ?? "");
+
+    if (openers.length === 0) {
+      lineIndex++;
+      continue;
+    }
+
+    // A redirect on the opening line names where this heredoc will be written.
+    const redirectMatch = REDIRECT_TARGET.exec(line);
+    const redirectTarget = redirectMatch
+      ? (redirectMatch[2] ?? redirectMatch[3] ?? redirectMatch[4] ?? null)
+      : null;
+
+    // Consume each queued delimiter's body in order, starting the line after.
+    let cursor = lineIndex + 1;
+    openers.forEach((delimiter, openerPosition) => {
+      if (cursor > lines.length) return;
+      const bodyStart = cursor;
+      let terminator = -1;
+      while (cursor < lines.length && terminator === -1) {
+        if (lines[cursor].trim() === delimiter) terminator = cursor;
+        else cursor++;
+      }
+      if (terminator === -1) return; // unterminated → report nothing for it
+      found.push({
+        delimiter,
+        body: lines.slice(bodyStart, terminator).join("\n"),
+        // Only the FIRST heredoc on a line receives that line's redirect; a
+        // second opener feeds a different descriptor and we do not guess.
+        redirectTarget: openerPosition === 0 ? redirectTarget : null,
+      });
+      cursor = terminator + 1;
+    });
+    lineIndex = cursor > lineIndex ? cursor : lineIndex + 1;
+  }
+
+  return found;
+}

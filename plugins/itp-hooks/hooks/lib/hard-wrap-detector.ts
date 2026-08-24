@@ -136,8 +136,55 @@ const INLINE_LINK_OR_IMAGE = String.raw`!?\[(?:[^\[\]]|!\[[^\]]*\]\([^()]*\))*\]
  */
 export function isLinkOnlyLine(rawLine: string): boolean {
   const trimmed = rawLine.trim();
-  if (trimmed === "" || !trimmed.includes("](")) return false;
+  if (trimmed === "") return false;
+  // A bare URL on its own line — a citation stack, a source list. Wide, ending
+  // on a path segment rather than punctuation, and followed by another one, so
+  // every wrap heuristic fires on it. It is a reference, not wrapped prose.
+  if (/^<?(?:https?|mailto):\S+>?$/.test(trimmed)) return true;
+  if (!trimmed.includes("](")) return false;
   return new RegExp(String.raw`^(?:${INLINE_LINK_OR_IMAGE}\s*)+$`).test(trimmed);
+}
+
+/**
+ * A GFM table delimiter row WITHOUT leading/trailing pipes — `--- | :---:`.
+ * `isTableRow` requires a leading pipe, which GFM does not, so a pipe-less
+ * table read as four wrapped prose lines and was denied.
+ */
+export function isPipelessTableDelimiter(rawLine: string): boolean {
+  return /^\s*:?-{3,}:?(?:\s*\|\s*:?-{3,}:?)+\s*$/.test(rawLine);
+}
+
+/**
+ * An explicit markdown hard break the author asked for: the line ends in two or
+ * more spaces, or a backslash. Signature blocks and address blocks are written
+ * this way, and denying them told the author to "fix" correct markdown.
+ */
+export function hasExplicitLineBreak(rawLine: string): boolean {
+  return /(?: {2,}|\\)$/.test(rawLine.replace(/[\t\r]+$/, ""));
+}
+
+/**
+ * Which lines belong to a pipe-less GFM table.
+ *
+ * A table is a REGION, not a line. Marking only the delimiter row left the body
+ * rows looking like a stack of wrapped prose lines — each wide, each ending on
+ * a value rather than punctuation, each followed by another. The region runs
+ * from the header line above the delimiter through every following line that
+ * still carries a column separator.
+ */
+export function computePipelessTableLineMask(lines: readonly string[]): boolean[] {
+  const mask: boolean[] = Array.from({ length: lines.length }, () => false);
+  lines.forEach((line, index) => {
+    if (!isPipelessTableDelimiter(line)) return;
+    mask[index] = true;
+    if (index > 0 && lines[index - 1].includes("|")) mask[index - 1] = true;
+    let row = index + 1;
+    while (row < lines.length && lines[row].trim() !== "" && lines[row].includes("|")) {
+      mask[row] = true;
+      row++;
+    }
+  });
+  return mask;
 }
 
 /**
@@ -213,6 +260,7 @@ function beginsNewStructuralElement(line: string, isListContinuation = false): b
   if (isSetextUnderline(line)) return true; // the line above is a heading
   if (isReferenceDefinition(line)) return true; // link / footnote definition
   if (isHtmlBlockLine(line)) return true; // raw HTML block
+  if (isPipelessTableDelimiter(line)) return true; // pipe-less table delimiter
   // Indentation inside a list item is the item's own continuation, not code.
   if (!isListContinuation && isIndentedCodeBlock(line)) return true;
   if (isLinkOnlyLine(line)) return true; // badge / nav row, not wrapped prose
@@ -275,6 +323,30 @@ function preview(line: string, max = 60): string {
   return collapsed.length > max ? collapsed.slice(0, max - 1) + "…" : collapsed;
 }
 
+/** A line's leading blockquote marker run, e.g. `> ` or `> > `. */
+const BLOCKQUOTE_PREFIX = /^(\s*(?:>[ \t]?)+)/;
+
+/**
+ * How many `>` markers open this line, and the content after them.
+ *
+ * 🔴 Blockquote prose was invisible to this detector until 2026-08-24.
+ * `beginsNewStructuralElement` returns true for any line starting with `>`, so
+ * in a wrapped quote EVERY continuation line looked like the start of a new
+ * block and no pair was ever measured. Measured on a real published comment:
+ * the detector found 34 wraps where the unwrapper found 40 joins — the six it
+ * missed were all inside blockquotes, and blockquotes are how this operator
+ * quotes sources, regulators and collaborators.
+ *
+ * The fix is to compare a quoted line with the next line AT THE SAME DEPTH and
+ * run every existing test on the CONTENT rather than the raw line. A depth
+ * change is still structural, so a quote opening or closing is never a wrap.
+ */
+function splitBlockquote(rawLine: string): { depth: number; content: string } {
+  const prefix = BLOCKQUOTE_PREFIX.exec(rawLine)?.[1];
+  if (prefix === undefined) return { depth: 0, content: rawLine };
+  return { depth: prefix.match(/>/g)?.length ?? 0, content: rawLine.slice(prefix.length) };
+}
+
 /**
  * Scan a text body and return every hard-wrap (mid-sentence line break in a
  * prose paragraph), ordered by line number. Pure; never throws on normal input.
@@ -284,6 +356,7 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
   const lines = body.replace(/\r\n/g, "\n").split("\n");
   const inFence = computeFencedCodeLineMask(lines);
   const isListContinuation = computeListContinuationLineMask(lines);
+  const inPipelessTable = computePipelessTableLineMask(lines);
 
   // Compute YAML front matter bounds (blocks 01-bounded range).
   // Front matter is `---` [content lines] `---`, only at start of file.
@@ -305,11 +378,22 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
     // Skip lines inside YAML front matter.
     if (i <= yamlFrontMatterEndsAt) continue;
 
-    const a = lines[i];
-    const b = lines[i + 1];
     if (inFence[i] || inFence[i + 1]) continue;
+
+    // Inside a blockquote, measure the quoted CONTENT. A depth change (the
+    // quote opening, closing, or nesting) is structural and never a wrap.
+    const quoteA = splitBlockquote(lines[i]);
+    const quoteB = splitBlockquote(lines[i + 1]);
+    if (quoteA.depth !== quoteB.depth) continue;
+    const a = quoteA.depth > 0 ? quoteA.content : lines[i];
+    const b = quoteB.depth > 0 ? quoteB.content : lines[i + 1];
+
     const aTrimEnd = a.replace(/\s+$/, "");
     if (aTrimEnd === "" || b.trim() === "") continue; // blank ends the block
+
+    // The author asked for this break with a two-space or backslash hard break.
+    // Measured on the RAW line, before any trimming, or the request is erased.
+    if (hasExplicitLineBreak(a)) continue;
 
     // Line A is itself a construct whose break is structural, not a prose wrap.
     if (isTableRow(a) || isHeading(a) || isThematicBreak(a)) continue;
@@ -317,6 +401,8 @@ export function detectHardWraps(body: string, opts: DetectOptions = {}): WrapIss
     if (isHtmlBlockLine(a)) continue;
     if (isIndentedCodeBlock(a) && !isListContinuation[i]) continue;
     if (isLinkOnlyLine(a)) continue;
+    // A pipe-less table region: header, delimiter and every body row.
+    if (inPipelessTable[i] || inPipelessTable[i + 1]) continue;
 
     if (!endsOpen(aTrimEnd)) continue;
     const width = displayWidth(aTrimEnd.trim());

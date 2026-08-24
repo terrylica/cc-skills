@@ -346,3 +346,111 @@ describe("nested list items are prose, not indented code", () => {
     expect(detectHardWraps(mixed)).toEqual([]);
   });
 });
+
+// ── Blockquotes: invisible to this detector until 2026-08-24 ──────────────
+
+describe("hard-wrapped blockquotes", () => {
+  it("flags a wrapped blockquote (every continuation line looked structural before)", () => {
+    const quoted = [
+      "> Incorporate before the first activity that should legally, commercially or tax-wise",
+      "> belong to the company, and not one day earlier than that point in time.",
+    ].join("\n");
+    expect(detectHardWraps(quoted).length).toBeGreaterThan(0);
+  });
+
+  it("does not flag the same quote reflowed to one line", () => {
+    const quoted =
+      "> Incorporate before the first activity that should legally, commercially or tax-wise belong to the company.";
+    expect(detectHardWraps(quoted)).toEqual([]);
+  });
+
+  it("does not flag the quote OPENING — a depth change is structural", () => {
+    const text = [
+      "Here is a lead-in sentence that is easily long enough to look like a wrapped line",
+      "> and here the blockquote begins, which is a new block and not a continuation.",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("does not flag a bulleted list inside a blockquote", () => {
+    const text = [
+      "> - the first quoted bullet, long enough that its width passes the threshold easily",
+      "> - the second quoted bullet, also long enough to pass the width threshold here",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("does not flag across a nesting change", () => {
+    const text = [
+      "> an outer quote line long enough to be measured for a wrap at this width here",
+      "> > a nested quote line, which is a different block and not a continuation of it",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("does not flag across a bare `>` paragraph separator", () => {
+    const text = [
+      "> the first quoted paragraph, long enough to be measured for a wrap at this width",
+      ">",
+      "> the second quoted paragraph, also long enough to be measured at this width here",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+});
+
+// ── Over-blocking: the false positives that get a guard deleted ───────────
+
+describe("must NOT be reported as hard wraps", () => {
+  it("a stack of bare source URLs", () => {
+    const text = [
+      "https://www.canada.ca/en/revenue-agency/services/tax/technical-information/income-tax.html",
+      "https://www.ontario.ca/page/connect-ministry-finance-office-advisory-services-branch.html",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("an autolink in angle brackets", () => {
+    const text = [
+      "<https://www.insurancecouncilofbc.com/licensee-directory/individual-search-page>",
+      "<https://www.insurancecouncilofbc.com/licensee-directory/agency-search-landing>",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("a signature block written with explicit two-space hard breaks", () => {
+    const text = [
+      "Terry Li, on behalf of the research repository for this venture  ",
+      "Vancouver, British Columbia, Canada, and reachable at the address below  ",
+      "Sent because the Ministry's contact page names Advisory Services",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("a backslash hard break", () => {
+    const text = [
+      "The first line of an address block that is comfortably past the width floor \\",
+      "the second line of that same address block, also past the width floor here",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("a pipe-less GFM table", () => {
+    const text = [
+      "Programme                                   | Cash in | Cash out",
+      "------------------------------------------- | ------- | --------",
+      "Riipen Level UP, the only genuinely free one | $0      | $0",
+      "SWPP through any one of the four channels    | $5,000  | $13,000",
+    ].join("\n");
+    expect(detectHardWraps(text)).toEqual([]);
+  });
+
+  it("but a genuinely wrapped paragraph beside a URL line is still caught", () => {
+    const text = [
+      "https://www.canada.ca/en/revenue-agency/services/tax/technical-information.html",
+      "",
+      "This paragraph really is hard wrapped at a fixed column and must still be",
+      "reported, because exempting URLs must not exempt the prose around them.",
+    ].join("\n");
+    expect(detectHardWraps(text).length).toBeGreaterThan(0);
+  });
+});
