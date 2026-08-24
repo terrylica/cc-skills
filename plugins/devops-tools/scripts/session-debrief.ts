@@ -28,14 +28,28 @@ import { spawnSync } from "child_process";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
-const MINIMAX_API_URL = "https://api.minimax.io/anthropic/v1/messages";
-// MINIMAX_MODEL: single source of truth is ~/.config/mise/config.toml
-const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M3";
+// MIGRATED 2026-08-23 off MiniMax onto the fleet's own sub2api gateway (MiniMax/Z.ai
+// retirement). Already spoke the Anthropic Messages shape, so only URL/model/credential moved.
+const MINIMAX_API_URL = process.env.DEBRIEF_LLM_API_URL ?? "https://nca.25u.com/v1/messages";
+
+// The `[1m]` SUFFIX IS LOAD-BEARING — it is what grants the 1M-token context window on this
+// fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with
+// "Prompt is too long". That was established empirically by the project-a pipeline
+// (see ~/work/project-a/pipeline/model.toml, measured 2026-08-07, where the missing
+// suffix was the bug). Do not "simplify" it away.
+const MINIMAX_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
 const MAX_OUTPUT_TOKENS = 16384;
 
-// MiniMax empirical context ceiling: ~951K content chars (260K tokens)
-// Official docs claim 204,800 tokens but 260K works in practice.
-// Budget: 260K total - 16K output - 0.5K system/framing = ~243K tokens ≈ 890K chars
+// Budget: ~243K input tokens ≈ 890K chars, unchanged from the MiniMax sizing (M3's measured
+// ~260K-token ceiling, minus output and framing).
+//
+// ⚠ CAVEAT, stated because it is the one thing about this migration that is NOT measured:
+// the 890K figure only holds if the `[1m]` suffix above really does grant the 1M window
+// through the RAW sub2api door. That suffix was proven through the `ccmax-claude` CLI wrapper,
+// not through a direct /v1/messages call, and a short probe cannot distinguish the two (the
+// response echoes `claude-sonnet-5` either way). If a long debrief ever fails with a
+// "prompt is too long" / blocking_limit error, this constant — not the transcript — is the
+// thing to lower first; ~600K chars sits safely inside a 200K-token window.
 const MAX_STRUCTURED_LOG_CHARS = 890_000;
 
 // ── Focused Goal System Prompts ────────────────────────────────────────────────
@@ -356,19 +370,34 @@ async function callMiniMax(
 
 // ── API Key ────────────────────────────────────────────────────────────────────
 
+/**
+ * Env first, then Self-Custody Secrets.
+ *
+ * This used to scrape a `MINIMAX_API_KEY=` line out of
+ * `~/.claude/.secrets/ccterrybot-telegram` — an unrelated Telegram bot's secrets file that
+ * happened to also hold the key. That coupling meant this tool broke whenever that file was
+ * reorganised, and it hid the dependency from anyone reading either component. Replaced
+ * 2026-08-23 with the tool's own dedicated, capped SCS scope.
+ */
 function getApiKey(): string {
-  const secretsPath = join(homedir(), ".claude/.secrets/ccterrybot-telegram");
-  if (!existsSync(secretsPath)) {
-    throw new Error(`Secrets file not found: ${secretsPath}`);
+  const envKey = process.env.DEBRIEF_LLM_API_KEY ?? process.env.SUB2API_KEY;
+  if (envKey?.trim()) return envKey.trim();
+
+  const result = spawnSync("vault", ["get", "cc-skills-tools-sub2api", "api_key"], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  // spawnSync reports a failed SPAWN in .error and a non-zero EXIT in .status — check both,
+  // or a missing `vault` binary silently yields an empty key and a confusing 401 downstream.
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      "could not resolve the debrief LLM key: set DEBRIEF_LLM_API_KEY, or store it in SCS " +
+        "(`vault set cc-skills-tools-sub2api api_key`)",
+    );
   }
-  const content = readFileSync(secretsPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("MINIMAX_API_KEY=")) {
-      return trimmed.slice("MINIMAX_API_KEY=".length).replace(/^["']|["']$/g, "");
-    }
-  }
-  throw new Error("MINIMAX_API_KEY not found in secrets file");
+  const key = (result.stdout ?? "").trim();
+  if (!key) throw new Error("vault returned an empty value for cc-skills-tools-sub2api api_key");
+  return key;
 }
 
 // ── Session Chain Tracing ──────────────────────────────────────────────────────

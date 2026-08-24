@@ -23,26 +23,42 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
+import { spawnSync } from "child_process";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
-const MINIMAX_API_URL = "https://api.minimax.io/anthropic/v1/messages";
-// MINIMAX_MODEL: single source of truth is ~/.config/mise/config.toml
-const MINIMAX_MODEL = process.env.MINIMAX_MODEL ?? "MiniMax-M3";
+// MIGRATED 2026-08-23 off MiniMax onto the fleet's own sub2api gateway (MiniMax/Z.ai
+// retirement). Already Anthropic-shaped, so only URL/model/credential moved.
+//
+// ⚠ BENCHMARK CONTINUITY: any score recorded before this date was produced by MiniMax-M3.
+// Comparing a new run against those numbers compares two different MODELS, not two prompts,
+// which is exactly the confound this harness exists to avoid. Re-baseline before drawing a
+// conclusion from a cross-date comparison.
+const MINIMAX_API_URL = process.env.DEBRIEF_LLM_API_URL ?? "https://nca.25u.com/v1/messages";
+const MINIMAX_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
 const CORPUS_BASE = join(homedir(), ".claude/benchmarks/session-debrief/corpus");
 
 // ── API Key ────────────────────────────────────────────────────────────────────
 
+/** Env first, then the tool's own dedicated SCS scope. See session-debrief.ts for why the
+ *  previous `ccterrybot-telegram` file-scrape was replaced. */
 function getApiKey(): string {
-  const secretsPath = join(homedir(), ".claude/.secrets/ccterrybot-telegram");
-  const content = readFileSync(secretsPath, "utf-8");
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("MINIMAX_API_KEY=")) {
-      return trimmed.slice("MINIMAX_API_KEY=".length).replace(/^["']|["']$/g, "");
-    }
+  const envKey = process.env.DEBRIEF_LLM_API_KEY ?? process.env.SUB2API_KEY;
+  if (envKey?.trim()) return envKey.trim();
+
+  const result = spawnSync("vault", ["get", "cc-skills-tools-sub2api", "api_key"], {
+    encoding: "utf-8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      "could not resolve the benchmark LLM key: set DEBRIEF_LLM_API_KEY, or store it in SCS " +
+        "(`vault set cc-skills-tools-sub2api api_key`)",
+    );
   }
-  throw new Error("MINIMAX_API_KEY not found in secrets file");
+  const key = (result.stdout ?? "").trim();
+  if (!key) throw new Error("vault returned an empty value for cc-skills-tools-sub2api api_key");
+  return key;
 }
 
 // ── MiniMax API ────────────────────────────────────────────────────────────────
