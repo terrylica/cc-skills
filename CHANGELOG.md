@@ -1,3 +1,54 @@
+# [28.1.0](https://github.com/terrylica/cc-skills/compare/v28.0.0...v28.1.0) (2026-08-24)
+
+
+### Bug Fixes
+
+* **itp-hooks:** the hard-wrap guard had eight bypasses, and the one that shipped was architectural ([ea10dc0](https://github.com/terrylica/cc-skills/commit/ea10dc0487c4250251258a828dca19f8b4437bb0))
+
+An 88-line hard-wrapped comment was published to a live GitHub issue while this guard was installed, enabled and reporting allow. An adversarial sweep then confirmed seven more ways past it. All eight are closed here, each with a regression test that fails against the previous guard and passes against this one.
+
+THE ARCHITECTURAL ONE. A PreToolUse hook is handed the command string. It is not handed the filesystem that command is about to create. The dominant way an agent publishes prose is to write the body and publish it in a single Bash call — a heredoc into /tmp/body.md, then gh issue comment --body-file /tmp/body.md. At hook time that path does not exist, readRegularFileText returned null, and the guard failed open. Reading the path can never work for this pattern, because the path is a product of the command rather than an input to it. The repair is to measure the heredoc body carried inside the command string itself, which is exact: the text is right there. extractHeredocs() is new in the shared shell-arg-extractor and returns each heredoc with the file it is redirected into, so the body can be matched to the flag that publishes it. It is conservative by construction — a heredoc with no matching terminator line is not reported at all, so prose that merely mentions heredoc syntax cannot manufacture a phantom body.
+
+Where the text still cannot be seen — a printf or a script writes the file — the guard now denies instead of failing open, and says how to fix it: write the file in one Bash call and publish it in the next. Fail-open is right when a guard cannot tell whether there is a problem. It is wrong when the guard can see that the evidence is being created after it has looked. The deny is narrow: it requires positive evidence that this command writes that exact path.
+
+THE SEVEN ORDINARY ONES, each verified by holding the payload constant and varying only the spelling:
+
+- -F is the documented short form of --body-file for gh issue and gh pr. The identical file was denied under --body-file and allowed under -F.
+- gh pr review takes -b and -F and publishes to a full GFM surface. The verb was missing.
+- gh api -f 'body=...' with the quote before the key defeated the field regex, which demanded a literal body= immediately after the flag separator.
+- gh api --input alone is a write. gh implies POST as soon as an input is supplied, and the guard required an explicit -X.
+- -F body=@file reads the value from that file. The extractor was measuring the 15-character path.
+- --body-file - is fed by the heredoc on stdin. Only --input filtered for -.
+- --body "$(cat f)" and --body-file "$VAR" are now followed to the file, the latter via an assignment in the same command. The extractor deliberately does not expand substitutions, so it had been measuring the literal string $(cat /tmp/body.md).
+
+THE DETECTOR ALSO HAD A BLIND SPOT, and it was in the published artifact. beginsNewStructuralElement returns true for any line starting with >, so inside a hard-wrapped blockquote every continuation line looked like a new block and no pair was ever measured. Blockquotes are how this operator quotes regulators, sources and collaborators. Measured on the real comment: the detector found 34 wraps where the unwrapper found 40 joins, and all six it missed were quoted. Lines are now compared at equal quote depth on their content, so a quote opening, closing or nesting is still structural and a wrapped quote is not.
+
+AND IT OVER-BLOCKED IN THREE WAYS, which matters because a guard that blocks legitimate work gets deleted rather than fixed: a stack of bare source URLs, a signature block written with explicit two-space hard breaks, and a pipe-less GFM table. The table fix required treating a table as a region rather than a line — marking only the delimiter row left the body rows looking like wrapped prose.
+
+NEW: gfm-unwrap, the repair the guard now names. hooks/lib/gfm-unwrap.ts joins hard-wrapped paragraphs, list items and blockquotes, with two properties the existing publish-path reflow does not have. It never inserts a space between two CJK characters, because a space between two Chinese characters is visible to the reader and is not in the source — and this repository's operator quotes a Chinese-speaking collaborator verbatim in GitHub issues. And it asserts content preservation on every call and THROWS rather than return a body whose characters changed, because it is pointed at published documents. The normalisation behind that assertion is deliberately narrow: it forgives a space lost between two CJK characters and nothing else, so HSA PHSP losing its space is still caught. scripts/gfm-unwrap.ts is the CLI.
+
+ON HAVING TWO UNWRAPPERS. scripts/reflow-release-notes.ts already existed and is wired into this repository's own releases. It is not merged into the new one, because rewriting the publish path to gain two features it does not need would be a poor trade. Instead scripts/reflow-agreement-with-gfm-unwrap.test.ts pins them together: they must agree on all ten cases both claim to handle, and every deliberate difference is asserted rather than assumed. That test earned its place on the day it was written by finding one — the publish path silently deletes an author's two-space hard break. Left as-is, narrowly and with the reasoning recorded, because GitHub renders release bodies with breaks:true so the published page is identical either way; if it ever feeds a non-GitHub renderer, that test is where the defect is already written down.
+
+1,314 tests pass in itp-hooks and 211 in scripts. The 14 new guard tests were each run against the previous guard and each failed there, which is the only thing that makes them evidence rather than decoration.
+
+
+
+### Features
+
+* **devops-tools:** migrate session-debrief + prompt-benchmark off MiniMax ([202b27f](https://github.com/terrylica/cc-skills/commit/202b27fd8a6bc856096b12f0d6d84a983d068efe))
+
+Both already spoke the Anthropic Messages shape, so only URL/model/credential moved: -> https://nca.25u.com/v1/messages on the dedicated capped SCS scope `cc-skills-tools-sub2api`.
+
+Model is `claude-sonnet-5[1m]` and THE SUFFIX IS LOAD-BEARING — it is what grants the 1M context window on this fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with "Prompt is too long". Established empirically by the project-a pipeline (model.toml, 2026-08-07), where the missing suffix was the bug.
+
+Stated honestly in the code: MAX_STRUCTURED_LOG_CHARS (890k, ~243k tokens) is carried over from MiniMax's ~260k ceiling and only holds if that suffix really grants the 1M window through the RAW /v1/messages door. The suffix was proven through the ccmax-claude CLI wrapper, not a direct call, and a short probe cannot tell the two apart (the response echoes `claude-sonnet-5` either way). If a long debrief ever fails on a blocking_limit, that constant is the thing to lower first.
+
+Replaces the credential path too. Both tools scraped a `MINIMAX_API_KEY=` line out of ~/.claude/.secrets/ccterrybot-telegram — an UNRELATED Telegram bot's secrets file that happened to also hold the key. That coupling broke these tools whenever that file was reorganised and hid the dependency from anyone reading either component. Now env-first, then their own scope, and a missing `vault` binary fails loudly (spawnSync reports a failed spawn in .error and a non-zero exit in .status — both are checked) rather than yielding an empty key and a confusing 401.
+
+prompt-benchmark carries a BENCHMARK CONTINUITY warning: any score recorded before today was produced by MiniMax-M3, so a cross-date comparison compares two MODELS rather than two prompts — exactly the confound the harness exists to avoid. Re-baseline first.
+
+Verified: key resolves from the vault and the door returns 200.
+
 # [28.0.0](https://github.com/terrylica/cc-skills/compare/v27.1.1...v28.0.0) (2026-08-23)
 
 
