@@ -1,3 +1,26 @@
+## [28.2.3](https://github.com/terrylica/cc-skills/compare/v28.2.2...v28.2.3) (2026-08-25)
+
+
+### Bug Fixes
+
+* **marketplace:** purge client identifiers from public content ([741a984](https://github.com/terrylica/cc-skills/commit/741a984d0bafff9e8cccc2ec4f541b6eadc019c5)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+
+This repository is PUBLIC. A sweep after the 28.2.x releases found client- identifying strings back in tracked content, including in a file shipped by 28.2.0 an hour earlier.
+
+What was found
+--------------
+* gmail-access references/attribution-parsing.md — the surveyed catalogue used a real client's given name, surname and surname character as worked examples of an initials-colon marker, and named a real shared role mailbox. Shipped in 28.2.0. Mine: the research synthesis was installed without being scanned first, which is the same omission this repo has now made three times.
+
+* itp-hooks release-notes guard test + patterns comment — the test fixture is a REDACTION MAPPING TABLE used as sample data, so it republished every identifier it documents redacting: an account handle, a private repo name, a job-board repo, a client honorific and two staff first names. A redaction fixture that leaks is worth stating plainly rather than fixing quietly.
+
+* devops-tools session-debrief.ts + gmail-access SKILL.md — a private client repo path, the client's vendor domain used as a search example, and a vendor certification filename.
+
+All replaced with synthetic equivalents that preserve the technical point. The guard fixture keeps its alignment and its sentence-terminating full stop, which is the property the test actually exercises.
+
+Verification
+------------
+Client-identity hits across tracked files, CHANGELOG excluded: 0. itp-hooks guard: 32 pass, 0 fail. attribution-parse: 20 pass, 0 fail.
+
 ## [28.2.2](https://github.com/terrylica/cc-skills/compare/v28.2.1...v28.2.2) (2026-08-25)
 
 ## [28.2.1](https://github.com/terrylica/cc-skills/compare/v28.2.0...v28.2.1) (2026-08-25)
