@@ -315,6 +315,20 @@ directory. Specify this using --user-data-dir.` — which is invisible if stderr
   caused by emitting `var B64 = "` and then a newline before the payload. Keep any large literal on
   **one physical line**, and when a big step fails, test the transport with a synthetic string of the
   same length before blaming a limit that does not exist.
+- **1Password web — a persistent profile keeps the Secret Key, so the wall is PASSWORD-ONLY**
+  (2026-08-24): `eonlabs.1password.com` redirected to `/signin` with the account already resolved —
+  email prefilled (`terry@eonlabs.com`), one `input#master-password`, no Secret Key field. So
+  "the profile still has cookies" does **not** mean the session is live (the profile's `Cookies` DB
+  was 5.9 MB and 3 days old), and the resulting wall is _weaker_ than the "Secret Key + master
+  password" a cold login demands — which matters because a forge told to "STOP if it demands a full
+  sign-in" can misread a password-only wall as something it may proceed through. It may not: the
+  master password is exactly the credential a forge must never type or fetch. Detect it on
+  `input#master-password` and hand the parked Chrome back to the human for the supervised login.
+  Corollary for the same vendor: the **`op` CLI is not a fallback** — with desktop-app integration
+  (`system_auth_latest_signin` in `~/.config/op/config`) every authenticated call raises a Touch ID
+  prompt and dies with `[ERROR] authorization timeout` after 60 s if nobody is at the machine, while
+  `op account list` still answers from local config and makes it look configured. Both doors need
+  the same absent human, so there is no clever route around it.
 
 ## Relationship to gh-fine-grained-pat
 
