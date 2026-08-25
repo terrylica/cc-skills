@@ -1,3 +1,5 @@
+## [28.2.2](https://github.com/terrylica/cc-skills/compare/v28.2.1...v28.2.2) (2026-08-25)
+
 ## [28.2.1](https://github.com/terrylica/cc-skills/compare/v28.2.0...v28.2.1) (2026-08-25)
 
 
