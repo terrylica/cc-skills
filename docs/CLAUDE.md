@@ -46,6 +46,7 @@ docs/
 | [LESSONS.md](./LESSONS.md)                                                 | Lessons learned (extracted)     |
 | [RESUME.md](./RESUME.md)                                                   | Session resume context          |
 | [plugin-authoring.md](./plugin-authoring.md)                               | Shell compatibility             |
+| [pii-staged-content-guard.md](./pii-staged-content-guard.md)               | Pre-commit PII guard            |
 | [troubleshooting/](./troubleshooting/)                                     | Issue resolution                |
 
 ## Link Conventions
