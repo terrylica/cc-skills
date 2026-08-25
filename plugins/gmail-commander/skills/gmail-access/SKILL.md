@@ -571,14 +571,21 @@ The `draft` command creates emails in your Gmail Drafts folder for review before
 
 The user has multiple Send As aliases configured in Gmail. The From address MUST match correctly or the recipient sees a reply from the wrong identity.
 
-**Rule 1 - Replies (--reply-to is set):**
-The CLI auto-detects the correct sender by reading the original email's To/Cc/Delivered-To headers and matching against the user's Send As aliases. No manual intervention needed. The CLI will print:
+**Rule 1 - Replies (--reply-to is set): pass `--from` ANYWAY.**
+
+The CLI attempts to auto-detect the sender by reading the original email's To/Cc/Delivered-To headers and matching against the user's Send As aliases, and prints what it chose:
 
 ```
 From: amonic@gmail.com (auto-detected from original email)
 ```
 
-If auto-detection fails (e.g., the email was BCC'd), explicitly pass `--from`.
+**Do not trust that line to be the identity you want.** Auto-detection resolves to the _underlying account_ rather than the alias even when the original was addressed to the alias. Measured 2026-08-25: a message addressed to `Ricky Chan <rickychanbc@gmail.com>` produced `From: amonic@gmail.com`, silently, with no warning — and `rickychanbc@gmail.com` is an `accepted` send-as alias on that very account. The draft looked successful.
+
+This matters because the alias IS the identity, not a cosmetic label. Where a correspondence policy says which name to sign as, the account and the alias are different signatories, and getting it wrong sends the whole message as the wrong person. Note also that the _default_ alias on this account is `terry@eonlabs.com`, which policy forbids for non-Eon-Labs mail — so an omitted or mis-detected `--from` can reach for an identity that is not merely wrong but prohibited.
+
+**So: always pass `--from` explicitly, on replies as well as new mail, and read the confirmation line back before trusting it.** If a draft was already created without it, `draft-update <draftId> --from …` recreates it correctly — it does not patch in place, so re-supply every other flag too.
+
+**There is no `--cc` flag.** A reply draft therefore carries only `To`, even when the thread it replies into copied other people. Threading is preserved (`In-Reply-To`/`References` are set), but the copies are not. On a thread with a client and several vendors copied, this silently drops all of them from a reply sent on that client's behalf. Either restore the copies in the Gmail compose window before sending, or state plainly in your handoff that the CC list needs restoring — never let a draft go out assumed to be a reply-all.
 
 **Rule 2 - New emails (no --reply-to):**
 When drafting a brand new email (not a reply), you MUST use AskUserQuestion to confirm which sender alias to use BEFORE creating the draft. Never assume the default.
@@ -813,6 +820,14 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-08-25 — reply auto-detection resolved the ACCOUNT, not the alias, and reported success.**
+  - _Trigger_: a reply drafted into a vendor thread on a client's behalf. The original was addressed to `Ricky Chan <rickychanbc@gmail.com>`; the CLI printed `From: amonic@gmail.com (auto-detected from original email)` and created the draft. The alias is `verificationStatus=accepted` on that same account, so there was no failure to detect — it detected, and chose the underlying account.
+  - _Why it was nearly missed_: this file previously said, of replies, "No manual intervention needed", and told you to fall back to `--from` only "if auto-detection fails". Nothing failed. The success path produced the wrong signatory, and the printed confirmation line made it look verified.
+  - _Why it matters more than a cosmetic header_: where a correspondence policy dictates which name to sign as, the account and the alias are **different people**. This account's _default_ alias is a work identity that policy forbids for this client's mail, so an omitted `--from` does not merely pick something unexpected — it can pick something prohibited. The 2026-08-18 entry below had already recorded that hazard for new mail; the reply path was left carved out as safe, and it is not.
+  - _Fix_: Rule 1 now says pass `--from` **explicitly on replies too**, and read the confirmation line back rather than trusting that it was printed. `draft-update <draftId>` repairs an existing draft, but it deletes and recreates — re-supply every flag.
+  - _Also documented, same session_: there is **no `--cc` flag**. A reply draft carries only `To`, so replying into a thread that copied a client and several vendors silently drops all of them. Threading headers are preserved, which makes it look like a reply-all when it is not. Restore the copies in Gmail before sending, or say so explicitly in the handoff.
+  - _Evidence_: draft `r2992600088433000620` created with `--reply-to` and no `--from` → `amonic@gmail.com`; recreated as `r6764046697684220651` with an explicit `--from` → `rickychanbc@gmail.com`, same thread `19f8ccd3370cdf57`.
 
 - **2026-08-25 — we could not say who wrote which line, and the bug was in the detector, not the mail.**
   - _Trigger_: an operator asked whether the colour-coded inline replies in a client's message had actually been parsed. They had not. A scan for css `color:` had returned zero, and the zero was read as "the sender used no colour". The message contained **25 legacy `<font color="#0000ff">` tags**. Same confident-absence shape as the `.[0].to` probe and the `.id` field above — a wrong query whose empty result reads as an empty world.
