@@ -1,3 +1,30 @@
+## [28.2.1](https://github.com/terrylica/cc-skills/compare/v28.2.0...v28.2.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **disk-hygiene:** stop advising --force on a lock we never identified ([58d557e](https://github.com/terrylica/cc-skills/commit/58d557e289208f0b9dfcb9b86e185ab033687253))
+
+A full audit on a 730 GB / 81 %-full machine reclaimed 190 GB and surfaced three defects in this skill, one of which was actively dangerous advice.
+
+Defect 1 — the skill told you to --force a lock it never named
+--------------------------------------------------------------
+`uv cache clean` timed out after 300 s and the old troubleshooting row said "lock held by running uv, use --force". Naming the holder first showed why that is wrong: two `uv run` children of a launchd job had held it for over an hour. Persistent daemons never release the lock, so `clean` can never succeed on its own, and forcing it mutates a cache underneath a live service - the same shape as the 2026-07-31 catgpt-gateway incident.
+
+Replaced with a name-the-holder-first decision table (lsof on the lock, then ps, then launchctl list), and switched the recommended verb to `uv cache prune`, which drops only unused entries, everywhere `clean --force` appeared.
+
+Defect 2 — the headline cache number is not what it looks like
+--------------------------------------------------------------
+The 69 GB uv cache was 210 full virtual environments (39 GB) against 1,577 genuine unpacked wheels (10 GB): 78 % orphaned build environments that were never collected. That is a hygiene failure, not the dedup layer working. Sampled files showed links=1, so deleting would genuinely reclaim - links>1 would have reclaimed nothing. Added a classify-before-you-judge subsection carrying both the pyvenv.cfg split and the hardlink check, so a future run quotes a real number instead of a raw du.
+
+Defect 3 — `rm -rf ~/.Trash/*` is a zsh footgun
+-----------------------------------------------
+Under zsh's default nomatch an empty Trash makes the glob a fatal error: rm never runs and the block exits 1, which aborts a `set -e` script or reads as a failed delete. Quick Wins now uses `find ~/.Trash -mindepth 1 -delete` - glob-free, and it survives the spaces and brackets in real filenames.
+
+Recorded so the wrong conclusion is not drawn
+---------------------------------------------
+In the same audit Rust's per-repo target/ dirs totalled 57 GB against ~7 GB of Python .venvs - 8x more - because target/ is per-repo with zero sharing while uv's archive is shared. The largest Python entries were torch at 479 MB cached twice, which is compiled tensor kernels no language change would shrink. Go was the cheap one. The measured split now lives in SKILL.md so "Python is bloated" does not get repeated as folk wisdom.
+
 # [28.2.0](https://github.com/terrylica/cc-skills/compare/v28.1.0...v28.2.0) (2026-08-25)
 
 
