@@ -1,3 +1,43 @@
+# [28.2.0](https://github.com/terrylica/cc-skills/compare/v28.1.0...v28.2.0) (2026-08-25)
+
+
+### Features
+
+* **gmail-commander:** make careful attribution the default ([9a1004d](https://github.com/terrylica/cc-skills/commit/9a1004d5b87c660535dc187284d8c5ae172c5196))
+
+We could not answer "which lines did she write" without going back to Gmail, and when we tried, we got it wrong twice. This turns that incident into doctrine, a tool, tests, and a surveyed reference.
+
+What went wrong, in order
+-------------------------
+1. A scan for css `color:` returned zero on a message containing 25 legacy `<font color="#0000ff">` tags, and the zero was read as "she used no colour". Same shape as the `.[0].to` mailbox probe and the `.id` draft field already in this skill: a wrong query whose empty result reads as an empty world.
+
+2. The correction was also wrong, and worse. Having found the colour, the model became "colour is the complete signal" - which discards her TOP MATTER, because it is black. On that message the top matter held the migration date, the reasoning behind it, and a phone-call request. The stated rule would have thrown away the most important content in the mail, and the analysis silently violated its own rule in order to keep it.
+
+3. Structural: the archive stored text/plain only. Colour is an html property, so the evidence separating her words from ours was never in the repository at all. Answering required the API - the exact dependency an archive removes.
+
+What ships
+----------
+* ATTRIBUTION DOCTRINE in SKILL.md, stated as a default rather than an option: if a message is a reply and you intend to quote, summarise, attribute or act on what the sender said, you run the protocol. The model is nested - authorship > colour > marker - with quote depth primary because it is the only complete signal, colour as the subset that disambiguates inside quoted regions, and typed markers as the weakest, never sufficient alone.
+
+* scripts/attribution-parse.ts - reports which signals are actually present, what it attributes and why, and crucially what it CANNOT attribute. Emits CONFLICT when signals disagree and UNKNOWN when a quoted-depth line carries neither colour nor marker, because that line genuinely could belong to either party. A tool that always decides is a tool that is sometimes confidently wrong.
+
+* scripts/attribution-parse.test.ts - 20 tests pinning each measured failure: the legacy font-attribute trap, one colour spelled six ways collapsing to one author key, nested markup yielding one run rather than fragments, black not being an authorship signal.
+
+* references/attribution-parsing.md - 108 surveyed conventions across four layers, including the normalisation that must precede every rule (quoted-printable, format=flowed, CRLF, colour canonicalisation, entity decoding, NFKC for full-width CJK chevrons, Word conditional comments) and the client artifacts that masquerade as authorship signals.
+
+Two bugs the tests and the reference caught in the tool itself
+--------------------------------------------------------------
+* Colour was keyed on the literal attribute string, so `#0000ff` and `rgb(0,0,255)` would have counted as two different authors - the survey names this exact failure, where a parser reports three participants in a two-party thread, each internally coherent, with nothing looking wrong.
+* `black` was missing from the named-colour map, so explicitly-black quoted text would have been treated as a non-default colour and the whole thread attributed to the sender.
+
+The lesson that outlives all of it
+----------------------------------
+An audit of all 22 authored segments found the residual misses were NOT caused by marker-vs-colour parsing. Every one sat inside a segment already extracted, and was lost to first-sentence reading. Her structure is consistent and it is the opposite of a summary: the decision is in sentence one, the condition is in sentence two, and the condition is the part that binds us.
+
+Also measured: real email is CRLF, and a trailing \r is a line terminator to the regex engine, so a `(.*)$` pattern fails on every line and yields empty text for the whole message while still reporting "quote depth: yes". Found only by running the parser against a real message with known ground truth.
+
+Tests: 20 pass, 0 fail. Verified end-to-end against three real messages that used three different conventions in six days.
+
 # [28.1.0](https://github.com/terrylica/cc-skills/compare/v28.0.0...v28.1.0) (2026-08-24)
 
 
