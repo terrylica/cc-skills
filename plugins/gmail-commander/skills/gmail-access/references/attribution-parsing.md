@@ -269,7 +269,7 @@ Every rule here MUST validate the captured label against thread participants (`F
 
 **Silent failure:** This is the one colour-adjacent marker that survives HTML→text conversion, so a colour-only catalogue discards the single signal still present in the plaintext part. In the other direction, a lazy `/^\[.*\]/` collides with Gmail's `[image: inline-image.png]`, `[cid:image001.png@01DC1234.5678ABCD]`, gateway `[EXTERNAL]`/`[SPAM?]` banners, `[PATCH v2]`, `[REDACTED]`, `[Quoted text hidden]` and footnote `[1]` — each becomes a phantom author named "image" or "EXTERNAL", and the message gets split at a security banner. Source: Outlook for Windows only, Personal Stationery → "Mark my comments with:". Not in OWA, new Outlook, or mobile.
 
-### 3.2 Initials-colon prefix — `PT:`, `Alex —`, `曾：`
+### 3.2 Initials-colon prefix — `JS:`, `Alex —`, `陳：`
 
 **Detect:** `^\s*(?:[>＞]+\s*)?(?P<who>[A-Z][A-Za-z]{0,11}|[A-Z]{1,4})[\s ]*(?P<sep>[:：]|\s[-–—])\s+(?=\S)`. Require `who` ∈ participants AND `who` ∉ stoplist `{From,To,Cc,Bcc,Sent,Date,Subject,Re,RE,AW,Fw,Fwd,PS,NB,FYI,Q,A,Note,Tel,Fax,Mobile,Cell,Web,Email,T,M,E,W}`.
 
@@ -293,7 +293,7 @@ Every rule here MUST validate the captured label against thread participants (`F
 
 **Detect:** Opener `[\(\[]\s*(?P<who>[A-Z][A-Za-z.]{0,11})\s*[:：\-–—]\s*(?P<body>[^)\]]{1,300})[\)\]]`. Trailer `(?:^|\s)[-–—~/]{1,2}\s*(?P<who>[A-Z]{1,4}|[A-Z][a-z]{1,11})\s*$`. Both require `who` ∈ participants.
 
-**Silent failure:** The trailer matches the RFC 3676 `-- ` signature delimiter, ordinary em-dash prose ("— finally"), and negative units (`-40C`). The opener matches citations (`Smith: 2003`), aspect ratios (`16:9`), times (`9:00`) and Windows paths (`C:\…`). A false boundary lands mid-sentence and one paragraph is split across two authors, each half fully plausible. Note: for shared ROLE mailboxes (a `frontdesk@`-style treatment-coordinator account) the trailing initials are the ONLY author signal in the message.
+**Silent failure:** The trailer matches the RFC 3676 `-- ` signature delimiter, ordinary em-dash prose ("— finally"), and negative units (`-40C`). The opener matches citations (`Smith: 2003`), aspect ratios (`16:9`), times (`9:00`) and Windows paths (`C:\…`). A false boundary lands mid-sentence and one paragraph is split across two authors, each half fully plausible. Note: for shared ROLE mailboxes (a shared `frontdesk@`-style treatment-coordinator account) the trailing initials are the ONLY author signal in the message.
 
 ### 3.6 Fences and labelled rules — `@@@`, `***`, `--- my reply ---`
 
