@@ -278,12 +278,12 @@ describe("narrative detection is per-paragraph, not longest-paragraph", () => {
     "Twenty-six identifiers survived verification. All of them are redacted here now.";
 
   const ALIGNED_TABLE = [
-    "  corolla-cross-trade-in       -> vehicle-appraisal",
-    "  acct-000000                      -> example-account",
-    "  project-a                 -> example-client",
-    "  client-career-opportunities  -> example-job-board",
-    "  DR. EXAMPLE                    -> OWNER",
-    "  Alex, Iris                  -> {{CONTACT}}",
+    "  project-alpha-listing       -> vehicle-appraisal",
+    "  acct-000000                  -> example-account",
+    "  client-system                -> example-client",
+    "  careers-microsite            -> example-job-board",
+    "  DR. EXAMPLE                  -> OWNER",
+    "  Alice, Bob                   -> {{CONTACT}}",
   ].join("\n");
 
   const BULLETS = ["* one", "* two", "* three", "* four"].join("\n");
