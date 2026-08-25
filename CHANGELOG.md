@@ -1,3 +1,26 @@
+# [28.3.0](https://github.com/terrylica/cc-skills/compare/v28.2.3...v28.3.0) (2026-08-25)
+
+
+### Features
+
+* **scripts:** pre-commit guard for staged client identifiers ([d2ac9bc](https://github.com/terrylica/cc-skills/commit/d2ac9bc241f10ec980fd7a4034c95504ed2e7873))
+
+Client PII reached this public repo three times. The last two are the instructive ones: a reference document ABOUT redaction that republished every identifier it documented redacting, and a test fixture that WAS a redaction-mapping table. The leak keeps arriving inside content whose subject is redaction, so 'do not write names' does not catch it — the author believes they are documenting, not disclosing.
+
+Remediation cost a filter-repo rewrite of 3,890 commits and 1,021 tags, a force-push, and a GitHub Support request that is still open because GitHub retains unreachable objects and 11 forks are independent repos beyond reach. Prevention costs ~46 ms per commit, measured over 10 runs.
+
+The denylist is itself PII, so it lives at ~/.local/state/claude-pii-denylist.txt, mode 600, outside any git repo. ~/.claude was rejected for it: that is a real repo with a real remote, and a gitignore entry is one 'git add -f' from being wrong. A backstop ignore rule stays there in case anything recreates a list at the old path.
+
+Reports file, line and term ID — never the term, never the line. Hook output is copied into logs, screenshots and transcripts far more freely than commits are rewritten, so echoing the identifier would relocate the leak somewhere nobody scrubs. --explain N resolves an ID on demand.
+
+Matching is Bun rather than shell because BSD grep -i and awk tolower() case-fold non-ASCII unreliably, and one denylist entry is CJK.
+
+Fails closed when bun is missing, but resolves it from three known paths first and names all three when it gives up — a bare 'command not found' on every commit gets the hook deleted rather than fixed, and thin PATH in non-interactive shells has broken bun, gh and rclone here before. Fails OPEN with a loud NOT ACTIVE warning when the denylist is absent, since absence is the normal state on every other clone.
+
+Escape is PII_GUARD_OK="reason", gated at 12 characters, matching the git-level convention of ALLOW_BARE_BRANCH and ALLOW_OWNER_MISMATCH rather than the marker-token family a git hook cannot legitimately join.
+
+Two defects found by review rather than by writing: an unknown argument exited 0, which in a tool whose exit code is the gate is an untraceable bypass needing no reason string; and --explain 3abc printed term 3, because parseInt('3abc') is 3. Both now exit 64, distinct from 1 for a finding. 47 assertions.
+
 ## [28.2.3](https://github.com/terrylica/cc-skills/compare/v28.2.2...v28.2.3) (2026-08-25)
 
 
