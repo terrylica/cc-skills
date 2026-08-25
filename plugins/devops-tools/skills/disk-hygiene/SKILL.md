@@ -124,7 +124,7 @@ echo "npm:      $(du -sh ~/.npm/_cacache/ 2>/dev/null | cut -f1 || echo 'N/A')"
 echo ""
 echo "=== Cleaning ==="
 brew cleanup --prune=all 2>&1 | tail -3
-uv cache clean --force 2>&1
+uv cache prune 2>&1   # prune, NOT `clean --force` — see "uv cache lock" below
 pip cache purge 2>&1
 npm cache clean --force 2>&1
 CACHE_CLEAN_EOF
@@ -132,12 +132,85 @@ CACHE_CLEAN_EOF
 
 ### Troubleshooting Cache Cleanup
 
-| Issue                               | Cause                      | Solution                                  |
-| ----------------------------------- | -------------------------- | ----------------------------------------- |
-| `uv cache` lock held                | Another uv process running | Use `uv cache clean --force`              |
-| `brew cleanup` skips formulae       | Linked but not latest      | Safe to ignore, or `brew reinstall <pkg>` |
-| `pip cache purge` permission denied | System pip vs user pip     | Use `python -m pip cache purge`           |
-| Docker not running                  | Docker Desktop not started | Start Docker.app first, or skip           |
+| Issue                               | Cause                         | Solution                                                        |
+| ----------------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| `uv cache` lock held                | **Identify the holder first** | See "uv cache lock" below — `--force` can be actively dangerous |
+| `brew cleanup` skips formulae       | Linked but not latest         | Safe to ignore, or `brew reinstall <pkg>`                       |
+| `pip cache purge` permission denied | System pip vs user pip        | Use `python -m pip cache purge`                                 |
+| Docker not running                  | Docker Desktop not started    | Start Docker.app first, or skip                                 |
+
+### ⚠️ uv cache lock — never reach for `--force` before naming the holder
+
+`uv cache clean` waits 300 s for an exclusive lock, then errors. Earlier revisions
+of this skill said "use `--force`". **That advice is wrong when the lock holder is
+a long-running service**, and it is the same class of mistake as the
+catgpt-gateway incident: mutating a cache underneath a live daemon.
+
+Measured 2026-08-24: `uv cache clean` timed out, and the holders were
+
+```
+uv 1934  uv run python ~/eon/tasc/kernel/embed.py serve  --model minishlab/potion-retrieval-32M
+uv 2652  uv run python ~/eon/tasc/kernel/embed.py rerank --serve --model Xenova/ms-marco-MiniLM-L-6-v2
+```
+
+— both children of the **launchd job `com.tasc.serve`**, up 1 h 37 m. These are
+persistent daemons, so the lock is never released and `clean` can never succeed
+on its own. Always identify the holder before deciding:
+
+```bash
+lsof ~/.cache/uv/.lock 2>/dev/null          # exact PIDs holding the lock
+ps -o pid,ppid,lstart,command -p <PIDS>     # how long, and whose child
+launchctl list | grep -i <service>          # is the parent a launchd job?
+```
+
+Then pick by holder:
+
+| Holder                             | Action                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| Transient (`uv sync` you just ran) | Wait for it, or `--force` — genuinely safe                                               |
+| **Long-running launchd/daemon**    | **Do NOT `--force`.** Either skip, or `launchctl bootout` → clean → `bootstrap` → verify |
+| Unknown / can't identify           | Skip. The cache is never worth an outage                                                 |
+
+**Prefer `uv cache prune` over `uv cache clean` in routine hygiene.** `prune`
+removes only _unused_ entries and leaves everything a live environment depends on,
+so it is the correct periodic-maintenance verb; `clean` nukes everything and forces
+a full re-download.
+
+### uv `archive-v0` silently accumulates whole virtual environments
+
+The uv cache's headline number is misleading, so classify before you judge it.
+`archive-v0` is documented as unpacked _wheel_ bodies that get hardlinked into
+each `.venv` — that part earns its keep. But it also accretes **complete virtual
+environments** (build envs / tool envs) that are never garbage-collected, and those
+are pure dead weight. Measured 2026-08-24 on a 69 GB uv cache:
+
+| Entry shape                       | Count | Size      |
+| --------------------------------- | ----- | --------- |
+| Full venvs (contain `pyvenv.cfg`) | 210   | **39 GB** |
+| Genuine unpacked wheels           | 1,577 | 10 GB     |
+
+So 78 % of `archive-v0` was orphaned environments, not the dedup layer. Classify
+it — the split changes both the diagnosis and the remedy (`prune`, not `clean`):
+
+```bash
+du -sk ~/.cache/uv/archive-v0/* 2>/dev/null > /tmp/uv-all.txt
+while read -r kb path; do
+  [ -f "$path/pyvenv.cfg" ] && echo "VENV $((kb/1024))MB $path"
+done < /tmp/uv-all.txt | sort -k2 -rn | head
+```
+
+**Also check hardlink counts before promising a number.** uv hardlinks cache files
+into live `.venv`s, so deleting a cache entry with `links>1` reclaims _nothing_:
+
+```bash
+stat -f 'links=%l size=%z %N' "$(find ~/.cache/uv/archive-v0 -type f -size +20M | head -1)"
+# links=1 -> deleting truly reclaims;  links>1 -> shared with a live venv, no gain
+```
+
+**Don't let "Python is bloated" be the conclusion.** In the same audit, Rust's
+per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python `.venv`s — 8×
+more — because `target/` is per-repo with no sharing while uv's archive is shared
+across every project. Report the measured split, not the folk wisdom.
 
 ## Phase 2.5 - Project Build Artifacts (in-repo, regenerable)
 
@@ -412,7 +485,7 @@ Ordered by typical space reclaimed (highest first):
 | Rust `target/` dirs (Phase 2.5) | 10-60 GB+       | None (cold rebuild on next `cargo build`) | `find ROOTS -type d -name target` + Cargo.toml-sibling guard     |
 | Python `.venv` dirs (Phase 2.5) | 5-20 GB         | None (re-sync via `uv sync`)              | `find ROOTS -type d -name .venv -prune -exec rm -rf {} +`        |
 | `go clean -cache`               | 5-25 GB         | None (re-downloads)                       | `go clean -cache`                                                |
-| `uv cache clean`                | 5-15 GB         | None (re-downloads)                       | `uv cache clean --force`                                         |
+| `uv cache prune`                | 5-40 GB         | None (drops only unused entries)          | `uv cache prune` (check `lsof ~/.cache/uv/.lock` first)          |
 | `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                       |
 | Delete movie files in Downloads | 2-10 GB         | Check first                               | Manual after AskUserQuestion                                     |
 | Prune old rustup toolchains     | 2-5 GB          | Keep current                              | `rustup toolchain list` then `rustup toolchain uninstall <name>` |
@@ -420,7 +493,7 @@ Ordered by typical space reclaimed (highest first):
 | `npm cache clean --force`       | 0.5-2 GB        | None (re-downloads)                       | `npm cache clean --force`                                        |
 | `pip cache purge`               | 0.5-2 GB        | None (re-downloads)                       | `pip cache purge`                                                |
 | Docker system prune             | 5-30 GB         | Removes stopped containers                | `docker system prune -a`                                         |
-| Empty Trash                     | Variable        | Irreversible                              | `rm -rf ~/.Trash/*`                                              |
+| Empty Trash                     | Variable        | Irreversible                              | `find ~/.Trash -mindepth 1 -delete` (NOT `rm -rf ~/.Trash/*`)    |
 
 ## Post-Change Checklist
 
@@ -435,17 +508,18 @@ After modifying this skill:
 
 ## Troubleshooting
 
-| Issue                                                                      | Cause                                                                                                                                  | Solution                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `uv cache clean` hangs                                                     | Lock held by running uv                                                                                                                | Use `--force` flag                                                                                                                                                                                                                                 |
-| `brew cleanup` frees 0 bytes                                               | Already clean or formulae linked                                                                                                       | Run `brew cleanup --prune=all`                                                                                                                                                                                                                     |
-| `find` reports permission denied                                           | System Integrity Protection                                                                                                            | Add `2>/dev/null` to suppress                                                                                                                                                                                                                      |
-| `gdu` command not found                                                    | Installed as `gdu-go`                                                                                                                  | Use `gdu-go` (coreutils conflict)                                                                                                                                                                                                                  |
-| `dust` shows different size than `df`                                      | Counting method differs                                                                                                                | Normal - `df` includes filesystem overhead                                                                                                                                                                                                         |
-| Stale file scan is slow                                                    | Deep directory tree                                                                                                                    | Limit `-maxdepth` or exclude more paths                                                                                                                                                                                                            |
-| Docker not accessible                                                      | Desktop app not running                                                                                                                | Start Docker.app or skip Docker cleanup                                                                                                                                                                                                            |
-| `parse error near TASK_ID=$(pueue add ...)` from heredoc with spaced paths | A user shell hook (e.g. pueue submission) re-parses the command string and breaks on `${var}/Path With Spaces/*` globs inside heredocs | Write multi-line scripts to `/tmp/<name>.sh` first via Write tool, then invoke as `bash /tmp/<name>.sh` — bypasses the inline heredoc → hook re-quote path entirely                                                                                |
-| Removing a mise toolchain triggers immediate auto-reinstall                | A project's `.mise.toml` pins the version you just removed; mise restores it on next invocation from that project                      | Before `mise uninstall <tool>@<version>`, grep all reachable `.mise.toml` and `mise.toml` files for the version. If pinned, leave it alone or update the pin first. Same applies to rustup toolchains vs. `rust-toolchain.toml` files in projects. |
+| Issue                                                                      | Cause                                                                                                                                                                                          | Solution                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `uv cache clean` hangs / times out after 300 s                             | Lock held by a uv process — often a **persistent launchd daemon**, so it never releases                                                                                                        | `lsof ~/.cache/uv/.lock` to name the holder, THEN choose. Never blind `--force`. Prefer `uv cache prune`. See "uv cache lock" in Phase 2                                                                                                           |
+| `rm -rf ~/.Trash/*` aborts with `no matches found` and exits 1             | The shell is **zsh**, whose default `nomatch` makes an unmatched glob a fatal error — so `rm` never runs, and the non-zero status can abort a `set -e` script or be misread as a failed delete | Use `find ~/.Trash -mindepth 1 -delete`, which is glob-free, handles spaces/brackets in the movie-release filenames, and is a no-op on an empty Trash                                                                                              |
+| `brew cleanup` frees 0 bytes                                               | Already clean or formulae linked                                                                                                                                                               | Run `brew cleanup --prune=all`                                                                                                                                                                                                                     |
+| `find` reports permission denied                                           | System Integrity Protection                                                                                                                                                                    | Add `2>/dev/null` to suppress                                                                                                                                                                                                                      |
+| `gdu` command not found                                                    | Installed as `gdu-go`                                                                                                                                                                          | Use `gdu-go` (coreutils conflict)                                                                                                                                                                                                                  |
+| `dust` shows different size than `df`                                      | Counting method differs                                                                                                                                                                        | Normal - `df` includes filesystem overhead                                                                                                                                                                                                         |
+| Stale file scan is slow                                                    | Deep directory tree                                                                                                                                                                            | Limit `-maxdepth` or exclude more paths                                                                                                                                                                                                            |
+| Docker not accessible                                                      | Desktop app not running                                                                                                                                                                        | Start Docker.app or skip Docker cleanup                                                                                                                                                                                                            |
+| `parse error near TASK_ID=$(pueue add ...)` from heredoc with spaced paths | A user shell hook (e.g. pueue submission) re-parses the command string and breaks on `${var}/Path With Spaces/*` globs inside heredocs                                                         | Write multi-line scripts to `/tmp/<name>.sh` first via Write tool, then invoke as `bash /tmp/<name>.sh` — bypasses the inline heredoc → hook re-quote path entirely                                                                                |
+| Removing a mise toolchain triggers immediate auto-reinstall                | A project's `.mise.toml` pins the version you just removed; mise restores it on next invocation from that project                                                                              | Before `mise uninstall <tool>@<version>`, grep all reachable `.mise.toml` and `mise.toml` files for the version. If pinned, leave it alone or update the pin first. Same applies to rustup toolchains vs. `rust-toolchain.toml` files in projects. |
 
 ### Hook-safe multi-line scripts
 

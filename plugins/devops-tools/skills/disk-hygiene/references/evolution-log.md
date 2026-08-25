@@ -2,6 +2,72 @@
 
 Reverse chronological - newest on top.
 
+## 2026-08-24 — `--force` on a locked uv cache was dangerous advice; and the uv cache was 78 % orphaned venvs
+
+**Trigger**: Full audit on terryli's MBP, 730 GB used / 81 % full. Reclaimed
+**190 GB** (Trash 93 GB, Rust `target/` 56 GB, assorted caches 40 GB), landing at
+540 GB / 60 %. Three separate defects surfaced.
+
+**Defect 1 — the skill told you to `--force` a lock it never identified.**
+`uv cache clean` timed out after 300 s. The old troubleshooting row said "Lock held
+by running uv → use `--force`". Naming the holder first showed why that is wrong:
+
+```
+uv 1934 / uv 2652  — uv run python ~/eon/tasc/kernel/embed.py {serve,rerank --serve}
+                     both children of launchd job com.tasc.serve, up 1 h 37 m
+```
+
+Persistent daemons never release the lock, so `clean` can _never_ succeed on its
+own — and forcing it mutates a cache under a live service, the exact shape of the
+2026-07-31 catgpt-gateway incident. Worse, `tasc` is the same repo as the 11,593-
+crash-loop entry below. **Fix**: replaced the `--force` advice with a
+name-the-holder-first decision table (`lsof ~/.cache/uv/.lock` → `ps` → `launchctl
+list`), and switched the recommended verb to **`uv cache prune`** (drops only
+unused entries) everywhere `clean --force` appeared.
+
+**Defect 2 — the headline cache number is not what it looks like.** The 69 GB uv
+cache classified as:
+
+| Entry shape                       | Count | Size      |
+| --------------------------------- | ----- | --------- |
+| Full venvs (contain `pyvenv.cfg`) | 210   | **39 GB** |
+| Genuine unpacked wheels           | 1,577 | 10 GB     |
+
+78 % was orphaned build/tool environments, never garbage-collected — a hygiene
+failure, not the dedup layer doing its job. Also confirmed `links=1` on sampled
+cache files, so they were _not_ hardlinked into any live venv (deleting would
+genuinely reclaim; `links>1` would have reclaimed nothing). **Fix**: added a
+classify-before-you-judge subsection with both the `pyvenv.cfg` split and the
+hardlink check, so future runs quote a real number instead of the raw `du`.
+
+**Defect 3 — `rm -rf ~/.Trash/*` is a zsh footgun.** Under zsh's default `nomatch`,
+an empty Trash makes the glob a fatal error: `rm` never runs and the block exits 1.
+That non-zero status can abort a `set -e` script or be misread as a failed delete.
+**Fix**: Quick Wins now says `find ~/.Trash -mindepth 1 -delete` — glob-free, and
+it handles the spaces/brackets in scene-release filenames.
+
+**Worth recording — don't let "Python is bloated" be the conclusion.** In this same
+audit Rust's per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python
+`.venv`s (8× more), because `target/` is per-repo with zero sharing while uv's
+archive is shared across every project. The largest Python entries were
+`torch-2.13.0` at 479 MB, cached twice — compiled tensor kernels, which no language
+change would shrink. Go was the genuinely cheap one: 143 MB of cache, static
+binaries, no runtime env. Added to SKILL.md so the measured split is reported
+instead of folk wisdom.
+
+**What worked and should be kept**: the launchd dependent-service guard fired
+correctly, skipping both `opendeviationbar-patterns` `target/` dirs, and the
+post-cleanup sweep confirmed every launchd job at exit code 0 with zero dirtied
+repos. The `/tmp/<name>.sh` workaround from 2026-05-09 was needed again — an inline
+`IFS=$'\t'` loop tripped the pueue hook with `parse error near TASK_ID=$(pueue
+add`; scripting it worked first try. The manifest sweep also emitted MISSING lines
+for monorepo sub-packages whose `node_modules` is hoisted to the repo root —
+**verify the root before reporting damage**; all were false positives.
+
+**Note**: SKILL.md grew 33.0 KB → 38.2 KB. Approaching the 40 KB bloat threshold —
+next edit should prefer prose over wide tables (the "Forgotten File Types" table is
+already padded to ~700 chars/line by one long row).
+
 ## 2026-08-03b — The dependent-service guard checked only the repo ROOT, and a venv can be present but incomplete
 
 **Trigger**: The guard added earlier the same day reported `~/eon/tasc` healthy
