@@ -34,8 +34,8 @@ const MINIMAX_API_URL = process.env.DEBRIEF_LLM_API_URL ?? "https://nca.25u.com/
 
 // The `[1m]` SUFFIX IS LOAD-BEARING — it is what grants the 1M-token context window on this
 // fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with
-// "Prompt is too long". That was established empirically by the project-a pipeline
-// (see ~/work/project-a/pipeline/model.toml, measured 2026-08-07, where the missing
+// "Prompt is too long". That was established empirically by a large client pipeline
+// (measured 2026-08-07 in a private client repo's pipeline/model.toml, where the missing
 // suffix was the bug). Do not "simplify" it away.
 const MINIMAX_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
 const MAX_OUTPUT_TOKENS = 16384;

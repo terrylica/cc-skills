@@ -518,7 +518,7 @@ The canonical pattern for archiving a whole correspondence (verified on a
 
 1. **Scope with high-signal queries, not generic keywords.** A bare keyword
    (`"Acme"`) returns mostly newsletter noise. Prefer:
-   - **domain**: `curvedental.com` (matches from/to/cc on the org)
+   - **domain**: `vendor-domain.com` (matches from/to/cc on the org)
    - **participant**: `from:someone@example.com OR to:…`
    - **project code**: any internal tag the sender uses (e.g. `1233V`)
 2. **Collect message IDs** from `search --json` (snippet-only) and curate the
@@ -842,14 +842,14 @@ done
   - _Fix_: a PreToolUse guard (`itp-hooks` → `pretooluse-gmail-body-guard.ts`, detector SSoT `hooks/lib/gmail-body-detector.ts`) **denies** a `gmail draft`/`draft-update` whose inline `--body` or `--body-file` content contains mid-sentence prose line breaks (HARD-WRAP) or high-signal raw markdown (RAW MARKDOWN). Escape hatch `GMAIL-BODY-OK`. Spoke: `plugins/itp-hooks/docs/gmail-body-guard.md`.
   - _Authoring rule (unchanged, now enforced)_: write each **paragraph as ONE unbroken line** — long lines reflow in the reader's window; keep only intended breaks (list items, the `Best,`/name sign-off) on their own line. Do NOT pre-wrap the body at 72/80/100 columns, and send **plain prose** — do NOT paste raw markdown expecting it to render.
 - **2026-07-10 — drafts hard-wrapped at recipient → switched to HTML (multipart/alternative).**
-  - _Trigger_: sent drafts (project-a correspondence) showed short, fixed-width lines / looked chopped in Gmail. Original cause: `text/plain` with no wrapping guidance, so clients hard-wrap long paragraphs.
+  - _Trigger_: sent drafts (a client vendor thread) showed short, fixed-width lines / looked chopped in Gmail. Original cause: `text/plain` with no wrapping guidance, so clients hard-wrap long paragraphs.
   - _First attempt (WRONG for Gmail) — `format=flowed`_: emitted RFC 3676 `format=flowed` with 72-col soft breaks. **Gmail does NOT reliably reflow format=flowed**, and the 72-col breaks are shown literally in Gmail's compose/draft view — so the drafts still looked wrapped/"truncated". Do not use format=flowed for Gmail-destined mail.
   - _Correct fix — HTML `multipart/alternative`_: `buildRawMessage` now sends `multipart/alternative` with a **text/plain** part (the body UNWRAPPED — long lines, no 72-col chopping) and a **text/html** part (`toHtmlBody()` + `escapeHtml()`). The HTML wraps the body in a `<div>` and turns ONLY the author's own newlines into `<br>` — running text carries no inserted breaks, so the browser reflows long paragraphs to the reader's window and never shows fixed short lines. List items / `Best,`\nname sign-offs keep their breaks via `<br>`. With attachments, the alternative body nests inside `multipart/mixed`.
   - _Evidence_: recreated draft (msg 19f4e01…) `read --json` plain part now has a 329-char single paragraph line (unwrapped — proving the new path ran); the HTML part reflows in Gmail. Rebuilt binary (`bun run build`), tsgo clean. NOTE: the `gmail` binary is compiled — a TS edit needs `bun run build`; drafts made before a fix must be recreated.
 - **2026-05-31 — export silent failure + no attachment retrieval (client archival task).**
-  - _Trigger_: archiving a 27-message project-a correspondence. `gmail export -o <path>` printed `"Exported N emails to <path>"` but wrote nothing (`exportEmails` returned the array, never wrote `outputPath`). Separately, the CLI surfaced no file attachments (only `inlineImages`), so 11 messages' attached PDFs (a vendor certification form, protocols) were silently dropped.
+  - _Trigger_: archiving a 27-message vendor correspondence. `gmail export -o <path>` printed `"Exported N emails to <path>"` but wrote nothing (`exportEmails` returned the array, never wrote `outputPath`). Separately, the CLI surfaced no file attachments (only `inlineImages`), so 11 messages' attached PDFs (a vendor certification form, protocols) were silently dropped.
   - _Fix_: (1) `exportEmails` now `writeFile`s the JSON. (2) Added `extractAttachments` + `attachments[]` metadata in `formatMessage`, `saveAttachments()` in gmail-images.ts, `--save-attachments`/`--attachment-dir` flags, and an Attachments metadata block in `printEmails`. Documented the inline-image-vs-attachment split, the bulk thread-archival pipeline, the multi-account UUID→mailbox probe, and the zsh `while read` batch-loop gotcha.
-  - _Evidence_: `export -q curvedental.com -o /tmp/x.json` now writes 3 emails with full bodies; `read <id> --attachment-dir` pulled `CDAnet Software Vendor Certification Application form.pdf` (197,168 B, valid PDF 1.7, 3 pages). Rebuilt binary, `tsc --noEmit` clean.
+  - _Evidence_: `export -q vendor-domain.com -o /tmp/x.json` now writes 3 emails with full bodies; `read <id> --attachment-dir` pulled a vendor certification form PDF (197,168 B, valid PDF 1.7, 3 pages). Rebuilt binary, `tsc --noEmit` clean.
 
 ## Post-Execution Reflection
 
