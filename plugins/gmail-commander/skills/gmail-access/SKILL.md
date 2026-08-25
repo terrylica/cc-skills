@@ -330,6 +330,73 @@ Passing one where the other belongs fails or returns the wrong record.
 noted earlier is dead the moment you update — re-list before a second update, and
 never cache a draft ID across edits.
 
+## 🔴 ATTRIBUTION DOCTRINE — run this before you ever write "they said X"
+
+**Reading an email and knowing who wrote which line are two different problems.** The second one is harder, its answer is not in the text you get back by default, and when it goes wrong it does not throw — it produces a fluent, confident summary in which your own sentences are attributed to your correspondent, or half of what they wrote is silently missing. Every failure recorded in this section was of that shape: a wrong query returning an empty result, read as an empty world.
+
+**This applies by default.** If a message is a reply — it has quoted history — and you intend to quote, summarise, attribute, decide, or act on what the sender said, you run the protocol below. It does not apply to listing, searching, triage, or counting.
+
+### The model: authorship ⊃ colour ⊃ marker
+
+Three signals, nested, in descending order of trust. Using the wrong one as your primary is how both halves of the 2026-08-25 incident happened.
+
+| Signal                                    | Coverage                                                 | Where it lives                       | Trust                                             |
+| ----------------------------------------- | -------------------------------------------------------- | ------------------------------------ | ------------------------------------------------- |
+| **Quote depth**                           | **Complete** — captures top matter AND inline insertions | `text/plain`: lines NOT prefixed `>` | Primary. But see the caveats — some clients lie   |
+| **Colour**                                | Proper subset — insertions inside a quoted region only   | `text/html` ONLY                     | Disambiguates exactly where depth gets unreliable |
+| **Typed marker** (`>>>PT`, `@@@`, `[JS]`) | Proper subset of colour — flags where a block STARTS     | either part                          | Weakest. **Never sufficient alone**               |
+
+### The protocol
+
+```bash
+bun scripts/attribution-parse.ts --id <messageId> --token-cmd '<cmd printing an access token>'
+```
+
+It prints which signals are actually present, what it attributes to the sender and why, and — the important part — what it **cannot** attribute. It reports `CONFLICT` when signals disagree and `UNKNOWN` when a line at quoted depth carries neither colour nor marker, because in that case the line genuinely could belong to either party. **`UNKNOWN` is a correct answer.** A tool that always decides is a tool that is sometimes confidently wrong.
+
+### Four rules that outlive any particular client
+
+1. **Verify the convention per message. Never infer it from another message.** The same correspondent used three different conventions in six days: css-coloured on 20 Aug, `>>>PT` markers with no colour at all on 21 Aug, legacy `<font color>` on 25 Aug. A message that _says_ "see my comments in blue" may contain no colour whatsoever — measured, twice.
+2. **An empty result from a detector means your detector might be wrong.** This is the single most expensive habit in this file. Zero colour spans, zero markers, zero matching rows — before concluding the sender did not do the thing, prove your query can find the thing when it is there. Same shape as the `.[0].to` mailbox probe and the `.id` draft field elsewhere in this skill.
+3. **Read to the end of the paragraph.** An audit of 22 authored segments found the residual misses were **not** caused by parsing at all — every one sat inside a segment already extracted, and was lost to first-sentence reading. Her structure is consistent and it is the opposite of a summary: **the decision is in sentence one, the condition is in sentence two, and the condition is the part that binds you.** "Let's go with that for now" _…and hope they increase it later_. "I am prepared to walk away" _…if we can find a local replacement and if we have time_.
+4. **Prefer "I cannot tell" to a confident attribution.** You will be forgiven for asking. You will not be forgiven for putting words in someone's mouth in a document they read.
+
+### Three measured exemplars, from one correspondent in six days
+
+| Date   | What she said her convention was | What the source actually contained                                                           | What broke                                                                                                                                                                                                                                          |
+| ------ | -------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 20 Aug | "comments below in blue"         | Exactly **one** css `rgb(0,0,255)` span; the rest marked `>>>>` / `>>>`                      | Colour was nearly useless; one comment was a truncated fragment (`>>> should be`) that needed a follow-up question to resolve                                                                                                                       |
+| 21 Aug | "Pls see below with >>>PT"       | **No colour at all.** Markers only                                                           | A colour-first parser would have found nothing and reported she wrote nothing                                                                                                                                                                       |
+| 25 Aug | "Pls see below in blue >>>PT"    | **25 legacy `<font color="#0000ff">` tags, zero css `color:`.** 22 authored runs, 13 markers | A css-only detector returned zero and was read as "no colour used". Then the over-correction — "colour is the complete signal" — would have discarded her **top matter**, which is black and held the single most important decision in the message |
+
+**The lesson from the third row is the one to keep.** Finding the bug is not the same as fixing the model. The first reading trusted markers and missed 9 of 22 segments; the corrected reading trusted colour and would have missed the migration date. Only the nested model survives both.
+
+### Red flags — stop and verify by hand
+
+- The sender describes a convention that your parser cannot find (says "in blue", no colour detected).
+- Coloured-run count and marker count differ — the difference is unmarked continuation text, and continuations are where the conditions live.
+- Colour appears in `text/html` but the matching text is absent from `text/plain`, or vice versa. **Parse both parts and take the union; never prefer one.** Clients generate them independently, so offsets from one do not map onto the other.
+- More than two apparent authors in a two-party thread — usually one author split across colour spellings (`blue` / `#00F` / `rgb(0,0,255)`), which is why colour must be normalised to a canonical triple before any equality test.
+- Any CJK full-width punctuation (`＞＞`, `：`, `【PT】`). `^>` does not match `＞`, so a full-width-quoted thread parses as 100% new text by the last replier.
+
+### Before the archive, not after
+
+Colour lives only in `text/html`. **An archive that stores `text/plain` alone cannot answer "who said what" later** — the evidence is simply not in it, and you will find yourself back at the API to answer a question your own records should have settled. Store both parts. `read --json` returns plain text only; fetch `format=full` for the html:
+
+```bash
+curl -s --noproxy '*' -H "Authorization: Bearer $TOK" \
+  "https://gmail.googleapis.com/gmail/v1/users/me/messages/<id>?format=full" \
+  | jq -r '[ .. | objects | select(.mimeType? == "text/html") | .body.data ]
+           | map(select(. != null)) | .[0] // empty' \
+  | tr '_-' '/+' | base64 -d > msg.html
+```
+
+**And never strip quoted history when a sender replies inline** — their answers live _inside_ the quotes, so stripping deletes the reply and keeps the signature.
+
+### The full catalogue
+
+Normalisation that must precede every rule (quoted-printable, `format=flowed`, CRLF, colour canonicalisation, entity decoding, NFKC, Word conditional comments), per-client priors, typed-marker regexes, and the client artifacts that masquerade as authorship signals: **[references/attribution-parsing.md](./references/attribution-parsing.md)**.
+
 ## Inline Image Extraction
 
 Emails often contain **copy-pasted screenshots** (inline images embedded in the HTML body, not file attachments). These appear as `[image: image.png]` placeholders in plain text but contain real image data accessible via the Gmail API.
@@ -746,6 +813,15 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-08-25 — we could not say who wrote which line, and the bug was in the detector, not the mail.**
+  - _Trigger_: an operator asked whether the colour-coded inline replies in a client's message had actually been parsed. They had not. A scan for css `color:` had returned zero, and the zero was read as "the sender used no colour". The message contained **25 legacy `<font color="#0000ff">` tags**. Same confident-absence shape as the `.[0].to` probe and the `.id` field above — a wrong query whose empty result reads as an empty world.
+  - _Defect 2, found while fixing defect 1_: the correction was also wrong. Having found the colour, the model became "colour is the complete signal" — which discards the sender's **top matter**, because it is black. On that message the top matter held the migration date, the reasoning for it, and a phone-call request. The stated rule would have thrown away the most important content in the mail, and the analysis silently violated its own rule to keep it.
+  - _Defect 3, structural_: the archive stored `text/plain` only. Colour is an html property, so **the evidence separating the sender's words from ours was never in the repository** — answering the question required going back to the API, which is the dependency the archive existed to remove.
+  - _Fix_: an **ATTRIBUTION DOCTRINE** section above (nested model: authorship ⊃ colour ⊃ marker, quote depth primary), a reusable `scripts/attribution-parse.ts` that reports `CONFLICT`/`UNKNOWN` rather than guessing, `scripts/attribution-parse.test.ts` pinning each failure mode, and `references/attribution-parsing.md` — a surveyed catalogue of 108 conventions across colour, markers, quote structure and client artifacts.
+  - _Measured while building the tool, and it is the sharpest lesson_: an audit of all 22 authored segments found the residual misses were **not** caused by marker-vs-colour parsing at all. Every one sat inside a segment already extracted, and was lost to **first-sentence reading** — the decision is in sentence one, the condition is in sentence two, and the condition is the part that binds you.
+  - _Also measured_: real email is **CRLF**, and a trailing `\r` is a line terminator to the regex engine, so a `(.*)$` pattern fails on **every** line and yields empty text for the whole message while still reporting "quote depth: yes". Caught only by running the parser against a real message with known ground truth.
+  - _Evidence_: three messages from one correspondent in six days used three different conventions — one css span, then markers with no colour, then legacy font tags. 22 coloured runs against 13 markers on the last. 20/20 unit tests green.
 
 - **2026-08-18 — the account-verification probe reported the WRONG mailbox, and `GMAIL_OP_UUID` means two different things.**
   - _Trigger_: drafting client correspondence that must go out as a specific send-as alias. Step 2.5 exists precisely to stop you acting on the wrong account, and it gave a confident wrong answer.
