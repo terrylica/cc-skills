@@ -125,24 +125,6 @@ See [Architecture Decision Records](#architecture-decision-records) below.
 
 ## ASCII Diagrams
 
-### Always Use graph-easy Skill
-
-**CRITICAL**: Never manually type ASCII diagrams. Always use the `itp:graph-easy` skill.
-
-```bash
-# General diagrams
-Skill(itp:graph-easy)
-
-# ADR architecture diagrams
-Skill(itp:adr-graph-easy-architect)
-```
-
-**Why this matters:**
-
-- Manual ASCII art has inconsistent character spacing
-- graph-easy produces properly aligned boxart characters
-- Output is reproducible and editable
-
 ### Keep Annotations Outside Code Blocks
 
 **Wrong** - inline comments break diagram alignment:

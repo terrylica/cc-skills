@@ -54,13 +54,13 @@ DETECT_EOF
 
 **Options:**
 
-| Flag             | Description                                                |
-| ---------------- | ---------------------------------------------------------- |
-| `--landscape`    | Landscape orientation (default)                            |
-| `--portrait`     | Portrait orientation                                       |
-| `--monospace`    | Use DejaVu Sans Mono - ideal for ASCII diagrams            |
-| `--hide-details` | Hide `<details>` blocks (e.g., graph-easy source) from PDF |
-| `-h, --help`     | Show help message                                          |
+| Flag             | Description                                     |
+| ---------------- | ----------------------------------------------- |
+| `--landscape`    | Landscape orientation (default)                 |
+| `--portrait`     | Portrait orientation                            |
+| `--monospace`    | Use DejaVu Sans Mono - ideal for ASCII diagrams |
+| `--hide-details` | Hide `<details>` blocks from PDF                |
+| `-h, --help`     | Show help message                               |
 
 **Features:**
 
@@ -110,23 +110,9 @@ SKILL_SCRIPT_EOF
 
 ---
 
-## ASCII Diagrams: Always Use graph-easy
+## ASCII Diagrams
 
-**CRITICAL**: Never manually type ASCII diagrams. Always use the `itp:graph-easy` skill.
-
-Manual ASCII art causes alignment issues in PDFs. The graph-easy skill ensures:
-
-- Proper boxart character alignment
-- Consistent spacing
-- Reproducible output
-
-```bash
-# Invoke the skill for general diagrams
-Skill(itp:graph-easy)
-
-# For ADR architecture diagrams
-Skill(itp:adr-graph-easy-architect)
-```
+ASCII diagrams need consistent character alignment to survive PDF rendering: use box-drawing characters consistently and keep every row the same width.
 
 **Also important**: Keep annotations OUTSIDE code blocks. Don't add inline comments like `# contains: file1, file2` inside diagram code blocks - they break alignment.
 
@@ -136,7 +122,7 @@ Skill(itp:adr-graph-easy-architect)
 
 Use `--hide-details` to remove `<details>` blocks from PDF output. This is useful when:
 
-- **graph-easy source blocks**: Keep source in markdown for diagram regeneration, but hide from printed PDFs
+- **Diagram source blocks**: Keep source in markdown for diagram regeneration, but hide from printed PDFs
 - **Technical implementation notes**: Show in web/markdown view, hide from printed handouts
 - **Collapsible sections**: HTML `<details>` tags don't render as collapsible in PDF
 
@@ -159,7 +145,7 @@ Use `--hide-details` to remove `<details>` blocks from PDF output. This is usefu
 ````
 
 <details>
-<summary>graph-easy source</summary>
+<summary>diagram source</summary>
 
 ```
 [Box] -> [Box]
@@ -179,7 +165,6 @@ Before considering a PDF "done", verify:
 **Pre-Generation:**
 
 - [ ] No manual section numbering in markdown (use `--number-sections`)
-- [ ] All ASCII diagrams generated via `itp:graph-easy` skill
 - [ ] Annotations are outside code blocks, not inside
 
 **Post-Generation:**
@@ -252,7 +237,6 @@ For detailed information, see:
 | xelatex not found             | MacTeX not installed         | `brew install --cask mactex`                      |
 | Table breaks across pages     | Missing longtable package    | Include table-spacing-template.tex preamble       |
 | Double section numbers        | Manual numbering in markdown | Remove manual numbers, use --number-sections only |
-| ASCII diagram misaligned      | Manual ASCII art             | Use graph-easy skill for all diagrams             |
 | Bullet list renders as dashes | Markdown formatting issue    | Check for proper blank lines before lists         |
 | Bibliography not rendering    | Missing references.bib       | Create .bib file or remove --bibliography flag    |
 | PDF file size too large       | Embedded fonts               | Use --pdf-engine-opt=-dEmbedAllFonts=false        |

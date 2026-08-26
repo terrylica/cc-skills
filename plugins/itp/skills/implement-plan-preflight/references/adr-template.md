@@ -46,7 +46,7 @@ perspectives: [PerspectiveType1, PerspectiveType2]
 | **Decision Outcome**              | Yes      | What was decided + rationale from AskUserQuestion iterations               |
 | **Synthesis**                     | Yes      | How divergent agent findings were reconciled                               |
 | **Consequences**                  | Yes      | Positive/Negative trade-offs                                               |
-| **Architecture**                  | Yes      | Use Skill tool to invoke `adr-graph-easy-architect` for diagrams           |
+| **Architecture**                  | Yes      | Resulting system structure and component relationships                     |
 | Decision Drivers                  | Optional | Forces influencing the choice                                              |
 | References                        | Optional | Related ADRs, external docs                                                |
 
@@ -83,7 +83,7 @@ perspectives: [PerspectiveType1, PerspectiveType2]
 
 ### Before/After
 
-<!-- Use Skill tool to invoke adr-graph-easy-architect for Before/After visualization -->
+<!-- Describe the state before this decision and the state after it -->
 
 ## Research Summary
 
@@ -144,7 +144,7 @@ Chosen option: **Option C**, because [rationale from AskUserQuestion iterations 
 
 ## Architecture
 
-<!-- Use Skill tool to invoke adr-graph-easy-architect for system architecture diagram -->
+<!-- Describe the resulting system structure and component relationships -->
 
 ## References
 

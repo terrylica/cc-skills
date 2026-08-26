@@ -20,12 +20,11 @@ Or verify manually:
 - [ ] ADR has YAML frontmatter with all 7 required fields
 - [ ] ADR has `status: proposed` (initial state)
 - [ ] ADR has `**Design Spec**:` link in header
-- [ ] **DIAGRAM CHECK 1**: ADR has **Before/After diagram** in Context section (graph-easy block showing state change)
-- [ ] **DIAGRAM CHECK 2**: ADR has **Architecture diagram** in Architecture section (graph-easy block showing components)
+- [ ] **DIAGRAM CHECK 1**: ADR has **Before/After diagram** in Context section (showing state change)
+- [ ] **DIAGRAM CHECK 2**: ADR has **Architecture diagram** in Architecture section (showing components)
 
 **DIAGRAM VERIFICATION (BLOCKING):**
-If either diagram is missing, **STOP** and invoke `adr-graph-easy-architect` skill again.
-Search ADR for `<!-- graph-easy source:` -- you need TWO separate blocks.
+If either diagram is missing, **STOP** and add it before proceeding -- you need TWO separate diagrams.
 
 - [ ] Design spec exists at `/docs/design/$ADR_ID/spec.md`
 - [ ] Design spec has YAML frontmatter with all 5 required fields

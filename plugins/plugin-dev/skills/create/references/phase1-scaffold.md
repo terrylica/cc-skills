@@ -61,7 +61,6 @@ This skill:
 
 - Creates ADR at `docs/adr/YYYY-MM-DD-$PLUGIN_NAME.md`
 - Creates Design Spec at `docs/design/YYYY-MM-DD-$PLUGIN_NAME/spec.md`
-- Internally invokes `adr-graph-easy-architect` for diagrams
 
 **ADR ID Format:**
 

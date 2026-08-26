@@ -528,7 +528,6 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 |                         | Lock file protection  | Block writes to `package-lock.json`, `uv.lock`               |
 |                         | Multi-account git     | Validate SSH auth matches expected GitHub account            |
 |                         | HTTPS URL blocking    | Block git push with HTTPS (require SSH for multi-account)    |
-|                         | ASCII art policy      | Block manual diagrams; require graph-easy source block       |
 | · · · · · · · · · · ·   | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
 | **PermissionRequest**   | Auto-approve safe     | Auto-approve `npm test`, `pytest`, `cargo build`             |
 |                         | Auto-deny dangerous   | Deny dangerous operations without user prompt                |
@@ -547,7 +546,6 @@ For a PreToolUse Bash hook (includes universal base fields + event-specific fiel
 |                         | Markdown pipeline     | markdownlint (MD058 table blanks) + prettier for .md files   |
 |                         | Dotfiles sync         | Detect chezmoi-tracked files; remind to sync                 |
 |                         | ADR-Spec sync         | Remind to update Design Spec when ADR modified (and v.v.)    |
-|                         | Graph-easy reminder   | Prompt to use skill instead of CLI for reproducibility       |
 | · · · · · · · · · · · · | · · · · · · · · · · · | · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·    |
 | **PostToolUseFailure**  | UV reminder           | Remind to use `uv` when `pip install` fails                  |
 |                         | Error logging         | Log failed commands with context for debugging               |

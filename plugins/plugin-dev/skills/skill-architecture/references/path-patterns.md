@@ -163,7 +163,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 
 ```bash
 # ❌ Assumes specific installation location
-/opt/homebrew/bin/graph-easy --as=boxart
+/opt/homebrew/bin/prettier --write .
 ~/.local/bin/uv publish
 ```
 
@@ -171,7 +171,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 
 ```bash
 # ✅ WORKS - uses PATH resolution
-graph-easy --as=boxart
+prettier --write .
 
 # ✅ WORKS - command exists check first
 command -v uv &>/dev/null || { echo "uv not found"; exit 1; }
