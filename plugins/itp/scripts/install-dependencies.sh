@@ -101,9 +101,6 @@ get_install_cmd() {
             semgrep)   echo "mise install semgrep && mise use --global semgrep"; return ;;
             gitleaks)  echo "mise install gitleaks && mise use --global gitleaks"; return ;;
             prettier)  echo "mise use --global npm:prettier@latest"; return ;;
-            perl)      echo "mise install perl && mise use --global perl"; return ;;
-            cpanminus) echo "mise install perl && mise exec perl -- curl -L https://cpanmin.us | mise exec perl -- perl - App::cpanminus"; return ;;
-            graph-easy) echo "mise exec perl -- cpanm Graph::Easy"; return ;;
         esac
     fi
 
@@ -113,10 +110,9 @@ get_install_cmd() {
         semantic-release) echo "npm i -g semantic-release@25"; return ;;
     esac
 
-    # Fallbacks for tools when mise is NOT available (npm/cpanm)
+    # Fallbacks for tools when mise is NOT available (npm)
     case "$tool" in
         prettier)  echo "npm i -g prettier"; return ;;
-        graph-easy) echo "cpanm Graph::Easy"; return ;;
     esac
 
     # Platform-specific installations (fallback when mise not available)
@@ -125,24 +121,20 @@ get_install_cmd() {
             case "$tool" in
                 uv)        echo "brew install uv" ;;
                 gh)        echo "brew install gh" ;;
-                cpanminus) echo "brew install cpanminus" ;;
                 semgrep)   echo "brew install semgrep" ;;
                 gitleaks)  echo "brew install gitleaks" ;;
                 doppler)   echo "brew install dopplerhq/cli/doppler" ;;
                 node)      echo "brew install node" ;;
-                perl)      echo "brew install perl" ;;
             esac
             ;;
         apt)
             case "$tool" in
                 uv)        echo "curl -LsSf https://astral.sh/uv/install.sh | sh" ;;
                 gh)        echo "sudo apt-get install -y gh" ;;
-                cpanminus) echo "sudo apt-get install -y cpanminus" ;;
                 semgrep)   echo "python3 -m pip install --user semgrep" ;;
                 gitleaks)  echo "sudo apt install -y gitleaks" ;;
                 doppler)   echo "curl -Ls https://cli.doppler.com/install.sh | sh" ;;
                 node)      echo "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs" ;;
-                perl)      echo "sudo apt-get install -y perl" ;;
             esac
             ;;
     esac
@@ -159,7 +151,7 @@ check_tool() {
 
     if command -v "$cmd" &>/dev/null; then
         local version
-        # Use timeout to avoid slow version checks (cpanm is notoriously slow)
+        # Use timeout to avoid slow version checks
         if command -v timeout &>/dev/null; then
             version=$(timeout 3 "$cmd" "$version_flag" 2>&1 | head -1) || version="installed"
         elif command -v gtimeout &>/dev/null; then
@@ -228,31 +220,6 @@ check_tool "gh" "gh" || { MISSING=$((MISSING+1)); INSTALL_GH=$(get_install_cmd g
 check_tool "prettier" "prettier" || { MISSING=$((MISSING+1)); INSTALL_PRETTIER=$(get_install_cmd prettier); }
 echo ""
 
-# ADR Diagrams (Required for Preflight)
-echo "## ADR Diagrams (Required for Preflight)"
-# Check cpanm: direct command OR via mise perl
-if command -v cpanm &>/dev/null; then
-    echo -e "${GREEN}✓${NC} cpanm ($(cpanm --version 2>&1 | head -1 || echo 'installed'))"
-elif $HAS_MISE && mise exec perl -- cpanm --version &>/dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC} cpanm (via mise perl)"
-else
-    echo -e "${RED}✗${NC} cpanm (missing)"
-    MISSING=$((MISSING+1))
-    INSTALL_CPANM=$(get_install_cmd cpanminus)
-fi
-# Check graph-easy: direct command OR via mise perl
-# Note: graph-easy --version hangs (waits for stdin) AND exits with code 2, so test functionality instead
-if command -v graph-easy &>/dev/null && echo "[A]" | graph-easy &>/dev/null; then
-    echo -e "${GREEN}✓${NC} graph-easy (functional)"
-elif $HAS_MISE && echo "[A]" | mise exec perl -- graph-easy &>/dev/null; then
-    echo -e "${GREEN}✓${NC} graph-easy (via mise perl)"
-else
-    echo -e "${RED}✗${NC} graph-easy (missing)"
-    MISSING=$((MISSING+1))
-    INSTALL_GRAPH_EASY=$(get_install_cmd graph-easy)
-fi
-echo ""
-
 # Code Audit (Optional - for Phase 1)
 echo "## Code Audit (Optional)"
 check_tool "ruff" "ruff" || { MISSING=$((MISSING+1)); INSTALL_RUFF=$(get_install_cmd ruff); }
@@ -293,10 +260,6 @@ else
         [ -n "${INSTALL_UV:-}" ] && install_tool "uv" "$INSTALL_UV"
         [ -n "${INSTALL_GH:-}" ] && install_tool "gh" "$INSTALL_GH"
         [ -n "${INSTALL_PRETTIER:-}" ] && install_tool "prettier" "$INSTALL_PRETTIER"
-
-        # ADR Diagrams
-        [ -n "${INSTALL_CPANM:-}" ] && install_tool "cpanm" "$INSTALL_CPANM"
-        [ -n "${INSTALL_GRAPH_EASY:-}" ] && install_tool "graph-easy" "$INSTALL_GRAPH_EASY"
 
         # Code Audit
         [ -n "${INSTALL_RUFF:-}" ] && install_tool "ruff" "$INSTALL_RUFF"

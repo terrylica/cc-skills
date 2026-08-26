@@ -25,15 +25,6 @@ ADR_DIR = os.environ.get("ADR_DIR", "docs/adr")
 DESIGN_DIR = os.environ.get("DESIGN_DIR", "docs/design")
 DESIGN_SPEC_FILENAME = os.environ.get("DESIGN_SPEC_FILENAME", "spec.md")
 
-# Emoji regex pattern for validation in graph labels
-# Covers common emoji ranges: emoticons, symbols, dingbats, pictographs
-EMOJI_PATTERN = re.compile(
-    r"[\U0001F300-\U0001F9FF"  # Misc Symbols, Emoticons
-    r"\U00002600-\U000026FF"  # Misc symbols (sun, cloud, etc.)
-    r"\U00002700-\U000027BF"  # Dingbats
-    r"\U0001FA00-\U0001FAFF]"  # Extended symbols
-)
-
 
 def validate_adr_frontmatter(adr_path: Path) -> list[str]:
     """Validate ADR has required YAML frontmatter fields."""
@@ -93,52 +84,6 @@ def validate_adr_sections(adr_path: Path) -> list[str]:
     # Check for Design Spec link
     if "**Design Spec**:" not in content:
         errors.append("ADR missing Design Spec link in header")
-
-    return errors
-
-
-def validate_graph_labels(file_path: Path) -> list[str]:
-    """Validate all graph-easy diagrams have emoji + title in label.
-
-    Extracts graph-easy source from <details> blocks and validates each
-    has a `graph { label: "emoji Title"; }` pattern.
-    """
-    errors = []
-    content = file_path.read_text()
-
-    # Pattern to extract graph-easy source from <details> blocks
-    # Matches: <details>...<summary>graph-easy source</summary>...```...graph content...```...</details>
-    details_pattern = re.compile(
-        r"<details>\s*<summary>graph-easy source</summary>\s*```\s*(.*?)```\s*</details>",
-        re.DOTALL | re.IGNORECASE,
-    )
-
-    # Find all graph-easy source blocks
-    matches = details_pattern.findall(content)
-
-    if not matches:
-        # No diagrams found - not an error (some files may not have diagrams)
-        return errors
-
-    for i, graph_source in enumerate(matches, 1):
-        # Check for graph { label: pattern
-        label_match = re.search(r'graph\s*\{[^}]*label:\s*"([^"]*)"', graph_source)
-
-        if not label_match:
-            errors.append(
-                f"Diagram #{i}: Missing `graph {{ label: \"emoji Title\"; }}` - "
-                "every diagram MUST have emoji + title"
-            )
-            continue
-
-        label_text = label_match.group(1)
-
-        # Check for emoji in label
-        if not EMOJI_PATTERN.search(label_text):
-            errors.append(
-                f'Diagram #{i}: Label "{label_text}" missing semantic emoji - '
-                "add emoji matching diagram purpose (see Emoji Selection Guide)"
-            )
 
     return errors
 
@@ -243,7 +188,6 @@ def main():
         print(f"[OK] ADR file exists: {adr_path}")
         all_errors.extend(validate_adr_frontmatter(adr_path))
         all_errors.extend(validate_adr_sections(adr_path))
-        all_errors.extend(validate_graph_labels(adr_path))
 
     if not spec_path.exists():
         all_errors.append(f"Design spec not found: {spec_path}")
@@ -251,7 +195,6 @@ def main():
         print(f"[OK] Design spec exists: {spec_path}")
         all_errors.extend(validate_spec_frontmatter(spec_path))
         all_errors.extend(validate_spec_backlink(spec_path, adr_id))
-        all_errors.extend(validate_graph_labels(spec_path))
 
     # Report results
     print("-" * 50)

@@ -44,7 +44,6 @@ DO NOT:
 | Skill                      | Phase     | Purpose                         |
 | -------------------------- | --------- | ------------------------------- |
 | `implement-plan-preflight` | Preflight | ADR + Design Spec creation      |
-| `adr-graph-easy-architect` | Preflight | Architecture diagrams           |
 | `impl-standards`           | Phase 1   | Error handling, constants       |
 | `mise-configuration`       | Phase 1   | Env var centralization patterns |
 | `adr-code-traceability`    | Phase 1   | Code-to-ADR references          |
@@ -175,18 +174,8 @@ This skill provides detailed ADR and Design Spec creation instructions (MADR 4.0
 1. **P.0**: **Create feature branch FIRST** (if `-b` flag) -- MUST happen before ANY file operations
 2. **P.1**: **MANDATORY Skill tool call: `implement-plan-preflight`** -- activate NOW for ADR/spec instructions
 3. **P.2**: Create ADR file -- path in [Quick Reference](#file-locations)
-4. **P.2.1**: **ADR Diagram Creation (MANDATORY for ALL ADRs)**
-
-   **ALL ADRs require BOTH diagrams -- NO EXCEPTIONS, regardless of task complexity.**
-   - INVOKE: **Skill tool call with `adr-graph-easy-architect`** -- triggers diagram workflow
-   - CREATE: **Before/After diagram** -- visualizes state change in Context section
-   - CREATE: **Architecture diagram** -- visualizes component relationships in Architecture section
-   - VERIFY: Confirm BOTH diagrams embedded in ADR before proceeding
-
-   **BLOCKING GATE**: Do NOT proceed to P.3 until BOTH diagrams are verified in ADR.
-
-5. **P.3**: Create design spec -- path in [Quick Reference](#file-locations)
-6. **P.4**: Verify checkpoint
+4. **P.3**: Create design spec -- path in [Quick Reference](#file-locations)
+5. **P.4**: Verify checkpoint
 
 **WHY P.0 FIRST**: Files created before `git checkout -b` stay on main/master. Branch must exist before ADR/spec creation.
 
@@ -312,7 +301,6 @@ Use Earthly as canonical pipeline: non-blocking, observability-first, ensure Git
 | Branch mismatch        | Working on wrong branch      | Switch to correct branch with `git checkout` |
 | Phase 3 skipped        | Not on main/master           | Merge to main first, then run `/itp:go -r`   |
 | semantic-release fails | No GITHUB_TOKEN              | Check token with `echo $GITHUB_TOKEN`        |
-| Diagram missing        | graph-easy not invoked       | Run Skill(itp:adr-graph-easy-architect)      |
 | Spec validation fails  | Missing frontmatter fields   | Check required fields in Quick Reference     |
 
 ## Post-Execution Reflection

@@ -97,7 +97,6 @@ TodoWrite with todos:
 | ---------------------------- | ------------------------------------------------------ |
 | plugin-dev:skill-development | Use skill-architecture instead (3x more comprehensive) |
 | plugin-dev:plugin-settings   | Merged into hook-development                           |
-| itp:adr-graph-easy-architect | Invoked BY implement-plan-preflight (not separately)   |
 
 ### Agents Spawned
 

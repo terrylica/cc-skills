@@ -55,7 +55,6 @@ Then install hooks to your settings:
 | --------------------- | ------------------------------ | ------------------------------------- |
 | **Ruff linting**      | Edit/Write `.py` files         | Shows lint errors (9 rule categories) |
 | UV preference         | pip install in Bash            | Prefer `uv pip install`               |
-| Graph-easy skill      | Direct `graph-easy` CLI usage  | Prefer skill for reproducibility      |
 | ADR→Spec sync         | Modify `docs/adr/*.md`         | Check if Design Spec needs updating   |
 | Spec→ADR sync         | Modify `docs/design/*/spec.md` | Check if ADR needs updating           |
 | Code→ADR traceability | Modify implementation files    | Consider ADR reference                |
@@ -96,12 +95,6 @@ This plugin uses **exit code 2** for ASCII art blocking because:
 - Runs before permission system
 - Cannot be bypassed even with `dangerously-skip-permissions`
 - No legitimate reason to add manual diagrams without source
-
-### Why PostToolUse for Graph-easy?
-
-- Users may legitimately need direct CLI for testing
-- Transcript-based skill detection had false positives
-- Reminders work regardless of bypass permissions
 
 ## GPU Optimization Guard
 

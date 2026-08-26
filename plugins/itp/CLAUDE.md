@@ -12,7 +12,7 @@
 Preflight (ADR + Spec) → Phase 1 (Implement) → Phase 2 (Format) → Phase 3 (Release)
 ```
 
-1. **Preflight**: Creates ADR (MADR 4.0), design spec, and graph-easy diagrams
+1. **Preflight**: Creates ADR (MADR 4.0) and design spec
 2. **Phase 1**: Implement from design spec with TodoWrite tracking
 3. **Phase 2**: Format with Prettier, push to GitHub
 4. **Phase 3**: Release via the repo's mise release pipeline (main/master only)
@@ -29,11 +29,9 @@ Two paths from Plan Mode to `/itp:go`:
 ## Skills
 
 - [adr-code-traceability](./skills/adr-code-traceability/SKILL.md)
-- [adr-graph-easy-architect](./skills/adr-graph-easy-architect/SKILL.md)
 - [bootstrap-monorepo](./skills/bootstrap-monorepo/SKILL.md)
 - [code-hardcode-audit](./skills/code-hardcode-audit/SKILL.md)
 - [go](./skills/go/SKILL.md)
-- [graph-easy](./skills/graph-easy/SKILL.md)
 - [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [impl-standards](./skills/impl-standards/SKILL.md)
 - [implement-plan-preflight](./skills/implement-plan-preflight/SKILL.md)
@@ -54,9 +52,8 @@ For release, use the repo's mise pipeline directly: `/mise:run-full-release`.
 
 ## Dependencies
 
-| Tool       | Install               | Notes                              |
-| ---------- | --------------------- | ---------------------------------- |
-| uv         | `mise install uv`     | Or `brew install uv`               |
-| gh         | `brew install gh`     | **NEVER use mise** (iTerm2 issues) |
-| prettier   | `bun add -g prettier` | Bun-first policy                   |
-| graph-easy | `cpanm Graph::Easy`   | Requires `brew install cpanminus`  |
+| Tool     | Install               | Notes                              |
+| -------- | --------------------- | ---------------------------------- |
+| uv       | `mise install uv`     | Or `brew install uv`               |
+| gh       | `brew install gh`     | **NEVER use mise** (iTerm2 issues) |
+| prettier | `bun add -g prettier` | Bun-first policy                   |

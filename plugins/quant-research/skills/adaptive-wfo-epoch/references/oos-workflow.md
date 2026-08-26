@@ -16,26 +16,6 @@ AWFES uses **Nested WFO** with three data splits per fold:
 #############     +----------+     +---------+     +----------+     #==========#
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: Nested WFO Data Split (per fold)"; flow: east; }
-
-[ Train 60% ] { border: bold; }
-[ Gap 6% A ]
-[ Val 20% ]
-[ Gap 6% B ]
-[ Test 20% ] { border: double; }
-
-[ Train 60% ] -> [ Gap 6% A ]
-[ Gap 6% A ] -> [ Val 20% ]
-[ Val 20% ] -> [ Gap 6% B ]
-[ Gap 6% B ] -> [ Test 20% ]
-```
-
-</details>
-
 ## Per-Fold Workflow
 
 ```
@@ -83,32 +63,6 @@ graph { label: "AWFES: Nested WFO Data Split (per fold)"; flow: east; }
                    -----------------------
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: Per-Fold Workflow"; flow: south; }
-
-[ Fold i Data ] { shape: rounded; }
-[ Split: Train/Val/Test ]
-[ Epoch Sweep on Train ]
-[ Compute WFE on Val ]
-[ Bayesian Update ] { border: double; }
-[ Train Final Model ]
-[ Evaluate on Test ] { border: double; }
-[ Fold i Metrics ] { shape: rounded; }
-
-[ Fold i Data ] -> [ Split: Train/Val/Test ]
-[ Split: Train/Val/Test ] -> [ Epoch Sweep on Train ]
-[ Epoch Sweep on Train ] -> [ Compute WFE on Val ]
-[ Compute WFE on Val ] -- val optimal --> [ Bayesian Update ]
-[ Bayesian Update ] -- smoothed epoch --> [ Train Final Model ]
-[ Train Final Model ] -> [ Evaluate on Test ]
-[ Evaluate on Test ] -> [ Fold i Metrics ]
-```
-
-</details>
-
 ## Bayesian Carry-Forward Across Folds
 
 ```
@@ -118,28 +72,6 @@ graph { label: "AWFES: Per-Fold Workflow"; flow: south; }
 | Prior | ------> | Fold 1 | -----------> | Fold 2 | -----------> | Fold 3 | ..> | Fold N | --> | Aggregate |
  -------          +--------+              +--------+              +--------+     +--------+      -----------
 ```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: Bayesian Carry-Forward Across Folds"; flow: east; }
-
-[ Prior ] { shape: rounded; }
-[ Fold 1 ]
-[ Fold 2 ]
-[ Fold 3 ]
-[ Fold N ]
-[ Aggregate ] { shape: rounded; }
-
-[ Prior ] -- init --> [ Fold 1 ]
-[ Fold 1 ] -- posterior --> [ Fold 2 ]
-[ Fold 2 ] -- posterior --> [ Fold 3 ]
-[ Fold 3 ] ..> [ Fold N ]
-[ Fold N ] -> [ Aggregate ]
-```
-
-</details>
 
 ## Bayesian Epoch Selection for OOS
 

@@ -64,7 +64,6 @@ TodoWrite with todos (MERGED - preserving existing):
 - "[ITP] Preflight: Create feature branch (if -b flag) — MUST BE FIRST" | pending
 - "[ITP] Preflight: Skill tool call → implement-plan-preflight" | pending
 - "[ITP] Preflight: Create ADR file with MADR 4.0 frontmatter" | pending
-- "[ITP] Preflight: Skill tool call → adr-graph-easy-architect (Before/After + Architecture diagrams)" | pending
 - "[ITP] Preflight: Create design spec with YAML frontmatter" | pending
 - "[ITP] Preflight: Verify checkpoint (ADR + spec exist)" | pending
 

@@ -6,7 +6,7 @@
 #   --landscape      Landscape orientation (default)
 #   --portrait       Portrait orientation
 #   --monospace      Use monospace font (DejaVu Sans Mono) - ideal for ASCII diagrams
-#   --hide-details   Hide <details> blocks (e.g., graph-easy source) from PDF output
+#   --hide-details   Hide <details> blocks from PDF output
 #   -h, --help       Show this help message
 #
 # If no input file provided, looks for single .md file in current directory
@@ -43,7 +43,7 @@ show_help() {
     echo "  --landscape      Landscape orientation (default)"
     echo "  --portrait       Portrait orientation"
     echo "  --monospace      Use monospace font (DejaVu Sans Mono) - ideal for ASCII diagrams"
-    echo "  --hide-details   Hide <details> blocks (e.g., graph-easy source) from PDF output"
+    echo "  --hide-details   Hide <details> blocks from PDF output"
     echo "  -h, --help       Show this help message"
     echo ""
     echo "If no input file provided, auto-detects single .md file in current directory."

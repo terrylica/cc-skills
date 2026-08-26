@@ -25,8 +25,6 @@ docs/
 
 **Creation**: ADRs are created automatically by `/itp:go` preflight phase.
 
-**ASCII Diagrams**: Use `Skill(itp:adr-graph-easy-architect)` - never hand-draw.
-
 ## Design Specs
 
 **Location**: `docs/design/YYYY-MM-DD-slug/spec.md`

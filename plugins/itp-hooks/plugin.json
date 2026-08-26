@@ -1,7 +1,7 @@
 {
   "name": "itp-hooks",
   "version": "11.93.0",
-  "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+  "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, ADR/Spec sync, code-to-ADR traceability",
   "author": {
     "name": "Terry Li",
     "url": "https://github.com/terrylica"

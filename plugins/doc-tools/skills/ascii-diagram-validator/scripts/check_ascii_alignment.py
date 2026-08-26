@@ -31,7 +31,7 @@ SINGLE_VERTICAL = set('│')
 # Double lines
 DOUBLE_HORIZONTAL = set('═')
 DOUBLE_VERTICAL = set('║')
-# Heavy (bold) lines - used by graph-easy boxart
+# Heavy (bold) lines
 HEAVY_HORIZONTAL = set('━')
 HEAVY_VERTICAL = set('┃')
 
@@ -48,12 +48,12 @@ CORNER_TL_DOUBLE = set('╔')
 CORNER_TR_DOUBLE = set('╗')
 CORNER_BL_DOUBLE = set('╚')
 CORNER_BR_DOUBLE = set('╝')
-# Corners - Heavy (bold) - used by graph-easy boxart
+# Corners - Heavy (bold)
 CORNER_TL_HEAVY = set('┏')
 CORNER_TR_HEAVY = set('┓')
 CORNER_BL_HEAVY = set('┗')
 CORNER_BR_HEAVY = set('┛')
-# Corners - Rounded (arc) - used by graph-easy shape: rounded
+# Corners - Rounded (arc)
 CORNER_TL_ROUNDED = set('╭')
 CORNER_TR_ROUNDED = set('╮')
 CORNER_BL_ROUNDED = set('╰')
@@ -75,7 +75,7 @@ T_LEFT_DOUBLE = set('╠╞╟')
 T_RIGHT_DOUBLE = set('╣╡╢')
 T_TOP_DOUBLE = set('╦╤╥')
 T_BOTTOM_DOUBLE = set('╩╧╨')
-# T-junctions - Heavy (bold) - used by graph-easy boxart
+# T-junctions - Heavy (bold)
 T_LEFT_HEAVY = set('┣┡┢┝┞┟┠')
 T_RIGHT_HEAVY = set('┫┥┦┧┨┩┪')
 T_TOP_HEAVY = set('┳┭┮┯┰┱┲')
@@ -91,14 +91,14 @@ T_JUNCTIONS = T_LEFT | T_RIGHT | T_TOP | T_BOTTOM
 CROSSES = set('┼╬╪╫╋')
 
 # Arrow characters (valid terminators for lines)
-# Includes graph-easy arrows: ∨∧ (mathematical symbols used as arrows)
+# Includes ∨∧ (mathematical symbols used as arrows)
 ARROWS = set('▶▷►▻▸▹→⟶⟹▼▽▾▿↓⇓◀◁◄◅◂◃←⟵⟸▲△▴▵↑⇑∨∧<>')
 
-# Block elements - used by graph-easy as decorative borders (valid terminators)
+# Block elements - decorative borders (valid terminators)
 # ▐ (right half block), ▌ (left half block), ▀ (upper half), ▄ (lower half)
 BLOCK_ELEMENTS = set('▐▌▀▄█░▒▓')
 
-# Ellipsis characters - used by graph-easy for truncation (valid terminators)
+# Ellipsis characters - truncation markers (valid terminators)
 # ⋮ (vertical ellipsis), ⋯ (horizontal ellipsis), … (horizontal ellipsis)
 ELLIPSIS_CHARS = set('⋮⋯…')
 
@@ -193,7 +193,7 @@ def check_vertical_alignment(
     if char in CONNECTS_UP:
         above = get_char_at(lines, row - 1, col)
         # Valid connections: box chars that connect down, arrows, terminators,
-        # or horizontal lines (graph-easy arrow stem pattern: │ below ─)
+        # or horizontal lines (arrow stem pattern: │ below ─)
         if above is not None and above not in CONNECTS_DOWN and above not in ' \t' and above not in VALID_TERMINATORS and above not in HORIZONTAL:
             issues.append(Issue(
                 file=file,
@@ -208,7 +208,7 @@ def check_vertical_alignment(
     if char in CONNECTS_DOWN:
         below = get_char_at(lines, row + 1, col)
         # Valid connections: box chars that connect up, arrows, terminators,
-        # or horizontal lines (graph-easy arrow stem pattern: │ above ─)
+        # or horizontal lines (arrow stem pattern: │ above ─)
         if below is not None and below not in CONNECTS_UP and below not in ' \t' and below not in VALID_TERMINATORS and below not in HORIZONTAL:
             issues.append(Issue(
                 file=file,

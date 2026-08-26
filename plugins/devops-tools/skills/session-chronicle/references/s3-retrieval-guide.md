@@ -39,16 +39,6 @@ op read "op://Claude Automation/<chronicle-item>/access key id" >/dev/null && ec
  -----------      ###############     +-------------+     +------------+      ----------
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "Session Chronicle S3 Retrieval Workflow"; flow: east; }
-[ 1Password\nAuth ] { shape: rounded; } -> [ Export AWS\nCredentials ] { border: bold; } -> [ aws s3 sync\nDownload ] -> [ brotli -d\nDecompress ] -> [ Analyze\nSessions ] { shape: rounded; }
-```
-
-</details>
-
 ---
 
 ## Quick Retrieval
@@ -122,13 +112,13 @@ jq -r '.session_id' ./artifacts/uuid_chain.jsonl | sort -u
 
 ## S3 Bucket Details
 
-| Field             | Value                           |
-| ----------------- | ------------------------------- |
-| Bucket            | `s3://eonlabs-findings`         |
-| Region            | `us-west-2`                     |
-| Prefix            | `sessions/`                     |
-| Credential Source | 1Password Claude Automation vault        |
-| 1Password Item    | `<chronicle-item>`    |
+| Field             | Value                             |
+| ----------------- | --------------------------------- |
+| Bucket            | `s3://eonlabs-findings`           |
+| Region            | `us-west-2`                       |
+| Prefix            | `sessions/`                       |
+| Credential Source | 1Password Claude Automation vault |
+| 1Password Item    | `<chronicle-item>`                |
 
 ---
 

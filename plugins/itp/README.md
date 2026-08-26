@@ -12,7 +12,7 @@ Execute approved plans from Claude Code's **Plan Mode** through an ADR-driven 4-
 
 ## Features
 
-- **Preflight Phase**: Create ADR ([MADR 4.0](https://github.com/adr/madr)) and design spec with graph-easy diagrams
+- **Preflight Phase**: Create ADR ([MADR 4.0](https://github.com/adr/madr)) and design spec
 - **Phase 1**: Implementation with engineering standards
 - **Phase 2**: Formatting with Prettier and GitHub push
 - **Phase 3**: Semantic versioning and release automation
@@ -159,29 +159,6 @@ Both paths use the **rejection feedback input** introduced in Claude Code 2.0.57
                 ╚════════════════════════════════╝
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { flow: south; }
-[ Plan Mode ] { shape: rounded; label: "Plan Mode (Shift+Tab ×2)"; }
-[ Plan File ] { shape: rounded; label: "~/.claude/plans/<name>.md"; }
-[ Review ] { shape: rounded; label: "Review Plan\nChoose option 3 (reject)\n→ feedback input opens"; }
-[ Path A ] { label: "Path A: Type in feedback\nSlashCommand tool call\n/itp:go"; }
-[ Path B ] { label: "Path B: Type message\n\"Wait for /itp:go\""; }
-[ Wait ] { label: "Claude waits\nfor input"; }
-[ Cmd ] { label: "Type /itp:go\nat command prompt"; }
-[ ITP ] { border: double; label: "/itp:go Workflow\n(4 phases)"; }
-
-[ Plan Mode ] -> [ Plan File ] -> [ Review ]
-[ Review ] -> [ Path A ]
-[ Review ] -> [ Path B ]
-[ Path A ] -> [ ITP ]
-[ Path B ] -> [ Wait ] -> [ Cmd ] -> [ ITP ]
-```
-
-</details>
-
 ### 4-Phase Workflow
 
 ```
@@ -192,20 +169,6 @@ graph { flow: south; }
 │ (ADR + Spec) │ ──> │ (Implement) │ ──> │ (Format) │ ──> ║ (Release) ║
 ╰──────────────╯     └─────────────┘     └──────────┘     ╚═══════════╝
 ```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "🚀 /itp:go 4-Phase Workflow"; flow: east; }
-[ P0 ] { shape: rounded; label: "Preflight\n(ADR + Spec)"; }
-[ P1 ] { label: "Phase 1\n(Implement)"; }
-[ P2 ] { label: "Phase 2\n(Format)"; }
-[ P3 ] { border: double; label: "Phase 3\n(Release)"; }
-[ P0 ] -> [ P1 ] -> [ P2 ] -> [ P3 ]
-```
-
-</details>
 
 ### Why /itp:go?
 
@@ -241,24 +204,6 @@ The `/itp:go` workflow captures these ephemeral artifacts as **permanent** recor
 ╎                      ╎
 └−−−−−−−−−−−−−−−−−−−−−−┘
 ```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "📦 Artifact Transformation"; flow: east; }
-( Ephemeral:
-  [ Global Plan ] { label: "~/.claude/plans/\n[!] Overwritten"; }
-)
-( Permanent:
-  [ ADR ] { label: "/docs/adr/\n[+] Persists"; }
-  [ Spec ] { label: "/docs/design/\n[+] Persists"; }
-)
-[ Global Plan ] -- /itp:go --> [ ADR ]
-[ Global Plan ] -- /itp:go --> [ Spec ]
-```
-
-</details>
 
 ## Installation
 
@@ -340,13 +285,6 @@ The install script auto-detects your platform and uses the appropriate package m
 
 > **Warning**: gh CLI must be installed via Homebrew, not mise. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
 
-### ADR Diagrams (Required for Preflight)
-
-| Tool       | mise (Preferred) | macOS Fallback           | Ubuntu Fallback              |
-| ---------- | ---------------- | ------------------------ | ---------------------------- |
-| cpanm      | —                | `brew install cpanminus` | `sudo apt install cpanminus` |
-| graph-easy | —                | `cpanm Graph::Easy`      | `cpanm Graph::Easy`          |
-
 ### Code Audit (Optional)
 
 | Tool    | mise (Preferred)       | macOS Fallback         | Ubuntu Fallback        |
@@ -395,7 +333,7 @@ The install script auto-detects your platform and uses the appropriate package m
 
 ### Workflow Phases
 
-1. **Preflight**: Creates ADR, design spec, and diagrams
+1. **Preflight**: Creates ADR and design spec
 2. **Phase 1**: Implement from design spec with TodoWrite tracking
 3. **Phase 2**: Format with Prettier, push to GitHub
 4. **Phase 3**: Release with semantic-release (main/master only)
@@ -405,8 +343,6 @@ The install script auto-detects your platform and uses the appropriate package m
 | Skill                      | Purpose                              | Powered by                                                               |
 | -------------------------- | ------------------------------------ | ------------------------------------------------------------------------ |
 | `implement-plan-preflight` | ADR and design spec creation         | —                                                                        |
-| `adr-graph-easy-architect` | ASCII architecture diagrams          | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
-| `graph-easy`               | General ASCII diagram tool           | [Graph::Easy](https://metacpan.org/pod/Graph::Easy)                      |
 | `impl-standards`           | Code quality standards               | —                                                                        |
 | `adr-code-traceability`    | ADR-to-code linking                  | —                                                                        |
 | `code-hardcode-audit`      | Magic number detection               | [jscpd](https://github.com/kucherenko/jscpd)                             |
@@ -415,35 +351,7 @@ The install script auto-detects your platform and uses the appropriate package m
 | `mise-configuration`       | Centralized env var configuration    | [mise](https://mise.jdx.dev/)                                            |
 | `mise-tasks`               | Task orchestration with dependencies | [mise](https://mise.jdx.dev/)                                            |
 
-## CI/CD Strategy
-
-### graph-easy (Local-Only)
-
-ADR diagrams using `graph-easy` are generated **locally** and committed to the repository. This avoids Perl/CPAN dependencies in CI/CD pipelines.
-
-**Workflow:**
-
-1. Developer runs `/itp:go` locally → generates ASCII diagrams
-2. Diagrams are committed as part of the ADR/design spec
-3. CI/CD validates the committed files (no regeneration needed)
-
-**Why local-only?**
-
-- Perl/cpanm adds 2-3 minutes to CI workflows
-- Graph::Easy has no pre-built binaries
-- Diagrams change infrequently (only during design phase)
-
 ## Troubleshooting
-
-### graph-easy not found
-
-```bash
-# Install cpanminus first
-brew install cpanminus
-
-# Then install Graph::Easy
-cpanm Graph::Easy
-```
 
 ### Skills not appearing in list
 

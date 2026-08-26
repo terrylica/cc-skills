@@ -27,28 +27,6 @@ Look-ahead bias occurs when information from the future "leaks" into decisions t
                                                                           #==========#
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: Look-Ahead Bias Prevention"; flow: east; }
-
-[ Past Data ] { shape: rounded; }
-[ TRAIN (fit) ]
-[ EMBARGO A (gap) ]
-[ VALIDATE (select) ]
-[ EMBARGO B (gap) ]
-[ TEST (report) ] { border: double; }
-
-[ Past Data ] -> [ TRAIN (fit) ]
-[ TRAIN (fit) ] -> [ EMBARGO A (gap) ]
-[ EMBARGO A (gap) ] -> [ VALIDATE (select) ]
-[ VALIDATE (select) ] -> [ EMBARGO B (gap) ]
-[ EMBARGO B (gap) ] -> [ TEST (report) ]
-```
-
-</details>
-
 ## Anti-Pattern 1: Direct Epoch Application
 
 ### The Problem

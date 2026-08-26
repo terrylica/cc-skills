@@ -12,24 +12,6 @@ Detailed specification for metrics computed on held-out test data.
  -----------     +-----------+     +-------------+      -----------
 ```
 
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: OOS Metrics Hierarchy"; flow: east; }
-
-[ Primary ] { shape: rounded; }
-[ Secondary ]
-[ Statistical ]
-[ Decision ] { shape: rounded; }
-
-[ Primary ] -> [ Secondary ]
-[ Secondary ] -> [ Statistical ]
-[ Statistical ] -> [ Decision ]
-```
-
-</details>
-
 ## Tier 1: Primary Metrics (MANDATORY)
 
 These metrics MUST be computed for every fold's test data.
@@ -457,28 +439,3 @@ See [range-bar-metrics.md](./range-bar-metrics.md) for canonical implementation.
   | REJECT  |             | REJECT  |            | WARNING |
    ----------              ----------             ----------
 ```
-
-<details>
-<summary>graph-easy source</summary>
-
-```
-graph { label: "AWFES: Metric Decision Flow"; flow: east; }
-
-[ Tier 1 Check ] { shape: rounded; }
-[ Tier 2 Risk Gate ]
-[ Tier 3 Statistical ]
-[ ACCEPT ] { shape: rounded; }
-[ REJECT T1 ] { shape: rounded; }
-[ REJECT T2 ] { shape: rounded; }
-[ WARNING ] { shape: rounded; }
-
-[ Tier 1 Check ] -- pass --> [ Tier 2 Risk Gate ]
-[ Tier 2 Risk Gate ] -- pass --> [ Tier 3 Statistical ]
-[ Tier 3 Statistical ] -- pass --> [ ACCEPT ]
-
-[ Tier 1 Check ] -- fail --> [ REJECT T1 ]
-[ Tier 2 Risk Gate ] -- fail --> [ REJECT T2 ]
-[ Tier 3 Statistical ] -- fail --> [ WARNING ]
-```
-
-</details>

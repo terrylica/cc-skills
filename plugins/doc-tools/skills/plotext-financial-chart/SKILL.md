@@ -8,8 +8,6 @@ allowed-tools: Read, Bash, Write, Edit
 
 Create ASCII financial line charts for GitHub Flavored Markdown using plotext with dot marker (`•`). Pure text output — renders correctly on GitHub, terminals, and all monospace environments.
 
-**Analogy**: `graph-easy` is for flowcharts. `plotext` with dot marker is for financial line charts.
-
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
 ## When to Use This Skill
@@ -19,7 +17,7 @@ Create ASCII financial line charts for GitHub Flavored Markdown using plotext wi
 - Any GFM markdown file needing financial data visualization
 - User mentions "financial chart", "line chart", "price chart", "plotext", or "trading chart"
 
-**NOT for**: Flowcharts or architecture diagrams — use `graph-easy` for those.
+**NOT for**: Flowcharts or architecture diagrams.
 
 ## Preflight Check
 

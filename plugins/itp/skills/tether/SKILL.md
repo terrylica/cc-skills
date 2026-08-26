@@ -17,7 +17,7 @@ Manage itp-hooks installation in `~/.claude/settings.json`.
 
 Claude Code only loads hooks from settings.json, not from plugin.json files. This command installs/uninstalls three itp-hooks:
 
-- **PreToolUse guard** - Blocks ASCII diagrams without graph-easy source blocks
+- **PreToolUse guard** - Blocks ASCII diagrams without a source block
 - **PostToolUse reminder** - Prompts ADR/spec sync after file modifications
 - **Fake-data-guard** - Detects fake/synthetic data patterns (np.random, Faker, etc.) in new Python files
 

@@ -282,10 +282,8 @@ async function buildDependencyGraph() {
 /**
  * Known complementary plugin pairs that have intentional bidirectional Skill() references.
  * These are NOT true circular dependencies - they are collaborative workflows where
- * each plugin recommends using the other for related tasks.
- *
- * Example: doc-tools recommends itp:graph-easy for diagrams, itp recommends
- * doc-tools:ascii-diagram-validator for validation. Neither REQUIRES the other.
+ * each plugin recommends using the other for related tasks. Neither REQUIRES
+ * the other.
  */
 const KNOWN_COMPLEMENTARY_PAIRS = new Set([
   "doc-tools:itp",   // Diagram generation ↔ diagram validation workflows
