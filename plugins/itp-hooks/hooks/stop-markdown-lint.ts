@@ -84,18 +84,79 @@ function main(): void {
     }
   }
 
-  // --- Phase 1: prettier --write (auto-fix formatting) ---
   const hasPrettier =
     Bun.spawnSync(["which", "prettier"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
 
-  if (hasPrettier && cleanFiles.length > 0) {
+  // --- Phase 0.5: honour the repo's .prettierignore for BOTH formatters ---
+  //
+  // Phase 1 reads `.prettierignore` for free because prettier does it. Phase 2
+  // did NOT: markdownlint-cli2 has no --ignore-path, it honours only its own
+  // config, and most repos carry none — so a repo that declared "this content
+  // is archival evidence, never format it" was obeyed by one formatter and
+  // silently overruled by the other.
+  //
+  // That asymmetry corrupted a real archive. A repo whose `.prettierignore`
+  // excluded a generated-content directory had prettier duly skip it, and then
+  // markdownlint-cli2 --fix rewrote 97 freshly-generated, still-untracked files
+  // AFTER the generating pipeline had hashed them into a checksum manifest.
+  // Not cosmetically: 139 content mutations across 29 files, including MD029
+  // ordered-list renumbering that destroyed OCR'd numerals (`- 10790.` was
+  // rewritten to `- 1.`). Adding the ignore file had closed exactly half the
+  // hole; this closes the other half.
+  //
+  // Note for anyone reproducing this: markdownlint's fixer is not stable across
+  // patch releases. Of the 53 files reconstructible byte-exactly, cli2 0.23.0
+  // reproduced all 53, 0.23.2 reproduced 51, and 0.22.x missed a different one.
+  //
+  // Filtering the FILE LIST rather than passing a flag is deliberate — it is
+  // tool-agnostic, so any formatter added to this hook later inherits it.
+  // `prettier --file-info` is used as the oracle so both phases agree on what
+  // "ignored" means by construction, rather than by a hand-rolled matcher.
+  let formatFiles = cleanFiles;
+  if (cleanFiles.length > 0) {
+    const rootResult = Bun.spawnSync(["git", "rev-parse", "--show-toplevel"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      timeout: 5000,
+    });
+    const repoRoot = rootResult.stdout?.toString().trim() || "";
+    const ignorePath = repoRoot ? `${repoRoot}/.prettierignore` : "";
+
+    if (ignorePath && existsSync(ignorePath) && hasPrettier) {
+      const kept: string[] = [];
+      let skipped = 0;
+      for (const f of cleanFiles) {
+        const info = Bun.spawnSync(
+          ["prettier", "--file-info", f, "--ignore-path", ignorePath],
+          { stdout: "pipe", stderr: "pipe", timeout: 5000 },
+        );
+        let ignored = false;
+        try {
+          ignored = JSON.parse(info.stdout?.toString() || "{}").ignored === true;
+        } catch {
+          ignored = false; // unparseable -> format it, matching prior behaviour
+        }
+        if (ignored) skipped++;
+        else kept.push(f);
+      }
+      formatFiles = kept;
+      if (skipped > 0) {
+        messages.push(
+          `ignore: skipped ${skipped} file(s) per .prettierignore — applies to markdownlint too, not just prettier`,
+        );
+      }
+    }
+  }
+
+  // --- Phase 1: prettier --write (auto-fix formatting) ---
+  if (hasPrettier && formatFiles.length > 0) {
     const prettierResult = Bun.spawnSync(
-      ["prettier", "--write", "--prose-wrap", "preserve", ...cleanFiles],
+      ["prettier", "--write", "--prose-wrap", "preserve", ...formatFiles],
       { stdout: "pipe", stderr: "pipe", timeout: 10000 },
     );
 
     if (prettierResult.exitCode === 0) {
-      messages.push(`prettier: auto-formatted ${cleanFiles.length} file(s)`);
+      messages.push(`prettier: auto-formatted ${formatFiles.length} file(s)`);
     } else {
       const stderr = prettierResult.stderr?.toString().trim() || "";
       if (stderr) {
@@ -108,16 +169,16 @@ function main(): void {
   const hasMarkdownlint =
     Bun.spawnSync(["which", "markdownlint-cli2"], { stdout: "pipe", stderr: "pipe" }).exitCode === 0;
 
-  if (hasMarkdownlint && cleanFiles.length > 0) {
+  if (hasMarkdownlint && formatFiles.length > 0) {
     // First pass: auto-fix
-    Bun.spawnSync(["markdownlint-cli2", "--fix", ...cleanFiles], {
+    Bun.spawnSync(["markdownlint-cli2", "--fix", ...formatFiles], {
       stdout: "pipe",
       stderr: "pipe",
       timeout: 10000,
     });
 
     // Second pass: report remaining issues
-    const lintResult = Bun.spawnSync(["markdownlint-cli2", ...cleanFiles], {
+    const lintResult = Bun.spawnSync(["markdownlint-cli2", ...formatFiles], {
       stdout: "pipe",
       stderr: "pipe",
       timeout: 10000,
