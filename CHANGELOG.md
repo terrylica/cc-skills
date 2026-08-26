@@ -1,3 +1,44 @@
+# [29.0.0](https://github.com/terrylica/cc-skills/compare/v28.3.0...v29.0.0) (2026-08-26)
+
+
+* feat(itp)!: remove graph-easy entirely ([8adb89f](https://github.com/terrylica/cc-skills/commit/8adb89f70e64c736a078fe75e16791e2715345c2))
+
+Deletes the itp:graph-easy and itp:adr-graph-easy-architect skills and purges every active reference to them across the marketplace.
+
+WHY. The wrapper at plugins/itp/skills/graph-easy/scripts/graph-easy exec'd a Perl binary under ~/.local/share/mise/installs/. mise was retired machine-wide (proto is the only toolchain manager), so that binary vanished and every invocation exited 127. It was not merely dead -- it was actively harmful:
+
+  - ~/.local/bin/graph-easy symlinked to it, and `type -a graph-easy` showed the wrapper was the ONLY graph-easy on PATH, so the repo file WAS the machine's graph-easy.
+  - The itp-hooks PostToolUse reminder nudged every `graph-easy` Bash command toward these skills, i.e. the plugin routed agents into a guaranteed exit-127. It fired during the very session that removed it.
+  - It shipped fleet-wide through the marketplace.
+
+Found by a sweep for hardcoded toolchain shim PATHS. Note it invoked no mise COMMAND, so an earlier sweep grepping `mise run` / `mise exec` / `command -v mise` missed it entirely. Verified broken by execution, not inference.
+
+WHAT CHANGED.
+
+  - Deleted both skill directories (15 files).
+  - Removed checkGraphEasy() from the itp-hooks PostToolUse reminder, plus the now-unused writeFileSync/mkdirSync/homedir imports it alone needed. Its tests are INVERTED rather than deleted, so reinstating the rule fails loudly instead of silently resurrecting a nudge toward deleted skills.
+  - Stripped the perl / cpanminus / Graph::Easy chain from plugins/itp/scripts/install-dependencies.sh -- it existed solely to support graph-easy.
+  - Purged 131 active references across 36 files: SKILL.md guidance, READMEs, plugin.json and marketplace.json descriptions and keywords, validators.
+  - Removed the ~/.local/bin/graph-easy symlink (local, not in this repo).
+
+DELIBERATELY NOT CHANGED. No replacement tool is suggested anywhere; removing the recommendation was the whole task. References inside ADRs, design specs, CHANGELOGs and evolution logs are LEFT INTACT -- those record what was true when written, and rewriting them would be falsifying the record, not cleaning up.
+
+The state file checkGraphEasy() wrote (&lt;session>.graph-easy-used), documented as a "PreToolUse exemption", turned out to be read by NOTHING -- verified by grep across all hooks. The exemption did not exist; the writes were dead weight.
+
+VERIFIED: 38/38 JSON manifests parse; 0 active graph-easy references remain; 0 dangling pointers to the deleted directories; both directories are gone; `validate-plugins.mjs` passes for all 42 plugins; the 60 hook tests pass; install-dependencies.sh passes bash -n.
+
+One near-miss worth recording: .claude-plugin/marketplace.json was SILENTLY DROPPED from the purge worklist by a path bug in the list builder -- `"./.claude-plugin/x".lstrip("./")` strips characters, not a prefix, so it ate the leading dot and produced a path that does not exist, which was then skipped as "not a file". The fleet-wide manifest was the one file most important to fix. Caught only by re-grepping afterwards instead of trusting the worklist.
+
+
+
+### BREAKING CHANGES
+
+* the itp:graph-easy and itp:adr-graph-easy-architect skills are
+removed. Anything invoking them by name, or relying on the `graph-easy` binary
+the itp plugin installed on PATH, must stop. In practice both had been
+non-functional since mise was uninstalled, so no working workflow depends on
+them.
+
 # [28.3.0](https://github.com/terrylica/cc-skills/compare/v28.2.3...v28.3.0) (2026-08-25)
 
 
