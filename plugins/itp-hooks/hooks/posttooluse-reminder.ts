@@ -4,22 +4,24 @@
  * TypeScript/Bun implementation for type safety and maintainability.
  *
  * Provides non-blocking reminders for decision traceability:
- * 1. graph-easy CLI used → remind about using the skill for reproducibility
- * 2. pip/venv usage → remind about using uv instead
- * 3. Long-running tasks → remind about using Pueue for job orchestration
- * 4. ADR modified → remind to update Design Spec
- * 5. Design Spec modified → remind to update ADR
- * 6. Implementation code modified → remind about ADR traceability + ruff linting
+ * 1. pip/venv usage → remind about using uv instead
+ * 2. Long-running tasks → remind about using Pueue for job orchestration
+ * 3. ADR modified → remind to update Design Spec
+ * 4. Design Spec modified → remind to update ADR
+ * 5. Implementation code modified → remind about ADR traceability + ruff linting
+ *
+ * (A graph-easy reminder was rule 1 until 2026-08-25; removed with those skills.)
  *
  * ADR: 2025-12-17-posttooluse-hook-visibility.md
  * ADR: 2026-01-10-uv-reminder-hook.md
  * Issue: https://github.com/terrylica/rangebar-py/issues/77 (Pueue reminder)
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+// writeFileSync, mkdirSync and homedir were used only by the removed checkGraphEasy()
+// state-file write; dropped 2026-08-25 so they do not linger as unused imports.
+import { readFileSync, existsSync } from "fs";
 import { join, basename } from "path";
 import { execSync } from "child_process";
-import { homedir } from "os";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
 // Iter-112: route the SETPROCTITLE-OK escape-hatch detection through the
 // iter-107 canonical helper rather than a raw `fileContent.includes()`
@@ -93,31 +95,17 @@ function normalizeForPatternMatch(filePath: string): string {
 
 // --- Detection Functions ---
 
-/**
- * Check for graph-easy CLI usage and track for PreToolUse exemption
- */
-function checkGraphEasy(command: string, sessionId?: string): string | null {
-  if (!command.includes("graph-easy")) {
-    return null;
-  }
-
-  // Track graph-easy usage for PreToolUse exemption
-  // ADR: 2025-12-09-itp-hooks-workflow-aware-graph-easy
-  const stateDir = join(homedir(), ".claude", "hooks", "state");
-  try {
-    mkdirSync(stateDir, { recursive: true });
-    if (sessionId) {
-      writeFileSync(
-        join(stateDir, `${sessionId}.graph-easy-used`),
-        String(Math.floor(Date.now() / 1000))
-      );
-    }
-  } catch (err) {
-    trackHookError("posttooluse-reminder", `Failed to create state directory: ${stateDir}`);
-  }
-
-  return `[GRAPH-EASY SKILL] You used graph-easy CLI directly. For reproducible diagrams, prefer the graph-easy skill (or adr-graph-easy-architect for ADRs). Skills ensure: proper --as=boxart mode, correct \\n escaping, and <details> source block for future edits.`;
-}
+// REMOVED 2026-08-25: checkGraphEasy().
+//
+// It nudged every `graph-easy` Bash invocation toward the itp:graph-easy /
+// itp:adr-graph-easy-architect skills. Those skills have been deleted, so the reminder
+// pointed at nothing — and worse, the wrapper it recommended had been broken for months:
+// it exec'd a Perl binary under ~/.local/share/mise/installs/, and mise was uninstalled
+// machine-wide. The hook was actively routing agents into a guaranteed exit-127.
+//
+// It also wrote a `<session>.graph-easy-used` state file described as a "PreToolUse
+// exemption". Nothing anywhere read that file — verified by grep across all hooks — so the
+// exemption did not exist and the writes were dead weight.
 
 /**
  * Check for venv activation patterns
@@ -752,13 +740,10 @@ async function main(): Promise<void> {
   if (toolName === "Bash") {
     const command = input.tool_input?.command || "";
 
-    // Check graph-easy (highest priority - tracks state)
-    reminder = checkGraphEasy(command, input.session_id);
-
-    // Check venv activation
-    if (!reminder) {
-      reminder = checkVenvActivation(command);
-    }
+    // checkGraphEasy() used to run first here ("highest priority - tracks state").
+    // Removed 2026-08-25 with the graph-easy skills; see the note at its former definition.
+    // venv activation is now the first Bash check.
+    reminder = checkVenvActivation(command);
 
     // Check pip usage
     if (!reminder) {

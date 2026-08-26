@@ -52,18 +52,20 @@ afterAll(() => {
 // Bash Tool Tests
 // ============================================================================
 
-describe("Bash: graph-easy detection", () => {
-  it("should detect graph-easy usage", () => {
+// The graph-easy reminder was REMOVED 2026-08-25 along with the itp:graph-easy and
+// itp:adr-graph-easy-architect skills. These tests are inverted rather than deleted, so
+// the removal is locked in: if someone reinstates the rule, this fails loudly instead of
+// silently resurrecting a nudge toward skills that no longer exist.
+describe("Bash: graph-easy reminder is REMOVED", () => {
+  it("must NOT emit a reminder for a graph-easy command", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "echo 'graph' | graph-easy --as=boxart" },
     });
-    expect(result.parsed).not.toBeNull();
-    expect((result.parsed as any).decision).toBe("block");
-    expect((result.parsed as any).reason).toContain("[GRAPH-EASY SKILL]");
+    expect(result.stdout).not.toContain("GRAPH-EASY");
   });
 
-  it("should not trigger on non-graph-easy commands", () => {
+  it("still emits nothing for an unrelated command", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "echo hello" },
@@ -366,13 +368,17 @@ describe("Edge cases", () => {
 // ============================================================================
 
 describe("Reminder priority", () => {
-  it("graph-easy should take priority over pip", () => {
+  // Was "graph-easy should take priority over pip". With the graph-easy rule removed
+  // (2026-08-25) the pip reminder is what this command should now surface — asserting that
+  // proves the removal did not accidentally suppress the rule that used to sit behind it.
+  it("pip reminder surfaces now that graph-easy no longer pre-empts it", () => {
     const result = runHook({
       tool_name: "Bash",
       tool_input: { command: "pip install graph-easy && graph-easy --help" },
     });
+    expect(result.stdout).not.toContain("GRAPH-EASY");
     expect(result.parsed).not.toBeNull();
-    expect((result.parsed as any).reason).toContain("[GRAPH-EASY SKILL]");
+    expect((result.parsed as any).reason).toContain("uv");
   });
 
   it("venv activation should take priority over pip", () => {

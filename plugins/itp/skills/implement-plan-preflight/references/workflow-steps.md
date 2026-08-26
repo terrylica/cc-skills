@@ -87,12 +87,10 @@ Extract from session context:
 | **Before/After** | Context section      | Shows system state change (what exists now vs. after implementation) |
 | **Architecture** | Architecture section | Shows component relationships and data flow                          |
 
-**SKILL INVOCATION (REQUIRED):**
+**AUTHORING ORDER (REQUIRED):**
 
-1. **Invoke Skill tool with `adr-graph-easy-architect` NOW**
-2. Create **Before/After diagram** first — embed in `## Context` section
-3. Create **Architecture diagram** second — embed in `## Architecture` section
-4. **VERIFY**: Search ADR for `<!-- graph-easy source:` — you must have TWO separate blocks
+1. Create **Before/After diagram** first — embed in `## Context` section
+2. Create **Architecture diagram** second — embed in `## Architecture` section
 
 **BLOCKING GATE**: Do NOT proceed to Step P.2 until BOTH diagrams are embedded in ADR.
 
@@ -180,11 +178,10 @@ echo "Preflight complete: ADR and design spec created"
 - [ ] ADR has YAML frontmatter with all 7 required fields
 - [ ] ADR has `status: proposed` (initial state)
 - [ ] ADR has `**Design Spec**:` link in header
-- [ ] **DIAGRAM CHECK 1**: ADR has **Before/After diagram** in Context section (graph-easy block)
-- [ ] **DIAGRAM CHECK 2**: ADR has **Architecture diagram** in Architecture section (graph-easy block)
+- [ ] **DIAGRAM CHECK 1**: ADR has **Before/After diagram** in Context section
+- [ ] **DIAGRAM CHECK 2**: ADR has **Architecture diagram** in Architecture section
 
-**⛔ DIAGRAM VERIFICATION**: If either diagram is missing, STOP and invoke `adr-graph-easy-architect` skill.
-Search for `<!-- graph-easy source:` — you need TWO separate blocks.
+**⛔ DIAGRAM VERIFICATION**: If either diagram is missing, STOP and add it before proceeding.
 
 - [ ] Design spec exists at `/docs/design/$ADR_ID/spec.md`
 - [ ] Design spec has YAML frontmatter with all 5 required fields
@@ -214,10 +211,10 @@ Search for `<!-- graph-easy source:` — you need TWO separate blocks.
 
 ## Common Errors
 
-| Error                          | Cause                    | Solution                                            |
-| ------------------------------ | ------------------------ | --------------------------------------------------- |
-| ADR frontmatter missing fields | Incomplete template      | Check all 7 required fields                         |
-| Design spec missing backlink   | Forgot to add header     | Add `**ADR**: [...]` link                           |
-| Diagrams not present           | Skipped diagram step     | Use Skill tool to invoke `adr-graph-easy-architect` |
-| Wrong slug format              | Contains redundant words | Apply word economy rule                             |
-| Relative paths in links        | Used `./` or `../`       | Use `/docs/adr/...` format                          |
+| Error                          | Cause                    | Solution                     |
+| ------------------------------ | ------------------------ | ---------------------------- |
+| ADR frontmatter missing fields | Incomplete template      | Check all 7 required fields  |
+| Design spec missing backlink   | Forgot to add header     | Add `**ADR**: [...]` link    |
+| Diagrams not present           | Skipped diagram step     | Add both diagrams to the ADR |
+| Wrong slug format              | Contains redundant words | Apply word economy rule      |
+| Relative paths in links        | Used `./` or `../`       | Use `/docs/adr/...` format   |

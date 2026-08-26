@@ -4,8 +4,8 @@ Pandoc Lua filter to hide HTML <details> blocks when generating PDF
 
 PURPOSE:
 When converting Markdown to PDF, this filter removes <details>...</details>
-blocks entirely. These blocks often contain source code (like graph-easy
-source) that is useful for regeneration in markdown but clutters PDF output.
+blocks entirely. These blocks often contain source code that is useful for
+regeneration in markdown but clutters PDF output.
 
 USAGE:
   pandoc input.md -o output.pdf --lua-filter=hide-details-for-pdf.lua

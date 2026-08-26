@@ -454,7 +454,7 @@
     },
     {
       "name": "itp-hooks",
-      "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, graph-easy reminders, ADR/Spec sync, code-to-ADR traceability",
+      "description": "ITP workflow enforcement: Ruff Python linting, ASCII art blocking, ADR/Spec sync, code-to-ADR traceability",
       "version": "28.3.0",
       "source": "./plugins/itp-hooks",
       "category": "enforcement",
@@ -467,7 +467,6 @@
         "hooks",
         "enforcement",
         "adr",
-        "graph-easy",
         "standards",
         "ruff",
         "python",

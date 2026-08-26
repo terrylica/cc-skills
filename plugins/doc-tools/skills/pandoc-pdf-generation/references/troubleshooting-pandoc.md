@@ -175,25 +175,14 @@ Manual visual inspection:
 
 **Problem:** ASCII box diagrams have misaligned edges, broken arrows, or inconsistent spacing.
 
-**Root Cause:** Manually typed ASCII art instead of using graph-easy tool.
+**Root Cause:** Inline annotations inside the diagram block, or lines that do not share the same character width.
 
-**Solution:** ALWAYS use the `itp:graph-easy` skill for ASCII diagrams:
-
-```bash
-# General diagrams
-Skill(itp:graph-easy)
-
-# ADR architecture diagrams
-Skill(itp:adr-graph-easy-architect)
-```
-
-**Also:** Keep annotations OUTSIDE code blocks. Don't add inline comments inside diagrams - they break alignment. Place descriptive text in regular markdown paragraphs before or after the diagram.
+**Solution:** Keep annotations OUTSIDE code blocks. Don't add inline comments inside diagrams - they break alignment. Place descriptive text in regular markdown paragraphs before or after the diagram.
 
 **Prevention:**
 
-1. Never manually type ASCII diagrams
-2. Always use graph-easy skills
-3. Never add inline comments inside diagram code blocks
+1. Never add inline comments inside diagram code blocks
+2. Verify every diagram line is the same width before finalizing
 
 ### Issue: Unwanted Double-Sided Printing
 

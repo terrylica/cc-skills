@@ -195,16 +195,16 @@ last-updated: <YYYY-MM-DD>
 
 ### 3.1 Link Type Standards
 
-| Context                       | Link Type | Example                                              |
-| ----------------------------- | --------- | ---------------------------------------------------- |
-| Skill to Skill (same plugin)  | Relative  | `[skill-name](./skills/skill-name/SKILL.md)`         |
-| Skill to Skill (cross-plugin) | Relative  | `[graph-easy](../../itp/skills/graph-easy/SKILL.md)` |
-| Plugin CLAUDE to Hub          | Relative  | `[Root CLAUDE.md](../../CLAUDE.md)`                  |
-| Plugin CLAUDE to Sibling      | Relative  | `[gh-tools](../gh-tools/CLAUDE.md)`                  |
-| Plugin CLAUDE to docs         | Repo-root | `[ADR Guide](/docs/adr/)`                            |
-| docs to docs (same dir)       | Relative  | `[related doc](./other-file.md)`                     |
-| docs to ADRs                  | Repo-root | `/docs/adr/0012-example-adr.md`                      |
-| External resources            | Full URL  | `[External Doc](https://example.com)`                |
+| Context                       | Link Type | Example                                                      |
+| ----------------------------- | --------- | ------------------------------------------------------------ |
+| Skill to Skill (same plugin)  | Relative  | `[skill-name](./skills/skill-name/SKILL.md)`                 |
+| Skill to Skill (cross-plugin) | Relative  | `[impl-standards](../../itp/skills/impl-standards/SKILL.md)` |
+| Plugin CLAUDE to Hub          | Relative  | `[Root CLAUDE.md](../../CLAUDE.md)`                          |
+| Plugin CLAUDE to Sibling      | Relative  | `[gh-tools](../gh-tools/CLAUDE.md)`                          |
+| Plugin CLAUDE to docs         | Repo-root | `[ADR Guide](/docs/adr/)`                                    |
+| docs to docs (same dir)       | Relative  | `[related doc](./other-file.md)`                             |
+| docs to ADRs                  | Repo-root | `/docs/adr/0012-example-adr.md`                              |
+| External resources            | Full URL  | `[External Doc](https://example.com)`                        |
 
 ### 3.2 Link Syntax Rules
 
@@ -327,7 +327,6 @@ keywords:
   - workflow
   - implementation
   - preflight
-  - graph-easy
 links:
   hub: ../../CLAUDE.md
   sibling: ../itp-hooks/CLAUDE.md

@@ -1,7 +1,7 @@
 ---
 name: setup
 description: SETUP COMMAND - Execute TodoWrite FIRST, then Check -> Gate -> Install -> Verify. TRIGGERS - itp setup, install dependencies, check prerequisites
-allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(cpanm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
+allowed-tools: Read, Bash(brew:*), Bash(npm:*), Bash(uv:*), Bash(which:*), Bash(command -v:*), Bash(PLUGIN_DIR:*), Bash(source:*), AskUserQuestion, TodoWrite, TodoRead
 argument-hint: "[--check | --install | --yes]"
 disable-model-invocation: false
 ---
@@ -35,7 +35,6 @@ TodoWrite with todos:
 - "Setup: Bootstrap cc-plugin-root resolver" | pending | "Bootstrapping path resolver"
 - "Setup: Detect platform (macOS/Linux)" | pending | "Detecting platform"
 - "Setup: Check Core Tools (uv, gh, prettier)" | pending | "Checking Core Tools"
-- "Setup: Check ADR Diagram Tools (cpanm, graph-easy)" | pending | "Checking ADR Tools"
 - "Setup: Check Code Audit Tools (ruff, semgrep, jscpd, gitleaks)" | pending | "Checking Audit Tools"
 - "Setup: Check Release Tools (node, semantic-release)" | pending | "Checking Release Tools"
 - "Setup: Present findings and disclaimer" | pending | "Presenting findings"
@@ -112,14 +111,7 @@ Record findings:
 - Found: `[OK] uv (installed)` -> mark completed
 - Missing: `[x] prettier (missing)` -> note for Phase 3
 
-### Todo 3: Check ADR Diagram Tools
-
-| Tool       | Check                             | Required     |
-| ---------- | --------------------------------- | ------------ |
-| cpanm      | `command -v cpanm`                | For diagrams |
-| graph-easy | `echo "[A]" \| graph-easy` (test) | For diagrams |
-
-### Todo 4: Check Code Audit Tools
+### Todo 3: Check Code Audit Tools
 
 | Tool     | Check                 | Required        |
 | -------- | --------------------- | --------------- |
@@ -128,7 +120,7 @@ Record findings:
 | jscpd    | `command -v jscpd`    | For code-audit  |
 | gitleaks | `command -v gitleaks` | For secret-scan |
 
-### Todo 5: Check Release Tools
+### Todo 4: Check Release Tools
 
 | Tool             | Check                            | Required      |
 | ---------------- | -------------------------------- | ------------- |
@@ -140,7 +132,7 @@ Record findings:
 
 ## Phase 2: Present Findings (Interactive Gate)
 
-### Todo 6: Present Findings
+### Todo 5: Present Findings
 
 **IMPORTANT: Use mise-first commands when available**
 
@@ -194,7 +186,7 @@ Missing tools will be installed via brew:
 
 **IMPORTANT**: Version numbers must be derived dynamically from running the actual tool's version command. Never hardcode version numbers.
 
-### Todo 7: GATE - Await User Decision
+### Todo 6: GATE - Await User Decision
 
 **If missing tools exist, STOP and ask user:**
 
@@ -212,13 +204,13 @@ options:
 
 **IMPORTANT**: Do NOT proceed to Phase 3 until user responds.
 
-**If ALL tools present**: Mark todo completed, skip to "All set!" message, mark todos 8-9 as N/A.
+**If ALL tools present**: Mark todo completed, skip to "All set!" message, mark todos 7-8 as N/A.
 
 ---
 
 ## Phase 3: Installation (Conditional)
 
-### Todo 8: Install Missing Tools
+### Todo 7: Install Missing Tools
 
 **Only execute if**:
 
@@ -240,7 +232,7 @@ SETUP_EOF_2
 - Mark todo as skipped
 - Exit cleanly
 
-### Todo 9: Verify Installation
+### Todo 8: Verify Installation
 
 Re-run checks to confirm tools are now available:
 
@@ -283,23 +275,13 @@ esac
 
 | Case                              | Handling                                                          |
 | --------------------------------- | ----------------------------------------------------------------- |
-| All tools present                 | Todos 1-6 complete, Todo 7 shows "All set!", Todos 8-9 marked N/A |
-| Some missing, user says "install" | Todos 8-9 execute normally                                        |
-| Some missing, user says "skip"    | Show manual commands, mark todos 8-9 as skipped                   |
-| `--install` flag passed           | Skip Todo 7 gate, proceed directly to install                     |
+| All tools present                 | Todos 1-5 complete, Todo 6 shows "All set!", Todos 7-8 marked N/A |
+| Some missing, user says "install" | Todos 7-8 execute normally                                        |
+| Some missing, user says "skip"    | Show manual commands, mark todos 7-8 as skipped                   |
+| `--install` flag passed           | Skip Todo 6 gate, proceed directly to install                     |
 | macOS vs Linux                    | Todo 1 detects platform, install commands adapt                   |
 
 ## Troubleshooting
-
-### graph-easy fails to install
-
-```bash
-# Ensure cpanminus is installed first
-brew install cpanminus
-
-# Then install Graph::Easy
-cpanm Graph::Easy
-```
 
 ### semantic-release not found
 
@@ -347,7 +329,7 @@ After setup completes, configure itp-hooks for enhanced workflow guidance:
 ### What hooks provide
 
 - **PreToolUse guard**: Blocks Unicode box-drawing diagrams without `<details>` source blocks
-- **PostToolUse reminder**: Prompts ADR sync and graph-easy skill usage
+- **PostToolUse reminder**: Prompts ADR sync
 
 **IMPORTANT:** Hooks require a Claude Code session restart after installation.
 

@@ -40,15 +40,15 @@ Skills are discovered via:
 
    ```yaml
    ---
-   name: adr-graph-easy-architect
-   description: ASCII architecture diagrams...
-   allowed-tools: Bash, Read, Write, Edit
+   name: adr-code-traceability
+   description: Add ADR references to code for traceability...
+   allowed-tools: Read, Edit, Grep, Glob
    ---
    ```
 
 2. **Slash command invocation**: Users type `/<skill-name>` to invoke
 
-3. **Trigger phrases** (stored in description): e.g., "TRIGGERS - ADR diagram, architecture diagram"
+3. **Trigger phrases** (stored in description): e.g., "TRIGGERS - ADR traceability, code reference"
 
 **Statistics:**
 
@@ -70,7 +70,7 @@ The Single Source of Truth (SSoT) is `.claude-plugin/marketplace.json`:
 **Keywords for discovery:**
 
 - plugin-dev: ["plugin", "skill", "validation", "silent-failures", "meta-skill"...]
-- itp: ["adr", "workflow", "implementation", "preflight", "graph-easy"...]
+- itp: ["adr", "workflow", "implementation", "preflight"...]
 - gh-tools: ["github", "pull-request", "gfm", "link-validation"...]
 
 **Finding**: Keywords provide some discoverability but are not exposed to end users in the Claude Code interface.
@@ -150,9 +150,9 @@ Browse skills by category or search by keyword.
 
 ## All Skills (164)
 
-| Skill                    | Plugin | Description                 | Triggers                  |
-| ------------------------ | ------ | --------------------------- | ------------------------- |
-| adr-graph-easy-architect | itp    | ASCII architecture diagrams | ADR diagram, architecture |
+| Skill                 | Plugin | Description            | Triggers                         |
+| --------------------- | ------ | ---------------------- | -------------------------------- |
+| adr-code-traceability | itp    | ADR references in code | ADR traceability, code reference |
 
 ...
 ```
@@ -185,12 +185,12 @@ Create a machine-readable index for potential tooling:
 {
   "skills": [
     {
-      "name": "adr-graph-easy-architect",
+      "name": "adr-code-traceability",
       "plugin": "itp",
-      "description": "ASCII architecture diagrams for ADRs via graph-easy",
-      "triggers": ["adr", "diagram", "architecture"],
-      "keywords": ["graph-easy", "ascii", "architecture"],
-      "path": "plugins/itp/skills/adr-graph-easy-architect/SKILL.md"
+      "description": "Add ADR references to code for traceability",
+      "triggers": ["adr", "traceability", "code reference"],
+      "keywords": ["adr", "traceability", "code"],
+      "path": "plugins/itp/skills/adr-code-traceability/SKILL.md"
     }
   ]
 }
@@ -243,14 +243,13 @@ Standardize trigger phrase format across all SKILL.md files:
 
 ```yaml
 ---
-name: adr-graph-easy-architect
-description: ASCII architecture diagrams for ADRs via graph-easy
+name: adr-code-traceability
+description: Add ADR references to code for traceability
 triggers:
-  - adr diagram
-  - architecture
-  - graph-easy
-  - ascii chart
-allowed-tools: Bash, Read, Write
+  - adr traceability
+  - code reference
+  - document decision in code
+allowed-tools: Read, Edit, Grep, Glob
 ---
 ```
 
