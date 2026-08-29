@@ -109,6 +109,55 @@ case "$ITER157_PROPOSED_SUBJECT_LINE" in
         ;;
 esac
 
+# ─── Step 3b: commit-message exposure guard ─────────────────────────────────
+#
+# Runs BEFORE the conventional-commit classifier, because a message that leaks
+# a credential must be rejected regardless of how well-formed its subject is.
+#
+# Why here: an audit found this repo's own PII-scrub commits republished every
+# value they redacted, because semantic-release turns commit BODIES into public
+# release notes. The Write/Edit exposure hooks never see a commit message, so
+# the commit-msg hook is the only interception point that covers operator
+# commits, `-F file`, editor sessions and `--amend` alike.
+#
+# Credential classes block; identifier/PII classes print a reminder and allow.
+# Escape hatch: `SECRET-SCAN-OK: <reason>` (>=10 chars) in the message itself.
+
+iter157_locate_bun_interpreter_without_trusting_path() {
+    local candidate
+    for candidate in \
+        "$(command -v bun 2>/dev/null || true)" \
+        /opt/homebrew/bin/bun \
+        "$HOME/.bun/bin/bun"
+    do
+        if [[ -n "$candidate" && -x "$candidate" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 0
+}
+
+ITER157_EXPOSURE_GUARD_ABSOLUTE_PATH="$ITER157_CC_SKILLS_REPO_PATH/scripts/commit-message-exposure-guard.ts"
+ITER157_EXPOSURE_GUARD_BUN=$(iter157_locate_bun_interpreter_without_trusting_path)
+
+if [[ -n "$ITER157_EXPOSURE_GUARD_BUN" && -f "$ITER157_EXPOSURE_GUARD_ABSOLUTE_PATH" ]]; then
+    # Split the invocation from the status read: `local x=$(cmd)` and a bare
+    # `$?` after an else-less `fi` both lose the real exit code.
+    iter157_exposure_guard_exit_code=0
+    "$ITER157_EXPOSURE_GUARD_BUN" "$ITER157_EXPOSURE_GUARD_ABSOLUTE_PATH" \
+        --message-file "$ITER157_COMMIT_MSG_FILE_ABSOLUTE_PATH" \
+        || iter157_exposure_guard_exit_code=$?
+    if [[ "$iter157_exposure_guard_exit_code" -ne 0 ]]; then
+        exit "$iter157_exposure_guard_exit_code"
+    fi
+else
+    # Fail OPEN, but never silently: an operator who thinks the guard ran when
+    # it did not is worse off than one who knows it did not.
+    printf '[commit-msg-exposure] NOT ACTIVE — guard or bun not found (%s).\n' \
+        "$ITER157_EXPOSURE_GUARD_ABSOLUTE_PATH" >&2
+fi
+
 # ─── Step 4: delegate classification to iter-153 advisor --strict ───────────
 #
 # --strict makes iter-153 exit non-zero on silent-fail-class violations

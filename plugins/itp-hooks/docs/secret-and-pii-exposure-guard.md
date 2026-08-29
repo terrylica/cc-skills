@@ -69,3 +69,53 @@ Note the limit that motivated the hooks in the first place: **no scanner detects
 - A 30-char alphanumeric build fingerprint, nanoid or hash quoted in the same paragraph as the word "pushover" would block. Rare, and the escape hatch is one comment away.
 - A `gh secret set NAME=<16+ char base64 test vector>` in a shell fixture would block.
 - The phone detector's E.164 arm needs no context word; a raw `+1 604 …`-shaped identifier in a data file would remind (never block).
+
+---
+
+## Third surface: the commit message (2026-08-29)
+
+### The second incident
+
+An audit found that this repo's own **PII-scrub commits republished, verbatim and publicly, every value they redacted.** semantic-release turns commit bodies into release prose, so a conscientious "removed X, Y, Z" message became the leak — with a permanent public URL that no later commit retracts. It was still recurring two releases after the scrub: the habit outlived the fix.
+
+The two hooks above could not have caught it. **They inspect file writes; no file was ever written.** Same detector, invisible surface.
+
+### Mechanism: `scripts/commit-message-exposure-guard.ts`, run from the `commit-msg` git hook
+
+Invoked as Step 3b of the iter-157 commit-msg hook body, before the conventional-commit classifier (a message that leaks must be rejected however well-formed its subject is). A PreToolUse guard on `Bash` was rejected as the primary mechanism: it would only see agent commits with an inline `-m`, and would miss operator-typed commits, `-F file`, editor sessions, `--amend`, and any other git client. `commit-msg` is git's own interception point and sees all of them — and this repo already runs a `pre-commit` PII guard and this very `commit-msg` hook, so it extends an established pattern rather than adding a parallel one.
+
+| Property        | Behaviour                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| Credential kinds | **BLOCK** (exit 1) — same three detectors as the file surface                            |
+| PII kinds        | **REMIND** (exit 0) — same asymmetry, same reasoning                                     |
+| Skipped          | Merge/Revert/fixup!/squash!/amend! subjects; empty messages                              |
+| Never scanned    | `#` comment lines, and everything below the `--verbose` `>8` scissors line               |
+| Escape hatch     | `SECRET-SCAN-OK: <reason ≥10 chars>` in the message — same marker, same gate             |
+| Failure mode     | Fail-OPEN and loud (a crashing or missing guard must not make the repo uncommittable)    |
+
+**The scissors exclusion is load-bearing.** The most likely commit this guard ever sees is the one that *removes* a leaked value; with `commit --verbose` that value sits in the diff below the scissors. Scanning it would block precisely the commit that fixes the problem.
+
+Reporting is class + line + **redacted** excerpt, never the value — echoing it into hook output (scrollback, CI logs, screenshots, agent transcripts) would be the same republication error one level up.
+
+### Three identifier detectors added to the shared detector
+
+All three are PII-class (remind), because none is a usable credential on its own. What they leak is **attribution**: whose account, which client, which deal.
+
+| Kind                                 | Shape                                        | Required cue within ±80 chars                    |
+| ------------------------------------ | -------------------------------------------- | ------------------------------------------------ |
+| `aws-account-id`                     | bare 12-digit run                            | `aws` / `arn:aws` / `account id` / `iam` / `sts` |
+| `client-scoped-workers-dev-hostname` | `<project>.<account>.workers.dev`            | none — but ≥2 labels, and no placeholder label   |
+| `vault-item-identifier`              | 26-char `[a-z2-7]` base32 blob               | `1password` / `op item` / `op://` / `item id`    |
+
+Documentation filler never fires: AWS's own `123456789012`, all-zero runs, single-label `foo.workers.dev`, and any placeholder label.
+
+### False-positive risk
+
+- A **12-digit** ID column value or epoch quoted in a paragraph about AWS reminds (never blocks). Git SHAs, semver and `#1234` issue numbers are all the wrong shape and are covered by explicit negative tests.
+- A real multi-label `workers.dev` host belonging to the operator reminds every time it is mentioned in a commit body. Deliberate: the class is exactly what leaked.
+- A 26-char base32 hash near the word `uuid` reminds.
+- **No PII class can block**, so every risk above costs one advisory line on stderr and nothing else. Only the three credential classes gate a commit, and those are unchanged from the file surface.
+
+### Tests
+
+`scripts/commit-message-exposure-guard.test.ts` — synthetic stand-ins for the real incident shapes (never the real values; this file is itself published), plus a false-positive floor of ordinary release-shaped commit prose: semver bumps, git SHAs, issue numbers, `<redacted>`, `example.com`, `555-01xx`, and AWS's documentation account ID.
