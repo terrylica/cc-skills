@@ -60,8 +60,22 @@ export type CredentialFindingKind =
   | "pushover-style-bare-token"
   | "provisioning-command-literal-value";
 
-/** Fuzzier third-party-identity shapes. Consumed by the non-blocking reminder. */
-export type PiiFindingKind = "third-party-email" | "third-party-phone-number";
+/**
+ * Fuzzier third-party-identity shapes. Consumed by the non-blocking reminder.
+ *
+ * The last three were added after the 2026-08-29 release-notes incident (see
+ * the "second incident" note below). None of them is a usable credential on its
+ * own — an AWS account ID cannot authenticate, a Workers hostname is public DNS,
+ * and a 1Password item ID is inert without the vault — so all three REMIND
+ * rather than block. What they leak is ATTRIBUTION: whose account, which
+ * client, which deal.
+ */
+export type PiiFindingKind =
+  | "third-party-email"
+  | "third-party-phone-number"
+  | "aws-account-id"
+  | "client-scoped-workers-dev-hostname"
+  | "vault-item-identifier";
 
 export interface ExposureFinding<K extends string> {
   /** Which detector fired. */
@@ -396,6 +410,140 @@ export function detectThirdPartyPhoneNumbers(blob: string): PiiFinding[] {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  Detector 6 — AWS 12-digit account IDs
+// ══════════════════════════════════════════════════════════════════════════
+//
+//  ── The second incident (2026-08-29), which these three detectors exist for
+//
+//  An audit found that this repo's own PII-SCRUB COMMITS republished, verbatim
+//  and publicly, every value they redacted: semantic-release turns commit
+//  bodies into release prose, so a conscientious "removed X, Y, Z" message
+//  became the leak, and the habit outlived the scrub by two releases.
+//
+//  Detectors 1–5 could not have caught it, because none of the leaked classes
+//  is a credential and the leak was in a COMMIT MESSAGE, a surface no
+//  Write/Edit hook ever sees. Detectors 6–8 cover the identifier classes that
+//  actually leaked; the commit-message surface is covered by
+//  `scripts/commit-message-exposure-guard.ts`.
+
+/** Bare 12-digit run — an AWS account ID, but also a timestamp or an ID column. */
+const TWELVE_DIGIT_RUN_PATTERN = /\b\d{12}\b/g;
+
+/**
+ * 12 digits alone is far too common to report, so an AWS cue is required
+ * within ±80 characters. `arn:aws:` is included because an ARN embeds the
+ * account ID as its fifth colon-separated field.
+ */
+const AWS_ACCOUNT_CONTEXT_PATTERN =
+  /\b(?:aws|arn:aws|account[_\s-]?id|iam|sts|assume[_\s-]?role|organizations?|payer|root account)\b/i;
+
+const AWS_ACCOUNT_CONTEXT_RADIUS_CHARACTERS = 80;
+
+/** Runs like `000000000000` or `123456789012` are AWS's own doc examples. */
+function isDocumentationFillerDigitRun(digits: string): boolean {
+  if (/^(\d)\1+$/.test(digits)) return true;
+  return digits === "123456789012" || digits === "210987654321";
+}
+
+export function detectAwsAccountIdentifiers(blob: string): PiiFinding[] {
+  const findings: PiiFinding[] = [];
+  for (const match of blob.matchAll(TWELVE_DIGIT_RUN_PATTERN)) {
+    const digits = match[0];
+    const start = match.index ?? 0;
+    if (isDocumentationFillerDigitRun(digits)) continue;
+    const context = neighbourhoodAround(
+      blob,
+      start,
+      start + digits.length,
+      AWS_ACCOUNT_CONTEXT_RADIUS_CHARACTERS,
+    );
+    if (!AWS_ACCOUNT_CONTEXT_PATTERN.test(context)) continue;
+    findings.push({
+      kind: "aws-account-id",
+      line: lineNumberAtOffset(blob, start),
+      excerpt: `${digits.slice(0, 2)}…${"*".repeat(8)}`,
+      rationale:
+        "12-digit run beside an AWS/ARN/IAM cue — identifies whose account, and both a company and a personal one leaked",
+    });
+  }
+  return findings;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Detector 7 — *.workers.dev hostnames carrying a client handle
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * `<project>.<account-handle>.workers.dev` — Cloudflare's default Workers
+ * hostname. The account handle is the client's, and the project label is
+ * frequently a private deal or client name, so the hostname alone discloses
+ * both the customer and the engagement. Exactly what leaked.
+ */
+const WORKERS_DEV_HOSTNAME_PATTERN = /\b([a-z0-9][a-z0-9.-]*)\.workers\.dev\b/gi;
+
+/**
+ * A generic label — `example`, `my-worker`, `<name>` — is documentation. Only a
+ * label that looks like a real identifier is reported. A single label (bare
+ * `foo.workers.dev`) is also skipped: it names no account, so it discloses
+ * nothing about a third party.
+ */
+export function detectClientScopedWorkersDevHostnames(blob: string): PiiFinding[] {
+  const findings: PiiFinding[] = [];
+  for (const match of blob.matchAll(WORKERS_DEV_HOSTNAME_PATTERN)) {
+    const labels = (match[1] ?? "").split(".").filter((label) => label !== "");
+    if (labels.length < 2) continue;
+    if (labels.some((label) => isPlaceholderSecretValue(label))) continue;
+    if (labels.some((label) => /^(?:my|test|demo|hello|worker|app|site|foo|bar)$/i.test(label))) {
+      continue;
+    }
+    findings.push({
+      kind: "client-scoped-workers-dev-hostname",
+      line: lineNumberAtOffset(blob, match.index ?? 0),
+      excerpt: `${labels[0]?.slice(0, 2)}…….workers.dev`,
+      rationale:
+        "multi-label workers.dev hostname — the account label names the client and the project label often names the deal",
+    });
+  }
+  return findings;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+//  Detector 8 — 1Password / base32 vault item identifiers
+// ══════════════════════════════════════════════════════════════════════════
+
+/** 1Password item and vault IDs are 26 lowercase Crockford-ish base32 chars. */
+const BASE32_ITEM_IDENTIFIER_PATTERN = /\b[a-z2-7]{26}\b/g;
+
+const VAULT_ITEM_CONTEXT_PATTERN =
+  /\b(?:1password|onepassword|op\s+item|op:\/\/|item[_\s-]?id|vault[_\s-]?id|uuid)\b/i;
+
+const VAULT_ITEM_CONTEXT_RADIUS_CHARACTERS = 80;
+
+export function detectVaultItemIdentifiers(blob: string): PiiFinding[] {
+  const findings: PiiFinding[] = [];
+  for (const match of blob.matchAll(BASE32_ITEM_IDENTIFIER_PATTERN)) {
+    const identifier = match[0];
+    const start = match.index ?? 0;
+    if (isPlaceholderSecretValue(identifier)) continue;
+    const context = neighbourhoodAround(
+      blob,
+      start,
+      start + identifier.length,
+      VAULT_ITEM_CONTEXT_RADIUS_CHARACTERS,
+    );
+    if (!VAULT_ITEM_CONTEXT_PATTERN.test(context)) continue;
+    findings.push({
+      kind: "vault-item-identifier",
+      line: lineNumberAtOffset(blob, start),
+      excerpt: redactSecretForTranscriptEcho(identifier),
+      rationale:
+        "26-char base32 identifier beside a 1Password/vault cue — inert alone, but it maps a public doc to a private vault entry",
+    });
+  }
+  return findings;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 //  Aggregators
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -410,16 +558,24 @@ export function detectCredentialExposure(blob: string): CredentialFinding[] {
 
 /** Both fuzzy PII detectors. Feeds the non-blocking reminder. */
 export function detectThirdPartyPiiExposure(blob: string): PiiFinding[] {
-  return [...detectThirdPartyEmailAddresses(blob), ...detectThirdPartyPhoneNumbers(blob)].toSorted(
-    (a, b) => a.line - b.line,
-  );
+  return [
+    ...detectThirdPartyEmailAddresses(blob),
+    ...detectThirdPartyPhoneNumbers(blob),
+    ...detectAwsAccountIdentifiers(blob),
+    ...detectClientScopedWorkersDevHostnames(blob),
+    ...detectVaultItemIdentifiers(blob),
+  ].toSorted((a, b) => a.line - b.line);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 //  Message builders
 // ══════════════════════════════════════════════════════════════════════════
 
-const CREDENTIAL_LABELS: Record<CredentialFindingKind, string> = {
+/**
+ * Exported so surfaces other than a file write (e.g. the commit-message guard)
+ * can render findings in their own prose without re-deriving the vocabulary.
+ */
+export const CREDENTIAL_LABELS: Record<CredentialFindingKind, string> = {
   "telegram-bot-token": "Telegram bot token",
   "pushover-style-bare-token": "Pushover-style bare 30-char token",
   "provisioning-command-literal-value": "provisioning command with a literal secret",
@@ -453,9 +609,13 @@ export function buildCredentialDenyReason(
     .join("\n");
 }
 
-const PII_LABELS: Record<PiiFindingKind, string> = {
+/** Exported for the same reason as `CREDENTIAL_LABELS`. */
+export const PII_LABELS: Record<PiiFindingKind, string> = {
   "third-party-email": "email address",
   "third-party-phone-number": "phone number",
+  "aws-account-id": "AWS account ID",
+  "client-scoped-workers-dev-hostname": "client-scoped workers.dev hostname",
+  "vault-item-identifier": "vault item identifier",
 };
 
 export function buildPiiReminder(filePath: string, findings: readonly PiiFinding[]): string {
