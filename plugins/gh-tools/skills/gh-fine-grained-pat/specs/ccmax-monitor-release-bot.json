@@ -1,9 +1,9 @@
 {
   "$schema": "../schema/token-spec.schema.json",
   "name": "ccmax-monitor-release-bot",
-  "description": "semantic-release for terrylica/ccmax-monitor: push tags/commits, publish GitHub Releases + binary assets, comment on issues & PRs. Injected as GH_TOKEN via `vault run ccmax-release`. Closes issue #32, which recorded the stopgap of borrowing the operator's ambient `gh auth token` (a gho_* OAuth token carrying gist+read:org+repo across ALL repos) — bound to one human's interactive login, unusable unattended, and far broader than a release needs. Scoped to this repo only.",
+  "description": "semantic-release for doorward-systems/ccmax-monitor: push tags/commits, publish GitHub Releases + binary assets, comment on issues & PRs. Injected as GH_TOKEN via `vault run ccmax-release`. Closes issue #32, which recorded the stopgap of borrowing the operator's ambient `gh auth token` (a gho_* OAuth token carrying gist+read:org+repo across ALL repos) — bound to one human's interactive login, unusable unattended, and far broader than a release needs. Scoped to this repo only. REPO PATH CORRECTED 2026-08-28: this spec said terrylica/ccmax-monitor, but the repository now lives under the doorward-systems org. A fine-grained PAT's repository selection is owner-bound and does NOT follow a transfer — so the minted token kept working for READS (the redirect resolves, and the REST repo endpoint even reported permissions.push=true, which describes the USER not the token) while git refused every write with 'remote: Write access to repository not granted'. That failure surfaced only mid-release, as an infinite hang, because the machine's credential helper fell into an interactive OAuth flow instead of reporting the 403. The v3.1.0 release shipped on the operator's ambient gh token — i.e. it fell back to exactly the stopgap this spec exists to retire.",
   "expiration": "none",
-  "repositoryAccess": { "mode": "selected", "repos": ["terrylica/ccmax-monitor"] },
+  "repositoryAccess": { "mode": "selected", "repos": ["doorward-systems/ccmax-monitor"] },
   "permissions": {
     "repository": { "Contents": "write", "Issues": "write", "Pull requests": "write" }
   }
