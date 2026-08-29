@@ -455,7 +455,20 @@ def run_bandit(target: Path, excludes: list[str]) -> list[Finding]:
 
 
 def run_trufflehog(target: Path, excludes: list[str]) -> list[Finding]:
-    """Run TruffleHog for entropy-based secret detection with .gitignore awareness."""
+    """Run TruffleHog in VERIFIED mode for secret detection, .gitignore aware.
+
+    Verified mode (``--results=verified,unknown``) is load-bearing, not a tuning
+    knob. In the 23-repo audit of 2026-08-28 a LIVE Telegram bot token survived
+    two deliberate scrub campaigns because gitleaks ships no Telegram rule; the
+    only tool that caught it was TruffleHog's provider-side VERIFICATION, which
+    calls the API and observes that the credential still works.
+
+    ``unknown`` is retained alongside ``verified``: it is the bucket for
+    detectors whose verification endpoint errored or is unreachable, and
+    dropping it would silently convert a network blip into a clean report. The
+    ``unverified`` bucket is excluded because it is the entropy-guess noise that
+    makes people turn the scanner off.
+    """
     gi_excludes = _gitignore_excludes(target, regex_safe=True)
     gi_excludes.append(".git")
 
@@ -470,6 +483,7 @@ def run_trufflehog(target: Path, excludes: list[str]) -> list[Finding]:
         cmd = [
             "trufflehog", "filesystem", str(target),
             "--json", "--no-update",
+            "--results=verified,unknown",
             "--exclude-paths", exclude_file.name,
         ]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=AUDIT_TRUFFLEHOG_TIMEOUT)
