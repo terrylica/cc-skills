@@ -195,7 +195,7 @@ ON HAVING TWO UNWRAPPERS. scripts/reflow-release-notes.ts already existed and is
 
 Both already spoke the Anthropic Messages shape, so only URL/model/credential moved: -> https://nca.25u.com/v1/messages on the dedicated capped SCS scope `cc-skills-tools-sub2api`.
 
-Model is `claude-sonnet-5[1m]` and THE SUFFIX IS LOAD-BEARING — it is what grants the 1M context window on this fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with "Prompt is too long". Established empirically by the project-a pipeline (model.toml, 2026-08-07), where the missing suffix was the bug.
+Model is `claude-sonnet-5[1m]` and THE SUFFIX IS LOAD-BEARING — it is what grants the 1M context window on this fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with "Prompt is too long". Established empirically by the example-client pipeline (model.toml, 2026-08-07), where the missing suffix was the bug.
 
 Stated honestly in the code: MAX_STRUCTURED_LOG_CHARS (890k, ~243k tokens) is carried over from MiniMax's ~260k ceiling and only holds if that suffix really grants the 1M window through the RAW /v1/messages door. The suffix was proven through the ccmax-claude CLI wrapper, not a direct call, and a short probe cannot tell the two apart (the response echoes `claude-sonnet-5` either way). If a long debrief ever fails on a blocking_limit, that constant is the thing to lower first.
 
@@ -1017,7 +1017,7 @@ No endpoint, no HTTP method, no curl flag — the fetch() lives inside the file.
 existing layer reported ALLOW.
 
 This is not hypothetical and not new. It has now happened three times against the same
-client mailbox, twice on 2026-08-07 alone: once via `bash /tmp/[redacted].sh`
+client mailbox, twice on 2026-08-07 alone: once via `bash /tmp/example-client-make-draft.sh`
 and again that evening via a Bun script. Both shipped the exact defect LAYER 1 exists to
 prevent — a body carrying a formatter's ~100-col hard wrapping, emitted as text/plain and
 hard-folded again by Gmail into forced mid-sentence breaks in the compose window. One also
