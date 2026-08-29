@@ -1,0 +1,330 @@
+#!/usr/bin/env bun
+/**
+ * Commit-message exposure guard — the surface the file-write hooks cannot see.
+ *
+ * # Why this exists
+ *
+ * An audit of this repository found that its own PII-SCRUB COMMITS had
+ * republished, verbatim and publicly, every value they redacted.
+ *
+ * The mechanism is semantic-release: a commit body becomes public release
+ * prose. So a conscientious, well-intentioned commit message that enumerated
+ * "removed the following identifiers: …" turned a private cleanup into a
+ * public disclosure with a permanent URL — and unlike a file, a published
+ * release body is not fixed by a later commit. The habit outlived the scrub:
+ * one of the redacted client identifiers reappeared in a release two months
+ * afterwards.
+ *
+ * The existing pair — `pretooluse-secret-exposure-guard.ts` (blocks) and
+ * `posttooluse-pii-exposure-reminder.ts` (reminds) — inspect FILE WRITES.
+ * Neither would have caught this: no file was ever written. This guard closes
+ * that gap by running the SAME shared detector
+ * (`plugins/itp-hooks/hooks/lib/secret-and-pii-exposure-detector.ts`) over the
+ * proposed commit message at `commit-msg` time, before git records anything.
+ *
+ * # Why a git hook and not a PreToolUse guard on Bash
+ *
+ * A PreToolUse guard would only see commits that an agent makes through the
+ * Bash tool with the message inline. It would miss `git commit` typed by the
+ * operator, `git commit -F file`, an editor session, `git commit --amend`, and
+ * any commit made from another client. The `commit-msg` hook is git's own
+ * documented interception point and sees all of them — and this repo already
+ * runs one (the iter-157 conventional-commit advisor) plus a `pre-commit` PII
+ * guard, so this follows an established pattern rather than inventing a
+ * parallel one. It is invoked from the iter-157 hook body, which is the single
+ * commit-msg entry point.
+ *
+ * # Severity split — deliberately the same asymmetry as the file surface
+ *
+ * CREDENTIAL findings BLOCK the commit (exit 1). They are structurally
+ * distinctive and catastrophic once published.
+ *
+ * PII findings REMIND and allow (exit 0). Identifier classes are fuzzier, and a
+ * commit-msg hook that cries wolf is one a hurried operator answers with
+ * `--no-verify` forever — which would lose the credential block too. A reminder
+ * that is read is worth more than a block that is disabled.
+ *
+ * # Reporting policy
+ *
+ * Findings are reported as class + line + a REDACTED excerpt, never the raw
+ * value — for the same reason the pre-commit PII guard does it: hook output
+ * lands in scrollback, CI logs, screenshots and agent transcripts, and a guard
+ * that echoes the value has only moved the leak. Re-publishing what you are
+ * redacting is the precise error this guard was written to stop; doing it in
+ * the block message would be that error one level up.
+ *
+ * # Escape hatch
+ *
+ *   SECRET-SCAN-OK: <reason of at least 10 characters>
+ *
+ * anywhere in the commit message, matching the marker and the reason gate the
+ * file-write guard already uses. A reason is mandatory because "I am sure this
+ * is fine" is the sentence that preceded every finding in both incidents.
+ */
+
+import { readFileSync } from "node:fs";
+import {
+  type CredentialFinding,
+  CREDENTIAL_LABELS,
+  detectCredentialExposure,
+  detectThirdPartyPiiExposure,
+  type PiiFinding,
+  PII_LABELS,
+} from "../plugins/itp-hooks/hooks/lib/secret-and-pii-exposure-detector.ts";
+
+/** Marker and reason gate, kept identical to the file-write guard's. */
+const ESCAPE_HATCH_MARKER = "SECRET-SCAN-OK";
+const MINIMUM_ESCAPE_REASON_CHARACTER_COUNT = 10;
+
+/** A credential was found in the message. The commit is rejected. */
+const EXIT_CODE_CREDENTIAL_DETECTED = 1;
+
+/**
+ * Mis-invocation. Deliberately distinct from a finding: a guard that never ran
+ * must not be indistinguishable from a guard that ran and found nothing.
+ */
+const EXIT_CODE_USAGE_ERROR = 64;
+
+const USAGE_LINE = "usage: commit-message-exposure-guard --message-file <path> [--help]";
+
+/**
+ * Everything git will discard before recording the message: comment lines, and
+ * everything at or below the `--verbose` scissors line (which contains the full
+ * staged diff, and would otherwise be scanned as if it were prose).
+ *
+ * Scanning discarded text would fire on a diff that REMOVES a leaked value —
+ * the single most likely commit for this guard to see, and the one where a
+ * block would be exactly backwards.
+ */
+export function extractRecordedCommitMessage(rawMessage: string): string {
+  const kept: string[] = [];
+  for (const line of rawMessage.split("\n")) {
+    if (/^#\s*-{2,}\s*>8\s*-{2,}/.test(line)) break;
+    if (line.startsWith("#")) continue;
+    kept.push(line);
+  }
+  return kept.join("\n");
+}
+
+/**
+ * Auto-generated messages follow their own conventions and are not authored
+ * prose, so subjecting them to this scan buys nothing. Mirrors the skip list
+ * the iter-157 conventional-commit hook already applies.
+ */
+export function isAutoGeneratedCommitSubject(message: string): boolean {
+  const subject = message.split("\n").find((line) => line.trim() !== "") ?? "";
+  return /^(?:Merge |Revert |fixup! |squash! |amend! )/.test(subject);
+}
+
+/**
+ * True when the operator supplied `SECRET-SCAN-OK:` with a long enough reason.
+ *
+ * A bare marker with no reason does NOT suppress — the same rule the file-write
+ * guard enforces. The reason is the whole point: it makes the bypass a decision
+ * that survives in the message rather than a reflex that leaves no trace.
+ */
+export function hasValidEscapeHatch(message: string): boolean {
+  const pattern = new RegExp(`${ESCAPE_HATCH_MARKER}:[ \\t]*(.+)`);
+  const match = message.match(pattern);
+  const reason = match?.[1]?.trim() ?? "";
+  return reason.length >= MINIMUM_ESCAPE_REASON_CHARACTER_COUNT;
+}
+
+export interface CommitMessageScanResult {
+  readonly credentialFindings: readonly CredentialFinding[];
+  readonly piiFindings: readonly PiiFinding[];
+  /** True when the message was skipped entirely (auto-generated or excused). */
+  readonly skipped: boolean;
+}
+
+/**
+ * Pure classifier, exported for tests: raw commit-message file content in,
+ * findings out. No I/O, no process exit.
+ */
+export function scanCommitMessage(rawMessage: string): CommitMessageScanResult {
+  const message = extractRecordedCommitMessage(rawMessage);
+  if (message.trim() === "") {
+    return { credentialFindings: [], piiFindings: [], skipped: true };
+  }
+  if (isAutoGeneratedCommitSubject(message) || hasValidEscapeHatch(message)) {
+    return { credentialFindings: [], piiFindings: [], skipped: true };
+  }
+  return {
+    credentialFindings: detectCredentialExposure(message),
+    piiFindings: detectThirdPartyPiiExposure(message),
+    skipped: false,
+  };
+}
+
+/** Render the non-blocking PII advisory. Redacted excerpts only. */
+export function buildCommitMessagePiiReminder(findings: readonly PiiFinding[]): string {
+  const lines = findings
+    .slice(0, 8)
+    .map((f) => `  • line ${f.line}: ${PII_LABELS[f.kind]} — ${f.excerpt}`);
+  return [
+    "",
+    "[commit-msg-exposure] REMINDER — this commit message may name a third party.",
+    "",
+    ...lines,
+    findings.length > 8 ? `  • …and ${findings.length - 8} more` : "",
+    "",
+    "  semantic-release publishes commit BODIES as release notes. A message that",
+    "  enumerates what it redacted republishes it — that is how the scrub commits",
+    "  in this repo leaked every value they removed, permanently and publicly.",
+    "",
+    "  Describe the CATEGORY, never the value: 'redact two client phone numbers',",
+    "  not the numbers. The commit is allowed; this is advice, not a gate.",
+    "",
+  ]
+    .filter((line, index, all) => !(line === "" && all[index - 1] === ""))
+    .join("\n");
+}
+
+/**
+ * Render the blocking credential message.
+ *
+ * The file-surface's `buildCredentialDenyReason` is deliberately NOT reused
+ * verbatim here: its prose talks about "this write", "the file" and an in-file
+ * escape marker, none of which describes a commit message. The DETECTION is
+ * shared (that is the point of the shared detector); the remediation advice is
+ * surface-specific, because advice that names the wrong surface gets ignored.
+ */
+export function buildCommitMessageCredentialBlock(
+  findings: readonly CredentialFinding[],
+): string {
+  const lines = findings
+    .slice(0, 5)
+    .map((f) => `  • line ${f.line}: ${CREDENTIAL_LABELS[f.kind]} — ${f.excerpt}`);
+  return [
+    "",
+    "[commit-msg-exposure] BLOCKED — the commit message carries a live credential.",
+    "",
+    ...lines,
+    findings.length > 5 ? `  • …and ${findings.length - 5} more` : "",
+    "",
+    "  semantic-release publishes commit BODIES as release notes, so this message",
+    "  would acquire a permanent public URL that a later commit cannot retract.",
+    "",
+    "  Fix: name the secret, never its value — 'rotated the bot token', not the",
+    "  token. If the value was ever real, ROTATE IT: it is already in your shell",
+    "  history and may be in a git object.",
+    "",
+    `  Escape hatch: put "${ESCAPE_HATCH_MARKER}: <reason, >=${MINIMUM_ESCAPE_REASON_CHARACTER_COUNT} chars>" in the commit`,
+    "  message when the value is genuinely synthetic.",
+    "",
+  ]
+    .filter((line, index, all) => !(line === "" && all[index - 1] === ""))
+    .join("\n");
+}
+
+type ParsedArguments =
+  | { readonly kind: "help" }
+  | { readonly kind: "check"; readonly messageFilePath: string }
+  | { readonly kind: "usage-error"; readonly detail: string };
+
+/**
+ * Strict argv parsing. An unrecognised flag is an error, never a fall-through
+ * to a default scan — an exit 0 from a mis-invocation is an untraceable bypass
+ * that looks exactly like a clean result.
+ */
+export function parseArguments(args: readonly string[]): ParsedArguments {
+  let messageFilePath: string | undefined;
+
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === "--help" || argument === "-h") {
+      return { kind: "help" };
+    }
+    if (argument === "--message-file") {
+      messageFilePath = args[index + 1];
+      index += 1;
+      continue;
+    }
+    return { kind: "usage-error", detail: `unknown argument: ${argument}` };
+  }
+
+  if (messageFilePath === undefined || messageFilePath === "") {
+    return { kind: "usage-error", detail: "--message-file <path> is required" };
+  }
+  return { kind: "check", messageFilePath };
+}
+
+function printHelp(): void {
+  process.stdout.write(
+    `commit-message-exposure-guard — scan a proposed commit message for exposure
+
+USAGE
+  bun scripts/commit-message-exposure-guard.ts --message-file <path>
+
+WHY
+  semantic-release turns commit bodies into public release notes, so a commit
+  message describing a redaction republishes what it redacted. File-write hooks
+  never see this surface. Invoked from the commit-msg git hook.
+
+SEVERITY
+  Credential classes  → BLOCK  (exit ${EXIT_CODE_CREDENTIAL_DETECTED})
+  Identifier / PII    → REMIND (exit 0)
+
+ESCAPE HATCH
+  Put "${ESCAPE_HATCH_MARKER}: <reason, >=${MINIMUM_ESCAPE_REASON_CHARACTER_COUNT} chars>" in the commit message.
+  A bare marker with no reason does not suppress.
+
+REPORTING
+  Class, line and a redacted excerpt only. Never the matched value — hook
+  output is copied into logs and transcripts far more often than commits are
+  rewritten.
+`,
+  );
+}
+
+function main(): number {
+  const parsed = parseArguments(process.argv.slice(2));
+
+  if (parsed.kind === "help") {
+    printHelp();
+    return 0;
+  }
+  if (parsed.kind === "usage-error") {
+    process.stderr.write(
+      `commit-message-exposure-guard: ${parsed.detail}\n  ${USAGE_LINE}\n`,
+    );
+    return EXIT_CODE_USAGE_ERROR;
+  }
+
+  let rawMessage: string;
+  try {
+    rawMessage = readFileSync(parsed.messageFilePath, "utf8");
+  } catch {
+    process.stderr.write(
+      `commit-message-exposure-guard: cannot read ${parsed.messageFilePath}\n  ${USAGE_LINE}\n`,
+    );
+    return EXIT_CODE_USAGE_ERROR;
+  }
+
+  const { credentialFindings, piiFindings } = scanCommitMessage(rawMessage);
+
+  if (piiFindings.length > 0) {
+    process.stderr.write(`${buildCommitMessagePiiReminder(piiFindings)}\n`);
+  }
+  if (credentialFindings.length > 0) {
+    process.stderr.write(`${buildCommitMessageCredentialBlock(credentialFindings)}\n`);
+    return EXIT_CODE_CREDENTIAL_DETECTED;
+  }
+  return 0;
+}
+
+if (import.meta.main) {
+  try {
+    process.exit(main());
+  } catch (error) {
+    // Fail OPEN on an internal error, but loudly. A crashing guard must not
+    // make the repository uncommittable — that is how a guard gets deleted
+    // rather than fixed. Loudly, so it is never silently inactive.
+    process.stderr.write(
+      `[commit-msg-exposure] NOT ACTIVE — guard crashed, commit allowed unchecked: ${
+        error instanceof Error ? error.message : String(error)
+      }\n`,
+    );
+    process.exit(0);
+  }
+}

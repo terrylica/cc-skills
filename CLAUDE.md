@@ -109,14 +109,15 @@ cc-skills/
 
 ## Key Files
 
-| File                                   | Purpose                                                 |
-| -------------------------------------- | ------------------------------------------------------- |
-| `.claude-plugin/marketplace.json`      | Plugin registry (SSoT)                                  |
-| `release.config.cjs`                   | semantic-release config (body-preserving release notes) |
-| `scripts/validate-plugins.mjs`         | Plugin validation                                       |
-| `scripts/cc-plugin-root`               | Resolve a plugin's live install path (see below)        |
-| `scripts/sync-hooks-to-settings.sh`    | Hook synchronization                                    |
-| `scripts/sync-commands-to-settings.sh` | Command synchronization                                 |
+| File                                       | Purpose                                                                |
+| ------------------------------------------ | ---------------------------------------------------------------------- |
+| `.claude-plugin/marketplace.json`          | Plugin registry (SSoT)                                                 |
+| `release.config.cjs`                       | semantic-release config (body-preserving release notes)                |
+| `scripts/validate-plugins.mjs`             | Plugin validation                                                      |
+| `scripts/cc-plugin-root`                   | Resolve a plugin's live install path (see below)                       |
+| `scripts/commit-message-exposure-guard.ts` | Commit-msg exposure guard (blocks credentials, reminds on identifiers) |
+| `scripts/sync-hooks-to-settings.sh`        | Hook synchronization                                                   |
+| `scripts/sync-commands-to-settings.sh`     | Command synchronization                                                |
 
 ## Skills resolve plugin paths with `cc-plugin-root`, never `$CLAUDE_PLUGIN_ROOT`
 
