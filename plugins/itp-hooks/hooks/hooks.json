@@ -45,6 +45,17 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-secret-exposure-guard.ts",
+            "timeout": 5000,
+            "description": "Live-credential exposure guard — HARD-BLOCKS a Write/Edit/MultiEdit whose NEW content would put a live credential on disk. Motivated by a 23-repo post-incident audit in which (a) a LIVE Telegram bot token survived TWO deliberate scrub campaigns because gitleaks ships no Telegram-bot-token rule and only trufflehog's provider-side verification caught it, and (b) LIVE Pushover app tokens plus a user key — bare 30-character alphanumerics with no prefix, which trufflehog has no detector for and gitleaks caught once only by luck from an adjacent PUSHOVER_APP_TOKEN variable name — sat unnoticed in the published tree. Crucially, EVERY credential found was in an ADR / design spec / planning doc, pasted as a worked example of a `doppler secrets set …` provisioning command, often in a file that simultaneously stated the secret lived in Doppler: docs/ is the dangerous directory, not src/. Three detectors, all tuned for LOW false positives because a noisy guard gets disabled and a disabled guard is worse than none: (1) the BotFather `<8-10 digit id>:AA<32+ url-safe chars>` shape; (2) a bare 30-char mixed-alphanumeric token requiring a PUSHOVER / app_token / user_key / api_token cue within ±80 characters; (3) an enumerated secret-manager provisioning command (doppler secrets set, op item create/edit, vault set/put, gh secret set, wrangler secret put, aws secretsmanager, security add-generic-password) carrying a ≥16-char literal value that is not a placeholder. A shared placeholder recognizer discards angle-bracket/brace/shell-expansion syntax, repeated-character runs, SCREAMING_SNAKE identifiers, and self-labelling example values (xxxx/your/redact/example/placeholder/changeme/dummy/sample/fake). Matched values are REDACTED before they reach the transcript, so the deny message never republishes the secret. Only NEW content is scanned (content / new_string / MultiEdit edits[].new_string), and MultiEdit fragments are scanned SEPARATELY so a naming cue in one edit cannot license a token blob in another. Binary payloads (NUL in the first KiB) are skipped. Escape hatch SECRET-SCAN-OK requires a ≥10-character reason — stricter than most markers in this repo, because \"I am sure this one is fake\" preceded every finding in the audit. Fail-open on any parse or logic error. Sibling: posttooluse-pii-exposure-reminder.ts handles the fuzzier third-party-PII half of the same incident as a NON-blocking reminder. Spoke: docs/secret-and-pii-exposure-guard.md."
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -255,6 +266,17 @@
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-readme-pypi-links.ts",
             "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pii-exposure-reminder.ts",
+            "timeout": 5000,
+            "description": "Third-party-PII exposure reminder (soft; emits {decision:block,reason} — the Claude-visible PostToolUse channel per ADR 2025-12-17; never undoes the edit, never denies). Fires after a Write/Edit/MultiEdit of a durable docs/config file (.md/.markdown/.txt/.rst/.adoc/.json/.jsonc/.yaml/.yml/.toml/.ini/.cfg/.conf/.env/.csv/.html) whose POST-EDIT content contains a third-party email address or telephone number. Motivated by the same 23-repo audit as its blocking sibling pretooluse-secret-exposure-guard.ts: a contact's real name, business email and phone number were REINTRODUCED into the published tree six days after an eleven-agent scrub of 2,602 files removed them — a one-time sweep does not hold, because the next agent re-derives the same content from the same upstream source and pastes it back. Deliberately NON-BLOCKING: an email address in a doc is frequently legitimate (a vendor support address, an RFC author, a git commit trailer, a maintainer contact in a plugin manifest), so a deny would be wrong several times a day and a guard that is wrong several times a day gets disabled — strictly worse than no guard. Email detection excludes RFC 2606 reserved domains (example.com/.org/.net, .test/.invalid/.local/localhost), GitHub noreply addresses, the operator's own addresses, and role local-parts (noreply/support/info/admin/security/abuse/sales/…). Phone detection accepts E.164 (leading +) without a context word, but requires a telephony cue (phone/tel/mobile/cell/call/fax/whatsapp/sms/contact/direct line) within ±40 characters for a bare NANP nnn-nnn-nnnn, so version strings, ID ranges and part numbers stay silent; the NANP 555-01xx fictional range and degenerate repeated/sequential digit runs never fire. Matched values are redacted in the reminder. Source files are out of scope by extension (docs/ is where the incident happened) and temp scratch is exempt (iter-124 shared helper). Escape hatch: a bare PII-SCAN-OK comment anywhere in the file — no reason required, because unlike a credential, intentionally published contact information is ordinary and defensible. Spoke: docs/secret-and-pii-exposure-guard.md."
           }
         ]
       },

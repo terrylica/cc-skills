@@ -66,6 +66,15 @@ def run_trufflehog(target: Path, output_format: str = "text") -> int:
             str(target),
             "--json",
             "--no-update",
+            # VERIFIED MODE — load-bearing, not a tuning knob. In the 23-repo
+            # audit of 2026-08-28 a LIVE Telegram bot token survived two scrub
+            # campaigns because gitleaks ships no Telegram rule; TruffleHog's
+            # provider-side verification was the only thing that caught it.
+            # `unknown` is kept so an unreachable verification endpoint cannot
+            # silently downgrade into a clean report; `unverified` (entropy
+            # guesswork) is excluded because that noise is why people disable
+            # the scanner.
+            "--results=verified,unknown",
             "--exclude-paths",
             exclude_file.name,
         ]
