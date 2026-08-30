@@ -22,6 +22,8 @@
  *   7. Referenced skills exist in target plugins
  *   8. Hook JSON structure from manage-hooks.sh (prevents "Invalid discriminator value")
  *   9. All skills/{name}/SKILL.md must have name + description frontmatter
+ *  10. No hook command invokes a proto-shimmed tool bare (proto's NDJSON banner
+ *      lands on stdout ahead of the hook's JSON, silently voiding its decision)
  *
  * Integration:
  *   - Pre-commit hook: Add to .husky/pre-commit or .git/hooks/pre-commit
@@ -808,6 +810,92 @@ async function validateHookOutputFormat() {
  *
  * Returns { errors: [...], warnings: [...] }
  */
+/**
+ * Every tool `proto` installs a PATH shim for. Invoking one of these BARE from a
+ * hook command re-execs the proto CLI, which sniffs AI_AGENT/CLAUDECODE, decides
+ * it is talking to an agent, and writes an NDJSON banner to STDOUT before
+ * delegating — so the hook's own JSON lands on line 2 and Claude Code's single
+ * JSON.parse throws "Hook output looks like a JSON object but is not valid JSON".
+ * The hook is then treated as failed and its decision is DISCARDED, silently
+ * disarming the guard while exit code stays 0.
+ *
+ * Measured 2026-08-30: 1,716 polluted hook events / 241 tool calls / 8 projects
+ * in three days. See /docs/LESSONS.md (2026-08-30 entry).
+ */
+const PROTO_SHIMMED_TOOLS = new Set(["bun", "bunx", "node", "go", "gofmt", "moon", "moonx", "zig"]);
+const AGENT_ENV_STRIP_PREFIX = "env -u AI_AGENT -u CLAUDECODE ";
+
+/** The interpreter named in a bare-path hook command's shebang, or null. */
+function shebangInterpreter(command, pluginDir) {
+  const token = command.split(/\s+/)[0];
+  const rel = token.replace(/^\$\{?CLAUDE_PLUGIN_ROOT\}?\//, "");
+  const scriptPath = join(pluginDir, rel);
+  if (!existsSync(scriptPath)) return null;
+  const firstLine = readFileSync(scriptPath, "utf8").split("\n", 1)[0].trim();
+  if (!firstLine.startsWith("#!")) return null;
+  return firstLine.split(/\s+/).pop();
+}
+
+/**
+ * Validation 10: no hook command may invoke a proto-shimmed tool without first
+ * stripping the env vars proto sniffs. Covers both `bun <script>` and a bare
+ * `${CLAUDE_PLUGIN_ROOT}/…` path whose shebang names a shimmed tool.
+ */
+async function validateHookCommandHygiene() {
+  const errors = [];
+  const warnings = [];
+
+  const hooksFiles = await glob("plugins/*/hooks/hooks.json", {
+    cwd: process.cwd(),
+    absolute: true,
+    onlyFiles: true,
+  });
+
+  for (const hooksPath of hooksFiles) {
+    const relPath = relative(process.cwd(), hooksPath);
+    const pluginDir = dirname(dirname(hooksPath));
+
+    let doc;
+    try {
+      doc = JSON.parse(readFileSync(hooksPath, "utf8"));
+    } catch (parseError) {
+      // Surface it rather than skipping silently: an unreadable hooks.json means
+      // this check did NOT cover that plugin, and "0 errors" would otherwise
+      // read as "clean" for a file nobody inspected.
+      warnings.push(`${relPath}: unparseable, hook-command hygiene NOT checked (${parseError.message})`);
+      continue;
+    }
+
+    const container = doc.hooks ?? doc;
+    for (const entries of Object.values(container)) {
+      if (!Array.isArray(entries)) continue;
+      for (const entry of entries) {
+        for (const hook of entry.hooks ?? []) {
+          const command = hook.command ?? "";
+          if (!command || command.startsWith(AGENT_ENV_STRIP_PREFIX)) continue;
+
+          const first = command.split(/\s+/)[0];
+          const isBareShimmed = PROTO_SHIMMED_TOOLS.has(first);
+          const isShebangShimmed =
+            /^\$\{?CLAUDE_PLUGIN_ROOT\}?\//.test(first) &&
+            PROTO_SHIMMED_TOOLS.has(shebangInterpreter(command, pluginDir));
+
+          if (isBareShimmed || isShebangShimmed) {
+            const via = isBareShimmed ? `\`${first}\`` : "its shebang interpreter";
+            errors.push(
+              `${relPath}: hook command invokes a proto-shimmed tool (${via}) without stripping the agent env vars. ` +
+                `proto will intermittently prepend an NDJSON banner to STDOUT and the hook's decision will be silently discarded. ` +
+                `Prefix the command with "${AGENT_ENV_STRIP_PREFIX.trim()}". Offending command: ${command.slice(0, 120)}`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+
 async function validateHooksJsonStructure() {
   const errors = [];
   const warnings = [];
@@ -1387,6 +1475,10 @@ const { errors: hookErrors, warnings: hookWarnings } = await validateHookOutputF
 // ADR: Lesson from user "Chen" - "Invalid discriminator value" from malformed hook structure
 const { errors: hookStructErrors, warnings: hookStructWarnings } = await validateHooksJsonStructure();
 
+// Hook command hygiene — no hook may invoke a proto-shimmed tool bare, or proto's
+// NDJSON banner lands on stdout ahead of the hook's JSON and the decision is dropped.
+const { errors: hookHygieneErrors, warnings: hookHygieneWarnings } = await validateHookCommandHygiene();
+
 // Skills frontmatter validation (v11.54.0 — all skills/*/SKILL.md must have name + description)
 const { errors: skillsFrontmatterErrors, warnings: skillsFrontmatterWarnings } = await validateAllSkillsFrontmatter();
 
@@ -1478,6 +1570,21 @@ if (hookStructWarnings.length > 0) {
   hasWarnings = true;
 }
 
+// Report hook command hygiene issues (proto shim banner corrupts hook stdout)
+if (hookHygieneErrors.length > 0) {
+  console.error(`\n❌ HOOK COMMAND HYGIENE ERRORS (${hookHygieneErrors.length}):`);
+  console.error(`   A bare proto-shimmed tool lets proto prepend an NDJSON banner to the hook's stdout,`);
+  console.error(`   so Claude Code fails to parse it and SILENTLY DISCARDS the hook's decision (exit 0).`);
+  hookHygieneErrors.forEach((e) => console.error(`   - ${e}`));
+  hasErrors = true;
+}
+
+if (hookHygieneWarnings.length > 0) {
+  console.warn(`\n⚠️  Hook command hygiene warnings (${hookHygieneWarnings.length}):`);
+  hookHygieneWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hasWarnings = true;
+}
+
 // Report shadow hook issues (double-firing from non-cc-skills duplicates in settings.json)
 if (shadowErrors.length > 0) {
   console.error(`\n❌ SHADOW HOOK ERRORS (${shadowErrors.length}):`);
@@ -1514,6 +1621,7 @@ const allErrors = [
   ...declErrors,
   ...hookErrors,
   ...hookStructErrors,
+  ...hookHygieneErrors,
   ...skillsFrontmatterErrors,
   ...shadowErrors,
 ];
@@ -1524,6 +1632,7 @@ const allWarnings = [
   ...declWarnings,
   ...hookWarnings,
   ...hookStructWarnings,
+  ...hookHygieneWarnings,
   ...skillsFrontmatterWarnings,
   ...shadowWarnings,
   ...(cycles.length > 0 ? [`${cycles.length} circular dependencies`] : []),
