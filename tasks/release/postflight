@@ -38,14 +38,38 @@ echo "→ Checking for unpushed commits..."
 # `{` and `}` as literal-brace expansion problems because it doesn't know
 # Git ref syntax. The expression is correct as-is: `git log @{u}..HEAD`
 # means "log commits between upstream and HEAD". Disable per-line.
+# The producer used to be `git log --oneline @{u}..HEAD 2>/dev/null || echo ""`.
+# With no upstream configured, git exits 128 with `fatal: no upstream configured
+# for branch`; `2>/dev/null` hid the message and `|| echo ""` laundered the
+# failure into the empty string, which the test below then read as "nothing
+# unpushed". The gate could not distinguish "everything is pushed" from "I could
+# not look" — and it is the LAST phase of release:full, so its green banner is
+# the pipeline's final word.
+#
+# This is reachable by design, not hypothetically: the worktree-per-branch rule
+# (`git worktree add ../repo-slug -b branch`) produces exactly that state until
+# the first `git push -u`, as does a detached HEAD after a tag checkout.
+# Verified 2026-08-31 in a sandbox repo: a genuinely unpushed commit on an
+# upstream-less branch printed "✓ All commits pushed to remote", exit 0.
+#
 # shellcheck disable=SC1083
-UNPUSHED=$(git log --oneline @{u}..HEAD 2>/dev/null || echo "")
-if [[ -n "$UNPUSHED" ]]; then
-    echo "  ✗ Unpushed commits:"
-    echo "$UNPUSHED" | sed 's/^/    /'
+if ! UPSTREAM_TRACKING_BRANCH=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null); then
+    echo "  ✗ No upstream for '$(git rev-parse --abbrev-ref HEAD)' — CANNOT verify commits are pushed"
+    echo "    (worktree branch before its first 'git push -u'? detached HEAD? no remote?)"
+    echo "    Refusing to report 'all pushed' without looking."
     ERRORS=$((ERRORS + 1))
 else
-    echo "  ✓ All commits pushed to remote"
+    # Deliberately no `2>/dev/null` and no `|| echo ""`: under `set -e` a genuine
+    # git failure must abort, never read as clean.
+    # shellcheck disable=SC1083
+    UNPUSHED=$(git log --oneline @{u}..HEAD)
+    if [[ -n "$UNPUSHED" ]]; then
+        echo "  ✗ Unpushed commits (vs $UPSTREAM_TRACKING_BRANCH):"
+        echo "$UNPUSHED" | sed 's/^/    /'
+        ERRORS=$((ERRORS + 1))
+    else
+        echo "  ✓ All commits pushed to $UPSTREAM_TRACKING_BRANCH"
+    fi
 fi
 
 echo ""
