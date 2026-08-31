@@ -102,7 +102,21 @@ fi
 # Restore the producer file via trap before subsequent test cases run.
 
 PRODUCER_FILE_BACKUP_ABSOLUTE_PATH=$(mktemp -t iter115-producer-backup-XXXXXX)
-trap 'cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" 2>/dev/null; rm -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH"' EXIT
+
+# Iter-186: sentinels that identify THIS test's own mutations, so cleanup can
+# undo them without asserting authority over files it does not own. See the
+# long rationale on the EXIT trap further down (Case 5).
+ITER115_PRODUCER_MUTATION_SENTINEL="ITER115 REGRESSION TEST CASE 2 SYNTHETIC INJECTION"
+ITER115_DOC_MUTATION_SENTINEL="ITER115 REGRESSION TEST CASE 5 SYNTHETIC DOC MUTATION"
+
+__iter115_restore_producer_only_if_still_carrying_our_injection() {
+    if [[ -s "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" ]] &&
+        grep -qF "$ITER115_PRODUCER_MUTATION_SENTINEL" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" 2>/dev/null; then
+        cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
+    fi
+    rm -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH"
+}
+trap __iter115_restore_producer_only_if_still_carrying_our_injection EXIT
 
 if [[ ! -f "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" ]]; then
     assert_fails "Case 2: producer-file injection target does not exist (cannot inject synthetic typo): $PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
@@ -190,8 +204,29 @@ fi
 # operator) is the release-blocking signal.
 
 ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH=$(mktemp -t iter115-doc-backup-XXXXXX.md)
-# Extend trap to also restore the doc on exit
-trap 'cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" 2>/dev/null; cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; rm -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"' EXIT
+# Iter-186: extend cleanup to the doc, still restoring ONLY our own mutation.
+#
+# The previous trap was an unconditional pair of `cp -f "$backup" "$target"`.
+# The iter-126 flock below is released as soon as Case 5 restores the doc
+# inline, but the TRAP fires at process exit — outside the lock — so a
+# legitimate rewrite that landed in between (a `--write` regeneration, or a
+# sibling test's restore) was silently clobbered back to this test's stale
+# snapshot. That took iter-113/114/115/117 down together and is why the suite
+# reported anywhere from 94 to 109 passing. Observed twice on 2026-08-31, and
+# it also left synthetic marker lines behind in the producer file.
+#
+# A cleanup handler must undo what it did, not restore a snapshot of a file it
+# does not own. Keying off our own sentinel makes it race-free without holding
+# the lock longer, idempotent, and a no-op when the inline restore already ran.
+__iter115_restore_producer_and_doc_only_if_still_carrying_our_mutations() {
+    __iter115_restore_producer_only_if_still_carrying_our_injection
+    if [[ -s "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" ]] &&
+        grep -qF "$ITER115_DOC_MUTATION_SENTINEL" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; then
+        cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+    fi
+    rm -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
+}
+trap __iter115_restore_producer_and_doc_only_if_still_carrying_our_mutations EXIT
 
 # Iter-126 fix for iter-115↔iter-117 cross-test race condition under xargs -P
 # parallelism (iter-75 parallel-suite runner). Case 5 below mutates the
@@ -226,7 +261,7 @@ fcntl.flock(fd, fcntl.LOCK_EX)
 
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
 echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
-echo "ITER115 REGRESSION TEST CASE 5 SYNTHETIC DOC MUTATION — verifying --check exits non-zero (restored by trap)" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+echo "$ITER115_DOC_MUTATION_SENTINEL — verifying --check exits non-zero (restored by trap)" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
 
 set +e
 ITER113_DRIFT_CHECK_OUTPUT_WITH_SYNTHETIC_DOC_MUTATION=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)

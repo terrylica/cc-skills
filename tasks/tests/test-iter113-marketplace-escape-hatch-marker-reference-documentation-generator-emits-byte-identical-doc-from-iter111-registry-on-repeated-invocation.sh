@@ -148,7 +148,34 @@ fi
 # in, run --check, verify it fails, then restore. Uses a temp file alias to
 # avoid risk of leaving the on-disk doc mutated if the test errors midway.
 ORIGINAL_DOC_BACKUP_FILE=$(mktemp -t iter113-original-doc-XXXXXX.md)
-trap 'cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; rm -f "$FIRST_RUN_OUTPUT_FILE" "$SECOND_RUN_OUTPUT_FILE" "$ORIGINAL_DOC_BACKUP_FILE"' EXIT
+
+# The synthetic line Case 7 appends. The cleanup below keys off it so the trap
+# can tell "my mutation is still on disk" from "someone else legitimately
+# rewrote this file".
+ITER113_SYNTHETIC_MUTATION_SENTINEL="SYNTHETIC DRIFT MUTATION INJECTED BY ITER113 REGRESSION TEST CASE 7"
+
+# Iter-186: restore ONLY what this test broke, and only if it is still broken.
+#
+# The previous trap was an unconditional `cp -f "$backup" "$doc"` on EXIT. The
+# flock below is released the moment Case 7 restores the doc inline, but the
+# TRAP fires much later, at process exit — outside the lock. So any legitimate
+# rewrite of the doc that landed in between (a `--write` regeneration, or
+# another test's restore) was silently clobbered back to this test's stale
+# snapshot, taking iter-113/114/115/117 down together and making the suite
+# report anywhere from 94 to 109 passing. Observed twice on 2026-08-31.
+#
+# Restoring a snapshot is the wrong verb for a cleanup handler: it asserts
+# authority over a file this test does not own. Undoing its own mutation is the
+# right one, and it is inherently race-free — no lock needed, idempotent, and a
+# no-op when Case 7 already restored or never ran.
+__iter113_cleanup_restoring_only_our_own_synthetic_mutation() {
+    if [[ -s "$ORIGINAL_DOC_BACKUP_FILE" ]] &&
+        grep -qF "$ITER113_SYNTHETIC_MUTATION_SENTINEL" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; then
+        cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+    fi
+    rm -f "$FIRST_RUN_OUTPUT_FILE" "$SECOND_RUN_OUTPUT_FILE" "$ORIGINAL_DOC_BACKUP_FILE"
+}
+trap __iter113_cleanup_restoring_only_our_own_synthetic_mutation EXIT
 
 # Iter-126 fix: acquire shared mutation-window flock before mutating the
 # canonical on-disk doc. Without this, the iter-117 Case 6 --check (which
@@ -167,7 +194,7 @@ fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
 
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ORIGINAL_DOC_BACKUP_FILE"
 echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
-echo "SYNTHETIC DRIFT MUTATION INJECTED BY ITER113 REGRESSION TEST CASE 7 — SHOULD BE RESTORED BY TRAP" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+echo "$ITER113_SYNTHETIC_MUTATION_SENTINEL — SHOULD BE RESTORED BY TRAP" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
 
 set +e
 drift_check_output=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
