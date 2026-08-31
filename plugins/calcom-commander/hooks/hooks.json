@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/hooks/bot-shutdown-notify.ts",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/hooks/bot-shutdown-notify.ts",
             "timeout": 10000,
             "async": true
           }

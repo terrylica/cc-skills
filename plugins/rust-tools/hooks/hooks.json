@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-rust-sota-reminder.ts",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-rust-sota-reminder.ts",
             "timeout": 5000
           }
         ]
