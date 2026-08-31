@@ -425,7 +425,16 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4: plugin manifest v
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking self-evolution sandwich..."
 SANDWICH_ERRORS=0
-SANDWICH_SCANNER_AWK_SCRIPT_PATH="$(dirname "$0")/../../../scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk"
+SANDWICH_SCANNER_AWK_SCRIPT_PATH="$(dirname "$0")/../../scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk"
+# Fail loudly if the scanner is missing. Before this check existed the awk
+# invocation below simply errored to stderr, the while-loop read zero rows, and
+# the gate printed "✓ All skills have self-evolution sandwich" — a release gate
+# reporting PASS because it could not look. (The path was one `../` too deep
+# from 302f5724, which moved .mise/tasks/ up to tasks/.)
+if [[ ! -f "$SANDWICH_SCANNER_AWK_SCRIPT_PATH" ]]; then
+    echo "  ✗ sandwich scanner not found: $SANDWICH_SCANNER_AWK_SCRIPT_PATH"
+    exit 1
+fi
 # Single awk invocation emits TSV: filename\thas_top_marker\tlast_post_exec_line\ttotal_lines
 while IFS=$'\t' read -r skill_md_filename has_self_evolving_marker last_post_execution_reflection_line total_line_count_for_file; do
     # Convert "plugins/X/skills/Y/SKILL.md" → "X:Y" via parameter expansion
@@ -459,7 +468,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4b: self-evolution s
 # typos, plugin/skip-list/settings.json drift. See:
 # scripts/validate-hook-registration.sh for details.
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
-if ! bash "$(dirname "$0")/../../../scripts/validate-hook-registration.sh"; then
+if ! bash "$(dirname "$0")/../../scripts/validate-hook-registration.sh"; then
     exit 1
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registration sanity"
