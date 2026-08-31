@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 33 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 36 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (25; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (28; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
@@ -29,13 +29,16 @@ Jump directly to any of the 33 registered markers below. Markers are listed alph
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
 - [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
+- [`LEAK-TAXONOMY-OK`](#leak-taxonomy-ok)
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
 - [`MINI-INNGEST-OK`](#mini-inngest-ok)
+- [`PII-SCAN-OK`](#pii-scan-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
 - [`RELEASE-NOTES-OK`](#release-notes-ok)
+- [`SECRET-SCAN-OK`](#secret-scan-ok)
 - [`SETPROCTITLE-OK`](#setproctitle-ok)
 - [`SHELL-SAFETY-OK`](#shell-safety-ok)
 - [`SKILL-PLUGIN-ROOT-OK`](#skill-plugin-root-ok)
@@ -69,7 +72,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (25 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (28 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -311,6 +314,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # LAYER3-STRIPPED-PATH-OK: explain the deliberate exception here in at least 10 characters
 ```
 
+## `LEAK-TAXONOMY-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-leakage-taxonomy-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit/MultiEdit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to "leaky, therefore reject". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.
+
+**Example usage**:
+
+```
+# LEAK-TAXONOMY-OK
+```
+
 ## `MANUAL-PAT-PAGE-OK`
 
 | Field | Value |
@@ -379,6 +399,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # MINI-INNGEST-OK
 ```
 
+## `PII-SCAN-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-pii-exposure-reminder.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the third-party-PII exposure reminder (posttooluse-pii-exposure-reminder.ts) for a docs/config file. The reminder fires when a Write/Edit/MultiEdit leaves an email address at a real routable domain, or a telephone number, in a .md/.txt/.yaml/.toml/.json-class file — the shape that put a contact's real name, business email and phone back into the published tree six days after an eleven-agent scrub removed them. Add a comment containing PII-SCAN-OK (any comment style, e.g. `<!-- PII-SCAN-OK -->`) when the contact data is intentional: a public maintainer address, an RFC or paper author, a quoted upstream document, or a vendor's published support line. No reason is required, because unlike a credential, deliberately published contact information is an ordinary and defensible thing for a repo to contain. Note this marker only silences a NON-BLOCKING reminder — the reminder never denies or undoes the edit, so the marker removes noise, it never unblocks work. Its blocking sibling for the credential half of the same incident uses SECRET-SCAN-OK, which does require a reason.
+
+**Example usage**:
+
+```
+# PII-SCAN-OK
+```
+
 ## `PROCESS-STORM-OK`
 
 | Field | Value |
@@ -428,6 +465,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # RELEASE-NOTES-OK: explain the deliberate exception here in at least 10 characters
+```
+
+## `SECRET-SCAN-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-secret-exposure-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the live-credential exposure guard (pretooluse-secret-exposure-guard.ts), which HARD-BLOCKS a Write/Edit/MultiEdit whose new content matches one of three high-confidence credential shapes: a BotFather Telegram token (`<8-10 digit id>:AA<32+ chars>`), a bare 30-character mixed-alphanumeric token sitting within ±80 characters of a PUSHOVER / app_token / user_key / api_token cue, or an enumerated secret-manager provisioning command (`doppler secrets set`, `op item create|edit`, `vault set|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password`) carrying a ≥16-character literal value that is not a recognized placeholder. Unlike almost every other marker in this registry, a JUSTIFICATION IS MANDATORY: write `SECRET-SCAN-OK: <reason>` with at least 10 characters of reason. That asymmetry is deliberate — in the 23-repo audit that motivated the guard, every leaked credential was accompanied by the belief that it was an example, so a bare marker would reproduce the exact failure. Legitimate uses are narrow: a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. If the value was ever live, the correct action is not this marker — it is to remove the value and ROTATE the credential.
+
+**Example usage**:
+
+```
+# SECRET-SCAN-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `SETPROCTITLE-OK`

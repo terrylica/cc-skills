@@ -8,6 +8,14 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 
+# ---------- Shared hook-command parsing SSoT ----------
+# hooks.json commands carry a load-bearing `env -u AI_AGENT -u CLAUDECODE`
+# prefix before the interpreter (see tasks/lib/hook-command-parsing.sh for the
+# proto-NDJSON-banner incident that requires it). Never assume the first token
+# of a command is the interpreter — always go through these helpers.
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$SCRIPT_DIR_ABSOLUTE/lib/hook-command-parsing.sh"
+
 # ---------- Output formatting ----------
 print_banner() {
     echo "════════════════════════════════════════════════════════════════════════════════"
@@ -25,8 +33,9 @@ echo ""
 # ---------- Discover PostToolUse hook scripts via every plugin's hooks.json ----------
 # Iterate every plugins/*/hooks/hooks.json file. For each PostToolUse entry,
 # extract the command field, resolve the ${CLAUDE_PLUGIN_ROOT} placeholder to
-# the absolute plugin-root directory, strip the `bun ` / `node ` prefix to
-# isolate the script path, and accumulate (de-duplicated) into the records list.
+# the absolute plugin-root directory, strip the `env -u …` prefix plus the
+# `bun ` / `node ` interpreter to isolate the script path, and accumulate
+# (de-duplicated) into the records list.
 declare -a POSTTOOLUSE_HOOK_FORENSIC_RECORDS=()
 while IFS= read -r hooks_json_file_absolute_path; do
     plugin_hooks_directory_containing_this_hooks_json=$(dirname "$hooks_json_file_absolute_path")
@@ -39,8 +48,9 @@ while IFS= read -r hooks_json_file_absolute_path; do
         # Substitute the placeholder
         # shellcheck disable=SC2001 # sed needed for literal pattern substitution
         posttooluse_hook_command_resolved=$(echo "$posttooluse_hook_command_raw_with_plugin_root_placeholder" | sed "s#\${CLAUDE_PLUGIN_ROOT}#$plugin_root_directory_absolute_path#g")
-        # Strip the `bun ` prefix if present
-        posttooluse_hook_script_path_only=$(echo "$posttooluse_hook_command_resolved" | sed -E 's/^[[:space:]]*(bun|node)[[:space:]]+//' | awk '{print $1}')
+        # Strip the `env -u AI_AGENT -u CLAUDECODE` prefix (if present) and the
+        # interpreter, leaving the script path. Shared SSoT — see the header.
+        posttooluse_hook_script_path_only=$(extract_hook_script_path_from_hook_command "$posttooluse_hook_command_resolved")
 
         if [[ -f "$posttooluse_hook_script_path_only" ]]; then
             POSTTOOLUSE_HOOK_FORENSIC_RECORDS+=("$posttooluse_hook_script_path_only")
@@ -78,11 +88,17 @@ echo ""
 # hooks.json files.
 declare -A ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME=()
 while IFS= read -r hooks_json_path_for_async_flag_prescan; do
-    # Extract each PostToolUse entry's (async, command-basename) tuple.
-    # The `command` field looks like `bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts`
-    # — split on whitespace, take the last segment, split on `/`, take
-    # the basename. `async` defaults to false when absent.
-    while IFS=$'\t' read -r async_flag_value command_basename; do
+    # Extract each PostToolUse entry's (async, command) tuple in ONE jq pass,
+    # then derive the basename in bash via the shared hook-command parser.
+    # The `command` field looks like
+    #   `env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts`
+    # so neither the first whitespace-token nor the last `/`-segment is
+    # reliably the script — the helper handles every marketplace command shape.
+    # `async` defaults to false when absent. The parser is pure bash, so this
+    # adds no fork per entry and preserves the iter-124 single-pass property.
+    while IFS=$'\t' read -r async_flag_value hook_command_for_async_flag_prescan; do
+        [[ -z "$hook_command_for_async_flag_prescan" ]] && continue
+        command_basename=$(extract_hook_script_basename_from_hook_command "$hook_command_for_async_flag_prescan")
         [[ -z "$command_basename" ]] && continue
         if [[ "$async_flag_value" == "true" ]]; then
             ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$command_basename]="ALREADY-ASYNC"
@@ -93,7 +109,7 @@ while IFS= read -r hooks_json_path_for_async_flag_prescan; do
             # any async:true marketplace-wide as authoritative).
             ITER124_ASYNC_FLAG_STATUS_BY_POSTTOOLUSE_HOOK_BASENAME[$command_basename]="NOT-CURRENTLY-ASYNC"
         fi
-    done < <(jq -r '.hooks.PostToolUse[]?.hooks[]? | "\(.async // false)\t\(.command | split("/") | .[-1] | split(" ") | .[0])"' "$hooks_json_path_for_async_flag_prescan" 2>/dev/null)
+    done < <(jq -r '.hooks.PostToolUse[]?.hooks[]? | "\(.async // false)\t\(.command // "")"' "$hooks_json_path_for_async_flag_prescan" 2>/dev/null)
 done < <(find "$REPO_ROOT/plugins" -mindepth 3 -maxdepth 3 -name 'hooks.json' -type f 2>/dev/null)
 
 # ---------- Per-script async-eligibility classifier ----------
