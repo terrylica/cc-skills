@@ -1,3 +1,64 @@
+# [29.2.0](https://github.com/terrylica/cc-skills/compare/v29.1.0...v29.2.0) (2026-08-31)
+
+
+### Bug Fixes
+
+* **gates:** three checks were passing without examining anything ([318cd3c](https://github.com/terrylica/cc-skills/commit/318cd3c65ee211a580f0e608cd4969488f04ad23))
+
+A sweep for the failure shape found in e8b884bb — a gate whose input does not resolve, whose empty result is then read as "no violations" — turned up three more confirmed instances. Every candidate was adversarially re-verified by injecting a real violation and checking whether the gate caught it; most candidates were rejected that way, and these three survived.
+
+1. tasks/audit-hooks-for-async-true-eligibility-...-detection:306 — MINE, AND STILL LIVE. resolve_hook_command_to_absolute_path() stripped the interpreter with `^(bun|node|python3|bash|sh)[[:space:]]+`. That anchor stopped matching the moment d69ace8a gave every hook command its `env -u AI_AGENT -u CLAUDECODE ` prefix, so no script path resolved and the audit reported a clean scan of nothing. This is the SAME defect I fixed in the iter-92 audit in b3201283 — I fixed one call site and did not look for siblings, which is precisely the mistake the e8b884bb entry warns about. Now routed through the shared tasks/lib/hook-command-parsing.sh, and an unparseable command is a hard error rather than a silent skip. Scanned hooks: 0 -> 52.
+
+2. tasks/release/postflight:42 — `git log --oneline @{u}..HEAD 2>/dev/null || echo ""`. With no upstream configured, git exits 128, `2>/dev/null` hides the fatal, `|| echo ""` launders it into the empty string, and the gate prints "✓ All commits pushed to remote". It could not tell "everything is pushed" from "I could not look" — as the LAST phase of release:full, whose green banner is the pipeline's final word.
+
+   Reachable by design, not hypothetically: the worktree-per-branch rule produces exactly that state until the first `git push -u`, as does a detached HEAD. Now resolves the upstream explicitly and fails loudly when it cannot. Verified with three controls in a sandbox repo: unpushed commit with upstream -> FAIL(1); unpushed commit with NO upstream -> FAIL(1) (previously PASS(0)); fully pushed -> PASS(0).
+
+3. tasks/tests/test-iter114-...-markers.sh:68 — Case 3 claimed "every registered audit-task consumer source file exists on disk" while checking none. Its `grep -oE '...RelativePath:\s*"[^"]+"'` matched zero rows for two independent reasons: Prettier wraps the value onto the line after the field name, and `\s` is a GNU extension BSD/macOS `grep -E` does not honour. Fixed by squashing newlines first and using [[:space:]]. Now checks 8 paths, and a zero-extraction result FAILS rather than passes — a positive control so a future field rename cannot quietly return it to scanning nothing.
+
+The recurring lesson: "did the gate pass?" is the wrong question, because an empty result set and a clean result set are the same bytes. The right one is "if a real violation existed right now, would this catch it?" — answerable only by injecting one. Every fix here was validated that way.
+
+Gate: lint clean; 109/109 hook regression tests; preflight green.
+
+* **tests:** cleanup traps must undo their own mutation ([b320128](https://github.com/terrylica/cc-skills/commit/b32012834f0842bfc764b08b93521c99f54a3453))
+
+test-iter113 and test-iter115 each mutate the generated escape-hatch-marker reference doc to prove the drift detector fires, then restore it. Both guarded the mutation window with the iter-126 flock — but both also installed an EXIT trap that did an unconditional `cp -f "$backup" "$doc"`.
+
+The flock is released the moment the inline restore completes. The trap fires much later, at process exit, OUTSIDE the lock. So any legitimate rewrite of the doc that landed in between — a `--write` regeneration, or a sibling test's restore — was silently overwritten with a stale snapshot. That took iter-113/114/115/117 down together and is the reason `moon run :check` reported anywhere from 94 to 109 tests passing. iter-115's trap did the same to its producer file, leaving synthetic marker lines behind in plugins/gmail-commander/scripts/bot.ts.
+
+Observed twice on 2026-08-31 while verifying an unrelated fix: the regenerated doc was clobbered back to its drifted version mid-verification, which made a correct fix look non-durable and sent the investigation down a false trail.
+
+Both traps now key off a sentinel identifying their own injected line and restore only while that line is still present. Restoring a snapshot is the wrong verb for a cleanup handler — it asserts authority over a file the test does not own. Undoing its own mutation is the right one, and it needs no lock: race-free, idempotent, and a no-op when the inline restore already ran.
+
+Measured over 11 consecutive parallel suite runs after the change: the doc survived intact with no registry drift in all 11 (`shasum` before/after plus a generator `--check` each round). Before, clobbering was frequent enough to be caught twice inside a single verification session.
+
+NOT FIXED, and characterised rather than papered over: iter-117 still failed 2 of those 11 runs. It is not this race — the doc was intact and drift-free on both failures, and hammering iter-117 eight times against concurrent iter-113 + iter-115 mutation windows reproduced it 0/8. It behaves like the known load-sensitive wall-clock flakes (iter-167, iter-174), which pass solo and are already downgraded in the release gate by CC_SKILLS_SKIP_PERF_TIMING.
+
+
+
+### Features
+
+* **itp-hooks:** fleet-wide SIGPIPE-under-pipefail nudge ([34a085e](https://github.com/terrylica/cc-skills/commit/34a085e918b5fb0945bc7a52d0f4082944f6eb0e))
+
+Takes a gate that existed only in terrylica/mql5 and makes it available to every repository, as an advisory PostToolUse reminder rather than a block.
+
+THE DEFECT. A pipeline into an early-exiting reader (`| grep -q`, `| head -1`) inside a script with `pipefail`: the reader closes the pipe, the producer is killed by SIGPIPE and exits 141, and `pipefail` makes the PIPELINE take that status. The harm is usually not a crash but an INVERTED BOOLEAN. Measured instance: a pre-push hook ran `moon query tasks | grep -q '"check-all-gates"'` to decide whether a task existed; grep FOUND it, exited, killed the producer, and the `if` evaluated FALSE — so the hook reported that 40 gates had no runner while the same command ran fine by hand. Nothing crashed, nothing logged. It is also a RACE: if the producer finishes writing first there is no SIGPIPE at all, which is why this passes in testing and begins failing later as data grows. That one instance cost three `git push --no-verify` bypasses in a day.
+
+FIDELITY IS MEASURED, NOT ASSERTED. Run over mql5's tracked corpus, this port reproduces that gate's own live census FILE-FOR-FILE and COUNT-FOR-COUNT: 119 pipefail scripts, 26 files with sites, 60 sites, `diff` clean. An initial run disagreed (73 sites / 30 files) and the gap was traced rather than explained away — it was entirely file discovery, since the gate uses `git ls-files` and my first scan walked the filesystem including untracked and gitignored files. Matching totals could still hide offsetting differences, so the per-file counts were diffed too.
+
+THE AWK RULE IS A DELIBERATE IMPROVEMENT ON THE SOURCE. Writing the negative tests surfaced two false positives in the original gate that its own suite did not cover:
+  - `awk -v x="exit" '{print}'` matches its rule (i), `^g?awk\b[^|;&]*\bexit\b`, which has no quote awareness at all — the gate's comment credits the `['"]` group with preventing this, but that group is in rule (ii).
+  - `awk '{print}'; exit 1` matches its rule (ii), which can bind its opening-quote group to the program's CLOSING quote and then scan the shell code after it, crediting a shell `exit` to awk. Rule (i) correctly declines this one; rule (ii) undoes that. Both regexes are replaced by a small quote-aware extractor that pulls out the awk PROGRAM (skipping -v/-F/-f option values) and looks for a bare `exit` in it, which is what the semantics actually are. The census still matches exactly because neither false-positive shape occurs in that tree.
+
+SOFT BY DESIGN, AND THAT IS THE POINT. 60 sites across 26 of 119 scripts in the source repo are mostly harmless — the status is discarded, or the producer always wins the race. A hook that DENIED on this shape would fire constantly on ordinary code, and the documented consequence of an over-eager gate here is a blanket bypass that disables every OTHER gate with it. A reminder that gets read beats a block that gets routed around, so this emits {decision:block, reason} (the Claude-visible channel per ADR 2025-12-17) and never blocks real work.
+
+NET-NEW ONLY. Edit/MultiEdit fragments must add more sites than they remove, so editing a line near a pre-existing site is silent. Fragments are scanned under a synthetic pipefail preamble, because pipefail is a property of the FILE and a fragment would otherwise always be invisible to a detector gated on it.
+
+Readers flagged: head (NOT `head -n -N`/`head -c -N`, which drain), grep -q/--quiet/--silent, grep -m N/--max-count, sed with a q command, awk whose program exits, bare `read` as final stage. NOT flagged, because they drain to EOF: tail, `tail -n +N`, sort, wc, `while read`, grep without -q/-m, awk without exit. Quote-aware pipe splitting (a `|` inside an awk program is data), `||` and `|&` excluded, heredoc BODIES skipped, backslash and trailing-pipe continuations folded, and `$( set +o pipefail; ... )` treated as the prescribed remediation rather than a defect — a gate that rejected its own prescribed fix would just teach people to reach for the escape marker.
+
+Escape hatches: `SIGPIPE-OK: <reason>` on any line of the pipeline, or file-wide SHELL-SAFETY-OK.
+
+54 new bun tests, weighted toward the negative cases — a detector that flagged every pipeline would pass every positive test and be worthless. Full suite: 1716 pass / 0 fail across 64 tracked files.
+
 # [29.1.0](https://github.com/terrylica/cc-skills/compare/v29.0.0...v29.1.0) (2026-08-31)
 
 
