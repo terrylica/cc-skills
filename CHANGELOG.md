@@ -1,3 +1,125 @@
+# [29.1.0](https://github.com/terrylica/cc-skills/compare/v29.0.0...v29.1.0) (2026-08-31)
+
+
+### Bug Fixes
+
+* **gh-tools:** the release-bot spec pinned a repo path that moved orgs, so the token could read but never write ([2af5ffe](https://github.com/terrylica/cc-skills/commit/2af5ffe2893d7b783c050f8763c740ef508c983e)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#32](https://github.com/terrylica/cc-skills/issues/32)
+
+ccmax-monitor now lives at doorward-systems/ccmax-monitor; the spec still said terrylica/ccmax-monitor. A fine-grained PAT's repository selection is owner-bound and does NOT follow a transfer, so the minted token kept working for everything that reads — the redirect resolves, and the REST repo endpoint even reports permissions.push=true, because that field describes the USER's permission rather than the token's grant — while git refused every write with "remote: Write access to repository not granted".
+
+That combination is why it went unnoticed: nothing failed until a release tried to push, and when it did, the machine's credential helper fell into an interactive OAuth flow and turned the 403 into a ten-minute hang rather than an error.
+
+v3.1.0 therefore shipped on the operator's ambient `gh auth token` — precisely
+
+* **hooks:** strip agent env vars so proto banner cannot void hooks ([#104](https://github.com/terrylica/cc-skills/issues/104)) ([d69ace8](https://github.com/terrylica/cc-skills/commit/d69ace8a1e1d39b87cc1a48fffe0604a94153b1b)), closes [#10](https://github.com/terrylica/cc-skills/issues/10)
+
+Every hook registered as `bun ${CLAUDE_PLUGIN_ROOT}/hooks/<guard>.ts` resolves `bun` to the proto shim, which re-execs the proto CLI. proto sniffs AI_AGENT and CLAUDECODE — both exported by Claude Code into hook subprocesses — decides it is talking to an agent, and writes an NDJSON banner to STDOUT before delegating:
+
+  {"type":"message","message":"Detected an AI agent environment, printing as NDJSON…"} {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}
+
+Two JSON documents. Trimmed, the buffer starts with `{`, so Claude Code attempts a single JSON.parse, it throws, and the harness reports "Hook output looks like a JSON object but is not valid JSON — emit the payload with a JSON encoder rather than string concatenation". That advice is a red herring: every hook here already encodes via JSON.stringify / jq / json.dumps. The polluter is a parent process.
+
+The noise was never the damage. Exit code stays 0 so it reads as cosmetic, but a hook whose stdout will not parse has its DECISION DISCARDED — on every polluted call all 15 PreToolUse:Bash guards (worktree, uv-enforcement, cwd-deletion, process-storm) silently stopped applying while still appearing to run.
+
+- Measured 1,716 polluted hook events across 241 tool calls and 8 projects in three days (2026-08-28 → 08-30); 1,714 carried the identical banner line.
+- Uniform across every bun-invoked hook and ZERO for the two `bash` hooks — the fingerprint that indicts the interpreter rather than the hook code.
+- Trigger is concurrency: ~15 guards fan out per Bash call and proto's file-lock contention pushes some onto its user-facing path (0/100 polluted at low concurrency, 27–45/100 at 100-way).
+- Emitter confirmed by binary inspection: the banner string appears once in proto 0.61.1 and zero times in all six bun binaries on this machine.
+- Only became visible when Claude Code 2.1.248 added the "looks like a JSON object" check (absent in 2.1.246/2.1.247) — the fault predates the message.
+
+Changes:
+
+- Prefix all 42 proto-shimmed hook commands across 9 plugins with `env -u AI_AGENT -u CLAUDECODE`. Covers `bun` and `node` invocations plus bare-path commands whose shebang names a shimmed tool.
+
+* **itp-hooks:** honour .prettierignore for markdownlint too ([8e4a9fc](https://github.com/terrylica/cc-skills/commit/8e4a9fce118a53d1ef28c41dc4e47a3afa54aad3))
+
+The Stop hook ran two formatters over changed markdown and only one of them read the repo's ignore file. Phase 1 prettier honours `.prettierignore` for free, because prettier does. Phase 2 `markdownlint-cli2 --fix` has no `--ignore-path` at all -- it reads only its own config, and most repos carry none -- so a repo that declared "this content is archival evidence, never format it" was obeyed by one formatter and silently overruled by the other.
+
+That asymmetry corrupted a real archive. A repo whose `.prettierignore` excluded a generated-content directory had prettier duly skip it, and then markdownlint rewrote 97 freshly-generated, still-untracked files AFTER the generating pipeline had hashed them into a checksum manifest. Calling it "formatting" understates it: across the 53 files reconstructible byte-exactly there were 1862 blank-line insertions, 22 deletions, and 139 CONTENT mutations in 29 files -- MD029 renumbering that destroyed OCR'd numerals (`- 10790.` -> `- 1.`) and renumbered a document's own index, MD004 bullet-glyph normalisation, MD049 emphasis swaps, MD034 bare-URL autolinking, and MD037 removing a space from inside a code expression. Every one of those edits a value some extractor read off a page.
+
+The fix filters the FILE LIST in a new Phase 0.5 rather than passing a flag, so it is tool-agnostic and any formatter added to this hook later inherits it. `prettier --file-info --ignore-path <root>/.prettierignore` is the oracle, so both phases agree on what "ignored" means by construction instead of via a hand-rolled matcher. Repos with no `.prettierignore`, or no git root, keep the previous behaviour exactly.
+
+Verified:
+- corpus file under an ignored dir  -> {"ignored": true},  excluded from both phases
+- ordinary root-level doc           -> {"ignored": false}, still formatted
+- builds clean; repo:lint 0 errors; repo:test 0 fail
+
+Pre-existing and unrelated: repo:test-hooks reports 101 passed / 8 failed. Confirmed pre-existing by stashing this change and re-running -- the failing set is byte-identical with and without it, and no test file references stop-markdown-lint. The 8 concern escape-hatch marker docs, registry drift, pre-commit integration and status-doctor coverage.
+
+Also records the reproduction trap in a comment: markdownlint's fixer is not stable across patch releases. Of the 53 reconstructible files, cli2 0.23.0 reproduced all 53, 0.23.2 reproduced 51, 0.22.x missed a different one. Anyone re-deriving this with a current binary gets a near-miss and may wrongly conclude the diagnosis was wrong.
+
+* **marketplace:** redact client project name from CHANGELOG ([3fc6f18](https://github.com/terrylica/cc-skills/commit/3fc6f18e37dd156af73b239158b9d87ef2d0bd7b))
+
+Follow-up to the scrub campaigns. An audit re-swept CHANGELOG.md for every identifier category the earlier passes enumerated, using the shared exposure detector plus the machine-local denylist rather than memory.
+
+- One category was still present in two places: a private client's project name, once in prose and once inside a script path. Both now carry the neutral placeholder this repo's earlier scrubs already established, so the surrounding explanations still read correctly.
+- Categories checked and found ALREADY clean, recorded so the next sweep does not redo the work: contact phone numbers, client name and honorific, personal given names, third-party hostnames carrying a customer handle, cloud account numbers, and vault item identifiers. Several never reached this file because the release-notes truncation defect fixed in v27.0.2 dropped the enumerating bodies before they were written here.
+- The operator's own identifiers are deliberate self-disclosure and are left alone; only third-party identities are redacted.
+- No value is named here. Naming them is what turned the earlier scrub commits into the leak, because semantic-release publishes commit bodies as release notes. This commit is the first thing the new commit-msg exposure guard checks.
+
+* **release:** repair two preflight paths broken by the tasks/ move ([e8b884b](https://github.com/terrylica/cc-skills/commit/e8b884bb38e276943777635636d08598da212261))
+
+302f5724 moved `.mise/tasks/` up one level to `tasks/`, but two paths in the release preflight still walked three directories up. From `tasks/release/`, `../../../scripts/` resolves to `~/eon/scripts/` — outside the repository entirely — instead of `<repo>/scripts/`.
+
+Both now use `../../scripts/`:
+
+  * `scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk`
+  * `scripts/validate-hook-registration.sh`
+
+The second failed loudly (`bash: … No such file or directory`) and aborted the release, which is how this was found. The first did not, and that is the part worth recording: awk wrote its "can't open file" to stderr, the `while` loop read zero rows, no skill was ever examined, and the gate printed
+
+    ✓ All skills have self-evolution sandwich (top + bottom)
+
+A release gate reported PASS because it could not look — the same absent-data-reads-as-success class as alpha-forge #484. It has been reporting a vacuous pass since 302f5724. A missing scanner is now an explicit hard failure rather than an empty result set, so the check cannot silently pass again.
+
+Found while running `moon run :release-full` after #104. The pipeline aborted at preflight and created no commit and no tag, so no cleanup was needed.
+
+* **tasks:** parse hook commands through one shared prefix-aware helper ([8005ef1](https://github.com/terrylica/cc-skills/commit/8005ef19504533de629f0b408dfce82dde022fc4)), closes [#104](https://github.com/terrylica/cc-skills/issues/104) [pre-#104](https://github.com/pre-/issues/104)
+
+Follow-up to d69ace8a (#104), which prefixed every proto-shimmed hook command with `env -u AI_AGENT -u CLAUDECODE`. That prefix is load-bearing — it stops proto writing an NDJSON banner to the hook's stdout, which made Claude Code discard the hook's decision while exit code stayed 0 — but it broke one audit task that assumed a hook command's first token is its interpreter.
+
+
+
+### Features
+
+* **itp-hooks:** block live credentials, remind on third-party PII ([1592849](https://github.com/terrylica/cc-skills/commit/1592849165fa4d6bf79aded6e15a29f573793e29))
+
+Closes the structural gap that let credentials and a third party's personal data reach public repositories.
+
+THE INCIDENT (23-repo audit, 2026-08-28). After two deliberate scrub campaigns had already run, the published tree still contained:
+
+- A LIVE Telegram bot token. It survived both scrubs because gitleaks ships no Telegram-bot-token rule; only trufflehog's provider-side verification caught it.
+- LIVE Pushover app tokens and a user key. These are bare 30-character alphanumerics with no prefix: trufflehog has no detector for them at all, and gitleaks caught exactly one, by luck, because the adjacent variable happened to be named PUSHOVER_APP_TOKEN.
+- A third-party contact's real name, business email and phone number, reintroduced six days AFTER an eleven-agent scrub of 2,602 files removed them. A one-time sweep does not hold; the next agent re-derives the same content from the same upstream source and pastes it back.
+- Every credential found sat in an ADR, design spec or planning doc, pasted as a worked example of a `doppler secrets set ...` provisioning command, often in a file that simultaneously said the secret lived in Doppler. docs/ is the dangerous directory, not src/.
+
+WHAT THIS ADDS
+
+- hooks/lib/secret-and-pii-exposure-detector.ts: five pure detectors plus redacting message builders, shared by both hooks.
+- hooks/pretooluse-secret-exposure-guard.ts (PreToolUse Write|Edit|MultiEdit): HARD DENY on the BotFather token shape, on a bare 30-char token within +/-80 chars of a PUSHOVER/app_token/user_key cue, and on an enumerated secret-manager provisioning command carrying a non-placeholder literal. Scans new content only; MultiEdit fragments scanned separately so a cue in one edit cannot license a blob in another; matched values redacted before they reach the transcript; fail-open on any error.
+- hooks/posttooluse-pii-exposure-reminder.ts (PostToolUse Write|Edit|MultiEdit): NON-BLOCKING reminder on third-party emails and phone numbers in docs and config files. Deliberately not a deny: an email in a doc is often legitimate, a guard that is wrong daily gets disabled, and a disabled guard is worse than no guard.
+- 48 bun tests covering every pattern positive AND negative, including &lt;pushover-app-token>, $VAR references, 555-01xx, example.com, role addresses and cue-less digit triples.
+- Audit gate: trufflehog now runs with --results=verified,unknown in both audit_hardcodes.py and run_trufflehog.py. Verification is what caught finding 1; `unknown` is kept so an unreachable endpoint cannot downgrade into a clean report.
+
+ESCAPE HATCHES (registered in the iter-111 canonical registry)
+
+- SECRET-SCAN-OK: &lt;reason>, reason >=10 chars mandatory. The asymmetry is deliberate: every leak in the audit came with the belief it was just an example, so a bare marker would reproduce the failure.
+- PII-SCAN-OK, bare, no reason: intentionally published contact information is ordinary and defensible.
+
+Spoke: plugins/itp-hooks/docs/secret-and-pii-exposure-guard.md
+
+* **itp-hooks:** guard commit messages for exposure at commit-msg time ([3ded832](https://github.com/terrylica/cc-skills/commit/3ded8323fe39337936845864d082f092e2c58c7e))
+
+The credential and PII exposure hooks added earlier inspect FILE WRITES. An audit found the leak class they cannot see: this repository's own scrub commits, whose bodies semantic-release publishes verbatim as release notes. A message enumerating what it redacted republishes it, with a permanent public URL no later commit retracts — and the habit outlived the scrub by two releases.
+
+- New `scripts/commit-message-exposure-guard.ts`, invoked as Step 3b of the existing iter-157 commit-msg git hook, reusing the SHARED detector rather than duplicating its patterns. Chosen over a PreToolUse Bash guard because commit-msg also covers operator-typed commits, `-F`, editor sessions, `--amend` and other git clients.
+- Same severity asymmetry as the file surface: credential classes BLOCK, identifier classes REMIND. A commit-msg hook that cries wolf gets answered with --no-verify forever, which would lose the block too.
+- Three identifier detectors added to the shared detector, all remind- only: cloud account numbers, multi-label Workers hostnames that carry a customer handle, and base32 vault item identifiers. Each requires a nearby context cue; vendor documentation filler never fires.
+- Comment lines and everything below the --verbose scissors line are excluded. The likeliest commit this guard sees is the one REMOVING a leaked value; scanning the diff would block exactly that.
+- Findings report class, line and a redacted excerpt only. Echoing the value into hook output would repeat the error one level up.
+- Escape hatch unchanged: `SECRET-SCAN-OK: <reason>` (>=10 chars), now honoured in the commit message itself. Fail-open and loud throughout.
+- 32 new tests: synthetic stand-ins for every real incident shape, plus a false-positive floor of ordinary release prose (semver, SHAs, issue numbers, placeholders, reserved ranges, vendor example identifiers).
+
 # [29.0.0](https://github.com/terrylica/cc-skills/compare/v28.3.0...v29.0.0) (2026-08-26)
 
 
