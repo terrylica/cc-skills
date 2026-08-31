@@ -58,19 +58,37 @@ fi
 
 # ─── Case 3: every consumerAuditTaskSourceFileRelativePath exists ────────
 MISSING_CONSUMER_TASK_COUNT=0
+CHECKED_CONSUMER_TASK_COUNT=0
+
+# The producer used to be a single-line `grep -oE '…RelativePath:\s*"[^"]+"'`.
+# It matched ZERO rows, so the loop never ran, MISSING stayed 0, and Case 3
+# reported "every registered audit-task consumer source file exists on disk"
+# while checking none of them. Two independent reasons it could not match:
+# Prettier wraps the value onto the line AFTER the field name, and `\s` is a
+# GNU extension that BSD/macOS `grep -E` does not honour. Squashing newlines
+# first fixes both and tolerates either layout. Found by the 2026-08-31
+# vacuous-gate sweep.
 while IFS= read -r consumer_audit_task_relative_path; do
     [[ -z "$consumer_audit_task_relative_path" ]] && continue
+    CHECKED_CONSUMER_TASK_COUNT=$((CHECKED_CONSUMER_TASK_COUNT + 1))
     consumer_audit_task_absolute_path="$REPO_ROOT/$consumer_audit_task_relative_path"
     if [[ ! -f "$consumer_audit_task_absolute_path" ]]; then
         MISSING_CONSUMER_TASK_COUNT=$((MISSING_CONSUMER_TASK_COUNT + 1))
         echo "    (consumer task missing on disk: $consumer_audit_task_relative_path)"
     fi
-done < <(grep -oE 'consumerAuditTaskSourceFileRelativePath:\s*"[^"]+"' "$ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH" | sed -E 's/.*"([^"]+)".*/\1/')
+done < <(tr '\n' ' ' <"$ITER114_AUDIT_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH" |
+    grep -oE 'consumerAuditTaskSourceFileRelativePath:[[:space:]]*"[^"]+"' |
+    sed -E 's/.*"([^"]+)".*/\1/')
 
-if [[ "$MISSING_CONSUMER_TASK_COUNT" -eq 0 ]]; then
-    assert_passes "Case 3: every registered audit-task consumer source file exists on disk"
+# Positive control: an empty extraction must FAIL, not pass. Without this a
+# future rename of the field silently returns the gate to reporting a clean
+# scan of nothing — which is exactly how it spent its whole life until today.
+if [[ "$CHECKED_CONSUMER_TASK_COUNT" -eq 0 ]]; then
+    assert_fails "Case 3: extracted ZERO consumer paths from the registry — the check examined nothing (producer pattern broken?)"
+elif [[ "$MISSING_CONSUMER_TASK_COUNT" -eq 0 ]]; then
+    assert_passes "Case 3: all $CHECKED_CONSUMER_TASK_COUNT registered audit-task consumer source files exist on disk"
 else
-    assert_fails "Case 3: $MISSING_CONSUMER_TASK_COUNT registered audit-task consumer source file(s) missing on disk"
+    assert_fails "Case 3: $MISSING_CONSUMER_TASK_COUNT of $CHECKED_CONSUMER_TASK_COUNT registered audit-task consumer source file(s) missing on disk"
 fi
 
 # ─── Case 4: iter-113 doc generator renders audit-task section ───────────

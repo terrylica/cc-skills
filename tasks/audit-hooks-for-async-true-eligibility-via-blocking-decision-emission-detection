@@ -63,6 +63,13 @@ set -euo pipefail
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
 shopt -u patsub_replacement 2>/dev/null || true
 
+# Shared SSoT for turning a hooks.json `command` into a script path. Hook
+# commands carry a load-bearing `env -u AI_AGENT -u CLAUDECODE ` prefix; parsing
+# them by hand is what made this audit silently scan nothing.
+AUDIT_SCRIPT_DIRECTORY_ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$AUDIT_SCRIPT_DIRECTORY_ABSOLUTE_PATH/lib/hook-command-parsing.sh"
+
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet (iter-59 regression test
@@ -299,12 +306,22 @@ resolve_hook_command_to_absolute_path() {
   local plugin_root="$2"
   local repo_root="$3"
 
-  # Strip leading runner prefix (one of: bun, node, python3, bash, sh).
-  # Use a regex anchored at start; covers each runner with one or more
-  # trailing spaces.
-  local stripped="$raw_command"
-  if [[ "$stripped" =~ ^(bun|node|python3|bash|sh)[[:space:]]+(.*)$ ]]; then
-    stripped="${BASH_REMATCH[2]}"
+  # Strip the leading runner prefix via the shared parser rather than a local
+  # regex. The old anchored `^(bun|node|python3|bash|sh)[[:space:]]+` stopped
+  # matching the moment hooks.json commands gained their load-bearing
+  # `env -u AI_AGENT -u CLAUDECODE ` prefix: every command then failed the
+  # match, `stripped` kept the whole string including `env`, no script path
+  # resolved, and this audit reported a clean scan of nothing. Same defect as
+  # the iter-92 audit, found by the 2026-08-31 vacuous-gate sweep AFTER the
+  # iter-92 site had already been fixed — one repo-wide parser is the fix,
+  # not a second hand-rolled regex.
+  local stripped
+  stripped="$(extract_hook_script_path_from_hook_command "$raw_command")"
+  # Fail loudly rather than silently auditing nothing: an unparseable command
+  # means this hook was NOT examined, and a 0-violation report would be a lie.
+  if [[ -z "$stripped" ]]; then
+    echo "AUDIT ERROR: could not parse hook command into a script path: $raw_command" >&2
+    return 1
   fi
 
   # Substitute ${CLAUDE_PLUGIN_ROOT}.
