@@ -40,6 +40,7 @@
 
 import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { resolve, join, dirname, relative, basename } from "path";
+import { homedir } from "os";
 import { execSync } from "child_process";
 import { glob } from "tinyglobby";
 import Ajv from "ajv";
@@ -819,40 +820,196 @@ async function validateHookOutputFormat() {
  * The hook is then treated as failed and its decision is DISCARDED, silently
  * disarming the guard while exit code stays 0.
  *
- * Measured 2026-08-30: 1,716 polluted hook events / 241 tool calls / 8 projects
- * in three days. See /docs/LESSONS.md (2026-08-30 entry).
+ * Measured 2026-08-30 over three days across 241 tool calls and 8 projects:
+ * 2,008 DISCARDED hook decisions, plus ~3,600 further events that carried the
+ * proto banner but still succeeded. (The first pass reported 1,716 polluted
+ * events; that was an undercount, corrected upward.) See /docs/LESSONS.md
+ * (2026-08-30 entry).
  */
 const PROTO_SHIMMED_TOOLS = new Set(["bun", "bunx", "node", "go", "gofmt", "moon", "moonx", "zig"]);
 const AGENT_ENV_STRIP_PREFIX = "env -u AI_AGENT -u CLAUDECODE ";
 
-/** The interpreter named in a bare-path hook command's shebang, or null. */
-function shebangInterpreter(command, pluginDir) {
-  const token = command.split(/\s+/)[0];
-  const rel = token.replace(/^\$\{?CLAUDE_PLUGIN_ROOT\}?\//, "");
-  const scriptPath = join(pluginDir, rel);
-  if (!existsSync(scriptPath)) return null;
-  const firstLine = readFileSync(scriptPath, "utf8").split("\n", 1)[0].trim();
-  if (!firstLine.startsWith("#!")) return null;
-  return firstLine.split(/\s+/).pop();
+/**
+ * Interpreters a hook command may name before its script. Mirrors the list in
+ * tasks/lib/hook-command-parsing.sh — that bash file is the parsing SSoT; this
+ * is its JS port (a .mjs validator cannot source bash). Keep the two in step.
+ */
+const HOOK_COMMAND_INTERPRETERS = new Set([
+  // MUST remain a SUPERSET of PROTO_SHIMMED_TOOLS. parseHookCommand() returns
+  // interpreter:null for a head it does not recognise, and the proto-shim check
+  // keys off that interpreter — so any tool present in PROTO_SHIMMED_TOOLS but
+  // absent here can never be flagged, silently. `go`/`gofmt`/`moon`/`moonx`/
+  // `zig` were in exactly that state: a bare `moon …` hook command that the
+  // previous implementation caught produced zero errors after the port, and the
+  // same omission raised a false positive in the other direction (a correctly
+  // prefixed `env -u … moon run :x` was reported as a missing script). The
+  // spread below makes the containment structural rather than a thing two
+  // hand-maintained lists have to agree about. Caught in review 2026-09-01.
+  ...PROTO_SHIMMED_TOOLS,
+  "deno", "npx", "bash", "sh", "zsh", "python", "python3", "uv", "uvx",
+]);
+
+// Fail loudly at load time if the invariant above is ever broken by an edit
+// that adds to PROTO_SHIMMED_TOOLS without touching this set.
+for (const shimmedTool of PROTO_SHIMMED_TOOLS) {
+  if (!HOOK_COMMAND_INTERPRETERS.has(shimmedTool)) {
+    throw new Error(
+      `validate-plugins.mjs invariant broken: "${shimmedTool}" is in PROTO_SHIMMED_TOOLS but not ` +
+        `HOOK_COMMAND_INTERPRETERS, so the proto-shim check can never fire for it.`,
+    );
+  }
+}
+
+/** `env` options that consume a SEPARATE following argument. */
+const ENV_OPTIONS_TAKING_A_SEPARATE_ARGUMENT = new Set(["-u", "--unset", "-C", "--chdir", "-S", "--split-string"]);
+
+/**
+ * Where a hook path written as `$HOME/.claude/plugins/marketplaces/cc-skills/…`
+ * lives inside THIS repo. Resolving through it keeps the existence check
+ * deterministic instead of "whatever this machine happens to have installed".
+ */
+const MARKETPLACE_CLONE_PATH_SEGMENT = "/.claude/plugins/marketplaces/cc-skills/";
+
+/** Strip surrounding/embedded quotes — a hook script path never contains one. */
+function unquoteHookCommandToken(token) {
+  return token.replace(/["']/g, "");
+}
+
+/** Drop a leading `env` invocation (incl. nested env, -u VAR, --unset=VAR, -i, VAR=value). */
+function stripEnvInvocationPrefixTokens(tokens) {
+  if (tokens.length === 0) return tokens;
+  if (tokens[0].split("/").pop() !== "env") return tokens;
+
+  let i = 1;
+  while (i < tokens.length) {
+    const token = tokens[i];
+    if (ENV_OPTIONS_TAKING_A_SEPARATE_ARGUMENT.has(token)) { i += 2; continue; }
+    if (token.startsWith("-")) { i += 1; continue; }
+    if (token.includes("=")) { i += 1; continue; }
+    break;
+  }
+  const rest = tokens.slice(i);
+  // Recurse only when the remainder actually shrank — a degenerate `env` with
+  // no program must not loop forever.
+  return rest.length < tokens.length ? stripEnvInvocationPrefixTokens(rest) : rest;
 }
 
 /**
- * Validation 10: no hook command may invoke a proto-shimmed tool without first
- * stripping the env vars proto sniffs. Covers both `bun <script>` and a bare
- * `${CLAUDE_PLUGIN_ROOT}/…` path whose shebang names a shimmed tool.
+ * Split a hooks.json `command` into { interpreter, scriptToken }. Normalises
+ * FIRST (quotes, env prefix, interpreter flags, a `bun run`/`uv run`
+ * subcommand) so downstream checks are generic instead of pattern-matching one
+ * spelling of one path form.
  */
-async function validateHookCommandHygiene() {
+function parseHookCommand(command) {
+  const tokens = stripEnvInvocationPrefixTokens(
+    command.split(/\s+/).filter(Boolean).map(unquoteHookCommandToken),
+  );
+  if (tokens.length === 0) return { interpreter: null, scriptToken: null };
+
+  const head = tokens[0].split("/").pop();
+  if (!HOOK_COMMAND_INTERPRETERS.has(head)) {
+    // Shape 4: a bare shebang script, no explicit interpreter.
+    return { interpreter: null, scriptToken: tokens[0] };
+  }
+
+  let i = 1;
+  while (i < tokens.length && (tokens[i].startsWith("-") || tokens[i] === "run")) i += 1;
+  return { interpreter: head, scriptToken: i < tokens.length ? tokens[i] : null };
+}
+
+/**
+ * Expand a hook script token to a filesystem path.
+ *
+ * Returns { path, repoPath, deterministic } where `repoPath` is the in-repo
+ * equivalent of a marketplace-clone path (or null), and `deterministic` says
+ * whether a miss is a real repo defect (plugin-relative / in-repo) rather than
+ * a machine-dependent absolute path this checkout cannot vouch for.
+ */
+function resolveHookScriptPath(scriptToken, pluginDir, rootDir) {
+  if (!scriptToken) return null;
+
+  const referencesPluginRoot = /\$\{?CLAUDE_PLUGIN_ROOT\}?/.test(scriptToken);
+  let path = scriptToken
+    .replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, pluginDir)
+    .replace(/\$CLAUDE_PLUGIN_ROOT/g, pluginDir)
+    .replace(/\$\{HOME\}/g, homedir())
+    .replace(/\$HOME/g, homedir());
+
+  if (path.startsWith("~/")) path = join(homedir(), path.slice(2));
+  const wasRelative = !path.startsWith("/");
+  if (wasRelative) path = join(rootDir, path);
+
+  const segmentIndex = path.indexOf(MARKETPLACE_CLONE_PATH_SEGMENT);
+  const repoPath =
+    segmentIndex === -1
+      ? null
+      : join(rootDir, path.slice(segmentIndex + MARKETPLACE_CLONE_PATH_SEGMENT.length));
+
+  return {
+    path,
+    repoPath,
+    deterministic: referencesPluginRoot || wasRelative || repoPath !== null,
+  };
+}
+
+/**
+ * The interpreter named in a script's shebang, or null when it has none.
+ *
+ * Callers MUST establish existence separately (resolveHookScriptPath +
+ * existsSync). Until 2026-09-02 this function folded "the file is not there"
+ * into the same `null` it returns for "not a shimmed tool", so a hook command
+ * naming a nonexistent script read as CLEAN — and nothing else in this
+ * validator noticed the missing file either. A registered hook Claude Code
+ * cannot execute is a permanently disarmed guard, which is the exact failure
+ * mode this whole check exists to prevent.
+ */
+function shebangInterpreter(scriptPath) {
+  if (!scriptPath || !existsSync(scriptPath)) return null;
+  const firstLine = readFileSync(scriptPath, "utf8").split("\n", 1)[0].trim();
+  if (!firstLine.startsWith("#!")) return null;
+
+  const tokens = firstLine.slice(2).trim().split(/\s+/).filter(Boolean);
+  let i = 0;
+  if (tokens[i] && tokens[i].split("/").pop() === "env") {
+    i += 1;
+    while (i < tokens.length && (tokens[i].startsWith("-") || tokens[i].includes("="))) i += 1;
+  }
+  return tokens[i] ? tokens[i].split("/").pop() : null;
+}
+
+/**
+ * Validation 10: hook COMMAND hygiene. Two failure modes, both of which leave a
+ * guard registered but not guarding:
+ *
+ *   (a) the command invokes a proto-shimmed tool without stripping the env vars
+ *       proto sniffs — proto prepends an NDJSON banner to stdout and Claude Code
+ *       silently discards the hook's decision at exit 0;
+ *   (b) the command names a script that IS NOT ON DISK — Claude Code cannot
+ *       execute it at all, so the guard is permanently disarmed.
+ *
+ * (b) was undetectable until 2026-09-02: shebangInterpreter() returned the same
+ * `null` for "file absent" as for "not shimmed", the caller read that as clean,
+ * and no other validation in this file looked at hook script existence either.
+ *
+ * Matching is done on a NORMALISED command (quotes stripped, env prefix and
+ * interpreter removed, ${CLAUDE_PLUGIN_ROOT}/$HOME/~ expanded) rather than on a
+ * literal /^\$\{?CLAUDE_PLUGIN_ROOT\}?\// regex, which missed every quoted token
+ * and every $HOME-rooted path in the marketplace.
+ *
+ * @param {string} rootDir Repository root to resolve against (injectable for tests).
+ */
+export async function validateHookCommandHygiene(rootDir = process.cwd()) {
   const errors = [];
   const warnings = [];
 
   const hooksFiles = await glob("plugins/*/hooks/hooks.json", {
-    cwd: process.cwd(),
+    cwd: rootDir,
     absolute: true,
     onlyFiles: true,
   });
 
   for (const hooksPath of hooksFiles) {
-    const relPath = relative(process.cwd(), hooksPath);
+    const relPath = relative(rootDir, hooksPath);
     const pluginDir = dirname(dirname(hooksPath));
 
     let doc;
@@ -872,16 +1029,51 @@ async function validateHookCommandHygiene() {
       for (const entry of entries) {
         for (const hook of entry.hooks ?? []) {
           const command = hook.command ?? "";
-          if (!command || command.startsWith(AGENT_ENV_STRIP_PREFIX)) continue;
+          if (!command) continue;
 
-          const first = command.split(/\s+/)[0];
-          const isBareShimmed = PROTO_SHIMMED_TOOLS.has(first);
+          const { interpreter, scriptToken } = parseHookCommand(command);
+          const resolved = resolveHookScriptPath(scriptToken, pluginDir, rootDir);
+
+          // ---- (b) the script must actually be on disk ----
+          const existingScriptPath =
+            resolved === null
+              ? null
+              : existsSync(resolved.path)
+                ? resolved.path
+                : resolved.repoPath && existsSync(resolved.repoPath)
+                  ? resolved.repoPath
+                  : null;
+
+          if (resolved === null) {
+            warnings.push(
+              `${relPath}: hook command has no resolvable script path — nothing was verified for it. Command: ${command.slice(0, 160)}`,
+            );
+          } else if (existingScriptPath === null) {
+            const detail =
+              `${relPath}: registered hook script DOES NOT EXIST: ${resolved.path}` +
+              (resolved.repoPath ? ` (in-repo equivalent ${relative(rootDir, resolved.repoPath)} is missing too)` : "") +
+              `. Claude Code cannot execute it, so this guard is permanently disarmed while the event still exits 0. Command: ${command.slice(0, 160)}`;
+            // A plugin-relative or in-repo path is this repo's own business — a
+            // miss is a defect here and errors. A bare absolute path outside the
+            // repo depends on the machine, so it can only warn.
+            if (resolved.deterministic) errors.push(detail);
+            else warnings.push(detail);
+          }
+
+          // ---- (a) proto-shim hygiene ----
+          // The env prefix is what makes a shimmed tool safe, so a command that
+          // already carries it is exempt from THIS check only (not from the
+          // existence check above, which ran unconditionally).
+          if (command.startsWith(AGENT_ENV_STRIP_PREFIX)) continue;
+
+          const isBareShimmed = interpreter !== null && PROTO_SHIMMED_TOOLS.has(interpreter);
           const isShebangShimmed =
-            /^\$\{?CLAUDE_PLUGIN_ROOT\}?\//.test(first) &&
-            PROTO_SHIMMED_TOOLS.has(shebangInterpreter(command, pluginDir));
+            interpreter === null &&
+            existingScriptPath !== null &&
+            PROTO_SHIMMED_TOOLS.has(shebangInterpreter(existingScriptPath));
 
           if (isBareShimmed || isShebangShimmed) {
-            const via = isBareShimmed ? `\`${first}\`` : "its shebang interpreter";
+            const via = isBareShimmed ? `\`${interpreter}\`` : "its shebang interpreter";
             errors.push(
               `${relPath}: hook command invokes a proto-shimmed tool (${via}) without stripping the agent env vars. ` +
                 `proto will intermittently prepend an NDJSON banner to STDOUT and the hook's decision will be silently discarded. ` +
@@ -1330,11 +1522,16 @@ function formatDependencyGraph(graph, details) {
  *          ~/.claude/plugins/marketplaces/cc-skills/.../auto-continue-wrapper.sh
  *
  * Returns { errors: [...], warnings: [...] }
+ *
+ * @param {string} settingsPath settings.json to inspect (injectable so this can
+ *   be exercised against a fixture — a check that can only ever read the
+ *   operator's live settings.json is a check nobody can prove still works).
  */
-function validateSettingsHookShadows() {
+export function validateSettingsHookShadows(
+  settingsPath = join(process.env.HOME, ".claude", "settings.json"),
+) {
   const errors = [];
   const warnings = [];
-  const settingsPath = join(process.env.HOME, ".claude", "settings.json");
 
   if (!existsSync(settingsPath)) {
     return { errors, warnings };
@@ -1365,13 +1562,18 @@ function validateSettingsHookShadows() {
       return cmds;
     };
 
-    // Extract script basename from a command string
+    // Extract script basename from a command string.
+    //
+    // Routed through parseHookCommand() — the JS port of the parsing SSoT
+    // tasks/lib/hook-command-parsing.sh, already defined above in this file.
+    // The former inline body was "the first whitespace token containing a `/`",
+    // which returns `env` for `/usr/bin/env -u AI_AGENT -u CLAUDECODE bun
+    // …/hooks/foo.ts` and `/etc/x` for `bash foo.sh --config /etc/x`. Two
+    // parsers in ONE file is how they drift; there is now one.
     const scriptBasename = (cmd) => {
-      // Take last path component, stripping any leading runner (bash, bun, env, etc.)
-      const parts = cmd.split(/\s+/);
-      // Find the part that looks like a file path
-      const pathPart = parts.find(p => p.includes("/")) || parts[parts.length - 1];
-      return pathPart.split("/").pop();
+      const { scriptToken } = parseHookCommand(cmd);
+      if (!scriptToken) return null;
+      return scriptToken.split("/").pop();
     };
 
     // Collect cc-skills basenames and non-cc-skills entries
@@ -1381,6 +1583,11 @@ function validateSettingsHookShadows() {
     for (const entry of entries) {
       for (const cmd of getCommands(entry)) {
         const bn = scriptBasename(cmd);
+        // An unparseable command has no basename to shadow or be shadowed by.
+        // Without this guard two such commands would both key on `null` and
+        // report each other as a shadow — a fabricated error, worse than a
+        // miss.
+        if (!bn) continue;
         if (cmd.includes("cc-skills")) {
           ccBasenames.set(bn, cmd);
         } else {
@@ -1404,6 +1611,12 @@ function validateSettingsHookShadows() {
 
 // Main validation - wrapped in async IIFE for tinyglobby async functions
 (async () => {
+// Importing this file (a regression test calling validateHookCommandHygiene()
+// directly against a fixture tree) must NOT run the whole marketplace
+// validation and process.exit() out of the test. `=== false` on purpose: any
+// runtime that does not define import.meta.main still executes as before.
+if (import.meta.main === false) return;
+
 const registered = getRegisteredPlugins();
 const directories = getPluginDirectories();
 

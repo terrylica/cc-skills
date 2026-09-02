@@ -411,7 +411,24 @@ case "$INVOCATION_MODE" in
         echo "  ✓ On-disk doc matches iter-111 canonical registry (no drift)"
         ;;
     write)
-        cp "$GENERATED_DOC_TEMP_FILE_ABSOLUTE_PATH" "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH"
+        # Iter-187: publish the regenerated doc via an atomic same-directory
+        # rename, not `cp`. cp opens the destination O_TRUNC, so the canonical
+        # doc is momentarily ZERO BYTES and any concurrent reader — the
+        # release preflight's own Check 4u, a parallel regression test, an
+        # editor — can read an empty file. Measured in the iter-75 parallel
+        # test suite: 453 zero-byte observations out of 6,353,768 reads.
+        # rename(2) is atomic, so a reader sees either the whole old doc or
+        # the whole new one. The staging file MUST be in the same directory
+        # (same filesystem) or mv degrades to a copy and atomicity is lost;
+        # chmod 644 because mktemp creates 0600.
+        ATOMIC_PUBLISH_STAGING_FILE_ABSOLUTE_PATH=$(mktemp "$(dirname "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH")/.iter113-atomic-doc-publish-XXXXXX")
+        if ! cp "$GENERATED_DOC_TEMP_FILE_ABSOLUTE_PATH" "$ATOMIC_PUBLISH_STAGING_FILE_ABSOLUTE_PATH" ||
+            ! chmod 644 "$ATOMIC_PUBLISH_STAGING_FILE_ABSOLUTE_PATH" ||
+            ! mv -f "$ATOMIC_PUBLISH_STAGING_FILE_ABSOLUTE_PATH" "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH"; then
+            rm -f "$ATOMIC_PUBLISH_STAGING_FILE_ABSOLUTE_PATH"
+            echo "✗ Failed to publish regenerated doc to $OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH"
+            exit 1
+        fi
         echo "  ✓ Regenerated $OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH"
         # Count rendered marker sections (each starts with `## \`...\``) directly
         # from the generated doc — avoids the false-positive that counting

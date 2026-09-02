@@ -92,6 +92,22 @@ else
 fi
 
 # ─── Case 4: iter-113 doc generator renders audit-task section ───────────
+#
+# Iter-187: Case 4 is this test's only reader of the shared canonical on-disk
+# doc, which iter-113 Case 7 and iter-115 Case 5 mutate transiently under an
+# exclusive flock. Read it under the SHARED half of that same lock — LOCK_SH
+# so the readers (iter-113, iter-114, iter-117) never serialize against each
+# other, only against the two mutation windows. Acquired and released around
+# this case alone; it is never upgraded in place, so the classic
+# two-readers-both-upgrading flock deadlock cannot arise.
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
+
 MISSING_AUDIT_SECTION_COUNT=0
 for baseline_marker_token in "${ITER114_BASELINE_AUDIT_MARKER_TOKENS[@]}"; do
     if ! grep -qF "## \`$baseline_marker_token\` (audit-task)" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"; then
@@ -105,6 +121,9 @@ if [[ "$MISSING_AUDIT_SECTION_COUNT" -eq 0 ]] && \
 else
     assert_fails "Case 4: $MISSING_AUDIT_SECTION_COUNT audit-task marker section(s) missing OR catalog preamble missing"
 fi
+
+# Iter-187: done reading the shared on-disk doc — release the shared lock.
+exec 9<&-
 
 # ─── Case 5: lookup-by-name helper resolves known + undefined for unknown ─
 PROBE_SCRIPT_DIRECTORY=$(mktemp -d -t iter114-probe-XXXXXX)

@@ -83,6 +83,13 @@ shopt -u patsub_replacement 2>/dev/null || true
 # the audit against a synthetic-fixture fleet.
 REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
+# Hook-command parsing SSoT. Resolved from THIS FILE's location, not from
+# REPO_ROOT — AUDIT_REPO_ROOT_OVERRIDE points at a synthetic fixture tree that
+# has no tasks/lib/.
+AUDIT_TASK_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/lib/hook-command-parsing.sh"
+
 # Minimum length of WILDCARD-MATCHER-OK justification to count as valid.
 # Prevents low-effort opt-outs like "// WILDCARD-MATCHER-OK: ok".
 MIN_OK_REASON_LENGTH=10
@@ -108,18 +115,19 @@ total_pre_or_post_tool_use_entries=0
 # Accumulator for violation report
 VIOLATION_LINES=""
 
-# Helper: extract the source path from a hook command string.
-# The hook command looks like one of:
-#   "bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts"
-#   "${CLAUDE_PLUGIN_ROOT}/hooks/foo.sh"
-#   "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/foo/hooks/bar.ts"
-# We extract the basename of the script for `find`-based source lookup.
+# Helper: extract the source basename from a hook command string, via the
+# repo-wide parsing SSoT (tasks/lib/hook-command-parsing.sh).
+#
+# The former body was `${cmd##*/}` then `%% *` — "last /-segment, first
+# whitespace token". That is a guess about command shape, not a parse: it
+# yields `b` for `bun …/hooks/foo.ts --config a/b`, and `env` for
+# `env -u AI_AGENT -u CLAUDECODE …` had the prefix ever been written without a
+# script path after it. It happens to be right for today's 55 marketplace
+# commands only because none of them carries an argument — a silently
+# shape-dependent parser, which is exactly the class of bug that left the
+# iter-92 and async-true audits auditing zero hooks.
 extract_hook_source_basename() {
-  local cmd="$1"
-  # Strip everything up to and including the last "/"
-  local basename_with_args="${cmd##*/}"
-  # Strip arguments after the script (anything after whitespace)
-  echo "${basename_with_args%% *}"
+  extract_hook_script_basename_from_hook_command "$1"
 }
 
 # Helper: check if the hook source contains a valid WILDCARD-MATCHER-OK

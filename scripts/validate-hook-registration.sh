@@ -11,11 +11,37 @@
 #   2. No duplicate command strings within the same event-type array
 #   3. ZERO cc-skills marketplace-path entries leak into settings.json
 #
+# EVENT COVERAGE — derived, never hardcoded.
+# Until 2026-09-02 checks 1 and 2 each carried their OWN hardcoded list of six
+# events (PreToolUse PostToolUse Stop SessionStart UserPromptSubmit
+# PermissionRequest). SessionEnd, SubagentStop, Notification and PreCompact were
+# in NEITHER list, so a hook registered under one of them with a nonexistent
+# command path sailed past both checks and the script still printed an
+# unqualified "✓ All hook command paths exist" — a vacuous green. Two copies of
+# a list is how they drift; a hardcoded list is how events get missed. The event
+# set is now read from the settings document itself (`.hooks | keys`), so every
+# event Claude Code writes — including ones that do not exist yet — is covered,
+# and BOTH checks consume that single derived list.
+#
 # Exit 0 on PASS. Exit 1 on FAIL.
 set -uo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 SETTINGS="${SETTINGS:-$HOME/.claude/settings.json}"
+
+# Hook-command parsing SSoT (tasks/lib/hook-command-parsing.sh): strips the
+# load-bearing `env -u AI_AGENT -u CLAUDECODE` prefix, the interpreter and its
+# flags, and any `bun run`/`uv run` subcommand. The old inline awk assumed the
+# first token was the interpreter, so an env-prefixed command yielded the
+# literal path "env".
+HOOK_COMMAND_PARSING_LIB="$REPO_ROOT/tasks/lib/hook-command-parsing.sh"
+if [[ ! -f "$HOOK_COMMAND_PARSING_LIB" ]]; then
+    echo "✗ missing hook-command parsing SSoT: $HOOK_COMMAND_PARSING_LIB" >&2
+    exit 1
+fi
+# shellcheck source-path=SCRIPTDIR/..
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$HOOK_COMMAND_PARSING_LIB"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -36,40 +62,77 @@ if [[ ! -f "$SETTINGS" ]]; then
     exit 0
 fi
 
+# ---- Derived event coverage: the ONE list both checks below consume ----
+# Every key under `.hooks` is an event Claude Code will fire. Reading them off
+# the document means no event can be silently excluded from checks 1 and 2.
+hook_event_names=()
+while IFS= read -r hook_event_name; do
+    [[ -n "$hook_event_name" ]] && hook_event_names+=("$hook_event_name")
+done < <(jq -r 'if ((.hooks? // null) | type) == "object" then (.hooks | keys[]) else empty end' "$SETTINGS" 2>/dev/null)
+
+# Every `command` string registered under one event, robust to null/malformed
+# levels (settings.json is user-authored — see issue #103).
+hook_commands_for_event() {
+    jq -r --arg e "$1" '
+        ((.hooks? // {})[$e] // [])
+        | if type == "array" then .[] else empty end
+        | ((.hooks? // []) | if type == "array" then .[] else empty end)
+        | .command // empty
+    ' "$SETTINGS" 2>/dev/null
+}
+
+# The filesystem path a hook command actually executes, or "" when it cannot be
+# resolved statically. Uses the parsing SSoT, then unquotes and expands $HOME/~.
+resolve_hook_command_script_path() {
+    local hook_script_path
+    hook_script_path=$(extract_hook_script_path_from_hook_command "$1")
+    hook_script_path=${hook_script_path%\"}; hook_script_path=${hook_script_path#\"}
+    hook_script_path=${hook_script_path%\'}; hook_script_path=${hook_script_path#\'}
+    hook_script_path=${hook_script_path//\$\{HOME\}/$HOME}
+    hook_script_path=${hook_script_path//\$HOME/$HOME}
+    # A leading tilde is LITERAL inside a JSON command string (no shell expands
+    # it before Claude Code runs the hook) — expand it ourselves before testing.
+    local literal_tilde_slash_prefix
+    literal_tilde_slash_prefix=$(printf '\176/')
+    [[ "${hook_script_path:0:2}" == "$literal_tilde_slash_prefix" ]] && hook_script_path="$HOME/${hook_script_path:2}"
+    printf '%s' "$hook_script_path"
+}
+
+if [[ ${#hook_event_names[@]} -eq 0 ]]; then
+    warn "settings.json declares no hook events — checks 1 and 2 have nothing to inspect"
+fi
+
 # ---- Check 1: settings.json paths exist on disk ----
 echo "  [1/3] All settings.json hook commands resolve to existing files"
 missing=0
-while IFS= read -r cmd; do
-    [[ -z "$cmd" ]] && continue
-    path=$(printf '%s' "$cmd" | awk '{
-        if ($1 == "bun" || $1 == "node" || $1 == "sh" || $1 == "bash") {
-            print $2
-        } else {
-            print $1
-        }
-    }' | sed 's|^"||; s|"$||')
-    path=$(printf '%s' "$path" | sed "s|\\\${HOME}|$HOME|g; s|\\\$HOME|$HOME|g")
-    # ${CLAUDE_PLUGIN_ROOT} is plugin-relative — can't resolve statically here.
-    # shellcheck disable=SC2016
-    [[ "$path" == *'${CLAUDE_PLUGIN_ROOT}'* ]] && continue
-    # shellcheck disable=SC2016
-    [[ "$path" == *'$CLAUDE_PLUGIN_ROOT'* ]] && continue
+commands_checked=0
+for evt in ${hook_event_names[@]+"${hook_event_names[@]}"}; do
+    while IFS= read -r cmd; do
+        [[ -z "$cmd" ]] && continue
+        path=$(resolve_hook_command_script_path "$cmd")
+        [[ -z "$path" ]] && continue
+        # ${CLAUDE_PLUGIN_ROOT} is plugin-relative — can't resolve statically here.
+        # shellcheck disable=SC2016
+        [[ "$path" == *'${CLAUDE_PLUGIN_ROOT}'* ]] && continue
+        # shellcheck disable=SC2016
+        [[ "$path" == *'$CLAUDE_PLUGIN_ROOT'* ]] && continue
 
-    if [[ ! -e "$path" ]]; then
-        fail "settings.json references missing file: $path"
-        missing=$((missing + 1))
-    fi
-done < <(jq -r '
-    [.hooks.PreToolUse[]?, .hooks.PostToolUse[]?, .hooks.Stop[]?, .hooks.SessionStart[]?, .hooks.UserPromptSubmit[]?, .hooks.PermissionRequest[]?]
-    | .[].hooks[]? | .command // empty
-' "$SETTINGS")
+        commands_checked=$((commands_checked + 1))
+        if [[ ! -e "$path" ]]; then
+            fail "settings.json $evt references missing file: $path"
+            missing=$((missing + 1))
+        fi
+    done < <(hook_commands_for_event "$evt")
+done
 errors=$((errors + missing))
-[[ $missing -eq 0 ]] && ok "All hook command paths exist"
+# Qualified on purpose: "All hook command paths exist" over zero inspected
+# commands is the same green as over a hundred.
+[[ $missing -eq 0 ]] && ok "All $commands_checked resolvable hook command path(s) exist (events: ${hook_event_names[*]:-none})"
 
 # ---- Check 2: no duplicate commands within same event-type ----
 echo "  [2/3] No duplicate hook commands within same event-type"
 check2_errors=0
-for evt in PreToolUse PostToolUse Stop SessionStart UserPromptSubmit PermissionRequest; do
+for evt in ${hook_event_names[@]+"${hook_event_names[@]}"}; do
     dups=$(jq -r --arg e "$evt" '
         [.hooks[$e][]?.hooks[]?.command]
         | group_by(.) | map(select(length > 1)) | map(.[0])

@@ -248,6 +248,13 @@ shopt -u patsub_replacement 2>/dev/null || true
 # the audit against a synthetic-fixture fleet.
 REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
+# Hook-command parsing SSoT. Resolved from THIS FILE's location, not from
+# REPO_ROOT — AUDIT_REPO_ROOT_OVERRIDE points at a synthetic fixture tree that
+# has no tasks/lib/.
+AUDIT_TASK_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/lib/hook-command-parsing.sh"
+
 # Minimum length of STOP-HOOK-ADDITIONAL-CONTEXT-OK justification.
 MIN_OK_REASON_LENGTH=10
 
@@ -292,15 +299,17 @@ declare -A violation_count_by_event_type=( ["Stop"]=0 ["SubagentStop"]=0 ["Sessi
 # Accumulator for violation report
 VIOLATION_LINES=""
 
-# Helper: extract the hook source basename from a hooks.json command string.
-# Command examples:
-#   "bun ${CLAUDE_PLUGIN_ROOT}/hooks/stop-orchestrator.ts"
-#   "${CLAUDE_PLUGIN_ROOT}/hooks/stop-cleanup.sh"
-#   "bash $HOME/.claude/plugins/marketplaces/cc-skills/plugins/foo/hooks/stop-bar.ts"
+# Helper: extract the hook source basename from a hooks.json command string,
+# via the repo-wide parsing SSoT (tasks/lib/hook-command-parsing.sh).
+#
+# The former body was `${cmd##*/}` then `%% *` — "last /-segment, first
+# whitespace token" — a shape guess rather than a parse. It returns `b` for
+# `bun …/hooks/stop-foo.ts --config a/b` and is only correct today because no
+# marketplace hook command carries an argument. Same defect class as the
+# iter-92 and async-true audits, which silently audited zero hooks once the
+# `env -u AI_AGENT -u CLAUDECODE` prefix landed.
 extract_hook_basename_from_command_string() {
-  local cmd="$1"
-  local basename_with_args="${cmd##*/}"
-  echo "${basename_with_args%% *}"
+  extract_hook_script_basename_from_hook_command "$1"
 }
 
 # Helper: strip JSDoc block comments and // line comments from source.

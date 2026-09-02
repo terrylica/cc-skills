@@ -55,6 +55,34 @@ PREFLIGHT_SCRIPT_ABSOLUTE_PATH="$REPO_ROOT/tasks/release/preflight"
 ITER111_PRODUCER_TYPO_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh"
 ITER113_DOC_GENERATOR_ABSOLUTE_PATH="$REPO_ROOT/tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
 ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH="$REPO_ROOT/docs/marketplace-escape-hatch-marker-reference.md"
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+
+# Iter-187: replace the shared canonical doc ATOMICALLY.
+#
+# Every previous write to this file went through `cp -f`, which opens the
+# destination O_TRUNC — so the canonical doc is momentarily ZERO BYTES and any
+# concurrent reader in the suite (iter-113, iter-114, iter-117) can read an
+# empty file. Measured with a tight-loop reader across 6 suite runs: 453
+# zero-byte observations out of 6,353,768 reads. That is the root cause of the
+# "iter-117 red ~2 runs in 11, green standalone" flake — reproduced 3/3 by
+# running iter-117 against a bare `cp -f backup doc` loop.
+#
+# `mv` within the SAME directory is rename(2), which is atomic: a reader sees
+# either the whole old file or the whole new one, never a truncated prefix.
+# The staging file must live in docs/ (same filesystem) or mv degrades to a
+# copy and the atomicity is lost. chmod 644 because mktemp creates 0600 and
+# the committed doc is 0644.
+__iter115_atomically_replace_canonical_on_disk_doc_via_same_directory_rename() {
+    local content_source_file_absolute_path="$1"
+    local staging_file_absolute_path
+    staging_file_absolute_path=$(mktemp "$(dirname "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")/.iter115-atomic-doc-replace-XXXXXX")
+    if ! cp -f "$content_source_file_absolute_path" "$staging_file_absolute_path" ||
+        ! chmod 644 "$staging_file_absolute_path" ||
+        ! mv -f "$staging_file_absolute_path" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"; then
+        rm -f "$staging_file_absolute_path"
+        return 1
+    fi
+}
 
 # Producer file used as the synthetic-typo injection target. Chosen to be
 # a TypeScript file under a plugin's scripts/ directory (NOT under
@@ -222,7 +250,11 @@ __iter115_restore_producer_and_doc_only_if_still_carrying_our_mutations() {
     __iter115_restore_producer_only_if_still_carrying_our_injection
     if [[ -s "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" ]] &&
         grep -qF "$ITER115_DOC_MUTATION_SENTINEL" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; then
-        cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+        # Iter-187: atomic rename, not cp -f — see the helper's header. The
+        # trap fires at process exit, OUTSIDE the lock, so a torn write here
+        # is visible to every other test still running.
+        __iter115_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+            "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
     fi
     rm -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
 }
@@ -244,7 +276,6 @@ trap __iter115_restore_producer_and_doc_only_if_still_carrying_our_mutations EXI
 # /tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock
 # — verbose and self-explanatory so future maintainers grepping for
 # "iter-126" or "doc-mutation-window-serialization" find the rationale.
-ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
 touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
 exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
 # Acquire exclusive lock for the mutation+check+restore atomic window.
@@ -260,8 +291,18 @@ fcntl.flock(fd, fcntl.LOCK_EX)
 ' 9 <&9
 
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
-echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
-echo "$ITER115_DOC_MUTATION_SENTINEL — verifying --check exits non-zero (restored by trap)" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+# Iter-187: stage the mutated doc, then rename it into place, so the doc is
+# only ever observable as fully-canonical or fully-mutated. The previous
+# `>>` pair also left an intermediate "canonical + blank line" state.
+ITER115_MUTATED_DOC_STAGING_FILE=$(mktemp -t iter115-mutated-doc-XXXXXX.md)
+{
+    cat "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
+    echo ""
+    echo "$ITER115_DOC_MUTATION_SENTINEL — verifying --check exits non-zero (restored by trap)"
+} > "$ITER115_MUTATED_DOC_STAGING_FILE"
+__iter115_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+    "$ITER115_MUTATED_DOC_STAGING_FILE"
+rm -f "$ITER115_MUTATED_DOC_STAGING_FILE"
 
 set +e
 ITER113_DRIFT_CHECK_OUTPUT_WITH_SYNTHETIC_DOC_MUTATION=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
@@ -269,11 +310,24 @@ ITER113_DRIFT_CHECK_EXIT_CODE_WITH_SYNTHETIC_DOC_MUTATION=$?
 set -e
 
 # Restore immediately so subsequent cases (and the rest of the test suite) see clean state
-cp -f "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+__iter115_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+    "$ITER113_ON_DISK_DOC_BACKUP_ABSOLUTE_PATH"
 
-# Iter-126 release the mutation-window flock now that on-disk doc is back to canonical state.
-# Closing fd 9 releases the lock; subsequent parallel readers (iter-117 Case 6) can proceed.
+# Iter-126 release the exclusive mutation-window flock now that the on-disk
+# doc is back to its canonical state, so parallel readers can proceed.
+#
+# Iter-187: immediately re-acquire it SHARED, because Case 6 below runs
+# another `--check` against the shared doc and would otherwise read
+# iter-113 Case 7's mutation window as a spurious DRIFT — the same
+# cross-test race iter-126 fixed for iter-117 Case 6 but never applied to
+# this site. Full release then fresh acquisition, never an in-place
+# LOCK_EX → LOCK_SH juggle interleaved with another process's upgrade.
 exec 9<&-
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
 
 if [[ "$ITER113_DRIFT_CHECK_EXIT_CODE_WITH_SYNTHETIC_DOC_MUTATION" -ne 0 ]] && \
    [[ "$ITER113_DRIFT_CHECK_OUTPUT_WITH_SYNTHETIC_DOC_MUTATION" == *"DRIFT"* ]]; then
@@ -295,6 +349,10 @@ if [[ "$ITER113_DRIFT_CHECK_EXIT_CODE_ON_RESTORED_BASELINE" -eq 0 ]] && \
 else
     assert_fails "Case 6: post-restoration --check did NOT report clean state (exit=$ITER113_DRIFT_CHECK_EXIT_CODE_ON_RESTORED_BASELINE) — restoration may have failed OR generator is flaky"
 fi
+
+# Iter-187: last read of the shared on-disk doc is done — release the shared
+# lock so the other tests' exclusive mutation windows can proceed.
+exec 9<&-
 
 # ─── Case 7: preflight wraps both audit tasks (post-iter-134: via parallel pre-warm metadata array) ───
 #
