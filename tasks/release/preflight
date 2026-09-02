@@ -340,6 +340,47 @@ fi
 echo "  ✓ Working directory clean"
 __preflight_timing_report_phase_elapsed_milliseconds "Check 1: working directory clean"
 
+# Check 1b: proto version floor (STRICT-BLOCK).
+#
+# Every proto before 0.61.2 writes an "AI agent environment" NDJSON banner to
+# the STDOUT of shim-invoked tools. Hook stdout is a JSON protocol, so the
+# banner made Claude Code discard the hook's decision — 2,008 times over three
+# days, at exit code 0, with a set of guards silently not applying. Fixed
+# upstream (moonrepo/proto#1105, "Fixed in v0.61.2").
+#
+# This is a hard gate rather than a note because the failure it prevents is
+# SILENT: an older proto produces no error, just guards that quietly stop
+# working. The pin lives in .prototools; this check proves the pin is what is
+# actually running, since a pin nobody verifies is a wish.
+__preflight_timing_mark_phase_start_using_EPOCHREALTIME
+echo "→ Checking proto version floor..."
+PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER="0.61.2"
+if ! command -v proto >/dev/null 2>&1; then
+    echo "  ✗ proto not found on PATH — cannot verify the >= $PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER floor"
+    exit 1
+fi
+# `proto --version` prints "proto <semver>"; take field 2. Never mask a failure
+# here into an empty string — an unreadable version must abort, not pass.
+PROTO_RUNNING_VERSION="$(proto --version | awk '{print $2}')"
+if [[ -z "$PROTO_RUNNING_VERSION" ]]; then
+    echo "  ✗ could not parse 'proto --version' output"
+    exit 1
+fi
+# `sort -V` is a genuine version sort on both this macOS and GNU coreutils
+# (verified: 0.9.0 sorts before 0.61.2, not after). If the lowest of the two is
+# the floor, the running version is >= the floor.
+PROTO_LOWEST_OF_RUNNING_AND_FLOOR="$(printf '%s\n%s\n' "$PROTO_RUNNING_VERSION" "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" | sort -V | head -1)"
+if [[ "$PROTO_LOWEST_OF_RUNNING_AND_FLOOR" != "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" ]] &&
+    [[ "$PROTO_RUNNING_VERSION" != "$PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER" ]]; then
+    echo "  ✗ proto $PROTO_RUNNING_VERSION is below the $PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER floor"
+    echo "    Older proto corrupts shim-invoked tool STDOUT with an NDJSON banner,"
+    echo "    which silently voids Claude Code hook decisions (moonrepo/proto#1105)."
+    echo "    Fix: proto upgrade"
+    exit 1
+fi
+echo "  ✓ proto $PROTO_RUNNING_VERSION (>= $PROTO_MINIMUM_VERSION_WITHOUT_THE_AI_AGENT_STDOUT_BANNER floor)"
+__preflight_timing_report_phase_elapsed_milliseconds "Check 1b: proto version floor"
+
 # Check 2: GitHub authentication (token file check - no API calls to avoid process storms)
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking GitHub authentication..."

@@ -5,6 +5,19 @@
 # Keep these pins concrete, never floating: the whole point of pinning is that
 # two machines resolve the same binaries.
 
+# proto pins ITSELF. 0.61.2 is a FLOOR with teeth, not a preference: every
+# version before it writes an "AI agent environment" NDJSON banner to the STDOUT
+# of tools invoked through a shim, which corrupts any stdout that carries a
+# protocol. For this repo that meant Claude Code hook decisions — 2,008 of them
+# silently discarded over three days while exit codes stayed 0, so a set of
+# guards stopped applying and nothing reported an error.
+#
+# Reported as moonrepo/proto#1105 and fixed upstream the next day; the
+# maintainer closed it with "Fixed in v0.61.2". Verified here on 0.61.2 with no
+# workaround: 0/100 polluted at the 100-way concurrency that gave 27-45/100 on
+# 0.61.1. tasks/release/preflight enforces this floor rather than trusting it.
+proto = "0.61.2"
+
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
 moon = "2.5.2"
 
