@@ -30,6 +30,65 @@ echo "  Iter-113 registry-to-docs generator regression test"
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo ""
 
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+
+# Iter-187: replace the shared canonical doc ATOMICALLY.
+#
+# Every previous write to this file went through `cp -f`, which opens the
+# destination O_TRUNC — so the canonical doc is momentarily ZERO BYTES and any
+# concurrent reader in the suite (iter-113 itself, iter-114, iter-115,
+# iter-117) can read an empty file. Measured with a tight-loop reader across 6
+# suite runs: 453 zero-byte observations out of 6,353,768 reads. That is the
+# root cause of the "iter-117 red ~2 runs in 11, green standalone" flake —
+# reproduced 3/3 by running iter-117 against a bare `cp -f backup doc` loop.
+#
+# `mv` within the SAME directory is rename(2), which is atomic: a reader sees
+# either the whole old file or the whole new one, never a truncated prefix.
+# The staging file must live in docs/ (same filesystem) or mv degrades to a
+# copy and the atomicity is lost. chmod 644 because mktemp creates 0600 and
+# the committed doc is 0644.
+__iter113_atomically_replace_canonical_on_disk_doc_via_same_directory_rename() {
+    local content_source_file_absolute_path="$1"
+    local staging_file_absolute_path
+    staging_file_absolute_path=$(mktemp "$(dirname "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")/.iter113-atomic-doc-replace-XXXXXX")
+    if ! cp -f "$content_source_file_absolute_path" "$staging_file_absolute_path" ||
+        ! chmod 644 "$staging_file_absolute_path" ||
+        ! mv -f "$staging_file_absolute_path" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"; then
+        rm -f "$staging_file_absolute_path"
+        return 1
+    fi
+}
+
+# Iter-187: acquire the SHARED half of the iter-126 mutation-window lock.
+#
+# Every read of the shared canonical on-disk doc in this file must be inside
+# one of these regions. Case 2 runs the generator's `--check` against that
+# doc; iter-115 Case 5 transiently replaces the doc with a synthetic-drift
+# copy under the EXCLUSIVE lock, so an UNLOCKED --check here reads the mutated
+# doc and reports a spurious DRIFT — the same cross-test race iter-126 fixed
+# for iter-117 Case 6 but never applied to this site.
+#
+# LOCK_SH, not LOCK_EX, so the readers (iter-113, iter-114, iter-117) do not
+# serialize against each other — only against the two mutation windows. Each
+# region is opened and fully CLOSED around the reads it protects: the lock is
+# never upgraded in place, because two processes both holding LOCK_SH and both
+# requesting LOCK_EX would deadlock. Regions are also kept as narrow as the
+# reads themselves — Cases 3 and 4 use `--stdout` and never touch the on-disk
+# doc, so holding the lock across them would only add ~1 s of needless
+# serialization to the parallel suite.
+__iter113_acquire_shared_on_disk_doc_read_lock() {
+    touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+    exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+    # Python's fcntl.flock is the portable primitive (macOS ships no GNU
+    # `flock` CLI). The lock lives on the open file DESCRIPTION, which this
+    # shell owns via fd 9, so it survives the helper process exiting and is
+    # released only by `exec 9<&-` (or process exit).
+    python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
+}
+
 # ─── Case 1: generator task exists and is executable ─────────────────────
 if [[ -x "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" ]]; then
     assert_passes "Case 1: iter-113 doc generator task exists and is executable"
@@ -38,10 +97,12 @@ else
 fi
 
 # ─── Case 2: --check mode passes against the on-disk committed doc ───────
+__iter113_acquire_shared_on_disk_doc_read_lock
 set +e
 check_mode_output=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
 check_mode_exit_code=$?
 set -e
+exec 9<&-
 if [[ "$check_mode_exit_code" == "0" ]] && [[ "$check_mode_output" == *"no drift"* ]]; then
     assert_passes "Case 2: generator --check mode reports no drift (on-disk doc matches registry-derived output)"
 else
@@ -102,6 +163,10 @@ fi
 # out. This isolates the iter-113-scope alphabetical-order check to the
 # runtime registry; iter-114's regression test independently validates
 # the audit-task catalog's alphabetical order.
+#
+# Iter-187: Cases 5 and 6 both read the shared on-disk doc — one shared-lock
+# region spans both, released after Case 6.
+__iter113_acquire_shared_on_disk_doc_read_lock
 ON_DISK_MARKER_HEADING_ORDER=$(awk -F '`' '/^## `[^`]+`$/ {print $2}' "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH")
 EXPECTED_ALPHABETICAL_ORDER=$(printf '%s\n' "${ITER111_BASELINE_MARKER_TOKENS[@]}" | sort)
 
@@ -136,6 +201,8 @@ for expected_section_header in "${EXPECTED_HEADER_SECTIONS[@]}"; do
         echo "    (missing section: '$expected_section_header')"
     fi
 done
+# Iter-187: end of the Case 5 + Case 6 shared-read region.
+exec 9<&-
 
 if [[ "$MISSING_SECTION_COUNT" -eq 0 ]]; then
     assert_passes "Case 6: on-disk doc contains all 8 expected non-catalog sections (preamble + purpose + how-to + invariants + catalog + convention + add-new + related)"
@@ -171,21 +238,30 @@ ITER113_SYNTHETIC_MUTATION_SENTINEL="SYNTHETIC DRIFT MUTATION INJECTED BY ITER11
 __iter113_cleanup_restoring_only_our_own_synthetic_mutation() {
     if [[ -s "$ORIGINAL_DOC_BACKUP_FILE" ]] &&
         grep -qF "$ITER113_SYNTHETIC_MUTATION_SENTINEL" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" 2>/dev/null; then
-        cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+        # Iter-187: atomic rename, not cp -f — see the helper's header. The
+        # trap fires at process exit, OUTSIDE the lock, so a torn write here
+        # is visible to every other test still running.
+        __iter113_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+            "$ORIGINAL_DOC_BACKUP_FILE"
     fi
     rm -f "$FIRST_RUN_OUTPUT_FILE" "$SECOND_RUN_OUTPUT_FILE" "$ORIGINAL_DOC_BACKUP_FILE"
 }
 trap __iter113_cleanup_restoring_only_our_own_synthetic_mutation EXIT
 
-# Iter-126 fix: acquire shared mutation-window flock before mutating the
+# Iter-126 fix: acquire the shared mutation-window flock before mutating the
 # canonical on-disk doc. Without this, the iter-117 Case 6 --check (which
 # reads the same canonical doc to verify the no-drift idempotency invariant)
 # fires concurrently under xargs -P parallelism (iter-75 parallel-suite
 # runner) and observes the synthetic mutation as spurious DRIFT exit=1.
 # Lock-file path is shared with test-iter115*.sh and test-iter117*.sh. See
 # iter-126 commit for full forensic analysis.
-ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
-touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+#
+# Iter-187: this is an EXCLUSIVE acquisition, and it starts from a CLOSED
+# fd 9 — the Case 5/6 shared-read region already released it, and the belt-
+# and-braces close below is a no-op on an unopened fd in bash. flock must
+# never upgrade LOCK_SH to LOCK_EX in place: two processes both holding
+# LOCK_SH and both requesting LOCK_EX would deadlock on each other.
+exec 9<&-
 exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
 python3 -c '
 import fcntl, sys
@@ -193,8 +269,18 @@ fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
 ' 9 <&9
 
 cp "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" "$ORIGINAL_DOC_BACKUP_FILE"
-echo "" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
-echo "$ITER113_SYNTHETIC_MUTATION_SENTINEL — SHOULD BE RESTORED BY TRAP" >> "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+# Iter-187: stage the mutated doc, then rename it into place, so the doc is
+# only ever observable as fully-canonical or fully-mutated. The previous
+# `>>` pair also left an intermediate "canonical + blank line" state.
+ITER113_MUTATED_DOC_STAGING_FILE=$(mktemp -t iter113-mutated-doc-XXXXXX.md)
+{
+    cat "$ORIGINAL_DOC_BACKUP_FILE"
+    echo ""
+    echo "$ITER113_SYNTHETIC_MUTATION_SENTINEL — SHOULD BE RESTORED BY TRAP"
+} > "$ITER113_MUTATED_DOC_STAGING_FILE"
+__iter113_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+    "$ITER113_MUTATED_DOC_STAGING_FILE"
+rm -f "$ITER113_MUTATED_DOC_STAGING_FILE"
 
 set +e
 drift_check_output=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
@@ -202,10 +288,19 @@ drift_check_exit_code=$?
 set -e
 
 # Restore the original doc immediately so subsequent test cases see clean state
-cp -f "$ORIGINAL_DOC_BACKUP_FILE" "$ITER113_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH"
+__iter113_atomically_replace_canonical_on_disk_doc_via_same_directory_rename \
+    "$ORIGINAL_DOC_BACKUP_FILE"
 
-# Iter-126 release the mutation-window flock now that on-disk doc is back to canonical state.
+# Iter-126 release the exclusive mutation-window flock now that the on-disk
+# doc is back to its canonical state.
+#
+# Iter-187: immediately re-acquire it SHARED, because the post-Case-7
+# restoration verification below runs another `--check` against the shared
+# doc and would otherwise read iter-115's mutation window as a spurious
+# DRIFT. Full release then fresh acquisition — never an in-place LOCK_EX →
+# LOCK_SH juggle interleaved with another process's upgrade.
 exec 9<&-
+__iter113_acquire_shared_on_disk_doc_read_lock
 
 if [[ "$drift_check_exit_code" != "0" ]] && [[ "$drift_check_output" == *"DRIFT"* ]]; then
     assert_passes "Case 7: drift-detection correctly fails (exit=$drift_check_exit_code, reports DRIFT) when on-disk doc is mutated"
@@ -222,6 +317,10 @@ if [[ "$post_restore_check_exit_code" != "0" ]]; then
     echo "  ✗ POST-CASE-7 RESTORATION FAILED — on-disk doc may be in a corrupt state. Output: $post_restore_check_output"
     exit 1
 fi
+
+# Iter-187: last read of the shared on-disk doc is done — release the shared
+# lock so the other tests' exclusive mutation windows can proceed.
+exec 9<&-
 
 # ─── Summary ─────────────────────────────────────────────────────────────
 echo ""

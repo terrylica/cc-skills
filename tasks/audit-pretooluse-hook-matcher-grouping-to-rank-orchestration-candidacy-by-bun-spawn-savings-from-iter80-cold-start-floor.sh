@@ -46,6 +46,10 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Task lives at tasks/<task>.sh — repo root is one level up.
 # (depth=1, dotdots=1)
 
+# Hook-command parsing SSoT — see tasks/lib/hook-command-parsing.sh.
+# shellcheck source=tasks/lib/hook-command-parsing.sh
+source "$REPO_ROOT/tasks/lib/hook-command-parsing.sh"
+
 # Per-hook bun-spawn cost calibrated from iter-80's profiler. If the
 # bun runtime changes materially (e.g., bun 2.x reduces cold-start),
 # re-run iter-80's profiler and update this constant.
@@ -76,10 +80,25 @@ while IFS= read -r single_hooks_json_path; do
     [[ -f "$single_hooks_json_path" ]] || continue
     plugin_directory_basename="$(basename "$(dirname "$(dirname "$single_hooks_json_path")")")"
 
-    # jq emits one TSV row per PreToolUse hook entry:
-    # <matcher>\t<first-command-basename>
-    while IFS=$'\t' read -r matcher_signature hook_command_basename; do
-        [[ -z "$matcher_signature" && -z "$hook_command_basename" ]] && continue
+    # jq emits one TSV row per PreToolUse hook entry: <matcher>\t<raw command>.
+    #
+    # jq deliberately does NOT split the command any more. It used to end by
+    # taking the LAST /-separated segment of the command string and calling
+    # that the script basename — which is `b` for `bun …/hooks/foo.ts -c a/b`,
+    # and `CLAUDECODE bun` for a command whose env prefix is followed by a
+    # path-less program. Per the tasks/lib/hook-command-parsing.sh contract,
+    # jq stays on raw `.command` extraction and the splitting happens in bash
+    # through the shared parser. The parser is pure bash (no forks), so this
+    # keeps the one-jq-invocation-per-hooks.json property intact.
+    while IFS=$'\t' read -r matcher_signature raw_hook_command; do
+        [[ -z "$matcher_signature" && -z "$raw_hook_command" ]] && continue
+        hook_command_basename=$(extract_hook_script_basename_from_hook_command "$raw_hook_command")
+        # An unparseable command means this hook was NOT counted into any
+        # group — say so rather than silently ranking an incomplete fleet.
+        if [[ -z "$hook_command_basename" ]]; then
+            echo "  ⚠ RANKER WARNING: could not parse hook command into a script path: $raw_hook_command" >&2
+            hook_command_basename="<UNPARSEABLE-COMMAND>"
+        fi
         plugin_matcher_hook_basename_tuples_for_grouping+=(
             "$plugin_directory_basename"$'\t'"$matcher_signature"$'\t'"$hook_command_basename"
         )
@@ -87,7 +106,7 @@ while IFS= read -r single_hooks_json_path; do
         jq -r '.hooks.PreToolUse // [] | .[] |
                (.matcher // "<wildcard>") as $m |
                .hooks[] |
-               [$m, (.command | split("/")[-1])] | @tsv' \
+               [$m, (.command // "")] | @tsv' \
             "$single_hooks_json_path" 2>/dev/null
     )
 done < <(find "$REPO_ROOT/plugins" -maxdepth 3 -name 'hooks.json' -type f 2>/dev/null | sort)

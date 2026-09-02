@@ -35,6 +35,52 @@ echo "  Iter-117 TOC auto-injection regression test"
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo ""
 
+# ─── Shared-doc read lock, held for EVERY assertion below ────────────────
+#
+# Iter-187 root-cause of the "iter-117 is red ~2 runs in 11 under the parallel
+# suite runner, green standalone" flake. Iter-126 put ONLY Case 6 under this
+# lock. Cases 1-5 and 7 also read the same shared canonical doc — 50-odd
+# separate grep/awk opens — and read it UNLOCKED, so they could observe the
+# doc mid-rewrite while iter-113 Case 7 / iter-115 Case 5 held the lock.
+#
+# The observable state they hit was a ZERO-BYTE file, not a drifted one: the
+# writers restored the doc with `cp -f backup doc`, and cp opens the
+# destination O_TRUNC, so the canonical doc is momentarily 0 bytes. Measured
+# with a tight-loop reader during 6 suite runs: 453 zero-byte observations out
+# of 6,353,768 reads (~0.7 ms of zero-window per suite run, per cp). Because
+# iter-113/115/117 sort adjacently and are therefore dispatched into xargs
+# lanes at nearly the same instant, iter-117's unlocked reads are strongly
+# CORRELATED with the writers' restore — which is why the flake rate is ~18%
+# rather than the ~0.01% an uncorrelated model predicts. Reproduced 3/3 by
+# running iter-117 standalone against a loop of `cp -f backup doc`: it failed
+# with exactly the observed shape (Case 2 / Case 3 / Case 4 missing ONE TOC
+# entry while every neighbouring assertion passed — one grep of the ~50 landed
+# in a truncation window and saw an empty file).
+#
+# That zero-byte window is closed at source in iter-113/iter-115 (restore via
+# same-directory `mv`, which is an atomic rename). This lock is the second
+# half of the fix: a test that reads a shared mutable file reads it under the
+# lock that governs the file, so no future assertion can be broken by
+# observing a transient mutation state either.
+#
+# LOCK_SH (shared), not LOCK_EX: this test only ever READS the doc, so it must
+# not serialize against the other readers (iter-113, iter-114) — only against
+# the two exclusive mutation windows. The lock is taken once here and released
+# after Case 7; it is never upgraded in place, so the classic
+# two-readers-both-upgrading flock deadlock cannot arise.
+# See test-iter113*.sh and test-iter115*.sh for the matching LOCK_EX sites.
+ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
+touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+# Python's fcntl.flock is the portable primitive (macOS ships no GNU `flock`
+# CLI). The lock lives on the open file DESCRIPTION, which this shell owns via
+# fd 9 — so it survives the helper process exiting and is released only by
+# `exec 9<&-` (or process exit).
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
+
 # ─── Case 1: '## Quick navigation' section exists between preamble and Purpose ───
 QUICK_NAV_LINE_NUMBER=$(grep -nF "## Quick navigation" "$ITER117_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" | head -1 | cut -d: -f1 || echo 0)
 PURPOSE_LINE_NUMBER=$(grep -nF "## Purpose" "$ITER117_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" | head -1 | cut -d: -f1 || echo 0)
@@ -152,30 +198,19 @@ fi
 
 # ─── Case 6: idempotency — TOC injection doesn't break --check ───────────
 #
-# Iter-126: acquire the shared mutation-window flock before reading the
-# on-disk doc via --check. The iter-115 Case 5 regression test transiently
-# mutates the same canonical on-disk doc to verify the drift-detector
-# blocks release on synthetic doc corruption. Without the flock, this
-# test fires concurrently inside iter-115's mutation window under xargs -P
-# parallelism (iter-75 parallel suite runner) and observes the synthetic
-# drift as a spurious DRIFT exit=1. The flock serializes the two tests on
-# the shared on-disk doc without sacrificing overall suite parallelism.
-# See test-iter115*.sh for the matching lock acquisition site.
-ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock"
-touch "$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
-exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
-python3 -c '
-import fcntl, sys
-fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
-' 9 <&9
-
+# Iter-126 rationale (why this read needs the lock at all): the iter-115
+# Case 5 regression test transiently mutates this same canonical on-disk doc
+# to verify the drift-detector blocks release on synthetic doc corruption.
+# Without the flock, this --check fires concurrently inside iter-115's
+# mutation window under xargs -P parallelism (iter-75 parallel suite runner)
+# and observes the synthetic drift as a spurious DRIFT exit=1.
+#
+# Iter-187 moved the acquisition to the top of the file: Case 6 was never the
+# only read that needed protecting. The shared lock is already held here.
 set +e
 DRIFT_CHECK_OUTPUT=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
 DRIFT_CHECK_EXIT_CODE=$?
 set -e
-
-# Iter-126 release the mutation-window flock now that on-disk doc has been read.
-exec 9<&-
 
 if [[ "$DRIFT_CHECK_EXIT_CODE" -eq 0 ]] && [[ "$DRIFT_CHECK_OUTPUT" == *"no drift"* ]]; then
     assert_passes "Case 6: --check passes after TOC injection (idempotency invariant intact — registry-derived output still byte-identical to on-disk doc)"
@@ -213,7 +248,15 @@ while IFS= read -r anchor_fragment; do
                 print "MATCH"
             }
         }
-    ' "$ITER117_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" | grep -c "MATCH" || echo 0)
+    ' "$ITER117_GENERATED_ON_DISK_DOC_ABSOLUTE_PATH" | grep -c "MATCH" || true)
+    # Iter-187: `|| true`, NOT `|| echo 0`. `grep -c` on no match already
+    # PRINTS "0" and THEN exits 1, so `$(... || echo 0)` captured the
+    # two-line string $'0\n0'. `[[ $'0\n0' -lt 1 ]]` is an arithmetic syntax
+    # error, which makes [[ ]] return 1 — so the dangling branch below was
+    # never taken and Case 7 could not fail for the one thing it exists to
+    # detect. Verified under bash 5: `bash: [[: 0\n0: arithmetic syntax
+    # error`, then the else-branch. `|| true` keeps grep's own "0" and
+    # swallows only the exit status, so the count is a real integer.
     if [[ "$MATCHING_HEADING_COUNT" -lt 1 ]]; then
         DANGLING_TOC_ANCHOR_COUNT=$((DANGLING_TOC_ANCHOR_COUNT + 1))
         echo "    (dangling TOC anchor link: #$anchor_fragment — no matching H2 heading found)"
@@ -225,6 +268,10 @@ if [[ "$DANGLING_TOC_ANCHOR_COUNT" -eq 0 ]]; then
 else
     assert_fails "Case 7: $DANGLING_TOC_ANCHOR_COUNT TOC anchor link(s) point to nonexistent headings"
 fi
+
+# Iter-187: last read of the shared on-disk doc is done — release the shared
+# lock so the iter-113 / iter-115 exclusive mutation windows can proceed.
+exec 9<&-
 
 # ─── Summary ─────────────────────────────────────────────────────────────
 echo ""

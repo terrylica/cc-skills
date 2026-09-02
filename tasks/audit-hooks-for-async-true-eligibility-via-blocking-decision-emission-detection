@@ -353,8 +353,11 @@ while IFS= read -r hooks_json; do
 
     # Resolve script path so we can inspect it.
     script_abs="$(resolve_hook_command_to_absolute_path "$command" "$plugin_dir" "$REPO_ROOT")"
-    # Strip any trailing args (the command may include CLI flags).
-    script_abs="${script_abs%% *}"
+    # No trailing-arg strip here: extract_hook_script_path_from_hook_command
+    # already returns the script token alone. The old `${script_abs%% *}`
+    # remnant was a second, weaker parser layered on the SSoT's output — and
+    # actively wrong for a repo checked out under a path containing a space,
+    # where it would truncate the resolved path mid-directory.
 
     # Determine current async status.
     if [ "$is_async" = "true" ]; then

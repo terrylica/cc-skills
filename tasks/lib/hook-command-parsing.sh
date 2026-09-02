@@ -14,9 +14,13 @@
 # `bun`/`node` in a hook subprocess resolves to a proto shim which re-execs the
 # proto CLI; proto sniffs AI_AGENT / CLAUDECODE and writes an NDJSON banner to
 # STDOUT ahead of the hook's own JSON, so Claude Code's single JSON.parse fails
-# and the hook's decision is SILENTLY DISCARDED (1,716 polluted hook events
-# measured over three days). Both vars must be unset; -u AI_AGENT alone is
-# insufficient.
+# and the hook's decision is SILENTLY DISCARDED. Both vars must be unset;
+# -u AI_AGENT alone is insufficient.
+#
+# SCALE — corrected. The first pass reported "1,716 polluted hook events over
+# three days"; a fuller count put it at 2,008 DISCARDED DECISIONS, plus roughly
+# 3,600 further events that carried the proto banner but still succeeded. The
+# 1,716 figure was an undercount and is superseded wherever it was copied.
 #
 # The prefix broke every audit/task parser that assumed "the first token of a
 # hook command is the interpreter" (or that stripping a leading `bun `/`node `
@@ -27,6 +31,13 @@
 #   1. no prefix at all ......... `bun ${CLAUDE_PLUGIN_ROOT}/hooks/foo.ts`
 #   2. the env prefix ........... `env -u AI_AGENT -u CLAUDECODE bun …/foo.ts`
 #   3. a non-bun interpreter .... `bash ${CLAUDE_PLUGIN_ROOT}/hooks/foo.sh`
+#
+# The interpreter list below MUST cover every proto-shimmed tool (bun, bunx,
+# node, go, gofmt, moon, moonx, zig), because a head this file does not
+# recognise yields an empty interpreter — and a caller keying off that then
+# treats the command as "not shimmed", i.e. clean. go/gofmt/moon/moonx/zig were
+# missing until 2026-09-01; the JS port in scripts/validate-plugins.mjs now
+# asserts the containment at load time.
 #   4. a bare shebang script .... `${CLAUDE_PLUGIN_ROOT}/hooks/foo.mjs`
 # …and to trailing script arguments, which are never part of the script path.
 #
@@ -115,7 +126,8 @@ extract_hook_interpreter_from_hook_command() {
     ((${#tokens[@]} == 0)) && return 0
 
     case "${tokens[0]##*/}" in
-        bun | bunx | node | deno | npx | bash | sh | zsh | python | python3 | uv | uvx)
+        bun | bunx | node | deno | npx | bash | sh | zsh | python | python3 | uv | uvx | \
+            go | gofmt | moon | moonx | zig)
             echo "${tokens[0]}"
             ;;
         *)
@@ -142,7 +154,8 @@ extract_hook_script_path_from_hook_command() {
 
     local token_index=0
     case "${tokens[0]##*/}" in
-        bun | bunx | node | deno | npx | bash | sh | zsh | python | python3 | uv | uvx)
+        bun | bunx | node | deno | npx | bash | sh | zsh | python | python3 | uv | uvx | \
+            go | gofmt | moon | moonx | zig)
             token_index=1
             # Skip interpreter flags (`node --enable-source-maps x.js`) and the
             # `run` subcommand (`bun run x.ts`, `deno run x.ts`, `uv run x.py`).
