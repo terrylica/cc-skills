@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Resolve a Pushover secret field from 1Password (`op`) with a macOS Keychain fallback.
+# Resolve a Pushover secret field from the self-custody `vault`, then 1Password (`op`),
+# then the macOS Keychain. Self-custody is tried FIRST on purpose: it is operator-controlled
+# and offline, and a store that is not reachable cannot be silently switched off by someone
+# else's sweep. (2026-09-02: the 1Password leg had been dead for two weeks because the config
+# keys were renamed to PUSHOVER_OP_*_DISABLED — a disabled config key is indistinguishable
+# from a missing secret, so the resolver reported "not found" for a value that was right there.)
 #
 # GENERIC + fork-friendly: per-user config (which vault / which item) comes from env
 # vars, optionally sourced from a PRIVATE config file under ~/.claude. This public
@@ -14,6 +19,7 @@
 #   (user_key, device, api_token_main, api_token_test resolve by their own label)
 #
 # Config (set as env vars, or in the private config file below):
+#   PUSHOVER_VAULT_SCOPE                self-custody `vault` scope name (default: pushover-dashboard)
 #   PUSHOVER_OP_VAULT                   your 1Password vault name
 #   PUSHOVER_OP_ITEM                    1Password item name/id holding the fields
 #   PUSHOVER_KEYCHAIN_SERVICE           macOS Keychain service for fallback (default: pushover-commander)
@@ -38,6 +44,17 @@ ITEM="${PUSHOVER_OP_ITEM:-}"
 SVC="${PUSHOVER_KEYCHAIN_SERVICE:-pushover-commander}"
 SA_FILE="${PUSHOVER_OP_SA_TOKEN_FILE:-$HOME/.claude/.secrets/op-service-account-token}"
 
+# Self-custody vault scope, tried FIRST (see scs_read below). Self-custody is the preferred store;
+# 1Password is last resort and company-visible.
+SCS_SCOPE="${PUSHOVER_VAULT_SCOPE:-pushover-dashboard}"
+
+# Read from the self-custody `vault` CLI if it is installed and the scope holds the field.
+# Silent on every failure so an absent vault simply falls through to the ladder below.
+scs_read() {
+  command -v vault >/dev/null 2>&1 || return 0
+  vault get "${SCS_SCOPE}" "$1" 2>/dev/null || true
+}
+
 # Ordered candidate labels for the requested logical field (login aliases).
 case "$field" in
   login_email)    candidates="login_email username email" ;;
@@ -60,7 +77,10 @@ op_read_label() {
 
 val=""
 for label in $candidates; do
-  # 1Password first (only when a vault + item are configured).
+  # Self-custody vault FIRST. Operator-controlled, offline, no company-visible store in the path.
+  val="$(scs_read "$label")"
+  [ -n "$val" ] && break
+  # 1Password second, and only when a vault + item are configured.
   if [ -n "$VAULT" ] && [ -n "$ITEM" ]; then
     val="$(op_read_label "$label")"
     [ -n "$val" ] && break
@@ -71,7 +91,15 @@ for label in $candidates; do
 done
 
 if [ -z "$val" ]; then
-  echo "resolve_pushover_secret: could not resolve '${field}' (tried labels: ${candidates}). Set PUSHOVER_OP_VAULT + PUSHOVER_OP_ITEM (e.g. in ${PRIVATE_CONFIG}) pointing at a 1Password item with these fields, or store them in the macOS Keychain service '${SVC}'. See pushover-commander.local.env.example / references/private-config-setup.md." >&2
+  scs_state="absent"
+  if command -v vault >/dev/null 2>&1; then
+    scs_state="installed; scope '${SCS_SCOPE}' has no such path (check: vault list)"
+  fi
+  op_state="configured"
+  if [ -z "$VAULT" ] || [ -z "$ITEM" ]; then
+    op_state="NOT configured — PUSHOVER_OP_VAULT/PUSHOVER_OP_ITEM are empty; check ${PRIVATE_CONFIG} for renamed or commented-out keys (a disabled key looks exactly like a missing secret)"
+  fi
+  echo "resolve_pushover_secret: could not resolve '${field}' (tried labels: ${candidates}). self-custody vault: ${scs_state}. 1Password: ${op_state}. macOS Keychain service '${SVC}': no matching account. Preferred fix is 'vault set ${SCS_SCOPE} <label>'. See pushover-commander.local.env.example / references/private-config-setup.md." >&2
   exit 1
 fi
 printf '%s' "${val}"
