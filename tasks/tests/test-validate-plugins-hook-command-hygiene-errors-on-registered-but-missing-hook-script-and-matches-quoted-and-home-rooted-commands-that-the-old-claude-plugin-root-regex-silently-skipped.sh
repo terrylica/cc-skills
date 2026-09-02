@@ -34,6 +34,17 @@ VALIDATOR="$REPO_ROOT/scripts/validate-plugins.mjs"
 WORK_ROOT="$(mktemp -d -t validate-plugins-hook-command-hygiene.XXXXXX)"
 trap 'rm -rf "$WORK_ROOT"' EXIT
 
+# Captured BEFORE any HOME override below. run_hygiene points HOME at a fixture so
+# that $HOME-rooted hook commands resolve inside it — but proto derives its tool root
+# from $HOME when PROTO_HOME is unset, so the same override makes the `bun` shim
+# report "Bun <pinned> has not been installed" and every case fails as "driver failed".
+#
+# It only bites when `bun` on PATH is the proto SHIM. Running this file by hand from a
+# shell whose PATH already points at a resolved binary (…/.proto/tools/bun/<ver>/bun)
+# skips proto entirely and passes — so the failure appears ONLY under the suite, and
+# reads as a flake. Pinning the real tool root here decouples the two concerns.
+export PROTO_HOME="${PROTO_HOME:-$HOME/.proto}"
+
 failures=0
 pass() { printf '  ✓ %s\n' "$1"; }
 fail() { printf '  ✗ %s\n     %s\n' "$1" "$2"; failures=$((failures + 1)); }
