@@ -133,39 +133,26 @@ assert_error_contains "home-rooted-marketplace-path-errors-with-in-repo-equivale
     "absent-in-repo.ts"
 
 # ---------------------------------------------------------------------------
-# Case 4 — shimmed SHEBANG behind a QUOTED bare path. Script exists, no env
-# prefix, shebang is `#!/usr/bin/env node` → proto banner risk. The old literal
-# regex skipped it because of the leading quote character.
+# Cases 4-6 REMOVED 2026-09-01, together with the check they covered.
+#
+# They asserted the proto-shim hygiene lint: that a command invoking a
+# proto-shimmed tool without an `env -u AI_AGENT -u CLAUDECODE ` prefix is an
+# error. proto fixed the underlying bug upstream (moonrepo/proto#1105, "Fixed
+# in v0.61.2"), the 43 prefixes were removed, and the lint went with them.
+#
+# These are deleted rather than kept-and-skipped because they test a DELETED
+# FEATURE, not a temporarily-broken one — a skipped test for behaviour that no
+# longer exists is indistinguishable from a test someone muted to get green.
+#
+# What replaced them is a test of the actual property rather than the proxy:
+# tasks/tests/test-proto-shim-does-not-write-an-ai-agent-ndjson-banner-*.sh
+# invokes the real shim 60-way concurrently and asserts stdout stays clean,
+# with its own positive control proving the detector can fire.
+#
+# The remaining cases here cover the EXISTENCE check, which is unrelated to
+# proto and still very much live: a registered hook whose script is missing is
+# a permanently disarmed guard.
 # ---------------------------------------------------------------------------
-# shellcheck disable=SC2016
-F4=$(make_fixture "shimmed-shebang-quoted-bare-path" '"${CLAUDE_PLUGIN_ROOT}/hooks/quoted-shebang-guard.mjs"')
-printf '#!/usr/bin/env node\nprocess.exit(0);\n' > "$F4/plugins/fixture-plugin/hooks/quoted-shebang-guard.mjs"
-chmod +x "$F4/plugins/fixture-plugin/hooks/quoted-shebang-guard.mjs"
-assert_error_contains "quoted-bare-path-with-node-shebang-is-flagged" "$F4" \
-    "proto-shimmed tool (its shebang interpreter)" \
-    "env -u AI_AGENT -u CLAUDECODE"
-
-# ---------------------------------------------------------------------------
-# Case 5 — shimmed SHEBANG behind a $HOME-rooted bare path. Never matched by the
-# old CLAUDE_PLUGIN_ROOT-only regex under any spelling.
-# ---------------------------------------------------------------------------
-# shellcheck disable=SC2016
-F5=$(make_fixture "shimmed-shebang-home-rooted-bare-path" '$HOME/hooks/home-shebang-guard.mjs')
-mkdir -p "$F5/hooks"
-printf '#!/usr/bin/env bun\nprocess.exit(0);\n' > "$F5/hooks/home-shebang-guard.mjs"
-chmod +x "$F5/hooks/home-shebang-guard.mjs"
-assert_error_contains "home-rooted-bare-path-with-bun-shebang-is-flagged" "$F5" \
-    "proto-shimmed tool (its shebang interpreter)"
-
-# ---------------------------------------------------------------------------
-# Case 6 — the ORIGINAL check must not regress: a bare `bun` with no env prefix,
-# script present, is still an error.
-# ---------------------------------------------------------------------------
-# shellcheck disable=SC2016
-F6=$(make_fixture "bare-bun-without-env-prefix" 'bun ${CLAUDE_PLUGIN_ROOT}/hooks/present.ts')
-printf 'process.exit(0);\n' > "$F6/plugins/fixture-plugin/hooks/present.ts"
-assert_error_contains "bare-shimmed-interpreter-still-errors" "$F6" \
-    "proto-shimmed tool (\`bun\`)"
 
 # ---------------------------------------------------------------------------
 # Case 7 — NEGATIVE CONTROL. Correct env prefix, script present, plus a
