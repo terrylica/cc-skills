@@ -28,17 +28,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/gh-repo-identity-guard.mjs",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-repo-identity-guard.mjs",
             "timeout": 10000
           },
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-path-owner-guard.mjs",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-path-owner-guard.mjs",
             "timeout": 10000
           },
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-no-anchors.mjs",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-no-anchors.mjs",
             "timeout": 5000
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-title-reminder.mjs",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-title-reminder.mjs",
             "timeout": 10000
           },
           {

@@ -1060,26 +1060,34 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
             else warnings.push(detail);
           }
 
-          // ---- (a) proto-shim hygiene ----
-          // The env prefix is what makes a shimmed tool safe, so a command that
-          // already carries it is exempt from THIS check only (not from the
-          // existence check above, which ran unconditionally).
-          if (command.startsWith(AGENT_ENV_STRIP_PREFIX)) continue;
-
-          const isBareShimmed = interpreter !== null && PROTO_SHIMMED_TOOLS.has(interpreter);
-          const isShebangShimmed =
-            interpreter === null &&
-            existingScriptPath !== null &&
-            PROTO_SHIMMED_TOOLS.has(shebangInterpreter(existingScriptPath));
-
-          if (isBareShimmed || isShebangShimmed) {
-            const via = isBareShimmed ? `\`${interpreter}\`` : "its shebang interpreter";
-            errors.push(
-              `${relPath}: hook command invokes a proto-shimmed tool (${via}) without stripping the agent env vars. ` +
-                `proto will intermittently prepend an NDJSON banner to STDOUT and the hook's decision will be silently discarded. ` +
-                `Prefix the command with "${AGENT_ENV_STRIP_PREFIX.trim()}". Offending command: ${command.slice(0, 120)}`,
-            );
-          }
+          // ---- (a) proto-shim hygiene: RETIRED 2026-09-01 ----
+          //
+          // This check used to require every command invoking a proto-shimmed
+          // tool to carry an `env -u AI_AGENT -u CLAUDECODE ` prefix, because
+          // proto < 0.61.2 wrote an NDJSON banner to the shim's STDOUT and
+          // silently voided the hook's decision.
+          //
+          // proto fixed it upstream (moonrepo/proto#1105, "Fixed in v0.61.2"),
+          // verified here at 0/100 polluted on the same 100-way concurrency
+          // that produced 27-45/100 on 0.61.1. The 43 prefixes are removed and
+          // this check is gone with them: a lint that enforces a workaround for
+          // a fixed bug is not free — it reads to the next maintainer as a live
+          // hazard and invites cargo-culting the prefix into new code.
+          //
+          // What replaced it, deliberately, is a TEST rather than a lint:
+          // tasks/tests/test-proto-shim-does-not-write-an-ai-agent-banner-*.sh
+          // asserts the actual property (shim stdout stays clean under
+          // concurrency) instead of the proxy for it. A lint can only check that
+          // people wrote the workaround; the test checks that the bug is absent,
+          // which is the thing anyone actually cares about.
+          //
+          // The floor that makes this safe is enforced, not assumed:
+          // .prototools pins proto = "0.61.2" and tasks/release/preflight
+          // Check 1b aborts the release on anything older.
+          //
+          // The EXISTENCE check above is unrelated and still runs
+          // unconditionally — a registered hook whose script is missing is a
+          // permanently disarmed guard regardless of proto's version.
         }
       }
     }
