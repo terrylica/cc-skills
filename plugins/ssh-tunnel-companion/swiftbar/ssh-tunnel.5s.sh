@@ -115,8 +115,8 @@ echo "---"
 # --- Ports ---
 echo "Ports | sfimage=network"
 echo "-- :18123 → gpu-host:8123 (ClickHouse)"
-echo "-- :18081 → gpu-host:8081 (SSE sidecar)"
-echo "-- :18095 → gpu-host:8095 (relay-monitor API)"
+echo "-- :18081 → gpu-host:8081 (SSE sidecar — crypto ODB)"
+echo "-- :18082 → gpu-host:8082 (fxview-sidecar — forex ticks)"
 echo "-- :5900  → gpu-host:5900 (VNC — MT5/WINE)"
 
 echo "---"
