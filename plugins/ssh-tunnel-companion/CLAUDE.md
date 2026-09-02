@@ -44,9 +44,11 @@ ssh-tunnel-companion/
 | Local             | Remote          | Service                               |
 | ----------------- | --------------- | ------------------------------------- |
 | `localhost:18123` | `bigblack:8123` | ClickHouse HTTP                       |
-| `localhost:18081` | `bigblack:8081` | SSE sidecar                           |
-| `localhost:18095` | `bigblack:8095` | ccmax-monitor dashboard API           |
+| `localhost:18081` | `bigblack:8081` | SSE sidecar — crypto ODB live bars    |
+| `localhost:18082` | `bigblack:8082` | fxview-sidecar — forex live tick SSE  |
 | `localhost:5900`  | `bigblack:5900` | VNC (x11vnc, MT5/WINE on display :99) |
+
+**SSoT is `libexec/ssh-tunnel-companion-runner`; this table is a copy.** It was wrong in both directions until 2026-09-02 — it advertised a fifth forward `localhost:18095 → bigblack:8095` (ccmax-monitor dashboard API) that was removed from the runner on 2026-08-15 (`d345ddaf`), and it omitted `18082`, which is live. That removal touched the runner only, leaving four sibling files advertising the dead port; the resulting "stale infrastructure" reading nearly got this load-bearing tunnel killed on 2026-09-01. **bigblack the MACHINE is alive — only its ccmax tenancy ended 2026-07-28.** Scope every bigblack claim to the tenant, and when this table and the runner disagree, the runner wins.
 
 ## Commands
 
@@ -64,7 +66,8 @@ make ping        # Tailscale connectivity check to bigblack
 ## Consumers
 
 - **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `tasks/infra.toml`).
-- **statusline-tools** — `custom-statusline.sh` queries `localhost:18095/api/status` for ccmax-monitor account info.
+- **statusline-tools** — **no longer a consumer.** `custom-statusline.sh` used to query `localhost:18095/api/status`; measured 2026-09-02 it makes no HTTP call to any ccmax endpoint at all, and `statusline-tools/CLAUDE.md` explicitly forbids reading that URL (the wrapper routes inference through a rotation pool, so the local credential's quota describes spend the user is not making). The forward it needed is gone and it does not want it back.
+- **fxview / MT5 tooling** — consumes `localhost:18082` for the forex live tick SSE stream.
 - **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on bigblack.
 - Any tool needing ClickHouse on bigblack via `localhost:18123`.
 

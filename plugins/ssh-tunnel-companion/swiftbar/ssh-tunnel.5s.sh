@@ -115,8 +115,8 @@ echo "---"
 # --- Ports ---
 echo "Ports | sfimage=network"
 echo "-- :18123 → bigblack:8123 (ClickHouse)"
-echo "-- :18081 → bigblack:8081 (SSE sidecar)"
-echo "-- :18095 → bigblack:8095 (ccmax-monitor API)"
+echo "-- :18081 → bigblack:8081 (SSE sidecar — crypto ODB)"
+echo "-- :18082 → bigblack:8082 (fxview-sidecar — forex ticks)"
 echo "-- :5900  → bigblack:5900 (VNC — MT5/WINE)"
 
 echo "---"

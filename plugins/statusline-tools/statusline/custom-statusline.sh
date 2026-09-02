@@ -578,10 +578,20 @@ else
 fi
 
 # === ccmax-monitor: Active Account + 7d Reset + Pin Mode ===
-# Fetches from ccmax-monitor Dashboard API, cached for 60s to avoid network spam.
-# Endpoint: localhost:18095 (forwarded by ssh-tunnel-companion to bigblack:8095).
-# ccmax-monitor binds 127.0.0.1 only — must be reached via SSH tunnel.
-# Network: Tailscale primary (bigblack.tail0f299b.ts.net), CF Access fallback.
+# READS LOCAL FILES ONLY. No HTTP call, no network, no cache — verified
+# 2026-09-02: this script contains zero curl invocations against any ccmax
+# endpoint. The four lines that used to sit here described a fetch that no
+# longer happens, and every one of them was false by then:
+#   "Fetches from ccmax-monitor Dashboard API, cached for 60s"  -> no fetch
+#   "Endpoint: localhost:18095 ... to bigblack:8095"            -> forward removed 2026-08-15
+#   "must be reached via SSH tunnel"                            -> nothing is reached
+#   "Tailscale primary (bigblack...), CF Access fallback"       -> ccmax left bigblack
+#                                                                  2026-07-28; CF Access
+#                                                                  retired 2026-08-06
+# statusline-tools/CLAUDE.md forbids reading localhost:18095/api/status anyway:
+# the wrapper routes inference through a per-request rotation pool, so the local
+# credential's quota describes spend the user is not making. What follows reads
+# the pin file via pin-helper.sh.
 # Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
 #
 # Pin-scope+mode badge (HEART-23 v2; requires ccmax-monitor with layered-pin
