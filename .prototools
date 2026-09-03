@@ -16,10 +16,10 @@
 # maintainer closed it with "Fixed in v0.61.2". Verified here on 0.61.2 with no
 # workaround: 0/100 polluted at the 100-way concurrency that gave 27-45/100 on
 # 0.61.1. tasks/release/preflight enforces this floor rather than trusting it.
-proto = "0.61.2"
+proto = "0.61.3"
 
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
-moon = "2.5.2"
+moon = "2.5.4"
 
 # Bun runs every script, CLI, hook and test in this marketplace.
 bun = "1.4.0"
@@ -28,4 +28,4 @@ bun = "1.4.0"
 # (semantic-release/semantic-release#3527). Nothing else here should reach for
 # it — if you are adding a Node dependency for anything other than the release
 # pipeline, reach for Bun instead.
-node = "25"
+node = "26.8.1"
