@@ -124,7 +124,9 @@ python validate_indicator.py \
 
 ---
 
-## Documentation Hub (Single Source of Truth)
+## Documentation Hub (in the `mql5-crossover` repository)
+
+> **Every `/docs/...` path below is relative to `terrylica/mql5-crossover`, NOT to cc-skills.** This repo has no `docs/guides/`, `docs/reports/` or `docs/templates/` directory, so all 14 of these read as repo-root links and resolve to nothing here. Verified 2026-09-02: the files exist at `mql5-crossover/docs/...` and the paths are correct there.
 
 ### Quick Start (35-45 minutes)
 
