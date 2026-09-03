@@ -1,3 +1,25 @@
+## [29.3.1](https://github.com/terrylica/cc-skills/compare/v29.3.0...v29.3.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **tests:** drain the last four SIGPIPE-racy pipelines ([6712315](https://github.com/terrylica/cc-skills/commit/6712315474d0b426fead0a396a420fbb42ae1ece))
+
+Completes the 2026-09-02 sweep. The bulk pass fixed 77 single- and multi-stage sites mechanically but skipped four whose pipeline spans a backslash-continuation, where a pattern-based rewrite could not be proven safe. Same defect, done by hand.
+
+Three take the DRAIN fix rather than a herestring, because their producer is a `grep -B10 ... "$FILE"` rather than an `echo`:
+
+    grep -B10 PATTERN "$FILE" | grep -q NEEDLE      # -q exits early,
+                                                    # SIGPIPEs the -B10,
+                                                    # pipefail adopts 141
+    grep -B10 PATTERN "$FILE" | grep NEEDLE >/dev/null   # drains, safe
+
+grep without -q reads its whole input, so the upstream stage is never signalled. Exit status is unchanged: still non-zero when nothing matches.
+
+The fourth had an `echo` head AND an early-exiting tail, so it takes both halves — herestring in, drain out.
+
+Racy pipelines under pipefail across tasks/tests and tasks/audit-*: 0. Each edited file re-run standalone: 3/3 pass, shellcheck clean.
+
 # [29.3.0](https://github.com/terrylica/cc-skills/compare/v29.2.0...v29.3.0) (2026-09-03)
 
 
