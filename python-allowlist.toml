@@ -1,0 +1,20 @@
+# Repo-root Python allowlist.
+#
+# The default language for this repo is Bun/TypeScript (see
+# ~/.claude/principles-CLAUDE.md §"Language selection default"). Every .py file
+# that stays must be justified here, one file at a time, so the exception is a
+# recorded decision rather than an accumulation.
+#
+# Until this file existed, `scripts/cli_spec.py` — the generator behind the
+# machine-readable CLI-spec doctrine — matched no allowlist anywhere and so
+# nagged on EVERY edit. A guard that fires on a file nobody intends to remove
+# trains people to ignore it, which costs more than the file it was guarding
+# against.
+
+[[allow]]
+path = "scripts/cli_spec.py"
+reason = "Parses Python argparse CLIs via the stdlib `ast` module without importing them. Python's own AST is the only parser that can read Python source faithfully — a TypeScript reimplementation would be a hand-written Python parser, which is strictly worse. This is the SOTA-native lane the language-selection rule carves out."
+
+[[allow]]
+path = "scripts/test_cli_spec.py"
+reason = "Test suite for cli_spec.py. A test must run in the same runtime as the code under test; splitting it into Bun would mean shelling out and asserting on stdout instead of calling the functions."

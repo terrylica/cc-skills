@@ -6,7 +6,7 @@ Context for design specifications in cc-skills.
 
 ## Overview
 
-Design specs are implementation specifications that pair with ADRs, though not 1:1 — 33 of 58 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
+Design specs are implementation specifications that pair with ADRs, though not 1:1 — 33 of 59 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
 
 ## Directory Structure
 
