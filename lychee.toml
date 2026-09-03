@@ -17,7 +17,10 @@ max_retries = 2
 max_concurrency = 8
 
 ############################# Features ##############################
-include_fragments = true
+# lychee 0.24 turned this from a bool into an enum (none|anchor-only|text-only|full).
+# `true` is a hard TOML parse error, which is why every lychee run in this repo
+# died at config load. "anchor-only" is the closest equivalent to the old `true`.
+include_fragments = "anchor-only"
 include_verbatim = false
 include_mail = false
 

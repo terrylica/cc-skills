@@ -44,6 +44,19 @@ tasks:
     # is not in the gate is not a gate.
     deps: ["~:lint", "~:test", "~:test-hooks", "~:cli-spec-check", "~:verify-doc-counts"]
 
+  # ── Link checking ──────────────────────────────────────────────────────────
+  # DELIBERATELY NOT in `check.deps` yet: measured 235 broken internal links on a
+  # clean tree 2026-09-03, so wiring it now would block every commit. Add it to
+  # check.deps the moment the count reaches zero — and note that leaving a task
+  # defined-but-unwired is exactly the failure this repo has now hit three times
+  # (cli-spec-check, the perf-timing skip flag, and link checking itself, which
+  # had a config, a 495-line hook script, and no caller for its entire life).
+  # The difference here is that the omission is deliberate, dated and has an exit
+  # condition, rather than being an accident nobody noticed.
+  link-check:
+    description: "Offline link check over every tracked markdown file (internal links only, no network)."
+    script: "bash tasks/link-check.sh"
+
   # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
   cli-spec:
     description: "Regenerate cli_spec.json from every argparse CLI in the marketplace."
