@@ -211,14 +211,14 @@ else
 fi
 
 # Per-fixture marker assertions.
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture01-ordering-ok-pueue-wrap-guard-is-last.*LAST PreToolUse entry'; then
+if grep -q 'fixture01-ordering-ok-pueue-wrap-guard-is-last.*LAST PreToolUse entry' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #01 marked as ORDERING-OK (LAST PreToolUse entry)"
 else
   assert_fail "Fixture #01 not marked as ORDERING-OK"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture02-ordering-violation-soft-nudge-follows-wrap-guard'; then
-  if echo "$AUDIT_OUTPUT" | grep -q 'parquet-duckdb-nudge'; then
+if grep -q 'fixture02-ordering-violation-soft-nudge-follows-wrap-guard' <<<"$AUDIT_OUTPUT"; then
+  if grep -q 'parquet-duckdb-nudge' <<<"$AUDIT_OUTPUT"; then
     assert_pass "Fixture #02 violation diagnostic mentions parquet-duckdb-nudge (the offending hook)"
   else
     assert_fail "Fixture #02 violation diagnostic missing 'parquet-duckdb-nudge' offender name"
@@ -227,7 +227,7 @@ else
   assert_fail "Fixture #02 missing from violation diagnostic section"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture04-ordering-ok-multi-cmd-group-last-cmd-is-wrap-guard.*LAST PreToolUse entry'; then
+if grep -q 'fixture04-ordering-ok-multi-cmd-group-last-cmd-is-wrap-guard.*LAST PreToolUse entry' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #04 (multi-cmd group) marked as ORDERING-OK"
 else
   assert_fail "Fixture #04 (multi-cmd group) not marked as ORDERING-OK"
@@ -251,19 +251,19 @@ fi
 echo ""
 echo "=== Asserting violation diagnostic contains operator-actionable guidance ==="
 
-if echo "$AUDIT_OUTPUT" | grep -q 'GitHub #15897'; then
+if grep -q 'GitHub #15897' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic references GitHub #15897 (the underlying bug)"
 else
   assert_fail "Diagnostic missing GitHub #15897 reference"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'Full PreToolUse ordering'; then
+if grep -q 'Full PreToolUse ordering' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic includes 'Full PreToolUse ordering' table for forensics"
 else
   assert_fail "Diagnostic missing 'Full PreToolUse ordering' table"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'OP token injection'; then
+if grep -q 'OP token injection' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic mentions OP token injection (load-bearing mutation #1)"
 else
   assert_fail "Diagnostic missing OP token injection mention"

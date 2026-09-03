@@ -215,7 +215,7 @@ else
 fi
 
 # Verify the critical-failure path emits the diagnostic message.
-if echo "$NEGATIVE_OUTPUT" | grep -q 'helpers module regressed'; then
+if grep -q 'helpers module regressed' <<<"$NEGATIVE_OUTPUT"; then
   assert_pass "Audit diagnostic mentions 'helpers module regressed' (operator-actionable)"
 else
   assert_fail "Audit diagnostic missing 'helpers module regressed' message"

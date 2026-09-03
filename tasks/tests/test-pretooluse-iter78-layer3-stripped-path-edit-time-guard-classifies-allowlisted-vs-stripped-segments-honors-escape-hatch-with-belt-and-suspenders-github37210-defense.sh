@@ -46,13 +46,13 @@ invoke_hook_and_classify_response_with_belt_and_suspenders_diagnostics() {
     rm -f "$stdout_file" "$stderr_file"
     local has_deny_in_stdout="no"
     local has_blocked_in_stderr="no"
-    if echo "$stdout_text" | grep -q '"permissionDecision":"deny"'; then
+    if grep -q '"permissionDecision":"deny"' <<<"$stdout_text"; then
         has_deny_in_stdout="yes"
     fi
-    if echo "$stdout_text" | grep -q '"permissionDecision":"allow"'; then
+    if grep -q '"permissionDecision":"allow"' <<<"$stdout_text"; then
         has_deny_in_stdout="allow"
     fi
-    if echo "$stderr_text" | grep -q "BLOCKED"; then
+    if grep -q "BLOCKED" <<<"$stderr_text"; then
         has_blocked_in_stderr="yes"
     fi
     printf "%s\t%s\t%s" "$exit_code" "$has_deny_in_stdout" "$has_blocked_in_stderr"

@@ -72,7 +72,7 @@ declare -a EXPECTED_APPLICABLE_CLASSIFIERS=(
 )
 case5_applicable_classifiers_in_rationale=0
 for expected_classifier in "${EXPECTED_APPLICABLE_CLASSIFIERS[@]}"; do
-    if echo "$audit_output" | grep -q "◆ $expected_classifier"; then
+    if grep -q "◆ $expected_classifier" <<<"$audit_output"; then
         case5_applicable_classifiers_in_rationale=$((case5_applicable_classifiers_in_rationale + 1))
     fi
 done
