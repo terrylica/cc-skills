@@ -17,13 +17,13 @@ List, download, and sync files from Google Drive programmatically via Claude Cod
 ### Step 1: Check CLI Binary Exists
 
 ```bash
-ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gdrive-tools/skills/gdrive-access/scripts/gdrive" 2>/dev/null || echo "BINARY_NOT_FOUND"
+ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts/gdrive" 2>/dev/null || echo "BINARY_NOT_FOUND"
 ```
 
 **If BINARY_NOT_FOUND**: Build it first:
 
 ```bash
-cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gdrive-tools/skills/gdrive-access/scripts && bun install && bun run build
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts && bun install && bun run build
 ```
 
 ### Step 2: Check GDRIVE_OP_UUID Environment Variable
@@ -61,8 +61,12 @@ command -v op && echo "OP_CLI_INSTALLED" || echo "OP_CLI_MISSING"
 ### Setup Step 2: Discover Drive OAuth Items in 1Password
 
 ```bash
-op item list --vault Employee --format json 2>/dev/null | jq -r '.[] | select(.title | test("drive|oauth|google"; "i")) | "\(.id)\t\(.title)"'
+unset HTTPS_PROXY HTTP_PROXY   # the OAuth proxy 502s api.1password.com
+op vault list                  # FIRST: see which vaults this credential can actually reach
+op item list --vault "<vault-from-above>" --format json 2>/dev/null | jq -r '.[] | select(.title | test("drive|oauth|google"; "i")) | "\(.id)\t\(.title)"'
 ```
+
+⚠ **Do not hardcode `Employee`.** When `op` runs under a **service-account** token it sees only the vaults granted to that token, and `--vault Employee` fails with `"Employee" isn't a vault in this account` — which surfaces confusingly as a `jq: parse error` if you pipe it blind. Always run `op vault list` first and set `GDRIVE_OP_VAULT` accordingly. A service account also **requires** `--vault` on every `op item get`; without it you get `a vault query must be provided`.
 
 **Parse the output** and proceed based on results:
 
@@ -151,7 +155,7 @@ cd . && echo "GDRIVE_OP_UUID after reload: ${GDRIVE_OP_UUID:-NOT_SET}"
 ### Setup Step 6: Test Connection
 
 ```bash
-GDRIVE_OP_UUID="${GDRIVE_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gdrive-tools/skills/gdrive-access/scripts/gdrive list 1wqqqvBmeUFYuwOOEQhzoChC7KzAk-mAS
+GDRIVE_OP_UUID="${GDRIVE_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts/gdrive list 1wqqqvBmeUFYuwOOEQhzoChC7KzAk-mAS
 ```
 
 **If OAuth prompt appears**: This is expected on first run. Browser will open for Google consent.
@@ -161,7 +165,7 @@ GDRIVE_OP_UUID="${GDRIVE_OP_UUID}" $HOME/.claude/plugins/marketplaces/cc-skills/
 ## Drive Commands (Only After Preflight Passes)
 
 ```bash
-GDRIVE_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gdrive-tools/skills/gdrive-access/scripts/gdrive"
+GDRIVE_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/productivity-tools/skills/gdrive-access/scripts/gdrive"
 
 # List files in a folder
 $GDRIVE_CLI list <folder_id>
@@ -225,6 +229,24 @@ Drive call in **exponential backoff with jitter** (`withBackoff` in `lib/drive.t
 still fail loud. To stay under the limit proactively: **batch / space out** bulk operations, avoid
 redundant metadata calls, and don't refresh the token on every call.
 
+## When the saved token is dead: `Error: invalid_grant`
+
+`Token expired, refreshing...` followed by **`Error: invalid_grant`** means the stored **refresh token** is revoked or expired — not the access token. Refreshing cannot recover it. Causes: the OAuth client is still in Google Cloud **"Testing"** publishing status (refresh tokens then expire after **7 days**), the user revoked app access, or the password changed. The only fix through this CLI is a full re-consent, which needs an interactive browser:
+
+```bash
+rm ~/.claude/tools/gdrive-tokens/$GDRIVE_OP_UUID.json   # then re-run any gdrive command
+```
+
+**Fallback that needs no browser: `rclone`.** If `rclone listremotes` shows a `type = drive` remote for the same Google account, it carries its own independent token and usually still works. Verified 2026-09-02 when `invalid_grant` blocked the CLI entirely. Access an arbitrary folder **by ID** — including one under "Shared with me", which has no My Drive path:
+
+```bash
+rclone lsjson --recursive --max-depth 2 --drive-root-folder-id <folder_id> <remote>:
+rclone lsjson --metadata --drive-root-folder-id <folder_id> <remote>:<subfolder>   # adds owner + btime (created)
+rclone copy --drive-root-folder-id <folder_id> "<remote>:<subfolder>/<file>" ./dest/
+```
+
+`--metadata` is the only way to get **owner** and **created time (`btime`)**; plain `lsjson` returns neither. Always report which path you used — the rclone remote may be a different Google identity than `GDRIVE_OP_UUID`.
+
 ## Extracting Folder ID from URL
 
 Google Drive folder URL:
@@ -250,10 +272,10 @@ Reference: <https://developers.google.com/drive/api/guides/search-files>
 
 ## Environment Variables
 
-| Variable          | Required | Description                               |
-| ----------------- | -------- | ----------------------------------------- |
-| `GDRIVE_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials |
-| `GDRIVE_OP_VAULT` | No       | 1Password vault (default: Employee)       |
+| Variable          | Required | Description                                                                                                                                   |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GDRIVE_OP_UUID`  | Yes      | 1Password item UUID for OAuth credentials                                                                                                     |
+| `GDRIVE_OP_VAULT` | Usually  | 1Password vault. Code default is `Employee`, which a service-account token generally CANNOT see — run `op vault list` and set this explicitly |
 
 ## Token Storage
 
