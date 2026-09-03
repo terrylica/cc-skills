@@ -173,7 +173,7 @@ function reconstructContentBeforeEdits(
  * every subsequent line, so a line-number join would report the whole tail of
  * the file as new; width + continuation text is stable across that shift.
  */
-const wrapSignature = (w: WrapIssue): string => `${w.width} ${w.nextPreview}`;
+const wrapSignature = (w: WrapIssue): string => `${w.width}\0${w.nextPreview}`;
 
 /** Multiset difference: the `after` wraps that were not already in `before`. */
 function wrapsAddedBetween(before: WrapIssue[], after: WrapIssue[]): WrapIssue[] {
