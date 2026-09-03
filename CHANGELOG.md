@@ -1,3 +1,178 @@
+# [29.3.0](https://github.com/terrylica/cc-skills/compare/v29.2.0...v29.3.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **gates:** one hook-command parser, two closed gaps, one solved flake ([2056ed1](https://github.com/terrylica/cc-skills/commit/2056ed1c57b44969d8ab210b52b8da371368dd4e))
+
+Three related items, each proven by injecting a real violation and watching the gate catch it rather than by observing that it passes.
+
+1. VACUOUS-GATE GAPS CLOSED.
+
+   scripts/validate-hook-registration.sh hardcoded its six hook events in two places, so anything under SessionEnd, SubagentStop, Notification or PreCompact with a nonexistent path passed with "✓ All hook command paths exist" (verified: EXIT=0 on a fixture of four such hooks). Event coverage is now DERIVED from the settings document itself, feeding one shared accessor used by both checks, so future Claude Code events are covered without a list to rot. Its path extraction also took token 1 as the interpreter, so `env -u … bun /path/x.ts` resolved to the literal path "env" and the real script was never tested.
+
+   scripts/validate-plugins.mjs treated a script that does not exist as "not a shimmed tool", i.e. clean, and gated on a literal ${CLAUDE_PLUGIN_ROOT} regex that missed quoted tokens and $HOME-rooted paths. A registered hook whose script is absent is a permanently disarmed guard, and it now errors when the path is deterministic. Verified: an injected missing hook script went from "✅ VALIDATION PASSED" to a named error.
+
+2. ONE PARSER. tasks/lib/hook-command-parsing.sh is now the sole parser of a hooks.json command; every hand-rolled variant found across tasks/, scripts/ and tasks/tests/ routes through it. A JS port lives in validate-plugins.mjs (a .mjs validator cannot source bash) and the two are kept in step. This is the third time this class of parser has silently mis-scanned, so the sweep was exhaustive rather than reactive.
+
+   Caught in review, and worth naming: the JS port's interpreter set was NOT a superset of its proto-shimmed-tool set, so go/gofmt/moon/moonx/zig yielded a null interpreter and could never be flagged — a violation the previous code caught became silent, and the same omission raised a false positive in the other direction. The containment is now structural (a spread) plus a load-time assertion, and the bash SSoT had the identical gap.
+
+3. THE INTERMITTENT SUITE RED IS SOLVED, and it was not what anyone assumed.
+
+   test-iter117 failed ~2 runs in 11 and passed standalone. It was not drift and not the flock scope everyone suspected. iter113 and iter115 restored the shared canonical doc with `cp -f backup doc`; cp opens the destination O_TRUNC, so docs/marketplace-escape-hatch-marker-reference.md is momentarily ZERO BYTES, and an unlocked reader in another test reads the empty file.
+
+   Measured with a tight-loop reader during real suite runs: 453 zero-byte observations in 6,353,768 reads before; 0 in 44,815,049 reads after. Failure rate 1-in-14 before, 0 in 50 runs after. Every write to the shared doc now publishes via an atomic same-directory `mv` (rename(2)), and every reader takes the lock as LOCK_SH so readers do not serialize against each other. That also closed two never-noticed spurious-DRIFT races at iter113 Case 2 and iter115 Case 6.
+
+   The work exposed a fourth vacuous gate: iter117 Case 7 could never fail, because `$(grep -c … || echo 0)` captures $'0\n0' (grep -c prints 0 AND exits
+   1) and `[[ $'0\n0' -lt 1 ]]` is an arithmetic syntax error, so the dangling- anchor branch was unreachable. With `|| true` it catches 8 injected dangling anchors that it previously scored 7/7 PASS on.
+
+Gate: lint 0 errors / 0 warnings, 42/42 plugins; 112/112 hook regression tests solo; 1662 bun tests, 0 fail.
+
+STILL OPEN, deliberately not folded in: a different pair (iter90/iter91, subhook count parsed as 0) went red once in 30 post-fix runs. Unmeasured and unexplained; recorded rather than assumed to share this cause. "The suite is intermittently red" turned out to be a plural noun.
+
+* **productivity-tools:** repair gdrive-access script paths ([9b98111](https://github.com/terrylica/cc-skills/commit/9b981110f8819a44180741a042d3df253df4923b))
+
+The skill pointed at plugins/gdrive-tools/skills/gdrive-access/scripts, a plugin directory that does not exist in this marketplace. The skill lives in productivity-tools. Both the binary-existence check and the build instruction resolved to nothing, so Step 1 reported BINARY_NOT_FOUND and the recovery it offered then cd'd into a missing directory — a dead end presented as a fix.
+
+Also corrects the 1Password discovery step, which hard-coded `--vault Employee`. That vault name is not universal, and when the credential cannot reach it the command returns empty rather than erroring, which reads as "no Drive items exist" instead of "wrong vault". Now runs `op vault list` first so the operator picks a vault that the credential can actually see, and unsets HTTPS_PROXY/HTTP_PROXY because the OAuth proxy 502s api.1password.com.
+
+* **pushover-commander:** try the self-custody vault first ([5fb5528](https://github.com/terrylica/cc-skills/commit/5fb5528192b40aeeb414bf7bdb1abd63de9ccd5d))
+
+resolve_pushover_secret.sh now tries three stores per field and takes the first hit: the self-custody `vault` CLI (scope `PUSHOVER_VAULT_SCOPE`, default `pushover-dashboard`), then 1Password, then the macOS login Keychain. Self-custody goes first because it is offline and operator-controlled, and because the self-custody doctrine makes 1Password the last resort rather than the default path. The vault leg is skipped silently when `vault` is not installed, so nothing changes for a fork that does not have it.
+
+This closes a failure that lasted two weeks and was diagnosed as "the secret does not exist". The 1Password leg had been deliberately switched off on 2026-08-19 (renaming the config keys to `PUSHOVER_OP_*_DISABLED`, to stop a 30-minute TCC prompt storm from a launchd job reading 1Password's group container), and the migration note recorded that the values had moved to the Keychain under service `pushover-commander` with accounts `api_token_main, api_token_test, user_key, login_email, login_password`. An audit on 2026-09-02 found that inventory wrong in both directions: `api_token_main`, `api_token_test`, `user_key` and `device` are present, and `login_email` and `login_password` were never created. So with 1Password off by design and the two login fields never migrated, neither store held them. The pushover.net web login needed for app and sound automation that the HTTP API cannot do was simply unreachable. A migration note is a claim about a set, and nobody checked the set.
+
+The failure message previously collapsed all three legs into one sentence, which is why "1Password is configured but the field is missing" and "1Password is not configured at all" read identically. It now reports the state of each leg separately and names `vault set` as the preferred fix, so a disabled config key can no longer be mistaken for an absent secret.
+
+Verified after the change: all six fields (`login_email`, `login_password`, `user_key`, `device`, `api_token_main`, `api_token_test`) resolve, compared by sha256 rather than by printing values. Negative control: pointing `PUSHOVER_VAULT_SCOPE` at a nonexistent scope makes exactly `login_email` and `login_password` unresolvable, proving the vault leg is what serves them, while `user_key` and the app tokens continue to resolve from the Keychain. `user_key` now exists in both stores and was confirmed byte-identical from each.
+
+* **scripts:** cap command snapshots instead of growing forever ([a8df37f](https://github.com/terrylica/cc-skills/commit/a8df37fa6364bdbe7cf87307f70638bf642e92c8))
+
+Every run of sync-commands-to-settings.sh copied the whole commands/ directory into a fresh timestamped folder under ~/.claude/backups and never removed any. Measured on one machine 2026-09-01: 497 snapshots totalling 986 MB, oldest dating to 2026-03-01, and the newest was byte-identical to the live commands/ directory it had just been copied from. The snapshots are git-ignored, so all 986 MB was backing up nothing that was not already reproducible.
+
+Keeps the 5 most recent, overridable via CC_SKILLS_BACKUP_RETENTION.
+
+The glob is deliberately narrow — commands.&lt;8 digits>_&lt;6 digits>, exactly what backup_commands() writes — so anything else a human parked under backups/ is invisible to the pruner by construction. A future widening of that pattern cannot quietly start deleting data this script never created. The timestamp format sorts lexicographically the same as chronologically, so "oldest" is just the leading entries and no date parsing is involved.
+
+* **ssh-tunnel-companion,statusline:** finish the :18095 removal started 2026-08-15 ([97cc8f8](https://github.com/terrylica/cc-skills/commit/97cc8f8d7ab0ae9d1f2d8b6d4d6718cad0a3d656))
+
+d345ddaf removed the dead :18095 forward from the runner and stopped there. Five other files kept advertising it for eighteen days, including two surfaces a human actually reads: the SwiftBar menu, which redraws every 5 seconds, and install.sh's completion summary. That is what made this dangerous rather than untidy -- on 2026-09-01 the accumulated "ccmax-monitor dashboard API on bigblack" wording read as stale infrastructure and nearly got a load-bearing tunnel killed.
+
+Every list was wrong in two directions at once: advertising a forward that is gone, and omitting :18082, which is live and carries the fxview forex tick SSE stream. Corrected against the runner, which is now named as SSoT in the one place a copy survives.
+
+The statusline comment was the worst of them, because it was not merely out of date -- it described behaviour the file does not have. Four consecutive claims (fetches the Dashboard API, caches 60s, endpoint localhost:18095, Tailscale-primary-with-CF-Access-fallback) all describe an HTTP call that no longer exists anywhere in the script: measured 2026-09-02, zero curl invocations against any ccmax endpoint. It reads the pin file. statusline-tools/CLAUDE.md had meanwhile grown an explicit prohibition on reading that URL, so the comment contradicted its own plugin's documented rule as well as its own code.
+
+bigblack the MACHINE is alive and serving ClickHouse, the crypto ODB sidecar, fxview and MT5's VNC. Only its ccmax tenancy ended, on 2026-07-28. Both surviving mentions now say so, because the next reader arrives with the "bigblack is decommissioned" premise that caused this.
+
+Verified: bash -n on all three scripts, statusline renders exit 0, tunnel PID 92607 untouched throughout.
+
+* **ssh-tunnel-companion:** stop the plist advertising a port removed a year-quarter ago ([7a7edef](https://github.com/terrylica/cc-skills/commit/7a7edef6decbc93a400c7ad09e06b330708d22cc))
+
+The header listed localhost:18095 -> bigblack:8095 as a live "ccmax-monitor dashboard API" forward. It was removed from the runner on 2026-08-15 (d345ddaf) because ccmax-monitor stopped being a bigblack tenant on 2026-07-28. That commit touched the runner only, so four sibling files kept advertising the dead port -- and on 2026-09-01 this comment nearly got the whole tunnel killed as "stale infrastructure".
+
+It is not stale. Measured today: 18123, 18081, 18082 and 5900 each have live ssh listeners serving ClickHouse, the crypto ODB SSE sidecar, the fxview forex tick sidecar and MT5's VNC. 18095 has none. The plist was wrong in both directions at once -- advertising a forward that is gone while omitting 18082, which is live.
+
+So the fix is not just deleting a line. The header now names the runner as SSoT and says the copy loses any disagreement, and carries an explicit load-bearing warning recording the near-miss, because the next reader will arrive with the same "bigblack is decommissioned" premise that made this dangerous. bigblack the MACHINE is alive; only its ccmax tenancy ended. Scope every bigblack claim to the tenant.
+
+Tunnel untouched: PID 92607 before and after, all four forwards still bound, plutil -lint OK.
+
+Still stale in four more places, none in this file's scope: plugins/ssh-tunnel-companion/CLAUDE.md:48 and :67, scripts/install.sh:103 (printed to the operator on every install), and swiftbar/ssh-tunnel.5s.sh:119 -- the last being a menu-bar surface that refreshes every 5 seconds.
+
+* **tests:** pin PROTO_HOME so a HOME override cannot blind the bun shim ([db850bc](https://github.com/terrylica/cc-skills/commit/db850bc716b1954b58f13cc9d3f7acdc48efcf8a))
+
+The hook-command-hygiene regression test points HOME at a fixture tree so that $HOME-rooted hook commands resolve inside it. proto derives its tool root from $HOME when PROTO_HOME is unset, so that same override made the `bun` proto shim report "This project requires Bun 1.3.14 ... but this version has not been installed" and every case in the file failed as "driver failed" rather than as a real assertion. Capturing the real tool root before the override decouples the two concerns.
+
+The reason this went unnoticed is worth recording, because the symptom actively misdirects. It only bites when `bun` on PATH is the proto SHIM. Running the file by hand from an interactive shell whose PATH already resolves to a concrete binary under .proto/tools/bun/&lt;ver>/bun skips proto entirely and the file passes 5 of 5 — so the failure appears only under `moon run :test-hooks`, and the standard advice printed by the runner ("Run a failing test directly to see its detailed output") makes it look like a flake that cannot be reproduced. Installing the pinned Bun does not help either, because the fixture HOME is where proto is looking and the tool is not there.
+
+Before: deterministic failure, 3 of 3 suite runs, 4 of 5 cases red. After: 113 of 113 test files pass, and the suite was run 10 more times to confirm.
+
+Unrelated and NOT fixed here: the suite has a separate intermittent failure of roughly 1 file in 10 runs, and it lands on a different test each time (observed on the iter78 stripped-path guard and on the stop-hook additionalContext audit). That one does not reproduce on demand and is left open rather than papered over.
+
+* **tests:** retire the intermittently-red suite — SIGPIPE inverted booleans ([0f7d7b0](https://github.com/terrylica/cc-skills/commit/0f7d7b05d3d1a6c8f115670c1751fb4112890332))
+
+docs/LESSONS.md recorded this as UNRESOLVED: the suite gates release-full, went red on 3 of ~8 runs naming a DIFFERENT pair of tests each time, every one of which passed standalone, and blocked two v29.2.0 release attempts before a third succeeded. It blocked a release again today.
+
+ROOT CAUSE
+
+The suite's own documented defect, present in the suite itself:
+
+    if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qE 'Path A.*RULED OUT'; then
+
+Under `set -euo pipefail`, `grep -q` exits the instant it matches. The producer then takes SIGPIPE and exits 141, and pipefail makes the PIPELINE adopt 141 — so the `if` evaluates FALSE even though grep MATCHED. Nothing crashes and nothing logs; the boolean simply inverts.
+
+It is a RACE on how much the producer still has to write when the reader leaves, which is exactly why it passes standalone and fails under a loaded preflight, and why the victim changes run to run.
+
+MEASURED, not inferred. Captured from the failed release's own /tmp/hook-regression-test.log: of 13 assertions in the iter-92 test, exactly one failed —
+
+    ✗ FAIL: Case 5b: Path A ruling-out language missing
+
+— while Case 5a and Case 5c, which grep the same buffer for different strings, both passed. Counts passed too (found 19; 16 >> 3), ruling out load and discovery as causes.
+
+Isolated reproduction, match on line 1 with ~1.4 MB still to write:
+
+    echo | grep -q   : non-zero status in 12/12 runs, grep matched every time
+    grep -q &lt;&lt;&lt;""    : non-zero status in  0/12 runs
+
+FIX
+
+77 call sites across 21 test and audit scripts. Two shapes:
+
+  single-stage   echo "$V" | grep -qE P      ->  grep -qE P &lt;&lt;&lt;"$V"
+  multi-stage    echo "$V" | grep -F A \
+                   | grep -qE B              ->  grep -F A &lt;&lt;&lt;"$V" \
+                                                  | grep -E B >/dev/null
+
+A herestring is not a pipeline, so there is no reader to close. For the multi-stage form the head is fed by herestring AND the tail drops -q for `>/dev/null`, because grep without -q reads its whole input and so cannot SIGPIPE the stage above it. Exit semantics are preserved: the pipeline is still non-zero when any stage matches nothing.
+
+Verified: the iter-92 test 3/3 with all 13 assertions, the full suite 5/5 (113/113 files), and `moon run repo:check` green.
+
+WHAT IS NOT DONE
+
+Three continuation-line shapes remain, where the pipeline spans a `\` newline and the mechanical rewrite could not be proven safe by pattern alone. They are the same defect and want the same fix by hand.
+
+Also note the two hypotheses the earlier investigation recorded as dead — machine load, and running the suite under `env -u` — were both correct to abandon. Neither is the cause. Writing them down is what let this pass skip straight to capturing a real failure instead of re-running until green.
+
+Worth naming: this repo already ships a detector for this exact defect, hooks/lib/sigpipe-under-pipefail-detector-iter125.ts plus a PostToolUse reminder. It works — it fired twice on new code while this change was being written. But it only inspects edits, so the 77 pre-existing sites were never swept. A guard that only sees new code cannot pay off its own backlog.
+
+
+
+### Features
+
+* **pushover-commander:** add a transition-based alert state gate ([3618f3b](https://github.com/terrylica/cc-skills/commit/3618f3b737aa5ad7a916084cfa23b344e77ffa01))
+
+A scheduled monitor that alerts on every failing tick does not report a problem, it reports a clock. Measured on one machine 2026-09-01: a client pipeline monitor on a 1777-second interval sent 186 Pushover alerts over twelve days, with five days accounting for 169 of them at 41, 47, 48, 16 and 17 per day. 86400/1777 = 48.6, so "48 alerts" was not 48 problems — it was ONE unbroken failure re-announced every tick for twenty-four hours. The signal was intact; the human had stopped reading.
+
+alert_state_gate.sh notifies on TRANSITIONS instead of states. It stores the last fingerprint beside a state file and emits JSON:
+
+  {"previous":null,"current":"fp-A","transition":"first-failure","should_notify":true} {"previous":"fp-A","current":"fp-A","transition":"unchanged","should_notify":false} {"previous":"fp-A","current":"fp-B","transition":"changed","should_notify":true}
+
+--peek reads without recording, --reset clears. The state write is atomic (temp file beside the target, then mv -f) so a monitor killed mid-write cannot leave a truncated fingerprint that reads as "changed" and re-alerts.
+
+NOT A DEBOUNCE, and deliberately not merged with one. A debounce collapses duplicates arriving within seconds — the thundering-herd case, a different problem with a different fix. A 30-second debounce window would not have suppressed a single one of those 186 alerts, because they were 1777 seconds apart. Conversely this gate would not stop four alerts landing in the same second, since they share a fingerprint and the first one through wins.
+
+Lands as a library only: nothing calls it yet, and it has no test. Both are deliberate for this commit — it is checked in so the measurement and the reasoning above stop living in a scratch file, and the shape can be reviewed before any monitor is switched over to it.
+
+* **release:** enforce a proto >= 0.61.2 floor as a hard preflight gate ([ec5658d](https://github.com/terrylica/cc-skills/commit/ec5658d3b3b9779c5bc03ffd5d73ef188128d3bb))
+
+proto below 0.61.2 writes an "AI agent environment" NDJSON banner to the STDOUT of shim-invoked tools. Hook stdout is a JSON protocol, so that banner made Claude Code discard the hook's decision — 2,008 times over three days, at exit code 0, with a set of guards silently not applying and nothing reporting an error. Reported as moonrepo/proto#1105 and fixed upstream the next day; the maintainer closed it with "Fixed in v0.61.2".
+
+Two changes, because a pin nobody verifies is a wish:
+
+- .prototools now pins `proto = "0.61.2"` (proto self-pins via PROTO_PLUGIN_KEY), with the incident recorded beside the number so the floor is not mistaken for a preference and quietly relaxed.
+- tasks/release/preflight Check 1b proves the running proto meets that floor and aborts the release otherwise.
+
+A hard gate rather than a warning specifically because the failure it prevents is SILENT. An older proto emits no error; it just makes guards stop working. There is no symptom to notice, so the check has to be the thing that notices.
+
+Verified with six controls against a stubbed `proto --version`:
+  0.61.1  -> FAIL (the version that carried the bug)
+  0.9.0   -> FAIL (guards against a lexicographic compare passing it)
+  absent  -> FAIL (cannot verify is not the same as satisfied)
+  0.61.2  -> PASS (exact floor)
+  0.62.0  -> PASS
+  0.61.10 -> PASS (double-digit patch, the other lexicographic trap)
+
+`sort -V` was confirmed to be a genuine version sort on this macOS before being relied on, rather than assumed — the immediately preceding commit fixed a test that had silently matched nothing for years because `\s` is a GNU-only grep extension.
+
 # [29.2.0](https://github.com/terrylica/cc-skills/compare/v29.1.0...v29.2.0) (2026-08-31)
 
 
