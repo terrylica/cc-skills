@@ -6,7 +6,7 @@ Context for design specifications in cc-skills.
 
 ## Overview
 
-Design specs are implementation specifications that pair 1:1 with ADRs. Each spec lives in its own subdirectory.
+Design specs are implementation specifications that pair with ADRs, though not 1:1 — 33 of 58 ADRs have one. Each spec lives in its own subdirectory. A spec is written when an implementation needs one; an ADR without a spec is the normal case, not a gap to fill.
 
 ## Directory Structure
 
@@ -48,25 +48,26 @@ docs/design/
 ## ADR ↔ Design Relationship
 
 Each design spec corresponds to an ADR in `../adr/`. Naming convention matches:
+
 - ADR: `docs/adr/YYYY-MM-DD-slug.md`
 - Design: `docs/design/YYYY-MM-DD-slug/`
 
 ## Categories
 
-| Category | Examples |
-| -------- | ----------|
-| ITP Workflow | itp-setup, itp-todo, itp-hooks |
-| DevOps | mise-tasks, mise-env, clickhouse |
-| Hooks | pretooluse, posttooluse, ruff |
-| Infrastructure | gitleaks, version-management |
+| Category       | Examples                         |
+| -------------- | -------------------------------- |
+| ITP Workflow   | itp-setup, itp-todo, itp-hooks   |
+| DevOps         | mise-tasks, mise-env, clickhouse |
+| Hooks          | pretooluse, posttooluse, ruff    |
+| Infrastructure | gitleaks, version-management     |
 
 ## Link Conventions
 
-| Target | Format |
-| -------| --------|
-| ADRs | `../adr/YYYY-MM-DD-slug.md` |
-| Other specs | `./YYYY-MM-DD-slug/` |
-| Root | `../../CLAUDE.md` |
+| Target      | Format                      |
+| ----------- | --------------------------- |
+| ADRs        | `../adr/YYYY-MM-DD-slug.md` |
+| Other specs | `./YYYY-MM-DD-slug/`        |
+| Root        | `../../CLAUDE.md`           |
 
 ## Toolchain
 

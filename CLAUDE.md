@@ -103,7 +103,7 @@ cc-skills/
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
-│   ├── design/                      ← Implementation specs (1:1 with ADRs)
+│   ├── design/                      ← Implementation specs (33 of 58 ADRs have one)
 │   ├── HOOKS.md                     ← Hook development patterns
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
@@ -172,7 +172,7 @@ bun update -g                # Upgrade all
 bun pm ls -g                 # List
 ```
 
-**Auto-upgrade**: `com.terryli.mise_autoupgrade` runs every 2 hours.
+**No auto-upgrade.** Toolchain versions are pinned in `.prototools` and moved deliberately. A previous version of this line advertised a `com.terryli.mise_autoupgrade` launchd job running every 2 hours; that job does not exist (`launchctl list` and `~/Library/LaunchAgents/` both have no such entry) and mise is not installed at all, so the line promised self-maintenance the repo never had.
 
 ## Lessons Learned
 
