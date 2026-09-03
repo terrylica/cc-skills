@@ -150,7 +150,9 @@ Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never g
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 42 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table. Deeper dive: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md).
+Recurring architectural patterns across the 42 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
+
+Historical context, **not** current guidance: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md) is a dated 2026-03-02 audit of a 23-plugin repo that argues the opposite of the rule below — it recommends extracting shared patterns into common modules. It was cited here as a "deeper dive", which read as endorsement. Measured 2026-09-02 and recorded so nobody re-litigates it: `md5` across all 125 files in the 14 per-plugin `lib/` and `_lib/` directories found **zero** byte-identical pairs. There is no code duplication to extract; the similarity is conventional, not literal.
 
 | Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                              |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |

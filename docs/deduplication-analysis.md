@@ -6,6 +6,8 @@
 **Task**: task-6  
 **Agent**: OakHawk
 
+> **SUPERSEDED — historical record, do not act on the recommendations below.** This audited a 23-plugin repository; there are now 42. Its central recommendation, to extract shared patterns into common modules, was subsequently rejected: per-plugin isolation (own `package.json`, `tsconfig.json`, installer) is deliberate, and a later graph audit classified "dedupe the boilerplate" as a false positive. Measured 2026-09-02: `md5` across all 125 files in the 14 per-plugin `lib/` and `_lib/` directories returned **zero** byte-identical pairs, so there was no literal duplication to extract in the first place. The live rule is in the root [CLAUDE.md](../CLAUDE.md) reuse registry — conventions to adopt, not code to extract. Kept because the campaign it belongs to is referenced from [governance-maintenance-model.md](./governance-maintenance-model.md).
+
 ---
 
 ## Executive Summary
