@@ -22,7 +22,7 @@ proto = "0.61.2"
 moon = "2.5.2"
 
 # Bun runs every script, CLI, hook and test in this marketplace.
-bun = "1.3.14"
+bun = "1.4.0"
 
 # Node exists ONLY for semantic-release, which does not support Bun
 # (semantic-release/semantic-release#3527). Nothing else here should reach for
