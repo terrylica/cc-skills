@@ -44,7 +44,7 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
 | Resume Context            | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
-| Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `mise run cli-spec` / `cli-spec-check`                  |
+| Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
 ### Plugin CLAUDE.md Files (42/42)
 
@@ -56,21 +56,25 @@ Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep i
 
 ### Machine-readable CLI spec (`cli_spec.json`)
 
-Per the cross-repo CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`; cc-skills is repo 2 of the 4-repo rollout), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 35 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `mise run cli-spec`; drift+completeness gate: `mise run cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
+Per the cross-repo CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`; cc-skills is repo 2 of the 4-repo rollout), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 35 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `moon run repo:cli-spec`; drift+completeness gate: `moon run repo:cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
 
 Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [tts-tg-sync](./plugins/tts-tg-sync/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md) | [claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)
 
 ## Essential Commands
 
-| Task             | Command                            |
-| ---------------- | ---------------------------------- |
-| Validate plugins | `bun scripts/validate-plugins.mjs` |
-| Release (full)   | `mise run release:full`            |
-| Release (dry)    | `mise run release:dry`             |
-| Execute workflow | `/itp:go feature-name -b`          |
-| Setup env        | `/itp:setup`                       |
-| Add plugin       | `/plugin-dev:create plugin-name`   |
-| Autonomous loop  | `/itp:go feature-name -b`          |
+| Task              | Command                            |
+| ----------------- | ---------------------------------- |
+| Full quality gate | `moon run repo:check`              |
+| Validate plugins  | `bun scripts/validate-plugins.mjs` |
+| Release (full)    | `moon run repo:release-full`       |
+| Release (dry)     | `moon run repo:release-dry`        |
+| List every task   | `moon query tasks`                 |
+| Execute workflow  | `/itp:go feature-name -b`          |
+| Setup env         | `/itp:setup`                       |
+| Add plugin        | `/plugin-dev:create plugin-name`   |
+| Autonomous loop   | `/itp:go feature-name -b`          |
+
+`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test` and `repo:test-hooks`. Task targets are `repo:<name>` with a hyphen, not `mise run <group>:<name>`; this repo's `.prototools` states plainly that jdx/mise is not used, and `.mise.toml` carries no `[tasks]` table at all.
 
 ## Plugin Discovery
 
