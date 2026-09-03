@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/cron-tracker.ts",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/cron-tracker.ts",
             "timeout": 3000,
             "async": true
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/stop-cron-gc.ts",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/statusline-tools/hooks/stop-cron-gc.ts",
             "timeout": 3000,
             "async": true
           }

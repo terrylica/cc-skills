@@ -1060,31 +1060,71 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
             else warnings.push(detail);
           }
 
-          // ---- (a) proto-shim hygiene: RETIRED 2026-09-01 ----
+          // ---- (a) proto-shim hygiene: RETIRED 2026-09-01, RESTORED 2026-09-03 ----
           //
-          // This check used to require every command invoking a proto-shimmed
-          // tool to carry an `env -u AI_AGENT -u CLAUDECODE ` prefix, because
-          // proto < 0.61.2 wrote an NDJSON banner to the shim's STDOUT and
-          // silently voided the hook's decision.
+          // History matters here, because this check has been argued in both
+          // directions and the second argument is not the first one reversed.
           //
-          // proto fixed it upstream (moonrepo/proto#1105, "Fixed in v0.61.2"),
-          // verified here at 0/100 polluted on the same 100-way concurrency
-          // that produced 27-45/100 on 0.61.1. The 43 prefixes are removed and
-          // this check is gone with them: a lint that enforces a workaround for
-          // a fixed bug is not free — it reads to the next maintainer as a live
-          // hazard and invites cargo-culting the prefix into new code.
+          // ORIGINALLY (2026-08-30) it required every command invoking a
+          // proto-shimmed tool to carry `env -u AI_AGENT -u CLAUDECODE `,
+          // because proto < 0.61.2 wrote an NDJSON banner to the shim's STDOUT
+          // and Claude Code silently voided the hook's decision at exit 0.
           //
-          // What replaced it, deliberately, is a TEST rather than a lint:
-          // tasks/tests/test-proto-shim-does-not-write-an-ai-agent-banner-*.sh
-          // asserts the actual property (shim stdout stays clean under
-          // concurrency) instead of the proxy for it. A lint can only check that
-          // people wrote the workaround; the test checks that the bug is absent,
-          // which is the thing anyone actually cares about.
+          // RETIRED once proto fixed that upstream (moonrepo/proto#1105, "Fixed
+          // in v0.61.2"), verified at 0/100 polluted on the same 100-way
+          // concurrency that gave 27-45/100 on 0.61.1. The reasoning was sound
+          // as far as it went: a lint enforcing a workaround for a fixed bug
+          // reads as a live hazard and invites cargo-culting.
           //
-          // The floor that makes this safe is enforced, not assumed:
-          // .prototools pins proto = "0.61.2" and tasks/release/preflight
-          // Check 1b aborts the release on anything older.
+          // RESTORED because #1105 fixed only the SUCCESS path. proto still
+          // routes ERRORS through its NDJSON reporter when it sniffs an agent
+          // environment, so a failing shim writes its diagnostic to STDOUT and
+          // leaves STDERR EMPTY (moonrepo/proto#1110, open). Claude Code reports
+          // such a hook as, in full:
           //
+          //     Failed with non-blocking status code: No stderr output
+          //
+          // On 2026-09-02 a pinned bun install directory was renamed while
+          // ~/.proto/.prototools still demanded it. Every bun-backed hook began
+          // failing; 2,105 failures landed in a 23-minute window across four
+          // sessions. Of those, the 1,211 that NAMED their cause did so only
+          // because the installed plugins still carried this prefix — proto
+          // writes to stderr when the agent vars are absent. The 894 without it
+          // said nothing at all. That 58/42 split is the entire value of this
+          // lint, measured rather than argued.
+          //
+          // So the prefix is NOT a workaround for a fixed bug; it is the only
+          // thing that keeps a failing hook diagnosable while #1110 is open.
+          // The TEST that replaced this lint
+          // (tasks/tests/test-proto-shim-does-not-write-an-ai-agent-ndjson-banner-*.sh)
+          // stays — it asserts the #1105 property directly, which a lint cannot.
+          // The two are complementary: the test proves the banner is gone, this
+          // lint keeps the error path readable.
+          //
+          // Covers the SHEBANG case, which the pre-retirement version missed:
+          // four hook commands name a bare `.mjs` path whose interpreter is
+          // decided by `#!/usr/bin/env bun|node`. Those are just as shimmed as
+          // an explicit `bun …` and were silently unprotected.
+          //
+          // Retire this for real when #1110 ships and .prototools pins a proto
+          // that carries the fix.
+          const effectiveInterpreter =
+            interpreter ?? (existingScriptPath ? shebangInterpreter(existingScriptPath) : null);
+
+          if (
+            PROTO_SHIMMED_TOOLS.has(effectiveInterpreter) &&
+            !command.startsWith(AGENT_ENV_STRIP_PREFIX)
+          ) {
+            errors.push(
+              `${relPath}: hook command invokes proto-shimmed "${effectiveInterpreter}" without the ` +
+                `\`${AGENT_ENV_STRIP_PREFIX}\` prefix` +
+                (interpreter === null ? ` (via its ${basename(existingScriptPath)} shebang)` : "") +
+                `. When the shim fails, proto writes the reason to STDOUT and leaves STDERR empty ` +
+                `(moonrepo/proto#1110), so Claude Code reports only "Failed with non-blocking status ` +
+                `code: No stderr output" and the cause is invisible. Command: ${command.slice(0, 160)}`,
+            );
+          }
+
           // The EXISTENCE check above is unrelated and still runs
           // unconditionally — a registered hook whose script is missing is a
           // permanently disarmed guard regardless of proto's version.
@@ -1794,8 +1834,11 @@ if (hookStructWarnings.length > 0) {
 // Report hook command hygiene issues (proto shim banner corrupts hook stdout)
 if (hookHygieneErrors.length > 0) {
   console.error(`\n❌ HOOK COMMAND HYGIENE ERRORS (${hookHygieneErrors.length}):`);
-  console.error(`   A bare proto-shimmed tool lets proto prepend an NDJSON banner to the hook's stdout,`);
-  console.error(`   so Claude Code fails to parse it and SILENTLY DISCARDS the hook's decision (exit 0).`);
+  console.error(`   A bare proto-shimmed tool makes proto route its output through the NDJSON reporter:`);
+  console.error(`   on FAILURE the reason goes to stdout and stderr is left empty (moonrepo/proto#1110),`);
+  console.error(`   so a broken hook reports only "Failed with non-blocking status code: No stderr output".`);
+  console.error(`   Measured 2026-09-02: of 2,105 such failures, only the 1,211 whose commands carried the`);
+  console.error(`   prefix named their own cause; the other 894 said nothing at all.`);
   hookHygieneErrors.forEach((e) => console.error(`   - ${e}`));
   hasErrors = true;
 }
