@@ -12,7 +12,7 @@
 
 This document establishes a governance model for the cc-skills documentation ecosystem based on findings from:
 
-- **Task 1**: Documentation Standards Audit (standards-compliance-matrix.md)
+- **Task 1**: Documentation Standards Audit (artifact retired 2026-09-02; the gate it hand-tabulated now runs in `scripts/validate-plugins.mjs`)
 - **Task 3**: Toolchain & Automation Landscape (tool-inventory.md)
 - **Task 6**: Content Deduplication Analysis (deduplication-analysis.md)
 
@@ -319,7 +319,6 @@ Suggested metrics to track over time:
 
 ## Appendix C: References
 
-- Task 1: [docs/standards-compliance-matrix.md](./standards-compliance-matrix.md)
 - Task 3: [docs/tool-inventory.md](./tool-inventory.md)
 - Task 6: [docs/deduplication-analysis.md](./deduplication-analysis.md)
 - Marketplace: [.claude-plugin/marketplace.json](../.claude-plugin/marketplace.json)

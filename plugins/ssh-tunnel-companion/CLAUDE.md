@@ -35,8 +35,7 @@ ssh-tunnel-companion/
 └── scripts/
     ├── install.sh             ← Deploy all 3 layers
     ├── uninstall.sh           ← Remove all 3 layers (preserves SSH config + sleepwatcher daemon)
-    ├── wakeup.sh              ← Layer 3 source (appended to ~/.wakeup)
-    └── zt-probe.sh            ← DEPRECATED: ZeroTier health probe (replaced by `make ping`)
+    └── wakeup.sh              ← Layer 3 source (appended to ~/.wakeup)
 ```
 
 ## Ports Forwarded
