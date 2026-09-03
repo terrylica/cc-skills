@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-36-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-42-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -64,8 +64,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 37 plugins (one-liner, alphabetically ordered to match marketplace.json)
-for p in agent-reach asciinema-tools calcom-commander claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macro-keyboard media-tools minimax mise mql5 openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync; do
+# 2. Install all 42 plugins (one-liner, alphabetically ordered to match marketplace.json)
+for p in agent-reach arxiv-source-first asciinema-tools calcom-commander claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macos-font-defaults macro-keyboard media-tools minimax mise mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -469,8 +469,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (36 plugins) — SSoT
-├── plugins/                      # 36 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (42 plugins) — SSoT
+├── plugins/                      # 42 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
