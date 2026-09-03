@@ -424,6 +424,89 @@
       "title": "plugins/doc-tools/skills/ascii-diagram-validator/scripts/check_ascii_alignment.py",
       "type": "object"
     },
+    "plugins/doc-tools/skills/teachback/mutate_gate.py": {
+      "additionalProperties": false,
+      "description": "Mutation fixtures for the teachback static gate.",
+      "properties": {
+        "--audit-coverage": {
+          "default": false,
+          "description": "list gate checks that no mutation exercises, and exit",
+          "type": "boolean",
+          "x-option-strings": [
+            "--audit-coverage"
+          ]
+        },
+        "--browser": {
+          "description": "Chromium path passed to the rendered gate",
+          "type": "string",
+          "x-option-strings": [
+            "--browser"
+          ]
+        },
+        "--rendered": {
+          "default": false,
+          "description": "also run BEHAVIOURAL mutations against verify_rendered.py (needs a browser)",
+          "type": "boolean",
+          "x-option-strings": [
+            "--rendered"
+          ]
+        },
+        "page": {
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/doc-tools/skills/teachback/mutate_gate.py",
+      "type": "object"
+    },
+    "plugins/doc-tools/skills/teachback/verify_explainer.py": {
+      "additionalProperties": false,
+      "description": "Static gate for a teachback explainer page.",
+      "properties": {
+        "--revision": {
+          "default": false,
+          "description": "print the revision id and exit",
+          "type": "boolean",
+          "x-option-strings": [
+            "--revision"
+          ]
+        },
+        "page": {
+          "description": "the generated .html file",
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/doc-tools/skills/teachback/verify_explainer.py",
+      "type": "object"
+    },
+    "plugins/doc-tools/skills/teachback/verify_rendered.py": {
+      "additionalProperties": false,
+      "description": "Rendered gate for a teachback explainer page.",
+      "properties": {
+        "--browser": {
+          "description": "path to a Chromium executable",
+          "type": "string",
+          "x-option-strings": [
+            "--browser"
+          ]
+        },
+        "--settle-ms": {
+          "default": 3500,
+          "description": "time to allow MathJax to typeset",
+          "type": "integer",
+          "x-option-strings": [
+            "--settle-ms"
+          ]
+        },
+        "page": {
+          "type": "string",
+          "x-positional": true
+        }
+      },
+      "title": "plugins/doc-tools/skills/teachback/verify_rendered.py",
+      "type": "object"
+    },
     "plugins/html-showcase/skills/page-template/scripts/build-nav.py": {
       "additionalProperties": false,
       "description": "Universal site-map navigator builder.",
@@ -1531,6 +1614,6 @@
     }
   },
   "x-generated-by": "scripts/cli_spec.py",
-  "x-note": "Machine-readable SSoT of every Python argparse CLI in cc-skills (skill helper scripts under plugins/*/skills/*/scripts/ + the root scripts/ dir), for AI-agent introspection. Regenerate with `mise run cli-spec`; the drift+completeness gate (scripts/test_cli_spec.py / `mise run cli-spec-check`) fails if this is stale or a CLI was added/removed without regenerating.",
+  "x-note": "Machine-readable SSoT of every Python argparse CLI in cc-skills (skill helper scripts under plugins/*/skills/*/scripts/ + the root scripts/ dir), for AI-agent introspection. Regenerate with `moon run repo:cli-spec`; the drift+completeness gate (scripts/test_cli_spec.py / `moon run repo:cli-spec-check`) fails if this is stale or a CLI was added/removed without regenerating.",
   "x-spec-version": "1"
 }

@@ -33,12 +33,19 @@ ITER157_TARGET_GIT_DIR=""
 ITER157_TARGET_COMMIT_MSG_HOOK_ABSOLUTE_PATH=""
 
 iter157_resolve_target_git_dir_and_commit_msg_hook_destination_absolute_path() {
-    ITER157_TARGET_GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || true)
+    # --git-common-dir, NOT --git-dir. git hooks are SHARED across a repo's
+    # worktrees and live only in the main gitdir; --git-dir returns
+    # .git/worktrees/<name> from inside a worktree, so installing there creates a
+    # hooks/ directory git never consults and reporting there says "not
+    # installed" for a hook that is installed. This repo mandates
+    # worktree-per-branch, so --git-dir broke the installer exactly when the
+    # operator followed the rule.
+    ITER157_TARGET_GIT_DIR=$(git rev-parse --git-common-dir 2>/dev/null || true)
     if [[ -z "$ITER157_TARGET_GIT_DIR" ]]; then
         echo "  ✗ iter-157 installer: not inside a git repository" >&2
         exit 1
     fi
-    # `git rev-parse --git-dir` may return a relative path — make absolute.
+    # `git rev-parse --git-common-dir` may return a relative path — make absolute.
     if [[ "$ITER157_TARGET_GIT_DIR" != /* ]]; then
         ITER157_TARGET_GIT_DIR="$(pwd)/$ITER157_TARGET_GIT_DIR"
     fi

@@ -190,7 +190,11 @@ echo ""
 echo "GROUP D (2 assertions): cc-skills dogfoods iter-157 commit-msg hook on itself"
 
 ITER158_TOTAL_ASSERTIONS_EVALUATED=$((ITER158_TOTAL_ASSERTIONS_EVALUATED + 1))
-ITER158_CC_SKILLS_OWN_COMMIT_MSG_HOOK_ABSOLUTE_PATH="$ITER158_REPO_ROOT/.git/hooks/commit-msg"
+# Ask git for the hooks directory instead of assuming "$REPO_ROOT/.git/hooks".
+# Inside a worktree .git is a FILE and hooks live only in the shared main gitdir,
+# so the assumed path made D1/D2 fail for every worktree — i.e. this test failed
+# whenever the operator followed the repo's own worktree-per-branch rule.
+ITER158_CC_SKILLS_OWN_COMMIT_MSG_HOOK_ABSOLUTE_PATH="$(git -C "$ITER158_REPO_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks/commit-msg"
 if [[ -f "$ITER158_CC_SKILLS_OWN_COMMIT_MSG_HOOK_ABSOLUTE_PATH" ]]; then
     echo "  ✓ D1: .git/hooks/commit-msg installed on cc-skills repo (dogfooding gap closed)"
 else
