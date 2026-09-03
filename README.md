@@ -499,39 +499,42 @@ cc-skills/
 
 ## Release Workflow (for maintainers)
 
-This marketplace uses semantic-release with mise task automation:
+This marketplace uses semantic-release with moon task automation:
 
 ```bash
 # Check release status
-mise run release:status
+moon run repo:release-status
 
 # Full release workflow (preflight → version → sync → verify)
-mise run release:full
+moon run repo:release-full
 
 # Dry run (no changes)
-mise run release:dry
+moon run repo:release-dry
 
-# Manual hook sync only
-mise run release:hooks
+# Manual hook sync only (phase script; not exposed as a moon task)
+bash tasks/release/hooks
 
 # Sync marketplace to ~/.claude after release
-mise run release:sync
+moon run repo:release-sync
 ```
 
 ### Release Phases
 
-`mise run release:full` runs all six phases in sequence — matches the canonical task description in `tasks/release/full`. Each phase is independently invokable.
+`moon run repo:release-full` runs all seven phases in sequence, in the order `tasks/release/full` invokes them.
 
-| Phase | Task                 | Description                                                                                      |
-| ----- | -------------------- | ------------------------------------------------------------------------------------------------ |
-| 1     | `release:preflight`  | Validate clean working dir, GH_TOKEN presence, plugin manifests, releasable conventional commits |
-| 1.5   | `release:presync`    | Mirror current main HEAD to ~/.claude marketplace clone so the live env reflects pending changes |
-| 2     | `release:version`    | Run semantic-release (version bump + CHANGELOG + git tag + GitHub release)                       |
-| 3     | `release:sync`       | Update marketplace repo, sync hooks/commands to settings.json, populate plugin cache             |
-| 4     | `release:verify`     | Verify git tag, GitHub release, marketplace, hooks files, runtime artifact consistency           |
-| 5     | `release:postflight` | Reset lockfile drift, confirm clean working dir, confirm all commits pushed                      |
+| Phase | Task                           | Description                                                                                      |
+| ----- | ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| 1     | `repo:release-preflight`       | Validate clean working dir, GH_TOKEN presence, plugin manifests, releasable conventional commits |
+| 2     | `bash tasks/release/presync`   | Mirror current main HEAD to ~/.claude marketplace clone so the live env reflects pending changes |
+| 3     | `repo:release-version`         | Run semantic-release (version bump + CHANGELOG + git tag + GitHub release)                       |
+| 4     | `repo:release-sync`            | Update marketplace repo, sync hooks/commands to settings.json, populate plugin cache             |
+| 5     | `repo:release-verify`          | Verify git tag, GitHub release, marketplace, hooks files, runtime artifact consistency           |
+| 6     | `bash tasks/release/chronicle` | Record the release chronicle                                                                     |
+| 7     | `repo:release-postflight`      | Reset lockfile drift, confirm clean working dir, confirm all commits pushed                      |
 
-Run `mise tasks ls | grep -i release` for the complete list (also includes `release:status`, `release:dry`, `release:hooks`, `release:clean`).
+Five of the seven are independently invokable as moon tasks. `presync` and `chronicle` exist only as phase scripts under `tasks/release/`, so run those with `bash` — as do `hooks`, `cdn-purge` and `_default`.
+
+Run `moon query tasks` for the complete list (also includes `repo:release-augment`, `repo:release-history`, `repo:release-clean`).
 
 ## Available Plugins
 
