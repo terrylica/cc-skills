@@ -41,7 +41,7 @@ case "$PROMPT" in *FGPAT-REMINDER-OK*) exit 0 ;; esac
 LOWER=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
 # PRECISE filter (\b word boundaries). Matches genuine token-creation intent.
-if ! echo "$LOWER" | grep -qE '\b(fine-grained|personal access tokens?|github (personal )?access tokens?|classic tokens?|scoped tokens?|github_pat_|ghp_[a-z0-9]|personal-access-tokens|settings/tokens|(create|generate|mint|issue|rotate|make|need) [a-z0-9 ,-]{0,24}\b(token|pat)\b|\b(token|pat) for (a |the )?(repo|release|ci|github))\b'; then
+if ! grep -qE '\b(fine-grained|personal access tokens?|github (personal )?access tokens?|classic tokens?|scoped tokens?|github_pat_|ghp_[a-z0-9]|personal-access-tokens|settings/tokens|(create|generate|mint|issue|rotate|make|need) [a-z0-9 ,-]{0,24}\b(token|pat)\b|\b(token|pat) for (a |the )?(repo|release|ci|github))\b' <<<"$LOWER"; then
     exit 0
 fi
 

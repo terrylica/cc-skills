@@ -34,7 +34,7 @@ case "$CMD" in
 esac
 
 # Only nudge when the page is being OPENED/FETCHED manually (a browser/curl verb).
-if ! echo "$CMD" | grep -qE '\b(open|xdg-open|curl|wget|firefox|chrome|chromium|safari)\b'; then
+if ! grep -qE '\b(open|xdg-open|curl|wget|firefox|chrome|chromium|safari)\b' <<<"$CMD"; then
     exit 0
 fi
 

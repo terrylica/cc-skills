@@ -194,11 +194,15 @@ fi
 echo "→ cargo outdated..."
 if has_cmd cargo-outdated; then
     outdated_output=$(cargo outdated --root-deps-only 2>/dev/null || true)
-    if echo "$outdated_output" | grep -q "All dependencies are up to date"; then
+    if grep -q "All dependencies are up to date" <<<"$outdated_output"; then
         pass "cargo outdated (all root deps up to date)"
     else
         warn "cargo outdated (some root deps have updates available)"
-        echo "$outdated_output" | head -20 | sed 's/^/    /'
+        # `echo … | head -20` is the same SIGPIPE race: with `set -euo pipefail`,
+        # `head` exiting at line 20 kills `echo` with 141, pipefail promotes it to
+        # the pipeline status, and errexit aborts this script — but only when the
+        # output happens to exceed 20 lines. Feed `head` by here-string instead.
+        head -20 <<<"$outdated_output" | sed 's/^/    /'
     fi
 else
     skip "cargo outdated"

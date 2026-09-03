@@ -139,7 +139,7 @@ notify_pushover() {
         --form-string "sound=siren" \
         https://api.pushover.net/1/messages.json 2>&1)
 
-    if echo "$response" | grep -q '"status":1'; then
+    if grep -q '"status":1' <<<"$response"; then
         log "Pushover notification sent: $title"
     else
         log "Pushover notification failed: $response"

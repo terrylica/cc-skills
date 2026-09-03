@@ -72,14 +72,14 @@ run_hook_capture_stdout_and_stderr_separately \
   STDOUT_01 STDERR_01
 
 # Assertion: updatedInput.command must contain "< /dev/null"
-if echo "$STDOUT_01" | grep -q '"updatedInput":{"command":"(echo hello) < /dev/null"}'; then
+if grep -q '"updatedInput":{"command":"(echo hello) < /dev/null"}' <<<"$STDOUT_01"; then
   assert_pass "Bash command wrapped with parenthesized < /dev/null redirect"
 else
   assert_fail "Bash command not wrapped correctly. Got: $STDOUT_01"
 fi
 
 # Assertion #06: stderr emits the diagnostic emoji
-if echo "$STDERR_01" | grep -q 'Subprocess Inlet Guard: Pre-disconnecting stdin'; then
+if grep -q 'Subprocess Inlet Guard: Pre-disconnecting stdin' <<<"$STDERR_01"; then
   assert_pass "Diagnostic 'Subprocess Inlet Guard' message on stderr (operator visibility)"
 else
   assert_fail "Diagnostic message missing on stderr. Got: $STDERR_01"
@@ -94,8 +94,8 @@ run_hook_capture_stdout_and_stderr_separately \
   '{"tool_name":"Bash","tool_input":{"command":"ssh bigblack uptime"}}' \
   STDOUT_02 STDERR_02
 
-if echo "$STDOUT_02" | grep -q '"permissionDecision":"allow"' && \
-   ! echo "$STDOUT_02" | grep -q 'updatedInput'; then
+if grep -q '"permissionDecision":"allow"' <<<"$STDOUT_02" && \
+   ! grep -q 'updatedInput' <<<"$STDOUT_02"; then
   assert_pass "SSH command returns bare allow (no updatedInput mutation)"
 else
   assert_fail "SSH command was wrapped (should have skipped). Got: $STDOUT_02"
@@ -112,7 +112,7 @@ run_hook_capture_stdout_and_stderr_separately \
 
 # The hook DOES still emit allowWithInput (it wraps once but does not double-wrap).
 # Check: command does NOT contain "(echo x < /dev/null) < /dev/null"
-if ! echo "$STDOUT_03" | grep -q '< /dev/null) < /dev/null'; then
+if ! grep -q '< /dev/null) < /dev/null' <<<"$STDOUT_03"; then
   assert_pass "Command containing < /dev/null is not double-wrapped"
 else
   assert_fail "Double-wrap detected. Got: $STDOUT_03"
@@ -127,8 +127,8 @@ run_hook_capture_stdout_and_stderr_separately \
   '{"tool_name":"Bash","tool_input":{}}' \
   STDOUT_04 STDERR_04
 
-if echo "$STDOUT_04" | grep -q '"permissionDecision":"allow"' && \
-   ! echo "$STDOUT_04" | grep -q 'updatedInput'; then
+if grep -q '"permissionDecision":"allow"' <<<"$STDOUT_04" && \
+   ! grep -q 'updatedInput' <<<"$STDOUT_04"; then
   assert_pass "Bash with empty tool_input returns bare allow (defensive)"
 else
   assert_fail "Bash empty tool_input did not return bare allow. Got: $STDOUT_04"
@@ -147,8 +147,8 @@ run_hook_capture_stdout_and_stderr_separately \
   '{"tool_name":"Read","tool_input":{"file_path":"/tmp/x"}}' \
   STDOUT_05 STDERR_05
 
-if echo "$STDOUT_05" | grep -q '"permissionDecision":"allow"' && \
-   ! echo "$STDOUT_05" | grep -q 'updatedInput'; then
+if grep -q '"permissionDecision":"allow"' <<<"$STDOUT_05" && \
+   ! grep -q 'updatedInput' <<<"$STDOUT_05"; then
   assert_pass "Non-Bash (Read) tool returns bare allow (iter-63 defensive early-exit)"
 else
   assert_fail "Non-Bash tool did not return bare allow. Got: $STDOUT_05"
@@ -156,7 +156,7 @@ fi
 
 # Assertion #07: non-Bash does NOT emit the stderr diagnostic
 # (The diagnostic only fires when actively wrapping a Bash command.)
-if ! echo "$STDERR_05" | grep -q 'Subprocess Inlet Guard'; then
+if ! grep -q 'Subprocess Inlet Guard' <<<"$STDERR_05"; then
   assert_pass "Non-Bash tool does not emit stderr diagnostic (silent early-exit)"
 else
   assert_fail "Non-Bash tool emitted unexpected diagnostic. Got: $STDERR_05"

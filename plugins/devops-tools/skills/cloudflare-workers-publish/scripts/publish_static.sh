@@ -157,7 +157,7 @@ LFS_POINTER_FOUND=0
 while IFS= read -r html_file; do
   [ -z "$html_file" ] && continue
   first_line=$(head -1 "$html_file")
-  if echo "$first_line" | grep -q "^version https://git-lfs.github.com"; then
+  if grep -q "^version https://git-lfs.github.com" <<<"$first_line"; then
     echo "WARNING: LFS pointer detected: $html_file"
     LFS_POINTER_FOUND=1
   fi

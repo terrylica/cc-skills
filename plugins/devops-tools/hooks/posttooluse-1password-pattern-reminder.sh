@@ -94,25 +94,25 @@ COMMAND=$(echo "$PAYLOAD" | jq -r '.tool_input.command // empty' 2>/dev/null) ||
 # Perf note: the anchored regex is O(1) for the common no-match case (most
 # Bash tool calls are NOT op), vs the prior pattern's O(n) scan over the
 # full command body. Win is measurable for long commit messages.
-if ! echo "$COMMAND" | grep -qE '^([A-Za-z_][A-Za-z0-9_]*=\S*[[:space:]]+)*op([[:space:]]|$)'; then
+if ! grep -qE '^([A-Za-z_][A-Za-z0-9_]*=\S*[[:space:]]+)*op([[:space:]]|$)' <<<"$COMMAND"; then
     exit 0
 fi
 
 # Skip pure read-only meta commands (`op --version`, `op --help`, `op signin`)
 # — these don't need the SA reminder.
-if echo "$COMMAND" | grep -qE '\bop[[:space:]]+(--version|--help|-h|signin|account[[:space:]]+list)'; then
+if grep -qE '\bop[[:space:]]+(--version|--help|-h|signin|account[[:space:]]+list)' <<<"$COMMAND"; then
     exit 0
 fi
 
 # Skip if the command already follows the canonical pattern (SA token in env)
 # — Claude is already doing it right; don't nag.
-if echo "$COMMAND" | grep -qE 'OP_SERVICE_ACCOUNT_TOKEN='; then
+if grep -qE 'OP_SERVICE_ACCOUNT_TOKEN=' <<<"$COMMAND"; then
     exit 0
 fi
 
 # Skip if the command explicitly bypasses (e.g., `unset OP_SERVICE_ACCOUNT_TOKEN`
 # followed by `op` — that's the documented biometric-fallback pattern)
-if echo "$COMMAND" | grep -qE 'unset[[:space:]]+OP_SERVICE_ACCOUNT_TOKEN'; then
+if grep -qE 'unset[[:space:]]+OP_SERVICE_ACCOUNT_TOKEN' <<<"$COMMAND"; then
     exit 0
 fi
 

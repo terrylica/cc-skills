@@ -143,7 +143,7 @@ case "$CMD" in
     # is not staging a draft, and blocking those made plugin development itself require the escape
     # hatch on every command — which is precisely how a hatch stops meaning anything. The builder's
     # own required flags are the discriminator: nothing else passes --account/--body/--from.
-    if ! printf %s "$CMD" | grep -qE -- '--(account|body|from)([[:space:]]|=)'; then
+    if ! grep -qE -- '--(account|body|from)([[:space:]]|=)' <<<"$CMD"; then
       exit 0
     fi
     # LAYER 4 (2026-07-30): the right TOOL from the WRONG COPY.
@@ -218,11 +218,11 @@ MSG
 INTERPRETER_RE='(^|[[:space:];&|(])(bun|bunx|node|deno|tsx|ts-node|python|python3|ruby|perl|bash|sh|zsh)([[:space:]]|$)'
 DIRECT_EXEC_RE='(^|[[:space:];&|(])\./[^[:space:]]+'
 
-if printf '%s' "$CMD" | grep -qE "$INTERPRETER_RE" || printf '%s' "$CMD" | grep -qE "$DIRECT_EXEC_RE"; then
+if grep -qE "$INTERPRETER_RE" <<<"$CMD" || grep -qE "$DIRECT_EXEC_RE" <<<"$CMD"; then
   # `bun test` / `bun build` / `deno check` operate ON a file without running it as a program.
   # Blocking those would make working on any mailer require the escape hatch, which is how a hatch
   # stops meaning anything (the same reasoning as the LAYER 1 read-vs-invoke discriminator above).
-  if ! printf '%s' "$CMD" | grep -qE '(^|[[:space:]])(bun[[:space:]]+(test|build|x|install|add|pm)|deno[[:space:]]+(check|lint|fmt|test))([[:space:]]|$)'; then
+  if ! grep -qE '(^|[[:space:]])(bun[[:space:]]+(test|build|x|install|add|pm)|deno[[:space:]]+(check|lint|fmt|test))([[:space:]]|$)' <<<"$CMD"; then
     for tok in $CMD; do
       # Strip quoting/redirection noise a naive word-split leaves attached.
       tok="${tok#[\"\']}"; tok="${tok%[\"\']}"; tok="${tok#./}"
@@ -248,7 +248,7 @@ MSG
   fi
 fi
 
-if printf '%s' "$CMD" | grep -qE "$ENDPOINT_RE"; then
+if grep -qE "$ENDPOINT_RE" <<<"$CMD"; then
   # Detect a WRITE by finding an actual HTTP METHOD, not the mere presence of the word.
   #
   # The old test was `grep -qE '(POST|PUT|PATCH)'` anywhere in the command, and it was wrong in both
@@ -257,7 +257,7 @@ if printf '%s' "$CMD" | grep -qE "$ENDPOINT_RE"; then
   # the operator had written `echo "still intact after the failed PUT?"` earlier in the same line.
   # A guard that blocks reads while permitting writes is worse than no guard: it teaches people to
   # reach for the escape hatch by reflex, and then it is not there when it matters.
-  if printf '%s' "$CMD" | grep -qiE "$METHOD_RE" || printf '%s' "$CMD" | grep -qE "$IMPLICIT_POST_RE"; then
+  if grep -qiE "$METHOD_RE" <<<"$CMD" || grep -qE "$IMPLICIT_POST_RE" <<<"$CMD"; then
     emit_adhoc_block_message
     exit 2
   fi

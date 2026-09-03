@@ -144,7 +144,7 @@ else
 fi
 
 # Test #05: scanning-diagnostic appears on stderr
-if echo "$STDERR_CONTENT" | grep -q 'Scanning for zombie processes'; then
+if grep -q 'Scanning for zombie processes' <<<"$STDERR_CONTENT"; then
   assert_pass "Hook emits 'Scanning for zombie processes' diagnostic on stderr (operator visibility)"
 else
   assert_fail "Hook did not emit expected scanning diagnostic. stderr was: $STDERR_CONTENT"
@@ -155,7 +155,7 @@ fi
 # OR "Cleaned up N orphaned process(es)" appears, because in CI there may be
 # stray processes from other tests. Both messages indicate the hook ran to
 # completion without crashing.
-if echo "$STDERR_CONTENT" | grep -qE 'No orphaned processes found|Cleaned up [0-9]+ orphaned process'; then
+if grep -qE 'No orphaned processes found|Cleaned up [0-9]+ orphaned process' <<<"$STDERR_CONTENT"; then
   assert_pass "Hook reaches the orphan-scan completion path (clean state OR cleanup-done state)"
 else
   assert_fail "Hook did not complete the orphan-scan path. stderr was: $STDERR_CONTENT"

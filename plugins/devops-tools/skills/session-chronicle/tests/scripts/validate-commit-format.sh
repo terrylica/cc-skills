@@ -53,7 +53,7 @@ PASSED=0
 FAILED=0
 
 for pattern in "${VALIDATIONS[@]}"; do
-  if echo "$COMMIT_MSG" | grep -q "$pattern"; then
+  if grep -q "$pattern" <<<"$COMMIT_MSG"; then
     echo "✓ Contains: $pattern"
     ((PASSED++)) || true
   else
@@ -63,7 +63,7 @@ for pattern in "${VALIDATIONS[@]}"; do
 done
 
 # Validate NO presigned URLs
-if echo "$COMMIT_MSG" | grep -qi "presigned\|expires"; then
+if grep -qi "presigned\|expires" <<<"$COMMIT_MSG"; then
   echo "✗ Contains presigned URL reference (should not)"
   ((FAILED++)) || true
 else
@@ -72,7 +72,7 @@ else
 fi
 
 # Validate retrieval command is embedded
-if echo "$COMMIT_MSG" | grep -q "op://Claude Automation"; then
+if grep -q "op://Claude Automation" <<<"$COMMIT_MSG"; then
   echo "✓ Contains 1Password retrieval pattern"
   ((PASSED++)) || true
 else

@@ -46,7 +46,7 @@ LOWER=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # sops, age-keygen, self-custody, generic-password) and legacy 1Password
 # (1password, op subcommands, service account). Deliberately avoids bare
 # "age"/"key"/"secret"/"password" (too noisy).
-if ! echo "$LOWER" | grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edit|op delete|service account|sa token|claude automation vault|op://|keychain|sops|age-keygen|self-custody|credentials?|generic-password|password manager|vault (get|set|new-scope|list|manifest|backup-keys|recover|doctor))\b'; then
+if ! grep -qE '\b(1password|1p|op item|op read|op vault|op list|op create|op edit|op delete|service account|sa token|claude automation vault|op://|keychain|sops|age-keygen|self-custody|credentials?|generic-password|password manager|vault (get|set|new-scope|list|manifest|backup-keys|recover|doctor))\b' <<<"$LOWER"; then
     exit 0
 fi
 

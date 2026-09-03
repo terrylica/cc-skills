@@ -41,12 +41,12 @@ except Exception: print("")' 2>/dev/null || true)
 [ -z "$CMD" ] && exit 0
 
 # Escape hatch: allow deliberate mojibake in a message being discussed/quoted.
-if printf '%s' "$CMD" | grep -q 'GMAIL_MOJIBAKE_OK=1'; then
+if grep -q 'GMAIL_MOJIBAKE_OK=1' <<<"$CMD"; then
   exit 0
 fi
 
 # Only check drafts-API calls (same scope as the existing guard).
-if ! printf '%s' "$CMD" | grep -qE 'users/me/drafts|gmail\.googleapis\.com[^ ]*draft'; then
+if ! grep -qE 'users/me/drafts|gmail\.googleapis\.com[^ ]*draft' <<<"$CMD"; then
   exit 0
 fi
 
@@ -71,7 +71,7 @@ SUBJECT=$(printf '%s' "$CMD" | grep -oE "\-\-subject '[^']*'" | head -1 | sed "s
 # the fingerprint of a double-encode.
 if [ -n "$SUBJECT" ]; then
   OD_OUT=$(printf '%s' "$SUBJECT" | od -An -tx1 2>/dev/null || echo "")
-  if printf '%s' "$OD_OUT" | grep -qE 'c3[[:space:]]+a2[[:space:]]+c2|c3[[:space:]]+83[[:space:]]+c2'; then
+  if grep -qE 'c3[[:space:]]+a2[[:space:]]+c2|c3[[:space:]]+83[[:space:]]+c2' <<<"$OD_OUT"; then
     cat >&2 <<'MSG'
 BLOCKED: subject contains UTF-8-read-as-Latin-1 mojibake (e.g. "â€"" for em dash).
 
@@ -103,7 +103,7 @@ BODY_FILE=$(printf '%s' "$CMD" | grep -oE "\-\-body [^ ]+" | awk '{print $2}' ||
 if [ -n "$BODY_FILE" ] && [ -f "$BODY_FILE" ]; then
   BODY_HEAD=$(head -c 51200 "$BODY_FILE" 2>/dev/null || true)
   OD_BODY=$(printf '%s' "$BODY_HEAD" | od -An -tx1 2>/dev/null || echo "")
-  if printf '%s' "$OD_BODY" | grep -qE 'c3[[:space:]]+a2[[:space:]]+c2|c3[[:space:]]+83[[:space:]]+c2'; then
+  if grep -qE 'c3[[:space:]]+a2[[:space:]]+c2|c3[[:space:]]+83[[:space:]]+c2' <<<"$OD_BODY"; then
     cat >&2 <<'MSG'
 BLOCKED: body file contains UTF-8-read-as-Latin-1 mojibake.
 
