@@ -127,7 +127,7 @@ fi
 
 # Assertion F2: Renderer output contains the CJK probe subject characters intact.
 ITER173_TOTAL_ASSERTIONS_EVALUATED=$((ITER173_TOTAL_ASSERTIONS_EVALUATED + 1))
-if echo "$ITER173_SYNTHETIC_REPO_ITER150_OUTPUT" | grep -qF "修复编码问题"; then
+if grep -qF "修复编码问题" <<<"$ITER173_SYNTHETIC_REPO_ITER150_OUTPUT"; then
     echo "  ✓ F2: iter-150 renderer output preserves CJK characters intact (no mid-UTF-8 byte truncation; soft-wrap boundary correctly measured in chars not bytes)"
 else
     echo "  ✗ F2: iter-150 renderer output does NOT contain CJK characters — output may be byte-truncated"

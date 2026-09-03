@@ -78,17 +78,17 @@ for classifier_source_absolute_path in "${CLASSIFIER_SOURCE_FILES_ABSOLUTE_PATHS
     classifier_relative_to_repo=${classifier_source_absolute_path#"$REPO_ROOT/"}
     while IFS= read -r matched_line; do
         # Allow the escape hatch
-        if echo "$matched_line" | grep -qE 'SPAWN-SYNC-OK:[[:space:]]+.{10,}'; then
+        if grep -qE 'SPAWN-SYNC-OK:[[:space:]]+.{10,}' <<<"$matched_line"; then
             continue
         fi
         # Strip leading `<digits>:` from `grep -n` output to inspect the line body
         line_body_only=$(echo "$matched_line" | sed -E 's/^[0-9]+://')
         # Skip JSDoc continuation lines (first non-whitespace char is `*`)
-        if echo "$line_body_only" | grep -qE '^[[:space:]]*\*'; then
+        if grep -qE '^[[:space:]]*\*' <<<"$line_body_only"; then
             continue
         fi
         # Skip pure line comments (first non-whitespace chars are `//`)
-        if echo "$line_body_only" | grep -qE '^[[:space:]]*//'; then
+        if grep -qE '^[[:space:]]*//' <<<"$line_body_only"; then
             continue
         fi
         # Skip lines where the spawnSync token appears inside backticks

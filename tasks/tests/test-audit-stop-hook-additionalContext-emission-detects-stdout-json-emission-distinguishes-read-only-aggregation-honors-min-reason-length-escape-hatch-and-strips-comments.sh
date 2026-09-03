@@ -293,57 +293,57 @@ else
 fi
 
 # Per-fixture marker assertions (iter-67 set)
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture02-stop-hook-emits-additionalContext-violation'; then
+if grep -q 'fixture02-stop-hook-emits-additionalContext-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #02 (literal Stop emission) reported in violation diagnostic"
 else
   assert_fail "Fixture #02 missing from violation diagnostic"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'WITH-OK-MARKER.*fixture04-stop-hook-with-valid-ok-marker'; then
+if grep -q 'WITH-OK-MARKER.*fixture04-stop-hook-with-valid-ok-marker' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #04 (orchestrator-style with valid OK marker) classified WITH-OK-MARKER"
 else
   assert_fail "Fixture #04 NOT classified as WITH-OK-MARKER (escape hatch failed to honor valid marker)"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture05-stop-hook-with-too-short-ok-marker-violation'; then
+if grep -q 'fixture05-stop-hook-with-too-short-ok-marker-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #05 (too-short OK reason <10 chars) reported in violation diagnostic"
 else
   assert_fail "Fixture #05 missing — min-reason-length enforcement failed"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture06-stop-hook-orchestrator-style-but-no-ok-marker-required'; then
+if grep -q 'fixture06-stop-hook-orchestrator-style-but-no-ok-marker-required' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #06 (orchestrator-style WITHOUT marker) correctly flagged — marker is required"
 else
   assert_fail "Fixture #06 missing — audit should require OK marker even for read-only patterns"
 fi
 
 # Iter-68 expansion assertions: SubagentStop + SessionEnd coverage
-if echo "$AUDIT_OUTPUT" | grep -q '(SubagentStop).*fixture07-subagentstop-hook-emits-additionalContext-violation'; then
+if grep -q '(SubagentStop).*fixture07-subagentstop-hook-emits-additionalContext-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #07 (SubagentStop emission) reported WITH SubagentStop event-type tag — iter-68 scope expansion working"
 else
   assert_fail "Fixture #07 missing or missing (SubagentStop) tag — iter-68 scope expansion to SubagentStop FAILED"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q '(SessionEnd).*fixture08-sessionend-hook-emits-additionalContext-violation'; then
+if grep -q '(SessionEnd).*fixture08-sessionend-hook-emits-additionalContext-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #08 (SessionEnd emission) reported WITH SessionEnd event-type tag — iter-68 scope expansion working"
 else
   assert_fail "Fixture #08 missing or missing (SessionEnd) tag — iter-68 scope expansion to SessionEnd FAILED"
 fi
 
 # Per-event-type breakdown assertions (iter-68 summary feature)
-if echo "$AUDIT_OUTPUT" | grep -qE 'Stop:[[:space:]]+6 scanned / 3 violations'; then
+if grep -qE 'Stop:[[:space:]]+6 scanned / 3 violations' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Per-event-type breakdown shows Stop: 6 scanned / 3 violations"
 else
   assert_fail "Per-event-type breakdown for Stop missing or wrong counts"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -qE 'SubagentStop:[[:space:]]+1 scanned / 1 violations'; then
+if grep -qE 'SubagentStop:[[:space:]]+1 scanned / 1 violations' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Per-event-type breakdown shows SubagentStop: 1 scanned / 1 violations"
 else
   assert_fail "Per-event-type breakdown for SubagentStop missing or wrong counts"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -qE 'SessionEnd:[[:space:]]+1 scanned / 1 violations'; then
+if grep -qE 'SessionEnd:[[:space:]]+1 scanned / 1 violations' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Per-event-type breakdown shows SessionEnd: 1 scanned / 1 violations"
 else
   assert_fail "Per-event-type breakdown for SessionEnd missing or wrong counts"
@@ -352,33 +352,33 @@ fi
 # SessionEnd-specific schema diagnostic — verifies the case statement
 # in the violation accumulator emits the empty-output rule (NOT the
 # {decision, reason} rule which applies to Stop/SubagentStop only).
-if echo "$AUDIT_OUTPUT" | grep -q 'SessionEndOK returns EMPTY output'; then
+if grep -q 'SessionEndOK returns EMPTY output' <<<"$AUDIT_OUTPUT"; then
   assert_pass "SessionEnd violation diagnostic mentions empty-output schema rule (NOT {decision, reason}) — iter-68 per-event-type diagnostic correctly differentiates"
 else
   assert_fail "SessionEnd diagnostic missing 'SessionEndOK returns EMPTY output' phrase — case-statement schema differentiation failed"
 fi
 
 # Iter-69 pentad completion assertions: PreCompact + Notification coverage
-if echo "$AUDIT_OUTPUT" | grep -q '(PreCompact).*fixture09-precompact-hook-emits-additionalContext-violation'; then
+if grep -q '(PreCompact).*fixture09-precompact-hook-emits-additionalContext-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #09 (PreCompact emission) reported WITH PreCompact event-type tag — iter-69 pentad expansion working"
 else
   assert_fail "Fixture #09 missing or missing (PreCompact) tag — iter-69 pentad expansion to PreCompact FAILED"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q '(Notification).*fixture10-notification-hook-emits-additionalContext-violation'; then
+if grep -q '(Notification).*fixture10-notification-hook-emits-additionalContext-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #10 (Notification emission) reported WITH Notification event-type tag — iter-69 pentad expansion working"
 else
   assert_fail "Fixture #10 missing or missing (Notification) tag — iter-69 pentad expansion to Notification FAILED"
 fi
 
 # Per-event-type breakdown assertions for the two new pentad members
-if echo "$AUDIT_OUTPUT" | grep -qE 'PreCompact:[[:space:]]+1 scanned / 1 violations'; then
+if grep -qE 'PreCompact:[[:space:]]+1 scanned / 1 violations' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Per-event-type breakdown shows PreCompact: 1 scanned / 1 violations"
 else
   assert_fail "Per-event-type breakdown for PreCompact missing or wrong counts"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -qE 'Notification:[[:space:]]+1 scanned / 1 violations'; then
+if grep -qE 'Notification:[[:space:]]+1 scanned / 1 violations' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Per-event-type breakdown shows Notification: 1 scanned / 1 violations"
 else
   assert_fail "Per-event-type breakdown for Notification missing or wrong counts"
@@ -387,7 +387,7 @@ fi
 # PreCompact-specific schema diagnostic — verifies PreCompact violation
 # message cites the same {decision:'block', reason} rule as Stop (case
 # statement Stop|SubagentStop|PreCompact branch).
-if echo "$AUDIT_OUTPUT" | grep -q "Per official Anthropic PreCompact-hook schema"; then
+if grep -q "Per official Anthropic PreCompact-hook schema" <<<"$AUDIT_OUTPUT"; then
   assert_pass "PreCompact violation diagnostic cites Stop-family schema rule ({decision:'block', reason}) — iter-69 case-statement branch working"
 else
   assert_fail "PreCompact diagnostic missing 'Per official Anthropic PreCompact-hook schema' phrase — case-statement Stop-family branch failed"
@@ -396,7 +396,7 @@ fi
 # Notification-specific schema diagnostic — verifies Notification violation
 # message cites the no-decision-capability rule (NOT Stop-family rule;
 # Notification has its own case-statement branch).
-if echo "$AUDIT_OUTPUT" | grep -q 'Exit Code 2 Behavior: N/A'; then
+if grep -q 'Exit Code 2 Behavior: N/A' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Notification violation diagnostic mentions no-decision-capability schema rule ('Exit Code 2 Behavior: N/A') — iter-69 case-statement Notification branch working"
 else
   assert_fail "Notification diagnostic missing 'Exit Code 2 Behavior: N/A' phrase — case-statement Notification branch failed"
@@ -414,7 +414,7 @@ else
   assert_fail "Audit exited with code $AUDIT_EXIT, expected 1"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'iter-66'; then
+if grep -q 'iter-66' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic references iter-66 (forensic provenance)"
 else
   assert_fail "Diagnostic missing iter-66 reference"

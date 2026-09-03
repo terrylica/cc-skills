@@ -199,19 +199,19 @@ fi
 
 # Per-fixture marker assertions (each WRONG-FIELD fixture should
 # appear in the violation diagnostic section with its event name).
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture02-posttooluse-wrong-field-permissionDecision.*event: PostToolUse'; then
+if grep -q 'fixture02-posttooluse-wrong-field-permissionDecision.*event: PostToolUse' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #02 reported under PostToolUse event"
 else
   assert_fail "Fixture #02 PostToolUse event tag missing"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture04-stop-wrong-field-permissionDecision.*event: Stop'; then
+if grep -q 'fixture04-stop-wrong-field-permissionDecision.*event: Stop' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #04 reported under Stop event"
 else
   assert_fail "Fixture #04 Stop event tag missing"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture05-userpromptsubmit-wrong-field-permissionDecision.*event: UserPromptSubmit'; then
+if grep -q 'fixture05-userpromptsubmit-wrong-field-permissionDecision.*event: UserPromptSubmit' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #05 reported under UserPromptSubmit event"
 else
   assert_fail "Fixture #05 UserPromptSubmit event tag missing"
@@ -235,19 +235,19 @@ fi
 echo ""
 echo "=== Asserting diagnostic guidance content ==="
 
-if echo "$AUDIT_OUTPUT" | grep -q 'PreToolUse-only field'; then
+if grep -q 'PreToolUse-only field' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic mentions PreToolUse-only field (root cause)"
 else
   assert_fail "Diagnostic missing 'PreToolUse-only field' explanation"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'top-level decision'; then
+if grep -q 'top-level decision' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic mentions top-level decision (the fix)"
 else
   assert_fail "Diagnostic missing 'top-level decision' fix guidance"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'silently does not fire'; then
+if grep -q 'silently does not fire' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic describes the silent-fail behavior"
 else
   assert_fail "Diagnostic missing silent-fail behavior description"
