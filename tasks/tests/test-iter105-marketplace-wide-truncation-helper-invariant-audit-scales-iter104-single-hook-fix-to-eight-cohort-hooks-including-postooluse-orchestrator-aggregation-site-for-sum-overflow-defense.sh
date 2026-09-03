@@ -91,14 +91,16 @@ fi
 # 10K individually, the sum can overflow. The orchestrator MUST apply
 # the helper to the aggregated reason as the absolute last line of defense.
 POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
+# Tail DRAINS rather than using -q: an early-exiting reader SIGPIPEs the grep
+# above it and pipefail then inverts this boolean. 2026-09-02 SIGPIPE sweep.
 if grep -B1 'console.log(JSON.stringify({ decision: "block", reason:' "$POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" 2>/dev/null \
-       | grep -q "safelyTruncatedAggregatedReason\|truncateHookOutputToStayBelowClaudeFileSpilloverThreshold"; then
+       | grep "safelyTruncatedAggregatedReason\|truncateHookOutputToStayBelowClaudeFileSpilloverThreshold" >/dev/null; then
     assert_passes "Case 5: PostToolUse orchestrator aggregation site wraps consolidated reason via canonical helper (sum-overflow defense)"
 else
     # Fall back to broader-window grep — the helper may be applied as a
     # variable assignment a few lines before the console.log line.
     if grep -B10 'console.log(JSON.stringify({ decision: "block", reason:' "$POSTTOOLUSE_ORCHESTRATOR_ABSOLUTE_PATH" 2>/dev/null \
-           | grep -q "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold"; then
+           | grep "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold" >/dev/null; then
         assert_passes "Case 5: PostToolUse orchestrator aggregation site wraps consolidated reason via canonical helper (sum-overflow defense)"
     else
         assert_fails "Case 5: orchestrator aggregation site does NOT wrap consolidated reason via canonical helper"
