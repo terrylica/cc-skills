@@ -40,6 +40,7 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Cargo TTY Fix             | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
 | Claude Code Proxy         | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
 | Release                   | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
+| Migration (v23)           | [docs/MIGRATING-TO-V23.md](./docs/MIGRATING-TO-V23.md)                                                                       |
 | Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
 | Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
@@ -73,7 +74,7 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 | Add plugin        | `/plugin-dev:create plugin-name`   |
 | Autonomous loop   | `/itp:go feature-name -b`          |
 
-`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test` and `repo:test-hooks`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here and jdx/mise is neither installed nor used; the former `.mise.toml` was deleted because its `[tools]` block pinned bun 1.3 against `.prototools`' 1.4.0 — two toolchain files disagreeing about the same tool, which is the exact drift that silently broke every bun-backed hook on 2026-09-03.
+`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test`, `repo:test-hooks`, `repo:cli-spec-check` and `repo:verify-doc-counts`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here and jdx/mise is neither installed nor used; the former `.mise.toml` was deleted because its `[tools]` block pinned bun 1.3 against `.prototools`' 1.4.0 — two toolchain files disagreeing about the same tool, which is the exact drift that silently broke every bun-backed hook on 2026-09-03.
 
 ## Plugin Discovery
 
@@ -101,7 +102,7 @@ cc-skills/
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
-│   ├── design/                      ← Implementation specs (1 of 58 ADRs has one)
+│   ├── design/                      ← Implementation specs (33 of 59 ADRs have one)
 │   ├── HOOKS.md                     ← Hook development patterns
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
