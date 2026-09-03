@@ -28,7 +28,7 @@ The generator is itself a ``--output``/``--check`` CLI (CLI-first dogfooding)::
 
 A machine-readable parameter SSoT verified-against-source is a *no-silent-drift*
 control: the drift+completeness gate (``scripts/test_cli_spec.py`` /
-``mise run cli-spec-check``) fails if this file is stale or a CLI was added/removed.
+``moon run repo:cli-spec-check``) fails if this file is stale or a CLI was added/removed.
 """
 
 from __future__ import annotations
@@ -300,8 +300,8 @@ def build_cli_spec_document(root: Path) -> dict[str, Any]:
         "x-note": (
             "Machine-readable SSoT of every Python argparse CLI in cc-skills (skill "
             "helper scripts under plugins/*/skills/*/scripts/ + the root scripts/ dir), "
-            "for AI-agent introspection. Regenerate with `mise run cli-spec`; the drift+"
-            "completeness gate (scripts/test_cli_spec.py / `mise run cli-spec-check`) "
+            "for AI-agent introspection. Regenerate with `moon run repo:cli-spec`; the drift+"
+            "completeness gate (scripts/test_cli_spec.py / `moon run repo:cli-spec-check`) "
             "fails if this is stale or a CLI was added/removed without regenerating."
         ),
         "commands": commands,
@@ -346,10 +346,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.check:
         if not output_path.exists():
-            print(f"[cli_spec] MISSING: {output_path} does not exist; run `mise run cli-spec`.")
+            print(f"[cli_spec] MISSING: {output_path} does not exist; run `moon run repo:cli-spec`.")
             return 1
         if output_path.read_text(encoding="utf-8") != expected:
-            print(f"[cli_spec] STALE: {output_path} differs from generated spec; run `mise run cli-spec`.")
+            print(f"[cli_spec] STALE: {output_path} differs from generated spec; run `moon run repo:cli-spec`.")
             return 1
         print(f"[cli_spec] OK: {output_path} is current ({n_cmds} Python CLIs).")
         return 0

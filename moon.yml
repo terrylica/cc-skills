@@ -36,7 +36,13 @@ tasks:
 
   check:
     description: "Full local quality gate. Local-first CI/CD: this is what runs before a push, never GitHub Actions."
-    deps: ["~:lint", "~:test", "~:test-hooks"]
+    # cli-spec-check was defined but NOT wired in here, so the machine-readable
+    # CLI spec's own no-silent-drift control was never part of the gate CLAUDE.md
+    # calls "what runs before a push". It sat red on a clean tree for ~14 days and
+    # nothing reported it — the second occurrence of this exact failure (the prior
+    # regen commit is titled "regenerate to unbreak the drift gate"). A gate that
+    # is not in the gate is not a gate.
+    deps: ["~:lint", "~:test", "~:test-hooks", "~:cli-spec-check"]
 
   # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
   cli-spec:

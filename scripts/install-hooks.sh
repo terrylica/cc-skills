@@ -13,7 +13,11 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
+# Ask git where hooks live rather than assuming "$REPO_ROOT/.git/hooks". In a
+# worktree .git is a FILE, not a directory, so the assumed path does not exist
+# and the install silently targeted nothing. --git-common-dir resolves to the
+# shared main gitdir from inside a worktree and to .git from a normal checkout.
+HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks"
 
 echo "Installing cc-skills git hooks..."
 
