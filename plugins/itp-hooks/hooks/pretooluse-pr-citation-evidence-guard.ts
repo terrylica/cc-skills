@@ -50,6 +50,9 @@
  * Fail-open everywhere: any parse/read/logic error → allow.
  */
 
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 import {
@@ -234,8 +237,23 @@ function buildReminder(findings: readonly CitationFinding[]): string {
     "changing.",
     "",
     "Verify the quotes are real before publishing:",
-    "  bun ~/.claude/skills/pr-evidence-standard/verify-citations.ts --emit-template > citations.json",
-    "  bun ~/.claude/skills/pr-evidence-standard/verify-citations.ts citations.json",
+    // The verify-citations.ts helper lives in the operator's PRIVATE
+    // claude-config repo (~/.claude/skills/pr-evidence-standard/), not in this
+    // plugin. cc-skills is PUBLIC, so naming it unconditionally handed every
+    // third-party installer an instruction they cannot follow — the guard told
+    // them to run a file that does not exist on their machine and never would.
+    // Advertise it only when it is actually present; otherwise give guidance
+    // that works for anyone.
+    ...(existsSync(join(homedir(), ".claude/skills/pr-evidence-standard/verify-citations.ts"))
+      ? [
+          "  bun ~/.claude/skills/pr-evidence-standard/verify-citations.ts --emit-template > citations.json",
+          "  bun ~/.claude/skills/pr-evidence-standard/verify-citations.ts citations.json",
+        ]
+      : [
+          "  For each citation: fetch the URL THIS SESSION (curl -sL), then grep the exact quote",
+          "  against the bytes you fetched — normalising whitespace on both sides. A quote you did",
+          "  not retrieve in this session does not go in the PR.",
+        ]),
     "",
     "🔴 A green verifier means the quote is REAL, never that the citation is CORRECT. Measured on",
     "that skill's own run: 64/64 URLs returned 200 and 64/64 quotes were verbatim, and SEVEN",

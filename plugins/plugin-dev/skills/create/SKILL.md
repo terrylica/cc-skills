@@ -89,7 +89,7 @@ TodoWrite with todos:
 | 6     | agent-development        | 2     | Create agents (if has-agents)     | `Skill(plugin-dev:agent-development)`   |
 | 7     | code-hardcode-audit      | 3     | Quality audit                     | `Skill(itp:code-hardcode-audit)`        |
 | 8     | plugin-validator         | 3     | Silent failure audit              | `Skill(plugin-dev:plugin-validator)`    |
-| 9     | run-full-release         | 4     | Run repo's mise release pipeline  | `Skill(mise:run-full-release)`          |
+| 9     | release-full             | 4     | Run the repo's release pipeline   | `moon run repo:release-full`            |
 
 ### Skills EXCLUDED (Redundant)
 
@@ -200,7 +200,7 @@ Execute ONLY the skills for components the user selected:
 1. **Stage changes**: plugin dir, marketplace.json, ADR, design spec
 2. **Conventional commit**: `feat($PLUGIN_NAME): add plugin for [brief description]`
 3. **Push to remote**
-4. **Invoke `Skill(mise:run-full-release)`** -- run repo's mise release pipeline for tag, changelog, GitHub release
+4. **Run `moon run repo:release-full`** -- the repo's release pipeline: tag, changelog, GitHub release
 
 **Detailed steps**: [Phase 4 Reference](./references/phase4-release.md)
 

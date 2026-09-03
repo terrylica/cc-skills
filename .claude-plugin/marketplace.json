@@ -259,7 +259,13 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": ["chezmoi", "dotfiles", "configuration", "sync", "git"],
+      "keywords": [
+        "chezmoi",
+        "dotfiles",
+        "configuration",
+        "sync",
+        "git"
+      ],
       "strict": false
     },
     {
@@ -634,26 +640,6 @@
       "strict": false
     },
     {
-      "name": "mise",
-      "description": "User-global mise workflow commands: release pipeline delegation, environment status, task discovery across any repo",
-      "version": "29.4.0",
-      "source": "./plugins/mise",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "mise",
-        "release",
-        "task-runner",
-        "workflow",
-        "user-global",
-        "cross-repo"
-      ],
-      "strict": false
-    },
-    {
       "name": "mql5",
       "description": "MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, log reading",
       "version": "29.4.0",
@@ -809,7 +795,12 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": ["ssh", "tunnel", "clickhouse", "launchd"],
+      "keywords": [
+        "ssh",
+        "tunnel",
+        "clickhouse",
+        "launchd"
+      ],
       "strict": false,
       "source": "./plugins/ssh-tunnel-companion",
       "category": "devops"
@@ -824,7 +815,11 @@
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
       },
-      "keywords": ["statusline", "status-bar", "git-status"],
+      "keywords": [
+        "statusline",
+        "status-bar",
+        "git-status"
+      ],
       "strict": false
     },
     {
@@ -853,7 +848,9 @@
       "version": "29.4.0",
       "source": "./plugins/tts-tg-sync",
       "category": "devops",
-      "requires": ["kokoro-tts"],
+      "requires": [
+        "kokoro-tts"
+      ],
       "author": {
         "name": "Terry Li",
         "url": "https://github.com/terrylica"
