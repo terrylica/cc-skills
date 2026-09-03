@@ -1,3 +1,294 @@
+# [30.0.0](https://github.com/terrylica/cc-skills/compare/v29.4.0...v30.0.0) (2026-09-03)
+
+
+* feat(marketplace)!: retire the mise plugin and stop advertising dead features ([41df0fe](https://github.com/terrylica/cc-skills/commit/41df0fe5ca8ba23da4e9f845e6cc3fb14524a61a))
+
+
+### Bug Fixes
+
+* **gates:** sweep every CLAUDE.md for count claims, and detect claims no rule checks ([3d243d7](https://github.com/terrylica/cc-skills/commit/3d243d71e2ae0fa9ba41b058e7c308d4cbd272c8))
+
+Follow-up to 82c3f40f, which pinned each rule to a named file. That design had the gap it was built to prevent: docs/CLAUDE.md asserted the same design-spec and ADR numbers and no rule looked at it. I hand-corrected those by increment — the exact move the gate's own header forbids — which is the tell that the gate, not the human, should have caught it.
+
+## Sweep, do not enumerate
+
+Rules no longer name a file. All 9 sweep every CLAUDE.md in the repo (49 files). Adding two more filenames would have left the next file uncovered; the fix for a per-file allowlist is not a longer allowlist.
+
+It paid immediately, finding a THIRD site nobody had listed:
+
+    docs/design/CLAUDE.md:9   "33 of 58 ADRs have one"   -> 59
+
+Four sites now carry this claim in three distinct wordings. Two precise rules for the two shapes ("N of M ADRs have one" / "…have a design spec") rather than one loose pattern that could match unrelated prose.
+
+## The hole sweeping opens, and the residue check that closes it
+
+A rule reports INCONCLUSIVE only when it matches NOWHERE. With one rule spanning three sites, rewording ONE leaves two matching — the gate passes and that site drifts unchecked forever. Strictly quieter than the bug being fixed, and harder to notice.
+
+So a broad detector now finds anything claim-shaped in the family, and every broad hit must overlap a span some precise rule actually matched. A hit with no overlap is reported as "states a claim that no rule checks", with file:line and the offending text.
+
+The broad pattern was tuned against the real corpus BEFORE being wired in, because the naive version over-fired:
+
+    /[0-9]+[^.\n]{0,24}\bADRs?\b/      5 hits, 1 false positive
+                                       (gh-fine-grained-pat/CLAUDE.md:95)
+    /[0-9]+[^.,()\n]{0,24}\bADRs\b/    exactly the 4 real claims, 0 false
+
+A residue detector that cries wolf gets muted, which would restore the original hole with extra steps.
+
+## Verified in four directions, not one
+
+    NC-1  corrupt tree-shape claim      EXIT=1, names the tree-shape rule
+    NC-2  corrupt prose-shape claim     EXIT=1, names the prose-shape rule
+    NC-3  reword the ONLY site of
+          shape 2                       EXIT=2 INCONCLUSIVE, counters 11->10, 16->14
+    NC-4  reword ONE of THREE
+          shape-1 sites                 EXIT=2, "docs/design/CLAUDE.md:9 states a
+                                        claim that no rule checks"
+
+NC-4 is the one that matters: without the residue check it passes silently while a real claim goes unguarded. Independently re-run here; fixtures restored byte-identical (shasum verified), Prettier clean.
+
+Green: 9 rules · 49 CLAUDE.md files swept · 11 claims located · 16 numbers compared.
+
+## Unrelated flake worth knowing before someone bisects it
+
+`repo:test-hooks` went red mid-session with 4 failures (iter174/180/181/182) on UNTOUCHED bytes, and a re-run on the identical tree returned 113/113. They are wall-clock assertions (`median=2802ms > cap=1500ms`) blowing under concurrent agent load; the non-timing failures cascade from the same caps. This is the same class abf94c31 just removed from iter-167, still live in iter-174 and the harness tests — which is expected, since iter-174 is now the deliberate single owner of wall-clock for the iter-165 aggregator. Not a regression, not fixed here.
+
+* **gates:** wire cli-spec-check into repo:check and unbreak git hooks in worktrees ([4b4a4a1](https://github.com/terrylica/cc-skills/commit/4b4a4a16f701adf674dbfcad7f39954864e96427))
+
+Two unrelated gate defects found while auditing, both of the same family: a check that reports success while examining the wrong thing.
+
+## 1. The CLI-spec drift gate was not in the gate
+
+`cli-spec-check` was defined in moon.yml but absent from `check`'s deps, which were ["~:lint", "~:test", "~:test-hooks"]. CLAUDE.md advertises `moon run repo:check` as "the local-first gate that must pass before a push", so the machine-readable CLI spec's own no-silent-drift control was never part of it.
+
+Three defects stacked, each individually enough to make it useless:
+
+  - not wired into repo:check, so nothing ran it
+  - RED on a clean tree for ~14 days (last regen 2026-08-06, teachback 2026-08-20)
+  - its failure message said `run \`mise run cli-spec\`` — jdx/mise is NOT installed here and is banned by .prototools, so the printed remedy was impossible even for someone who saw the failure
+
+This is the second occurrence: the prior regen commit 33e44773 is titled "regenerate to unbreak the drift gate".
+
+Fixed at the generator, not the artifact — scripts/cli_spec.py emits the x-note and both error strings, so patching cli_spec.json alone would have been undone by the next `moon run repo:cli-spec`. Regenerated: 37 Python CLIs, zero `mise` strings remaining in the spec.
+
+Verified by positive control rather than assumed: mutating cli_spec.json makes `moon run repo:check` FAIL with `[cli_spec] STALE` and the corrected remedy; restoring it returns the suite to green. A gate that cannot fail proves nothing.
+
+## 2. Git hooks were unresolvable inside a worktree
+
+`git rev-parse --git-dir` returns `.git/worktrees/<name>` inside a worktree, and hooks are SHARED — they live only in the main gitdir. Three sites assumed otherwise, so the installer wrote to a hooks/ directory git never consults and the doctor reported "hook NOT installed" for a hook that was installed:
+
+  scripts/install-hooks.sh:16                  "$REPO_ROOT/.git/hooks"
+  scripts/iter157-...-installer...sh:36        git rev-parse --git-dir
+  scripts/iter160-...-self-diagnosis...sh:410  git rev-parse --git-dir
+
+All now use --git-common-dir. The consequence is worth stating plainly: this repo MANDATES worktree-per-branch, so these broke precisely when the operator followed the rule. 4 of the 113 regression tests failed inside a worktree and passed in the main checkout — invisible because the suite is habitually run from main.
+
+tasks/tests/test-iter158-*.sh built the same path the same wrong way and is fixed with them; iter160/163/166 needed no edit, they were reporting the defect faithfully and go green once the source is right.
+
+Suite inside the worktree: 113/113, was 109/113.
+
+## 3. python-allowlist.toml at the repo root
+
+scripts/cli_spec.py matched no allowlist anywhere, so the python-preference guard fired on every edit to it — including every edit in this commit. A guard that cries wolf on a file nobody intends to remove trains people to ignore it. Both Python files now carry an explicit reason; cli_spec.py's is that it parses Python argparse via the stdlib `ast` module, and a TypeScript reimplementation would be a hand-written Python parser.
+
+* **gmail-commander:** redact the client identifier in the LAYER 5 rationale comment ([31c38a7](https://github.com/terrylica/cc-skills/commit/31c38a700e67a2bd96285111e3dae93cc24bda6d))
+
+A one-line, comment-only change to the LAYER 5 rationale block, following the precedent this repo already set for this exact identifier.
+
+## Classification: real, low materiality — not an emergency
+
+The string is a client-linked identifier, not a common-word false positive. But the qualifications matter more than the verdict:
+
+- It sits in an INCIDENT NARRATIVE, not configuration. The LAYER 5 block justifies why the guard reads script CONTENTS instead of the command string, and earns that by naming the real callers that slipped past. Nothing branches on it.
+- Only the LEADING token identifies anything; the trailing two segments are a generic verb-noun describing what the script did.
+- That leading token is ALSO an ordinary English word, used legitimately at docs/HOOKS.md:557 in a benchmark filename with no client sense. That is exactly why the denylist holds the full compound and NOT the bare root — a bare-root entry would false-positive on this repo's own prose. A deliberate precision trade-off, not an oversight.
+- No name, email, address or client detail is present.
+
+## Three of my own instructions were wrong, and the agent was right to refuse them
+
+1. I said "replace the ENTIRE slug, not its leading token". The precedent does the OPPOSITE. Commit 3fc6f18e ("redact client project name from CHANGELOG", 2 insertions / 2 deletions) shows `example-client` standing in for the ROOT TOKEN, with the generic tail deliberately preserved. Following the precedent still removes the denylisted compound, because the compound cannot exist without its root.
+2. I asserted "term #22" indexes raw denylist line 22. It does not — term IDs are a 1-based index over NON-COMMENT, NON-BLANK lines (pii-staged-content-guard.ts:57, :206). Raw line 22 is a different, unrelated 6-char string.
+3. I demanded "no two-segment sub-compound survives". Unsatisfiable while following the precedent, since the generic tail lives on inside the sanctioned placeholder itself — and wrong as a repo-wide rule, because "bare root must not survive" would flag the legitimate English at docs/HOOKS.md:557.
+
+## Why forward-fix and not a history rewrite
+
+3fc6f18e was a PLAIN COMMIT ON MAIN, not a filter-repo run. The operator has already chosen the response for this identifier, and this change follows it rather than reopening it. Today's new ADR (2026-09-03-revocability-determines-the-disclosure-response.md) says an irrevocable disclosure MAY justify a rewrite; it does not override an existing, specific decision already taken on this term, and the materiality here is low.
+
+## What remains exposed, stated plainly
+
+This edit changes the tracked tree only. The identifier persists in 25 published tags (v24.0.0 -> v29.4.0), in CHANGELOG.md across 20 of them, and in exactly ONE published release body (v24.0.0, found by scanning 100 releases). Copies also sit in local marketplace caches under ~/.claude/plugins/. None of that is reachable by this commit. Do not read "the guard is green" as "the value is gone" — it is gone from the tracked tree, which is a strictly smaller claim.
+
+## Verification
+
+    PII guard, real staged content            exit 0
+    sentinel + throwaway denylist staged      exit 1, "BLOCKED"
+    bash -n                                   clean
+    diff                                      1 line, comment-only, no behaviour
+
+The negative control uses a `zzz-sentinel-not-real` string rather than staging real PII, so proving the blocking path costs nothing.
+
+NOTE ON COVERAGE: `moon run repo:check` does NOT exercise this hook — repo:test-hooks runs the marketplace regression suite, which has no gmail-draft-guard coverage. The file's own probe (which needs GMAIL_DRAFT_ADHOC_OK=1, since LAYER 5 blocks reading it otherwise) is the only functional gate on it.
+
+* **tests:** iter-167 Group D asserts git-log FORK COUNT, not wall clock ([abf94c3](https://github.com/terrylica/cc-skills/commit/abf94c316c0c76e8e123f19fa33d99c55534b776))
+
+The 700ms median cap failed during a real release on a loaded machine and passed 9/9 standalone. An absolute millisecond threshold measures the machine; the property it is guarding is a fork-count reduction, which is an integer.
+
+## The cap could not distinguish a busy machine from a regression
+
+Measured on this hardware, N=50:
+
+    correct code, 16 busy loops       713 ms   -> FAILED the 700ms cap
+    DELIBERATELY BROKEN code, idle     816 ms
+
+713 &lt; 816. The cap ranked correct-under-load as worse than broken-at-rest. It was also DECAYING: the 2N+1 path has fallen from its 1184ms baseline to 816ms on current hardware, so a modestly faster machine would have passed the cap on broken code outright.
+
+## What replaced it
+
+A counting shim named `git` goes on the head of PATH for one aggregator run, records each subcommand, then execs the real git by absolute path.
+
+    D1  at N=50 the aggregator forks `git log` exactly 1x   (pre-iter-167: 101x)
+    D2  the fork count is INVARIANT in N — 1 at N=8 and at N=50
+
+D2 is the actual design property (O(1), not 2N+1) and cannot be satisfied by accident.
+
+Self-relative timing — measure both paths in one run, assert a speedup ratio — was built and REJECTED on evidence: t(50)/t(10) is 2.76 post vs 3.87 pre, only 1.4x separation, because the aggregator's per-commit classification is itself O(N) in bash and dominates the ratio. It also requires carrying a copy of the old implementation in the test, which references the same three ITER167_* array names as the real aggregator — rename those and the "baseline" silently stops being the old path while still producing a plausible ratio. Fork count separates the two 101-to-1, as an integer, with no second copy to drift.
+
+## This is new detection, not just de-flaking
+
+The decisive negative control keeps EVERY source marker Groups A/B/C grep for — the `%H%x00%s%x00%b%x00` format string, the `IFS= read -r -d ''` reader, and no literal `git log -1 --format` (spelled `--max-count=1` instead) — and emits byte-identical JSON, while forking per commit again. Verified independently:
+
+    A1 A2 B1 B2 B3 C1 C2 C3   all PASS
+    D1 D2                     both FAIL  (17 forks at N=8, 101 at N=50)
+
+Only Group D catches it. The file previously had no assertion that could.
+
+## The skip flag was covering the wrong path, and emptying a group on the one it covered
+
+`CC_SKILLS_SKIP_PERF_TIMING` is wired into `tasks/release/preflight:548` and NOWHERE ELSE — `moon.yml`'s `test-hooks`, which `repo:check` depends on, never set it. So the gate CLAUDE.md calls "what runs before a push" was never covered, which is where the failure came from.
+
+And on the path it DID cover, the flag downgraded iter-167's ONLY Group D assertion — so under the release Group D asserted nothing while still printing `9/9 assertions PASSED`. A downgrade that empties a group is indistinguishable from a passing group. That is the argument against simply demoting the cap.
+
+Now every assertion gates unconditionally on every path, and the flag decides only whether the informational benchmark is MEASURED. The wall-clock numbers are still printed, marked `[INFORMATIONAL — does not gate]`, because docs/RELEASE.md cites this test as the reproducible benchmark. No coverage is lost: iter-165's wall clock is already gated by test-iter174-* scenario A5 against a 3x-headroom cap, so iter-167's cap was duplicating it.
+
+Load-immune in both directions, verified: fork counts are byte-identical at load average 0 and at 43.
+
+iter-175 was checked and has NO defect — its Group D already counts forks, just statically from source text, and it has no wall-clock assertion at all. Untouched. Worth noting for later: a static source count is exactly what negative control 2 walked past, so upgrading it to the runtime shim is a real improvement — filed, not done, as it is beyond this flake.
+
+docs/perf-timing-skip.md's worked example was iter-167's now-removed cap; updated, and its own hard-wrapped paragraph unwrapped per the repo-wide rule. docs/CLAUDE.md carried "33 of 58 ADRs have a design spec" in two places; now 59.
+
+Suite: 113/113. shellcheck and bash -n clean. Idle cost 4.2s -> 4.7s; faster under the release preflight, which now skips four runs instead of measuring and ignoring them.
+
+
+
+### Features
+
+* **gates:** verify-doc-counts — fail the gate when CLAUDE.md drifts from the filesystem ([82c3f40](https://github.com/terrylica/cc-skills/commit/82c3f40f09b3dabef0c941905c7b89935a5518f6))
+
+Root CLAUDE.md is the first file every agent reads. It claimed 42 plugins (41) and 35 Python CLIs (37), and plugins/CLAUDE.md claimed 42. A hub that miscounts trains every reader to distrust it.
+
+scripts/verify-doc-counts.ts: 8 rules, 10 numbers, all located by PATTERN rather than line number — line numbers drift, which is the very failure this gate exists to catch. Modelled on ~/.claude/tools/verify-decision-index-counts.sh, which has caught staleness eight times, and follows its rule: write what the gate prints, never increment by hand.
+
+## It caught me on its first run, which is the point
+
+I had "corrected" CLAUDE.md's "33 of 58 ADRs have one" to "1 of 58". That was WRONG and the original was right. Design specs are not docs/design/*.md — they live one level down as docs/design/&lt;adr-basename>/spec.md:
+
+    ls docs/design/*.md      -> 1   (only docs/design/CLAUDE.md)
+    ls docs/design/*/spec.md -> 33  (33/33 map to a real ADR)
+
+So while auditing documentation accuracy I introduced an inaccuracy, using a glob whose depth did not match the data's shape. That is the FOURTH instance of this class today: a SIGPIPE sweep regex that structurally could not match `if ! echo`, a mise grep that returns zero files without -E, an orphan detector that searched only .md/.json/.ts and so missed a doc's .sh callers, and now this. The gate is the control for exactly that, and it worked before it was even committed.
+
+Now reads "33 of 59" — 59 because an ADR landed while the gate was being built.
+
+## Not vacuous, proven in both directions
+
+    corrupt a count             -> EXIT=1, names claim/actual/file:line
+    reword a heading so the
+    pattern cannot match        -> EXIT=2, "INCONCLUSIVE — this gate could not
+                                   check what it claims to check"
+
+The pass line prints "8 rules · 8 claims located · 10 numbers compared", so silent coverage loss is visible even when green. A zero plugin or ADR count is INCONCLUSIVE, not a pass. Both fixtures restored byte-identical (shasum verified).
+
+## Deliberate non-duplication
+
+marketplace.json &lt;-> plugins/ parity is NOT re-checked here: validate-plugins.mjs --strict already makes it fatal and repo:lint runs it. The CLI count is read from cli_spec.json rather than re-walking every skill with a second AST parser, because repo:cli-spec-check already proves that file matches disk and runs in the same gate. Two implementations of one check is how they drift.
+
+Wired into repo:check's deps. Also fixed a membership claim in CLAUDE.md that had gone stale the same way: it said repo:check "fans out to repo:lint, repo:test and repo:test-hooks" — now five tasks. Gate: 6 tasks, 113/113.
+
+
+
+### BREAKING CHANGES
+
+* the `mise` plugin is removed from the marketplace. Anyone who
+installed cc-skills@mise loses `/mise:run-full-release`, `/mise:show-env-status`
+and `/mise:list-repo-tasks`. Use `moon run repo:release-full` instead. Plugin
+count 42 -> 41.
+
+## Why the plugin goes
+
+Its three skills shell out to `mise`, which is not installed on the machine that
+publishes this marketplace and which .prototools explicitly bans. Any external
+user who installed them got skills that could not run. The plugin was published
+for six major versions in that state.
+
+Scope is deliberately REPO-INFRASTRUCTURE ONLY. Of the 98 files that mention
+mise, 69 are product content teaching mise to external users in their OWN repos,
+where it is a real installed tool that works — deleting that would remove value
+from users to satisfy a doctrine about this operator's machines. 19 more are
+historical records (ADRs, CHANGELOG, evolution logs) preserved verbatim. Only
+the files that hand THIS repo's maintainers commands that cannot execute are
+touched. plugins/itp's two mise skills and itp-hooks' live mise-hygiene guard
+are working features and stay.
+
+An earlier count of "52 files" was wrong; the real figure is 98 / 546 refs. The
+grep behind the 52 also used unescaped `|` in a basic-grep pattern, which matches
+literally — run verbatim it returns ZERO files, so anyone using it would have
+concluded the sweep was already done. Same class as a search pattern that
+structurally cannot match the dangerous variant.
+
+## What the validator caught that a doc sweep would not
+
+Deleting the plugin left two `Skill(mise:run-full-release)` references in
+plugins/plugin-dev/skills/create/SKILL.md. `bun scripts/validate-plugins.mjs`
+failed on both — a dangling cross-plugin Skill() reference is exactly what that
+check exists for, and it found them one at a time as each was fixed.
+
+## Stale advertising, removed from the surfaces users actually see
+
+README.md's plugin table and its install one-liner both listed mise. The table
+row also advertised "SR&ED commit" — a guard deleted in v23.0.0, so the public
+README carried it across six majors.
+
+More consequential: plugins/itp-hooks/hooks/hooks.json's `description` still
+advertised "SR&ED commit validation". That is a MANIFEST field every marketplace
+client renders when listing the plugin, so it was not merely stale prose — it was
+the plugin's own published self-description. docs/HOOKS.md carried the same claim.
+
+Three SR&ED references remain and are deliberate: CHANGELOG/ADR/design history,
+an itp evolution log, and dead code in itp-hooks/hooks/failure-patterns.ts
+(imported by nothing) which is a CODE change needing its own test run, filed
+separately rather than smuggled into a docs commit.
+
+## The public plugin told users to run a file from a private repo
+
+pretooluse-pr-citation-evidence-guard.ts's denial message named
+`~/.claude/skills/pr-evidence-standard/verify-citations.ts`. cc-skills is PUBLIC;
+that skill lives in the operator's PRIVATE claude-config repo. Every third-party
+installer who tripped the guard was told to run a script that does not exist on
+their machine and never would. The helper is now advertised only when present,
+with portable fetch-and-grep guidance otherwise.
+
+## Counts re-derived from the filesystem, not incremented
+
+CLAUDE.md claimed 42 plugins (41), "33 of 58 ADRs have one" (1 of 58 — wrong by
+32), and 35 Python CLIs (37). plugins/CLAUDE.md claimed 42. Every number here was
+measured, not adjusted by one.
+
+release.config.cjs listed the three deleted SKILL.md files in its
+@semantic-release/git assets array; left in place they would have broken the next
+release.
+
+Gate: 41 plugins, 0 errors, 0 warnings, 230 skills, 113/113 hook regression
+tests, cli_spec current at 37 CLIs.
+
 # [29.4.0](https://github.com/terrylica/cc-skills/compare/v29.3.1...v29.4.0) (2026-09-03)
 
 
