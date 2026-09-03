@@ -157,8 +157,11 @@ case7_emission_wrapped_in_helper=0
 # helper, then passed to buildPostToolUseAdditionalContextDecision. Use a
 # 10-line look-back window to accommodate intervening multiline-comments
 # documenting the iter-104 rationale.
+# The tail DRAINS (no -q, redirect instead): `grep -q` would exit on first match,
+# SIGPIPE the `grep -B10` above it, and pipefail would adopt 141 — inverting this
+# boolean at random depending on how much the producer still had to write.
 if grep -B10 "buildPostToolUseAdditionalContextDecision(reason)" "$VALE_CLAUDE_MD_CLASSIFIER_ABSOLUTE_PATH" 2>/dev/null \
-       | grep -q "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold"; then
+       | grep "truncateHookOutputToStayBelowClaudeFileSpilloverThreshold" >/dev/null; then
     case7_emission_wrapped_in_helper=1
 fi
 if [[ "$case7_emission_wrapped_in_helper" == "1" ]]; then

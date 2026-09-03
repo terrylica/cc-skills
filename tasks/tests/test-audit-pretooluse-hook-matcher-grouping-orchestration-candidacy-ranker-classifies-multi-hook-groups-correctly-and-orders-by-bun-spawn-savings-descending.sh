@@ -89,8 +89,12 @@ fi
 
 # Assert 6: itp-hooks Write|Edit group appears in the report (the canonical
 # top candidate per the iter-81 finding).
-if echo "$captured_live_marketplace_audit_output" \
-   | grep -E 'itp-hooks.*Write\|Edit' | grep -qE '[0-9]+[[:space:]]+\|'; then
+# Herestring feeds the head so `echo` cannot be SIGPIPE'd, and the tail drops -q
+# for >/dev/null so it DRAINS — a `grep -q` here would exit on first match and
+# kill the stage above it, which under pipefail inverts this boolean. See the
+# 2026-09-02 sweep of 77 such sites.
+if grep -E 'itp-hooks.*Write\|Edit' <<<"$captured_live_marketplace_audit_output" \
+   | grep -E '[0-9]+[[:space:]]+\|' >/dev/null; then
     assert_passes "itp-hooks Write|Edit group appears in ranking"
 else
     assert_fails "itp-hooks Write|Edit group missing from ranking"
