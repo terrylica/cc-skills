@@ -172,7 +172,9 @@ bun update -g                # Upgrade all
 bun pm ls -g                 # List
 ```
 
-**No auto-upgrade.** Toolchain versions are pinned in `.prototools` and moved deliberately. A previous version of this line advertised a `com.terryli.mise_autoupgrade` launchd job running every 2 hours; that job does not exist (`launchctl list` and `~/Library/LaunchAgents/` both have no such entry) and mise is not installed at all, so the line promised self-maintenance the repo never had.
+**Toolchain pins auto-bump to latest, unattended.** `com.terryli.proto-toolchain-autoupdate` runs at 07:23, 13:23 and 19:23 local and rewrites `.prototools` here — and in every repo under `~/eon`, `~/own`, `~/vj` — to the latest published version of each pinned tool, committing each change. Nothing gates it: **no test suite runs against the new versions before the commit lands**, so a red gate the morning after a green night is a toolchain bump until proven otherwise. Check `git log -- .prototools` first; `git revert` the bump to confirm, then hold the pin deliberately if the newer version is genuinely broken. Log: `~/.local/state/proto-autoupdate/autoupdate.log`. It pushes a notification only when something changed or failed.
+
+Two things this replaced, both worth remembering. An earlier version of this line advertised a `com.terryli.mise_autoupgrade` job running every 2 hours that **did not exist** — no `launchctl` entry, no plist, and mise is not installed at all — so it promised self-maintenance the repo never had. And the obvious implementation of the replacement is a trap: `proto outdated --update --latest` reports tools as outdated, exits 0, and **writes nothing** (measured on 0.61.2, with and without `--yes`, with and without `-c local`). The routine drives `proto pin <tool> <version>` explicitly instead, because that one actually writes.
 
 ## Lessons Learned
 
