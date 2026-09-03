@@ -58,7 +58,7 @@ fi
 # Either form (standalone OR orchestrator) satisfies the invariant that the
 # ty type-checking pathway gets [C] coverage. This decouples the iter-92
 # test from the iter-93+ migration arc's future state.
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-ty-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+if grep -F "[C]" <<<"$AUDIT_TASK_OUTPUT_FULL" | grep -E "posttooluse-ty-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks" >/dev/null; then
     assert_passes "Case 3a: ty-type-checking pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-93 orchestrator that inlines it)"
 else
     assert_fails "Case 3a: ty-type-checking pathway missing [C] classification (neither standalone nor iter-93 orchestrator entry found)"
@@ -66,7 +66,7 @@ fi
 # Iter-94 update: tsgo-type-check was inlined into the iter-93 PostToolUse
 # orchestrator. Same decoupling pattern as Case 3a — accept EITHER the
 # standalone OR the orchestrator entry as satisfying the [C] invariant.
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-tsgo-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+if grep -F "[C]" <<<"$AUDIT_TASK_OUTPUT_FULL" | grep -E "posttooluse-tsgo-type-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks" >/dev/null; then
     assert_passes "Case 3b: tsgo-type-checking pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-93/94 orchestrator that inlines it)"
 else
     assert_fails "Case 3b: tsgo-type-checking pathway missing [C] classification (neither standalone nor iter-93/94 orchestrator entry found)"
@@ -75,36 +75,36 @@ fi
 # orchestrator. Accept EITHER form (standalone OR orchestrator-via-import)
 # as satisfying the [C] CONTEXT-INJECTING invariant — same migration-arc
 # decoupling pattern as Cases 3a/3b.
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-oxlint-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+if grep -F "[C]" <<<"$AUDIT_TASK_OUTPUT_FULL" | grep -E "posttooluse-oxlint-check\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks" >/dev/null; then
     assert_passes "Case 3c: oxlint pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-95 orchestrator that inlines it)"
 else
     assert_fails "Case 3c: oxlint pathway missing [C] classification (neither standalone nor iter-95 orchestrator entry found)"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -F "[C]" | grep -qE "posttooluse-biome-lint\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks"; then
+if grep -F "[C]" <<<"$AUDIT_TASK_OUTPUT_FULL" | grep -E "posttooluse-biome-lint\.ts|posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks" >/dev/null; then
     assert_passes "Case 3d: biome pathway classified as [C] CONTEXT-INJECTING (either standalone OR via iter-95 orchestrator that inlines it)"
 else
     assert_fails "Case 3d: biome pathway missing [C] classification (neither standalone nor iter-95 orchestrator entry found)"
 fi
 
 # ─── Case 4: at least 1 hook classified as additionalContext-emitting ─────────
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qF "emits additionalContext JSON"; then
+if grep -qF "emits additionalContext JSON" <<<"$AUDIT_TASK_OUTPUT_FULL"; then
     assert_passes "Case 4: at least one hook flagged as additionalContext-emitting (rust-sota-reminder or similar)"
 else
     assert_fails "Case 4: no additionalContext-emitting hook detected"
 fi
 
 # ─── Case 5: explicit iter-89 strict-dominance-correction language present ────
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qE 'CORRECTION OF ITER-89 STRICT-DOMINANCE CLAIM'; then
+if grep -qE 'CORRECTION OF ITER-89 STRICT-DOMINANCE CLAIM' <<<"$AUDIT_TASK_OUTPUT_FULL"; then
     assert_passes "Case 5a: summary contains explicit iter-89 strict-dominance-correction banner"
 else
     assert_fails "Case 5a: iter-89 correction language missing from audit summary"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qE 'Path A.*RULED OUT'; then
+if grep -qE 'Path A.*RULED OUT' <<<"$AUDIT_TASK_OUTPUT_FULL"; then
     assert_passes "Case 5b: summary explicitly RULES OUT Path A (async:true sweep) for context-injecting hooks"
 else
     assert_fails "Case 5b: Path A ruling-out language missing"
 fi
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qE 'Path B.*viable for ALL hooks'; then
+if grep -qE 'Path B.*viable for ALL hooks' <<<"$AUDIT_TASK_OUTPUT_FULL"; then
     assert_passes "Case 5c: summary recommends Path B (orchestrator inlining) as the viable replacement"
 else
     assert_fails "Case 5c: Path B recommendation missing"
@@ -114,7 +114,7 @@ fi
 # The PreToolUse classifiers from iter-91 (e.g., classifyValeClaudeMdGuardForOrchestrator)
 # must NOT appear in PostToolUse audit results. If they do, the discovery filter
 # is leaking across event types.
-if echo "$AUDIT_TASK_OUTPUT_FULL" | grep -qF "pretooluse-vale-claude-md-guard.ts"; then
+if grep -qF "pretooluse-vale-claude-md-guard.ts" <<<"$AUDIT_TASK_OUTPUT_FULL"; then
     assert_fails "Case 6: PreToolUse hook leaked into PostToolUse audit (event-type filter broken)"
 else
     assert_passes "Case 6: NO PreToolUse hooks leaked into PostToolUse audit (event-type filter correct)"

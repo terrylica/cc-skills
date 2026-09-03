@@ -109,7 +109,7 @@ while IFS= read -r hooks_json; do
     ' "$hooks_json" 2>/dev/null) || last_command="<JQ-PARSE-ERROR>"
 
     # Compare: does the last command reference pueue-wrap-guard?
-    if echo "$last_command" | grep -q 'pretooluse-pueue-wrap-guard'; then
+    if grep -q 'pretooluse-pueue-wrap-guard' <<<"$last_command"; then
         files_ok=$((files_ok + 1))
         echo "  ✓ $plugin_name/hooks/hooks.json — pueue-wrap-guard is LAST PreToolUse entry"
     else

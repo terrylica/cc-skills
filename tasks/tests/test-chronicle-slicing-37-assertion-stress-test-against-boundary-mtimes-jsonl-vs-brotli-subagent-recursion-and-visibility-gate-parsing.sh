@@ -182,12 +182,12 @@ fail() { FAIL=$((FAIL + 1)); echo "  ✗ $1"; fail_list+=("$1"); }
 assert_picked() {
     local pat="$1"
     local desc="$2"
-    if echo "$PICKED" | grep -q "$pat"; then ok "$desc"; else fail "$desc :: expected $pat in PICKED"; fi
+    if grep -q "$pat"; then ok "$desc"; else fail "$desc :: expected $pat in PICKED"; fi <<<"$PICKED"
 }
 assert_not_picked() {
     local pat="$1"
     local desc="$2"
-    if echo "$PICKED" | grep -q "$pat"; then fail "$desc :: $pat should NOT be picked but was"; else ok "$desc"; fi
+    if grep -q "$pat"; then fail "$desc :: $pat should NOT be picked but was"; else ok "$desc"; fi <<<"$PICKED"
 }
 
 echo

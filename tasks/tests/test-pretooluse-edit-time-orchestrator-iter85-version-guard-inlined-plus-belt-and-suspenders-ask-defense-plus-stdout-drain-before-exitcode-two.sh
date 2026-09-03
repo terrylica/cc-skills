@@ -126,7 +126,7 @@ case4_exit=$?
 set -e
 
 # Verify JSON is well-formed (drain-before-exit succeeded — no truncation)
-if echo "$case4_stdout" | grep -q '"permissionDecision":"deny"'; then
+if grep -q '"permissionDecision":"deny"' <<<"$case4_stdout"; then
     # Validate JSON parses cleanly via bun's JSON.parse
     if echo "$case4_stdout" | bun -e 'JSON.parse(await Bun.stdin.text())' 2>/dev/null; then
         assert_passes "Case 4a: large deny payload arrives intact (stdout drain before exitCode=2)"

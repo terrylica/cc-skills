@@ -118,7 +118,7 @@ ITER172_SYNTHETIC_REPO_ITER152_OUTPUT=$(AUDIT_REPO_ROOT_OVERRIDE="$ITER172_SYNTH
 
 # Assertion E1: Panel 3 worst-offender output reports the CJK subject with measured length=15 (chars, not 27 bytes).
 ITER172_TOTAL_ASSERTIONS_EVALUATED=$((ITER172_TOTAL_ASSERTIONS_EVALUATED + 1))
-if echo "$ITER172_SYNTHETIC_REPO_ITER152_OUTPUT" | grep -qE "\(${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT} chars\).*${ITER172_SYNTHETIC_CJK_PROBE_SUBJECT_WITH_KNOWN_VISIBLE_CHAR_COUNT_OF_FIFTEEN}"; then
+if grep -qE "\(${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT} chars\).*${ITER172_SYNTHETIC_CJK_PROBE_SUBJECT_WITH_KNOWN_VISIBLE_CHAR_COUNT_OF_FIFTEEN}" <<<"$ITER172_SYNTHETIC_REPO_ITER152_OUTPUT"; then
     echo "  ✓ E1: panel-3 worst-offender reports correct char count (${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT}) for CJK probe subject (iter-172 char-counting works end-to-end)"
 else
     echo "  ✗ E1: panel-3 worst-offender does NOT report ${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT}-char count for CJK subject — iter-172 char-counting NOT working end-to-end"
@@ -151,7 +151,7 @@ echo "GROUP F (1 assertion): --json mode reports correct char count for CJK prob
 ITER172_TOTAL_ASSERTIONS_EVALUATED=$((ITER172_TOTAL_ASSERTIONS_EVALUATED + 1))
 ITER172_SYNTHETIC_REPO_ITER152_JSON_OUTPUT=$(AUDIT_REPO_ROOT_OVERRIDE="$ITER172_SYNTHETIC_GIT_REPO_TEMPDIR" bash "$ITER172_ITER152_HISTOGRAM_ABSOLUTE_PATH" --json 2>/dev/null || true)
 # Assert the JSON contains a length_chars=15 entry for the CJK probe.
-if echo "$ITER172_SYNTHETIC_REPO_ITER152_JSON_OUTPUT" | grep -qE '"length_chars":\s*'"$ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT"; then
+if grep -qE '"length_chars":\s*'"$ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT" <<<"$ITER172_SYNTHETIC_REPO_ITER152_JSON_OUTPUT"; then
     echo "  ✓ F1: --json output contains \"length_chars\": ${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT} for CJK probe (AI-agent automation pipeline sees correct char count)"
 else
     echo "  ✗ F1: --json output does NOT contain \"length_chars\": ${ITER172_EXPECTED_VISIBLE_CHAR_COUNT_FOR_PROBE_SUBJECT} for CJK probe"

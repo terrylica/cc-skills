@@ -130,7 +130,7 @@ else
 fi
 
 # Verify the diagnostic message includes the specific compound-prefix commits.
-if echo "$validator_output_captured" | grep -q "compound prefix violation #1"; then
+if grep -q "compound prefix violation #1" <<<"$validator_output_captured"; then
     assert_passes "Diagnostic includes compound-prefix violation #1"
 else
     assert_fails "Diagnostic missing compound-prefix violation #1"

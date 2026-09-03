@@ -384,7 +384,7 @@ while IFS= read -r hooks_json; do
     # Strip comments and search for additionalContext in remaining code.
     code_only=$(strip_comments_from_source_for_pure_code_scan "$source_path")
 
-    if ! echo "$code_only" | grep -q 'additionalContext'; then
+    if ! grep -q 'additionalContext' <<<"$code_only"; then
       # No emission patterns in non-comment code.
       no_additionalContext_count=$((no_additionalContext_count + 1))
       continue

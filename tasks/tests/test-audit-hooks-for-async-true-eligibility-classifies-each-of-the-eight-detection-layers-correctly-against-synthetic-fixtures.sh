@@ -213,7 +213,7 @@ assert_fixture_in_bucket() {
   local section
   section=$(echo "$AUDIT_OUTPUT" | sed -n "/^─── ${bucket_label}/,/^─── /p")
 
-  if echo "$section" | grep -q "$fixture_name"; then
+  if grep -q "$fixture_name" <<<"$section"; then
     assert_pass "$description"
   else
     assert_fail "$description (fixture=$fixture_name, expected-bucket=$bucket_label)"
@@ -293,13 +293,13 @@ echo "=== IFS-tab sentinel: Stop hooks (matcher-less) display <any> not 'false' 
 fixture10_render=$(echo "$AUDIT_OUTPUT" | grep "fixture10-edge-pure-side-effect" || true)
 fixture11_render=$(echo "$AUDIT_OUTPUT" | grep "fixture11-edge-already-async" || true)
 
-if echo "$fixture10_render" | grep -q 'matcher=<any>'; then
+if grep -q 'matcher=<any>' <<<"$fixture10_render"; then
   assert_pass "Stop hook fixture10 displays matcher=<any> (IFS-tab sentinel works)"
 else
   assert_fail "Stop hook fixture10 missing matcher=<any>. Got: $fixture10_render"
 fi
 
-if echo "$fixture11_render" | grep -q 'matcher=<any>'; then
+if grep -q 'matcher=<any>' <<<"$fixture11_render"; then
   assert_pass "Stop hook fixture11 displays matcher=<any> (IFS-tab sentinel works)"
 else
   assert_fail "Stop hook fixture11 missing matcher=<any>. Got: $fixture11_render"
@@ -311,7 +311,7 @@ fi
 echo ""
 echo "=== Path resolution: no SCRIPT_MISSING errors in audit output ==="
 
-if echo "$AUDIT_OUTPUT" | grep -q 'SCRIPT_MISSING'; then
+if grep -q 'SCRIPT_MISSING' <<<"$AUDIT_OUTPUT"; then
   assert_fail "Audit reported SCRIPT_MISSING — path resolution regressed"
   echo "    Lines reporting SCRIPT_MISSING:"
   # shellcheck disable=SC2001

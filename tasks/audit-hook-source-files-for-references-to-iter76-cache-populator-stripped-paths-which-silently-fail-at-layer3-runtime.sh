@@ -187,7 +187,7 @@ has_valid_escape_hatch_marker_in_context() {
     local context_window
     context_window=$(awk -v start="$search_start_line" -v end="$violation_line_number" \
         'NR >= start && NR <= end' "$source_file_path")
-    if echo "$context_window" | grep -qE 'LAYER3-STRIPPED-PATH-OK:[[:space:]]*[^[:space:]].{9,}'; then
+    if grep -qE 'LAYER3-STRIPPED-PATH-OK:[[:space:]]*[^[:space:]].{9,}' <<<"$context_window"; then
         return 0
     fi
     return 1

@@ -45,7 +45,7 @@ echo "════════════════════════�
 captured_live_marketplace_audit_output=$(bash "$AUDIT_TASK_PATH" 2>&1)
 
 # Assert 1: audit exits successfully on the live marketplace.
-if echo "$captured_live_marketplace_audit_output" | grep -q "Summary"; then
+if grep -q "Summary" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "Audit completes successfully + emits Summary section"
 else
     assert_fails "Audit did not emit Summary section"
@@ -53,21 +53,21 @@ else
 fi
 
 # Assert 2: the iter-80 calibration constant (44ms) appears in header.
-if echo "$captured_live_marketplace_audit_output" | grep -q "44 ms"; then
+if grep -q "44 ms" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "Header reports iter-80 calibration constant (44 ms per spawn)"
 else
     assert_fails "Header missing iter-80 calibration constant"
 fi
 
 # Assert 3: high-value group-size threshold is 3.
-if echo "$captured_live_marketplace_audit_output" | grep -q "≥3 hooks per matcher"; then
+if grep -q "≥3 hooks per matcher" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "High-value threshold documented as ≥3 hooks per group"
 else
     assert_fails "High-value threshold not documented as ≥3 hooks per group"
 fi
 
 # Assert 4: ranking table header is present.
-if echo "$captured_live_marketplace_audit_output" | grep -q "rank.*savings.*plugin.*matcher.*size"; then
+if grep -q "rank.*savings.*plugin.*matcher.*size" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "Ranking table header is present"
 else
     assert_fails "Ranking table header missing"
@@ -120,17 +120,17 @@ fi
 # Assert 9: recommendation section appears when there are high-value
 # candidates.
 if [[ "$total_high_value_orchestration_candidates_count" -ge 1 ]] \
-   && echo "$captured_live_marketplace_audit_output" | grep -q "Recommendation:"; then
+   && grep -q "Recommendation:" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "Recommendation section present (operator-actionable)"
 elif [[ "$total_high_value_orchestration_candidates_count" -eq 0 ]] \
-   && ! echo "$captured_live_marketplace_audit_output" | grep -q "Recommendation:"; then
+   && ! grep -q "Recommendation:" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "No recommendation section (correctly suppressed when no candidates)"
 else
     assert_fails "Recommendation section presence does not match candidate count"
 fi
 
 # Assert 10: forensic-baseline citation is present (links back to iter-80).
-if echo "$captured_live_marketplace_audit_output" | grep -q "iter-80"; then
+if grep -q "iter-80" <<<"$captured_live_marketplace_audit_output"; then
     assert_passes "Forensic baseline citation (iter-80) present"
 else
     assert_fails "Forensic baseline citation (iter-80) missing"

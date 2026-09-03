@@ -113,7 +113,7 @@ classify_synthetic_fixture_via_replicated_audit_logic() {
             [[ "$window_start" -lt 1 ]] && window_start=1
             local context_window
             context_window=$(awk -v s="$window_start" -v e="$line_number" 'NR>=s && NR<=e' "$fixture_path")
-            if echo "$context_window" | grep -qE 'LAYER3-STRIPPED-PATH-OK:[[:space:]]*[^[:space:]].{9,}'; then
+            if grep -qE 'LAYER3-STRIPPED-PATH-OK:[[:space:]]*[^[:space:]].{9,}' <<<"$context_window"; then
                 violations_with_valid_marker=$((violations_with_valid_marker + 1))
             fi
         done

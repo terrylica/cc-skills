@@ -184,14 +184,14 @@ else
 fi
 
 # Per-fixture marker assertions
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture02-wildcard-star-no-ok-marker-pretooluse-violation'; then
+if grep -q 'fixture02-wildcard-star-no-ok-marker-pretooluse-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #02 (wildcard '*' no OK) reported in violation diagnostic"
 else
   assert_fail "Fixture #02 missing from violation diagnostic"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture04-null-matcher-posttooluse-violation'; then
-  if echo "$AUDIT_OUTPUT" | grep -q '<null/missing>'; then
+if grep -q 'fixture04-null-matcher-posttooluse-violation' <<<"$AUDIT_OUTPUT"; then
+  if grep -q '<null/missing>' <<<"$AUDIT_OUTPUT"; then
     assert_pass "Fixture #04 (null matcher) reported with '<null/missing>' display label"
   else
     assert_fail "Fixture #04 missing '<null/missing>' label"
@@ -200,13 +200,13 @@ else
   assert_fail "Fixture #04 missing from violation diagnostic"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'fixture05-wildcard-with-too-short-ok-marker-violation'; then
+if grep -q 'fixture05-wildcard-with-too-short-ok-marker-violation' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #05 (too-short OK marker, <10 chars) reported in violation diagnostic"
 else
   assert_fail "Fixture #05 missing — short-reason escape hatch failed to enforce min-length"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'WILDCARD-WITH-OK-MARKER.*fixture03-wildcard-star-with-valid-ok-marker-posttooluse'; then
+if grep -q 'WILDCARD-WITH-OK-MARKER.*fixture03-wildcard-star-with-valid-ok-marker-posttooluse' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Fixture #03 (valid 12-char OK marker) correctly classified as WILDCARD-WITH-OK-MARKER"
 else
   assert_fail "Fixture #03 misclassified — valid OK marker not honored"
@@ -224,7 +224,7 @@ else
   assert_fail "Audit exited with code $AUDIT_EXIT, expected 1"
 fi
 
-if echo "$AUDIT_OUTPUT" | grep -q 'iter-63'; then
+if grep -q 'iter-63' <<<"$AUDIT_OUTPUT"; then
   assert_pass "Diagnostic references iter-63 (forensic provenance)"
 else
   assert_fail "Diagnostic missing iter-63 reference"
