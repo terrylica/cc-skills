@@ -55,45 +55,91 @@ FAIL=0
 # emitted the [1PASSWORD-CONTEXT] block (fired) or stayed silent (bailed).
 # ---------------------------------------------------------------------------
 
+# Detail of the most recent hook execution failure, for the assertion to report.
+HOOK_FAILURE_DETAIL=''
+
+# Returns: 0 = hook ran and injected context
+#          1 = hook ran cleanly but stayed silent (a genuine detection miss)
+#          2 = hook itself failed to run (crash / non-zero exit)
+#
+# The three-way return replaces a two-way one whose `|| true` laundered a hook
+# CRASH into an empty string — which the assertion then reported as "expected
+# context injection, got silence", i.e. a keyword-detection message for what may
+# have been an execution failure. stderr is captured, not discarded, so a real
+# failure names itself.
+#
+# The payload is fed by here-string, not `printf ... | hook`: under
+# `set -o pipefail` a pipe reports the PRODUCER's SIGPIPE (141) whenever the hook
+# exits before draining stdin, which is indistinguishable from a real hook
+# failure. A here-string has no pipe, so `$?` is the hook's own status.
 hook_injects_context() {
   local prompt_text="$1"
   local payload
   payload=$(jq -n --arg p "$prompt_text" '{prompt: $p}')
-  local hook_stdout
-  hook_stdout=$(printf '%s' "$payload" | "$HOOK_UNDER_TEST" 2>/dev/null || true)
+  local hook_stdout hook_stderr_file hook_rc
+  hook_rc=0
+  hook_stderr_file=$(mktemp)
+  hook_stdout=$("$HOOK_UNDER_TEST" <<<"$payload" 2>"$hook_stderr_file") || hook_rc=$?
+  if [ "$hook_rc" -ne 0 ]; then
+    HOOK_FAILURE_DETAIL="hook exited $hook_rc; stderr: $(cat "$hook_stderr_file")"
+    rm -f "$hook_stderr_file"
+    return 2
+  fi
+  rm -f "$hook_stderr_file"
   # Marker renamed to [SELF-CUSTODY SECRETS] when the hook adopted the SCS
   # doctrine (broadened beyond 1Password to the full operator-controlled stack).
-  if echo "$hook_stdout" | grep -q '\[SELF-CUSTODY SECRETS\]'; then
+  if grep -q '\[SELF-CUSTODY SECRETS\]' <<<"$hook_stdout"; then
     return 0
-  else
-    return 1
   fi
+  return 1
 }
 
 assert_injects_context() {
   local desc="$1"
   local prompt_text="$2"
-  if hook_injects_context "$prompt_text"; then
-    echo "  ✓ PASS: $desc"
-    PASS=$((PASS+1))
-  else
-    echo "  ✗ FAIL: $desc (expected context injection, got silence)"
-    echo "    prompt: $prompt_text"
-    FAIL=$((FAIL+1))
-  fi
+  local rc=0
+  hook_injects_context "$prompt_text" || rc=$?
+  case "$rc" in
+    0)
+      echo "  ✓ PASS: $desc"
+      PASS=$((PASS+1))
+      ;;
+    2)
+      echo "  ✗ FAIL: $desc (hook FAILED TO RUN — execution failure, not a detection miss)"
+      echo "    $HOOK_FAILURE_DETAIL"
+      echo "    prompt: $prompt_text"
+      FAIL=$((FAIL+1))
+      ;;
+    *)
+      echo "  ✗ FAIL: $desc (hook ran cleanly but emitted no context)"
+      echo "    prompt: $prompt_text"
+      FAIL=$((FAIL+1))
+      ;;
+  esac
 }
 
 assert_silent() {
   local desc="$1"
   local prompt_text="$2"
-  if ! hook_injects_context "$prompt_text"; then
-    echo "  ✓ PASS: $desc"
-    PASS=$((PASS+1))
-  else
-    echo "  ✗ FAIL: $desc (expected silence, got context injection)"
-    echo "    prompt: $prompt_text"
-    FAIL=$((FAIL+1))
-  fi
+  local rc=0
+  hook_injects_context "$prompt_text" || rc=$?
+  case "$rc" in
+    1)
+      echo "  ✓ PASS: $desc"
+      PASS=$((PASS+1))
+      ;;
+    2)
+      echo "  ✗ FAIL: $desc (hook FAILED TO RUN — execution failure, not silence)"
+      echo "    $HOOK_FAILURE_DETAIL"
+      echo "    prompt: $prompt_text"
+      FAIL=$((FAIL+1))
+      ;;
+    *)
+      echo "  ✗ FAIL: $desc (expected silence, got context injection)"
+      echo "    prompt: $prompt_text"
+      FAIL=$((FAIL+1))
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
