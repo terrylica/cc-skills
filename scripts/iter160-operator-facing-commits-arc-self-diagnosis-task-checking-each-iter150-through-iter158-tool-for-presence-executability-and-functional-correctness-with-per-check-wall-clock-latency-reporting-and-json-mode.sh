@@ -408,7 +408,13 @@ fi
 
 # ─── Check 7: iter-157 hook actually installed in CURRENT repo (WARNING) ────
 
-ITER160_CURRENT_REPO_GIT_DIR=$(git rev-parse --git-dir 2>/dev/null || echo "")
+# --git-common-dir, NOT --git-dir. Inside a git worktree --git-dir returns
+# .git/worktrees/<name>, which has no hooks/ — hooks are shared and live only in
+# the main gitdir. Using --git-dir made this check report "hook NOT installed"
+# for every worktree, and this repo MANDATES worktree-per-branch, so the doctor
+# failed precisely when the operator followed the rule. --path-format=absolute
+# keeps it absolute from any cwd (git >= 2.31; this repo runs 2.55).
+ITER160_CURRENT_REPO_GIT_DIR=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || echo "")
 ITER160_CURRENT_REPO_COMMIT_MSG_HOOK_ABSOLUTE_PATH="$ITER160_CURRENT_REPO_GIT_DIR/hooks/commit-msg"
 if [[ -n "$ITER160_CURRENT_REPO_GIT_DIR" ]] && [[ -f "$ITER160_CURRENT_REPO_COMMIT_MSG_HOOK_ABSOLUTE_PATH" ]]; then
     if grep -qF "ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_DO_NOT_EDIT_DIRECTLY" "$ITER160_CURRENT_REPO_COMMIT_MSG_HOOK_ABSOLUTE_PATH" 2>/dev/null; then

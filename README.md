@@ -34,7 +34,6 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [macro-keyboard](./plugins/macro-keyboard/)             | Karabiner remap for cheap 3-key USB-C/Bluetooth macro pads + HID diagnostic + Fn-key emit utilities                                                                                                                                                                  | utilities     |
 | [media-tools](./plugins/media-tools/)                   | Download YouTube audio and push to BookPlayer for offline listening                                                                                                                                                                                                  | productivity  |
 | [minimax](./plugins/minimax/)                           | MiniMax M-series production wiring patterns — API client templates verified across multi-iteration campaigns                                                                                                                                                         | ai            |
-| [mise](./plugins/mise/)                                 | User-global mise workflow commands: env status, list-repo-tasks, run-full-release, SR&ED commit                                                                                                                                                                      | productivity  |
 | [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, MT5 tick collection ops, FXView Parquet consumer                                                                                                                                | trading       |
 | [openwolf](./plugins/openwolf/)                         | Wraps the third-party openwolf npm middleware (token-saving project memory): installs the global binary, runs `openwolf init`, surfaces status, and adds a clean removal path                                                                                        | productivity  |
 | [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, plugin validation, silent failure auditing, TodoWrite templates                                                                                                                                                              | development   |
@@ -65,7 +64,7 @@ Run these commands in your **terminal** (not inside Claude Code):
 claude plugin marketplace add terrylica/cc-skills
 
 # 2. Install all 42 plugins (one-liner, alphabetically ordered to match marketplace.json)
-for p in agent-reach arxiv-source-first asciinema-tools calcom-commander claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macos-font-defaults macro-keyboard media-tools minimax mise mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync unlimited-ocr web-forge whatsapp-commander; do
+for p in agent-reach arxiv-source-first asciinema-tools calcom-commander claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macos-font-defaults macro-keyboard media-tools minimax mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -547,9 +546,9 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **Preflight**: ADR + Design Spec creation
 - **Phase 1**: Implementation with engineering standards
 - **Phase 2**: Format & Push to GitHub
-- **Phase 3**: Release via the repo's mise release pipeline, optionally Publish (PyPI)
+- **Phase 3**: Release via the repo's `moon run repo:release-full` pipeline, optionally Publish (PyPI)
 
-**Commands**: `/itp:go`, `/itp:setup`, `/itp:tether` (release runs via `/mise:run-full-release`)
+**Commands**: `/itp:go`, `/itp:setup`, `/itp:tether` (release runs via `moon run repo:release-full`)
 
 > `tether` (was `hooks`) renamed to avoid clashing with Claude Code's built-in `/hooks`. Old TRIGGERS keyword retained.
 

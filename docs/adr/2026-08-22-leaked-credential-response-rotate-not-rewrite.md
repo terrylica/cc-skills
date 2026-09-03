@@ -1,5 +1,7 @@
 # Rotate a leaked credential; do not rewrite public history
 
+> **Scope limit, added 2026-09-03.** This ADR governs **revocable** values only — anything an issuer can invalidate. It does NOT govern irrevocable disclosures such as a person's name or a client identity, where rotation is impossible and removal is the only available lever; a PII incident in this repo was in fact remediated by the `filter-repo` rewrite this ADR forbids. The distinction is recorded in [`2026-09-03-revocability-determines-the-disclosure-response.md`](./2026-09-03-revocability-determines-the-disclosure-response.md). Read that before applying this ADR to anything that is not a credential.
+
 - **Status**: Accepted
 - **Date**: 2026-08-22
 - **Context**: [#89](https://github.com/terrylica/cc-skills/issues/89) — a MiniMax API key was committed in `plugins/devops-tools/skills/claude-code-proxy-patterns/references/launchd-configuration.md` and reported by an external scanner.
