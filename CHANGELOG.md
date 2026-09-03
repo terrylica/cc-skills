@@ -1,3 +1,123 @@
+# [29.4.0](https://github.com/terrylica/cc-skills/compare/v29.3.1...v29.4.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **hooks:** restore the env -u prefix, proto fixed only half the bug ([f08d3ac](https://github.com/terrylica/cc-skills/commit/f08d3ac5b85cd21345193da1d20f514b862eb86c)), closes [#1105](https://github.com/terrylica/cc-skills/issues/1105) [#1105](https://github.com/terrylica/cc-skills/issues/1105) [moonrepo/proto#1110](https://github.com/moonrepo/proto/issues/1110) [#1110](https://github.com/terrylica/cc-skills/issues/1110) [#1110](https://github.com/terrylica/cc-skills/issues/1110) [#1105](https://github.com/terrylica/cc-skills/issues/1105) [moonrepo/proto#1105](https://github.com/moonrepo/proto/issues/1105) [moonrepo/proto#1110](https://github.com/moonrepo/proto/issues/1110)
+
+2124eca0 removed `env -u AI_AGENT -u CLAUDECODE ` from all 43 hook commands on the grounds that moonrepo/proto#1105 was fixed in v0.61.2. That was correct
+
+* **shell:** kill 26 SIGPIPE boolean inversions, three of them in live guards ([641b15b](https://github.com/terrylica/cc-skills/commit/641b15b292edff5c2aa886ef6f088668e3966ed3))
+
+Found by a release preflight that failed on a test `moon run repo:check` had passed 113/113 four minutes earlier:
+
+    ✗ FAIL: SOPS reference (expected context injection, got silence)
+
+Not flaky infrastructure. A real race, in a construct this repo uses in 14 files:
+
+    if echo "$var" | grep -q 'PATTERN'; then
+
+`grep -q` exits on its first match and closes the pipe. The producer is killed by SIGPIPE and exits 141. `set -o pipefail` hands 141 to the pipeline, so the `if` evaluates FALSE **even though grep matched** — the boolean inverts. It is timing-dependent, which is why it passes 24/24 concurrently on an idle machine and fails inside a loaded release suite. The repo's own posttooluse-sigpipe-pipefail-reminder hook documents this exact class and corrected two commands while this fix was being written.
+
+Fix is a here-string, which has no pipe and so no SIGPIPE:
+
+    if grep -qE 'PATTERN' &lt;&lt;&lt;"$var"; then
+
+All flags, patterns, `!` negations and `||` compounds preserved verbatim. No conversion to `[[ == * ]]`, which would silently reinterpret a regex as a glob.
+
+THREE OF THE 26 SITES ARE PRODUCTION GUARDS, not tests — gmail-draft-guard.sh, gmail-mojibake-detector.sh and posttooluse-1password-pattern-reminder.sh. In a guard an inverted boolean means the guard silently does not fire, at exit 0, which is the same failure class as the proto banner that voided 2,008 hook decisions: the check runs, reports success, and protects nothing.
+
+One site is deliberately NOT changed: plugins/statusline-tools/statusline/custom-statusline.sh:2072 has no `pipefail`, so its pipeline takes grep's status and the race cannot occur. Changing it would have been churn dressed up as a fix.
+
+Also fixes a second defect in the two 1password test harnesses, which is what made the original failure so misleading:
+
+    hook_stdout=$(printf '%s' "$payload" | "$HOOK" 2>/dev/null || true)
+
+That laundered a hook CRASH into an empty string, which the assertion then reported as "expected context injection, got silence" — a keyword-detection message for what may have been an execution failure, sending the reader after the wrong bug. The harness now returns three-way (0 injected / 1 ran-but-silent / 2 failed-to-run), captures stderr instead of discarding it, and prints which of the two happened.
+
+Verified, with the negative control that makes the green meaningful:
+
+  moon run repo:check                        113/113 test files, lint 0/0
+  mutate the hook's emitted marker           37 passed -> 12 passed, 25 FAILED
+  restore                                    37 passed, 0 failed
+  24x concurrent flake hunt                  24/24 pass
+  bash -n on all 17 touched files            all parse
+
+The mutation step is the point: a rewrite that made every condition unconditionally true would also produce a green suite. Requiring the suite to go RED on a broken marker is what distinguishes "the assertions still work" from "the assertions still run".
+
+* **tests:** serialize the PRODUCER-TREE mutation window, not just the doc window ([ee2a332](https://github.com/terrylica/cc-skills/commit/ee2a332d53658a2d27e912353c4484e4981e8432))
+
+Root cause of the parallel-only marketplace-hook suite flake. Measured before: 6 failures in 40 parallel runs, 0 in 32 serial (Fisher one-sided p=0.02457), reproduced here 2/12. After: 0 in 20.
+
+THE RACE. Two test files plant a synthetic UNREGISTERED escape-hatch marker into the SHARED marketplace working tree:
+
+  iter-111 Case 5 -> plugins/agent-reach/scripts/&lt;synthetic fixture>.sh iter-115 Case 2 -> plugins/gmail-commander/scripts/bot.ts
+
+and BOTH also run a marketplace-WIDE audit that asserts a CLEAN baseline. Run in parallel, one file's plant is live in the tree while the other file's clean-baseline scan walks it. Neither test is wrong alone; they are incompatible concurrently.
+
+PROVEN DETERMINISTICALLY, not just by a green run count (0 of 20 would still happen ~3.9% of the time at the old 15% rate, so the count alone is weak):
+
+  clean tree                       -> "AUDIT PASSED", exit 0
+  one foreign marker planted       -> no "AUDIT PASSED", exit STILL 0
+  marker removed                   -> "AUDIT PASSED", exit 0
+
+The audit signals through its OUTPUT TEXT, not its exit code, and iter-111 Case 4 requires both. That is why the failure reads "Case 4: live audit run did NOT pass (exit=0)" -- a message that looks self-contradictory and is in fact the exact signature of this race.
+
+WHY THE EXISTING FLOCK DID NOT COVER IT. iter-126's flock is scoped to the on-disk DOC mutation window. An audit of "does every file touching docs/marketplace-escape-hatch- marker-reference.md hold the flock?" answers YES for all four doc-touchers -- true, and a NARROWER question than the one being decided. The contended resource is the PRODUCER TREE, whose roster is {iter-111, iter-115}, and only iter-115 held any lock at all (the doc lock, for a different window). Enumerate the roster from the RESOURCE, not from the files you already noticed.
+
+FIX. A separate iter-192 producer-tree flock on its own fd (8; the doc lock owns 9), taken by both roster members and held to process exit. Lock order is always producer-tree -> doc and the doc-only tests take just the doc lock, so no cycle is reachable. Two files run serially against each other; the other ~40 lanes stay parallel.
+
+TWO DIAGNOSTIC LESSONS, both of which cost real time:
+
+1. The failing assertion discarded its own evidence: `2>/dev/null || true` makes a crash and a legitimate no-match INDISTINGUISHABLE. Every failure reported "got silence", and the two tests that print that string are 1Password hooks -- neither of them the flaky one. A failure message that cannot distinguish its own causes is a blindfold.
+2. Per-component stress testing exonerated the wrong suspect: 400 invocations of the suspected hook at 16-way parallelism produced zero silence. A flake living in the INTERACTION of two files via shared global state is unreachable by component stress.
+
+
+
+### Features
+
+* **itp-hooks:** guard PR-review resolutions for citation evidence ([a926900](https://github.com/terrylica/cc-skills/commit/a926900d362b814683ec5143b2df33f54c9ca0a3))
+
+Enforces the operator directive of 2026-09-02, stated twice verbatim:
+
+  "Resolutions for PR reviews must contain verbatim citations and quotes from authoritative online sources, including the URL links as evidence, to demonstrate the state-of-the-artness of the solutions. This will help our solutions be more readily accepted by the PR reviewers."
+
+A directive in a prompt is a REQUEST, not a sandbox — this house has the incident to prove it (~20 unauthorised broker orders placed by agents whose prompts forbade trading). Enforcement has to live at the boundary where the text is published.
+
+WHAT IT FIRES ON
+
+Two mechanical conditions, on `gh pr comment` / `gh pr review` and the `gh api` writes to a PR's comments/reviews endpoints:
+
+1. NORMATIVE CLAIM, NO SOURCE — the body asserts best practice / state of the art / idiomatic / canonical / industry standard / recommended / per the spec, and cites no URL at all.
+2. SOURCE, NO VERBATIM QUOTE — it makes such a claim and links out but quotes nothing. A bare link asks the reviewer to go and find the supporting sentence, which is the work the citation was supposed to do.
+
+A `>` blockquote, a fenced block, or a quoted / inline-code span of at least 25 characters counts as a quote. The floor is load-bearing: almost every technical comment contains a symbol in backticks, and counting that would make condition 2 unreachable — a guard that can never fire is indistinguishable from one that was never written.
+
+WHY THE SCOPE IS DELIBERATELY NARROW
+
+NOT `gh pr create`/`edit` (a PR description is authored before review and is not a resolution OF review feedback), NOT issues, NOT releases. A guard that fires on "LGTM", "rebased onto main", or a one-line question is a guard that gets switched off within a week, and then it protects nothing. Narrow and alive beats broad and disabled. Claims about a MEASUREMENT ("this is faster: 1.2s vs 4.8s") are excluded on the same principle — those need a benchmark, not a citation.
+
+IT SHARES THE BODY COLLECTOR RATHER THAN RE-DERIVING IT
+
+Built on `lib/github-published-body-collector.ts`, extracted in the preceding commit, so it inherits the eight bypasses the hard-wrap guard closed one at a time — `gh api` field quoting shapes, `-F body=@file`, `--input` envelopes, `$(cat f)` substitutions, `$VAR` paths, same-command heredoc writes. A second implementation would have started with all eight open.
+
+WHAT IT CANNOT CHECK, SAID IN THE DENIAL MESSAGE ITSELF
+
+It fetches nothing. It cannot tell whether the quote is real, whether the URL resolves, or — the failure that actually matters — whether a real quote from a real source supports the claim it is attached to. The pr-evidence-standard skill measured exactly that: 64 of 64 URLs returned 200 and 64 of 64 quotes were verbatim, and SEVEN citations still failed, being genuine sources attached to claims of the wrong SCOPE or the wrong DIRECTION. So the message says the guard checks SHAPE, points at `verify-citations.ts` for content, and says plainly that a green verifier means the quote is REAL and never that the citation is CORRECT.
+
+VERIFICATION
+
+39 unit tests, 113/113 marketplace hook regression tests, and four end-to-end runs through the registered hook (deny on a claim with no source; allow with URL + blockquote; allow on "LGTM"; allow with the escape hatch).
+
+TWO DEFECTS THE TESTS CAUGHT IN MY OWN PREDICATE
+
+- `\bgh\s+pr\s+review\b` matched inside quoted prose, so `echo 'we should run gh pr review later'` and `grep -r 'gh pr comment'` answered true. Harmless in effect (an `echo` carries no `--body`, so nothing is collected) but a predicate named `targetsAPrReviewSurface` that says yes to an `echo` is a claim wider than its subject, which is the defect class this repo has twenty recorded instances of. Now requires `gh` at a COMMAND POSITION.
+- The first command-position pattern put environment assignments before wrappers, so `GH_TOKEN=x gh …` matched and `env GH_HOST=y gh …` did not. They interleave.
+
+The false-positive table is the important half of the test file and is labelled as such: every `allow` case is the evidence that the guard is narrow enough to survive.
+
+Escape hatch: `PR-CITATION-OK`, deliberately bare. The legitimate exceptions — answering a reviewer's factual question about this codebase, confirming a change landed — are common enough that demanding a written justification would only train people to write a throwaway one.
+
 ## [29.3.1](https://github.com/terrylica/cc-skills/compare/v29.3.0...v29.3.1) (2026-09-03)
 
 
