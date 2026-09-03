@@ -113,6 +113,77 @@ else
     assert_fails "Case 2: detector did NOT fire on a synthetic banner — Case 1 can never fail and proves nothing"
 fi
 
+# ─── Case 3: the FAILURE path still fails loudly ────────────────────────────
+#
+# Cases 1 and 2 only ever exercise a shim whose tool is INSTALLED, so they say
+# nothing about what happens when it is not. That gap is not hypothetical: on
+# 2026-09-02 a pinned bun install directory was renamed out from under this
+# machine, every shim invocation began returning proto::commands::run::missing_tool,
+# and the operator-visible text for all 703 resulting hook failures was, in full:
+#
+#   Failed with non-blocking status code: No stderr output
+#
+# The cause was invisible because proto still routes the ERROR through its
+# NDJSON reporter when it sniffs an agent environment, which puts the message on
+# STDOUT and leaves STDERR empty. moonrepo/proto#1105 fixed the banner on the
+# success path only; the error path is filed separately as moonrepo/proto#1110
+# and is open at the time of writing.
+#
+# What this case asserts is the property that actually keeps this repo safe, and
+# it is TRUE today: a failing shim must exit NON-ZERO. That is the difference
+# between #1105 and #1110. #1105 was catastrophic because it corrupted stdout at
+# exit code 0, so the harness accepted the garbage as a hook decision. #1110 is
+# merely opaque: exit 1 means the decision is discarded rather than believed, so
+# the guards fail safe. If proto ever started reporting a missing tool at exit
+# 0, THAT would be #1105 all over again — and this case is what catches it.
+#
+# It deliberately does NOT assert that the diagnostic lands on stderr. That is
+# the behaviour we want, but asserting it would paint the suite red until
+# upstream ships, and a test that goes red on good news gets muted. The stream
+# is reported instead, so a human reading the output learns the current state.
+PROTO_ERROR_PATH_DIRECTORY="$SHIM_STDOUT_CAPTURE_DIRECTORY/error-path"
+mkdir -p "$PROTO_ERROR_PATH_DIRECTORY"
+
+# A version that cannot plausibly exist, so this never reaches the network.
+# auto-install is pinned off locally: with it on, proto would try to DOWNLOAD
+# the missing version and we would be testing net::not_found instead.
+printf 'bun = "1.0.999"\n[settings]\nauto-install = false\n' \
+    >"$PROTO_ERROR_PATH_DIRECTORY/.prototools"
+
+ERROR_PATH_EXIT_CODE=0
+(
+    cd "$PROTO_ERROR_PATH_DIRECTORY" \
+        && AI_AGENT=claude-code CLAUDECODE=1 CLAUDE_CODE_ENTRYPOINT=cli \
+            "$PROTO_SHIM_FOR_BUN" --version
+) >"$PROTO_ERROR_PATH_DIRECTORY/stdout.txt" 2>"$PROTO_ERROR_PATH_DIRECTORY/stderr.txt" \
+    || ERROR_PATH_EXIT_CODE=$?
+
+ERROR_PATH_STDOUT_BYTES=$(wc -c <"$PROTO_ERROR_PATH_DIRECTORY/stdout.txt" | tr -d ' ')
+ERROR_PATH_STDERR_BYTES=$(wc -c <"$PROTO_ERROR_PATH_DIRECTORY/stderr.txt" | tr -d ' ')
+
+if [[ "$ERROR_PATH_EXIT_CODE" -eq 0 ]]; then
+    assert_fails "Case 3: a shim whose pinned tool is NOT installed exited 0 — the harness would accept its output as a hook decision. This is the moonrepo/proto#1105 failure class returning on the error path."
+else
+    assert_passes "Case 3: a shim whose pinned tool is NOT installed exits non-zero (got $ERROR_PATH_EXIT_CODE), so the hook decision is discarded rather than believed"
+fi
+
+if [[ "$ERROR_PATH_STDOUT_BYTES" -eq 0 && "$ERROR_PATH_STDERR_BYTES" -eq 0 ]]; then
+    assert_fails "Case 3: the failing shim produced NO diagnostic on either stream — a silent non-zero exit is undebuggable by construction"
+else
+    assert_passes "Case 3: the failing shim produced a diagnostic ($ERROR_PATH_STDOUT_BYTES B stdout, $ERROR_PATH_STDERR_BYTES B stderr)"
+fi
+
+if [[ "$ERROR_PATH_STDERR_BYTES" -eq 0 && "$ERROR_PATH_STDOUT_BYTES" -gt 0 ]]; then
+    echo "    NOTE: the diagnostic went to STDOUT with STDERR empty — moonrepo/proto#1110,"
+    echo "          still open. A harness that reports a failed hook by echoing its stderr"
+    echo "          shows the operator nothing. This is why hook failures read as"
+    echo "          'No stderr output'. Nothing to fix here; the note tracks upstream."
+elif [[ "$ERROR_PATH_STDERR_BYTES" -gt 0 ]]; then
+    echo "    NOTE: the diagnostic reached STDERR. moonrepo/proto#1110 appears to be FIXED"
+    echo "          on this proto. Consider raising the .prototools proto floor to that"
+    echo "          version and deleting this note."
+fi
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo "  Summary — passed: $ASSERTION_PASSED_COUNT, failed: $ASSERTION_FAILED_COUNT"
