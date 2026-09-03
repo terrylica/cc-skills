@@ -6,13 +6,9 @@ verdict — the harness `test-iter180-*.sh` / `test-iter181-*.sh` invoke end-to-
 
 ## Problem
 
-A few regression tests assert **absolute wall-clock caps** (e.g. iter-167's
-"median < 700ms", iter-174's per-scenario `median ≤ cap`). Those caps are useful
-when a human runs the test deliberately, but they **flake under heavy load** —
-most visibly during a release, where `release:preflight` runs the whole
-hook-regression suite while semantic-release and its subprocesses compete for the
-CPU. A transient spike blows a cap and **spuriously blocks the release**, even
-though nothing regressed (the same test passes instantly when re-run standalone).
+> **Updated 2026-09-03.** iter-167 no longer asserts a wall-clock cap at all — its Group D now counts `git log` **forks** at runtime (1 vs the pre-iter-167 101), which is load-invariant, so the flag there controls only whether the informational benchmark is _measured_. It remains a live consumer, but as telemetry rather than as a downgraded assertion. iter-174 still carries a genuine cap and is the remaining example. Two things that change drove it: the flag was wired ONLY into `tasks/release/preflight`, never into `moon.yml`'s `test-hooks` — so `moon run repo:check`, the gate before every push, was never covered — and on the path it _did_ cover it downgraded iter-167's ONLY Group D assertion, so Group D asserted nothing while still printing full marks. A downgrade that empties a group is indistinguishable from a passing group.
+
+A few regression tests assert **absolute wall-clock caps** (e.g. iter-174's per-scenario `median ≤ cap`). Those caps are useful when a human runs the test deliberately, but they **flake under heavy load** — most visibly during a release, where `release:preflight` runs the whole hook-regression suite while semantic-release and its subprocesses compete for the CPU. A transient spike blows a cap and **spuriously blocks the release**, even though nothing regressed (the same test passes instantly when re-run standalone). Measured 2026-09-03 on the iter-167 cap before it was replaced: correct code under load ran 713 ms while the DELIBERATELY BROKEN implementation ran 816 ms on an idle machine — so the cap could not separate "busy machine" from "regression", and was additionally decaying, since the broken path had fallen from its 1184 ms baseline to 816 ms and a slightly faster machine would have passed it outright.
 
 ## Solution
 

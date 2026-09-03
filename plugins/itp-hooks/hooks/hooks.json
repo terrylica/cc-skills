@@ -1,5 +1,5 @@
 {
-  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, SR&ED commit validation, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync, file size bloat prevention",
+  "description": "ITP workflow enforcement - implementation standards, documentation coupling, fake data guard, code correctness, process storm prevention, Vale terminology enforcement, GLOSSARY.md bidirectional sync, file size bloat prevention",
   "hooks": {
     "PreToolUse": [
       {

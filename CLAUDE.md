@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **42 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **41 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -40,12 +40,13 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Cargo TTY Fix             | [docs/cargo-tty-suspension-prevention.md](./docs/cargo-tty-suspension-prevention.md)                                         |
 | Claude Code Proxy         | [devops-tools/skills/claude-code-proxy-patterns/SKILL.md](./plugins/devops-tools/skills/claude-code-proxy-patterns/SKILL.md) |
 | Release                   | [docs/RELEASE.md](./docs/RELEASE.md)                                                                                         |
+| Migration (v23)           | [docs/MIGRATING-TO-V23.md](./docs/MIGRATING-TO-V23.md)                                                                       |
 | Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
 | Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
-### Plugin CLAUDE.md Files (42/42)
+### Plugin CLAUDE.md Files (41/41)
 
 Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep it that way: a new plugin ships one in the same commit that creates it. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
@@ -55,7 +56,7 @@ Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep i
 
 ### Machine-readable CLI spec (`cli_spec.json`)
 
-Per the cross-repo CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`; cc-skills is repo 2 of the 4-repo rollout), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 35 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `moon run repo:cli-spec`; drift+completeness gate: `moon run repo:cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
+Per the cross-repo CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`; cc-skills is repo 2 of the 4-repo rollout), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 37 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `moon run repo:cli-spec`; drift+completeness gate: `moon run repo:cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
 
 Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [tts-tg-sync](./plugins/tts-tg-sync/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md) | [claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)
 
@@ -73,7 +74,7 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 | Add plugin        | `/plugin-dev:create plugin-name`   |
 | Autonomous loop   | `/itp:go feature-name -b`          |
 
-`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test` and `repo:test-hooks`. Task targets are `repo:<name>` with a hyphen, not `mise run <group>:<name>`; this repo's `.prototools` states plainly that jdx/mise is not used, and `.mise.toml` carries no `[tasks]` table at all.
+`moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test`, `repo:test-hooks`, `repo:cli-spec-check` and `repo:verify-doc-counts`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here and jdx/mise is neither installed nor used; the former `.mise.toml` was deleted because its `[tools]` block pinned bun 1.3 against `.prototools`' 1.4.0 — two toolchain files disagreeing about the same tool, which is the exact drift that silently broke every bun-backed hook on 2026-09-03.
 
 ## Plugin Discovery
 
@@ -90,19 +91,18 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 42 plugins)
-├── plugins/                         ← 42 marketplace plugins (each has CLAUDE.md)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 41 plugins)
+├── plugins/                         ← 41 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
-│   ├── mise/                        ← User-global mise workflow commands
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
 │   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
 │   ├── macro-keyboard/              ← Karabiner remap for cheap 3-key pads (skill-level CLAUDE.mds)
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
-│   ├── design/                      ← Implementation specs (33 of 58 ADRs have one)
+│   ├── design/                      ← Implementation specs (33 of 59 ADRs have one)
 │   ├── HOOKS.md                     ← Hook development patterns
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
@@ -150,7 +150,7 @@ Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never g
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 42 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
+Recurring architectural patterns across the 41 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
 
 Historical context, **not** current guidance: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md) is a dated 2026-03-02 audit of a 23-plugin repo that argues the opposite of the rule below — it recommends extracting shared patterns into common modules. It was cited here as a "deeper dive", which read as endorsement. Measured 2026-09-02 and recorded so nobody re-litigates it: `md5` across all 125 files in the 14 per-plugin `lib/` and `_lib/` directories found **zero** byte-identical pairs. There is no code duplication to extract; the similarity is conventional, not literal.
 

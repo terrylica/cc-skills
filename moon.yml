@@ -36,7 +36,13 @@ tasks:
 
   check:
     description: "Full local quality gate. Local-first CI/CD: this is what runs before a push, never GitHub Actions."
-    deps: ["~:lint", "~:test", "~:test-hooks"]
+    # cli-spec-check was defined but NOT wired in here, so the machine-readable
+    # CLI spec's own no-silent-drift control was never part of the gate CLAUDE.md
+    # calls "what runs before a push". It sat red on a clean tree for ~14 days and
+    # nothing reported it — the second occurrence of this exact failure (the prior
+    # regen commit is titled "regenerate to unbreak the drift gate"). A gate that
+    # is not in the gate is not a gate.
+    deps: ["~:lint", "~:test", "~:test-hooks", "~:cli-spec-check", "~:verify-doc-counts"]
 
   # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
   cli-spec:
@@ -46,6 +52,17 @@ tasks:
   cli-spec-check:
     description: "Fail if cli_spec.json has drifted from the CLIs on disk."
     script: "bash tasks/cli-spec-check.sh"
+
+  # ── Documentation counts ───────────────────────────────────────────────────
+  verify-doc-counts:
+    # Root CLAUDE.md was found asserting a design-spec coverage that was wrong by
+    # 32, a plugin count wrong by 1, and a CLI count wrong by 2. It is the first
+    # file every agent reads, so a miscount there teaches every reader to distrust
+    # the whole file. Hand-maintained tallies drift; this makes recounting a gate
+    # instead of advice. It reports INCONCLUSIVE (non-zero) rather than passing if
+    # a claim's pattern stops matching, so rewording a heading cannot silence it.
+    description: "Fail if the counts asserted in CLAUDE.md / plugins/CLAUDE.md disagree with the filesystem."
+    script: "bun scripts/verify-doc-counts.ts"
 
   # ── Release pipeline ───────────────────────────────────────────────────────
   release-full:

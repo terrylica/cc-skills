@@ -205,7 +205,7 @@ MSG
 #
 # — which contains no endpoint, no method, and no curl flag, because the fetch() lives in the file.
 # Verified ALLOW by every prior layer. This is not hypothetical and not new: it has now happened
-# three times against the same client mailbox — `bash /tmp/[redacted].sh` earlier the same day,
+# three times against the same client mailbox — `bash /tmp/example-client-make-draft.sh` earlier the same day,
 # and a Bun script that evening. Both shipped the exact defect Layer 1 exists to prevent (a body
 # carrying a formatter's ~100-col hard wrapping, delivered as text/plain and hard-folded again by
 # Gmail into forced mid-sentence breaks), and one also shipped a mojibaked Subject.

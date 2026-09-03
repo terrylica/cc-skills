@@ -26,6 +26,14 @@
  * cheaper than the rewrite, which is why this guard fails the commit rather
  * than warning about it.
  *
+ * Do NOT read the rewrite above as this repo's general incident response. It
+ * is the IRREVOCABLE-disclosure path. For a leaked CREDENTIAL the opposite
+ * applies — rotate, never rewrite — because rotation makes the published bytes
+ * inert while a rewrite breaks every consumer for no security gain. The two
+ * doctrines sat in this repo contradicting each other with nothing reconciling
+ * them until docs/adr/2026-09-03-revocability-determines-the-disclosure-response.md,
+ * which is the entry point for deciding which path an incident takes.
+ *
  * # Scope
  *
  * Staged content only, at commit time. Full-history scanning is a separate,
