@@ -43,7 +43,6 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | Plugin Lifecycle          | [docs/PLUGIN-LIFECYCLE.md](./docs/PLUGIN-LIFECYCLE.md)                                                                       |
 | Troubleshooting           | [docs/troubleshooting/](./docs/troubleshooting/)                                                                             |
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
-| Resume Context            | [docs/RESUME.md](./docs/RESUME.md)                                                                                           |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
 ### Plugin CLAUDE.md Files (42/42)

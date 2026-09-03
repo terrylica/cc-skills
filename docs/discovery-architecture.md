@@ -272,8 +272,8 @@ allowed-tools: Read, Edit, Grep, Glob
 
 ## Related Tasks
 
-- **Task 1**: Documentation Standards Audit (completed) - standards-compliance-matrix.md
-- **Task 2**: Format Inventory (completed) - format-inventory.md
+- **Task 1**: Documentation Standards Audit (completed) - artifact retired 2026-09-02, superseded by `scripts/validate-plugins.mjs`
+- **Task 2**: Format Inventory (completed) - artifact retired 2026-09-02, its counts were a 2026-03-02 snapshot
 - **Task 4**: Version Consistency Strategy - in progress
 - **Task 6**: Content Deduplication Analysis - parallel task
 - **Task 7**: Metadata & Linking Framework - parallel task

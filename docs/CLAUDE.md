@@ -13,7 +13,6 @@ docs/
 ├── troubleshooting/        ← Issue resolution guides
 ├── HOOKS.md                ← Hook development guide
 ├── RELEASE.md              ← Release workflow guide
-├── RESUME.md               ← Session resume context
 └── plugin-authoring.md     ← Shell compatibility patterns
 ```
 
@@ -38,11 +37,10 @@ docs/
 | Document                                                                   | Purpose                         |
 | -------------------------------------------------------------------------- | ------------------------------- |
 | [HOOKS.md](./HOOKS.md)                                                     | Hook development patterns       |
-| [RELEASE.md](./RELEASE.md)                                                 | Release workflow (mise tasks)   |
+| [RELEASE.md](./RELEASE.md)                                                 | Release workflow (moon tasks)   |
 | [PLUGIN-LIFECYCLE.md](./PLUGIN-LIFECYCLE.md)                               | Plugin internals & config       |
 | [cargo-tty-suspension-prevention.md](./cargo-tty-suspension-prevention.md) | Cargo TTY fix (PUEUE isolation) |
 | [LESSONS.md](./LESSONS.md)                                                 | Lessons learned (extracted)     |
-| [RESUME.md](./RESUME.md)                                                   | Session resume context          |
 | [plugin-authoring.md](./plugin-authoring.md)                               | Shell compatibility             |
 | [pii-staged-content-guard.md](./pii-staged-content-guard.md)               | Pre-commit PII guard            |
 | [troubleshooting/](./troubleshooting/)                                     | Issue resolution                |
