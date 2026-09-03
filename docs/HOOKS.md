@@ -2517,7 +2517,7 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 | Plugin               | Hook Types                    | Purpose                             |
 | -------------------- | ----------------------------- | ----------------------------------- |
-| `itp-hooks`          | PreToolUse, PostToolUse, Stop | Workflow + SR&ED + GPU optimization |
+| `itp-hooks`          | PreToolUse, PostToolUse, Stop | Workflow + GPU optimization |
 | `ru`                 | PreToolUse, Stop              | Autonomous loop control             |
 | `gh-tools`           | PreToolUse, PostToolUse       | GitHub CLI enforcement              |
 | `dotfiles-tools`     | PostToolUse, Stop             | Chezmoi sync reminder               |
