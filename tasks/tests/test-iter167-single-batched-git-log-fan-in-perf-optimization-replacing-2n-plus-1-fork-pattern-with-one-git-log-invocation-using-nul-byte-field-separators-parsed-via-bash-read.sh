@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-167 single-batched-git-log-fan-in perf regression test. Iter-165 originally invoked git log 2N+1 times per pending-release computation (1 for SHA list + 2 per commit for subject + body), making fork+exec overhead dominate at large N. Iter-167 collapses this to a single git log call with NUL-byte field separators parsed in pure bash via three IFS= read -r -d '' calls per record. Empirical benchmark at N=50 synthetic commits on Apple Silicon shows about 5x speedup (1184ms baseline median to 228ms optimized median, ~956ms absolute time saved). Test asserts (a) iter-165 source contains the canonical iter-167 NUL-separator pattern (format string '%H%x00%s%x00%b%x00') proving fan-in optimization is in place, (b) iter-165 source does NOT contain the pre-iter-167 'git log -1 --format' per-commit pattern (proves 2N-fork code removed), (c) post-iter-167 latency at N=50 stays under 700ms median across 3 runs (well below 1184ms pre-iter-167 baseline; headroom for CI variance), (d) post-iter-167 produces IDENTICAL classification output as the same N=50 scenario (correctness invariant — optimization must preserve aggregator semantics). Test also emits raw benchmark numbers (min/median/max) for operator reference."
+#MISE description="Iter-167 single-batched-git-log-fan-in perf regression test. Iter-165 originally invoked git log 2N+1 times per pending-release computation (1 for SHA list + 2 per commit for subject + body), making fork+exec overhead dominate at large N. Iter-167 collapses this to a single git log call with NUL-byte field separators parsed in pure bash via three IFS= read -r -d '' calls per record. Test asserts (a) iter-165 source contains the canonical iter-167 NUL-separator pattern (format string '%H%x00%s%x00%b%x00') proving fan-in optimization is in place, (b) iter-165 source does NOT contain the pre-iter-167 'git log -1 --format' per-commit pattern (proves 2N-fork code removed), (c) the FORK-COUNT invariant that iter-167 actually established — a counting git PATH shim observes exactly ONE 'git log' fork per aggregator run at N=50, and the SAME count at N=8, i.e. git-log forks are O(1) in N rather than the pre-iter-167 2N+1 (17 at N=8, 101 at N=50; both measured), (d) post-iter-167 produces IDENTICAL classification output as the same N=50 scenario (correctness invariant — optimization must preserve aggregator semantics). Group D deliberately asserts the fork COUNT rather than a wall-clock cap: an absolute millisecond threshold measures the machine, not the code, and went red during a real release run purely because the host was busy. Wall-clock numbers (min/median/max at N=50) are still emitted for operator reference but are INFORMATIONAL and never gate; iter-165's wall-clock is gated separately by test-iter174-*.sh scenario A5, which owns latency baselines for the whole toolkit."
 set -euo pipefail
 
 # Absolute dir of THIS script — resolved before any cd so the shared perf-timing
@@ -9,9 +9,12 @@ ITER167_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ITER167_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 cd "$ITER167_REPO_ROOT"
 
-# Shared perf-timing gate control (CC_SKILLS_SKIP_PERF_TIMING). Downgrades the
-# load-sensitive Group D wall-clock assertion to informational under the release
-# preflight; structural/correctness assertions (Groups A-C) always gate.
+# Shared perf-timing gate control (CC_SKILLS_SKIP_PERF_TIMING). Group D no
+# longer GATES on wall clock at all (see the Group D header for why), so this
+# flag now controls whether the load-sensitive wall-clock BENCHMARK is measured
+# at all: under the release preflight the numbers would be meaningless anyway,
+# so we skip the four aggregator runs and say so. Every assertion in this file —
+# Groups A-D — gates unconditionally, flag set or not.
 # shellcheck source=/dev/null
 source "$ITER167_SCRIPT_DIR/../../scripts/lib/perf-timing-skip.sh"
 
@@ -65,6 +68,61 @@ iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_
     )
     time_after=$(perl -MTime::HiRes=time -e 'print time')
     perl -e "printf '%.3f', ($time_after - $time_before) * 1000"
+}
+
+# Count how many `git log` processes ONE aggregator run actually forks.
+#
+# This is the direct measurement of what iter-167 changed. A counting shim named
+# `git` is placed at the head of PATH for exactly one aggregator invocation; it
+# appends the git subcommand to a log file and then execs the REAL git by
+# absolute path, so behaviour is bit-identical and only the invocation count is
+# observed. The shim reads its two parameters from the environment rather than
+# having them interpolated into its body, which keeps the generated script fully
+# single-quoted and immune to quoting accidents.
+#
+# Deliberately NOT used for timing: the extra bash wrapper per fork inflates
+# wall clock. Fork COUNT is an integer, is identical on a loaded and an idle
+# machine, and separates the two implementations by 101 to 1 rather than by a
+# ratio that shrinks as hardware gets faster.
+iter167_count_git_log_forks_issued_by_a_single_aggregator_invocation_against_target_repo() {
+    local target_repo="$1"
+    local shim_directory shim_invocation_log real_git_absolute_path observed_git_log_fork_count
+    shim_directory=$(mktemp -d -t iter167-git-fork-counting-shim-XXXXXX)
+    shim_invocation_log="$shim_directory/git-subcommand-invocations.log"
+    : >"$shim_invocation_log"
+    real_git_absolute_path=$(command -v git)
+
+    # Records the first non-option argument — the git subcommand — so that
+    # `git log …`, `git describe …` and `git rev-parse …` are told apart.
+    cat >"$shim_directory/git" <<'ITER167_GIT_COUNTING_SHIM_BODY'
+#!/usr/bin/env bash
+# Transient counting shim installed by the iter-167 regression test. Records the
+# subcommand of this invocation, then hands over to the real git unchanged.
+for iter167_each_shim_argument in "$@"; do
+    case "$iter167_each_shim_argument" in
+    -*) ;;
+    *)
+        printf '%s\n' "$iter167_each_shim_argument" >>"${ITER167_GIT_FORK_COUNTING_SHIM_LOG_ABSOLUTE_PATH:-/dev/null}"
+        break
+        ;;
+    esac
+done
+exec "$ITER167_REAL_GIT_ABSOLUTE_PATH_FOR_SHIM_DELEGATION" "$@"
+ITER167_GIT_COUNTING_SHIM_BODY
+    chmod +x "$shim_directory/git"
+
+    (
+        cd "$target_repo"
+        ITER167_GIT_FORK_COUNTING_SHIM_LOG_ABSOLUTE_PATH="$shim_invocation_log" \
+            ITER167_REAL_GIT_ABSOLUTE_PATH_FOR_SHIM_DELEGATION="$real_git_absolute_path" \
+            PATH="$shim_directory:$PATH" \
+            bash "$ITER167_AGGREGATOR_SCRIPT_ABSOLUTE_PATH" --json >/dev/null 2>&1
+    )
+
+    # grep -c exits 1 on zero matches; it still prints the 0 we want to report.
+    observed_git_log_fork_count=$(grep -cx 'log' "$shim_invocation_log" || true)
+    rm -rf "$shim_directory"
+    echo "$observed_git_log_fork_count"
 }
 
 echo ""
@@ -182,44 +240,94 @@ fi
 rm -rf "$ITER167_MULTILINE_BODY_REPO"
 rm -rf "$ITER167_CORRECTNESS_REPO"
 
-# ─── Group D: performance regression guard ──────────────────────────────────
+# ─── Group D: fork-count regression guard ───────────────────────────────────
+#
+# What this group used to be, and why it changed
+# ----------------------------------------------
+# Group D used to assert an ABSOLUTE wall-clock cap: "N=50 median < 700ms". That
+# threshold measures the machine, not the code. It went red during a real release
+# run on a host with ~18 concurrent agent sessions while passing 9/9 standalone —
+# and the failure mode is the harmful direction: a red gate caused by ambient
+# load teaches people to re-run until green, which is exactly how a genuine
+# regression gets waved through. It also decays: measured here, the pre-iter-167
+# implementation now completes N=50 in ~816ms on this hardware, so as machines
+# get faster the 700ms cap will eventually pass ON BROKEN CODE.
+#
+# What iter-167 actually changed is a FORK COUNT — 2N+1 `git log` invocations
+# collapsed to 1 — so that is what is asserted. It is an integer, it is identical
+# on an idle and a loaded machine, and it separates the two implementations by
+# 101 to 1 instead of by a shrinking millisecond margin. Measured both ways while
+# making this change (see the negative-control numbers in D1/D2 labels below).
+#
+# Alternatives weighed and rejected:
+#   * A self-relative ratio t(N=50)/t(N=10) in one run. Measured: 2.76 optimized
+#     vs 3.87 pre-iter-167 — only a 1.4x separation, because the aggregator's
+#     per-commit work is O(N) in bash and dominates the ratio. Too weak.
+#   * Running a copy of the pre-iter-167 code path alongside for a speedup ratio.
+#     That means carrying a duplicate implementation in the test forever; it
+#     references the same three ITER167_* array names, so a rename would silently
+#     turn the "baseline" into something that is no longer the old path while it
+#     still produces a plausible-looking ratio.
+#
+# Wall-clock is still MEASURED and REPORTED below for operator reference, but it
+# does not gate here. iter-165's latency is gated by test-iter174-*.sh scenario
+# A5, which owns wall-clock baselines for the whole toolkit and already carries
+# the CC_SKILLS_SKIP_PERF_TIMING downgrade — this group was duplicating it.
 echo ""
-echo "GROUP D (1 assertion + benchmark report): post-iter-167 N=50 median wall-clock under 700ms (pre-iter-167 baseline was 1184ms)"
+echo "GROUP D (2 assertions + informational benchmark): git-log fork count is O(1) in N, not the pre-iter-167 2N+1"
 
 ITER167_PERF_REPO=$(iter167_synthesize_temporary_git_repo_with_n_synthetic_commits_since_tag_for_perf_benchmark 50)
+ITER167_SMALL_FORK_COUNT_REPO=$(iter167_synthesize_temporary_git_repo_with_n_synthetic_commits_since_tag_for_perf_benchmark 8)
 
-# Warm-up run (page cache, lib sourcing) — discard.
-iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO" >/dev/null
+ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50=$(iter167_count_git_log_forks_issued_by_a_single_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
+ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_8=$(iter167_count_git_log_forks_issued_by_a_single_aggregator_invocation_against_target_repo "$ITER167_SMALL_FORK_COUNT_REPO")
+ITER167_EXPECTED_GIT_LOG_FORK_COUNT_AFTER_FAN_IN=1
 
-# 3 measured runs.
-ITER167_BENCHMARK_RUN_1_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
-ITER167_BENCHMARK_RUN_2_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
-ITER167_BENCHMARK_RUN_3_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
+echo "    observed git-log forks: N=8 → ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_8}   N=50 → ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50}"
+echo "    pre-iter-167 (2N+1):    N=8 → 17                  N=50 → 101   (both measured against a reverted copy)"
 
-# Compute median (sort 3 numbers, take middle).
-ITER167_BENCHMARK_MEDIAN_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 2p)
-ITER167_BENCHMARK_MIN_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 1p)
-ITER167_BENCHMARK_MAX_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 3p)
-
-echo "    benchmark runs (N=50): ${ITER167_BENCHMARK_RUN_1_MILLISECONDS}ms / ${ITER167_BENCHMARK_RUN_2_MILLISECONDS}ms / ${ITER167_BENCHMARK_RUN_3_MILLISECONDS}ms"
-echo "    benchmark stats:       min=${ITER167_BENCHMARK_MIN_MILLISECONDS}ms  median=${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms  max=${ITER167_BENCHMARK_MAX_MILLISECONDS}ms"
-echo "    pre-iter-167 baseline: ~1184ms median (5-run measurement, same N=50 scenario)"
-
-ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS=700
 ITER167_TOTAL_ASSERTIONS_EVALUATED=$((ITER167_TOTAL_ASSERTIONS_EVALUATED + 1))
-if perf_timing_skip_active; then
-    # Load-sensitive absolute-cap check downgraded to informational (release
-    # preflight sets CC_SKILLS_SKIP_PERF_TIMING). The NUL-separator structural
-    # pins in Groups A-C still gate; run this test standalone to enforce timing.
-    echo "  ⊘ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms — perf timing NOT gated (CC_SKILLS_SKIP_PERF_TIMING set; threshold ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms)"
-elif perl -e "exit !(${ITER167_BENCHMARK_MEDIAN_MILLISECONDS} < ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS})"; then
-    echo "  ✓ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms < ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms threshold (perf regression guard) — speedup vs ~1184ms baseline: ≈$(perl -e "printf '%.2f', 1184 / ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}")×"
+if (( ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50 == ITER167_EXPECTED_GIT_LOG_FORK_COUNT_AFTER_FAN_IN )); then
+    echo "  ✓ D1: N=50 aggregator run forks 'git log' exactly ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50}× (pre-iter-167 forked 101×) — single-batched fan-in in force at runtime, not just in the source text"
 else
-    echo "  ✗ D1: post-iter-167 median ${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms exceeded ${ITER167_PERF_REGRESSION_THRESHOLD_MILLISECONDS}ms threshold — single-batched-git-log-fan-in optimization may have regressed"
+    echo "  ✗ D1: N=50 aggregator run forked 'git log' ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50}× (expected ${ITER167_EXPECTED_GIT_LOG_FORK_COUNT_AFTER_FAN_IN}) — the single-batched-git-log fan-in has regressed"
     ITER167_TOTAL_ASSERTIONS_FAILED=$((ITER167_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
+ITER167_TOTAL_ASSERTIONS_EVALUATED=$((ITER167_TOTAL_ASSERTIONS_EVALUATED + 1))
+if (( ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_8 == ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50 )); then
+    echo "  ✓ D2: git-log fork count is INVARIANT in N (${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_8} at N=8, ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50} at N=50) — O(1), the property iter-167 established; the 2N+1 shape would read 17 vs 101"
+else
+    echo "  ✗ D2: git-log fork count GROWS with N (${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_8} at N=8 → ${ITER167_OBSERVED_GIT_LOG_FORK_COUNT_AT_N_50} at N=50) — per-commit forking has returned"
+    ITER167_TOTAL_ASSERTIONS_FAILED=$((ITER167_TOTAL_ASSERTIONS_FAILED + 1))
+fi
+
+# Informational wall-clock benchmark. Never gates — see the group header. Under
+# the release preflight the host is too loaded for the number to mean anything,
+# so the four runs are skipped outright rather than measured and ignored.
+if perf_timing_skip_active; then
+    echo "    wall-clock benchmark:  skipped (CC_SKILLS_SKIP_PERF_TIMING set — host under release load, timing would be noise)"
+else
+    # Warm-up run (page cache, lib sourcing) — discard.
+    iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO" >/dev/null
+
+    # 3 measured runs.
+    ITER167_BENCHMARK_RUN_1_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
+    ITER167_BENCHMARK_RUN_2_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
+    ITER167_BENCHMARK_RUN_3_MILLISECONDS=$(iter167_measure_wall_clock_milliseconds_of_aggregator_invocation_against_target_repo "$ITER167_PERF_REPO")
+
+    # Compute median (sort 3 numbers, take middle).
+    ITER167_BENCHMARK_MEDIAN_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 2p)
+    ITER167_BENCHMARK_MIN_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 1p)
+    ITER167_BENCHMARK_MAX_MILLISECONDS=$(printf '%s\n' "$ITER167_BENCHMARK_RUN_1_MILLISECONDS" "$ITER167_BENCHMARK_RUN_2_MILLISECONDS" "$ITER167_BENCHMARK_RUN_3_MILLISECONDS" | sort -n | sed -n 3p)
+
+    echo "    benchmark runs (N=50): ${ITER167_BENCHMARK_RUN_1_MILLISECONDS}ms / ${ITER167_BENCHMARK_RUN_2_MILLISECONDS}ms / ${ITER167_BENCHMARK_RUN_3_MILLISECONDS}ms  [INFORMATIONAL — does not gate]"
+    echo "    benchmark stats:       min=${ITER167_BENCHMARK_MIN_MILLISECONDS}ms  median=${ITER167_BENCHMARK_MEDIAN_MILLISECONDS}ms  max=${ITER167_BENCHMARK_MAX_MILLISECONDS}ms"
+    echo "    pre-iter-167 baseline: ~1184ms median (5-run measurement, same N=50 scenario, original hardware)"
+fi
+
 rm -rf "$ITER167_PERF_REPO"
+rm -rf "$ITER167_SMALL_FORK_COUNT_REPO"
 
 # ─── Final report ───────────────────────────────────────────────────────────
 echo ""
