@@ -92,7 +92,7 @@ fi
 # Only run if marketplace.json or plugins/ changed
 CHANGED_FILES=$(git diff --cached --name-only 2>/dev/null || true)
 
-if echo "$CHANGED_FILES" | grep -qE '^(plugins/|\.claude-plugin/marketplace\.json)'; then
+if grep -qE '^(plugins/|\.claude-plugin/marketplace\.json)' <<<"$CHANGED_FILES"; then
     echo "🔍 Validating plugin registration..."
 
     if ! bun scripts/validate-plugins.mjs; then

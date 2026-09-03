@@ -51,43 +51,89 @@ FAIL=0
 # Feed PAYLOAD as JSON via stdin; capture stdout. Hook always exits 0 (per
 # cc-skills hook convention); the distinction between "fire" and "skip" is
 # whether stdout contains a `decision` field.
+# Detail of the most recent hook execution failure, for the assertion to report.
+HOOK_FAILURE_DETAIL=''
+
+# Returns: 0 = hook ran and emitted a reminder
+#          1 = hook ran cleanly but stayed silent (a genuine no-reminder result)
+#          2 = hook itself failed to run (crash / non-zero exit)
+#
+# The three-way return replaces a two-way one whose `|| true` laundered a hook
+# CRASH into an empty string — which the assertion then reported as "expected
+# reminder, got silence", i.e. a detection message for what may have been an
+# execution failure. stderr is captured, not discarded, so a real failure names
+# itself.
+#
+# The payload is fed by here-string, not `printf ... | hook`: under
+# `set -o pipefail` a pipe reports the PRODUCER's SIGPIPE (141) whenever the hook
+# exits before draining stdin, which is indistinguishable from a real hook
+# failure. A here-string has no pipe, so `$?` is the hook's own status.
 hook_emits_reminder() {
   local command_to_test="$1"
   local payload
   payload=$(jq -n --arg cmd "$command_to_test" '{tool_input: {command: $cmd}}')
-  local hook_stdout
-  hook_stdout=$(printf '%s' "$payload" | "$HOOK_UNDER_TEST" 2>/dev/null || true)
-  if echo "$hook_stdout" | grep -q '"decision"'; then
-    return 0  # reminder emitted
-  else
-    return 1  # silent (no reminder)
+  local hook_stdout hook_stderr_file hook_rc
+  hook_rc=0
+  hook_stderr_file=$(mktemp)
+  hook_stdout=$("$HOOK_UNDER_TEST" <<<"$payload" 2>"$hook_stderr_file") || hook_rc=$?
+  if [ "$hook_rc" -ne 0 ]; then
+    HOOK_FAILURE_DETAIL="hook exited $hook_rc; stderr: $(cat "$hook_stderr_file")"
+    rm -f "$hook_stderr_file"
+    return 2
   fi
+  rm -f "$hook_stderr_file"
+  if grep -q '"decision"' <<<"$hook_stdout"; then
+    return 0  # reminder emitted
+  fi
+  return 1  # silent (no reminder)
 }
 
 assert_emits_reminder() {
   local desc="$1"
   local command_to_test="$2"
-  if hook_emits_reminder "$command_to_test"; then
-    echo "  ✓ PASS: $desc"
-    PASS=$((PASS+1))
-  else
-    echo "  ✗ FAIL: $desc (expected reminder, got silence)"
-    echo "    command: $command_to_test"
-    FAIL=$((FAIL+1))
-  fi
+  local rc=0
+  hook_emits_reminder "$command_to_test" || rc=$?
+  case "$rc" in
+    0)
+      echo "  ✓ PASS: $desc"
+      PASS=$((PASS+1))
+      ;;
+    2)
+      echo "  ✗ FAIL: $desc (hook FAILED TO RUN — execution failure, not a detection miss)"
+      echo "    $HOOK_FAILURE_DETAIL"
+      echo "    command: $command_to_test"
+      FAIL=$((FAIL+1))
+      ;;
+    *)
+      echo "  ✗ FAIL: $desc (hook ran cleanly but emitted no reminder)"
+      echo "    command: $command_to_test"
+      FAIL=$((FAIL+1))
+      ;;
+  esac
 }
 
 assert_silent() {
   local desc="$1"
   local command_to_test="$2"
-  if ! hook_emits_reminder "$command_to_test"; then
-    echo "  ✓ PASS: $desc"
-    PASS=$((PASS+1))
-  else
-    echo "  ✗ FAIL: $desc (expected silence, got reminder)"
-    echo "    command: $command_to_test"
-    FAIL=$((FAIL+1))
-  fi
+  local rc=0
+  hook_emits_reminder "$command_to_test" || rc=$?
+  case "$rc" in
+    1)
+      echo "  ✓ PASS: $desc"
+      PASS=$((PASS+1))
+      ;;
+    2)
+      echo "  ✗ FAIL: $desc (hook FAILED TO RUN — execution failure, not silence)"
+      echo "    $HOOK_FAILURE_DETAIL"
+      echo "    command: $command_to_test"
+      FAIL=$((FAIL+1))
+      ;;
+    *)
+      echo "  ✗ FAIL: $desc (expected silence, got reminder)"
+      echo "    command: $command_to_test"
+      FAIL=$((FAIL+1))
+      ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------

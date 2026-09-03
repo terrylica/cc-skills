@@ -74,7 +74,7 @@ while IFS= read -r line; do
         fi
 
         # Check if branch is in merged list
-        if echo "$MERGED" | grep -q "^${BRANCH_NAME}$"; then
+        if grep -q "^${BRANCH_NAME}$" <<<"$MERGED"; then
             if [[ $FOUND_STALE -eq 0 ]]; then
                 echo "Stale worktrees (branch merged to main):"
                 echo ""
