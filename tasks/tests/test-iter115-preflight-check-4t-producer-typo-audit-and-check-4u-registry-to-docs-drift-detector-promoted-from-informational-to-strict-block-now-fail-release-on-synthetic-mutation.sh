@@ -122,6 +122,47 @@ else
     assert_fails "Case 1: preflight Check 4t and/or Check 4u missing iter-115 STRICT-BLOCK markers or exit-1 paths"
 fi
 
+# ─── iter-192: PRODUCER-TREE mutation/scan serialization ──────────────────
+#
+# ROOT CAUSE of the parallel-only suite flake (measured: 6 failures in 40
+# parallel runs, 0 in 32 serial, Fisher one-sided p=0.02457; reproduced 2/12
+# here as "Case 4: live audit run did NOT pass"). TWO test files plant a
+# synthetic UNREGISTERED marker into the SHARED marketplace working tree:
+#
+#   iter-111 Case 5 -> plugins/agent-reach/scripts/<synthetic fixture>.sh
+#   iter-115 Case 2 -> plugins/gmail-commander/scripts/bot.ts
+#
+# and BOTH also run a marketplace-WIDE audit that asserts a CLEAN baseline.
+# In parallel, one file's plant is live in the tree while the other file's
+# clean-baseline scan walks it, so the scan finds a real unregistered marker
+# and fails. Nothing was wrong with either test in isolation.
+#
+# WHY THE EXISTING FLOCK DID NOT COVER THIS. iter-126's flock is named for,
+# and scoped to, the on-disk DOC mutation window
+# (/tmp/cc-skills-iter113-on-disk-doc-mutation-window-serialization-flock).
+# An audit of "does every file that touches the doc hold the flock?" answers
+# YES for all four doc-touchers -- and that question has a NARROWER DOMAIN
+# than the claim it was taken to support. The resource actually at risk is
+# the PRODUCER TREE, whose roster is {iter-111, iter-115}, and only one of
+# those two held any lock at all. Enumerate the roster from the RESOURCE,
+# not from the files you already noticed.
+#
+# FIX: a SEPARATE lock for the producer-tree window, taken by both members of
+# that roster and held to process exit. It serialises exactly these two files
+# against each other and leaves every other lane parallel. Lock ORDER is
+# always producer-tree -> doc (iter-115 takes this one first, iter-113/114/117
+# take only the doc lock), so no cycle exists and no deadlock is reachable.
+ITER192_PRODUCER_TREE_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE="/tmp/cc-skills-iter192-producer-tree-mutation-window-serialization-flock"
+touch "$ITER192_PRODUCER_TREE_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+exec 8<>"$ITER192_PRODUCER_TREE_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+# macOS BSD has no GNU `flock` CLI; python3's fcntl is the portable primitive
+# (same approach as iter-126). Bound to fd 8 -- the doc lock owns fd 9 -- and
+# released automatically when this process exits.
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_EX)
+' 8 <&8
+
 # ─── Case 2: synthetic typo injection produces parseable "AUDIT FOUND N" signal ───
 #
 # Inject a synthetic UPPER-KEBAB-CASE-OK token into a producer file via
