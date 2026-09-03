@@ -1,9 +1,0 @@
-{
-  "name": "gmail-commander",
-  "version": "11.93.0",
-  "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}

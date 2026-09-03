@@ -1,9 +1,0 @@
-{
-  "name": "plugin-dev",
-  "version": "11.93.0",
-  "description": "Plugin development tools: structure validation, silent failure auditing, hook development patterns",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}

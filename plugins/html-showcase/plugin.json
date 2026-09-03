@@ -1,9 +1,0 @@
-{
-  "name": "html-showcase",
-  "version": "1.0.0",
-  "description": "Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, contractor portfolios, telemetry dashboards). Single design-system SSoT served via jsDelivr CDN; pages stay pure HTML with optional per-page CSS overrides.",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}

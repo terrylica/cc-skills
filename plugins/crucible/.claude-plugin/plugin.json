@@ -1,6 +1,5 @@
 {
   "name": "crucible",
-  "version": "0.1.0",
   "description": "Self-evolving research methodology for LLM-driven strategy discovery. Agnostic universal principles distilled from multi-session iterative investigation, structured as a genetic-evolutionary process — hypotheses mutate, compete, get selected by adversarial gates, and failed attempts remain resurrectable.",
   "author": {
     "name": "Terry Li",

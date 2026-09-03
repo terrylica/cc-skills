@@ -1,9 +1,0 @@
-{
-  "name": "devops-tools",
-  "version": "11.93.0",
-  "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis",
-  "author": {
-    "name": "Terry Li",
-    "url": "https://github.com/terrylica"
-  }
-}
