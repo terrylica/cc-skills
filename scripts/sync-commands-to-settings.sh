@@ -17,6 +17,14 @@ COMMANDS_DIR="$HOME/.claude/commands"
 BACKUP_DIR="$HOME/.claude/backups"
 MARKETPLACE_DIR="$HOME/.claude/plugins/marketplaces/cc-skills"
 
+# How many command snapshots to retain. Every run of this script copies the whole
+# commands/ directory into a fresh timestamped folder; without a cap that grows
+# without bound. Measured on one machine 2026-09-01: 497 snapshots totalling
+# 986 MB, the oldest dating to 2026-03-01, and the newest byte-identical to the
+# live commands/ directory it had just been copied from. The snapshots are
+# git-ignored, so they were backing up nothing that was not already reproducible.
+BACKUP_RETENTION="${CC_SKILLS_BACKUP_RETENTION:-5}"
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -24,6 +32,34 @@ NC='\033[0m'
 
 info() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC} $1"; }
+
+# Drop the oldest snapshots, keeping the $BACKUP_RETENTION most recent.
+#
+# The name pattern is deliberately narrow — commands.<8 digits>_<6 digits>, exactly
+# what backup_commands() below writes. Anything else a human parked under backups/
+# is invisible to this function by construction, so a widening of the glob cannot
+# quietly start deleting data this script never created.
+prune_old_backups() {
+    local -a snaps=()
+    local d
+    while IFS= read -r d; do
+        [[ -n "$d" ]] && snaps+=("$d")
+    done < <(find "$BACKUP_DIR" -maxdepth 1 -type d \
+                  -name 'commands.[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]' \
+                  2>/dev/null | sort)
+
+    # The timestamp format sorts lexicographically == chronologically, so the
+    # oldest are simply the leading entries.
+    local total=${#snaps[@]}
+    (( total > BACKUP_RETENTION )) || return 0
+
+    local doomed=$(( total - BACKUP_RETENTION ))
+    local i
+    for (( i = 0; i < doomed; i++ )); do
+        rm -rf -- "${snaps[i]}"
+    done
+    info "Pruned $doomed old command snapshot(s), kept $BACKUP_RETENTION"
+}
 
 # Backup commands directory
 backup_commands() {
@@ -34,6 +70,7 @@ backup_commands() {
         mkdir -p "$BACKUP_DIR/commands.$ts"
         cp "$COMMANDS_DIR"/*.md "$BACKUP_DIR/commands.$ts/" 2>/dev/null || true
     fi
+    prune_old_backups
 }
 
 # Main
