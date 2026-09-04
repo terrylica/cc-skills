@@ -25,6 +25,14 @@ describe("surface scoping", () => {
     ["gh api repos/o/r/pulls/12/comments -f body='x'", true],
     ["gh api repos/o/r/pulls/12/reviews -f body='x'", true],
     ["gh api repos/o/r/issues/12/comments -f body='x'", true],
+    // A QUOTED assignment value containing a SPACE. `\S*` stopped at the first space, so these
+    // matched no command position and the guard skipped the citation check entirely — before a
+    // body was even collected. Reproduced end-to-end: the identical body was DENIED unquoted and
+    // ALLOWED with the quoted prefix. The unquoted case two lines down passes either way, which is
+    // exactly why it never caught this.
+    ['GH_ORGS="Eon Labs" gh pr comment 12 --body \'x\'', true],
+    ["GH_ORGS='Eon Labs' gh pr review 12 -b 'x'", true],
+    ['env GH_ORGS="Eon Labs" sudo gh pr comment 12 --body \'x\'', true],
     // Real command positions: after a separator, and behind env assignments or a wrapper.
     ["cd /tmp && gh pr comment 12 --body 'x'", true],
     ["set -e; gh pr review 12 -b 'x'", true],

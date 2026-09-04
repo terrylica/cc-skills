@@ -81,7 +81,19 @@ function tokenize(segment: string): string[] {
 function stripLeadingEnvAssignments(tokens: string[]): string[] {
   let i = 0;
   while (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) {
-    i++;
+    // A QUOTED VALUE SPANS TOKENS, because tokenize() splits on bare whitespace. Without this,
+    // `GH_ORGS="Eon Labs" git checkout -b x` tokenised to ['GH_ORGS="Eon', 'Labs"', 'git', …]:
+    // the first token was consumed as an assignment, the second did not look like one, and the
+    // scan stopped with `Labs"` in the command position — so the guard never saw `git` at all and
+    // the worktree-per-branch policy was silently unenforced. Measured, not theorised.
+    const opened = tokens[i].slice(tokens[i].indexOf("=") + 1);
+    const quote = opened.startsWith('"') ? '"' : opened.startsWith("'") ? "'" : null;
+    if (quote !== null && !opened.slice(1).includes(quote)) {
+      // Consume tokens until the closing quote is found, or the command ends.
+      i += 1;
+      while (i < tokens.length && !tokens[i].includes(quote)) i += 1;
+    }
+    i += 1;
   }
   return tokens.slice(i);
 }
