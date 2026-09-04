@@ -1248,9 +1248,9 @@
       "title": "plugins/quant-research/skills/opendeviation-eval-metrics/scripts/compute_metrics.py",
       "type": "object"
     },
-    "plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py": {
+    "plugins/statusline-tools/scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py": {
       "additionalProperties": false,
-      "description": "Time-windowed operator report from ~/.claude/doorward-state.jsonl (appended by the statusline-tools plugin on every statusline render). Read-only.",
+      "description": "Time-windowed operator report from ~/.claude/gateway-state.jsonl (appended by the statusline-tools plugin on every statusline render). Read-only.",
       "properties": {
         "--jsonl": {
           "type": "string",
@@ -1273,7 +1273,7 @@
           ]
         }
       },
-      "title": "plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py",
+      "title": "plugins/statusline-tools/scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py",
       "type": "object"
     },
     "plugins/tts-tg-sync/scripts/tts_generate.py": {
