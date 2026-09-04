@@ -1,6 +1,6 @@
 # Markdown hard-wrap reminder (net-new)
 
-**Hook**: [`posttooluse-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.ts) — inlined subhook of the iter-93 PostToolUse orchestrator · **Escape hatch**: `MD-HARD-WRAP-OK` · **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md)
+**Hook**: [`posttooluse-markdown-hard-wrap-reminder.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.ts) — inlined subhook of the iter-93 PostToolUse orchestrator · **Escape hatch**: `<!-- MD-HARD-WRAP-OK -->` — an HTML comment; merely naming the token no longer suppresses · **Hub**: [itp-hooks CLAUDE.md](../CLAUDE.md)
 
 Reminds Claude when a `Write`/`Edit`/`MultiEdit` of a `.md` file **introduces** prose broken mid-sentence at a fixed column, instead of authored as one line the renderer reflows.
 
@@ -95,38 +95,81 @@ Corpus effect: +91 previously-invisible nested-bullet wraps. Net across both fix
 
 Two files score **0** and are the reference shape for this repo's prose: `plugins/itp-hooks/CLAUDE.md` and `docs/LESSONS.md`.
 
+## Only the wraps the joiner would actually repair (issue #106 finding 3)
+
+The detector and the joiner ask different questions. The detector asks "does this line break mid-sentence at a fixed column"; [`lib/gfm-unwrap.ts`](../hooks/lib/gfm-unwrap.ts) asks "may I safely join it". They disagree on **hand-aligned indented blocks** — a quoted price schedule, a citation footer, an aligned `key    value` list inside a bullet. Two spaces is not a code fence, so the detector reads each row as prose; the joiner's `ALIGNED_BLOCK_LINE` recognises the alignment and refuses to touch it. Reporting a wrap whose recommended remedy would not change it is a false positive by construction, so the hook now filters those out.
+
+**Per wrap, not per file.** The issue proposed the file-level rule "if the joiner would make zero joins, do not report at all". Measured across all 1,094 tracked `.md` files, the number with detector wraps > 0 **and** joins == 0 is **zero** — that rule would not have changed a single report, because a file containing an aligned block essentially always contains a joinable paragraph beside it. The per-wrap form silences **28 of 5,078** wraps (0.55%): 24 in `CHANGELOG.md` (aligned evidence tables quoted from commit bodies) and 4 in `docs/self-custody-secrets.md` (indented `vault …   # comment` command lists inside a bullet). Same intuition, different granularity, and only one of the two is real.
+
+The filter is one code path with the joiner, not a second predicate that predicts it: `computeJoinedWithNextLineMask()` runs the joiner's own cursor walk and reports which breaks it removed. A prediction that could drift from the joiner is the very disagreement this fixes. If that scan ever throws, the hook reports the **unfiltered** wraps — a broken joiner must not be able to silence the detector.
+
 ## Fixing a file
 
 ```bash
-bun scripts/reflow-release-notes.ts < file.md > file.new.md && mv file.new.md file.md
-bun scripts/reflow-release-notes.ts --check < file.md   # exit 1 if it would change
+bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" file.md            # rewrite in place
+bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" --check file.md    # exit 1 if it would change
 ```
 
-`reflowMarkdown()` preserves fenced code, tables, headings, blockquote markers, and explicit two-space hard breaks; it joins wrapped prose and wrapped list items. **Known hazard**: it does not recognise 4-space-**indented** (non-fenced) code blocks and will join them as prose. Check the diff on any file that uses them. This is also why the Stop-hook formatter was left on `--prose-wrap preserve` rather than switched to auto-reflow — silently rewriting every edited `.md` has a blast radius that a reminder does not.
+The reminder emits that exact form, resolved through [`cc-plugin-root`](../../../scripts/cc-plugin-root). It used to emit a bare `bun scripts/reflow-release-notes.ts …`, which resolves **only from inside cc-skills** — and the near-miss is what makes it dangerous rather than merely broken: a consumer repo with its own `scripts/reflow-commit-body.cjs` invites an agent to substitute a publish-boundary-only tool for an authoring-boundary one (issue #106 finding 2).
 
-## Escape hatch
+`gfm-unwrap` preserves fenced code, **4-space-indented code**, hand-aligned blocks, tables, headings, blockquote markers, and explicit two-space hard breaks; it joins wrapped prose, wrapped list items and wrapped blockquotes. It refuses to write anything if the transformation would change a single non-whitespace character (`assertContentPreserved`). The older `scripts/reflow-release-notes.ts` remains the semantic-release publish-boundary reflow; it does **not** understand indented code blocks, which is one reason the reminder no longer points at it. The Stop-hook formatter is still `--prose-wrap preserve` rather than auto-reflow — silently rewriting every edited `.md` has a blast radius a reminder does not.
 
-Add `MD-HARD-WRAP-OK` anywhere in the file (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, prose whose line breaks are themselves the content. `CASE_SENSITIVE`, `FILE_WIDE`, no reason required; registered in the [iter-111 canonical registry](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts).
+## Escape hatch — invoking it, not naming it
 
-Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
+Put the marker in an **HTML comment, in live markdown**:
+
+```markdown
+<!-- MD-HARD-WRAP-OK: verbatim quoted email, the line breaks are the content -->
+```
+
+`CASE_SENSITIVE`, `FILE_WIDE` (one invocation exempts the whole file), no reason required though one is polite; registered in the [iter-111 canonical registry](../hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts). Pre-existing wraps never fire, so the marker is only needed for wrapping you are adding on purpose.
+
+### Why it is not a plain substring match any more (issue #106 finding 1)
+
+Until 2026-09-03 suppression was a bare regex over the whole file, so a document that merely **wrote the token down** — a CLAUDE.md explaining the hatch, a README documenting the hook, a CHANGELOG entry naming it — permanently disabled the reminder for itself. Documenting a hook is exactly when you hit this, and it is not hypothetical: all four tracked `.md` files in this repo containing the marker were documentation, none was an opt-out, and **all four were silently exempt** — this spoke among them. The operator's global `CLAUDE.md` worked around it by never spelling the token in full, which is a workaround for a bug living in the file that is supposed to be the authority.
+
+Four things must now hold for the marker to suppress. Anything else is a mention:
+
+| Where the marker sits                      | Suppresses | Why                                       |
+| ------------------------------------------ | ---------- | ----------------------------------------- |
+| Inside `<!-- … -->`, single- or multi-line | **yes**    | the only shape that means "switch it off" |
+| Bare in prose (`Override: add MD-HARD-…`)  | no         | naming a token is not invoking it         |
+| Inside an inline-code span                 | no         | quoting the syntax                        |
+| Inside a fenced code block                 | no         | showing an example                        |
+| Inside a 4-space / tab-indented code block | no         | same                                      |
+
+**The stripping is per LINE, and that is load-bearing.** The obvious implementation — strip inline-code spans across the whole file, then look for the marker — is a trap. A whole-file stripper re-pairs backticks across the entire document, so the moment a file carries an **odd** number of backticks (19 of this repo's 1,094 tracked `.md` files do; one stray tick in prose is enough) it eats from that tick through the first backtick inside a legitimate escape comment, deleting the `<!--` opener and the marker with it — silently un-suppressing a file the operator deliberately exempted. `~/eon/ccmax-monitor`'s `PROVENANCE.md` is exactly that shape: a multi-line escape comment whose interior quotes `git check-ignore -v` in backticks. Per-line stripping cannot cross a line boundary, so a stray tick can corrupt at most its own line. There is a regression test for the whole fixture, including an assertion that the naive whole-file transform destroys the opener.
+
+**Residual limit, stated accurately.** It is not merely "a raw token in live prose still suppresses" — that no longer suppresses at all. It is that **any** raw `<!-- MD-HARD-WRAP-OK -->` sequence outside a fence, outside an inline-code span and outside an indented code block **does** suppress, whatever the surrounding prose claims. A document wanting to show a live-looking comment must fence it, indent it, or wrap it in backticks — which is how you show markup anyway. There is no way to write a genuinely raw comment "as an example" and have it not count, because at that point it is indistinguishable from an opt-out.
+
+Verified against every file on this machine that names the marker: the five genuine opt-outs (two `PROVENANCE.md` copies, two `legal-docs-source` files, one `amonic` ADR — all HTML comments, one of them multi-line with the marker on its own line) still suppress; the four cc-skills documentation files stop.
 
 ## Guarantees
 
 - **Never blocks.** `additional_context` folded into the orchestrator's aggregated `{decision: "block", reason}`, which for PostToolUse is context injection, not rejection.
 - **Fail-open.** Any parse or logic error → `noop`. Malformed input, missing `tool_input`, unknown tool → silent.
-- **Cheap.** Pure single-pass scan of the edited fragment; no subprocess, no file read. Registry position last, behind an O(1) extension pre-filter.
-- **Temp-scratch exempt** via the shared iter-124 helper — `/tmp/notes.md` is never nudged.
+- **Cheap, but it does read the file.** No subprocess; every scan is a linear in-process pass, and registry position is last behind an O(1) extension pre-filter. This bullet used to claim "pure single-pass scan of the edited fragment; no subprocess, **no file read**", and the second half was never true — `detectNetNewMarkdownHardWraps` takes a `fileContentAfterEdit` parameter and the classifier reads the post-edit file from disk on every eligible edit, which is exactly what gives the fence scanner whole-file context. The behaviour was right; the sentence describing it was not (issue #106 finding 5). Measured cost of adding the joiner pass and the markdown-aware hatch scan, on `docs/HOOKS.md` (273 KB, 10 runs): **5.5 → 8.9 ms per edit**; on the 1.4 MB `CHANGELOG.md`, 48.5 ms. Do not compare against `CHANGELOG.md`'s old 0.7 ms — that number existed only because the file names the escape token, so the buggy substring match short-circuited the whole hook.
+- **Temp-scratch exempt** via the shared iter-124 helper — `/tmp/notes.md` is never nudged. The exemption is **absolute paths under `/tmp`, `/private/tmp`, `/var/folders`, `/private/var/folders`, `/dev/shm` and the live `$TMPDIR`** — a per-machine set, not a per-repo one. A **gitignored `tmp/` inside a repo is NOT exempt** and will be nudged (issue #106 finding 4). That is deliberate and stays: the helper is shared by every PostToolUse lint subhook, so teaching it to treat a repo-relative `tmp/` as scratch would change ty, tsc, oxlint, biome and vale at the same time, and "it is gitignored" is a weaker signal than it looks — a scratch brief in `tmp/` is still routinely lifted into an issue body, which is the surface this reminder exists for. Put throwaway markdown under `$TMPDIR` if you want silence, or invoke the escape hatch.
 - **Out of scope**: git commit and annotated tag messages. 72-column wrapping is correct there; the reflow belongs at the publish boundary, which the sibling guards own.
 
 ## Tests
 
-[`posttooluse-markdown-hard-wrap-reminder.test.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.test.ts) — 32 tests. Three are load-bearing:
+[`posttooluse-markdown-hard-wrap-reminder.test.ts`](../hooks/posttooluse-markdown-hard-wrap-reminder.test.ts) — 44 tests. Six are load-bearing:
 
 - _"stays SILENT when an Edit rewords inside an already-wrapped paragraph"_ — if it regresses, the hook nags on 169 files.
 - _"does NOT flag two shell lines edited inside a bash fence"_ — if it regresses, the hook fires on every command-example edit.
 - _"fires on a Write of hard-wrapped sub-bullets"_ — if it regresses, the nested-bullet blind spot is back.
+- _"does NOT suppress a file that merely NAMES the token in prose"_ — the issue #106 defect itself.
+- _"suppresses through a code span INSIDE the comment, despite an unmatched backtick earlier"_ — if it regresses, a deliberately exempted file silently stops being exempt. Carries its own negative control: it asserts that the naive whole-file strip destroys the `<!--` opener.
+- _"reports the joinable paragraph and NOT the aligned block in the same file"_ — a mixed fixture on purpose. An aligned-only fixture passes both for a correct filter and for one that silenced the detector outright, so it cannot tell them apart.
+
+The escape-hatch tests build the marker literal at run time (`["MD-HARD-WRAP", "OK"].join("-")`) rather than spelling it, because a test file for a suppression token is not where you want to discover that spelling it suppresses something.
 
 [`lib/hard-wrap-detector.test.ts`](../hooks/lib/hard-wrap-detector.test.ts) — 35 tests, covering the badge rows, the nested/third-level/ordered sub-bullets, and the two cases that must STAY code (an indented block with no list context, and one after a dedent to column zero).
+
+[`lib/shared-escape-hatch-marker-detection-helper-…-iter107.test.ts`](../hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.test.ts) — 22 tests on the marker grammar itself: the four real-world opt-out shapes (one-line, reasoned, marker-on-its-own-line, multi-line with an interior code span), nine mention shapes that must NOT suppress, and the knobs (case sensitivity, minimum-reason gate, CRLF). Every mention case also asserts that the OLD whole-file substring match _does_ fire on it, so the file is a permanent record of the defect.
+
+[`lib/gfm-unwrap.test.ts`](../hooks/lib/gfm-unwrap.test.ts) — the joiner, now including four tests pinning `computeJoinedWithNextLineMask` to the joiner it is derived from: its true-count must equal `joinsPerformed`, and the removed breaks must match the output's line count exactly. The mask cannot drift from the joiner without one of those failing.
 
 ## Adversarial-review fixes
 

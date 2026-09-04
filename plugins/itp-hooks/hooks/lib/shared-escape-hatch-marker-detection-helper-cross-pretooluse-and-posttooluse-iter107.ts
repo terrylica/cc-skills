@@ -48,7 +48,26 @@
  * scope: migrate the remaining 8-10 hand-rolled implementations to the
  * shared helper, then promote the audit task from informational to
  * strict-block once all hooks are migrated.
+ *
+ * ════════════════════════════════════════════════════════════════════════
+ *  2026-09-03 — INVOKING a marker vs MENTIONING one (issue #106)
+ * ════════════════════════════════════════════════════════════════════════
+ *
+ * `hasFileWideEscapeHatchMarkerInContent` is a plain substring regex over the
+ * whole blob, and that is correct for a Bash COMMAND (the marker can only be
+ * there because the operator typed it) but wrong for a DOCUMENT: a file that
+ * merely writes the token down — a CLAUDE.md explaining the hatch, a README
+ * documenting the hook, a CHANGELOG entry naming it — permanently disables
+ * that hook for itself. Measured on this repo: all four tracked `.md` files
+ * containing the markdown hard-wrap marker were documentation, none of them
+ * was an opt-out, and all four were silently exempt from that reminder.
+ *
+ * `hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent` below is the
+ * document-safe variant: the marker must sit inside an HTML comment, in live
+ * markdown. See its doc comment for why the stripping is PER LINE.
  */
+
+import { computeFencedCodeLineMask } from "./markdown-fence-scanner.ts";
 
 // ────────────────────────────────────────────────────────────────────────
 //  Window-semantics enumeration (the three canonical scoping modes)
@@ -286,4 +305,146 @@ export function hasFileWideEscapeHatchMarkerInContent(
     windowSemanticsMode: "FILE_WIDE",
   });
   return markerRegex.test(contentBlob);
+}
+
+// ────────────────────────────────────────────────────────────────────────
+//  Public API — markdown documents (invoking vs mentioning, issue #106)
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * An indented code block line: four spaces or a tab before the first non-space.
+ * Local copy rather than an import from `hard-wrap-detector.ts`, so this helper
+ * keeps its single markdown dependency (the fence scanner) and no hook pays for
+ * the wrap detector just to test an escape hatch.
+ */
+function isIndentedCodeBlockLine(rawLine: string): boolean {
+  return /^(?: {4,}|\t)\S/.test(rawLine);
+}
+
+/**
+ * Blank out inline-code spans ON ONE LINE, preserving the line's length so
+ * character offsets stay valid.
+ *
+ * 🔴 PER LINE, never whole-file. A whole-file stripper re-pairs backticks across
+ * the entire document, so the moment a file contains an ODD number of backticks
+ * — one stray tick in prose, which 19 of this repo's 1,094 tracked `.md` files
+ * have — the stripper eats from that stray tick through the first backtick
+ * inside a legitimate escape comment, deleting the `<!--` opener and the marker
+ * with it. The file the operator deliberately exempted silently stops being
+ * exempt. That is not hypothetical: `~/eon/ccmax-monitor`'s PROVENANCE.md opens
+ * with a multi-line escape comment whose interior contains a code span.
+ *
+ * Per-line stripping cannot reach across a line boundary, so a stray tick can
+ * corrupt at most its own line, and the marker line survives.
+ */
+function blankInlineCodeSpansWithinSingleLine(line: string): string {
+  return line.replace(/(`+)[^\n]*?\1/g, (span) => " ".repeat(span.length));
+}
+
+/**
+ * The character ranges of `content` that sit inside an HTML comment.
+ * An unterminated `<!--` runs to end of input, mirroring how the fence scanner
+ * treats an unterminated fence — an operator who opened a comment and never
+ * closed it still meant everything after it to be a comment.
+ */
+function computeHtmlCommentCharacterRanges(content: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  let cursor = 0;
+  for (;;) {
+    const open = content.indexOf("<!--", cursor);
+    if (open === -1) break;
+    const close = content.indexOf("-->", open + 4);
+    const end = close === -1 ? content.length : close + 3;
+    ranges.push([open, end]);
+    cursor = end;
+  }
+  return ranges;
+}
+
+/**
+ * File-wide escape-hatch detection for a MARKDOWN DOCUMENT: true only when the
+ * marker is INVOKED, not merely MENTIONED.
+ *
+ * Invoking means all of the following, and the union is the whole grammar:
+ *
+ *   1. the marker sits inside an HTML comment — `<!-- MARKER -->`, single- or
+ *      multi-line — which is how every real opt-out in this fleet was already
+ *      written, and is what distinguishes "I am switching this off" from "this
+ *      is the token you would type to switch it off";
+ *   2. that line is not inside a fenced code block — a doc showing the marker
+ *      in a ```` ``` ```` example is teaching, not opting out;
+ *   3. that line is not an indented (4-space / tab) code block line, same
+ *      reason;
+ *   4. the marker is not inside an inline-code span — `` `<!-- MARKER -->` ``
+ *      in prose is a quotation of the syntax.
+ *
+ * Scope is still FILE_WIDE: one invocation anywhere exempts the whole file.
+ * Only the grammar narrowed.
+ *
+ * RESIDUAL LIMIT, stated plainly: any raw `<!-- MARKER -->` sequence that is
+ * outside a fence, outside an inline-code span and outside an indented code
+ * block DOES suppress, whatever the surrounding prose says. A document that
+ * needs to show a live-looking comment example must fence it, indent it, or
+ * wrap it in backticks — all three of which are the normal way to show markup
+ * anyway. There is no way to write a genuinely raw comment "as an example" and
+ * have it not count, because at that point it is indistinguishable from an
+ * opt-out.
+ */
+export function hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent(
+  markdownContent: string,
+  configuration: Pick<
+    EscapeHatchMarkerDetectionConfiguration,
+    | "markerNameTokenIncludingSuffix"
+    | "requireMinimumReasonCharacterCountAfterColonOrZeroForOptional"
+    | "caseSensitivityMode"
+  >,
+): boolean {
+  if (!markdownContent) return false;
+
+  const rawLines = markdownContent.replace(/\r\n/g, "\n").split("\n");
+  const inFence = computeFencedCodeLineMask(rawLines);
+
+  // Length-preserving redaction, so an offset in `scannable` is an offset in
+  // the original and the line lookup below stays a plain prefix-sum.
+  const scannableLines = rawLines.map((line, index) =>
+    inFence[index] ? " ".repeat(line.length) : blankInlineCodeSpansWithinSingleLine(line),
+  );
+  const scannable = scannableLines.join("\n");
+
+  const commentRanges = computeHtmlCommentCharacterRanges(scannable);
+  if (commentRanges.length === 0) return false;
+
+  // Line start offsets, for mapping a match back to the line it landed on.
+  const lineStartOffsets: number[] = [];
+  let offset = 0;
+  for (const line of scannableLines) {
+    lineStartOffsets.push(offset);
+    offset += line.length + 1; // +1 for the "\n" that `join` re-inserted
+  }
+  const lineIndexOfOffset = (position: number): number => {
+    let low = 0;
+    let high = lineStartOffsets.length - 1;
+    while (low < high) {
+      const mid = (low + high + 1) >> 1;
+      if (lineStartOffsets[mid] <= position) low = mid;
+      else high = mid - 1;
+    }
+    return low;
+  };
+
+  const markerRegex = new RegExp(
+    buildEscapeHatchMarkerRegexForConfiguration({
+      ...configuration,
+      windowSemanticsMode: "FILE_WIDE",
+    }).source,
+    `${(configuration.caseSensitivityMode ?? "CASE_SENSITIVE") === "CASE_INSENSITIVE" ? "i" : ""}g`,
+  );
+
+  for (const match of scannable.matchAll(markerRegex)) {
+    const position = match.index ?? -1;
+    if (position < 0) continue;
+    if (isIndentedCodeBlockLine(rawLines[lineIndexOfOffset(position)] ?? "")) continue;
+    if (commentRanges.some(([start, end]) => position >= start && position < end)) return true;
+  }
+  return false;
 }

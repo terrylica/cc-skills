@@ -60,8 +60,16 @@
  * does NOT undo the edit — for PostToolUse it is the documented mechanism for
  * surfacing a Claude-visible system reminder next to the tool result.
  *
- * Escape hatch: `MD-HARD-WRAP-OK` anywhere in the edited text (iter-111
- * canonical registry). Fail-open everywhere: any error → noop, never noise.
+ * Escape hatch: `MD-HARD-WRAP-OK` inside an HTML comment in live markdown —
+ * `<!-- MD-HARD-WRAP-OK: reason -->` — anywhere in the file (iter-111 canonical
+ * registry, FILE_WIDE scope). It is deliberately NOT a bare substring match:
+ * until 2026-09-03 it was, and a file that merely NAMED the token in prose
+ * disabled the reminder for itself, so every document that documented the hatch
+ * was exempt from the hook it documented (issue #106 finding 1). Mentioning the
+ * token in prose, in backticks, or in a fenced or indented code block now
+ * documents it without switching anything off.
+ *
+ * Fail-open everywhere: any error → noop, never noise.
  */
 
 import { existsSync, statSync } from "node:fs";
@@ -72,9 +80,10 @@ import {
   type PostToolUseInput,
   type PostToolUseSubhookDecision,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
+import { computeJoinedWithNextLineMask } from "./lib/gfm-unwrap.ts";
 import { detectHardWraps, type WrapIssue } from "./lib/hard-wrap-detector.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
-import { hasFileWideEscapeHatchMarkerInContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import { hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 const HOOK_NAME = "markdown-hard-wrap-reminder";
@@ -115,10 +124,42 @@ export function isMarkdownHardWrapReminderEligibleTarget(
   return true;
 }
 
+/**
+ * The wraps in `text` that the JOINER would actually repair.
+ *
+ * The detector and the joiner disagree on hand-aligned indented blocks — a
+ * quoted price schedule, a citation footer, an aligned key/value list inside a
+ * bullet. The detector reads each row as prose that breaks mid-sentence (two
+ * spaces is not a code fence); the joiner recognises the alignment and refuses
+ * to touch it. Reporting a wrap the recommended fix would not fix is a false
+ * positive by construction, so this filters them out (issue #106 finding 3).
+ *
+ * PER WRAP, not per file. The issue proposed the file-level rule "if the joiner
+ * would make zero joins, do not report at all" — measured across all 1,094
+ * tracked `.md` files, the number with wraps > 0 AND joins == 0 is ZERO, so
+ * that rule would not have changed a single report. A file that contains an
+ * aligned block essentially always contains a joinable paragraph too. The
+ * per-wrap form silences 28 of 5,078 wraps (0.55%), every one of them in the
+ * aligned/indented class the issue described.
+ *
+ * Fails toward REPORTING: if the joiner scan throws, the unfiltered wraps are
+ * returned. A broken joiner must never be able to silence the detector.
+ */
+function detectJoinerRepairableHardWraps(text: string): WrapIssue[] {
+  const wraps = detectHardWraps(text);
+  if (wraps.length === 0) return wraps;
+  try {
+    const joinedWithNext = computeJoinedWithNextLineMask(text);
+    return wraps.filter((w) => joinedWithNext[w.line - 1] === true);
+  } catch {
+    return wraps;
+  }
+}
+
 /** Wrap count of a text fragment. An empty/one-line fragment is always 0. */
 function countWraps(text: string): number {
   if (!text) return 0;
-  return detectHardWraps(text).length;
+  return detectJoinerRepairableHardWraps(text).length;
 }
 
 /**
@@ -214,22 +255,24 @@ export function detectNetNewMarkdownHardWraps(
 ): WrapIssue[] {
   const ti = (input.tool_input || {}) as MultiEditCapableToolInput;
   const suppressed = (text: string) =>
-    hasFileWideEscapeHatchMarkerInContent(text, {
+    hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent(text, {
       markerNameTokenIncludingSuffix: MD_HARD_WRAP_OK_MARKER,
     });
 
   if (input.tool_name === "Write") {
     const content = ti.content || "";
-    return suppressed(content) ? [] : detectHardWraps(content);
+    return suppressed(content) ? [] : detectJoinerRepairableHardWraps(content);
   }
 
   const pairs = extractEditPairs(ti, input.tool_name);
 
   if (fileContentAfterEdit !== null) {
     if (suppressed(fileContentAfterEdit)) return [];
-    const after = detectHardWraps(fileContentAfterEdit);
+    const after = detectJoinerRepairableHardWraps(fileContentAfterEdit);
     if (after.length === 0) return [];
-    const before = detectHardWraps(reconstructContentBeforeEdits(fileContentAfterEdit, pairs));
+    const before = detectJoinerRepairableHardWraps(
+      reconstructContentBeforeEdits(fileContentAfterEdit, pairs),
+    );
     return wrapsAddedBetween(before, after);
   }
 
@@ -237,7 +280,7 @@ export function detectNetNewMarkdownHardWraps(
   // replaced fragment against its replacement, per-edit.
   for (const { oldS, newS } of pairs) {
     if (suppressed(newS)) continue;
-    const after = detectHardWraps(newS);
+    const after = detectJoinerRepairableHardWraps(newS);
     if (after.length > countWraps(oldS)) return after;
   }
   return [];
@@ -265,20 +308,27 @@ export function buildMarkdownHardWrapReminder(filePath: string, wraps: WrapIssue
     "Fix: author each PARAGRAPH as ONE unbroken line and let the renderer reflow it. Keep",
     "only structural breaks (list items, headings, code blocks, table rows, blank lines).",
     "",
-    "To reflow an existing file: bun scripts/reflow-release-notes.ts < file.md > file.new.md",
-    "(joins wrapped prose and list items; it does NOT understand 4-space-indented code blocks,",
-    "so check the diff if the file has any).",
+    "To reflow an existing file (resolves from ANY repo, not just cc-skills):",
+    `  bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" ${filePath}`,
+    "It joins wrapped prose, list items and blockquotes, leaves fenced/indented code and",
+    "hand-aligned blocks alone, and refuses to write at all if any content would change.",
     "",
-    `Override: add ${MD_HARD_WRAP_OK_MARKER} to the file when the wrapping is deliberate.`,
+    `Override: add <!-- ${MD_HARD_WRAP_OK_MARKER}: why --> to the file when the wrapping is`,
+    "deliberate. It must be an HTML comment in live markdown — writing the token in prose,",
+    "in backticks or in a fence documents it without switching the reminder off.",
   );
 
   return lines.join("\n");
 }
 
 /**
- * Orchestrator classifier (iter-93 contract). Pure + fail-open: never throws,
- * never touches stdio, resolves well inside its registry timeout — it reads no
- * files and runs one linear scan over the edited fragment.
+ * Orchestrator classifier (iter-93 contract). Fail-open: never throws, never
+ * touches stdio, resolves well inside its registry timeout.
+ *
+ * It is NOT I/O-free, and the docs used to say it was: it reads the post-edit
+ * file from disk (below) precisely so the fence scanner sees whole-file state.
+ * What it does not do is spawn a subprocess — every scan is a linear in-process
+ * pass (issue #106 finding 5).
  */
 export async function classifyMarkdownHardWrapReminderForPostToolUseOrchestrator(
   input: PostToolUseInput,
