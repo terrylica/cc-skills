@@ -155,11 +155,11 @@ and wires `git config core.hooksPath .githooks`. After that, every
 1. Auto-detects every site dir in your repo (any directory containing a
    `site-map.html`)
 2. Runs `scripts/site.sh nav <site-dir>` (rebuilds rail + search index)
-3. Runs `scripts/site.sh push <site-dir>` (rsync to gpu-host via
+3. Runs `scripts/site.sh push <site-dir>` (rsync to myhost via
    Tailscale)
 
 The hook is **non-blocking** — if rsync fails (cellular, coffee shop,
-gpu-host down), the push continues to GitHub anyway. Skip env vars:
+myhost down), the push continues to GitHub anyway. Skip env vars:
 
 | Variable                     | Effect                                     |
 | ---------------------------- | ------------------------------------------ |
@@ -202,12 +202,12 @@ Do NOT use for: blog posts, marketing landing pages, interactive web apps.
 | `templates/lychee.toml`           | Link-checker config                                                |
 | `scripts/build-nav.py`            | **Universal sitemap builder — auto-nav + site-map.html generator** |
 | `scripts/check-orphan-pages.py`   | Pure-stdlib orphan-page graph validator                            |
-| `scripts/site.sh`                 | Build nav + validate + push to gpu-host via Tailscale (see below)  |
+| `scripts/site.sh`                 | Build nav + validate + push to myhost via Tailscale (see below)  |
 | `scripts/install.sh`              | **One-shot bootstrap: install all 3 scripts into any repo**        |
 | `references/principles.md`        | The WHY — five principles + AI patterns                            |
 | `references/sitemap.md`           | The HOW — filesystem-as-sitemap contract, rail rendering           |
 | `references/contributing.md`      | The HOW — four stances with full workflows                         |
-| `references/publishing.md`        | The WHERE — delivery surfaces (CDN vs tailnet) + gpu-host setup    |
+| `references/publishing.md`        | The WHERE — delivery surfaces (CDN vs tailnet) + myhost setup    |
 
 The CSS kernel itself lives at the **plugin** level
 (`plugins/html-showcase/assets/showcase.css`) and is served from jsDelivr —
@@ -220,11 +220,11 @@ Two surfaces, two roles:
 | Surface                     | What goes there     | When to use                                                             |
 | --------------------------- | ------------------- | ----------------------------------------------------------------------- |
 | **jsDelivr CDN** (public)   | The kernel CSS only | Always — every page imports the kernel from one shared URL              |
-| **gpu-host on the tailnet** | Your rendered sites | Default for internal audiences (no DNS, no auth UI, no public exposure) |
+| **myhost on the tailnet** | Your rendered sites | Default for internal audiences (no DNS, no auth UI, no public exposure) |
 | jsDelivr / Pages / Workers  | Your rendered sites | Only when an external reader genuinely needs the page                   |
 
 For internal-audience sites (audit reports, contractor showcases,
-telemetry views, weekly digests), the gpu-host tailnet path is the
+telemetry views, weekly digests), the myhost tailnet path is the
 lowest-friction option. Adopting it in any repo is **one command**:
 
 ```bash
@@ -244,10 +244,10 @@ bash "$PLUGIN/skills/page-template/scripts/install.sh" --site contractor-site
 
 Then `scripts/site.sh push <site-dir>` regenerates the sitemap, validates
 locally (lychee + orphan check), and rsyncs to
-`gpu-host:~/sites/<repo>/<site-dir>/`, served at
-`https://<host>:8448/<repo>/<site-dir>/`. Push-side
+`myhost:~/sites/<repo>/<site-dir>/`, served at
+`https://myhost.tailnet-name.ts.net:8448/<repo>/<site-dir>/`. Push-side
 gating (build-nav + lychee + orphan check) is the only gate. Full
-mechanics, the URL formula, when NOT to use gpu-host, and the gpu-host
+mechanics, the URL formula, when NOT to use myhost, and the myhost
 one-time setup are in [`references/publishing.md`](references/publishing.md).
 
 ## Universal density knobs
@@ -344,11 +344,11 @@ python3 "$ROOT/skills/page-template/scripts/build-nav.py" --root "$DEST"
 
 `site.sh` falls back to the plugin-shipped `build-nav.py` when no copy
 is present in `<repo>/scripts/`, so even without the installer you can
-push to gpu-host from any repo using the plugin-shipped script directly.
+push to myhost from any repo using the plugin-shipped script directly.
 
 For the other three stances (Customizer, Contributor, Publisher), see
 [`references/contributing.md`](references/contributing.md). For the
-publishing path to gpu-host via Tailscale, see
+publishing path to myhost via Tailscale, see
 [`references/publishing.md`](references/publishing.md).
 
 ## CDN versioning

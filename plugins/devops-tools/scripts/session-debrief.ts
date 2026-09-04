@@ -28,9 +28,60 @@ import { spawnSync } from "child_process";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
-// MIGRATED 2026-08-23 off MiniMax onto the fleet's own sub2api gateway (MiniMax/Z.ai
-// retirement). Already spoke the Anthropic Messages shape, so only URL/model/credential moved.
-const MINIMAX_API_URL = process.env.DEBRIEF_LLM_API_URL ?? "https://nca.25u.com/v1/messages";
+/**
+ * Resolve the debrief LLM endpoint. Order: DEBRIEF_LLM_API_URL, then a
+ * DEBRIEF_LLM_API_URL= line in ${XDG_CONFIG_HOME:-~/.config}/cc-skills/debrief.env.
+ * No built-in default — see the note at debriefApiUrl(). Exits with a message
+ * rather than silently posting a transcript somewhere unintended.
+ */
+function resolveDebriefApiUrl(): string {
+  const fromEnv = process.env.DEBRIEF_LLM_API_URL;
+  if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
+
+  const configHome = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  const configPath = join(configHome, "cc-skills", "debrief.env");
+  try {
+    const line = readFileSync(configPath, "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"))
+      .find((l) => l.startsWith("DEBRIEF_LLM_API_URL="));
+    if (line) {
+      const value = line.slice("DEBRIEF_LLM_API_URL=".length).trim();
+      if (value) return value;
+    }
+  } catch {
+    // fall through to the error below
+  }
+
+  console.error(
+    "session-debrief: no LLM endpoint configured.\n" +
+      "  Set DEBRIEF_LLM_API_URL to an Anthropic /v1/messages-compatible endpoint,\n" +
+      `  or add a DEBRIEF_LLM_API_URL= line to ${configPath}.\n` +
+      "  This skill ships with no default endpoint on purpose."
+  );
+  process.exit(78); // EX_CONFIG
+}
+
+// MIGRATED 2026-08-23 off MiniMax onto a self-hosted gateway speaking the Anthropic
+// Messages shape, so only URL/model/credential moved.
+//
+// There is deliberately NO default endpoint. This script ships in a public
+// marketplace, and a default pointing at one maintainer's gateway would both
+// publish that host's name and aim every installer's session transcript at a
+// machine that is not theirs. Point it at your own endpoint via
+// DEBRIEF_LLM_API_URL (any Anthropic /v1/messages-compatible URL), or put it in
+// ${XDG_CONFIG_HOME:-~/.config}/cc-skills/debrief.env as DEBRIEF_LLM_API_URL=...
+//
+// Resolved LAZILY and memoised, NOT at module load. An eager `const … =
+// resolveDebriefApiUrl()` made even `--help` exit 78 on an unconfigured
+// machine, so a public installer could not read the usage text that tells them
+// what to configure. Gate the network call, not the whole program.
+let cachedDebriefApiUrl: string | undefined;
+function debriefApiUrl(): string {
+  if (cachedDebriefApiUrl === undefined) cachedDebriefApiUrl = resolveDebriefApiUrl();
+  return cachedDebriefApiUrl;
+}
 
 // The `[1m]` SUFFIX IS LOAD-BEARING — it is what grants the 1M-token context window on this
 // fleet; a bare `claude-sonnet-5` gets the default window and rejects a large debrief with
@@ -297,7 +348,7 @@ async function callMiniMax(
 ): Promise<string> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(MINIMAX_API_URL, {
+      const res = await fetch(debriefApiUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

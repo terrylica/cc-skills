@@ -39,27 +39,27 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 ## Self-Hosted Services
 
-Services run on two GPU workstations: **gpu-host** (RTX 4090) for primary compute, **small-host** (RTX 2080 Ti) for secondary workloads. Access via Tailscale primary path or legacy ZeroTier fallback.
+Services run on two GPU workstations: **gpu-host-1** (RTX 4090) for primary compute, **gpu-host-2** (RTX 2080 Ti) for secondary workloads. Access via Tailscale primary path or legacy ZeroTier fallback.
 
 | Service    | Host     | Port | Tunnel          | Skill                                             |
 | ---------- | -------- | ---- | --------------- | ------------------------------------------------- |
-| ClickHouse | gpu-host | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
-| VNC (MT5)  | gpu-host | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
+| ClickHouse | gpu-host-1 | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
+| VNC (MT5)  | gpu-host-1 | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
 
-> Do not add a self-hosted Firecrawl here. It ran on small-host:3002 until 2026-08-13 and was retired for the public API at `https://api.firecrawl.dev` — see `Skill(devops-tools:firecrawl-research-patterns)`.
+> Do not add a self-hosted Firecrawl here. It ran on gpu-host-2:3002 until 2026-08-13 and was retired for the public API at `https://api.firecrawl.dev` — see `Skill(devops-tools:firecrawl-research-patterns)`.
 
-**ClickHouse (gpu-host)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
+**ClickHouse (gpu-host-1)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
 
 ```bash
 # Env vars (set in .mise.local.toml per-project, gitignored):
-RANGEBAR_CH_HOSTS=gpu-host    # SSH alias, NOT raw IP (tunnel required)
+RANGEBAR_CH_HOSTS=gpu-host-1    # SSH alias, NOT raw IP (tunnel required)
 RANGEBAR_MODE=remote          # Skip local ClickHouse check
 
 # Test connectivity:
-ssh gpu-host "curl -s 'http://localhost:8123/?query=SELECT+1'"
+ssh gpu-host-1 "curl -s 'http://localhost:8123/?query=SELECT+1'"
 ```
 
-**Network**: Tailscale primary (`ssh gpu-host`), Cloudflare Access fallback (`ssh gpu-host-cf`). See [ssh-tunnel-companion CLAUDE.md](../ssh-tunnel-companion/CLAUDE.md).
+**Network**: Tailscale primary (`ssh gpu-host-1`), Cloudflare Access fallback (`ssh gpu-host-1-cf`). See [ssh-tunnel-companion CLAUDE.md](../ssh-tunnel-companion/CLAUDE.md).
 
 ## Skills
 
