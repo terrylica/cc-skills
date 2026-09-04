@@ -318,7 +318,10 @@ export function detectSigpipeUnderPipefailSites(
       const segment = code
         .slice(p + 1)
         .replace(/^[ \t]+/, "")
-        .replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=[^ \t]*[ \t]+)*/, "");
+        // `[^ \t]*` stopped at the first space, so `FOO="a b" head -1` left `b" head -1` as the
+        // segment and the reader was not recognised. Same defect as the citation guard's `\S*`,
+        // spelled differently — which is why a grep for `\S*` alone did not find it.
+        .replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^ \t]*)[ \t]+)*/, "");
 
       const regexMatch = EARLY_EXITING_READERS.find(([rx]) => rx.test(segment));
       const reader = regexMatch
