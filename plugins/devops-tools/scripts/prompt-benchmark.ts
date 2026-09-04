@@ -34,7 +34,52 @@ import { spawnSync } from "child_process";
 // Comparing a new run against those numbers compares two different MODELS, not two prompts,
 // which is exactly the confound this harness exists to avoid. Re-baseline before drawing a
 // conclusion from a cross-date comparison.
-const MINIMAX_API_URL = process.env.DEBRIEF_LLM_API_URL ?? "https://nca.25u.com/v1/messages";
+/**
+ * Resolve the benchmark LLM endpoint. Order: DEBRIEF_LLM_API_URL, then a
+ * DEBRIEF_LLM_API_URL= line in ${XDG_CONFIG_HOME:-~/.config}/cc-skills/debrief.env.
+ *
+ * There is deliberately NO default endpoint: this script ships in a public
+ * marketplace, and a default pointing at one maintainer's gateway would publish
+ * that host's name and aim every installer's prompts at a machine that is not
+ * theirs. Exits rather than guessing.
+ */
+function resolveDebriefApiUrl(): string {
+  const fromEnv = process.env.DEBRIEF_LLM_API_URL;
+  if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
+
+  const configHome = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  const configPath = join(configHome, "cc-skills", "debrief.env");
+  try {
+    const line = readFileSync(configPath, "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"))
+      .find((l) => l.startsWith("DEBRIEF_LLM_API_URL="));
+    if (line) {
+      const value = line.slice("DEBRIEF_LLM_API_URL=".length).trim();
+      if (value) return value;
+    }
+  } catch {
+    // fall through to the error below
+  }
+
+  console.error(
+    "prompt-benchmark: no LLM endpoint configured.\n" +
+      "  Set DEBRIEF_LLM_API_URL to an Anthropic /v1/messages-compatible endpoint,\n" +
+      `  or add a DEBRIEF_LLM_API_URL= line to ${configPath}.\n` +
+      "  This skill ships with no default endpoint on purpose."
+  );
+  process.exit(78); // EX_CONFIG
+}
+
+// Resolved LAZILY and memoised, NOT at module load. An eager resolve made the
+// purely-local `list` mode (and `--help`) exit 78 on an unconfigured machine,
+// even though neither touches the network. Gate the request, not the program.
+let cachedBenchmarkApiUrl: string | undefined;
+function benchmarkApiUrl(): string {
+  if (cachedBenchmarkApiUrl === undefined) cachedBenchmarkApiUrl = resolveDebriefApiUrl();
+  return cachedBenchmarkApiUrl;
+}
 const MINIMAX_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
 const CORPUS_BASE = join(homedir(), ".claude/benchmarks/session-debrief/corpus");
 
@@ -69,7 +114,7 @@ async function callMiniMax(
   userContent: string,
   maxTokens: number = 8192,
 ): Promise<string> {
-  const res = await fetch(MINIMAX_API_URL, {
+  const res = await fetch(benchmarkApiUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
