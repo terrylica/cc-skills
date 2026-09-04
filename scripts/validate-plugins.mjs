@@ -1213,6 +1213,57 @@ async function validateHooksJsonStructure() {
     }
   }
 
+  // THE SHIPPED ARTIFACT, not only the generator that writes it.
+  //
+  // Everything above validates jq expressions inside `plugins/*/scripts/manage-hooks.sh`. Five of
+  // those scripts exist; TEN `plugins/*/hooks/hooks.json` files actually ship, and none of them was
+  // ever checked against hooks.schema.json. Measured: with the loop below absent, restoring the
+  // Stop orchestrator's timeout to 65000 -- eighteen hours for a blocking hook -- passed validation
+  // with "Errors: 0".
+  //
+  // A schema applied to a code-generation template rather than to the artifact is a schema that
+  // documents an intention. This makes it enforce one.
+  const shippedHookFiles = await glob("plugins/*/hooks/hooks.json", {
+    cwd: process.cwd(),
+    absolute: true,
+    onlyFiles: true,
+  });
+
+  if (shippedHookFiles.length === 0) {
+    // Anti-vacuity: the loop below is `for (...) { check }`, which reports success over an empty
+    // set. A glob that stops matching would silently retire this check with no other symptom.
+    errors.push(
+      "No plugins/*/hooks/hooks.json matched — hook-artifact validation examined nothing. " +
+        "Either the layout moved or the glob is wrong; both must fail loudly rather than pass."
+    );
+  }
+
+  for (const hooksPath of shippedHookFiles) {
+    const relPath = relative(process.cwd(), hooksPath);
+    let doc;
+    try {
+      doc = JSON.parse(readFileSync(hooksPath, "utf8"));
+    } catch (err) {
+      errors.push(`${relPath}: not parseable as JSON: ${err.message}`);
+      continue;
+    }
+
+    const events = doc.hooks ?? doc;
+    if (typeof events !== "object" || events === null) continue;
+
+    for (const [eventName, entries] of Object.entries(events)) {
+      if (!Array.isArray(entries)) continue;
+      for (const [i, entry] of entries.entries()) {
+        const where = `${relPath} ${eventName}[${i}]`;
+        if (entry.matcher !== undefined) {
+          validateHookMatcher(entry, where, 0, errors, warnings);
+        } else if (entry.hooks !== undefined) {
+          validateHookEventEntry(entry, where, 0, errors, warnings);
+        }
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 
@@ -1308,11 +1359,41 @@ function validateHookDefinition(hook, location, errors, warnings) {
     );
   }
 
-  // Validate timeout if present
+  // Validate timeout if present.
+  //
+  // THE BOUND IS READ FROM THE SCHEMA, NOT RESTATED HERE. This check previously hardcoded
+  // `hook.timeout > 600000` — a second copy of a constraint whose source of truth is
+  // hooks.schema.json — so tightening the schema changed nothing and the schema was, for this
+  // field, documentation. Measured: with the schema at `"maximum": 600`, a hook carrying
+  // `"timeout": 65000` (eighteen hours, on a BLOCKING Stop hook) still validated with
+  // "Errors: 0".
+  //
+  // It was also a WARNING, and warnings do not fail the run, so even the hardcoded bound could
+  // only ever have produced a line nobody reads.
+  //
+  // The unit is SECONDS. Upstream: "timeout ... Seconds before canceling. ... Defaults: 600 for
+  // command, http, and mcp_tool" — https://docs.claude.com/en/docs/claude-code/hooks. The old
+  // message said "ms", which is how 53 entries across 10 plugins came to be written as
+  // milliseconds in the first place.
   if (hook.timeout !== undefined) {
-    if (typeof hook.timeout !== "number" || hook.timeout < 1 || hook.timeout > 600000) {
-      warnings.push(
-        `${location}: timeout should be 1-600000ms, got ${hook.timeout}`
+    const bound = hooksSchema?.$defs?.hookDefinition?.properties?.timeout
+      ?? hooksSchema?.definitions?.hookDefinition?.properties?.timeout;
+    const min = bound?.minimum ?? 1;
+    const max = bound?.maximum;
+
+    if (max === undefined) {
+      // Fail loudly rather than silently skipping: a schema whose shape moved must not read as
+      // "no constraint". Absence of the bound is a defect in this validator, not permission.
+      errors.push(
+        `${location}: cannot locate timeout bounds in hooks.schema.json, so the timeout ` +
+          `constraint is unenforceable. Fix the lookup path in validateHookDefinition rather ` +
+          `than leaving the field unchecked.`
+      );
+    } else if (typeof hook.timeout !== "number" || hook.timeout < min || hook.timeout > max) {
+      errors.push(
+        `${location}: timeout must be ${min}-${max} SECONDS, got ${hook.timeout}. ` +
+          `A value like 5000 is the millisecond spelling and means ${Math.round(5000 / 60)} ` +
+          `minutes here; a blocking hook holds the session for that long.`
       );
     }
   }
