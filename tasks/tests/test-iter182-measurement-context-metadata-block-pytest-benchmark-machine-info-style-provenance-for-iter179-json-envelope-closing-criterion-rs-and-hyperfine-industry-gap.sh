@@ -232,6 +232,82 @@ else
     ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED - 1))
 fi
 
+# ─── Group F: iter-187 host load average — the machine's STATE ─────────────
+#
+# The iter-187 fields shipped in 85bf8631 with NO test asserting them, which is
+# the same "shipped an unasserted thing" shape this suite exists to catch.
+#
+# F2 is the load-bearing one, and it asserts VALUES rather than key presence on
+# purpose. The original iter-187 implementation emitted a well-formed
+# `null` for every field -- `${var//[{}]/}` does not strip braces, because the
+# `}` of a bracket expression terminates the parameter expansion -- and since
+# `null` is the LEGITIMATE unreadable-sample value, the bug was indistinguishable
+# from correct graceful degradation. bash -n passed it, shellcheck passed it,
+# the harness exited 0 and the envelope parsed. A key-presence assertion would
+# have passed it too. Only asserting non-null numerics catches that class.
+echo ""
+echo "GROUP F (3 assertions): iter-187 host load average present, NUMERIC (not null), one sample per scenario"
+
+ITER182_ITER187_BEFORE_FIELD_NAME="iter187_host_load_average_before_harness_started_1m_5m_15m"
+ITER182_ITER187_SERIES_FIELD_NAME="iter187_host_load_average_sampled_after_each_scenario_1m_5m_15m"
+ITER182_ITER187_AFTER_FIELD_NAME="iter187_host_load_average_after_harness_finished_1m_5m_15m"
+
+if command -v python3 >/dev/null 2>&1; then
+    # F1: all three keys present inside the measurement-context block.
+    ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED + 1))
+    if python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+ctx = next(v for k, v in d.items() if k.startswith("iter182_measurement_context"))
+need = sys.argv[1:]
+sys.exit(1 if [k for k in need if k not in ctx] else 0)
+' "$ITER182_ITER187_BEFORE_FIELD_NAME" "$ITER182_ITER187_SERIES_FIELD_NAME" "$ITER182_ITER187_AFTER_FIELD_NAME" \
+        <<< "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" 2>/dev/null; then
+        echo "  ✓ F1: all three iter-187 load-average keys present in the measurement-context block"
+    else
+        echo "  ✗ F1: an iter-187 load-average key is missing from the measurement-context block"
+        ITER182_TOTAL_ASSERTIONS_FAILED=$((ITER182_TOTAL_ASSERTIONS_FAILED + 1))
+    fi
+
+    # F2: the endpoint readings are real numbers, not `null`. See the block
+    # comment above -- this is the assertion that would have caught the brace bug.
+    ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED + 1))
+    if python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+ctx = next(v for k, v in d.items() if k.startswith("iter182_measurement_context"))
+def is_load_triplet(value):
+    return (isinstance(value, list) and len(value) == 3
+            and all(isinstance(x, (int, float)) and not isinstance(x, bool) and x >= 0 for x in value))
+sys.exit(0 if is_load_triplet(ctx[sys.argv[1]]) and is_load_triplet(ctx[sys.argv[2]]) else 1)
+' "$ITER182_ITER187_BEFORE_FIELD_NAME" "$ITER182_ITER187_AFTER_FIELD_NAME" \
+        <<< "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" 2>/dev/null; then
+        echo "  ✓ F2: before/after readings are non-null numeric [1m, 5m, 15m] triplets (null here would mean the sampler silently failed)"
+    else
+        echo "  ✗ F2: an iter-187 endpoint reading is null or not a numeric 3-element triplet — the sampler failed while looking like graceful degradation"
+        ITER182_TOTAL_ASSERTIONS_FAILED=$((ITER182_TOTAL_ASSERTIONS_FAILED + 1))
+    fi
+
+    # F3: one sample per scenario, tied to the ACTUAL results length rather than
+    # a hardcoded 6, so adding a scenario cannot silently desynchronise them.
+    ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED + 1))
+    if python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+ctx = next(v for k, v in d.items() if k.startswith("iter182_measurement_context"))
+series = ctx[sys.argv[1]]
+sys.exit(0 if (isinstance(series, list) and len(series) == len(d["results"])
+               and all(isinstance(t, list) and len(t) == 3 for t in series)) else 1)
+' "$ITER182_ITER187_SERIES_FIELD_NAME" <<< "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" 2>/dev/null; then
+        echo "  ✓ F3: per-scenario load series has exactly one [1m, 5m, 15m] triplet per results[] entry"
+    else
+        echo "  ✗ F3: per-scenario load series length does not match results[], or an entry is not a triplet"
+        ITER182_TOTAL_ASSERTIONS_FAILED=$((ITER182_TOTAL_ASSERTIONS_FAILED + 1))
+    fi
+else
+    echo "  ⊘ F1-F3: python3 not available — SKIPPED (assertions uncounted)"
+fi
+
 # ─── Final report ───────────────────────────────────────────────────────────
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
