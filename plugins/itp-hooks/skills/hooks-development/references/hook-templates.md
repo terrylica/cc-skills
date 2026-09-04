@@ -53,7 +53,7 @@ Every plugin with hooks must have `hooks/hooks.json` using this canonical object
 **Rules**:
 
 - `matcher` — Regex against tool name. **Required** for PreToolUse/PostToolUse. **Optional** for Stop.
-- `timeout` — **Seconds**, not milliseconds. Default is 600 (10 min). Set explicit lower values for fast-fail hooks; `scripts/hooks.schema.json` rejects anything above 600, because a four-digit value here is the millisecond spelling and holds a blocking hook for over an hour (issue [#109](https://github.com/terrylica/cc-skills/issues/109)).
+- `timeout` — **Seconds**, not milliseconds; Claude Code multiplies by 1000 internally (evidence and the call-site count live in [askuserquestion-option-line-terminator-guard.md](/plugins/itp-hooks/docs/askuserquestion-option-line-terminator-guard.md), which is the SSoT for that measurement — do not restate the number here, it has already been revised once). Defaults when the field is absent: **600** (10 min) for `command`, `http` and `mcp_tool` hooks, **60** for `agent`, **30** for `prompt`. A jq one-liner wants `5`, not `5000`. `scripts/hooks.schema.json` rejects anything above 600, because a four-digit value is the millisecond spelling and parks a blocking hook for over an hour (issue [#109](https://github.com/terrylica/cc-skills/issues/109)).
 - **Always use `$HOME`-based paths**, never `${CLAUDE_PLUGIN_ROOT}` (it's not a shell env var — see Common Pitfalls in lifecycle-reference.md).
 - Include only the event types your plugin uses. Most plugins only need 1-2.
 
