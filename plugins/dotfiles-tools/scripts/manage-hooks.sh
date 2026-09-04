@@ -131,7 +131,7 @@ do_install() {
     info "Created backup: settings.json.backup.$timestamp"
 
     # Prepare hook entry (using $HOME literal, not expanded)
-    local posttooluse_entry='{"matcher":"Edit|Write","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/dotfiles-tools/hooks/chezmoi-sync-reminder.sh","timeout":5000}]}'
+    local posttooluse_entry='{"matcher":"Edit|Write","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/dotfiles-tools/hooks/chezmoi-sync-reminder.sh","timeout":5}]}'
 
     # Create temp file for atomic write
     local temp_file

@@ -1154,59 +1154,123 @@ async function validateHooksJsonStructure() {
 
   for (const scriptPath of hookScripts) {
     const relPath = relative(process.cwd(), scriptPath);
-    const pluginName = relPath.split("/")[1];
 
     try {
       const content = readFileSync(scriptPath, "utf8");
 
-      // Extract jq expressions that generate hook entries
-      // Pattern: jq -n --arg ... '{...}' or jq -n '{...}'
-      const jqExpressions = [];
-      const jqPattern = /jq\s+-n\s+(?:--arg\s+\w+\s+"[^"]*"\s*)*'(\{[^']+\})'/g;
-      let match;
+      // EVERY single-quoted object literal in the generator, however it is introduced.
+      //
+      // This previously required the literal to follow `jq -n`:
+      //     /jq\s+-n\s+(?:--arg\s+\w+\s+"[^"]*"\s*)*'(\{[^']+\})'/g
+      // Three hook entries across two generators are plain bash assignments instead --
+      //     local posttooluse_entry='{"matcher":"Bash|Write|Edit",…,"timeout":10000}'
+      // -- so they were read by NO check at all: this pattern skipped them, and the shipped-artifact
+      // loop below only globs `plugins/*/hooks/hooks.json`. Measured on 6f1c9e22: the validator
+      // reported "All 41 plugins valid" over a tree whose installer wrote a 10000-SECOND (2h47m)
+      // timeout onto a blocking PostToolUse hook. Issue #109, which the timeout fix did not finish.
+      const objectLiterals = [...content.matchAll(/'(\{[^']*\})'/g)].map((literal) => ({
+        expression: literal[1],
+        line: content.slice(0, literal.index).split("\n").length,
+      }));
 
-      while ((match = jqPattern.exec(content)) !== null) {
-        const lineNum = content.substring(0, match.index).split("\n").length;
-        jqExpressions.push({
-          expression: match[1],
-          fullMatch: match[0],
-          line: lineNum,
-        });
-      }
-
-      // Validate each extracted jq expression
-      for (const { expression, fullMatch, line } of jqExpressions) {
-        // Skip expressions that are clearly not hook entries
+      for (const { expression, line } of objectLiterals) {
+        // Skip literals that are clearly not hook entries
         if (!expression.includes("type") && !expression.includes("matcher")) {
           continue;
         }
 
-        // Run jq to get actual JSON output
+        let entry;
         try {
-          // Replace $cmd variable references with placeholder for validation
-          const testExpr = expression.replace(/\$\w+/g, '"placeholder"');
-          const jqCmd = `jq -n '${testExpr}'`;
-
-          const output = execSync(jqCmd, {
-            encoding: "utf8",
-            timeout: 5000,
-          }).trim();
-
-          const jsonOutput = JSON.parse(output);
-
-          // Determine what schema to validate against based on content
-          if (jsonOutput.matcher !== undefined) {
-            // This is a hookMatcher (PreToolUse, PostToolUse)
-            validateHookMatcher(jsonOutput, relPath, line, errors, warnings);
-          } else if (jsonOutput.hooks !== undefined) {
-            // This is a hookEventArray entry (Stop, SubagentStop)
-            validateHookEventEntry(jsonOutput, relPath, line, errors, warnings);
+          // A bash-literal entry is ALREADY valid JSON -- a `$HOME` inside a quoted value is just
+          // characters. Parse it as-is. The `$var -> "placeholder"` substitution below is right for
+          // a bare jq variable but CORRUPTS a shell variable inside a JSON string, turning
+          // {"command":"$HOME/x.sh"} into {"command":""placeholder"/x.sh"}, which then fails to
+          // parse and would be reported as an unreadable expression rather than validated.
+          entry = JSON.parse(expression);
+        } catch {
+          try {
+            const testExpr = expression.replace(/\$\w+/g, '"placeholder"');
+            entry = JSON.parse(
+              execSync(`jq -n '${testExpr}'`, { encoding: "utf8", timeout: 5000 }).trim()
+            );
+          } catch (parseErr) {
+            warnings.push(`${relPath}:${line}: Could not validate hook entry: ${parseErr.message}`);
+            continue;
           }
-        } catch (jqErr) {
-          warnings.push(
-            `${relPath}:${line}: Could not validate jq expression: ${jqErr.message}`
+        }
+
+        if (entry.matcher !== undefined) {
+          // hookMatcher (PreToolUse, PostToolUse)
+          validateHookMatcher(entry, relPath, line, errors, warnings);
+        } else if (entry.hooks !== undefined) {
+          // hookEventArray entry (Stop, SubagentStop)
+          validateHookEventEntry(entry, relPath, line, errors, warnings);
+        }
+      }
+
+      // SHAPE-INDEPENDENT TIMEOUT SCAN. This, not the widened extractor, is what closes #109.
+      //
+      // Entry extraction reads two shapes: `jq -n '{…}'` and `local entry='{…}'`. There is a THIRD,
+      // an object literal embedded in a multi-line jq PROGRAM with the value bound through --argjson:
+      //
+      //     jq --argjson timeout "$HOOK_TIMEOUT" '… .hooks.Stop += [{ … "timeout": $timeout }]'
+      //
+      // No `'{…}'` pattern can see that, and it concealed HOOK_TIMEOUT=30000 -- eight hours twenty
+      // minutes on a BLOCKING Stop hook. That is the largest wrong timeout in the repository, larger
+      // than the 18-hour value #124 was written to fix, and neither #124 nor a hand grep for
+      // oversized literals found it. A checker that only sees the shapes someone thought to enumerate
+      // will keep missing the next one.
+      //
+      // So do not reach the timeout THROUGH a parsed entry. Read every `"timeout":` binding straight
+      // out of the text, resolve it across at most two hops (jq arg -> shell variable), and bounds
+      // -check the number. Robust to a fourth shape nobody has written yet.
+      const { min: timeoutMin, max: timeoutMax } = resolveTimeoutBounds();
+      const timeoutBindings = [...content.matchAll(/"timeout"\s*:\s*(\$?[A-Za-z_]\w*|\d+)/g)].map(
+        (binding) => ({
+          token: binding[1],
+          line: content.slice(0, binding.index).split("\n").length,
+        }),
+      );
+
+      // A binding inside a literal the extractor DID parse is reported twice — once by the schema
+      // path above and once here. That is deliberate: the two reports rest on different evidence
+      // (a parsed entry vs. raw text), and suppressing one would mean trusting the extractor to
+      // decide what the scan is allowed to see, which is the coupling that produced the blind spot.
+      for (const { token, line } of timeoutBindings) {
+        const seconds = resolveGeneratorTimeoutValue(token, content);
+
+        if (seconds === null) {
+          // An unresolvable value must never read as a passing value.
+          errors.push(
+            `${relPath}:${line}: writes "timeout": ${token}, which cannot be resolved to a number ` +
+              `from this file, so its value goes unchecked. Bind it to a literal or to a plain ` +
+              `NAME=<digits> assignment that this scan can follow.`
+          );
+        } else if (timeoutMax === undefined) {
+          errors.push(
+            `${relPath}:${line}: cannot locate timeout bounds in hooks.schema.json, so the ` +
+              `generator timeout constraint is unenforceable. Fix resolveTimeoutBounds() rather ` +
+              `than leaving the value unchecked.`
+          );
+        } else if (seconds < timeoutMin || seconds > timeoutMax) {
+          const via = token.startsWith("$") ? ` (via ${token})` : "";
+          errors.push(
+            `${relPath}:${line}: timeout must be ${timeoutMin}-${timeoutMax} SECONDS, got ` +
+              `${seconds}${via}. That is ${describeDurationInSeconds(seconds)}; a blocking hook ` +
+              `holds the session for exactly that long.`
           );
         }
+      }
+
+      // ANTI-VACUITY. The scan above is `for (...) { check }`, which reports success over an empty
+      // set -- the same shape that let these values ship in the first place. If the file writes a
+      // `"timeout"` key at all but the scan bound nothing, the spelling has moved and this check
+      // has silently stopped covering the file.
+      if (content.includes('"timeout"') && timeoutBindings.length === 0) {
+        errors.push(
+          `${relPath}: contains a "timeout" key but the scan resolved no binding, so no timeout ` +
+            `in this generator is checked. Widen the scan rather than leaving it blind.`
+        );
       }
     } catch (err) {
       warnings.push(`${relPath}: Could not read script: ${err.message}`);
@@ -1265,6 +1329,58 @@ async function validateHooksJsonStructure() {
   }
 
   return { errors, warnings };
+}
+
+/**
+ * The `timeout` bounds, read from hooks.schema.json rather than restated.
+ *
+ * ONE lookup, used by both the shipped-artifact check and the generator scan. The bound existed in
+ * three places before #124 (a hardcoded 600000, a doc line saying "milliseconds", and the schema),
+ * and they disagreed; that disagreement is what shipped 53 wrong values. `max` is deliberately
+ * returned as `undefined` when the lookup path breaks, so callers must handle "unknown" explicitly
+ * instead of receiving a permissive default.
+ */
+function resolveTimeoutBounds() {
+  const bound =
+    hooksSchema?.$defs?.hookDefinition?.properties?.timeout ??
+    hooksSchema?.definitions?.hookDefinition?.properties?.timeout;
+  return { min: bound?.minimum ?? 1, max: bound?.maximum };
+}
+
+/**
+ * Resolve a generator's `"timeout":` token to a number, or null when it cannot be resolved.
+ *
+ * Handles the two indirections that actually occur: a jq argument bound from a shell variable
+ * (`--argjson timeout "$HOOK_TIMEOUT"`), and that shell variable's own assignment
+ * (`HOOK_TIMEOUT=30000`). Returning null rather than a default is the point — an unresolved
+ * timeout is reported as unchecked, never as acceptable.
+ */
+function resolveGeneratorTimeoutValue(token, content) {
+  if (/^\d+$/.test(token)) return Number(token);
+
+  const jqArgName = token.replace(/^\$/, "");
+  // Hop 1: jq --argjson <name> "$SHELL_VAR" / "${SHELL_VAR}"
+  const jqBinding = content.match(
+    new RegExp(String.raw`--argjson\s+${jqArgName}\s+"\$\{?(\w+)\}?"`),
+  );
+  const shellName = jqBinding ? jqBinding[1] : jqArgName;
+
+  // Hop 2: NAME=<digits>, with or without local/readonly/declare
+  const assignment = content.match(
+    new RegExp(
+      String.raw`(?:^|\n)\s*(?:local\s+|readonly\s+|declare\s+(?:-\w+\s+)?)?${shellName}=(\d+)\b`,
+    ),
+  );
+  return assignment ? Number(assignment[1]) : null;
+}
+
+/** Render a seconds value the way a reader feels it, so "30000" reads as the outage it is. */
+function describeDurationInSeconds(seconds) {
+  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+  if (hours === 0) return `${minutes} minutes`;
+  return `${hours}h${String(minutes).padStart(2, "0")}m`;
 }
 
 /**
@@ -1376,10 +1492,7 @@ function validateHookDefinition(hook, location, errors, warnings) {
   // message said "ms", which is how 53 entries across 10 plugins came to be written as
   // milliseconds in the first place.
   if (hook.timeout !== undefined) {
-    const bound = hooksSchema?.$defs?.hookDefinition?.properties?.timeout
-      ?? hooksSchema?.definitions?.hookDefinition?.properties?.timeout;
-    const min = bound?.minimum ?? 1;
-    const max = bound?.maximum;
+    const { min, max } = resolveTimeoutBounds();
 
     if (max === undefined) {
       // Fail loudly rather than silently skipping: a schema whose shape moved must not read as
