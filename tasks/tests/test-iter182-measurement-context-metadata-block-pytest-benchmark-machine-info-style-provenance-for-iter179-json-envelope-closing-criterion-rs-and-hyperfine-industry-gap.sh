@@ -120,10 +120,17 @@ fi
 
 # B5: ordering — measurement_context appears AFTER trials_per_script and BEFORE results
 # (so AI agents reading top-to-bottom see context before raw data).
+#
+# ITER-186 SIGPIPE FIX: these three were `grep -nF … | head -1 | cut -d: -f1`.
+# Under this file's `set -euo pipefail`, `head -1` closes the pipe on `grep`,
+# which then dies of SIGPIPE with 141; `pipefail` promotes it and `set -e`
+# aborts the test with no diagnostic. Unlike the failure-branch `head -3`
+# diagnostics elsewhere in this file, these run on EVERY invocation, so the race
+# was live on every suite run. `awk` drains its input and cannot signal `grep`.
 ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED + 1))
-ITER182_LINE_OF_TRIALS_PER_SCRIPT=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"trials_per_script"' | head -1 | cut -d: -f1)
-ITER182_LINE_OF_MEASUREMENT_CONTEXT=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"iter182_measurement_context' | head -1 | cut -d: -f1)
-ITER182_LINE_OF_RESULTS_ARRAY=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"results"' | head -1 | cut -d: -f1)
+ITER182_LINE_OF_TRIALS_PER_SCRIPT=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"trials_per_script"' | awk -F: 'NR==1{print $1}')
+ITER182_LINE_OF_MEASUREMENT_CONTEXT=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"iter182_measurement_context' | awk -F: 'NR==1{print $1}')
+ITER182_LINE_OF_RESULTS_ARRAY=$(echo "$ITER182_JSON_ENVELOPE_OUTPUT_CAPTURE" | grep -nF '"results"' | awk -F: 'NR==1{print $1}')
 if [[ -n "$ITER182_LINE_OF_TRIALS_PER_SCRIPT" ]] && [[ -n "$ITER182_LINE_OF_MEASUREMENT_CONTEXT" ]] && [[ -n "$ITER182_LINE_OF_RESULTS_ARRAY" ]] && \
    (( ITER182_LINE_OF_TRIALS_PER_SCRIPT < ITER182_LINE_OF_MEASUREMENT_CONTEXT )) && \
    (( ITER182_LINE_OF_MEASUREMENT_CONTEXT < ITER182_LINE_OF_RESULTS_ARRAY )); then
@@ -137,6 +144,29 @@ fi
 echo ""
 echo "GROUP C (1 assertion): human-mode invocation still 7/7 PASS (regression-safe; iter-182 metadata only emitted in --json mode)"
 
+# Failure-diagnosis helper (observability only; the C1 condition below is
+# byte-for-byte unchanged). C1 is a THREE-clause conjunction, and its single
+# failure message named only two of the three possibilities — "regressed OR
+# leaked measurement_context" — so a run that failed on the 7/7 clause because
+# a load-sensitive scenario gate tripped reported a JSON-leak suspicion instead
+# of the scenario that actually failed. Observed on 2026-09-03.
+iter182_name_failing_harness_scenarios_in_human_mode_capture() {
+    local harness_output_capture="$1"
+    local failing_scenario_lines
+    # `|| true`: grep exits 1 on no-match, which `set -e` would treat as fatal.
+    failing_scenario_lines=$(printf '%s\n' "$harness_output_capture" | grep -E '^[[:space:]]*✗ A[0-9]+:' || true)
+    if [[ -z "$failing_scenario_lines" ]]; then
+        echo "      [HARNESS-NO-SCENARIO-FAILURE] no '✗ A<n>' scenario line in the capture —"
+        echo "        the 7/7 clause did not fail because of a scenario gate."
+        return 0
+    fi
+    echo "      [HARNESS-SCENARIO-FAILURE] a scenario gate failed in this invocation:"
+    # `awk`, never `head` — `head` closes the pipe and kills `grep` with SIGPIPE,
+    # which `pipefail` promotes into a silent abort. Same trap this file's own
+    # iter-186 B5 fix documents above.
+    printf '%s\n' "$failing_scenario_lines" | awk 'NR<=5 { print "        " $0 }'
+}
+
 ITER182_HUMAN_MODE_OUTPUT_CAPTURE=$(bash "$ITER182_ITER174_HARNESS_ABSOLUTE_PATH" 2>&1 || true)
 
 ITER182_TOTAL_ASSERTIONS_EVALUATED=$((ITER182_TOTAL_ASSERTIONS_EVALUATED + 1))
@@ -145,7 +175,22 @@ if [[ "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" == *"7/7 assertions PASSED"* ]] && \
    [[ "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" != *"iter174_schema_version"* ]]; then
     echo "  ✓ C1: human-mode still 7/7 PASS + no JSON-envelope leak (measurement_context only emitted in --json mode)"
 else
-    echo "  ✗ C1: human-mode regressed OR leaked measurement_context block into text output"
+    echo "  ✗ C1: human-mode 7/7-PASS + no-JSON-leak invariant violated"
+    # Name the clause that actually failed, rather than asserting a cause.
+    if [[ "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" != *"7/7 assertions PASSED"* ]]; then
+        echo "      clause 1 FAILED: capture did not contain '7/7 assertions PASSED'"
+    fi
+    if [[ "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" == *"iter182_measurement_context"* ]]; then
+        echo "      clause 2 FAILED: measurement_context block LEAKED into human-mode text output"
+    fi
+    if [[ "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" == *"iter174_schema_version"* ]]; then
+        echo "      clause 3 FAILED: iter174_schema_version LEAKED into human-mode text output"
+    fi
+    # Unconditional, so a token is always emitted whichever clause failed. A
+    # pure JSON leak (clauses 2/3) with every scenario passing must be
+    # positively distinguishable from a scenario failure — otherwise a genuine
+    # leak reads as "probably contention" and gets waved through on a re-run.
+    iter182_name_failing_harness_scenarios_in_human_mode_capture "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE"
     echo "      (tail: $(echo "$ITER182_HUMAN_MODE_OUTPUT_CAPTURE" | tail -3))"
     ITER182_TOTAL_ASSERTIONS_FAILED=$((ITER182_TOTAL_ASSERTIONS_FAILED + 1))
 fi
