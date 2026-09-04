@@ -90,7 +90,78 @@ ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER152_COMMITS_HEALTH_FIVE_PANEL_DASHBOAR
 # aggregator is ever rewritten.
 ITER174_ITER165_AGGREGATOR_FIXED_PROCESS_STARTUP_BUDGET_MILLISECONDS_INDEPENDENT_OF_BACKLOG_SIZE=200
 ITER174_ITER165_AGGREGATOR_PER_PENDING_RELEASE_COMMIT_BUDGET_MILLISECONDS_AT_THREE_X_HEADROOM=21  # measured median 36ms × 5.5 headroom (already iter-167-optimized; regression here means iter-167 NUL-delim fan-in broke)
-ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1500  # measured median 530ms × 2.8 headroom (operator-facing, runs 15 timed health checks; iter-177 replaced perl Time::HiRes with bash 5+ EPOCHREALTIME zero-fork builtin saving ~135ms; cap is intentionally tighter (2.8x not 4-5x) since this is the slowest absolute script in the toolkit and any further sub-linear-scaling check addition deserves an explicit baseline re-pin)
+ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1500  # measured median 530ms × 2.8 headroom (operator-facing, runs 15 timed health checks; iter-177 replaced perl Time::HiRes with bash 5+ EPOCHREALTIME zero-fork builtin saving ~135ms). NOTE (iter-186): this cap is now REPORTED ONLY for A6 — the gate is the load-invariant fork count below. See the A6 rationale block.
+
+# ─── ITER-186: A6 GATES ON A FORK COUNT, NOT ON WALL CLOCK ───────────────────
+# A6 was the single load-sensitive gating assertion in this whole harness, and
+# it was the origin of every phantom red run in the marketplace suite: the four
+# consumers that assert "7/7 assertions PASSED" (iter-180/181/182/183) all
+# CASCADE from it, so one blown cap reds five files at once.
+#
+# Measured on this host (2026-09-03), doctor median wall clock, N=7 trials:
+#
+#   condition                                            median    vs cap=1500
+#   ---------------------------------------------------  --------  -----------
+#   isolated, ambient load ~20                             555 ms   63% headroom
+#   8 concurrent iter-174 harnesses (what the suite does) 1318 ms   12% headroom
+#   16 busy loops, NO co-scheduling                       1782 ms   FAIL
+#   both together                                         1825 ms   FAIL
+#
+# Two independent causes, and BOTH exceed the cap on their own. The suite
+# measuring itself (row 2) is real — the 8 harness-invoking files sort
+# contiguously and xargs -P 10 dispatches them into every lane at once — but
+# isolating them costs a measured 4.9x on the perf family (10.6 s -> 52.2 s,
+# +41.6 s on the suite critical path) and STILL leaves row 3 failing. Wall
+# clock is simply the wrong instrument for a gate on a machine that is
+# routinely loaded.
+#
+# So A6 now gates on what actually changes when the doctor regresses: the
+# number of external processes it forks. Same instrument iter-167 Group D
+# adopted for the same reason. Measured over 7 runs spanning load average 20
+# to 72, the count was 23 EVERY time while wall clock moved 555 -> 1782 ms.
+#
+# What this still detects, exactly as sensitively as the cap did:
+#   - iter-177 regressing (perl Time::HiRes returning to the per-check timing
+#     wrapper) => +2 perl forks x 15 checks = 23 -> ~53. Caught.
+#   - a new check being added to the doctor => any check that shells out moves
+#     the count. Caught, and it forces the deliberate re-pin the original cap
+#     comment already demanded.
+# What it no longer detects: a check that gets slower WITHOUT forking (e.g. a
+# hot pure-bash loop). That shape is rare, and the wall clock is still measured,
+# still reported on the A6 line, and still recorded in the iter-179 JSON
+# envelope (median/mean/stddev/min/max/trials[]) — it is demoted from gate to
+# instrument, not deleted.
+#
+# WHY A CEILING AND NOT AN EQUALITY — this was measured the hard way. An exact
+# `== 23` gate was tried first and produced its own phantom red (observed
+# forks=21 in a live `moon run repo:test-hooks`). The doctor pipes three of its
+# probes into `grep -q`:
+#
+#   "$aggregator" --json 2>/dev/null | grep -q '"next_version": "v1.1.0"'
+#
+# `grep -q` exits the instant it matches, closing the pipe, so the producing
+# toolkit script is SIGPIPE-killed part-way through its own work. How many forks
+# it completed before dying depends on scheduling — so the doctor's total fork
+# count is nondeterministic, and it can only ever come in LOW (a truncated
+# producer forks less; nothing makes it fork more).
+#
+# A ceiling is therefore exactly the right shape: downward jitter from the
+# doctor's internal truncation races is tolerated, while ANY upward movement —
+# which is what every regression looks like — fails. Both negative controls
+# below move it upward (added check 23 -> 25; iter-177 reverted 23 -> 49).
+#
+# The `grep -q` races are a latent bug in the doctor itself, not something this
+# harness should paper over; they are out of scope for this file.
+#
+# Re-pin deliberately: run this harness standalone, read the observed count off
+# the A6 line, and update the constant in the same commit as the doctor change.
+ITER186_CEILING_EXTERNAL_FORK_COUNT_FOR_ITER160_DOCTOR_LOAD_INVARIANT_GATE_REPLACING_WALL_CLOCK_CAP=23
+
+# The iter-177 property, asserted exactly rather than through the ceiling: the
+# per-check timing wrapper must fork NO perl. Checked separately because a
+# change that both removed forks elsewhere and reintroduced perl could slip
+# under the ceiling on totals alone. Reverting iter-177 reads perl=26.
+ITER186_REQUIRED_PERL_FORK_COUNT_PINNING_THE_ITER177_ZERO_FORK_TIMING_PROPERTY=0
 
 ITER174_TOTAL_ASSERTIONS_EVALUATED=0
 ITER174_TOTAL_ASSERTIONS_FAILED=0
@@ -175,9 +246,20 @@ iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochr
     middle_trial_value=$(echo "$sorted_trials_newline_separated" | sed -n "${median_index_one_based}p")
 
     # Min/max: first and last elements of sorted array.
+    #
+    # ITER-186 SIGPIPE FIX: this was `echo … | head -1`, which is a RACE under
+    # the `set -euo pipefail` on line 3. `head -1` closes the pipe after the
+    # first line; if the writer has not finished it takes SIGPIPE and exits 141,
+    # `pipefail` promotes that to the pipeline's status, the command
+    # substitution fails, and `set -e` aborts the whole harness mid-run with no
+    # error line. Observed live: a `moon run repo:test-hooks` run died with
+    # exit=141 immediately after printing the A1 verdict — a phantom red with
+    # nothing wrong with any measured script. It is load-dependent, which is why
+    # it surfaces in the parallel suite and never when run by hand.
+    # `awk` DRAINS its input, so it cannot signal the writer.
     local minimum_observed_trial_value maximum_observed_trial_value
-    minimum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | head -1)
-    maximum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | tail -1)
+    minimum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | awk 'NR==1')
+    maximum_observed_trial_value=$(echo "$sorted_trials_newline_separated" | awk 'END{print}')
 
     # Mean + stddev: awk handles the float division + sqrt since bash is
     # integer-only. Stddev uses sample formula (N-1 denominator) per the
@@ -256,6 +338,73 @@ iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochr
     done
 }
 
+# ─── ITER-186: load-invariant external-fork counter (iter-167 Group D pattern) ─
+# Counts how many external processes ONE invocation of the measured command
+# forks, by prepending a directory of counting shims to PATH. Each shim appends
+# its own name to a log with the `printf` BUILTIN (no fork of its own) and then
+# `exec`s the real binary, so the shim adds zero processes and zero measurable
+# latency to what it observes.
+#
+# The shimmed set is the deterministic one. `git` is deliberately NOT shimmed:
+# the doctor's git usage varies with repository state (tag presence, backlog
+# depth), which would make the count environment-dependent and reintroduce
+# exactly the nondeterminism this replaces.
+#
+# Echoes the observed count on stdout.
+ITER186_SHIMMED_BINARY_NAMES_FOR_DETERMINISTIC_LOAD_INVARIANT_FORK_COUNTING="perl python3 jq node bun sed awk sort mktemp date find wc tr cut basename dirname"
+
+iter186_count_external_forks_issued_by_a_single_invocation_of_the_measured_command_via_path_shim() {
+    local shim_directory shim_invocation_log each_shimmed_binary_name real_binary_absolute_path
+    local observed_external_fork_count
+    shim_directory=$(mktemp -d -t iter186-fork-counting-shim-XXXXXX)
+    shim_invocation_log="$shim_directory/external-binary-invocations.log"
+    : >"$shim_invocation_log"
+
+    for each_shimmed_binary_name in $ITER186_SHIMMED_BINARY_NAMES_FOR_DETERMINISTIC_LOAD_INVARIANT_FORK_COUNTING; do
+        real_binary_absolute_path=$(command -v "$each_shimmed_binary_name" 2>/dev/null) || continue
+        [[ -n "$real_binary_absolute_path" ]] || continue
+        # Each shim bakes in its own name + real target at generation time. The
+        # log path is read from the environment at RUN time (escaped \$ below,
+        # so it survives generation unexpanded). `printf` is a bash builtin, so
+        # recording an invocation costs no extra fork and cannot perturb what it
+        # is measuring.
+        {
+            echo '#!/usr/bin/env bash'
+            echo "# Transient counting shim installed by the iter-186 fork gate."
+            echo "echo '${each_shimmed_binary_name}' >>\"\${ITER186_FORK_COUNTING_SHIM_LOG_ABSOLUTE_PATH:-/dev/null}\""
+            echo "exec '${real_binary_absolute_path}' \"\$@\""
+        } >"$shim_directory/$each_shimmed_binary_name"
+        chmod +x "$shim_directory/$each_shimmed_binary_name"
+    done
+
+    (
+        ITER186_FORK_COUNTING_SHIM_LOG_ABSOLUTE_PATH="$shim_invocation_log" \
+            PATH="$shim_directory:$PATH" \
+            "$@" >/dev/null 2>&1
+    ) || true
+
+    # `wc` reads a redirected FILE (no pipe producer) and `tr` drains, so this
+    # cannot repeat the SIGPIPE race documented above. `grep -c` returns 1 on
+    # zero matches, which is the EXPECTED healthy case here, hence `|| true`.
+    observed_external_fork_count=$(wc -l <"$shim_invocation_log" | tr -d ' ')
+    local observed_perl_fork_count
+    observed_perl_fork_count=$(grep -c '^perl$' "$shim_invocation_log" || true)
+    rm -rf "$shim_directory"
+    echo "$observed_external_fork_count $observed_perl_fork_count"
+}
+
+# ─── ITER-186: per-scenario gate override ────────────────────────────────────
+# Set to the pinned expected fork count immediately BEFORE a scenario call to
+# make that one scenario gate on the load-invariant fork count instead of its
+# wall-clock median. Consumed-and-cleared by the scenario function, so it only
+# ever affects the single call that follows it and every other scenario keeps
+# the original wall-clock gate untouched.
+#
+# The scenario still measures wall clock, still prints one verdict line, and
+# still appends a full iter-179/183/184 JSON record — so the human-mode verdict
+# count (iter-180 D2 expects 6) and the assertion total (7/7) are unchanged.
+ITER186_NEXT_SCENARIO_GATES_ON_THIS_PINNED_FORK_COUNT_INSTEAD_OF_WALL_CLOCK_CAP=""
+
 # Run a single benchmark scenario: measure median + iter-183 hyperfine-parity
 # full stats, compare median to cap, emit PASS/REGRESS verdict. In human mode
 # prints the canonical text line (median only; per-trial detail kept JSON-only
@@ -280,6 +429,63 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     local iter179_human_readable_description_after_canonical_id_prefix="${human_readable_scenario_label#*: }"
     local iter179_pass_or_regress_verdict_string
     local iter179_headroom_or_overage_percentage_signed
+
+    # ── ITER-186 gate override: consume-and-clear ────────────────────────────
+    # Cleared BEFORE use so an early return or a future `set -e` abort can never
+    # leak this scenario's override onto the next one.
+    local iter186_pinned_fork_count_gating_this_scenario="$ITER186_NEXT_SCENARIO_GATES_ON_THIS_PINNED_FORK_COUNT_INSTEAD_OF_WALL_CLOCK_CAP"
+    ITER186_NEXT_SCENARIO_GATES_ON_THIS_PINNED_FORK_COUNT_INSTEAD_OF_WALL_CLOCK_CAP=""
+
+    if [[ -n "$iter186_pinned_fork_count_gating_this_scenario" ]]; then
+        # Load-invariant gate. The wall clock measured above is still reported
+        # on this line and still recorded in the JSON record below — it is an
+        # instrument here, not the gate, so ambient load and co-scheduling
+        # cannot turn a healthy run red.
+        local iter186_fork_measurement_pair iter186_observed_external_fork_count iter186_observed_perl_fork_count
+        iter186_fork_measurement_pair=$(iter186_count_external_forks_issued_by_a_single_invocation_of_the_measured_command_via_path_shim "$@")
+        iter186_observed_external_fork_count="${iter186_fork_measurement_pair%% *}"
+        iter186_observed_perl_fork_count="${iter186_fork_measurement_pair##* }"
+        iter179_headroom_or_overage_percentage_signed=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", 100 * (cap - obs) / cap }')
+        if (( iter186_observed_external_fork_count <= iter186_pinned_fork_count_gating_this_scenario )) \
+            && (( iter186_observed_perl_fork_count == ITER186_REQUIRED_PERL_FORK_COUNT_PINNING_THE_ITER177_ZERO_FORK_TIMING_PROPERTY )); then
+            iter179_pass_or_regress_verdict_string="PASS"
+            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✓ ${human_readable_scenario_label}: forks=${iter186_observed_external_fork_count} ≤ ceiling ${iter186_pinned_fork_count_gating_this_scenario}, perl=${iter186_observed_perl_fork_count} (load-invariant gate; wall clock ${observed_median_wall_clock_ms}ms vs cap ${pinned_baseline_cap_milliseconds}ms reported only)"
+        else
+            iter179_pass_or_regress_verdict_string="REGRESS"
+            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: forks=${iter186_observed_external_fork_count} (ceiling ${iter186_pinned_fork_count_gating_this_scenario}), perl=${iter186_observed_perl_fork_count} (required ${ITER186_REQUIRED_PERL_FORK_COUNT_PINNING_THE_ITER177_ZERO_FORK_TIMING_PROPERTY}) — REGRESSION: the script forks more than pinned, or iter-177's zero-fork timing regressed; wall clock ${observed_median_wall_clock_ms}ms"
+            ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
+        fi
+    else
+    # ─── ITER-186 confirm-on-failure re-measurement ──────────────────────────
+    # A1-A5 are still wall-clock gates, and wall clock on a contended machine
+    # produces false positives that look exactly like regressions. Measured: the
+    # suite is 5/5 green at normal ambient load once the perf family is
+    # serialized, but under 16 dedicated CPU-burning loops (load average 177 on
+    # a 14-core host) a scenario still blew its cap.
+    #
+    # The discriminator is REPRODUCIBILITY, not magnitude: a genuine regression
+    # is in the code and fails every time, while contention is transient and
+    # usually clears on a second look. So an over-cap median is re-measured once
+    # and only a SECOND over-cap reading fails the assertion. This is the
+    # remedy hyperfine and pytest-benchmark both recommend, and the one iter-184
+    # already encodes in its own outlier-warning rationale ("CI gates should
+    # re-run rather than declare regression").
+    #
+    # It costs nothing on the happy path — the re-measurement only ever runs
+    # when a cap has already been exceeded — and it does not weaken detection:
+    # both negative controls below still fail, because an injected regression
+    # reproduces on the retry.
+    if (( observed_median_wall_clock_ms > pinned_baseline_cap_milliseconds )); then
+        local iter186_first_over_cap_median_before_confirmation_remeasurement="$observed_median_wall_clock_ms"
+        iter174_measure_median_and_iter183_full_stats_across_n_trials_using_bash5_epochrealtime_zero_fork_builtin_with_perl_time_hires_graceful_fallback_for_bash4_or_older "$@"
+        observed_median_wall_clock_ms="$ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEDIAN_MS_FOR_PINNED_BASELINE_CAP_COMPARISON_PRESERVED_FROM_ITER174"
+        if (( observed_median_wall_clock_ms <= pinned_baseline_cap_milliseconds )); then
+            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "    ⟳ ${human_readable_scenario_label%%:*}: first batch ${iter186_first_over_cap_median_before_confirmation_remeasurement}ms exceeded cap ${pinned_baseline_cap_milliseconds}ms; confirmation batch ${observed_median_wall_clock_ms}ms did not — transient contention, not a regression"
+        else
+            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "    ⟳ ${human_readable_scenario_label%%:*}: over cap on BOTH batches (${iter186_first_over_cap_median_before_confirmation_remeasurement}ms then ${observed_median_wall_clock_ms}ms) — reproducible, treating as a real regression"
+        fi
+    fi
+
     if (( observed_median_wall_clock_ms <= pinned_baseline_cap_milliseconds )); then
         iter179_pass_or_regress_verdict_string="PASS"
         iter179_headroom_or_overage_percentage_signed=$(awk -v obs="$observed_median_wall_clock_ms" -v cap="$pinned_baseline_cap_milliseconds" 'BEGIN { printf "%.0f", 100 * (cap - obs) / cap }')
@@ -298,6 +504,7 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
             iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: median=${observed_median_wall_clock_ms}ms > cap=${pinned_baseline_cap_milliseconds}ms (REGRESSION: $((iter179_headroom_or_overage_percentage_signed * -1))% over cap)"
             ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
         fi
+    fi
     fi
     # Build comma-separated raw-trials JSON array body from the iter-183 global.
     local iter183_per_trial_times_ms_json_array_body=""
@@ -347,7 +554,13 @@ iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdo
 
 # Resolve script absolute paths (already cd'd to repo root above).
 #
-# Iter-181 fail-fast precondition: each `find ... | head -1` can return empty
+# ITER-186: the five resolutions below used `find … | head -1`, the same
+# SIGPIPE-under-pipefail race fixed in the min/max extraction above — `find`
+# can still be walking `scripts/` when `head` closes the pipe, which aborts the
+# harness with exit 141. Switched to `awk 'NR==1'`, which drains. Semantics are
+# identical (first match wins), so the iter-181 precondition below is unchanged.
+#
+# Iter-181 fail-fast precondition: each `find ... | awk 'NR==1'` can return empty
 # if a measured script was renamed, moved, or deleted. Pre-iter-181 the empty
 # path propagated into `bash ""` which fails silently with execve error in
 # ~1ms — well under the 100-1500ms caps. The trial loop's `|| true` swallowed
@@ -374,23 +587,23 @@ iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with
     fi
 }
 
-ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log-renderer-*.sh' -type f | head -1)
+ITER174_ITER150_RENDERER_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter150-readable-git-log-renderer-*.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-150 renderer" "$ITER174_ITER150_RENDERER_ABSOLUTE_PATH" "scripts/iter150-readable-git-log-renderer-*.sh"
 
-ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh' -type f | head -1)
+ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-152 dashboard" "$ITER174_ITER152_DASHBOARD_ABSOLUTE_PATH" "scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-*.sh"
 
-ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-operator-facing-pre-commit-dry-run-advisor-*.sh' -type f | head -1)
+ITER174_ITER153_ADVISOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter153-operator-facing-pre-commit-dry-run-advisor-*.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-153 advisor" "$ITER174_ITER153_ADVISOR_ABSOLUTE_PATH" "scripts/iter153-operator-facing-pre-commit-dry-run-advisor-*.sh"
 
-ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-aggregator-*.sh' -type f | head -1)
+ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter165-pending-release-aggregator-*.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-165 aggregator" "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH" "scripts/iter165-pending-release-aggregator-*.sh"
 
-ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh' -type f | head -1)
+ITER174_ITER160_DOCTOR_ABSOLUTE_PATH=$(find scripts -maxdepth 1 -name 'iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh' -type f | awk 'NR==1')
 iter181_verify_resolved_script_path_is_nonempty_and_executable_or_fail_fast_with_operator_visible_diagnostic_pointing_to_expected_glob_pattern \
     "iter-160 doctor" "$ITER174_ITER160_DOCTOR_ABSOLUTE_PATH" "scripts/iter160-operator-facing-commits-arc-self-diagnosis-task-*.sh"
 
@@ -457,6 +670,11 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     "$ITER174_ITER165_BACKLOG_PROPORTIONAL_CAP_MILLISECONDS" \
     bash "$ITER174_ITER165_AGGREGATOR_ABSOLUTE_PATH"
 
+# A6 is the one scenario gated on a LOAD-INVARIANT fork count rather than on
+# its wall-clock median — see the iter-186 rationale block beside the constants.
+# It is the slowest script in the toolkit and had the tightest headroom, which
+# made it the sole origin of the suite's phantom red runs.
+ITER186_NEXT_SCENARIO_GATES_ON_THIS_PINNED_FORK_COUNT_INSTEAD_OF_WALL_CLOCK_CAP="$ITER186_CEILING_EXTERNAL_FORK_COUNT_FOR_ITER160_DOCTOR_LOAD_INVARIANT_GATE_REPLACING_WALL_CLOCK_CAP"
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
     "A6: iter-160 doctor 15-check self-diagnosis (operator-facing, post-iter-177)" \
     "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION" \

@@ -210,8 +210,77 @@ FAILED_TEST_FILES_LIST=()
 # PORTABILITY hardening, not a workaround — GNU xargs (Linux) defaults
 # to a much higher limit and was never affected; macOS BSD users were
 # silently exposed to a "longer test filenames break the runner" cliff.
-printf '%s\n' "${TEST_FILES[@]}" | \
-    xargs -S 16384 -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} bash -c '
+# ─── ITER-186: THE PERF FAMILY GETS ITS OWN SERIAL LANE ──────────────────────
+# The benchmark-bearing tests all sort contiguously (positions 79-89 of 113),
+# so `xargs -P 10` dispatched EVERY ONE OF THEM INTO A LANE AT THE SAME MOMENT
+# and they timed each other. Measured on this host, the iter-160 doctor's median
+# wall clock:
+#
+#     555 ms  measured alone
+#    1318 ms  measured with 8 of these harnesses running concurrently
+#
+# That is the suite manufacturing its own regressions. Measured effect on the
+# assertions: the harness run SOLO passed 6/6 at load average 105-140, while
+# co-scheduled inside the suite it failed 4 of 5 runs.
+#
+# Fix: the perf family runs SERIALLY, in one lane, so its members never measure
+# each other. That lane runs CONCURRENTLY with the parallel pass over the other
+# ~105 tests (which are short, non-measuring, and were never the perturbation),
+# so the suite's wall clock is max(perf_serial, rest_parallel) rather than the
+# sum — a far cheaper fix than a fully serialized phase.
+#
+# Membership is derived from CONTENT, not a hardcoded list, so a perf test added
+# later is picked up with no edit here: a test belongs to the serial lane if it
+# drives the iter-174 perf-baseline harness, or if it opts in explicitly with
+# the marker below (for future perf tests that do not route through iter-174).
+ITER186_EXPLICIT_SERIAL_PERF_LANE_OPT_IN_MARKER='SUITE-SCHEDULING: serial-perf-lane'
+ITER186_ITER174_PERF_HARNESS_FILENAME_SIGNATURE='iter174-empirical-wall-clock-perf-baseline-regression-harness'
+
+ITER186_SERIAL_PERF_LANE_TEST_FILES=()
+ITER186_PARALLEL_PASS_TEST_FILES=()
+for iter186_each_discovered_test_file in "${TEST_FILES[@]}"; do
+    iter186_test_basename_for_perf_classification="$(basename "$iter186_each_discovered_test_file")"
+    iter186_this_test_belongs_in_the_serial_perf_lane=0
+
+    # (1) The harness itself, matched by filename (its own content cannot
+    #     reference its own name).
+    #
+    #     A broader filename heuristic (*perf*|*benchmark*|*wall-clock*|
+    #     *latency*|*fork*, 13 files) was tried and MEASURED WORSE: 3 of 5 suite
+    #     runs clean versus 4 of 5, with the suite's wall clock going from ~75 s
+    #     to ~110 s. It pulled in the iter-160/163/166 doctor-probe tests, which
+    #     flake for a different reason entirely (see the note on the doctor's
+    #     `grep -q` truncation races in test-iter174-*.sh) and which the lane
+    #     therefore does not help. Kept narrow deliberately.
+    case "$iter186_test_basename_for_perf_classification" in
+        *"$ITER186_ITER174_PERF_HARNESS_FILENAME_SIGNATURE"*)
+            iter186_this_test_belongs_in_the_serial_perf_lane=1
+            ;;
+    esac
+
+    # (2) Content drives the iter-174 perf-baseline harness, or opts in
+    #     explicitly. Content beats filename for the files whose names do not
+    #     say "perf" but which run benchmarks anyway (e.g. iter-181).
+    if (( iter186_this_test_belongs_in_the_serial_perf_lane == 0 )) \
+        && grep -qF -e "$ITER186_ITER174_PERF_HARNESS_FILENAME_SIGNATURE" \
+                    -e "$ITER186_EXPLICIT_SERIAL_PERF_LANE_OPT_IN_MARKER" \
+                    "$iter186_each_discovered_test_file" 2>/dev/null; then
+        iter186_this_test_belongs_in_the_serial_perf_lane=1
+    fi
+
+    if (( iter186_this_test_belongs_in_the_serial_perf_lane == 1 )); then
+        ITER186_SERIAL_PERF_LANE_TEST_FILES+=("$iter186_each_discovered_test_file")
+    else
+        ITER186_PARALLEL_PASS_TEST_FILES+=("$iter186_each_discovered_test_file")
+    fi
+done
+
+echo "→ Scheduling: ${#ITER186_PARALLEL_PASS_TEST_FILES[@]} test(s) in ${MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES} parallel lanes; ${#ITER186_SERIAL_PERF_LANE_TEST_FILES[@]} perf test(s) in 1 serial lane (iter-186: they must not measure each other)"
+echo ""
+
+# The per-test worker body, shared verbatim by BOTH passes so that the capture
+# files the aggregation phase reads are produced identically either way.
+IFS='' read -r -d '' ITER186_SHARED_PER_TEST_WORKER_BODY <<'ITER186_WORKER_BODY_HEREDOC' || true
         single_test_file_path="$1"
         per_run_results_dir="$2"
         test_basename_for_stable_lookup="$(basename "$single_test_file_path" .sh)"
@@ -234,7 +303,35 @@ printf '%s\n' "${TEST_FILES[@]}" | \
             -v e="$iter131_per_test_wall_clock_end_seconds_for_ranked_bottleneck_summary" \
             "BEGIN { printf \"%.0f\", (e - s) * 1000 }" \
             > "$per_run_results_dir/$test_basename_for_stable_lookup.elapsed_ms"
-    ' _ {} "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"
+ITER186_WORKER_BODY_HEREDOC
+
+# Pass 1a — the perf family FIRST, strictly one at a time, with nothing else
+# from this suite running. Overlapping it with the parallel pass was tried and
+# measured: 10 lanes of bun cold-starts perturbed the measurements enough that
+# 2 of 5 suite runs still went red (iter-174 reporting 4/7, iter-180 E2 seeing
+# the two harness invocations disagree). Wall-clock measurement only means
+# something when the measuring process has the machine to itself, so this pass
+# is deliberately exclusive — it is the difference between a gate that measures
+# the toolkit and a gate that measures the test runner.
+for iter186_each_serial_perf_test_file in "${ITER186_SERIAL_PERF_LANE_TEST_FILES[@]}"; do
+    bash -c "$ITER186_SHARED_PER_TEST_WORKER_BODY" _ \
+        "$iter186_each_serial_perf_test_file" "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"
+done
+
+# Pass 1b — everything else, fanned out across all lanes as before. These tests
+# assert on structure and content, never on elapsed time, so contention among
+# them is harmless.
+#
+# The worker records each test's status in its own `.exit` file and always
+# returns 0 itself, so a non-zero here would mean the DISPATCHER broke, not that
+# a test failed. `|| true` keeps `set -e` from aborting before the aggregation
+# phase below, which is what actually reports failures (and which already treats
+# a missing `.exit` file as a FAIL rather than a silent pass).
+if (( ${#ITER186_PARALLEL_PASS_TEST_FILES[@]} > 0 )); then
+    printf '%s\n' "${ITER186_PARALLEL_PASS_TEST_FILES[@]}" | \
+        xargs -S 16384 -P "$MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES" -I {} \
+            bash -c "$ITER186_SHARED_PER_TEST_WORKER_BODY" _ {} "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY" || true
+fi
 
 # Phase 2 — SEQUENTIAL AGGREGATION. Iterate the original sorted test
 # list (deterministic order) and render each test's result. The iter-54
