@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import subprocess
 from datetime import datetime
@@ -40,7 +41,15 @@ from threading import Thread
 import iterm2
 
 CRON_STATE_FILE = Path.home() / ".claude" / "state" / "active-crons.json"
-COMPONENT_ID = "com.terryli.cron-countdown"
+# iTerm2 stores this identifier inside the user's profile once the component is
+# added to a status bar. Renaming it (as happened 2026-09-04, when the former
+# value carried a personal reverse-DNS name into a public repo) means an
+# existing profile no longer resolves the component and it must be re-added in
+# Preferences → Profiles → Session → Configure Status Bar. The env override
+# exists so anyone already on the old identifier can keep it without a patch.
+COMPONENT_ID = os.environ.get(
+    "STATUSLINE_CRON_COMPONENT_ID", "com.statusline-tools.cron-countdown"
+)
 
 # Sound files for each urgency level
 SOUNDS = {

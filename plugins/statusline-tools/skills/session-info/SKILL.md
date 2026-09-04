@@ -37,7 +37,7 @@ The script outputs structured session information:
 Current Session: c1c1c149-1abe-45f3-8572-fd77aa046232
 Short ID: c1c1c149
 Project: ~/.claude
-Registry: ~/.claude/projects/-Users-terryli--claude/.session-chain-cache.json
+Registry: ~/.claude/projects/-Users-you--claude/.session-chain-cache.json
 Chain Length: 3 session(s)
 Last Updated: 2026-01-15T21:30:00.000Z
 ```

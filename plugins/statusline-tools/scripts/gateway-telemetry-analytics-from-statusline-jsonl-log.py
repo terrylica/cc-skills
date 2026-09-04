@@ -3,21 +3,21 @@
 # the metric-computation helpers, the record dataclass, the parser, and the
 # CLI into separate modules would fragment cohesion without reducing
 # complexity — every helper here is a small pure function over the same
-# ParsedDoorwardStateRecord dataclass and is consumed only by the single
+# ParsedGatewayStateRecord dataclass and is consumed only by the single
 # render_full_operator_report_to_stdout coordinator. ~560 lines stays under
 # the 1000-line hard block.
 # SSoT-OK: Standalone read-only CLI; module-level constants
-# (DEFAULT_DOORWARD_STATE_JSONL_LOG_PATH, DEFAULT_LOOKBACK_WINDOW_SPECIFIER,
+# (DEFAULT_GATEWAY_STATE_JSONL_LOG_PATH, DEFAULT_LOOKBACK_WINDOW_SPECIFIER,
 # SUPPORTED_METRIC_NAMES, TIME_WINDOW_UNIT_TO_SECONDS_MULTIPLIER) ARE the
 # config and are validated at the CLI boundary
 # (parse_command_line_arguments_into_namespace) per SSoT principle #3
 # (Entry-Point Validation). A Config Singleton would add ceremony without
 # any cross-call state to centralize. The JSONL log path is overridable via
 # --jsonl per SSoT principle #2 (None-default + resolver pattern: CLI arg
-# OR DEFAULT_DOORWARD_STATE_JSONL_LOG_PATH).
-"""Doorward telemetry analytics CLI for the statusline-tools plugin.
+# OR DEFAULT_GATEWAY_STATE_JSONL_LOG_PATH).
+"""Gateway telemetry analytics CLI for the statusline-tools plugin.
 
-Reads ~/.claude/doorward-state.jsonl (the per-render structured log appended
+Reads ~/.claude/gateway-state.jsonl (the per-render structured log appended
 by plugins/statusline-tools/statusline/custom-statusline.sh's L2 statistics
 surface) and emits a time-windowed operator report covering:
 
@@ -37,7 +37,7 @@ surface) and emits a time-windowed operator report covering:
     L1d design
 
 Usage:
-    doorward-telemetry-analytics-from-statusline-jsonl-log.py [--since <window>]
+    gateway-telemetry-analytics-from-statusline-jsonl-log.py [--since <window>]
                                                               [--metric <name>]
                                                               [--jsonl <path>]
 
@@ -47,7 +47,7 @@ Usage:
                          state-transitions, pre-warnings, pool-health, all.
                          Default: 'all' (single comprehensive report).
     --jsonl <path>       Override the default log path
-                         ~/.claude/doorward-state.jsonl (useful for testing).
+                         ~/.claude/gateway-state.jsonl (useful for testing).
 
 Citations / design references:
     - Schema documented inline in custom-statusline.sh (search for "L2
@@ -78,9 +78,50 @@ from time import time
 from typing import Iterable
 
 
-DEFAULT_DOORWARD_STATE_JSONL_LOG_PATH = (
-    Path.home() / ".claude" / "doorward-state.jsonl"
-)
+# Schema v3 (2026-09-04) renamed every field's `doorward_` prefix to
+# `gateway_` and the log file itself. Records written before that rename are
+# still perfectly good data, so this reader is deliberately tolerant of BOTH
+# spellings rather than silently scoring old records as zeros — a rename that
+# quietly zeroes history looks exactly like an outage that never happened.
+LEGACY_SCHEMA_FIELD_PREFIX = "doorward_"
+CURRENT_SCHEMA_FIELD_PREFIX = "gateway_"
+
+# Fields whose SUFFIX also changed in v3, so the plain prefix swap above cannot
+# reach them. Kept explicit (rather than clever) because a missed entry here
+# fails silently as a default value, which reads as real data.
+EXPLICIT_LEGACY_FIELD_ALIASES = {
+    "gateway_local_client_version": "doorward_local_ccmax_claude_wrapper_version",
+}
+
+
+def _read_schema_field(parsed_object: dict, field_name: str, default):
+    """Read a field, accepting the pre-v3 `doorward_*` spelling as a fallback."""
+    if field_name in parsed_object:
+        return parsed_object[field_name]
+    explicit_alias = EXPLICIT_LEGACY_FIELD_ALIASES.get(field_name)
+    if explicit_alias is not None and explicit_alias in parsed_object:
+        return parsed_object[explicit_alias]
+    if field_name.startswith(CURRENT_SCHEMA_FIELD_PREFIX):
+        legacy_name = LEGACY_SCHEMA_FIELD_PREFIX + field_name[
+            len(CURRENT_SCHEMA_FIELD_PREFIX):
+        ]
+        if legacy_name in parsed_object:
+            return parsed_object[legacy_name]
+    return default
+
+
+def _resolve_default_state_log_path() -> Path:
+    """Prefer the current log name; fall back to the pre-v3 name if only it exists."""
+    current = Path.home() / ".claude" / "gateway-state.jsonl"
+    if current.exists():
+        return current
+    legacy = Path.home() / ".claude" / "doorward-state.jsonl"
+    if legacy.exists():
+        return legacy
+    return current
+
+
+DEFAULT_GATEWAY_STATE_JSONL_LOG_PATH = _resolve_default_state_log_path()
 DEFAULT_LOOKBACK_WINDOW_SPECIFIER = "24h"
 SUPPORTED_METRIC_NAMES = (
     "uptime",
@@ -104,28 +145,28 @@ TIME_WINDOW_UNIT_TO_SECONDS_MULTIPLIER = {
 
 
 @dataclass
-class ParsedDoorwardStateRecord:
-    """One render's-worth of parsed doorward telemetry primitives."""
+class ParsedGatewayStateRecord:
+    """One render's-worth of parsed gateway telemetry primitives."""
 
     wall_clock_unix_seconds: int
-    doorward_gateway_legacy_binary_gate_status: str
-    doorward_pool_schedulable_active_accounts_count: int
-    doorward_pool_rotation_working_set_size: int
-    doorward_pool_error_accounts_count: int
-    doorward_pool_resilience_state_machine_label: str
-    doorward_canary_consecutive_failures: int
-    doorward_canary_classification_four_state: str
-    doorward_canary_failure_type_code: str
-    doorward_canary_failure_duration_humanized: str
-    doorward_canary_real_traffic_damper_engaged: bool
-    doorward_unified_state_name_for_render: str
-    doorward_local_ccmax_claude_wrapper_version: str
-    doorward_minimum_supported_wrapper_version_floor: str
-    doorward_wrapper_skew_present: bool
-    doorward_wrapper_at_floor_pre_warn: bool
-    doorward_pin_scope_active: str
-    doorward_pin_mode_active: str
-    doorward_bearer_mode_routing_active: bool
+    gateway_gateway_legacy_binary_gate_status: str
+    gateway_pool_schedulable_active_accounts_count: int
+    gateway_pool_rotation_working_set_size: int
+    gateway_pool_error_accounts_count: int
+    gateway_pool_resilience_state_machine_label: str
+    gateway_canary_consecutive_failures: int
+    gateway_canary_classification_four_state: str
+    gateway_canary_failure_type_code: str
+    gateway_canary_failure_duration_humanized: str
+    gateway_canary_real_traffic_damper_engaged: bool
+    gateway_unified_state_name_for_render: str
+    gateway_local_client_version: str
+    gateway_minimum_supported_wrapper_version_floor: str
+    gateway_wrapper_skew_present: bool
+    gateway_wrapper_at_floor_pre_warn: bool
+    gateway_pin_scope_active: str
+    gateway_pin_mode_active: str
+    gateway_bearer_mode_routing_active: bool
 
 
 def parse_lookback_window_specifier_to_seconds_lower_bound(
@@ -146,13 +187,13 @@ def parse_lookback_window_specifier_to_seconds_lower_bound(
     return quantity * TIME_WINDOW_UNIT_TO_SECONDS_MULTIPLIER[unit]
 
 
-def iterate_doorward_state_jsonl_records_from_file(
-    doorward_state_jsonl_log_absolute_path: Path,
-) -> Iterable[ParsedDoorwardStateRecord]:
+def iterate_gateway_state_jsonl_records_from_file(
+    gateway_state_jsonl_log_absolute_path: Path,
+) -> Iterable[ParsedGatewayStateRecord]:
     """Stream-parse each JSONL line; skip lines that fail to parse."""
-    if not doorward_state_jsonl_log_absolute_path.exists():
+    if not gateway_state_jsonl_log_absolute_path.exists():
         return
-    with doorward_state_jsonl_log_absolute_path.open(
+    with gateway_state_jsonl_log_absolute_path.open(
         "r", encoding="utf-8", errors="replace"
     ) as f:
         for raw_line in f:
@@ -164,90 +205,90 @@ def iterate_doorward_state_jsonl_records_from_file(
             except json.JSONDecodeError:
                 continue
             try:
-                yield ParsedDoorwardStateRecord(
+                yield ParsedGatewayStateRecord(
                     wall_clock_unix_seconds=int(
                         parsed_object["wall_clock_unix_seconds"]
                     ),
-                    doorward_gateway_legacy_binary_gate_status=str(
-                        parsed_object.get(
-                            "doorward_gateway_legacy_binary_gate_status", ""
+                    gateway_gateway_legacy_binary_gate_status=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_gateway_legacy_binary_gate_status", ""
                         )
                     ),
-                    doorward_pool_schedulable_active_accounts_count=int(
-                        parsed_object.get(
-                            "doorward_pool_schedulable_active_accounts_count", 0
+                    gateway_pool_schedulable_active_accounts_count=int(
+                        _read_schema_field(parsed_object, 
+                            "gateway_pool_schedulable_active_accounts_count", 0
                         )
                     ),
-                    doorward_pool_rotation_working_set_size=int(
-                        parsed_object.get(
-                            "doorward_pool_rotation_working_set_size", 0
+                    gateway_pool_rotation_working_set_size=int(
+                        _read_schema_field(parsed_object, 
+                            "gateway_pool_rotation_working_set_size", 0
                         )
                     ),
-                    doorward_pool_error_accounts_count=int(
-                        parsed_object.get(
-                            "doorward_pool_error_accounts_count", 0
+                    gateway_pool_error_accounts_count=int(
+                        _read_schema_field(parsed_object, 
+                            "gateway_pool_error_accounts_count", 0
                         )
                     ),
-                    doorward_pool_resilience_state_machine_label=str(
-                        parsed_object.get(
-                            "doorward_pool_resilience_state_machine_label", ""
+                    gateway_pool_resilience_state_machine_label=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_pool_resilience_state_machine_label", ""
                         )
                     ),
-                    doorward_canary_consecutive_failures=int(
-                        parsed_object.get(
-                            "doorward_canary_consecutive_failures", 0
+                    gateway_canary_consecutive_failures=int(
+                        _read_schema_field(parsed_object, 
+                            "gateway_canary_consecutive_failures", 0
                         )
                     ),
-                    doorward_canary_classification_four_state=str(
-                        parsed_object.get(
-                            "doorward_canary_classification_four_state", ""
+                    gateway_canary_classification_four_state=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_canary_classification_four_state", ""
                         )
                     ),
-                    doorward_canary_failure_type_code=str(
-                        parsed_object.get("doorward_canary_failure_type_code", "")
+                    gateway_canary_failure_type_code=str(
+                        _read_schema_field(parsed_object, "gateway_canary_failure_type_code", "")
                     ),
-                    doorward_canary_failure_duration_humanized=str(
-                        parsed_object.get(
-                            "doorward_canary_failure_duration_humanized", ""
+                    gateway_canary_failure_duration_humanized=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_canary_failure_duration_humanized", ""
                         )
                     ),
-                    doorward_canary_real_traffic_damper_engaged=bool(
-                        parsed_object.get(
-                            "doorward_canary_real_traffic_damper_engaged", False
+                    gateway_canary_real_traffic_damper_engaged=bool(
+                        _read_schema_field(parsed_object, 
+                            "gateway_canary_real_traffic_damper_engaged", False
                         )
                     ),
-                    doorward_unified_state_name_for_render=str(
-                        parsed_object.get(
-                            "doorward_unified_state_name_for_render", ""
+                    gateway_unified_state_name_for_render=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_unified_state_name_for_render", ""
                         )
                     ),
-                    doorward_local_ccmax_claude_wrapper_version=str(
-                        parsed_object.get(
-                            "doorward_local_ccmax_claude_wrapper_version", ""
+                    gateway_local_client_version=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_local_client_version", ""
                         )
                     ),
-                    doorward_minimum_supported_wrapper_version_floor=str(
-                        parsed_object.get(
-                            "doorward_minimum_supported_wrapper_version_floor", ""
+                    gateway_minimum_supported_wrapper_version_floor=str(
+                        _read_schema_field(parsed_object, 
+                            "gateway_minimum_supported_wrapper_version_floor", ""
                         )
                     ),
-                    doorward_wrapper_skew_present=bool(
-                        parsed_object.get("doorward_wrapper_skew_present", False)
+                    gateway_wrapper_skew_present=bool(
+                        _read_schema_field(parsed_object, "gateway_wrapper_skew_present", False)
                     ),
-                    doorward_wrapper_at_floor_pre_warn=bool(
-                        parsed_object.get(
-                            "doorward_wrapper_at_floor_pre_warn", False
+                    gateway_wrapper_at_floor_pre_warn=bool(
+                        _read_schema_field(parsed_object, 
+                            "gateway_wrapper_at_floor_pre_warn", False
                         )
                     ),
-                    doorward_pin_scope_active=str(
-                        parsed_object.get("doorward_pin_scope_active", "")
+                    gateway_pin_scope_active=str(
+                        _read_schema_field(parsed_object, "gateway_pin_scope_active", "")
                     ),
-                    doorward_pin_mode_active=str(
-                        parsed_object.get("doorward_pin_mode_active", "")
+                    gateway_pin_mode_active=str(
+                        _read_schema_field(parsed_object, "gateway_pin_mode_active", "")
                     ),
-                    doorward_bearer_mode_routing_active=bool(
-                        parsed_object.get(
-                            "doorward_bearer_mode_routing_active", False
+                    gateway_bearer_mode_routing_active=bool(
+                        _read_schema_field(parsed_object, 
+                            "gateway_bearer_mode_routing_active", False
                         )
                     ),
                 )
@@ -256,9 +297,9 @@ def iterate_doorward_state_jsonl_records_from_file(
 
 
 def filter_records_within_lookback_window_from_now(
-    parsed_records: Iterable[ParsedDoorwardStateRecord],
+    parsed_records: Iterable[ParsedGatewayStateRecord],
     lookback_seconds: int,
-) -> list[ParsedDoorwardStateRecord]:
+) -> list[ParsedGatewayStateRecord]:
     """Keep only records whose wall_clock falls within the lookback window."""
     cutoff_unix_seconds = int(time()) - lookback_seconds
     return [
@@ -269,13 +310,13 @@ def filter_records_within_lookback_window_from_now(
 
 
 def compute_uptime_reachability_percentage_by_gateway_status(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, tuple[int, float]]:
-    """Counts each value of doorward_gateway_legacy_binary_gate_status plus %."""
+    """Counts each value of gateway_gateway_legacy_binary_gate_status plus %."""
     if not parsed_records_within_window:
         return {}
     gateway_status_counter = Counter(
-        record.doorward_gateway_legacy_binary_gate_status
+        record.gateway_gateway_legacy_binary_gate_status
         for record in parsed_records_within_window
     )
     total_records_count = len(parsed_records_within_window)
@@ -286,18 +327,18 @@ def compute_uptime_reachability_percentage_by_gateway_status(
 
 
 def compute_failure_type_code_distribution_among_non_healthy_records(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, tuple[int, float]]:
     """Counts AU / QT / CF / UP / IN occurrences within non-healthy renders."""
     non_healthy_records = [
         record
         for record in parsed_records_within_window
-        if record.doorward_canary_failure_type_code
+        if record.gateway_canary_failure_type_code
     ]
     if not non_healthy_records:
         return {}
     type_code_counter = Counter(
-        record.doorward_canary_failure_type_code for record in non_healthy_records
+        record.gateway_canary_failure_type_code for record in non_healthy_records
     )
     total_non_healthy_records_count = len(non_healthy_records)
     return {
@@ -307,13 +348,13 @@ def compute_failure_type_code_distribution_among_non_healthy_records(
 
 
 def compute_unified_state_name_distribution_across_all_records(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, tuple[int, float]]:
     """Counts each unified-state-name value plus % of total records."""
     if not parsed_records_within_window:
         return {}
     unified_state_name_counter = Counter(
-        record.doorward_unified_state_name_for_render
+        record.gateway_unified_state_name_for_render
         for record in parsed_records_within_window
     )
     total_records_count = len(parsed_records_within_window)
@@ -324,15 +365,15 @@ def compute_unified_state_name_distribution_across_all_records(
 
 
 def count_unified_state_machine_transitions_between_consecutive_records(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, int]:
     """Count "from→to" transitions for the unified state name."""
     if len(parsed_records_within_window) < 2:
         return {}
     transitions_counter: Counter[str] = Counter()
-    previous_state_name = parsed_records_within_window[0].doorward_unified_state_name_for_render
+    previous_state_name = parsed_records_within_window[0].gateway_unified_state_name_for_render
     for record in parsed_records_within_window[1:]:
-        current_state_name = record.doorward_unified_state_name_for_render
+        current_state_name = record.gateway_unified_state_name_for_render
         if current_state_name != previous_state_name:
             transition_key = f"{previous_state_name}→{current_state_name}"
             transitions_counter[transition_key] += 1
@@ -341,41 +382,41 @@ def count_unified_state_machine_transitions_between_consecutive_records(
 
 
 def collect_pre_warning_event_timestamps_from_records(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, list[int]]:
     """Collect the unix timestamps where each pre-warning flag was true."""
     pre_warning_timestamps: dict[str, list[int]] = {
-        "doorward_wrapper_skew_present": [],
-        "doorward_wrapper_at_floor_pre_warn": [],
-        "doorward_pool_resilience_partial_outage": [],
+        "gateway_wrapper_skew_present": [],
+        "gateway_wrapper_at_floor_pre_warn": [],
+        "gateway_pool_resilience_partial_outage": [],
     }
     for record in parsed_records_within_window:
-        if record.doorward_wrapper_skew_present:
-            pre_warning_timestamps["doorward_wrapper_skew_present"].append(
+        if record.gateway_wrapper_skew_present:
+            pre_warning_timestamps["gateway_wrapper_skew_present"].append(
                 record.wall_clock_unix_seconds
             )
-        if record.doorward_wrapper_at_floor_pre_warn:
-            pre_warning_timestamps["doorward_wrapper_at_floor_pre_warn"].append(
+        if record.gateway_wrapper_at_floor_pre_warn:
+            pre_warning_timestamps["gateway_wrapper_at_floor_pre_warn"].append(
                 record.wall_clock_unix_seconds
             )
         if (
-            record.doorward_pool_resilience_state_machine_label
+            record.gateway_pool_resilience_state_machine_label
             == "partial-outage"
         ):
             pre_warning_timestamps[
-                "doorward_pool_resilience_partial_outage"
+                "gateway_pool_resilience_partial_outage"
             ].append(record.wall_clock_unix_seconds)
     return pre_warning_timestamps
 
 
 def compute_pool_resilience_state_distribution_across_all_records(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
 ) -> dict[str, tuple[int, float]]:
     """Counts each pool_resilience_state_machine_label plus % of total records."""
     if not parsed_records_within_window:
         return {}
     pool_state_counter = Counter(
-        record.doorward_pool_resilience_state_machine_label
+        record.gateway_pool_resilience_state_machine_label
         for record in parsed_records_within_window
     )
     total_records_count = len(parsed_records_within_window)
@@ -396,21 +437,21 @@ def format_unix_timestamp_as_iso_utc_short_form(unix_seconds: int) -> str:
 
 
 def render_full_operator_report_to_stdout(
-    parsed_records_within_window: list[ParsedDoorwardStateRecord],
+    parsed_records_within_window: list[ParsedGatewayStateRecord],
     lookback_window_specifier_raw_string: str,
     requested_metric_subset_name: str,
 ) -> None:
     """Print the human-readable text report. Sections gated by --metric."""
     sample_count = len(parsed_records_within_window)
     print(
-        f"# Doorward telemetry analytics report",
+        f"# Gateway telemetry analytics report",
         f"# window: last {lookback_window_specifier_raw_string} "
         f"({sample_count} render samples)",
         sep="\n",
     )
     if sample_count == 0:
         print(
-            "# (no doorward-state.jsonl records found within the window — "
+            "# (no gateway-state.jsonl records found within the window — "
             "either the statusline hasn't rendered recently or the log path "
             "is empty)"
         )
@@ -430,7 +471,7 @@ def render_full_operator_report_to_stdout(
     )
 
     if should_render_metric("uptime"):
-        print("\n## Gateway reachability (doorward_gateway_legacy_binary_gate_status)")
+        print("\n## Gateway reachability (gateway_gateway_legacy_binary_gate_status)")
         for status_name, (
             count,
             percentage_of_total,
@@ -517,7 +558,7 @@ def parse_command_line_arguments_into_namespace() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Time-windowed operator report from "
-            "~/.claude/doorward-state.jsonl (appended by the statusline-tools "
+            "~/.claude/gateway-state.jsonl (appended by the statusline-tools "
             "plugin on every statusline render). Read-only."
         )
     )
@@ -537,10 +578,10 @@ def parse_command_line_arguments_into_namespace() -> argparse.Namespace:
     )
     parser.add_argument(
         "--jsonl",
-        default=str(DEFAULT_DOORWARD_STATE_JSONL_LOG_PATH),
+        default=str(DEFAULT_GATEWAY_STATE_JSONL_LOG_PATH),
         help=(
             "Override the JSONL log path (default: "
-            f"{DEFAULT_DOORWARD_STATE_JSONL_LOG_PATH})."
+            f"{DEFAULT_GATEWAY_STATE_JSONL_LOG_PATH})."
         ),
     )
     return parser.parse_args()
@@ -557,10 +598,10 @@ def main() -> int:
     except ValueError as parse_error:
         print(f"error: {parse_error}", file=sys.stderr)
         return 2
-    doorward_state_jsonl_log_path = Path(os.path.expanduser(parsed_args.jsonl))
+    gateway_state_jsonl_log_path = Path(os.path.expanduser(parsed_args.jsonl))
     all_parsed_records = list(
-        iterate_doorward_state_jsonl_records_from_file(
-            doorward_state_jsonl_log_path
+        iterate_gateway_state_jsonl_records_from_file(
+            gateway_state_jsonl_log_path
         )
     )
     parsed_records_within_window = filter_records_within_lookback_window_from_now(

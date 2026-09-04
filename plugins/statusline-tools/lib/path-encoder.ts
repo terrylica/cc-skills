@@ -1,7 +1,7 @@
 /**
  * path-encoder.ts - CWD encoding and hashing for session registry
  *
- * Claude Code uses path encoding: /Users/terryli/foo -> -Users-terryli-foo
+ * Claude Code uses path encoding: /Users/you/foo -> -Users-you-foo
  * We also provide SHA256 hashing for PII prevention in logs/metadata.
  */
 
@@ -11,7 +11,7 @@ import { execSync } from "child_process";
 
 /**
  * Encode a project path in Claude Code's native format
- * Example: /Users/terryli/eon/cc-skills -> -Users-terryli-eon-cc-skills
+ * Example: /Users/you/code/myrepo -> -Users-you-code-myrepo
  */
 export function encodeProjectPath(cwd: string): string {
   // Replace all slashes with dashes, ensure leading dash
@@ -20,7 +20,7 @@ export function encodeProjectPath(cwd: string): string {
 
 /**
  * Get the full project directory path for session registry
- * Example: /Users/terryli/eon/cc-skills -> ~/.claude/projects/-Users-terryli-eon-cc-skills
+ * Example: /Users/you/code/myrepo -> ~/.claude/projects/-Users-you-code-myrepo
  */
 export function getProjectDir(cwd: string): string {
   return `${process.env.HOME}/.claude/projects/${encodeProjectPath(cwd)}`;

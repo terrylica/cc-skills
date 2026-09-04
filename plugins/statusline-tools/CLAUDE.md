@@ -36,8 +36,8 @@
 | ≡                                               | Stash count                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ⚠                                               | Merge conflicts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Σ &lt;n&gt; LOC                                 | Total lines of code (via `scc`, all tracked files)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `claude-…[1m]`                                  | Model id from statusline stdin `.model.id` (falls back to `.model.display_name`). As of 2026-06-19 the model segment renders on its **own line** (below the code-stats line, above the datetime/doorward line) — previously concatenated onto line 1 after the git stats                                                                                                                                                                                                                                                               |
-| `… \| <version>` (model line)                   | Trailing Claude Code version, straight from the native statusline payload `.version` ("our current version of Claude Code locally") — no subprocess, official value verbatim per the NATIVE-FIELDS-ONLY invariant. Omitted (no `\|` separator) when `.version` is absent. NOTE: this is the **Claude Code CLI** version; the `1.x.y` on the doorward line is the local **ccmax-claude wrapper** version (different thing)                                                                                                              |
+| `claude-…[1m]`                                  | Model id from statusline stdin `.model.id` (falls back to `.model.display_name`). As of 2026-06-19 the model segment renders on its **own line** (below the code-stats line, above the datetime/gateway line) — previously concatenated onto line 1 after the git stats                                                                                                                                                                                                                                                                |
+| `… \| <version>` (model line)                   | Trailing Claude Code version, straight from the native statusline payload `.version` ("our current version of Claude Code locally") — no subprocess, official value verbatim per the NATIVE-FIELDS-ONLY invariant. Omitted (no `\|` separator) when `.version` is absent. NOTE: this is the **Claude Code CLI** version; the `1.x.y` on the gateway line is the local **the client wrapper wrapper** version (different thing)                                                                                                         |
 | &lt;lvl&gt; / thinking:&lt;bool&gt; / fast_mode | Official names + VERBATIM values from `.effort.level`, `.thinking.enabled`, `.fast_mode` (2026-06-11 directive): effort bare (`· xhigh`, no label), thinking echoes the official boolean (`thinking:true`/`thinking:false`, never on/off), `fast_mode` shows its official field name when true. Absent fields omit their tokens — no invented fallbacks (the "Unknown" model fallback and the `sed 's/Claude //'` compactor are gone)                                                                                                  |
 | _(no inferred badges)_                          | **NATIVE-FIELDS-ONLY invariant** (operator directive 2026-06-11): the model segment renders only direct payload echoes. The ✦ ultracode heuristic badge (`effort==xhigh AND thinking AND NOT fast_mode`, added 2026-06-10) was RETIRED after one day — live counterexample sessions rendered xhigh with ultracode OFF (effort persists across sessions; ultracode is session-only with no payload field). Pinned by two bats tests (render invariant + source-level lint). Reinstate only if upstream ships a native `ultracode` field |
 | cx &lt;n&gt;                                    | Cyclomatic complexity (yellow when ≥ 1k)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -59,44 +59,44 @@ incremental over the pre-existing 1.1s baseline.
 
 Dependency: `brew install scc` (Go binary, single-shot — no daemon).
 
-## Optional: doorward gateway health integration
+## Optional: gateway gateway health integration
 
-The statusline reads doorward (the cc-router admission gateway in front of sub2api on bigblack el02) on every render and surfaces gate health, rotation pool size, canary state, and local ccmax-claude wrapper version. This integration is **optional** — public cc-skills users without doorward/tailnet membership see graceful degradation (no curl reaches the endpoint, the entire segment is suppressed when no other ccmax signal exists).
+The statusline reads an optional admission gateway on every render and surfaces gate health, rotation pool size, canary state, and local the client wrapper wrapper version. This integration is **optional** — users who have not configured a gateway make no network call at all and see nothing (the whole segment is skipped).
 
-> **Do not surface the local keychain's OAuth account or its 5h/7d quota windows here**, and do not read `localhost:18095/api/status`. The ccmax-claude PTY wrapper sets `ANTHROPIC_BASE_URL=https://bigblack.tail0f299b.ts.net:8450`, and doorward picks from a rotation pool per-request — so the local credential is not the one being consumed, and its quota numbers describe spend the user isn't making. Surface the four signals below instead; they reflect the live pipeline.
+> **Do not surface the local keychain's OAuth account or its 5h/7d quota windows here**, and do not read a local quota API. A client wrapper may set `ANTHROPIC_BASE_URL` to the gateway, and the gateway picks from a rotation pool per-request — so the local credential is not the one being consumed, and its quota numbers describe spend the user isn't making. Surface the four signals below instead; they reflect the live pipeline.
 
 ### What it shows
 
-When doorward is reachable, the datetime line gains:
+When gateway is reachable, the datetime line gains:
 
 ```
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✓ 1.93.0                          ← all healthy
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✗401 3d since-boot 1.93.0          ← today's actual state (config bug, gray)
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 2/3 ⚠503 3m flapping 1.93.0            ← one backend transient
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 1/3 ⚠503 12m partial-outage 1.93.0     ← last healthy account, pre-warn
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 0/3 ✗UP 47m outage 1.93.0             ← total outage, alarm
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward 3/3 ✓ 1.2.0=1.2.0                      ← wrapper exactly at floor, pre-warn
-Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | doorward unreachable 1.93.0                    ← gateway down
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.93.0                          ← all healthy
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✗401 3d since-boot 1.93.0          ← today's actual state (config bug, gray)
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 2/3 ⚠503 3m flapping 1.93.0            ← one backend transient
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 1/3 ⚠503 12m partial-outage 1.93.0     ← last healthy account, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 0/3 ✗UP 47m outage 1.93.0             ← total outage, alarm
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway 3/3 ✓ 1.2.0=1.2.0                      ← wrapper exactly at floor, pre-warn
+Wed 13 May 2026 03:47 UTC | Tue 12 20:47 PDT | gateway unreachable 1.93.0                    ← gateway down
 ```
 
-**L1d multi-dimensional unified render (2026-05-13).** Replaced the raw consecutive-failure-count (the prior `✗1090` "magic number") with a three-token composite — severity glyph + the canary's official HTTP status verbatim (letter-code taxonomy retired 2026-06-11 per the official-values directive) + humanized duration — plus an operator-facing state-name word that doubles as the playbook hint. The state-name maps to a clear action (`since-boot` → file an issue; `flapping` → watch; `partial-outage` → intervene; `outage` → page). The full source-of-truth legend for every visible token lives in `custom-statusline.sh` — search for "Doorward gateway summary — render LEGEND".
+**L1d multi-dimensional unified render (2026-05-13).** Replaced the raw consecutive-failure-count (the prior `✗1090` "magic number") with a three-token composite — severity glyph + the canary's official HTTP status verbatim (letter-code taxonomy retired 2026-06-11 per the official-values directive) + humanized duration — plus an operator-facing state-name word that doubles as the playbook hint. The state-name maps to a clear action (`since-boot` → file an issue; `flapping` → watch; `partial-outage` → intervene; `outage` → page). The full source-of-truth legend for every visible token lives in `custom-statusline.sh` — search for "Gateway summary — render LEGEND".
 
-**Antecedent label-stripping rounds (all 2026-05-13):** (1) dropped the `pool`, `canary`, `wrapper` field labels — within a segment already anchored by `doorward`, the slash-fraction format is self-evidently a ratio, the `✗<status>` glyph is unambiguous, and a three-dot semver is visually distinct; (2) dropped the leading `🟢/🟡/🔴` gate-state emoji — every state the dot could signal was already expressed by per-token coloring + state-name word; (3) retired the `[5th-fleet]` bearer-mode badge — presence of the doorward block itself implies bearer-mode routing.
+**Antecedent label-stripping rounds (all 2026-05-13):** (1) dropped the `pool`, `canary`, `wrapper` field labels — within a segment already anchored by `gateway`, the slash-fraction format is self-evidently a ratio, the `✗<status>` glyph is unambiguous, and a three-dot semver is visually distinct; (2) dropped the leading `🟢/🟡/🔴` gate-state emoji — every state the dot could signal was already expressed by per-token coloring + state-name word; (3) retired the `[5th-fleet]` bearer-mode badge — presence of the gateway block itself implies bearer-mode routing.
 
-| Render token                      | Source field (in `/v1/router-status`)                                                                                                                                                           | Meaning (short)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| _(no gate dot)_                   | retired 2026-05-13 — formerly synthesised 🟢/🟡/🔴 from those four fields                                                                                                                       | State is now expressed entirely by per-token coloring (red ✗N, red pool ratio, red "unreachable", yellow version<floor)                                                                                                                                                                                                                                                                                                                                                                           |
-| `doorward`                        | (anchor word, not a field)                                                                                                                                                                      | Names the subsystem so trailing numbers have context                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `3/3`                             | `pool.schedulable_active_accounts` / (`schedulable_active_accounts` + `error_accounts`)                                                                                                         | Rotation working-set ratio. Denominator EXCLUDES admin-inactive accounts (paused by operator intent, not failing). Red when any `error_accounts > 0`                                                                                                                                                                                                                                                                                                                                              |
-| `✓` / `✗401 3d` / `⚠503 3m` / `·` | `upstream_health_observed_from_forwarded_request_log` (preferred) **else** `canary_self_test.*` (legacy) — see [tolerant reader](#forward-path-health-tolerant-reader-two-doorward-generations) | Forward-path outcome glyph + evidence + humanized duration. On the new signal the evidence is a `failed/forwarded` ratio and the duration is the observation window; on the legacy signal it is the official `last_observed_http_status_code` and `consecutive_failures × configured_interval_secs` (AU/QT/CF/UP/IN letter codes retired 2026-06-11 — they re-labeled official statuses). Gray `·` = `unproven`. Raw counts go to `~/.claude/doorward-state.jsonl` (L2 telemetry), not the render |
-| `1.92.0` / `<1.2.0`               | `ccmax-claude --version` vs `DOORWARD_MIN_WRAPPER_VERSION`                                                                                                                                      | Local wrapper version, with `<floor` suffix in yellow when below                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| _(no pin badge)_                  | retired 2026-05-13 — formerly synthesised `[<scope>:<mode>]` from the layered-pin resolver                                                                                                      | Pin parsing still runs upstream to feed bearer-mode detection; only the badge rendering is dropped per operator directive                                                                                                                                                                                                                                                                                                                                                                         |
-| `unreachable`                     | (synthesized when fetch fails and no usable cache)                                                                                                                                              | Literal word in RED that replaces the numeric tokens — distinguishes "doorward genuinely down" from "got a response but couldn't parse"                                                                                                                                                                                                                                                                                                                                                           |
+| Render token                      | Source field (in `/v1/router-status`)                                                                                                                                                          | Meaning (short)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| _(no gate dot)_                   | retired 2026-05-13 — formerly synthesised 🟢/🟡/🔴 from those four fields                                                                                                                      | State is now expressed entirely by per-token coloring (red ✗N, red pool ratio, red "unreachable", yellow version<floor)                                                                                                                                                                                                                                                                                                                                                                          |
+| `gateway`                         | (anchor word, not a field)                                                                                                                                                                     | Names the subsystem so trailing numbers have context                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `3/3`                             | `pool.schedulable_active_accounts` / (`schedulable_active_accounts` + `error_accounts`)                                                                                                        | Rotation working-set ratio. Denominator EXCLUDES admin-inactive accounts (paused by operator intent, not failing). Red when any `error_accounts > 0`                                                                                                                                                                                                                                                                                                                                             |
+| `✓` / `✗401 3d` / `⚠503 3m` / `·` | `upstream_health_observed_from_forwarded_request_log` (preferred) **else** `canary_self_test.*` (legacy) — see [tolerant reader](#forward-path-health-tolerant-reader-two-gateway-generations) | Forward-path outcome glyph + evidence + humanized duration. On the new signal the evidence is a `failed/forwarded` ratio and the duration is the observation window; on the legacy signal it is the official `last_observed_http_status_code` and `consecutive_failures × configured_interval_secs` (AU/QT/CF/UP/IN letter codes retired 2026-06-11 — they re-labeled official statuses). Gray `·` = `unproven`. Raw counts go to `~/.claude/gateway-state.jsonl` (L2 telemetry), not the render |
+| `1.92.0` / `<1.2.0`               | `$STATUSLINE_CLIENT_WRAPPER_BIN --version` vs `GATEWAY_MIN_WRAPPER_VERSION`                                                                                                                    | Local wrapper version, with `<floor` suffix in yellow when below                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| _(no pin badge)_                  | retired 2026-05-13 — formerly synthesised `[<scope>:<mode>]` from the layered-pin resolver                                                                                                     | Pin parsing still runs upstream to feed bearer-mode detection; only the badge rendering is dropped per operator directive                                                                                                                                                                                                                                                                                                                                                                        |
+| `unreachable`                     | (synthesized when fetch fails and no usable cache)                                                                                                                                             | Literal word in RED that replaces the numeric tokens — distinguishes "gateway genuinely down" from "got a response but couldn't parse"                                                                                                                                                                                                                                                                                                                                                           |
 
-#### Forward-path health: tolerant reader across two doorward generations
+#### Forward-path health: tolerant reader across two gateway generations
 
-doorward is migrating off its synthetic canary because **monitoring must never spend
-inference** (ccmax-monitor#30). The replacement derives forward-path health from real
+gateway is migrating off its synthetic canary because **monitoring must never spend
+inference** (the guiding rule). The replacement derives forward-path health from real
 forwarded requests that already happened, so it costs nothing. This statusline reads
 **either** generation, and the precedence must not be reordered:
 
@@ -104,9 +104,9 @@ forwarded requests that already happened, so it costs nothing. This statusline r
 2. `canary_self_test` — legacy, synthetic
 3. neither present → `no-health-signal` (yellow, explicit)
 
-The reader shipped **before** doorward changed, so a statusline on any host works
+The reader shipped **before** gateway changed, so a statusline on any host works
 against either binary throughout the rollout. **Do not collapse it to the new field
-alone** until every doorward in the fleet emits it — an older binary would then paint
+alone** until every gateway in the fleet emits it — an older binary would then paint
 `no-health-signal` fleet-wide.
 
 New states, and why each renders the way it does:
@@ -116,17 +116,17 @@ New states, and why each renders the way it does:
 | `serving`          | green `✓`     | Real traffic is succeeding through the forward path                                                                       |
 | `degraded`         | red `✗7/9 5m` | Failure ratio crossed the threshold over enough samples; the ratio IS the evidence                                        |
 | `unproven`         | gray `·`      | **No recent request carried evidence** (idle fleet / fresh restart). Deliberately calm — it is neither health nor failure |
-| `no-health-signal` | yellow `?`    | doorward answered but exposed no health block at all: a contract break in the binary, not a fleet outage                  |
+| `no-health-signal` | yellow `?`    | gateway answered but exposed no health block at all: a contract break in the binary, not a fleet outage                   |
 
 `unproven` has its own explicit branch in both the composer and the bash render `case`.
 That is load-bearing: the render's `*)` fallback alarms in RED, so omitting the branch
-would page the operator **for being idle** — the precise trap the sub2api deep-probe
+would page the operator **for being idle** — the classic trap a naive deep-probe
 conversion hit first. A monitor must not report health it cannot observe, and must not
 report failure it has not seen.
 
 #### Pool denominator semantics (why we don't show `pool 3/4`)
 
-The doorward `/v1/router-status` response distinguishes three account states inside the rotation pool:
+The gateway `/v1/router-status` response distinguishes three account states inside the rotation pool:
 
 | State                                                   | Meaning                                                                                      | Counted in denominator? |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------- |
@@ -138,50 +138,50 @@ Including an admin-inactive account in the denominator would frame an operator-i
 
 ### Data source
 
-Only two doorward routes are wrapper-version-gate-exempt and therefore safe for an anonymous statusline curl to hit on every render:
+Only two gateway routes are wrapper-version-gate-exempt and therefore safe for an anonymous statusline curl to hit on every render:
 
-| Route                   | Bypass decision header                                    | Used by statusline?                                      |
-| ----------------------- | --------------------------------------------------------- | -------------------------------------------------------- |
-| `GET /v1/health`        | `x-doorward-decision: health-probe-bypass`                | No (subset of `/v1/router-status`)                       |
-| `GET /v1/router-status` | `x-doorward-decision: router-status-introspection-bypass` | **Yes** — superset response with pool breakdown + canary |
+| Route                   | Bypass decision header                                   | Used by statusline?                                      |
+| ----------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| `GET /v1/health`        | `x-gateway-decision: health-probe-bypass`                | No (subset of `/v1/router-status`)                       |
+| `GET /v1/router-status` | `x-gateway-decision: router-status-introspection-bypass` | **Yes** — superset response with pool breakdown + canary |
 
-The latter is a superset of `/v1/health` (it includes everything from health plus `pool.per_account_summaries[]`), so one fetch covers all four signals. Doorward enforces a 30 s server-side TTL on this route; the statusline overlays a 60 s client-side cache at `/tmp/ccmax-doorward-cache.json` for two-window coverage with headroom. On fetch failure the cache is read stale rather than going dark.
+The latter is a superset of `/v1/health` (it includes everything from health plus `pool.per_account_summaries[]`), so one fetch covers all four signals. Gateway enforces a 30 s server-side TTL on this route; the statusline overlays a 60 s client-side cache at `/tmp/statusline-gateway-cache.json` for two-window coverage with headroom. On fetch failure the cache is read stale rather than going dark.
 
-Every other doorward route (`/v1/messages`, `/api/v1/keys/info`, etc.) requires the `X-Ccmax-Wrapper-Version` header injected by ccmax-claude's local reverse proxy, so they can't be queried from a bare curl invocation — those are off-limits to the statusline by design.
+Every other gateway route (`/v1/messages`, `/api/v1/keys/info`, etc.) requires the `X-Client-Wrapper-Version` header injected by the client wrapper's local reverse proxy, so they can't be queried from a bare curl invocation — those are off-limits to the statusline by design.
 
 ### Pin scope+mode resolution (badge RETIRED 2026-05-13)
 
-`custom-statusline.sh` still runs the layered pin resolution upstream via ccmax-monitor's helper at `~/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh` because the helper output feeds the bearer-mode detection cascade that gates whether the doorward render-block fires at all. The helper walks three scopes (highest → lowest precedence):
+`custom-statusline.sh` still runs the layered pin resolution upstream via the external account-manager's helper at `$STATUSLINE_PIN_HELPER_PATH` because the helper output feeds the bearer-mode detection cascade that gates whether the gateway render-block fires at all. The helper walks three scopes (highest → lowest precedence):
 
-1. `~/.config/ccmax/pin-by-session/<session-uuid>.toml` — session scope (auto-pruned at 24 h JSONL staleness)
-2. `~/.config/ccmax/pin-by-repo/<md5-prefix-8>.toml` — repo scope (cwd path → MD5 → 8-hex prefix)
-3. `~/.config/ccmax/pin.toml` — device scope (the original HEART-23 location)
+1. `<pin-dir>/pin-by-session/<session-uuid>.toml` — session scope (auto-pruned at 24 h JSONL staleness)
+2. `<pin-dir>/pin-by-repo/<md5-prefix-8>.toml` — repo scope (cwd path → MD5 → 8-hex prefix)
+3. `<pin-dir>/pin.toml` — device scope (`STATUSLINE_PIN_DEVICE_FILE`)
 
-**The visible `[<scope>:<mode>]` badge was retired 2026-05-13** (operator directive: under bearer-mode routing, doorward picks the upstream account dynamically per-request, so the operator has no remaining need to see WHICH scope holds the pin). The pin parsing continues to run because it feeds bearer-mode detection; only the badge rendering is dropped.
+**The visible `[<scope>:<mode>]` badge was retired 2026-05-13** (operator directive: under bearer-mode routing, gateway picks the upstream account dynamically per-request, so the operator has no remaining need to see WHICH scope holds the pin). The pin parsing continues to run because it feeds bearer-mode detection; only the badge rendering is dropped.
 
-**Backwards compat for older ccmax-monitor installs**: if `pin-helper.sh` is missing at the marketplace path (older release OR no ccmax-monitor at all), the statusline falls back to a tiny inline awk parser that reads only the device-scope file. Public cc-skills users without ccmax-monitor never had a pin badge anyway (no pin file). The retirement is therefore transparent to public users.
+**Backwards compat for older the external account-manager installs**: if `pin-helper.sh` is missing at the marketplace path (older release OR no the external account-manager at all), the statusline falls back to a tiny inline awk parser that reads only the device-scope file. Public cc-skills users without the external account-manager never had a pin badge anyway (no pin file). The retirement is therefore transparent to public users.
 
 ### Wrapper version + skew check
 
-The local `ccmax-claude` binary's version is read once (cached by binary mtime) and rendered as a bare semver. When the version is below the doorward floor, the segment turns yellow with explicit floor: `wrapper 1.1.0<1.2.0`. This surfaces version-skew **before** a real request fails with 403, instead of after.
+The local `the client wrapper` binary's version is read once (cached by binary mtime) and rendered as a bare semver. When the version is below the gateway floor, the segment turns yellow with explicit floor: `wrapper 1.1.0<1.2.0`. This surfaces version-skew **before** a real request fails with 403, instead of after.
 
-The floor is **AUTO-DISCOVERED** (L1a, 2026-05-13): the statusline anonymously probes a wrapper-gated doorward route (`/v1/users/me`) without the version header and parses `minimum_wrapper_version_required` out of the 403 body, caching it at `/tmp/ccmax-doorward-floor` (3600s TTL). When doorward raises its floor, the next render within the hour picks it up — **no manual constant bump required**. The compiled-in `DOORWARD_MIN_WRAPPER_VERSION_FALLBACK` is used only when the probe fails (doorward unreachable, gate disabled, parse error). Until the local binary is updated to meet a raised floor, the wrapper segment stays yellow and the operator knows to `gh release download` a fresh ccmax-claude.
+The floor is **AUTO-DISCOVERED** (L1a, 2026-05-13): the statusline anonymously probes a wrapper-gated gateway route (`/v1/users/me`) without the version header and parses `minimum_wrapper_version_required` out of the 403 body, caching it at `/tmp/statusline-gateway-floor` (3600s TTL). When gateway raises its floor, the next render within the hour picks it up — **no manual constant bump required**. The compiled-in `GATEWAY_MIN_WRAPPER_VERSION_FALLBACK` is used only when the probe fails (gateway unreachable, gate disabled, parse error). Until the local binary is updated to meet a raised floor, the wrapper segment stays yellow and the operator knows to `gh release download` a fresh the client wrapper.
 
 ### Statistics surface — JSONL log + analytics CLI (L2, 2026-05-13)
 
-Every statusline render appends a parsed-state JSON record to `~/.claude/doorward-state.jsonl`. The schema is documented in-script (search `custom-statusline.sh` for "L2 STATISTICS SURFACE — JSONL append per render") and covers 20 fields per render: gate status, pool primitives + state-machine label, canary primitives + classification + official status + duration (schema v2, 2026-06-11: type_code field now carries the verbatim HTTP status), wrapper version + floor + skew/at-floor pre-warn flags, pin scope/mode, bearer-mode routing flag.
+Every statusline render appends a parsed-state JSON record to `~/.claude/gateway-state.jsonl`. The schema is documented in-script (search `custom-statusline.sh` for "L2 STATISTICS SURFACE — JSONL append per render") and covers 20 fields per render: gate status, pool primitives + state-machine label, canary primitives + classification + official status + duration (schema v2, 2026-06-11: type_code field now carries the verbatim HTTP status), wrapper version + floor + skew/at-floor pre-warn flags, pin scope/mode, bearer-mode routing flag.
 
-The sibling analytics CLI at `plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py` reads the JSONL log and emits a time-windowed operator report. Verbose name encodes "telemetry analytics from the statusline jsonl log" so the file's purpose is discoverable from grep alone.
+The sibling analytics CLI at `plugins/statusline-tools/scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py` reads the JSONL log and emits a time-windowed operator report. Verbose name encodes "telemetry analytics from the statusline jsonl log" so the file's purpose is discoverable from grep alone.
 
 Usage:
 
 ```bash
 # 24h comprehensive report (all metrics)
-doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 24h
+gateway-telemetry-analytics-from-statusline-jsonl-log.py --since 24h
 
 # 7d single-metric report
-doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric type-codes
-doorward-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric state-transitions
+gateway-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric type-codes
+gateway-telemetry-analytics-from-statusline-jsonl-log.py --since 7d --metric state-transitions
 ```
 
 The six metric subsets:
@@ -200,10 +200,10 @@ Read-only — never mutates the JSONL log. Log path overridable via `--jsonl <pa
 
 ### Graceful degradation
 
-Two independent triggers gate whether the ccmax line is rendered at all (any one is sufficient):
+Two independent triggers gate whether the gateway line is rendered at all (any one is sufficient):
 
-1. Doorward reachable (cached or fresh) → render gate badge + pool + canary
-2. Bearer-mode detected (env var or pin file) → triggers render so that a red `unreachable` warning still appears when doorward is down on a bearer-routed session
+1. Gateway reachable (cached or fresh) → render gate badge + pool + canary
+2. Bearer-mode detected (env var or pin file) → triggers render so that a red `unreachable` warning still appears when gateway is down on a bearer-routed session
 
 If neither is true (most likely a public cc-skills install with no integration), just the bare datetime line renders. Public users see no change vs. a fully unconfigured statusline.
 
@@ -218,14 +218,14 @@ Note: the prior pin-badge render-trigger was retired 2026-05-13 along with the v
 ```bash
 release_out=$(probe_direct timeout 2 gh release view --repo "$owner_repo" ...)
 vis_out=$(probe_direct timeout 2 gh api "repos/${owner_repo}" ...)
-ccmax_raw=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 "${CCMAX_BASE}/api/status" ...)
+gateway_raw=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 "${GATEWAY_BASE}/api/status" ...)
 ```
 
 `probe_direct` goes **first**, before `timeout`/`gh`/`curl`. Inverting the order (`timeout 2 probe_direct gh ...`) silently fails because `timeout` is an external coreutils binary and cannot resolve shell functions — you'd get `"No such file or directory"` for `probe_direct` itself.
 
 **What it does**: strips `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY` (and their lowercase variants) from the subprocess env using `env -u`. `NO_PROXY` is left intact (defensive whitelist, harmless).
 
-**Why this exists**: discovered 2026-05-12 when ccmax-claude's bearer-pin CONNECT proxy on `127.0.0.1:<random-port>` started 502'ing every CONNECT target it doesn't intercept — including `api.github.com`. Every child process of ccmax-claude (including this statusline) inherits `HTTPS_PROXY=http://127.0.0.1:<port>`, so without the guard `gh api` 502s, the `(?)` visibility badge permanently replaces `(private)`/`(public)`, and `gh release view` permanently surfaces `⌁ offline` even though the real network is fine.
+**Why this exists**: discovered 2026-05-12 when the client wrapper's bearer-pin CONNECT proxy on `127.0.0.1:<random-port>` started 502'ing every CONNECT target it doesn't intercept — including `api.github.com`. Every child process of the client wrapper (including this statusline) inherits `HTTPS_PROXY=http://127.0.0.1:<port>`, so without the guard `gh api` 502s, the `(?)` visibility badge permanently replaces `(private)`/`(public)`, and `gh release view` permanently surfaces `⌁ offline` even though the real network is fine.
 
 **The statusline is a diagnostic instrument** — it must be a faithful mirror of system state, not a victim of whatever proxy state the host imposes on it. Probes go direct; the proxy is irrelevant to whether the badge is correct.
 

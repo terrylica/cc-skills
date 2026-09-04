@@ -1,9 +1,9 @@
 # statusline-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-4-blue.svg)](<>)
+[![Hooks](https://img.shields.io/badge/Hooks-2-blue.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 Custom Claude Code status line with git status indicators.
 
@@ -25,9 +25,11 @@ Custom Claude Code status line with git status indicators.
 - **Repository State**: ≡ (stash count), ⚠ (merge conflicts)
 - **GitHub URL**: Clickable link to current branch
 
-### Optional: ccmax-monitor Integration
+### Optional: admission-gateway health
 
-If you run [ccmax-monitor](https://github.com/terrylica/ccmax-monitor) (a private internal fleet system for multi-account Claude Code Max management), the status line also displays the active fleet account, quota usage, and pin-mode badge. This is **optional** — the status line works normally without it and silently omits the ccmax section if the local dashboard is unreachable.
+If your Claude Code traffic goes through an admission gateway that serves inference from a rotating pool of upstream accounts, the status line can show that gateway's health inline: pool ratio, forward-path health glyph, and your client wrapper's version against the gateway's minimum.
+
+This is **opt-in and off by default.** With nothing configured, the segment makes no network request, writes no files, and renders nothing. Point `STATUSLINE_GATEWAY_BASE_URL` at a gateway exposing `GET /v1/router-status` to enable it; see the "OPTIONAL INTEGRATION SEAM" comment block at the top of `statusline/custom-statusline.sh` for the full list of environment variables.
 
 ## Installation
 
@@ -83,10 +85,10 @@ The status line outputs 5 lines (plus optional cron lines):
 M:0 D:0 S:0 U:0 ↑:0 ↓:0 ≡:0 ⚠:0 | v<version> | 2d ago
 ```
 
-**Line 2**: Datetime (UTC + local TZ) + ccmax account usage
+**Line 2**: Datetime (UTC + local TZ) + optional gateway health
 
 ```
-Tue 04 Mar 2026 23:36 UTC | 15:36 PST | ccmax: 42%
+Tue 04 Mar 2026 23:36 UTC | 15:36 PST | gateway 3/3 ✓ 1.9.0
 ```
 
 **Line 3**: Repo path + GitHub URL (public/private badge)

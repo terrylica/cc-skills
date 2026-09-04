@@ -20,6 +20,40 @@
 #   ~/.claude/projects JSONL ID: <claude-code-uuid>
 #   ~/asciinemalogs cast: <iterm2-uuid>
 #   The Cast UUID maps to: ~/Downloads/*.<iterm2-uuid>.*.cast
+#
+# =============================================================================
+# OPTIONAL INTEGRATION SEAM — everything here is OFF unless you opt in
+# =============================================================================
+# This script renders an optional "admission gateway health" segment. With no
+# configuration it is completely inert: no network call, no cache file, no log
+# file, no output, no error. You have to name a gateway to switch it on.
+#
+#   STATUSLINE_GATEWAY_BASE_URL     Gateway base URL. THE MASTER SWITCH — the
+#                                   whole feature is skipped while it and the
+#                                   env file below are both absent.
+#   STATUSLINE_GATEWAY_ENV_FILE     Shell file exporting ANTHROPIC_BASE_URL,
+#                                   used when the var above is unset.
+#   STATUSLINE_GATEWAY_PORT_REWRITE "FROM:TO" — rewrite the URL's port when a
+#                                   deployment splits inference and
+#                                   introspection across two ports.
+#   STATUSLINE_GATEWAY_LABEL        Word shown before the metrics. Default
+#                                   "gateway".
+#   STATUSLINE_GATEWAY_STATE_LOG    Telemetry JSONL path. Written ONLY when a
+#                                   gateway is configured.
+#   STATUSLINE_PIN_HELPER_PATH      Optional account-pin helper library.
+#   STATUSLINE_PIN_DEVICE_FILE      Optional device-scope pin file.
+#   STATUSLINE_PIN_RESOLVER_FN      Resolver function name in that helper.
+#   STATUSLINE_PIN_RESOLVER_FN_LEGACY  Older resolver name, tried second.
+#   STATUSLINE_CLIENT_WRAPPER_BIN   Client wrapper binary whose --version is
+#                                   compared against the gateway's floor.
+#
+# The pin/wrapper entries keep backwards-compatible defaults naming the
+# specific third-party tool this integration was first written against. Those
+# defaults are the ONLY deployment-specific strings left in this file, and are
+# inert paths or symbol names (a missing file is skipped), never endpoints or
+# credentials. Set
+# the variables above to point at your own tooling and nothing in this script
+# refers to that tool at all.
 
 # GIT_OPTIONAL_LOCKS=0 — the statusline must OBSERVE repo state, never CONTEND for it.
 # Every render runs `git status`/`git diff`, which by default take .git/index.lock to refresh
@@ -44,7 +78,7 @@ CYAN='\033[96m'
 #
 # The statusline must be a faithful mirror of system state, not a victim of
 # whatever proxy state the host imposes on it. Parent processes (notably
-# ccmax-claude's bearer-pin wrapper) inject HTTPS_PROXY=http://127.0.0.1:<port>
+# a bearer-pin client wrapper) inject HTTPS_PROXY=http://127.0.0.1:<port>
 # into every child's env to MITM api.anthropic.com — but that local proxy
 # returns 502 Bad Gateway for every CONNECT target it isn't programmed to
 # intercept, including api.github.com. Without this guard, every `gh api`
@@ -84,10 +118,10 @@ repo_path=$(get_repo_path)
 # Read JSON from stdin
 input=$(cat)
 
-# Append raw statusline data to JSONL for analytics (ccmax-monitor analytics package)
+# Append raw statusline data to JSONL for analytics
 # Format matches ccost's expected schema: {"ts":<unix_epoch>,"data":<stdin_json>}
-# Consumed by: scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py
-# (L2 telemetry surface) and the external ccmax-monitor analytics package —
+# Consumed by: scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py
+# (L2 telemetry surface) and an external analytics package —
 # intentional cross-repo infrastructure, NOT dead code.
 echo "{\"ts\":$(date +%s),\"data\":$input}" >> "$HOME/.claude/statusline.jsonl" 2>/dev/null
 
@@ -345,8 +379,9 @@ gh_cred=(env -u GH_TOKEN -u GITHUB_TOKEN)
 # gh falls back to the multi-user default config, whose active-account
 # resolution is fragile in this subprocess (it 401s as "gh exit 4"). Flag the
 # real cause so a missing profile reads as an actionable hint, not a mystery.
-# (Incident 2026-06-21: Eon-Labs repos failed because gh-eonlabs was never set
-# up — every in-use host-alias needs its own isolated profile.)
+# (Observed failure mode: repos under a secondary org failed because that
+# org.s gh profile was never set up — every in-use host-alias needs its own
+# isolated profile.)
 gh_profile_missing=""
 if [ -n "$gh_account" ]; then
     if [ -d "$HOME/.config/gh-$gh_account" ]; then
@@ -451,9 +486,9 @@ get_github_url() {
     fi
 
     # Convert SSH format to HTTPS
-    # git@github.com-terrylica:terrylica/repo.git -> https://github.com/terrylica/repo
+    # git@github.com-myalias:myorg/repo.git -> https://github.com/myorg/repo
     # git@github.com:user/repo.git -> https://github.com/user/repo
-    # Also handles wiki: Eon-Labs/kb.wiki.git -> https://github.com/Eon-Labs/kb/wiki
+    # Also handles wiki: myorg/kb.wiki.git -> https://github.com/myorg/kb/wiki
     local https_url
     https_url=$(echo "$remote_url" | sed -E 's|git@github\.com[^:]*:|https://github.com/|' | sed 's|\.wiki\.git$||; s|\.wiki$||; s|\.git$||')
 
@@ -542,7 +577,7 @@ fi
 #
 # SYSTEM-TZ invariant (2026-07-04, sibling of probe_direct): "local" time
 # MUST come from the HOST's real timezone (/etc/localtime symlink), never
-# from the inherited $TZ. The ccmax-claude wrapper forces TZ=UTC on the
+# from the inherited $TZ. Some client wrappers force TZ=UTC on the
 # child claude process (China-origin timezone/locale metadata-leak
 # neutralization, 2026-07-02 stego finding), and the statusline inherits
 # that env — a bare `date` would render UTC as "local" (observed live:
@@ -577,58 +612,49 @@ else
     datetime_display="${BRIGHT_BLACK}${utc_date} ${utc_hm} UTC | ${YELLOW}${local_short}${BRIGHT_BLACK} ${local_hm} ${local_tz}${RESET}"
 fi
 
-# === ccmax-monitor: Active Account + 7d Reset + Pin Mode ===
-# READS LOCAL FILES ONLY. No HTTP call, no network, no cache — verified
-# 2026-09-02: this script contains zero curl invocations against any ccmax
-# endpoint. The four lines that used to sit here described a fetch that no
-# longer happens, and every one of them was false by then:
-#   "Fetches from ccmax-monitor Dashboard API, cached for 60s"  -> no fetch
-#   "Endpoint: localhost:18095 ... to bigblack:8095"            -> forward removed 2026-08-15
-#   "must be reached via SSH tunnel"                            -> nothing is reached
-#   "Tailscale primary (bigblack...), CF Access fallback"       -> ccmax left bigblack
-#                                                                  2026-07-28; CF Access
-#                                                                  retired 2026-08-06
-# statusline-tools/CLAUDE.md forbids reading localhost:18095/api/status anyway:
-# the wrapper routes inference through a per-request rotation pool, so the local
-# credential's quota describes spend the user is not making. What follows reads
-# the pin file via pin-helper.sh.
-# Appended inline to datetime line: ... UTC | ... PDT | usalchemist 88% 1d 22h
+# === Optional account-pin integration: Active Account + Pin Mode ===
 #
-# Pin-scope+mode badge (HEART-23 v2; requires ccmax-monitor with layered-pin
-# support — graceful fallback to legacy device-only path if missing).
+# THIS BLOCK READS LOCAL FILES ONLY — no HTTP call, no network, no cache.
 #
-# The pin file format is layered: a single Mac can have pins at three
-# scopes simultaneously, walked in this precedence:
-#   1. session — ~/.config/ccmax/pin-by-session/<session-uuid>.toml  (highest)
-#   2. repo    — ~/.config/ccmax/pin-by-repo/<md5-prefix-8>.toml
-#   3. device  — ~/.config/ccmax/pin.toml                            (lowest)
-# The first hit wins.
+# (Scope correction 2026-09-04: the note here used to assert "this script
+# contains zero curl invocations", which was false — the gateway block further
+# down does make two. The no-network claim is true of THIS block only, and is
+# now stated that way. A claim whose scope is wider than its evidence reads as
+# a guarantee about the whole file.)
 #
-# We surface the WINNING scope in the badge so the user sees which layer is
-# active, not just the mode:
-#   default rotation → empty badge
-#   session-soft     → [session:soft]    (yellow)
-#   session-strict   → [session:strict]  (red)
-#   repo-soft        → [repo:soft]       (yellow)
-#   repo-strict      → [repo:strict]     (red)
-#   device-soft      → [device:soft]     (yellow)  — replaces legacy [soft]
-#   device-strict    → [device:strict]   (red)     — replaces legacy [strict]
+# Do NOT reintroduce a fetch of a local quota API here. Where a rotating
+# gateway serves inference from a per-request account pool, the LOCAL
+# credential's quota describes spend the user is not making — an accurate
+# number for the wrong question. What follows reads a pin file only.
 #
-# Resolution path (with graceful fallback for users without ccmax):
-#   1. If ccmax-monitor's pin-helper.sh is installed at the marketplace path,
-#      source it and call ccmax_resolve_layered_pin (~2 ms cost via awk).
-#   2. Else if the legacy device-only ~/.config/ccmax/pin.toml exists, fall
-#      back to a tiny inline awk parser (this is what every cc-skills user
-#      gets if they don't have ccmax installed; the file legitimately won't
-#      exist for them and the parser cleanly returns empty).
-ccmax_pin_scope=""
-ccmax_pin_mode=""
-ccmax_pin_account=""
-ccmax_pin_account_mode=""
-CCMAX_PIN_HELPER_PATH="${HOME}/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh"
-CCMAX_PIN_DEVICE_FILE="${HOME}/.config/ccmax/pin.toml"
+# OPTIONAL account-pin integration. Entirely absent for a default install:
+# neither path below exists, both branches are skipped, no badge is produced.
+#
+# An external account-manager may pin this machine to one upstream account at
+# one of three scopes, walked highest-first, first hit wins:
+#   1. session — <pin-dir>/pin-by-session/<session-uuid>.toml   (highest)
+#   2. repo    — <pin-dir>/pin-by-repo/<md5-prefix-8>.toml
+#   3. device  — <pin-dir>/pin.toml                             (lowest)
+#
+# Resolution path:
+#   1. If a pin-helper shell library is present, source it and call its
+#      resolver (~2 ms via awk).
+#   2. Else if the device-scope pin file exists, fall back to the small inline
+#      awk parser below.
+#   3. Else produce nothing.
+#
+# Both locations are env-overridable so the integration's identity lives in
+# the user's own configuration rather than in this public script. The legacy
+# defaults are retained ONLY so existing installs keep working without an
+# edit; a fresh install should set the env vars.
+pin_scope=""
+pin_mode=""
+pin_account=""
+pin_account_mode=""
+STATUSLINE_PIN_HELPER_PATH="${STATUSLINE_PIN_HELPER_PATH:-${HOME}/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh}"
+STATUSLINE_PIN_DEVICE_FILE="${STATUSLINE_PIN_DEVICE_FILE:-${HOME}/.config/ccmax/pin.toml}"
 
-if [ -f "$CCMAX_PIN_HELPER_PATH" ]; then
+if [ -f "$STATUSLINE_PIN_HELPER_PATH" ]; then
     # Layered-pin path: source the helper and call the awk single-pass resolver.
     # We can't read the live session_id here (the statusline JSON does carry
     # it, but we want the badge to also be correct DURING the SessionStart
@@ -636,33 +662,41 @@ if [ -f "$CCMAX_PIN_HELPER_PATH" ]; then
     # extracted from the stdin JSON if available, else empty — the resolver
     # then considers only repo + device scopes, which is the desired
     # behavior at SessionStart.
-    _ccmax_pin_layered_resolved=$(
+    # NOTE: the two function names below are the EXTERNAL helper's API, not
+    # ours. They are a contract with whatever installed that helper, so they
+    # are spelled exactly as that helper defines them and must NOT be renamed
+    # for cosmetic reasons — doing so silently selects the `else` branch and
+    # the pin never resolves. Overridable via STATUSLINE_PIN_RESOLVER_FN.
+    _pin_fn_new="${STATUSLINE_PIN_RESOLVER_FN:-ccmax_resolve_layered_pin_with_account_mode}"
+    _pin_fn_old="${STATUSLINE_PIN_RESOLVER_FN_LEGACY:-ccmax_resolve_layered_pin}"
+    _pin_layered_resolved=$(
         # shellcheck source=/dev/null
-        source "$CCMAX_PIN_HELPER_PATH" 2>/dev/null \
-            && if declare -F ccmax_resolve_layered_pin_with_account_mode >/dev/null 2>&1; then
-                ccmax_resolve_layered_pin_with_account_mode "${session_id:-}" "$PWD" 2>/dev/null
-            else
-                ccmax_resolve_layered_pin "${session_id:-}" "$PWD" 2>/dev/null
+        source "$STATUSLINE_PIN_HELPER_PATH" 2>/dev/null \
+            && if declare -F "$_pin_fn_new" >/dev/null 2>&1; then
+                "$_pin_fn_new" "${session_id:-}" "$PWD" 2>/dev/null
+            elif declare -F "$_pin_fn_old" >/dev/null 2>&1; then
+                "$_pin_fn_old" "${session_id:-}" "$PWD" 2>/dev/null
             fi
-    ) || _ccmax_pin_layered_resolved="|||none"
+    ) || _pin_layered_resolved="|||none"
+    unset _pin_fn_new _pin_fn_old
     # Formats:
     #   New helper: <account>|<mode>|<scope>|<account_mode>
     #   Old helper: <account>|<mode>|<scope>
-    ccmax_pin_account="${_ccmax_pin_layered_resolved%%|*}"
-    _ccmax_pin_layered_rest="${_ccmax_pin_layered_resolved#*|}"
-    ccmax_pin_mode="${_ccmax_pin_layered_rest%%|*}"
-    _ccmax_pin_layered_rest="${_ccmax_pin_layered_rest#*|}"
-    ccmax_pin_scope="${_ccmax_pin_layered_rest%%|*}"
-    ccmax_pin_account_mode="${_ccmax_pin_layered_rest#*|}"
-    if [ "$ccmax_pin_account_mode" = "$ccmax_pin_scope" ]; then
-        ccmax_pin_account_mode=""
+    pin_account="${_pin_layered_resolved%%|*}"
+    _pin_layered_rest="${_pin_layered_resolved#*|}"
+    pin_mode="${_pin_layered_rest%%|*}"
+    _pin_layered_rest="${_pin_layered_rest#*|}"
+    pin_scope="${_pin_layered_rest%%|*}"
+    pin_account_mode="${_pin_layered_rest#*|}"
+    if [ "$pin_account_mode" = "$pin_scope" ]; then
+        pin_account_mode=""
     fi
-    [ "$ccmax_pin_scope" = "none" ] && { ccmax_pin_scope=""; ccmax_pin_mode=""; ccmax_pin_account=""; ccmax_pin_account_mode=""; }
-elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
-    # Legacy fallback for older ccmax-monitor installs OR cc-skills users
-    # without ccmax-monitor at all (in which case the file simply won't
+    [ "$pin_scope" = "none" ] && { pin_scope=""; pin_mode=""; pin_account=""; pin_account_mode=""; }
+elif [ -f "$STATUSLINE_PIN_DEVICE_FILE" ]; then
+    # Legacy fallback for older helper installs OR users
+    # without the integration at all (in which case the file simply won't
     # exist and both vars stay empty, producing no badge).
-    _ccmax_pin_legacy_combined=$(awk '
+    _pin_legacy_combined=$(awk '
         {
             sub(/^[[:space:]]+/, ""); sub(/^#.*$/, "")
             eq = index($0, "="); if (eq == 0) next
@@ -676,146 +710,180 @@ elif [ -f "$CCMAX_PIN_DEVICE_FILE" ]; then
         }
         END {
             # Default "soft" is NOT invented here: it is the documented
-            # official default from the SSoT, ccmax-monitor
-            # hooks/pin-helper.sh (ccmax_pin_mode). This legacy inline
+            # official default from the SSoT of the external helper,
+            # hooks/pin-helper.sh (pin_mode). This legacy inline
             # parser only runs when that helper is absent, so the default
             # is duplicated by necessity — keep it in sync with the SSoT.
             if (mode_value == "") mode_value = "soft"
             printf "%s|%s|%s\n", account_value, mode_value, account_mode_value
         }
-    ' "$CCMAX_PIN_DEVICE_FILE" 2>/dev/null) || _ccmax_pin_legacy_combined="||"
-    if [ -n "${_ccmax_pin_legacy_combined%%|*}" ]; then
-        ccmax_pin_account="${_ccmax_pin_legacy_combined%%|*}"
-        _ccmax_pin_legacy_rest="${_ccmax_pin_legacy_combined#*|}"
-        ccmax_pin_scope="device"
-        ccmax_pin_mode="${_ccmax_pin_legacy_rest%%|*}"
-        ccmax_pin_account_mode="${_ccmax_pin_legacy_rest#*|}"
+    ' "$STATUSLINE_PIN_DEVICE_FILE" 2>/dev/null) || _pin_legacy_combined="||"
+    if [ -n "${_pin_legacy_combined%%|*}" ]; then
+        pin_account="${_pin_legacy_combined%%|*}"
+        _pin_legacy_rest="${_pin_legacy_combined#*|}"
+        pin_scope="device"
+        pin_mode="${_pin_legacy_rest%%|*}"
+        pin_account_mode="${_pin_legacy_rest#*|}"
     fi
 fi
-unset _ccmax_pin_layered_resolved _ccmax_pin_layered_rest _ccmax_pin_legacy_combined _ccmax_pin_legacy_rest
+unset _pin_layered_resolved _pin_layered_rest _pin_legacy_combined _pin_legacy_rest
 
-ccmax_bearer_account=""
+gateway_bearer_account=""
 # "bearer_key_anthropic_compatible_api_mode" is the OFFICIAL enum value of the
-# pin file's [account_mode] field — SSoT: ccmax-monitor hooks/pin-helper.sh.
+# pin file's [account_mode] field — SSoT: the external pin-helper.
 # This is a verbatim comparison against the official value, not a translation;
-# keep the literal in sync with the SSoT if ccmax-monitor ever renames it.
-if [ "$ccmax_pin_account_mode" = "bearer_key_anthropic_compatible_api_mode" ] && [ -n "$ccmax_pin_account" ]; then
-    ccmax_bearer_account="$ccmax_pin_account"
+# keep the literal in sync with the SSoT if that helper ever renames it.
+if [ "$pin_account_mode" = "bearer_key_anthropic_compatible_api_mode" ] && [ -n "$pin_account" ]; then
+    gateway_bearer_account="$pin_account"
+elif [ -n "${STATUSLINE_GATEWAY_BEARER_ACCOUNT:-}" ]; then
+    gateway_bearer_account="$STATUSLINE_GATEWAY_BEARER_ACCOUNT"
 elif [ -n "${CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION:-}" ]; then
-    ccmax_bearer_account="$CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION"
-elif [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-    case "$ANTHROPIC_BASE_URL" in
-        *bigblack.tail0f299b.ts.net:8450*|*127.0.0.1:8450*|*localhost:8450*)
-            ccmax_bearer_account="el02-doorward-bearer-api-1"
-            ;;
-    esac
+    # Backwards-compatible alias for the variable name the original external
+    # wrapper exports. Kept so an existing install does not silently lose its
+    # render trigger; prefer STATUSLINE_GATEWAY_BEARER_ACCOUNT above.
+    gateway_bearer_account="$CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION"
+elif [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ] \
+     && [ -n "${STATUSLINE_GATEWAY_BASE_URL:-}" ]; then
+    # Bearer-mode heuristic, deployment-agnostic: if the session is pointed at
+    # a custom inference base URL AND the operator has declared a gateway (see
+    # STATUSLINE_GATEWAY_BASE_URL below), treat this as gateway-routed.
+    #
+    # This value is a BOOLEAN in practice — it is never rendered. It only feeds
+    # the JSONL "bearer mode active" flag and the render-decision at the bottom
+    # of this file. It therefore carries a generic sentinel rather than any
+    # account name. (Before 2026-09-04 this branch pattern-matched one specific
+    # private hostname and assigned one specific account name; both were
+    # deployment identifiers with no business in a public marketplace, and
+    # neither was ever displayed.)
+    gateway_bearer_account="gateway-bearer"
 fi
 
-# === Doorward Gateway Health (replaces legacy OAuth-account/quota block) ===
+# === OPTIONAL: Admission-Gateway Health ===
 #
-# WHY THE REWRITE: Fleet migrated to bearer-mode routing where ccmax-claude PTY
-# wrapper sets ANTHROPIC_BASE_URL=https://bigblack.tail0f299b.ts.net:8450 and
-# doorward picks from a rotation pool of OAuth accounts dynamically per-request.
-# The local keychain's OAuth account no longer tells you what's serving you, so
-# the prior "account email + 5h%/7d% quota windows" rendering became misleading
-# (it described a credential that isn't even being used). We replaced it with
-# four signals that actually reflect the live pipeline:
+# OFF BY DEFAULT. Requires an explicitly configured gateway (see
+# STATUSLINE_GATEWAY_BASE_URL below). With no gateway configured this entire
+# section is skipped: no network, no files, no output.
 #
-#   1. Gate health badge   — composite of doorward reachability + canary state
-#   2. Pool size           — pool.schedulable_active_accounts / pool.total_accounts
-#   3. Canary state        — canary_self_test.consecutive_failures count
-#   4. Wrapper version     — local ccmax-claude version vs doorward's floor
+# WHAT IT IS FOR: some deployments put an admission gateway in front of the
+# Anthropic API that serves inference from a rotating pool of upstream
+# accounts. When that is how you are routed, the LOCAL credential no longer
+# tells you what is actually serving you, so rendering its account email and
+# quota windows is actively misleading. This block instead surfaces four
+# signals that describe the live path:
 #
-# Only two doorward routes are wrapper-version-gate-exempt and therefore safe
-# for the statusline to hit anonymously on every render:
-#   GET /v1/health         → liveness + canary + fleet transition counters
-#   GET /v1/router-status  → adds the pool breakdown (per-account schedulable)
-# We use the latter because it's a superset (canary + pool in one fetch).
-# Confirmed bypass paths: spike-11/src/main.rs:1492,1505 (health) and 1515,1556
-# (router-status). Both responses include x-doorward-decision and
-# x-doorward-router-version headers for forensics.
+#   1. Gate health   — composite of gateway reachability + canary state
+#   2. Pool size     — pool.schedulable_active_accounts / pool.total_accounts
+#   3. Canary state  — canary_self_test.consecutive_failures count
+#   4. Client version — local client version vs the gateway's advertised floor
 #
-# Cache: /tmp/ccmax-doorward-cache.json, 60s TTL. doorward already enforces a
-# 30s server-side TTL on /v1/router-status (spike-11 cache_ttl_seconds), so 60s
-# client-side covers two server windows with headroom. Stale-on-failure: if a
-# fresh fetch fails but a cache exists, we render with stale cache rather than
-# blanking — the operator still sees something instead of a false "unreachable".
+# EXPECTED GATEWAY CONTRACT — any gateway exposing these two anonymous,
+# unauthenticated GET routes works; nothing here is vendor-specific:
+#   GET /v1/health         → liveness + canary
+#   GET /v1/router-status  → superset: adds the per-account pool breakdown
+# We fetch the latter only, since it covers all four signals in one request.
 #
-# Failure semantics (drives $doorward_status string — used downstream to pick
+# Cache: /tmp/statusline-gateway-cache-<hash>.json, 60s TTL, keyed by gateway URL.
+# Stale-on-failure: if a fresh fetch fails but a cache exists we render the
+# stale data rather than blanking, so a blip does not read as an outage.
+#
+# Failure semantics (drives $gateway_status string — used downstream to pick
 # the render branch and per-token color, no longer a leading visual glyph):
 #   reachable + status=ok + canary healthy + errors=0  → "healthy"    (all gray/✓)
 #   reachable but canary degraded OR errors>0          → "degraded"   (red ✗N or red ratio)
 #   unreachable / no cache                             → "unreachable" (literal red word replaces numerics)
 #   /v1/router-status JSON parse failure               → "parse-error" (red word replaces numerics)
 #
-# Public cc-skills users (no doorward, no tailnet membership) get curl timeout
-# → "unreachable" state → if they also have no bearer-mode env signal AND no
-# pin, the entire ccmax line is suppressed (see renderer below). Graceful
-# degradation.
+# Users with no gateway configured never reach any of these states: the block
+# short-circuits before the first probe, so there is no timeout to wait on and
+# no "unreachable" to suppress. (Until 2026-09-04 they DID pay for a timeout
+# against a hardcoded third-party host on every cold cache — see below.)
 
-# DOORWARD_BASE — derived from the LIVE bearer pin, not hardcoded (2026-07-19).
+# GATEWAY_BASE — the admission-gateway base URL. OPT-IN, never hardcoded.
 #
-# This was pinned to bigblack:8450 and therefore always described el02's pool,
-# no matter where the wrapper actually routed. When the fleet primary moved to
-# nca.25u.com (7 schedulable accounts) while el02 kept 2, the status line went
-# on reporting "2" — an accurate number for a door the user was no longer
-# using. That is worse than no number: it reads as capacity, so a 3.5x pool
-# change is invisible and a real capacity problem would be attributed to the
-# wrong host.
+# ── Public default: EMPTY. ────────────────────────────────────────────────
+# When this resolves empty, the entire gateway block below is skipped: no
+# curl, no DNS lookup, no cache file, no JSONL append, and no rendered
+# segment. A cc-skills user who has not configured a gateway pays exactly
+# nothing for this feature and sees nothing from it.
 #
-# The pin's ANTHROPIC_BASE_URL is the INFERENCE url; router-status lives on
-# doorward, which is the same host but not always the same port:
-#   bigblack…:8452  (tailproxy)      -> doorward on :8450
-#   https://nca.25u.com (portless)   -> Caddy proxies /v1/* to doorward, as-is
-#   https://eon.25u.com:8450         -> already doorward, as-is
-# Falls back to the historical constant when no pin file exists, so public
-# cc-skills users and personal-OAuth devices behave exactly as before.
-_ccmax_pin_file="${HOME}/.config/ccmax/bearer-pin-env.sh"
-DOORWARD_BASE="https://bigblack.tail0f299b.ts.net:8450"
-if [ -r "$_ccmax_pin_file" ]; then
-    _ccmax_pin_url=$(sed -n 's/^export ANTHROPIC_BASE_URL=//p' "$_ccmax_pin_file" 2>/dev/null | tr -d "\"'" | head -1)
-    if [ -n "$_ccmax_pin_url" ]; then
-        # tailproxy inference port -> doorward port; every other form is
-        # already doorward-addressable.
-        DOORWARD_BASE="${_ccmax_pin_url/:8452/:8450}"
+# Until 2026-09-04 this variable was initialised to one specific private
+# hostname as a "historical fallback". That was a defect with three faces:
+#   1. it published a private deployment's host identifier in a public repo;
+#   2. every installer of this marketplace silently probed that third-party
+#      host twice per cold cache on every render (/v1/users/me and
+#      /v1/router-status), which is unannounced outbound traffic to somebody
+#      else's infrastructure; and
+#   3. the probe could only ever fail for them, so the cost bought nothing.
+#
+# ── Resolution order (first non-empty wins) ───────────────────────────────
+#   1. $STATUSLINE_GATEWAY_BASE_URL      — explicit env override, any user
+#   2. $STATUSLINE_GATEWAY_ENV_FILE      — a shell file exporting
+#      (default ~/.config/ccmax/bearer-pin-env.sh)   ANTHROPIC_BASE_URL
+#
+# Both live OUTSIDE this repository, so the fleet-specific identity stays in
+# the operator's private configuration while this script stays generic.
+#
+# Port note: some deployments expose inference and gateway introspection on
+# different ports. $STATUSLINE_GATEWAY_PORT_REWRITE, when set as "FROM:TO",
+# rewrites a trailing :FROM to :TO. Unset means the URL is used verbatim.
+_pin_file="${STATUSLINE_GATEWAY_ENV_FILE:-${HOME}/.config/ccmax/bearer-pin-env.sh}"
+GATEWAY_BASE="${STATUSLINE_GATEWAY_BASE_URL:-}"
+if [ -z "$GATEWAY_BASE" ] && [ -r "$_pin_file" ]; then
+    _pin_url=$(sed -n 's/^export ANTHROPIC_BASE_URL=//p' "$_pin_file" 2>/dev/null | tr -d "\"'" | head -1)
+    if [ -n "$_pin_url" ]; then
+        GATEWAY_BASE="$_pin_url"
+        if [ -n "${STATUSLINE_GATEWAY_PORT_REWRITE:-}" ]; then
+            _pr_from="${STATUSLINE_GATEWAY_PORT_REWRITE%%:*}"
+            _pr_to="${STATUSLINE_GATEWAY_PORT_REWRITE#*:}"
+            GATEWAY_BASE="${GATEWAY_BASE/:${_pr_from}/:${_pr_to}}"
+            unset _pr_from _pr_to
+        fi
     fi
 fi
-DOORWARD_CACHE="/tmp/ccmax-doorward-cache-$(printf '%s' "$DOORWARD_BASE" | shasum | cut -c1-8).json"
-DOORWARD_CACHE_TTL=60
+# GATEWAY_CONFIGURED is the single gate for every side effect in this feature:
+# outbound probes, /tmp cache files, and the JSONL telemetry append. When no
+# gateway is configured it stays 0 and this whole block is inert.
+GATEWAY_CONFIGURED=0
+[ -n "$GATEWAY_BASE" ] && GATEWAY_CONFIGURED=1
 
-# Doorward's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
+GATEWAY_CACHE=""
+[ "$GATEWAY_CONFIGURED" -eq 1 ] && \
+    GATEWAY_CACHE="/tmp/statusline-gateway-cache-$(printf '%s' "$GATEWAY_BASE" | shasum | cut -c1-8).json"
+GATEWAY_CACHE_TTL=60
+
+# Gateway's minimum wrapper version floor — AUTO-DISCOVERED (L1a, 2026-05-13).
 #
 # Earlier versions hardcoded "1.2.0" here and required a manual bump whenever
-# doorward raised its gate. Now we discover the live floor by probing any
+# gateway raised its gate. Now we discover the live floor by probing any
 # wrapper-gated route (e.g. /v1/users/me) WITHOUT the wrapper version header;
-# doorward returns HTTP 403 with `minimum_wrapper_version_required` in the
-# JSON body, which IS the current floor. Cached at /tmp/ccmax-doorward-floor
-# with a 3600s TTL so we only probe doorward once per hour for this value.
+# gateway returns HTTP 403 with `minimum_wrapper_version_required` in the
+# JSON body, which IS the current floor. Cached at /tmp/statusline-gateway-floor
+# with a 3600s TTL so we only probe gateway once per hour for this value.
 #
 # Probe failure modes (any → fall back to compiled-in default):
-#   - Doorward unreachable: probe times out, no response
-#   - Doorward returns 200 (gate disabled / env var unset): no floor to read
+#   - Gateway unreachable: probe times out, no response
+#   - Gateway returns 200 (gate disabled / env var unset): no floor to read
 #   - Response body doesn't have the expected error.minimum_wrapper_version_required shape
 # The fallback ensures the renderer always has SOMETHING to compare against,
-# even when doorward is down. The fallback is updated whenever a fresh probe
+# even when gateway is down. The fallback is updated whenever a fresh probe
 # succeeds, so cold-start with a stale fallback only matters for the very
 # first render after a new install.
-DOORWARD_MIN_WRAPPER_VERSION_FALLBACK="1.2.0"
-DOORWARD_FLOOR_CACHE="/tmp/ccmax-doorward-floor"
-DOORWARD_FLOOR_TTL=3600  # 1 hour
+GATEWAY_MIN_WRAPPER_VERSION_FALLBACK="1.2.0"
+GATEWAY_FLOOR_CACHE="/tmp/statusline-gateway-floor"
+GATEWAY_FLOOR_TTL=3600  # 1 hour
 
 # Cache-aware floor lookup. The cache file holds a single line containing the
 # discovered floor semver (or empty if discovery failed). On cache miss or
-# expiry, probe doorward; on probe failure, fall back to compiled-in default.
-DOORWARD_MIN_WRAPPER_VERSION=""
-if [ -f "$DOORWARD_FLOOR_CACHE" ]; then
-    floor_cache_mtime=$(stat -f %m "$DOORWARD_FLOOR_CACHE" 2>/dev/null || echo 0)
+# expiry, probe gateway; on probe failure, fall back to compiled-in default.
+GATEWAY_MIN_WRAPPER_VERSION=""
+if [ -f "$GATEWAY_FLOOR_CACHE" ]; then
+    floor_cache_mtime=$(stat -f %m "$GATEWAY_FLOOR_CACHE" 2>/dev/null || echo 0)
     floor_cache_age=$(( $(date +%s) - floor_cache_mtime ))
-    if [ "$floor_cache_age" -lt "$DOORWARD_FLOOR_TTL" ]; then
-        DOORWARD_MIN_WRAPPER_VERSION=$(cat "$DOORWARD_FLOOR_CACHE" 2>/dev/null)
+    if [ "$floor_cache_age" -lt "$GATEWAY_FLOOR_TTL" ]; then
+        GATEWAY_MIN_WRAPPER_VERSION=$(cat "$GATEWAY_FLOOR_CACHE" 2>/dev/null)
     fi
 fi
-if [ -z "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
+if [ -z "$GATEWAY_MIN_WRAPPER_VERSION" ] && [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
     # Probe a wrapper-gated route anonymously. The gate runs BEFORE auth, so
     # even without a Bearer header we elicit a 403 with the JSON body that
     # carries `minimum_wrapper_version_required`. Implementation note: the
@@ -823,7 +891,7 @@ if [ -z "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
     # suppresses the response body on 4xx — and the body is exactly what we
     # need to parse.
     discovered_floor=$(probe_direct curl -s --connect-timeout 1 --max-time 2 \
-        "${DOORWARD_BASE}/v1/users/me" 2>/dev/null | python3 -c "
+        "${GATEWAY_BASE}/v1/users/me" 2>/dev/null | python3 -c "
 import sys, json
 try:
     d = json.loads(sys.stdin.read())
@@ -834,44 +902,51 @@ except Exception:
     pass
 " 2>/dev/null) || discovered_floor=""
     if [ -n "$discovered_floor" ]; then
-        printf '%s' "$discovered_floor" > "$DOORWARD_FLOOR_CACHE"
-        DOORWARD_MIN_WRAPPER_VERSION="$discovered_floor"
+        printf '%s' "$discovered_floor" > "$GATEWAY_FLOOR_CACHE"
+        GATEWAY_MIN_WRAPPER_VERSION="$discovered_floor"
     else
-        DOORWARD_MIN_WRAPPER_VERSION="$DOORWARD_MIN_WRAPPER_VERSION_FALLBACK"
+        GATEWAY_MIN_WRAPPER_VERSION="$GATEWAY_MIN_WRAPPER_VERSION_FALLBACK"
     fi
 fi
+# Belt-and-braces: the comparison sites below feed this to `sort -V`, which
+# must never receive an empty operand. Unconfigured installs skip the probe
+# entirely, so this is the path that gives them a well-formed value.
+[ -z "$GATEWAY_MIN_WRAPPER_VERSION" ] && \
+    GATEWAY_MIN_WRAPPER_VERSION="$GATEWAY_MIN_WRAPPER_VERSION_FALLBACK"
 
-# Fetch /v1/router-status (cache-aware).
-doorward_raw=""
-doorward_needs_fetch=1
-if [ -f "$DOORWARD_CACHE" ]; then
-    doorward_cache_mtime=$(stat -f %m "$DOORWARD_CACHE" 2>/dev/null || echo 0)
-    doorward_cache_age=$(( $(date +%s) - doorward_cache_mtime ))
-    [ "$doorward_cache_age" -lt "$DOORWARD_CACHE_TTL" ] && doorward_needs_fetch=0
+# Fetch /v1/router-status (cache-aware). Skipped entirely — no curl, no DNS,
+# no cache file — when no gateway is configured.
+gateway_raw=""
+gateway_needs_fetch=0
+[ "$GATEWAY_CONFIGURED" -eq 1 ] && gateway_needs_fetch=1
+if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -f "$GATEWAY_CACHE" ]; then
+    gateway_cache_mtime=$(stat -f %m "$GATEWAY_CACHE" 2>/dev/null || echo 0)
+    gateway_cache_age=$(( $(date +%s) - gateway_cache_mtime ))
+    [ "$gateway_cache_age" -lt "$GATEWAY_CACHE_TTL" ] && gateway_needs_fetch=0
 fi
-if [ "$doorward_needs_fetch" -eq 1 ]; then
-    doorward_fresh=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 \
-        "${DOORWARD_BASE}/v1/router-status" 2>/dev/null) || doorward_fresh=""
-    if [ -n "$doorward_fresh" ]; then
-        echo "$doorward_fresh" > "$DOORWARD_CACHE"
-        doorward_raw="$doorward_fresh"
-    elif [ -f "$DOORWARD_CACHE" ]; then
+if [ "$gateway_needs_fetch" -eq 1 ]; then
+    gateway_fresh=$(probe_direct curl -sf --connect-timeout 1 --max-time 2 \
+        "${GATEWAY_BASE}/v1/router-status" 2>/dev/null) || gateway_fresh=""
+    if [ -n "$gateway_fresh" ]; then
+        echo "$gateway_fresh" > "$GATEWAY_CACHE"
+        gateway_raw="$gateway_fresh"
+    elif [ -f "$GATEWAY_CACHE" ]; then
         # Fetch failed but cache exists → render stale data rather than going
         # dark. The cache mtime already telegraphs staleness to anyone reading
         # the file directly.
-        doorward_raw=$(cat "$DOORWARD_CACHE" 2>/dev/null) || doorward_raw=""
+        gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
     fi
-else
-    doorward_raw=$(cat "$DOORWARD_CACHE" 2>/dev/null) || doorward_raw=""
+elif [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
+    gateway_raw=$(cat "$GATEWAY_CACHE" 2>/dev/null) || gateway_raw=""
 fi
 
-# Local ccmax-claude wrapper version (cached by binary mtime). The subprocess
+# Local client wrapper version (cached by binary mtime). The subprocess
 # only re-runs when the binary file itself changes — rare — so the render-time
 # cost amortizes to a file stat per render. Empty when the wrapper isn't
 # installed (public cc-skills users), which the renderer treats as "skip the
 # wrapper segment entirely".
-WRAPPER_BIN="${HOME}/.local/bin/ccmax-claude"
-WRAPPER_VERSION_CACHE="/tmp/ccmax-wrapper-version"
+WRAPPER_BIN="${STATUSLINE_CLIENT_WRAPPER_BIN:-${HOME}/.local/bin/ccmax-claude}"
+WRAPPER_VERSION_CACHE="/tmp/statusline-client-version"
 wrapper_version=""
 if [ -x "$WRAPPER_BIN" ]; then
     wrapper_bin_mtime=$(stat -f %m "$WRAPPER_BIN" 2>/dev/null || echo 0)
@@ -890,16 +965,16 @@ version_lt() {
     [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$1" ]
 }
 
-# Parse the doorward snapshot into primitives. One python invocation emits a
+# Parse the gateway snapshot into primitives. One python invocation emits a
 # fixed-shape pipe-delimited line; shell unpacks with `IFS='|' read`. Output:
 #   <status>|<schedulable>|<rotation_size>|<errors>|<canary_failures>|<canary_class>
 # status      ∈ {healthy, degraded, parse-error}; unreachable is signalled by
-#               empty doorward_raw before we enter this block
+#               empty gateway_raw before we enter this block
 # canary_class ∈ {healthy, since-start-failure, transient, recent-degradation,
 #               unknown} — see classification rules below
 #
 # Pool denominator semantics — we deliberately EXCLUDE inactive accounts from
-# the denominator. doorward's response distinguishes three account states:
+# the denominator. gateway's response distinguishes three account states:
 #   - schedulable + status=active   → in the rotation, picking traffic
 #   - error_accounts                → in the rotation, currently failing
 #   - other_status_accounts         → administratively inactive (paused,
@@ -941,7 +1016,7 @@ version_lt() {
 #                        → fail-safe to "degraded color" so we don't silently
 #                          hide a real problem behind missing data.
 # All ten primitives below feed the unified renderer further down.
-doorward_status="unreachable"
+gateway_status="unreachable"
 pool_schedulable=0
 pool_rotation_size=0
 pool_errors=0
@@ -955,19 +1030,17 @@ canary_last_observed_http_status_for_render=""
 pool_resilience_state_machine_label=""
 unified_state_name_for_render_label=""
 canary_failure_duration_humanized_short_form=""
-if [ -n "$doorward_raw" ]; then
-    doorward_parsed=$(echo "$doorward_raw" | python3 -c "
+if [ -n "$gateway_raw" ]; then
+    gateway_parsed=$(echo "$gateway_raw" | python3 -c "
 import sys, json
 
 # ===========================================================================
 # L1d UNIFIED-RENDER PRIMITIVE EXTRACTOR (cc-skills statusline, 2026-05-13)
 # ===========================================================================
-# Reads doorward's /v1/router-status response and emits a single pipe-delimited
+# Reads gateway's /v1/router-status response and emits a single pipe-delimited
 # line of 10 primitives that the shell side unpacks via IFS='|' read. The
 # verbose field names below match the names exported to shell-side variables
 # downstream so a future reader can grep across the python<->bash boundary.
-# Design contract documented in:
-#   ccmax-monitor/HANDOFF-CC-SKILLS-STATUSLINE-DOORWARD-TELEMETRY-REDESIGN-AND-PATH-A-REPO-MERGE-2026-05-13.md
 # Output line shape:
 #   <gate_status>|<pool_schedulable>|<pool_rotation_size>|<pool_errors>
 #    |<canary_consecutive_failures>|<canary_classification_four_state>
@@ -1026,7 +1099,7 @@ def compose_unified_state_name_for_render_label_from_canary_class_and_pool_state
     #   since-boot (gray)  ← canary never-succeeded-since-router-start config bug
     #   healthy (green)    ← both signals report no failure
     #   unproven (gray)    ← no recent request carried forward-path evidence
-    #   no-health-signal (red) ← doorward exposed neither health block at all
+    #   no-health-signal (red) ← gateway exposed neither health block at all
     if pool_resilience_state == 'total-outage':
         return 'outage'
     if canary_classification_four_state == 'recent-degradation':
@@ -1078,7 +1151,7 @@ try:
 
     # ── Tolerant reader: new access-log-derived block, else legacy canary ──
     #
-    # doorward is migrating OFF the synthetic canary (ccmax-monitor#30: monitoring
+    # gateway is migrating OFF the synthetic canary (the guiding rule being that monitoring
     # must never spend inference). The new block derives forward-path health from
     # real forwarded requests that already happened, so it costs nothing.
     #
@@ -1087,9 +1160,9 @@ try:
     #   2. canary_self_test                                    (legacy, synthetic)
     #   3. neither                                             (explicit unknown)
     #
-    # This reader ships BEFORE doorward changes, so a statusline on any host keeps
+    # This reader ships BEFORE gateway changes, so a statusline on any host keeps
     # working against either binary during the rollout. Do NOT collapse it to the
-    # new field alone until every doorward in the fleet emits it — an old binary
+    # new field alone until every gateway in the fleet emits it — an old binary
     # would then render 'no-health-signal' red across the whole fleet.
     upstream_health = d.get('upstream_health_observed_from_forwarded_request_log') or {}
     canary = d.get('canary_self_test', {}) or {}
@@ -1154,7 +1227,7 @@ try:
         canary_evidence_token_for_render = None  # renderer uses the HTTP status
         canary_failure_duration_seconds_lower_bound_override = None
     else:
-        # NEITHER field present. This is a real contract break (doorward answered
+        # NEITHER field present. This is a real contract break (gateway answered
         # /v1/router-status but exposes no forward-path health at all), so say so
         # loudly rather than defaulting to 'healthy' — a monitor that reports
         # health it cannot observe is worse than one that admits ignorance.
@@ -1166,7 +1239,7 @@ try:
         canary_configured_interval_seconds = 300
 
     # Gate-status binary (legacy primitive retained for backward-compat with
-    # the existing $doorward_status check that triggers render-or-suppress).
+    # the existing $gateway_status check that triggers render-or-suppress).
     if pool_error_accounts_count > 0 or canary_classification_four_state == 'recent-degradation':
         legacy_gate_status_binary = 'degraded'
     else:
@@ -1225,9 +1298,9 @@ except Exception:
     # interprets as 'parse-error' (red, replaces numerics with the literal
     # 'parse-error' word — same UX as 'unreachable').
     print('parse-error|0|0|0|0|unknown||unknown|unknown|')
-" 2>/dev/null) || doorward_parsed=""
-    if [ -n "$doorward_parsed" ]; then
-        IFS='|' read -r doorward_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_last_observed_http_status_for_render pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$doorward_parsed"
+" 2>/dev/null) || gateway_parsed=""
+    if [ -n "$gateway_parsed" ]; then
+        IFS='|' read -r gateway_status pool_schedulable pool_rotation_size pool_errors canary_failures canary_class canary_last_observed_http_status_for_render pool_resilience_state_machine_label unified_state_name_for_render_label canary_failure_duration_humanized_short_form <<< "$gateway_parsed"
     fi
 fi
 
@@ -1235,11 +1308,11 @@ fi
 # canary signal. The canary is one synthetic probe; if it's degraded, that
 # may or may not reflect actual upstream health. Real traffic is the ground
 # truth: when this Mac's Claude Code session is actively pumping requests
-# through doorward AND those requests are completing, doorward IS serving,
+# through gateway AND those requests are completing, gateway IS serving,
 # regardless of what the canary says.
 #
 # Detection signals:
-#   (a) $ANTHROPIC_BASE_URL points at doorward (bearer-mode routing) AND
+#   (a) $ANTHROPIC_BASE_URL points at gateway (bearer-mode routing) AND
 #   (b) The current session's transcript JSONL has been written to within
 #       the last 60s (Claude Code only appends to the transcript when it
 #       successfully receives upstream responses)
@@ -1255,15 +1328,28 @@ fi
 # user's prompt cadence. A 5min-stale transcript with an actively-failing
 # canary IS a credible early-warning of impending failure on the next
 # prompt. Damper-not-silencer preserves that signal at one severity level.
+# Deployment-agnostic "is this session routed through the configured gateway?"
+# test (2026-09-04). This previously pattern-matched one private hostname plus
+# two loopback forms. We now compare the live $ANTHROPIC_BASE_URL against the
+# gateway the operator actually configured, which is both generic AND more
+# correct: the old literal list went stale every time the fleet moved hosts,
+# silently disabling the damper while still looking like it worked.
 real_traffic_recent=0
-if [ -n "${ANTHROPIC_BASE_URL:-}" ] && [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
-    case "$ANTHROPIC_BASE_URL" in
-        *bigblack.tail0f299b.ts.net:8450*|*127.0.0.1:8450*|*localhost:8450*)
+if [ "$GATEWAY_CONFIGURED" -eq 1 ] && [ -n "${ANTHROPIC_BASE_URL:-}" ] \
+   && [ -n "$transcript_file" ] && [ -f "$transcript_file" ]; then
+    # Compare on host[:port], ignoring scheme and any trailing path.
+    _rt_env_authority="${ANTHROPIC_BASE_URL#*://}"; _rt_env_authority="${_rt_env_authority%%/*}"
+    _rt_gw_authority="${GATEWAY_BASE#*://}";       _rt_gw_authority="${_rt_gw_authority%%/*}"
+    # Loopback is always accepted: the wrapper's local reverse proxy fronts the
+    # gateway on 127.0.0.1, so a loopback base URL still means gateway-routed.
+    case "$_rt_env_authority" in
+        127.0.0.1:*|localhost:*|"$_rt_gw_authority")
             transcript_mtime=$(stat -f %m "$transcript_file" 2>/dev/null || echo 0)
             transcript_age=$(( $(date +%s) - transcript_mtime ))
             [ "$transcript_age" -lt 60 ] && real_traffic_recent=1
             ;;
     esac
+    unset _rt_env_authority _rt_gw_authority
 fi
 if [ "$real_traffic_recent" -eq 1 ]; then
     case "$canary_class" in
@@ -1272,8 +1358,8 @@ if [ "$real_traffic_recent" -eq 1 ]; then
     esac
     # Also clear pool-error escalation: if traffic is flowing, error_accounts
     # might be a transient blip the rotation is already routing around.
-    if [ "$doorward_status" = "degraded" ] && [ "$pool_errors" -gt 0 ] && [ "$canary_class" != "recent-degradation" ]; then
-        doorward_status="healthy"
+    if [ "$gateway_status" = "degraded" ] && [ "$pool_errors" -gt 0 ] && [ "$canary_class" != "recent-degradation" ]; then
+        gateway_status="healthy"
     fi
 fi
 
@@ -1329,7 +1415,7 @@ fi
 # Status line layout:
 #   Line 1: git stats | model id + inference-mode badges (gray suffix)
 #   Line 2: code stats (scc — LOC, files, complexity, top languages, COCOMO)
-#   Line 3: UTC time | local time | ccmax (inline)
+#   Line 3: UTC time | local time | gateway (inline)
 #   Line 4: ~/path | github-url
 #   Line 5: session UUID (if available)
 #   Line 6: ~/asciinemalogs cast UUID
@@ -1523,29 +1609,29 @@ echo -e "$line1"
 [ -n "$code_stats" ] && echo -e "$code_stats"
 
 # Model segment line (own line as of 2026-06-19) — after code stats, before
-# the datetime/doorward line. Suppressed entirely when no model token.
+# the datetime/gateway line. Suppressed entirely when no model token.
 [ -n "$model_inline" ] && echo -e "$model_inline"
 
 # Context window bar (own line as of 2026-06-21) — after model line, before
-# datetime/doorward. Suppressed when context_window absent (session start).
+# datetime/gateway. Suppressed when context_window absent (session start).
 [ -n "$ctx_bar_segment" ] && echo -e "$ctx_bar_segment"
 
 # =============================================================================
-# Doorward gateway summary — render LEGEND + SOURCE-OF-TRUTH map
+# Gateway gateway summary — render LEGEND + SOURCE-OF-TRUTH map
 # =============================================================================
 #
 # Final output shapes (L1d unified multi-dimensional render, 2026-05-13):
 #
-#   ... UTC | ... PDT | doorward 3/3 ✓ 1.93.0                                ← all healthy
-#   ... UTC | ... PDT | doorward 3/3 ✗401 3d since-boot 1.93.0                ← today (config bug, gray)
-#   ... UTC | ... PDT | doorward 2/3 ⚠503 3m flapping 1.93.0                   ← one backend transient
-#   ... UTC | ... PDT | doorward 1/3 ⚠503 12m partial-outage 1.93.0            ← last healthy account, pre-warn
-#   ... UTC | ... PDT | doorward 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
-#   ... UTC | ... PDT | doorward 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
-#   ... UTC | ... PDT | doorward unreachable 1.93.0                          ← gateway down
+#   ... UTC | ... PDT | gateway 3/3 ✓ 1.93.0                                ← all healthy
+#   ... UTC | ... PDT | gateway 3/3 ✗401 3d since-boot 1.93.0                ← today (config bug, gray)
+#   ... UTC | ... PDT | gateway 2/3 ⚠503 3m flapping 1.93.0                   ← one backend transient
+#   ... UTC | ... PDT | gateway 1/3 ⚠503 12m partial-outage 1.93.0            ← last healthy account, pre-warn
+#   ... UTC | ... PDT | gateway 0/3 ✗503 47m outage 1.93.0                    ← total outage, alarm
+#   ... UTC | ... PDT | gateway 3/3 ✓ 1.2.0=1.2.0                             ← wrapper exactly at floor, pre-warn
+#   ... UTC | ... PDT | gateway unreachable 1.93.0                          ← gateway down
 #
 # The render grammar is:
-#   doorward <pool-ratio> <severity-glyph><type-code> [<duration>] [<state-name>] <wrapper-version>
+#   gateway <pool-ratio> <severity-glyph><type-code> [<duration>] [<state-name>] <wrapper-version>
 #
 # State is conveyed entirely by per-token coloring + the named state label:
 #   "all healthy"    → ✓ in GREEN, rest in BRIGHT_BLACK, no state label
@@ -1559,14 +1645,14 @@ echo -e "$line1"
 #
 # Three label-stripping rounds preceded this design (all 2026-05-13):
 #   - dropped the "pool", "canary", "wrapper" field labels (redundant within
-#     a segment already anchored by "doorward")
+#     a segment already anchored by "gateway")
 #   - dropped the leading 🟢/🟡/🔴 gate-state emoji (redundant with per-token
 #     coloring + state name)
 #   - retired the "[5th-fleet]" bearer-mode badge (terminology no longer used)
 #
 # Every visible token, including the labels we stripped, is mapped here so the
 # next maintainer can re-derive what each rendered glyph means without
-# re-grepping doorward's source or CLAUDE.md. Tokens are listed left-to-right
+# re-grepping gateway's source or CLAUDE.md. Tokens are listed left-to-right
 # in render order.
 #
 # ── Gate emoji (RETIRED 2026-05-13) ──────────────────────────────────────────
@@ -1576,12 +1662,12 @@ echo -e "$line1"
 #     - 🟢 "all healthy" was redundant with every trailing token being gray/✓
 #     - 🟡 "degraded" was redundant with the RED ✗N glyph or RED pool ratio
 #     - 🔴 "unreachable" was redundant with the literal RED word "unreachable"
-#   The python parser still produces $doorward_status ∈ {healthy, degraded,
+#   The python parser still produces $gateway_status ∈ {healthy, degraded,
 #   parse-error, unreachable} because that variable drives WHICH render
 #   branch runs (numeric tokens vs. "unreachable" word), but the value is
 #   no longer mapped to a leading visual glyph.
 #
-# ── "doorward" anchor word ───────────────────────────────────────────────────
+# ── "gateway" anchor word ───────────────────────────────────────────────────
 #   The single retained label. Identifies which subsystem the segment is
 #   reporting on. Without it the trailing numbers would float context-free
 #   after the datetime. Rendered in BRIGHT_BLACK (gray) to de-emphasise.
@@ -1590,7 +1676,7 @@ echo -e "$line1"
 #   Render shape: <schedulable_active>/<rotation_working_set_size>
 #   Numerator   = /v1/router-status .pool.schedulable_active_accounts
 #                 (accounts whose status=="active" AND schedulable==true,
-#                  i.e. currently picking traffic from doorward's rotation)
+#                  i.e. currently picking traffic from gateway's rotation)
 #   Denominator = .pool.schedulable_active_accounts + .pool.error_accounts
 #                 (the rotation WORKING-SET: accounts expected to serve,
 #                  whether currently healthy or transiently failing)
@@ -1602,7 +1688,7 @@ echo -e "$line1"
 #                state would mislead as "3/4" instead of the correct "3/3").
 #   Color: RED when .pool.error_accounts > 0; BRIGHT_BLACK (gray) otherwise.
 #   "pool" label removed — the slash-fraction format is self-evidently a ratio
-#   and the segment is already anchored by "doorward".
+#   and the segment is already anchored by "gateway".
 #   Live cross-reference: pool.per_account_summaries[] in the same response
 #   carries each account's {name, status, schedulable} triple if you need to
 #   know WHICH account is in which state.
@@ -1634,7 +1720,7 @@ echo -e "$line1"
 #   The single source of type information today is the LAST observed canary
 #   status code. Richer per-account failure reasons (one type-code per pool
 #   account in the rotation) require L3 server work (task #8 — extending the
-#   doorward response with .pool.per_account_failure_reason[]).
+#   gateway response with .pool.per_account_failure_reason[]).
 #
 #   Duration formula:
 #     duration_secs = consecutive_failures × configured_interval_secs
@@ -1644,25 +1730,23 @@ echo -e "$line1"
 #   first-failure timestamp. Exact timestamps require L3 server work (adding
 #   .canary_self_test.first_failure_at_unix_secs).
 #
-#   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at doorward AND
+#   L1c real-traffic damper: when $ANTHROPIC_BASE_URL points at gateway AND
 #   the current transcript JSONL has mtime within last 60s (= real prompts
-#   are completing through doorward right now), recent-degradation gets
+#   are completing through gateway right now), recent-degradation gets
 #   downgraded to transient, and transient gets downgraded to since-start-
 #   failure. Healthy stays healthy. since-start-failure stays. Damper not
-#   silencer — real traffic confirms doorward is serving, so the canary alarm
+#   silencer — real traffic confirms gateway is serving, so the canary alarm
 #   cannot be at "real problem" severity, but residual flapping signal is
 #   kept visible.
 #
 #   What the canary actually IS:
-#     doorward runs a Tokio task on a .canary_self_test.configured_interval_secs
-#     timer (default 300s, override via DOORWARD_CANARY_INTERVAL_SECS_OVERRIDE
-#     — currently set to 60s in prod). Each fire posts a synthetic /v1/messages
-#     request to .canary_self_test.target_loopback_url (currently
-#     http://127.0.0.1:8089/v1/messages — i.e. doorward probes ITSELF) using
-#     the DOORWARD_CANARY_BEARER_API_KEY env var as Authorization. If the
-#     response isn't 200 the consecutive_failures counter increments; on any
-#     success the counter resets to 0. Source: cc-router/spikes/spike-11-...
-#     /src/main.rs:1227-1291.
+#     A gateway implementing this contract runs a timer on
+#     .canary_self_test.configured_interval_secs. Each fire posts a synthetic
+#     /v1/messages request to .canary_self_test.target_loopback_url (i.e. the
+#     gateway probes ITSELF). If the response isn't 200 the
+#     consecutive_failures counter increments; on any success it resets to 0.
+#     This reader only consumes the reported fields — it does not depend on
+#     any particular gateway implementation.
 #
 # ── pool-resilience state machine label (color of N/M ratio) ─────────────────
 #   Source primitives:
@@ -1695,25 +1779,25 @@ echo -e "$line1"
 #     all healthy                → "healthy" (no rendered label)
 #
 #   The state-name IS the playbook hint:
-#     "since-boot" → file an issue against doorward; do NOT page
+#     "since-boot" → file an issue against gateway; do NOT page
 #     "flapping"   → watch for next minute; may self-recover
 #     "partial-outage" → intervene now; pool has no redundancy
 #     "outage"     → page someone immediately
 #
-# ── "1.93.0" or "1.93.0<1.2.0"  ←  local ccmax-claude wrapper version ────────
+# ── "1.93.0" or "1.93.0<1.2.0"  ←  local client wrapper version ────────
 #   Render shape: bare semver, or "X<Y" when X is below floor Y.
-#   Source X = $(ccmax-claude --version), cached by binary mtime in
-#              /tmp/ccmax-wrapper-version. Empty when the binary isn't
+#   Source X = $("$WRAPPER_BIN" --version), cached by binary mtime in
+#              /tmp/statusline-client-version. Empty when the binary isn't
 #              installed (segment then omits the version entirely).
-#   Source Y = DOORWARD_MIN_WRAPPER_VERSION — AUTO-DISCOVERED (L1a).
-#              On a miss against /tmp/ccmax-doorward-floor (3600s TTL), we
-#              anonymously probe doorward's /v1/users/me without the wrapper
+#   Source Y = GATEWAY_MIN_WRAPPER_VERSION — AUTO-DISCOVERED (L1a).
+#              On a miss against /tmp/statusline-gateway-floor (3600s TTL), we
+#              anonymously probe gateway's /v1/users/me without the wrapper
 #              version header and parse .error.minimum_wrapper_version_required
 #              out of the 403 response body. Caches the discovered value, so
-#              when doorward raises its floor, the next render within the
+#              when gateway raises its floor, the next render within the
 #              hour picks it up — no manual constant bump required. On probe
-#              failure (doorward unreachable, gate disabled, parse error)
-#              we fall back to compiled-in DOORWARD_MIN_WRAPPER_VERSION_FALLBACK
+#              failure (gateway unreachable, gate disabled, parse error)
+#              we fall back to compiled-in GATEWAY_MIN_WRAPPER_VERSION_FALLBACK
 #              so the renderer always has SOMETHING to compare against.
 #   Color: BRIGHT_BLACK (gray) when X >= Y; YELLOW with explicit "<Y" suffix
 #          when below. Yellow surfaces version-skew BEFORE a real request
@@ -1724,7 +1808,7 @@ echo -e "$line1"
 # ── "unreachable" (replaces numeric tokens when fetch fails) ─────────────────
 #   Rendered as a literal RED word in place of the pool/canary numerics.
 #   Kept as a word (not redundant labeling) because it carries the WHY:
-#   distinguishes "doorward is genuinely down" from "got a response but
+#   distinguishes "gateway is genuinely down" from "got a response but
 #   couldn't parse it" (the latter would just show empty numerics if we
 #   omitted this). With the gate emoji retired, this word IS the down-state
 #   signal — the red color on the word itself replaces the prior red dot.
@@ -1732,29 +1816,29 @@ echo -e "$line1"
 # ── pin scope+mode badge (RETIRED 2026-05-13) ───────────────────────────────
 #   Earlier versions rendered a bracketed scope+mode marker like
 #   "[device:soft]" or "[repo:strict]" synthesised from
-#   ccmax_resolve_layered_pin_with_account_mode in ccmax-monitor's
+#   the external pin-helper.s resolver in its
 #   pin-helper.sh, with YELLOW for ":soft" and RED for ":strict" coloring.
 #   Retired per operator directive 2026-05-13 because under bearer-mode
-#   routing doorward picks the upstream OAuth account dynamically per-
+#   routing gateway picks the upstream OAuth account dynamically per-
 #   request, so knowing WHICH scope holds the pin no longer changes the
 #   operator's mental model of "what is actually serving me". The pin
 #   resolution itself still runs upstream — its output feeds bearer-mode
 #   detection (see next section) — but the visible badge is dropped.
 #
 # ── Bearer-mode detection (NO visible badge) ─────────────────────────────────
-#   $ccmax_bearer_account is set via pin file's account_mode field, the
-#   CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION env var, or by
-#   pattern-matching $ANTHROPIC_BASE_URL against the doorward hosts. It gates
-#   whether to render the ccmax line at all (so that a red "unreachable"
+#   $gateway_bearer_account is set via pin file's account_mode field, the
+#   STATUSLINE_GATEWAY_BEARER_ACCOUNT env var, or by
+#   matching $ANTHROPIC_BASE_URL against the configured gateway. It gates
+#   whether to render the gateway line at all (so that a red "unreachable"
 #   warning still appears on a bearer-routed session even if no pin exists)
 #   but no longer produces a visible label — the prior "[5th-fleet]" badge
 #   was retired 2026-05-13 alongside the broader fleet-terminology cleanup.
 #
 # ── Line-suppression rule ────────────────────────────────────────────────────
-#   The whole ccmax segment is suppressed (only datetime renders) when ALL of:
-#     - doorward_status == "unreachable", AND
-#     - ccmax_bearer_account is empty
-#   (The ccmax_pin_badge render-trigger was retired 2026-05-13; its dead
+#   The whole gateway segment is suppressed (only datetime renders) when ALL of:
+#     - gateway_status == "unreachable", AND
+#     - gateway_bearer_account is empty
+#   (The pin_badge render-trigger was retired 2026-05-13; its dead
 #   placeholder variable was removed 2026-06-10.)
 #   This is the "no integration installed at all" case (most public cc-skills
 #   users). They see the bare datetime line and nothing else.
@@ -1762,17 +1846,17 @@ echo -e "$line1"
 
 # Pin scope+mode badge RETIRED 2026-05-13 (operator directive: "[repo:soft]
 # no longer needed"). The upstream pin-resolution cascade still runs because
-# ccmax_pin_account_mode + ccmax_pin_account feed into ccmax_bearer_account
+# pin_account_mode + pin_account feed into gateway_bearer_account
 # detection, which gates the render-decision below. The visible badge itself
 # is dropped — the operator has no remaining need to see WHICH scope holds
-# the pin since under bearer-mode routing doorward picks the upstream
+# the pin since under bearer-mode routing gateway picks the upstream
 # account dynamically per-request anyway. (2026-06-10: the always-empty
-# ccmax_pin_badge placeholder variable was removed from the render decision
+# pin_badge placeholder variable was removed from the render decision
 # and echo below — dead-code cleanup, zero behavior change.)
 
 # NOTE: gate-state emoji (🟢/🟡/🔴) was REMOVED 2026-05-13. Rationale: every
 # state the emoji could signal is already expressed by a colored token after
-# the "doorward" anchor — the RED ✗N glyph carries "canary degraded", the
+# the "gateway" anchor — the RED ✗N glyph carries "canary degraded", the
 # RED pool ratio carries "errors in rotation", and the literal RED word
 # "unreachable" carries "gateway down". The emoji was therefore pure
 # duplication. The state is now read entirely from the per-token coloring of
@@ -1781,9 +1865,9 @@ echo -e "$line1"
 # =============================================================================
 # L1d MULTI-DIMENSIONAL UNIFIED RENDERER (2026-05-13)
 # =============================================================================
-# Render shape (all tokens after the BRIGHT_BLACK "doorward" anchor):
+# Render shape (all tokens after the BRIGHT_BLACK "gateway" anchor):
 #
-#   doorward <N/M> <severity><type>[<duration>] [<state-name>] <wrapper>
+#   gateway <N/M> <severity><type>[<duration>] [<state-name>] <wrapper>
 #
 #   N/M         pool ratio, colored by pool resilience state machine
 #               (BRIGHT_BLACK healthy, YELLOW degraded/partial-outage, RED total-outage)
@@ -1794,55 +1878,55 @@ echo -e "$line1"
 #               when severity != ✓
 #   state-name  since-boot | flapping | partial-outage | outage — operator-
 #               facing label that names the actionable failure category
-#   wrapper     local ccmax-claude version, with <floor suffix (YELLOW) when
-#               below DOORWARD_MIN_WRAPPER_VERSION, or =floor suffix (YELLOW)
+#   wrapper     local client wrapper version, with <floor suffix (YELLOW) when
+#               below GATEWAY_MIN_WRAPPER_VERSION, or =floor suffix (YELLOW)
 #               when exactly at floor (pre-warn for next floor bump)
 #
 # Scenario examples (against today's live state and hypotheticals):
-#   doorward 3/3 ✓ 1.93.0                              all healthy
-#   doorward 3/3 ✗401 18h since-boot 1.93.0             today (config bug, gray)
-#   doorward 2/3 ⚠503 3m flapping 1.93.0                one backend transient
-#   doorward 1/3 ⚠503 12m partial-outage 1.93.0         last healthy, pre-warn
-#   doorward 0/3 ✗503 47m outage 1.93.0                 total outage, alarm
-#   doorward 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
+#   gateway 3/3 ✓ 1.93.0                              all healthy
+#   gateway 3/3 ✗401 18h since-boot 1.93.0             today (config bug, gray)
+#   gateway 2/3 ⚠503 3m flapping 1.93.0                one backend transient
+#   gateway 1/3 ⚠503 12m partial-outage 1.93.0         last healthy, pre-warn
+#   gateway 0/3 ✗503 47m outage 1.93.0                 total outage, alarm
+#   gateway 3/3 ✓ 1.2.0=1.2.0                          wrapper exactly at floor
 #
 # Full source-of-truth legend for each token lives in the in-script LEGEND
-# block earlier in the file (search "Doorward gateway summary — render LEGEND").
+# block earlier in the file (search "Gateway gateway summary — render LEGEND").
 
 # =============================================================================
 # L2 STATISTICS SURFACE — JSONL append per render (2026-05-13, task #7)
 # =============================================================================
-# Persists every parsed doorward state to ~/.claude/doorward-state.jsonl, one
+# Persists every parsed gateway state to ~/.claude/gateway-state.jsonl, one
 # line per render. Consumed by the sibling analytics CLI:
-#   plugins/statusline-tools/scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py
+#   plugins/statusline-tools/scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py
 # which emits time-windowed uptime %, type-code distribution, state-machine
 # transition counts, and pre-warning event timelines.
 #
 # Schema (v1) — 20 fields, verbose snake_case names:
 #   schema_version                                          (int, monotonic)
 #   wall_clock_unix_seconds                                 (int, epoch seconds)
-#   doorward_gateway_legacy_binary_gate_status              ∈ {healthy, degraded, parse-error, unreachable}
-#   doorward_pool_schedulable_active_accounts_count         (int)
-#   doorward_pool_rotation_working_set_size                 (int, denom = schedulable + errors)
-#   doorward_pool_error_accounts_count                      (int)
-#   doorward_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
-#   doorward_canary_consecutive_failures                    (int)
-#   doorward_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unproven, no-health-signal, unknown}
+#   gateway_gateway_legacy_binary_gate_status              ∈ {healthy, degraded, parse-error, unreachable}
+#   gateway_pool_schedulable_active_accounts_count         (int)
+#   gateway_pool_rotation_working_set_size                 (int, denom = schedulable + errors)
+#   gateway_pool_error_accounts_count                      (int)
+#   gateway_pool_resilience_state_machine_label            ∈ {healthy, degraded, partial-outage, total-outage, unknown}
+#   gateway_canary_consecutive_failures                    (int)
+#   gateway_canary_classification_four_state               ∈ {healthy, since-start-failure, transient, recent-degradation, unproven, no-health-signal, unknown}
 #     (the name says "four_state" for wire compatibility with the L4 aggregator;
-#      the vocabulary grew when doorward's zero-token access-log health landed.
+#      the vocabulary grew when gateway's zero-token access-log health landed.
 #      'unproven' = no recent request carried evidence; 'no-health-signal' =
-#      doorward exposed neither the new nor the legacy health block.)
-#   doorward_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
-#   doorward_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
-#   doorward_canary_real_traffic_damper_engaged             (bool)
-#   doorward_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, unknown}
-#   doorward_local_ccmax_claude_wrapper_version             (semver str, e.g. "1.93.0")
-#   doorward_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
-#   doorward_wrapper_skew_present                           (bool, wrapper < floor)
-#   doorward_wrapper_at_floor_pre_warn                      (bool, wrapper == floor)
-#   doorward_pin_scope_active                               ∈ {"", session, repo, device}
-#   doorward_pin_mode_active                                ∈ {"", soft, strict}
-#   doorward_bearer_mode_routing_active                     (bool)
+#      gateway exposed neither the new nor the legacy health block.)
+#   gateway_canary_failure_type_code                       (official HTTP status string verbatim, e.g. "401", "0"; "" when none — letter-code taxonomy retired 2026-06-11, schema v2)
+#   gateway_canary_failure_duration_humanized              (str, e.g. "3d", "47m", "")
+#   gateway_canary_real_traffic_damper_engaged             (bool)
+#   gateway_unified_state_name_for_render                  ∈ {healthy, since-boot, flapping, partial-outage, outage, unproven, no-health-signal, unknown}
+#   gateway_local_client_version             (semver str, e.g. "1.93.0")
+#   gateway_minimum_supported_wrapper_version_floor        (semver str, e.g. "1.2.0")
+#   gateway_wrapper_skew_present                           (bool, wrapper < floor)
+#   gateway_wrapper_at_floor_pre_warn                      (bool, wrapper == floor)
+#   gateway_pin_scope_active                               ∈ {"", session, repo, device}
+#   gateway_pin_mode_active                                ∈ {"", soft, strict}
+#   gateway_bearer_mode_routing_active                     (bool)
 #
 # Safety: all string fields are constrained to ASCII-safe enums (parser output)
 # or semver shapes; none can contain quote/backslash characters, so direct
@@ -1853,46 +1937,49 @@ echo -e "$line1"
 # can't be written (disk full, perms), we silently continue — never block the
 # statusline render on telemetry persistence.
 
-doorward_state_jsonl_log_absolute_path="${HOME}/.claude/doorward-state.jsonl"
+# Log path is overridable so an operator migrating from an older, differently
+# named log can keep appending to their existing history instead of starting a
+# second file alongside it.
+gateway_state_jsonl_log_absolute_path="${STATUSLINE_GATEWAY_STATE_LOG:-${HOME}/.claude/gateway-state.jsonl}"
 
-doorward_wrapper_skew_present_boolean_serialized="false"
-doorward_wrapper_at_floor_pre_warn_boolean_serialized="false"
+gateway_wrapper_skew_present_boolean_serialized="false"
+gateway_wrapper_at_floor_pre_warn_boolean_serialized="false"
 if [ -n "$wrapper_version" ]; then
-    if version_lt "$wrapper_version" "$DOORWARD_MIN_WRAPPER_VERSION"; then
-        doorward_wrapper_skew_present_boolean_serialized="true"
-    elif [ "$wrapper_version" = "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
-        doorward_wrapper_at_floor_pre_warn_boolean_serialized="true"
+    if version_lt "$wrapper_version" "$GATEWAY_MIN_WRAPPER_VERSION"; then
+        gateway_wrapper_skew_present_boolean_serialized="true"
+    elif [ "$wrapper_version" = "$GATEWAY_MIN_WRAPPER_VERSION" ]; then
+        gateway_wrapper_at_floor_pre_warn_boolean_serialized="true"
     fi
 fi
-doorward_bearer_mode_routing_active_boolean_serialized="false"
-[ -n "$ccmax_bearer_account" ] && doorward_bearer_mode_routing_active_boolean_serialized="true"
-doorward_real_traffic_damper_engaged_boolean_serialized="false"
-[ "$real_traffic_recent" -eq 1 ] && doorward_real_traffic_damper_engaged_boolean_serialized="true"
+gateway_bearer_mode_routing_active_boolean_serialized="false"
+[ -n "$gateway_bearer_account" ] && gateway_bearer_mode_routing_active_boolean_serialized="true"
+gateway_real_traffic_damper_engaged_boolean_serialized="false"
+[ "$real_traffic_recent" -eq 1 ] && gateway_real_traffic_damper_engaged_boolean_serialized="true"
 
-doorward_state_jsonl_log_record_for_this_render="{\
-\"schema_version\":2,\
+gateway_state_jsonl_log_record_for_this_render="{\
+\"schema_version\":3,\
 \"wall_clock_unix_seconds\":$(date +%s),\
-\"doorward_gateway_legacy_binary_gate_status\":\"${doorward_status}\",\
-\"doorward_pool_schedulable_active_accounts_count\":${pool_schedulable},\
-\"doorward_pool_rotation_working_set_size\":${pool_rotation_size},\
-\"doorward_pool_error_accounts_count\":${pool_errors},\
-\"doorward_pool_resilience_state_machine_label\":\"${pool_resilience_state_machine_label}\",\
-\"doorward_canary_consecutive_failures\":${canary_failures},\
-\"doorward_canary_classification_four_state\":\"${canary_class}\",\
-\"doorward_canary_failure_type_code\":\"${canary_last_observed_http_status_for_render}\",\
-\"doorward_canary_failure_duration_humanized\":\"${canary_failure_duration_humanized_short_form}\",\
-\"doorward_canary_real_traffic_damper_engaged\":${doorward_real_traffic_damper_engaged_boolean_serialized},\
-\"doorward_unified_state_name_for_render\":\"${unified_state_name_for_render_label}\",\
-\"doorward_local_ccmax_claude_wrapper_version\":\"${wrapper_version}\",\
-\"doorward_minimum_supported_wrapper_version_floor\":\"${DOORWARD_MIN_WRAPPER_VERSION}\",\
-\"doorward_wrapper_skew_present\":${doorward_wrapper_skew_present_boolean_serialized},\
-\"doorward_wrapper_at_floor_pre_warn\":${doorward_wrapper_at_floor_pre_warn_boolean_serialized},\
-\"doorward_pin_scope_active\":\"${ccmax_pin_scope}\",\
-\"doorward_pin_mode_active\":\"${ccmax_pin_mode}\",\
-\"doorward_bearer_mode_routing_active\":${doorward_bearer_mode_routing_active_boolean_serialized}\
+\"gateway_gateway_legacy_binary_gate_status\":\"${gateway_status}\",\
+\"gateway_pool_schedulable_active_accounts_count\":${pool_schedulable},\
+\"gateway_pool_rotation_working_set_size\":${pool_rotation_size},\
+\"gateway_pool_error_accounts_count\":${pool_errors},\
+\"gateway_pool_resilience_state_machine_label\":\"${pool_resilience_state_machine_label}\",\
+\"gateway_canary_consecutive_failures\":${canary_failures},\
+\"gateway_canary_classification_four_state\":\"${canary_class}\",\
+\"gateway_canary_failure_type_code\":\"${canary_last_observed_http_status_for_render}\",\
+\"gateway_canary_failure_duration_humanized\":\"${canary_failure_duration_humanized_short_form}\",\
+\"gateway_canary_real_traffic_damper_engaged\":${gateway_real_traffic_damper_engaged_boolean_serialized},\
+\"gateway_unified_state_name_for_render\":\"${unified_state_name_for_render_label}\",\
+\"gateway_local_client_version\":\"${wrapper_version}\",\
+\"gateway_minimum_supported_wrapper_version_floor\":\"${GATEWAY_MIN_WRAPPER_VERSION}\",\
+\"gateway_wrapper_skew_present\":${gateway_wrapper_skew_present_boolean_serialized},\
+\"gateway_wrapper_at_floor_pre_warn\":${gateway_wrapper_at_floor_pre_warn_boolean_serialized},\
+\"gateway_pin_scope_active\":\"${pin_scope}\",\
+\"gateway_pin_mode_active\":\"${pin_mode}\",\
+\"gateway_bearer_mode_routing_active\":${gateway_bearer_mode_routing_active_boolean_serialized}\
 }"
 # Size-bounded with cascade rotation, matching the 10MB/.1/.2/.3 convention
-# doorward's own structured access log already uses.
+# gateway's own structured access log already uses.
 #
 # WHY: this appends ~889 bytes on EVERY statusline render, and nothing ever
 # pruned it. Measured 2026-08-02 on the operator's Mac: 257,728,077 bytes across
@@ -1907,20 +1994,28 @@ doorward_state_jsonl_log_record_for_this_render="{\
 # telemetry persistence — but note that "silent" here is bounded to the ROTATION,
 # not to the whole file's existence: a rotation that cannot happen degrades to
 # "keep appending", which is the pre-existing behaviour, not a new failure.
-doorward_state_jsonl_log_max_bytes_before_rotation=10485760
-doorward_state_jsonl_log_current_size_bytes=$(
-    stat -f %z "${doorward_state_jsonl_log_absolute_path}" 2>/dev/null || echo 0
-)
-if [ "${doorward_state_jsonl_log_current_size_bytes}" -gt "${doorward_state_jsonl_log_max_bytes_before_rotation}" ] 2>/dev/null; then
-    rm -f "${doorward_state_jsonl_log_absolute_path}.3" 2>/dev/null
-    mv -f "${doorward_state_jsonl_log_absolute_path}.2" "${doorward_state_jsonl_log_absolute_path}.3" 2>/dev/null
-    mv -f "${doorward_state_jsonl_log_absolute_path}.1" "${doorward_state_jsonl_log_absolute_path}.2" 2>/dev/null
-    mv -f "${doorward_state_jsonl_log_absolute_path}" "${doorward_state_jsonl_log_absolute_path}.1" 2>/dev/null
+#
+# GATED (2026-09-04): the append below used to run unconditionally, so an
+# installer of this marketplace with no gateway configured still grew a
+# ~889-byte-per-render log of nothing but "unreachable" records in their home
+# directory, forever. Telemetry about a gateway you do not have is not
+# telemetry, it is litter. It now writes only when a gateway is configured.
+if [ "$GATEWAY_CONFIGURED" -eq 1 ]; then
+    gateway_state_jsonl_log_max_bytes_before_rotation=10485760
+    gateway_state_jsonl_log_current_size_bytes=$(
+        stat -f %z "${gateway_state_jsonl_log_absolute_path}" 2>/dev/null || echo 0
+    )
+    if [ "${gateway_state_jsonl_log_current_size_bytes}" -gt "${gateway_state_jsonl_log_max_bytes_before_rotation}" ] 2>/dev/null; then
+        rm -f "${gateway_state_jsonl_log_absolute_path}.3" 2>/dev/null
+        mv -f "${gateway_state_jsonl_log_absolute_path}.2" "${gateway_state_jsonl_log_absolute_path}.3" 2>/dev/null
+        mv -f "${gateway_state_jsonl_log_absolute_path}.1" "${gateway_state_jsonl_log_absolute_path}.2" 2>/dev/null
+        mv -f "${gateway_state_jsonl_log_absolute_path}" "${gateway_state_jsonl_log_absolute_path}.1" 2>/dev/null
+    fi
+    echo "${gateway_state_jsonl_log_record_for_this_render}" >> "${gateway_state_jsonl_log_absolute_path}" 2>/dev/null
 fi
-echo "${doorward_state_jsonl_log_record_for_this_render}" >> "${doorward_state_jsonl_log_absolute_path}" 2>/dev/null
 
-doorward_inline=""
-if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; then
+gateway_inline=""
+if [ "$gateway_status" = "healthy" ] || [ "$gateway_status" = "degraded" ]; then
     # Pool ratio colored by pool_resilience_state_machine_label (orthogonal to
     # canary state — pool can be healthy while canary is broken via L1c
     # damper, or vice versa).
@@ -1960,14 +2055,14 @@ if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; th
             ;;
         unproven)
             # Calm on purpose. No recent request carried forward-path evidence
-            # (idle fleet or fresh doorward restart), so there is nothing to
+            # (idle fleet or fresh gateway restart), so there is nothing to
             # alarm about — and nothing to certify either. Do NOT move this into
             # the red fallback: that would page the operator for being idle.
             severity_glyph_with_optional_type_code_and_duration="${BRIGHT_BLACK}·${RESET}"
             unified_state_name_visible_label_token=" ${BRIGHT_BLACK}unproven${RESET}"
             ;;
         no-health-signal)
-            # doorward answered but exposed neither health block. That is a
+            # gateway answered but exposed neither health block. That is a
             # contract break in the binary, not a fleet outage — yellow, and
             # named so the operator knows to look at the deployed version.
             severity_glyph_with_optional_type_code_and_duration="${YELLOW}?${RESET}"
@@ -1993,47 +2088,48 @@ if [ "$doorward_status" = "healthy" ] || [ "$doorward_status" = "degraded" ]; th
             ;;
     esac
 
-    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${pool_part} ${severity_glyph_with_optional_type_code_and_duration}${unified_state_name_visible_label_token}"
-elif [ -n "$doorward_status" ] && [ "$doorward_status" != "unreachable" ]; then
-    # Non-empty $doorward_status but not the expected healthy/degraded values —
+    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${pool_part} ${severity_glyph_with_optional_type_code_and_duration}${unified_state_name_visible_label_token}"
+elif [ -n "$gateway_status" ] && [ "$gateway_status" != "unreachable" ]; then
+    # Non-empty $gateway_status but not the expected healthy/degraded values —
     # surface the raw state token in red so the operator sees the literal
     # parse-error word (or any future sentinel we introduce).
-    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}${doorward_status}${RESET}"
+    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${RED}${gateway_status}${RESET}"
 else
-    doorward_inline=" ${BRIGHT_BLACK}doorward${RESET} ${RED}unreachable${RESET}"
+    gateway_inline=" ${BRIGHT_BLACK}${STATUSLINE_GATEWAY_LABEL:-gateway}${RESET} ${RED}unreachable${RESET}"
 fi
 
 # Wrapper version: bare semver normally; YELLOW with "<floor" suffix when
 # below floor (skew, will be 403'd); YELLOW with "=floor" suffix when exactly
-# at floor (pre-warn — next doorward floor-bump will reject us). The "=floor"
+# at floor (pre-warn — next gateway floor-bump will reject us). The "=floor"
 # pre-warning is the canonical "at-threshold" SRE pattern (one perturbation
 # away from breach). Label "wrapper" deliberately dropped — three-dot semver
 # is visually unique against the other tokens.
 wrapper_part=""
 if [ -n "$wrapper_version" ]; then
-    if version_lt "$wrapper_version" "$DOORWARD_MIN_WRAPPER_VERSION"; then
-        wrapper_part=" ${YELLOW}${wrapper_version}<${DOORWARD_MIN_WRAPPER_VERSION}${RESET}"
-    elif [ "$wrapper_version" = "$DOORWARD_MIN_WRAPPER_VERSION" ]; then
-        wrapper_part=" ${YELLOW}${wrapper_version}=${DOORWARD_MIN_WRAPPER_VERSION}${RESET}"
+    if version_lt "$wrapper_version" "$GATEWAY_MIN_WRAPPER_VERSION"; then
+        wrapper_part=" ${YELLOW}${wrapper_version}<${GATEWAY_MIN_WRAPPER_VERSION}${RESET}"
+    elif [ "$wrapper_version" = "$GATEWAY_MIN_WRAPPER_VERSION" ]; then
+        wrapper_part=" ${YELLOW}${wrapper_version}=${GATEWAY_MIN_WRAPPER_VERSION}${RESET}"
     else
         wrapper_part=" ${BRIGHT_BLACK}${wrapper_version}${RESET}"
     fi
 fi
 
-# Decide whether to render the ccmax segment at all. Three independent
+# Decide whether to render the gateway segment at all. Three independent
 # triggers, any one is sufficient:
-#   - doorward responded (cached or fresh) → status != "unreachable"
+#   - gateway responded (cached or fresh) → status != "unreachable"
 #   (pin-badge render-trigger retired 2026-05-13; placeholder removed 2026-06-10)
-#   - bearer-mode detection found a bearer account → ccmax_bearer_account set
+#   - bearer-mode detection found a bearer account → gateway_bearer_account set
 # Otherwise (no integration installed), print the bare datetime line.
-# ccmax_bearer_account itself produces no visible badge — only the render
-# decision uses it; presence of the doorward block already implies bearer-
+# gateway_bearer_account itself produces no visible badge — only the render
+# decision uses it; presence of the gateway block already implies bearer-
 # mode routing for the operator.
-if [ "$doorward_status" != "unreachable" ] || [ -n "$ccmax_bearer_account" ]; then
-    # $doorward_inline starts with its own leading space (the "doorward"
+if [ "$GATEWAY_CONFIGURED" -eq 1 ] \
+   && { [ "$gateway_status" != "unreachable" ] || [ -n "$gateway_bearer_account" ]; }; then
+    # $gateway_inline starts with its own leading space (the "gateway"
     # anchor), so concatenating directly after the BRIGHT_BLACK "|" separator
     # produces exactly one space of padding between them.
-    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${doorward_inline}${wrapper_part}"
+    echo -e "${datetime_display} ${BRIGHT_BLACK}|${RESET}${gateway_inline}${wrapper_part}"
 else
     echo -e "${datetime_display}"
 fi

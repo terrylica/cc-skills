@@ -109,15 +109,15 @@ setup() {
 @test "statusline detects bearer-mode pin without leaking retired badges into output" {
     # Post-rewrite design (2026-05-13, two rounds):
     #   - Retired "[5th-fleet]" badge (fleet terminology no longer used).
-    #   - Retired the bearer credential NAME from render (doorward picks
+    #   - Retired the bearer credential NAME from render (gateway picks
     #     the upstream account per-request, so the bearer key tells the
     #     operator nothing about what is serving them).
     #   - Retired the pin scope+mode badge "[repo:soft]" / "[device:strict]"
     #     etc. (operator directive 2026-05-13: no remaining need to see
     #     which scope holds the pin under bearer-mode routing).
     #   - Bearer-mode DETECTION still runs upstream because it gates whether
-    #     the doorward render-block fires at all — but no visible label
-    #     reflects it. Presence of the doorward block itself implies bearer-
+    #     the gateway render-block fires at all — but no visible label
+    #     reflects it. Presence of the gateway block itself implies bearer-
     #     mode routing.
     # This test verifies that the upstream pin-resolution cascade still runs
     # (doesn't crash) when a pin file resolves to a bearer-mode pin, AND
@@ -126,7 +126,7 @@ setup() {
     mkdir -p "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks"
     cat > "$tmp_home/.claude/plugins/marketplaces/ccmax/hooks/pin-helper.sh" <<'EOF'
 ccmax_resolve_layered_pin_with_account_mode() {
-    printf 'el02-doorward-bearer-api-1|soft|repo|bearer_key_anthropic_compatible_api_mode\n'
+    printf 'example-bearer-account-1|soft|repo|bearer_key_anthropic_compatible_api_mode\n'
 }
 EOF
 
@@ -137,7 +137,7 @@ EOF
     [ "$status" -eq 0 ]
     # All three retired surface markers must NOT appear.
     [[ "$output" != *"[5th-fleet]"* ]]
-    [[ "$output" != *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" != *"example-bearer-account-1"* ]]
     [[ "$output" != *"[repo:soft]"* ]]
     [[ "$output" != *"[repo:strict]"* ]]
     [[ "$output" != *"[device:soft]"* ]]
@@ -153,23 +153,23 @@ EOF
     #   - exit 0 (no crash from missing helper)
     #   - NOT leak the bearer credential name into render output
     #   - NOT render the retired [5th-fleet] marker
-    # Whether the doorward block renders depends on live reachability, which
+    # Whether the gateway block renders depends on live reachability, which
     # we can't fake here — so we don't assert on it.
     tmp_home="$(mktemp -d)"
     mkdir -p "$tmp_home/.claude"
 
     cd "$FIXTURES/sample_repo"
-    run env HOME="$tmp_home" CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION="el02-doorward-bearer-api-1" \
+    run env HOME="$tmp_home" CCMAX_BEARER_PIN_ACCOUNT_NAME_ACTIVE_FOR_THIS_SESSION="example-bearer-account-1" \
         bash -c "echo '$TEST_INPUT' | '$STATUSLINE'"
     rm -rf "$tmp_home"
 
     [ "$status" -eq 0 ]
-    [[ "$output" != *"el02-doorward-bearer-api-1"* ]]
+    [[ "$output" != *"example-bearer-account-1"* ]]
     [[ "$output" != *"[5th-fleet]"* ]]
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Antifragile probe invariant — discovered 2026-05-12 when ccmax-claude's
+# Antifragile probe invariant — discovered 2026-05-12 when the client wrapper's
 # bearer-pin CONNECT proxy on 127.0.0.1:<port> started 502'ing every CONNECT
 # target it doesn't intercept (api.github.com etc.). Without `probe_direct`,
 # the statusline's outbound gh/curl calls inherited the broken HTTPS_PROXY
@@ -420,7 +420,7 @@ FAKE
 }
 
 @test "release segment names the missing gh-<alias> profile instead of a bare gh exit code" {
-    # Incident 2026-06-21: an origin host-alias (e.g. eonlabs) with no matching
+    # Incident 2026-06-21: an origin host-alias (e.g. myorg) with no matching
     # ~/.config/gh-<alias> profile fell back to the multi-user default config,
     # which 401s in this subprocess as an opaque "gh exit 4". The hardening
     # names the absent profile so the fix (create it) is obvious at a glance.
