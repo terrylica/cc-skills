@@ -91,8 +91,10 @@ describe("classify — commands that must be ALLOWED", () => {
   const allowed = [
     // A draft never enters the reviewer's queue, so it is not a review event.
     "gh pr create --draft --title x --body-file b.md",
-    // --undo REMOVES work from the queue. Gating it would block the remedy the gate recommends.
-    "gh pr ready 613 --undo",
+    // NOTE: `gh pr ready --undo` is NOT in this list any more. It is still never gated, but it is
+    // no longer INVISIBLE: it now classifies as `pr-undraft` so the gate can clear the reviewable
+    // mark. See the dedicated describe block below — collapsing it to null is what let the mark
+    // survive a re-draft forever.
     // The words appear inside an argument, not at a command position.
     'echo "then run gh pr ready 613"',
     'gh pr comment 1 --body "Rebased; CI green."',
@@ -107,6 +109,30 @@ describe("classify — commands that must be ALLOWED", () => {
       expect(classify(command).kind).toBeNull();
     });
   }
+});
+
+describe("leaving the review queue is observed, not ignored", () => {
+  // The first version returned {kind:null} here, making `--undo` indistinguishable from `ls -la`.
+  // The gate therefore had no moment at which to notice the branch had left the queue, and the
+  // reviewable mark outlived the re-draft — while this module's own comment claimed `--undo`
+  // "removes work from the queue". The comment described an intent the code did not implement.
+  const undoCases = [
+    "gh pr ready 613 --undo",
+    "GH_ORGS='Eon Labs' gh pr ready 613 --undo",
+    "/opt/homebrew/bin/gh pr ready 613 --undo",
+  ];
+  for (const command of undoCases) {
+    test(`pr-undraft: ${command.slice(0, 48)}`, () => {
+      expect(classify(command).kind).toBe("pr-undraft");
+    });
+  }
+
+  test("a --undo mentioned inside a quoted body is NOT a transition", () => {
+    // Otherwise a PR comment discussing `--undo` would silently clear the mark.
+    expect(classify('gh pr comment 1 --body "run gh pr ready 613 --undo next"').kind).not.toBe(
+      "pr-undraft",
+    );
+  });
 });
 
 describe("override", () => {
