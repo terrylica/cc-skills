@@ -13,20 +13,25 @@
       "maxLength": 40,
       "description": "Token name. Must be unique on the account."
     },
+    "notes": {
+      "type": "string",
+      "description": "Provenance, rationale and incident history for maintainers. NEVER typed into GitHub's UI — put long-form reasoning here, not in `description`, which is a real form field with a server-side length limit."
+    },
     "description": {
       "type": "string",
       "default": "",
-      "description": "Free-text token description (optional)."
+      "maxLength": 1000,
+      "description": "Free-text token description (optional). Typed verbatim into GitHub's description textarea. KEEP IT SHORT: the textarea advertises no maxlength (maxLength === -1), but the SERVER rejects an over-long one by re-rendering the blank form with NO error message anywhere on the page — the submit simply does nothing and no token is created. Measured 2026-09-04: 4272 chars failed silently and repeatedly, 191 chars succeeded on the next attempt with every other field byte-identical. Long-form rationale belongs in `notes`."
     },
     "owner": {
       "type": "string",
       "description": "Resource-owner login. Omit to use the authenticated user. Set to an org login for org-owned tokens."
     },
     "expiration": {
-      "description": "Token lifetime: 7/30/60/90 (days), an ISO date 'YYYY-MM-DD' (custom), or 'none' (no expiration — triggers a confirm modal).",
+      "description": "Token lifetime: 7/30/60/90/366 (days), an ISO date 'YYYY-MM-DD' (custom), or 'none' (no expiration — triggers a confirm modal). 366 is only offered when the resource owner is an ORGANISATION that caps token lifetime, and in that case 'none' is NOT offered at all: an org limit removes the option rather than disabling it (measured 2026-09-04 against doorward-systems, which offers 7/30/60/90/366 + 'Custom between 1 and 366 days'). So a spec targeting an org may not be able to say 'none' however much you want it to.",
       "default": 30,
       "oneOf": [
-        { "type": "integer", "enum": [7, 30, 60, 90] },
+        { "type": "integer", "enum": [7, 30, 60, 90, 366] },
         { "type": "string", "pattern": "^(none|[0-9]{4}-[0-9]{2}-[0-9]{2})$" }
       ]
     },

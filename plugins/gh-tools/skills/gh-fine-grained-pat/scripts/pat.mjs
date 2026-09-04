@@ -34,6 +34,7 @@ import {
   connect,
   gotoSettings,
   isAuthedViaRequest,
+  loggedInLoginViaRequest,
   chromePidOnPort,
   teardown,
   ensureDirs,
@@ -73,9 +74,26 @@ function loadSpec(path) {
 function validateSpec(s) {
   if (!s.name || typeof s.name !== "string") die("spec.name (string) is required");
   if (s.name.length > 40) die("spec.name exceeds 40 chars");
+  // GOTCHA #19 — an over-long description is rejected by the SERVER, silently.
+  // GitHub's description textarea sets no maxlength (maxLength === -1), so the
+  // browser types the whole thing happily; the POST is then dropped and the
+  // form re-renders with its defaults and NO error text anywhere on the page.
+  // The failure is indistinguishable from "the form was filled wrong", and it
+  // cost several rounds of chasing the owner and expiration controls, both of
+  // which a trace had already proven correct at submit time. Measured
+  // 2026-09-04: 4272 chars failed repeatedly, 191 chars succeeded immediately
+  // with every other field identical. Fail here, before the browser opens.
+  if ((s.description ?? "").length > 1000)
+    die(
+      `spec.description is ${s.description.length} chars; GitHub silently drops the submission when it is too long ` +
+        `(no error is shown and no token is created). Keep it under ~1000 chars and move long-form rationale to spec.notes.`,
+    );
   const exp = s.expiration ?? 30;
-  const okExp = exp === "none" || [7, 30, 60, 90].includes(exp) || /^\d{4}-\d{2}-\d{2}$/.test(exp);
-  if (!okExp) die(`spec.expiration must be 7|30|60|90 | "YYYY-MM-DD" | "none" (got ${JSON.stringify(exp)})`);
+  // 366 is the lifetime cap an ORGANISATION resource owner can impose; when it
+  // does, GitHub removes "No expiration" from the menu entirely (measured
+  // 2026-09-04 against doorward-systems), so org-owned specs need this value.
+  const okExp = exp === "none" || [7, 30, 60, 90, 366].includes(exp) || /^\d{4}-\d{2}-\d{2}$/.test(exp);
+  if (!okExp) die(`spec.expiration must be 7|30|60|90|366 | "YYYY-MM-DD" | "none" (got ${JSON.stringify(exp)})`);
   const ra = s.repositoryAccess;
   if (ra) {
     if (!["public", "all", "selected"].includes(ra.mode)) die(`spec.repositoryAccess.mode invalid: ${ra.mode}`);
@@ -104,6 +122,21 @@ function masked(token) {
 
 // Connect + ensure authenticated for commands that need a session.
 async function session({ requireAuth = true } = {}) {
+  // `--account` used to be honoured by create/login/quit ONLY. list, inspect and
+  // delete never set GH_PAT_ACCOUNT, so they silently read the SHARED profile no
+  // matter which account you named — and then labelled the result with the
+  // account you asked for. Measured 2026-09-04: `list --account terrylica`
+  // printed "(no fine-grained tokens)" while reading a profile signed in as
+  // work, whose token list genuinely is empty. A true sentence about the wrong
+  // account is indistinguishable from a fact about the right one, and it also
+  // disarmed the identity guard below (no GH_PAT_ACCOUNT ⇒ nothing to compare).
+  // Resolve here, at the one chokepoint every session-using verb passes through,
+  // and BEFORE launchChrome() — profileDir()/port() are derived from it.
+  if (!process.env.GH_PAT_ACCOUNT) {
+    const f = flag("--account");
+    const { account } = resolveAccount({ account: typeof f === "string" ? f : undefined });
+    if (account) process.env.GH_PAT_ACCOUNT = account;
+  }
   await launchChrome();
   const { browser, ctx } = await connect();
   if (requireAuth && !(await isAuthedViaRequest(ctx))) {
@@ -132,8 +165,46 @@ async function session({ requireAuth = true } = {}) {
     await browser.close();
     die("not logged in. Run `node scripts/pat.mjs login`, sign into GitHub in the Chrome window, then retry.");
   }
+  await assertProfileIdentity(ctx, browser);
   const page = await gotoSettings(ctx);
   return { browser, ctx, page };
+}
+
+// GOTCHA #12 — the profile↔account binding is DERIVED, never verified.
+// browser.mjs picks the profile dir from GH_PAT_ACCOUNT; nothing has ever
+// checked that the session inside it belongs to that account. Assert it before
+// any read or write, because both directions are dangerous: a `create` mints on
+// the wrong account, and `list`/`inspect` report the wrong account's tokens as
+// this account's (a false "(no fine-grained tokens)" is how this was found —
+// 2026-09-04, shared profile signed in as work while resolving terrylica).
+// Escape hatch is deliberately explicit and named, never silent.
+async function assertProfileIdentity(ctx, browser) {
+  const want = process.env.GH_PAT_ACCOUNT;
+  if (!want || process.env.GH_PAT_SKIP_IDENTITY_CHECK === "1") return;
+  const have = await loggedInLoginViaRequest(ctx);
+  if (have === null) {
+    await browser.close();
+    die(
+      `could not read the signed-in GitHub login from profile\n  ${profileDir()}\n` +
+        `That is INCOMPLETE, not a match — refusing to act as '${want}' on an unidentified session.\n` +
+        `Fix: node scripts/pat.mjs login --account ${want}`,
+    );
+  }
+  if (have.toLowerCase() !== want.toLowerCase()) {
+    await browser.close();
+    die(
+      `profile/account MISMATCH — refusing to act.\n` +
+        `  resolved account : ${want}\n` +
+        `  profile          : ${profileDir()}\n` +
+        `  signed in as     : ${have}\n` +
+        `A token would have been minted on '${have}', and list/inspect would report ${have}'s\n` +
+        `tokens as ${want}'s. Fix one of:\n` +
+        `  • sign that profile out of '${have}', then: node scripts/pat.mjs login --account ${want}\n` +
+        `  • use an isolated profile: GH_PAT_PROFILE_DIR=~/.local/share/gh-pat-automation/profile-${want} \\\n` +
+        `      GH_PAT_CDP_PORT=<free-port> node scripts/pat.mjs login --account ${want}\n` +
+        `Override (NOT recommended): GH_PAT_SKIP_IDENTITY_CHECK=1`,
+    );
+  }
 }
 
 async function cmdLogin() {
@@ -143,7 +214,36 @@ async function cmdLogin() {
   const { reused } = await launchChrome();
   const { browser, ctx } = await connect();
   if (await isAuthedViaRequest(ctx)) {
-    console.log(`✓ already authenticated (profile reused: ${reused}). Ready.`);
+    // GOTCHA #12: "already authenticated" must name WHO. Short-circuiting on a
+    // session that belongs to a different login is how the wrong account got
+    // used for a mint (2026-09-04). A mismatch here is the operator's cue to
+    // sign out, so say so instead of declaring "Ready."
+    const who = await loggedInLoginViaRequest(ctx);
+    const want = process.env.GH_PAT_ACCOUNT;
+    if (want && !who) {
+      await browser.close();
+      die(
+        `a session exists in profile ${profileDir()} but its signed-in login could not be read.\n` +
+          `That is INCOMPLETE, not a match — refusing to declare '${want}' ready.`,
+      );
+    }
+    if (want && who.toLowerCase() !== want.toLowerCase()) {
+      await browser.close();
+      die(
+        `profile ${profileDir()} is already signed in as '${who}', not '${want}'.\n` +
+          `\`login\` will not silently accept the wrong identity. Sign out of '${who}' in the\n` +
+          `Chrome window and re-run, or give '${want}' its own profile:\n` +
+          `  GH_PAT_PROFILE_DIR=~/.local/share/gh-pat-automation/profile-${want} \\\n` +
+          `  GH_PAT_CDP_PORT=<free-port> node scripts/pat.mjs login --account ${want}`,
+      );
+    }
+    // No invented token when the login is unreadable and no account was named:
+    // absent is a state — render nothing rather than a placeholder.
+    console.log(
+      who
+        ? `✓ already authenticated as '${who}' (profile reused: ${reused}). Ready.`
+        : `✓ already authenticated (profile reused: ${reused}). Ready.`,
+    );
     await browser.close();
     return;
   }
@@ -166,6 +266,10 @@ async function cmdLogin() {
 }
 
 async function cmdDoctor() {
+  // Honour --account so `doctor --account <a>` reports THAT account's profile
+  // and can surface a profile/account mismatch (GOTCHA #12).
+  const acct = flag("--account");
+  if (acct && acct !== true) process.env.GH_PAT_ACCOUNT = acct;
   const rows = [];
   rows.push(["node", `${process.version}`]);
   let pw = "MISSING";
@@ -183,7 +287,23 @@ async function cmdDoctor() {
   if (pid) {
     try {
       const { browser, ctx } = await connect();
-      rows.push(["auth", (await isAuthedViaRequest(ctx)) ? "authenticated ✓" : "NOT logged in (run login)"]);
+      const authed = await isAuthedViaRequest(ctx);
+      rows.push(["auth", authed ? "authenticated ✓" : "NOT logged in (run login)"]);
+      // "authenticated" says a session exists, not WHOSE. Naming the login is
+      // the whole point: a profile signed in as the wrong account passed every
+      // check here on 2026-09-04 (GOTCHA #12 in browser.mjs).
+      if (authed) {
+        const who = await loggedInLoginViaRequest(ctx);
+        const want = process.env.GH_PAT_ACCOUNT;
+        if (!who) {
+          // An unreadable identity is an instrument failure, not a value.
+          rows.push(["signed in as", "could not read meta[name=user-login] — INCOMPLETE, not a match"]);
+        } else if (want && who.toLowerCase() !== want.toLowerCase()) {
+          rows.push(["signed in as", `${who}  🔴 MISMATCH — resolved account is '${want}'`]);
+        } else {
+          rows.push(["signed in as", who]);
+        }
+      }
       await browser.close();
     } catch (e) {
       rows.push(["auth", `connect failed: ${e.message}`]);
@@ -212,6 +332,19 @@ function emitToken(token, spec, verb) {
   }
 }
 
+/** Is this login an Organization rather than a User? Unauthenticated public API. */
+async function isOrganisationLogin(login) {
+  try {
+    const r = await fetch(`https://api.github.com/users/${encodeURIComponent(login)}`, {
+      headers: { accept: "application/vnd.github+json", "user-agent": "gh-fine-grained-pat" },
+    });
+    if (!r.ok) return false; // unknown ⇒ keep the account ⇒ the guard still applies
+    return (await r.json()).type === "Organization";
+  } catch {
+    return false; // fail CLOSED: an unreachable API must not silently disarm the guard
+  }
+}
+
 async function doCreate({ replace, rotate }) {
   const spec = loadSpec(args[1]);
   if (rotate && !flag("--vault") && !flag("--out"))
@@ -219,9 +352,37 @@ async function doCreate({ replace, rotate }) {
   // Resolve the account BEFORE launching the browser so the per-account
   // profile/port is selected (terrylica/shared keeps the original).
   const { account, source } = resolveAccount({ account: flag("--account"), owner: spec.owner });
-  if (account) process.env.GH_PAT_ACCOUNT = account;
-  const { browser, page } = await session();
+  // `spec.owner` is a RESOURCE OWNER and may be an ORGANISATION — and nobody is
+  // ever *signed in as* an organisation. Taking it as the account selects a
+  // profile that cannot exist (`profile-<org>`, hence "not logged in") and trips
+  // the profile/account identity guard for a reason that is not a real mismatch.
+  // `--account` and the origin host-alias name a real login, so both stay
+  // authoritative; only the spec-owner fallback is screened. Screening fails
+  // CLOSED — an unreachable api.github.com leaves the value in force.
+  let resolvedAccount = account;
+  if (account && source === "spec-owner" && (await isOrganisationLogin(account))) {
+    console.error(`• spec owner '${account}' is an organisation, not a login — using the signed-in account instead.`);
+    console.error(`  Pass --account <login> to name the GitHub user whose token this is.`);
+    resolvedAccount = null;
+  }
+  if (resolvedAccount) process.env.GH_PAT_ACCOUNT = resolvedAccount;
+  const { browser, ctx, page } = await session();
   try {
+    // assertProfileIdentity() can only compare when an account was resolved. A
+    // MINT is the one operation that must never run against an unverified
+    // identity — measured 2026-09-04, `create` from a non-repo cwd declined the
+    // organisation spec-owner, fell through with no account, and went on to mint
+    // against whoever happened to be signed in (`work`), stopped only by an
+    // unrelated sudo prompt. Name the identity or refuse.
+    const signedInAs = await loggedInLoginViaRequest(ctx);
+    if (!signedInAs) die("could not read the signed-in GitHub login — refusing to mint against an unidentified session.");
+    if (!process.env.GH_PAT_ACCOUNT)
+      die(
+        `no account resolved, and this profile is signed in as '${signedInAs}'.\n` +
+          `Refusing to mint a credential against an unconfirmed identity.\n` +
+          `Re-run naming it explicitly:  --account ${signedInAs}`,
+      );
+    console.error(`• minting as GitHub user '${signedInAs}'; resource owner '${spec.owner ?? signedInAs}'`);
     const existing = (await listTokens(page)).find((t) => t.name === spec.name);
     if (existing) {
       if (!replace) die(`a token named '${spec.name}' already exists (id ${existing.id}). Use --replace (or the 'rotate' verb) to recreate.`);

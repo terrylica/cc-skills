@@ -157,6 +157,39 @@ export async function isAuthedViaRequest(ctx) {
   }
 }
 
+/**
+ * WHICH login is this profile signed in as? Non-disruptive: same cookie-jar
+ * request as isAuthedViaRequest, no navigation of any visible tab. Returns the
+ * login, or null when signed out / the marker could not be read.
+ *
+ * GOTCHA #12 — a session check is not an identity check. `isAuthedViaRequest`
+ * answers "a session exists", never "whose". The engine DERIVES the profile
+ * directory from the resolved account (`profile` for the shared account,
+ * `profile-<account>` otherwise) and then trusts that binding, so a profile
+ * signed in as somebody else passes every gate. Measured 2026-09-04:
+ * `--account terrylica` selected the shared `profile`, which was signed in as
+ * `work`. `doctor` printed "auth authenticated ✓"; `list` printed "(no
+ * fine-grained tokens)" — a TRUE statement about work's empty token list,
+ * read as a fact about terrylica's. A `create` would have minted the token on
+ * work, and setOwner()'s catch-all would have swallowed the missing
+ * `doorward-systems` resource-owner option, yielding a silently wrong token.
+ *
+ * null is INCOMPLETE, never "matches" — callers must refuse, not proceed.
+ */
+export async function loggedInLoginViaRequest(ctx) {
+  try {
+    const res = await ctx.request.get("https://github.com/settings/personal-access-tokens", { maxRedirects: 5 });
+    if (!res.ok() || res.url().includes("/login")) return null;
+    const html = await res.text();
+    const m =
+      /<meta\s+name="user-login"\s+content="([^"]*)"/i.exec(html) ??
+      /<meta\s+name="octolytics-actor-login"\s+content="([^"]*)"/i.exec(html);
+    return m?.[1] || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Kill Chrome by its specific PID (TERM, then KILL). Never pkill -f. */
 export async function teardown(pid = chromePidOnPort()) {
   if (!pid) return { killed: false, reason: "no listener on port" };
