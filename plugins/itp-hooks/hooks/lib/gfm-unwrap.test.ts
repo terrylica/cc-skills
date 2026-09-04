@@ -11,6 +11,7 @@ import { describe, expect, test } from "bun:test";
 import { detectHardWraps } from "./hard-wrap-detector.ts";
 import {
   assertContentPreserved,
+  computeJoinedWithNextLineMask,
   normalizeForContentComparison,
   unwrapGfmParagraphs,
   unwrapGfmParagraphsDetailed,
@@ -235,5 +236,58 @@ describe("round trip — the detector must find nothing after an unwrap", () => 
     const out = unwrapGfmParagraphs(wrapped);
     expect(out).toContain("| Programme | Cash |");
     expect(out).toContain("| Level UP  | $0   |");
+  });
+});
+
+describe("computeJoinedWithNextLineMask — what the joiner would actually repair", () => {
+  const PARAGRAPH = [
+    "The orchestrator aggregates every context-injecting subhook into one Bun process so",
+    "the per-edit cold-start cost is paid once instead of fifteen separate times.",
+  ].join("\n");
+
+  /** Hand-aligned rows: the detector reads them as prose, the joiner refuses. */
+  const ALIGNED = [
+    "  standard plan for a single seat            $1,234.00 per month billed annually",
+    "  team plan for up to twenty five seats      $2,345.00 per month billed annually",
+    "  enterprise plan with priority support      $3,456.00 per month billed annually",
+  ].join("\n");
+
+  test("marks exactly the break the joiner removes", () => {
+    expect(computeJoinedWithNextLineMask(PARAGRAPH)).toEqual([true, false]);
+  });
+
+  test("marks nothing in a hand-aligned block the detector still flags", () => {
+    // The disagreement itself: wraps found, joins refused.
+    expect(detectHardWraps(ALIGNED).length).toBeGreaterThan(0);
+    expect(computeJoinedWithNextLineMask(ALIGNED).some(Boolean)).toBe(false);
+  });
+
+  test("true-count equals joinsPerformed, so the mask cannot drift from the joiner", () => {
+    const MIXED_DOCUMENT = [
+      "# Title",
+      "",
+      PARAGRAPH,
+      "",
+      "- a wrapped bullet whose tail belongs to the bullet and is joined back onto",
+      "  it by the joiner, exactly as a continuation line should be",
+      "",
+      ALIGNED,
+      "",
+      "| Programme | Cash |",
+      "| --------- | ---- |",
+    ].join("\n");
+    for (const body of [PARAGRAPH, ALIGNED, MIXED_DOCUMENT, [PARAGRAPH, "", ALIGNED].join("\n"), ""]) {
+      expect(computeJoinedWithNextLineMask(body).filter(Boolean).length).toBe(
+        unwrapGfmParagraphsDetailed(body).joinsPerformed,
+      );
+    }
+  });
+
+  test("every masked break really is gone from the unwrapped output", () => {
+    const body = [PARAGRAPH, "", ALIGNED].join("\n");
+    const sourceLines = body.split("\n");
+    const outputLines = unwrapGfmParagraphs(body).split("\n");
+    const mask = computeJoinedWithNextLineMask(body);
+    expect(outputLines.length).toBe(sourceLines.length - mask.filter(Boolean).length);
   });
 });
