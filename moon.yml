@@ -57,6 +57,30 @@ tasks:
     description: "Offline link check over every tracked markdown file (internal links only, no network)."
     script: "bash tasks/link-check.sh"
 
+  # ── Suite-log triage ───────────────────────────────────────────────────────
+  # Manual triage tool, deliberately NOT wired into `check` and deliberately
+  # NOT living in tasks/tests/ (which is auto-discovered and would run it as a
+  # test). Classifies a captured suite log into the known flake mechanisms:
+  # CLASS A wall-clock gate (prints the MARGIN — 0.9% and 300% must never
+  # render identically, because that distinction is the diagnosis), CLASS B
+  # exit-code verdict, CLASS C genuine defect, and three outcomes that exist
+  # because of #113 — VACUOUS (discovered N, executed 0: the log proves
+  # nothing), PARTIAL (executed < discovered), and GREEN, which requires a
+  # positive execution count rather than the mere absence of failures.
+  # Anything matching no known mechanism lands in UNKNOWN, never the nearest
+  # bucket, so a new mechanism has to announce itself. Self-test: `--self-test`
+  # (8 cases). Given a single-test log rather than a suite log it reports
+  # VACUOUS, since such logs carry no FILE-PASS lines.
+  triage-suite-log:
+    description: "Classify a hook-regression suite log into known flake mechanisms; --self-test runs 8 self-checks."
+    # `command`, not `script`: this task TAKES ARGUMENTS (a log path, or
+    # --self-test), and moon forwards `moon run repo:triage-suite-log -- ARGS`
+    # only to `command`. Declared as `script` it silently receives nothing and
+    # exits 2 on usage — measured, not assumed.
+    command: "bash tasks/triage-hook-regression-suite-log-classifying-known-flake-mechanisms-wall-clock-scenario-gate-versus-subprocess-exit-code-verdict-with-unknown-bucket-for-unrecognised-failures.sh"
+    options:
+      cache: false
+
   # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
   cli-spec:
     description: "Regenerate cli_spec.json from every argparse CLI in the marketplace."
