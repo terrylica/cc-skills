@@ -5,6 +5,7 @@ import {
   detectNetNewMarkdownHardWraps,
   isMarkdownHardWrapReminderEligibleTarget,
 } from "./posttooluse-markdown-hard-wrap-reminder.ts";
+import { detectHardWraps } from "./lib/hard-wrap-detector.ts";
 import type { PostToolUseInput } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -177,7 +178,14 @@ describe("buildMarkdownHardWrapReminder", () => {
   it("names the file, the marker, and the reflow tool", () => {
     expect(message).toContain(MD);
     expect(message).toContain("MD-HARD-WRAP-OK");
-    expect(message).toContain("reflow-release-notes.ts");
+    expect(message).toContain("gfm-unwrap.ts");
+  });
+
+  it("gives a remedy path that resolves outside cc-skills (issue #106 finding 2)", () => {
+    // A bare `bun scripts/…` relative path only works from inside this repo, and
+    // a consumer repo with a similarly-named script is a dangerous near-miss.
+    expect(message).toContain('bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts"');
+    expect(message).not.toContain("bun scripts/");
   });
 
   it("does NOT claim a repository .md renders broken (GFM spec 6.13)", () => {
@@ -291,6 +299,141 @@ describe("replace_all is honoured when undoing an edit", () => {
     const after = ["# Doc", "", WRAPPED, "", "## Section", "", WRAPPED, ""].join("\n");
     const input = edit(MD, "PLACEHOLDER", WRAPPED);
     expect(detectNetNewMarkdownHardWraps(input, after)).toHaveLength(1);
+  });
+});
+
+// ── Issue #106 finding 1: invoking the hatch vs documenting it ───────────────
+//
+// The marker is assembled at run time rather than written out, because a test
+// file is not the place to discover that spelling a suppression token in full
+// suppresses something. Every fixture below builds the exact literal it needs.
+
+describe("escape hatch distinguishes INVOKING from MENTIONING", () => {
+  const MARKER = ["MD-HARD-WRAP", "OK"].join("-");
+  const TICK = "`";
+
+  it("still suppresses a genuine HTML-comment opt-out", async () => {
+    const content = [`<!-- ${MARKER}: fixed-width sample, wrapping is the content. -->`, "", WRAPPED].join("\n");
+    expect(await fires(write(MD, content))).toBe(false);
+  });
+
+  it("does NOT suppress a file that merely NAMES the token in prose", async () => {
+    // THE DEFECT. Before this fix the line below silenced the hook for the whole
+    // file, so every document explaining the escape hatch was exempt from the
+    // hook it was explaining — including the operator's own global CLAUDE.md,
+    // which worked around it by never spelling the token in full.
+    const content = [
+      `Override: add ${MARKER} to the file when the wrapping is deliberate.`,
+      "",
+      WRAPPED,
+    ].join("\n");
+    expect(await fires(write(MD, content))).toBe(true);
+  });
+
+  it("does NOT suppress when the token appears only inside an inline-code span", async () => {
+    const content = [`Escape hatch: ${TICK}${MARKER}${TICK} — see the spoke.`, "", WRAPPED].join("\n");
+    expect(await fires(write(MD, content))).toBe(true);
+  });
+
+  it("does NOT suppress a documented <!-- MARKER --> shown inside a code fence", async () => {
+    const content = [
+      "Add this line to opt out:",
+      "",
+      `${TICK.repeat(3)}markdown`,
+      `<!-- ${MARKER}: the wrapping is deliberate -->`,
+      TICK.repeat(3),
+      "",
+      WRAPPED,
+    ].join("\n");
+    expect(await fires(write(MD, content))).toBe(true);
+  });
+
+  it("does NOT suppress a <!-- MARKER --> inside a 4-space-indented code block", async () => {
+    const content = ["Add this line to opt out:", "", `    <!-- ${MARKER} -->`, "", WRAPPED].join("\n");
+    expect(await fires(write(MD, content))).toBe(true);
+  });
+
+  it("suppresses through a code span INSIDE the comment, despite an unmatched backtick earlier", async () => {
+    // The shape of ~/eon/ccmax-monitor's PROVENANCE.md: a multi-line escape
+    // comment whose interior quotes a command in backticks. 19 of this repo's
+    // 1,094 tracked .md files carry an odd number of backticks, and any ONE of
+    // them upstream of such a comment breaks a whole-file inline-code stripper.
+    const content = [
+      "# Provenance",
+      "",
+      `A prose line with one stray tick: ${TICK}oops, it never closes.`,
+      "",
+      `<!-- ${MARKER}: this file is git-ignored (${TICK}git check-ignore -v${TICK} →`,
+      `     ${TICK}.git/info/exclude:15${TICK}), never pushed, never rendered anywhere. -->`,
+      "",
+      WRAPPED,
+    ].join("\n");
+
+    // NEGATIVE CONTROL for the obvious-but-wrong fix: a WHOLE-FILE inline-code
+    // stripper pairs the stray tick with the first tick inside the comment and
+    // eats the `<!--` opener and the marker along with it, silently
+    // un-suppressing a file the operator deliberately exempted.
+    const naivelyStripped = content.replace(/(`+)[\s\S]*?\1/g, " ");
+    expect(naivelyStripped).not.toContain("<!--");
+    expect(naivelyStripped).not.toContain(MARKER);
+
+    // The per-line stripper cannot reach across the line boundary, so the real
+    // hook still honours the opt-out.
+    expect(await fires(write(MD, content))).toBe(false);
+  });
+
+  it("honours the opt-out through the whole-file Edit path too", () => {
+    const after = [`<!-- ${MARKER} -->`, "", WRAPPED].join("\n");
+    expect(detectNetNewMarkdownHardWraps(edit(MD, "placeholder", WRAPPED), after)).toEqual([]);
+  });
+});
+
+// ── Issue #106 finding 3: report only what the joiner would repair ───────────
+
+describe("wraps the joiner refuses to join are not reported", () => {
+  /** A hand-aligned, 2-space-indented block: a quoted price schedule. */
+  const ALIGNED = [
+    "  standard plan for a single seat            $1,234.00 per month billed annually",
+    "  team plan for up to twenty five seats      $2,345.00 per month billed annually",
+    "  enterprise plan with priority support      $3,456.00 per month billed annually",
+  ].join("\n");
+
+  const MIXED = ["# Quarterly note", "", WRAPPED, "", ALIGNED, ""].join("\n");
+
+  it("reports the joinable paragraph and NOT the aligned block in the same file", async () => {
+    // An aligned-ONLY fixture cannot tell a correct fix from one that silenced
+    // the detector entirely, so this file deliberately contains both.
+    //
+    // NEGATIVE CONTROL: the raw detector flags all three lines. Two of them are
+    // the aligned rows, which `gfm-unwrap` refuses to join — recommending a fix
+    // that would not fix them is the false positive being removed.
+    const rawDetections = detectHardWraps(MIXED);
+    expect(rawDetections.map((w) => w.line)).toEqual([3, 6, 7]);
+
+    const reported = detectNetNewMarkdownHardWraps(write(MD, MIXED));
+    expect(reported.map((w) => w.line)).toEqual([3]);
+    expect(reported[0].nextPreview).toContain("per-edit cold-start");
+    expect(await fires(write(MD, MIXED))).toBe(true);
+  });
+
+  it("stays silent on an aligned block with no joinable prose beside it", async () => {
+    expect(detectHardWraps(ALIGNED).length).toBeGreaterThan(0);
+    expect(await fires(write(MD, ALIGNED))).toBe(false);
+  });
+
+  it("the file-level variant of this rule would have changed nothing", () => {
+    // The issue proposed "if the joiner would make zero joins, do not report".
+    // MIXED is the counter-example measured across all 1,094 tracked .md files:
+    // joins > 0, so the file-level rule reports the aligned rows anyway. Zero
+    // files in the corpus had wraps > 0 with joins == 0.
+    expect(detectHardWraps(MIXED).length).toBeGreaterThan(
+      detectNetNewMarkdownHardWraps(write(MD, MIXED)).length,
+    );
+  });
+
+  it("an Edit that ADDS an aligned block does not fire", async () => {
+    const after = ["# Quarterly note", "", "Some short intro.", "", ALIGNED, ""].join("\n");
+    expect(detectNetNewMarkdownHardWraps(edit(MD, "placeholder", ALIGNED), after)).toEqual([]);
   });
 });
 

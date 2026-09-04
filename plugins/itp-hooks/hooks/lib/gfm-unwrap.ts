@@ -232,6 +232,17 @@ export interface UnwrapResult {
   readonly joinsPerformed: number;
 }
 
+/** The scan's raw output, before the content-preservation invariant runs. */
+interface ScanResult {
+  readonly out: string[];
+  readonly joinsPerformed: number;
+  /**
+   * `mask[i]` is true when the line break AFTER source line `i` was removed —
+   * i.e. line `i + 1` was absorbed into the same joined unit.
+   */
+  readonly joinedWithNextLineMask: boolean[];
+}
+
 /** Everything the line-scanner needs to decide whether a line can be absorbed. */
 interface ScanContext {
   readonly lines: readonly string[];
@@ -259,12 +270,13 @@ function canAbsorb(ctx: ScanContext, index: number, openDepth: number): boolean 
 }
 
 /**
- * Unwrap every hard-wrapped paragraph, list item and blockquote in a GFM body.
- *
- * Pure. Throws only via `assertContentPreserved`, and only when the result
- * would otherwise have been wrong.
+ * The single cursor walk that decides every join. `unwrapGfmParagraphsDetailed`
+ * and `computeJoinedWithNextLineMask` both run THIS function and nothing else,
+ * so "which breaks the joiner removes" can never drift from "what the joiner
+ * writes". A second predicate that merely tried to predict this walk is exactly
+ * the disagreement issue #106 finding 3 is about.
  */
-export function unwrapGfmParagraphsDetailed(body: string): UnwrapResult {
+function scanAndJoinGfmParagraphs(body: string): ScanResult {
   const source = body.replace(/\r\n/g, "\n");
   const lines = source.split("\n");
   const inFence = computeFencedCodeLineMask(lines);
@@ -282,6 +294,7 @@ export function unwrapGfmParagraphsDetailed(body: string): UnwrapResult {
   }
 
   const out: string[] = [];
+  const joinedWithNextLineMask: boolean[] = Array.from({ length: lines.length }, () => false);
   let joinsPerformed = 0;
   let cursor = 0;
 
@@ -313,6 +326,8 @@ export function unwrapGfmParagraphsDetailed(body: string): UnwrapResult {
       const absorbed = lines[scan];
       const content = quotePrefix === "" ? absorbed : absorbed.replace(BLOCKQUOTE_PREFIX, "");
       accumulated = joinWrapped(accumulated, content);
+      // The break BETWEEN `scan - 1` and `scan` is the one being removed.
+      joinedWithNextLineMask[scan - 1] = true;
       joinsPerformed++;
       cursor = scan;
       scan = hasIntentionalBreak(absorbed) ? -1 : scan + 1;
@@ -322,9 +337,42 @@ export function unwrapGfmParagraphsDetailed(body: string): UnwrapResult {
     cursor++;
   }
 
+  return { out, joinsPerformed, joinedWithNextLineMask };
+}
+
+/**
+ * Unwrap every hard-wrapped paragraph, list item and blockquote in a GFM body.
+ *
+ * Pure. Throws only via `assertContentPreserved`, and only when the result
+ * would otherwise have been wrong.
+ */
+export function unwrapGfmParagraphsDetailed(body: string): UnwrapResult {
+  const source = body.replace(/\r\n/g, "\n");
+  const { out, joinsPerformed } = scanAndJoinGfmParagraphs(source);
   const text = out.join("\n");
   assertContentPreserved(source, text);
   return { text, joinsPerformed };
+}
+
+/**
+ * Which line breaks this joiner would actually remove: `mask[i]` is true when
+ * the break after 0-based source line `i` would be joined away.
+ *
+ * The detector and the joiner disagree by construction — the detector asks "does
+ * this line break mid-sentence", the joiner asks "may I safely join it", and the
+ * joiner knows about hand-aligned indented blocks the detector reads as prose
+ * (issue #106 finding 3). Consumers use this mask to report only the wraps the
+ * joiner would fix, PER WRAP: a file-level "did the joiner make zero joins"
+ * test is a no-op on real corpora, because a file almost always contains at
+ * least one joinable paragraph alongside its aligned block.
+ *
+ * Cannot throw: it runs the same scan but skips `assertContentPreserved`, which
+ * is a property of the WRITTEN result and irrelevant to a read-only question.
+ * A caller that only wants to know which breaks are joinable must never be able
+ * to take a content-preservation exception for its trouble.
+ */
+export function computeJoinedWithNextLineMask(body: string): boolean[] {
+  return scanAndJoinGfmParagraphs(body).joinedWithNextLineMask;
 }
 
 /** Convenience wrapper returning just the unwrapped text. */
