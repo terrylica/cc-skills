@@ -121,7 +121,7 @@ curl -sS -X POST https://api.firecrawl.dev/v2/scrape \
 
 **Always send `waitFor`** for JS-rendered pages (SPAs, chat shares, dashboards). Without it the scrape can return the pre-hydration shell — which for a login-walled SPA is the login chrome, not the content, and it returns HTTP 200 while doing so. A 200 is not proof of extraction; check for content you expect.
 
-**Do not resurrect a self-hosted deployment.** One ran on littleblack:3002 (5 containers: api, playwright-service, nuq-postgres, rabbitmq, redis) and was retired 2026-08-13, reclaiming ~18 GB. The public API covers this repo's volume. Standing one up again trades ~18 GB and five long-running containers for rate limits nobody was hitting.
+**Do not resurrect a self-hosted deployment.** One ran on gpu-host-2:3002 (5 containers: api, playwright-service, nuq-postgres, rabbitmq, redis) and was retired 2026-08-13, reclaiming ~18 GB. The public API covers this repo's volume. Standing one up again trades ~18 GB and five long-running containers for rate limits nobody was hitting.
 
 ### Why `fetch()` Instead of `@mendable/firecrawl-js` SDK
 
@@ -341,7 +341,7 @@ content_tokens_approx: 4200
 
 ## Section 5 — Retired: self-hosted operations
 
-The self-hosted deployment (littleblack:3002, plus ports 3003/3004 behind Caddy) was **retired
+The self-hosted deployment (gpu-host-2:3002, plus ports 3003/3004 behind Caddy) was **retired
 2026-08-13**. Its containers, images and build cache are gone and ~18 GB was reclaimed. Use the
 public API in Section 1. Do not reintroduce a private deployment for this repo's volume.
 

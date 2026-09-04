@@ -37,7 +37,7 @@ Use this skill when the user mentions:
 
 | Trigger                      | Example                                    |
 | ---------------------------- | ------------------------------------------ |
-| Running tasks on BigBlack    | "Run this on bigblack"                     |
+| Running tasks on gpu-host-1    | "Run this on gpu-host-1"                     |
 | Long-running data processing | "Populate the cache for all symbols"       |
 | Batch/parallel operations    | "Process these 70 jobs"                    |
 | SSH remote execution         | "Execute this overnight on the GPU server" |
@@ -52,8 +52,8 @@ Use this skill when the user mentions:
 # Local
 pueue status
 
-# Remote (BigBlack)
-ssh bigblack "~/.local/bin/pueue status"
+# Remote (gpu-host-1)
+ssh gpu-host-1 "~/.local/bin/pueue status"
 ```
 
 ### Queue a Job
@@ -65,8 +65,8 @@ pueue add -w ~/project -- python long_running_script.py
 # Local (simple)
 pueue add -- python long_running_script.py
 
-# Remote (BigBlack)
-ssh bigblack "~/.local/bin/pueue add -w ~/project -- uv run python script.py"
+# Remote (gpu-host-1)
+ssh gpu-host-1 "~/.local/bin/pueue add -w ~/project -- uv run python script.py"
 
 # With group (for parallelism control)
 pueue add --group p1 --label "BTCUSDT@1000" -w ~/project -- python populate.py --symbol BTCUSDT
@@ -103,8 +103,8 @@ pueue reset                # Clear all jobs (use with caution)
 
 | Host          | Location                  | GPU         | Parallelism Groups              |
 | ------------- | ------------------------- | ----------- | ------------------------------- |
-| BigBlack      | `~/.local/bin/pueue`      | RTX 4090    | p1 (16), p2 (2), p3 (3), p4 (1) |
-| LittleBlack   | `~/.local/bin/pueue`      | RTX 2080 Ti | p1 (8), p2 (2)                  |
+| gpu-host-1      | `~/.local/bin/pueue`      | RTX 4090    | p1 (16), p2 (2), p3 (3), p4 (1) |
+| gpu-host-2   | `~/.local/bin/pueue`      | RTX 2080 Ti | p1 (8), p2 (2)                  |
 | Local (macOS) | `/opt/homebrew/bin/pueue` | N/A         | default                         |
 
 ## Core Workflows
@@ -113,13 +113,13 @@ pueue reset                # Clear all jobs (use with caution)
 
 ```bash
 # Step 1: Verify daemon is running
-ssh bigblack "~/.local/bin/pueue status"
+ssh gpu-host-1 "~/.local/bin/pueue status"
 
 # Step 2: Queue the job
-ssh bigblack "~/.local/bin/pueue add --label 'my-job' -- cd ~/project && uv run python script.py"
+ssh gpu-host-1 "~/.local/bin/pueue add --label 'my-job' -- cd ~/project && uv run python script.py"
 
 # Step 3: Monitor progress
-ssh bigblack "~/.local/bin/pueue follow <id>"
+ssh gpu-host-1 "~/.local/bin/pueue follow <id>"
 ```
 
 ### 2. Batch Job Submission (Multiple Symbols)
@@ -128,9 +128,9 @@ For rangebar cache population or similar batch operations:
 
 ```bash
 # Use the pueue-populate.sh script
-ssh bigblack "cd ~/rangebar-py && ./scripts/pueue-populate.sh setup"   # One-time
-ssh bigblack "cd ~/rangebar-py && ./scripts/pueue-populate.sh phase1"  # Queue Phase 1
-ssh bigblack "cd ~/rangebar-py && ./scripts/pueue-populate.sh status"  # Check progress
+ssh gpu-host-1 "cd ~/rangebar-py && ./scripts/pueue-populate.sh setup"   # One-time
+ssh gpu-host-1 "cd ~/rangebar-py && ./scripts/pueue-populate.sh phase1"  # Queue Phase 1
+ssh gpu-host-1 "cd ~/rangebar-py && ./scripts/pueue-populate.sh status"  # Check progress
 ```
 
 ### 3. Configure Parallelism Groups
@@ -254,9 +254,9 @@ fi
 
 ---
 
-## Companion CLI Tools (bigblack)
+## Companion CLI Tools (gpu-host-1)
 
-Four lightweight CLI tools complement pueue for monitoring and notifications. All installed on bigblack at `/usr/local/bin/` (noti, mprocs) or via apt (ntfy, task-spooler).
+Four lightweight CLI tools complement pueue for monitoring and notifications. All installed on gpu-host-1 at `/usr/local/bin/` (noti, mprocs) or via apt (ntfy, task-spooler).
 
 ### noti — Wrap Any Command with Telegram Notification
 
@@ -270,7 +270,7 @@ noti -g mise run kintsugi:catchup
 noti -g -e python long_script.py
 
 # Custom title/message
-noti -g -t "Deploy done" -m "bigblack updated" mise run deploy:bigblack
+noti -g -t "Deploy done" -m "gpu-host-1 updated" mise run deploy:gpu-host-1
 ```
 
 **Config**: `~/.config/noti/noti.yaml` + env vars `NOTI_TELEGRAM_TOKEN`, `NOTI_TELEGRAM_CHAT_ID`, `NOTI_DEFAULT=telegram` in `~/.bashrc`.

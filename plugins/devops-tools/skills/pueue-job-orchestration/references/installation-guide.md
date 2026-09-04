@@ -9,7 +9,7 @@ brew install pueue
 pueued -d  # Start daemon
 ```
 
-## Linux (BigBlack)
+## Linux (gpu-host-1)
 
 ```bash
 # Download from GitHub releases (see https://github.com/Nukesor/pueue/releases for latest)

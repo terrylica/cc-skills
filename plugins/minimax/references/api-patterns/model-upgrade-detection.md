@@ -105,7 +105,7 @@ For single-user workstation context, option 3 is fine. For headless / production
 
 Combine with a notification hook or log-watcher to alert on exit 1.
 
-### CI / cron-equivalent on bigblack
+### CI / cron-equivalent on gpu-host-1
 
 For remote scheduling, a systemd timer or cron job invoking the same script works fine:
 

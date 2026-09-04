@@ -23,10 +23,10 @@ Systematic methodology for investigating Open Deviation Bar anomalies by tracing
 
 | Source             | Location                                                                                | Schema                                                                                    | Access                                                                             |
 | ------------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| ClickHouse cache   | `opendeviationbar_cache.open_deviation_bars` on **bigblack**                            | 76 columns, see [schema reference](./references/clickhouse-schema.md)                     | `ssh bigblack 'curl -s http://localhost:8123/ -d "..."'`                           |
-| Parquet tick cache | `/home/tca/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **bigblack** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh bigblack 'cd /home/tca && uv run --python 3.14 python3 -c "..."'` with Polars |
+| ClickHouse cache   | `opendeviationbar_cache.open_deviation_bars` on **gpu-host-1**                            | 76 columns, see [schema reference](./references/clickhouse-schema.md)                     | `ssh gpu-host-1 'curl -s http://localhost:8123/ -d "..."'`                           |
+| Parquet tick cache | `/home/tca/.cache/opendeviationbar/ticks/{SYMBOL}/{YYYY-MM-DD}.parquet` on **gpu-host-1** | `agg_trade_id, price, quantity, first_trade_id, last_trade_id, timestamp, is_buyer_maker` | `ssh gpu-host-1 'cd /home/tca && uv run --python 3.14 python3 -c "..."'` with Polars |
 
-**Access pattern**: Always query bigblack directly via SSH. The SSH tunnel (`localhost:18123`) is for the Flowsurface app runtime only — forensic queries go direct.
+**Access pattern**: Always query gpu-host-1 directly via SSH. The SSH tunnel (`localhost:18123`) is for the Flowsurface app runtime only — forensic queries go direct.
 
 ## Investigation Methodology
 
@@ -86,7 +86,7 @@ Record the `first_agg_trade_id` and `last_agg_trade_id` ranges — these are the
 
 ### Layer 3: Parquet Trade-Level Root Cause
 
-Use Polars on bigblack to analyze raw trades. Three analyses in sequence:
+Use Polars on gpu-host-1 to analyze raw trades. Three analyses in sequence:
 
 #### 3a. Timestamp Burst Detection
 

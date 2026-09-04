@@ -2,16 +2,32 @@
 # install.sh — Deploy ssh-tunnel-companion (launchd + sleepwatcher + SwiftBar)
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
-#   Layer 1: SSH keepalive     — ~/.ssh/config (Host bigblack, ServerAliveInterval=30)
+#   Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST, ServerAliveInterval=30)
 #   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on wake for instant reconnect)
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
-#   Source:  THIS repo         — ~/eon/cc-skills/plugins/ssh-tunnel-companion/
+#   Source:  THIS repo         — <repo>/plugins/ssh-tunnel-companion/
 
 set -e
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LABEL="com.terryli.ssh-tunnel-companion"
+
+# Target host comes from config, never from a baked-in default — see
+# libexec/ssh-tunnel-companion-runner for the rationale.
+SSH_TUNNEL_CONFIG="${SSH_TUNNEL_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ssh-tunnel-companion/config}"
+if [ -f "$SSH_TUNNEL_CONFIG" ]; then
+  # shellcheck source=/dev/null
+  . "$SSH_TUNNEL_CONFIG"
+fi
+TUNNEL_HOST="${SSH_TUNNEL_COMPANION_HOST:-${TUNNEL_HOST:-}}"
+if [ -z "$TUNNEL_HOST" ]; then
+  echo "ERROR: no tunnel host configured." >&2
+  echo "  Create $SSH_TUNNEL_CONFIG containing:" >&2
+  echo "      TUNNEL_HOST=<ssh-alias-or-fqdn>" >&2
+  echo "  The host must also be a reachable entry in your ~/.ssh/config." >&2
+  exit 78
+fi
 PLIST_SRC="${REPO_DIR}/launchd/${LABEL}.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 SWIFTBAR_SRC="${REPO_DIR}/swiftbar/ssh-tunnel.5s.sh"
@@ -23,11 +39,11 @@ echo "Stack: pure SSH + launchd KeepAlive + sleepwatcher (no autossh)"
 echo ""
 
 # Step 1: Verify SSH config
-echo "[1/6] Checking SSH keepalive for bigblack (Layer 1)..."
-if grep -A15 'Host bigblack' ~/.ssh/config 2>/dev/null | grep -q ServerAliveInterval; then
+echo "[1/6] Checking SSH keepalive for $TUNNEL_HOST (Layer 1)..."
+if grep -A15 "Host $TUNNEL_HOST" ~/.ssh/config 2>/dev/null | grep -q ServerAliveInterval; then
   echo "  ~/.ssh/config: ServerAliveInterval configured"
 else
-  echo "  WARNING: ServerAliveInterval not found for Host bigblack"
+  echo "  WARNING: ServerAliveInterval not found for Host $TUNNEL_HOST"
   echo "  Layer 1 degraded — reconnect will be slower without keepalive"
 fi
 
@@ -35,8 +51,26 @@ fi
 echo ""
 echo "[2/6] Installing launchd plist (Layer 2)..."
 launchctl unload "$PLIST_DST" 2>/dev/null || true
-cp "$PLIST_SRC" "$PLIST_DST"
-echo "  Copied to $PLIST_DST"
+# The tracked plist carries __RUNNER_PATH__ rather than an absolute path, so the
+# public repo does not ship one maintainer's home directory (and so this actually
+# works for anyone who checks the repo out somewhere else). Substitute it here.
+RUNNER_PATH="${REPO_DIR}/libexec/ssh-tunnel-companion-runner"
+if [ ! -x "$RUNNER_PATH" ]; then
+  echo "ERROR: runner not found or not executable: $RUNNER_PATH" >&2
+  exit 1
+fi
+sed "s|__RUNNER_PATH__|${RUNNER_PATH}|" "$PLIST_SRC" > "$PLIST_DST"
+if grep -q '__RUNNER_PATH__' "$PLIST_DST"; then
+  echo "ERROR: placeholder substitution failed — refusing to install a broken plist." >&2
+  rm -f "$PLIST_DST"
+  exit 1
+fi
+if ! plutil -lint "$PLIST_DST" >/dev/null; then
+  echo "ERROR: generated plist is not valid — refusing to install." >&2
+  rm -f "$PLIST_DST"
+  exit 1
+fi
+echo "  Installed to $PLIST_DST (Program: $RUNNER_PATH)"
 
 # Step 3: Install wakeup hook (Layer 3)
 echo ""
@@ -50,7 +84,7 @@ if [ -f "$HOME/.wakeup" ]; then
     {
       echo ""
       echo "# --- ssh-tunnel-companion: kill stale tunnel on wake (Layer 3) ---"
-      echo "# Source: ~/eon/cc-skills/plugins/ssh-tunnel-companion/scripts/wakeup.sh"
+      echo "# Source: <repo>/plugins/ssh-tunnel-companion/scripts/wakeup.sh"
       grep -v '^#!/bin/bash' "$WAKEUP_SRC" | grep -v '^#'
       echo "# --- end ssh-tunnel-companion ---"
     } >> "$HOME/.wakeup"
@@ -98,10 +132,10 @@ for i in $(seq 1 5); do
     echo "  Tunnel UP"
     echo ""
     echo "=== Install complete ==="
-    echo "  localhost:18123 → bigblack:8123 (ClickHouse)"
-    echo "  localhost:18081 → bigblack:8081 (SSE sidecar — crypto ODB)"
-    echo "  localhost:18082 → bigblack:8082 (fxview-sidecar — forex ticks)"
-    echo "  localhost:5900  → bigblack:5900 (VNC — MT5/WINE)"
+    echo "  localhost:18123 → $TUNNEL_HOST:8123 (ClickHouse)"
+    echo "  localhost:18081 → $TUNNEL_HOST:8081 (SSE sidecar — crypto ODB)"
+    echo "  localhost:18082 → $TUNNEL_HOST:8082 (fxview-sidecar — forex ticks)"
+    echo "  localhost:5900  → $TUNNEL_HOST:5900 (VNC — MT5/WINE)"
     echo ""
     echo "  SwiftBar: look for the tunnel indicator in your menu bar"
     echo "  Logs: /tmp/ssh-tunnel-companion.log"
@@ -114,5 +148,5 @@ done
 echo ""
 echo "WARNING: Tunnel did not come up within 10s"
 echo "  Check: /tmp/ssh-tunnel-companion.log"
-echo "  Check: Is bigblack reachable? Run: tailscale ping bigblack"
+echo "  Check: Is $TUNNEL_HOST reachable? Run: tailscale ping $TUNNEL_HOST"
 exit 1

@@ -139,7 +139,7 @@ describe("Bash: external-service intent detection", () => {
       tool_name: "Bash",
       tool_input: {
         command:
-          "crontab -e # forward to terrys-mac-mini.tail0f299b.ts.net internally",
+          "crontab -e # forward to example-host.tailnet-example.ts.net internally",
       },
     });
     // NOTE: This test may be tricky — the crontab -e pattern matches,

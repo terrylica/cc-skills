@@ -130,7 +130,7 @@ Wall-clock = ceil(100/10) × 2.58s = 26s
 Throughput = 100 / 26s = 3.8 calls/sec (matches iter-25's ~4 calls/sec at p=10)
 ```
 
-To go faster: **use a non-reasoning model**. M2.7's overhead is fundamental. If sub-1s tagging is required, switch to Llama-3-instruct on bigblack or OpenAI gpt-4o-mini.
+To go faster: **use a non-reasoning model**. M2.7's overhead is fundamental. If sub-1s tagging is required, switch to Llama-3-instruct on gpu-host-1 or OpenAI gpt-4o-mini.
 
 ### For Linkwarden article summarization
 

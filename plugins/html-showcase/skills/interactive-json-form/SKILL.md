@@ -1,6 +1,6 @@
 ---
 name: interactive-json-form
-description: Build a self-contained, single-file interactive HTML page (explanations + multiple-choice votes + rank + free-form comments) whose responses round-trip as downloadable/importable JSON — no backend, no tracking — and publish it privately on eon.25u.com behind noindex + an unguessable path.
+description: Build a self-contained, single-file interactive HTML page (explanations + multiple-choice votes + rank + free-form comments) whose responses round-trip as downloadable/importable JSON — no backend, no tracking — and publish it privately on your own host behind noindex + an unguessable path.
 allowed-tools: Read, Write, Edit, Bash
 ---
 
@@ -14,9 +14,8 @@ A **single self-contained `.html` file** that presents extensive explanations,
 lets a small known audience (e.g. a CEO + data scientists) **pick options, rank
 them, and comment**, then hands their input back as a **downloadable / copyable /
 re-importable JSON** — with **no server, no submit endpoint, and no tracking**.
-Published privately on `eon.25u.com` behind a `noindex` header + an unguessable
-path, so it is reachable by whoever has the link (incl. from China via the
-Telus-direct door) but blocked from crawlers/indexing.
+Published privately on your own host behind a `noindex` header + an unguessable
+path, so it is reachable by whoever has the linkTelus-direct door) but blocked from crawlers/indexing.
 
 ## When to use this skill
 
@@ -76,28 +75,26 @@ reload a fresh page, `hydrate()` the JSON, `collect()` again, and assert the two
 JSON strings are identical. Screenshot `fullPage:false` and eyeball it. See the
 `local-shot.mjs` pattern.
 
-## Publish privately on eon.25u.com (no Caddy change, no restart)
+## Publish privately on your own host (no web-server config change, no restart)
 
-`eon.25u.com:443` on **bigblack** is a Caddy `static+proxy` front door whose
-docroot is `/var/www/eon-25u-com-openclaw-guide` and which **already emits
-`header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"` globally**. So a
-static file dropped into a subdir is served instantly with noindex, over the
-already-WAN-forwarded `:443` chain — **no Caddyfile edit, no `caddy reload`**
-(zero risk to the co-hosted `:8450` inference other collaborators use).
+The pattern, not a particular server: point a hostname at a static docroot behind a web server that **already emits `header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"` globally**. A static file dropped into a subdirectory is then served instantly with noindex over the existing TLS chain — **no config edit, no reload**, so co-hosted services on the same door are untouched.
+
+Substitute your own values for `$SITE_HOST` (the public hostname), `$SSH_HOST` (its ssh alias), `$DOCROOT` (the server's static root) and `$WEB_USER` (the account the web server runs as).
 
 ```bash
 # 1. upload the built page
-scp -q your-page.html bigblack:/tmp/page.html
-# 2. drop it at an UNGUESSABLE path (docroot is caddy-owned → sudo; tca has passwordless sudo)
-ssh bigblack 'set -e
+scp -q your-page.html "$SSH_HOST:/tmp/page.html"
+# 2. drop it at an UNGUESSABLE path (docroot is usually server-owned → sudo)
+ssh "$SSH_HOST" 'set -e
   P="<slug>-$(openssl rand -hex 16)"                          # unguessable path segment
-  D="/var/www/eon-25u-com-openclaw-guide/$P"
+  D="'"$DOCROOT"'/$P"
   sudo mkdir -p "$D"; sudo cp /tmp/page.html "$D/index.html"
-  sudo chown -R caddy:caddy "$D"; rm -f /tmp/page.html
-  echo "URL: https://eon.25u.com/$P/"
-  curl -sSI --resolve eon.25u.com:443:192.168.0.111 "https://eon.25u.com/$P/" | grep -iE "^HTTP|x-robots-tag"'
-# 3. TRUE external reachability (on-LAN 200 does NOT prove the WAN chain — split-DNS short-circuits):
-ssh aws-dev 'curl -sS -o /dev/null -w "EXTERNAL %{http_code} TLS=%{ssl_verify_result}\n" https://eon.25u.com/<PATH>/'
+  sudo chown -R '"$WEB_USER:$WEB_USER"' "$D"; rm -f /tmp/page.html
+  echo "URL: https://'"$SITE_HOST"'/$P/"'
+# 3. TRUE external reachability. An on-LAN 200 does NOT prove the WAN chain when
+#    split-DNS short-circuits the hostname to a LAN address — verify from a host
+#    that is genuinely outside your network.
+ssh <some-external-host> 'curl -sS -o /dev/null -w "EXTERNAL %{http_code} TLS=%{ssl_verify_result}\n" https://'"$SITE_HOST"'/<PATH>/'
 ```
 
 **Crawler-blocking layers** (this skill's default): (a) global `X-Robots-Tag
@@ -107,9 +104,7 @@ needs a Caddy `@bots` matcher in the edge-route registry (`edge-routes.toml` +
 `generate-edge-config.py`); it is a production config change, so treat it as
 optional hardening, not default.
 
-Registry SSoT for the door: `~/eon/claude-sys/.../edge-routes.toml`
-(`eon-openclaw-guide-and-installer-https-443`). Precedent for unguessable-path
-publishing: the `odb-live-trade-console` capability door ("noindex inherited").
+If your edge config is generated from a registry rather than hand-edited, change the registry and regenerate — that is the durable path, and it keeps the door reproducible.
 
 ## Ingesting responses
 
@@ -122,7 +117,7 @@ respondents' files by `choices[].id`.
 - One file, no external network requests, no tracking, `noindex` in `<meta>`.
 - Never a real submit/collector endpoint unless the user explicitly opts in
   (it turns a private artifact into a hosted service + a data-handling duty).
-- Never publish to the eon.25u.com door by hand-editing the live Caddyfile — drop
+- Never publish to the door by hand-editing the live web-server config — drop
   a static file into the docroot (config-free) or change the **registry** + regen.
 - Always verify the import→export round-trip is byte-identical before shipping.
 

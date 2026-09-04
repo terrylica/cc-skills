@@ -130,12 +130,12 @@ If signal passes both, trust more. If it passes one but fails the other, investi
 
 ## 6. Compute orchestration (pueue + wrapper scripts)
 
-Long parallel sweeps go through pueue on BigBlack with a specific discipline.
+Long parallel sweeps go through pueue on gpu-host-1 with a specific discipline.
 
 **Anti-pattern** (silently fails, 0-second "successes"):
 
 ```bash
-ssh bigblack '~/.local/bin/pueue add -- bash -c "VAR=1 python script.py"'
+ssh gpu-host-1 '~/.local/bin/pueue add -- bash -c "VAR=1 python script.py"'
 ```
 
 **Correct pattern**:
@@ -148,9 +148,9 @@ export VAR="${VAR:-default}"
 cd /tmp
 exec uv run --python 3.14 --with numpy --with pandas python -u /tmp/script.py
 EOF
-scp /tmp/run.sh bigblack:/tmp/
-ssh bigblack 'chmod +x /tmp/run.sh && ~/.local/bin/pueue add --group mygroup --label "job" -w /tmp -- /tmp/run.sh'
-ssh bigblack '~/.local/bin/pueue wait <id> --quiet; tail -50 ~/.local/share/pueue/task_logs/<id>.log'
+scp /tmp/run.sh gpu-host-1:/tmp/
+ssh gpu-host-1 'chmod +x /tmp/run.sh && ~/.local/bin/pueue add --group mygroup --label "job" -w /tmp -- /tmp/run.sh'
+ssh gpu-host-1 '~/.local/bin/pueue wait <id> --quiet; tail -50 ~/.local/share/pueue/task_logs/<id>.log'
 ```
 
 Key points:

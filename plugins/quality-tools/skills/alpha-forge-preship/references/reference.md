@@ -28,7 +28,7 @@ All 13 issues from PR #154 trace back to 4 universal patterns:
 
 ### 1. DUPLICATION
 **Definition**: Code/config repeated across files without consolidation
-**Example**: `RANGEBAR_CH_HOSTS=bigblack` repeated 16× across 3 files
+**Example**: `RANGEBAR_CH_HOSTS=gpu-host-1` repeated 16× across 3 files
 **Prevention**: Cross-file auditor (G1 Phase 2), enforce SSoT
 **Cost of inaction**: Maintenance burden, sync bugs
 

@@ -16,7 +16,7 @@ Sitemap-organized **static HTML mini-sites** with a CDN-served CSS kernel and an
 - **Auto-fitting nav rail** — measures the longest unwrapped link via `width: max-content` and opens at "just enough" width; drag to resize, double-click to re-fit, persisted in `localStorage`
 - **CSS kernel served from jsDelivr** — `assets/showcase.css` is canonical infrastructure; one push ripples coordinated visual updates across every page using the kernel
 - **Idempotent build** — re-running `build-nav.py` with no source changes mutates zero files; safe in CI or pre-commit hooks
-- **Tailscale-published by default** — `site.sh push` rsyncs to bigblack via your tailnet (no DNS, no public exposure, no auth UI), with lychee + orphan-page validation as the only gate
+- **Tailscale-published by default** — `site.sh push` rsyncs to gpu-host-1 via your tailnet (no DNS, no public exposure, no auth UI), with lychee + orphan-page validation as the only gate
 - **Self-bootstrapping** — `install.sh` drops the entire pipeline (`build-nav.py`, `check-orphan-pages.py`, `site.sh`) into any repo's `scripts/` dir in one command
 
 ## When to Use
@@ -39,7 +39,7 @@ scripts/site.sh nav contractor-site
 # 3. Validate (lychee + orphan-page check)
 scripts/site.sh check contractor-site
 
-# 4. (Optional) publish to bigblack on the tailnet
+# 4. (Optional) publish to gpu-host-1 on the tailnet
 scripts/site.sh push contractor-site
 
 # 5. View
@@ -73,7 +73,7 @@ Or invoke as a slash command from Claude Code:
                                     ┌───────────────────────────────┐
                                     │  site.sh check / push         │
                                     │  → lychee + orphan validator  │
-                                    │  → rsync to bigblack          │
+                                    │  → rsync to gpu-host-1          │
                                     └───────────────────────────────┘
 ```
 
@@ -92,8 +92,8 @@ Six load-bearing principles drive the design — see [`skills/page-template/refe
 | --------- | ---------------------- | ------------------------------------------------- |
 | `python3` | `build-nav.py`         | macOS ships 3.9+; this plugin works on **3.10+**  |
 | `lychee`  | link validation        | `brew install lychee` (or `cargo install lychee`) |
-| `rsync`   | publishing to bigblack | preinstalled on macOS                             |
-| `ssh`     | publishing to bigblack | preinstalled on macOS                             |
+| `rsync`   | publishing to gpu-host-1 | preinstalled on macOS                             |
+| `ssh`     | publishing to gpu-host-1 | preinstalled on macOS                             |
 | `git`     | repo detection         | preinstalled on macOS                             |
 
 The scripts use **only Python stdlib** — no `pip install` step. Lychee is the only non-built-in tool, and the publishing path (`site.sh push`) is opt-in.
@@ -117,7 +117,7 @@ Sites bootstrapped via `install.sh` and the `templates/index.html` skeleton pin 
 - [`references/principles.md`](./skills/page-template/references/principles.md) — the WHY (5 + 1 design principles)
 - [`references/sitemap.md`](./skills/page-template/references/sitemap.md) — filesystem-as-sitemap contract, rail behavior
 - [`references/contributing.md`](./skills/page-template/references/contributing.md) — four contributor stances
-- [`references/publishing.md`](./skills/page-template/references/publishing.md) — bigblack tailnet publishing setup
+- [`references/publishing.md`](./skills/page-template/references/publishing.md) — gpu-host-1 tailnet publishing setup
 
 ## License
 

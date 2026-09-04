@@ -14,17 +14,28 @@
 # ssh-tunnel.5s.sh — SwiftBar plugin for ssh-tunnel-companion
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
-#   Layer 1: SSH keepalive     — ~/.ssh/config (Host bigblack)
+#   Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST)
 #   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher      — ~/.wakeup (kills stale SSH on wake)
 #   Control: SwiftBar (THIS)   — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
-#   Source:  ~/eon/cc-skills/plugins/ssh-tunnel-companion/
+#   Source:  <repo>/plugins/ssh-tunnel-companion/
 
 # --- Configuration ---
 LABEL="com.terryli.ssh-tunnel-companion"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 TUNNEL_PORT=18123
 LOG="/tmp/ssh-tunnel-companion.log"
+
+# Target host from config, never baked in — see libexec/ssh-tunnel-companion-runner.
+# May legitimately be empty on a machine that has not configured the tunnel; the
+# menu then reports L1 as "not configured" rather than rendering a wrong host.
+SSH_TUNNEL_CONFIG="${SSH_TUNNEL_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ssh-tunnel-companion/config}"
+if [ -f "$SSH_TUNNEL_CONFIG" ]; then
+    # shellcheck source=/dev/null
+    . "$SSH_TUNNEL_CONFIG"
+fi
+TUNNEL_HOST="${SSH_TUNNEL_COMPANION_HOST:-${TUNNEL_HOST:-}}"
+HOST_LABEL="${TUNNEL_HOST:-<unconfigured>}"
 # ZT_PROBE removed — ZeroTier deprecated 2026-04-06, Tailscale is primary
 
 # --- Actions ---
@@ -85,11 +96,15 @@ echo "---"
 echo "Resilience Layers | sfimage=square.stack.3d.up"
 
 # Layer 1: SSH keepalive
-SSH_KEEPALIVE=$(grep -A15 'Host bigblack' ~/.ssh/config 2>/dev/null | grep -c ServerAliveInterval)
-if [ "$SSH_KEEPALIVE" -gt 0 ]; then
-    echo "-- L1 SSH Keepalive: configured | sfimage=checkmark.circle.fill color=green"
+if [ -z "$TUNNEL_HOST" ]; then
+    echo "-- L1 SSH Keepalive: no host configured | sfimage=gear color=gray"
 else
-    echo "-- L1 SSH Keepalive: MISSING | sfimage=xmark.circle.fill color=red"
+    SSH_KEEPALIVE=$(grep -A15 "Host $TUNNEL_HOST" ~/.ssh/config 2>/dev/null | grep -c ServerAliveInterval)
+    if [ "$SSH_KEEPALIVE" -gt 0 ]; then
+        echo "-- L1 SSH Keepalive: configured | sfimage=checkmark.circle.fill color=green"
+    else
+        echo "-- L1 SSH Keepalive: MISSING | sfimage=xmark.circle.fill color=red"
+    fi
 fi
 
 # Layer 2: launchd
@@ -114,10 +129,10 @@ echo "---"
 
 # --- Ports ---
 echo "Ports | sfimage=network"
-echo "-- :18123 → bigblack:8123 (ClickHouse)"
-echo "-- :18081 → bigblack:8081 (SSE sidecar — crypto ODB)"
-echo "-- :18082 → bigblack:8082 (fxview-sidecar — forex ticks)"
-echo "-- :5900  → bigblack:5900 (VNC — MT5/WINE)"
+echo "-- :18123 → ${HOST_LABEL}:8123 (ClickHouse)"
+echo "-- :18081 → ${HOST_LABEL}:8081 (SSE sidecar — crypto ODB)"
+echo "-- :18082 → ${HOST_LABEL}:8082 (fxview-sidecar — forex ticks)"
+echo "-- :5900  → ${HOST_LABEL}:5900 (VNC — MT5/WINE)"
 
 echo "---"
 
@@ -128,7 +143,9 @@ if [ -n "$TUNNEL_PID" ]; then
 else
     echo "Start Tunnel | sfimage=play.circle bash='$0' param1=start terminal=false refresh=true"
 fi
-echo "Tailscale Ping | sfimage=antenna.radiowaves.left.and.right bash=/usr/local/bin/tailscale param1=ping param2=bigblack terminal=true"
+if [ -n "$TUNNEL_HOST" ]; then
+    echo "Tailscale Ping | sfimage=antenna.radiowaves.left.and.right bash=/usr/local/bin/tailscale param1=ping param2=${TUNNEL_HOST} terminal=true"
+fi
 
 echo "---"
 
@@ -136,4 +153,4 @@ echo "---"
 echo "View Log | sfimage=doc.text bash=/usr/bin/open param1=-a param2=Console param3=${LOG} terminal=false"
 echo "Log: ${LOG} | size=10 color=gray"
 echo "Plist: ${PLIST} | size=10 color=gray"
-echo "Repo: ~/eon/cc-skills/plugins/ssh-tunnel-companion | size=10 color=gray"
+echo "Host: ${HOST_LABEL} | size=10 color=gray"

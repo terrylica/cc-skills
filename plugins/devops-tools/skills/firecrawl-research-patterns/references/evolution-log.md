@@ -8,9 +8,9 @@
 
 **Trigger**: The operator asked to prioritize Firecrawl's official public "website to markdown" service for a small, occasional conversion volume, and to retire the self-hosted instances as no longer active.
 
-**Correction to the stated premise**: littleblack's Firecrawl was **not** dead. It answered HTTP 200 in 21 ms with five containers up five weeks. bigblack (`el02`) was already clean. The instance was therefore retired deliberately, not reaped — worth recording, because "assume it's already gone" would have left a live service running.
+**Correction to the stated premise**: gpu-host-2's Firecrawl was **not** dead. It answered HTTP 200 in 21 ms with five containers up five weeks. gpu-host-1 was already clean. The instance was therefore retired deliberately, not reaped — worth recording, because "assume it's already gone" would have left a live service running.
 
-**What was removed** (littleblack, user `yca`): containers `firecrawl-{api-1,nuq-postgres-1,rabbitmq-1,redis-1,playwright-service-1}`; images `firecrawl-api`, `firecrawl-playwright-service`, `firecrawl-nuq-postgres`, `rabbitmq:3-management`, `redis:alpine`; plus volume and build-cache prune. **~18 GB reclaimed (61.99 → 44.04 GB).** Port 3002 refuses connections. The compose directory `/home/kab/firecrawl` was permission-denied, so removal was done by container name rather than `docker compose down`. sub2api (3 containers) and clickhouse-server were explicitly preserved.
+**What was removed** (gpu-host-2, user `yca`): containers `firecrawl-{api-1,nuq-postgres-1,rabbitmq-1,redis-1,playwright-service-1}`; images `firecrawl-api`, `firecrawl-playwright-service`, `firecrawl-nuq-postgres`, `rabbitmq:3-management`, `redis:alpine`; plus volume and build-cache prune. **~18 GB reclaimed (61.99 → 44.04 GB).** Port 3002 refuses connections. The compose directory `/home/kab/firecrawl` was permission-denied, so removal was done by container name rather than `docker compose down`. sub2api (3 containers) and clickhouse-server were explicitly preserved.
 
 **Validation that justified the switch** — public Firecrawl v2 vs Jina Reader on two `chatgpt.com/share/*` links:
 
@@ -52,7 +52,7 @@ Neither hit the login wall, so this is a coverage difference, not an auth failur
 **Trigger**: A diagnostic session caught — and the very next invocation of the skill demonstrated — three documented-but-unfixed bugs that survived the prior MINOR release:
 
 1. `/v1/health` does not exist on this Firecrawl build. Probing returns HTTP 404 (Express HTML error page) which looks like service-down but isn't.
-2. Bare `littleblack` hostname was labeled "Preferred" in the access table but doesn't resolve over HTTP on the m3max client (MagicDNS isn't pushing the search suffix to the system resolver; SSH works only because `~/.ssh/config` hard-codes the FQDN).
+2. Bare `gpu-host-2` hostname was labeled "Preferred" in the access table but doesn't resolve over HTTP on the m3max client (MagicDNS isn't pushing the search suffix to the system resolver; SSH works only because `~/.ssh/config` hard-codes the FQDN).
 3. Templates A–E had no entry-point guard against AI chat-share URLs.
 
 **Fix**: Replaced all `/v1/health` references with `GET /` (returns 200 + Firecrawl banner). Demoted bare hostname to "Conditional" with `dscacheutil`/`getent` preflight; promoted Tailscale FQDN to "Preferred". Added URL-routing guard at the top of templates section. (The guard's framing was over-strict — see entry 2026-05-27 (b) above for the reconciliation.)

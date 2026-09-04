@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# site.sh — publish a static HTML directory to bigblack via Tailscale.
+# site.sh — publish a static HTML directory to a remote host over SSH.
 # Modeled on scripts/blob.sh from opendeviationbar-patterns. Adapt freely
 # into other repos: copy this file, copy tasks/site.toml, copy
 # scripts/check-orphan-pages.py, and you're done.
@@ -7,20 +7,23 @@
 # Subcommands:
 #   nav <local-dir>         Regenerate site-map.html + auto-nav rail + search index
 #   search <local-dir>      Rebuild Pagefind search index only (no nav rebuild)
-#   push <local-dir>        Build nav + validate + rsync to bigblack:~/sites/<project>/<page>/
+#   push <local-dir>        Build nav + validate + rsync to <host>:<root>/<project>/<page>/
 #   check <local-dir>       Build nav + validate only (lychee + orphan-page detector)
 #   url <local-dir>         Print the URL where <local-dir> would publish to
-#   list                    List all published projects/pages on bigblack
-#   unpublish <local-dir>   Remove the page from bigblack (asks for confirmation)
+#   list                    List all published projects/pages on the publish host
+#   unpublish <local-dir>   Remove the page from the publish host (asks for confirmation)
 #
 # URL format:
-#   https://bigblack.tail0f299b.ts.net:8448/<project>/<page>/
+#   $SITE_BASE_URL/<project>/<page>/
 #     <project>  derived from `git remote get-url origin` basename (or
 #                $SITE_PROJECT_NAME override)
 #     <page>     basename of <local-dir>
 #
+# The publish host is NOT configured by default — see the SITE_* variables
+# below. nav/search/check are purely local and need no configuration.
+#
 # Gate: every push runs lychee + orphan-page check FIRST. If either fails,
-# nothing reaches bigblack. The validation is the only gate — there is no
+# nothing reaches the server. The validation is the only gate — there is no
 # semantic-release here. Push-side gating, by design.
 
 set -euo pipefail
@@ -28,9 +31,24 @@ set -euo pipefail
 # Repo detection: prefer git toplevel; fall back to PWD so site.sh works
 # in non-git directories too (e.g. a one-off site assembled in /tmp).
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-BIGBLACK_SSH="${SITE_BIGBLACK_SSH:-bigblack}"
-BIGBLACK_ROOT="${SITE_BIGBLACK_ROOT:-/home/tca/sites}"
-SERVER_BASE_URL="${SITE_BASE_URL:-https://bigblack.tail0f299b.ts.net:8448}"
+
+# Publish-host configuration. There is deliberately NO built-in default: this
+# script ships in a public marketplace, and a default pointing at one
+# maintainer's host both leaks that host's name to every installer and gives
+# them a confusing failure when it does not resolve. Configure it instead —
+# either by exporting the three SITE_* variables, or by dropping them in a
+# config file that simply does not exist on a machine that has not opted in.
+# The local-only subcommands (nav, search, check) never read these and work
+# with no configuration at all.
+SITE_CONFIG="${SITE_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/html-showcase/site.env}"
+if [[ -f "$SITE_CONFIG" ]]; then
+  # shellcheck source=/dev/null
+  source "$SITE_CONFIG"
+fi
+
+SSH_HOST="${SITE_SSH_HOST:-}"
+REMOTE_ROOT="${SITE_REMOTE_ROOT:-}"
+SERVER_BASE_URL="${SITE_BASE_URL:-}"
 
 # Project namespace: from env or git remote
 project_name() {
@@ -53,22 +71,45 @@ page_name() {
   basename "$(cd "$local_dir" && pwd)"
 }
 
+# Guard the subcommands that talk to the publish host (push, url, list,
+# unpublish). Fails LOUD rather than silently: the user explicitly asked to
+# publish, so quietly doing nothing would be the wrong substitute. The purely
+# local subcommands (nav, search, check) never call this.
+require_remote_config() {
+  local missing=()
+  [[ -n "$SSH_HOST" ]]        || missing+=("SITE_SSH_HOST")
+  [[ -n "$REMOTE_ROOT" ]]     || missing+=("SITE_REMOTE_ROOT")
+  [[ -n "$SERVER_BASE_URL" ]] || missing+=("SITE_BASE_URL")
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "✗ publish host is not configured — missing: ${missing[*]}" >&2
+    echo "  This skill ships with no default host on purpose; point it at your own." >&2
+    echo "  Either export them, or create $SITE_CONFIG containing:" >&2
+    echo "      SITE_SSH_HOST=myhost            # ssh alias or hostname" >&2
+    echo "      SITE_REMOTE_ROOT=/home/you/sites" >&2
+    echo "      SITE_BASE_URL=https://myhost.example.com:8448" >&2
+    echo "  See references/publishing.md for the full server setup." >&2
+    exit 1
+  fi
+}
+
 # Resolve the URL where a local dir publishes to
 build_url() {
   local local_dir="$1"
   local project page
+  require_remote_config
   project="$(project_name)"
   page="$(page_name "$local_dir")"
   echo "$SERVER_BASE_URL/$project/$page/"
 }
 
-# Resolve the bigblack remote path
+# Resolve the remote path on the publish host
 build_remote_path() {
   local local_dir="$1"
   local project page
+  require_remote_config
   project="$(project_name)"
   page="$(page_name "$local_dir")"
-  echo "$BIGBLACK_ROOT/$project/$page"
+  echo "$REMOTE_ROOT/$project/$page"
 }
 
 # require <command> [install-hint]
@@ -184,7 +225,7 @@ cmd_search() {
   echo "→ rebuilding Pagefind search index for $local_dir"
   # Pre-clean any stale or half-built index from a previous killed run.
   # Without this, a SIGINT mid-pagefind leaves orphan chunks that the
-  # next run won't auto-overwrite — bigblack would serve a half-broken
+  # next run won't auto-overwrite — the server would serve a half-broken
   # search until the user noticed and intervened.
   #
   # SYMLINK GUARD: refuse to follow a symlinked pagefind/ — `rm -rf`
@@ -266,7 +307,7 @@ cmd_push() {
 
   # 2. Compute provenance values (write the file ONLY after rsync
   # succeeds; otherwise a torn rsync would leave a `.published.json`
-  # claiming the publish completed when bigblack was actually mid-write).
+  # claiming the publish completed when the server was actually mid-write).
   local commit_sha timestamp project page url remote_path source_repo dirty
   commit_sha="$(git -C "$REPO_ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
   dirty=""
@@ -280,24 +321,24 @@ cmd_push() {
   remote_path="$(build_remote_path "$local_dir")"
   source_repo="$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || echo unknown)"
 
-  # 3. Rsync to bigblack — abort on SSH or rsync failure BEFORE stamping
-  # provenance. A failure here means the live site wasn't updated.
+  # 3. Rsync to the publish host — abort on SSH or rsync failure BEFORE
+  # stamping provenance. A failure here means the live site wasn't updated.
   #
-  # The default $BIGBLACK_SSH (`bigblack`) resolves via Tailscale
-  # MagicDNS. If Tailscale isn't running, the SSH attempt will fail
+  # $SSH_HOST is whatever alias you configured; if you resolve it via
+  # Tailscale MagicDNS and Tailscale isn't running, the SSH attempt fails
   # with a name-resolution error after a brief delay. The post-failure
   # message below mentions Tailscale explicitly so the user knows
   # what's missing rather than chasing SSH-key debug paths.
-  echo "→ rsync $local_dir/ → $BIGBLACK_SSH:$remote_path/"
+  echo "→ rsync $local_dir/ → $SSH_HOST:$remote_path/"
   # shellcheck disable=SC2029  # intentional client-side expansion of $remote_path
-  if ! ssh -o ConnectTimeout=15 -o BatchMode=yes "$BIGBLACK_SSH" "mkdir -p '$remote_path'"; then
-    echo "✗ SSH to $BIGBLACK_SSH failed — site not published." >&2
+  if ! ssh -o ConnectTimeout=15 -o BatchMode=yes "$SSH_HOST" "mkdir -p '$remote_path'"; then
+    echo "✗ SSH to $SSH_HOST failed — site not published." >&2
     echo "  Common causes:" >&2
-    echo "    • Tailscale not running   (this script publishes via MagicDNS)" >&2
+    echo "    • Tailscale not running   (if you resolve the host via MagicDNS)" >&2
     echo "    • SSH keys not loaded     (BatchMode=yes prevents interactive auth)" >&2
-    echo "    • bigblack offline" >&2
-    echo "  Quick diagnose:  ssh $BIGBLACK_SSH echo ok" >&2
-    echo "  See references/publishing.md for the bigblack/Tailscale setup." >&2
+    echo "    • publish host offline" >&2
+    echo "  Quick diagnose:  ssh $SSH_HOST echo ok" >&2
+    echo "  See references/publishing.md for the publish-host setup." >&2
     return 1
   fi
   if ! rsync -av --delete \
@@ -310,7 +351,7 @@ cmd_push() {
         --exclude '__pycache__/' \
         --exclude '.venv/' \
         --exclude '.published.json.tmp.*' \
-        "$local_dir/" "$BIGBLACK_SSH:$remote_path/"; then
+        "$local_dir/" "$SSH_HOST:$remote_path/"; then
     echo "✗ rsync failed — site may be partially updated. Re-run scripts/site.sh push <site> to retry." >&2
     return 1
   fi
@@ -318,7 +359,7 @@ cmd_push() {
   # 4. Stamp provenance only AFTER rsync confirmed success. Atomic via
   # tmp + mv so a SIGINT during this step doesn't leave an unparseable
   # `.published.json`. Write to local; rsync's already done — the
-  # next push (or a fresh re-run) will mirror this stamp to bigblack.
+  # next push (or a fresh re-run) will mirror this stamp to the server.
   local tmpfile
   tmpfile=$(mktemp "$local_dir/.published.json.tmp.XXXXXX")
   cat > "$tmpfile" <<JSON
@@ -336,7 +377,7 @@ JSON
   echo ""
   echo "✓ published"
   echo "  URL:    $url"
-  echo "  Path:   $BIGBLACK_SSH:$remote_path"
+  echo "  Path:   $SSH_HOST:$remote_path"
   echo "  Commit: ${commit_sha}${dirty}"
 }
 
@@ -347,11 +388,12 @@ cmd_url() {
 }
 
 cmd_list() {
+  require_remote_config
   echo "=== $SERVER_BASE_URL ==="
   # Single SSH call: print "<project>/<page>" for each two-level entry under sites root.
   # Process substitution avoids SC2095 (ssh swallowing stdin in pipeline).
   local last_project=""
-  # shellcheck disable=SC2029  # intentional client-side expansion of $BIGBLACK_ROOT
+  # shellcheck disable=SC2029  # intentional client-side expansion of $REMOTE_ROOT
   while IFS=/ read -r proj page; do
     [[ -z "$proj" ]] && continue
     if [[ "$proj" != "$last_project" ]]; then
@@ -360,7 +402,7 @@ cmd_list() {
       last_project="$proj"
     fi
     [[ -n "$page" ]] && echo "    /$page"
-  done < <(ssh "$BIGBLACK_SSH" "find '$BIGBLACK_ROOT' -mindepth 1 -maxdepth 2 -type d -printf '%P\n' 2>/dev/null | sort")
+  done < <(ssh "$SSH_HOST" "find '$REMOTE_ROOT' -mindepth 1 -maxdepth 2 -type d -printf '%P\n' 2>/dev/null | sort")
 }
 
 cmd_unpublish() {
@@ -369,12 +411,12 @@ cmd_unpublish() {
   local remote_path url
   remote_path="$(build_remote_path "$local_dir")"
   url="$(build_url "$local_dir")"
-  echo "About to remove: $BIGBLACK_SSH:$remote_path"
+  echo "About to remove: $SSH_HOST:$remote_path"
   echo "URL that will 404: $url"
   read -r -p "Confirm unpublish? (yes/NO) " ans
   [[ "$ans" == "yes" ]] || { echo "aborted"; exit 0; }
   # shellcheck disable=SC2029  # intentional client-side expansion of $remote_path
-  ssh "$BIGBLACK_SSH" "rm -rf '$remote_path'"
+  ssh "$SSH_HOST" "rm -rf '$remote_path'"
   echo "✓ unpublished"
 }
 
@@ -393,18 +435,23 @@ Usage: $0 <command> [args]
 Commands:
   nav <local-dir>         Regenerate site-map + auto-nav + search index
   search <local-dir>      Rebuild Pagefind search index only
-  push <local-dir>        Build nav + validate + rsync to bigblack
+  push <local-dir>        Build nav + validate + rsync to the publish host
   check <local-dir>       Build nav + validate (lychee + orphan-page check)
   url <local-dir>         Print the URL where <local-dir> publishes to
-  list                    List all published pages on bigblack
-  unpublish <local-dir>   Remove the page from bigblack
+  list                    List all published pages on the publish host
+  unpublish <local-dir>   Remove the page from the publish host
 
 Environment overrides:
   SITE_PROJECT_NAME       Project namespace (default: from git remote, or
                           basename of the working tree when not in a git repo)
-  SITE_BIGBLACK_SSH       SSH alias (default: bigblack)
-  SITE_BIGBLACK_ROOT      Remote root (default: /home/tca/sites)
-  SITE_BASE_URL           Public URL (default: https://bigblack.tail0f299b.ts.net:8448)
+  SITE_CONFIG             Config file sourced at startup (default:
+                          \${XDG_CONFIG_HOME:-~/.config}/html-showcase/site.env)
+  SITE_SSH_HOST           SSH alias or hostname of the publish host (no default)
+  SITE_REMOTE_ROOT        Remote root directory, e.g. /home/you/sites (no default)
+  SITE_BASE_URL           Public base URL, e.g. https://myhost.example.com:8448
+                          (no default)
+                          The three above are REQUIRED by push/url/list/unpublish
+                          and unused by nav/search/check.
   CLAUDE_PLUGIN_ROOT      Plugin install path (injected when the skill is
                           invoked from Claude Code; used as a fallback when
                           scripts/build-nav.py is not present in the consuming repo)

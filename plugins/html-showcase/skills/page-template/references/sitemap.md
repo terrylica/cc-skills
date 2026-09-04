@@ -311,7 +311,7 @@ Pagefind's own assets are version-managed by the pagefind CLI itself.
 1. Auto-detects every site directory in your repo (any dir containing
    `site-map.html`).
 2. Runs `scripts/site.sh nav <site-dir>` (rebuilds rail + search index).
-3. Runs `scripts/site.sh push <site-dir>` (rsync to bigblack via
+3. Runs `scripts/site.sh push <site-dir>` (rsync to gpu-host-1 via
    Tailscale).
 
 The hook is **non-blocking** — failure logs a warning, the git push
@@ -321,8 +321,8 @@ continues. Skip env vars: `NO_HTMLSHOWCASE_HOOK`, `NO_HTMLSHOWCASE_SYNC`,
 
 This makes "publish on push" the default workflow once you opt in via
 `--hook`. The drift model: the `pagefind/` directory committed to git
-can lag what bigblack actually serves (the hook regenerates against
-current-on-disk HTML). Bigblack gets truth; git keeps the most-recently-
+can lag what gpu-host-1 actually serves (the hook regenerates against
+current-on-disk HTML). Gpu-host-1 gets truth; git keeps the most-recently-
 committed snapshot. The next manual `scripts/site.sh nav` re-aligns
 them. The index is generated artifact, not code — drift is harmless.
 

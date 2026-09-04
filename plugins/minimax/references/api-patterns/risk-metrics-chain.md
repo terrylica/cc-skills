@@ -240,7 +240,7 @@ These frameworks often ship "agent that does math" patterns. iter-37 confirms M2
 - **Smaller N (10, 50, 100)**: at what input size does M2.7 successfully compute Sortino? Linearly scaling probe could find the cutoff.
 - **Pre-summarized inputs**: if we pass `mean_return = 0.0008, downside_stdev = 0.012, n = 252` instead of raw 252 values, does M2.7 succeed at the final formula step?
 - **Streaming for compute tasks**: per iter-8, streaming has null `usage`. Could streaming make the saturation visible mid-computation (and thus interruptable)? Likely no benefit, but untested.
-- **Alternative providers comparison**: Llama-3.1 70B locally on bigblack vs M2.7 on these same probes — which produces better risk-metric computation? Worth a side-by-side.
+- **Alternative providers comparison**: Llama-3.1 70B locally on gpu-host-1 vs M2.7 on these same probes — which produces better risk-metric computation? Worth a side-by-side.
 - **Combined F9 + F2 (structured-output narrative)**: Python computes metrics → M2.7 generates JSON-structured risk report. Does the F2 pattern compose cleanly with F9 inputs?
 
 ## Provenance

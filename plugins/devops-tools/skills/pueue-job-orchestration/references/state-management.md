@@ -180,7 +180,7 @@ macOS (local)
   mise run gen:submit-all -> rsync + queue M pueue units
   mise run gen:collect    -> scp + validate JSONL
 
-BigBlack (remote)
+gpu-host-1 (remote)
   pueue group p1 (parallel=1)   <- sequential units (avoid log contention)
     |-- Unit 1: submit_unit.sh pattern1 BTCUSDT 750
     |     \-- xargs -P16 -> K queries (direct clickhouse-client, no pueue add)

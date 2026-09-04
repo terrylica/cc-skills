@@ -113,7 +113,7 @@ External/web-facing services should run on the Mac Mini as **Inngest application
 
 1. **Define the tenant service** in `~/vj/cpc/mini-services/`
 2. **Deploy** via the `mini-deploy` CLI from `~/vj/cpc/mini-platform`
-3. **Access the UI** at `https://terrys-mac-mini.tail0f299b.ts.net/` (tailnet only)
+3. **Access the UI** at `https://<mini-host>.<your-tailnet>.ts.net/` (tailnet only)
 
 ### Note on Terminology
 

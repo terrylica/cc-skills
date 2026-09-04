@@ -2,7 +2,7 @@
 
 ## Table: `opendeviationbar_cache.open_deviation_bars`
 
-**Host**: bigblack (SSH direct, not tunnel)
+**Host**: gpu-host-1 (SSH direct, not tunnel)
 **Rows**: ~139M (as of 2026-04-01)
 **Symbols**: 16 | **Thresholds**: {100, 250, 500, 750} dbps
 

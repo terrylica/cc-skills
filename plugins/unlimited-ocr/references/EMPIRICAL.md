@@ -54,7 +54,7 @@ the test image.
 
 ---
 
-## Runtime B — NVIDIA via transformers (`bigblack` / el02)
+## Runtime B — NVIDIA via transformers (`gpu-host-1`)
 
 **Host:** Ubuntu 24.04, kernel 6.17, 61 GB RAM, **RTX 4090, 24,564 MiB, driver 570.211.01,
 compute capability 8.9 (Ada)**, CUDA toolkit 12.0.

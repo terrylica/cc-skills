@@ -2,14 +2,44 @@
 /**
  * Kokoro TTS Client + Telegram Voice Message
  *
- * Generates podcast-style audio via Kokoro TTS on littleblack (Tailscale primary, ZeroTier legacy at 172.25.236.1),
- * converts WAV -> OGG/Opus via ffmpeg, sends as Telegram voice message.
+ * Generates podcast-style audio via a Kokoro TTS server, converts WAV -> OGG/Opus
+ * via ffmpeg, and sends the result as a Telegram voice message.
  */
 
 import { auditLog } from "./audit.js";
-import { unlinkSync } from "fs";
+import { unlinkSync, readFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 
-const KOKORO_HOST = process.env.KOKORO_HOST ?? "littleblack";
+/**
+ * Kokoro TTS host. Defaults to `localhost`, which is where the companion
+ * `kokoro-tts` plugin's `server` skill puts it — NOT to any particular remote
+ * machine, since this ships in a public marketplace and a maintainer's private
+ * hostname would resolve for nobody else. Point it elsewhere with KOKORO_HOST,
+ * or with a KOKORO_HOST= line in
+ * ${XDG_CONFIG_HOME:-~/.config}/gmail-commander/config.
+ */
+function resolveKokoroHost(): string {
+  const fromEnv = process.env.KOKORO_HOST;
+  if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
+  const configHome = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
+  try {
+    const line = readFileSync(join(configHome, "gmail-commander", "config"), "utf8")
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith("#"))
+      .find((l) => l.startsWith("KOKORO_HOST="));
+    if (line) {
+      const value = line.slice("KOKORO_HOST=".length).trim();
+      if (value) return value;
+    }
+  } catch {
+    // No config file, or unreadable — fall back to localhost.
+  }
+  return "localhost";
+}
+
+const KOKORO_HOST = resolveKokoroHost();
 const KOKORO_PORT = process.env.KOKORO_PORT ?? "8090";
 const KOKORO_URL = `http://${KOKORO_HOST}:${KOKORO_PORT}/tts`;
 const HEALTH_URL = `http://${KOKORO_HOST}:${KOKORO_PORT}/health`;

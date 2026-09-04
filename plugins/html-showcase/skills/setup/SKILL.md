@@ -46,7 +46,7 @@ After running, the target repo has:
 
 - The user types `/html-showcase:setup` (with or without flags).
 - The user asks to "install the showcase scripts", "bootstrap a sitemap-organized site", "set up html-showcase in this repo".
-- The user wants to publish a static HTML site to bigblack via Tailscale and is starting from a fresh repo.
+- The user wants to publish a static HTML site to gpu-host-1 via Tailscale and is starting from a fresh repo.
 
 It does **not** fire for:
 
@@ -117,7 +117,7 @@ Re-run `bash "$INSTALL" --check` and confirm exit code 0. Print a short next-ste
   3. Validate (lychee + orphan-page check):
        scripts/site.sh check <site-dir>
 
-  4. (Optional) Publish to bigblack via Tailscale:
+  4. (Optional) Publish to gpu-host-1 via Tailscale:
        scripts/site.sh push <site-dir>
 
 For authoring guidance:  /html-showcase:page-template

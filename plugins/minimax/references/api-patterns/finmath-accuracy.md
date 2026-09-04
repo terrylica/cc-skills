@@ -204,7 +204,7 @@ def select_minimax_model(workload_type: str) -> str:
 - **What about Sortino ratio?** Similar to Sharpe but uses downside deviation only. Likely similar reasoning-budget profile.
 - **Does plain M2.7 also fail Black-Scholes at 16K?** iter-29 retry only tested highspeed. Theoretically plain has different reasoning profile per iter-28 — but unlikely to succeed where highspeed failed.
 - **Streaming TPS for financial math** — does iter-8's coarse-chunk streaming help here, or is the reasoning phase entirely opaque (no chunks until visible content emits)? Time to first emitted ANSWER would be useful UX metric.
-- **Cost comparison vs alternatives**: per-call cost of M2.7 highspeed at 10K reasoning tokens vs Llama 3.1 70B local on bigblack vs OpenAI gpt-4o-mini for same Sharpe ratio task. The user's bigblack has GPU; local Llama is likely the cost-effective choice if the math is reliable.
+- **Cost comparison vs alternatives**: per-call cost of M2.7 highspeed at 10K reasoning tokens vs Llama 3.1 70B local on gpu-host-1 vs OpenAI gpt-4o-mini for same Sharpe ratio task. The user's gpu-host-1 has GPU; local Llama is likely the cost-effective choice if the math is reliable.
 
 ## Provenance
 

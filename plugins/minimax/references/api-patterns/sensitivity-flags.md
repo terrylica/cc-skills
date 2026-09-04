@@ -159,7 +159,7 @@ T3.8 originally aimed to discover the full enum set for `input_sensitive_type` /
 
 1. Use deliberately violating content (impractical & policy-conflicting for autonomous probing)
 2. Use content tested against known moderation services (e.g., samples from the OpenAI moderation evaluation set)
-3. Test from a Chinese-IP origin (would need bigblack VPS in China — out of scope)
+3. Test from a Chinese-IP origin (would need gpu-host-1 VPS in China — out of scope)
 
 T3.8 is therefore **likely also a negative result** with the same characterization: the enum exists in the schema but only `0` is observable on this tier. Defer T3.8 or collapse into this doc.
 

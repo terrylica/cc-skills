@@ -7,11 +7,11 @@
 # of waiting ~90s for SSH keepalive timeout to detect the dead connection.
 #
 # 3-LAYER TUNNEL RESILIENCE SYSTEM (find one → find all):
-#   Layer 1: SSH keepalive     — ~/.ssh/config (Host bigblack)
+#   Layer 1: SSH keepalive     — ~/.ssh/config (Host $TUNNEL_HOST)
 #   Layer 2: launchd           — ~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist
 #   Layer 3: sleepwatcher (THIS runs on wake) — ~/.wakeup → this script
 #   Control: SwiftBar          — ~/Library/Application Support/SwiftBar/Plugins/ssh-tunnel.5s.sh
-#   Source:  ~/eon/cc-skills/plugins/ssh-tunnel-companion/
+#   Source:  <repo>/plugins/ssh-tunnel-companion/
 
 # Kill the SSH tunnel process on port 18123
 # launchd KeepAlive=true will restart it within ~10s (ThrottleInterval)

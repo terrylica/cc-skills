@@ -202,7 +202,7 @@ export function isReadOnlyCommand(command: string): ReadOnlyCheckResult {
 
   // SSH commands execute remotely — local guards (CWD deletion, UV enforcement,
   // cargo TTY, process storm) don't apply. Skip before NEVER_READ_ONLY so that
-  // `ssh bigblack 'rm -rf /tmp/foo'` isn't blocked by the local \brm\b pattern.
+  // `ssh <remote-host> 'rm -rf /tmp/foo'` isn't blocked by the local \brm\b pattern.
   if (isRemoteCommand(trimmedCommand)) {
     return { isReadOnly: true, matchedPattern: "ssh remote command" };
   }

@@ -5,7 +5,7 @@
 > duplicate content. If a fact below changes, this is the only file to edit.
 
 Every claim here was **measured on 2026-07-31** against Claude Code CLI **2.1.220** through the
-`ccmax-claude` fleet wrapper (`ANTHROPIC_BASE_URL=https://nca.25u.com`), not read off a docs page and
+a fleet wrapper with a custom `ANTHROPIC_BASE_URL`, not read off a docs page and
 assumed. Where a claim is unverified or path-specific, it says so.
 
 The investigation that produced this cost most of a day, and every wrong turn in it came from the same

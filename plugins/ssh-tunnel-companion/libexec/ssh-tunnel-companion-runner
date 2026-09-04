@@ -1,5 +1,5 @@
 #!/bin/bash
-# ssh-tunnel-companion-runner — launchd entrypoint for the bigblack SSH tunnel.
+# ssh-tunnel-companion-runner — launchd entrypoint for the SSH tunnel.
 #
 # Why a dedicated runner: launchd's Login Items UI shows the basename of
 # Program / ProgramArguments[0]. Pointing the plist at /usr/bin/ssh directly
@@ -8,10 +8,10 @@
 # ssh so launchd's KeepAlive still operates on the real tunnel process.
 #
 # Forwards (kept inline so this file is the single source of truth for ports):
-#   localhost:18123 → bigblack:8123  (ClickHouse HTTP)
-#   localhost:18081 → bigblack:8081  (SSE sidecar — crypto ODB live bars)
-#   localhost:18082 → bigblack:8082  (fxview-sidecar — forex live tick SSE)
-#   localhost:5900  → bigblack:5900  (VNC — x11vnc, MT5/WINE on display :99)
+#   localhost:18123 → <host>:8123  (ClickHouse HTTP)
+#   localhost:18081 → <host>:8081  (SSE sidecar — crypto ODB live bars)
+#   localhost:18082 → <host>:8082  (fxview-sidecar — forex live tick SSE)
+#   localhost:5900  → <host>:5900  (VNC — x11vnc, MT5/WINE on display :99)
 #
 # A fifth forward (:18095) was removed 2026-08-15 after the service behind it was
 # retired. The lesson generalises, which is why it is recorded here:
@@ -28,20 +28,55 @@
 
 set -euo pipefail
 
+# Target host. This plugin ships in a public marketplace, so the hostname is
+# NOT baked in — it comes from config. launchd does not source shell profiles,
+# so the config FILE (not just the env var) is the path that actually works
+# for the installed service.
+#
+#   $SSH_TUNNEL_COMPANION_HOST                                    (env, wins)
+#   ${XDG_CONFIG_HOME:-~/.config}/ssh-tunnel-companion/config     (TUNNEL_HOST=…)
+#
+# With neither set this exits NON-ZERO with a message rather than guessing a
+# host: silently tunnelling somewhere unintended would be far worse than not
+# starting. launchd will throttle-retry, and the reason is in the log at
+# StandardErrorPath.
+SSH_TUNNEL_CONFIG="${SSH_TUNNEL_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ssh-tunnel-companion/config}"
+if [[ -f "$SSH_TUNNEL_CONFIG" ]]; then
+  # shellcheck source=/dev/null
+  source "$SSH_TUNNEL_CONFIG"
+fi
+TARGET_HOST="${SSH_TUNNEL_COMPANION_HOST:-${TUNNEL_HOST:-}}"
+if [[ -z "$TARGET_HOST" ]]; then
+  echo "ssh-tunnel-companion: no target host configured — refusing to start." >&2
+  echo "  Set TUNNEL_HOST=<ssh-alias-or-fqdn> in $SSH_TUNNEL_CONFIG" >&2
+  echo "  (or export SSH_TUNNEL_COMPANION_HOST for a one-off run)." >&2
+  exit 78  # EX_CONFIG
+fi
+
 # WHY ControlMaster=no: ~/.ssh/config has `ControlMaster auto`, which causes
 # ssh to fork to background once it sets up a multiplex master socket. The
 # foreground process then exits cleanly (code 0), and launchd's KeepAlive
 # restarts the wrapper in a tight throttle loop. Disabling control-master
 # semantics for THIS invocation keeps the ssh process foreground so launchd
 # can supervise it as the long-lived tunnel.
-exec /usr/bin/ssh \
-  -N \
-  -o ControlMaster=no \
-  -o ControlPath=none \
-  -o ExitOnForwardFailure=yes \
-  -o ConnectTimeout=8 \
-  -L 18123:localhost:8123 \
-  -L 18081:localhost:8081 \
-  -L 18082:localhost:8082 \
-  -L 5900:localhost:5900 \
-  bigblack
+SSH_ARGS=(
+  -N
+  -o ControlMaster=no
+  -o ControlPath=none
+  -o ExitOnForwardFailure=yes
+  -o ConnectTimeout=8
+  -L 18123:localhost:8123
+  -L 18081:localhost:8081
+  -L 18082:localhost:8082
+  -L 5900:localhost:5900
+  "$TARGET_HOST"
+)
+
+# Verification aid: print the exact command instead of running it. launchd
+# never sets this, so the supervised path is unaffected.
+if [[ -n "${SSH_TUNNEL_COMPANION_DRY_RUN:-}" ]]; then
+  echo "/usr/bin/ssh ${SSH_ARGS[*]}"
+  exit 0
+fi
+
+exec /usr/bin/ssh "${SSH_ARGS[@]}"

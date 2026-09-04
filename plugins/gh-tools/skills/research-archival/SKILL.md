@@ -199,7 +199,7 @@ printf '%s\n' "$CONTENT"
 SCRAPE_EOF
 ```
 
-> **Do not reintroduce a self-hosted Firecrawl.** The littleblack deployment (ports 3002/3003, five
+> **Do not reintroduce a self-hosted Firecrawl.** The gpu-host-2 deployment (ports 3002/3003, five
 > containers) was retired 2026-08-13 and reclaimed ~18 GB. It required health checks, container
 > restarts, and WORKER-STALLED triage that the public API makes unnecessary at this volume.
 

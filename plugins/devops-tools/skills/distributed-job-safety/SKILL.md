@@ -291,7 +291,7 @@ This skill provides **universal patterns** that apply to any distributed job pip
 | Memory profiles per job type    | "250 dbps peaks at 5 GB, use MemoryMax=8G"        |
 | Database-specific audit queries | `SELECT ... FROM mydb.mytable ... countIf(x < 0)` |
 | Issue provenance tracking       | "Checkpoint race: GH-84"                          |
-| Host-specific configuration     | "bigblack: 32 cores, 61 GB, groups p1/p2/p3/p4"   |
+| Host-specific configuration     | "gpu-host-1: 32 cores, 61 GB, groups p1/p2/p3/p4"   |
 
 **Two-layer invocation pattern**: When this skill is triggered, also check for and invoke any local `*-job-safety` skill in the project's `.claude/skills/` directory for project-specific configuration.
 

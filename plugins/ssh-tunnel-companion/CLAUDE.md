@@ -1,22 +1,22 @@
 # ssh-tunnel-companion
 
-System-wide SSH tunnel persistence for macOS. Keeps the ClickHouse tunnel to **bigblack** alive across sleep/wake, network changes, and reboots — without autossh.
+System-wide SSH tunnel persistence for macOS. Keeps the ClickHouse tunnel to your configured host alive across sleep/wake, network changes, and reboots — without autossh.
 
 ## Network Access Path (2026-04-12)
 
-**Primary: Tailscale** — `ssh bigblack` resolves to `bigblack.tail0f299b.ts.net` via MagicDNS, works from LAN, coffee shops, cellular, anywhere. Pre-auth keys never expire. Tailnet: `terrylica.github` (GitHub SSO, 6 users / 50 devices on free tier).
+**Primary: Tailscale** — `ssh <host>` resolves to `<host>.<your-tailnet>.ts.net` via MagicDNS, works from LAN, coffee shops, cellular, anywhere. Pre-auth keys never expire. Substitute your own tailnet name (`tailscale status --json | jq -r .MagicDNSSuffix`); this plugin never hardcodes one.
 
-**Fallback: Cloudflare Access SSH** — `ssh bigblack-cf` via `ssh.ccmax.uk` through `cloudflared access ssh`, protected by GitHub SSO → ssh-operators group → short-lived SSH cert (4min validity, regenerated per connection via `Match host exec cloudflared access ssh-gen`).
+**Fallback: Cloudflare Access SSH** — `ssh <host>-cf` via your own Access-protected SSH hostname through `cloudflared access ssh`, protected by GitHub SSO → ssh-operators group → short-lived SSH cert (4min validity, regenerated per connection via `Match host exec cloudflared access ssh-gen`).
 
-**Legacy paths (removed)**: mDNS (`el02.local`, LAN-only, unreliable off-LAN); ZeroTier (removed 2026-04-06 due to macOS kernel-extension fragility).
+**Legacy paths (removed)**: mDNS (`<host>.local`, LAN-only, unreliable off-LAN); ZeroTier (removed 2026-04-06 due to macOS kernel-extension fragility).
 
-The launchd tunnel `bigblack` alias in `~/.ssh/config` resolves to the Tailscale FQDN — launchd-managed SSH tunnels now traverse Tailscale, so they work from any network without wrapper scripts.
+The launchd tunnel host alias in `~/.ssh/config` resolves to the Tailscale FQDN — launchd-managed SSH tunnels now traverse Tailscale, so they work from any network without wrapper scripts.
 
 ## 3-Layer Resilience System
 
 | Layer | What              | Where                                                           | Role                                                    |
 | ----- | ----------------- | --------------------------------------------------------------- | ------------------------------------------------------- |
-| 1     | SSH keepalive     | `~/.ssh/config` (Host bigblack)                                 | Detects dead connections (90s), SSH exits cleanly       |
+| 1     | SSH keepalive     | `~/.ssh/config` (Host $TUNNEL_HOST)                                 | Detects dead connections (90s), SSH exits cleanly       |
 | 2     | launchd KeepAlive | `~/Library/LaunchAgents/com.terryli.ssh-tunnel-companion.plist` | Restarts SSH on exit — replaces autossh                 |
 | 3     | sleepwatcher      | `~/.wakeup` hook                                                | Kills stale SSH immediately on wake — instant reconnect |
 
@@ -42,12 +42,12 @@ ssh-tunnel-companion/
 
 | Local             | Remote          | Service                               |
 | ----------------- | --------------- | ------------------------------------- |
-| `localhost:18123` | `bigblack:8123` | ClickHouse HTTP                       |
-| `localhost:18081` | `bigblack:8081` | SSE sidecar — crypto ODB live bars    |
-| `localhost:18082` | `bigblack:8082` | fxview-sidecar — forex live tick SSE  |
-| `localhost:5900`  | `bigblack:5900` | VNC (x11vnc, MT5/WINE on display :99) |
+| `localhost:18123` | `$TUNNEL_HOST:8123` | ClickHouse HTTP                       |
+| `localhost:18081` | `$TUNNEL_HOST:8081` | SSE sidecar — crypto ODB live bars    |
+| `localhost:18082` | `$TUNNEL_HOST:8082` | fxview-sidecar — forex live tick SSE  |
+| `localhost:5900`  | `$TUNNEL_HOST:5900` | VNC (x11vnc, MT5/WINE on display :99) |
 
-**SSoT is `libexec/ssh-tunnel-companion-runner`; this table is a copy.** It was wrong in both directions until 2026-09-02 — it advertised a fifth forward `localhost:18095 → bigblack:8095` (ccmax-monitor dashboard API) that was removed from the runner on 2026-08-15 (`d345ddaf`), and it omitted `18082`, which is live. That removal touched the runner only, leaving four sibling files advertising the dead port; the resulting "stale infrastructure" reading nearly got this load-bearing tunnel killed on 2026-09-01. **bigblack the MACHINE is alive — only its ccmax tenancy ended 2026-07-28.** Scope every bigblack claim to the tenant, and when this table and the runner disagree, the runner wins.
+**SSoT is `libexec/ssh-tunnel-companion-runner`; this table is a copy.** It was wrong in both directions until 2026-09-02 — it advertised a fifth forward `localhost:18095 → $TUNNEL_HOST:8095` (a monitoring service dashboard API) that was removed from the runner on 2026-08-15 (`d345ddaf`), and it omitted `18082`, which is live. That removal touched the runner only, leaving four sibling files advertising the dead port; the resulting "stale infrastructure" reading nearly got this load-bearing tunnel killed on 2026-09-01. **The MACHINE is alive — only that tenancy ended 2026-07-28.** Scope every claim about it to the tenant, and when this table and the runner disagree, the runner wins.
 
 ## Commands
 
@@ -59,16 +59,16 @@ make stop        # Unload launchd agent
 make restart     # Kill SSH → launchd restarts it
 make status      # Show all 3 layers + ClickHouse connectivity
 make logs        # Tail /tmp/ssh-tunnel-companion.log
-make ping        # Tailscale connectivity check to bigblack
+make ping        # Tailscale connectivity check to the configured host
 ```
 
 ## Consumers
 
 - **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `tasks/infra.toml`).
-- **statusline-tools** — **no longer a consumer.** `custom-statusline.sh` used to query `localhost:18095/api/status`; measured 2026-09-02 it makes no HTTP call to any ccmax endpoint at all, and `statusline-tools/CLAUDE.md` explicitly forbids reading that URL (the wrapper routes inference through a rotation pool, so the local credential's quota describes spend the user is not making). The forward it needed is gone and it does not want it back.
+- **statusline-tools** — **no longer a consumer.** `custom-statusline.sh` used to query `localhost:18095/api/status`; measured 2026-09-02 it makes no HTTP call to that endpoint at all, and `statusline-tools/CLAUDE.md` explicitly forbids reading that URL (the wrapper routes inference through a rotation pool, so the local credential's quota describes spend the user is not making). The forward it needed is gone and it does not want it back.
 - **fxview / MT5 tooling** — consumes `localhost:18082` for the forex live tick SSE stream.
-- **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on bigblack.
-- Any tool needing ClickHouse on bigblack via `localhost:18123`.
+- **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on the tunnel host.
+- Any tool needing ClickHouse on the tunnel host via `localhost:18123`.
 
 ## Self-Referencing Convention
 
@@ -124,7 +124,7 @@ macOS aggressively kills TCP connections during sleep. An SSH tunnel that was al
 | **sshuttle**    | -     | No                     | Full subnet     | VPN-over-SSH. Wrong abstraction — we need specific ports |
 | **cloudflared** | -     | Cloudflare account     | Yes             | Excellent reconnection but requires external service     |
 
-**Common problem**: All require installing and maintaining a server-side daemon on bigblack. SSH is already running there. Adding another daemon just for tunneling is unnecessary complexity.
+**Common problem**: All require installing and maintaining a server-side daemon on the remote host. SSH is already running there. Adding another daemon just for tunneling is unnecessary complexity.
 
 #### 5. macOS GUI apps (not FOSS or abandoned)
 

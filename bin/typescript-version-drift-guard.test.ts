@@ -1,7 +1,18 @@
 import { describe, expect, test, beforeAll, afterAll } from "bun:test";
 import { writeFileSync, mkdirSync, rmSync, existsSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import { spawnSync } from "bun";
+
+// Repo root derived from this file's location. Previously hardcoded to one
+// maintainer's absolute home path, which published that path and made the
+// suite pass only on that machine.
+const REPO_ROOT = resolve(dirname(import.meta.path), "..");
+
+// A sibling checkout used by the sanctioned-compat-alias case. Derived from
+// REPO_ROOT (overridable) rather than hardcoded to one machine's home, and the
+// test that needs it SKIPS when it is absent — a public checkout has no such
+// sibling, and a missing fixture is not a drift-guard failure.
+const KB_ROOT = process.env.TS_DRIFT_GUARD_KB_ROOT ?? resolve(REPO_ROOT, "..", "kb");
 
 // Regression tests for typescript-version-drift-guard
 // Focused on discovery depth fixes and existing functionality
@@ -48,7 +59,7 @@ describe("typescript-version-drift-guard integration", () => {
     const result = spawnSync(
       ["bun", "run", "bin/typescript-version-drift-guard.ts", "--json", "--roots", tempDir],
       {
-        cwd: "/Users/terryli/eon/cc-skills",
+        cwd: REPO_ROOT,
         encoding: "utf8",
       }
     );
@@ -72,7 +83,7 @@ describe("typescript-version-drift-guard integration", () => {
     const result = spawnSync(
       ["bun", "run", "bin/typescript-version-drift-guard.ts", "--json", "--roots", tempDir],
       {
-        cwd: "/Users/terryli/eon/cc-skills",
+        cwd: REPO_ROOT,
         encoding: "utf8",
       }
     );
@@ -96,7 +107,7 @@ describe("typescript-version-drift-guard integration", () => {
     const result = spawnSync(
       ["bun", "run", "bin/typescript-version-drift-guard.ts", "--json", "--roots", tempDir],
       {
-        cwd: "/Users/terryli/eon/cc-skills",
+        cwd: REPO_ROOT,
         encoding: "utf8",
       }
     );
@@ -112,14 +123,14 @@ describe("typescript-version-drift-guard integration", () => {
 
   test("CLI --help returns 0", () => {
     const result = spawnSync(["bun", "run", "bin/typescript-version-drift-guard.ts", "--help"], {
-      cwd: "/Users/terryli/eon/cc-skills",
+      cwd: REPO_ROOT,
     });
     expect(result.success).toBe(true);
   });
 
   test("CLI --help=json returns valid JSON", () => {
     const result = spawnSync(["bun", "run", "bin/typescript-version-drift-guard.ts", "--help=json"], {
-      cwd: "/Users/terryli/eon/cc-skills",
+      cwd: REPO_ROOT,
       encoding: "utf8",
     });
     expect(result.success).toBe(true);
@@ -130,7 +141,7 @@ describe("typescript-version-drift-guard integration", () => {
 
   test("CLI --version returns version string", () => {
     const result = spawnSync(["bun", "run", "bin/typescript-version-drift-guard.ts", "--version"], {
-      cwd: "/Users/terryli/eon/cc-skills",
+      cwd: REPO_ROOT,
       encoding: "utf8",
     });
     expect(result.success).toBe(true);
@@ -140,17 +151,17 @@ describe("typescript-version-drift-guard integration", () => {
 
   test("CLI with invalid flag exits 2 (usage error)", () => {
     const result = spawnSync(["bun", "run", "bin/typescript-version-drift-guard.ts", "--invalid-flag"], {
-      cwd: "/Users/terryli/eon/cc-skills",
+      cwd: REPO_ROOT,
     });
     expect(result.success).toBe(false);
     expect(result.exitCode).toBe(2);
   });
 
-  test("sanctioned_compat_alias_packages_remain_classified_as_conformant", () => {
+  test.skipIf(!existsSync(KB_ROOT))("sanctioned_compat_alias_packages_remain_classified_as_conformant", () => {
     const result = spawnSync(
-      ["bun", "run", "bin/typescript-version-drift-guard.ts", "--json", "--roots", "/Users/terryli/eon/kb"],
+      ["bun", "run", "bin/typescript-version-drift-guard.ts", "--json", "--roots", KB_ROOT],
       {
-        cwd: "/Users/terryli/eon/cc-skills",
+        cwd: REPO_ROOT,
         encoding: "utf8",
       }
     );
@@ -159,7 +170,7 @@ describe("typescript-version-drift-guard integration", () => {
     const stdout = result.stdout instanceof Buffer ? result.stdout.toString() : result.stdout;
     const json = JSON.parse(stdout || "{}");
 
-    const kbPackage = json.packages.find((pkg: any) => pkg.path === "/Users/terryli/eon/kb");
+    const kbPackage = json.packages.find((pkg: any) => pkg.path === KB_ROOT);
     expect(kbPackage).toBeDefined();
     expect(kbPackage.evaluatorVerdictKind).toBe("sanctioned-compat-alias");
     expect(kbPackage.verdict).toBe("conformant");

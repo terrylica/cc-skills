@@ -711,7 +711,7 @@ EXCHANGE_SESSION_HOURS = { ... }
 
 **Effort**: Variable (depends on row count). **Risk**: Low (additive columns, existing data unchanged).
 
-Run on bigblack after deploying the new code:
+Run on gpu-host-1 after deploying the new code:
 
 ```bash
 # 1. Add columns (idempotent)
@@ -879,7 +879,7 @@ This is verbose but correct for sub-hour boundaries. The `exchange_calendars` ap
 | 4. Integrate into enrichment     | 1 hr           | **Yes** (deploy)   | Yes (fallback to legacy) |
 | 5. ClickHouse schema + migration | 2 hr           | No                 | Yes (additive columns)   |
 | 6. Update constants              | 30 min         | No                 | Yes                      |
-| 7. Backfill production data      | 30 min runtime | **Yes** (bigblack) | Yes                      |
+| 7. Backfill production data      | 30 min runtime | **Yes** (gpu-host-1) | Yes                      |
 
 **Total implementation effort**: ~5 hours of coding + 30 min backfill runtime.
 

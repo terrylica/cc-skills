@@ -262,7 +262,7 @@ This sharpens the iter-17 finding: **the RPM cooldown on Plus-High-Speed embeddi
 
 **On Plus-High-Speed plan, MiniMax embeddings is best-effort only.** For amonic services that need RAG-class throughput, the practical recommendations are:
 
-1. **Local embeddings**: `sentence-transformers` or `nomic-embed-text` via ollama on bigblack — no rate limits, full throughput, free
+1. **Local embeddings**: `sentence-transformers` or `nomic-embed-text` via ollama on gpu-host-1 — no rate limits, full throughput, free
 2. **Different commercial provider**: Voyage AI or OpenAI `text-embedding-3-small` — both have generous tiers
 3. **Upgrade MiniMax plan**: if cost analysis vs. (1)/(2) warrants
 

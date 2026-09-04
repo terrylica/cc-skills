@@ -47,8 +47,8 @@ bootstrapper, page-template is the authoring guide.
 | --------- | ---------------------- | ------------------------------------------------- |
 | `python3` | `build-nav.py`         | macOS ships 3.9+; this plugin works on **3.10+**  |
 | `lychee`  | link validation        | `brew install lychee` (or `cargo install lychee`) |
-| `rsync`   | publishing to bigblack | preinstalled on macOS                             |
-| `ssh`     | publishing to bigblack | preinstalled on macOS                             |
+| `rsync`   | publishing to gpu-host-1 | preinstalled on macOS                             |
+| `ssh`     | publishing to gpu-host-1 | preinstalled on macOS                             |
 | `git`     | repo detection         | preinstalled on macOS                             |
 
 The scripts use **only Python stdlib** — no `pip install` step. Lychee is the
@@ -219,7 +219,7 @@ space-between` (`.rail-h-nav`), so they add **zero** vertical height.
                                     ┌───────────────────────────────┐
                                     │  site.sh check / push         │
                                     │  → lychee + orphan-check      │
-                                    │  → rsync to bigblack via      │
+                                    │  → rsync to gpu-host-1 via      │
                                     │    Tailscale (optional)       │
                                     └───────────────────────────────┘
 ```
@@ -242,7 +242,7 @@ plugins/html-showcase/
         │   ├── principles.md      The WHY — 5 + 1 principles
         │   ├── sitemap.md         Filesystem-as-sitemap contract
         │   ├── contributing.md    The HOW — 4 contributor stances
-        │   └── publishing.md      The WHERE — bigblack tailnet setup
+        │   └── publishing.md      The WHERE — gpu-host-1 tailnet setup
         ├── scripts/
         │   ├── build-nav.py       Universal sitemap + auto-nav builder
         │   ├── check-orphan-pages.py   Pure-stdlib orphan detector
@@ -263,7 +263,7 @@ plugins/html-showcase/
 | Add a missing visual component  | `assets/showcase.css` (Stance 3 — affects every page)                                   |
 | Change rail behavior or styling | `AUTO_NAV_CSS_BODY` / `AUTO_NAV_JS_BODY` in `build-nav.py`, then bump `--asset-version` |
 | Change section ordering rules   | `walk_site()` in `build-nav.py`                                                         |
-| Change publish destination      | Env vars (`SITE_BIGBLACK_SSH`, `SITE_BIGBLACK_ROOT`, `SITE_BASE_URL`) — no edit needed  |
+| Change publish destination      | Env vars (`SITE_SSH_HOST`, `SITE_REMOTE_ROOT`, `SITE_BASE_URL`) — no edit needed  |
 | Update one of the principles    | `skills/page-template/references/principles.md`                                         |
 
 ## Related Documentation
@@ -271,5 +271,5 @@ plugins/html-showcase/
 - [Skill SKILL.md](./skills/page-template/SKILL.md) — full skill instructions
 - [principles.md](./skills/page-template/references/principles.md) — design rationale
 - [sitemap.md](./skills/page-template/references/sitemap.md) — auto-nav contract
-- [publishing.md](./skills/page-template/references/publishing.md) — bigblack tailnet setup
+- [publishing.md](./skills/page-template/references/publishing.md) — gpu-host-1 tailnet setup
 - [contributing.md](./skills/page-template/references/contributing.md) — four contributor stances

@@ -39,7 +39,7 @@ curl -sS --max-time 180 -X POST https://api.firecrawl.dev/v2/scrape \
 (`v1: data: [...]` vs `v2: data: {web: [...]}`) and v1 is being sunset — a malformed v1 body is
 answered with _"please review the v2 API documentation"_.
 
-> **Do not reintroduce a self-hosted Firecrawl.** The littleblack deployment (ports 3002/3003) was
+> **Do not reintroduce a self-hosted Firecrawl.** The gpu-host-2 deployment (ports 3002/3003) was
 > retired 2026-08-13, reclaiming ~18 GB. At this repo's volume the public API is sufficient, and it
 > removes the health-check, container-restart and WORKER-STALLED triage the self-hosted stack needed.
 

@@ -81,7 +81,7 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires,
 | `BOT_STATE_FILE`              | No       | Bot state file path                                                                       |
 | `GMAIL_OP_VAULT`              | No       | 1Password vault (default: `Claude Automation`)                                            |
 | `GMAIL_COMMANDER_PROJECT_DIR` | No       | Project directory resolver; overrides auto-detection when running outside the plugin tree |
-| `KOKORO_HOST`                 | No       | Kokoro TTS host for voice digest (default: `littleblack`)                                 |
+| `KOKORO_HOST`                 | No       | Kokoro TTS host for voice digest (default: `localhost`; set in ~/.config/gmail-commander/config or the env)                                 |
 | `KOKORO_PORT`                 | No       | Kokoro TTS port (default: `8090`)                                                         |
 
 ## Canonical Gmail draft builder + guard (2026-07-23)

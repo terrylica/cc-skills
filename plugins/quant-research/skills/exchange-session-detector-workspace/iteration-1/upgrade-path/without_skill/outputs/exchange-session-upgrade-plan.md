@@ -578,7 +578,7 @@ class TestHolidayExclusion:
 - [ ] Update `_build_session_update_sql()` in `clickhouse/migrations.py`
 - [ ] Add backward-compat shim for `EXCHANGE_SESSION_HOURS`
 - [ ] Update `test_exchange_sessions.py` and `test_ouroboros.py`
-- [ ] Run `migrate_exchange_sessions()` on bigblack to recompute 42M rows
+- [ ] Run `migrate_exchange_sessions()` on gpu-host-1 to recompute 42M rows
 - [ ] Verify with `check_exchange_session_coverage()` (NYSE count should decrease slightly)
 - [ ] Update `enrich_exchange_sessions()` if its hourly-dedup needs sub-hour granularity (it does -- floor to 30 min instead of 1 hour for TSE lunch break boundary)
 
@@ -590,7 +590,7 @@ class TestHolidayExclusion:
 - [ ] Write `scripts/populate_holiday_table.py`
 - [ ] Update `is_in_session()` to delegate to `exchange_calendars.is_open_on_minute()`
 - [ ] Update ClickHouse SQL to join against holiday table
-- [ ] Run one-time backfill migration on bigblack
+- [ ] Run one-time backfill migration on gpu-host-1
 - [ ] Add holiday-specific tests
 - [ ] Schedule annual re-population of holiday table (or populate through 2099 upfront)
 

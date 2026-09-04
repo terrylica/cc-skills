@@ -274,7 +274,7 @@ This 5-leg orchestration is the canonical agentic flow for amonic-quant research
 - **Does plain `MiniMax-M2.7` behave better or worse for code gen?** Untested. Per iter-28's finding that plain is faster for short outputs, plain might be a better dev-iteration choice if it has similar code quality.
 - **Multi-shot iterative repair**: send the runtime error back to M2.7 and ask for a fix. How many rounds before convergence? Worth a follow-up probe.
 - **Does the same hallucination pattern affect other Python libraries** (pandas, numpy, scipy)? Or is it specific to less-popular libs like backtesting.py? Test with a more mainstream library.
-- **Cost vs Llama 3.1 70B local**: bigblack has GPU; local code-generation models (DeepSeek Coder, Llama Code) may produce more reliable code at lower cost. Comparative benchmark would be valuable.
+- **Cost vs Llama 3.1 70B local**: gpu-host-1 has GPU; local code-generation models (DeepSeek Coder, Llama Code) may produce more reliable code at lower cost. Comparative benchmark would be valuable.
 - **Real EDGAR filing test for F4-extended**: combines F4 retrieval + F5 codegen — extract a strategy from a research note, generate the code, validate end-to-end.
 
 ## Provenance

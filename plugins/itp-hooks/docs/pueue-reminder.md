@@ -25,7 +25,7 @@ The hook triggers on commands matching these patterns:
 | `bulk_insert/load/import`  | `python bulk_insert_data.py`              |
 | Symbol + threshold         | `--symbol BTCUSDT --threshold 250`        |
 | Shell for/while loops      | `for symbol in ...; do ...; done`         |
-| SSH with long-running cmds | `ssh bigblack 'python populate_cache.py'` |
+| SSH with long-running cmds | `ssh gpu-host-1 'python populate_cache.py'` |
 
 ### Exceptions (No Reminder)
 
@@ -39,8 +39,8 @@ The hook triggers on commands matching these patterns:
 ```
 [PUEUE-REMINDER] Long-running task detected - consider using Pueue
 
-EXECUTED: ssh bigblack 'python populate_cache.py --phase 1'
-PREFERRED: ssh bigblack "~/.local/bin/pueue add -- python populate_cache.py --phase 1"
+EXECUTED: ssh gpu-host-1 'python populate_cache.py --phase 1'
+PREFERRED: ssh gpu-host-1 "~/.local/bin/pueue add -- python populate_cache.py --phase 1"
 
 WHY PUEUE:
 - Daemon survives SSH disconnects, crashes, reboots
