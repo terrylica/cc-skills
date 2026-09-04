@@ -523,7 +523,15 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
             iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✓ ${human_readable_scenario_label}: forks=${iter186_observed_external_fork_count} ≤ ceiling ${iter186_pinned_fork_count_gating_this_scenario}${iter186_perl_fragment_for_verdict_line} (load-invariant gate; wall clock ${observed_median_wall_clock_ms}ms reported only)"
         else
             iter179_pass_or_regress_verdict_string="REGRESS"
-            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: forks=${iter186_observed_external_fork_count} > ceiling ${iter186_pinned_fork_count_gating_this_scenario}${iter186_perl_fragment_for_verdict_line} — REGRESSION: this script now forks more subprocesses than pinned; wall clock ${observed_median_wall_clock_ms}ms"
+            # The trailing wall-clock number is labelled "ungated" on purpose.
+            # This is a FORK-count failure, but the line carries a millisecond
+            # figure, and a log reader matching loosely on "wall clock" would
+            # file a real, load-invariant regression under the contention
+            # bucket — laundering a genuine defect into a known flake. Same
+            # hazard class as the skip line above, one severity lower (this line
+            # is a failure either way). The canonical classifier anchors on
+            # `median=…ms > cap=…ms`, which this deliberately does not match.
+            iter179_emit_text_only_in_human_readable_mode_suppress_in_json_mode_to_keep_stdout_parse_clean "  ✗ ${human_readable_scenario_label}: forks=${iter186_observed_external_fork_count} > ceiling ${iter186_pinned_fork_count_gating_this_scenario}${iter186_perl_fragment_for_verdict_line} — REGRESSION: this script now forks more subprocesses than pinned. This is NOT a timing failure; ungated wall clock was ${observed_median_wall_clock_ms}ms"
             ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
         fi
     else
