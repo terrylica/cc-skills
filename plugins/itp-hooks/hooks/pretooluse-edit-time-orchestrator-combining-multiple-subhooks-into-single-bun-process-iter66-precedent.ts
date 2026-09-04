@@ -373,9 +373,25 @@ async function main(): Promise<void> {
   const input = await parseStdinOrAllow("pretooluse-edit-time-orchestrator");
   if (!input) return;
 
-  // Fastpath: only run the registry on Write/Edit. For any other tool
-  // (which shouldn't happen given the hooks.json matcher, but defense-
-  // in-depth), allow immediately.
+  // Fastpath: only run the registry on Write/Edit.
+  //
+  // THE OLD COMMENT HERE WAS WRONG and actively dangerous. It said any other tool "shouldn't happen
+  // given the hooks.json matcher" — but the matcher IS `Write|Edit|MultiEdit`, so MultiEdit reaches
+  // this line on every multi-edit and is dropped here. That reads like an obvious one-line bug, and
+  // it was recommended to me as one.
+  //
+  // It is not a bug, it is the load-bearing half of a staged migration. iter-102 widened the
+  // tool-name gate inside the classifiers to accept MultiEdit, but per-classifier PAYLOAD
+  // adaptation is iter-103 work: a MultiEdit carries `edits[]`, not `content`/`new_string`. Every
+  // classifier therefore short-circuits MultiEdit to ALLOW straight after the tool-name check.
+  //
+  // So forwarding MultiEdit from here would be a no-op for ten of the eleven classifiers and, until
+  // the sibling fix in this same commit, would have activated exactly ONE — shell-script-safety —
+  // against a payload whose `new_string` is undefined. Measured before changing anything.
+  //
+  // OPENING THIS IS AN iter-103 DECISION, not a typo fix: it requires a content extractor that folds
+  // `tool_input.edits[].new_string`, and a per-classifier review of what "the proposed file" means
+  // when a MultiEdit applies several edits in sequence.
   if (input.tool_name !== "Write" && input.tool_name !== "Edit") {
     return allow();
   }
