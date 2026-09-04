@@ -539,6 +539,12 @@ iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_b
     # dispatch on stable strings rather than re-derive thresholds.
     # All additive — iter174_schema_version stays at 1, older consumers ignore
     # unknown fields per JSON-best-practice.
+    # ITER-187 per-scenario load sample. Taken AFTER this scenario's trials and
+    # AFTER iter-186's fork-counting shim, so it can move neither the measured
+    # median nor A6's pinned fork count. Endpoints alone hide the peak: a
+    # measured run went 7.33 -> 32.12 and neither endpoint shows the 32.
+    ITER187_PER_SCENARIO_HOST_LOAD_AVERAGE_TRIPLET_SAMPLES_JSON_ARRAY+=("$(iter187_sample_host_load_average_triplet_as_json_array_or_null)")
+
     local iter179_json_safe_description_with_double_quotes_stripped_defensively="${iter179_human_readable_description_after_canonical_id_prefix//\"/}"
     ITER179_PER_SCENARIO_JSON_RECORDS_ACCUMULATED_ACROSS_ALL_BENCHMARKS_FOR_FINAL_ENVELOPE_EMISSION+=("{\"id\": \"${iter179_canonical_scenario_id_extracted_from_human_readable_label}\", \"description\": \"${iter179_json_safe_description_with_double_quotes_stripped_defensively}\", \"median_ms\": ${observed_median_wall_clock_ms}, \"iter183_mean_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MEAN_MS_FOR_HYPERFINE_AND_PYTEST_BENCHMARK_INDUSTRY_PARITY_HEADLINE_METRIC}, \"iter183_stddev_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_STDDEV_MS_FOR_NOISE_FLOOR_BASED_REGRESSION_SIGNIFICANCE_TESTING}, \"iter183_min_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MIN_MS_FOR_BEST_CASE_FLOOR_STABLE_CROSS_RUN_METRIC}, \"iter183_max_ms\": ${ITER183_LATEST_BENCHMARK_SCENARIO_TRIAL_BATCH_MAX_MS_FOR_TAIL_LATENCY_AND_INTERFERENCE_INDICATOR}, \"iter183_trial_wall_clock_times_ms_for_ai_agent_to_recompute_any_percentile\": [${iter183_per_trial_times_ms_json_array_body}], \"iter184_outlier_warnings_per_hyperfine_and_pytest_benchmark_canonical_heuristics_for_ai_agent_signal_quality_assessment\": [${iter184_outlier_warnings_json_array_body}], \"cap_ms\": ${pinned_baseline_cap_milliseconds}, \"headroom_pct_signed\": ${iter179_headroom_or_overage_percentage_signed}, \"verdict\": \"${iter179_pass_or_regress_verdict_string}\"}")
 }
@@ -628,6 +634,81 @@ else
 fi
 ITER182_GIT_COMMIT_SHA_SHORT_FOR_PROVENANCE_AGAINST_CODEBASE_DRIFT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
+# ─── ITER-187: HOST LOAD AVERAGE — THE MACHINE'S STATE, NOT ITS IDENTITY ─────
+# The iter-182 block records what this machine IS (uname, bash, git SHA) and
+# nothing about what it was DOING. That gap cost a real answer on 2026-09-03:
+# A5 was observed at median=136ms (55% headroom unused) and at 308ms (1% OVER
+# cap) at the SAME backlog=5 -- a 2.3x spread -- and nobody could attribute the
+# difference to load, because nothing recorded any. One agent claimed a run had
+# been on an idle box and had to retract it: that was inferred from its own
+# inactivity, which describes a PROCESS TREE, not a machine. Host load was
+# separately measured swinging 7 -> 188 -> 7 within minutes, driven by ~23
+# sessions no single agent can enumerate. With these fields the standing
+# question -- tight cap, or contention? -- resolves from a scatter of
+# (load, median) pairs instead of duelling anecdotes.
+#
+# Two design points, both from measurements rather than from principle:
+#
+#   1. NAME THE FIELD FOR THE INTERVAL IT ACTUALLY COVERS. The 1-minute
+#      average lags ~60s, so a sample taken at harness start describes the box
+#      BEFORE this harness did anything. That is a feature once you know it --
+#      it is exactly how a load spike of 187 was proven to belong to somebody
+#      else, because the sample's window contained none of the sampler's own
+#      work -- but a name like "..._at_harness_start" invites reading it as
+#      "load while this ran", which is the opposite conclusion from the same
+#      number.
+#
+#   2. ALL THREE AVERAGES, NEVER JUST 1m. A measured precondition of
+#      1m=7.33 / 5m=59 / 15m=58 reads as "quiet box" on the 1m alone -- true,
+#      and badly misleading, because the 5m and 15m were still carrying a spike
+#      from ten minutes earlier. The decay tail is what separates "a spike just
+#      ended" from "sustained load", and three numbers cost the same syscall.
+#
+# FORK-COUNT SAFETY, which is load-bearing in this harness specifically: every
+# sample is taken in the HARNESS, never inside a measured command, and the
+# per-scenario sample fires AFTER iter-186's fork-counting shim has run. A6
+# gates on a PINNED external fork count, so a sample in the wrong place would
+# move the very number A6 pins and redden it for a reason having nothing to do
+# with the doctor.
+iter187_sample_host_load_average_triplet_as_json_array_or_null() {
+    local raw_load_average_text=""
+    if raw_load_average_text=$(sysctl -n vm.loadavg 2>/dev/null); then
+        # macOS returns "{ 7.33 5.90 5.80 }". Strip the braces with TWO separate
+        # expansions, never `${var//[{}]/}`: inside `${...}` the `}` of a
+        # bracket expression TERMINATES the parameter expansion, so that form
+        # silently yields "{ 7.33 5.90 5.80 }/}]" instead of stripping anything.
+        # It passes both `bash -n` and shellcheck, and the damage only surfaces
+        # downstream as an unparseable first field.
+        raw_load_average_text="${raw_load_average_text//\{/}"
+        raw_load_average_text="${raw_load_average_text//\}/}"
+    elif [[ -r /proc/loadavg ]]; then
+        raw_load_average_text=$(< /proc/loadavg) # Linux; a redirect, so zero fork
+    else
+        printf 'null'
+        return 0
+    fi
+    local one_minute_average="" five_minute_average="" fifteen_minute_average=""
+    # `|| true`: `read` returns non-zero at EOF, which `set -e` would treat as
+    # fatal on an empty sample. The trailing `_` absorbs Linux's extra
+    # /proc/loadavg columns (running/total, last pid).
+    read -r one_minute_average five_minute_average fifteen_minute_average _ \
+        <<< "$raw_load_average_text" || true
+    # JSON `null` for an unreadable sample -- never an invented display token.
+    # Absent is a state, and a numeric field has to stay numeric for consumers
+    # that will average or plot it.
+    local numeric_load_shape='^[0-9]+([.][0-9]+)?$'
+    if [[ ! "$one_minute_average" =~ $numeric_load_shape ]] ||
+        [[ ! "$five_minute_average" =~ $numeric_load_shape ]] ||
+        [[ ! "$fifteen_minute_average" =~ $numeric_load_shape ]]; then
+        printf 'null'
+        return 0
+    fi
+    printf '[%s, %s, %s]' "$one_minute_average" "$five_minute_average" "$fifteen_minute_average"
+}
+
+ITER187_HOST_LOAD_AVERAGE_TRIPLET_BEFORE_HARNESS_STARTED_JSON=$(iter187_sample_host_load_average_triplet_as_json_array_or_null)
+ITER187_PER_SCENARIO_HOST_LOAD_AVERAGE_TRIPLET_SAMPLES_JSON_ARRAY=()
+
 iter174_run_single_benchmark_scenario_measuring_median_and_comparing_to_pinned_baseline_cap_with_pass_or_regress_verdict \
     "A1: iter-150 renderer (occasional, N=10 commits)" \
     "$ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER150_RENDERER_DEFAULT_TEN_COMMITS" \
@@ -692,6 +773,11 @@ else
     ITER174_TOTAL_ASSERTIONS_FAILED=$((ITER174_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
+# ITER-187 closing load sample. Captured for BOTH output modes, before the
+# mode dispatch below, so the human-readable path is not silently poorer than
+# the --json path.
+ITER187_HOST_LOAD_AVERAGE_TRIPLET_AFTER_HARNESS_FINISHED_JSON=$(iter187_sample_host_load_average_triplet_as_json_array_or_null)
+
 # ─── Final report ───────────────────────────────────────────────────────────
 if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPTION" == "json" ]]; then
     # Emit canonical iter-179 JSON envelope. Per-scenario records were accumulated
@@ -709,6 +795,20 @@ if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPT
         fi
         iter179_per_scenario_records_joined_by_commas_for_json_array_body+=$'\n    '"$iter179_each_scenario_record"
     done
+
+    # ITER-187: join the per-scenario load triplets into a JSON array body.
+    # `${arr[@]+"${arr[@]}"}` rather than a bare expansion: under `set -u` an
+    # EMPTY array expansion is an unbound-variable error on bash < 4.4, and an
+    # empty samples array is reachable (a harness that fail-fasts before any
+    # scenario runs). An unset-guard here costs nothing and removes a crash
+    # that would only ever appear on the failure path.
+    iter187_per_scenario_load_samples_joined_for_json_array_body=""
+    for iter187_each_load_sample in ${ITER187_PER_SCENARIO_HOST_LOAD_AVERAGE_TRIPLET_SAMPLES_JSON_ARRAY[@]+"${ITER187_PER_SCENARIO_HOST_LOAD_AVERAGE_TRIPLET_SAMPLES_JSON_ARRAY[@]}"}; do
+        if [[ -n "$iter187_per_scenario_load_samples_joined_for_json_array_body" ]]; then
+            iter187_per_scenario_load_samples_joined_for_json_array_body+=", "
+        fi
+        iter187_per_scenario_load_samples_joined_for_json_array_body+="$iter187_each_load_sample"
+    done
     cat <<EOF
 {
   "iter174_schema_version": 1,
@@ -719,7 +819,10 @@ if [[ "$ITER179_OUTPUT_MODE_HUMAN_READABLE_DEFAULT_OR_JSON_FOR_AI_AGENT_CONSUMPT
     "host_machine_uname_srm_for_baseline_hardware_context": "${ITER182_HOST_MACHINE_UNAME_SRM_FOR_BASELINE_HARDWARE_CONTEXT}",
     "bash_version_for_epochrealtime_zero_fork_capability_context": "${ITER182_BASH_VERSION_FOR_EPOCHREALTIME_ZERO_FORK_CAPABILITY_CONTEXT}",
     "epochrealtime_fast_path_engaged_per_iter180_zero_fork_dogfood": ${ITER182_EPOCHREALTIME_FAST_PATH_ENGAGED_PER_ITER180_ZERO_FORK_DOGFOOD},
-    "git_commit_sha_short_for_provenance_against_codebase_drift": "${ITER182_GIT_COMMIT_SHA_SHORT_FOR_PROVENANCE_AGAINST_CODEBASE_DRIFT}"
+    "git_commit_sha_short_for_provenance_against_codebase_drift": "${ITER182_GIT_COMMIT_SHA_SHORT_FOR_PROVENANCE_AGAINST_CODEBASE_DRIFT}",
+    "iter187_host_load_average_before_harness_started_1m_5m_15m": ${ITER187_HOST_LOAD_AVERAGE_TRIPLET_BEFORE_HARNESS_STARTED_JSON},
+    "iter187_host_load_average_sampled_after_each_scenario_1m_5m_15m": [${iter187_per_scenario_load_samples_joined_for_json_array_body}],
+    "iter187_host_load_average_after_harness_finished_1m_5m_15m": ${ITER187_HOST_LOAD_AVERAGE_TRIPLET_AFTER_HARNESS_FINISHED_JSON}
   },
   "results": [${iter179_per_scenario_records_joined_by_commas_for_json_array_body}
   ],
