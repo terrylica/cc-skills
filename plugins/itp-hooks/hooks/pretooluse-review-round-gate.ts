@@ -30,7 +30,17 @@ import {
   markBranchReviewable,
   readArtifact,
   recordOverride,
+  unmarkBranchReviewable,
 } from "./lib/review-round-state.ts";
+
+/**
+ * Passed to `parseStdinOrAllow` so this hook's log lines are attributable.
+ *
+ * It was omitted entirely in the first version, which typechecked as an arity error nobody ran:
+ * `createHookLogger(undefined)` mis-keys every entry this hook writes. Every other PreToolUse hook
+ * in the plugin passes its name.
+ */
+const HOOK_NAME = "REVIEW-ROUND-GATE";
 
 const RECORD_COMMAND = 'bun "$(cc-plugin-root itp-hooks)/hooks/lib/review-round-cli.ts" record';
 
@@ -95,7 +105,13 @@ function inlineBodyMessage(matched: string): string {
 }
 
 async function main(): Promise<void> {
-  const input = await parseStdinOrAllow();
+  // NULL IS A REAL RETURN VALUE, not a formality. `parseStdinOrAllow` returns null when stdin is
+  // absent or unparseable; the first version dereferenced it directly, so a malformed payload threw
+  // and reached the catch-all instead of allowing cleanly. It still failed open, but through the
+  // error path, which both mis-reports a routine condition as a hook fault and makes the genuine
+  // fault count useless. The end-to-end fixtures always fed valid JSON, so nothing could see it.
+  const input = await parseStdinOrAllow(HOOK_NAME);
+  if (input === null) return allow();
   if (input.tool_name !== "Bash") return allow();
 
   const command = String(input.tool_input?.command ?? "");
@@ -113,12 +129,23 @@ async function main(): Promise<void> {
   // block work the gate cannot reason about.
   if (repo === null) return allow();
 
+  // LEAVING the queue is a state transition, not a gated action. It is handled BEFORE the override
+  // check because there is nothing here to override: `--undo` is always allowed, and the only
+  // question is whether the gate notices. Previously it did not -- `--undo` classified as null, so
+  // the branch stayed marked and every push to the re-drafted PR kept demanding a fresh record.
+  if (kind === "pr-undraft") {
+    unmarkBranchReviewable(repo);
+    return allow();
+  }
+
   const reason = overrideReason(command);
   if (reason !== null) {
     recordOverride(repo, kind, reason, command);
     return ask(
       `[REVIEW-ROUND-GATE] Override requested for ${kind}: "${reason}"\n\n` +
-        "Recorded in the override log. Approve to proceed.",
+        "Recorded in the override log. Approve to proceed.\n" +
+        "NOTE: an override does NOT mark this branch reviewable, so later pushes to it are not " +
+        "metered by this gate.",
     );
   }
 
@@ -137,7 +164,10 @@ async function main(): Promise<void> {
 
   // Allowed, and the transition is now observable: remember that this branch is reviewable so
   // subsequent pushes are metered too.
-  if (kind === "pr-ready" || kind === "pr-create") markBranchReviewable(repo);
+  // The mark is ANCHORED to the commit that was shown. A bare branch name could never expire; a
+  // sha can be tested against HEAD later, which is what makes "only while a review is pending"
+  // enforceable without asking GitHub.
+  if (kind === "pr-ready" || kind === "pr-create") markBranchReviewable(repo, facts.headSha);
   return allow();
 }
 
