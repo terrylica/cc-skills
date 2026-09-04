@@ -35,6 +35,82 @@ iter180_assert_substring_present_in_dispatcher_with_human_readable_label() {
     fi
 }
 
+# ─── Failure-diagnosis helpers (observability only; no gate is relaxed) ──────
+#
+# WHY: E2 below compares TWO SEPARATE invocations of the iter-174 harness. When
+# a load-sensitive scenario gate fails in one invocation and not the other, the
+# assertion is correct to fire — but its message named MODE DISPATCH as the
+# cause, which the check never established. On 2026-09-03 four red suite runs
+# had to be triaged by hand for exactly that reason: the message asserted a
+# cause, and the evidence needed to disprove it was never printed.
+#
+# These helpers print WHICH clause failed and WHICH scenario failed, and emit a
+# stable machine-readable token so log triage reads a fact instead of inferring
+# one from prose. They are called ONLY from else-branches; every condition in
+# this file is byte-for-byte unchanged.
+
+# ── NEGATIVE CONTROL for this diagnostic (run before trusting it) ───────────
+#
+# BOTH halves are required. "Still fails" alone proves nothing was loosened but
+# not that the capture works; "names the cause" alone proves the capture works
+# but not that the gate still bites. Either half on its own is the shape of a
+# check that passes for the wrong reason.
+#
+#   HALF 1 — the gate still bites, and now says why.
+#     Temporarily pin an impossible cap on one scenario in the iter-174 harness
+#     (e.g. set the A5 backlog-proportional cap expression to 1), then:
+#         bash tasks/tests/test-iter180-...-sixty-perl-forks-per-invocation.sh
+#     EXPECT: E2 still reports ✗ (nothing was relaxed), AND the output now
+#     contains [HARNESS-SCENARIO-FAILURE] naming A5 with its median and cap.
+#     Revert the pin.
+#
+#   HALF 2 — a defect with NO scenario failure is positively distinguished.
+#     Temporarily make the harness echo the literal iter174_schema_version in
+#     human mode, leaving every scenario passing, then run the iter-182 sibling:
+#         bash tasks/tests/test-iter182-...-hyperfine-industry-gap.sh
+#     EXPECT: C1 reports ✗ with "clause 3 FAILED", AND the output contains
+#     [HARNESS-NO-SCENARIO-FAILURE] — proving a genuine leak is NOT reported as
+#     contention. Revert the echo.
+#
+#   Then re-run both unmodified and confirm each returns to a full PASS, so the
+#   controls are shown to be reversible rather than leaving a latent failure.
+
+# Print the harness's own failing scenario lines from a human-mode capture.
+iter180_name_failing_harness_scenarios_in_human_mode_capture() {
+    local harness_output_capture="$1"
+    local failing_scenario_lines
+    # `|| true`: grep exits 1 on no-match, and `set -e` would treat that as fatal.
+    failing_scenario_lines=$(printf '%s\n' "$harness_output_capture" | grep -E '^[[:space:]]*✗ A[0-9]+:' || true)
+    if [[ -z "$failing_scenario_lines" ]]; then
+        echo "      [HARNESS-NO-SCENARIO-FAILURE] human-mode: no '✗ A<n>' line — every scenario"
+        echo "        passed, so this is NOT a scenario regression and mode dispatch is a real suspect."
+        return 0
+    fi
+    echo "      [HARNESS-SCENARIO-FAILURE] human-mode: a scenario gate failed, so the mode"
+    echo "        disagreement is a SYMPTOM of that failure, not evidence of a dispatch regression:"
+    # `awk`, never `head`: `head` closes the pipe and kills `grep` with SIGPIPE,
+    # which `pipefail` promotes into a silent abort. The iter-182 sibling
+    # documents this exact trap in its own iter-186 fix comment.
+    printf '%s\n' "$failing_scenario_lines" | awk 'NR<=5 { print "        " $0 }'
+}
+
+# Same intent for a --json capture. Deliberately schema-light: the envelope's
+# per-scenario record shape is under active iter-186 edit, so this greps for the
+# verdict string rather than parsing fields that may be renamed tomorrow.
+iter180_name_failing_harness_scenarios_in_json_mode_capture() {
+    local harness_output_capture="$1"
+    local regress_lines
+    regress_lines=$(printf '%s\n' "$harness_output_capture" | grep -F 'REGRESS' || true)
+    if [[ -z "$regress_lines" ]]; then
+        echo "      [HARNESS-NO-SCENARIO-FAILURE] --json: no REGRESS verdict in the envelope —"
+        echo "        the envelope may be malformed or truncated rather than reporting a regression."
+        return 0
+    fi
+    echo "      [HARNESS-SCENARIO-FAILURE] --json: the envelope reports a regression; the"
+    echo "        per-scenario verdicts live in its results[] array:"
+    printf '%s\n' "$regress_lines" | awk 'NR<=5 { print "        " $0 }'
+}
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════════════════════"
 echo "  ITER-180 META-RECURSIVE EPOCHREALTIME DOGFOOD REGRESSION TEST"
@@ -146,7 +222,28 @@ if [[ "$ITER180_HARNESS_HUMAN_MODE_OUTPUT_CAPTURE" == *"7/7 assertions PASSED"* 
    [[ "$ITER180_HARNESS_JSON_MODE_OUTPUT_CAPTURE" == *'"overall_verdict": "PASS"'* ]]; then
     echo "  ✓ E2: human-mode and --json mode yield consistent PASS verdict (no mode-divergence regression)"
 else
-    echo "  ✗ E2: human-mode + --json mode verdict inconsistency — mode dispatch may have regressed"
+    echo "  ✗ E2: human-mode + --json mode verdict inconsistency"
+    # Name the clause that actually failed. The previous single-line message
+    # asserted "mode dispatch may have regressed" for BOTH clauses, which is a
+    # cause this check never establishes — the two clauses read two separate
+    # harness invocations, and either can fail on its own.
+    if [[ "$ITER180_HARNESS_HUMAN_MODE_OUTPUT_CAPTURE" != *"7/7 assertions PASSED"* ]]; then
+        echo "      clause 1 FAILED: human-mode capture did not contain '7/7 assertions PASSED'"
+    fi
+    if [[ "$ITER180_HARNESS_JSON_MODE_OUTPUT_CAPTURE" != *'"overall_verdict": "PASS"'* ]]; then
+        echo "      clause 2 FAILED: --json capture did not contain overall_verdict PASS"
+    fi
+    # Both helpers run UNCONDITIONALLY, so exactly one token is emitted per
+    # invocation whichever clause failed. Calling them only inside the failing
+    # clause left a real hole: a defect that trips a clause WITHOUT any scenario
+    # failing would emit no token at all, and a log reader keying on the tokens
+    # would fall back to "probable contention" for what is a genuine defect —
+    # the precise misdiagnosis this whole change exists to remove.
+    iter180_name_failing_harness_scenarios_in_human_mode_capture "$ITER180_HARNESS_HUMAN_MODE_OUTPUT_CAPTURE"
+    iter180_name_failing_harness_scenarios_in_json_mode_capture "$ITER180_HARNESS_JSON_MODE_OUTPUT_CAPTURE"
+    echo "      NOTE: these are two SEPARATE invocations of the harness. A load-sensitive"
+    echo "        scenario gate failing in one and not the other produces this disagreement"
+    echo "        without any dispatch bug existing."
     ITER180_TOTAL_ASSERTIONS_FAILED=$((ITER180_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
