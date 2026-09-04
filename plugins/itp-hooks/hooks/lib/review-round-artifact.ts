@@ -86,10 +86,23 @@ const READY_UNDO = /(?:^|\s)--undo(?=\s|$)/;
 
 const hasFlag = (command: string, flag: RegExp) => flag.test(withoutQuotedSpans(command));
 
-export type GatedKind = "pr-ready" | "pr-create" | "push" | "inline-body";
+/**
+ * `pr-undraft` is NOT gated. It is here because collapsing it to `null` -- which is what the first
+ * version did -- makes it indistinguishable from `ls -la`, and the gate then has no moment at which
+ * to notice that the branch left the review queue.
+ *
+ * The consequence of that collapse was measured: the reviewable bit survived `gh pr ready --undo`
+ * forever, so every push to a re-drafted PR stayed fully gated while this file's own comment
+ * asserted that `--undo` "removes work from the queue". The comment described an intent the code
+ * did not implement. Naming the transition is what lets the gate act on it.
+ */
+export type CommandKind = "pr-ready" | "pr-create" | "push" | "inline-body" | "pr-undraft";
+
+/** @deprecated Retained so existing imports keep compiling; prefer {@link CommandKind}. */
+export type GatedKind = CommandKind;
 
 export interface Classification {
-  readonly kind: GatedKind | null;
+  readonly kind: CommandKind | null;
   /** Why this command was picked up, quoted back to the operator so a misfire is diagnosable. */
   readonly matched: string;
 }
@@ -111,7 +124,7 @@ const PUBLISHES_A_BODY = ghCommand(
 
 export function classify(command: string): Classification {
   if (hasFlag(command, READY_UNDO) && GH_PR_READY.test(command)) {
-    return { kind: null, matched: "" };
+    return { kind: "pr-undraft", matched: "gh pr ready --undo" };
   }
 
   // INLINE BODY IS CHECKED FIRST, and the order is load-bearing rather than incidental. It is a
