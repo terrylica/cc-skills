@@ -1,3 +1,463 @@
+# [30.1.0](https://github.com/terrylica/cc-skills/compare/v30.0.0...v30.1.0) (2026-09-04)
+
+
+### Bug Fixes
+
+* **commits-arc:** doctor names its own cause, not a pre-written one ([b42a40c](https://github.com/terrylica/cc-skills/commit/b42a40ceb1d87900488d61cb872823d4db975619))
+
+Every one of the 15 checks lost its subprocess's stderr, and on failure the doctor recorded a PRE-WRITTEN diagnostic asserting a cause the check had never established ("chain wiring regressed"). The output was therefore identical whether or not the check learned anything — the same vacuous shape as a gate that cannot fail. ~188 clean executions during an investigation bought nothing, because the one occurrence that mattered had already destroyed its evidence.
+
+The `2>/dev/null` on the chain probes was belt-and-braces, not the cause. The real discard was a single line in the timing helper, which ran every check as `"$@" >/dev/null 2>&1`. Fixing that one line fixed all fifteen. Three further sites were found on top: two inside Check 14's `bash -c`, and Check 13's `--help >/dev/null 2>&1` — the last spotted only because the negative control showed that check reporting no cause when it obviously had one.
+
+Observability only. No check, severity, exit code or pass/fail boundary moved.
+
+## Two constraints shaped the implementation
+
+Capture uses only builtins and command substitution. The obvious `mktemp` for a stderr file would have broken iter-174's A6 assertion, which pins this script's external fork count — adding a log line would have failed a sibling's gate. A6 still reads forks=23.
+
+iter163 E3 and iter166 F3 static-grep the pre-written strings out of this source, so deleting them would have failed two tests, and editing those tests to suit the change would have softened a gate. The strings survive byte-identical behind `hypothesis (NOT established by this check):`, with the observed cause leading. Both tests pass unmodified.
+
+## The negative control caught a defect in the fix itself
+
+Built by copying the tree and deleting the iter-161 lib. It proved both required halves: the doctor still fails at the same boundary (4 CRITICAL, exit 1) and now reports `No such file or directory` on the deleted lib — the actual root cause, previously written to stderr and thrown away.
+
+It also caught a bug that reading the diff would not have. The first version printed, for the `iter-161 library missing` check:
+
+    observed: sub-step exited non-zero and wrote nothing to stderr
+
+No sub-step ran — that check is a `[[ -f ]]` guard. A claim that a subprocess ran and was silent, where nothing had executed: precisely the defect being removed, reintroduced inside its own fix. An empty capture cannot distinguish "ran and printed nothing" from "never ran", so the helper now sets a flag the recorder consumes, and the emitted clause is gated on it. That distinction is the whole point — "we looked and there was nothing" is a finding; "nobody looked" is not.
+
+Capture is consume-and-cleared by the recorder, so a check that runs no subprocess can never inherit the previous check's output.
+
+## Verification
+
+shellcheck and `bash -n` clean. Happy path: exit 0, valid JSON, verdict TOOLKIT_HEALTHY, 13/13 critical passed, 15 records. iter160, iter163, iter166 and iter177 all PASS unmodified. iter174 7/7 with A6 forks=23. Full hook regression suite: 113 discovered, 113 PASSED, 0 FAILED — the discovered-vs-passed form, which matters given #113.
+
+Deliberately not claimed: this does not reproduce or explain the original iter160 failure. It makes the NEXT occurrence self-describing. iter160 stays open.
+
+Investigated and implemented by the perftest agent.
+
+* **gates:** wire link checking, finish the private-path leak, unbreak grep ([87421d8](https://github.com/terrylica/cc-skills/commit/87421d8b2dcc320365a2083d3d21a78c838549f8))
+
+Three findings, all from adversarial review rather than from anything failing.
+
+Link checking had NEVER run — link-tools ships a 495-line checker with no hooks.json, and lychee appears zero times in moon.yml and tasks/. Third occurrence of the defined-but-unwired gate class. Config also broken since lychee 0.24 turned include_fragments from bool to enum. Real count is 235, not the 417 a naive run reports: --root-dir was missing, and repo-root-relative links are this repo's own convention.
+
+Yesterday's private-path fix covered the .ts and missed hooks.json — the more public of the two, since a manifest description is what marketplace clients render.
+
+posttooluse-markdown-hard-wrap-reminder.ts held a literal NUL byte, so BSD grep classified a tracked TypeScript source as binary and returned exit 1 with no output. It was invisible to every plain grep sweep of the repo, with a zero-match result indistinguishable from "not present".
+
+Closes #41.
+
+* **hooks:** a quoted env assignment blinded four guards ([#129](https://github.com/terrylica/cc-skills/issues/129)) ([50c27bd](https://github.com/terrylica/cc-skills/commit/50c27bdef0b1a97218facd40b4b02fa3b68689c7))
+
+fix(hooks): a quoted env assignment blinded four guards
+
+`GH_ORGS="Eon Labs" gh pr comment …` matched no command position and the citation guard silently ALLOWED it — the check was skipped entirely, before a body was even collected. Flagged when it defeated the review-round gate in #125; this fixes it at the source and at every other site of the same defect.
+
+REPRODUCED, not inferred. The identical PR-review body is DENIED as `gh pr comment 12 --body '…'` and ALLOWED as `GH_ORGS="Eon Labs" gh pr comment 12 --body '…'`. `FOO=bar` works either way, which is exactly why every existing test case missed it.
+
+FOUR SITES, and the count came from widening the grep, not the first search. Searching for `\S*` found two. The defect is spelled three different ways:
+
+  pretooluse-pr-citation-evidence-guard.ts:86   =\S*          DENY BYPASS
+  git-worktree-guard-patterns.ts:83             token-based   DENY BYPASS
+  lib/sigpipe-under-pipefail-detector:321       =[^ \t]*      missed advisory
+  devops-tools/…/1password-pattern-reminder.sh  =\S* (ERE)    missed advisory
+
+THE WORKTREE GUARD ONE IS THE WORST, and it was not on the original list. Its tokenizer splits on bare whitespace, so `GH_ORGS="Eon Labs" git checkout -b x` became ['GH_ORGS="Eon', 'Labs"', 'git', …]: the first token was consumed as an assignment, the second did not look like one, and the scan stopped with `Labs"` in the command position. The guard never saw `git` at all, so worktree-per-branch — a CRITICAL policy — went unenforced for any quoted assignment with a space. Confirmed by running its real tokenizer, not by reading it.
+
+Two sites already had the correct idiom (headless-claude-p-patterns.ts, review-round-artifact.ts). Five hand-rolled command-position peelers now agree.
+
+NO SHARED HELPER IN THIS COMMIT, deliberately. The right target is one `lib/` export consumed by all of them, but the worktree tokenizer and the sigpipe strip want a quote-aware STRIP rather than a regex prefix, and the bash reminder cannot import TypeScript at all. That is four call-site refactors across two plugins with opposite failure directions (deny-bypass vs missed-reminder), and the suites were too thin to backstop it until this commit. Also unchanged: the citation guard matches `gh` without a path prefix, so `/opt/homebrew/bin/gh` still evades it — a real bypass, but a genuine behaviour widening deserving its own change.
+
+VERIFICATION 3 mutations, 0 survivors, restores byte-identical by sha256, baseline asserted green first and re-checked after. C3 SURVIVED on the first run — the sigpipe fix had no test, which for a regression guard is indistinguishable from not having fixed it. Four cases were added, including a false-positive control, and it now dies. Each site ships positive cases AND controls that must stay green: `git status` behind a quoted assignment must not block, an unterminated quote must not run off the end, and `echo op` / `open something` must still not trigger the reminder. 1580 tests across the plugin, 0 fail. validate-plugins.mjs: 41 plugins, 0 errors. bash -n clean on the modified shell script.
+
+* **hooks:** finish [#109](https://github.com/terrylica/cc-skills/issues/109) — generators still wrote bad timeouts ([#126](https://github.com/terrylica/cc-skills/issues/126)) ([a6a956d](https://github.com/terrylica/cc-skills/commit/a6a956de7d1d8f4e81e0ea79b8ec66b54c2a72f1)), closes [#124](https://github.com/terrylica/cc-skills/issues/124) [#124](https://github.com/terrylica/cc-skills/issues/124) [#124](https://github.com/terrylica/cc-skills/issues/124) [#124](https://github.com/terrylica/cc-skills/issues/124) [#484](https://github.com/terrylica/cc-skills/issues/484) [#tools](https://github.com/terrylica/cc-skills/issues/tools)
+* **hooks:** hook timeouts are SECONDS, and make the schema actually enforce that ([#124](https://github.com/terrylica/cc-skills/issues/124)) ([6f1c9e2](https://github.com/terrylica/cc-skills/commit/6f1c9e2262b7c69f06de39c0462abbea47dc4b8a))
+
+Every hook timeout in the marketplace was written as milliseconds against a schema description that said milliseconds. The unit is seconds.
+
+    "timeout ... Seconds before canceling. ... Defaults: 600 for command, http, and mcp_tool; 30 for prompt; 60 for agent." -- https://docs.claude.com/en/docs/claude-code/hooks
+
+So `"timeout": 5000` was not 5 seconds, it was 83 minutes, and the Stop orchestrator's `65000` was EIGHTEEN HOURS on a blocking hook. That is the exact hazard process-storm-CLAUDE.md exists to prevent -- a hook that cannot be contained by a duration bound is the documented 73 GB / &lt;9 s incident, and these had effectively no bound at all.
+
+55 hook entries across 10 plugins corrected (53 oversized values, all divisible by 1000 because they were all ms-intent, plus one entry with NO timeout that was silently inheriting the 600 s default). Two more were caught in the `manage-hooks.sh` GENERATORS -- fixing only the emitted hooks.json would have let the defect regenerate on the next run.
+
+THE SCHEMA WAS NOT ENFORCING ANY OF IT, THREE LAYERS DEEP. Tightening `maximum` from 600000 to 600 changed nothing, which the mutation harness caught before this shipped:
+
+  1. `hooks.schema.json` is compiled into an Ajv validator at startup and then never called. The only reference to `validateHooksSchema` after compilation is an `if (!validateHooksSchema)` existence check.
+  2. `validateHookDefinition` HARDCODED `hook.timeout > 600000`, a second copy of a constraint whose source of truth is the schema. The schema was, for this field, documentation.
+  3. That hardcoded check pushed a WARNING, and warnings do not fail the run -- so even when correct it could only ever produce a line nobody reads. Its message also said "ms", which is how 53 entries came to be written that way.
+
+Now: the bound is READ FROM the schema (so the schema is the SSoT and tightening it has an effect), an out-of-range timeout is an ERROR, and a schema whose shape moves so the bound cannot be found is also an error rather than silently unchecked -- absence of a constraint must not read as permission.
+
+`validateHooksJsonStructure` also only ever examined jq expressions inside the five `manage-hooks.sh` scripts. TEN `plugins/*/hooks/hooks.json` files ship and none was checked. The shipped artifact is now validated too, with an anti-vacuity error if the glob ever matches nothing -- the loop is `for (...) { check }`, which reports success over an empty set.
+
+Mutation-verified, restore byte-identical by sha256:
+
+  put one timeout back to 5000        -> REJECTED (was: accepted, Errors: 0)
+  put the Stop hook back to 65000     -> REJECTED (was: accepted, Errors: 0)
+  loosen the schema ceiling to 600000 -> ACCEPTED, and this is CORRECT: the bound is now derived from the schema, so deliberately loosening it is a visible one-line change in a reviewable file rather than a no-op
+
+Before this change all three were accepted with `Errors: 0`, including the eighteen-hour one.
+
+`maximum` is tightened 600000 -> 600, which the prior note deferred until the oversized values were fixed. It also said there were 62; re-deriving the population found 53 in `plugins/` (the other 53 are a second checkout of the same files under `.claude/worktrees/round3-guards`, which is someone else's branch and is deliberately untouched).
+
+validate-plugins.mjs: 41 plugins, 0 errors, 0 warnings.
+
+* **itp-hooks:** finish the private-path fix, and make a tracked source greppable again ([ff8b39b](https://github.com/terrylica/cc-skills/commit/ff8b39b5dc2236a38f6a92e14a9455844cee6a74))
+
+Two small defects, both found by adversarial review rather than by anything failing.
+
+## 1. Yesterday's private-path fix covered the .ts and missed the manifest
+
+31c38a70's parent commit gated the `verify-citations.ts` advice in pretooluse-pr-citation-evidence-guard.ts behind an `existsSync` check, because that helper lives in the operator's PRIVATE claude-config repo and cc-skills is PUBLIC. But `plugins/itp-hooks/hooks/hooks.json` — tracked, shipped, and inherited by every installer — still read verbatim:
+
+    verify content with `bun ~/.claude/skills/pr-evidence-standard/verify-citations.ts`
+
+Same defect, same guard, one file over. A manifest `description` is rendered by marketplace clients, so this was the MORE public of the two occurrences and it is the one that survived the fix.
+
+The lesson generalises past this instance: when a path leaks, fixing the site that FAILED is not the same as fixing the class. The .ts printed it at runtime and was noticed; the manifest states it declaratively and was not.
+
+Replaced with guidance any installer can act on, matching the fallback prose the .ts already prints when the helper is absent. Raw-text edit, not a JSON round-trip — a round-trip rewrites unrelated \uXXXX escapes across the file, a measured hazard here. 1 line changed, still valid JSON, zero `pr-evidence-standard` references left in any plugin manifest.
+
+## 2. A tracked TypeScript source was classified as BINARY
+
+posttooluse-markdown-hard-wrap-reminder.ts:176 contained a literal 0x00 byte, written as a raw NUL rather than the `\0` escape, used as a wrapSignature delimiter:
+
+    $ file  posttooluse-markdown-hard-wrap-reminder.ts
+    ... a /usr/bin/env bun script executable (binary data) $ grep -c wrapSignature posttooluse-markdown-hard-wrap-reminder.ts (no output, exit 1)
+
+BSD grep treats a file containing NUL as binary and returns exit 1 with NO output. So this file was invisible to every plain `grep -rn` sweep of the repo — silently, with a zero-match result indistinguishable from "the pattern is not there". That is the same class as the four search-pattern failures recorded yesterday, except the blind spot was in the CORPUS rather than in the pattern, which is worse: no amount of care with the regex would have surfaced it.
+
+It is also, with some irony, the hook for open issue #106.
+
+Replaced 0x00 with the `\0` escape. Proven semantically identical rather than assumed:
+
+    bun -e 'console.log(`x\0y` === "x"+String.fromCharCode(0)+"y")'  ->  true
+    charCodeAt(1) === 0
+
+so the runtime delimiter is byte-for-byte what it was; only the SOURCE stops being binary. `file` now reports "Unicode text, UTF-8 text" and grep finds its 3 occurrences.
+
+Verified: 32/32 hook tests, and the full gate at 113/113 with 0 lint errors.
+
+* **itp-hooks:** shell-script-safety-guard has never blocked anything ([#130](https://github.com/terrylica/cc-skills/issues/130)) ([0751e54](https://github.com/terrylica/cc-skills/commit/0751e547a72b250afeace4bd710fec4e4aab807e))
+
+fix(itp-hooks): shell-script-safety-guard has never blocked anything
+
+`isPlanMode` returns a PlanModeContext OBJECT, never a boolean. The guard opened with `if (isPlanMode(input)) return ALLOW_DECISION;` — and every object is truthy, so it returned ALLOW on every single invocation and never examined one script.
+
+It enforces a CRITICAL policy (`local x=$(cmd)` masks the command's exit status and defeats `set -e`) and it has been enforcing nothing for its entire life.
+
+Six of the seven `isPlanMode` call sites in this plugin read `.inPlanMode`. This was the only one that did not, which is why nothing else was affected and why nothing surfaced it.
+
+HOW IT WAS FOUND, because the route matters more than the fix. I was sent here to "fix the MultiEdit fastpath" — a one-line change the survey called an obvious bug. Before touching it I wrote a CONTROL for the unrelated test: a plain Write payload carrying a defect the detector provably flags. The guard allowed it. A test without that control would have passed against a permanently disarmed guard and reported success.
+
+THE FASTPATH IS NOT A BUG, and this is the part worth recording. The orchestrator skips MultiEdit at :379 while its hooks.json matcher is `Write|Edit|MultiEdit`, which reads exactly like an oversight. It is the load-bearing half of a staged migration: iter-102 widened the tool-name GATE inside the classifiers to accept MultiEdit, but per-classifier PAYLOAD adaptation is iter-103 work, because a MultiEdit carries `edits[]` rather than `content`/`new_string`.
+
+Measured before changing anything: TEN of the eleven classifiers short-circuit MultiEdit to ALLOW immediately after the gate. Opening the fastpath would have been a no-op for those ten and would have activated exactly ONE — shell-script-safety, the only one missing the short-circuit — against a payload whose `new_string` is undefined. The recommended one-line fix would have shipped a false-positive generator.
+
+So this commit does the opposite of what was recommended:
+  - re-arms the guard that was actually broken
+  - adds the missing MultiEdit short-circuit so the cohort is consistent and opening the fastpath later is a capability decision rather than an accident
+  - replaces the fastpath's wrong comment (it claimed non-Write/Edit tools "shouldn't happen given the hooks.json matcher") with the real reason
+
+VERIFICATION 5 tests in a file that did not exist. Both plan-mode directions are pinned, so the fix cannot be "delete the plan-mode check". 3 mutations, 0 survivors, restores byte-identical by sha256. S3 SURVIVED at first: the MultiEdit short-circuit was redundant with the existing empty-content check, so removing it changed nothing and the mutant lived. Rather than keep untestable defensive code, the case was rewritten to supply `content` alongside `edits` — the exact shape iter-103 will produce — which makes the short-circuit load-bearing and kills the mutant honestly. 1585 tests across the plugin, 0 fail — re-arming a dormant guard broke nothing. validate-plugins.mjs: 41 plugins, 0 errors.
+
+NOT TOUCHED: posttooluse-mini-inngest-doctrine.ts:205 has the same Write-or-Edit-without-MultiEdit shape, but it is under active edit by another session in the shared checkout right now. Left alone deliberately rather than risk clobbering someone else's work; it is advisory, not blocking.
+
+* **itp-hooks:** the hard-wrap guard no longer disables itself when documented ([76a26c6](https://github.com/terrylica/cc-skills/commit/76a26c607bf8a334c54f71b16fe831af57966330))
+
+Closes #106.
+
+Suppression was a plain regex over the WHOLE FILE, so writing the escape token anywhere — including in prose DOCUMENTING the token — permanently silenced the hook for that document. The operator's global CLAUDE.md never spells the tokens in full purely to avoid this: a workaround for a bug, living in the file that is supposed to be the authority.
+
+The marker must now sit INSIDE AN HTML COMMENT, in live markdown. A new `hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent()` handles the markdown path; `hasFileWideEscapeHatchMarkerInContent` is deliberately UNTOUCHED, because plain substring matching stays correct for the ~20 Bash-command callers where the token can only be present if the operator typed it.
+
+## The obvious fix was a trap, and it was avoided
+
+Stripping inline-code spans whole-file re-pairs backticks across the document. On any file with an ODD number of backticks the stripper eats from the stray tick through the first tick inside a legitimate escape comment, destroying the `<!--` opener and silently un-suppressing a file the operator deliberately exempted. Measured: 19 of 1,094 tracked .md files are exposed, and ccmax-monitor's PROVENANCE.md already has a code span inside its escape comment.
+
+Stripping is therefore PER LINE and length-preserving, so offsets stay valid. A test asserts that the naive whole-file strip destroys the `<!--` opener.
+
+## Finding 3: the issue's own rule is a no-op; the per-wrap variant is real
+
+The issue proposed "if the joiner would make zero joins, do not report". Measured across all 1,094 tracked .md files, the count of files with wraps > 0 AND joins == 0 is ZERO — it would not have changed a single report. The PER-WRAP variant works: report only wraps that do not survive the joiner. That silences 28 of 5,078 wraps (0.55%), all of the aligned/indented class — 24 in CHANGELOG.md, 4 in docs/self-custody-secrets.md.
+
+28, not the 36 the investigation first reported; the smaller figure was measured directly and is the one recorded.
+
+Both the joiner and the mask now run ONE scan (`scanAndJoinGfmParagraphs`). A second predicate that merely PREDICTED the joiner would be the same drift class the finding is about.
+
+## Verified by control, including the case that had to stay unchanged
+
+Independent probe, hook invoked directly:
+
+    plain  no marker at all                       REPORT  (1579 B)
+    case1  token merely NAMED in prose            REPORT  (the defect, fixed)
+    case4  genuine opt-out, inline-code span in
+           the comment, unmatched tick earlier    SILENT  (preserved)
+
+`plain` is load-bearing: without it a silent result proves nothing. That probe returned SILENT for ALL THREE cases on three earlier attempts, for three different reasons — too-short fixture lines, a missing `content` field, and a `/tmp` path the hook skips as scratch. Each produced a plausible clean run.
+
+Suppression compatibility across every file on this machine naming the marker: 5 genuine opt-outs still suppress. 4 cc-skills documentation files stop suppressing, including this hook's own spoke — which now has zero hard wraps and needs no exemption, so it is genuinely clean rather than blind.
+
+Finding 2: the remedy line is now portable — `bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" <file>` with the real path interpolated. Finding 5: the inaccurate "reads no files" claim corrected in hook and spoke. Finding 4: documented, NOT changed — the iter-124 scratch-path helper is shared by ty/tsc/oxlint/biome/vale, so exempting repo-local tmp/ would silently alter five other hooks. The issue's retracted claim is not implemented.
+
+Tests: 44 in the hook file (was 32), 22 in a new helper test file, +4 mask tests. Gate: 1793 bun tests, 113/113 hook regression files, 0 lint errors, 6 tasks. Cost: 5.5 -> 8.9 ms per edit on a 273 KB document.
+
+* **itp-hooks:** the review-round gate's reviewable bit never expired ([#128](https://github.com/terrylica/cc-skills/issues/128)) ([98f6a62](https://github.com/terrylica/cc-skills/commit/98f6a624a05057c69b2aff973b07e9679c31e972)), closes [#125](https://github.com/terrylica/cc-skills/issues/125) [#125](https://github.com/terrylica/cc-skills/issues/125)
+
+fix(itp-hooks): the review-round gate's reviewable bit never expired
+
+* **links:** repair lychee config and add an offline link check that has never existed ([b623eb0](https://github.com/terrylica/cc-skills/commit/b623eb0df2ba9222121c5447c2fba77e80382fc3))
+
+Link checking has NEVER RUN in this repository. Not 'broke recently' — never ran, for the entire life of the tooling:
+
+    plugins/link-tools/hooks/  has stop-link-check.py (495 lines) and NO hooks.json
+    grep -c lychee moon.yml    0
+    grep -rl lychee tasks/     0
+
+So a 495-line link checker was shipped, registered nowhere, and executed zero times. The framing this started from — 'lychee crashes, fix the config' — was inverted: the config WAS broken, but fixing it alone would have changed nothing observable, because nothing called it.
+
+THIRD OCCURRENCE OF THE SAME CLASS. moon.yml's own check task carries the comment 'A gate that is not in the gate is not a gate', four lines above a deps list that did not include link checking. The lesson was written down and not applied to the case sitting next to it.
+
+## The config break
+
+lychee 0.24 turned include_fragments from a bool into an enum:
+
+    --include-fragments[=&lt;none|anchor-only|text-only|full>]
+
+so 'include_fragments = true' is a hard TOML parse error and every invocation died at config load. Now 'anchor-only', the closest equivalent to the old true.
+
+## The count, and why the first number was wrong
+
+    417 errors   naive offline run
+    237 errors   with --root-dir
+    235 errors   also excluding deliberate-violation test fixtures
+
+The 417 was inflated ~77% by MISSING CONFIG, not broken links: without --root-dir, lychee reports every repo-root-relative link (/docs/adr/x.md) as an error — and root-relative is this repo's own documented convention for repo docs. Reporting 417 broken links would have been alarming and wrong. The fixture exclusion is small (2 links) and is not weakening the check: those files contain deliberately-invalid links so a test can assert they are caught.
+
+235 is the honest number and it is real breakage across a public repo's 117+ docs.
+
+## Offline by design
+
+External URL liveness depends on the network, remote uptime and rate limits — it goes red for reasons unrelated to this repo. That is precisely the phantom-red class just removed from the perf tests, and importing it into the docs gate would repeat the mistake somewhere new. Internal links are a pure function of the tree: same bytes, same verdict, 60ms.
+
+## Deliberately NOT wired into repo:check
+
+235 errors in check.deps would block every commit in the repo. The task is defined, dated, and carries its exit condition in both the script output and the moon.yml comment: wire it the moment the count reaches zero. That is the same defined-but-unwired shape this commit criticises, so the difference is stated explicitly — this omission is deliberate and has a written trigger, rather than being an accident nobody noticed for the tool's entire lifetime.
+
+Gate unchanged and green: 6 tasks, 113/113, 0 lint errors.
+
+* **perf-baseline:** gate A5 and A6 on fork counts instead of wall clock ([d1e0eb7](https://github.com/terrylica/cc-skills/commit/d1e0eb76cbf4519cfbfa78820ae1daf1a45e315e))
+
+Both scenarios gated on elapsed milliseconds, which is not a property of the code under test on a machine running anything else. Both now gate on the number of subprocesses the measured script forks, which is.
+
+A5 (iter-165 aggregator) was the harness's most failure-prone assertion and uniquely so, because its cap tightens on its own. The cap is not a constant but
+
+    cap = FIXED_STARTUP_BUDGET(200) + PER_COMMIT_BUDGET(21) x backlog
+
+so it shrinks in headroom as commits accumulate between releases. It was observed failing at median=308ms vs cap=305ms — a 3ms margin, which measures the machine, not the aggregator — and separately at median=136ms at the same backlog, a 2.3x spread. Now pinned at 3 git forks (1 rev-parse, 1 describe, 1 log), the quantity iter-167 actually optimised when it collapsed a 2N+1 per-commit fan-out into one batched `git log`. test-iter167 D1/D2 already pin that same property from the other side.
+
+A6 (iter-160 doctor) measured 555ms isolated, 1318ms with 8 concurrent harnesses, and 1782ms under load with no co-scheduling at all — two independent causes, each sufficient to blow the 1500ms cap on its own. Now pinned at a ceiling of 23 external forks plus an exact perl==0 clause for the iter-177 zero-fork timing property.
+
+Ceilings, not equalities: the doctor pipes three probes into `grep -q`, which SIGPIPE-kills the producer part-way through, so its count is nondeterministic DOWNWARD only. An exact gate produced its own phantom red (forks=21) before this was understood.
+
+Detection is strictly stronger, not weaker. Four negative controls, each restoring the mutated file via trap and verifying by SHA-256:
+
+  iter-177 reverted to perl   forks 23->49   caught; wall clock 1317ms PASSED the old cap
+  extra forking check added   forks 23->25   caught; wall clock  547ms PASSED the old cap
+  per-commit git fan-out      forks  3->16   caught; wall clock  173ms PASSED the old cap
+  persistent 300ms slowdown   A1 fails twice, survives the confirm retry
+
+The old millisecond caps false-negatived all three fork regressions while false-positiving under load.
+
+Also in this file:
+
+- SIGPIPE/pipefail: `echo | head -1` in the min/max extraction and five `find | head -1` path resolutions. Observed killing a real run with exit=141 immediately after the A1 verdict, with no error line.
+- A1-A4 keep wall-clock gates but re-measure once before declaring a regression. Contention is transient, a regression reproduces.
+- The CC_SKILLS_SKIP_PERF_TIMING success line no longer contains the literal text of a failure line. It read `median=NNNms > cap=NNNms` on a PASS, which a log classifier matched unanchored and a contention experiment would have recorded as a gagged null.
+- The per-scenario verdict line is documented as a consumed interface; iter-180 E2 and iter-182 C1 parse `✗ A<n>:` out of it.
+- Softened the header's causal claim. It asserted A6 was the single load-sensitive gate here; that was inference, never an enumeration, and observed runs failing iter-123/160/163 contradict it.
+
+Does NOT explain the iter-163 verdict class, where 1-3 critical doctor checks exit non-zero for a reason that is not elapsed time. At least two mechanisms are live; this addresses one.
+
+* **perf-baseline:** say a fork failure is not a timing failure ([b33a9ce](https://github.com/terrylica/cc-skills/commit/b33a9cec246f505e456d6d10cebfc7104a4e121d))
+
+The fork-count regression line ended with a bare `wall clock NNNms`. It is a load-invariant failure, but a reader matching loosely on "wall clock" would file it under the contention bucket — laundering a real regression into a known flake, which is the failure mode the UNKNOWN bucket exists to prevent.
+
+Same hazard class as the CC_SKILLS_SKIP_PERF_TIMING line fixed in b478b6f0, one severity lower: that one was a PASS carrying the text of a failure, this is a failure that could be filed as the wrong failure. The canonical classifier already anchors on `median=…ms > cap=…ms` and never matched this, so nothing was broken — but relying on every present and future reader to anchor correctly is the thing that made the first one dangerous.
+
+Now reads: "This is NOT a timing failure; ungated wall clock was NNNms".
+
+Negative control 4 re-run after the change: injected per-commit git fan-out, forks 3 -> 18, A5 still fails, exit 1, aggregator restored and checksum-verified. Suite 3/3 at 113/113.
+
+* **plugins:** stop shipping private hosts as defaults ([d84ba3b](https://github.com/terrylica/cc-skills/commit/d84ba3b3be7da2b1f1097bf5f4701a5445085e1e))
+
+The statusline gateway fix in d977f806 was not an isolated bug. The same shape — a maintainer's private host baked in as the DEFAULT, so every public installer reaches for it — appears in four more places. This finishes the sweep across the whole repo rather than the one plugin it was first found in.
+
+The generic matcher `tail[0-9a-f]{6}\.ts\.net` (deliberately not the literal, so a second tailnet would also be caught) goes from 8 lines in 3 files to zero. Zero hits in filenames and paths, before and after. A private/CGNAT address scan additionally removed a ZeroTier address nobody was looking for.
+
+Four functional defaults given the same env-or-config seam the statusline fix used, so the public default costs nothing — no network, no file, no error — while operator behaviour is preserved and asserted equal by string comparison rather than by eye:
+
+- `html-showcase/site.sh` shipped the maintainer's host AND remote path as defaults. Unconfigured `url` and `list` now exit 1 with instructions and invoke no ssh.
+- `session-debrief.ts` and `prompt-benchmark.ts` defaulted to a private inference gateway. Severity was bounded only because the API key had no default, so a stranger's request never actually fired — the URL was there regardless.
+- `pueue-local-guard` matched on a literal hostname. Hostnames are now opt-in, and a control proves the guard still denies on generic indicators rather than being hollowed out.
+- `ssh-tunnel-companion` hardcoded an absolute maintainer path in a TRACKED plist, so `install.sh` would have installed a broken launchd job for every other user. Now templated, with the substitution hard-failing if the placeholder survives and `plutil -lint` gating the result.
+
+Residuals are bounded and each has a stated reason. `bigblack` 235 -> 23: six are in CHANGELOG, which semantic-release generates from tagged history — hand-editing it would drift against the tags. The rest are test fixtures and templates. `com.terryli.*` launchd labels are deliberately NOT renamed: they are a live service identity spanning the installed plist, launchctl, the SwiftBar lookup and the uninstall path, and `terryli` already sits beside the public `terrylica` org that owns this marketplace, so the privacy gain is near zero against a real outage risk. Recorded as an accepted residual, not an oversight.
+
+Verification: Bun unit 1847 pass / 0 fail at baseline and after; hook regression identical at 113/112/1 with the one failure pre-existing and in a file this commit does not touch; `validate-plugins --strict` 0 errors across 41 plugins; the status line renders unchanged end to end.
+
+A case-variant escaped the first pass — `Bigblack` survived a case-sensitive matcher and was caught only on a re-scan with `-i`. That is HEART-199 in practice: a checker sharing the matcher's anchor certifies its own blind spot.
+
+* **statusline-tools:** stop shipping the maintainer's private tailnet as every installer's default gateway ([d977f80](https://github.com/terrylica/cc-skills/commit/d977f80620845e8e4c447abaeded5a9ad4ef90e8))
+
+This plugin is published to a PUBLIC marketplace. `custom-statusline.sh:774` hardcoded a private Tailscale host as the DEFAULT gateway base URL, so every installer of this marketplace — not just the maintainer — probed that host twice per cold cache on every status line render (`/v1/users/me` and `/v1/router-status`) and accumulated an unbounded `~/.claude/doorward-state.jsonl` locally. The textual leak was the smaller half; the behavioural half was strangers' machines sending unsolicited traffic to a private tailnet they have no account on, forever, as a side effect of installing a status line.
+
+Measured with a logging curl shim against a virgin HOME: the old script made 2 calls to the private host and wrote an 874-byte state file; the new script makes 0 calls and creates no file. Setting `STATUSLINE_GATEWAY_BASE_URL` restores exactly 2 calls, to the configured host. The gateway segment is now opt-in and inert by default, so it costs nothing — no network, no file, no error — for anyone who has not configured it.
+
+The maintainer's own feature is preserved rather than deleted. The badge still renders, as `gateway 9/9 ✓ 3.2.0` instead of `doorward 9/9 ✓ 3.2.0`, once the base URL is configured. Deleting the segment outright would have silently removed a working feature, which is the failure mode this repo's own guidance warns against.
+
+De-fleeting also removes the vendor-internal name from the public surface: the `doorward_` schema prefix becomes `gateway_`, and `scripts/doorward-telemetry-analytics-from-statusline-jsonl-log.py` is renamed to `scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py` — a filename is public too. The rename is fully propagated with zero dangling references, and the cli_spec drift gate is green.
+
+No credential was found in the published tree. The secret probe was proven capable before being trusted, with a 7-class control that fires; this is a cleanup, not an incident. Enumeration covered 2313 tracked regular files, cross-checked against a filesystem walk, with `git ls-files --others --exclude-standard` returning 0 so the tracked set is provably the publishable set. Controls fired at 425 and 2573 hits to show the probe could record a positive.
+
+In-scope residuals after this change: doorward 5, ccmax 15, bigblack 0, terryli 1, nca 0 (the 4 raw `nca` hits are substrings inside `concatenating` and `truncated`). The remaining `doorward`/`ccmax` mentions are documentation and changelog history rather than executable defaults, and none of them causes a network call.
+
+Verification: status line renders identically at 7 lines with exit 0 and empty stderr on both old and new, the only delta being the badge label; timing 476 ms vs 482 ms over fair alternating rounds, within noise; malformed stdin (empty, `{}`, non-JSON, null model) returns rc=0 without crashing; `bash -n` clean; shellcheck 0.11.0 `-S style` exit 0 with no findings; bats 48/48 passing.
+
+🔴 This commit does NOT retract what is already published. The private hostname remains in git history across every existing tag, in every clone, and in published release tarballs. Stopping future exposure and revoking past exposure are different actions, and only the first is done here.
+
+* **tasks:** name the failing scenario instead of asserting a cause ([b228c98](https://github.com/terrylica/cc-skills/commit/b228c9881f9815bb3fdfddc3b799c4a973053995)), closes [cc-skills#113](https://github.com/cc-skills/issues/113) [#106](https://github.com/terrylica/cc-skills/issues/106) [#113](https://github.com/terrylica/cc-skills/issues/113)
+
+E2 (iter-180) and C1 (iter-182) compare two SEPARATE invocations of the iter-174 harness. When a load-sensitive scenario gate fails in one and not the other, both assertions are correct to fire -- but their messages named "mode dispatch may have regressed" and "human-mode regressed OR leaked measurement_context", causes neither check ever established. Four red suite runs on 2026-09-03 had to be triaged by hand for exactly that reason.
+
+Observability only: every `if` condition in both files is byte-for-byte unchanged. Only else-branches gained detail, plus two helpers. The messages now name the failing CLAUSE and emit a stable token -- [HARNESS-SCENARIO-FAILURE] with the offending failing-scenario line, or [HARNESS-NO-SCENARIO-FAILURE] -- so log triage reads a fact instead of inferring one from prose.
+
+Also promotes the log-triage classifier out of /tmp into tasks/: it sorts a captured suite log into the known failure mechanisms and refuses to guess when it is neither.
+
+NEGATIVE CONTROL, both halves. Run against a mirror repo root whose only real file is a COPY of the harness, so fanout's live iter-174 file was never touched.
+
+  The apparatus needed its own control first, and failed it: the unmodified mirror reported 4 failed assertions, because `find ... -type f` does not match a symlink (type l) and every benchmark subject resolved EMPTY. Fixed with hard links; the unmodified mirror then gave 15/15 PASSED, exit 0. Without that step an apparatus artifact would have been read as a diagnostic result.
+
+  HALF 1 -- A5's cap pinned to 1ms in the mirror copy:
+
+    x E2: human-mode + --json mode verdict inconsistency clause 1 FAILED: human-mode capture did not contain '7/7 assertions PASSED' clause 2 FAILED: --json capture did not contain overall_verdict PASS [HARNESS-SCENARIO-FAILURE] human-mode: a scenario gate failed ... x A5: iter-165 pending-release aggregator (backlog=7 commits): median=176ms > cap=1ms (REGRESSION: 17500% over cap) [HARNESS-SCENARIO-FAILURE] --json: the envelope reports a regression ... {"id": "A5", ..., "cap_ms": 1, "verdict": "REGRESS"}
+    x ITER-180 REGRESSION TEST: 13/15 assertions passed, 2 FAILED   (exit 1)
+
+  Still fails (nothing loosened) AND names A5 in both invocations.
+
+  HALF 2 -- iter174_schema_version leaked into human-mode text, every scenario passing:
+
+    x C1: human-mode 7/7-PASS + no-JSON-leak invariant violated clause 3 FAILED: iter174_schema_version LEAKED into human-mode text output [HARNESS-NO-SCENARIO-FAILURE] no scenario line in the capture -- the 7/7 clause did not fail because of a scenario gate. (tail: ... ITER-174 ...: 7/7 assertions PASSED)
+    x ITER-182 REGRESSION TEST: 14/15 assertions passed, 1 FAILED   (exit 1)
+
+  Clause 3, not clause 1, and a genuine defect is positively distinguished from contention.
+
+  HALF 2's first attempt did NOT test what it intended: the real A5 flake fired mid-run at median=348ms > cap=347ms (0.3% over), the harness took its failure branch, and the injected leak never executed. Re-run with the leak injected ahead of both branches and A5's cap raised so the flake could not decide the experiment -- confounder control, not gate softening; HALF 1 is where that same gate is made STRICTER.
+
+  Reverted, against the real repo: iter-180 15/15 exit 0, iter-182 15/15 exit 0.
+
+CLASSIFIER SELF-TEST -- 8/8, exit 0:
+
+    skip-path-passing-line             -> GREEN
+    genuine-wall-clock-failure         -> CLASS A (WALL-CLOCK)
+    vacuous-suite-ran-nothing          -> VACUOUS
+    doctor-verdict-degraded            -> CLASS B
+    disagreement-scenario-named        -> CLASS A (CONFIRMED)
+    disagreement-genuine-defect        -> CLASS C
+    disagreement-old-log-no-token      -> CLASS A?
+    unrecognised-assertion             -> UNKNOWN
+
+  The first fixture is load-bearing: the harness's CC_SKILLS_SKIP_PERF_TIMING path emits a PASSING line that still contains "median=NNNms > cap=NNNms", so an unanchored matcher classifies a success as a wall-clock failure. Its own first run failed all eight on "Permission denied" -- `"$0"` on a file with no executable bit -- and correctly refused to report a pass, because classification was never reached.
+
+LIMITATION: the classifier expects a SUITE log. Given a single-test log it reports VACUOUS, because such a log carries no FILE-PASS/FILE-FAIL lines.
+
+Two deliberate design choices, kept as comments in the file rather than only in someone's head:
+
+* **tts-tg-sync:** remove Stop hook that triggered Kokoro speaking ([5b2f1a5](https://github.com/terrylica/cc-skills/commit/5b2f1a5c5b1e5b89fbb492f47c12414d980ebea3))
+
+The Stop hook ran telegram-notify-stop.ts, which despite its name sent nothing to Telegram — it only wrote ~/.claude/notifications/&lt;session>.json for the claude-tts-companion daemon to pick up and speak via kokoro-tts-server. Every Claude Code turn therefore ended in synthesized speech and left a stale JSON file behind (2595 files / 10 MB accumulated).
+
+Operator asked for the Stop-hook-induced speaking to be removed entirely while keeping kokoro-tts-server and the BetterTouchTool clipboard-read hotkeys, which are independent of this path. hooks.json now registers no hooks; the hook scripts stay on disk, unregistered, so the path can be restored by reinstating this file.
+
+
+
+### Features
+
+* **itp-hooks:** deny newlines in AskUserQuestion option fields ([b6bb8da](https://github.com/terrylica/cc-skills/commit/b6bb8da5c938b4d0ae0bb08810eb8e6064833588)), closes [anthropics/claude-code#88836](https://github.com/anthropics/claude-code/issues/88836)
+
+Claude Code renders each line terminator in an option `description` or `label` as U+FFFD.
+
+Claude Code replaces every line terminator inside an AskUserQuestion option `description` or `label` with U+FFFD before rendering, so a multi-paragraph option reaches the user as `...forever.<FFFD><FFFD>II. SHORT-TERM WIN:`. This PreToolUse guard denies such a call before it renders and tells the model to join the parts with an em dash instead. It is a workaround for an open upstream regression and is designed to be deleted, not maintained.
+
+## Root cause, extracted from the shipped binary
+
+The substitution is one function, and it is not the control-character sanitiser it looks like. In Claude Code 2.1.259 at byte 164784914, `function zo(e){return e.replace(/[\n\r\u2028\u2029]/g,"\uFFFD")}` — a character class containing nothing but the four line terminators — is applied to option descriptions by `Hho()` at byte 182260706, and to option labels inside `rne()` where `zo` runs before the `\s+` collapse that therefore cannot repair the damage. The real control-character sanitiser on the same path deliberately exempts tab and LF (`if(t===9||t===10)return!1`), so newlines survive it and die only here. Flattening a list row to one line is the intent; emitting a visible corruption glyph as the sentinel is the defect, and the correct idiom already exists three fields away in the `header` path's `T6t()`, which flattens with `.replace(/\s+/g," ")`.
+
+* **itp-hooks:** review-round gate — meter the transition to reviewable ([#125](https://github.com/terrylica/cc-skills/issues/125)) ([82d2e27](https://github.com/terrylica/cc-skills/commit/82d2e27dc1271280b31ac2eb159576bccc56f529)), closes [#576](https://github.com/terrylica/cc-skills/issues/576) [#484](https://github.com/terrylica/cc-skills/issues/484) [#484](https://github.com/terrylica/cc-skills/issues/484)
+
+feat(itp-hooks): review-round gate — meter the transition to reviewable, not the PR count
+
+Encodes the reviewer's constraint as a mechanism instead of a habit. Chen asked for at most two reviews per hour, consolidation into fewer PRs, and one push per fix round. Measuring his repo before building anything changed what the right mechanism is.
+
+MEASURED ON Eon-Labs/alpha-forge, my own 22 reviewed PRs since 2026-09-02:
+
+    PRs &lt;= 400 changed lines   n=11   mean 1.36 review rounds   15 events
+    PRs  > 900 changed lines   n=7    mean 7.43 review rounds   52 events
+
+Five PRs, all >900 lines, are 63% of every review event he spent on my work. Across 40 merged PRs, 110 of 150 submissions were rounds 2+ -- 73% of his attention is RE-review, Spearman rho ~0.71 between churn and rounds.
+
+So the scarce resource is ROUNDS, not pull requests. A WIP cap meters ~27% of the load; worse, it starves a bursty reviewer (he cleared 10 PRs in one 7-hour sitting) and is shapeable into the flood it forbids -- two at :00, two at :59. This gate meters the transition to reviewable and each subsequent push instead, and has no tunable constant that can be set wrong.
+
+It also means his consolidation instruction, applied literally, would have RAISED
+
+* **tasks:** record the machine's STATE, not just its identity ([1a028ae](https://github.com/terrylica/cc-skills/commit/1a028aede57d517880754070ab64c426bfc109f3)), closes [#106](https://github.com/terrylica/cc-skills/issues/106) [#113](https://github.com/terrylica/cc-skills/issues/113) [#118](https://github.com/terrylica/cc-skills/issues/118)
+
+The iter-182 measurement-context block recorded what this machine IS -- uname, bash version, EPOCHREALTIME capability, git SHA -- and nothing about what it was DOING. That gap cost a real answer on 2026-09-03: A5 was observed at median=136ms (55% headroom unused) and at 308ms (1% OVER cap) at the SAME backlog=5, a 2.3x spread, and nobody could attribute the difference to load because nothing recorded any. One agent claimed a run had been on an idle box and had to retract it -- that was inferred from its own inactivity, which describes a PROCESS TREE, not a machine. Host load on this box was separately measured swinging 7 -> 188 -> 7 within minutes, driven by ~23 sessions no single agent can enumerate.
+
+Three additive fields in iter182_measurement_context (schema_version stays 1; older consumers ignore unknown keys):
+
+  iter187_host_load_average_before_harness_started_1m_5m_15m iter187_host_load_average_sampled_after_each_scenario_1m_5m_15m iter187_host_load_average_after_harness_finished_1m_5m_15m
+
+The standing question -- tight cap, or contention? -- now resolves from a scatter of (load, median) pairs instead of duelling anecdotes.
+
+DESIGN, from measurements rather than principle:
+
+  * NAME THE FIELD FOR THE INTERVAL IT COVERS. The 1-minute average lags ~60s, so a sample at harness start describes the box BEFORE the harness did anything. That is a feature when known -- it is exactly how a load spike of 187 was proven to belong to someone else -- but a name like "..._at_harness_start" invites reading it as "load while this ran", the opposite conclusion from the same number.
+
+  * ALL THREE AVERAGES, NEVER JUST 1m. A measured precondition of 1m=7.33 / 5m=59 / 15m=58 reads as "quiet box" on the 1m alone: true, and badly misleading, since the 5m/15m still carried a spike from ten minutes earlier. The decay tail separates "a spike just ended" from "sustained load", and three numbers cost the same syscall.
+
+  * PER-SCENARIO SERIES, because endpoints hide the peak. A measured run went 7.33 -> 32.12 and neither endpoint shows the 32.
+
+  * JSON `null` for an unreadable sample, never an invented display token. Absent is a state, and a numeric field must stay numeric for consumers that will average or plot it.
+
+FORK-COUNT SAFETY, load-bearing in this harness specifically. A6 gates on a PINNED external fork count, so a sample in the wrong place would move the very number A6 pins and redden it for a reason unrelated to the doctor. Every sample is taken in the harness, never inside a measured command, and the per-scenario sample fires AFTER iter-186's fork-counting shim. VERIFIED, not assumed:
+
+    A6: forks=23 &lt;= ceiling 23, perl=0 (load-invariant gate; wall clock 1077ms vs cap 1500ms reported only)
+
+Unchanged from its pinned value. Worth noting that reading was taken at host load 132: the wall clock stayed under its 1500ms cap anyway, which is a clean demonstration of why converting A6 to a fork count was right.
+
+ONE BUG FOUND BY RUNNING, which neither `bash -n` nor shellcheck catches:
+
+    ${var//[{}]/}   does NOT strip braces
+
+Inside `${...}`, the `}` of a bracket expression TERMINATES the parameter expansion, so that form silently yields "{ 7.33 5.90 5.80 }/}]" instead of stripping anything. Both linters pass it. The harness ran green and emitted `null` for every field -- and because `null` is the legitimate unreadable-sample value, the failure looked exactly like a working graceful-degradation path. A fallback that renders a bug indistinguishable from an expected absence is camouflage; the fix is two separate expansions, and the guard is that the verification asserted NON-NULL values, not merely that the keys existed.
+
+VERIFICATION (real output, this machine, host load ~130):
+
+  shellcheck                     exit 0
+  harness --json                 exit 0, envelope parses, schema_version=1,
+                                 6 results, 6 per-scenario load samples, before=[132.64, 122.27, 86.81] after =[123.30, 120.51, 86.40]
+  harness human mode             7/7 assertions PASSED, A6 forks=23
+  test-iter180                   15/15 assertions PASSED, exit 0
+  test-iter182                   15/15 assertions PASSED, exit 0
+  moon run repo:test-hooks       113 files PASSED, 0 FAILED, exit 0
+  triage classifier on that log  GREEN -- 113 test file(s) executed
+
+AUTHORSHIP: iter182_measurement_context is fanout's block. I proposed this change to fanout rather than making it, and held off while ownership was open; fanout was unreachable through five requests and team-lead authorised the change directly after checkpointing fanout's in-flight work as 85e6b4ac. The two design refinements above came from perftest's measurements, not mine.
+
 # [30.0.0](https://github.com/terrylica/cc-skills/compare/v29.4.0...v30.0.0) (2026-09-03)
 
 
