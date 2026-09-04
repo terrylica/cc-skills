@@ -160,3 +160,35 @@ describe("hook — exceptions & escape hatches", () => {
     expectAllow(runHook("ALLOW_BARE_BRANCH=1 git checkout -b f")));
   it("allows non-Bash tool", () => expectAllow(runHook("git checkout -b f", "Write")));
 });
+
+describe("a quoted environment assignment must not blind the guard", () => {
+  // tokenize() splits on bare whitespace, so `GH_ORGS="Eon Labs" git checkout -b x` produced
+  // ['GH_ORGS="Eon', 'Labs"', 'git', …]. The first token was consumed as an assignment, the second
+  // did not look like one, and the scan stopped with `Labs"` in the command position — the guard
+  // never saw `git` and the worktree-per-branch policy went unenforced. Measured, not theorised:
+  // the unquoted `FOO=1` form works either way, which is why no existing case caught it.
+  const bypasses = [
+    'GH_ORGS="Eon Labs" git checkout -b feature',
+    "GH_ORGS='Eon Labs' git checkout -b feature",
+    'A=1 GH_ORGS="Eon Labs" git switch -c feature',
+    'GH_ORGS="Eon Labs" git branch feature',
+  ];
+  for (const command of bypasses) {
+    it(`still blocks: ${command.slice(0, 52)}`, () => {
+      expect(classifyBranchCreation(command).blocked).toBe(true);
+    });
+  }
+
+  it("an unquoted assignment still works (the case that always passed)", () => {
+    expect(classifyBranchCreation("FOO=1 git checkout -b feature").blocked).toBe(true);
+  });
+
+  it("does NOT block a non-branch-creating command behind a quoted assignment", () => {
+    // The consumption loop must not run off the end and swallow the real command.
+    expect(classifyBranchCreation('GH_ORGS="Eon Labs" git status').blocked).toBe(false);
+  });
+
+  it("an unterminated quote does not hang or swallow everything", () => {
+    expect(() => classifyBranchCreation('GH_ORGS="unterminated git checkout -b x')).not.toThrow();
+  });
+});
