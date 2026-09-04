@@ -59,7 +59,7 @@ The hook is registered in the plugin's `hooks/hooks.json`:
           {
             "type": "command",
             "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/telegram-notify-stop.ts",
-            "timeout": 10000
+            "timeout": 10
           }
         ]
       }
