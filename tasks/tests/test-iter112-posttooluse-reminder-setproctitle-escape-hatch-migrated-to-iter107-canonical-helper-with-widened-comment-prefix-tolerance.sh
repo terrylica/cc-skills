@@ -62,15 +62,19 @@ fi
 
 # ─── Case 5: iter-110 strict audit passes with the current cohort ─────────
 # Cohort size grew 8 (pre-iter-112) → 9 (iter-112 setproctitle) → 10
-# (2026-07-21 release-notes-extensiveness-guard). Assert on the current count.
+# (2026-07-21 release-notes-extensiveness-guard) → 11 (2026-09-03
+# askuserquestion-option-line-terminator-guard). Assert on the current count.
+# NOTE: that guard is a workaround for upstream claude-code#88836 and is meant to
+# be DELETED once upstream fixes the renderer — when it goes, this expectation
+# drops back to 10 along with the cohort member.
 set +e
 iter110_audit_output=$(bash "$ITER110_STRICT_INVENTORY_AUDIT_ABSOLUTE_PATH" 2>&1)
 iter110_audit_exit_code=$?
 set -e
-if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 10 canonical cohort members import the shared helper"* ]]; then
-    assert_passes "Case 5: iter-110 strict audit passes with the current 10-member canonical cohort"
+if [[ "$iter110_audit_exit_code" == "0" ]] && [[ "$iter110_audit_output" == *"all 11 canonical cohort members import the shared helper"* ]]; then
+    assert_passes "Case 5: iter-110 strict audit passes with the current 11-member canonical cohort"
 else
-    assert_fails "Case 5: iter-110 strict audit did not recognize 10-member cohort (exit=$iter110_audit_exit_code)"
+    assert_fails "Case 5: iter-110 strict audit did not recognize 11-member cohort (exit=$iter110_audit_exit_code)"
 fi
 
 # ─── Case 6: widened-comment-prefix tolerance via programmatic probe ──────
