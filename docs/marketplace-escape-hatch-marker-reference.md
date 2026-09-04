@@ -11,11 +11,12 @@
 
 ## Quick navigation
 
-Jump directly to any of the 36 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 37 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (28; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (29; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
+- [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
@@ -72,7 +73,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (28 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (29 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -91,6 +92,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # ALLOW-LEGACY-TS
+```
+
+## `ASK-OPTION-NEWLINE-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Allow an AskUserQuestion call whose option `description` or `label` contains a line terminator (LF, CR, U+2028, U+2029). Claude Code replaces every one of them with U+FFFD before rendering the option, so a two-paragraph description reaches the user as '...forever.<FFFD><FFFD>II. SHORT-TERM WIN:' — upstream regression anthropics/claude-code#88836, introduced in 2.1.235 and re-measured still present in 2.1.260. The guard denies rather than repairs, because tool-schemas.ts registers no AskUserQuestion schema and an unregistered tool cannot receive updatedInput. Unlike every other marker in this registry the content scanned is not a FILE but the SERIALIZED tool input, since AskUserQuestion has no command string — put ASK-OPTION-NEWLINE-OK anywhere in the call (the `question` text is the natural place) when a literal break is wanted despite the mangling. The normal fix is not this marker: join the parts with ' \u2014 ' (space, em dash, space), or move genuinely multi-line material into `question` or `preview`, which render newlines correctly and are deliberately not inspected. Delete this entry together with the guard once the upstream replacer is gone.
+
+**Example usage**:
+
+```
+# ASK-OPTION-NEWLINE-OK
 ```
 
 ## `BASH-LAUNCHD-OK`

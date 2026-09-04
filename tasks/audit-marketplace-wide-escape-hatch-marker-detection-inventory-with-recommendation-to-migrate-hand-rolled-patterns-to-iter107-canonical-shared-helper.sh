@@ -122,6 +122,13 @@ declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
     # RELEASE-NOTES-OK marker via the iter-107 canonical helper (CASE_SENSITIVE /
     # FILE_WIDE, ≥10-char reason). Cohort grows from 9 → 10 members.
     "plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts"
+    # 2026-09-03 addition: the AskUserQuestion option line-terminator guard reads the
+    # ASK-OPTION-NEWLINE-OK marker via the iter-107 canonical helper (CASE_SENSITIVE /
+    # FILE_WIDE, no reason required). Its scanned content is the SERIALIZED tool input
+    # rather than a file — AskUserQuestion carries no command string — which is why the
+    # helper is called with the JSON blob. Cohort grows from 10 → 11 members. Remove this
+    # member when the guard is deleted after upstream fixes claude-code#88836.
+    "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts"
 )
 
 declare -a MIGRATED_HOOKS_USING_SHARED_HELPER=()

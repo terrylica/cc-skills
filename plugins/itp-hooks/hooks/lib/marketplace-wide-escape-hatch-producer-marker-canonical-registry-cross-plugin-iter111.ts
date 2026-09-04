@@ -438,6 +438,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Allow a `gh release create|edit`, `gh issue create|edit|comment`, `gh pr create|edit|comment`, or `gh api` write-to-releases/issues/pulls command whose prose text contains hard-wraps at a fixed column width. GitHub Flavored Markdown renders every newline as `<br>`, so prose wrapped at ~100 columns becomes columns of short mid-sentence lines instead of reflowing to the reader's window. The guard detects hard-wraps in --notes, --notes-file, --body, --body-file, and in a `gh api` body=/notes= field or --input envelope's .body. It deliberately does NOT inspect git objects: hard wrapping at 72 columns is the correct convention for a commit or annotated-tag message, and the reflow belongs at the publish boundary. Add GH-HARD-WRAP-OK to the command when the hard-wrapping is intentional (e.g., an intentional code sample or ASCII table in a release note).",
     },
     {
+      markerNameTokenIncludingSuffix: "ASK-OPTION-NEWLINE-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Allow an AskUserQuestion call whose option `description` or `label` contains a line terminator (LF, CR, U+2028, U+2029). Claude Code replaces every one of them with U+FFFD before rendering the option, so a two-paragraph description reaches the user as '...forever.<FFFD><FFFD>II. SHORT-TERM WIN:' — upstream regression anthropics/claude-code#88836, introduced in 2.1.235 and re-measured still present in 2.1.260. The guard denies rather than repairs, because tool-schemas.ts registers no AskUserQuestion schema and an unregistered tool cannot receive updatedInput. Unlike every other marker in this registry the content scanned is not a FILE but the SERIALIZED tool input, since AskUserQuestion has no command string — put ASK-OPTION-NEWLINE-OK anywhere in the call (the `question` text is the natural place) when a literal break is wanted despite the mangling. The normal fix is not this marker: join the parts with ' \\u2014 ' (space, em dash, space), or move genuinely multi-line material into `question` or `preview`, which render newlines correctly and are deliberately not inspected. Delete this entry together with the guard once the upstream replacer is gone.",
+    },
+    {
       markerNameTokenIncludingSuffix: "GMAIL-BODY-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-gmail-body-guard.ts",

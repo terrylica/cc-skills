@@ -21,33 +21,34 @@ Registration lives in `hooks/hooks.json`. Each row is one clause; the spoke is t
 
 Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "iter-NN" in the Matcher column means the hook is inlined as a subhook of that orchestrator rather than registered standalone.
 
-| Hook                                                        | Matcher                | Purpose                                       | Spoke                                             |
-| ----------------------------------------------------------- | ---------------------- | --------------------------------------------- | ------------------------------------------------- |
-| `pretooluse-fake-data-guard.mjs`                            | Write                  | Blocks fake/placeholder data in prod code     | [→](./docs/fake-data-guard.md)                    |
-| `pretooluse-version-guard.ts`                               | iter-85                | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                      |
-| `pretooluse-process-storm-guard.mjs`                        | Bash\|Write\|Edit      | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                |
-| `pretooluse-cwd-deletion-guard.ts`                          | Bash                   | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                 |
-| `pretooluse-git-worktree-guard.ts`                          | Bash                   | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                 |
-| `pretooluse-vale-claude-md-guard.ts`                        | iter-91                | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)       |
-| `pretooluse-hoisted-deps-guard.ts`                          | iter-86                | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                 |
-| `pretooluse-gpu-optimization-guard.ts`                      | iter-87                | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)             |
-| `pretooluse-mise-hygiene-guard.ts`                          | iter-88                | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                 |
-| `pretooluse-file-size-guard.ts`                             | iter-84                | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                    |
-| `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`   | Write\|Edit            | Iter-84→91 orchestrator; all 8 subhooks       | [→](./docs/pretooluse-write-edit-orchestrator.md) |
-| `pretooluse-native-binary-guard.ts`                         | iter-90                | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                |
-| `pretooluse-pyi-stub-guard.ts`                              | iter-89                | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                     |
-| `pretooluse-inline-ignore-guard.ts`                         | Write\|Edit            | Blocks new inline lint suppressions           | [→](./docs/inline-ignore-policy.md)               |
-| `pretooluse-uv-enforcement-guard.ts`                        | Bash                   | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)               |
-| `pretooluse-pueue-local-guard.ts`                           | Bash                   | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                  |
-| `pretooluse-cargo-tty-guard.ts`                             | Bash                   | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                    |
-| `pretooluse-skill-plugin-root-guard.ts`                     | Write\|Edit orch.      | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)            |
-| `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` | **RETIRED 2026-08-05** | Unregistered; kept as iter-107 reference impl | [→](./docs/layer3-stripped-path-guard.md)         |
-| `pretooluse-pueue-wrap-guard.ts`                            | Bash                   | Auto-wraps long-running commands (see #3)     | [→](./docs/pueue-wrap-guard.md)                   |
-| `pretooluse-webfetch-fallback-guard.ts`                     | WebFetch               | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`           |
-| `pretooluse-release-notes-extensiveness-guard.ts`           | Bash                   | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)  |
-| `pretooluse-gmail-body-guard.ts`                            | Bash                   | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                   |
-| `pretooluse-secret-exposure-guard.ts`                       | Write\|Edit\|MultiEdit | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)      |
-| `pretooluse-headless-claude-p-guard.ts`                     | Bash                   | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                  |
+| Hook                                                         | Matcher                | Purpose                                       | Spoke                                                       |
+| ------------------------------------------------------------ | ---------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| `pretooluse-fake-data-guard.mjs`                             | Write                  | Blocks fake/placeholder data in prod code     | [→](./docs/fake-data-guard.md)                              |
+| `pretooluse-version-guard.ts`                                | iter-85                | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                |
+| `pretooluse-process-storm-guard.mjs`                         | Bash\|Write\|Edit      | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                          |
+| `pretooluse-cwd-deletion-guard.ts`                           | Bash                   | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                           |
+| `pretooluse-git-worktree-guard.ts`                           | Bash                   | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                           |
+| `pretooluse-vale-claude-md-guard.ts`                         | iter-91                | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                 |
+| `pretooluse-hoisted-deps-guard.ts`                           | iter-86                | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                           |
+| `pretooluse-gpu-optimization-guard.ts`                       | iter-87                | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                       |
+| `pretooluse-mise-hygiene-guard.ts`                           | iter-88                | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                           |
+| `pretooluse-file-size-guard.ts`                              | iter-84                | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                              |
+| `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`    | Write\|Edit            | Iter-84→91 orchestrator; all 8 subhooks       | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
+| `pretooluse-native-binary-guard.ts`                          | iter-90                | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
+| `pretooluse-pyi-stub-guard.ts`                               | iter-89                | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
+| `pretooluse-inline-ignore-guard.ts`                          | Write\|Edit            | Blocks new inline lint suppressions           | [→](./docs/inline-ignore-policy.md)                         |
+| `pretooluse-uv-enforcement-guard.ts`                         | Bash                   | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                         |
+| `pretooluse-pueue-local-guard.ts`                            | Bash                   | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                            |
+| `pretooluse-cargo-tty-guard.ts`                              | Bash                   | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                              |
+| `pretooluse-skill-plugin-root-guard.ts`                      | Write\|Edit orch.      | Skills must use `cc-plugin-root`              | [→](./docs/skill-plugin-root-guard.md)                      |
+| `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts`  | **RETIRED 2026-08-05** | Unregistered; kept as iter-107 reference impl | [→](./docs/layer3-stripped-path-guard.md)                   |
+| `pretooluse-pueue-wrap-guard.ts`                             | Bash                   | Auto-wraps long-running commands (see #3)     | [→](./docs/pueue-wrap-guard.md)                             |
+| `pretooluse-webfetch-fallback-guard.ts`                      | WebFetch               | Denies built-in WebFetch; no escape hatch     | `~/.claude/webfetch-fallback-CLAUDE.md`                     |
+| `pretooluse-release-notes-extensiveness-guard.ts`            | Bash                   | Hard-blocks releases with thin notes          | [→](./docs/release-notes-extensiveness-guard.md)            |
+| `pretooluse-gmail-body-guard.ts`                             | Bash                   | Blocks bad-rendering `gmail draft` bodies     | [→](./docs/gmail-body-guard.md)                             |
+| `pretooluse-secret-exposure-guard.ts`                        | Write\|Edit\|MultiEdit | Hard-blocks live credentials in new content   | [→](./docs/secret-and-pii-exposure-guard.md)                |
+| `pretooluse-headless-claude-p-guard.ts`                      | Bash                   | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                            |
+| `pretooluse-askuserquestion-option-line-terminator-guard.ts` | AskUserQuestion        | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md) |
 
 ### PostToolUse
 
@@ -88,20 +89,21 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 
 Add the token to the file or command to suppress a guard. Every token requires a real reason; several demand one inline.
 
-| Token                      | Suppresses                                 |
-| -------------------------- | ------------------------------------------ |
-| `SECRET-SCAN-OK: <reason>` | Secret-exposure guard (reason ≥10 chars)   |
-| `PII-SCAN-OK`              | PII-exposure reminder                      |
-| `SKILL-PLUGIN-ROOT-OK`     | Skill plugin-root guard                    |
-| `RELEASE-NOTES-OK`         | Release-notes extensiveness guard          |
-| `GMAIL-BODY-OK`            | Gmail draft body guard                     |
-| `HEADLESS-P-OK`            | Headless `claude -p` guard                 |
-| `MD-TABLE-OK`              | Markdown table guard                       |
-| `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminder                |
-| `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                 |
-| `MINI-INNGEST-OK`          | Mini-Inngest doctrine nudge                |
-| `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder             |
-| `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker) |
+| Token                      | Suppresses                                   |
+| -------------------------- | -------------------------------------------- |
+| `SECRET-SCAN-OK: <reason>` | Secret-exposure guard (reason ≥10 chars)     |
+| `PII-SCAN-OK`              | PII-exposure reminder                        |
+| `SKILL-PLUGIN-ROOT-OK`     | Skill plugin-root guard                      |
+| `RELEASE-NOTES-OK`         | Release-notes extensiveness guard            |
+| `GMAIL-BODY-OK`            | Gmail draft body guard                       |
+| `ASK-OPTION-NEWLINE-OK`    | AskUserQuestion option line-terminator guard |
+| `HEADLESS-P-OK`            | Headless `claude -p` guard                   |
+| `MD-TABLE-OK`              | Markdown table guard                         |
+| `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminder                  |
+| `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
+| `MINI-INNGEST-OK`          | Mini-Inngest doctrine nudge                  |
+| `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
+| `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |
 
 `pretooluse-webfetch-fallback-guard.ts` has **no** escape hatch, by design.
 
