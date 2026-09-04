@@ -113,13 +113,40 @@ export async function classifyShellScriptSafetyGuardForOrchestrator(
   input: PreToolUseInput,
 ): Promise<PreToolUseSubhookDecision> {
   try {
-    // Plan mode → allow all
-    if (isPlanMode(input)) {
+    // Plan mode → allow all.
+    //
+    // THIS GUARD WAS A COMPLETE NO-OP. `isPlanMode` returns a PlanModeContext OBJECT
+    // (`{inPlanMode, signals, reason, …}`), never a boolean — and every object is truthy, so this
+    // line returned ALLOW on every single invocation and the guard never examined one script. It
+    // enforces a CRITICAL policy (a `local x=$(cmd)` masks the command's exit status and defeats
+    // `set -e`), and it has been enforcing nothing.
+    //
+    // Six of the seven call sites in this plugin read `.inPlanMode`; this was the only one that did
+    // not, which is why nothing else was affected and why nothing surfaced it. It was found by
+    // writing a CONTROL for an unrelated test — a Write payload carrying a defect the detector
+    // provably flags — and watching the guard allow it anyway. A test without that control would
+    // have passed against a permanently disarmed guard.
+    if (isPlanMode(input).inPlanMode) {
       return ALLOW_DECISION;
     }
 
     // Only applicable to Write/Edit
     if (!isFileEditToolNameHonoredByPreToolUseBlockingSubhook(input.tool_name)) {
+      return ALLOW_DECISION;
+    }
+
+    // THE ONLY CLASSIFIER IN THE COHORT THAT LACKED THIS. Its ten siblings (file-size, vale,
+    // version, hoisted-deps, mise-hygiene, pyi-stub, native-binary, gpu-optimization,
+    // typescript-version, skill-plugin-root) all short-circuit MultiEdit to ALLOW, because iter-102
+    // widened the tool-name gate but left per-classifier payload adaptation to iter-103: a MultiEdit
+    // carries `edits[]`, not `content`/`new_string`, so the Edit branch below would read `undefined`.
+    //
+    // It was harmless only because the orchestrator's own fastpath never forwards MultiEdit. The
+    // moment someone "fixes" that fastpath — which looks like an obvious one-line correction, and
+    // was recommended to me as one — this guard alone would start running on a payload shape it
+    // cannot read, while the other ten stayed correctly inert. Closing the inconsistency here means
+    // opening the fastpath later is a decision about capability rather than an accident.
+    if (input.tool_name === "MultiEdit") {
       return ALLOW_DECISION;
     }
 
