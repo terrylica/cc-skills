@@ -755,7 +755,7 @@ Plugin hooks are declared in `hooks/hooks.json` and synced to `~/.claude/setting
           {
             "type": "command",
             "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
-            "timeout": 10000
+            "timeout": 10
           }
         ]
       }

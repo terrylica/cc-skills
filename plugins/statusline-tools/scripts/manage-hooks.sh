@@ -18,7 +18,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}"
 SETTINGS_FILE="${HOME}/.claude/settings.json"
-HOOK_TIMEOUT=30000
+HOOK_TIMEOUT=30
 
 # Use marketplace path with $HOME for portability and auto-updates
 # This path is version-agnostic - updates automatically when plugin updates
@@ -149,7 +149,7 @@ cmd_install() {
     mv "$tmp_file" "$SETTINGS_FILE"
     log_success "Stop hook installed"
     log_info "  Script:  $HOOK_SCRIPT_SETTINGS"
-    log_info "  Timeout: ${HOOK_TIMEOUT}ms"
+    log_info "  Timeout: ${HOOK_TIMEOUT}s"
     log_info "Restart Claude Code for changes to take effect"
 }
 
@@ -241,7 +241,7 @@ cmd_status() {
                 select(.hooks[]?.command == $script) |
                 .hooks[] |
                 select(.command == $script) |
-                "    Timeout: \(.timeout // "default")ms"
+                "    Timeout: \(.timeout // "default")s"
             ' "$SETTINGS_FILE" 2>/dev/null)
             if [[ -n "$hook_info" ]]; then
                 echo "$hook_info"

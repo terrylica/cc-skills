@@ -146,9 +146,9 @@ do_install() {
     info "Created backup: settings.json.backup.$timestamp"
 
     # Prepare hook entries (using $HOME literal, not expanded)
-    # Timeouts are in milliseconds (Claude Code hook standard)
-    local posttooluse_entry='{"matcher":"Bash|Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-reminder.sh","timeout":10000}]}'
-    local fakedata_entry='{"matcher":"Write","hooks":[{"type":"command","command":"bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-fake-data-guard.mjs","timeout":5000}]}'
+    # Timeouts are in SECONDS (Claude Code hook standard; see scripts/hooks.schema.json)
+    local posttooluse_entry='{"matcher":"Bash|Write|Edit","hooks":[{"type":"command","command":"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/posttooluse-reminder.sh","timeout":10}]}'
+    local fakedata_entry='{"matcher":"Write","hooks":[{"type":"command","command":"bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/itp-hooks/hooks/pretooluse-fake-data-guard.mjs","timeout":5}]}'
 
     # Create temp file for atomic write
     local temp_file
