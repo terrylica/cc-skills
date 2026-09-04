@@ -83,7 +83,12 @@ const CITATION_OK = {
  */
 // Assignments and wrappers INTERLEAVE — `GH_TOKEN=x gh …` and `env GH_HOST=y gh …` are both real,
 // and a fixed order matched only the first. Caught by this file's own table on the second run.
-const COMMAND_POSITION = String.raw`(?:^|[\n;&|(){}]|&&|\|\|)\s*(?:(?:sudo|env|command|time)\s+|[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*`;
+// AN ASSIGNMENT VALUE MAY BE QUOTED AND MAY CONTAIN SPACES. `\S*` stops at the first space, so
+// `GH_ORGS="Eon Labs" gh pr comment …` matched no command position at all and this guard silently
+// ALLOWED it — the citation requirement was skipped entirely, before a body was even collected.
+// Reproduced directly: the identical body is DENIED unquoted and ALLOWED with the quoted prefix.
+// `FOO=bar` works either way, which is why every existing test case missed it.
+const COMMAND_POSITION = String.raw`(?:^|[\n;&|(){}]|&&|\|\|)\s*(?:(?:sudo|env|command|time)\s+|[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)*`;
 
 const ghCommand = (rest: string) => new RegExp(`${COMMAND_POSITION}gh\\s+${rest}`, "i");
 

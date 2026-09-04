@@ -270,3 +270,26 @@ describe("multi-stage pipelines", () => {
     expect(sites[0]?.producer).toBe("producer");
   });
 });
+
+describe("a quoted environment assignment must not hide the reader", () => {
+  // The assignment-stripping prefix used `[^ \t]*`, which stops at the first space — the same
+  // defect as the citation guard's `\S*`, spelled differently, which is why a grep for `\S*`
+  // did not find it. With a quoted value containing a space the strip left `b" head -1` as the
+  // segment, the reader was not recognised, and the site went unreported.
+  it("detects the reader behind an unquoted assignment (the case that always worked)", () => {
+    expect(detect('cat f | FOO=1 head -1\n')).toHaveLength(1);
+  });
+
+  it("detects the reader behind a DOUBLE-quoted assignment containing a space", () => {
+    expect(detect('cat f | FOO="a b" head -1\n')).toHaveLength(1);
+  });
+
+  it("detects the reader behind a SINGLE-quoted assignment containing a space", () => {
+    expect(detect("cat f | FOO='a b' head -1\n")).toHaveLength(1);
+  });
+
+  it("still reports nothing when the reader does not exit early", () => {
+    // False-positive control: the fix must not make the detector fire on safe pipelines.
+    expect(detect('cat f | FOO="a b" cat\n')).toHaveLength(0);
+  });
+});

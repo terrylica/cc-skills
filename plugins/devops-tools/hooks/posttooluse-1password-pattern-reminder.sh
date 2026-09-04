@@ -94,7 +94,11 @@ COMMAND=$(echo "$PAYLOAD" | jq -r '.tool_input.command // empty' 2>/dev/null) ||
 # Perf note: the anchored regex is O(1) for the common no-match case (most
 # Bash tool calls are NOT op), vs the prior pattern's O(n) scan over the
 # full command body. Win is measurable for long commit messages.
-if ! grep -qE '^([A-Za-z_][A-Za-z0-9_]*=\S*[[:space:]]+)*op([[:space:]]|$)' <<<"$COMMAND"; then
+# A QUOTED ASSIGNMENT VALUE MAY CONTAIN SPACES. `\S*` stops at the first space, so
+# `OP_ACCOUNT="my team" op item get x` did not match and the reminder never fired. Same defect as
+# pretooluse-pr-citation-evidence-guard.ts and the sigpipe detector; this one cannot import the
+# TypeScript helper, so the alternation is spelled out in ERE here.
+if ! grep -qE '^([A-Za-z_][A-Za-z0-9_]*=("[^"]*"|'"'"'[^'"'"']*'"'"'|\S*)[[:space:]]+)*op([[:space:]]|$)' <<<"$COMMAND"; then
     exit 0
 fi
 
