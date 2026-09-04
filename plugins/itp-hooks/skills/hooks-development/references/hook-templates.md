@@ -18,7 +18,7 @@ Every plugin with hooks must have `hooks/hooks.json` using this canonical object
           {
             "type": "command",
             "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       }
@@ -30,7 +30,7 @@ Every plugin with hooks must have `hooks/hooks.json` using this canonical object
           {
             "type": "command",
             "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
-            "timeout": 5000
+            "timeout": 5
           }
         ]
       }
@@ -41,7 +41,7 @@ Every plugin with hooks must have `hooks/hooks.json` using this canonical object
           {
             "type": "command",
             "command": "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/<plugin>/hooks/<script>",
-            "timeout": 10000
+            "timeout": 10
           }
         ]
       }
@@ -53,7 +53,7 @@ Every plugin with hooks must have `hooks/hooks.json` using this canonical object
 **Rules**:
 
 - `matcher` — Regex against tool name. **Required** for PreToolUse/PostToolUse. **Optional** for Stop.
-- `timeout` — Milliseconds. Default is 600000 (10 min). Set explicit lower values for fast-fail hooks.
+- `timeout` — **Seconds**, not milliseconds. Default is 600 (10 min). Set explicit lower values for fast-fail hooks; `scripts/hooks.schema.json` rejects anything above 600, because a four-digit value here is the millisecond spelling and holds a blocking hook for over an hour (issue [#109](https://github.com/terrylica/cc-skills/issues/109)).
 - **Always use `$HOME`-based paths**, never `${CLAUDE_PLUGIN_ROOT}` (it's not a shell env var — see Common Pitfalls in lifecycle-reference.md).
 - Include only the event types your plugin uses. Most plugins only need 1-2.
 
@@ -101,7 +101,7 @@ PREFLIGHT_EOF
         {
           "type": "command",
           "command": "$HOME/.claude/plugins/.../hooks/your-hook.sh",
-          "timeout": 5000
+          "timeout": 5
         }
       ]
     }

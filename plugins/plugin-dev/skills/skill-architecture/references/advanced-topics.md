@@ -199,7 +199,7 @@ my-plugin/
           {
             "type": "command",
             "command": "bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/my-plugin/hooks/my-handler.ts",
-            "timeout": 10000
+            "timeout": 10
           }
         ]
       }

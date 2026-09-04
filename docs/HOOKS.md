@@ -137,7 +137,7 @@ a hand-rolled regex.
         "hooks": [{
           "type": "command",
           "command": "${CLAUDE_PLUGIN_ROOT}/hooks/my-hook.mjs",
-          "timeout": 5000
+          "timeout": 5
         }]
       }
     ],
@@ -149,15 +149,17 @@ a hand-rolled regex.
 
 ## Timeout Values
 
-Timeouts are in **milliseconds**:
+Timeouts are in **seconds**. Upstream: "Seconds before canceling. … Defaults: 600 for command, http, and mcp_tool" — [hooks reference](https://docs.claude.com/en/docs/claude-code/hooks).
 
 | Value | Duration | Use Case          |
 | ----- | -------- | ----------------- |
-| 5000  | 5s       | Simple validation |
-| 15000 | 15s      | Git operations    |
-| 30000 | 30s      | Network calls     |
+| 5     | 5s       | Simple validation |
+| 15    | 15s      | Git operations    |
+| 30    | 30s      | Network calls     |
 
-**Common mistake**: Using `15` instead of `15000` results in 15ms timeout.
+This table said **milliseconds** until 2026-09-04, and that single line is how dozens of hook entries across the marketplace came to be written three digits too large: a `5000` meant as five seconds parks a _blocking_ hook for 83 minutes, and one Stop hook was left at 30000 — eight hours twenty. `scripts/hooks.schema.json` now caps the field at 600, so the wrong unit fails validation instead of shipping. See issue [#109](https://github.com/terrylica/cc-skills/issues/109).
+
+**Common mistake**: writing `15000` when you mean fifteen seconds. That is four hours ten minutes, and on a blocking hook it is indistinguishable from a hang. `15` is the correct value; this note previously advised the exact opposite.
 
 ## Network-Calling Hooks (Critical Warning)
 
@@ -2104,7 +2106,7 @@ Operators get a single discoverable artifact (20 marker sections in alphabetical
 | ---- | ---------------------------------------------------------------------------------------------------- |
 | 1    | iter-114 audit-task registry has all 4 documented exports                                            |
 | 2    | Registry contains all 8 iter-114 baseline audit markers                                              |
-| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `tasks/audit-*.sh` file |
+| 3    | Every `consumerAuditTaskSourceFileRelativePath` references an existing `tasks/audit-*.sh` file       |
 | 4    | iter-113 doc generator renders all 8 audit-task marker sections in dedicated audit-task catalog      |
 | 5    | Lookup-by-name helper resolves known marker with full field set; returns undefined for unknown       |
 | 6    | iter-113 generator idempotency invariant still holds with two-registry input (no drift on `--check`) |
@@ -2515,17 +2517,17 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 
 ## Plugins with Hooks
 
-| Plugin               | Hook Types                    | Purpose                             |
-| -------------------- | ----------------------------- | ----------------------------------- |
+| Plugin               | Hook Types                    | Purpose                     |
+| -------------------- | ----------------------------- | --------------------------- |
 | `itp-hooks`          | PreToolUse, PostToolUse, Stop | Workflow + GPU optimization |
-| `ru`                 | PreToolUse, Stop              | Autonomous loop control             |
-| `gh-tools`           | PreToolUse, PostToolUse       | GitHub CLI enforcement              |
-| `dotfiles-tools`     | PostToolUse, Stop             | Chezmoi sync reminder               |
-| `statusline-tools`   | Stop                          | Session metrics                     |
-| `productivity-tools` | PreToolUse                    | Calendar event management           |
-| `gmail-commander`    | Stop                          | Bot lifecycle management            |
-| `calcom-commander`   | Stop                          | Bot lifecycle management            |
-| `tts-tg-sync`        | Stop                          | TTS/bot process cleanup             |
+| `ru`                 | PreToolUse, Stop              | Autonomous loop control     |
+| `gh-tools`           | PreToolUse, PostToolUse       | GitHub CLI enforcement      |
+| `dotfiles-tools`     | PostToolUse, Stop             | Chezmoi sync reminder       |
+| `statusline-tools`   | Stop                          | Session metrics             |
+| `productivity-tools` | PreToolUse                    | Calendar event management   |
+| `gmail-commander`    | Stop                          | Bot lifecycle management    |
+| `calcom-commander`   | Stop                          | Bot lifecycle management    |
+| `tts-tg-sync`        | Stop                          | TTS/bot process cleanup     |
 
 ## Related ADRs
 
