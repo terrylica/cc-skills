@@ -180,7 +180,7 @@ do_install() {
         hooks: [{
             type: "command",
             command: $cmd,
-            timeout: 5000
+            timeout: 5
         }]
     }')
 

@@ -78,8 +78,8 @@
         "timeout": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 600000,
-          "description": "Timeout in milliseconds (default: 60000)"
+          "maximum": 600,
+          "description": "Timeout in SECONDS. Upstream: 'timeout ... Seconds before canceling. ... Defaults: 600 for command, http, and mcp_tool; 30 for prompt; 60 for agent.' (https://docs.claude.com/en/docs/claude-code/hooks). This description said 'milliseconds' until 2026-09-04, and 53 hook entries across 10 plugins were written to match it -- so a hook meant to be bounded at 5s was bounded at 5000s (83 minutes), and the Stop orchestrator's 65000 was 18 hours. Those are now corrected and 'maximum' is tightened from 600000 to 600 so the wrong unit fails validation instead of shipping. 600 is the upstream default for command hooks; a hook that needs longer than the default should be re-examined rather than granted an exemption, because a blocking hook holds the session."
         }
       },
       "required": ["type"],
