@@ -124,6 +124,31 @@ iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_class
     local wall_clock_latency_milliseconds="$5"
     local diagnostic_message_for_failures_or_warnings="${6:-}"
 
+    # Consume-and-clear the stderr captured by the timing helper. Cleared
+    # unconditionally so a checks that does NOT use the helper (a pure `[[ -x
+    # ]]` test) can never inherit the previous check's output — the same
+    # consume-and-clear discipline iter-186 uses for its scenario override.
+    local observed_stderr_from_the_timed_sub_step="$ITER160_HELPER_LATEST_CAPTURED_STDERR_FROM_TIMED_COMMAND_INVOCATION"
+    local a_timed_sub_step_ran_for_this_check="$ITER160_HELPER_A_TIMED_SUB_STEP_RAN_SINCE_LAST_RECORDED_CHECK"
+    ITER160_HELPER_LATEST_CAPTURED_STDERR_FROM_TIMED_COMMAND_INVOCATION=""
+    ITER160_HELPER_A_TIMED_SUB_STEP_RAN_SINCE_LAST_RECORDED_CHECK=0
+
+    # On failure, lead with what was OBSERVED. Whatever the call site passed in
+    # is a hypothesis written before the run and is labelled as such at the two
+    # chain-probe call sites. Stating "(sub-step wrote nothing to stderr)"
+    # rather than staying silent is deliberate: it distinguishes "we looked and
+    # there was nothing" from "nobody looked", which is the distinction whose
+    # absence made the earlier occurrence undiagnosable.
+    if [[ "$check_outcome_pass_or_fail_or_skip" == "fail" ]] && (( a_timed_sub_step_ran_for_this_check )); then
+        local observed_clause_for_failure_diagnostic
+        if [[ -n "$observed_stderr_from_the_timed_sub_step" ]]; then
+            observed_clause_for_failure_diagnostic="observed stderr: ${observed_stderr_from_the_timed_sub_step}"
+        else
+            observed_clause_for_failure_diagnostic="observed: sub-step ran, exited non-zero, and wrote nothing to stderr"
+        fi
+        diagnostic_message_for_failures_or_warnings="${observed_clause_for_failure_diagnostic}${diagnostic_message_for_failures_or_warnings:+ | }${diagnostic_message_for_failures_or_warnings}"
+    fi
+
     ITER160_TOTAL_CHECKS_EVALUATED=$((ITER160_TOTAL_CHECKS_EVALUATED + 1))
 
     case "$severity_critical_or_warning_or_info:$check_outcome_pass_or_fail_or_skip" in
@@ -177,6 +202,59 @@ iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_class
 ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION=0
 ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION=0
 
+# ─── OBSERVABILITY: stop discarding the sub-step's stderr ────────────────────
+#
+# Every one of the 15 checks derives its verdict from a subprocess exit code,
+# and the timing helper below used to run that subprocess as `"$@" >/dev/null
+# 2>&1`. So when a check failed for an ENVIRONMENTAL reason — a missing lib, a
+# bad cwd, a toolchain shim banner — the message explaining why was written and
+# immediately thrown away. The failure branches then recorded a cause string
+# chosen in ADVANCE ("chain wiring regressed"), asserting something the check
+# had never established. Output was therefore identical whether or not the
+# check learned anything, which is why an intermittent verdict degradation
+# observed by a second operator could not be diagnosed from the logs at all,
+# and why ~188 clean executions bought nothing.
+#
+# This captures stderr into a global that the recorder consumes-and-clears, so
+# a failing check names its own observed cause and the pre-written string is
+# demoted to an explicitly-labelled hypothesis.
+#
+# NO GATE CHANGES: same checks, same severities, same exit codes, same
+# pass/fail boundary. Only the diagnostic text differs, and only on failure.
+#
+# Two constraints shaped the implementation:
+#   * Records are pipe-joined and later parsed with `IFS='|' read -r ... <<<`,
+#     which reads only the FIRST LINE. A newline in captured stderr would
+#     silently truncate the record, so newlines are flattened. A literal `|` is
+#     safe — `read` gives every trailing field to the last variable.
+#   * iter-174 scenario A6 pins this script's external fork count at exactly
+#     23. Capture therefore uses only bash builtins and command substitution
+#     (a subshell fork, no exec) — deliberately no mktemp/sed/tr/wc, all of
+#     which are on that shim's counted list and would break someone else's gate.
+ITER160_HELPER_LATEST_CAPTURED_STDERR_FROM_TIMED_COMMAND_INVOCATION=""
+ITER160_HELPER_CAPTURED_STDERR_MAXIMUM_CHARACTERS_BEFORE_TRUNCATION=400
+
+# Whether a timed sub-step actually ran since the last recorded check. Needed
+# because "ran and printed nothing" and "never ran a sub-step at all" are
+# different facts, and an empty capture cannot tell them apart. Several checks
+# (e.g. the `[[ -f <lib> ]]` guards) fail without invoking any subprocess; a
+# message saying "sub-step exited non-zero and wrote nothing" would assert
+# something that never happened — the same over-claiming this change exists to
+# remove. Caught by the negative control, which is what it is for.
+ITER160_HELPER_A_TIMED_SUB_STEP_RAN_SINCE_LAST_RECORDED_CHECK=0
+
+# Flatten to one line and cap the length, using parameter expansion only.
+iter160_normalize_captured_stderr_to_single_line_within_length_budget() {
+    local raw_captured_stderr_text="$1"
+    raw_captured_stderr_text="${raw_captured_stderr_text//$'\n'/ ⏎ }"
+    raw_captured_stderr_text="${raw_captured_stderr_text//$'\r'/ }"
+    if (( ${#raw_captured_stderr_text} > ITER160_HELPER_CAPTURED_STDERR_MAXIMUM_CHARACTERS_BEFORE_TRUNCATION )); then
+        raw_captured_stderr_text="${raw_captured_stderr_text:0:ITER160_HELPER_CAPTURED_STDERR_MAXIMUM_CHARACTERS_BEFORE_TRUNCATION} …(stderr truncated)"
+    fi
+    ITER160_HELPER_LATEST_CAPTURED_STDERR_FROM_TIMED_COMMAND_INVOCATION="$raw_captured_stderr_text"
+    ITER160_HELPER_A_TIMED_SUB_STEP_RAN_SINCE_LAST_RECORDED_CHECK=1
+}
+
 # ─── ITER-177 ZERO-FORK TIMING via bash 5+ EPOCHREALTIME BUILTIN ─────────────
 # Pre-iter-177 the per-check timing wrapper spawned TWO `perl -MTime::HiRes`
 # subprocesses per check (start_ns + end_ns capture). Empirical measurement:
@@ -216,17 +294,23 @@ iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds() {
         # since epoch (concat of integer-seconds × 10^6 + fractional-microseconds).
         local start_microseconds_since_epoch_from_bash5_epochrealtime_builtin
         local end_microseconds_since_epoch_from_bash5_epochrealtime_builtin
+        local captured_stderr_text_from_fast_path
         start_microseconds_since_epoch_from_bash5_epochrealtime_builtin="${EPOCHREALTIME/./}"
-        "$@" >/dev/null 2>&1 || actual_exit=$?
+        # Declaration split from assignment so `|| actual_exit=$?` sees the
+        # command's status, not the `local` builtin's (SC2155).
+        captured_stderr_text_from_fast_path=$( { "$@" >/dev/null; } 2>&1 ) || actual_exit=$?
         end_microseconds_since_epoch_from_bash5_epochrealtime_builtin="${EPOCHREALTIME/./}"
+        iter160_normalize_captured_stderr_to_single_line_within_length_budget "$captured_stderr_text_from_fast_path"
         elapsed_ms=$(( (end_microseconds_since_epoch_from_bash5_epochrealtime_builtin - start_microseconds_since_epoch_from_bash5_epochrealtime_builtin) / 1000 ))
     else
         # Legacy fallback: perl Time::HiRes for bash < 5.0. Preserved
         # verbatim from pre-iter-177 implementation for correctness parity.
         local start_ns end_ns
+        local captured_stderr_text_from_legacy_path
         start_ns=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time*1e9')
-        "$@" >/dev/null 2>&1 || actual_exit=$?
+        captured_stderr_text_from_legacy_path=$( { "$@" >/dev/null; } 2>&1 ) || actual_exit=$?
         end_ns=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time*1e9')
+        iter160_normalize_captured_stderr_to_single_line_within_length_budget "$captured_stderr_text_from_legacy_path"
         elapsed_ms=$(( (end_ns - start_ns) / 1000000 ))
     fi
     ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION="$actual_exit"
@@ -551,7 +635,7 @@ printf 'feat: synthetic iter-163 probe subject\n\nthis is a body explaining the 
 ITER163_END_TO_END_PROBE_EXPECTED_BUMP_LABEL_FROM_INTACT_ITER153_TO_ITER161_TO_ITER162_CHAIN="MAJOR"
 if [[ -x "$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
-        bash -c "\"$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH\" --json --message-file \"$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH\" 2>/dev/null | grep -q '\"bump_label_per_cc_skills_releaserc_yml_rules\": \"$ITER163_END_TO_END_PROBE_EXPECTED_BUMP_LABEL_FROM_INTACT_ITER153_TO_ITER161_TO_ITER162_CHAIN\"'"
+        bash -c "\"$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH\" --json --message-file \"$ITER163_END_TO_END_ADVISOR_CHAIN_PROBE_SYNTHETIC_COMMIT_MESSAGE_FILE_ABSOLUTE_PATH\" | grep -q '\"bump_label_per_cc_skills_releaserc_yml_rules\": \"$ITER163_END_TO_END_PROBE_EXPECTED_BUMP_LABEL_FROM_INTACT_ITER153_TO_ITER161_TO_ITER162_CHAIN\"'"
     iter163_end_to_end_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
     iter163_end_to_end_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
     if [[ "$iter163_end_to_end_exit" -eq 0 ]]; then
@@ -564,7 +648,7 @@ if [[ -x "$ITER160_ITER153_ADVISOR_ABSOLUTE_PATH" ]]; then
             "iter163_end_to_end_advisor_chain_probe" \
             "iter-163 end-to-end advisor chain probe" \
             "critical" "fail" "$iter163_end_to_end_ms" \
-            "synthetic footer-form fixture failed to produce MAJOR bump — chain wiring regressed"
+            "failing sub-step: iter-153 advisor --json --message-file piped to grep for bump_label=MAJOR | hypothesis (NOT established by this check): synthetic footer-form fixture failed to produce MAJOR bump — chain wiring regressed"
     fi
 else
     iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
@@ -621,7 +705,7 @@ fi
 ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/iter165-pending-release-aggregator-computing-cumulative-semver-bump-across-all-unreleased-commits-since-most-recent-git-tag-by-aggregating-iter161-classifier-output-and-rendering-concrete-iter164-next-version-preview.sh"
 if [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
-        bash -c "bash -n '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --help >/dev/null 2>&1"
+        bash -c "bash -n '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' && '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --help >/dev/null"
     iter166_iter165_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
     iter166_iter165_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
     if [[ "$iter166_iter165_exit" -eq 0 ]]; then
@@ -659,24 +743,32 @@ fi
 
 ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH=$(mktemp -d -t iter166-end-to-end-aggregator-probe-XXXXXX)
 iter166_end_to_end_aggregator_probe_setup_exit_code=0
-(
-    cd "$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH"
-    git init -q
-    git config user.email "iter166-doctor-probe@example.com"
-    git config user.name "iter166-doctor-probe"
-    git commit --allow-empty -q -m "baseline before tag"
-    git tag v1.0.0
-    git commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
-) >/dev/null 2>&1 || iter166_end_to_end_aggregator_probe_setup_exit_code=$?
+# This setup does not run through the timing helper, so it captures its own
+# stderr the same fork-free way: `2>&1 >/dev/null` inside a command
+# substitution sends fd2 to the capture pipe and fd1 to /dev/null. A temp file
+# would have needed `mktemp`, which iter-174's A6 fork shim counts — that would
+# have broken a pinned fork count in someone else's lane to add a log line.
+iter166_end_to_end_aggregator_probe_setup_captured_stderr_text=$(
+    (
+        cd "$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH"
+        git init -q
+        git config user.email "iter166-doctor-probe@example.com"
+        git config user.name "iter166-doctor-probe"
+        git commit --allow-empty -q -m "baseline before tag"
+        git tag v1.0.0
+        git commit --allow-empty -q -m "feat: synthetic iter-166 doctor probe commit"
+    ) 2>&1 >/dev/null
+) || iter166_end_to_end_aggregator_probe_setup_exit_code=$?
+iter160_normalize_captured_stderr_to_single_line_within_length_budget "$iter166_end_to_end_aggregator_probe_setup_captured_stderr_text"
 
 if [[ "$iter166_end_to_end_aggregator_probe_setup_exit_code" -ne 0 ]]; then
     iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
         "iter166_end_to_end_aggregator_chain_probe" \
         "iter-166 end-to-end iter-153→iter-161→iter-164→iter-165 chain probe" \
-        "critical" "fail" "0" "could not set up synthetic temp git repo for probe"
+        "critical" "fail" "0" "failing sub-step: git init / config / commit / tag while building the synthetic probe repo | hypothesis (NOT established by this check): could not set up synthetic temp git repo for probe"
 elif [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION" ]]; then
     iter160_time_command_and_capture_exit_code_and_wall_clock_milliseconds \
-        bash -c "cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json 2>/dev/null | grep -q '\"aggregate_bump_label_per_semver_precedence\": \"MINOR\"' && cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json 2>/dev/null | grep -q '\"next_version\": \"v1.1.0\"'"
+        bash -c "cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"aggregate_bump_label_per_semver_precedence\": \"MINOR\"' && cd '$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' && ITER165_REPO_ROOT_OVERRIDE='$ITER166_END_TO_END_AGGREGATOR_CHAIN_PROBE_TEMP_REPO_ABSOLUTE_PATH' '$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR_ITER160_DOCTOR_COVERAGE_EXTENSION' --json | grep -q '\"next_version\": \"v1.1.0\"'"
     iter166_end_to_end_aggregator_exit="$ITER160_HELPER_LATEST_EXIT_CODE_FROM_TIMED_COMMAND_INVOCATION"
     iter166_end_to_end_aggregator_ms="$ITER160_HELPER_LATEST_WALL_CLOCK_MILLISECONDS_FROM_TIMED_COMMAND_INVOCATION"
     if [[ "$iter166_end_to_end_aggregator_exit" -eq 0 ]]; then
@@ -689,7 +781,7 @@ elif [[ -x "$ITER166_ITER165_PENDING_RELEASE_AGGREGATOR_SCRIPT_ABSOLUTE_PATH_FOR
             "iter166_end_to_end_aggregator_chain_probe" \
             "iter-166 end-to-end aggregator chain probe" \
             "critical" "fail" "$iter166_end_to_end_aggregator_ms" \
-            "synthetic feat fixture failed to produce MINOR aggregate + v1.1.0 next-version — chain wiring regressed (iter-165→iter-161 or iter-165→iter-164 broken)"
+            "failing sub-step: iter-165 aggregator --json piped to grep for aggregate_bump_label=MINOR then next_version=v1.1.0 | hypothesis (NOT established by this check): synthetic feat fixture failed to produce MINOR aggregate + v1.1.0 next-version — chain wiring regressed (iter-165→iter-161 or iter-165→iter-164 broken)"
     fi
 else
     iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
