@@ -23,7 +23,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 
 | Hook                                                         | Matcher                | Purpose                                       | Spoke                                                       |
 | ------------------------------------------------------------ | ---------------------- | --------------------------------------------- | ----------------------------------------------------------- |
-| `pretooluse-fake-data-guard.mjs`                             | Write                  | Blocks fake/placeholder data in prod code     | [→](./docs/fake-data-guard.md)                              |
+| `pretooluse-fake-data-guard.mjs`                             | **UNREGISTERED**       | Unregistered; fake/placeholder data blocker   | [→](./docs/fake-data-guard.md)                              |
 | `pretooluse-version-guard.ts`                                | iter-85                | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                |
 | `pretooluse-process-storm-guard.mjs`                         | Bash\|Write\|Edit      | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                          |
 | `pretooluse-cwd-deletion-guard.ts`                           | Bash                   | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                           |
@@ -36,7 +36,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`    | Write\|Edit            | Iter-84→91 orchestrator; all 8 subhooks       | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
 | `pretooluse-native-binary-guard.ts`                          | iter-90                | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
 | `pretooluse-pyi-stub-guard.ts`                               | iter-89                | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
-| `pretooluse-inline-ignore-guard.ts`                          | Write\|Edit            | Blocks new inline lint suppressions           | [→](./docs/inline-ignore-policy.md)                         |
+| `pretooluse-inline-ignore-guard.ts`                          | **UNREGISTERED**       | Unregistered; inline lint-suppression guard   | [→](./docs/inline-ignore-policy.md)                         |
 | `pretooluse-uv-enforcement-guard.ts`                         | Bash                   | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                         |
 | `pretooluse-pueue-local-guard.ts`                            | Bash                   | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                            |
 | `pretooluse-cargo-tty-guard.ts`                              | Bash                   | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                              |
@@ -73,7 +73,7 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `posttooluse-oxlint-check.ts`                     | iter-95                      | oxlint correctness+suspicious on JS/TS        | [→](./docs/oxlint-check.md)                        |
 | `posttooluse-biome-lint.ts`                       | iter-95                      | biome complementary-to-oxlint JS/TS lint      | [→](./docs/biome-lint.md)                          |
 | `posttooluse-python-preference-nudge.ts`          | iter-93                      | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
-| `posttooluse-mini-inngest-doctrine.ts`            | Bash\|Write\|Edit\|MultiEdit | Nudge to host web-facing services on the Mini | [→](./docs/mini-inngest-doctrine.md)               |
+| `posttooluse-mini-inngest-doctrine.ts`            | **UNREGISTERED**             | Unregistered; Mac-Mini hosting nudge          | [→](./docs/mini-inngest-doctrine.md)               |
 | `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit\|MultiEdit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)       |
 | `posttooluse-markdown-hard-wrap-reminder.ts`      | iter-93                      | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
 | `posttooluse-claude-md-size-budget-reminder.ts`   | iter-93                      | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |

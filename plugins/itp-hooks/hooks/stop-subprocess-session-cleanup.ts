@@ -16,7 +16,8 @@
  * Coverage: Session-level cleanup (runs once on shutdown)
  *
  * Reference: GitHub Issues #11898, #12507, #13598
- * Related: posttooluse-subprocess-orphan-cleanup.ts (per-tool cleanup)
+ * Note: the former per-tool twin, posttooluse-subprocess-orphan-cleanup.ts, was deleted 2026-09-05 —
+ * it was a proven no-op (same broken `ps -o cmd=` call, plus it filtered on its OWN pid as parent).
  */
 
 /**
@@ -167,9 +168,13 @@ async function verifyCleanup(): Promise<void> {
   try {
     console.warn("🧹 Final verification...");
 
-    // Check for remaining child processes
+    // Check for remaining child processes.
+    // `comm=`, NOT `cmd=`: `cmd` is a Linux/procps keyword that BSD/macOS `ps` rejects outright —
+    // `ps -o ppid=,pid=,cmd=` exits 1 with "ps: cmd: keyword not found" and prints nothing, so the
+    // whole verification silently degraded to inspecting an empty string. `comm=` is the portable
+    // spelling and exits 0.
     const ps_output = await new Promise<string>((resolve) => {
-      const proc = Bun.spawn(["bash", "-c", "ps -o ppid=,pid=,cmd= | grep ^1"], {
+      const proc = Bun.spawn(["bash", "-c", "ps -o ppid=,pid=,comm= | grep ^1"], {
         stdout: "pipe",
         stderr: "ignore",
       });
@@ -182,7 +187,11 @@ async function verifyCleanup(): Promise<void> {
       proc.on("close", () => resolve(output));
     });
 
-    const remaining_count = ps_output.trim().split("\n").length;
+    // Guard the empty case before splitting: "".split("\n") returns [""], whose length is 1, so a
+    // naive `.trim().split("\n").length` reports "1 process(es) still running" even when nothing is.
+    const trimmed_ps_output = ps_output.trim();
+    const remaining_count =
+      trimmed_ps_output === "" ? 0 : trimmed_ps_output.split("\n").length;
     if (remaining_count > 0) {
       console.warn(`   ⚠️  ${remaining_count} process(es) still running`);
     } else {
