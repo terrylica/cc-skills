@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-95 microbenchmark variant complementing iter-94's no-spawn benchmark: creates a REAL .ts file in a tsconfig-rooted dir, runs the orchestrator, and measures wall-clock with N=2 actual subprocesses (tsgo + oxlint) firing in parallel via Bun.spawn (biome may also fire if installed). Empirically confirms that wall-clock approaches MAX(subhook_i) rather than SUM(subhook_i) — the iter-94 async-Bun.spawn refactor's claimed benefit. Median-of-N=5 reported per payload."
+# Iter-95 microbenchmark variant complementing iter-94's no-spawn benchmark: creates a REAL .ts file in a tsconfig-rooted dir, runs the orchestrator, and measures wall-clock with N=2 actual subprocesses (tsgo + oxlint) firing in parallel via Bun.spawn (biome may also fire if installed). Empirically confirms that wall-clock approaches MAX(subhook_i) rather than SUM(subhook_i) — the iter-94 async-Bun.spawn refactor's claimed benefit. Median-of-N=5 reported per payload.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

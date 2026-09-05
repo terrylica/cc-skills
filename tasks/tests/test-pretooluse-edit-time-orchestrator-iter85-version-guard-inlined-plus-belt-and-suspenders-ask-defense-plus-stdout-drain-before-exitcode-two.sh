@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-85 regression test extending iter-84 orchestrator coverage. Verifies: (1) version-guard subhook inlined as second registry entry produces matching deny output as standalone, (2) the iter-85-audit-driven belt-and-suspenders defense now covers BOTH deny AND ask paths (previously only deny had stderr+exit2), (3) stdout-drain-before-exit pattern (process.exitCode=2 instead of process.exit(2)) preserves full JSON payload integrity, (4) registry-order-is-lightest-first invariant — version-guard's O(1) extension+path filter runs BEFORE file-size-guard's sync fs.readFileSync."
+# Iter-85 regression test extending iter-84 orchestrator coverage. Verifies: (1) version-guard subhook inlined as second registry entry produces matching deny output as standalone, (2) the iter-85-audit-driven belt-and-suspenders defense now covers BOTH deny AND ask paths (previously only deny had stderr+exit2), (3) stdout-drain-before-exit pattern (process.exitCode=2 instead of process.exit(2)) preserves full JSON payload integrity, (4) registry-order-is-lightest-first invariant — version-guard's O(1) extension+path filter runs BEFORE file-size-guard's sync fs.readFileSync.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

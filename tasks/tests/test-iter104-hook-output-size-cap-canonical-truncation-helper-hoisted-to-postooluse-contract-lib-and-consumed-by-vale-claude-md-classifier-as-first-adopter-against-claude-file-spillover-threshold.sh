@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-104 regression test for the hook-output-size-cap canonical truncation helper. Verifies MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER constant + truncateHookOutputToStayBelowClaudeFileSpilloverThreshold helper exist in PostToolUse contract lib, helper returns input verbatim under threshold + truncates with explicit marker over threshold, posttooluse-vale-claude-md.ts (first adopter) consumes the helper for its unbounded vale-findings reason emission, no output ever exceeds 10000 chars when emitted via the helper, fast-path return-verbatim semantics preserved for typical small reasons."
+# Iter-104 regression test for the hook-output-size-cap canonical truncation helper. Verifies MAX_HOOK_OUTPUT_SAFE_LENGTH_BEFORE_CLAUDE_FILE_SPILLOVER constant + truncateHookOutputToStayBelowClaudeFileSpilloverThreshold helper exist in PostToolUse contract lib, helper returns input verbatim under threshold + truncates with explicit marker over threshold, posttooluse-vale-claude-md.ts (first adopter) consumes the helper for its unbounded vale-findings reason emission, no output ever exceeds 10000 chars when emitted via the helper, fast-path return-verbatim semantics preserved for typical small reasons.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

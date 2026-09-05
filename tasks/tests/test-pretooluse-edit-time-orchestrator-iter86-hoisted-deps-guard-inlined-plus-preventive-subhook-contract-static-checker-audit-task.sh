@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-86 regression test extending iter-85 orchestrator coverage. Verifies (1) hoisted-deps-guard inlined as 3rd registry entry produces matching deny across all 3 policies (root-only, path-escape, hoisted-deps), (2) standalone .ts (renamed from .mjs) backward-compat, (3) iter-86 preventive subhook-contract static checker correctly reports clean state on 3 conforming subhooks AND correctly flags synthetic contract violations (negative-test via temp-file fixture)."
+# Iter-86 regression test extending iter-85 orchestrator coverage. Verifies (1) hoisted-deps-guard inlined as 3rd registry entry produces matching deny across all 3 policies (root-only, path-escape, hoisted-deps), (2) standalone .ts (renamed from .mjs) backward-compat, (3) iter-86 preventive subhook-contract static checker correctly reports clean state on 3 conforming subhooks AND correctly flags synthetic contract violations (negative-test via temp-file fixture).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

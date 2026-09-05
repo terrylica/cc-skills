@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 1.5 of 5: Pre-release sync. Mirrors the current main HEAD into ~/.claude/plugins/marketplaces/cc-skills and runs hook/command/enabled-plugin sync so the live Claude Code environment reflects pending plugin changes BEFORE semantic-release runs. Safe against unpushed commits (skips with a warning). Idempotent with Phase 3 post-sync."
+# Phase 1.5 of 5: Pre-release sync. Mirrors the current main HEAD into ~/.claude/plugins/marketplaces/cc-skills and runs hook/command/enabled-plugin sync so the live Claude Code environment reflects pending plugin changes BEFORE semantic-release runs. Safe against unpushed commits (skips with a warning). Idempotent with Phase 3 post-sync.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

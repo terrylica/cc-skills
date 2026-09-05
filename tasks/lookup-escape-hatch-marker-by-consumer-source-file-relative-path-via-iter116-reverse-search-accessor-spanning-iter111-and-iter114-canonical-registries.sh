@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-116 operator-facing reverse-search: 'I want to opt out of THIS hook/audit-task — what marker do I write?' Takes a consumer source file relative path argument (e.g., plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts OR tasks/audit-...-iter106.sh) and reports every registered escape-hatch marker token that opts the caller out of that consumer's enforcement, spanning both the iter-111 RUNTIME-HOOK canonical registry and the iter-114 AUDIT-TASK canonical registry. Exits 0 when ≥1 marker found, exits 2 when no markers target the path, exits 1 on usage error."
+# Iter-116 operator-facing reverse-search: 'I want to opt out of THIS hook/audit-task — what marker do I write?' Takes a consumer source file relative path argument (e.g., plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts OR tasks/audit-...-iter106.sh) and reports every registered escape-hatch marker token that opts the caller out of that consumer's enforcement, spanning both the iter-111 RUNTIME-HOOK canonical registry and the iter-114 AUDIT-TASK canonical registry. Exits 0 when ≥1 marker found, exits 2 when no markers target the path, exits 1 on usage error.
 
 # ────────────────────────────────────────────────────────────────────────
 # Iter-116 design rationale (operator-facing CLI side)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Asserts the PROPERTY that proto >= 0.61.2 guarantees: a shim-invoked tool's STDOUT is the tool's own output, with no 'Detected an AI agent environment' NDJSON banner prepended, even under the concurrency that used to trigger it. Replaces the retired validate-plugins hygiene lint, which could only check that people wrote the `env -u AI_AGENT -u CLAUDECODE` workaround rather than that the bug is absent. Skips cleanly when proto or a shim is unavailable."
+# Asserts the PROPERTY that proto >= 0.61.2 guarantees: a shim-invoked tool's STDOUT is the tool's own output, with no 'Detected an AI agent environment' NDJSON banner prepended, even under the concurrency that used to trigger it. Replaces the retired validate-plugins hygiene lint, which could only check that people wrote the `env -u AI_AGENT -u CLAUDECODE` workaround rather than that the bug is absent. Skips cleanly when proto or a shim is unavailable.
 
 # ────────────────────────────────────────────────────────────────────────
 # Why this test exists, and why it is a test rather than a lint

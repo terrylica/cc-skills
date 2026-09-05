@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Walk every plugins/*/hooks/hooks.json, inspect each registered hook script for blocking-decision emission (decision:block, decision:deny, permissionDecision:deny/ask), and classify each as ASYNC-ELIGIBLE, ASYNC-CANDIDATE-WITH-CAVEAT, MUST-STAY-SYNC, or ALREADY-ASYNC. Surfaces hooks that could move to Claude Code 2.1.0+ async:true (Jan 2026 feature) — non-blocking hooks let Claude continue without waiting for the hook to complete (notifications, logs, glossary sync, telemetry). Read-only audit; never mutates hooks.json. Re-run after any hook addition or modification to surface new candidates."
+# Walk every plugins/*/hooks/hooks.json, inspect each registered hook script for blocking-decision emission (decision:block, decision:deny, permissionDecision:deny/ask), and classify each as ASYNC-ELIGIBLE, ASYNC-CANDIDATE-WITH-CAVEAT, MUST-STAY-SYNC, or ALREADY-ASYNC. Surfaces hooks that could move to Claude Code 2.1.0+ async:true (Jan 2026 feature) — non-blocking hooks let Claude continue without waiting for the hook to complete (notifications, logs, glossary sync, telemetry). Read-only audit; never mutates hooks.json. Re-run after any hook addition or modification to surface new candidates.
 #
 # audit-hooks-for-async-true-eligibility-via-blocking-decision-emission-detection
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-106 regression test for the truncation-helper canonical-home invariant. Verifies (1) audit-task existence + executability; (2) live audit passes; (3) iter-106 shared-lib file exists with literal exports; (4) PostToolUse contract lib re-exports from shared lib (backward compat) WITHOUT duplicating definitions; (5) all 8 iter-105 cohort hooks import helper from shared-lib canonical home; (6) helper signature + threshold (9000) unchanged from iter-104 baseline; (7) iter-105 audit still passes (canonical-home relocation did not break marketplace-wide invariant)."
+# Iter-106 regression test for the truncation-helper canonical-home invariant. Verifies (1) audit-task existence + executability; (2) live audit passes; (3) iter-106 shared-lib file exists with literal exports; (4) PostToolUse contract lib re-exports from shared lib (backward compat) WITHOUT duplicating definitions; (5) all 8 iter-105 cohort hooks import helper from shared-lib canonical home; (6) helper signature + threshold (9000) unchanged from iter-104 baseline; (7) iter-105 audit still passes (canonical-home relocation did not break marketplace-wide invariant).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-102 regression test for PreToolUse canonical-helper hoist (mirrors iter-100's PostToolUse-side helper hoist). Verifies the FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS allowlist + isFileEditToolNameHonoredByPreToolUseBlockingSubhook helper exist in the contract lib, all 8 inlined classifiers import + use the canonical helper, the legacy hardcoded tool_name !== Write && tool_name !== Edit guard pattern is removed from all 8, and the iter-102 staged-migration MultiEdit short-circuit preserves status quo (preventing false-positives until iter-103+ per-classifier MultiEdit content-extraction work)."
+# Iter-102 regression test for PreToolUse canonical-helper hoist (mirrors iter-100's PostToolUse-side helper hoist). Verifies the FILE_EDIT_TOOL_NAMES_HONORED_BY_PRETOOLUSE_BLOCKING_SUBHOOKS allowlist + isFileEditToolNameHonoredByPreToolUseBlockingSubhook helper exist in the contract lib, all 8 inlined classifiers import + use the canonical helper, the legacy hardcoded tool_name !== Write && tool_name !== Edit guard pattern is removed from all 8, and the iter-102 staged-migration MultiEdit short-circuit preserves status quo (preventing false-positives until iter-103+ per-classifier MultiEdit content-extraction work).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-103 regression test for the NotebookEdit applicability audit. Verifies audit-task existence + executability, audit always exits 0 (informational), per-classifier applicability matrix produces expected counts (4 APPLICABLE: version-guard + gpu-optimization-guard + ssot-principles + memory-efficiency-reminder; ≥4 POTENTIALLY-APPLICABLE; ≥15 NOT-APPLICABLE), file-path-suffix vs content-pattern category discrimination correct, community-validated 2026 caution citations present, iter-104+ deferred-scope rationale documented."
+# Iter-103 regression test for the NotebookEdit applicability audit. Verifies audit-task existence + executability, audit always exits 0 (informational), per-classifier applicability matrix produces expected counts (4 APPLICABLE: version-guard + gpu-optimization-guard + ssot-principles + memory-efficiency-reminder; ≥4 POTENTIALLY-APPLICABLE; ≥15 NOT-APPLICABLE), file-path-suffix vs content-pattern category discrimination correct, community-validated 2026 caution citations present, iter-104+ deferred-scope rationale documented.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

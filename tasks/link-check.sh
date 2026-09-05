@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Offline link check over every tracked markdown file: relative paths, root-relative paths and anchors. Deterministic and network-free by design, so it can eventually gate. External URL liveness is NOT checked here — see link-check-external."
+# Offline link check over every tracked markdown file: relative paths, root-relative paths and anchors. Deterministic and network-free by design, so it can eventually gate. External URL liveness is NOT checked here — see link-check-external.
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Why this exists, and why it is OFFLINE
