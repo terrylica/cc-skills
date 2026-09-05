@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Regression: scripts/validate-hook-registration.sh derives its hook-event coverage from the settings document instead of two hardcoded six-event lists, so a nonexistent command path or a within-event duplicate under SessionEnd/SubagentStop/Notification/PreCompact (or any future event) is now an ERROR instead of an unqualified green"
+# Regression: scripts/validate-hook-registration.sh derives its hook-event coverage from the settings document instead of two hardcoded six-event lists, so a nonexistent command path or a within-event duplicate under SessionEnd/SubagentStop/Notification/PreCompact (or any future event) is now an ERROR instead of an unqualified green
 #
 # THE BUG THIS PINS (found 2026-09-02 by a vacuous-gate sweep)
 # -----------------------------------------------------------

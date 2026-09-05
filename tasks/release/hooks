@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Prune cc-skills marketplace-path hook entries from ~/.claude/settings.json. Plugin hooks are auto-loaded from each plugin's hooks/hooks.json — settings.json should NOT contain duplicates. Wraps scripts/sync-hooks-to-settings.sh."
+# Prune cc-skills marketplace-path hook entries from ~/.claude/settings.json. Plugin hooks are auto-loaded from each plugin's hooks/hooks.json — settings.json should NOT contain duplicates. Wraps scripts/sync-hooks-to-settings.sh.
 set -euo pipefail
 
 ./scripts/sync-hooks-to-settings.sh

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-87 empirical microbenchmark validating iter-81 ranker's projected cold-start-amortization savings curve. Measures median end-to-end latency of: (A) pre-orchestration baseline (4 standalone bun spawns for the 4 currently-inlined subhooks), (B) iter-84/85/86/87 orchestrator (1 bun spawn invoking 4 inlined classifiers), (C) projected savings = A - B vs iter-81's predicted (N-1) × bun_cold_start_floor. Reports actual savings vs projection delta; surfaces if our ~44ms cold-start measurement is real or inflated by payload overhead (per iter-86 web-research finding of community 8-15ms benchmarks)."
+# Iter-87 empirical microbenchmark validating iter-81 ranker's projected cold-start-amortization savings curve. Measures median end-to-end latency of: (A) pre-orchestration baseline (4 standalone bun spawns for the 4 currently-inlined subhooks), (B) iter-84/85/86/87 orchestrator (1 bun spawn invoking 4 inlined classifiers), (C) projected savings = A - B vs iter-81's predicted (N-1) × bun_cold_start_floor. Reports actual savings vs projection delta; surfaces if our ~44ms cold-start measurement is real or inflated by payload overhead (per iter-86 web-research finding of community 8-15ms benchmarks).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

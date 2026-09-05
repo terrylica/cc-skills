@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 3 of 4: Sync released version to local Claude Code environment. Updates marketplace repo, syncs hooks to settings.json, syncs commands to ~/.claude/commands/, auto-enables new plugins, and adds the new version to the plugin cache without removing older versions (live sessions need them). Run release:clean separately to prune."
+# Phase 3 of 4: Sync released version to local Claude Code environment. Updates marketplace repo, syncs hooks to settings.json, syncs commands to ~/.claude/commands/, auto-enables new plugins, and adds the new version to the plugin cache without removing older versions (live sessions need them). Run release:clean separately to prune.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

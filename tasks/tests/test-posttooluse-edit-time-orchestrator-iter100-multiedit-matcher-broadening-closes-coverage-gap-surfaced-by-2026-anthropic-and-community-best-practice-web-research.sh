@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-100 regression test: orchestrator matcher broadened Write|Edit to Write|Edit|MultiEdit per 2026 Anthropic + community best-practice web research. Verifies hooks.json matcher includes MultiEdit, canonical contract helper exists + consumed by classifiers, end-to-end MultiEdit payload fires expected subhooks (memory-efficiency + ssot-principles on .py + .ts edits), iter-99 audit scope refined to exclude lib helpers, marketplace-wide invariants preserved."
+# Iter-100 regression test: orchestrator matcher broadened Write|Edit to Write|Edit|MultiEdit per 2026 Anthropic + community best-practice web research. Verifies hooks.json matcher includes MultiEdit, canonical contract helper exists + consumed by classifiers, end-to-end MultiEdit payload fires expected subhooks (memory-efficiency + ssot-principles on .py + .ts edits), iter-99 audit scope refined to exclude lib helpers, marketplace-wide invariants preserved.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

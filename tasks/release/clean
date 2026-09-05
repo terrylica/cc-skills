@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Prune old plugin cache versions from ~/.claude/plugins/cache/cc-skills/, keeping the N most recent (default 3, override with KEEP_VERSIONS env var). Safe for live sessions: previous versions are retained so sessions started under older releases don't break with 'Plugin directory does not exist' when their cache dir is yanked. Run periodically to free disk space."
+# Prune old plugin cache versions from ~/.claude/plugins/cache/cc-skills/, keeping the N most recent (default 3, override with KEEP_VERSIONS env var). Safe for live sessions: previous versions are retained so sessions started under older releases don't break with 'Plugin directory does not exist' when their cache dir is yanked. Run periodically to free disk space.
 set -euo pipefail
 
 CACHE_DIR="$HOME/.claude/plugins/cache/cc-skills"
