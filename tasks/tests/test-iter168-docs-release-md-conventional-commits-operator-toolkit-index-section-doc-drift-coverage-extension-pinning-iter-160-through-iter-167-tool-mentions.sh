@@ -73,7 +73,7 @@ echo "GROUP C (8 assertions): canonical table mentions every iter-160 → iter-1
 
 iter168_assert_substring_present_in_docs_release_md_with_human_readable_label \
     "C1: iter-160 toolkit self-diagnosis tool (commits:status) advertised" \
-    "mise run commits:status"
+    "moon run repo:commits-status"
 
 iter168_assert_substring_present_in_docs_release_md_with_human_readable_label \
     "C2: iter-160 toolkit self-diagnosis --json mode advertised with iter160_schema_version=1 stability contract" \
@@ -93,7 +93,7 @@ iter168_assert_substring_present_in_docs_release_md_with_human_readable_label \
 
 iter168_assert_substring_present_in_docs_release_md_with_human_readable_label \
     "C6: iter-165 commits:pending-release tool advertised (default mode)" \
-    "mise run commits:pending-release"
+    "moon run repo:commits-pending-release"
 
 iter168_assert_substring_present_in_docs_release_md_with_human_readable_label \
     "C7: iter-165 commits:pending-release --json mode advertised with iter165_schema_version=1 stability contract" \
