@@ -355,7 +355,7 @@ for test_file in "${TEST_FILES[@]}"; do
     if [[ ! -f "$test_exit_code_file" ]]; then
         echo "  ✗ FILE-FAIL: $test_name (no exit-code file from parallel fan-out — likely xargs aborted before this test ran)"
         FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
-        FAILED_TEST_FILES_LIST+=("$relative_path")
+        FAILED_TEST_FILES_LIST+=("$relative_path (exit=NONE, no exit-code file)")
         echo ""
         continue
     fi
@@ -372,7 +372,7 @@ for test_file in "${TEST_FILES[@]}"; do
         cat "$test_stdout_capture_file"
         echo "  ✗ FILE-FAIL: $test_name (exit=$captured_exit_code)"
         FAILED_TEST_FILES_COUNT=$((FAILED_TEST_FILES_COUNT + 1))
-        FAILED_TEST_FILES_LIST+=("$relative_path")
+        FAILED_TEST_FILES_LIST+=("$relative_path (exit=$captured_exit_code)")
     fi
     echo ""
 done
@@ -382,14 +382,69 @@ echo "  Marketplace Hook Regression Suite — Summary"
 echo "═══════════════════════════════════════════════════════════"
 echo "  Test files discovered: ${#TEST_FILES[@]}"
 echo "  Test files PASSED:     $PASSED_TEST_FILES_COUNT"
-echo "  Test files FAILED:     $FAILED_TEST_FILES_COUNT"
+
+# ─── ITER-187: A FAILING TEST FILE MUST NAME ITSELF ──────────────────────────
+# An intermittent 112-of-113 was observed and then LOST. The operator's log had
+# been piped through a filter that kept the three count lines and dropped
+# everything else, and the only two places the failing filename appeared were an
+# inline `✗ FILE-FAIL:` line roughly a hundred tests up the log, and an
+# UNLABELLED roster line reading `    - <path>`. Neither carries a word that a
+# count-oriented grep would keep, so a genuine failure became unidentifiable —
+# and, because ten standalone re-runs were all green, unreproducible too.
+#
+# The fix is redundancy, not a new format: three independent carriers, so no
+# single filter can erase the name.
+#
+#   (1) THE COUNT LINE ITSELF now carries the names. This is the one line
+#       empirically PROVEN to have survived the filter that lost them.
+#   (2) EVERY ROSTER LINE is prefixed with the literal token FAILED-TEST-FILE,
+#       so `grep FAILED`, `grep -i fail`, `grep TEST-FILE` and `grep -- -TEST-`
+#       all keep it, where the previous `    - ` prefix matched nothing.
+#   (3) THE WHOLE ROSTER IS MIRRORED TO STDERR, which a plain `| grep` or
+#       `| tail` on stdout does not touch at all.
+#
+# Deliberately NOT reusing the `FILE-FAIL` / `FILE-PASS` tokens here: the
+# iter-75 parity test (`grep -c 'FILE-FAIL'`) and the triage task
+# (`grep -cE '^  ✗ FILE-FAIL:'`) both COUNT those lines, so re-emitting either
+# token in the summary would inflate their tallies and turn a diagnostic
+# improvement into a test failure. `FAILED-TEST-FILE` shares no substring with
+# either token. The count line stays `-o`-compatible with the release
+# preflight's `grep -oE 'Test files FAILED:[[:space:]]+[0-9]+'` because the
+# names are appended AFTER the number, outside that regex's match.
+ITER187_MAX_FAILING_TEST_FILE_NAMES_TO_INLINE_ON_THE_COUNT_LINE=10
+iter187_failing_test_file_names_appended_to_the_surviving_count_line=""
+if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
+    iter187_count_line_name_budget_remaining="$ITER187_MAX_FAILING_TEST_FILE_NAMES_TO_INLINE_ON_THE_COUNT_LINE"
+    for iter187_each_failing_entry in "${FAILED_TEST_FILES_LIST[@]}"; do
+        if [ "$iter187_count_line_name_budget_remaining" -le 0 ]; then
+            iter187_failing_test_file_names_appended_to_the_surviving_count_line+=", (+$((FAILED_TEST_FILES_COUNT - ITER187_MAX_FAILING_TEST_FILE_NAMES_TO_INLINE_ON_THE_COUNT_LINE)) more — see roster below)"
+            break
+        fi
+        if [ -z "$iter187_failing_test_file_names_appended_to_the_surviving_count_line" ]; then
+            iter187_failing_test_file_names_appended_to_the_surviving_count_line="  ← $iter187_each_failing_entry"
+        else
+            iter187_failing_test_file_names_appended_to_the_surviving_count_line+=", $iter187_each_failing_entry"
+        fi
+        iter187_count_line_name_budget_remaining=$((iter187_count_line_name_budget_remaining - 1))
+    done
+fi
+# Carrier (1).
+echo "  Test files FAILED:     ${FAILED_TEST_FILES_COUNT}${iter187_failing_test_file_names_appended_to_the_surviving_count_line}"
 
 if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
     echo ""
     echo "  Failed test files:"
+    # Carrier (2).
     for fp in "${FAILED_TEST_FILES_LIST[@]}"; do
-        echo "    - $fp"
+        echo "    FAILED-TEST-FILE: $fp"
     done
+    # Carrier (3) — stderr, immune to an stdout-only `| grep` or `| tail`.
+    {
+        echo "FAILED-TEST-FILE-ROSTER: $FAILED_TEST_FILES_COUNT of ${#TEST_FILES[@]} marketplace hook regression test file(s) failed"
+        for fp in "${FAILED_TEST_FILES_LIST[@]}"; do
+            echo "  FAILED-TEST-FILE: $fp"
+        done
+    } >&2
     echo ""
     echo "  Run a failing test directly to see its detailed output:"
     echo "    bash <test-file-path>"

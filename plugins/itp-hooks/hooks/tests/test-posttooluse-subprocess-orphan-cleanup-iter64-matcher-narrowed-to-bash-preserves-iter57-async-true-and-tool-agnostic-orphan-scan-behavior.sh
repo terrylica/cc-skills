@@ -23,12 +23,14 @@
 #   iter-64 narrows the hooks.json matcher to "Bash". This test
 #   locks the invariant.
 #
-# Coverage matrix (7 assertions, 3 categories):
+# Coverage matrix (8 assertions, 3 categories):
 #
 #   Category A — hooks.json invariants:
 #     #01: matcher value is "Bash" (iter-64 invariant)
 #     #02: async:true flag is preserved (iter-57 invariant)
-#     #03: timeout is preserved (5000ms, sanity)
+#     #03: timeout is preserved (5 SECONDS, sanity)
+#     #03b: timeout is inside the schema's 1-600 s ceiling, so the
+#          millisecond spelling fails on meaning and not just equality
 #
 #   Category B — runtime behavior (clean state, no orphans):
 #     #04: hook exits with code 0 (fail-open contract preserved)
@@ -106,12 +108,29 @@ else
   assert_fail "hooks.json async is '$async_value', expected 'true' (iter-57 invariant lost)"
 fi
 
-# Test #03: timeout is sane
+# Test #03: timeout is sane, and is SECONDS
+#
+# This assertion pinned '5000' until 2026-09-05. That was the millisecond
+# spelling: the field is seconds (the shipped binary computes
+# `hook.timeout * 1000` at 15 call sites), so 5000 meant 83 minutes, not 5
+# seconds. #124 corrected every hooks.json but not this test, which was left
+# demanding the defect back — a red gate that a future maintainer could
+# "fix" by reintroducing the bug. Asserting the bound as well as the literal
+# means the millisecond spelling now fails on meaning, not just on equality.
 timeout_value=$(extract_orphan_cleanup_entry_field "timeout")
-if [ "$timeout_value" = "5000" ]; then
-  assert_pass "hooks.json timeout is 5000ms (sanity check preserved)"
+if [ "$timeout_value" = "5" ]; then
+  assert_pass "hooks.json timeout is 5 SECONDS (sanity check preserved)"
 else
-  assert_fail "hooks.json timeout is '$timeout_value', expected '5000'"
+  assert_fail "hooks.json timeout is '$timeout_value', expected '5' (SECONDS, not ms)"
+fi
+
+# Test #03b: timeout is inside the schema's 1-600 s ceiling
+if [ -n "$timeout_value" ] \
+  && [ "$timeout_value" -eq "$timeout_value" ] 2>/dev/null \
+  && [ "$timeout_value" -ge 1 ] && [ "$timeout_value" -le 600 ]; then
+  assert_pass "hooks.json timeout ${timeout_value}s is within the 1-600s schema bound"
+else
+  assert_fail "hooks.json timeout '$timeout_value' is outside 1-600 SECONDS (a 4-digit value is the millisecond spelling)"
 fi
 
 # ---------------------------------------------------------------------------
