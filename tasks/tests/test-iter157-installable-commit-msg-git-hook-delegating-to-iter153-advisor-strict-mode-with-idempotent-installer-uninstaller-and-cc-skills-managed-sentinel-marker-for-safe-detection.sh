@@ -229,10 +229,10 @@ else
 fi
 
 ITER157_TOTAL_ASSERTIONS_EVALUATED=$((ITER157_TOTAL_ASSERTIONS_EVALUATED + 1))
-if grep -qF "commits:install-hook" "$ITER157_REPO_ROOT/docs/RELEASE.md" 2>/dev/null; then
-    echo "  ✓ C2: docs/RELEASE.md mentions commits:install-hook"
+if grep -qF "repo:commits-install-hook" "$ITER157_REPO_ROOT/docs/RELEASE.md" 2>/dev/null; then
+    echo "  ✓ C2: docs/RELEASE.md mentions repo:commits-install-hook"
 else
-    echo "  ✗ C2: docs/RELEASE.md missing commits:install-hook mention"
+    echo "  ✗ C2: docs/RELEASE.md missing repo:commits-install-hook mention"
     ITER157_TOTAL_ASSERTIONS_FAILED=$((ITER157_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
