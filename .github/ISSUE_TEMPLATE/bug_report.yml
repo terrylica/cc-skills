@@ -1,0 +1,43 @@
+name: Bug report
+description: Something in this marketplace behaves differently from what it claims.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues in this repository are expected to carry their own evidence. The most useful bug reports here name the exact file and line, and paste the real command output — not a description of it.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What is wrong
+      description: One or two sentences. Lead with the observable defect, not the suspected cause — a title that asserts a cause the evidence does not establish is harder to close than one that describes what was seen.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: The smallest command sequence that shows it. Paste the command AND its real output, including the exit code where that is the point.
+      render: console
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: "`file:line` references for claims about this codebase. For claims about anything outside it — a tool's documented behaviour, an upstream bug, a spec — give a verbatim quote and the URL you took it from."
+    validations:
+      required: false
+  - type: input
+    id: versions
+    attributes:
+      label: Relevant versions
+      description: "Output of `proto list` or the pins from `.prototools`, plus the Claude Code version if a hook is involved."
+    validations:
+      required: false
