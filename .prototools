@@ -16,7 +16,7 @@
 # maintainer closed it with "Fixed in v0.61.2". Verified here on 0.61.2 with no
 # workaround: 0/100 polluted at the 100-way concurrency that gave 27-45/100 on
 # 0.61.1. tasks/release/preflight enforces this floor rather than trusting it.
-proto = "0.61.3"
+proto = "0.62.0"
 
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
 moon = "2.5.4"
