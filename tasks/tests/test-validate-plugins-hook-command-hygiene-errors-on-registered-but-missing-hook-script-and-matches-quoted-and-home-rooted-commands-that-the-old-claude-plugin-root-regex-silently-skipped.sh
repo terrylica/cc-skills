@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Regression: validateHookCommandHygiene() in scripts/validate-plugins.mjs errors on a hooks.json command whose script is NOT on disk (a permanently disarmed guard), and matches quoted / \$HOME-rooted / env-prefixed commands the old literal \${CLAUDE_PLUGIN_ROOT} regex silently skipped"
+# Regression: validateHookCommandHygiene() in scripts/validate-plugins.mjs errors on a hooks.json command whose script is NOT on disk (a permanently disarmed guard), and matches quoted / $HOME-rooted / env-prefixed commands the old literal ${CLAUDE_PLUGIN_ROOT} regex silently skipped
 #
 # THE BUG THIS PINS (found 2026-09-02 by a vacuous-gate sweep)
 # -----------------------------------------------------------

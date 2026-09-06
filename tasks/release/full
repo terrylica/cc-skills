@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory."
+# Execute complete release pipeline: preflight validation → pre-sync (mirror HEAD to ~/.claude so live env reflects pending changes) → semantic-release version bump + changelog + git tag + GitHub release → marketplace sync + hook installation + cache population → artifact verification → session-chronicle bundle (private repos only) → postflight git state validation. Primary entry point for releasing cc-skills. Requires GH_TOKEN and clean working directory.
 set -euo pipefail
 
 # The orchestrator is swappable; these scripts are the truth (bootstrap-monorepo

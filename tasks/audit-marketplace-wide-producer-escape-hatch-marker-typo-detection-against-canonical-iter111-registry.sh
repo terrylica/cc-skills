@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-111 marketplace-wide producer-side escape-hatch-marker typo audit: enumerates every UPPER-KEBAB-CASE-(OK|SKIP|WRAP) token appearing in PRODUCER source files (anything outside the consumer hooks directory plugins/itp-hooks/hooks/ and outside the audit-tasks directory .mise/) and verifies each token appears in the iter-111 canonical producer-marker registry. Unknown tokens are reported as POTENTIAL TYPOS — the operator must either fix the typo or register a new legitimate marker. Informational by default; can be promoted to strict-block in iter-112+ once registry coverage stabilizes."
+# Iter-111 marketplace-wide producer-side escape-hatch-marker typo audit: enumerates every UPPER-KEBAB-CASE-(OK|SKIP|WRAP) token appearing in PRODUCER source files (anything outside the consumer hooks directory plugins/itp-hooks/hooks/ and outside the audit-tasks directory .mise/) and verifies each token appears in the iter-111 canonical producer-marker registry. Unknown tokens are reported as POTENTIAL TYPOS — the operator must either fix the typo or register a new legitimate marker. Informational by default; can be promoted to strict-block in iter-112+ once registry coverage stabilizes.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale

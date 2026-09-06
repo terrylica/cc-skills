@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Auto-discover and run every plugins/*/hooks/tests/test-*.sh regression test. Aggregates pass/fail counts per test file and emits a marketplace-wide summary. Exits non-zero if any single test file fails. Use before cutting a release, or after editing any hook to verify the iter-39/40/41/46/47-style regression guards still pass. Self-contained — no CI/GitHub Actions required (cc-skills local-first policy)."
+# Auto-discover and run every plugins/*/hooks/tests/test-*.sh regression test. Aggregates pass/fail counts per test file and emits a marketplace-wide summary. Exits non-zero if any single test file fails. Use before cutting a release, or after editing any hook to verify the iter-39/40/41/46/47-style regression guards still pass. Self-contained — no CI/GitHub Actions required (cc-skills local-first policy).
 #
 # test-marketplace-hook-regression-suite
 #

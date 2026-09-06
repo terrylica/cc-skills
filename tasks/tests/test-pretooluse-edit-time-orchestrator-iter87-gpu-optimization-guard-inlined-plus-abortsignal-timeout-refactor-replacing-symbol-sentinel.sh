@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-87 regression test extending iter-86 orchestrator coverage. Verifies (1) gpu-optimization-guard inlined as 4th registry entry produces matching deny across all 6 GPU policy checks, (2) AbortSignal.timeout()-based cooperative-timeout refactor preserves the iter-84/85/86 belt-and-suspenders defense (stdout JSON + stderr + exitCode=2), (3) standalone gpu-optimization-guard.ts backward-compat (no orchestrator prefix), (4) idiomatic AbortSignal.timeout() rejection path correctly distinguishes TimeoutError from other classifier errors (negative test via slow-classifier fixture)."
+# Iter-87 regression test extending iter-86 orchestrator coverage. Verifies (1) gpu-optimization-guard inlined as 4th registry entry produces matching deny across all 6 GPU policy checks, (2) AbortSignal.timeout()-based cooperative-timeout refactor preserves the iter-84/85/86 belt-and-suspenders defense (stdout JSON + stderr + exitCode=2), (3) standalone gpu-optimization-guard.ts backward-compat (no orchestrator prefix), (4) idiomatic AbortSignal.timeout() rejection path correctly distinguishes TimeoutError from other classifier errors (negative test via slow-classifier fixture).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

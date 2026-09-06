@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Audit every plugins/*/hooks/pretooluse-*.{sh,ts,mjs,py} for the SILENT-FAILURE risk of using the DEPRECATED top-level 'decision: block|deny' schema instead of the MODERN 'hookSpecificOutput.permissionDecision' schema. Per the Claude Code v2.0.10+ spec, PreToolUse top-level decision/reason fields are deprecated — hooks using them silently FAIL TO BLOCK. Exits non-zero if any deprecated-schema PreToolUse hook is found (release:preflight gate candidate). Reports MODERN-CORRECT, HELPER-WRAPPED, NO-DECISION-EMITTED counts informationally."
+# Audit every plugins/*/hooks/pretooluse-*.{sh,ts,mjs,py} for the SILENT-FAILURE risk of using the DEPRECATED top-level 'decision: block|deny' schema instead of the MODERN 'hookSpecificOutput.permissionDecision' schema. Per the Claude Code v2.0.10+ spec, PreToolUse top-level decision/reason fields are deprecated — hooks using them silently FAIL TO BLOCK. Exits non-zero if any deprecated-schema PreToolUse hook is found (release:preflight gate candidate). Reports MODERN-CORRECT, HELPER-WRAPPED, NO-DECISION-EMITTED counts informationally.
 #
 # audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision
 #

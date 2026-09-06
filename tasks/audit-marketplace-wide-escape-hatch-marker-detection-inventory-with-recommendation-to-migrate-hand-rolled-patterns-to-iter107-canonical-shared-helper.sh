@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-107 marketplace-wide informational inventory audit: enumerates hand-rolled escape-hatch-marker detection patterns across plugins/itp-hooks/hooks/ source files and reports which hooks would benefit from migrating to the iter-107 canonical shared helper (lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts). Informational by default — future iters may promote to --strict once all migrations land."
+# Iter-107 marketplace-wide informational inventory audit: enumerates hand-rolled escape-hatch-marker detection patterns across plugins/itp-hooks/hooks/ source files and reports which hooks would benefit from migrating to the iter-107 canonical shared helper (lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts). Informational by default — future iters may promote to --strict once all migrations land.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale

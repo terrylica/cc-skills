@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Regression: sync-hooks-to-settings.sh prunes cc-skills entries and never crashes on absent/null/malformed settings.json shapes (issue #103)"
+# Regression: sync-hooks-to-settings.sh prunes cc-skills entries and never crashes on absent/null/malformed settings.json shapes (issue #103)
 #
 # A settings.json is user-authored, so every level may be absent or null. jq's
 # `to_entries`/`map` abort on null, and the pre-fix prune filter dereferenced

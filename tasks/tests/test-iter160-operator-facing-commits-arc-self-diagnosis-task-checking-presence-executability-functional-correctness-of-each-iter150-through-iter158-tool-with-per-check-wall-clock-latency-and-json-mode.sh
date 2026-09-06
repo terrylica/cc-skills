@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-160 regression test pinning the commits:status self-diagnosis task. Asserts (a) status script + mise shim structurally valid (executable, bash-clean, shellcheck-clean), (b) human-readable mode emits all 9 canonical check labels covering iter-150 through iter-158, (c) --json mode parses cleanly via independent python3 json.loads, (d) JSON schema includes iter160_schema_version=1 + summary.verdict + checks array, (e) when run against healthy cc-skills HEAD: critical_failed=0 + verdict=TOOLKIT_HEALTHY, (f) exit code 0 in healthy mode (per industry-standard severity-tier convention)."
+# Iter-160 regression test pinning the commits:status self-diagnosis task. Asserts (a) status script + mise shim structurally valid (executable, bash-clean, shellcheck-clean), (b) human-readable mode emits all 9 canonical check labels covering iter-150 through iter-158, (c) --json mode parses cleanly via independent python3 json.loads, (d) JSON schema includes iter160_schema_version=1 + summary.verdict + checks array, (e) when run against healthy cc-skills HEAD: critical_failed=0 + verdict=TOOLKIT_HEALTHY, (f) exit code 0 in healthy mode (per industry-standard severity-tier convention).
 set -euo pipefail
 
 ITER160_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"

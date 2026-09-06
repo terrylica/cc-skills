@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-113 generator: emits docs/marketplace-escape-hatch-marker-reference.md from the iter-111 canonical producer-marker registry. Single source of truth for 'how do I opt out of hook X' operator-facing documentation. The generator is idempotent — re-running on an unchanged registry produces a byte-identical doc. CI-friendly drift detection: run with --check to verify the on-disk doc matches what the generator would produce (exits non-zero on drift)."
+# Iter-113 generator: emits docs/marketplace-escape-hatch-marker-reference.md from the iter-111 canonical producer-marker registry. Single source of truth for 'how do I opt out of hook X' operator-facing documentation. The generator is idempotent — re-running on an unchanged registry produces a byte-identical doc. CI-friendly drift detection: run with --check to verify the on-disk doc matches what the generator would produce (exits non-zero on drift).
 
 # ────────────────────────────────────────────────────────────────────────
 # Iter-113 full design rationale

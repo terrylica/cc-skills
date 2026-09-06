@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-92 audit-task regression test. Verifies (1) the async-eligibility audit task discovers ≥15 PostToolUse hooks marketplace-wide; (2) classifies decision:block-emitting hooks as [C] CONTEXT-INJECTING / ASYNC-UNSAFE; (3) classifies additionalContext-emitting hooks as [C] CONTEXT-INJECTING; (4) summary text contains the literal iter-89 strict-dominance-correction language; (5) exit code is 0 (informational task); (6) iter-91 PreToolUse migration arc artifacts are NOT mistakenly classified as PostToolUse (cross-event-type contamination check)."
+# Iter-92 audit-task regression test. Verifies (1) the async-eligibility audit task discovers ≥15 PostToolUse hooks marketplace-wide; (2) classifies decision:block-emitting hooks as [C] CONTEXT-INJECTING / ASYNC-UNSAFE; (3) classifies additionalContext-emitting hooks as [C] CONTEXT-INJECTING; (4) summary text contains the literal iter-89 strict-dominance-correction language; (5) exit code is 0 (informational task); (6) iter-91 PreToolUse migration arc artifacts are NOT mistakenly classified as PostToolUse (cross-event-type contamination check).
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

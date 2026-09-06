@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-84 regression test for pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold triggers belt-and-suspenders deny (stdout JSON deny + stderr diagnostic + exit 2 per iter-78/GitHub #37210), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call."
+# Iter-84 regression test for pretooluse-edit-time-orchestrator-combining-multiple-subhooks-into-single-bun-process-iter66-precedent.ts. Asserts: (1) non-Write/Edit fastpath returns allow, (2) Write under threshold returns allow, (3) Write over block threshold triggers belt-and-suspenders deny (stdout JSON deny + stderr diagnostic + exit 2 per iter-78/GitHub #37210), (4) FILE-SIZE-OK escape hatch is honored, (5) the orchestrator-emitted reason includes the orchestrator diagnostic prefix to distinguish it from a standalone subhook call.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

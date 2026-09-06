@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-81 regression test for audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor.sh. Synthesizes a fixture marketplace with known multi-hook matcher groups + singleton hooks, runs the audit, and asserts: (1) groups are correctly aggregated by exact matcher signature, (2) ranking order is descending by group size, (3) high-value-candidate count matches threshold expectations, (4) singleton groups produce 0ms savings entries, (5) wall-clock-savings arithmetic uses the iter-80 44ms calibration. Locks in the audit's classification + ranking semantics."
+# Iter-81 regression test for audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor.sh. Synthesizes a fixture marketplace with known multi-hook matcher groups + singleton hooks, runs the audit, and asserts: (1) groups are correctly aggregated by exact matcher signature, (2) ranking order is descending by group size, (3) high-value-candidate count matches threshold expectations, (4) singleton groups produce 0ms savings entries, (5) wall-clock-savings arithmetic uses the iter-80 44ms calibration. Locks in the audit's classification + ranking semantics.
 
 # Iter-81 regression test for the orchestration-candidacy ranker.
 

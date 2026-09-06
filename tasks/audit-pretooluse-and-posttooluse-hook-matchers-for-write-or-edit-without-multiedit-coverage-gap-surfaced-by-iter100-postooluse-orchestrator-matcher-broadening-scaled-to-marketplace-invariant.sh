@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-101 marketplace-wide preventive audit: detects PreToolUse/PostToolUse hook matchers that include Write or Edit but NOT MultiEdit. Pre-iter-100 the PostToolUse orchestrator silently bypassed Claude's MultiEdit tool calls. Iter-100 closed the gap in one place. Iter-101 scales the discovery to a marketplace invariant. Escape hatch: MATCHER-NO-MULTIEDIT-OK in hook description. Parallel to iter-94 spawnSync audit + iter-99 silent-context-drop audit."
+# Iter-101 marketplace-wide preventive audit: detects PreToolUse/PostToolUse hook matchers that include Write or Edit but NOT MultiEdit. Pre-iter-100 the PostToolUse orchestrator silently bypassed Claude's MultiEdit tool calls. Iter-100 closed the gap in one place. Iter-101 scales the discovery to a marketplace invariant. Escape hatch: MATCHER-NO-MULTIEDIT-OK in hook description. Parallel to iter-94 spawnSync audit + iter-99 silent-context-drop audit.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale

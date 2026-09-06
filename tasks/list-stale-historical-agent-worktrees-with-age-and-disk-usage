@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Survey .claude/worktrees/ for stale historical agent worktrees, reporting age in days + disk usage + main-divergence-summary per worktree. Identifies cleanup candidates (worktrees > AGE_THRESHOLD_DAYS old with no unique commits). Does NOT delete anything — pure read-only audit. Use periodically to prevent the iter-52-style 4.3-GB accumulation that built up across March-April agent sessions."
+# Survey .claude/worktrees/ for stale historical agent worktrees, reporting age in days + disk usage + main-divergence-summary per worktree. Identifies cleanup candidates (worktrees > AGE_THRESHOLD_DAYS old with no unique commits). Does NOT delete anything — pure read-only audit. Use periodically to prevent the iter-52-style 4.3-GB accumulation that built up across March-April agent sessions.
 #
 # list-stale-historical-agent-worktrees-with-age-and-disk-usage
 #

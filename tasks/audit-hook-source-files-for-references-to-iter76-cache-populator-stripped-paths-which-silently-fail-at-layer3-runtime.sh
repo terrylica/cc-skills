@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="[PREMISE SUPERSEDED 2026-08-05 — retained as a MANUAL probe, no longer a release gate] Iter-77 audit scanning every hook source file for references to plugin-root-level subtrees NOT in the iter-76 cache-populator allowlist. The populator no longer strips anything, so this reports on a condition that cannot currently occur; re-run it only to re-check whether Anthropic has reinstated the filter. Default scans all hooks; --verbose shows per-violation context; --escape-hatch-marker shows the LAYER3-STRIPPED-PATH-OK marker syntax."
+# [PREMISE SUPERSEDED 2026-08-05 — retained as a MANUAL probe, no longer a release gate] Iter-77 audit scanning every hook source file for references to plugin-root-level subtrees NOT in the iter-76 cache-populator allowlist. The populator no longer strips anything, so this reports on a condition that cannot currently occur; re-run it only to re-check whether Anthropic has reinstated the filter. Default scans all hooks; --verbose shows per-violation context; --escape-hatch-marker shows the LAYER3-STRIPPED-PATH-OK marker syntax.
 
 # ██ PREMISE SUPERSEDED 2026-08-05 — DEREGISTERED FROM THE RELEASE PREFLIGHT.
 # ██

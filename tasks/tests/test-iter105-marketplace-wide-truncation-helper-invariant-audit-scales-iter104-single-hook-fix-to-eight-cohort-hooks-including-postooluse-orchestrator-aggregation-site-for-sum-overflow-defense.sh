@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-105 regression test for the marketplace-wide truncation-helper invariant audit. Verifies audit-task existence + executability, live marketplace passes clean (all 8 cohort hooks wrap via canonical helper), each individual cohort hook (vale-claude-md + ty + tsgo + oxlint + biome + ssot-principles + pretooluse-vale-claude-md-guard + PostToolUse orchestrator) imports + applies the helper, cross-lib import pattern (PreToolUse classifier importing from PostToolUse contract lib) works, audit fails on synthetic non-wrapping cohort fixture."
+# Iter-105 regression test for the marketplace-wide truncation-helper invariant audit. Verifies audit-task existence + executability, live marketplace passes clean (all 8 cohort hooks wrap via canonical helper), each individual cohort hook (vale-claude-md + ty + tsgo + oxlint + biome + ssot-principles + pretooluse-vale-claude-md-guard + PostToolUse orchestrator) imports + applies the helper, cross-lib import pattern (PreToolUse classifier importing from PostToolUse contract lib) works, audit fails on synthetic non-wrapping cohort fixture.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
