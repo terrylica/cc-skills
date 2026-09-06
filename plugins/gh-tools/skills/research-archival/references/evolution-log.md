@@ -8,6 +8,14 @@ Reverse chronological — newest entries on top.
      identity block in SKILL.md contains no parameter-expansion defaults. Removing the quotation
      would delete the evidence for the fix. -->
 
+## 2026-09-06 — the identity preflight asked the wrong account, in a bare shell
+
+- **Real, reproducible, and it blocked a correct archival.** The preflight runs inside `/usr/bin/env bash << 'IDENTITY_EOF'`. That is a NEW process, so it does not inherit the interactive shell's functions — and on a machine using owner-per-path, `gh` at the prompt is a shell function that sets `GH_CONFIG_DIR` from the per-repository `gh.configdir` git config key. The heredoc called the raw binary instead and got the globally-active account.
+- **Measured:** in one directory, `gh api user --jq .login` returned the repository's own account from the interactive shell and a different account from the heredoc. The preflight printed MISMATCH and refused to continue, while `gh api repos/<slug>` from the prompt showed `push=true` for that very repo.
+- **Why it was hard to see:** every symptom pointed at a bad credential — a 404 on a private repo is what a wrong token looks like — so the natural response is to hunt for the right token rather than to suspect the shell.
+- **Fix:** `cd` into the repository INSIDE the heredoc, and resolve `GH_CONFIG_DIR` from `git config --get gh.configdir` before the first `gh` call, unsetting `GH_TOKEN`/`GITHUB_TOKEN` so an ambient token cannot outrank it. The check no longer depends on which shell invoked it.
+- Added a troubleshooting row: differing answers from `gh api user` inside vs outside the heredoc identifies this bug rather than a credential problem.
+
 ## 2026-08-21 (later) — Deleting the duplicate was right; the gate that ENFORCED it was a pattern match wearing a guarantee's clothes
 
 - **The one-copy rule shipped with a gate that could not enforce it.** Re-embedding was refused by looking for the legacy `<!-- RAW-SCRAPE-BODY-BEGINS -->` comment. The reviewer defeated it in one move: append the entire pinned transcript after a plain `---`, omit the marker, and the gate returned success — while the test literally named `test_re_embedding_the_transcript_is_refused` stayed green, **because that test built its fixture using the marker**. The check was verified on the one input on which the bug could not appear.
