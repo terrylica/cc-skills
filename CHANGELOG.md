@@ -1,3 +1,36 @@
+# [30.3.0](https://github.com/terrylica/cc-skills/compare/v30.2.1...v30.3.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* **research-archival:** the identity preflight asked the wrong account from a bare shell ([7e2eea1](https://github.com/terrylica/cc-skills/commit/7e2eea1358de85f70346572feb4c6910b63d7560))
+
+The preflight runs inside `/usr/bin/env bash << 'IDENTITY_EOF'`. That is a NEW process, so it does not inherit the interactive shell's functions — and where owner-per-path is in use, `gh` at the prompt is a shell function that sets GH_CONFIG_DIR from the per-repository `gh.configdir` git config key. The heredoc called the raw binary instead, got the globally-active account, and printed MISMATCH on a repository the caller could demonstrably push to.
+
+Measured 2026-09-06: in a single directory, `gh api user --jq .login` returned the repository's own account from the interactive shell and a different account from the heredoc.
+
+What made it expensive is that every symptom pointed at a bad credential. A 404 on a private repo is exactly what a wrong token looks like, so the natural response is to hunt for the right token rather than to suspect the shell the check runs in. The guard was reporting truthfully about an identity that was never going to be used for the write.
+
+Fix: `cd` into the repository INSIDE the heredoc, and resolve GH_CONFIG_DIR from `git config --get gh.configdir` before the first `gh` call, unsetting GH_TOKEN/GITHUB_TOKEN so an ambient token cannot outrank it. The check no longer depends on which shell invoked it.
+
+Also adds a troubleshooting row — differing answers from `gh api user` inside vs outside the heredoc identifies this bug rather than a credential problem — and an evolution-log entry.
+
+quick_validate.py: "Skill is valid!" · validate-links.ts: "All links valid."
+
+
+
+### Features
+
+* **floating-clock:** show the BSD device beside the service name ([39f7d68](https://github.com/terrylica/cc-skills/commit/39f7d689e9f4a6b3444f520cbfde9f0c805346d3))
+
+The bar named the service carrying internet traffic but not the interface underneath it, so the answer to "which one is actually in use" needed a right-click to reach.
+
+The friendly name alone is not enough. Two adapters can carry similar names, and every diagnostic tool reached for next is keyed by the BSD name rather than the service name. The selection menu already pairs the two; the bar now shows the same pair, so the common case needs no menu at all.
+
+Rendered dimmed and immediately after the name, so the friendly label stays what the eye lands on. Suppressed when it would merely repeat the label, which happens on the degraded path where the raw device already IS the label and printing it twice would read as a bug.
+
+Validated against ground truth rather than by eye: the reported interface matches the system's primary-interface record and the kernel's own route lookup, and the complete-service-list reorder the switch action performs was exercised as an identity no-op, exit 0 with order and route unchanged.
+
 ## [30.2.1](https://github.com/terrylica/cc-skills/compare/v30.2.0...v30.2.1) (2026-09-06)
 
 
