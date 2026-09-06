@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-101 regression test for the marketplace-wide matcher-hygiene audit + applied fixes. Verifies audit-task existence, live marketplace passes clean post-fixes, fixture-based detection of Write|Edit without MultiEdit catches the 3 surfaced shapes (Write|Edit, Bash|Write|Edit, Edit|Write reversed), MATCHER-NO-MULTIEDIT-OK escape hatch honored, all 6 iter-101 marketplace fixes present in actual hooks.json files (covers all 8 audit-detected violations across 3 plugins), MultiEdit-already-present fixtures correctly pass."
+# Iter-101 regression test for the marketplace-wide matcher-hygiene audit + applied fixes. Verifies audit-task existence, live marketplace passes clean post-fixes, fixture-based detection of Write|Edit without MultiEdit catches the 3 surfaced shapes (Write|Edit, Bash|Write|Edit, Edit|Write reversed), MATCHER-NO-MULTIEDIT-OK escape hatch honored, all 6 iter-101 marketplace fixes present in actual hooks.json files (covers all 8 audit-detected violations across 3 plugins), MultiEdit-already-present fixtures correctly pass.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

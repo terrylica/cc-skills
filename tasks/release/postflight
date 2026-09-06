@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 5 of 5: Post-release git state validation. Resets lockfile drift (build artifact), then verifies no uncommitted changes and no unpushed commits remain. Catches release process side-effects that would otherwise accumulate as technical debt. Exits non-zero on any failure."
+# Phase 5 of 5: Post-release git state validation. Resets lockfile drift (build artifact), then verifies no uncommitted changes and no unpushed commits remain. Catches release process side-effects that would otherwise accumulate as technical debt. Exits non-zero on any failure.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

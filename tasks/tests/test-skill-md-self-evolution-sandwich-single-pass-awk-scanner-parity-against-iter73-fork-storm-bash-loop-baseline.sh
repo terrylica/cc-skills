@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-74 regression test for scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk. Synthesizes 4 fixture SKILL.md files exercising every audit-rule path (clean+top-missing+bottom-missing+bottom-not-at-end) and asserts the scanner's TSV output matches the iter-73 bash-loop reference semantics. Catches regressions in the perf-driven fork-storm replacement BEFORE release publishes a tag deploying the broken scanner to operator Layer 3 caches (see iter-42 docs/HOOKS.md for cache lifecycle)."
+# Iter-74 regression test for scripts/skill-md-self-evolution-sandwich-single-pass-awk-scanner.awk. Synthesizes 4 fixture SKILL.md files exercising every audit-rule path (clean+top-missing+bottom-missing+bottom-not-at-end) and asserts the scanner's TSV output matches the iter-73 bash-loop reference semantics. Catches regressions in the perf-driven fork-storm replacement BEFORE release publishes a tag deploying the broken scanner to operator Layer 3 caches (see iter-42 docs/HOOKS.md for cache lifecycle).
 
 # Iter-74 parity regression test for the single-pass awk scanner that
 # replaces the iter-73-baseline 217-file × ~8-fork-exec-per-file storm
