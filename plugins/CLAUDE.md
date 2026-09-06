@@ -58,25 +58,31 @@ plugins/my-plugin/
 | Repo docs (ADRs)     | Repo-root (`/docs/...`) | `[ADR](/docs/adr/file.md)`       |
 | External resources   | Full URL                | `[Docs](https://example.com)`    |
 
-**Why**: Skill files are installed to `~/.claude/skills/`. Relative paths work there; absolute paths don't.
+**Why**: A plugin's skills are installed under `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/`, and the **version segment changes on every release** — so any absolute path a skill hardcodes is stale by the next update. Relative links resolve against the skill's own directory wherever that lands.
+
+> **Corrected 2026-09-05.** This used to read "Skill files are installed to `~/.claude/skills/`". That directory does exist, but it holds only hand-authored personal skills — **no marketplace plugin ships anything there**. Measured: `cc-plugin-root gh-tools` → `/Users/terryli/.claude/plugins/cache/cc-skills/gh-tools/30.0.0`, while the same cache dir also retains seven orphaned versions (`29.0.0` … `30.1.0`). That is exactly why `scripts/cc-plugin-root` reads `installed_plugins.json` instead of globbing. The **rule is unchanged** — use relative links — only the reason was wrong.
 
 ## Shell Compatibility
 
-Claude Code's Bash tool may run through zsh on macOS. Wrap bash-specific syntax:
+Claude Code's Bash tool runs **zsh** on macOS (measured 2026-09-05: `$ZSH_VERSION` = `5.9`). Wrap only syntax zsh genuinely does not implement — bash-only parameter expansion (`${var,,}`, `${var^^}`, `${var@Q}`), `mapfile`/`readarray`, `declare -n`, and code that assumes 0-indexed arrays:
 
 ```bash
-# Multi-line bash scripts
-/usr/bin/env bash << 'SCRIPT_EOF'
-if [[ -f "$FILE" ]]; then
-    echo "Found"
-fi
-SCRIPT_EOF
-
-# Single-line commands
-/usr/bin/env bash -c 'VAR=$(command) && echo $VAR'
+# Genuinely bash-only. Unwrapped, zsh answers: (eval):1: bad substitution
+/usr/bin/env bash -c 'V=ABC; echo "${V,,}"'
 ```
 
-**Reference**: [Shell Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
+**Superseded 2026-09-05 — command substitution does NOT need a wrapper.** The [Shell Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md) recorded the root cause as `VAR=$(cmd) another-cmd` failing in zsh's eval with ``(eval):1: parse error near `('``, and this section accordingly told authors to wrap every `$(...)`. That failure **does not reproduce** on the current Bash tool. Re-measured verbatim, unwrapped:
+
+```
+$ FOO=$(echo bar) env | grep '^FOO='
+FOO=bar
+$ if [[ -f /etc/hosts ]]; then echo "ok"; fi
+ok
+$ VAR=$(echo hello) && echo "got $VAR"
+got hello
+```
+
+Prefix assignment, `$(...)` and `[[ ]]` are all native zsh and need no wrapper — and note the ADR's own two examples were never bash-specific in the first place (`[[ ]]` is a zsh builtin, and `VAR=$(cmd) && ...` is plain assignment, not the prefix-assignment form the ADR blamed). Keep the ADR: it is the dated record of the 2025-12-06 decision and its 97-file sweep. But its blanket "wrap all command substitution" conclusion is retired — wrap for real bash-only syntax, nothing more.
 
 ## Validation
 

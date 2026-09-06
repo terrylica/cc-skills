@@ -203,7 +203,9 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 ## GitHub Issues as Insight Repository
 
-**CRITICAL**: Only post to repositories owned by `terrylica` (your own repos or forks). NEVER post to upstream third-party repositories.
+**CRITICAL**: NEVER post to upstream third-party repositories. Which owner you _may_ write to is **not** a fixed account — it is decided per filesystem path by this plugin's own `hooks/pretooluse-path-owner-guard.mjs` (registered on `PreToolUse`/`Bash` in [hooks.json](./hooks/hooks.json)), which resolves the expected owner via `resolveExpectedOwner()` in [`hooks/lib/path-owner-registry.mjs`](./hooks/lib/path-owner-registry.mjs) against the machine-readable SSoT `~/.claude/path-owner-registry.toml` (longest matching `path_prefix` wins, plus per-prefix `allow_orgs`). **That registry is the SSoT — read it, do not restate it here.** Escape hatch: `ALLOW_OWNER_MISMATCH=1`.
+
+> **Corrected 2026-09-05.** This line used to read "Only post to repositories owned by `terrylica`", which is both **narrower than reality** and redundant with the shipped guard. `~/vj` maps to `vanjobbers` and `~/own` to `tainora`; `~/eon` defaults to `terrylica` but allows the `Eon-Labs` / `EonLabs-Spartan` orgs, and `~/eon/collab` / `~/vj/collab` admit named external collaborator owners. Following the old prose literally would have blocked legitimate pushes under `~/vj` and `~/own`.
 
 **Philosophy**: Treat GitHub Issues as human-readable insight repository for research and findings.
 
@@ -211,12 +213,12 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 ### When to Post Issue Comments
 
-| Action                  | Safe to Post?            | Example                                                    |
-| ----------------------- | ------------------------ | ---------------------------------------------------------- |
-| Your own repository     | Always                   | `terrylica/cc-skills`, `terrylica/data-source-manager`     |
-| Your fork               | Always                   | `terrylica/claude-code` (fork of `anthropics/claude-code`) |
-| Upstream third-party    | NEVER (read-only)        | `anthropics/claude-code`, `jdx/mise`                       |
-| Collaborative team repo | If you have write access | Repos where you're a collaborator                          |
+| Action                   | Safe to Post?                                 | Example                                                     |
+| ------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
+| Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/vj`→`vanjobbers`, `~/own`→`tainora` |
+| Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`)  |
+| Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `jdx/mise`                        |
+| Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab`, `~/vj/collab` external-collaborator owners  |
 
 ### Best Practices
 
@@ -241,7 +243,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 4. Reference upstream Issue: "Investigation of anthropics/claude-code#22055 revealed..."
 5. Post follow-up findings as comments in YOUR repo's Issue
 
-**Repositories you own**: `terrylica/*` (verify with `gh repo list terrylica`)
+**Which owner applies here**: resolve it from the path, don't assume — `~/.claude/path-owner-registry.toml` is the SSoT, and `gh repo list <owner>` verifies once you know the owner.
 
 ## Multi-Account Authentication (host-alias model, ADR 2026-06-21)
 
