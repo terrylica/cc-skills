@@ -9,8 +9,9 @@
  *
  * Pure Bun port of the former scripts/m3-{verify,probe,context-probe,bench}.py — no
  * Python / uv / requests / pillow runtime. The model under test is read dynamically
- * from the SSoT (MINIMAX_MODEL env, set by ~/.config/mise/config.toml); a prior model
- * version is never pinned in code.
+ * from the SSoT (MINIMAX_MODEL env, exported by ~/.claude/tools/toolchain/path.sh —
+ * moved there 2026-08-21 when mise was retired); a prior model version is never
+ * pinned in code.
  *
  * Key: MINIMAX_API_KEY env, else `op read` (MINIMAX_API_KEY_OP_PATH + MINIMAX_OP_ACCOUNT).
  * Proxy is bypassed in-process (MiniMax 502s through the local proxy) so callers need

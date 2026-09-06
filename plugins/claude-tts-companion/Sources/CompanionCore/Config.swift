@@ -97,7 +97,8 @@ public enum Config {
     static let miniMaxBaseURL = "https://api.minimax.io/anthropic"
 
     /// MiniMax model identifier. Dynamically resolved from the SSoT
-    /// (`MINIMAX_MODEL` env, set by `~/.config/mise/config.toml`) so the model
+    /// (`MINIMAX_MODEL` env, exported by `~/.claude/tools/toolchain/path.sh` since
+    /// 2026-08-21, when mise was retired) so the model
     /// in use always tracks the SSoT and no prior version is ever pinned in
     /// code. Falls back to the current GA model only when the env is unset.
     static let miniMaxModel: String = {

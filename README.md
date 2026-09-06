@@ -406,19 +406,21 @@ bun scripts/validate-plugins.mjs --fix
 
 Understanding the architectural hierarchy:
 
-| Term          | Definition                                                                                    | Location             | Example             |
-| ------------- | --------------------------------------------------------------------------------------------- | -------------------- | ------------------- |
-| **Plugin**    | Marketplace-installable container with metadata, commands, and optional bundled skills        | `~/.claude/plugins/` | `itp`, `gh-tools`   |
-| **Skill**     | Executable agent with SKILL.md frontmatter; can be standalone or bundled within a plugin      | `~/.claude/skills/`  | `pypi-doppler`      |
-| **Command**   | Slash command (`/plugin:command`) defined in `.md` file within plugin's `commands/` directory | Plugin's `commands/` | `/itp:setup`        |
-| **Reference** | Supporting documentation in `references/` directory; not directly executable                  | `references/`        | `error-handling.md` |
+| Term          | Definition                                                                                    | Location                                                                                                                                                            | Example             |
+| ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| **Plugin**    | Marketplace-installable container with metadata, commands, and optional bundled skills        | `~/.claude/plugins/`                                                                                                                                                | `itp`, `gh-tools`   |
+| **Skill**     | Executable agent with SKILL.md frontmatter; can be standalone or bundled within a plugin      | Plugin's `skills/` (installed at `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/`); `~/.claude/skills/` is for hand-authored personal skills only | `pypi-doppler`      |
+| **Command**   | Slash command (`/plugin:command`) defined in `.md` file within plugin's `commands/` directory | Plugin's `commands/`                                                                                                                                                | `/itp:setup`        |
+| **Reference** | Supporting documentation in `references/` directory; not directly executable                  | `references/`                                                                                                                                                       | `error-handling.md` |
 
 **Hierarchy**:
 
 ```
 Plugin (Container)
 ├── commands/           → Slash commands (/plugin:command)
-├── skills/             → Bundled skills (copied to ~/.claude/skills/ on install)
+├── skills/             → Bundled skills (installed under the plugin's own versioned
+│                         cache dir, NOT copied to ~/.claude/skills/ — resolve with
+│                         `cc-plugin-root <plugin>`)
 │   └── skill-name/
 │       ├── SKILL.md    → Skill definition (frontmatter + instructions)
 │       ├── scripts/    → Executable helpers

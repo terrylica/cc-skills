@@ -39,10 +39,10 @@ op item get "Item" --vault "Claude Automation" --reveal
 
 ## Self-Hosted Services
 
-Services run on two GPU workstations: **gpu-host-1** (RTX 4090) for primary compute, **gpu-host-2** (RTX 2080 Ti) for secondary workloads. Access via Tailscale primary path or legacy ZeroTier fallback.
+Services run on two GPU workstations: **gpu-host-1** (RTX 4090) for primary compute, **gpu-host-2** (RTX 2080 Ti) for secondary workloads. Access via Tailscale (primary) with Cloudflare Access SSH as the fallback — see the SSoT, [ssh-tunnel-companion/CLAUDE.md](../ssh-tunnel-companion/CLAUDE.md). **ZeroTier is gone** (removed 2026-04-06, macOS kernel-extension fragility); this line advertised it as a "legacy fallback" until 2026-09-05, contradicting its own linked SSoT.
 
-| Service    | Host     | Port | Tunnel          | Skill                                             |
-| ---------- | -------- | ---- | --------------- | ------------------------------------------------- |
+| Service    | Host       | Port | Tunnel          | Skill                                             |
+| ---------- | ---------- | ---- | --------------- | ------------------------------------------------- |
 | ClickHouse | gpu-host-1 | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
 | VNC (MT5)  | gpu-host-1 | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
 
@@ -117,6 +117,8 @@ Skip rules in the PostToolUse hook prevent nag-loops:
 
 ## Environment Variables
 
-| Variable        | Required | Description                                                                                                                                                         |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MINIMAX_MODEL` | No       | MiniMax model ID for `session-debrief` and `prompt-benchmark`; SSoT is `~/.config/mise/config.toml`; default `MiniMax-M3` (switched from M2.7-highspeed 2026-06-01) |
+| Variable        | Required | Description                                                                                                                                                                                                                                                                                                                                   |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MINIMAX_MODEL` | No       | MiniMax model ID, default `MiniMax-M3`. SSoT is the shell export at `~/.claude/tools/toolchain/path.sh` (declared in that toolchain's `manifest.toml`), sourced from `~/.zshenv`. **Read only by `plugins/minimax/scripts/m3-cli.ts` and the TTS companion's `Config.swift`** — both of which hardcode the same `MiniMax-M3` fallback anyway. |
+
+> **Corrected 2026-09-05, two errors in the row above.** (1) It named `~/.config/mise/config.toml` as the SSoT. That path **does not exist** and mise is not installed on this machine at all; the export moved into `path.sh` on 2026-08-21 when mise was retired. (2) It claimed the variable configures `session-debrief` and `prompt-benchmark`. It does not: `scripts/session-debrief.ts:91` and `scripts/prompt-benchmark.ts:83` both declare a const _named_ `MINIMAX_MODEL` but assign it from `process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]"`. Nothing anywhere sets `DEBRIEF_LLM_MODEL`, so both scripts always run on the hardcoded Claude model and setting `MINIMAX_MODEL` has zero effect on them. The misleading const name is the likely origin of the error. `skills/session-debrief/SKILL.md` carries the same stale claim.
