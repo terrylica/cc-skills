@@ -69,8 +69,23 @@ export async function maybeInjectOpToken(command: string): Promise<string> {
       return command;
     }
 
-    // Prepend as inline environment variable (single-quoted for shell safety)
-    return `OP_SERVICE_ACCOUNT_TOKEN='${token}' ${command}`;
+    // Prepend a command SUBSTITUTION — never the token itself.
+    //
+    // Claude Code records the rewritten command in the session transcript and in
+    // background-task output files, so interpolating the literal here wrote the token
+    // to disk in plaintext on EVERY `op` call against the Claude Automation vault.
+    // Measured 2026-09-05: 91 files held this token verbatim — 58 under
+    // ~/.claude/projects and 33 under /private/tmp/claude-501 — and this line is how
+    // they got there. It was not a leak by an agent; it was a leak by design.
+    //
+    // The token is still READ above so the fail-open semantics are unchanged (missing
+    // file, unreadable file and empty file all return the command untouched, exactly as
+    // before). Only the VALUE is kept out of the command string; the path goes in
+    // instead, and the shell resolves it at execution time.
+    //
+    // Do not "simplify" this back to `${token}`. The value is already in scope on the
+    // line above, which is precisely what makes the regression easy and invisible.
+    return `OP_SERVICE_ACCOUNT_TOKEN="$(cat '${OP_TOKEN_PATH}')" ${command}`;
   } catch {
     // Fail-open: any error reading token, allow original command
     return command;
