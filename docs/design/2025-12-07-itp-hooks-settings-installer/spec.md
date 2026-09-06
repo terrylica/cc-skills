@@ -8,6 +8,8 @@ last-updated: 2025-12-20
 
 # ITP Hooks Settings Installer - Implementation Spec
 
+> ⚠️ **SUPERSEDED 2026-09-05 (issue #127)**: everything below describes a component that no longer exists. `plugins/itp/scripts/manage-hooks.sh` and the `/itp:tether` skill were deleted because Claude Code auto-loads `plugins/itp-hooks/hooks/hooks.json`, making the settings.json injection a duplicate registration. Kept as the historical record of why the installer was built.
+
 **ADR**: [ITP Hooks Settings Installer ADR](/docs/adr/2025-12-07-itp-hooks-settings-installer.md)
 
 ## Overview

@@ -32,7 +32,6 @@ Two paths from Plan Mode to `/itp:go`:
 - [bootstrap-monorepo](./skills/bootstrap-monorepo/SKILL.md)
 - [code-hardcode-audit](./skills/code-hardcode-audit/SKILL.md)
 - [go](./skills/go/SKILL.md)
-- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 - [impl-standards](./skills/impl-standards/SKILL.md)
 - [implement-plan-preflight](./skills/implement-plan-preflight/SKILL.md)
 - [mise-configuration](./skills/mise-configuration/SKILL.md)
@@ -42,13 +41,14 @@ Two paths from Plan Mode to `/itp:go`:
 
 ## Commands
 
-| Command       | Purpose                                        |
-| ------------- | ---------------------------------------------- |
-| `/itp:go`     | Execute 4-phase workflow                       |
-| `/itp:setup`  | Install dependencies and configure environment |
-| `/itp:tether` | Install/uninstall enforcement hooks            |
+| Command      | Purpose                                        |
+| ------------ | ---------------------------------------------- |
+| `/itp:go`    | Execute 4-phase workflow                       |
+| `/itp:setup` | Install dependencies and configure environment |
 
 For release, use the repo's mise pipeline directly: `/mise:run-full-release`.
+
+**`/itp:tether` was retired (issue #127)**: it drove `scripts/manage-hooks.sh`, which injected itp-hooks entries into `~/.claude/settings.json` back when Claude Code did not load a plugin's own `hooks/hooks.json`. It does now — `plugins/itp-hooks/hooks/hooks.json` registers `posttooluse-reminder.ts` itself, so the injection would have fired the hook twice per matching event. The installer had also been inert since `posttooluse-reminder.sh` was renamed to `.ts`, and its second entry (`pretooluse-fake-data-guard.mjs`) was deliberately unregistered in `e6c665a9` for blocking legitimate writes; re-enabling that guard is a `hooks.json` edit, never a settings.json injection.
 
 ## Dependencies
 
