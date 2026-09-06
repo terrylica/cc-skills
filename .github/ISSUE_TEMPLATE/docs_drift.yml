@@ -1,0 +1,42 @@
+name: Docs drift
+description: Two places in this repository state the same fact differently, or a doc describes something that no longer exists.
+labels: ["documentation", "area:docs-drift"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is organised as a hub-and-spoke link farm with a single source of truth per topic, so the failure worth reporting is not "a doc is out of date" but "two places disagree and a reader cannot tell which one is authoritative". Agents read these files as current instruction, so drift is executable, not cosmetic.
+  - type: textarea
+    id: conflict
+    attributes:
+      label: The conflicting statements
+      description: Quote each one with its `file:line`. If one of them is the designated SSoT for the topic, say which.
+    validations:
+      required: true
+  - type: input
+    id: truth
+    attributes:
+      label: Which is correct, and how you know
+      description: Name the command, file or measurement that settles it.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of drift
+      options:
+        - A count that has gone stale (plugins, skills, phases)
+        - A tool or path that no longer exists
+        - Two files each claiming to be the SSoT
+        - A rule that a shipped hook already enforces
+        - A doc describing a retired feature as live
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: gate
+    attributes:
+      label: Prevention
+      options:
+        - label: I checked whether an existing gate (`repo:verify-doc-counts`, `repo:link-check`) should have caught this and did not
+          required: false
