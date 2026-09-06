@@ -75,7 +75,8 @@ export type PiiFindingKind =
   | "third-party-phone-number"
   | "aws-account-id"
   | "client-scoped-workers-dev-hostname"
-  | "vault-item-identifier";
+  | "vault-item-identifier"
+  | "hardware-mac-address";
 
 export interface ExposureFinding<K extends string> {
   /** Which detector fired. */
@@ -544,6 +545,71 @@ export function detectVaultItemIdentifiers(blob: string): PiiFinding[] {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+//  Detector 9 — hardware MAC / Wi-Fi BSSID addresses
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Six colon- or hyphen-separated hex octets, with a consistent separator.
+ *
+ * The surrounding lookarounds reject a longer hex run, so a hash or key
+ * fingerprint printed in octet pairs cannot masquerade as an address.
+ */
+const MAC_ADDRESS_PATTERN =
+  /(?<![0-9A-Fa-f:-])(?:[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}|[0-9A-Fa-f]{2}(?:-[0-9A-Fa-f]{2}){5})(?![0-9A-Fa-f:-])/g;
+
+/**
+ * Addresses that name no device: structural constants, the ranges the IETF
+ * reserved precisely so documentation need not borrow a real one, and the
+ * traditional hex-word example values.
+ */
+function isNonIdentifyingMacAddress(address: string): boolean {
+  const octets = address.toLowerCase().split(/[:-]/);
+  // A single repeated octet covers the unset 00:…, the broadcast ff:… and
+  // filler like aa:aa:… — all constants rather than hardware.
+  if (new Set(octets).size === 1) return true;
+  const joined = octets.join("");
+  // RFC 7042 §2.1.2 / §2.1.3 documentation ranges.
+  if (joined.startsWith("00005e0053")) return true;
+  if (joined.startsWith("01005e9010")) return true;
+  // Hex words conventionally used to mean "not a real value".
+  if (/^(?:deadbeef|cafebabe|feedface|badc0ffee|0123456789ab)/.test(joined)) return true;
+  return false;
+}
+
+/**
+ * A MAC address is a stronger identifier than it looks. It is globally unique
+ * and effectively permanent, so it names ONE physical device across every
+ * network it ever joins. For Wi-Fi the exposure is sharper still: an access
+ * point's BSSID can be resolved to a STREET ADDRESS through public wardriving
+ * databases, so a BSSID in a public commit can disclose where its author lives
+ * or works — from a string that looks like an innocuous hex dump.
+ *
+ * Reminds rather than blocks, consistent with every other identifier class:
+ * a MAC is not a credential, and hardware documentation legitimately contains
+ * them. The false-positive floor was measured before adding this — zero
+ * MAC-shaped strings existed anywhere in this repository's tracked docs and
+ * sources — so the reminder should stay quiet in ordinary work.
+ */
+export function detectHardwareMacAddresses(blob: string): PiiFinding[] {
+  const findings: PiiFinding[] = [];
+  for (const match of blob.matchAll(MAC_ADDRESS_PATTERN)) {
+    const address = match[0];
+    if (isNonIdentifyingMacAddress(address)) continue;
+    const octets = address.split(/[:-]/);
+    findings.push({
+      kind: "hardware-mac-address",
+      line: lineNumberAtOffset(blob, match.index ?? 0),
+      // Show only the first and last octet: enough to locate the match in the
+      // source, far too little to re-identify the device from the echo alone.
+      excerpt: `${octets[0]}:…:${octets[5]}`,
+      rationale:
+        "six-octet hardware address — globally unique and permanent, and a Wi-Fi BSSID additionally resolves to a physical location in public databases",
+    });
+  }
+  return findings;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 //  Aggregators
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -564,6 +630,7 @@ export function detectThirdPartyPiiExposure(blob: string): PiiFinding[] {
     ...detectAwsAccountIdentifiers(blob),
     ...detectClientScopedWorkersDevHostnames(blob),
     ...detectVaultItemIdentifiers(blob),
+    ...detectHardwareMacAddresses(blob),
   ].toSorted((a, b) => a.line - b.line);
 }
 
@@ -616,6 +683,7 @@ export const PII_LABELS: Record<PiiFindingKind, string> = {
   "aws-account-id": "AWS account ID",
   "client-scoped-workers-dev-hostname": "client-scoped workers.dev hostname",
   "vault-item-identifier": "vault item identifier",
+  "hardware-mac-address": "hardware MAC / Wi-Fi BSSID address",
 };
 
 export function buildPiiReminder(filePath: string, findings: readonly PiiFinding[]): string {

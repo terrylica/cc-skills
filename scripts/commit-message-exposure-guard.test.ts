@@ -20,6 +20,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   detectAwsAccountIdentifiers,
+  detectHardwareMacAddresses,
   detectClientScopedWorkersDevHostnames,
   detectThirdPartyPiiExposure,
   detectVaultItemIdentifiers,
@@ -276,5 +277,63 @@ describe("argument parsing", () => {
 
   test("--help short-circuits", () => {
     expect(parseArguments(["--help"]).kind).toBe("help");
+  });
+});
+
+describe("detectHardwareMacAddresses", () => {
+  // A MAC is globally unique and permanent, so it names one physical device
+  // across every network it joins; a Wi-Fi BSSID additionally resolves to a
+  // street address in public wardriving databases. Both fixtures below are
+  // invented, using an OUI prefix assigned to no vendor.
+  test("flags a colon-separated hardware address", () => {
+    const findings = detectHardwareMacAddresses("adapter 3e:91:c7:0a:4b:d2 came up");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.kind).toBe("hardware-mac-address");
+  });
+
+  test("flags the hyphen-separated form too", () => {
+    expect(detectHardwareMacAddresses("MAC 3E-91-C7-0A-4B-D2")).toHaveLength(1);
+  });
+
+  test("echoes only the outer octets, never the whole address", () => {
+    const [finding] = detectHardwareMacAddresses("bssid 3e:91:c7:0a:4b:d2");
+    expect(finding?.excerpt).toBe("3e:…:d2");
+    // The point of a redacted excerpt is that the reminder cannot itself
+    // republish the identifier it is warning about.
+    expect(finding?.excerpt).not.toContain("91");
+    expect(finding?.excerpt).not.toContain("c7");
+  });
+
+  test("ignores structural constants that name no device", () => {
+    expect(detectHardwareMacAddresses("unset 00:00:00:00:00:00")).toHaveLength(0);
+    expect(detectHardwareMacAddresses("broadcast ff:ff:ff:ff:ff:ff")).toHaveLength(0);
+    expect(detectHardwareMacAddresses("filler aa:aa:aa:aa:aa:aa")).toHaveLength(0);
+  });
+
+  test("ignores the RFC 7042 documentation ranges", () => {
+    // These exist precisely so examples need not borrow a real device.
+    expect(detectHardwareMacAddresses("doc 00:00:5e:00:53:11")).toHaveLength(0);
+    expect(detectHardwareMacAddresses("doc 01:00:5e:90:10:07")).toHaveLength(0);
+  });
+
+  test("ignores traditional hex-word placeholders", () => {
+    expect(detectHardwareMacAddresses("de:ad:be:ef:00:01")).toHaveLength(0);
+    expect(detectHardwareMacAddresses("ca:fe:ba:be:12:34")).toHaveLength(0);
+  });
+
+  test("does not match a longer hex run printed in octet pairs", () => {
+    // A hash or key fingerprint must not be mistaken for an address, which is
+    // what the boundary lookarounds are for.
+    expect(
+      detectHardwareMacAddresses("sha 3e:91:c7:0a:4b:d2:7f:65:11:9c:04:ab"),
+    ).toHaveLength(0);
+  });
+
+  test("stays silent on ordinary release prose", () => {
+    // The false-positive floor: this guard runs on every commit, and one bad
+    // block sends the operator to --no-verify permanently.
+    expect(
+      detectHardwareMacAddresses("bump v30.1.0 → v30.2.0, closes #412, sha 89828c3e"),
+    ).toHaveLength(0);
   });
 });
