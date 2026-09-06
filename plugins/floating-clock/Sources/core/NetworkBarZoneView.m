@@ -17,18 +17,21 @@ static const CGFloat kLabelH = 14.0;
 // collides with the right-hand fields.
 static const CGFloat kGroupGap = 10.0;
 
-// -[NSAttributedString size].width UNDER-measures what NSTextField needs to
-// draw, so a frame set to exactly that width loses the final glyph to the
-// truncation ellipsis — "Wi-Fi" renders as "Wi-". The audio bar hit this first
-// and absorbs it with the same 3pt of slack (AudioStatusIndicator
-// -zoneWidthForName:); matching the constant keeps the two rails consistent.
+// Sub-pixel rounding slack on top of the measured width.
 static const CGFloat kMeasureSlack = 3.0;
 
-// Width a label needs to draw its current content in full. Zero-width content
-// gets no slack, so an empty telemetry group contributes nothing at all.
+// Width a label needs to draw its content in full.
+//
+// MUST use -sizeThatFits: rather than -[NSAttributedString size].width. The
+// latter measures the GLYPHS only and ignores the NSTextFieldCell's own
+// internal insets, so a frame set from it is several points too narrow and the
+// cell truncates — which is why "Wi-Fi" was rendering as "Wi-". The deficit is
+// larger than it looks and adding a few points of slack does not cover it;
+// asking the control what it needs does.
 static CGFloat FCNetLabelWidth(NSTextField *label) {
-    CGFloat w = ceil(label.attributedStringValue.size.width);
-    return (w > 0.0) ? w + kMeasureSlack : 0.0;
+    if (label.attributedStringValue.length == 0) return 0.0;
+    CGFloat w = ceil([label sizeThatFits:NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX)].width);
+    return w + kMeasureSlack;
 }
 
 @implementation FCNetworkZoneView {
@@ -130,17 +133,18 @@ static NSTextField *FCNetBarLabel(NSFont *font, NSColor *color) {
     CGFloat avail = NSWidth(b) - kPadX * 2.0;
     if (avail < 0.0) avail = 0.0;
 
-    CGFloat nameW  = FCNetLabelWidth(_nameLabel);
+    // The telemetry group takes exactly what it needs; the name gets ALL the
+    // rest. Giving the name its own measured width instead would put a hard
+    // edge one rounding error away from the last glyph — and since it is
+    // left-aligned, surplus width is invisible. Clipping the name is therefore
+    // structurally impossible whenever the bar is wide enough for the content,
+    // which the width consensus guarantees.
     CGFloat statsW = FCNetLabelWidth(_statsLabel);
+    if (statsW > avail) statsW = avail;
+    CGFloat gap = (statsW > 0.0) ? kGroupGap : 0.0;
 
-    // The identity of the route matters more than its metrics, so when the bar
-    // is too narrow for both the telemetry group yields first — the name keeps
-    // its full measured width and only the stats are squeezed.
-    if (nameW + kGroupGap + statsW > avail) {
-        statsW = avail - nameW - kGroupGap;
-        if (statsW < 0.0) statsW = 0.0;
-        if (nameW > avail) nameW = avail;
-    }
+    CGFloat nameW = avail - gap - statsW;
+    if (nameW < 0.0) nameW = 0.0;
 
     _nameLabel.frame  = NSMakeRect(kPadX, y, nameW, kLabelH);
     _statsLabel.frame = NSMakeRect(NSMaxX(b) - kPadX - statsW, y, statsW, kLabelH);
