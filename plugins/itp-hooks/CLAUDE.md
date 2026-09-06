@@ -19,7 +19,7 @@ Registration lives in `hooks/hooks.json`. Each row is one clause; the spoke is t
 
 ### PreToolUse
 
-Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "iter-NN" in the Matcher column means the hook is inlined as a subhook of that orchestrator rather than registered standalone.
+Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "iter-NN" in the Matcher column means the hook is inlined as a subhook of that orchestrator rather than registered standalone. **unregistered** means the source file is kept but has no entry in `hooks.json` and no orchestrator subhook, so it never runs: `pretooluse-fake-data-guard.mjs` was pulled in `e6c665a9` (2026-04-24) for blocking legitimate writes — it flagged a seeded `np.random.Generator()` and the companion inline-ignore guard then rejected the `# noqa` escape hatch. Re-enabling it means adding a `hooks.json` entry, never a `~/.claude/settings.json` injection (issue #127).
 
 | Hook                                                         | Matcher                | Purpose                                       | Spoke                                                       |
 | ------------------------------------------------------------ | ---------------------- | --------------------------------------------- | ----------------------------------------------------------- |

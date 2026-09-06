@@ -312,26 +312,14 @@ CONFIG_EOF
 
 ## Next Steps
 
-After setup completes, configure itp-hooks for enhanced workflow guidance:
+Nothing to install. The itp-hooks hooks are shipped in `plugins/itp-hooks/hooks/hooks.json` and Claude Code loads them from the plugin itself — enabling the `itp-hooks` plugin is the whole installation step. The `/itp:tether` installer that used to inject them into `~/.claude/settings.json` was retired in issue #127 because that second registration made every matching event fire the hook twice.
 
-1. **Check hook status**:
+### What the shipped hooks provide
 
-   ```bash
-   /itp:tether status
-   ```
+- **PreToolUse guards**: the Write/Edit orchestrator (version, shell-safety, TypeScript-version, hoisted-deps, mise-hygiene and more), plus per-tool Bash guards
+- **PostToolUse reminder**: prompts ADR sync after Bash/Write/Edit/MultiEdit
 
-2. **Install hooks** (if not already installed):
-
-   ```bash
-   /itp:tether install
-   ```
-
-### What hooks provide
-
-- **PreToolUse guard**: Blocks Unicode box-drawing diagrams without `<details>` source blocks
-- **PostToolUse reminder**: Prompts ADR sync
-
-**IMPORTANT:** Hooks require a Claude Code session restart after installation.
+**IMPORTANT:** A newly enabled plugin's hooks take effect after a Claude Code session restart.
 
 ## Post-Execution Reflection
 

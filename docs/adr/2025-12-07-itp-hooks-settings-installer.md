@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-date: 2026-09-05
 date: 2025-12-07
 decision-maker: Terry Li
 consulted: [Claude Code]
@@ -7,6 +8,8 @@ research-method: single-agent
 clarification-iterations: 2
 perspectives: [User-Experience, Reliability, Maintainability]
 ---
+
+> ⚠️ **SUPERSEDED 2026-09-05 (issue [#127](https://github.com/terrylica/cc-skills/issues/127))**: the premise below — "Claude Code only loads hooks from `~/.claude/settings.json`, NOT from plugin files" — is no longer true. Claude Code auto-loads each plugin's `hooks/hooks.json`, so injecting the same entries into settings.json double-registers them and the hook fires twice per matching event. `scripts/sync-hooks-to-settings.sh` was converted from an installer to a pruner for exactly this reason in v20.2.3; `plugins/itp/scripts/manage-hooks.sh` and the `/itp:tether` skill were deleted on 2026-09-05, together with the `dotfiles-tools`, `gh-tools` and `productivity-tools` equivalents. The installer had also been inert since `posttooluse-reminder.sh` was renamed to `.ts`. The pattern survives in exactly one place — `plugins/statusline-tools/scripts/manage-hooks.sh` — where the hook it installs is deliberately absent from that plugin's `hooks.json`.
 
 # ITP Hooks Settings Installer
 

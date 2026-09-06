@@ -107,13 +107,9 @@ The hooks work with graceful degradation:
 
 ## Next Steps
 
-After setup, install the hooks to your settings:
+No hook installation step exists. `hooks/hooks.json` in this plugin is what Claude Code loads, so enabling the plugin is the installation. The `/itp:tether install` path was retired in issue #127 — injecting the same hooks into `~/.claude/settings.json` double-registered them, and its script had been inert since `posttooluse-reminder.sh` became `posttooluse-reminder.ts`.
 
-```bash
-/itp:tether install
-```
-
-**IMPORTANT**: Restart Claude Code session for hooks to take effect.
+**IMPORTANT**: Restart the Claude Code session for newly enabled plugin hooks to take effect.
 
 ## Troubleshooting
 

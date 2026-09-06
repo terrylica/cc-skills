@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-date: 2026-09-05
 date: 2025-12-07
 decision-maker: Terry Li
 consulted: [claude-code-guide, general-purpose, Explore]
@@ -7,6 +8,8 @@ research-method: multi-agent
 clarification-iterations: 1
 perspectives: [User Experience, Documentation]
 ---
+
+> ⚠️ **SUPERSEDED 2026-09-05 (issue [#127](https://github.com/terrylica/cc-skills/issues/127))**: the command this ADR told `/itp:setup` to advertise — `/itp hooks`, later renamed `/itp:tether` — was deleted along with `plugins/itp/scripts/manage-hooks.sh`. Claude Code now auto-loads `plugins/itp-hooks/hooks/hooks.json`, so there is no post-setup installation step to point users at, and the injection it performed would have double-registered every shipped hook. See [`2025-12-07-itp-hooks-settings-installer.md`](./2025-12-07-itp-hooks-settings-installer.md) for the full reasoning. The "Next Steps" section of both setup skills now says that enabling the plugin is the installation.
 
 # Add `/itp hooks` Reminder to Setup Command
 
