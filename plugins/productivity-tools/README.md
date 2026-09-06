@@ -1,8 +1,8 @@
 # productivity-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 Productivity and automation tools for Claude Code.
 
@@ -74,7 +74,7 @@ Create macOS Calendar events with tiered sound alarms and auto-paired Reminders.
 | 30 min       | -30 min   | Ping   | 1.50s    |
 | At event     | 0 min     | Funk   | 2.16s    |
 
-**Hook**: Install with `/productivity-tools:tether install` (opt-in, not auto-enabled).
+**Hook**: `calendar-reminder-sync.ts` ships registered in this plugin's `hooks/hooks.json` (PostToolUse, matcher `Bash`) and is active whenever the plugin is enabled — it was never opt-in. The `/productivity-tools:tether` installer that claimed otherwise was retired in issue #127, because injecting the same hook into `~/.claude/settings.json` ran it twice per Bash call.
 
 ## Installation
 
@@ -112,7 +112,7 @@ claude plugin install productivity-tools@cc-skills
 | Bun not available              | Optional dependency missing    | Install with `brew install bun` for TypeScript        |
 | Validation warnings            | Missing required fields        | Add description and allowed-tools to YAML frontmatter |
 | Sound alarm not playing        | Notifications disabled         | Enable in System Settings > Notifications > Calendar  |
-| Reminders not created          | Hook not installed             | Run `/productivity-tools:tether install`               |
+| Reminders not created          | Plugin disabled, or no restart | Enable the plugin, then restart Claude Code           |
 
 ## License
 
