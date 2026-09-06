@@ -127,15 +127,11 @@ Generates context-aware EOF markers (e.g., `PREFLIGHT_EOF`, `SETUP_EOF`) based o
 
 Located in `plugins/itp/scripts/`:
 
-### manage-hooks.sh
+### manage-hooks.sh — retired, do not copy this pattern
 
-**Purpose**: Install/uninstall ITP hooks to settings.json.
+`plugins/itp/scripts/manage-hooks.sh` was deleted in issue #127, along with the equivalents in `dotfiles-tools`, `gh-tools` and `productivity-tools`. A settings.json injector is the wrong shape for a hook a plugin already ships: Claude Code loads `hooks/hooks.json` from the plugin itself, so a second registration in `~/.claude/settings.json` fires the hook twice per matching event.
 
-```bash
-bash plugins/itp/scripts/manage-hooks.sh install
-bash plugins/itp/scripts/manage-hooks.sh uninstall
-bash plugins/itp/scripts/manage-hooks.sh status
-```
+Write hooks into your plugin's `hooks/hooks.json` and stop there. The one surviving installer, `plugins/statusline-tools/scripts/manage-hooks.sh`, exists precisely because its `lychee-stop-hook.sh` is deliberately absent from that plugin's `hooks.json` — an opt-in Stop hook a user chooses to enable. Ship an installer only under that condition, and say so in the script header.
 
 ### install-dependencies.sh
 

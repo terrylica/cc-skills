@@ -1,9 +1,9 @@
 # gh-tools Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-5-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+[![Skills](https://img.shields.io/badge/Skills-5-blue.svg)](<>)
+[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)](<>)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
 
 GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
 
@@ -117,19 +117,11 @@ The skill auto-activates when:
 /plugin install cc-skills@gh-tools
 ```
 
-### Installing Hooks
+### Hooks need no installation step
 
-After plugin installation, enable hooks:
+Every hook in the table above is registered in this plugin's own `hooks/hooks.json`, which Claude Code loads directly — installing the plugin installs the hooks. Restart Claude Code once for them to take effect.
 
-```bash
-# Check hook status
-/gh-tools:tether status
-
-# Install hooks
-/gh-tools:tether install
-
-# IMPORTANT: Restart Claude Code for hooks to take effect
-```
+The `/gh-tools:tether` skill and its `scripts/manage-hooks.sh` were retired in issue #127: they injected `webfetch-github-guard.sh` into `~/.claude/settings.json`, where it is already registered by `hooks/hooks.json`, so the guard would have run twice on every WebFetch.
 
 #### WebFetch Enforcement Example
 
@@ -242,15 +234,15 @@ Future skills to be added to gh-tools:
 
 ## Troubleshooting
 
-| Issue                            | Cause                             | Solution                                                |
-| -------------------------------- | --------------------------------- | ------------------------------------------------------- |
-| Hooks not triggering             | Hooks not installed or not active | Run `/gh-tools:tether install` and restart Claude Code   |
-| WebFetch guard not showing       | Missing matcher in settings.json  | Check `/gh-tools:tether status` for configuration        |
-| Links still broken after convert | External links unchanged          | External links are preserved; only repo-relative fixed  |
-| gh CLI not authenticated         | Missing GitHub token              | Run `gh auth login` to authenticate                     |
-| Branch detection wrong           | Detached HEAD state               | Checkout a named branch before creating PR              |
-| 404 on converted links           | File doesn't exist on branch      | Verify file exists: `git ls-files path/to/file.md`      |
-| Slow PR creation                 | Large diff or many files          | Normal for large PRs; links converted before submission |
+| Issue                            | Cause                          | Solution                                                |
+| -------------------------------- | ------------------------------ | ------------------------------------------------------- |
+| Hooks not triggering             | Plugin disabled, or no restart | Enable `cc-skills@gh-tools`, then restart Claude Code   |
+| WebFetch guard not showing       | Stale plugin version cache     | Check `hooks/hooks.json` in the installed version       |
+| Links still broken after convert | External links unchanged       | External links are preserved; only repo-relative fixed  |
+| gh CLI not authenticated         | Missing GitHub token           | Run `gh auth login` to authenticate                     |
+| Branch detection wrong           | Detached HEAD state            | Checkout a named branch before creating PR              |
+| 404 on converted links           | File doesn't exist on branch   | Verify file exists: `git ls-files path/to/file.md`      |
+| Slow PR creation                 | Large diff or many files       | Normal for large PRs; links converted before submission |
 
 ## License
 

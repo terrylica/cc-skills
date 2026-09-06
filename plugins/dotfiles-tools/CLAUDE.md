@@ -8,13 +8,14 @@
 
 - [chezmoi-sync](./skills/chezmoi-sync/SKILL.md)
 - [chezmoi-workflows](./skills/chezmoi-workflows/SKILL.md)
-- [tether](./skills/tether/SKILL.md) — renamed from `hooks` to avoid `/hooks` clash
 
 ## Hooks
 
-| Hook                       | Event       | Matcher     | Purpose                             |
-| -------------------------- | ----------- | ----------- | ----------------------------------- |
-| `chezmoi-sync-reminder.sh` | PostToolUse | Edit\|Write | Reminder when editing tracked files |
+| Hook                       | Event       | Matcher                | Purpose                             |
+| -------------------------- | ----------- | ---------------------- | ----------------------------------- |
+| `chezmoi-sync-reminder.sh` | PostToolUse | Edit\|Write\|MultiEdit | Reminder when editing tracked files |
+
+`hooks/hooks.json` is the only registration — Claude Code loads it from the plugin. The `tether` skill and `scripts/manage-hooks.sh` that used to copy this same hook into `~/.claude/settings.json` were retired in issue #127; the second registration would have fired the reminder twice per edit.
 
 ## Conventions
 
