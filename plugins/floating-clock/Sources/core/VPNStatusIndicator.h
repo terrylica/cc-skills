@@ -43,6 +43,13 @@ NS_ASSUME_NONNULL_BEGIN
 // No-op while inactive (banner hidden).
 - (void)syncPosition;
 
+// YES while the banner is visible. Mirrors the same query on
+// FCMicMuteIndicator / FCAudioStatusIndicator so an overlay stacked ABOVE
+// this one can measure the slot it occupies. Added when the network picker
+// bar took the top of the stack — every indicator sums only its own juniors,
+// so the newcomer needs to ask each of them.
+- (BOOL)isShowing;
+
 @end
 
 NS_ASSUME_NONNULL_END

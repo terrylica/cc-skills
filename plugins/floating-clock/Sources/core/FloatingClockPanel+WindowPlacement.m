@@ -7,6 +7,7 @@
 #import "MicMuteIndicator.h"               // overlay re-sync on moves
 #import "VPNStatusIndicator.h"
 #import "AudioStatusIndicator.h"
+#import "NetworkStatusIndicator.h"
 
 @implementation FloatingClockPanel (WindowPlacement)
 
@@ -51,6 +52,7 @@
     [_micMuteIndicator syncPosition];
     [_vpnStatusIndicator syncPosition];
     [_audioStatusIndicator syncPosition];
+    [_networkStatusIndicator syncPosition];
 }
 
 - (void)restorePosition {
