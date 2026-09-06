@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-106 audit: verifies the iter-104/iter-105 truncation helper has been relocated to its iter-106 canonical home (a dedicated cross-Pre/PostToolUse shared lib, eliminating the iter-105 cross-lib import awkwardness where pretooluse-vale-claude-md-guard imported from the PostToolUse contract lib). Verifies (1) the iter-106 shared-lib file exists and holds the literal exports; (2) the PostToolUse contract lib re-exports for backward compat; (3) all 8 iter-105 cohort hooks import the helper from the shared-lib canonical home (NOT from the PostToolUse contract lib)."
+# Iter-106 audit: verifies the iter-104/iter-105 truncation helper has been relocated to its iter-106 canonical home (a dedicated cross-Pre/PostToolUse shared lib, eliminating the iter-105 cross-lib import awkwardness where pretooluse-vale-claude-md-guard imported from the PostToolUse contract lib). Verifies (1) the iter-106 shared-lib file exists and holds the literal exports; (2) the PostToolUse contract lib re-exports for backward compat; (3) all 8 iter-105 cohort hooks import the helper from the shared-lib canonical home (NOT from the PostToolUse contract lib).
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale

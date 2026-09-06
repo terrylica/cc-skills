@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-99 regression test for the marketplace-wide silent-context-drop audit. Verifies audit-task existence, live marketplace passes clean, detection regex catches iter-98 incident shape + plain-string variants, JSDoc and line-comment prose mentions correctly skipped, POSTTOOLUSE-RAW-STDOUT-OK escape hatch honored same-line and within 3 preceding lines, JSON.stringify-wrapped emissions allowed, and end-to-end fixture-injection inside plugins tree triggers audit failure."
+# Iter-99 regression test for the marketplace-wide silent-context-drop audit. Verifies audit-task existence, live marketplace passes clean, detection regex catches iter-98 incident shape + plain-string variants, JSDoc and line-comment prose mentions correctly skipped, POSTTOOLUSE-RAW-STDOUT-OK escape hatch honored same-line and within 3 preceding lines, JSON.stringify-wrapped emissions allowed, and end-to-end fixture-injection inside plugins tree triggers audit failure.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

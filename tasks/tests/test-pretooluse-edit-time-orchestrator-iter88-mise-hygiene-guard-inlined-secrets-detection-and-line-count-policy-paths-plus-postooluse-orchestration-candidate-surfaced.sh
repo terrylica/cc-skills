@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-88 regression test extending iter-87 orchestrator coverage. Verifies (1) mise-hygiene-guard inlined as 5th registry entry produces matching deny for both policies (secrets detection + line count >100), (2) .mise.local.toml correctly skipped (ignore-list fastpath), (3) safe-pattern lines (read_file/env/op_read/doppler) do NOT trigger secrets policy, (4) standalone backward-compat preserved, (5) iter-88 adversarial finding (9 PostToolUse Write|Edit hooks form next orchestration candidate worth ~136ms) surfaced and queued."
+# Iter-88 regression test extending iter-87 orchestrator coverage. Verifies (1) mise-hygiene-guard inlined as 5th registry entry produces matching deny for both policies (secrets detection + line count >100), (2) .mise.local.toml correctly skipped (ignore-list fastpath), (3) safe-pattern lines (read_file/env/op_read/doppler) do NOT trigger secrets policy, (4) standalone backward-compat preserved, (5) iter-88 adversarial finding (9 PostToolUse Write|Edit hooks form next orchestration candidate worth ~136ms) surfaced and queued.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true

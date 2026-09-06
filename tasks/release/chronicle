@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Phase 4.5 of 5: Bundle sanitized session JSONLs from the previous release window into the GitHub release asset list. PRIVATE REPOS ONLY — public repos skip this phase silently. JSONLs are sanitized via plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py before upload."
+# Phase 4.5 of 5: Bundle sanitized session JSONLs from the previous release window into the GitHub release asset list. PRIVATE REPOS ONLY — public repos skip this phase silently. JSONLs are sanitized via plugins/devops-tools/skills/session-chronicle/scripts/sanitize_sessions.py before upload.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

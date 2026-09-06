@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Iter-99 marketplace-wide preventive audit: detects PostToolUse TypeScript hooks emitting raw console.log text (template-literal or plain string) which Anthropic PostToolUse schema silently drops from Claude context (operator transcript only). Scales the iter-98 single-hook silent-context-drop fix to a marketplace invariant. Escape hatch: POSTTOOLUSE-RAW-STDOUT-OK same-line or within 3 preceding lines. Parallel to the iter-94 spawnSync audit."
+# Iter-99 marketplace-wide preventive audit: detects PostToolUse TypeScript hooks emitting raw console.log text (template-literal or plain string) which Anthropic PostToolUse schema silently drops from Claude context (operator transcript only). Scales the iter-98 single-hook silent-context-drop fix to a marketplace invariant. Escape hatch: POSTTOOLUSE-RAW-STDOUT-OK same-line or within 3 preceding lines. Parallel to the iter-94 spawnSync audit.
 
 # Full design rationale:
 #
