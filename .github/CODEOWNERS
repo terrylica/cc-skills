@@ -1,0 +1,9 @@
+# Code owners for cc-skills.
+#
+# GitHub requests a review from the owner of every path a PR touches. This repository is
+# single-maintainer, so the catch-all below is the whole policy — it exists to make review
+# assignment automatic rather than to gate anyone out.
+#
+# Syntax reference: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @terrylica
