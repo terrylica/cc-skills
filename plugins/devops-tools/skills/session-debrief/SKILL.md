@@ -157,14 +157,14 @@ bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-debrief.ts \
 
 ## Configuration
 
-| Setting             | Source                                                           | Default                   |
-| ------------------- | ---------------------------------------------------------------- | ------------------------- |
-| MiniMax API key     | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`) | Required                  |
-| Model               | `MINIMAX_MODEL` env var (global mise config)                     | `MiniMax-M2.7-highspeed`  |
-| Max output tokens   | Hardcoded                                                        | 16384 per call            |
-| Context budget      | Hardcoded                                                        | 890K chars (~243K tokens) |
-| Default time window | `--since`                                                        | 48 hours                  |
-| Session chaining    | `--no-chain` to disable                                          | Enabled                   |
+| Setting             | Source                                                               | Default                   |
+| ------------------- | -------------------------------------------------------------------- | ------------------------- |
+| MiniMax API key     | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`)     | Required                  |
+| Model               | `DEBRIEF_LLM_MODEL` env var (nothing sets it; effectively hardcoded) | `claude-sonnet-5[1m]`     |
+| Max output tokens   | Hardcoded                                                            | 16384 per call            |
+| Context budget      | Hardcoded                                                            | 890K chars (~243K tokens) |
+| Default time window | `--since`                                                            | 48 hours                  |
+| Session chaining    | `--no-chain` to disable                                              | Enabled                   |
 
 ---
 
