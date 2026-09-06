@@ -45,18 +45,56 @@ set -euo pipefail
 # Fails explicitly if not in a git repo AND env var not set, per repo philosophy of
 # rejecting silent failures (documented in LESSONS.md 2026-01-24).
 
+# ─── ITER-193: THE DOCTOR DIAGNOSES ITS OWN TREE, NOT THE CALLER'S CWD ──────
+#
+# This block used to resolve the repo root with `git rev-parse --show-toplevel`,
+# i.e. from the CALLER'S WORKING DIRECTORY rather than from the doctor's own
+# location. Run from any OTHER git repository the walk-up succeeds, returns that
+# repository, every derived path misses, and the doctor reports
+# `verdict=TOOLKIT_BROKEN, critical_failed=13` about a toolkit that is perfectly
+# healthy. Measured 2026-09-05: 604 consecutive invocations from
+# `~/eon/ccmax-monitor` all reported TOOLKIT_BROKEN; the same binary from
+# anywhere inside cc-skills reported TOOLKIT_HEALTHY 1,480/1,480 times.
+#
+# That is a false CRITICAL, and it is the single most expensive kind for this
+# script to emit, because `TOOLKIT_BROKEN + critical_failed>0` is exactly the
+# signature the iter-160 regression test's C3/C4 report — so a wrong cwd is
+# indistinguishable, from the log, from the intermittent gate failure that is
+# still under investigation. An investigator's own probe hit it within five
+# minutes and briefly read as a reproduction of the flake. A diagnostic that can
+# blame the tree for the caller's cwd poisons every future diagnosis.
+#
+# Fix is the iter-176 pattern, already used by the iter-153 advisor: derive the
+# root from `${BASH_SOURCE[0]}`, which is where this file actually lives. This
+# script is `<repo>/scripts/<name>.sh`, so its own directory's parent IS the
+# root, for every caller, from every cwd. It also removes one `git` fork —
+# harmless to iter-174 A6, whose shim set deliberately excludes `git`.
 if [[ -z "${ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE:-}" ]]; then
-    if ! ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(git rev-parse --show-toplevel 2>/dev/null)"; then
-        echo "ERROR: iter-160 must be run from within the cc-skills git repository." >&2
-        echo "       Current directory: $(pwd)" >&2
-        echo "       git rev-parse --show-toplevel failed (not a git repo, .git corrupted, or no read permission)." >&2
-        echo "       Override with: ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE=/path/to/cc-skills" >&2
-        exit 1
-    fi
+    # Parameter expansion + a subshell `cd`/`pwd`: no external command, so this
+    # resolution costs nothing on the operator-facing hot path.
+    ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$(cd "${BASH_SOURCE[0]%/*}/.." && pwd)"
 else
     ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE"
 fi
 ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK="$ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-for-cross-script-reuse-eliminating-duplication-of-iter154-correctness-fix-across-iter152-iter153-and-future-consumers.sh"
+
+# ─── ITER-193 fail-fast precondition (iter-181 pattern) ─────────────────────
+#
+# A root that does not carry the iter-155 shared library is not a cc-skills
+# checkout, and continuing from one produces 13 false CRITICALs instead of one
+# true error. Reachable now only through a wrong
+# ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE, but that is precisely the
+# remaining way to make the doctor lie, so it is refused LOUDLY rather than
+# reported as a broken toolkit. Exit 2 (not 1) so an operator and a script can
+# both tell "the doctor could not run" apart from "the toolkit is broken".
+if [[ ! -f "$ITER160_ITER155_SHARED_JSON_ESCAPE_LIB_ABSOLUTE_PATH_FOR_ITER160_STATUS_TASK" ]]; then
+    echo "ERROR: iter-160 resolved a repo root that is not a cc-skills checkout." >&2
+    echo "       Resolved root: $ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH" >&2
+    echo "       Expected (missing): \${root}/scripts/lib/iter155-pure-bash-rfc8259-json-string-escape-shared-library-...sh" >&2
+    echo "       This is a HARNESS error, not a toolkit verdict — exiting 2 rather than reporting TOOLKIT_BROKEN." >&2
+    echo "       If you set ITER160_CC_SKILLS_REPO_ROOT_ABSOLUTE_PATH_OVERRIDE, point it at a cc-skills checkout." >&2
+    exit 2
+fi
 
 # ─── Parse output mode flag ─────────────────────────────────────────────────
 

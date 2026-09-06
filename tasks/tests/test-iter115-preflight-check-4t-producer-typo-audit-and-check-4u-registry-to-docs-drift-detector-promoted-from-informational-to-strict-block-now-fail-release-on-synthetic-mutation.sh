@@ -91,6 +91,45 @@ __iter115_atomically_replace_canonical_on_disk_doc_via_same_directory_rename() {
 # We append a single-line comment with a synthetic UPPER-KEBAB-CASE-OK
 # token that is guaranteed to never appear in the registry.
 PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH="$REPO_ROOT/plugins/gmail-commander/scripts/bot.ts"
+
+# ─── ITER-193: the PRODUCER file needs the same atomic restore as the doc ────
+#
+# Iter-187 made every write to the shared DOC atomic and left the three writes
+# to this shared PRODUCER file on `cp -f`. The zero-byte window therefore did
+# not go away, it just moved: measured 2026-09-05 with the same tight-loop
+# reader across ~27 suite runs, `plugins/gmail-commander/scripts/bot.ts` was
+# observed EMPTY 3,804 times in 174,050,501 stat() reads, while
+# `docs/marketplace-escape-hatch-marker-reference.md` was observed empty 0
+# times in the same 174,050,501 — the doc's fix works, and its absence here is
+# visible in the same measurement. Both figures are the same order as the
+# 453-in-6,353,768 that the 2026-09-02 entry proved was enough to redden
+# iter-117 in ~18% of parallel runs.
+#
+# iter-192 serialised the two tree-SCANNERS (iter-111, iter-115) against each
+# other, which is a different resource: it stops one test's synthetic marker
+# from being seen by the other's clean-baseline scan. It does nothing about a
+# THIRD process reading a truncated bot.ts — and `repo:lint`
+# (scripts/validate-plugins.mjs) and `repo:test` run CONCURRENTLY with
+# `repo:test-hooks` inside `moon run repo:check`, so third readers exist
+# outside this suite entirely. Enumerate the roster from the RESOURCE.
+#
+# Same primitive as the doc helper above: stage in the target's OWN directory
+# so `mv` is rename(2), and carry the mode across because mktemp creates 0600
+# while the committed file is 0644.
+__iter115_atomically_restore_shared_producer_file_via_same_directory_rename() {
+    local content_source_file_absolute_path="$1"
+    local target_absolute_path="$2"
+    local staging_file_absolute_path target_directory preserved_octal_mode
+    target_directory="${target_absolute_path%/*}"
+    preserved_octal_mode=$(stat -f '%Lp' "$target_absolute_path" 2>/dev/null || echo 644)
+    staging_file_absolute_path=$(mktemp "$target_directory/.iter193-atomic-producer-restore-XXXXXX")
+    if ! cp -f "$content_source_file_absolute_path" "$staging_file_absolute_path" ||
+        ! chmod "$preserved_octal_mode" "$staging_file_absolute_path" ||
+        ! mv -f "$staging_file_absolute_path" "$target_absolute_path"; then
+        rm -f "$staging_file_absolute_path"
+        return 1
+    fi
+}
 SYNTHETIC_UNREGISTERED_MARKER_TOKEN_GUARANTEED_NEVER_TO_APPEAR_IN_CANONICAL_REGISTRY="ITER115-SYNTHETIC-NEVER-REGISTERED-TYPO-PROBE-OK"
 
 ASSERTION_PASSED_COUNT=0
@@ -181,7 +220,7 @@ ITER115_DOC_MUTATION_SENTINEL="ITER115 REGRESSION TEST CASE 5 SYNTHETIC DOC MUTA
 __iter115_restore_producer_only_if_still_carrying_our_injection() {
     if [[ -s "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" ]] &&
         grep -qF "$ITER115_PRODUCER_MUTATION_SENTINEL" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH" 2>/dev/null; then
-        cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
+        __iter115_atomically_restore_shared_producer_file_via_same_directory_rename "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
     fi
     rm -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH"
 }
@@ -204,7 +243,7 @@ ITER111_AUDIT_EXIT_CODE_WITH_SYNTHETIC_TYPO_INJECTED=$?
 set -e
 
 # Restore producer file IMMEDIATELY so subsequent cases see clean state
-cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
+__iter115_atomically_restore_shared_producer_file_via_same_directory_rename "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
 
 # The audit task itself exits 0 by design (it's INFORMATIONAL at the task
 # layer; the STRICT-BLOCK enforcement lives in the preflight wrapper).
@@ -235,7 +274,7 @@ set -e
 # Replay the exact preflight extraction pipeline from iter-115 STRICT block
 ITER111_UNREGISTERED_COUNT_EXTRACTED_BY_PREFLIGHT_WRAPPER_LOGIC=$( { grep -oE 'AUDIT FOUND [0-9]+' "$PREFLIGHT_WRAPPER_LOG_FILE_ABSOLUTE_PATH" || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
 
-cp -f "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
+__iter115_atomically_restore_shared_producer_file_via_same_directory_rename "$PRODUCER_FILE_BACKUP_ABSOLUTE_PATH" "$PRODUCER_FILE_USED_AS_SYNTHETIC_TYPO_INJECTION_TARGET_ABSOLUTE_PATH"
 rm -f "$PREFLIGHT_WRAPPER_LOG_FILE_ABSOLUTE_PATH"
 
 if [[ "${ITER111_UNREGISTERED_COUNT_EXTRACTED_BY_PREFLIGHT_WRAPPER_LOGIC:-0}" -ge 1 ]]; then
