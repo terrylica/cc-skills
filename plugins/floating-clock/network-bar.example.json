@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Template only. Copy to network-bar.local.json (gitignored) if you want",
+    "file-based overrides. NOTHING here is required: the network bar",
+    "discovers every service, BSD device and the current primary at runtime,",
+    "so the shipped build carries no machine-specific configuration.",
+    "Runtime settings normally live in NSUserDefaults instead:",
+    "  defaults write com.terryli.floating-clock NetworkBarEnabled -bool true",
+    "  defaults write com.terryli.floating-clock MicIndicatorDeviceName 'Some Mic'"
+  ],
+  "NetworkBarEnabled": true,
+  "MicIndicatorDeviceName": ""
+}

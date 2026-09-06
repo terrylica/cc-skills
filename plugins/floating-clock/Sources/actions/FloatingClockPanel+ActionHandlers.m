@@ -2,7 +2,8 @@
 #import "../core/FloatingClockPanel+Layout.h"
 #import "../core/FloatingClockPanel+Runtime.h"
 #import "../core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
-#import "../core/AudioStatusIndicator.h" // 2026-06-11: instant bar show/hide
+#import "../core/AudioStatusIndicator.h"   // 2026-06-11: instant bar show/hide
+#import "../core/NetworkStatusIndicator.h" // network picker bar show/hide
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
 
@@ -305,6 +306,15 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"AudioBarEnabled"] forKey:@"AudioBarEnabled"];
     [_audioStatusIndicator refresh];   // instant show/hide (vs ≤1s tick lag)
+}
+
+// Hide/show the network picker bar. Same shape as the audio-bar toggle: the
+// indicator's own refresh handles orderOut/orderFront, so flipping the key
+// plus one refresh is the whole job.
+- (void)toggleShowNetworkBar:(NSMenuItem *)sender {
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    [d setBool:![d boolForKey:@"NetworkBarEnabled"] forKey:@"NetworkBarEnabled"];
+    [_networkStatusIndicator refresh];   // instant show/hide (vs <=1s tick lag)
 }
 
 // v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny

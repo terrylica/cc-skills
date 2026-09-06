@@ -27,6 +27,8 @@
 #import "test_holidays.h"        // iter-176 extraction
 #import "test_halfdays.h"        // iter-193 extraction
 #import "test_local_features.h"  // iter-244 extraction
+#import "test_network.h"                 // network picker bar catalog
+#import "test_overlay_width.h"           // overlay width agreement + telemetry math
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -850,6 +852,31 @@ int main(void) {
         RUN_TEST(test_phase_color_for_hour);
         RUN_TEST(test_moon_phase);
         RUN_TEST(test_solar_events);
+
+        // Network service catalog (declared in test_network.h) — locks the
+        // parsing that drives the network picker bar's service switching.
+        RUN_TEST(test_network_parse_basic);
+        RUN_TEST(test_network_parse_tolerates_header_and_blanks);
+        RUN_TEST(test_network_parse_disabled_marker);
+        RUN_TEST(test_network_parse_service_without_device);
+        RUN_TEST(test_network_parse_garbage_is_empty);
+        RUN_TEST(test_network_device_to_name_lookup);
+        RUN_TEST(test_network_reorder_puts_choice_first);
+        RUN_TEST(test_network_reorder_preserves_all_services);
+        RUN_TEST(test_network_reorder_rejects_unknown_service);
+        RUN_TEST(test_network_switchable_filters_deviceless_and_disabled);
+        RUN_TEST(test_network_switchable_excludes_dead_modem_services);
+        RUN_TEST(test_network_switchable_keeps_link_local_device);
+        RUN_TEST(test_network_switchable_nil_vs_empty_liveness);
+        RUN_TEST(test_overlay_width_takes_widest_need);
+        RUN_TEST(test_overlay_width_floors_at_clock_width);
+        RUN_TEST(test_overlay_width_hidden_overlay_stops_widening);
+        RUN_TEST(test_overlay_width_posts_change_notification);
+        RUN_TEST(test_telemetry_rate_basic);
+        RUN_TEST(test_telemetry_rate_survives_counter_reset);
+        RUN_TEST(test_telemetry_rate_formatting);
+        RUN_TEST(test_telemetry_signal_buckets);
+        RUN_TEST(test_telemetry_padding_stabilises_field_width);
 
         if (failures == 0) {
             fprintf(stderr, "All %d tests passed.\n", testCount);

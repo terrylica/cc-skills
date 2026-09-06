@@ -1,6 +1,6 @@
 ← [Back to plugin CLAUDE.md](../CLAUDE.md)
 
-# Overlay indicators — audio I/O bar · mic-mute banner · VPN banner
+# Overlay indicators — network picker · audio I/O bar · mic-mute banner · VPN banner
 
 The clock carries a stack of overlay NSPanels pinned above it. This spoke is
 the SSoT for the audio bar saga (2026-06-11/12), the drag-welding
@@ -108,6 +108,32 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
 | ----------------- | ---- | ------- | ------------------------------ |
 | `AudioBarEnabled` | BOOL | `YES`   | master on/off (also in menu)   |
 | `AudioBarStep`    | int  | `5`     | −/+ click step %, clamped 1–25 |
+
+## Network picker bar (`NetworkStatusIndicator`, 2026-09-06)
+
+Top rail of the stack. Shows which network service currently carries the machine's internet traffic, live telemetry for it, and lets you change it.
+
+**Why it exists.** macOS picks the default route from the network SERVICE ORDER, not from anything you choose per session. Attach a USB Ethernet adapter and it can silently outrank Wi-Fi and take over every connection — invisible until something breaks. This bar surfaces the current answer and makes changing it one click instead of a trip through System Settings.
+
+**Interaction.** Click the bar to cycle to the next switchable service; right-click (or two-finger tap) for a menu of switchable services with a ✓ on the current one.
+
+**What counts as "switchable" — three conditions, all required.** Enabled, has a BSD device, and currently holds an IPv4 address. The third is not fussiness. macOS registers every USB device presenting a modem/serial class as a network service, so a real machine's list is dominated by things that can never carry traffic — monitor DDC control channels, phone USB links, composite-device endpoints. Measured on the development Mac: 19 services, of which 15 were that kind and only 3 held an address. Offering the other 15 invites you to reorder the route onto a dead service and kill all connectivity, which is the exact failure this bar exists to prevent. The test is IPv4 liveness rather than a name pattern, because names are vendor-controlled and drift while liveness is what actually decides whether a service can carry a route. Link-local `169.254.x` counts as live — a directly attached device with no DHCP server is still a legitimate choice.
+
+**Telemetry** fills what used to be empty space, all in-process and permission-free: the address held on the interface, downstream/upstream throughput from `getifaddrs(3)` byte counters, and on Wi-Fi the RSSI (coloured green/amber/red by link health), signal-to-noise, and PHY rate from CoreWLAN. The SSID is deliberately never read — it needs Location authorization, and the network name is the one field here that identifies a place.
+
+Every numeric field is padded to a constant character count. The telemetry group is right-aligned, so a field that changes width drags everything to its left sideways; throughput changes every second, which made the address visibly jitter once a second until the padding went in. The bar's font is monospaced, so a constant character count is exactly a constant pixel width.
+
+**Refresh model — the one hard performance constraint.** The 1 Hz tick reads only `SCDynamicStore`, `getifaddrs` and CoreWLAN, all in-process. It NEVER spawns a subprocess; doing that once a second would destroy the sub-1 % idle CPU budget. The service-name map needs `networksetup`, so it is fetched lazily — on first show, on menu open, after a switch, and when the primary interface moves to a device not already cached — then kept. Measured idle: 0.3 % CPU, zero child processes.
+
+**Switching** runs `networksetup -ordernetworkservices`, which demands the COMPLETE service list — a partial or misspelled list is rejected wholesale. This is also why the service names come from `networksetup` itself and not from SystemConfiguration: the two enumerations disagree (22 vs 19 services on the same machine, and SC's `iPhone` is `networksetup`'s `iPhone USB`), so SC names would fail on both count and spelling. On accounts without admin rights macOS may refuse the change; the failure shows as a transient ✗ rather than being swallowed.
+
+## Shared overlay width (`OverlayWidthConsensus`, 2026-09-06)
+
+Every rail is the SAME width: the widest content need any of them currently has, floored at the clock's width.
+
+Before this, each overlay sized itself independently — mic and VPN took the clock width, the audio bar took its own content width — so a long device name made the audio bar protrude past its neighbours and the stack developed ragged left and right edges. Growing everyone to the maximum rather than shrinking everyone to the clock is deliberate: the audio bar's extra width exists so a device name never truncates, and the network bar's carries telemetry. Both would lose information under shrink-to-fit.
+
+Overlays register during the tick and position themselves in the same pass, so a late registrant could leave an earlier one a frame stale. Any change to the agreed width therefore posts `FCOverlayWidthConsensusDidChangeNotification` and each overlay re-syncs on it, which keeps the stack correct regardless of refresh order. Note that publishing a need must happen OUTSIDE the positioning path — publishing inside `syncPosition` posts a notification that calls straight back into `syncPosition`.
 
 ## Drag-welding (`ClockChildWindowAttachment`, 2026-06-12)
 

@@ -3,6 +3,7 @@
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
 #import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
+#import "OverlayWidthConsensus.h"       // shared stack width (2026-09-06)
 #import <CoreAudio/CoreAudio.h>
 #import <AVFoundation/AVFoundation.h>
 #import <math.h>
@@ -12,7 +13,7 @@
 static const CGFloat kBannerHeight = 20.0;
 static const CGFloat kBannerGap    = 3.0;   // gap between banner and clock edge
 
-// Audio-silence detection. The Antlion's hardware mute button is a pure analog
+// Audio-silence detection. An analog hardware mute button is a pure analog
 // cut — it changes NO CoreAudio property; the only fingerprint is that the
 // captured signal flatlines to digital silence (~-91 dB). So we meter the
 // device's input level via an IOProc and flag "silent" when the RMS sits at the
@@ -165,6 +166,11 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
         _device      = kAudioObjectUnknown;
         _muted       = NO;
         [self buildBanner];
+        // Re-sync when any peer overlay changes the stack's agreed width.
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(syncPosition)
+                                                     name:FCOverlayWidthConsensusDidChangeNotification
+                                                   object:nil];
         [self requestMicAccess];     // gate audio metering on Microphone permission
         [self installDevicesListener];
         [self rebindDevice];         // find device → mute listener + metering → read state
@@ -240,7 +246,12 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     // OverlayStackingPositioner. The stacking POLICY stays here.
     CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
                           ? (kBannerHeight + kBannerGap) : 0.0;
-    [_banner setFrame:FCComputeOverlayFrame(c, vf, kBannerHeight, audioOffset, kBannerGap)
+    // Consume the stack's agreed width so this rail's edges line up with the
+    // wider content-sized bars. This banner publishes no need of its own — its
+    // label is short, so it is never the one that sets the width.
+    CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
+    [_banner setFrame:FCComputeOverlayFrameWithWidth(c, vf, kBannerHeight, audioOffset,
+                                                     kBannerGap, agreed)
               display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
     FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
@@ -319,7 +330,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 }
 
 // Current system default input device (kAudioObjectUnknown if none). Used as the
-// fallback target when the named mic (the Antlion) isn't connected.
+// fallback target when the optional named mic isn't connected.
 - (AudioObjectID)defaultInputDevice {
     AudioObjectPropertyAddress a = { kAudioHardwarePropertyDefaultInputDevice,
                                      kAudioObjectPropertyScopeGlobal,

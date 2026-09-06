@@ -78,6 +78,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowAudioBar:) keyEquivalent:@""];
     [displayItems addObject:sab];
 
+    // Network picker bar (NetworkStatusIndicator). Backing key:
+    // NetworkBarEnabled (registered YES).
+    NSMenuItem *snb = [[NSMenuItem alloc] initWithTitle:@"Show Network Bar"
+                                                 action:@selector(toggleShowNetworkBar:) keyEquivalent:@""];
+    [displayItems addObject:snb];
+
     // v4 iter-248: "Show Debug Labels" menu item removed — canonical
     // [LOCAL]/[ACTIVE]/[NEXT] corner overlays no longer rendered per
     // user directive. Toggle action retained on the panel for

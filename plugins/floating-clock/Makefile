@@ -8,7 +8,7 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -Os -dead_strip -fobjc-arc -Wall -ISources
+CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -36,6 +36,8 @@ TEST_EXCLUDED := Sources/clock.m \
     $(wildcard Sources/vendor/RMBlurredView/*.m) \
     $(wildcard Sources/core/FloatingClockPanel+*.m) \
     Sources/core/AudioStatusIndicator.m \
+    Sources/core/NetworkStatusIndicator.m \
+    Sources/core/NetworkBarZoneView.m \
     Sources/core/MicMuteIndicator.m \
     Sources/core/VPNStatusIndicator.m \
     Sources/core/AudioDeviceSelectionMenuController.m \
@@ -51,7 +53,10 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/content/SegmentHeaderRenderer.m
 TEST_SOURCES := $(wildcard tests/*.m) $(filter-out $(TEST_EXCLUDED),$(APP_SOURCES))
 $(if $(TEST_SOURCES),,$(error TEST_SOURCES is empty after filtering))
-TEST_CFLAGS := -framework Cocoa -framework CoreAudio -fobjc-arc -Wall -ISources
+# CoreWLAN lets NetworkTelemetry's pure rate/format helpers be exercised without
+# excluding the whole module — its Wi-Fi reader is the only part needing a
+# framework, and the arithmetic beside it is exactly what most needs testing.
+TEST_CFLAGS := -framework Cocoa -framework CoreAudio -framework CoreWLAN -fobjc-arc -Wall -ISources
 
 all: sign
 

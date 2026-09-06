@@ -4,6 +4,7 @@
 #import "ClockChildWindowAttachment.h"  // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"         // shared overlay construction (DRY 2026-06-12)
 #import "OverlayStackingPositioner.h"   // shared stacking geometry (DRY 2026-06-12)
+#import "OverlayWidthConsensus.h"       // shared stack width (2026-09-06)
 
 // Banner geometry — matches the mic-mute bar so the two stack cleanly.
 static const CGFloat kVPNBannerHeight = 20.0;
@@ -25,9 +26,18 @@ static const CGFloat kVPNBannerGap    = 3.0;
         _mic    = micIndicator;
         _active = NO;
         [self buildBanner];
+        // Re-sync when any peer overlay changes the stack's agreed width.
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(syncPosition)
+                                                     name:FCOverlayWidthConsensusDidChangeNotification
+                                                   object:nil];
         [self refresh];   // initial read; positions itself if already active
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - Defaults-backed config (generic; no embedded specifics)
@@ -105,6 +115,8 @@ static const CGFloat kVPNBannerGap    = 3.0;
     }
 }
 
+- (BOOL)isShowing { return _active; }
+
 - (void)syncPosition {
     if (!_clock || !_active) return;
     NSRect c    = _clock.frame;
@@ -116,8 +128,13 @@ static const CGFloat kVPNBannerGap    = 3.0;
     CGFloat micOffset   = (_mic && [_mic isShowing]) ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
     CGFloat audioOffset = (self.audioIndicator && [self.audioIndicator isShowing])
                           ? (kVPNBannerHeight + kVPNBannerGap) : 0.0;
-    [_banner setFrame:FCComputeOverlayFrame(c, vf, kVPNBannerHeight,
-                                            micOffset + audioOffset, kVPNBannerGap)
+    // Consume the stack's agreed width so this rail's edges line up with the
+    // wider content-sized bars. This banner publishes no need of its own — its
+    // label is short, so it is never the one that sets the width.
+    CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
+    [_banner setFrame:FCComputeOverlayFrameWithWidth(c, vf, kVPNBannerHeight,
+                                                     micOffset + audioOffset,
+                                                     kVPNBannerGap, agreed)
               display:YES];
     [_banner orderWindow:NSWindowAbove relativeTo:_clock.windowNumber];
     FCAttachOverlayToClock(_clock, _banner);   // drag-welding (2026-06-12)
