@@ -79,6 +79,7 @@ static NSTextField *FCNetBarLabel(NSFont *font, NSColor *color) {
 #pragma mark Rendering (cache + change flash)
 
 - (void)renderService:(NSString *)name
+               device:(NSString *)device
              degraded:(BOOL)degraded
                 stats:(NSAttributedString *)stats {
     CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
@@ -93,8 +94,11 @@ static NSTextField *FCNetBarLabel(NSFont *font, NSColor *color) {
     // the 1 Hz tick stays allocation-free at steady state. The stats string is
     // part of the key because throughput changes every tick; when traffic is
     // idle the whole composite is stable and no work happens at all.
-    NSString *key = [NSString stringWithFormat:@"%@|%d|%d|%@",
-                     shown, degraded, flash, stats.string ?: @""];
+    // Suppressed when it would merely repeat the label — see the header.
+    NSString *dev = ([device length] && ![device isEqualToString:shown]) ? device : nil;
+
+    NSString *key = [NSString stringWithFormat:@"%@|%@|%d|%d|%@",
+                     shown, dev ?: @"", degraded, flash, stats.string ?: @""];
     if ([key isEqualToString:_renderKey]) return;
     _renderKey = key;
 
@@ -114,6 +118,15 @@ static NSTextField *FCNetBarLabel(NSFont *font, NSColor *color) {
             attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium],
                           NSForegroundColorAttributeName: degraded ? red
                                                         : (flash ? amber : [NSColor whiteColor]) }]];
+    if (dev) {
+        // Dimmed so the friendly name stays the thing the eye lands on, while
+        // the name the diagnostic tools want is right there beside it.
+        [s appendAttributedString:
+            [[NSAttributedString alloc] initWithString:[@" " stringByAppendingString:dev]
+                attributes:@{ NSFontAttributeName: [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightMedium],
+                              NSForegroundColorAttributeName: degraded ? red
+                                                            : [NSColor colorWithWhite:1.0 alpha:0.55] }]];
+    }
     _nameLabel.attributedStringValue = s;
     self.needsLayout = YES;
 }

@@ -323,7 +323,7 @@ static void FCAppend(NSMutableAttributedString *s, NSString *text, NSColor *colo
     // A degraded read means the identity is already suspect, so telemetry about
     // it would be noise at best and misleading at worst.
     NSAttributedString *stats = degraded ? nil : [self composeStatsForDevice:device];
-    [_zone renderService:shown degraded:degraded stats:stats];
+    [_zone renderService:shown device:device degraded:degraded stats:stats];
 
     // Measured from what the zone actually drew, so the published need can
     // never drift from the rendered content.
