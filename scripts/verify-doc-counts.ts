@@ -122,10 +122,21 @@ const truth = {
  * (Finding the scope this way immediately turned up a third site, docs/design/CLAUDE.md, that was
  * still stale at "33 of 58" and that nobody had listed.)
  *
- * Scope is CLAUDE.md files ONLY — deliberately not all markdown. CHANGELOG.md, docs/adr/*.md and
- * published release notes quote PAST states on purpose; "correcting" a historical number there
- * would be vandalism. A CLAUDE.md describes the present by definition, so present-tense counts in
- * one are always fair game.
+ * Scope is CLAUDE.md files PLUS the root README.md — deliberately not all markdown. CHANGELOG.md,
+ * docs/adr/*.md and published release notes quote PAST states on purpose; "correcting" a historical
+ * number there would be vandalism. A CLAUDE.md describes the present by definition, so present-tense
+ * counts in one are always fair game.
+ *
+ * The root README.md was added to that scope on 2026-09-05, after the gate passed clean while
+ * README.md advertised "42 plugins" in four places — the badge at :5, the install one-liner's
+ * comment at :66, and the directory tree at :471 and :472 — against a real 41. That is the EXACT
+ * stale value named in this file's own header as the reason the gate was written, and it survived
+ * because the sweep could not see the file. A gate that reports PASS while the repo's most-read
+ * public page states the number it was built to police is worse than no gate: it certifies the
+ * drift. README.md is present-tense and describes the repo as it is now, so it belongs in scope for
+ * the same reason a CLAUDE.md does. Per-plugin READMEs are NOT included; several legitimately
+ * describe their own subtree rather than the marketplace, so sweeping them would produce false
+ * positives, and no observed drift has come from them.
  */
 function claudeMdFiles(dir = ROOT, out: string[] = []): string[] {
   const SKIP = new Set([
@@ -147,7 +158,9 @@ function claudeMdFiles(dir = ROOT, out: string[] = []): string[] {
   return out;
 }
 
-const DOC_FILES = claudeMdFiles();
+const DOC_FILES = [...claudeMdFiles(), p("README.md")].filter((f) =>
+  existsSync(f),
+);
 
 // ── The claims ────────────────────────────────────────────────────────────────────────────────
 type Rule = {
@@ -191,6 +204,28 @@ const RULES: Rule[] = [
   {
     label: "reuse-registry plugin count",
     pattern: /across the (\d+) plugins/g,
+    expect: [N(truth.plugins, "plugin directories")],
+  },
+  // The three shapes below are README.md's, and they are the reason README.md was added to the
+  // sweep. Adding the FILE alone changed nothing: of README's four "42 plugins" sites, only
+  // ":472 42 marketplace plugins" matched an existing rule, so re-introducing the stale value at
+  // any of the other three still passed. Measured, not assumed — reverting the install-one-liner
+  // comment to "42" was checked against the widened gate and it still exited 0. Scope and coverage
+  // are different things, and widening the first without the second produces a gate that looks
+  // broader while checking exactly as much as before.
+  {
+    label: "README shields.io plugin badge",
+    pattern: /badge\/plugins-(\d+)-/g,
+    expect: [N(truth.plugins, "plugin directories")],
+  },
+  {
+    label: "README install one-liner plugin count",
+    pattern: /Install all (\d+) plugins/g,
+    expect: [N(truth.plugins, "plugin directories")],
+  },
+  {
+    label: "README directory-tree registry comment",
+    pattern: /Plugin registry \((\d+) plugins\)/g,
     expect: [N(truth.plugins, "plugin directories")],
   },
   {
@@ -319,17 +354,22 @@ for (const [key, value] of Object.entries(truth)) {
 
 // Likewise the scan surface. If the walker stopped finding CLAUDE.md files, every rule above would
 // report zero hits for a reason that has nothing to do with the docs.
-for (const required of ["CLAUDE.md", "plugins/CLAUDE.md", "docs/CLAUDE.md"]) {
+for (const required of [
+  "CLAUDE.md",
+  "plugins/CLAUDE.md",
+  "docs/CLAUDE.md",
+  "README.md",
+]) {
   if (!DOC_FILES.includes(p(required))) {
     inconclusive.push(
-      `${required} was not picked up by the CLAUDE.md sweep — the walker is broken or the file moved`,
+      `${required} was not picked up by the doc sweep — the walker is broken or the file moved`,
     );
   }
 }
 
 // ── Report ────────────────────────────────────────────────────────────────────────────────────
 const summary =
-  `${RULES.length} rules · ${DOC_FILES.length} CLAUDE.md files swept · ${located} claims located · ` +
+  `${RULES.length} rules · ${DOC_FILES.length} doc files swept (CLAUDE.md + root README.md) · ${located} claims located · ` +
   `${compared} numbers compared (plugins=${truth.plugins}, with CLAUDE.md=${truth.pluginsWithClaudeMd}, ` +
   `ADRs=${truth.adrs}, design specs=${truth.designSpecs}, Python CLIs=${truth.clis})`;
 
