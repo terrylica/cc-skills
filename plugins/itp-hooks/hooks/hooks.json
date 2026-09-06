@@ -236,18 +236,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-subprocess-orphan-cleanup.ts",
-            "timeout": 5,
-            "description": "Bash subprocess orphan cleanup \u2014 removes zombie/TTY-holding orphans spawned by Bash invocations (iter-64 narrowed matcher from `*` to `Bash`: only Bash spawns subprocesses that can orphan; Read/Glob/Grep/Edit/Write are in-process; async:true from iter-57 already prevented user-latency cost, but matcher narrowing also eliminates ~12-17ms CPU+battery waste per non-Bash call)",
-            "async": true
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Write|Edit|MultiEdit",
         "hooks": [
           {
