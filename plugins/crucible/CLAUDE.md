@@ -29,7 +29,7 @@ This plugin treats research as a **genetic algorithm driven by large language mo
 
 The "genome" is a **triple**: `(trigger, filter_cascade, trade_management_rule)`. Each component mutates independently; crossover recombines validated components.
 
-## The 4 skills — when to invoke each
+## The 5 skills — when to invoke each
 
 | Skill                                                                        | Trigger on user intent...                                                                   |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
