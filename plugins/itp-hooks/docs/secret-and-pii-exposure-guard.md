@@ -106,8 +106,11 @@ All three are PII-class (remind), because none is a usable credential on its own
 | `aws-account-id`                     | bare 12-digit run                            | `aws` / `arn:aws` / `account id` / `iam` / `sts` |
 | `client-scoped-workers-dev-hostname` | `<project>.<account>.workers.dev`            | none — but ≥2 labels, and no placeholder label   |
 | `vault-item-identifier`              | 26-char `[a-z2-7]` base32 blob               | `1password` / `op item` / `op://` / `item id`    |
+| `hardware-mac-address`               | six colon/hyphen-separated hex octets        | none — the shape is distinctive enough           |
 
-Documentation filler never fires: AWS's own `123456789012`, all-zero runs, single-label `foo.workers.dev`, and any placeholder label.
+Documentation filler never fires: AWS's own `123456789012`, all-zero runs, single-label `foo.workers.dev`, and any placeholder label, and — for MAC addresses — any single repeated octet (`00:…`, `ff:…`, `aa:…`), the RFC 7042 documentation ranges, and hex words like `de:ad:be:ef:…`. A longer hex run printed in octet pairs (a hash, a key fingerprint) is rejected by the boundary lookarounds.
+
+`hardware-mac-address` was added 2026-09-06 while building a networking feature, after measuring that the guard covered credentials and third-party contact details but had no rule for network identifiers. A MAC is a stronger identifier than it looks: globally unique and effectively permanent, so it names ONE physical device across every network it joins, and a Wi-Fi BSSID additionally resolves to a STREET ADDRESS through public wardriving databases — so a BSSID pasted into a public commit can disclose where its author lives or works, from a string that reads like an innocuous hex dump. It reminds rather than blocks, like every other identifier class. The false-positive floor was measured BEFORE adding it: zero MAC-shaped strings existed anywhere in this repository's tracked docs and sources.
 
 ### False-positive risk
 
