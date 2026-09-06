@@ -4,6 +4,7 @@
 #import "MicMuteIndicator.h"     // mic-mute banner sync (user directive 2026-06-01)
 #import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
+#import "NetworkStatusIndicator.h" // network picker bar sync
 #import "LocationProvider.h"     // hourly staleness re-kick (2026-06-11)
 #import "../rendering/SolarOutlinedTextRenderingView.h" // solar outlined text (2026-06-11)
 #import "../data/ThemeCatalog.h"
@@ -70,6 +71,9 @@ static uint64_t nsUntilNextSecond(void) {
     // Audio I/O bar: re-read default devices + volumes (6 cheap HAL property
     // reads) and reposition to follow the clock's per-tick resize/recenter.
     [_audioStatusIndicator refresh];
+    // In-process SCDynamicStore read only — never spawns a subprocess on
+    // the tick (see NetworkStatusIndicator.h refresh-model note).
+    [_networkStatusIndicator refresh];
     // Solar canvas (2026-06-11): evolve the compact modes' background with
     // the live solar elevation. Quantized internally — usually a no-op.
     [self refreshSolarCanvasForced:NO];

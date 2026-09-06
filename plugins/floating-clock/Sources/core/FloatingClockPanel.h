@@ -10,6 +10,7 @@
 @class FCMicMuteIndicator;     // mic-mute banner overlay (user directive 2026-06-01)
 @class FCVPNStatusIndicator;   // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
 @class FCAudioStatusIndicator; // always-visible audio I/O device + level bar (2026-06-11)
+@class FCNetworkStatusIndicator; // network service picker bar (default-route chooser)
 @class FCSolarOutlinedTextView; // round-join outlined compact text (solar canvas, 2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
@@ -41,6 +42,10 @@ NS_ASSUME_NONNULL_BEGIN
     // direct level adjustment. Bottom-most overlay in the indicator stack;
     // mic-mute and VPN bars stack above it. Synced from tick + windowDidMove.
     FCAudioStatusIndicator *_audioStatusIndicator;
+
+    // Network picker bar — which service carries the default route.
+    // Top of the indicator stack.
+    FCNetworkStatusIndicator *_networkStatusIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}

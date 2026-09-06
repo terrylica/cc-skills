@@ -13,6 +13,7 @@
 #import "core/MicMuteIndicator.h"
 #import "core/VPNStatusIndicator.h"
 #import "core/AudioStatusIndicator.h"
+#import "core/NetworkStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
 #import "core/FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "menu/FloatingClockPanel+MenuBuilder.h"
@@ -138,6 +139,15 @@
         // clock-centric control.
         @"AudioBarEnabled": @YES,
         @"AudioBarStep": @5,
+        // Network picker bar: shows which network service currently carries
+        // the default route and lets the user switch it. ON by default,
+        // matching the audio bar. Everything it displays is discovered at
+        // runtime, so it ships with no machine-specific configuration.
+        @"NetworkBarEnabled": @YES,
+        // Optional name of a microphone whose hardware mute button should be
+        // watched in addition to the current default input. Empty ships in
+        // the public build; set it locally to pin a specific mic.
+        @"MicIndicatorDeviceName": @"",
         @"Profiles": buildStarterProfiles(),
         @"ActiveProfile": @"Default",
     }];
@@ -235,11 +245,17 @@
     _audioStatusIndicator = [[FCAudioStatusIndicator alloc] initWithClockPanel:self];
 
     // Mic-mute indicator (user directive 2026-06-01): show a red "MIC MUTED"
-    // banner over the clock whenever the Antlion USB Microphone is muted, so
+    // banner over the clock whenever the watched microphone is muted, so
     // the user never speaks into a muted mic unaware. Created after the first
     // layout pass so the panel frame is real; positions itself on first read.
+    // Device name is a PREFERENCE, not a constant: this repo is public, so a
+    // particular person's hardware must not ship in it. Empty (the default)
+    // means "watch whatever the current default input is", which
+    // FCMicMuteIndicator already supports. Set MicIndicatorDeviceName to pin a
+    // named mic whose analog mute button should also be caught.
+    NSString *micName = [d stringForKey:@"MicIndicatorDeviceName"];
     _micMuteIndicator = [[FCMicMuteIndicator alloc] initWithClockPanel:self
-                                                            deviceName:@"Antlion USB Microphone"];
+                                                            deviceName:(micName.length ? micName : @"")];
     _micMuteIndicator.audioIndicator = _audioStatusIndicator;
     // 2026-06-11 extra: the audio bar's IN zone renders red/struck-through
     // while the mic indicator's banner is showing (mute flag OR analog
@@ -252,6 +268,16 @@
     _vpnStatusIndicator = [[FCVPNStatusIndicator alloc] initWithClockPanel:self
                                                              micIndicator:_micMuteIndicator];
     _vpnStatusIndicator.audioIndicator = _audioStatusIndicator;
+
+    // Network picker bar (top of the indicator stack). macOS resolves the
+    // default route from the network SERVICE ORDER, which a newly attached
+    // adapter can silently take over; this surfaces that and makes the choice
+    // one click. It sums its juniors' slots, so the existing three indicators
+    // are untouched.
+    _networkStatusIndicator = [[FCNetworkStatusIndicator alloc] initWithClockPanel:self];
+    _networkStatusIndicator.audioIndicator = _audioStatusIndicator;
+    _networkStatusIndicator.micIndicator   = _micMuteIndicator;
+    _networkStatusIndicator.vpnIndicator   = _vpnStatusIndicator;
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak

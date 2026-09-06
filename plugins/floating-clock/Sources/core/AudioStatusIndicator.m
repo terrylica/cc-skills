@@ -5,6 +5,7 @@
 #import "ClockChildWindowAttachment.h"          // drag-welding (2026-06-12)
 #import "OverlayPanelFactory.h"                 // shared overlay construction (DRY 2026-06-12)
 #import "OverlayStackingPositioner.h"           // shared stacking geometry (DRY 2026-06-12)
+#import "OverlayWidthConsensus.h"               // shared stack width (2026-09-06)
 #import "MicMuteIndicator.h"   // -isShowing feeds the IN zone's red mute state
 #import <CoreAudio/CoreAudio.h>
 
@@ -58,9 +59,18 @@ static const CGFloat kMinZoneW = 92.0;
         _clock = clockPanel;
         _lastInW = _lastBarW = -1.0;   // force the first zone layout to apply
         [self buildBar];
+        // Re-sync when any peer overlay changes the stack's agreed width.
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(syncPosition)
+                                                     name:FCOverlayWidthConsensusDidChangeNotification
+                                                   object:nil];
         [self refresh];
     }
     return self;
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 - (BOOL)enabled {
@@ -198,6 +208,9 @@ static const CGFloat kMinZoneW = 92.0;
     _inZoneNeed  = [self zoneWidthForName:inName  isInput:YES muted:inMuted];
     _outZoneNeed = [self zoneWidthForName:outName isInput:NO  muted:outMuted];
 
+    // Publish before positioning, so peers see this bar's need in the same tick.
+    [[FCOverlayWidthConsensus shared] setNeed:(_inZoneNeed + 1.0 + _outZoneNeed)
+                                   forOverlay:NSStringFromClass(self.class)];
     [self syncPosition];
 }
 
@@ -212,9 +225,14 @@ static const CGFloat kMinZoneW = 92.0;
     // Bottom of the stack: stackOffset 0 (geometry SSoT: OverlayStackingPositioner).
     // Bar widens past the clock when a device name needs it (centered, capped
     // at screen width); never narrower than the clock.
-    CGFloat desired = _inZoneNeed + 1.0 + _outZoneNeed;   // +1 divider
+    // Take the STACK's agreed width rather than this bar's own, so every rail
+    // shares one left and right edge even when a peer is the widest. The need
+    // itself is published from -refresh, NOT here: publishing inside the
+    // positioning path would post the change notification that calls straight
+    // back into this method. See OverlayWidthConsensus.h.
+    CGFloat agreed = [[FCOverlayWidthConsensus shared] widthForClockWidth:NSWidth(c)];
     NSRect f = FCComputeOverlayFrameWithWidth(c, vf, kAudioBarHeight, 0.0,
-                                              kAudioBarGap, desired);
+                                              kAudioBarGap, agreed);
     if (!NSEqualRects(f, _bar.frame)) {
         [_bar setFrame:f display:YES];
     }
