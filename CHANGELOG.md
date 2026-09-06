@@ -1,3 +1,212 @@
+# [30.2.0](https://github.com/terrylica/cc-skills/compare/v30.1.0...v30.2.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* **docs:** correct the counts, and make the gate able to catch them ([#136](https://github.com/terrylica/cc-skills/issues/136)) ([3f2266c](https://github.com/terrylica/cc-skills/commit/3f2266c181035d1a59b1e3397a02e2371787312b)), closes [#134](https://github.com/terrylica/cc-skills/issues/134)
+
+Three stale counts, and a gate that could not see two of them.
+
+## The counts
+
+`README.md` advertised **42 plugins** in four places — the shields.io badge at :5, the install one-liner's comment at :66, and the directory tree at :471 and :472 — against a real 41 in both `.claude-plugin/marketplace.json` and `plugins/`. That is the exact stale value named in `scripts/verify-doc-counts.ts`'s own header as the reason that gate was written, still live on the repo's most-read public page.
+
+While checking it: the one-liner's comment also claimed the list is "alphabetically ordered to match marketplace.json". The list is alphabetical and contains the right 41 names, but `marketplace.json` is NOT alphabetical — it starts with `notes-commander` — so the two orders do not match. Reworded to say what is true.
+
+`plugins/crucible/CLAUDE.md:32` said "The 4 skills" above a table listing five.
+
+Release phase counts: `README.md:493` said six, `CLAUDE.md:110` said "5 phases + postflight", and `tasks/release/_default:9` said six in operator-facing output. Ground truth is seven, from `tasks/release/full:18-19`, of which five are individually runnable moon tasks. Both numbers are now stated rather than one being chosen.
+
+## What was NOT changed, because it was already right
+
+`plugins/crucible/CLAUDE.md:42` says the 18 universal principles are "distributed across 4 skills". A naive sweep would have made that 5 to match the table above it. It is correct: the principles are grouped under `**Skill A**` through `**Skill D**`, exactly four headings, and `00-navigator` is a router that carries none. Verified by counting the headings.
+
+Likewise `CLAUDE.md:97` and `README.md:30`, `:473`, `:542` say "4-phase workflow". That is the itp ADR-driven development workflow, not the release pipeline, and all four are correct. Any `[0-9]+[- ]phase` regex matches them.
+
+## Widening the gate — and why the obvious version of that did nothing
+
+Adding `README.md` to the gate's swept files changed **nothing**. Measured, not assumed: with the file in scope, reverting the install one-liner to "42" still exited 0. Of README's four sites only ":472 42 marketplace plugins" matched an existing rule, because the rules are shape-specific patterns and README's other three shapes had none.
+
+Scope and coverage are different things, and widening the first without the second produces a gate that looks broader while checking exactly as much as before. So this adds three rules for README's actual shapes — the shields.io badge, the install one-liner, and the directory-tree registry comment — and proves each one fails:
+
+    README.md:5    README shields.io plugin badge — claims 42, actual 41
+    README.md:66   README install one-liner plugin count — claims 42, actual 41
+    README.md:471  README directory-tree registry comment — claims 42, actual 41
+
+Each was verified by reintroducing the stale value at that site alone and confirming a non-zero exit naming that line, then restoring. The gate goes from 9 rules / 11 claims / 16 numbers to 12 / 15 / 20.
+
+Per-plugin READMEs are deliberately still out of scope: several describe their own subtree rather than the marketplace, so sweeping them would produce false positives, and no observed drift has come from them. CHANGELOG.md and `docs/adr/*.md` remain excluded for the reason the original header gives — they quote past states on purpose.
+
+## Verification
+
+`moon run repo:check` — REAL EXIT 0, captured by redirect rather than through a pipe. 114/114 hook test files, 41 plugins, doc counts matched.
+
+One transient failure is worth recording rather than hiding: an earlier run of this gate failed two assertions in `pretooluse-large-file-read-guard.test.ts`. It reproduced on neither bun 1.4.0 nor the proto-pinned 1.4.2 standalone (21 pass, 0 fail on both), and the next full `repo:test` exited 0 with no change to the tree. That makes it a fourth named member of the in-suite-only flake family alongside iter166, iter160 and iter123, not a regression from this change — which touches only markdown, a dispatcher echo, and the doc-count script.
+
+* **gates:** the flaky suite's failing test name could not survive a pipe ([db49c31](https://github.com/terrylica/cc-skills/commit/db49c3134db695fe0331353319b0b9eb26db703a))
+
+The marketplace hook regression suite has been intermittently red since at least 2026-08-31 and gates `release-full`, and every investigation lost the failing filename. It turns out the roster was never missing — it was unsurvivable, which is operationally the same thing.
+
+## Why five weeks of red runs stayed anonymous
+
+The runner already re-printed a failing-file roster at the end. Those lines read `    - <path>` and carried no word any plausible filter would keep, while the three count lines carried `Test files` / `PASSED` / `FAILED`. So the near-universal `| grep -E 'PASSED|FAILED'` kept exactly the lines without the name and dropped exactly the lines with it. The 2026-09-02 lesson already prescribed "loop the suite and tee the actual failing section"; that advice was followed and still lost the name, because of how the runner prints rather than because nobody looked.
+
+## Three redundant carriers, not one
+
+- The failing names and exit codes are appended to the **count line itself** — the one line empirically proven to survive the filter.
+- Every roster line is prefixed with a `FAILED-TEST-FILE` token.
+- The whole roster is mirrored to **stderr**, which a stdout-only pipe never touches.
+
+Deliberately not spelled with the existing `FILE-FAIL` / `FILE-PASS` tokens: the iter-75 parity test and the triage task both `grep -c` those, so re-emitting them would have silently inflated two unrelated tallies. A new signal must not be spelled like an existing counted one. The missing-`.exit`-file path now records `(exit=NONE, no exit-code file)` rather than being indistinguishable from a real non-zero exit.
+
+Pinned by a new hermetic 16-assertion test that copies the real runner into a sandbox with one synthetic passing and one synthetic failing test, so it asserts against actual runner source with no dependence on the real corpus, no wall-clock sensitivity and no recursion. It covers all three carriers, both `grep -c` non-inflation invariants, the release preflight's extractor, and that a green run emits no failure token.
+
+## It worked, twice, immediately
+
+1 of 10 `moon run repo:check` runs went red and named itself instantly: `test-iter160-operator-facing-commits-arc-self-diagnosis-…`, failing C3/C4 because the commits-toolkit doctor reported a CRITICAL check failed. A later unrelated run went red on a different member, `test-iter123-unified-lookup-cli-…`, also named immediately, also green standalone and on the next run. That is a third distinct member of the family the 2026-08-31 entry already flagged as a plural noun, caught on first occurrence instead of after five weeks.
+
+**Root cause of the flap is NOT found and none is claimed.** Two measurements narrow it: a second doctor invocation seconds later in the same test saw all CRITICAL checks pass, so the doctor flaps within a single run; and the doctor standalone at 12-way self-contention was clean 0/24, so it needs full-suite load rather than mere concurrency.
+
+## The same trap one level down
+
+The red log named the FILE but not the CHECK — C3/C4 printed only an aggregate verdict while holding the full JSON in a variable. Emitting per-check detail immediately exposed that the emitter had been written against guessed schema keys (`status`/`detail`; the real ones are `outcome`/`diagnostic_message`), so it would have shipped printing `outcome=None` for every record and been useless at exactly the moment it was needed. An error-path emitter only runs when something is already broken, so its assumptions have to be pinned on the green path — added as assertion C6.
+
+## Also: a units sweep that left the gate demanding the bug back
+
+`#124`/`#126` corrected every `hooks.json` timeout from the millisecond spelling to seconds and tightened the schema maximum to 600, but `test-posttooluse-subprocess-orphan-cleanup-…iter64-…` still asserted `expected '5000'`. The gate was red on clean `main`, and the quickest way to clear it was to restore an 83-minute timeout on a PostToolUse hook. Fixed to assert 5 seconds, plus a bound assertion that the value lies inside the schema's 1-600 s ceiling, so the four-digit spelling now fails on meaning rather than on literal inequality — an equality against a magic number carries no information about what the number means and cannot tell a correction from a regression.
+
+## Doc corrections
+
+`docs/LESSONS.md` gains both lessons. The line-terminator guard's spoke now says 15 textual occurrences across 14 distinct call sites, notes that two of the fifteen are the same statement, and records that the three spaced `timeout * 1000` matches are Bun's embedded SQL client rather than hook code — so anyone recounting does not arrive at 18. The "62 oversized timeouts" figure this work started from was itself unreproducible; the real population was 53, and no counting method yields 62.
+
+* **gates:** two confounders removed from the flaky suite, no reproduction ([42f88dc](https://github.com/terrylica/cc-skills/commit/42f88dc2b33a95dc160f0e353164898c376c58d3))
+
+A day of trying to reproduce the intermittently-red hook regression suite produced **no reproduction**, and that negative result is the headline rather than the two real defects it turned up on the way.
+
+## The negative result, and what it rules out
+
+65 gate executions green — 14 `moon run repo:check` and 51 direct suite runs, each redirected to its own log with the real exit code captured and never read through a pipe — deliberately escalated from one copy to five concurrent copies, taking load average from 12 to 66 on a 14-core host and the suite wall clock from 88 s to 245 s. Zero red runs. The iter-160 doctor was sampled 3,477 times under that load and reported `TOOLKIT_HEALTHY` 3,477 out of 3,477.
+
+That does not refute the 1-in-10 observation recorded earlier; it **bounds** it. Whatever perturbs the doctor is not co-scheduled CPU or fork pressure at up to LA 66 — which is the standing CLASS B hypothesis in the repo's own triage classifier. Anyone resuming should stop paying for that experiment. The one variable absent all day: no other agent session wrote to the working tree during any of the 65 runs, `git status` byte-identical before and after, whereas both prior investigations ran with other sessions live in the same repo. Test that next, not more load.
+
+## Two defects removed, each of which could have been mistaken for the flake
+
+**The `cp -f` truncation race was still live on a second file.** iter-187 made every write to `docs/marketplace-escape-hatch-marker-reference.md` atomic and left three writes to `plugins/gmail-commander/scripts/bot.ts` on `cp -f`, which opens the destination `O_TRUNC`. One reader watching both files across 34 suite runs: `bot.ts` observed EMPTY 3,804 times in 174,050,501 stat reads; the canonical doc 0 times in the same reads — a single measurement carrying its own positive and its own control. Isolated A/B on the primitive: 3,000 restores via `cp -f` gave 80,303 zero-byte observations in 4,774,675 reads; 3,000 via same-directory `mv` gave 0 in 4,894,396. Fixed by routing all three restores through an atomic rename, and re-measured after: 0 in 103,990,056 reads across 7 further runs, against a scaled expectation of ~900 had it survived. Not claimed as the cause of any observed red run — no reader was caught failing on it — but it is a hazard of the same magnitude as the one that reddened iter-117 in ~18% of parallel runs. Generalisable form: when you fix a race by making one file's writes atomic, grep for the **primitive**, not for the file.
+
+**The iter-160 doctor resolved its repo root from the caller's cwd.** `git rev-parse --show-toplevel` succeeds from any git repository, returns the wrong tree, every derived path misses, and the doctor emits `verdict=TOOLKIT_BROKEN, critical_failed=13` — exactly what the iter-160 regression test's C3/C4 report. Measured: 604 consecutive invocations from another repo all BROKEN, against 1,480 from inside cc-skills all HEALTHY. An investigator's own probe tripped it within five minutes and read as a reproduction of the flake for a full exchange. A diagnostic that can blame the tree for the caller's working directory does not merely fail — it manufactures corroboration for whichever theory you were already holding. Fixed with the `${BASH_SOURCE[0]}` pattern the iter-153 advisor already uses, plus a fail-fast: a root override that is not a cc-skills checkout now exits **2**, deliberately distinct from 1 = toolkit broken, and emits no verdict field at all. Pinned by `test-iter193-…`.
+
+Two of that new test's own assertions were regression-blind on first draft and only negative-controlling against `git show HEAD:` caught them — one anchored its `awk` with `^` against a line whose assignment is mid-line, the other asserted the absence of a token that a *correct* fix legitimately mentions in prose. Run every new assertion against the broken input before you believe a green one.
+
+## docs/LESSONS.md
+
+Records the above, plus two lessons from elsewhere in the day: the sweep rule (before any sweep, for each matched site find where its reason is recorded, and treat "nowhere" as a finding rather than permission — with the two grades that make it worth its cost), and the credential-audit disciplines surfaced by the op-token injector incident.
+
+* **gh-fine-grained-pat:** spec GitHub silently discards ([a927a05](https://github.com/terrylica/cc-skills/commit/a927a05afc5f0eca67e0e0578402aae9d80ffee9)), closes [#fine-grained-pat](https://github.com/terrylica/cc-skills/issues/fine-grained-pat)
+
+Seven consecutive mints produced no token, no flash message, no inline error and no new row in the token list. The cause was a 4,272-character `description` in the spec: GitHub drops the submission server-side with no feedback, and the textarea reports `maxLength === -1` so nothing client-side objects either. Cutting the description to 191 characters with every other field byte-identical minted on the very next run — that substitution is the control. `validateSpec()` now rejects a description over 1000 characters before the browser opens, with a control proving a 4,272-character spec exits 1 and writes no token sink.
+
+Four further defects, each of which fails by looking like success:
+
+- The spec never set `owner`, so `form.mjs:48` returned before touching the Resource-owner selector. A 2026-08-28 edit that "corrected the repo path" changed a field the form never reads, which is why the resulting token silently landed under the wrong resource owner.
+- `clickOption()` RETURNS FALSE when no option matches rather than throwing, so a wrong form selection produces a token instead of an error. Callers must assert the resulting token's capability, never the absence of an exception.
+- The automation profile was signed in as a different GitHub account than the one requested, and `doctor` exits 0 while printing `MISMATCH` — so its exit code was never a gate. Both create paths now fail closed on an account mismatch, with a control proving the correct account still exits 0 rather than the guard being always-red.
+- Adds `loggedInLoginViaRequest()`, which reads the signed-in login through the profile's own cookie jar. Its discriminating power is proven by a control: the same code returns `terrylica` against one profile and `459ecs` against another, so it is not a function that always answers what you hoped.
+
+Also records that `no expiration` is IMPOSSIBLE for an organisation-owned fine-grained PAT. With `owner` set to an org, the expiry menu offers 7/30/60/90/366 days only, the 366 row carrying `data-fg-limit-target` naming the org; the never-expires option is REMOVED, not disabled. A corollary worth keeping: a "never expires" fine-grained PAT is itself evidence that its resource owner is a USER, not the org you thought you scoped it to.
+
+* **itp-hooks:** delete a no-op hook and fix its live twin ([#137](https://github.com/terrylica/cc-skills/issues/137)) ([e9389b6](https://github.com/terrylica/cc-skills/commit/e9389b64332c5041f5f1ca2c28755be243a164a8)), closes [#110](https://github.com/terrylica/cc-skills/issues/110) [#110](https://github.com/terrylica/cc-skills/issues/110)
+
+`posttooluse-subprocess-orphan-cleanup.ts` ran on every Bash tool call and could not act. Two independent defects, either one fatal:
+
+- `:56` spawned `["ps","-o","ppid=,pid=,cmd="]`. `cmd` is a Linux/procps keyword; BSD/macOS `ps` rejects it. Measured: `ps -o "ppid=,pid=,cmd="` exits 1 with `ps: cmd: keyword not found` and prints nothing. `comm=` exits 0.
+- `:160` set `const claude_pid = process.pid` and `:167` filtered `p.ppid === claude_pid`. The hook is a short-lived subprocess, so nothing on the machine has ITS pid as a parent. The match set was empty regardless. It should have been Claude's pid.
+
+So the scan found nothing, the `lsof` path never fired, and the two unconditional probes after it did real work for no possible outcome. De-registering removes ~4 processes per Bash call across concurrent sessions and forfeits nothing, because none of it was load-bearing.
+
+## The part the issue missed
+
+* **itp-hooks:** stop writing the 1Password token into every op command ([7e1439c](https://github.com/terrylica/cc-skills/commit/7e1439c8f264591b9b7cc508ae7e9cb77dcb13e3))
+
+The op-token injector avoided Touch-ID prompts by rewriting matching Bash commands to `OP_SERVICE_ACCOUNT_TOKEN='<literal token>' <command>`. Claude Code records the rewritten tool input in the session transcript **and** in the background-task output file, so every `op` call against the "Claude Automation" vault wrote the service-account token to disk in plaintext. Measured 2026-09-05: the token appears verbatim in 91 files — 58 under `~/.claude/projects` and 33 under `/private/tmp/claude-501`.
+
+This was not an agent being careless and not an environment dump. It was a hook doing exactly what it was written to do, on every invocation, since February.
+
+## The fix
+
+Emit a command substitution instead of the value:
+
+```
+OP_SERVICE_ACCOUNT_TOKEN="$(cat '<path>')" <command>
+```
+
+The path goes into the command string; the shell resolves it at execution time. The token is still read above the return so the fail-open checks keep their exact semantics — a missing, unreadable or empty token file each returns the command unmodified, as before. Only the value is kept out of the string.
+
+Verified against the real hook: for a command targeting the Claude Automation vault the rewritten string contains the path and `output.includes(token)` is false; `op item list --vault Personal` and a non-`op` command are both returned untouched, so selectivity is unchanged.
+
+The comment on the return says not to simplify it back, because `token` is still in scope one line above — which is precisely what makes the regression easy to reintroduce and invisible in review.
+
+## Ordering this implies
+
+Rotating the token before this fix is live would write the **new** token to disk on the first `op` call. Rotation without the fix is theatre. Note also that the running copy is the marketplace clone under `~/.claude/plugins/marketplaces/cc-skills/`, which is byte-identical to the pre-fix source — so the leak continues until that clone updates, and the interim mitigation is to avoid `op` commands against the Claude Automation vault.
+
+## What this does not fix
+
+The 91 existing plaintext copies. Rotation makes them worthless; only a purge makes them absent. `/private/tmp/claude-501` in particular is a store nobody counts — it holds every backgrounded command's and every subagent's output, accumulates across sessions and days (433 files, 1.3 GB, four days when measured), is covered by no retention policy, and its owner-only protection is exactly one directory deep: `drwx------` at the root, `drwxr-xr-x` and `-rw-r--r--` beneath.
+
+* **plugins:** retire four hook installers that double-register ([#148](https://github.com/terrylica/cc-skills/issues/148)) ([97aeb72](https://github.com/terrylica/cc-skills/commit/97aeb720a55d14aaca778608d7131e9b22a6c4a3)), closes [#127](https://github.com/terrylica/cc-skills/issues/127) [#142](https://github.com/terrylica/cc-skills/issues/142) [#127](https://github.com/terrylica/cc-skills/issues/127)
+
+Five plugins ship a `scripts/manage-hooks.sh` that writes a hook entry into `~/.claude/settings.json`. Four of them install a hook their OWN plugin's `hooks/hooks.json` already ships, so a user following the documented instructions registers it twice and it fires twice per event.
+
+- `itp` — installs `posttooluse-reminder.sh` (shipped as `posttooluse-reminder.ts` at `hooks.json:255`) plus `pretooluse-fake-data-guard.mjs`. RETIRED.
+- `dotfiles-tools` — installs `chezmoi-sync-reminder.sh`, already shipped. RETIRED.
+- `gh-tools` — installs `webfetch-github-guard.sh`, already shipped. RETIRED.
+- `productivity-tools` — installs `calendar-reminder-sync.ts`, already shipped. RETIRED.
+- `statusline-tools` — installs `lychee-stop-hook.sh`, deliberately NOT in its `hooks.json`. KEPT.
+
+This is not a new failure mode. `scripts/sync-hooks-to-settings.sh` was itself converted from injector to pruner in v20.2.3 for exactly this reason, and its header records the observed symptom: every hook fired twice per event, visible in the runtime "Ran N stop hooks" display as the same script listed twice. The five per-plugin clones survived that migration untouched.
+
+`itp`'s installer also installs `pretooluse-fake-data-guard.mjs`, which is genuinely absent from `hooks.json` — but not as an opt-in feature. It was switched off deliberately in `e6c665a9` for blocking legitimate writes in downstream research projects. Repairing the installer would have resurrected a deliberately-disabled guard. Its other hook double-registers, so retirement was correct on both counts. The guard's source file is untouched; re-enabling it remains a `hooks.json` edit.
+
+
+
+### Features
+
+* **floating-clock:** network route picker bar with live link telemetry ([3e4ebab](https://github.com/terrylica/cc-skills/commit/3e4ebab32b45cf33794f141fbb10a88ed7c7c530))
+
+Adds a top overlay rail showing which network service currently carries internet traffic, with click-to-cycle and a right-click service menu.
+
+macOS resolves the default route from network SERVICE ORDER, not from any per-session choice. A newly attached USB Ethernet adapter can silently outrank Wi-Fi and take over every connection, which stays invisible until something breaks. The bar surfaces the current answer and makes changing it one click instead of a trip through System Settings.
+
+Only genuinely switchable services are offered: enabled, carrying a BSD device, AND currently holding an IPv4 address. The liveness test matters more than it sounds. macOS registers every USB device presenting a modem/serial class as a network service, so a real machine's service list is dominated by entries that can never carry traffic (display control channels, phone USB links, composite endpoints). On the development machine 15 of 19 services were of that kind. Offering them invites the user to reorder the route onto a dead service and lose all connectivity, which is the exact failure this feature exists to prevent. Liveness is used rather than a device-name pattern because names are vendor-controlled and drift, while liveness is what actually decides whether a service can carry a route. Link-local addresses count as live: a directly attached device with no DHCP server is still a legitimate choice.
+
+Telemetry fills the bar's empty space, all in-process and permission-free: interface address, throughput from getifaddrs byte counters, and on Wi-Fi the RSSI (coloured by link health), signal-to-noise and PHY rate from CoreWLAN. The network NAME is deliberately never read; it requires Location authorization and is the one field here that identifies a place.
+
+Numeric fields are padded to constant character counts. The telemetry group is right-aligned, so a field that changes width drags its left-hand neighbours sideways, and throughput changes every second. The font is monospaced, so constant character count is constant pixel width.
+
+Also introduces a shared width agreement across all four overlay rails. Each previously sized itself independently, so a long device name made one bar protrude and the stack developed ragged edges. Every rail now takes the widest need any of them has, floored at the clock width. Growing to the maximum rather than shrinking to the clock is deliberate: the audio bar's width exists so device names never truncate, and the network bar's carries telemetry, so shrink-to-fit would destroy information.
+
+The 1 Hz tick stays subprocess-free; the service-name map needs networksetup, so it is fetched lazily and cached. Measured idle after the change: 0.3% CPU, zero child processes.
+
+Two posture changes are recorded in the Touchpoints table rather than left stale: the plugin now spawns one subprocess on demand, and switching mutates system-wide network configuration.
+
+Also de-hardcodes the microphone device name behind a preference so the public build carries no personal hardware inventory.
+
+Tests: 118 pass (+12), covering service-order parsing, the liveness filter, width agreement and change notification, throughput arithmetic across counter resets, and the padding invariant.
+
+* **itp-hooks:** remind on MAC and BSSID addresses in exposure guard ([54d3567](https://github.com/terrylica/cc-skills/commit/54d3567fa40e42549d77dafba8c79443d9d93d95))
+
+Adds a hardware-address class to the shared secret-and-PII exposure detector, so the commit-message guard, the blocking file-write guard and the file-write reminder all recognise it.
+
+Found while auditing the guard's real coverage rather than its docs. The existing classes block credentials and remind on third-party contact details, but nothing covered network identifiers, which was verified by running the guard against messages containing them and watching it exit clean and silent.
+
+A hardware address is a stronger identifier than it looks. It is globally unique and effectively permanent, so it names one physical device across every network it ever joins. For wireless the exposure is sharper: an access point identifier resolves to a street address through public wardriving databases, so one pasted into a public commit can disclose where its author lives or works, from a string that reads like an innocuous hex dump. Release notes are generated from commit bodies, so such a message would acquire a permanent public URL that no later commit can retract.
+
+Reminds rather than blocks, consistent with every other identifier class: this is not a credential, and hardware documentation legitimately contains these values. The false-positive floor was measured before adding the rule, not assumed: no matching string existed anywhere in this repository's tracked docs or sources.
+
+Filler is excluded so the reminder stays quiet on documentation: any single repeated octet covers unset, broadcast and filler runs; the IETF documentation ranges are skipped; traditional hex words are skipped; and boundary lookarounds stop a longer hex run such as a hash or key fingerprint printed in pairs from matching.
+
+Tests: 46 in the guard suite (+8), 1862 across the plugin, all passing.
+
 # [30.1.0](https://github.com/terrylica/cc-skills/compare/v30.0.0...v30.1.0) (2026-09-04)
 
 
