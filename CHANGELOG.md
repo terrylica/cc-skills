@@ -1,3 +1,16 @@
+## [30.2.1](https://github.com/terrylica/cc-skills/compare/v30.2.0...v30.2.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **floating-clock:** stop the network bar clipping its service name ([3ebbac8](https://github.com/terrylica/cc-skills/commit/3ebbac88c71eec21b50089bed73cc18a18c1d6f5))
+
+The service name rendered truncated, losing its last characters, because label widths were measured from the attributed string's own size. That measures GLYPHS only and ignores the text cell's internal insets, so every frame derived from it was a few points too narrow and the cell truncated to fit.
+
+Measured on this machine: the glyph width of the rendered name is 56.0 pt while the control reports needing 60.0 pt, a 4.0 pt deficit. An earlier attempt added 3.0 pt of rounding slack, which is why the first fix looked plausible and still failed: it was one point short, and one point is enough for the cell to decide it must truncate. Asking the control what it needs, rather than inferring it from the text, removes the guess.
+
+The layout now also gives the name label ALL remaining width instead of its own measured width, with only the right-aligned telemetry group taking an exact size. The name is left-aligned, so surplus width is invisible, and clipping becomes structurally impossible whenever the bar is wide enough for its content — which the shared width agreement guarantees.
+
 # [30.2.0](https://github.com/terrylica/cc-skills/compare/v30.1.0...v30.2.0) (2026-09-06)
 
 
