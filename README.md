@@ -550,9 +550,9 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 - **Phase 2**: Format & Push to GitHub
 - **Phase 3**: Release via the repo's `moon run repo:release-full` pipeline, optionally Publish (PyPI)
 
-**Commands**: `/itp:go`, `/itp:setup`, `/itp:tether` (release runs via `moon run repo:release-full`)
+**Commands**: `/itp:go`, `/itp:setup` (release runs via `moon run repo:release-full`)
 
-> `tether` (was `hooks`) renamed to avoid clashing with Claude Code's built-in `/hooks`. Old TRIGGERS keyword retained.
+> `/itp:tether` was retired in issue #127. Its installer injected itp-hooks entries into `~/.claude/settings.json`, which Claude Code now double-registers because `plugins/itp-hooks/hooks/hooks.json` already ships those hooks. `/statusline-tools:tether` survives — it installs `lychee-stop-hook.sh`, which is deliberately absent from that plugin's `hooks.json`.
 
 **Bundled Skills**: adr-code-traceability, bootstrap-monorepo, code-hardcode-audit, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler
 

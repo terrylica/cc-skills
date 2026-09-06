@@ -1279,8 +1279,11 @@ async function validateHooksJsonStructure() {
 
   // THE SHIPPED ARTIFACT, not only the generator that writes it.
   //
-  // Everything above validates jq expressions inside `plugins/*/scripts/manage-hooks.sh`. Five of
-  // those scripts exist; TEN `plugins/*/hooks/hooks.json` files actually ship, and none of them was
+  // Everything above validates jq expressions inside `plugins/*/scripts/manage-hooks.sh`. ONE of
+  // those scripts now exists -- statusline-tools', the only generator whose hook is deliberately
+  // absent from its plugin's hooks.json; the other four were deleted in issue #127 because they
+  // re-registered hooks the plugin already ships, firing them twice per event. TEN
+  // `plugins/*/hooks/hooks.json` files actually ship, and none of them was
   // ever checked against hooks.schema.json. Measured: with the loop below absent, restoring the
   // Stop orchestrator's timeout to 65000 -- eighteen hours for a blocking hook -- passed validation
   // with "Errors: 0".

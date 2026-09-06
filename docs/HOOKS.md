@@ -177,17 +177,18 @@ PreToolUse/PostToolUse hooks run on **every** tool invocation. During rapid oper
 
 **Pattern**: Pre-configure auth in mise `[env]` to avoid runtime subprocess storms.
 
-## Hook Installation
+## Hook Installation — there is nothing to install
 
-Hooks defined in plugin `hooks.json` must be synced to `~/.claude/settings.json`:
+Hooks defined in a plugin's `hooks/hooks.json` are auto-loaded by Claude Code from the installed plugin. Copying them into `~/.claude/settings.json` as well is a **double registration**: the hook fires twice per matching event, visible in the runtime's "Ran N stop hooks" display as the same script listed twice. That is why `scripts/sync-hooks-to-settings.sh` stopped adding entries in v20.2.3 and now only prunes leftover marketplace-path entries from older releases:
 
 ```bash
-# Via plugin's manage-hooks.sh
-./plugins/my-plugin/scripts/manage-hooks.sh install
-
-# Via global sync script (post-release)
+# Prune stale settings.json entries that older releases injected (idempotent)
 ./scripts/sync-hooks-to-settings.sh
 ```
+
+The per-plugin `scripts/manage-hooks.sh` installers were the same mistake in a smaller wrapper, and four of the five were deleted in issue #127 (`itp`, `dotfiles-tools`, `gh-tools`, `productivity-tools`). Only `plugins/statusline-tools/scripts/manage-hooks.sh` remains, and only because `lychee-stop-hook.sh` is deliberately **not** in that plugin's `hooks.json` — it is an opt-in Stop hook, so injection is the only registration, not a duplicate one.
+
+**Rule for a new plugin**: put the hook in `hooks/hooks.json`. Write an installer only for a hook you intentionally keep out of `hooks.json`, and record that intent in the script header and the plugin's CLAUDE.md.
 
 ## Hook Source Edits Don't Take Effect Until Next Tagged Release (3-Layer Versioned Cache Lifecycle)
 
