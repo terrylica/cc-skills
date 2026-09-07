@@ -1,3 +1,63 @@
+# [30.4.0](https://github.com/terrylica/cc-skills/compare/v30.3.0...v30.4.0) (2026-09-07)
+
+
+### Bug Fixes
+
+* **floating-clock:** stop the network bar spawning a process per tick ([8b68c54](https://github.com/terrylica/cc-skills/commit/8b68c5421e608b4adc658f1dd6046438ad37e43c))
+
+The bar refetched its service catalog on every cache miss, and a refetch costs a subprocess. That is harmless when the primary interface eventually appears in the service list, and pathological when it never does.
+
+It never does when a VPN owns the default route. The route then sits on a utun device that the service enumeration does not list at all, so every tick missed, refetched, and forked once per second for as long as the app ran. On a machine running a mesh VPN that is the normal state, not an edge case.
+
+The original comment asserted the cost was one-off because a miss is rare. That reasoning was the actual defect: it reasoned about frequency of the TRIGGER without asking whether the trigger could become permanent. It is also the exact unbounded-spawn shape the process-storm policy exists to stop, from an app whose stated value is costing nothing while idle.
+
+The gate is a negative cache: one fetch per newly-seen interface, then nothing for that interface until a generous backoff expires. A different interface still resolves immediately, so plugging in an adapter is not delayed — suppressing that would be a worse bug than the one being fixed. The backoff expires rather than latching, because a service really can be created while the app runs.
+
+The decision is a pure function rather than inline logic, because inline is how it went wrong. Its test walks the whole backoff window tick by tick and fails if any tick would fetch — the assertion that would have caught the original.
+
+Documentation corrected in three places rather than left standing. The zero-child-process measurement was taken with a resolvable primary, so it was true but not general, and it was being cited as though it covered every case. It now says which case it covers and points at the test that pins the other one.
+
+* **gates:** a suite that executed nothing can no longer report success ([a0a817c](https://github.com/terrylica/cc-skills/commit/a0a817cdbeb5ab812a09b197f70b28f20f470fca)), closes [#113](https://github.com/terrylica/cc-skills/issues/113)
+* **release:** make the preflight dependency actually run ([8b8dd2d](https://github.com/terrylica/cc-skills/commit/8b8dd2d271db3d558e8543b626d1e6c55ca84e2a))
+
+Closes issue #138. Two release tasks declared their preflight dependency in frontmatter comments addressed to a tool this repo retired, so nothing ever read them. The version task therefore tagged and published while its own description promised validation had run, on a public auto-releasing repo.
+
+The dependency is now expressed in the mechanism the task runner actually honours, matching the form the existing check task already uses, and the dead frontmatter is deleted rather than left as a decoy for the next reader.
+
+The orchestrator task is deliberately not given the same dependency: it calls preflight inline so the phase timing wrapper can measure it, and an existing test asserts the frontmatter's absence there. Its now-false claim that both paths were wired the same way is corrected, and a do-not-restore note points at that test.
+
+One honest limit remains and is documented at both sites rather than papered over: the gate is orchestrator-level. Invoking the underlying script directly still reaches the publisher with nothing validated, because task dependencies only fire through the runner. That tensions with this repo's own doctrine that each script runs identically with or without the orchestrator, and closing it needs self-guards in the scripts, which is a larger change than the one this issue asked for.
+
+
+
+### Features
+
+* **itp-hooks:** explain why an umbrella folder refuses to become a repo ([5a3ca58](https://github.com/terrylica/cc-skills/commit/5a3ca5814f74d36ffed014560cd223f321c0fd8b))
+
+An umbrella folder represents an owner and contains repositories; it is not one itself. Each already carries an immutable .git file that makes git init fail outright, which is a harder stop than any hook can be.
+
+The gap that leaves is explanatory, not mechanical. The sentinel fails with "invalid gitfile format", which is exactly the kind of cryptic error a helpful agent decides to fix rather than obey. Measured: an agent proposed turning an umbrella folder into a repository twice in one session, stopped both times, taught nothing either time.
+
+So this refuses the command with a reason and a pointer to the ruling. The two layers do different jobs: the sentinel guarantees the outcome, this makes the rule learnable, and neither substitutes for the other.
+
+Scoped tightly to avoid the failure mode that gets guards disabled. It fires only when the resolved target IS an umbrella folder, so anything addressing a subdirectory passes untouched, which matters because nested repositories are the entire purpose of these folders. The folder list is read from the existing path-owner registry, so adding one is a config edit rather than a code change. An unreadable registry allows: locking the machine out of git init over a config typo would be a worse failure than the one being prevented, and the sentinel still stands underneath.
+
+Ships with the docs spoke every other guard in this plugin has, recording the known gap that a redirected git directory is invisible to the sentinel and that this is the only layer seeing that form.
+
+This was written earlier but lived only in one working tree, while the security decision record already listed it as deployed. Committing it makes the record true.
+
+* **scripts:** scan staged file content for credential shapes ([edbe39b](https://github.com/terrylica/cc-skills/commit/edbe39b61f80bb55b5a40690557c2809d39e9304))
+
+Closes the last uninspected route into a commit. Credentials were checked when an agent wrote a file and when a commit message was composed, but the staged bytes themselves were only matched against a proper-noun denylist. A secret arriving by a human editor, a patch application, a stream edit, a merge or a copied file reached a commit with no credential inspection at all.
+
+This reads each staged blob from the index rather than the working tree, runs the detector the write-time guard already uses, and blocks with the value redacted. Binaries are skipped on the same first-kilobyte test the sibling guard uses, so both credential surfaces classify identical bytes identically. Oversized blobs are skipped with a loud notice rather than silently.
+
+Two deliberate divergences from the siblings, both documented in the source. The shared deny-reason builder is not reused because its prose names a file write rather than an index entry; the vocabulary is still imported so the terms stay in one place. And an escape marker that is only placeholder syntax, or a quoted mention of the marker, does not suppress — otherwise every document explaining the marker would exempt itself.
+
+Mirrored into the tracked installer that generates the hook, not just the live hook. Adversarial review caught that omission: without it, rerunning the installer silently removes the guard and no other clone ever has it. Verified by regenerating the hook from the installer and confirming a staged credential is still blocked and still redacted.
+
+The crash path is fenced and its cause truncated. It fails open by design, so a guard bug cannot wedge every commit, but the underlying tool prints its full usage text on failure and a single trailing line was landing after it and scrolling away — loud in intent only.
+
 # [30.3.0](https://github.com/terrylica/cc-skills/compare/v30.2.1...v30.3.0) (2026-09-06)
 
 
