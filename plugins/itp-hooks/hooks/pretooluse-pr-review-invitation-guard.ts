@@ -65,11 +65,27 @@ async function gh(args: string[], cwd: string): Promise<string | null> {
       stderr: "ignore",
       signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
     });
+
+    // THE READ MUST BE RACED, NOT JUST THE SPAWN. Reading stdout to EOF waits for EVERY holder of
+    // the pipe's write end to close it, so a `gh` that forks a descendant inheriting stdout (a
+    // pager, a credential helper, an extension) leaves this await pending after gh itself exits.
+    // AbortSignal on spawn does not interrupt an in-flight stream read, so the hook hung past its
+    // own CALL_TIMEOUT_MS -- and a PreToolUse hook that exceeds the hooks.json timeout renders NO
+    // verdict and Claude Code proceeds. An unbounded read is therefore a silent permit, which is
+    // the one outcome this guard exists to prevent.
+    const spawned = proc;
     // `proc` is declared outside the try so `finally` can kill it, which widens stdout to the
     // options-independent union. The spawn above pins it to "pipe", so this narrowing is sound.
-    const text = await new Response(proc.stdout as ReadableStream<Uint8Array>).text();
-    const code = await proc.exited;
-    return code === 0 ? text.trim() : null;
+    const read = new Response(spawned.stdout as ReadableStream<Uint8Array>).text();
+    const timedOut = Symbol("timeout");
+    const raced = await Promise.race([
+      (async () => ({ text: await read, code: await spawned.exited }))(),
+      new Promise<typeof timedOut>((resolve) =>
+        setTimeout(() => resolve(timedOut), CALL_TIMEOUT_MS),
+      ),
+    ]);
+    if (raced === timedOut) return null;
+    return raced.code === 0 ? raced.text.trim() : null;
   } catch {
     return null;
   } finally {

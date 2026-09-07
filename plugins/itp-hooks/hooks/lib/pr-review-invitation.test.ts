@@ -69,6 +69,87 @@ describe("porcelain door", () => {
   });
 });
 
+describe("P0 regressions: extraction must not use the predicate helper", () => {
+  // Every case here was MEASURED allowing a real blocking review on Eon-Labs/alpha-forge#682
+  // (author ChenLi0830, terrylica never invited) by resolving a DIFFERENT pull request and then
+  // matching author === actor on it. An affirmative allow on a wrong fact is worse than a miss,
+  // because the guard reports confidence it has not earned.
+
+  it("a wrapper's numeric argument does not hijack the PR number", () => {
+    // Measured: resolved 15, queried #15 (self-authored), ALLOWED a block on #682.
+    expect(explicitPrNumber("timeout 15 gh pr review 682 -R Eon-Labs/alpha-forge --request-changes")).toBe(682);
+    expect(explicitPrNumber("nice gh pr review 682 -r")).toBe(682);
+  });
+
+  it("an earlier segment of a compound command does not donate its integer", () => {
+    expect(explicitPrNumber("sleep 2 ; gh pr review 682 -r")).toBe(682);
+    expect(explicitPrNumber("head 20 f.txt && gh pr review 682 -r")).toBe(682);
+  });
+
+  it("a boolean flag before the positional does not swallow it", () => {
+    // Measured: resolved null, so the hook asked about the CURRENT BRANCH's PR instead of #682.
+    expect(explicitPrNumber("gh pr review -r 682")).toBe(682);
+    expect(explicitPrNumber("gh pr review --request-changes 682")).toBe(682);
+  });
+
+  it("still skips a number that is genuinely a flag VALUE", () => {
+    expect(explicitPrNumber("gh pr review 682 -R Eon-Labs/alpha-forge -b 42")).toBe(682);
+    expect(explicitPrNumber("gh pr review --body-file 12 -r")).toBeNull();
+  });
+
+  it("a QUOTED -R value is still read, so the cwd repo is not silently substituted", () => {
+    // Measured: repo null -> fell back to the cwd's repository -> allowed on ITS facts.
+    expect(blocking('gh pr review 15 -R "Eon-Labs/rangebar" --request-changes')?.repo).toBe("Eon-Labs/rangebar");
+    expect(blocking("gh pr review 15 -R 'Eon-Labs/rangebar' --request-changes")?.repo).toBe("Eon-Labs/rangebar");
+  });
+
+  it("a QUOTED event field is still a blocking review, not an unrecognised command", () => {
+    // Measured: classified null -> allowed with no network call. Two of four doors defeated.
+    expect(blocking('gh api repos/O/R/pulls/682/reviews -f "event=REQUEST_CHANGES"')?.door).toBe("rest-reviews");
+    expect(blocking("gh api repos/O/R/pulls/682/reviews -f 'event=REQUEST_CHANGES'")?.door).toBe("rest-reviews");
+  });
+
+  it("a QUOTED REST path is still a blocking review", () => {
+    expect(blocking('gh api "repos/O/R/pulls/682/reviews" -f event=REQUEST_CHANGES')?.door).toBe("rest-reviews");
+  });
+});
+
+describe("P1 regressions: scoping, and doors that were ajar", () => {
+  it("does not turn an --approve into a blocking review because -r appears elsewhere", () => {
+    // THE WORST FALSE POSITIVE AVAILABLE: gating approvals deadlocks the repo, since the ruleset
+    // requires one approval the author may not supply. Measured GATED before the segment scoping.
+    expect(blocking("gh pr review 591 --approve && grep -r TODO src")).toBeNull();
+    expect(blocking("rm -rf /tmp/scratch && gh pr review 682 --approve")).toBeNull();
+    expect(blocking("gh pr review 591 --comment -F f.md && cp -r a b")).toBeNull();
+    expect(blocking("gh pr review 591 --approve; ls -lr")).toBeNull();
+  });
+
+  it("still catches a blocking review that is followed by unrelated commands", () => {
+    // The scoping must not become a bypass of its own.
+    expect(blocking("gh pr review 682 -r && echo done")?.door).toBe("porcelain");
+    expect(blocking("echo start; gh pr review 682 --request-changes")?.door).toBe("porcelain");
+  });
+
+  it("reads the repository out of a full PR URL, not just out of -R", () => {
+    // Measured: repo null -> resolved a DIFFERENT project's #148 from the cwd -> affirmative allow.
+    const target = blocking("gh pr review https://github.com/cli/cli/pull/148 --request-changes");
+    expect(target?.repo).toBe("cli/cli");
+    expect(target?.number).toBe(148);
+  });
+
+  it("catches the REST door written as a full endpoint URL", () => {
+    // gh accepts it; verified read-only that `gh api https://api.github.com/rate_limit` works.
+    expect(
+      blocking("gh api https://api.github.com/repos/O/R/pulls/682/reviews -f event=REQUEST_CHANGES")?.door,
+    ).toBe("rest-reviews");
+  });
+
+  it("treats gh's magic @file field read as opaque rather than innocent", () => {
+    expect(blocking("gh api repos/O/R/pulls/682/reviews -F event=@payload.txt")?.opaque).toBe(true);
+    expect(blocking("gh api repos/O/R/pulls/682/reviews -f event=@-")?.opaque).toBe(true);
+  });
+});
+
 describe("porcelain door: what it must NOT catch", () => {
   it("leaves --approve alone, because gating it deadlocks the repo", () => {
     expect(blocking("gh pr review 656 --approve")).toBeNull();
