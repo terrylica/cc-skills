@@ -260,7 +260,14 @@ export function classifyBlockingReview(command: string): BlockingReviewTarget | 
     // substitution defeated two of the four doors.
     const bare = dequote(command);
 
-    if (GRAPHQL_ADD_REVIEW.test(command) && GRAPHQL_REQUEST_CHANGES.test(command)) {
+    // The `graphql` endpoint must actually be named. Without it, any `gh api` call whose TEXT
+    // merely contains both literals -- a --jq filter, a grep of this very file, a comment body
+    // quoting the mutation -- was denied, including pure reads.
+    if (
+      /(?:^|\s)graphql(?=\s|$)/.test(bare) &&
+      GRAPHQL_ADD_REVIEW.test(command) &&
+      GRAPHQL_REQUEST_CHANGES.test(command)
+    ) {
       // The GraphQL door carries a node id, not an owner/repo/number, so the caller cannot resolve
       // an author from it. It is reported opaque rather than silently allowed.
       return { door: "graphql", repo: null, number: null, opaque: true };
@@ -296,8 +303,14 @@ const ESCAPE_ASSIGNMENT_RUN = new RegExp(`${COMMAND_POSITION}`, "gi");
 export const ESCAPE_TOKEN = "PR_BLOCKING_REVIEW_OK";
 
 export function hasInvitationEscape(command: string): boolean {
+  // SCAN THE QUOTE-STRIPPED COMMAND. Anchoring at a command position is not enough on its own,
+  // because `;` and newline are command positions and BOTH occur freely inside a quoted review
+  // body -- so `--body "...; PR_BLOCKING_REVIEW_OK=1 ..."` opened a synthetic command position
+  // inside an argument and disarmed the guard. This is a predicate, not an extraction, so the
+  // span-deleting helper is the right one: text inside quotes cannot grant the override.
+  const bare = withoutQuotedSpans(command);
   ESCAPE_ASSIGNMENT_RUN.lastIndex = 0;
-  for (const match of command.matchAll(ESCAPE_ASSIGNMENT_RUN)) {
+  for (const match of bare.matchAll(ESCAPE_ASSIGNMENT_RUN)) {
     if (new RegExp(`\\b${ESCAPE_TOKEN}=`).test(match[0])) return true;
   }
   return false;

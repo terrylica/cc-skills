@@ -43,8 +43,13 @@ import {
 
 const HOOK = "pretooluse-pr-review-invitation-guard";
 
-/** Per-call ceiling. Three of these must fit inside the hooks.json timeout with headroom. */
-const CALL_TIMEOUT_MS = 3000;
+/**
+ * Per-call ceiling. THREE sequential calls happen on the slow path (actor, pr view, timeline), so
+ * the worst case is 3x this plus bun start-up, and it must fit inside the `hooks.json` timeout
+ * with real margin. At 3000 the worst case was 9.0 s against a 10 s budget -- under a second of
+ * headroom, and a hook that overruns its budget renders NO verdict, which is a silent permit.
+ */
+const CALL_TIMEOUT_MS = 2500;
 
 /**
  * Run `gh` with a hard bound, and kill THIS pid rather than pattern-matching.
