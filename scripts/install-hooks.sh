@@ -29,8 +29,9 @@ cat > "$HOOKS_DIR/pre-commit" << 'HOOK'
 #
 # Validates:
 # 1. No staged content carries a forbidden client identifier (PII guard)
-# 2. All plugin directories are registered in marketplace.json
-# 3. Marketplace entries have valid paths and required fields
+# 2. No staged content carries a live-shaped credential (secret guard)
+# 3. All plugin directories are registered in marketplace.json
+# 4. Marketplace entries have valid paths and required fields
 
 set -euo pipefail
 
@@ -91,6 +92,31 @@ fi
 
 if [[ -n "$PII_GUARD_BUN" ]] && ! "$PII_GUARD_BUN" scripts/pii-staged-content-guard.ts; then
     exit 1
+fi
+
+# Staged-content CREDENTIAL guard, beside the PII guard and for the same
+# reason: it is the staged BYTES that are about to become a commit. The two
+# split the surface — the PII guard matches a proper-noun denylist, this one
+# matches credential SHAPES via the detector the PreToolUse guard already uses.
+# Without it, a secret that arrived by a human editor, git apply, sed, a merge
+# or a copied file is committed with no credential inspection at all: the
+# PreToolUse guard sees only an agent's Write/Edit, and the commit-msg guard
+# sees only the message.
+# Reports path/line/class and a REDACTED excerpt, never the value.
+# Bypass per file: put "SECRET-SCAN-OK: <reason, >=10 chars>" in the file.
+#
+# The interpreter search above is reused rather than repeated — it resolves the
+# same bun, and a second copy would be one more place to drift. The no-bun path
+# already fails CLOSED for both guards; the only way to reach here with an empty
+# PII_GUARD_BUN is the PII_GUARD_OK bypass, which is announced below so this
+# guard is never silently inactive.
+if [[ -n "$PII_GUARD_BUN" ]]; then
+    if ! "$PII_GUARD_BUN" scripts/staged-content-credential-guard.ts; then
+        exit 1
+    fi
+else
+    echo "[secret-guard] NOT ACTIVE — no bun interpreter (bypassed above)." >&2
+    echo "[secret-guard] Staged content was NOT scanned for credentials." >&2
 fi
 
 # Only run if marketplace.json or plugins/ changed
