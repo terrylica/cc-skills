@@ -50,7 +50,12 @@ describe("allowWithInput", () => {
     expect(hook.updatedInput).toEqual({ command: "ls -la" });
   });
 
-  it("falls back to plain allow for AskUserQuestion (no schema)", () => {
+  // DELIBERATE BEHAVIOUR CHANGE, not a broken test. AskUserQuestion gained a schema so that
+  // pretooluse-pr-premise-annotator can label an option that names a pull request with who authored
+  // it and whether a review was ever requested. Until then this tool had no schema, so every
+  // mutation of it fell back to a plain allow — which is why the assertion below used to be the
+  // opposite. The nested object / array-of-object support the schema needs landed with it.
+  it("now mutates AskUserQuestion, which has a schema", () => {
     const lines = captureOutput(() => {
       allowWithInput("test-hook", "AskUserQuestion", { questions: [] });
     });
@@ -59,7 +64,20 @@ describe("allowWithInput", () => {
     const output = parseHookOutput(lines[0]);
     const hook = output.hookSpecificOutput as Record<string, unknown>;
     expect(hook.permissionDecision).toBe("allow");
-    // No updatedInput — schema validation failed, fell back to plain allow
+    expect(hook.updatedInput).toEqual({ questions: [] });
+  });
+
+  it("still falls back to plain allow when an AskUserQuestion mutation is malformed", () => {
+    // The fallback is what makes mutating this tool safe: a shape the registry cannot express is
+    // refused and counted, never applied.
+    const lines = captureOutput(() => {
+      allowWithInput("test-hook", "AskUserQuestion", {
+        questions: [{ question: "q", header: "h", multiSelect: false, options: [{ label: "A" }] }],
+      });
+    });
+
+    const hook = parseHookOutput(lines[0]).hookSpecificOutput as Record<string, unknown>;
+    expect(hook.permissionDecision).toBe("allow");
     expect(hook.updatedInput).toBeUndefined();
   });
 
@@ -119,8 +137,8 @@ describe("hasToolSchema", () => {
     }
   });
 
-  it("returns false for AskUserQuestion", () => {
-    expect(hasToolSchema("AskUserQuestion")).toBe(false);
+  it("returns true for AskUserQuestion, which gained a schema with the premise annotator", () => {
+    expect(hasToolSchema("AskUserQuestion")).toBe(true);
   });
 
   it("returns false for unknown tools", () => {
