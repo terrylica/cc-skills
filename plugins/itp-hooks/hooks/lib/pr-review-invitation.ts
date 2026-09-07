@@ -63,62 +63,23 @@
  * NO I/O HERE. Facts are injected, so every branch is unit-testable and mutation-testable.
  */
 
-import { readShellArg, type ShellQuoteKind } from "./shell-arg-extractor.ts";
+import { splitShellWords, type ShellWord } from "./shell-arg-extractor.ts";
 import { COMMAND_POSITION, withoutQuotedSpans } from "./review-round-artifact.ts";
 
 // ---------------------------------------------------------------------------------------------
 // Tokenizing
 // ---------------------------------------------------------------------------------------------
 
-interface Token {
-  /** Shell-decoded value. */
-  readonly value: string;
-  readonly quote: ShellQuoteKind;
-  /** Offset of the first character of the token in the source command. */
-  readonly start: number;
-  /** Offset just past the token. */
-  readonly end: number;
-  /** True when the run of blanks before this token contained a newline. */
-  readonly afterNewline: boolean;
-}
+/**
+ * A token IS a shell word. The parsing lives in `shell-arg-extractor.ts`, which is this repo's SSoT
+ * for reading shell command strings -- see this file's header for what re-implementing it cost.
+ */
+type Token = ShellWord;
 
-/** A token only counts as a FLAG when the shell would have seen it unquoted. */
-const isBare = (token: Token): boolean => token.quote === "none";
+/** A token only counts as a FLAG when the shell would have seen its first segment unquoted. */
+const isBare = (token: Token): boolean => token.firstSegmentBare;
 
-function tokenize(command: string): Token[] {
-  const tokens: Token[] = [];
-  let cursor = 0;
-  // Bounded: every iteration must advance, or a malformed command would spin forever inside a
-  // PreToolUse hook, which is a hang rather than a verdict.
-  while (cursor < command.length && tokens.length < 4096) {
-    const read = readShellArg(command, cursor);
-    if (!read || read.endIndex <= cursor) break;
-    let start = cursor;
-    while (start < command.length && (command[start] === " " || command[start] === "\t")) start++;
-    const afterNewline = command.slice(cursor, start).includes("\n");
-
-    // `readShellArg` reads shell ARGUMENTS, not operators, so `--approve;` arrives as ONE bare
-    // token and the `;` never reaches the separator test -- which let `gh pr review 591 --approve;
-    // ls -lr` pick up the `-r` from `ls` and gate an approval. An operator can only be an operator
-    // when it is UNQUOTED, so splitting bare tokens on `; & |` is safe and quoted text is untouched.
-    const pieces =
-      read.quote === "none" && /[;&|]/.test(read.value)
-        ? read.value.split(/([;&|]+)/).filter((piece) => piece.length > 0)
-        : [read.value];
-
-    for (const [index, piece] of pieces.entries()) {
-      tokens.push({
-        value: piece,
-        quote: read.quote,
-        start,
-        end: read.endIndex,
-        afterNewline: index === 0 ? afterNewline : false,
-      });
-    }
-    cursor = read.endIndex;
-  }
-  return tokens;
-}
+const tokenize = splitShellWords;
 
 /**
  * Does this token end the current simple command?
@@ -128,17 +89,11 @@ function tokenize(command: string): Token[] {
  * only spaces and tabs, so a newline never reaches the separator test on its own.
  */
 function endsCommand(token: Token): boolean {
-  if (token.afterNewline) return true;
-  if (!isBare(token)) return false;
-  return (
-    token.value.startsWith("#") ||
-    token.value === ";" ||
-    token.value === "&&" ||
-    token.value === "||" ||
-    token.value === "|" ||
-    token.value === "&" ||
-    token.value.includes("\n")
-  );
+  if (token.precededByNewline) return true;
+  if (token.isOperator) return true;
+  // `#` starts a comment. A trailing `# ...'s fix, grep -r later` previously turned an approve into
+  // a blocking review, because the comment's `-r` was read as a flag of the review command.
+  return isBare(token) && token.value.startsWith("#");
 }
 
 const basename = (path: string): string => path.slice(path.lastIndexOf("/") + 1);

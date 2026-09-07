@@ -156,22 +156,21 @@ describe("tokenizer: defects the three regex-over-mangled-string versions all ha
   // round of fixes opened new holes. These pin the properties a shell-correct tokenizer gives for
   // free, and they are the reason the extraction layer is not regex-based any more.
 
-  // KNOWN OPEN FAIL-OPEN, PINNED RATHER THAN HIDDEN.
-  //
-  // `'\''` is the only way to put an apostrophe inside a single-quoted shell word, and bash joins
-  // the adjacent segments into ONE word. `readShellArg` does not: its bare branch reads "until
-  // whitespace, backslash kept literal" -- a DELIBERATE simplification documented at
-  // shell-arg-extractor.ts:101-102, correct for its three existing consumers, which each extract a
-  // single quoted flag value. This classifier needs shell WORD splitting instead, so a `;` inside
-  // such a body is seen as a command separator and the following --request-changes is never read.
-  //
-  // Measured: allowed in 0.038 s with no network call. It is a FAIL-OPEN, which is why this is
-  // marked todo rather than deleted or asserted-as-correct. Closing it means adding a
-  // `splitShellWords()` to the shared extractor (additive, so the three consumers are untouched)
-  // and validating that separately. THE GUARD MUST NOT SHIP UNTIL THIS IS CLOSED.
-  it.todo("a quoted body cannot hide the flag behind a shell apostrophe idiom", () => {
+  it("a quoted body cannot hide the flag behind a shell apostrophe idiom", () => {
+    // `'\''` is the only way to put an apostrophe inside a single-quoted shell word, and bash joins
+    // the adjacent segments into ONE word. `readShellArg` alone does not -- its bare branch reads
+    // "until whitespace, backslash kept literal", a deliberate simplification that is correct for
+    // its three existing consumers -- so a `;` inside such a body looked like a command separator
+    // and the following --request-changes was never read. Measured: ALLOWED in 0.038 s with no
+    // network call. Closed by `splitShellWords`, added to the shared extractor rather than here.
     const command = String.raw`gh pr review 682 --body 'don'\''t merge; fix the guard' --request-changes`;
     expect(blocking(command)?.number).toBe(682);
+  });
+
+  it("joins every adjacent-segment spelling into one word", () => {
+    expect(blocking(`gh pr review 682 --body "it"'"'"'s fine; really" --request-changes`)?.number).toBe(682);
+    expect(blocking(`gh pr review 682 --body pre'mid; post'end --request-changes`)?.number).toBe(682);
+    expect(blocking(`gh pr review 682 --body $'a; b' --request-changes`)?.number).toBe(682);
   });
 
   it("a quoted body cannot hide the flag behind an escaped double quote", () => {
