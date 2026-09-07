@@ -101,6 +101,18 @@ NSArray<NSDictionary<NSString *, id> *> *FCParseNetworkServiceOrder(NSString *ou
     return out;
 }
 
+BOOL FCShouldRefetchForUnresolvedDevice(NSString *device,
+                                        NSString *lastUnresolvedDevice,
+                                        NSTimeInterval now,
+                                        NSTimeInterval retryNotBefore) {
+    // No device at all: there is nothing a fetch could resolve.
+    if (device.length == 0) return NO;
+    // A different device than the one we last failed on — worth exactly one look.
+    if (![device isEqualToString:lastUnresolvedDevice]) return YES;
+    // Same device we already failed on: only after the backoff has elapsed.
+    return now >= retryNotBefore;
+}
+
 NSString *FCServiceNameForBSDDevice(NSArray<NSDictionary<NSString *, id> *> *catalog,
                                     NSString *device) {
     if (device.length == 0) return nil;

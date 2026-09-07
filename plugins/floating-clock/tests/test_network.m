@@ -242,3 +242,56 @@ void test_network_switchable_nil_vs_empty_liveness(void) {
     expectCount(__func__, @"empty ⇒ nothing",
                 FCSwitchableServices(cat, [NSSet set]).count, 0);
 }
+
+// THE REGRESSION THIS FILE MOST NEEDS. The indicator originally refetched the
+// catalog on every cache miss. That is harmless when the primary interface
+// eventually appears in networksetup's list, and pathological when it never
+// does — a VPN's utunN owning the default route is not enumerated at all, so
+// every 1 Hz tick missed and fork/exec'd `networksetup`, once per second,
+// indefinitely. The app's headline claim is zero child processes.
+void test_network_unresolved_device_backoff_stops_repeat_fetches(void) {
+    // A brand-new device is always worth exactly one look.
+    if (!FCShouldRefetchForUnresolvedDevice(@"utun4", nil, 1000.0, 0.0)) {
+        fprintf(stderr, "FAIL %s: first sight of a device should fetch once\n", __func__);
+        failures++;
+    }
+
+    // Having failed on it, the SAME device must not fetch again until the
+    // backoff expires. This is the assertion that pins the defect: at 1 Hz,
+    // every one of these ticks used to spawn a subprocess.
+    NSTimeInterval retryAt = 1000.0 + 300.0;
+    for (NSTimeInterval t = 1001.0; t < retryAt; t += 1.0) {
+        if (FCShouldRefetchForUnresolvedDevice(@"utun4", @"utun4", t, retryAt)) {
+            fprintf(stderr, "FAIL %s: refetched at t=%.0f, inside the backoff window\n",
+                    __func__, t);
+            failures++;
+            break;
+        }
+    }
+
+    // Never giving up would be wrong too — a service can be created while the
+    // app runs — so the backoff expires rather than latching forever.
+    if (!FCShouldRefetchForUnresolvedDevice(@"utun4", @"utun4", retryAt, retryAt)) {
+        fprintf(stderr, "FAIL %s: backoff should expire, not latch permanently\n", __func__);
+        failures++;
+    }
+}
+
+void test_network_unresolved_backoff_does_not_mask_a_new_device(void) {
+    // Suppressing a DIFFERENT device would be a worse bug than the one being
+    // fixed: plugging in an adapter must resolve immediately, not in 5 minutes.
+    if (!FCShouldRefetchForUnresolvedDevice(@"en13", @"utun4", 1001.0, 1300.0)) {
+        fprintf(stderr, "FAIL %s: a new device must fetch even while another is backed off\n",
+                __func__);
+        failures++;
+    }
+    // No device at all is not something a fetch could ever resolve.
+    if (FCShouldRefetchForUnresolvedDevice(@"", @"utun4", 9999.0, 0.0)) {
+        fprintf(stderr, "FAIL %s: empty device should never trigger a subprocess\n", __func__);
+        failures++;
+    }
+    if (FCShouldRefetchForUnresolvedDevice(nil, nil, 9999.0, 0.0)) {
+        fprintf(stderr, "FAIL %s: nil device should never trigger a subprocess\n", __func__);
+        failures++;
+    }
+}
