@@ -61,6 +61,50 @@ A guard that covers only the porcelain spelling is decorative. All four are clas
 
 `--input file.json` and GraphQL are **opaque**: the event sits in a file or payload the hook must not open at decision time (it is I/O in a pure classifier, and the file can be rewritten between check and use). Opaque resolves to denied.
 
+## Status: NOT READY TO SHIP, and not live
+
+One fail-open remains open, pinned as `it.todo` in the suite — see "The one that is still open" below. The guard is **not** present in any live plugin copy (`itp-hooks@30.3.0` does not contain it), so nothing currently relies on it.
+
+## Why it tokenizes instead of pattern-matching
+
+Three successive versions of the classifier ran regexes over three **different** manglings of the same command string, and the manglings disagreed with each other:
+
+| Helper                    | Behaviour                               | Escape handling |
+| ------------------------- | --------------------------------------- | --------------- |
+| `withoutQuotedSpans`      | deletes quoted spans                    | yes             |
+| `dequote` (removed)       | removes quote characters, keeps content | **no**          |
+| `reviewSegment` (removed) | hand-rolled quote scanner               | **no**          |
+
+Because they disagreed, **every round of fixes opened a new P0 in the case the previous round was not thinking about** — three rounds running. All measured end to end against a live uninvited target:
+
+```
+-R "owner/repo"                  -> repo erased       -> resolved the CWD repo      -> ALLOW
+-f "event=REQUEST_CHANGES"       -> not a review at all                             -> ALLOW
+timeout 15 gh pr review 682 ...  -> number 15         -> queried a self-authored PR -> ALLOW
+--body "... /pull/679"           -> number 679        -> queried a self-authored PR -> ALLOW
+--body 'don'\''t; ...' -r        -> segment truncated -> the flag never seen        -> ALLOW
+gh pr review 679 -a; ... 682 -r  -> only the first invocation read                  -> ALLOW
+-rF 679                          -> cluster value read as the PR number             -> ALLOW
+--approve && grep -r TODO        -> read as blocking  -> GATED an approval (deadlock)
+--approve  # ...'s fix, grep -r  -> comment not a separator -> GATED an approval
+```
+
+**And this directory already contained the answer.** `shell-arg-extractor.ts` states in its own header that it is the SSoT for _"pull a flag's value out of a shell command string — the pattern several PreToolUse guards re-implement"_. Re-implementing it three times is what produced every defect above. That finding is worth more than any individual fix.
+
+The extraction layer is now a single pass over `readShellArg` tokens:
+
+> A **flag** is an unquoted token. A **value** is whatever the next token decodes to, quoted or not. A **target** comes only from a **positional**.
+
+So prose inside `--body` is a value and therefore _structurally_ cannot donate a target, name a flag, or fabricate a command position. Bare tokens are additionally split on `; & |`, because `readShellArg` reads **arguments, not operators** — `--approve;` otherwise arrives as one token whose `;` never reaches the separator test.
+
+## The one that is still open
+
+Bash joins `'don'\''t x; y'` into **one** word. `readShellArg` does not: its bare branch reads _"until whitespace, backslash kept literal"_ — a **deliberate** simplification documented at `shell-arg-extractor.ts:101-102`, correct for its three existing consumers, each of which extracts a single quoted flag value.
+
+This classifier needs shell **word** splitting, so a `;` inside such a body still ends the command and the following `--request-changes` is missed. Measured: allowed in 0.038 s with no network call.
+
+Closing it means adding a `splitShellWords()` to the shared extractor — additive, so the three consumers are untouched — and validating that separately. It is marked `it.todo` rather than deleted or asserted-as-correct, because it is a **fail-open** and hiding it would be the defect this whole guard exists to argue against.
+
 ## The shared constant
 
 Two defects in `COMMAND_POSITION` are relevant, and both spread by **copying**:
