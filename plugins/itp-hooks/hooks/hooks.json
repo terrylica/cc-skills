@@ -168,6 +168,17 @@
         ]
       },
       {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
+            "timeout": 15,
+            "description": "Annotates any AskUserQuestion option that names a pull request with the facts the agent would otherwise be asserting: who authored it, and whether a review was ever requested from you. Never blocks, never denies, and makes no network call when no option names a PR (the common case, measured at 12ms). UPSTREAM OF pretooluse-pr-review-invitation-guard, which acts at the moment of the COMMAND: this one acts at the moment of the DECISION, which is where the 2026-09-06 incident actually went wrong. An agent surveying open PRs reported Eon-Labs/alpha-forge#656 as 'waiting on my review' when no request existed (one arrived 19h29m LATER); that invented premise reached the operator's menu as an option labelled 'Review #656 leak erratum', was approved inside a batch, and became a blocking CHANGES_REQUESTED on the CEO's own pull request. Replayed against that exact menu shape, this hook now renders '[#426: @ChenLi0830's, no review requested from you]' beside such an option, which is the label that would have caught it. The annotation is a SINGLE ` - ` separated clause and never a second line, because the sibling askuserquestion-option-line-terminator-guard denies a newline in an option label or description (Claude Code renders one as U+FFFD). At most 3 pull requests are queried per question set and the lookups run concurrently -- 3.2s for three, versus 6.2s sequential, which matters because a human is waiting on the dialog; every child is timeout-bounded at 2s and killed by pid, never via pkill -f. Mutation goes through allowWithInput, which validates against TOOL_SCHEMAS.AskUserQuestion (added with this hook, along with nested object / array-of-object / open-record support in the strict schema engine) and calls trackHookError on any mismatch, so an annotator that quietly stops annotating is COUNTED rather than invisible -- which matters more here than anywhere else, since silence looks identical to having nothing to say. Fail-open by construction: any throw, timeout or unresolvable PR yields a plain allow, and an unresolved PR is labelled as unresolved rather than guessed."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
