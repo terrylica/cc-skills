@@ -50,9 +50,9 @@ BOOL FCDeviceHasChannels(AudioObjectID dev, BOOL input) {
     return ch > 0;
 }
 
-// Software mute flag on the device's input scope (the analog hardware-button
-// mute on the Antlion is invisible here — FCMicMuteIndicator's silence meter
-// covers that path; the IN zone ORs both signals).
+// Software mute flag on the device's input scope (a mic's inline analog mute
+// button is invisible here — CoreAudio never sees it, so FCMicMuteIndicator's
+// silence meter covers that path; the IN zone ORs both signals).
 BOOL FCReadInputMute(AudioObjectID dev) {
     if (dev == kAudioObjectUnknown) return NO;
     AudioObjectPropertyAddress a = { kAudioDevicePropertyMute,

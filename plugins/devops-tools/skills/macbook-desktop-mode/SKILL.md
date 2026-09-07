@@ -21,7 +21,7 @@ A holistic configuration guide for running a MacBook as an always-on-AC desktop 
 
 ## Root Cause Diagnosis Framework
 
-Before applying fixes, diagnose the specific failure mode. This framework was developed from empirical analysis of a MacBook Pro M3 Max with an Antlion USB Microphone (VID `0x2F96`, PID `0x0200`).
+Before applying fixes, diagnose the specific failure mode. This framework was developed from empirical analysis of an Apple Silicon MacBook kept permanently on AC, where the device that kept dropping off the bus was a bus-powered USB 1.1 audio-class microphone with no serial number — the most fragile class of USB peripheral across sleep/wake, and so the worst case these fixes are tuned for. Identify your own device with the `ioreg` command below rather than by vendor/product ID; nothing here needs one.
 
 ### DarkWake Cycling
 

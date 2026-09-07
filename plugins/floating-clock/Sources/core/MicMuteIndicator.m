@@ -347,13 +347,14 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // Called on launch and whenever the device list or default input changes.
 //
 // 2026-06-11 SEMANTICS FLIP (user bug report): this used to bind
-// named-device-first, so while the Antlion was plugged in the banner metered
-// the ANTLION even when the default input was AirPods — pressing the
-// Antlion's hardware button then flagged the AirPods IN zone red, a false
-// positive. The banner now tracks the CURRENT DEFAULT INPUT — the mic that
-// would actually capture. A muted mic that is NOT the active input is
-// irrelevant by definition. The named device (the Antlion) remains only as
-// a last-resort fallback when the HAL reports no default input at all.
+// named-device-first, so while the pinned mic was plugged in the banner
+// metered THAT device even when the default input was AirPods — pressing the
+// pinned mic's inline hardware button then flagged the AirPods IN zone red, a
+// false positive. The banner now tracks the CURRENT DEFAULT INPUT — the mic
+// that would actually capture. A muted mic that is NOT the active input is
+// irrelevant by definition. The named device (from the
+// `MicIndicatorDeviceName` preference, empty by default) remains only as a
+// last-resort fallback when the HAL reports no default input at all.
 - (void)rebindDevice {
     [self stopMetering];
     [self removeMuteListener];
@@ -410,7 +411,7 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
     };
     AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &a, dispatch_get_main_queue(), _devicesBlock);
 
-    // Also rebind when the system default INPUT changes (e.g. the Antlion is
+    // Also rebind when the system default INPUT changes (e.g. a USB mic is
     // unplugged and macOS falls back to the built-in mic, or the user switches
     // the default in Sound settings). Without this the fallback target could go
     // stale while both devices are present.
@@ -450,8 +451,9 @@ static OSStatus FCMeterIOProc(AudioObjectID inDevice,
 // Bluetooth transports must NOT be metered: a persistent capture IOProc on a
 // BT mic holds the headset in HFP/SCO call mode permanently — degraded output
 // quality + battery drain (2026-06-11). Their mute is a software flag anyway;
-// the analog-silence meter exists for the Antlion's analog button, which only
-// matters when the Antlion IS the bound (default) device.
+// the analog-silence meter exists for a wired mic's inline analog mute button
+// (invisible to CoreAudio), which only matters when that mic IS the bound
+// (default) device.
 static BOOL FCDeviceIsBluetoothTransport(AudioObjectID dev) {
     AudioObjectPropertyAddress a = { kAudioDevicePropertyTransportType,
                                      kAudioObjectPropertyScopeGlobal,

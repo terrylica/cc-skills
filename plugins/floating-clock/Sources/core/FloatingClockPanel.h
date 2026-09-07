@@ -31,7 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
     ActiveSegmentView *_activeSeg;
     NextSegmentView *_nextSeg;
     // Mic-mute indicator: red "MIC MUTED" banner over the clock when the
-    // Antlion USB Microphone is muted. Synced from tick + windowDidMove.
+    // active input device is muted. Synced from tick + windowDidMove.
     FCMicMuteIndicator *_micMuteIndicator;
     // Generic external-state status banner (default violet); stacks above the
     // mic-mute bar. Driven by a state file; configured via NSUserDefaults

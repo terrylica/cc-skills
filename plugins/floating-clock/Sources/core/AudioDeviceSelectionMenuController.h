@@ -6,7 +6,7 @@
 //
 // Menu anatomy per zone:
 //   INPUT DEVICE              (header, disabled)
-//   ✓ Antlion USB             ← live CoreAudio devices; click = switch now
+//   ✓ USB Microphone          ← live CoreAudio devices; click = switch now
 //     MacBook Pro Microphone
 //   ───────────────────────
 //   BLUETOOTH — CONNECT       (header; only when offline paired BT exists)

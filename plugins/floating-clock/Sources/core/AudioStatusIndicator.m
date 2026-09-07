@@ -180,8 +180,8 @@ static const CGFloat kMinZoneW = 92.0;
     float inVol  = FCReadVolume(inDev, YES);
     float outVol = FCReadVolume(outDev, NO);
     // Mute = software mute flag on the current default input OR the mic
-    // indicator's banner state (which adds the Antlion's analog hardware
-    // button via its silence meter).
+    // indicator's banner state (which adds a mic's inline analog mute button —
+    // invisible to CoreAudio — via its silence meter).
     BOOL inMuted = FCReadInputMute(inDev)
                 || (self.micIndicator && [self.micIndicator isShowing]);
     // Output (playback) mute is a pure property read on the default output —
