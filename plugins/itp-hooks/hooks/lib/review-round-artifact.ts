@@ -53,10 +53,26 @@ import { createHash } from "node:crypto";
 //
 // The same `\S*` appears in pretooluse-pr-citation-evidence-guard.ts:86, which this pattern was
 // copied from, so that guard is likely bypassable the same way.
-const COMMAND_POSITION = String.raw`(?:^|[\n;&|(){}]|&&|\|\|)\s*(?:(?:sudo|env|command|time)\s+|[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)*`;
+//
+// EXPORTED because copying it is how the `\S*` defect above SPREAD. It was written here, copied
+// into pretooluse-pr-citation-evidence-guard.ts:86, and fixed in only one of the two. A third
+// consumer (pretooluse-pr-review-invitation-guard.ts) imports this symbol rather than pasting it,
+// so the next correction reaches every caller. Same rule, one home -- see `matchNoteIds` in
+// notes-commander's notes-core.ts for the precedent this follows.
+//
+// A WRAPPER'S OWN FLAGS ARE PART OF THE WRAPPER. `env` was accepted but `env -u GH_TOKEN` was not,
+// so `env -u GH_TOKEN gh pr review --request-changes` put `gh` outside every command position and
+// matched nothing at all. That spelling is not exotic here -- it is this plugin's OWN house style:
+// every entry in hooks.json is registered as `env -u AI_AGENT -u CLAUDECODE bun ...`. Found by a
+// test in pr-review-invitation.test.ts, and it applies to every guard sharing this constant.
+// `-u/-C/-S` take a value, `-i/-v` do not, so they cannot share one pattern without the value-less
+// form swallowing the command it is supposed to leave behind.
+const WRAPPER = String.raw`(?:env\s+(?:(?:-[iv]+|--ignore-environment)\s+|(?:-[uCS]|--unset|--chdir|--split-string)(?:=\S+|\s+\S+)\s+)*|(?:sudo|command|time|nice)\s+|timeout\s+-?[\d.]+[smhd]?\s+)`;
+
+export const COMMAND_POSITION = String.raw`(?:^|[\n;&|(){}]|&&|\|\|)\s*(?:${WRAPPER}|[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)*`;
 
 /** Match `gh` by BASENAME, so `/opt/homebrew/bin/gh` and `"$GH"` are not free bypasses. */
-const ghCommand = (rest: string) =>
+export const ghCommand = (rest: string) =>
   new RegExp(`${COMMAND_POSITION}(?:[\\w./-]*/)?gh\\s+${rest}`, "i");
 
 const gitCommand = (rest: string) =>
@@ -75,7 +91,7 @@ const GIT_PUSH = gitCommand(String.raw`push\b`);
  * exempts a non-draft PR from the gate. Stripping quoted spans first is what makes "is this a
  * flag" mean flag rather than "does this text appear anywhere".
  */
-function withoutQuotedSpans(command: string): string {
+export function withoutQuotedSpans(command: string): string {
   return command.replace(/'[^']*'/g, " '' ").replace(/"(?:\\.|[^"\\])*"/g, ' "" ');
 }
 
@@ -84,7 +100,7 @@ const DRAFT_FLAG = /(?:^|\s)--draft(?:=true)?(?=\s|$)/;
 /** `gh pr ready --undo` CONVERTS TO draft, i.e. it removes work from the queue. Never gate it. */
 const READY_UNDO = /(?:^|\s)--undo(?=\s|$)/;
 
-const hasFlag = (command: string, flag: RegExp) => flag.test(withoutQuotedSpans(command));
+export const hasFlag = (command: string, flag: RegExp) => flag.test(withoutQuotedSpans(command));
 
 /**
  * `pr-undraft` is NOT gated. It is here because collapsing it to `null` -- which is what the first

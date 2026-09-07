@@ -67,6 +67,19 @@ describe("classify — commands that must be GATED", () => {
     ['GH_ORGS="Eon Labs" gh pr ready 613', "pr-ready"],
     ["GH_ORGS='Eon Labs' gh pr create --title t --body-file b.md", "pr-create"],
     ["env GH_ORGS=x sudo gh pr ready 613", "pr-ready"],
+    // A WRAPPER'S OWN FLAGS. `env` was an accepted wrapper but `env -u NAME` was not, so `gh` fell
+    // outside every command position and this gate silently ALLOWED it. The spelling is this
+    // plugin's own house style — every hooks.json entry is `env -u AI_AGENT -u CLAUDECODE bun ...`
+    // — so it is the form an agent copying local convention would most likely produce. Each row
+    // below fails against the pre-fix COMMAND_POSITION; the `-i` row is separate because a
+    // value-less flag and a value-taking one cannot share a pattern without one of them swallowing
+    // the command that follows.
+    ["env -u AI_AGENT gh pr ready 613", "pr-ready"],
+    ["env -u AI_AGENT -u CLAUDECODE gh pr ready 613", "pr-ready"],
+    ["env --unset=GH_TOKEN gh pr ready 613", "pr-ready"],
+    ["env -i gh pr ready 613", "pr-ready"],
+    ["nice gh pr ready 613", "pr-ready"],
+    ["timeout 60 gh pr ready 613", "pr-ready"],
     ["cd /tmp && gh pr ready 613", "pr-ready"],
     ["git push", "push"],
     ["git push --force-with-lease origin feat", "push"],
