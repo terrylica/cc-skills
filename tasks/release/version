@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 # Phase 2 of 4: Execute semantic-release to analyze conventional commits, determine version bump (patch/minor/major), update CHANGELOG.md, sync version across package.json + plugin.json + marketplace.json, create git tag, publish GitHub release, and push. Depends on preflight passing. Uses release.config.cjs configuration.
-#MISE depends=["release:preflight"]
+#
+# The preflight dependency this description promises is declared in `moon.yml`
+# under `release-version.deps`, NOT here. A `#MISE depends=["release:preflight"]`
+# line used to sit on this line and was read by nothing — the mise plugin was
+# retired in 41df0fe5 and `.prototools:1` states that jdx/mise is not used for
+# this repo — so this publishing entry point tagged, changelogged, released and
+# pushed with nothing validated (#138). This script has no self-guards, so the
+# gate is orchestrator-level: `moon run repo:release-version` runs preflight
+# first, a bare `bash tasks/release/version` does not.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

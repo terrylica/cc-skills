@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Preview what semantic-release would do without making any changes. Runs preflight first, then semantic-release --dry-run. Shows next version number, commits to be included, and changelog preview. No git tags, no GitHub releases, no pushes. Safe to run repeatedly.
-#MISE depends=["release:preflight"]
+#
+# The preflight dependency this description promises is declared in `moon.yml`
+# under `release-dry.deps`, NOT here. A `#MISE depends=["release:preflight"]`
+# line used to sit on this line and was read by nothing — the mise plugin was
+# retired in 41df0fe5 and `.prototools:1` states that jdx/mise is not used for
+# this repo — so the guarantee had silently evaporated (#138). Consequence of
+# where the gate lives: `moon run repo:release-dry` runs preflight first, a bare
+# `bash tasks/release/dry` does not.
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════"

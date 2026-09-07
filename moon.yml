@@ -102,12 +102,29 @@ tasks:
     script: "bun scripts/verify-doc-counts.ts"
 
   # ── Release pipeline ───────────────────────────────────────────────────────
+  # EXEMPT from the `deps: ["~:release-preflight"]` wiring below, deliberately.
+  # `tasks/release/full` invokes preflight ITSELF, inside the orchestrator body,
+  # so that iter-139's per-phase timing wrapper can measure the phase-1
+  # wall-clock (see the "DO NOT restore an orchestrator-level preflight
+  # dependency" comment block in tasks/release/full). Declaring the dependency here
+  # would move preflight OUTSIDE that wrapper, run it twice, and silently
+  # destroy the phase-1 number that iter-74 through iter-138 were built on. The
+  # absence is asserted by Iter-139.C4 in
+  # tasks/tests/test-iter137-138-139-140-…-sleep-2-elimination.sh:253. Do not
+  # "correct" this for consistency with its siblings — the same declaration is
+  # right on two tasks and wrong on this one (#138).
   release-full:
     description: "Primary release entry point: preflight, presync, semantic-release, marketplace sync, verify, chronicle, postflight. Requires GH_TOKEN and a clean tree."
     script: "bash tasks/release/full"
 
   release-dry:
-    description: "Preview the version bump and changelog without tagging, pushing or publishing."
+    description: "Preview the version bump and changelog without tagging, pushing or publishing. Runs preflight first."
+    # #138: this dependency used to be declared as `#MISE depends=["release:preflight"]`
+    # frontmatter inside the script, which nothing has read since the mise
+    # plugin was retired in 41df0fe5 (.prototools:1 — "jdx/mise is not used").
+    # `deps` is the mechanism moon actually honours; a failing preflight now
+    # aborts the run before semantic-release is reached.
+    deps: ["~:release-preflight"]
     script: "bash tasks/release/dry"
 
   release-status:
@@ -119,7 +136,15 @@ tasks:
     script: "bash tasks/release/preflight"
 
   release-version:
-    description: "Phase 2: semantic-release version bump, changelog, git tag and GitHub release."
+    description: "Phase 2: semantic-release version bump, changelog, git tag and GitHub release. Runs preflight first."
+    # #138: this is the PUBLISHING entry point — it tags, writes the changelog,
+    # creates the GitHub release and pushes — and `tasks/release/version` carries
+    # no validation of its own (15 lines, no clean-tree check, no GH_TOKEN check,
+    # no tests). Its guarantee lived entirely in a dead
+    # `#MISE depends=["release:preflight"]` comment that nothing read, so the one
+    # command where skipping validation is most expensive ran ungated. `deps` is
+    # the mechanism moon actually honours.
+    deps: ["~:release-preflight"]
     script: "bash tasks/release/version"
 
   release-sync:
