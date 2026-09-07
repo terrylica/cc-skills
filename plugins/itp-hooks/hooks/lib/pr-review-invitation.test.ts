@@ -235,6 +235,20 @@ describe("escape hatch", () => {
     expect(hasInvitationEscape(`gh pr review 656 -r --body "do not set ${ESCAPE_TOKEN}=1 here"`)).toBe(false);
   });
 
+  it("REFUSES it when a quoted body fabricates a command position before it", () => {
+    // `;` and newline ARE command positions, and both occur freely inside a review body, so
+    // anchoring alone was not enough: the token inside the quotes granted the override. Measured
+    // as a live bypass of the very defect this hatch's docstring claimed to have fixed.
+    expect(hasInvitationEscape(`gh pr review 656 -r --body "step one; ${ESCAPE_TOKEN}=1 is the override"`)).toBe(false);
+    expect(hasInvitationEscape(`gh pr review 656 -r --body "line one\n${ESCAPE_TOKEN}=1 grants it"`)).toBe(false);
+    expect(hasInvitationEscape(`gh pr review 656 -r --body 'a && ${ESCAPE_TOKEN}=1'`)).toBe(false);
+  });
+
+  it("still accepts it after a REAL separator outside quotes", () => {
+    // The fix must not make the hatch unusable in a compound command.
+    expect(hasInvitationEscape(`echo start; ${ESCAPE_TOKEN}=1 gh pr review 656 -r`)).toBe(true);
+  });
+
   it("is absent from an ordinary command", () => {
     expect(hasInvitationEscape(PORCELAIN)).toBe(false);
   });
