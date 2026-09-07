@@ -6,6 +6,7 @@ import {
   extractFlagValues,
   hasUnparseableCatHeredoc,
   readShellArg,
+  splitShellWords,
 } from "./shell-arg-extractor.ts";
 
 describe("readShellArg", () => {
@@ -89,5 +90,69 @@ describe("extractCatHeredoc", () => {
     const cmd = `git commit -m "$(cat <<EOF\nno close here`;
     expect(extractCatHeredoc(cmd)).toBeNull();
     expect(hasUnparseableCatHeredoc(cmd)).toBe(true);
+  });
+});
+
+const values = (command: string) => splitShellWords(command).map((word) => word.value);
+
+describe("splitShellWords", () => {
+  it("joins adjacent segments into ONE word, as the shell does", () => {
+    // THE CASE THIS FUNCTION WAS ADDED FOR. `'\''` is the only way to put an apostrophe inside a
+    // single-quoted word. readShellArg alone returns five tokens here, one of them a bare `merge;`,
+    // so a caller looking for command separators ends the command inside the argument. That was a
+    // measured fail-open in the PR review-invitation guard.
+    expect(values(String.raw`--body 'don'\''t merge; fix' --request-changes`)).toEqual([
+      "--body",
+      "don't merge; fix",
+      "--request-changes",
+    ]);
+  });
+
+  it("joins the other adjacent-segment spellings too", () => {
+    // Four segments: "it" -> it, '"' -> a double quote, "'s fine" -> 's fine. Joined: it"'s fine.
+    expect(values(`--body "it"'"'"'s fine"`)).toEqual(["--body", `it"'s fine`]);
+    expect(values(`pre'mid'post`)).toEqual(["premidpost"]);
+    expect(values(`a$'x\\ty'b`)).toEqual(["ax\tyb"]);
+  });
+
+  it("marks a word bare only when it STARTS unquoted, which is the flag test", () => {
+    const [flag, literal, mixed] = splitShellWords(`--approve '--approve' --body='x'`);
+    expect(flag!.firstSegmentBare).toBe(true);
+    expect(literal!.firstSegmentBare).toBe(false);
+    expect(mixed!.firstSegmentBare).toBe(true);
+    expect(mixed!.value).toBe("--body=x");
+  });
+
+  it("emits unquoted control operators as their own words", () => {
+    expect(values(`a && b; c | d & e || f`)).toEqual(["a", "&&", "b", ";", "c", "|", "d", "&", "e", "||", "f"]);
+    const ops = splitShellWords(`a && b`).filter((word) => word.isOperator).map((word) => word.value);
+    expect(ops).toEqual(["&&"]);
+  });
+
+  it("does NOT treat an operator character inside quotes as an operator", () => {
+    const words = splitShellWords(`--body "a && b; c"`);
+    expect(words.map((word) => word.value)).toEqual(["--body", "a && b; c"]);
+    expect(words.some((word) => word.isOperator)).toBe(false);
+  });
+
+  it("reports a newline in the preceding whitespace", () => {
+    const words = splitShellWords("a\nb c");
+    expect(words.map((word) => word.precededByNewline)).toEqual([false, true, false]);
+  });
+
+  it("honours a backslash escape outside quotes", () => {
+    expect(values(String.raw`a\ b c`)).toEqual(["a b", "c"]);
+    expect(values(String.raw`\'quoted\'`)).toEqual(["'quoted'"]);
+  });
+
+  it("terminates on unbalanced quotes rather than spinning", () => {
+    expect(values(`--body "never closed`)).toEqual(["--body", "never closed"]);
+    expect(values(`'`)).toEqual([""]);
+  });
+
+  it("leaves readShellArg's own behaviour untouched", () => {
+    // The three existing consumers depend on readShellArg, not on this function. This pins that
+    // adding word splitting did not change the single-argument reader they rely on.
+    expect(readShellArg(String.raw`'don'\''t' rest`)?.value).toBe("don");
   });
 });

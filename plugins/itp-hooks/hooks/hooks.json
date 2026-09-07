@@ -178,6 +178,28 @@
         ]
       },
       {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-premise-annotator.ts",
+            "timeout": 15,
+            "description": "Annotates any AskUserQuestion option that names a pull request with the facts the agent would otherwise be asserting: who authored it, and whether a review was ever requested from you. Never blocks, never denies, and makes no network call when no option names a PR (the common case, measured at 12ms). UPSTREAM OF pretooluse-pr-review-invitation-guard, which acts at the moment of the COMMAND: this one acts at the moment of the DECISION, which is where the 2026-09-06 incident actually went wrong. An agent surveying open PRs reported Eon-Labs/alpha-forge#656 as 'waiting on my review' when no request existed (one arrived 19h29m LATER); that invented premise reached the operator's menu as an option labelled 'Review #656 leak erratum', was approved inside a batch, and became a blocking CHANGES_REQUESTED on the CEO's own pull request. Replayed against that exact menu shape, this hook now renders '[#426: @ChenLi0830's, no review requested from you]' beside such an option, which is the label that would have caught it. The annotation is a SINGLE ` - ` separated clause and never a second line, because the sibling askuserquestion-option-line-terminator-guard denies a newline in an option label or description (Claude Code renders one as U+FFFD). At most 3 pull requests are queried per question set and the lookups run concurrently -- 3.2s for three, versus 6.2s sequential, which matters because a human is waiting on the dialog; every child is timeout-bounded at 2s and killed by pid, never via pkill -f. Mutation goes through allowWithInput, which validates against TOOL_SCHEMAS.AskUserQuestion (added with this hook, along with nested object / array-of-object / open-record support in the strict schema engine) and calls trackHookError on any mismatch, so an annotator that quietly stops annotating is COUNTED rather than invisible -- which matters more here than anywhere else, since silence looks identical to having nothing to say. Fail-open by construction: any throw, timeout or unresolvable PR yields a plain allow, and an unresolved PR is labelled as unresolved rather than guessed."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-pr-review-invitation-guard.ts",
+            "timeout": 10,
+            "description": "Denies a BLOCKING pull-request review (CHANGES_REQUESTED) on a PR you did not author and were never invited to review, so the blocking form costs one deliberate keystroke instead of being the default. Motivated by Eon-Labs/alpha-forge#656 on 2026-09-06: an agent posted CHANGES_REQUESTED on the CEO's PR on the strength of a premise it had invented ('waiting on my review'); no request existed and one arrived 19h29m LATER. The review's content was substantive and largely adopted, so the defect was its FORM and its PREMISE, not its findings. IT DOES NOT ADJUDICATE AND CANNOT: measured over ten months, all 6 of that reviewer's CHANGES_REQUESTED reviews on others' PRs were uninvited and 5 drew no objection (#591 and #587 went CHANGES_REQUESTED -> APPROVED within ~35 minutes, an ordinary round), so no fact available at command time separates the one complaint from the five non-complaints and a strict rule would carry 5 false positives per true positive. Deliberately untouched: `--approve` (17 on others' PRs, 10 since 2026-08-21; the ruleset requires 1 approval and GitHub forbids self-approval, so gating it would DEADLOCK the repo), `--comment` (the intended fallback -- the honest description of this guard's effect is a rename, not a prevention), and all `gh issue` traffic (closing a collaborator's issue is ordinary triage). Covers four doors: `gh pr review` porcelain including pflag shorthand clusters (`-rb`) and the `=true` spelling, the `gh api` REST `/pulls/N/reviews` write (no `-X POST` needed -- any field flag implies POST), the two-step `/reviews/{id}/events` submit, and `gh api graphql addPullRequestReview`; `--input` and GraphQL are opaque because the event sits in a file or payload, and opaque resolves to denied. The invitation fact is the durable `review_requested` TIMELINE event, never the live `requested_reviewers` array, which GitHub CLEARS the moment you submit a review (measured on #201 and #35) and which would therefore make legitimate round-2+ review -- 73% of review traffic here -- the dominant false positive. UNLIKE its sibling review-round-gate, this hook DOES make network calls, so every gap resolves to DENY (opaque command, unresolved author or actor, unqueryable timeline): a network check whose failure means 'permit' is Decision #484 reproduced inside a guard built to prevent it. Calls are bounded at 3s each and the child pid is killed directly, never via `pkill -f`. Escape hatch: PR_BLOCKING_REVIEW_OK=1 as a LEADING ASSIGNMENT at a command position, never a substring, so a body discussing the token cannot disarm it. Not a containment boundary: disableAllHooks, the web UI, and a hook timeout all reach GitHub without a verdict."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
