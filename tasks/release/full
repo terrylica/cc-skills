@@ -35,9 +35,19 @@ readonly CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR="$CC_SKILLS_REPO_ROOT/tasks/release"
 #
 # Removed the previous `#MISE depends=["release:preflight"]` declaration so
 # preflight runs INSIDE the orchestrator script body where it can be wrapped
-# by the timing capture. Functionally identical to the depends-based invocation
-# (mise wires both up the same way) — the explicit-call form just lets the
-# iter-139 instrumentation see the preflight wall-clock too.
+# by the timing capture — the explicit-call form lets the iter-139
+# instrumentation see the preflight wall-clock too.
+#
+# DO NOT restore an orchestrator-level preflight dependency for this task.
+# #138 wired `deps: ["~:release-preflight"]` onto the release-dry and
+# release-version moon tasks, which had lost their gate when the same dead
+# frontmatter stopped being read. This orchestrator is EXEMPT: declaring the
+# dependency in moon.yml would run preflight outside the timing wrapper (and a
+# second time, since the Phase 1 call-site below still invokes it), destroying the phase-1
+# wall-clock that iter-74 through iter-138 were built on. The absence of the
+# frontmatter line is asserted by Iter-139.C4 in
+# tasks/tests/test-iter137-138-139-140-…-sleep-2-elimination.sh:253, and the
+# exemption is recorded next to `release-full` in moon.yml.
 __iter139_release_phase_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary=()
 
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking() {
