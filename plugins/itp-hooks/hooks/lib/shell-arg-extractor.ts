@@ -291,3 +291,126 @@ export function extractHeredocs(command: string): Heredoc[] {
 
   return found;
 }
+
+// =================================================================================================
+// Shell WORD splitting
+// =================================================================================================
+
+/**
+ * A shell word: one command-line token after quote processing, plus what a caller needs in order
+ * to tell a FLAG from a VALUE.
+ */
+export interface ShellWord {
+  /** Fully decoded text, with adjacent quoted and bare segments joined as the shell joins them. */
+  readonly value: string;
+  /**
+   * True when the word BEGINS with an unquoted segment. That is the shell-correct test for "could
+   * this be a flag": `--body='x'` is a flag with a quoted value, while `'--body'` is a literal.
+   */
+  readonly firstSegmentBare: boolean;
+  /** True for an unquoted control operator (`;` `&&` `||` `|` `&`). */
+  readonly isOperator: boolean;
+  /** True when a newline appeared in the whitespace before this word. */
+  readonly precededByNewline: boolean;
+  readonly start: number;
+  readonly end: number;
+}
+
+const OPERATOR_CHARS = new Set([";", "&", "|"]);
+
+/**
+ * Split a command into shell WORDS.
+ *
+ * WHY THIS EXISTS ALONGSIDE `readShellArg`, WHICH LOOKS SIMILAR. `readShellArg` reads ONE argument
+ * and, by a deliberate simplification documented at its bare branch, reads bare text "until
+ * whitespace, backslash kept literal". That is exactly right for its three consumers, which each
+ * pull a single quoted value out of a flag. It is NOT sufficient for deciding where one command
+ * ENDS, because the shell JOINS adjacent segments into a single word:
+ *
+ *   --body 'don'\''t merge; fix'   bash: ONE word, `don't merge; fix`
+ *                                  readShellArg: five tokens, one of which is bare `merge;`
+ *
+ * A caller asking "is this `;` a command separator" then answers yes, ends the command early, and
+ * never sees the flags that follow. Measured as a fail-open in the PR review-invitation guard: a
+ * blocking review on someone else's pull request was ALLOWED in 0.038 s with no network call.
+ *
+ * This function is ADDITIVE. `readShellArg` is untouched, so gmail-body-detector,
+ * release-notes-patterns and sred-commit-guard keep their existing behaviour exactly.
+ *
+ * Not modelled, deliberately: `$(…)`, backticks and `$VAR` are copied verbatim into the value (the
+ * same policy `readShellArg` documents), and redirections are treated as ordinary words.
+ */
+export function splitShellWords(command: string): ShellWord[] {
+  const words: ShellWord[] = [];
+  let i = 0;
+
+  // Bounded so a pathological input cannot spin inside a PreToolUse hook, where a hang is worse
+  // than a wrong answer: the hook renders no verdict at all and the tool proceeds.
+  while (i < command.length && words.length < 4096) {
+    let sawNewline = false;
+    while (i < command.length && /\s/.test(command[i]!)) {
+      if (command[i] === "\n") sawNewline = true;
+      i++;
+    }
+    if (i >= command.length) break;
+
+    const start = i;
+
+    // An unquoted control operator is its own word, so a caller can find command boundaries
+    // without re-splitting text that may have come out of a quoted span.
+    if (OPERATOR_CHARS.has(command[i]!)) {
+      let operator = command[i]!;
+      if ((operator === "&" || operator === "|") && command[i + 1] === operator) operator += operator;
+      i += operator.length;
+      words.push({
+        value: operator,
+        firstSegmentBare: true,
+        isOperator: true,
+        precededByNewline: sawNewline,
+        start,
+        end: i,
+      });
+      continue;
+    }
+
+    let value = "";
+    let firstSegmentBare: boolean | null = null;
+
+    while (i < command.length && !/\s/.test(command[i]!) && !OPERATOR_CHARS.has(command[i]!)) {
+      const char = command[i]!;
+
+      if (char === "'" || char === '"' || (char === "$" && command[i + 1] === "'")) {
+        // On a quote, `readShellArg` reads exactly that quoted segment and stops at its close,
+        // which is precisely the sub-reader this loop needs. Reusing it keeps ONE decoding rule.
+        const read = readShellArg(command, i);
+        if (!read || read.endIndex <= i) break;
+        firstSegmentBare = firstSegmentBare ?? false;
+        value += read.value;
+        i = read.endIndex;
+        continue;
+      }
+
+      firstSegmentBare = firstSegmentBare ?? true;
+      if (char === "\\" && i + 1 < command.length) {
+        // Outside quotes a backslash escapes the NEXT character. That is how `'a'\''b'` keeps its
+        // apostrophe, and not handling it is what desynchronises a naive scanner.
+        value += command[i + 1];
+        i += 2;
+        continue;
+      }
+      value += char;
+      i++;
+    }
+
+    words.push({
+      value,
+      firstSegmentBare: firstSegmentBare ?? true,
+      isOperator: false,
+      precededByNewline: sawNewline,
+      start,
+      end: i,
+    });
+  }
+
+  return words;
+}

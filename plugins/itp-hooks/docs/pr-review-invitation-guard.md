@@ -61,9 +61,9 @@ A guard that covers only the porcelain spelling is decorative. All four are clas
 
 `--input file.json` and GraphQL are **opaque**: the event sits in a file or payload the hook must not open at decision time (it is I/O in a pure classifier, and the file can be rewritten between check and use). Opaque resolves to denied.
 
-## Status: NOT READY TO SHIP, and not live
+## Status: every known fail-open closed; not yet live
 
-One fail-open remains open, pinned as `it.todo` in the suite — see "The one that is still open" below. The guard is **not** present in any live plugin copy (`itp-hooks@30.3.0` does not contain it), so nothing currently relies on it.
+The last one — the shell apostrophe idiom — was closed by adding `splitShellWords()` to the shared extractor. No `it.todo` remains. The guard is still **not** present in any live plugin copy (`itp-hooks@30.3.0` does not contain it), so it becomes active only after a release and a plugin-cache update.
 
 ## Why it tokenizes instead of pattern-matching
 
@@ -97,13 +97,15 @@ The extraction layer is now a single pass over `readShellArg` tokens:
 
 So prose inside `--body` is a value and therefore _structurally_ cannot donate a target, name a flag, or fabricate a command position. Bare tokens are additionally split on `; & |`, because `readShellArg` reads **arguments, not operators** — `--approve;` otherwise arrives as one token whose `;` never reaches the separator test.
 
-## The one that is still open
+## The last one, and how it was closed
 
-Bash joins `'don'\''t x; y'` into **one** word. `readShellArg` does not: its bare branch reads _"until whitespace, backslash kept literal"_ — a **deliberate** simplification documented at `shell-arg-extractor.ts:101-102`, correct for its three existing consumers, each of which extracts a single quoted flag value.
+Bash joins `'don'\''t x; y'` into **one** word. `readShellArg` does not: its bare branch reads _"until whitespace, backslash kept literal"_ — a **deliberate** simplification, correct for its three existing consumers, each of which extracts a single quoted flag value. A caller asking "is this `;` a command separator" therefore answered yes, ended the command inside the argument, and never saw the `--request-changes` that followed. Measured: allowed in 0.038 s with no network call.
 
-This classifier needs shell **word** splitting, so a `;` inside such a body still ends the command and the following `--request-changes` is missed. Measured: allowed in 0.038 s with no network call.
+The fix went into the shared library, not here: **`splitShellWords()`** in `shell-arg-extractor.ts`. It is **additive** — `readShellArg` is untouched, so `gmail-body-detector`, `release-notes-patterns` and `sred-commit-guard` keep their exact behaviour, pinned by a test asserting the single-argument reader still returns `don` for that input.
 
-Closing it means adding a `splitShellWords()` to the shared extractor — additive, so the three consumers are untouched — and validating that separately. It is marked `it.todo` rather than deleted or asserted-as-correct, because it is a **fail-open** and hiding it would be the defect this whole guard exists to argue against.
+It reuses `readShellArg` as its sub-reader on every quoted segment, so there is still exactly **one** decoding rule; what it adds is segment joining, backslash escapes outside quotes, and control operators as their own words. `firstSegmentBare` is the shell-correct flag test: `--body='x'` is a flag with a quoted value, `'--body'` is a literal.
+
+Putting this in the SSoT rather than writing a fourth private grammar is the whole lesson of this guard's history — the three private grammars are what produced every fail-open in the table above.
 
 ## The shared constant
 
