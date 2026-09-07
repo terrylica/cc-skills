@@ -19,6 +19,14 @@ static const CGFloat kNetBarGap    = 3.0;
 // measures the strings it actually drew.
 static const CGFloat kMinBarW      = 92.0;
 
+// How long to wait before spending another subprocess on a primary interface
+// the catalog could not name. Generous on purpose: the only thing that changes
+// the answer is a network SERVICE being created while the app runs, which is
+// rare and never urgent, while the cost of guessing short is a fork/exec on a
+// 1 Hz timer. A newly-seen device still gets an immediate look — the backoff
+// only suppresses repeats for the SAME device.
+static const CFAbsoluteTime kUnresolvedRetrySecs = 300.0;
+
 static NSString *const kNetworksetupPath = @"/usr/sbin/networksetup";
 
 @implementation FCNetworkStatusIndicator {
@@ -39,6 +47,12 @@ static NSString *const kNetworksetupPath = @"/usr/sbin/networksetup";
     // Throughput is a DERIVATIVE, so it needs the previous sample. Keyed by
     // device: when the route moves, the old counters belong to a different
     // interface and differencing across them would invent a burst of traffic.
+    // Negative cache for the catalog refetch. Without these the 1 Hz tick
+    // spawns a subprocess every second whenever the primary interface is one
+    // networksetup does not enumerate. See FCShouldRefetchForUnresolvedDevice.
+    NSString      *_unresolvedDevice;
+    CFAbsoluteTime _unresolvedRetryAt;
+
     NSString      *_rateDevice;
     uint64_t       _prevRx;
     uint64_t       _prevTx;
@@ -300,13 +314,25 @@ static void FCAppend(NSMutableAttributedString *s, NSString *text, NSColor *colo
 
     if (!shown) {
         NSString *name = FCServiceNameForBSDDevice(_catalog, device);
-        // Cache miss: either first paint, or the primary moved to a device we
-        // have never seen. Both are rare and user-visible, so a one-off
-        // subprocess here is justified — the steady-state tick still spawns
-        // nothing because the cache satisfies it.
+        // Cache miss. A refetch costs a SUBPROCESS, so it is gated: once per
+        // newly-seen device, then not again until the backoff expires. Without
+        // that gate a device networksetup never lists — a VPN's utunN owning
+        // the default route — misses on EVERY tick and fork/execs once a
+        // second forever. See FCShouldRefetchForUnresolvedDevice.
         if (!name && device.length) {
-            name = FCServiceNameForBSDDevice([self catalogForcingRefresh:YES], device);
+            CFAbsoluteTime now = CFAbsoluteTimeGetCurrent();
+            if (FCShouldRefetchForUnresolvedDevice(device, _unresolvedDevice,
+                                                   now, _unresolvedRetryAt)) {
+                name = FCServiceNameForBSDDevice([self catalogForcingRefresh:YES], device);
+                if (!name) {
+                    _unresolvedDevice  = [device copy];
+                    _unresolvedRetryAt = now + kUnresolvedRetrySecs;
+                }
+            }
         }
+        // Resolved (from cache or a refetch) — drop any standing backoff so a
+        // later genuine miss is not silenced by a stale one.
+        if (name) _unresolvedDevice = nil;
         if (name) {
             shown = name;
         } else if (device.length) {

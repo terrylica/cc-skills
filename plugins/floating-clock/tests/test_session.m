@@ -868,6 +868,8 @@ int main(void) {
         RUN_TEST(test_network_switchable_excludes_dead_modem_services);
         RUN_TEST(test_network_switchable_keeps_link_local_device);
         RUN_TEST(test_network_switchable_nil_vs_empty_liveness);
+        RUN_TEST(test_network_unresolved_device_backoff_stops_repeat_fetches);
+        RUN_TEST(test_network_unresolved_backoff_does_not_mask_a_new_device);
         RUN_TEST(test_overlay_width_takes_widest_need);
         RUN_TEST(test_overlay_width_floors_at_clock_width);
         RUN_TEST(test_overlay_width_hidden_overlay_stops_widening);

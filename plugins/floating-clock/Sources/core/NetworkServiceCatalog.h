@@ -54,6 +54,32 @@ NSString *_Nullable FCServiceNameForBSDDevice(NSArray<NSDictionary<NSString *, i
 NSArray<NSString *> *_Nullable FCReorderServiceNamesFirst(NSArray<NSDictionary<NSString *, id> *> *catalog,
                                                           NSString *_Nullable chosenName);
 
+// Should an unresolvable primary interface justify re-running the catalog
+// fetch, which costs a SUBPROCESS?
+//
+// THE BUG THIS EXISTS TO PREVENT. The indicator originally re-fetched on every
+// cache miss, with a comment asserting the cost was "one-off" because a miss
+// was rare. That is true only when the primary interface eventually appears in
+// networksetup's list. It never does when a VPN owns the default route: the
+// route sits on a utunN device that `networksetup -listnetworkserviceorder`
+// does not enumerate, so every 1 Hz tick missed, re-fetched, and fork/exec'd
+// `networksetup` — once per second, indefinitely, on a machine running
+// Tailscale. That falsifies the app's central "zero child processes" claim and
+// is precisely the unbounded-spawn shape the process-storm policy forbids.
+//
+// The rule: one fetch when the device CHANGES (a genuinely new interface is
+// worth a look), then nothing until `retryNotBefore`. A slow retry is kept
+// rather than giving up permanently because a network service really can be
+// created while the app runs — but that is rare and never urgent, so the
+// interval is generous.
+//
+// Pure so the decision can be tested directly; time is passed in rather than
+// read, so a test can drive it without sleeping.
+BOOL FCShouldRefetchForUnresolvedDevice(NSString *_Nullable device,
+                                        NSString *_Nullable lastUnresolvedDevice,
+                                        NSTimeInterval now,
+                                        NSTimeInterval retryNotBefore);
+
 // Services a user could meaningfully switch TO. THREE conditions, all required:
 // enabled, carrying a real BSD device, and currently holding an IPv4 address.
 //
