@@ -1,25 +1,28 @@
 // Mic-mute indicator — user directive 2026-06-01.
 //
 // Watches the CURRENT DEFAULT INPUT device's mute state — the CoreAudio
-// mute flag (software mutes) OR sustained digital silence (the Antlion's
-// analog hardware button) — and shows a red "MIC MUTED" banner pinned just
-// above the floating clock whenever the ACTIVE mic is muted. Flips to
-// just-below when the clock sits at the screen's top edge. Detection-only —
-// no controls. Hidden entirely when unmuted.
+// mute flag (software mutes) OR sustained digital silence (an inline analog
+// mute button, whose position CoreAudio cannot observe) — and shows a red
+// "MIC MUTED" banner pinned just above the floating clock whenever the
+// ACTIVE mic is muted. Flips to just-below when the clock sits at the
+// screen's top edge. Detection-only — no controls. Hidden entirely when
+// unmuted.
 //
-// Why: the Antlion USB Microphone's inline button and macOS share the same
+// Why: on the pinned USB mic the inline button and macOS share the same
 // UAC mute register (verified 2026-06-01), but there's no always-visible
 // cue — so the user speaks into a muted mic unaware. This surfaces it on
 // the always-on-top clock the user already watches.
 //
 // 2026-06-11 semantics flip (user bug report): previously bound to the
-// NAMED device (the Antlion) whenever present, so the Antlion's hardware
-// button falsely flagged the IN zone red while AirPods were the default
-// input. Now binds default-input-first — a muted mic that is not the
-// active input is irrelevant. The constructor's deviceName is only the
-// fallback when the HAL reports no default input. Bluetooth-transport
-// devices are never metered (a persistent IOProc would lock the headset
-// into HFP/SCO call mode); their software mute flag is still read.
+// NAMED device whenever present, so that device's inline hardware button
+// falsely flagged the IN zone red while AirPods were the default input.
+// Now binds default-input-first — a muted mic that is not the active input
+// is irrelevant. The constructor's deviceName is only the fallback when the
+// HAL reports no default input. No device name is compiled in: it comes
+// from the `MicIndicatorDeviceName` preference, which defaults to empty,
+// meaning "follow the system default input". Bluetooth-transport devices
+// are never metered (a persistent IOProc would lock the headset into
+// HFP/SCO call mode); their software mute flag is still read.
 //
 // Event-driven (AudioObjectAddPropertyListenerBlock on the main queue) —
 // no polling, preserving the clock's sub-0.1% idle CPU budget. Survives

@@ -67,17 +67,7 @@ AskUserQuestion-selected extras (same day, all verified on-screen):
 
 - **"Show Audio Bar"** context-menu toggle (Display section) → flips
   `AudioBarEnabled` with instant show/hide + checkmark.
-- **Mute state on IN**: while the ACTIVE mic is muted (CoreAudio mute flag on
-  the current default input OR the mic indicator's banner state), the IN zone
-  renders `IN⊘` + red struck-through device name + red level. 2026-06-11
-  fix: `FCMicMuteIndicator` now binds DEFAULT-INPUT-FIRST (was Antlion-first,
-  which falsely flagged AirPods red when the Antlion's hardware button was
-  pressed); Bluetooth inputs are never silence-metered (a persistent IOProc
-  would hold the headset in HFP/SCO call mode). The Antlion's analog button
-  is still caught — when the Antlion is the default input. Companion fix
-  outside this repo: `~/.local/bin/mic-mute` (chezmoi) gained a `default`
-  target and both Karabiner F10 bindings use it, so the mute key follows the
-  active mic too.
+- **Mute state on IN**: while the ACTIVE mic is muted (CoreAudio mute flag on the current default input OR the mic indicator's banner state), the IN zone renders `IN⊘` + red struck-through device name + red level. 2026-06-11 fix: `FCMicMuteIndicator` now binds DEFAULT-INPUT-FIRST (was pinned-device-first, which falsely flagged AirPods red when the pinned mic's inline hardware button was pressed); Bluetooth inputs are never silence-metered (a persistent IOProc would hold the headset in HFP/SCO call mode). A wired mic's inline analog mute button — invisible to CoreAudio, which is why the silence meter exists at all — is still caught, when that mic is the default input. The device to pin is the `MicIndicatorDeviceName` preference (empty by default = follow the system default input). Companion fix outside this repo: `~/.local/bin/mic-mute` (chezmoi) gained a `default` target and both Karabiner F10 bindings use it, so the mute key follows the active mic too.
 - **Mute state on OUT (2026-06-14)**: symmetric to IN — when the system output
   is muted (the mute key / `set volume output muted`), the OUT zone renders
   `OUT⊘` + red struck-through device name + red level. Detection is a pure 1Hz
@@ -123,7 +113,11 @@ Top rail of the stack. Shows which network service currently carries the machine
 
 Every numeric field is padded to a constant character count. The telemetry group is right-aligned, so a field that changes width drags everything to its left sideways; throughput changes every second, which made the address visibly jitter once a second until the padding went in. The bar's font is monospaced, so a constant character count is exactly a constant pixel width.
 
-**Refresh model — the one hard performance constraint.** The 1 Hz tick reads only `SCDynamicStore`, `getifaddrs` and CoreWLAN, all in-process. It NEVER spawns a subprocess; doing that once a second would destroy the sub-1 % idle CPU budget. The service-name map needs `networksetup`, so it is fetched lazily — on first show, on menu open, after a switch, and when the primary interface moves to a device not already cached — then kept. Measured idle: 0.3 % CPU, zero child processes.
+**Refresh model — the one hard performance constraint.** The 1 Hz tick reads only `SCDynamicStore`, `getifaddrs` and CoreWLAN, all in-process. It must never spawn a subprocess from the tick; doing that once a second would destroy the sub-1 % idle CPU budget. The service-name map needs `networksetup`, so it is fetched lazily — on first show, on menu open, after a switch, and when the primary interface moves to a device not already cached — then kept.
+
+That last trigger shipped as a defect in v30.2.0 and was fixed in v30.4.0, and the shape is worth recording because the original code looked obviously correct. A cache miss provoked a refetch, with a comment asserting the cost was "one-off" because a miss is rare. That holds only when the primary interface eventually appears in `networksetup`'s list. It never does when a VPN owns the default route: the route sits on a `utunN` device that `-listnetworkserviceorder` does not enumerate at all, so every tick missed, refetched, and fork/exec'd `networksetup` — once per second, indefinitely. The guard is now a negative cache (`FCShouldRefetchForUnresolvedDevice`, pure and unit-tested): one fetch per newly-seen device, then nothing for that device until a 5-minute backoff expires.
+
+Measured idle with the primary interface resolvable: 0.3 % CPU, zero child processes. That measurement does NOT by itself establish the pathological case — it was taken with Wi-Fi as primary, which resolves — so the unresolvable path is pinned by a unit test that walks the whole backoff window tick by tick rather than by observation.
 
 **Switching** runs `networksetup -ordernetworkservices`, which demands the COMPLETE service list — a partial or misspelled list is rejected wholesale. This is also why the service names come from `networksetup` itself and not from SystemConfiguration: the two enumerations disagree (22 vs 19 services on the same machine, and SC's `iPhone` is `networksetup`'s `iPhone USB`), so SC names would fail on both count and spelling. On accounts without admin rights macOS may refuse the change; the failure shows as a transient ✗ rather than being swallowed.
 
