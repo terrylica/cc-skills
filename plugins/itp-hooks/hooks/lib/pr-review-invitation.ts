@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+// PROCESS-STORM-OK: this module is pure. It spawns nothing, imports no child_process/Bun.spawn,
+// and every loop here walks a fixed, already-parsed token array. The `for (const token of ...)`
+// shape below is flagged by a heuristic that cannot see that.
 /**
  * Pure core of the PR review-invitation gate: does this command submit a BLOCKING review, and is
  * the actor entitled to submit one?
@@ -12,302 +15,385 @@
  * reviewer's CHANGES_REQUESTED reviews on other people's PRs were uninvited, and 5 drew no
  * objection (#591 and #587 went CHANGES_REQUESTED -> APPROVED within ~35 minutes, an ordinary
  * round). No fact available at command time separates #656 from those five. A gate that DENIED on
- * "uninvited" would therefore carry 5 false positives per true positive. What it does instead is
- * make the blocking form COST one deliberate keystroke, and put the queried facts in front of the
- * human at the moment of the act. Converting a reflexive block into a considered one is the whole
- * claim; preventing anything is not.
+ * "uninvited" would carry 5 false positives per true positive. What it does instead is make the
+ * blocking form COST one deliberate keystroke, and put the queried facts in front of the human at
+ * the moment of the act. Preventing anything is not the claim.
  *
  * WHAT IT DELIBERATELY LEAVES ALONE:
  *   --approve   17 of these on other authors' PRs, 10 since 2026-08-21. The `main` ruleset requires
  *               1 approving review and GitHub forbids self-approval, so terrylica<->ChenLi0830 is a
  *               reciprocal approval pair and it is the ONLY way anything merges there. Gating it
- *               would deadlock the repository.
- *   --comment   Carries identical findings without gating. It is the intended fallback, so the
- *               honest description of this guard's effect is a RENAME, not a prevention.
- *   issues      `gh issue close` / `gh issue comment` on a collaborator's issue is ordinary triage
- *               (terrylica closed Mayweiwang's #441 and #442, and has 24 comments on #435). Scoping
- *               this to "mutating another author's artifact" would have swallowed all of it.
+ *               would deadlock the repository, which is worse than the harm this gate prevents.
+ *   --comment   Carries identical findings without gating. The honest description of this guard's
+ *               effect is a RENAME, not a prevention.
+ *   issues      `gh issue close` / `gh issue comment` on a collaborator's issue is ordinary triage.
  *
  * WHY THE INVITATION FACT IS THE TIMELINE, NOT `requested_reviewers`. GitHub CLEARS a user from
  * `requested_reviewers` the moment they submit a review -- measured on #201 and #35, both of which
- * read `[]` after their INVITED reviews. Since 73% of review submissions in this repo are rounds
- * 2+, reading the live array would make legitimate re-review this guard's dominant false positive.
- * The durable fact is a `review_requested` event on the issue timeline.
+ * read `[]` after their INVITED reviews. Since 73% of review submissions here are rounds 2+,
+ * reading the live array would make legitimate re-review this guard's dominant false positive.
  *
- * NO I/O HERE. Facts are injected by the caller, so every branch is reachable from a unit test and
- * the classifier can be mutation-tested without a network or a repository.
+ * ---------------------------------------------------------------------------------------------
+ * WHY THIS FILE TOKENIZES INSTEAD OF PATTERN-MATCHING, WRITTEN AFTER PAYING FOR IT THREE TIMES.
+ *
+ * The first three versions of this classifier ran regexes over three DIFFERENT manglings of the
+ * command string: `withoutQuotedSpans` (deletes quoted spans, handles backslash escapes), a
+ * `dequote` helper (removes quote characters, keeps content, NO escape handling), and a hand-rolled
+ * quote scanner (NO escape handling). Because those three grammars disagreed with each other, every
+ * round of fixes introduced new P0 fail-opens in the cases the previous round was not thinking
+ * about. All measured end to end against a live uninvited target:
+ *
+ *   -R "owner/repo"                  -> repo erased       -> resolved the CWD repo         -> ALLOW
+ *   -f "event=REQUEST_CHANGES"       -> not a review at all                                -> ALLOW
+ *   timeout 15 gh pr review 682 ...  -> number 15         -> queried a self-authored PR    -> ALLOW
+ *   --body "... /pull/679"           -> number 679        -> queried a self-authored PR    -> ALLOW
+ *   --body 'don'\''t; ...' -r        -> segment truncated -> the flag never seen           -> ALLOW
+ *   --approve && grep -r TODO        -> read as blocking  -> GATED an approval (deadlock)
+ *
+ * Every one of those is a quoting or scoping bug that a shell-correct tokenizer does not have, and
+ * this directory already contained one: `shell-arg-extractor.ts`, whose own header says it is the
+ * SSoT for "pull a flag's value out of a shell command string -- the pattern several PreToolUse
+ * guards re-implement". Re-implementing it is exactly what produced every defect above.
+ *
+ * So: `readShellArg` does the parsing, once. A FLAG is an UNQUOTED token; a VALUE is whatever the
+ * next token decodes to, quoted or not; a TARGET comes only from a POSITIONAL. Prose inside
+ * `--body` is a value and can therefore never donate a target, name a flag, or fabricate a
+ * command position.
+ *
+ * NO I/O HERE. Facts are injected, so every branch is unit-testable and mutation-testable.
  */
 
-import { COMMAND_POSITION, ghCommand, withoutQuotedSpans } from "./review-round-artifact.ts";
+import { readShellArg, type ShellQuoteKind } from "./shell-arg-extractor.ts";
+import { COMMAND_POSITION, withoutQuotedSpans } from "./review-round-artifact.ts";
 
 // ---------------------------------------------------------------------------------------------
-// Classification
+// Tokenizing
 // ---------------------------------------------------------------------------------------------
 
-/** Which door the blocking review is being submitted through. Reported in the deny message. */
+interface Token {
+  /** Shell-decoded value. */
+  readonly value: string;
+  readonly quote: ShellQuoteKind;
+  /** Offset of the first character of the token in the source command. */
+  readonly start: number;
+  /** Offset just past the token. */
+  readonly end: number;
+  /** True when the run of blanks before this token contained a newline. */
+  readonly afterNewline: boolean;
+}
+
+/** A token only counts as a FLAG when the shell would have seen it unquoted. */
+const isBare = (token: Token): boolean => token.quote === "none";
+
+function tokenize(command: string): Token[] {
+  const tokens: Token[] = [];
+  let cursor = 0;
+  // Bounded: every iteration must advance, or a malformed command would spin forever inside a
+  // PreToolUse hook, which is a hang rather than a verdict.
+  while (cursor < command.length && tokens.length < 4096) {
+    const read = readShellArg(command, cursor);
+    if (!read || read.endIndex <= cursor) break;
+    let start = cursor;
+    while (start < command.length && (command[start] === " " || command[start] === "\t")) start++;
+    const afterNewline = command.slice(cursor, start).includes("\n");
+
+    // `readShellArg` reads shell ARGUMENTS, not operators, so `--approve;` arrives as ONE bare
+    // token and the `;` never reaches the separator test -- which let `gh pr review 591 --approve;
+    // ls -lr` pick up the `-r` from `ls` and gate an approval. An operator can only be an operator
+    // when it is UNQUOTED, so splitting bare tokens on `; & |` is safe and quoted text is untouched.
+    const pieces =
+      read.quote === "none" && /[;&|]/.test(read.value)
+        ? read.value.split(/([;&|]+)/).filter((piece) => piece.length > 0)
+        : [read.value];
+
+    for (const [index, piece] of pieces.entries()) {
+      tokens.push({
+        value: piece,
+        quote: read.quote,
+        start,
+        end: read.endIndex,
+        afterNewline: index === 0 ? afterNewline : false,
+      });
+    }
+    cursor = read.endIndex;
+  }
+  return tokens;
+}
+
+/**
+ * Does this token end the current simple command?
+ *
+ * `#` starts a comment, and a trailing `# ... -r ...` comment previously turned an approve into a
+ * blocking review. A newline ends it too, which is why `afterNewline` exists: `readShellArg` skips
+ * only spaces and tabs, so a newline never reaches the separator test on its own.
+ */
+function endsCommand(token: Token): boolean {
+  if (token.afterNewline) return true;
+  if (!isBare(token)) return false;
+  return (
+    token.value.startsWith("#") ||
+    token.value === ";" ||
+    token.value === "&&" ||
+    token.value === "||" ||
+    token.value === "|" ||
+    token.value === "&" ||
+    token.value.includes("\n")
+  );
+}
+
+const basename = (path: string): string => path.slice(path.lastIndexOf("/") + 1);
+
+/**
+ * EVERY `gh <verb> <sub>` invocation in the command, each as its own argument list.
+ *
+ * Scanning only the FIRST match was itself a fail-open: `gh pr review 679 --approve; gh pr review
+ * 682 --request-changes` was allowed in 13 ms because the classifier stopped at the approve.
+ */
+function ghInvocations(command: string, verb: string, sub: string): Token[][] {
+  const tokens = tokenize(command);
+  const found: Token[][] = [];
+  for (let i = 0; i + 2 < tokens.length; i++) {
+    const head = tokens[i]!;
+    if (!isBare(head) || basename(head.value) !== "gh") continue;
+    // `/graphql` is accepted by gh exactly as `graphql` is. This is the THIRD instance in this
+    // file of the identical leading-slash miss; the REST path comment records the other two.
+    const actual = tokens[i + 2]!.value;
+    if (tokens[i + 1]!.value !== verb || (actual !== sub && actual !== `/${sub}`)) continue;
+    const args: Token[] = [];
+    for (let j = i + 3; j < tokens.length; j++) {
+      if (endsCommand(tokens[j]!)) break;
+      args.push(tokens[j]!);
+    }
+    found.push(args);
+  }
+  return found;
+}
+
+// ---------------------------------------------------------------------------------------------
+// `gh pr review`
+// ---------------------------------------------------------------------------------------------
+
 export type ReviewDoor = "porcelain" | "rest-reviews" | "rest-review-events" | "graphql";
 
 export interface BlockingReviewTarget {
   door: ReviewDoor;
-  /** `owner/repo` when the command names it explicitly (`-R`, or a REST path). Else null. */
+  /** `owner/repo` when the command names it explicitly. Else null. */
   repo: string | null;
   /** PR number when the command states it. Null when it is implied by the current branch. */
   number: number | null;
-  /**
-   * True when the command's blocking-ness could not be READ -- `--input file.json` puts the
-   * `event` in a file the hook must not open at decision time. Absent data resolves to the
-   * UNFAVOURABLE answer (Decision #484), so an opaque command is treated as blocking.
-   */
+  /** True when the command's blocking-ness could not be READ. Unknown resolves to blocked. */
   opaque: boolean;
 }
 
-const GH_PR_REVIEW = ghCommand(String.raw`pr\s+review\b`);
-const GH_API = ghCommand(String.raw`api\b`);
-
-/** `--request-changes`, and the `=true` spelling that a `(?=\s|$)` test would miss. */
-const LONG_REQUEST_CHANGES = /(?:^|\s)--request-changes(?:=true)?(?=\s|$)/;
-
-/**
- * Short flags for `gh pr review`. Go's pflag CLUSTERS boolean shorthands and lets the LAST one take
- * a value, so `-rb "needs work"` is `--request-changes --body "needs work"` and contains neither
- * the token `-r` nor `--request-changes`. Proven on a read-only control: `gh pr list -dq '.'`
- * parses as `--draft --jq .`.
- */
+/** `gh pr review` flags that consume the NEXT token as their value. */
+const REVIEW_VALUE_TAKING_LONG = new Set(["--body", "--body-file", "--repo"]);
+/** Their shorthand letters. A cluster ends at the first of these; the rest is that flag's value. */
 const REVIEW_VALUE_TAKING_SHORTHANDS = new Set(["b", "F", "R"]);
 const REQUEST_CHANGES_SHORTHAND = "r";
 
-/** True when a `-abc` style token requests changes once pflag clustering is accounted for. */
+/** pflag accepts far more than `true` for a boolean: `1 t T true True TRUE y yes` all parse. */
+const PFLAG_TRUE = /^(?:1|t|T|true|True|TRUE|y|Y|yes|YES)$/;
+
+/**
+ * True when a `-abc` style token requests changes once pflag clustering is accounted for.
+ * `-rb "msg"` is `--request-changes --body msg`; `-br` is `--body "r"` and requests nothing.
+ */
 export function shorthandClusterRequestsChanges(token: string): boolean {
   const match = /^-([A-Za-z]+)$/.exec(token);
   if (!match) return false;
   for (const char of match[1]!) {
     if (char === REQUEST_CHANGES_SHORTHAND) return true;
-    // A value-taking shorthand consumes the remainder of the cluster as its VALUE, so anything
-    // after it is not a flag. `-br` is `--body "r"`, which does NOT request changes.
     if (REVIEW_VALUE_TAKING_SHORTHANDS.has(char)) return false;
   }
   return false;
 }
 
-/**
- * The slice of the command that belongs to `gh pr review`: from that `gh` up to the next
- * separator outside quotes.
- *
- * WITHOUT THIS SCOPING THE GUARD GATES `--approve`, which its own contract forbids because
- * approvals are the repo's only merge path. `shorthandClusterRequestsChanges` was run over every
- * whitespace token of the WHOLE command, and `-rf`, `-r`, `-lr` are extremely common elsewhere, so
- * measured: `gh pr review 591 --approve && grep -r TODO src` classified as a blocking review, as
- * did the same line with `rm -rf`, `cp -r` or `ls -r`. A guard that blocks approvals deadlocks the
- * repository, which is a worse outcome than the one it was built to prevent.
- */
-function reviewSegment(command: string): string {
-  const outer = GH_PR_REVIEW.exec(command);
-  const inner = outer ? /(?:[\w./-]*\/)?gh\s+pr\s+review\b/i.exec(outer[0]) : null;
-  const start = outer && inner ? outer.index + inner.index : 0;
+/** Does a bare token consume the following token as its value? Handles clusters like `-rF`. */
+function consumesNextToken(token: Token): boolean {
+  if (!isBare(token)) return false;
+  const text = token.value;
+  if (text.startsWith("--")) return REVIEW_VALUE_TAKING_LONG.has(text);
+  const cluster = /^-([A-Za-z]+)$/.exec(text);
+  if (!cluster) return false;
+  // Only a cluster's LAST letter can take a value. `-rF x` is `--request-changes --body-file x`,
+  // so `x` is consumed and cannot be mistaken for the positional PR number.
+  return REVIEW_VALUE_TAKING_SHORTHANDS.has(cluster[1]!.at(-1)!);
+}
 
-  let single = false;
-  let double = false;
-  for (let i = start; i < command.length; i++) {
-    const char = command[i]!;
-    if (char === "'" && !double) single = !single;
-    else if (char === '"' && !single) double = !double;
-    else if (!single && !double && (char === "\n" || char === ";" || char === "&" || char === "|")) {
-      return command.slice(start, i);
+const REPO_SLUG = /^(?:[A-Za-z0-9._-]+\/)?([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)$/;
+const PR_URL = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)\/pull\/(\d+)/;
+
+interface ReviewArgs {
+  requestsChanges: boolean;
+  repo: string | null;
+  number: number | null;
+}
+
+function splitInline(text: string): [string, string | null] {
+  const joined = /^(--?[A-Za-z][A-Za-z-]*)=([\s\S]*)$/.exec(text);
+  return joined ? [joined[1]!, joined[2]!] : [text, null];
+}
+
+/**
+ * Walk one `gh pr review` argument list ONCE, classifying each token as flag, value or positional.
+ *
+ * This single pass replaces four separate regex scans that disagreed about quoting, and it is why
+ * a URL or a `-R` written inside `--body` can no longer donate a target: such text is a VALUE, and
+ * only POSITIONALS are consulted for the number and the repo.
+ */
+function readReviewArgs(args: Token[]): ReviewArgs {
+  let requestsChanges = false;
+  let repo: string | null = null;
+  let number: number | null = null;
+  const positionals: Token[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const token = args[i]!;
+
+    if (!isBare(token) || !token.value.startsWith("-")) {
+      positionals.push(token);
+      continue;
     }
+
+    const [name, inlineValue] = splitInline(token.value);
+
+    if (name === "--request-changes") {
+      if (inlineValue === null || PFLAG_TRUE.test(inlineValue)) requestsChanges = true;
+    } else if (inlineValue === null && shorthandClusterRequestsChanges(name)) {
+      requestsChanges = true;
+    }
+
+    const namesRepo =
+      name === "--repo" || (!name.startsWith("--") && /^-[A-Za-z]*R$/.test(name));
+    if (namesRepo) {
+      const raw = inlineValue ?? args[i + 1]?.value ?? null;
+      // `-R [HOST/]OWNER/REPO` is the documented form, so an optional host segment is stripped.
+      const slug = raw === null ? null : REPO_SLUG.exec(raw)?.[1] ?? null;
+      if (slug) repo = slug;
+    }
+
+    if (inlineValue === null && consumesNextToken(token)) i++;
   }
-  return command.slice(start);
+
+  for (const positional of positionals) {
+    const asUrl = PR_URL.exec(positional.value);
+    if (asUrl) {
+      repo = repo ?? asUrl[1]!;
+      number = number ?? Number(asUrl[2]);
+      continue;
+    }
+    if (number === null && /^\d+$/.test(positional.value)) number = Number(positional.value);
+  }
+
+  return { requestsChanges, repo, number };
 }
 
-function porcelainRequestsChanges(command: string): boolean {
-  const bare = withoutQuotedSpans(reviewSegment(command));
-  if (LONG_REQUEST_CHANGES.test(bare)) return true;
-  return bare.split(/\s+/).some(shorthandClusterRequestsChanges);
-}
-
-/**
- * PREDICATES USE `withoutQuotedSpans`. EXTRACTION MUST NOT.
- *
- * `withoutQuotedSpans` DELETES quoted text, which is exactly right for "is this a flag" (so that
- * `--body "mentions --request-changes"` is not read as a flag) and catastrophic for "what is this
- * flag's value" (so that `-R "owner/repo"` is not read as no repo at all). Three separate P0
- * fail-opens came from using the predicate helper for extraction, each one ALLOWING a blocking
- * review after querying the wrong pull request, or after failing to recognise the command at all:
- *
- *   -R "Eon-Labs/rangebar"        -> repo null -> fell back to the cwd repo -> allowed on ITS facts
- *   -f "event=REQUEST_CHANGES"    -> classified as NOT a review -> allowed with no network call
- *   'repos/O/R/pulls/N/reviews'   -> path erased -> same
- *
- * `dequote` removes the quote CHARACTERS and keeps the content, which is what an extractor needs.
- * It is deliberately not used for flag tests.
- */
-export function dequote(command: string): string {
-  return command.replace(/["']/g, "");
-}
-
-/** `-R owner/repo` / `--repo owner/repo`, which OUTRANKS the cwd. */
-const EXPLICIT_REPO = /(?:^|\s)(?:-R|--repo)[= ]+([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)(?=\s|$)/;
-
-/**
- * REST paths that submit or convert a review.
- *
- * The leading slash is OPTIONAL: `gh api repos/O/R/...` is the canonical spelling and
- * `gh api /repos/O/R/...` is equally accepted. Requiring the slash made every ordinary invocation
- * miss -- caught by the tests, not by reading, because the happy-path spelling I reached for first
- * was the one with the slash.
- */
-// The preceding-character class INCLUDES `/`, because gh accepts a full endpoint URL and
-// `https://api.github.com/repos/O/R/pulls/N/reviews` puts a slash immediately before `repos`.
-// Verified read-only that gh really does accept it: `gh api https://api.github.com/rate_limit`
-// returns 5000. This is the second time the same class of miss appeared in this one regex.
-const REST_REVIEWS_PATH =
-  /(?:^|[\s'"=/])\/?repos\/([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)\/pulls\/(\d+)\/reviews(?:\/(\d+)\/events)?/;
-
-/**
- * `gh api` switches to POST as soon as ANY field flag is present, so requiring an explicit
- * `-X POST` would be decorative. Field flags: `-f/--field`, `-F/--raw-field` (note that `-F` means
- * something different here than it does for `gh pr review`).
- */
-const REST_EVENT_REQUEST_CHANGES = /(?:^|\s)(?:-f|-F|--field|--raw-field)[= ]+event=REQUEST_CHANGES(?=\s|$)/i;
-/**
- * Sources that put the event somewhere the hook cannot read: `--input file`, and gh's documented
- * magic `@` read on a field value (`-f event=@payload`, `-F event=@-`). All are opaque, not
- * innocent -- previously `-F event=@file` matched neither the event pattern nor `--input` and was
- * therefore allowed outright.
- */
-const REST_INPUT_FILE = /(?:^|\s)--input(?:[= ]+\S+)?(?=\s|$)/;
-const REST_EVENT_FROM_FILE = /(?:^|\s)(?:-f|-F|--field|--raw-field)[= ]+event=@/i;
-
-const GRAPHQL_ADD_REVIEW = /addPullRequestReview/i;
-const GRAPHQL_REQUEST_CHANGES = /REQUEST_CHANGES/;
-
-/** A full PR URL names the repository as surely as `-R` does. */
-const PR_URL_REPO = /github\.com\/([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)\/pull\/\d+/;
-
-/**
- * `-R` was read but the URL form was not, so `gh pr review https://github.com/cli/cli/pull/148 -r`
- * produced `{repo: null, number: 148}` and the hook resolved author and invitation from the CWD's
- * repository -- a DIFFERENT project's #148 -- and could affirmatively ALLOW on its facts. The test
- * suite already exercised the URL form for the NUMBER, which is what made the gap invisible.
- */
-function explicitRepo(command: string): string | null {
-  const bare = dequote(command);
-  return EXPLICIT_REPO.exec(bare)?.[1] ?? PR_URL_REPO.exec(bare)?.[1] ?? null;
-}
-
-/**
- * `gh pr review` flags that CONSUME the next token. Everything else is boolean, so an integer
- * following it is the positional PR number, not a value.
- *
- * The first version skipped any number whose previous token began with `-`, which made
- * `gh pr review -r 682` resolve to NO number. The hook then asked `gh pr view` with no argument,
- * which answers about the CURRENT BRANCH's pull request -- measured allowing a blocking review on
- * #682 because the branch's own PR happened to be self-authored.
- */
-const REVIEW_VALUE_TAKING_FLAGS = new Set(["-b", "--body", "-F", "--body-file", "-R", "--repo"]);
-
-/**
- * First bare integer that is not the value of a flag -- `gh pr review 656 --request-changes`.
- * A branch name or a URL yields null, and null means the caller must resolve it or refuse.
- */
+/** Exported for tests: the PR number a `gh pr review` command names, or null. */
 export function explicitPrNumber(command: string): number | null {
-  // SCAN ONLY FROM THE `gh` THAT STARTS THE REVIEW COMMAND. A wrapper's own numeric argument and
-  // any earlier segment of a compound command otherwise donate their integer, and the guard then
-  // queries a DIFFERENT pull request -- and can ALLOW on its facts, which is worse than missing
-  // the command entirely. All three measured against a real uninvited target:
-  //   timeout 15 gh pr review 682 ...   -> resolved 15  -> queried #15 (self-authored) -> ALLOW
-  //   sleep 2 ; gh pr review 682 -r     -> resolved 2
-  //   head 20 f.txt && gh pr review 682 -> resolved 20
-  const segment = dequote(reviewSegment(command));
-
-  const url = /github\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+\/pull\/(\d+)/.exec(segment);
-  if (url) return Number(url[1]);
-
-  const tokens = segment.split(/\s+/);
-  for (let i = 0; i < tokens.length; i++) {
-    const token = tokens[i]!;
-    if (!/^\d+$/.test(token)) continue;
-    // Skip only a number that is genuinely a VALUE. Skipping every number preceded by any `-`
-    // token made `gh pr review -r 682` resolve to no number at all, and the hook then asked about
-    // the current branch's PR instead of #682.
-    if (REVIEW_VALUE_TAKING_FLAGS.has(tokens[i - 1] ?? "")) continue;
-    return Number(token);
+  for (const args of ghInvocations(command, "pr", "review")) {
+    const read = readReviewArgs(args);
+    if (read.number !== null) return read.number;
   }
   return null;
 }
 
-/**
- * Classify a shell command. Returns null when it does not submit a blocking review at all, which
- * is the answer for essentially all traffic and costs one substring test.
- */
-export function classifyBlockingReview(command: string): BlockingReviewTarget | null {
-  // Cheap prefilter. Everything below is anchored at a COMMAND POSITION, so `echo "gh pr review"`
-  // is not a match, but this test alone exits for the overwhelming majority of Bash calls.
-  if (!command.includes("gh")) return null;
+// ---------------------------------------------------------------------------------------------
+// `gh api`
+// ---------------------------------------------------------------------------------------------
 
-  if (GH_PR_REVIEW.test(command) && porcelainRequestsChanges(command)) {
-    return {
-      door: "porcelain",
-      repo: explicitRepo(command),
-      number: explicitPrNumber(command),
-      opaque: false,
-    };
-  }
+const API_FIELD_FLAGS = new Set(["-f", "-F", "--field", "--raw-field"]);
+const REST_REVIEWS_PATH =
+  /(?:^|\/)repos\/([A-Za-z0-9._-]+\/[A-Za-z0-9._-]+)\/pulls\/(\d+)\/reviews(?:\/(\d+)\/events)?/;
 
-  if (GH_API.test(command)) {
-    // DEQUOTED, not span-deleted. `-f "event=REQUEST_CHANGES"` and a quoted path are ordinary
-    // shell, and deleting the span made classifyBlockingReview return null -- not opaque, not
-    // denied, but "this is not a review at all", allowed with no network call. That single
-    // substitution defeated two of the four doors.
-    const bare = dequote(command);
-
-    // The `graphql` endpoint must actually be named. Without it, any `gh api` call whose TEXT
-    // merely contains both literals -- a --jq filter, a grep of this very file, a comment body
-    // quoting the mutation -- was denied, including pure reads.
-    if (
-      /(?:^|\s)graphql(?=\s|$)/.test(bare) &&
-      GRAPHQL_ADD_REVIEW.test(command) &&
-      GRAPHQL_REQUEST_CHANGES.test(command)
-    ) {
-      // The GraphQL door carries a node id, not an owner/repo/number, so the caller cannot resolve
-      // an author from it. It is reported opaque rather than silently allowed.
+function classifyGhApi(command: string): BlockingReviewTarget | null {
+  for (const graphqlArgs of ghInvocations(command, "api", "graphql")) {
+    const payload = graphqlArgs.map((token) => token.value).join(" ");
+    if (/addPullRequestReview|submitPullRequestReview/i.test(payload) && /REQUEST_CHANGES/.test(payload)) {
+      // A node id, not an owner/repo/number, so no author can be resolved from it.
       return { door: "graphql", repo: null, number: null, opaque: true };
     }
-
-    const path = REST_REVIEWS_PATH.exec(bare);
-    if (path) {
-      const door: ReviewDoor = path[3] ? "rest-review-events" : "rest-reviews";
-      const target = { door, repo: path[1] ?? null, number: Number(path[2]), opaque: false };
-      if (REST_EVENT_REQUEST_CHANGES.test(bare)) return target;
-      // `--input file.json` hides the event in a file. Reading it here would be I/O in a pure
-      // classifier AND would trust a file the command can rewrite between check and use.
-      if (REST_INPUT_FILE.test(bare) || REST_EVENT_FROM_FILE.test(bare)) {
-        return { ...target, opaque: true };
-      }
-    }
   }
 
+  const tokens = tokenize(command);
+  for (let i = 0; i + 1 < tokens.length; i++) {
+    const head = tokens[i]!;
+    if (!isBare(head) || basename(head.value) !== "gh" || tokens[i + 1]!.value !== "api") continue;
+
+    const args: Token[] = [];
+    for (let j = i + 2; j < tokens.length; j++) {
+      if (endsCommand(tokens[j]!)) break;
+      args.push(tokens[j]!);
+    }
+
+    let path: RegExpExecArray | null = null;
+    let requestsChanges = false;
+    let opaque = false;
+
+    for (let k = 0; k < args.length; k++) {
+      const token = args[k]!;
+      const [name, inline] = splitInline(token.value);
+
+      if (isBare(token) && API_FIELD_FLAGS.has(name)) {
+        const value = inline ?? args[k + 1]?.value ?? "";
+        if (/^event=REQUEST_CHANGES$/i.test(value)) requestsChanges = true;
+        // gh's documented magic read: the value comes from a file or stdin, unreadable here.
+        if (value.startsWith("event=@")) opaque = true;
+        if (inline === null) k++;
+        continue;
+      }
+      if (isBare(token) && name === "--input") {
+        opaque = true;
+        if (inline === null) k++;
+        continue;
+      }
+      // The endpoint is a positional, and it may legitimately be quoted. A full URL
+      // (`https://api.github.com/repos/...`) is accepted by gh, so the leading `/` is optional.
+      path = path ?? REST_REVIEWS_PATH.exec(token.value);
+    }
+
+    if (!path) continue;
+    if (!requestsChanges && !opaque) continue;
+    return {
+      door: path[3] ? "rest-review-events" : "rest-reviews",
+      repo: path[1] ?? null,
+      number: Number(path[2]),
+      opaque: opaque && !requestsChanges,
+    };
+  }
   return null;
+}
+
+/**
+ * Classify a shell command. Returns null when it does not submit a blocking review, which is the
+ * answer for essentially all traffic and costs one substring test.
+ */
+export function classifyBlockingReview(command: string): BlockingReviewTarget | null {
+  if (!command.includes("gh")) return null;
+
+  for (const args of ghInvocations(command, "pr", "review")) {
+    const read = readReviewArgs(args);
+    if (!read.requestsChanges) continue;
+    return { door: "porcelain", repo: read.repo, number: read.number, opaque: false };
+  }
+
+  return classifyGhApi(command);
 }
 
 // ---------------------------------------------------------------------------------------------
 // Escape hatch
 // ---------------------------------------------------------------------------------------------
 
-/**
- * The token must be a LEADING ASSIGNMENT at a command position, never a substring. A bare
- * substring test lets `--body "do not set PR_BLOCKING_REVIEW_OK=1 here"` disarm the guard, which
- * is the defect review-round-artifact.ts:47-55 records paying for.
- */
 const ESCAPE_ASSIGNMENT_RUN = new RegExp(`${COMMAND_POSITION}`, "gi");
 
 export const ESCAPE_TOKEN = "PR_BLOCKING_REVIEW_OK";
 
+/**
+ * The token must be a LEADING ASSIGNMENT at a command position, never a substring, and never text
+ * inside an argument. Anchoring alone was not enough: `;` and newline ARE command positions and
+ * both occur freely inside a review body, so `--body "step one; PR_BLOCKING_REVIEW_OK=1"` opened a
+ * synthetic command position inside a quoted argument and granted the override.
+ */
 export function hasInvitationEscape(command: string): boolean {
-  // SCAN THE QUOTE-STRIPPED COMMAND. Anchoring at a command position is not enough on its own,
-  // because `;` and newline are command positions and BOTH occur freely inside a quoted review
-  // body -- so `--body "...; PR_BLOCKING_REVIEW_OK=1 ..."` opened a synthetic command position
-  // inside an argument and disarmed the guard. This is a predicate, not an extraction, so the
-  // span-deleting helper is the right one: text inside quotes cannot grant the override.
   const bare = withoutQuotedSpans(command);
   ESCAPE_ASSIGNMENT_RUN.lastIndex = 0;
   for (const match of bare.matchAll(ESCAPE_ASSIGNMENT_RUN)) {
@@ -347,7 +433,7 @@ function denial(headline: string, facts: string[]): Verdict {
     reason: [
       headline,
       "",
-      ...facts.map((f) => `  ${f}`),
+      ...facts.map((fact) => `  ${fact}`),
       "",
       `--comment carries the same findings without gating anyone. If the blocking form is`,
       `genuinely right, re-run with ${ESCAPE_TOKEN}=1 as a leading assignment.`,

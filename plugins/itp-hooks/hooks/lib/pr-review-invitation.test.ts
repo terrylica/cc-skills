@@ -150,6 +150,102 @@ describe("P1 regressions: scoping, and doors that were ajar", () => {
   });
 });
 
+describe("tokenizer: defects the three regex-over-mangled-string versions all had", () => {
+  // Every case below was MEASURED against a live uninvited target. Rounds 1-3 of this classifier
+  // ran regexes over three DIFFERENT manglings of the command and the manglings disagreed, so each
+  // round of fixes opened new holes. These pin the properties a shell-correct tokenizer gives for
+  // free, and they are the reason the extraction layer is not regex-based any more.
+
+  // KNOWN OPEN FAIL-OPEN, PINNED RATHER THAN HIDDEN.
+  //
+  // `'\''` is the only way to put an apostrophe inside a single-quoted shell word, and bash joins
+  // the adjacent segments into ONE word. `readShellArg` does not: its bare branch reads "until
+  // whitespace, backslash kept literal" -- a DELIBERATE simplification documented at
+  // shell-arg-extractor.ts:101-102, correct for its three existing consumers, which each extract a
+  // single quoted flag value. This classifier needs shell WORD splitting instead, so a `;` inside
+  // such a body is seen as a command separator and the following --request-changes is never read.
+  //
+  // Measured: allowed in 0.038 s with no network call. It is a FAIL-OPEN, which is why this is
+  // marked todo rather than deleted or asserted-as-correct. Closing it means adding a
+  // `splitShellWords()` to the shared extractor (additive, so the three consumers are untouched)
+  // and validating that separately. THE GUARD MUST NOT SHIP UNTIL THIS IS CLOSED.
+  it.todo("a quoted body cannot hide the flag behind a shell apostrophe idiom", () => {
+    const command = String.raw`gh pr review 682 --body 'don'\''t merge; fix the guard' --request-changes`;
+    expect(blocking(command)?.number).toBe(682);
+  });
+
+  it("a quoted body cannot hide the flag behind an escaped double quote", () => {
+    expect(blocking(String.raw`gh pr review 682 --body "don\"t; do it" --request-changes`)?.number).toBe(682);
+  });
+
+  it("a PR URL cited in the body does not hijack the target", () => {
+    // Measured: resolved the cited self-authored PR, matched author===actor, ALLOWED a block on
+    // someone else's PR. Citing a related PR in a review body is ordinary practice.
+    const target = blocking(
+      'gh pr review 682 --request-changes --body "supersedes https://github.com/Eon-Labs/alpha-forge/pull/679"',
+    );
+    expect(target?.number).toBe(682);
+  });
+
+  it("a -R written inside the body does not donate the repository", () => {
+    const target = blocking('gh pr review 682 --request-changes --body "also try -R Eon-Labs/rangebar next"');
+    expect(target?.repo).toBeNull();
+    expect(target?.number).toBe(682);
+  });
+
+  it("a SECOND review in the same command is still classified", () => {
+    // Scanning only the first `gh pr review` allowed this in 13ms with no network call.
+    const target = blocking("gh pr review 679 --approve; gh pr review 682 --request-changes -F f.md");
+    expect(target?.number).toBe(682);
+  });
+
+  it("a pflag cluster's value is not mistaken for the PR number", () => {
+    // `-rF 679` is `--request-changes --body-file 679`, so 679 is a FILENAME, not the target.
+    expect(explicitPrNumber("gh pr review -rF 679")).toBeNull();
+    expect(explicitPrNumber("gh pr review -rb 42 682")).toBe(682);
+  });
+
+  it("accepts every pflag truthy spelling, not just =true", () => {
+    for (const truthy of ["1", "t", "T", "true", "True", "TRUE", "y", "yes"]) {
+      expect(blocking(`gh pr review 682 --request-changes=${truthy}`)?.door).toBe("porcelain");
+    }
+    expect(blocking("gh pr review 682 --request-changes=0")).toBeNull();
+    expect(blocking("gh pr review 682 --request-changes=false")).toBeNull();
+  });
+
+  it("a trailing # comment ends the command, so its flags cannot gate an approval", () => {
+    expect(blocking("gh pr review 682 --approve   # ChenLi0830's fix looks right, grep -r later")).toBeNull();
+    expect(blocking("gh pr review 682 --approve\ngrep -rn TODO packages/")).toBeNull();
+  });
+
+  it("reads the documented -R [HOST/]OWNER/REPO form", () => {
+    expect(blocking("gh pr review 682 -R github.com/Eon-Labs/alpha-forge --request-changes")?.repo).toBe(
+      "Eon-Labs/alpha-forge",
+    );
+  });
+
+  it("catches gh api /graphql with a leading slash", () => {
+    // The third instance in this file of the identical leading-slash miss.
+    expect(
+      blocking(
+        "gh api /graphql -f query='mutation{addPullRequestReview(input:{event:REQUEST_CHANGES}){id}}'",
+      )?.door,
+    ).toBe("graphql");
+  });
+
+  it("catches the graphql submit mutation, not only the add mutation", () => {
+    expect(
+      blocking("gh api graphql -f query='mutation{submitPullRequestReview(input:{event:REQUEST_CHANGES}){id}}'")
+        ?.door,
+    ).toBe("graphql");
+  });
+
+  it("does not read a flag out of quoted prose", () => {
+    // A flag is an UNQUOTED token. This is what makes body text structurally unable to gate.
+    expect(blocking('gh pr review 682 --approve --body "please use --request-changes next time"')).toBeNull();
+  });
+});
+
 describe("porcelain door: what it must NOT catch", () => {
   it("leaves --approve alone, because gating it deadlocks the repo", () => {
     expect(blocking("gh pr review 656 --approve")).toBeNull();
