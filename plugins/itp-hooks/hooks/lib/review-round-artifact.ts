@@ -54,11 +54,18 @@ import { createHash } from "node:crypto";
 // The same `\S*` appears in pretooluse-pr-citation-evidence-guard.ts:86, which this pattern was
 // copied from, so that guard is likely bypassable the same way.
 //
-// EXPORTED because copying it is how the `\S*` defect above SPREAD. It was written here, copied
-// into pretooluse-pr-citation-evidence-guard.ts:86, and fixed in only one of the two. A third
-// consumer (pretooluse-pr-review-invitation-guard.ts) imports this symbol rather than pasting it,
-// so the next correction reaches every caller. Same rule, one home -- see `matchNoteIds` in
-// notes-commander's notes-core.ts for the precedent this follows.
+// EXPORTED because a COPY of this pattern drifted, measurably. pr-citation-evidence-guard kept its
+// own; the quoted-assignment fix above happened to land in both, but two LATER corrections -- the
+// wrapper's own flags (`env -u X gh`) and matching `gh` by BASENAME (`/opt/homebrew/bin/gh`) -- landed
+// only here, so that guard silently allowed both spellings plus `nice gh`. Its copy is now deleted
+// and it imports these symbols, as does pretooluse-pr-review-invitation-guard.ts.
+//
+// CORRECTION, recorded because I asserted the opposite: an earlier version of this comment claimed
+// the `\S*` defect was "still live in pr-citation-evidence-guard.ts:86". It was not -- that file
+// carried the fixed alternation already. I repeated an agent's finding without running it. The
+// drift was real but in two different corrections than the one I named.
+//
+// Same rule, one home -- see `matchNoteIds` in notes-commander's notes-core.ts for the precedent.
 //
 // A WRAPPER'S OWN FLAGS ARE PART OF THE WRAPPER. `env` was accepted but `env -u GH_TOKEN` was not,
 // so `env -u GH_TOKEN gh pr review --request-changes` put `gh` outside every command position and
