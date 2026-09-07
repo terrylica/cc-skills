@@ -22,7 +22,20 @@ type FieldSpec =
   | { type: "number"; optional?: boolean }
   | { type: "boolean"; optional?: boolean }
   | { type: "array-of-string"; optional?: boolean }
-  | { type: "enum"; values: readonly string[]; optional?: boolean };
+  | { type: "enum"; values: readonly string[]; optional?: boolean }
+  // NESTED SHAPES. Added for AskUserQuestion, whose input is `questions[].options[].description` --
+  // three levels deep. Without these, `allowWithInput` could never validate it, so any hook trying
+  // to annotate a question would fall back to a plain `allow()` and do NOTHING while appearing
+  // installed. That silent no-op is the reason these exist rather than a loosened schema.
+  | { type: "object"; fields: Record<string, FieldSpec>; optional?: boolean }
+  | { type: "array-of-object"; fields: Record<string, FieldSpec>; optional?: boolean }
+  /**
+   * An object whose KEYS are not known ahead of time (AskUserQuestion's `answers` and
+   * `annotations` are keyed by the question's own text). Values are not inspected. This is the one
+   * escape from strictness, so it is spelled out rather than reached for: use it only where the key
+   * space is genuinely open, never to sidestep modelling a field.
+   */
+  | { type: "open-record"; optional?: boolean };
 
 export interface SafeParseResult {
   success: boolean;
@@ -74,6 +87,35 @@ class StrictSchema {
         case "enum":
           if (!spec.values.includes(v as string)) {
             issues.push({ path: [key], message: `Expected one of [${spec.values.join(", ")}]` });
+          }
+          break;
+        case "object": {
+          const nested = new StrictSchema(spec.fields).safeParse(v);
+          if (!nested.success) {
+            for (const issue of nested.error?.issues ?? []) {
+              issues.push({ path: [key, ...issue.path], message: issue.message });
+            }
+          }
+          break;
+        }
+        case "array-of-object": {
+          if (!Array.isArray(v)) {
+            issues.push({ path: [key], message: `Expected array, got ${typeof v}` });
+            break;
+          }
+          const itemSchema = new StrictSchema(spec.fields);
+          for (let i = 0; i < v.length; i++) {
+            const nested = itemSchema.safeParse(v[i]);
+            if (nested.success) continue;
+            for (const issue of nested.error?.issues ?? []) {
+              issues.push({ path: [key, String(i), ...issue.path], message: issue.message });
+            }
+          }
+          break;
+        }
+        case "open-record":
+          if (v === null || typeof v !== "object" || Array.isArray(v)) {
+            issues.push({ path: [key], message: `Expected object, got ${typeof v}` });
           }
           break;
       }
@@ -159,6 +201,46 @@ export const LSPSchema = new StrictSchema({
   character: num(),
 });
 
+const obj = (fields: Record<string, FieldSpec>, optional = false): FieldSpec => ({
+  type: "object",
+  fields,
+  optional,
+});
+const objArr = (fields: Record<string, FieldSpec>, optional = false): FieldSpec => ({
+  type: "array-of-object",
+  fields,
+  optional,
+});
+const openRecord = (optional = false): FieldSpec => ({ type: "open-record", optional });
+
+/**
+ * AskUserQuestion tool input schema.
+ *
+ * MODELLED IN FULL ON PURPOSE. The schema is strict, so any field Claude Code sends that is missing
+ * here makes validation fail, `allowWithInput` falls back to a plain `allow()`, and a hook that
+ * annotates a question silently does nothing while looking installed. `allowWithInput` does
+ * `trackHookError` on that path, so the failure is COUNTED rather than invisible -- which is the
+ * only reason mutating this tool is defensible at all.
+ *
+ * `answers` and `annotations` are keyed by the question's own text, so their key space is genuinely
+ * open and they use `open-record`. Everything else is enumerated.
+ */
+export const AskUserQuestionSchema = new StrictSchema({
+  questions: objArr({
+    question: str(),
+    header: str(),
+    multiSelect: bool(),
+    options: objArr({
+      label: str(),
+      description: str(),
+      preview: str(true),
+    }),
+  }),
+  answers: openRecord(true),
+  annotations: openRecord(true),
+  metadata: obj({ source: str(true) }, true),
+});
+
 /** MCP shell_execute tool input schema */
 export const McpShellExecuteSchema = new StrictSchema({
   command: strArr(),
@@ -179,6 +261,7 @@ export const TOOL_SCHEMAS: Record<string, StrictSchema> = {
   Grep: GrepSchema,
   NotebookEdit: NotebookEditSchema,
   LSP: LSPSchema,
+  AskUserQuestion: AskUserQuestionSchema,
   mcp__shell__shell_execute: McpShellExecuteSchema,
 };
 
