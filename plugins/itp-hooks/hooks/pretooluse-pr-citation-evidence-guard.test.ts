@@ -33,6 +33,16 @@ describe("surface scoping", () => {
     ['GH_ORGS="Eon Labs" gh pr comment 12 --body \'x\'', true],
     ["GH_ORGS='Eon Labs' gh pr review 12 -b 'x'", true],
     ['env GH_ORGS="Eon Labs" sudo gh pr comment 12 --body \'x\'', true],
+    // THREE BYPASSES THAT EXISTED WHILE THIS FILE KEPT A PRIVATE COPY OF COMMAND_POSITION.
+    // Each returned FALSE before the copy was deleted in favour of importing the shared pattern,
+    // which means the citation requirement was skipped entirely, before a body was collected.
+    // The first spelling is this plugin's OWN house style for registering hooks, so it is the form
+    // an agent copying local convention is most likely to produce.
+    ["env -u GH_TOKEN gh pr comment 12 --body 'x'", true],
+    ["env -u AI_AGENT -u CLAUDECODE gh pr review 12 -b 'x'", true],
+    ["/opt/homebrew/bin/gh pr comment 12 --body 'x'", true],
+    ["nice gh pr comment 12 --body 'x'", true],
+    ["timeout 30 gh pr comment 12 --body 'x'", true],
     // Real command positions: after a separator, and behind env assignments or a wrapper.
     ["cd /tmp && gh pr comment 12 --body 'x'", true],
     ["set -e; gh pr review 12 -b 'x'", true],

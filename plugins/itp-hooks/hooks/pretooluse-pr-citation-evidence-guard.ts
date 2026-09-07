@@ -81,16 +81,21 @@ const CITATION_OK = {
  * Command position = start of string, or after a separator the shell recognises, optionally
  * preceded by environment assignments or a wrapper (`sudo`, `env`, `command`, `time`).
  */
-// Assignments and wrappers INTERLEAVE — `GH_TOKEN=x gh …` and `env GH_HOST=y gh …` are both real,
-// and a fixed order matched only the first. Caught by this file's own table on the second run.
-// AN ASSIGNMENT VALUE MAY BE QUOTED AND MAY CONTAIN SPACES. `\S*` stops at the first space, so
-// `GH_ORGS="Eon Labs" gh pr comment …` matched no command position at all and this guard silently
-// ALLOWED it — the citation requirement was skipped entirely, before a body was even collected.
-// Reproduced directly: the identical body is DENIED unquoted and ALLOWED with the quoted prefix.
-// `FOO=bar` works either way, which is why every existing test case missed it.
-const COMMAND_POSITION = String.raw`(?:^|[\n;&|(){}]|&&|\|\|)\s*(?:(?:sudo|env|command|time)\s+|[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|\S*)\s+)*`;
-
-const ghCommand = (rest: string) => new RegExp(`${COMMAND_POSITION}gh\\s+${rest}`, "i");
+// THIS FILE USED TO KEEP ITS OWN COPY OF THE COMMAND-POSITION PATTERN, AND THE COPY DRIFTED.
+//
+// The quoted-assignment fix (`GH_ORGS="Eon Labs" gh …`) was made here and in review-round-artifact
+// independently, so both copies happened to carry it. Two LATER corrections landed only in the
+// other copy, and this guard silently ALLOWED all three of these — measured, not argued:
+//
+//   env -u GH_TOKEN gh pr comment …     false   a wrapper's own flags are part of the wrapper,
+//                                               and this is the plugin's OWN house style
+//   /opt/homebrew/bin/gh pr comment …   false   `gh` was matched literally, not by BASENAME
+//   nice gh pr comment …                false   `nice` was not in the wrapper list
+//
+// So the copy is deleted rather than patched a third time. Importing means the next correction
+// reaches every caller by construction, which is the only version of "one rule, one home" that
+// survives contact with a second maintainer.
+import { ghCommand } from "./lib/review-round-artifact.ts";
 
 /** The review surfaces this guard covers. `create` and `edit` are absent on purpose. */
 const GH_PR_REVIEW_SURFACE = ghCommand(String.raw`pr\s+(?:comment|review)\b`);

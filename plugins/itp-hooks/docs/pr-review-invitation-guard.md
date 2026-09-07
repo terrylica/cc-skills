@@ -109,7 +109,7 @@ Closing it means adding a `splitShellWords()` to the shared extractor — additi
 
 Two defects in `COMMAND_POSITION` are relevant, and both spread by **copying**:
 
-- The inherited `\S*` assignment value stopped at the first space, so `GH_ORGS="Eon Labs" gh …` matched no command position at all. Fixed in `review-round-artifact.ts`, still live in `pretooluse-pr-citation-evidence-guard.ts:86` — the same pattern, fixed in one of two copies.
+- The inherited `\S*` assignment value stopped at the first space, so `GH_ORGS="Eon Labs" gh …` matched no command position at all. **Correction:** an earlier version of this page said that defect was "still live" in `pretooluse-pr-citation-evidence-guard.ts:86`. It was not — that file already carried the fixed alternation. I repeated an agent's finding without running it, which is the failure mode this whole guard exists to argue against. The drift between the copies was real, but in two _different_ corrections (below).
 - **A wrapper's own flags are part of the wrapper.** `env` was accepted but `env -u NAME` was not, so `env -u GH_TOKEN gh pr review --request-changes` put `gh` outside every command position and matched nothing. That spelling is this plugin's **own house style** — every `hooks.json` entry is `env -u AI_AGENT -u CLAUDECODE bun …` — so it is the form an agent copying local convention would most likely produce. Found by a test, not by reading. `review-round-gate` and `pr-citation-evidence-guard` carried the same hole.
 
 The fix is pinned by six rows in `review-round-artifact.test.ts`. Reverting the constant turns **exactly 7 tests red** and nothing else, so those rows pin the diff rather than passing on both trees.
