@@ -11,11 +11,17 @@
 //   · Right-click     → pull-out menu of switchable services (✓ on current).
 //
 // REFRESH MODEL — the one hard performance constraint. The 1 Hz tick reads
-// only SCDynamicStore (in-process, cheap). It NEVER spawns a subprocess;
+// only SCDynamicStore (in-process, cheap). It must never spawn a subprocess;
 // doing that once a second would destroy the clock's sub-0.1% idle CPU
 // budget. The service-name map requires running `networksetup`, so it is
 // fetched LAZILY — on first show, when a menu opens, and when the primary
 // interface changes to a BSD device not already in the cache — then cached.
+//
+// That last trigger is RATE-LIMITED, and must stay that way. An unguarded
+// "refetch on cache miss" is a fork/exec once per second whenever the primary
+// interface is one networksetup does not enumerate, which is the normal state
+// when a VPN owns the default route (the route lives on a utunN). See
+// FCShouldRefetchForUnresolvedDevice in NetworkServiceCatalog.h.
 //
 // SWITCHING spawns `/usr/sbin/networksetup -ordernetworkservices`. That is
 // this app's ONLY subprocess and its only system mutation; both are declared

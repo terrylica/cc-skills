@@ -26,5 +26,7 @@ void test_network_switchable_filters_deviceless_and_disabled(void);
 void test_network_switchable_excludes_dead_modem_services(void);
 void test_network_switchable_keeps_link_local_device(void);
 void test_network_switchable_nil_vs_empty_liveness(void);
+void test_network_unresolved_device_backoff_stops_repeat_fetches(void);
+void test_network_unresolved_backoff_does_not_mask_a_new_device(void);
 
 NS_ASSUME_NONNULL_END
