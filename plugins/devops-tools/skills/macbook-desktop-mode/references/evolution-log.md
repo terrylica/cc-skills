@@ -2,7 +2,7 @@
 
 ## v1.0.0 — 2026-03-18
 
-**Origin**: Antlion USB Microphone repeatedly disappeared from macOS sound input after sleep/wake cycles on a MacBook Pro M3 Max. Root cause analysis revealed DarkWake cycling (12 cycles/night), USB 1.1 fragility (no LPM, no serial number), Chrome USB handle contention, and battery micro-cycling (69%→80% daily swing).
+**Origin**: A bus-powered USB 1.1 audio-class microphone repeatedly disappeared from macOS sound input after sleep/wake cycles on an Apple Silicon MacBook running permanently on AC. Root cause analysis revealed DarkWake cycling (macOS takes a partial maintenance wake roughly every 15 minutes overnight), USB 1.1 fragility (no LPM, no serial number), Chrome USB handle contention, and battery micro-cycling on an always-plugged-in Mac left with no charge limit.
 
 **Scope**: Full-stack solution covering power configuration (`pmset`, charge limit), hardware layer (powered USB hub with uhubctl), and software layer (AudioDeviceMonitorRunner.swift v2 with state machine, wake detection, heartbeat, recovery cascade, Telegram notification).
 
