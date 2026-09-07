@@ -25,6 +25,150 @@ set -euo pipefail
 # Iter-35 bash-5.2-patsub-replacement-defense (cross-plugin sweep):
 shopt -u patsub_replacement 2>/dev/null || true
 
+# ─── ITER-188: A SUITE THAT RUNS NOTHING MUST NEVER EXIT 0 (issue #113) ──────
+# On 2026-09-03 this runner printed `Discovered 113 test file(s)`, scheduled
+# them into lanes, and then EXITED 0 HAVING RUN NONE OF THEM. `moon run
+# repo:check` — the local-first gate CLAUDE.md calls "what runs before a push"
+# — went green in 448 ms reporting `Tasks: 1 completed`. Five consecutive runs
+# on a static tree: three real (~21 s, 83530-byte logs), two vacuous (448 ms,
+# 1058-byte logs, exit 0). The only distinguishing signal was a bash warning on
+# stderr, buried above moon's own success line.
+#
+# The cause was an unterminated heredoc in THIS FILE. Bash does not treat that
+# as an error. It prints
+#
+#     warning: here-document at line N delimited by end-of-file (wanted `X')
+#
+# to stderr, swallows the whole remainder of the file as heredoc body, and
+# terminates NORMALLY with status 0. `set -euo pipefail` never fires, because
+# as far as bash is concerned nothing failed. Reproduced standalone:
+#
+#     $ printf '%s\n' 'set -euo pipefail' 'echo ran' 'cat <<UNTERM' 'x' > p.sh
+#     $ bash p.sh; echo "EXIT=$?"
+#     ran
+#     p.sh: line 4: warning: here-document at line 3 delimited by end-of-file
+#     EXIT=0
+#
+# `bash -n` does NOT catch it either: it emits the same warning and ALSO exits
+# 0, so its exit code is worthless here and only its STDERR TEXT is evidence.
+#
+# THREE LAYERS, ordered cheapest-and-narrowest first:
+#
+#   (1) SELF SYNTAX CHECK at startup, treating ANY `bash -n` stderr output as
+#       fatal (never its exit code). Catches this instance precisely, naming
+#       the offending line, before a single test is spawned. Deliberately
+#       narrow — `bash -n` is clean on plenty of scripts that still fail to run
+#       everything they discovered.
+#
+#   (2) THE VERDICT SENTINEL — the load-bearing layer. An EXIT trap installed
+#       HERE, above every line that can end the script early, refuses to let
+#       this process report success unless the run reached one of its own
+#       verdict lines. It catches the whole CLASS rather than one instance: an
+#       unterminated heredoc, a truncated file, a stray `exit 0` spliced in
+#       above the aggregation phase, a `return` in the wrong scope, a killed
+#       subshell. It is reachable in all of them because bash runs EXIT traps
+#       even when it stops at EOF inside an open heredoc (verified: the probe
+#       above, with this trap added, exits 97 instead of 0).
+#
+#   (3) DISCOVERED-vs-EXECUTED RECONCILIATION after aggregation. Names BOTH
+#       numbers and fails when they disagree.
+#
+#       HONEST SCOPE, corrected after adversarial review claimed more for this
+#       layer than it delivers. A partial fan-out (xargs aborted, disk full,
+#       capture dir wiped) was ALREADY red before this layer existed: the
+#       "no exit-code file -> count as FAILED" branch below turns a missing
+#       capture into a failure, so the suite exited 1. What layer 3 adds is
+#       DIAGNOSIS, not detection — it converts a confusing "2 tests failed"
+#       into "discovered 3, reported results for 1" and exit 97, which names
+#       the real fault instead of blaming the tests that never ran.
+#       Of its three conditions, RENDERED != DISCOVERED is believed
+#       structurally unreachable (the aggregation loop increments exactly one
+#       counter per iteration over the same array that set DISCOVERED); it is
+#       kept as a cheap assertion against a future refactor breaking that
+#       invariant, NOT because it is known to fire.
+#       Layers 1 and 2 are the ones that close the silent-green hole.
+#
+# The trap MUST own temp-dir cleanup too: bash keeps exactly ONE EXIT trap, so
+# a later `trap 'rm -rf ...' EXIT` would silently REPLACE this guard with a
+# cleanup that always exits 0 — reintroducing the bug it exists to prevent.
+# Do not add a second `trap ... EXIT` to this file.
+ITER188_RUNNER_SELF_PATH="${BASH_SOURCE[0]}"
+ITER188_EXIT_CODE_WHEN_THE_SUITE_NEVER_REACHED_ITS_OWN_VERDICT=97
+ITER188_EXIT_CODE_WHEN_THE_RUNNER_FAILS_ITS_OWN_SYNTAX_CHECK=96
+
+ITER188_DISCOVERED_TEST_FILE_COUNT=0
+ITER188_EXECUTED_TEST_FILE_COUNT=0
+ITER188_SUITE_REACHED_ITS_OWN_VERDICT=0
+
+__iter188_release_capture_dir_then_refuse_to_exit_zero_without_a_verdict() {
+    local iter188_status_the_shell_was_about_to_report=$?
+
+    # Cleanup first, so an abnormal end still removes the capture directory.
+    # Guarded by :- because this trap is installed BEFORE the mktemp below.
+    if [[ -n "${PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY:-}" ]]; then
+        rm -rf "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY" || true
+    fi
+
+    if (( ITER188_SUITE_REACHED_ITS_OWN_VERDICT == 1 )); then
+        exit "$iter188_status_the_shell_was_about_to_report"
+    fi
+
+    # No verdict was ever rendered, so whatever status bash was about to
+    # report — including 0 — describes nothing that happened.
+    {
+        echo ""
+        echo "✗ SUITE DID NOT RUN: discovered ${ITER188_DISCOVERED_TEST_FILE_COUNT} test files, reported results for ${ITER188_EXECUTED_TEST_FILE_COUNT}"
+        echo "  A suite that runs nothing must never exit 0 — failing with ${ITER188_EXIT_CODE_WHEN_THE_SUITE_NEVER_REACHED_ITS_OWN_VERDICT} instead."
+        if (( ITER188_DISCOVERED_TEST_FILE_COUNT == 0 )); then
+            # Discovery itself came up empty — a different fault from an early
+            # exit, so do not send the operator hunting for a heredoc.
+            echo "  Discovery matched nothing at either glob path printed above."
+            echo "  Likely causes: a moved or renamed tests/ directory, a REPO_ROOT that"
+            echo "  resolved somewhere unexpected, or a checkout missing the test corpus."
+            echo "  Confirm with: find \"\$(dirname ${ITER188_RUNNER_SELF_PATH})/..\" -path '*/hooks/tests/test-*.sh' | wc -l"
+        else
+            echo "  The runner ended before rendering a verdict; bash was about to report exit=${iter188_status_the_shell_was_about_to_report}."
+            echo "  Likely causes, in order of observed frequency:"
+            echo "    - an unterminated heredoc in ${ITER188_RUNNER_SELF_PATH} (bash warns on stderr, then exits 0)"
+            echo "    - a truncated or partially-written runner file"
+            echo "    - a stray 'exit 0' spliced in above the aggregation phase"
+            echo "  Diagnose with: bash -n ${ITER188_RUNNER_SELF_PATH}"
+            echo "  — and read its STDERR, not its exit code: bash -n exits 0 on an unterminated heredoc."
+        fi
+    } >&2
+    exit "$ITER188_EXIT_CODE_WHEN_THE_SUITE_NEVER_REACHED_ITS_OWN_VERDICT"
+}
+trap '__iter188_release_capture_dir_then_refuse_to_exit_zero_without_a_verdict' EXIT
+
+# Layer (1). Any stderr output from `bash -n` is fatal; its exit code is not
+# consulted at all, because it is 0 for the exact defect this guards against.
+__iter188_fail_fast_if_this_runner_does_not_survive_its_own_syntax_check() {
+    local iter188_bash_dash_n_diagnostics
+    local iter188_bash_dash_n_exit_status
+    iter188_bash_dash_n_diagnostics=""
+    iter188_bash_dash_n_exit_status=0
+    iter188_bash_dash_n_diagnostics="$(bash -n "$ITER188_RUNNER_SELF_PATH" 2>&1)" \
+        || iter188_bash_dash_n_exit_status=$?
+
+    if [[ "$iter188_bash_dash_n_exit_status" -eq 0 && -z "$iter188_bash_dash_n_diagnostics" ]]; then
+        return 0
+    fi
+
+    # This IS a verdict — a loud, self-describing one — so the sentinel is set
+    # and the trap preserves this exit code instead of overriding it with 97.
+    ITER188_SUITE_REACHED_ITS_OWN_VERDICT=1
+    {
+        echo ""
+        echo "✗ RUNNER FAILED ITS OWN SYNTAX CHECK — refusing to run 0 tests and call it success"
+        echo "  ${ITER188_RUNNER_SELF_PATH}"
+        echo "  bash -n exit status: ${iter188_bash_dash_n_exit_status} (not consulted — it is 0 for an unterminated heredoc)"
+        echo "  bash -n diagnostics:"
+        printf '%s\n' "$iter188_bash_dash_n_diagnostics" | sed 's/^/    /'
+    } >&2
+    exit "$ITER188_EXIT_CODE_WHEN_THE_RUNNER_FAILS_ITS_OWN_SYNTAX_CHECK"
+}
+__iter188_fail_fast_if_this_runner_does_not_survive_its_own_syntax_check
+
 # Iter-75 recursion guard. The parity regression test for the parallel
 # runner (test-marketplace-hook-regression-suite-parallel-runner-iter75-
 # parity-against-iter50-sequential-baseline-and-iter54-fail-output-ux.sh)
@@ -81,8 +225,17 @@ if [ "${#TEST_FILES[@]}" -eq 0 ]; then
     echo "   - plugins/*/hooks/tests/test-*.sh   (per-plugin hook tests)"
     echo "   - tasks/tests/test-*.sh       (infrastructure mise-task tests)"
     echo "   Add tests following these naming conventions to have them auto-discovered."
-    exit 0
+    # ITER-188 (issue #113): this used to `exit 0`. A release gate that finds
+    # zero tests in a repo carrying 113 of them and reports SUCCESS is the same
+    # silent-green defect as the unterminated heredoc, arrived at by a
+    # different route — a broken glob, a wrong REPO_ROOT, a moved directory.
+    # Exit WITHOUT setting the verdict sentinel, so the trap above also renders
+    # the canonical `SUITE DID NOT RUN: discovered 0 ... reported 0` line and
+    # normalises the status to its own code.
+    exit "$ITER188_EXIT_CODE_WHEN_THE_SUITE_NEVER_REACHED_ITS_OWN_VERDICT"
 fi
+
+ITER188_DISCOVERED_TEST_FILE_COUNT="${#TEST_FILES[@]}"
 
 echo "→ Discovered ${#TEST_FILES[@]} test file(s)"
 echo ""
@@ -179,7 +332,11 @@ MARKETPLACE_HOOK_REGRESSION_PARALLEL_LANES="${MARKETPLACE_HOOK_REGRESSION_PARALL
 # the random mktemp suffix that would prevent the post-pass aggregator
 # from locating each test's output.
 PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY=$(mktemp -d -t marketplace-hook-regression-suite-results.XXXXXX)
-trap 'rm -rf "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"' EXIT
+# ITER-188: the `trap 'rm -rf ...' EXIT` that used to live here has been folded
+# into __iter188_release_capture_dir_then_refuse_to_exit_zero_without_a_verdict
+# above. Bash keeps exactly ONE EXIT trap, so reinstating a cleanup-only trap
+# here would REPLACE the no-silent-green guard with a handler that always exits
+# 0 — the precise regression issue #113 is about.
 
 # Run each test, capture exit code, aggregate counts
 PASSED_TEST_FILES_COUNT=0
@@ -377,10 +534,23 @@ for test_file in "${TEST_FILES[@]}"; do
     echo ""
 done
 
+# ITER-188 layer (3), part 1 — count the tests that left EVIDENCE of having
+# run. An `.exit` capture file is written by the worker itself, so this counts
+# actual executions rather than loop iterations; PASSED+FAILED alone would be
+# vacuously equal to the discovered count whenever the aggregation loop
+# completes, and would say nothing about a fan-out that aborted halfway.
+ITER188_EXECUTED_TEST_FILE_COUNT=0
+for iter188_each_worker_exit_capture_file in "$PER_RUN_TEST_OUTPUT_CAPTURE_DIRECTORY"/*.exit; do
+    [[ -f "$iter188_each_worker_exit_capture_file" ]] || continue
+    ITER188_EXECUTED_TEST_FILE_COUNT=$((ITER188_EXECUTED_TEST_FILE_COUNT + 1))
+done
+ITER188_RENDERED_RESULT_COUNT=$((PASSED_TEST_FILES_COUNT + FAILED_TEST_FILES_COUNT))
+
 echo "═══════════════════════════════════════════════════════════"
 echo "  Marketplace Hook Regression Suite — Summary"
 echo "═══════════════════════════════════════════════════════════"
 echo "  Test files discovered: ${#TEST_FILES[@]}"
+echo "  Test files executed:   $ITER188_EXECUTED_TEST_FILE_COUNT"
 echo "  Test files PASSED:     $PASSED_TEST_FILES_COUNT"
 
 # ─── ITER-187: A FAILING TEST FILE MUST NAME ITSELF ──────────────────────────
@@ -448,6 +618,35 @@ if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
     echo ""
     echo "  Run a failing test directly to see its detailed output:"
     echo "    bash <test-file-path>"
+    # ITER-188: the `exit 1` that used to close this block now lives BELOW the
+    # reconciliation, so a run that both failed tests AND ran fewer than it
+    # discovered still emits the iter-187 name carriers before exiting.
+fi
+
+# ITER-188 layer (3), part 2 — RECONCILE. Discovery is the promise; execution
+# is the delivery. Naming both numbers is the whole point: `SUITE DID NOT RUN:
+# discovered 113 test files, reported results for 0` is self-diagnosing in a
+# way that `Tasks: 1 completed` never was.
+if (( ITER188_EXECUTED_TEST_FILE_COUNT != ITER188_DISCOVERED_TEST_FILE_COUNT )) \
+    || (( ITER188_RENDERED_RESULT_COUNT != ITER188_DISCOVERED_TEST_FILE_COUNT )) \
+    || (( ITER188_EXECUTED_TEST_FILE_COUNT == 0 )); then
+    ITER188_SUITE_REACHED_ITS_OWN_VERDICT=1
+    {
+        echo ""
+        echo "✗ SUITE DID NOT RUN: discovered ${ITER188_DISCOVERED_TEST_FILE_COUNT} test files, reported results for ${ITER188_EXECUTED_TEST_FILE_COUNT}"
+        echo "  Rendered results for ${ITER188_RENDERED_RESULT_COUNT} of ${ITER188_DISCOVERED_TEST_FILE_COUNT}; ${ITER188_EXECUTED_TEST_FILE_COUNT} of ${ITER188_DISCOVERED_TEST_FILE_COUNT} left an execution record."
+        echo "  A suite that runs fewer tests than it discovered must never report success."
+        echo "  Likely causes: the parallel fan-out aborted, the capture directory was"
+        echo "  removed mid-run, the disk filled, or a worker was killed."
+    } >&2
+    exit "$ITER188_EXIT_CODE_WHEN_THE_SUITE_NEVER_REACHED_ITS_OWN_VERDICT"
+fi
+
+if [ "$FAILED_TEST_FILES_COUNT" -gt 0 ]; then
+    # A genuine red run IS a verdict: the trap preserves this exit code rather
+    # than overriding it, keeping the long-standing "exit 1 means a test file
+    # failed" contract that the iter-187 and iter-75 tests both assert on.
+    ITER188_SUITE_REACHED_ITS_OWN_VERDICT=1
     exit 1
 fi
 
@@ -492,4 +691,9 @@ __iter131_emit_top_n_slowest_marketplace_hook_regression_tests_ranked_by_wall_cl
 __iter131_emit_top_n_slowest_marketplace_hook_regression_tests_ranked_by_wall_clock_milliseconds_descending_bottleneck_summary
 
 echo ""
+# ITER-188: the green verdict. Setting the sentinel BEFORE the banner means the
+# banner and the sentinel cannot drift apart — reaching this line is exactly
+# what "the suite ran to completion" means.
+ITER188_SUITE_REACHED_ITS_OWN_VERDICT=1
 echo "  ✓ All marketplace hook regression tests PASSED"
+exit 0
