@@ -128,6 +128,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-umbrella-no-repo-guard.ts",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-parquet-duckdb-nudge.ts",
             "timeout": 5,
             "description": "Nudge toward DuckDB for Parquet content analysis (soft, warn+allow)"
