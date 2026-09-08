@@ -33,6 +33,8 @@
 
 import { createHash } from "node:crypto";
 
+import { splitShellWords } from "./shell-arg-extractor.ts";
+
 // ---------------------------------------------------------------------------------------------
 // Command classification
 // ---------------------------------------------------------------------------------------------
@@ -179,6 +181,65 @@ export function classify(command: string): Classification {
   if (pushMatch) return { kind: "push", matched: pushMatch[0].trim() };
 
   return { kind: null, matched: "" };
+}
+
+/**
+ * `gh pr ready [<number> | <url> | <branch>]` -- the positional argument, or null when omitted.
+ *
+ * WHY THIS EXISTS: the gate used to treat `gh pr ready --undo 666` as if it concerned the branch
+ * of the directory it was run from. It does not. Measured on 2026-09-08: five PRs were re-drafted
+ * in a row from a single worktree, and only that worktree's branch lost its reviewable mark. Four
+ * marks were left stale (a false demand for a fresh self-review record) and -- the direction that
+ * actually matters -- the branch that DID get unmarked was not the one leaving the queue, so its
+ * subsequent pushes went unmetered. An argument the code accepted and ignored.
+ *
+ * Deliberately NOT built on {@link withoutQuotedSpans}, and deliberately not on a private
+ * tokeniser either. `withoutQuotedSpans` answers "is this a flag" by replacing quoted spans with
+ * empty ones -- correct for a predicate, fatal for extraction, since `gh pr ready "my branch"`
+ * would yield the empty string. And splitting on whitespace, which is what the first version of
+ * this did, cuts `"my branch"` in half; the tests caught it. {@link splitShellWords} in the
+ * neighbouring module already joins adjacent quoted and bare segments the way the shell does, so
+ * it is the one home for this. Re-deriving it here would be the same mistake as every other
+ * duplicated grammar in this plugin.
+ *
+ * A token that is a shell substitution (`$PR`, `$(...)`) is returned verbatim and will fail to
+ * resolve downstream -- the safe direction, because the caller unmarks nothing on failure.
+ */
+/** `gh` flags that consume the NEXT word, which therefore is not the positional argument. */
+const READY_FLAGS_TAKING_A_VALUE: ReadonlySet<string> = new Set(["-R", "--repo"]);
+
+export function undraftTarget(command: string): string | null {
+  const words = splitShellWords(command);
+
+  for (let i = 0; i < words.length; i += 1) {
+    const head = words[i]!;
+    if (head.isOperator || !head.firstSegmentBare) continue;
+    // Basename match, for the same reason `ghCommand` does it: `/opt/homebrew/bin/gh` is not a
+    // different tool.
+    if ((head.value.split("/").pop() ?? "").toLowerCase() !== "gh") continue;
+    if (words[i + 1]?.value !== "pr" || words[i + 2]?.value !== "ready") continue;
+
+    for (let j = i + 3; j < words.length; j += 1) {
+      const arg = words[j]!;
+      // The command ended before any positional argument: `gh` will fall back to the current
+      // branch, and so must the caller.
+      if (arg.isOperator) return null;
+      // A redirection is not an argument, and guessing past one risks returning `2>/tmp/x` as a
+      // PR. Stopping yields null, which unmarks nothing.
+      if (/[<>]/.test(arg.value)) return null;
+      // Quoting is stripped before `gh` parses argv, so `'--undo'` is still the flag --undo --
+      // this test is about what gh sees, not about shell word structure.
+      if (arg.value.startsWith("-")) {
+        // `--repo=owner/name` carries its value inline and consumes no following word.
+        if (arg.value.startsWith("--") && arg.value.includes("=")) continue;
+        if (READY_FLAGS_TAKING_A_VALUE.has(arg.value)) j += 1;
+        continue;
+      }
+      return arg.value;
+    }
+    return null;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------------------------
