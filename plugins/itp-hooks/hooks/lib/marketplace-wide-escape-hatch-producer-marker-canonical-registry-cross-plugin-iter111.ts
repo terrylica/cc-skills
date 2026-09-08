@@ -89,54 +89,54 @@
  */
 
 import type {
-  EscapeHatchMarkerCaseSensitivityMode,
-  EscapeHatchMarkerWindowSemanticsMode,
+	EscapeHatchMarkerCaseSensitivityMode,
+	EscapeHatchMarkerWindowSemanticsMode,
 } from "./shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
 
 export interface MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry {
-  /**
-   * Exact marker spelling INCLUDING the suffix (`-OK`, `-SKIP`, or `-WRAP`).
-   * Must match the `markerNameTokenIncludingSuffix` passed to the helper
-   * at the consumer call site.
-   */
-  readonly markerNameTokenIncludingSuffix: string;
+	/**
+	 * Exact marker spelling INCLUDING the suffix (`-OK`, `-SKIP`, or `-WRAP`).
+	 * Must match the `markerNameTokenIncludingSuffix` passed to the helper
+	 * at the consumer call site.
+	 */
+	readonly markerNameTokenIncludingSuffix: string;
 
-  /**
-   * Repo-root-relative path to the hook source file that READS this marker
-   * via the iter-107 canonical helper. The iter-111 audit can use this to
-   * verify the consumer actually imports the helper.
-   */
-  readonly consumerHookSourceFileRelativePath: string;
+	/**
+	 * Repo-root-relative path to the hook source file that READS this marker
+	 * via the iter-107 canonical helper. The iter-111 audit can use this to
+	 * verify the consumer actually imports the helper.
+	 */
+	readonly consumerHookSourceFileRelativePath: string;
 
-  /**
-   * Must match the `caseSensitivityMode` field on the configuration object
-   * passed to the helper at the consumer call site. Operators relying on
-   * lowercase markers (e.g., legacy `# process-storm-ok`) need this set to
-   * `"CASE_INSENSITIVE"`; UPPER-KEBAB-CASE convention markers should be
-   * `"CASE_SENSITIVE"` (the helper's default).
-   */
-  readonly caseSensitivityModeDeclaredAtConsumerCallSite: EscapeHatchMarkerCaseSensitivityMode;
+	/**
+	 * Must match the `caseSensitivityMode` field on the configuration object
+	 * passed to the helper at the consumer call site. Operators relying on
+	 * lowercase markers (e.g., legacy `# process-storm-ok`) need this set to
+	 * `"CASE_INSENSITIVE"`; UPPER-KEBAB-CASE convention markers should be
+	 * `"CASE_SENSITIVE"` (the helper's default).
+	 */
+	readonly caseSensitivityModeDeclaredAtConsumerCallSite: EscapeHatchMarkerCaseSensitivityMode;
 
-  /**
-   * Must match the `windowSemanticsMode` field on the configuration object
-   * passed to the helper at the consumer call site.
-   */
-  readonly windowSemanticsModeDeclaredAtConsumerCallSite: EscapeHatchMarkerWindowSemanticsMode;
+	/**
+	 * Must match the `windowSemanticsMode` field on the configuration object
+	 * passed to the helper at the consumer call site.
+	 */
+	readonly windowSemanticsModeDeclaredAtConsumerCallSite: EscapeHatchMarkerWindowSemanticsMode;
 
-  /**
-   * For markers that require a justification reason after a colon
-   * (e.g., `LAYER3-STRIPPED-PATH-OK: deliberate cache bypass for X reason`),
-   * the minimum number of characters required after the colon. 0 means
-   * bare marker is accepted (no reason needed).
-   */
-  readonly minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: number;
+	/**
+	 * For markers that require a justification reason after a colon
+	 * (e.g., `LAYER3-STRIPPED-PATH-OK: deliberate cache bypass for X reason`),
+	 * the minimum number of characters required after the colon. 0 means
+	 * bare marker is accepted (no reason needed).
+	 */
+	readonly minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: number;
 
-  /**
-   * Plain-English description an operator can read to understand what
-   * the marker opts them out of. Used by the iter-111 audit's helpful-
-   * error output and by future operator documentation generators.
-   */
-  readonly humanReadableEscapeHatchDescriptionForOperatorDocumentation: string;
+	/**
+	 * Plain-English description an operator can read to understand what
+	 * the marker opts them out of. Used by the iter-111 audit's helpful-
+	 * error output and by future operator documentation generators.
+	 */
+	readonly humanReadableEscapeHatchDescriptionForOperatorDocumentation: string;
 }
 
 /**
@@ -149,327 +149,337 @@ export interface MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry 
  * unregistered marker is invisible to operators looking for the way out.
  */
 export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: ReadonlyArray<MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry> =
-  [
-    {
-      markerNameTokenIncludingSuffix: "BASH-LAUNCHD-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-native-binary-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a bash-shebang script OR a plist `/bin/bash` ProgramArguments reference in a macOS launchd file (~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) — the hook normally requires a compiled native binary so System Settings > Login Items shows the executable's actual name instead of generic 'bash'. Accepted in plist files as `<!-- BASH-LAUNCHD-OK -->`.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "CARGO-TTY-SKIP",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Opt OUT of cargo-tty-guard's automatic PUEUE-wrapping of `cargo bench/test/build` commands. Use when the operator has confirmed there is no TTY-suspension risk (e.g., cargo invocation already redirects stdin) — the guard will pass the command through unchanged instead of redirecting to PUEUE.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "CARGO-TTY-WRAP",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Opt IN to cargo-tty-guard's PUEUE-wrapping even when the heuristic doesn't trigger automatically. Used when the operator knows their cargo invocation will inherit a contested TTY and wants the daemon path explicitly.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "CROWN-JEWEL-PLAIN-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).",
-    },
-    {
-      markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a bash command that the cwd-deletion-guard would otherwise block as a CWD-deleting `rm -rf` (or equivalent). Used when the operator has verified the rm target is safe (e.g., target is a sibling, not the CWD itself, and the regex false-positives).",
-    },
-    {
-      markerNameTokenIncludingSuffix: "FGPAT-REMINDER-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "FILE-SIZE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a file to exceed file-size-guard's per-extension warn/block thresholds. Default marker token; can be overridden per-project via `.claude/file-size-guard.json` `escapeComment` field — but the helper always runs in CASE_SENSITIVE mode (substring match on the literal token, regardless of marker spelling).",
-    },
-    {
-      markerNameTokenIncludingSuffix: "INIT-MONOLITH-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-pyi-stub-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow top-level `class`/`def`/decorator definitions in a Python `__init__.py` or `__init__.pyi` file. The hook normally enforces PEP 561 + clean-package-structure (init files MUST be thin re-export layers); this opt-out covers legitimate cases like temporary scaffolding or libraries that genuinely require the monolith shape.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "INLINE-IGNORE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "SAME_LINE_ONLY",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        // Description intentionally paraphrases the four suppression
-        // directive families WITHOUT spelling out their literal comment
-        // syntax. Spelling them out would trip two separate hooks at the
-        // same time: (1) biome-lint parses any literal "biome" + "ignore"
-        // adjacency as a suppression-directive attempt and errors when the
-        // category name doesn't validate, and (2) code-correctness-guard.sh
-        // grep-scans for the literal directive substrings as a separate
-        // audit pass with no awareness of the iter-107 SAME_LINE_ONLY
-        // helper semantics. Operators consulting this description should
-        // refer to the consumer hook's own docstring for exact syntax.
-        "Allow a single inline lint-suppression comment (covering the four families: Python ruff suppressions, Python ty type-checker suppressions, ESLint per-line and per-block suppressions, and the Bun-ecosystem fast-linter suppressions) on the SAME LINE as this marker. Used when a tool/library limitation genuinely requires the suppression — config-file-level suppression in ruff/ty/oxlint/biome configuration files is still strongly preferred when possible.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "INVENTED-FALLBACK-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite:
-        "SAME_LINE_OR_PRECEDING_N_LINES",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        // Backslash-escaped `\${...}` inside a template string prevents biome's
-        // noTemplateCurlyInString lint from misreading the bash-style env-var
-        // reference as an unintended interpolation placeholder.
-        `Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
-    },
-    {
-      markerNameTokenIncludingSuffix: "SKILL-PLUGIN-ROOT-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-skill-plugin-root-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        // Backslash-escaped `\${...}` inside a template string prevents biome's
-        // noTemplateCurlyInString lint from misreading the bash-style env-var
-        // reference as an unintended interpolation placeholder.
-        `Allow skill markdown (any \`.md\` under a \`skills/\` directory) to reference \`CLAUDE_PLUGIN_ROOT\` in a shape the runtime cannot honor — the bare \`$CLAUDE_PLUGIN_ROOT\` spelling, the \`\${CLAUDE_PLUGIN_ROOT:-fallback}\` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., \`SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable\`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.`,
-    },
-    {
-      markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "LEAK-TAXONOMY-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-leakage-taxonomy-reminder.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit/MultiEdit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to \"leaky, therefore reject\". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "SECRET-SCAN-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-secret-exposure-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the live-credential exposure guard (pretooluse-secret-exposure-guard.ts), which HARD-BLOCKS a Write/Edit/MultiEdit whose new content matches one of three high-confidence credential shapes: a BotFather Telegram token (`<8-10 digit id>:AA<32+ chars>`), a bare 30-character mixed-alphanumeric token sitting within ±80 characters of a PUSHOVER / app_token / user_key / api_token cue, or an enumerated secret-manager provisioning command (`doppler secrets set`, `op item create|edit`, `vault set|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password`) carrying a ≥16-character literal value that is not a recognized placeholder. Unlike almost every other marker in this registry, a JUSTIFICATION IS MANDATORY: write `SECRET-SCAN-OK: <reason>` with at least 10 characters of reason. That asymmetry is deliberate — in the 23-repo audit that motivated the guard, every leaked credential was accompanied by the belief that it was an example, so a bare marker would reproduce the exact failure. Legitimate uses are narrow: a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. If the value was ever live, the correct action is not this marker — it is to remove the value and ROTATE the credential.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "PII-SCAN-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-pii-exposure-reminder.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the third-party-PII exposure reminder (posttooluse-pii-exposure-reminder.ts) for a docs/config file. The reminder fires when a Write/Edit/MultiEdit leaves an email address at a real routable domain, or a telephone number, in a .md/.txt/.yaml/.toml/.json-class file — the shape that put a contact's real name, business email and phone back into the published tree six days after an eleven-agent scrub removed them. Add a comment containing PII-SCAN-OK (any comment style, e.g. `<!-- PII-SCAN-OK -->`) when the contact data is intentional: a public maintainer address, an RFC or paper author, a quoted upstream document, or a vendor's published support line. No reason is required, because unlike a credential, deliberately published contact information is an ordinary and defensible thing for a repo to contain. Note this marker only silences a NON-BLOCKING reminder — the reminder never denies or undoes the edit, so the marker removes noise, it never unblocks work. Its blocking sibling for the credential half of the same incident uses SECRET-SCAN-OK, which does require a reason.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "MD-TABLE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "MD-HARD-WRAP-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-markdown-hard-wrap-reminder.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "MINI-INNGEST-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
-    },
-    {
-      markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/process-storm-patterns.mjs",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "PUEUE-LOCAL-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-pueue-local-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a `pueue` command that targets a remote daemon (the guard normally enforces local-only targeting to prevent accidentally queueing work on the wrong host). NOTE: pueue-local-guard is NOT YET migrated to the iter-107 helper (iter-112+ candidate); this registry entry is forward-looking and the audit treats this marker as known even before the migration lands.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "RELEASE-NOTES-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-reminder.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        'Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.',
-    },
-    {
-      markerNameTokenIncludingSuffix: "SHELL-SAFETY-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 8,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a shell script (Write/Edit on .sh/.bash/.zsh or shebang-declared files) that introduces mechanically-decidable defects detected by the shell-script-safety-guard: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident, empirical fact A); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) silently defeats set -e errexit (empirical fact D). REQUIRES a ≥8-character reason after the colon (enforces intentionality — shorthand like 'legacy' is too terse, 'legacy error-handling' or 'temporary workaround' acceptable). Used sparingly when the script's purpose genuinely requires the risky pattern — split assignments and else branches are strongly preferred. Reason-gated doctrine SSoT: ~/.claude/CLAUDE.md § 'Empirically verified bash semantics (probed 2026-08-02)'.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "SSoT-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-version-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a hardcoded version string (e.g., `v1.2.3`) in a markdown file that the version-guard would otherwise block as a single-source-of-truth violation. Mixed-case spelling `SSoT-OK` is grandfathered (NOT renamed to `SSOT-OK`) because operators have been using this exact spelling since the version-guard was first authored.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "ALLOW-LEGACY-TS",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md",
-    },
-    {
-      markerNameTokenIncludingSuffix: "GH-HARD-WRAP-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-github-hard-wrap-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a `gh release create|edit`, `gh issue create|edit|comment`, `gh pr create|edit|comment`, or `gh api` write-to-releases/issues/pulls command whose prose text contains hard-wraps at a fixed column width. GitHub Flavored Markdown renders every newline as `<br>`, so prose wrapped at ~100 columns becomes columns of short mid-sentence lines instead of reflowing to the reader's window. The guard detects hard-wraps in --notes, --notes-file, --body, --body-file, and in a `gh api` body=/notes= field or --input envelope's .body. It deliberately does NOT inspect git objects: hard wrapping at 72 columns is the correct convention for a commit or annotated-tag message, and the reflow belongs at the publish boundary. Add GH-HARD-WRAP-OK to the command when the hard-wrapping is intentional (e.g., an intentional code sample or ASCII table in a release note).",
-    },
-    {
-      markerNameTokenIncludingSuffix: "ASK-OPTION-NEWLINE-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow an AskUserQuestion call whose option `description` or `label` contains a line terminator (LF, CR, U+2028, U+2029). Claude Code replaces every one of them with U+FFFD before rendering the option, so a two-paragraph description reaches the user as '...forever.<FFFD><FFFD>II. SHORT-TERM WIN:' — upstream regression anthropics/claude-code#88836, introduced in 2.1.235 and re-measured still present in 2.1.260. The guard denies rather than repairs, because tool-schemas.ts registers no AskUserQuestion schema and an unregistered tool cannot receive updatedInput. Unlike every other marker in this registry the content scanned is not a FILE but the SERIALIZED tool input, since AskUserQuestion has no command string — put ASK-OPTION-NEWLINE-OK anywhere in the call (the `question` text is the natural place) when a literal break is wanted despite the mangling. The normal fix is not this marker: join the parts with ' \\u2014 ' (space, em dash, space), or move genuinely multi-line material into `question` or `preview`, which render newlines correctly and are deliberately not inspected. Delete this entry together with the guard once the upstream replacer is gone.",
-    },
-    {
-      markerNameTokenIncludingSuffix: "GMAIL-BODY-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/pretooluse-gmail-body-guard.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).",
-    },
-  ] as const;
+	[
+		{
+			markerNameTokenIncludingSuffix: "BASH-LAUNCHD-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-native-binary-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a bash-shebang script OR a plist `/bin/bash` ProgramArguments reference in a macOS launchd file (~/.claude/automation/, ~/Library/LaunchAgents/, ~/Library/LaunchDaemons/) — the hook normally requires a compiled native binary so System Settings > Login Items shows the executable's actual name instead of generic 'bash'. Accepted in plist files as `<!-- BASH-LAUNCHD-OK -->`.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "CARGO-TTY-SKIP",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Opt OUT of cargo-tty-guard's automatic PUEUE-wrapping of `cargo bench/test/build` commands. Use when the operator has confirmed there is no TTY-suspension risk (e.g., cargo invocation already redirects stdin) — the guard will pass the command through unchanged instead of redirecting to PUEUE.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "CARGO-TTY-WRAP",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Opt IN to cargo-tty-guard's PUEUE-wrapping even when the heuristic doesn't trigger automatically. Used when the operator knows their cargo invocation will inherit a contested TTY and wants the daemon path explicitly.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "CROWN-JEWEL-PLAIN-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/devops-tools/hooks/posttooluse-crown-jewel-plain-keychain-nudge.sh",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the devops-tools PostToolUse nudge that steers a crown-jewel `security add-generic-password … -T /usr/bin/security` write toward the Touch-ID-gated tier (`vault set --gated`). Add CROWN-JEWEL-PLAIN-OK to the command when storing the secret in the plain agent-readable tier is intentional (e.g., a narrow automation token).",
+		},
+		{
+			markerNameTokenIncludingSuffix: "CWD-DELETE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/cwd-deletion-patterns.mjs",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a bash command that the cwd-deletion-guard would otherwise block as a CWD-deleting `rm -rf` (or equivalent). Used when the operator has verified the rm target is safe (e.g., target is a sibling, not the CWD itself, and the regex false-positives).",
+		},
+		{
+			markerNameTokenIncludingSuffix: "FGPAT-REMINDER-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/gh-tools/hooks/userpromptsubmit-fine-grained-pat-reminder.sh",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the gh-tools UserPromptSubmit reminder that nudges toward the gh-fine-grained-pat skill when a prompt shows GitHub token-creation intent. Add FGPAT-REMINDER-OK anywhere in the prompt when you deliberately do not want the skill reminder injected.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "FILE-SIZE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a file to exceed file-size-guard's per-extension warn/block thresholds. Default marker token; can be overridden per-project via `.claude/file-size-guard.json` `escapeComment` field — but the helper always runs in CASE_SENSITIVE mode (substring match on the literal token, regardless of marker spelling).",
+		},
+		{
+			markerNameTokenIncludingSuffix: "INIT-MONOLITH-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-pyi-stub-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow top-level `class`/`def`/decorator definitions in a Python `__init__.py` or `__init__.pyi` file. The hook normally enforces PEP 561 + clean-package-structure (init files MUST be thin re-export layers); this opt-out covers legitimate cases like temporary scaffolding or libraries that genuinely require the monolith shape.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "INLINE-IGNORE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "SAME_LINE_ONLY",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				// Description intentionally paraphrases the four suppression
+				// directive families WITHOUT spelling out their literal comment
+				// syntax. Spelling them out would trip two separate hooks at the
+				// same time: (1) biome-lint parses any literal "biome" + "ignore"
+				// adjacency as a suppression-directive attempt and errors when the
+				// category name doesn't validate, and (2) code-correctness-guard.sh
+				// grep-scans for the literal directive substrings as a separate
+				// audit pass with no awareness of the iter-107 SAME_LINE_ONLY
+				// helper semantics. Operators consulting this description should
+				// refer to the consumer hook's own docstring for exact syntax.
+				"Allow a single inline lint-suppression comment (covering the four families: Python ruff suppressions, Python ty type-checker suppressions, ESLint per-line and per-block suppressions, and the Bun-ecosystem fast-linter suppressions) on the SAME LINE as this marker. Used when a tool/library limitation genuinely requires the suppression — config-file-level suppression in ruff/ty/oxlint/biome configuration files is still strongly preferred when possible.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "INVENTED-FALLBACK-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-invented-fallback-reminder.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a deliberate hard-coded fallback display value (Unknown / N/A / ? parameter-expansion defaults, nullish/or/jq-alternative fallbacks) that the official-values policy (operator directive 2026-06-11) would otherwise nudge about. Use ONLY for intentional diagnostic markers documented by an in-file legend — the preferred alternatives are omitting the token when data is absent, rendering the official value/error verbatim, or citing the SSoT for a duplicated-by-necessity constant.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "LAYER3-STRIPPED-PATH-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite:
+				"SAME_LINE_OR_PRECEDING_N_LINES",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				// Backslash-escaped `\${...}` inside a template string prevents biome's
+				// noTemplateCurlyInString lint from misreading the bash-style env-var
+				// reference as an unintended interpolation placeholder.
+				`Allow a \`\${CLAUDE_PLUGIN_ROOT}/<segment>/\` reference where \`<segment>\` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., \`LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike\`). Marker is honored on the same line OR within the preceding 3 lines.`,
+		},
+		{
+			markerNameTokenIncludingSuffix: "SKILL-PLUGIN-ROOT-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-skill-plugin-root-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				// Backslash-escaped `\${...}` inside a template string prevents biome's
+				// noTemplateCurlyInString lint from misreading the bash-style env-var
+				// reference as an unintended interpolation placeholder.
+				`Allow skill markdown (any \`.md\` under a \`skills/\` directory) to reference \`CLAUDE_PLUGIN_ROOT\` in a shape the runtime cannot honor — the bare \`$CLAUDE_PLUGIN_ROOT\` spelling, the \`\${CLAUDE_PLUGIN_ROOT:-fallback}\` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., \`SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable\`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.`,
+		},
+		{
+			markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the gh-tools PostToolUse nudge that fires when a Bash command opens GitHub's token settings page by hand (open/curl/xdg-open of .../settings/personal-access-tokens or .../settings/tokens). Add MANUAL-PAT-PAGE-OK to the command when the manual open is intentional.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "LEAK-TAXONOMY-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-leakage-taxonomy-reminder.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the once-per-session temporal-leakage taxonomy reminder (posttooluse-leakage-taxonomy-reminder.ts). The reminder fires when a Write/Edit/MultiEdit of a text file writes language that ADJUDICATES leakage, and injects the five-category card (CB accept, PT accept-with-declaration, BP reject until exact records removed, EC reject as OOS, DN reject for that decision time) so the verdict is classified rather than flattened to \"leaky, therefore reject\". Detection is two-tiered on both sides: a DOMAIN leak term (look-ahead/lookahead/data-snooping/non-causal/acausal/contaminat*/leakage/CAT-[123]/prefix-invariance/qualified compounds such as `data leak`) fires against either a DECISIVE verdict word (falsif*/refut*/reject*/condemn*/manufactur*/spurious/overstat*/`no edge`/`not genuine`/rule out) within 200 characters or a WEAK one (fail*/invalid family/discard*/dismiss*/fatal*/artifact/collaps*/inflat*/`coin flip`) within 80, while a GENERIC bare `leak*` fires only against a DECISIVE word within 100. A ±80-character sense window additionally discards any leak hit whose neighbourhood names a non-temporal sense (memory/goroutine/descriptor, relu/torch, one-token/parser, filtfilt/zero-phase, water/gasket, `the press`/memo, gitleaks/credential), so a LeakyReLU import cannot spend the session's single reminder. Add a comment containing LEAK-TAXONOMY-OK (any comment style, e.g. `<!-- LEAK-TAXONOMY-OK -->`) when the document already applies the taxonomy, quotes someone else's verdict, or is the doctrine itself. The marker is honored from the edited fragment OR anywhere in the post-edit file — the whole-file arm is a real post-match file read, which is what keeps an ordinary Edit of the marker-bearing doctrine spoke from firing the hook on its own doctrine. Note this is a NON-BLOCKING context injection, never a deny — a guard that ruled out on suspicion would commit the over-ruling-out error the doctrine exists to prevent, so the marker only silences noise, it never unblocks work. Doctrine SSoT: ~/.claude/leakage-taxonomy-CLAUDE.md.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "SECRET-SCAN-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-secret-exposure-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the live-credential exposure guard (pretooluse-secret-exposure-guard.ts), which HARD-BLOCKS a Write/Edit/MultiEdit whose new content matches one of three high-confidence credential shapes: a BotFather Telegram token (`<8-10 digit id>:AA<32+ chars>`), a bare 30-character mixed-alphanumeric token sitting within ±80 characters of a PUSHOVER / app_token / user_key / api_token cue, or an enumerated secret-manager provisioning command (`doppler secrets set`, `op item create|edit`, `vault set|put`, `gh secret set`, `wrangler secret put`, `aws secretsmanager …`, `security add-generic-password`) carrying a ≥16-character literal value that is not a recognized placeholder. Unlike almost every other marker in this registry, a JUSTIFICATION IS MANDATORY: write `SECRET-SCAN-OK: <reason>` with at least 10 characters of reason. That asymmetry is deliberate — in the 23-repo audit that motivated the guard, every leaked credential was accompanied by the belief that it was an example, so a bare marker would reproduce the exact failure. Legitimate uses are narrow: a synthetic fixture in this guard's own test suite, or a genuinely revoked value quoted in a post-mortem. If the value was ever live, the correct action is not this marker — it is to remove the value and ROTATE the credential.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "CHROME-DEBUG-PORT-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-chrome-debug-port-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the Chrome remote-debugging launch guard (pretooluse-chrome-debug-port-guard.ts), which DENIES a Bash browser launch in three deterministic cases: a `--remote-debugging-port` / `--remote-debugging-pipe` launch carrying no `--user-data-dir`; one whose `--user-data-dir` IS the platform default profile root (macOS `Library/Application Support/Google/Chrome`, Linux `.config/google-chrome`, Windows `AppData\\Local\\Google\\Chrome\\User Data`, plus the Chromium variants); or a `--remote-debugging-address` bound anywhere other than loopback. The first two are dead on arrival since Chrome 136, which refuses remote debugging on the default user-data directory so that CDP-attaching malware cannot decrypt the real profile's cookies and passwords; the third hands full browser control to the network. A JUSTIFICATION IS MANDATORY: write `CHROME-DEBUG-PORT-OK: <reason>` with at least 10 characters. The guard already requires a positive browser-launch signal and vetoes on inspector/terminator verbs, so `pkill -f remote-debugging-port=9222`, `ps aux | grep`, and `curl http://127.0.0.1:9222/json/version` are allowed without any marker — if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test, not an opt-out. Legitimate uses are narrow: pinning an old Chrome (<136) where the default profile still works, driving a non-Chromium binary that merely shares the flag spelling, or a fixture in this guard's own test suite. Knowledge SSoT: ~/.claude/browser-automation-CLAUDE.md.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "PII-SCAN-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-pii-exposure-reminder.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the third-party-PII exposure reminder (posttooluse-pii-exposure-reminder.ts) for a docs/config file. The reminder fires when a Write/Edit/MultiEdit leaves an email address at a real routable domain, or a telephone number, in a .md/.txt/.yaml/.toml/.json-class file — the shape that put a contact's real name, business email and phone back into the published tree six days after an eleven-agent scrub removed them. Add a comment containing PII-SCAN-OK (any comment style, e.g. `<!-- PII-SCAN-OK -->`) when the contact data is intentional: a public maintainer address, an RFC or paper author, a quoted upstream document, or a vendor's published support line. No reason is required, because unlike a credential, deliberately published contact information is an ordinary and defensible thing for a repo to contain. Note this marker only silences a NON-BLOCKING reminder — the reminder never denies or undoes the edit, so the marker removes noise, it never unblocks work. Its blocking sibling for the credential half of the same incident uses SECRET-SCAN-OK, which does require a reason.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "MD-TABLE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-markdown-table-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the per-edit GFM table structural guard (posttooluse-markdown-table-guard.ts) for a markdown file. The guard reminds Claude when a `.md` table will render as raw text — unescaped `|` inflating a row's cell count, header/separator column mismatch, an indented (code-block) table, or an alignment token in a data row. Add a comment containing MD-TABLE-OK (any comment style, e.g. `<!-- MD-TABLE-OK -->`) when a flagged table is intentional. NOTE: this only silences the per-edit reminder; the Stop-hook prettier gate still refuses to auto-format a structurally-broken table to avoid corrupting it.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "MD-HARD-WRAP-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-markdown-hard-wrap-reminder.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "MINI-INNGEST-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
+		},
+		{
+			markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/process-storm-patterns.mjs",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a bash command or file content that the process-storm-guard would otherwise block (fork-bomb pattern, gh-recursion subshell, mise-activate-in-zshenv, subprocess-in-while-true, etc.). Used pervasively in daemon entry points (gmail-commander bots, calcom-commander bots) where the pattern is intentional.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "PUEUE-LOCAL-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-pueue-local-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_INSENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a `pueue` command that targets a remote daemon (the guard normally enforces local-only targeting to prevent accidentally queueing work on the wrong host). NOTE: pueue-local-guard is NOT YET migrated to the iter-107 helper (iter-112+ candidate); this registry entry is forward-looking and the audit treats this marker as known even before the migration lands.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "RELEASE-NOTES-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-release-notes-extensiveness-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/posttooluse-reminder.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				'Suppress the setproctitle-reminder PostToolUse hint, which fires when a Python service or daemon file is edited but does not import `setproctitle`. Used when the file is genuinely NOT a long-running service (e.g., a short-lived CLI invocation or a one-shot script that happens to share filename patterns with daemon code). Iter-112 migration: pre-iter-112 detection used `fileContent.includes("# SETPROCTITLE-OK")` (required leading `# ` comment prefix); iter-112 routes through the canonical helper in CASE_SENSITIVE / FILE_WIDE mode (pure substring match on `SETPROCTITLE-OK`), which also accepts `// `, `<!-- `, or no comment prefix — matching the UPPER-KEBAB-CASE-never-collides substring convention used by the other 11 registry entries.',
+		},
+		{
+			markerNameTokenIncludingSuffix: "SHELL-SAFETY-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-shell-script-safety-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 8,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a shell script (Write/Edit on .sh/.bash/.zsh or shebang-declared files) that introduces mechanically-decidable defects detected by the shell-script-safety-guard: (1) RULE 1 — STATUS-LOSS-AFTER-IF: $? after fi with no else/elif branch masks real failure (2026-08-02 css incident, empirical fact A); (2) RULE 2 — MASKED-COMMAND-SUBSTITUTION: local|export|readonly|declare|typeset VAR=$(cmd) silently defeats set -e errexit (empirical fact D). REQUIRES a ≥8-character reason after the colon (enforces intentionality — shorthand like 'legacy' is too terse, 'legacy error-handling' or 'temporary workaround' acceptable). Used sparingly when the script's purpose genuinely requires the risky pattern — split assignments and else branches are strongly preferred. Reason-gated doctrine SSoT: ~/.claude/CLAUDE.md § 'Empirically verified bash semantics (probed 2026-08-02)'.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "SSoT-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-version-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a hardcoded version string (e.g., `v1.2.3`) in a markdown file that the version-guard would otherwise block as a single-source-of-truth violation. Mixed-case spelling `SSoT-OK` is grandfathered (NOT renamed to `SSOT-OK`) because operators have been using this exact spelling since the version-guard was first authored.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "ALLOW-LEGACY-TS",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-typescript-version-guard.ts; plugins/itp-hooks/hooks/pretooluse-typescript-legacy-install-command-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a Write/Edit on package.json that declares a pre-7 TypeScript version (pretooluse-typescript-version-guard) OR a Bash install command that would install a pre-7 TypeScript (pretooluse-typescript-legacy-install-command-guard). The guard enforces the TypeScript 7 ONLY doctrine. Escape via file-wide marker (package.json or command). SSoT: ~/.claude/typescript-latest-CLAUDE.md",
+		},
+		{
+			markerNameTokenIncludingSuffix: "GH-HARD-WRAP-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-github-hard-wrap-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a `gh release create|edit`, `gh issue create|edit|comment`, `gh pr create|edit|comment`, or `gh api` write-to-releases/issues/pulls command whose prose text contains hard-wraps at a fixed column width. GitHub Flavored Markdown renders every newline as `<br>`, so prose wrapped at ~100 columns becomes columns of short mid-sentence lines instead of reflowing to the reader's window. The guard detects hard-wraps in --notes, --notes-file, --body, --body-file, and in a `gh api` body=/notes= field or --input envelope's .body. It deliberately does NOT inspect git objects: hard wrapping at 72 columns is the correct convention for a commit or annotated-tag message, and the reflow belongs at the publish boundary. Add GH-HARD-WRAP-OK to the command when the hard-wrapping is intentional (e.g., an intentional code sample or ASCII table in a release note).",
+		},
+		{
+			markerNameTokenIncludingSuffix: "ASK-OPTION-NEWLINE-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow an AskUserQuestion call whose option `description` or `label` contains a line terminator (LF, CR, U+2028, U+2029). Claude Code replaces every one of them with U+FFFD before rendering the option, so a two-paragraph description reaches the user as '...forever.<FFFD><FFFD>II. SHORT-TERM WIN:' — upstream regression anthropics/claude-code#88836, introduced in 2.1.235 and re-measured still present in 2.1.260. The guard denies rather than repairs, because tool-schemas.ts registers no AskUserQuestion schema and an unregistered tool cannot receive updatedInput. Unlike every other marker in this registry the content scanned is not a FILE but the SERIALIZED tool input, since AskUserQuestion has no command string — put ASK-OPTION-NEWLINE-OK anywhere in the call (the `question` text is the natural place) when a literal break is wanted despite the mangling. The normal fix is not this marker: join the parts with ' \\u2014 ' (space, em dash, space), or move genuinely multi-line material into `question` or `preview`, which render newlines correctly and are deliberately not inspected. Delete this entry together with the guard once the upstream replacer is gone.",
+		},
+		{
+			markerNameTokenIncludingSuffix: "GMAIL-BODY-OK",
+			consumerHookSourceFileRelativePath:
+				"plugins/itp-hooks/hooks/pretooluse-gmail-body-guard.ts",
+			caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+			windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+			minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+			humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+				"Allow a `gmail draft` / `draft-update` command whose body text contains hard-wraps at a fixed column width or raw markdown constructs. The gmail CLI turns every newline into an HTML `<br>` and HTML-escapes the body (does not render markdown), so prose wrapped at ~100 columns becomes columns of short mid-sentence lines, and `**bold**`, `` `code` ``, `[text](url)`, `#` headings, and `|tables|` render literally. The guard detects hard-wraps and literal markdown in --body and --body-file arguments. Add GMAIL-BODY-OK to the command when the wrapped/markdown format is intentional (e.g., an intentional ASCII table body).",
+		},
+	] as const;
 
 /**
  * Convenience accessor: O(N) lookup by marker name. N stays small enough that
  * a Map isn't worth its construction cost on a per-hook-invocation path.
  */
 export function lookupCanonicalRegistryEntryByMarkerNameTokenOrUndefinedWhenAbsent(
-  markerNameTokenIncludingSuffix: string,
+	markerNameTokenIncludingSuffix: string,
 ): MarketplaceWideEscapeHatchProducerMarkerCanonicalRegistryEntry | undefined {
-  return MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY.find(
-    (entry) =>
-      entry.markerNameTokenIncludingSuffix === markerNameTokenIncludingSuffix,
-  );
+	return MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY.find(
+		(entry) =>
+			entry.markerNameTokenIncludingSuffix === markerNameTokenIncludingSuffix,
+	);
 }
 
 /**
@@ -477,7 +487,7 @@ export function lookupCanonicalRegistryEntryByMarkerNameTokenOrUndefinedWhenAbse
  * (for audit output, documentation generation, etc.).
  */
 export function listAllCanonicalRegistryMarkerNameTokensSortedAlphabetically(): ReadonlyArray<string> {
-  return MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY.map(
-    (entry) => entry.markerNameTokenIncludingSuffix,
-  ).toSorted();
+	return MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY.map(
+		(entry) => entry.markerNameTokenIncludingSuffix,
+	).toSorted();
 }
