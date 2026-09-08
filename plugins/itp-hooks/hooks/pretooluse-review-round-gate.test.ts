@@ -114,11 +114,29 @@ describe("gh pr ready --undo unmarks the branch it NAMES", () => {
     expect(reviewableOn(dir, "beta")).toBe(true);
   });
 
-  test("an unresolvable target changes NOTHING", async () => {
-    // `$PR` never resolves, and the safe response to "which branch?" being unanswerable is to
-    // leave every mark standing: a stale mark costs one redundant self-review record, whereas
-    // guessing wrong silently unmeters a branch still under review.
-    const dir = twoMarkedBranches("unresolvable");
+  test("a PR NUMBER that cannot be resolved changes NOTHING", async () => {
+    // THIS IS THE CASE A MUTANT SURVIVED ON. The first version of this file asserted the
+    // change-nothing rule through `$PR` and claimed in its comment that the substitution "never
+    // resolves" -- it does: a non-numeric, non-URL target is treated as a literal branch name and
+    // returned as-is, so the resolver never produced null and the null branch of the gate was
+    // never executed. The test passed for an unrelated reason (unmarking a branch nobody marked is
+    // a no-op), and a mutant that falls back to cwd's branch on failure lived through it.
+    //
+    // These repos have no origin, so `gh pr view 999999` fails immediately and offline -- no
+    // network, no auth, deterministic on a plane.
+    const dir = twoMarkedBranches("unresolvable-number");
+    const decision = await runHook("gh pr ready --undo 999999", dir);
+
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+    expect(reviewableOn(dir, "alpha")).toBe(true);
+    expect(reviewableOn(dir, "beta")).toBe(true);
+  });
+
+  test("a shell substitution is passed through as a branch name and hits nothing", async () => {
+    // Kept for what it genuinely pins: `$PR` reaches the store as the literal branch name `$PR`,
+    // which nothing has marked, so no mark moves and nothing throws. It does NOT exercise the
+    // resolver's failure path -- the test above does.
+    const dir = twoMarkedBranches("substitution");
     const decision = await runHook("gh pr ready --undo $PR", dir);
 
     expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
