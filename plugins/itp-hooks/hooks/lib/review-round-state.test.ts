@@ -171,6 +171,32 @@ describe("leaving the queue", () => {
     expect(isBranchReviewable(idOf(dir))).toBe(true);
   });
 
+  test("an explicit branch overrides the identity's own, in BOTH directions", () => {
+    // THE MEASURED DEFECT, pinned. `gh pr ready --undo 666` names a PR that is usually not the
+    // branch of the directory it is typed in; the identity's branch came from cwd, so five
+    // re-drafts run from one worktree cleared that worktree's mark five times and none of the
+    // five correct ones. Asserting only that beta clears would still pass on the old code when
+    // cwd happened to BE beta -- so alpha's survival is asserted too, and cwd is deliberately
+    // parked on alpha, the branch that must NOT change.
+    const { dir } = makeRepo("undo-explicit");
+    sh(["checkout", "-qb", "alpha"], dir);
+    commit(dir, "alpha\n");
+    const alpha = idOf(dir);
+    markBranchReviewable(alpha, sh(["rev-parse", "HEAD"], dir).trim());
+
+    sh(["checkout", "-q", "main"], dir);
+    sh(["checkout", "-qb", "beta"], dir);
+    commit(dir, "beta\n");
+    markBranchReviewable(idOf(dir), sh(["rev-parse", "HEAD"], dir).trim());
+
+    sh(["checkout", "-q", "alpha"], dir);
+    unmarkBranchReviewable(idOf(dir), "beta");
+
+    expect(isBranchReviewable(idOf(dir))).toBe(true); // cwd's branch untouched
+    sh(["checkout", "-q", "beta"], dir);
+    expect(isBranchReviewable(idOf(dir))).toBe(false); // the NAMED branch cleared
+  });
+
   test("unmarking a branch that was never marked is a no-op, not a crash", () => {
     const { dir } = makeRepo("undo-absent");
     sh(["checkout", "-qb", "feature"], dir);

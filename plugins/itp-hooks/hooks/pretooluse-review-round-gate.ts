@@ -20,6 +20,7 @@ import { trackHookError } from "./lib/hook-error-tracker.ts";
 import {
   classify,
   overrideReason,
+  undraftTarget,
   validateArtifact,
   type GatedKind,
 } from "./lib/review-round-artifact.ts";
@@ -30,6 +31,7 @@ import {
   markBranchReviewable,
   readArtifact,
   recordOverride,
+  resolveHeadBranch,
   unmarkBranchReviewable,
 } from "./lib/review-round-state.ts";
 
@@ -133,8 +135,20 @@ async function main(): Promise<void> {
   // check because there is nothing here to override: `--undo` is always allowed, and the only
   // question is whether the gate notices. Previously it did not -- `--undo` classified as null, so
   // the branch stayed marked and every push to the re-drafted PR kept demanding a fresh record.
+  // THE PR BEING RE-DRAFTED IS OFTEN NOT THE BRANCH YOU ARE STANDING IN. `gh pr ready --undo 666`
+  // names its target explicitly; resolving it from cwd instead unmarked the wrong branch, which is
+  // a fail-open (see `undraftTarget`). With no positional argument `gh` itself falls back to the
+  // current branch, so the bare form keeps the old behaviour -- and only the bare form.
   if (kind === "pr-undraft") {
-    unmarkBranchReviewable(repo);
+    const target = undraftTarget(command);
+    if (target === null) {
+      unmarkBranchReviewable(repo);
+    } else {
+      const branch = resolveHeadBranch(target, cwd);
+      // Unresolvable target: touch nothing. A stale mark costs one redundant self-review record;
+      // unmarking a branch still under review costs the metering itself.
+      if (branch !== null) unmarkBranchReviewable(repo, branch);
+    }
     return allow();
   }
 
