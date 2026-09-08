@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-09-04: 🔴 mql5.com rate limit MEASURED — sequential-at-2s got the IP blocked
+
+**The repo's cardinal rule was incomplete.** It said "NEVER run parallel extractions from MQL5.com — triggers 24h+ IP blocks", which reads as though _concurrency_ is the trigger. It is not the only one. A **strictly sequential** attachment backfill at the configured 2-second rate limit (~13 req/min, one connection, one request in flight) was blocked after **212 requests / ~16 minutes**. Volume matters as much as concurrency.
+
+**What a block looks like** (worth recognising, because it is not an HTTP status): the first symptom was a plain `403` on one file. Afterwards, a single request to a URL that had returned `200` minutes earlier produced an HTTP/2 `PROTOCOL_ERROR` with no status at all, and over HTTP/1.1 `curl: (52) Empty reply from server`. The server accepts the TCP connection and closes without answering — enforcement is at the connection layer, not the application layer.
+
+**Where the 2 s came from:** `config.yaml` `batch.rate_limit_seconds: 2`, present since the initial commit with the comment "be respectful to server". Nothing in the repo ever measured it. The recon agent flagged exactly this ("I found no measurement of mql5.com's actual threshold anywhere in the repo") and the run went ahead on the inherited number anyway. That was the mistake.
+
+**Fixes applied to `scripts/backfill_attachments.py`:**
+
+- default rate 2 s → **8 s** (~7.5 req/min), and `--max-requests 150` bounds one session, so bulk work is spread over several short sessions instead of one long one
+- a `403` no longer aborts by itself: the script probes a known-good URL first and only aborts if that _also_ fails. Previously one restricted file halted the 434 remaining articles
+- progress is flushed, so a backgrounded run is observable (the first run's log looked empty for 16 minutes because Python buffers a non-TTY stdout)
+
+**State when it stopped:** 164 of 598 articles complete, 434 pending, 0 metadata parse failures across all 747 files, language `--verify` still PASS, 82 tests green. The job is resumable — an article counts as done only when every attachment entry has a terminal state — so nothing has to be re-fetched. Wait out the block before continuing.
+
+**Also fixed here:** the extractor left un-fetched grouped ZIPs with neither `local_path` nor `skipped_reason`, an indeterminate state that made "is this article complete?" unanswerable from metadata alone. Every attachment entry now ends in a terminal state.
+
+**Correction to yesterday's entry:** the claim that Chromium is "needed by `discovery.py` only" — written into four docs — is **false**. Six other call sites launch it (`scripts/extract_complete_docs_playwright.py`, three `scripts/legacy/*.py`, and the two network-marked tests). Corrected in `setup.sh`, `CLAUDE.md`, `README.md`, `lib/CLAUDE.md`.
+
+**Discovery XHR: investigated, NOT shipped.** `LoadPublications(this,'articles')` resolves to a plain `GET /en/users/<User>/publications/articles` with no offset, token or session state, returning the list as one HTML fragment. Live test: 77 articles vs 10 on page 1, zero overlap. **But the page advertises "107 more", so 10+107=117 ≠ 87, and the 30-article shortfall is unexplained** (plausibly translations, unverified). Replacing Playwright on that evidence would risk silently dropping articles, so discovery keeps the browser until the count reconciles.
+
+---
+
 ## 2026-09-03 (later): Adversarial review of the above — six real defects found and fixed
 
 An adversarial review pass over the changes below found that several of them were wrong or incomplete. Recording what the first pass got wrong, because most of it was self-verification that could not fail.
