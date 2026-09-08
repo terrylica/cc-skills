@@ -256,7 +256,80 @@ if [[ -d "$MARKETPLACE_DIR/plugins/html-showcase/assets" ]]; then
 fi
 __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
-# Step 8: Final summary
+# Step 8: REGISTRY CONSISTENCY — the assertion whose absence made v30.5.0 a dead release.
+#
+# Claude Code loads a plugin from the installPath recorded in installed_plugins.json, NOT from
+# whichever version is newest in the cache. Every step above verifies the CACHE. On 2026-09-07 the
+# cache advanced to v30.5.0, the tag and GitHub release were published, and the registry stayed at
+# v30.4.0 — so two newly released hooks sat installed and never loaded for a full day, and nothing
+# in this pipeline said a word. The registry write lives only in release Phase 3
+# (tasks/release/sync), which does not run when only semantic-release Phase 2 does.
+#
+# This step is the difference between that being silent and being loud. It exits non-zero on
+# purpose: the tag is already pushed by the time successCmd runs, so a warning would scroll past and
+# the release would still LOOK complete.
+__iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
+    "Step 8: installed_plugins.json registry-consistency assertion (the registry actually advanced, not merely the cache)"
+echo "→ Step 7: Verifying the plugin REGISTRY advanced..."
+REGISTRY_PATH="$HOME/.claude/plugins/installed_plugins.json"
+if [[ ! -f "$REGISTRY_PATH" ]]; then
+  echo "  ⚠ No $REGISTRY_PATH on this machine; skipping (Claude Code not installed here)"
+else
+  # RETRIED, because Step 2 drives the registry update through a `claude --print` subprocess and a
+  # guard that fires on a slightly-late write is a guard that gets switched off. Bounded at ~10s:
+  # long enough for an in-flight update, far too short to hide a Phase-3 that never ran.
+  REGISTRY_STALE_ENTRIES=""
+  REGISTRY_ATTEMPT=0
+  while [[ $REGISTRY_ATTEMPT -lt 5 ]]; do
+    REGISTRY_STALE_ENTRIES=$(jq -r --arg v "$VERSION" '
+        .plugins // {}
+        | to_entries[]
+        | select(.key | endswith("@cc-skills"))
+        | select((.value[0].version // "missing") != $v)
+        | "\(.key) is at \(.value[0].version // "missing")"
+      ' "$REGISTRY_PATH" 2>/dev/null) || REGISTRY_STALE_ENTRIES="__JQ_FAILED__"
+    if [[ -z "$REGISTRY_STALE_ENTRIES" || "$REGISTRY_STALE_ENTRIES" == "__JQ_FAILED__" ]]; then
+      break
+    fi
+    REGISTRY_ATTEMPT=$((REGISTRY_ATTEMPT + 1))
+    [[ $REGISTRY_ATTEMPT -lt 5 ]] && sleep 2
+  done
+
+  if [[ "$REGISTRY_STALE_ENTRIES" == "__JQ_FAILED__" ]]; then
+    echo "  ⚠ Could not parse $REGISTRY_PATH; the registry could not be verified"
+  elif [[ -n "$REGISTRY_STALE_ENTRIES" ]]; then
+    REGISTRY_STALE_COUNT=$(printf '%s\n' "$REGISTRY_STALE_ENTRIES" | wc -l | tr -d ' ')
+    echo ""
+    echo "  ═════════════════════════════════════════════════════════════════════"
+    echo "  ✗ RELEASE IS INERT — the cache has v$VERSION but the REGISTRY does not"
+    echo "  ═════════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "  $REGISTRY_STALE_COUNT cc-skills plugin(s) still point at an older version, so every hook,"
+    echo "  skill and command shipped in v$VERSION is INSTALLED BUT NEVER LOADED."
+    echo ""
+    # `awk NR<=5` rather than `head -5`: head closes the pipe early, printf dies of SIGPIPE, and
+    # pipefail hands the pipeline 141 — which under `set -e` would abort this very error report
+    # before it printed the remedy. awk drains its input.
+    printf '%s\n' "$REGISTRY_STALE_ENTRIES" | awk 'NR<=5 { print "      " $0 }'
+    if [[ "$REGISTRY_STALE_COUNT" -gt 5 ]]; then
+      echo "      ... and $((REGISTRY_STALE_COUNT - 5)) more"
+    fi
+    echo ""
+    echo "  This exact failure shipped v30.5.0 and went unnoticed for a day."
+    echo ""
+    echo "  Fix:    (cd $MARKETPLACE_DIR && moon run repo:release-sync)"
+    echo "  Verify: jq -r '.plugins[\"itp-hooks@cc-skills\"][0].version' $REGISTRY_PATH"
+    echo "  Then:   restart Claude Code — a live session pins its plugin version at startup and"
+    echo "          keeps running the old one until it exits."
+    echo ""
+    exit 1
+  else
+    echo "  ✓ Registry verified: every cc-skills plugin points at v$VERSION"
+  fi
+fi
+__iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
+
+# Step 9: Final summary
 echo ""
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✓ Post-release verification complete for v$VERSION"
