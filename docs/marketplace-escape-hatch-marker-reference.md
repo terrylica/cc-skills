@@ -11,15 +11,16 @@
 
 ## Quick navigation
 
-Jump directly to any of the 37 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 38 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (29; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (30; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
+- [`CHROME-DEBUG-PORT-OK`](#chrome-debug-port-ok)
 - [`CROWN-JEWEL-PLAIN-OK`](#crown-jewel-plain-ok)
 - [`CWD-DELETE-OK`](#cwd-delete-ok)
 - [`FGPAT-REMINDER-OK`](#fgpat-reminder-ok)
@@ -73,7 +74,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (29 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (30 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -160,6 +161,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # CARGO-TTY-WRAP
+```
+
+## `CHROME-DEBUG-PORT-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-chrome-debug-port-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the Chrome remote-debugging launch guard (pretooluse-chrome-debug-port-guard.ts), which DENIES a Bash browser launch in three deterministic cases: a `--remote-debugging-port` / `--remote-debugging-pipe` launch carrying no `--user-data-dir`; one whose `--user-data-dir` IS the platform default profile root (macOS `Library/Application Support/Google/Chrome`, Linux `.config/google-chrome`, Windows `AppData\Local\Google\Chrome\User Data`, plus the Chromium variants); or a `--remote-debugging-address` bound anywhere other than loopback. The first two are dead on arrival since Chrome 136, which refuses remote debugging on the default user-data directory so that CDP-attaching malware cannot decrypt the real profile's cookies and passwords; the third hands full browser control to the network. A JUSTIFICATION IS MANDATORY: write `CHROME-DEBUG-PORT-OK: <reason>` with at least 10 characters. The guard already requires a positive browser-launch signal and vetoes on inspector/terminator verbs, so `pkill -f remote-debugging-port=9222`, `ps aux | grep`, and `curl http://127.0.0.1:9222/json/version` are allowed without any marker — if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test, not an opt-out. Legitimate uses are narrow: pinning an old Chrome (<136) where the default profile still works, driving a non-Chromium binary that merely shares the flag spelling, or a fixture in this guard's own test suite. Knowledge SSoT: ~/.claude/browser-automation-CLAUDE.md.
+
+**Example usage**:
+
+```
+# CHROME-DEBUG-PORT-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `CROWN-JEWEL-PLAIN-OK`
