@@ -1,3 +1,12 @@
+# [30.5.0](https://github.com/terrylica/cc-skills/compare/v30.4.0...v30.5.0) (2026-09-08)
+
+
+### Features
+
+* **itp-hooks:** PR review-invitation guard and premise annotator ([b766f60](https://github.com/terrylica/cc-skills/commit/b766f608144c0a770a4cc2a27e5733a4ed4b1782)), closes [Eon-Labs/alpha-forge#656](https://github.com/Eon-Labs/alpha-forge/issues/656)
+
+Two new PreToolUse hooks, one shared-library addition, and three live bypasses closed in an existing guard.
+
 # [30.4.0](https://github.com/terrylica/cc-skills/compare/v30.3.0...v30.4.0) (2026-09-07)
 
 
