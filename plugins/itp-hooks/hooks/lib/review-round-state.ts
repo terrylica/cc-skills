@@ -20,6 +20,9 @@ import { homedir } from "node:os";
 import type { RepoFacts, ReviewRoundArtifact } from "./review-round-artifact.ts";
 
 const GIT_TIMEOUT_MS = 3000;
+/** Longer than the git budget: this one crosses the network, and a PreToolUse hook that hangs
+ *  blocks the operator's terminal. Still well inside the hook's own 15s ceiling. */
+const GH_TIMEOUT_MS = 6000;
 
 export const STATE_ROOT = join(homedir(), ".claude", "state", "review-round-gate");
 
@@ -37,6 +40,36 @@ export interface RepoIdentity {
   readonly slug: string;
   readonly branch: string;
   readonly root: string;
+}
+
+/**
+ * The head branch of the pull request named by a `gh pr ready` positional argument.
+ *
+ * A BRANCH NAME IS ALREADY THE ANSWER -- `gh pr ready my-feature` resolves the PR by head branch,
+ * so no lookup is needed and none is made. Only a number or a URL costs a round trip.
+ *
+ * Returns null when the lookup fails, and the caller must then change NOTHING. The asymmetry is
+ * the point: leaving a stale reviewable mark is a false positive the operator can clear, whereas
+ * unmarking a branch that is still in front of a reviewer silently stops metering its pushes.
+ */
+export function resolveHeadBranch(target: string, cwd: string): string | null {
+  if (!/^\d+$/.test(target) && !/^https?:\/\//i.test(target)) return target;
+  try {
+    const out = execFileSync(
+      "gh",
+      ["pr", "view", target, "--json", "headRefName", "--jq", ".headRefName"],
+      {
+        cwd,
+        encoding: "utf8",
+        timeout: GH_TIMEOUT_MS,
+        maxBuffer: 1024 * 1024,
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    ).trim();
+    return out === "" ? null : out;
+  } catch {
+    return null;
+  }
 }
 
 /** null when cwd is not a git repository, or is in a detached/unborn state we cannot key on. */
@@ -283,9 +316,18 @@ export function markBranchReviewable(id: RepoIdentity, sha: string): void {
   writeReviewableStore(id, [...others, { branch: key, sha, at: new Date().toISOString() }]);
 }
 
-/** Drop the mark: the branch has left the review queue (`gh pr ready --undo`). */
-export function unmarkBranchReviewable(id: RepoIdentity): void {
-  const key = branchKey(id);
+/**
+ * Drop the mark: the branch has left the review queue (`gh pr ready --undo`).
+ *
+ * `branch` OVERRIDES the identity's own branch, and omitting it was a real defect rather than a
+ * missing nicety. `gh pr ready --undo 666` names a pull request that usually is NOT the branch of
+ * the directory you happen to be standing in, and this unmarked the CWD's branch instead --
+ * measured: five PRs were undrafted from one worktree and only that worktree's branch lost its
+ * mark, leaving four marks stale and one branch silently unmetered. The caller resolves the real
+ * head branch and passes it here.
+ */
+export function unmarkBranchReviewable(id: RepoIdentity, branch?: string): void {
+  const key = branchKey(branch === undefined ? id : { ...id, branch });
   const current = readReviewableStore(id);
   const remaining = current.filter((r) => r.branch !== key);
   if (remaining.length !== current.length) writeReviewableStore(id, remaining);

@@ -13,6 +13,7 @@ import {
   classify,
   overrideReason,
   sha256,
+  undraftTarget,
   validateArtifact,
   type RepoFacts,
   type ReviewRoundArtifact,
@@ -145,6 +146,40 @@ describe("leaving the review queue is observed, not ignored", () => {
     expect(classify('gh pr comment 1 --body "run gh pr ready 613 --undo next"').kind).not.toBe(
       "pr-undraft",
     );
+  });
+
+  // WHICH branch leaves the queue. Knowing that a transition happened is useless if the gate then
+  // applies it to whatever branch the terminal happens to be sitting in — measured 2026-09-08, five
+  // re-drafts from one worktree cleared exactly one mark, and not one of the five correct ones.
+  const targetCases: Array<[string, string | null]> = [
+    ["gh pr ready --undo 666", "666"],
+    ["gh pr ready 666 --undo", "666"],
+    ["gh pr ready --undo", null], // bare form: gh itself falls back to the current branch
+    ["gh pr ready", null],
+    ["gh pr ready --undo my-feature-branch", "my-feature-branch"],
+    ["gh pr ready --undo https://github.com/o/r/pull/666", "https://github.com/o/r/pull/666"],
+    // -R consumes its value; owner/repo must not be mistaken for the PR.
+    ["gh pr ready -R Eon-Labs/alpha-forge --undo 666", "666"],
+    ["gh pr ready --repo Eon-Labs/alpha-forge --undo 666", "666"],
+    // ...but the inline `=` form consumes nothing, so the next token IS the target.
+    ["gh pr ready --repo=Eon-Labs/alpha-forge --undo 666", "666"],
+    // The quoted span is the PAYLOAD here, not a flag test — withoutQuotedSpans would empty it.
+    ['gh pr ready --undo "my branch"', "my branch"],
+    ["gh pr ready --undo 'my branch'", "my branch"],
+    // Trailing pipeline/redirection is not an argument.
+    ["gh pr ready --undo 666 | tee /tmp/log", "666"],
+    ["gh pr ready --undo 666 && echo done", "666"],
+  ];
+  for (const [command, expected] of targetCases) {
+    test(`undraftTarget(${command.slice(0, 52)}) → ${expected ?? "null"}`, () => {
+      expect(undraftTarget(command)).toBe(expected as never);
+    });
+  }
+
+  test("an unresolvable shell substitution is returned verbatim, not guessed at", () => {
+    // The caller resolves it with `gh pr view`, which fails, and then unmarks NOTHING. Inventing a
+    // branch here would be the fail-open this whole change exists to close.
+    expect(undraftTarget("gh pr ready --undo $PR_NUMBER")).toBe("$PR_NUMBER");
   });
 });
 
