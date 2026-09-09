@@ -1,3 +1,23 @@
+## [30.7.1](https://github.com/terrylica/cc-skills/compare/v30.7.0...v30.7.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **notes-commander:** verifier must not flag rendered markup ([788edee](https://github.com/terrylica/cc-skills/commit/788edee16cb2a9f5404916439a372750d98a9bbe))
+
+`draft-park new` exited 2 with "✗ CONTENT-MISMATCH: the saved note does not contain the drafted text" for any draft whose first visible line contained markdown — while the note had in fact saved perfectly. contentPresent() still compared the RAW input against the read-back, but since v30.6.0 the formatter renders `**bold**` as a real bold run, so those characters are gone from the read-back BY DESIGN.
+
+Severity: this is the skill's primary path. Parking a markdown draft, which is what the skill exists for, failed loudly and told the operator not to trust a note that was correct.
+
+Why it survived three releases and a full unit suite: every real park in the session that shipped the rich-text change passed --allow-lossy-links, which relaxes this exact check for an unrelated reason. The unit tests assert the HTML the formatter EMITS; none of them ran the binary. A verifier that has not been run against the thing it verifies is not a verifier.
+
+- New pure stripMarkup(): drops the markup characters the formatter consumes — emphasis, code spans, strikethrough, ATX heading and list markers, and markdown link syntax (keeping the label) — so the read-back check compares like with like.
+- Anchored the same way as the renderer, so an identifier's underscore is not eaten and the needle still matches a read-back that kept it.
+
+Found by an END-TO-END probe that parks a real note and decodes the stored NoteStoreProto, not by a unit test. That harness now also proves, from Apple Notes' own attribute runs, what the formatter only claimed: `**bold**` -> font_weight=1, `_italic_` -> font_weight=2, `` `code` `` -> a real Courier font run, bullets -> style_type=100 (DottedList), nesting -> indent_amount 1 and 2, headings -> bold with markers consumed, and numbered markers correctly left literal.
+
+Evidence: 57 pass, 0 fail (3 new tests), and four mutations killed END-TO-END against real Notes storage rather than against strings — disabling renderMarkup or stripMarkup makes the park fail outright, disabling bullet lists drops DottedList runs to 0, disabling nesting drops indented runs to 0, and the restored baseline returns exactly.
+
 # [30.7.0](https://github.com/terrylica/cc-skills/compare/v30.6.1...v30.7.0) (2026-09-09)
 
 
