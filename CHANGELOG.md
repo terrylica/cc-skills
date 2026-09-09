@@ -1,3 +1,103 @@
+# [30.6.0](https://github.com/terrylica/cc-skills/compare/v30.5.0...v30.6.0) (2026-09-09)
+
+
+### Bug Fixes
+
+* **itp-hooks:** unmark the branch `gh pr ready --undo` NAMES, not cwd's ([04815bc](https://github.com/terrylica/cc-skills/commit/04815bc76bfc8767266d33c9ff76836f28d3017b))
+
+GH-HARD-WRAP-OK: a commit body renders preformatted, so its line breaks are structural.
+
+The review-round gate treated `gh pr ready --undo 666` as if it concerned the branch of the directory it was typed in. It does not. Measured 2026-09-08: five pull requests were re-drafted in a row from one worktree, and exactly one reviewable mark was cleared -- that worktree's -- which was not among the five that should have been. An argument the code accepted and ignored.
+
+Both halves of that are defects, and they point in opposite directions:
+
+- the four marks left standing are a false positive, costing a redundant self-review record;
+- the one mark wrongly cleared is a FAIL-OPEN, because that branch was still in front of a reviewer and its subsequent pushes stopped being metered.
+
+The second is why this is worth a fix rather than a note.
+
+What changed:
+
+- `undraftTarget()` (review-round-artifact.ts) extracts the positional argument to `gh pr ready`. It is built on the existing `splitShellWords`, not a private tokeniser: the first draft split on whitespace and cut `"my branch"` in half, and `withoutQuotedSpans` -- the neighbouring helper -- is a flag PREDICATE that empties quoted spans, so it would have returned the empty string for the one input where the quoted span is the payload.
+- `resolveHeadBranch()` (review-round-state.ts) turns a number or URL into a head branch via `gh pr view`. A branch name is already the answer and costs no round trip.
+- `unmarkBranchReviewable()` takes an optional branch override.
+- The gate resolves the target and, when resolution FAILS, changes nothing at all. Unmarking a guess would reintroduce the fail-open this commit exists to close.
+
+Tests: 14 extraction cases, 1 store case asserting both directions (named branch cleared AND cwd's branch untouched -- asserting only the first would still pass on the old code whenever cwd happened to be the target), and a new end-to-end file that spawns the hook against real git repositories. That last file exists because both existing suites were green throughout the incident: the defect lived in the join between the classifier and the store, where neither could see it.
+
+* **release:** assert the REGISTRY advanced, not just the cache ([aa94980](https://github.com/terrylica/cc-skills/commit/aa94980956f252bbccc3d69e3229287bf53f01bf))
+
+Every existing post-release step verifies the plugin CACHE. Claude Code does not load from the cache — it loads from the installPath recorded in installed_plugins.json. Nothing in this pipeline compared the two, and on 2026-09-07 that cost a full day: v30.5.0's tag, GitHub release, marketplace clone and cache all advanced while the registry stayed at v30.4.0, so two newly released hooks sat installed and never loaded, and every step above still printed a tick.
+
+The registry write lives only in release Phase 3 (tasks/release/sync), which does not run when only semantic-release Phase 2 does. This step is the difference between that being silent and being loud.
+
+IT EXITS NON-ZERO ON PURPOSE. successCmd runs after the tag is pushed, so a warning would scroll past and the release would still look complete — which is precisely how the last one passed unnoticed.
+
+RETRIED, bounded at about ten seconds, because Step 2 drives the registry update through a `claude --print` subprocess. A guard that fires on a slightly-late write is a guard that gets switched off; ten seconds is long enough for an in-flight update and far too short to hide a Phase 3 that never ran.
+
+Failure modes are deliberately asymmetric. A missing registry (no Claude Code on this machine) or a registry our own jq cannot parse both WARN and continue — never block a release on our own tooling. Only a registry that parses cleanly and disagrees with the released version fails.
+
+VERIFIED AGAINST THE REAL INCIDENT, not only synthetic cases. Run against the live registry with VERSION=30.5.0 — the exact historical situation — it reports "46 cc-skills plugin(s) still point at an older version" and exits 1. Five harness cases also pass: matching, stale, absent, unparseable, and a foreign-marketplace plugin at another version that must not trip it. The harness extracts the block from this file by pattern rather than copying it, so it cannot drift into testing a duplicate.
+
+Uses `awk NR<=5` rather than `head -5`: head closes the pipe early, printf dies of SIGPIPE, and pipefail hands the pipeline 141 — which under `set -e` would abort the error report before it printed the remedy.
+
+
+
+### Features
+
+* **itp-hooks:** cap a shared reviewer at 2 reviews per rolling hour ([321abb2](https://github.com/terrylica/cc-skills/commit/321abb26c85919b0abd85b165e9f7c0de4c79da9))
+
+The reviewer on Eon-Labs/alpha-forge is a SHARED queue: other people's work waits behind the same reviewer, so a burst from one author jumps everyone else's place. Measured on 2026-09-08: peak rolling-hour occupancy 10 against a limit of 2; 16 of 27 verdicts over quota; 84 reviews of budget available across the 42h span and only 27 actually spent.
+
+Those last two numbers are why this is a rate limiter and not a budget. Aggregate spend was well UNDER the allowance; the whole breach was BURSTINESS -- 16 violations inside one two-hour block, then nine hours of silence. Spreading the same work out costs almost no throughput.
+
+WHAT THE REVIEWER KEYS ON, measured rather than assumed: a DISTINCT HEAD SHA ON AN OPEN PR.
+
+- DRAFTS ARE NOT EXEMPT. PRs 592-595 were opened as drafts on 2026-09-02, never readied (no ready_for_review event exists on any of them), and each drew a CHANGES_REQUESTED 57-126 minutes later. This is why classifyQuotaSpend does NOT reuse classify() from review-round-artifact.ts: that classifier deliberately exempts `gh pr create --draft`, which would have made `--draft` a one-flag bypass. A mutant reinstating that carve-out fails the test that names it.
+- OPENING A PR IS ITSELF A SPEND. PR 592's head was dated 2026-08-17, sixteen days before it was opened and reviewed, with no push in between. So pr-create and pr-reopen are metered.
+- NO OPEN PR MEANS NO REVIEW -- the free workspace, and why a push is metered only when the branch has an open PR rather than on every scratch branch.
+
+COUNTING IS BY DISTINCT SHA. 25 pushes produced 20 reviews; the 5 that produced none were each superseded within 6-20 minutes, so the older head was never dequeued. A rejected push, or a --force-with-lease of the same commit, presents no new head either. Charging per command would bill for reviews that cannot happen.
+
+DELIBERATELY A SIBLING OF review-round-gate, NOT A CLAUSE INSIDE IT. Two placements inside that gate were designed and both were wrong: above its `!isBranchReviewable` filter it would charge every scratch-branch push, and beside markBranchReviewable pushes would have been GATED by the quota and never RECORDED in it -- a counter fed only by pr-create while pushes ran free against it. Third and decisive: that gate treats `gh pr ready --undo` as leaving the queue, and since drafting does not stop reviews, building on its notion of "reviewable" would let one command disarm this.
+
+Fails CLOSED where it matters: when `gh` cannot say whether a PR is open, the command is metered. The opposite choice is exactly how an author reaches ten reviews in an hour believing a guard is watching. Fails OPEN but countably when its own logic throws, matching the sibling gate.
+
+The override ASKS rather than allowing, and requires a 12+ character reason written to an override log. A frictionless bypass would be a guard against nobody, since the failure mode is an author deciding "just one more push" twelve times in an hour.
+
+19 unit tests; 5 mutants, all killed, each by tests naming the property it breaks. End-to-end proof against the real hook with crafted stdin: allow under limit, deny at limit, deny for --draft, allow for --undo, ask for the override, allow for an unmetered repo.
+
+Scope is Eon-Labs/alpha-forge only, by operator decision.
+
+* **notes-commander:** render markdown as rich text in Notes ([48b68be](https://github.com/terrylica/cc-skills/commit/48b68be5ad7e9c90d225a77f9ce8d259ef2cf113))
+
+Apple Notes is a rich-text editor and its AppleScript body SETTER accepts real HTML, so bold/italic/monospaced runs are a solved problem. The formatter was not using it. renderInline() promoted [label](url) to an anchor and passed everything else through escapeHtml(), so every emphasis character reached the note as a visible glyph. Measured from a parked weekly report's own stored bytes: 274 literal `**` and 9 literal heading markers. The cost fell on the author, who either hand-stripped markup or shipped it visible. This was never decided — link support landed 2026-08-05 and emphasis was simply never added, while the docs described the escaping as the design.
+
+The 2026-08-17 incident log already recorded a real message going out "studded with 20 literal `**`", and the fix then was `--for whatsapp`, i.e. the SEND path. The Notes path was left untouched for three weeks.
+
+What changed:
+
+- New pure renderMarkup(): `**bold**`, `*italic*`/`_italic_`, `` `code` `` and `~~strike~~` become &lt;b>/&lt;i>/&lt;tt>/&lt;s>. Applied to ALREADY-ESCAPED text, so escaping still governs safety — this only ever adds tags.
+- New HEADING_RE: ATX headings become bold runs and are split into their own paragraph, so a heading with no blank line beneath it no longer reflows into the prose under it.
+- Code spans are lifted out first and reinstated last (U+E000 placeholder, deliberately not a control character — the linter rejects those), so `` `a ** b` `` keeps its asterisks.
+
+Two anchoring decisions are the load-bearing part, because the naive version corrupts exactly the prose this plugin is used for:
+
+- `_` emphasis requires a NON-word character before the opener and NO word character after the closer, so `analytics.model_predictions and nan_policy` cannot italicise the span between two identifiers.
+- `*` is anchored the same way, so `2*3*4` survives, and a lone `*` with a space after it (a list marker) is inert.
+- `#600` is an issue reference, not a heading: the ATX rule requires a following space.
+
+Evidence — 12 new unit tests, 39 -> 51 pass, 0 fail, and each fix mutation-proven rather than assumed:
+
+- removing the renderMarkup call kills 7 tests
+- removing the underscore anchor kills exactly the identifier-corruption test
+- removing the heading split kills 2
+- the restored baseline returns to 51/0
+
+Verified end-to-end against the shipped module, then against a real parked note: literal `**` went 274 -> 0, heading markers 9 -> 0, with all 27 stored hrefs intact.
+
+Not changed: fences stay verbatim, `get --body-only` still returns plain sendable text, and the link getter is still lossy by design.
+
 # [30.5.0](https://github.com/terrylica/cc-skills/compare/v30.4.0...v30.5.0) (2026-09-08)
 
 
