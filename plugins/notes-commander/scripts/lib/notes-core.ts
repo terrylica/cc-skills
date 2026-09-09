@@ -148,6 +148,29 @@ export function entityLeaks(text: string): string[] {
 const stripWs = (s: string): string => s.replace(/\s+/g, "");
 
 /**
+ * Drop the markup CHARACTERS the formatter legitimately consumes, so the read-back check
+ * compares like with like.
+ *
+ * Regression found 2026-09-09 by an end-to-end probe, not by a unit test: once the formatter
+ * started rendering `**bold**` as a real bold run, `contentPresent()` was still comparing the
+ * RAW input against the read-back, so any draft whose first visible line contained markup
+ * failed with `✗ CONTENT-MISMATCH` and exit 2 — the note saved correctly and the tool called
+ * it corrupt. It stayed hidden all session because every scrum park passed
+ * `--allow-lossy-links`, which relaxes this very check for an unrelated reason. A verifier
+ * that has not been run against the thing it verifies is not a verifier.
+ */
+const stripMarkup = (s: string): string =>
+	s
+		.replace(/^\s{0,3}#{1,6}\s+/, "")
+		.replace(/^\s*([-*+•·]|\d+[.)]|[A-Za-z][.)])\s+/, "")
+		.replace(/\*\*|~~|`/g, "")
+		.replace(/(^|[^\w*])\*(?=\S)/g, "$1")
+		.replace(/(^|[^\w_])_(?=\S)/g, "$1")
+		.replace(/\*(?!\w)/g, "")
+		.replace(/_(?!\w)/g, "")
+		.replace(/\[([^\]\n]+)\]\((?:https?|mailto):[^\s)]+\)/g, "$1");
+
+/**
  * Does the read-back plausibly still contain the drafted text? Whitespace-insensitive substring
  * check on the first chunk of visible content — tolerant of reflow/soft-wrapping and CJK (which
  * reflow joins without spaces), so it flags a truncated/empty/mangled save WITHOUT
@@ -168,7 +191,9 @@ export function contentPresent(inputBody: string, readback: string): boolean {
 		}
 	}
 	if (!firstLine) return true; // only fenced/blank content — assert nothing
-	const needle = stripWs(firstLine).slice(0, 24);
+	// Compare against the input with markup consumed: the formatter renders it as styling,
+	// so the characters are GONE from the read-back by design, not by corruption.
+	const needle = stripWs(stripMarkup(firstLine)).slice(0, 24);
 	return needle ? stripWs(readback).includes(needle) : true;
 }
 
