@@ -457,6 +457,31 @@ test("bold renders inside a list item", () => {
 	expect(html).not.toContain("**Closed**");
 });
 
+// ── nested lists: an outline must survive as an outline ────────────────────────
+// Regression 2026-09-09: a two-level scrum outline arrived in Notes as one flat column of
+// `-` lines. Reported as "without the indentation, they can't be separated enough".
+
+test("a nested list item is indented, and a flat list is not", () => {
+	const html = bodyToHtml("- top\n  - sub\n- top2");
+	expect(html).toContain("<div>- top</div>");
+	expect(html).toContain("&nbsp;&nbsp;&nbsp;&nbsp;- sub");
+	// the second top-level item must NOT inherit the sub-item's indent
+	expect(html).toContain("<div>- top2</div>");
+	// a flat list gains no indentation at all
+	expect(bodyToHtml("- a\n- b")).not.toContain("&nbsp;");
+});
+
+test("depth is relative, so a wholly-indented list is not double-indented", () => {
+	const html = bodyToHtml("  - a\n  - b");
+	expect(html).not.toContain("&nbsp;");
+});
+
+test("a continuation line's own indentation does not move its item", () => {
+	const html = bodyToHtml("- first line\n      wrapped continuation\n- second");
+	expect(html).toContain("<div>- first line wrapped continuation</div>");
+	expect(html).toContain("<div>- second</div>");
+});
+
 test("a fenced block keeps every markup character literal", () => {
 	const html = bodyToHtml("```\n**not bold** and _not italic_\n```");
 	expect(html).toContain("**not");
