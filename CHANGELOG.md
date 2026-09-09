@@ -1,3 +1,24 @@
+# [30.7.0](https://github.com/terrylica/cc-skills/compare/v30.6.1...v30.7.0) (2026-09-09)
+
+
+### Features
+
+* **notes-commander:** emit native Notes bullet lists that nest ([397b298](https://github.com/terrylica/cc-skills/commit/397b298540f406157b37d412b7bc8797cb924577))
+
+Bullet lines were rendered as a literal `-` inside a &lt;div>, so Notes drew no bullet of its own and sub-items sat inline with their parents. From the operator's screenshot of a real parked report: "the bullet is not using the natively available bullet by Apple Notes" and "the sub-bullets are inline instead of indented on the next line".
+
+A pure bullet block now becomes a real &lt;ul>/&lt;li> tree, marker stripped, so Notes draws its glyph and indents nested levels natively. Indent a child by two spaces (a tab counts as one unit) and it nests.
+
+Numbered and lettered markers (`1.`, `2)`, `a.`) deliberately KEEP the literal-marker form. Notes' own numbered list renumbers from 1, so routing them through &lt;ol> would silently rewrite an author's "2)" as "1." — a formatter must not change what an author wrote.
+
+- New BULLET_RE, kept separate from LIST_RE precisely so numbering is not swept into the change.
+- buildBulletList() builds the nested tree from flat depth annotations.
+- Depth stays RELATIVE to the shallowest item, so a wholly indented list is not double-indented, and it is still read from the MARKER line only.
+
+This is a rendering contract change: five existing tests pinned the old `<div>- item</div>` form and were updated to the new `<li>item</li>` form rather than worked around.
+
+Evidence: 54 pass, 0 fail, and mutation-proven — disabling recursion kills the nesting test, removing the bullet branch kills 6. Verified against a real parked note: zero literal "- " line-starts remain in the stored text, so Notes owns the glyph and the indentation.
+
 ## [30.6.1](https://github.com/terrylica/cc-skills/compare/v30.6.0...v30.6.1) (2026-09-09)
 
 
