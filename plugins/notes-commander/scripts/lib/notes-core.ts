@@ -46,17 +46,72 @@ export function escapeHtml(s: string): string {
  */
 const INLINE_LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
 
+/**
+ * Inline emphasis Notes renders as RICH TEXT rather than as literal characters.
+ *
+ * Apple Notes is a rich-text editor and its `body` SETTER accepts real HTML, so `<b>`/`<i>`/
+ * `<tt>` become genuine bold / italic / monospaced runs. Until 2026-09-09 this formatter
+ * escaped every markup character instead, so a draft written in the house markdown style
+ * arrived studded with literal syntax — measured at **274 stray `**` and 9 literal heading
+ * markers in a single weekly report**. There is no reason to make an author hand-strip markup
+ * for a target that can render it.
+ *
+ * `_underscore_` emphasis is the dangerous one and is deliberately boundary-anchored, because
+ * technical prose is full of identifiers: a naive rule turns `analytics.model_predictions and
+ * nan_policy` into `analytics.model<i>predictions and nan</i>policy`. Requiring a NON-word
+ * character before the opening `_` and NO word character after the closing one makes an
+ * identifier structurally unable to open or close emphasis. `*star*` is anchored the same way
+ * so arithmetic like `2*3*4` survives, and both forms require a non-space next to the marker so
+ * a lone `*` in prose is inert.
+ */
+const CODE_SPAN_RE = /`([^`\n]+)`/g;
+const BOLD_RE = /\*\*(?=\S)([^\n]*?\S)\*\*/g;
+const STRIKE_RE = /~~(?=\S)([^\n]*?\S)~~/g;
+const EM_STAR_RE = /(^|[^\w*])\*(?=\S)([^*\n]*?\S)\*(?!\w)/g;
+const EM_UNDERSCORE_RE = /(^|[^\w_])_(?=\S)([^_\n]*?\S)_(?!\w)/g;
+
+/**
+ * PURE, TESTED: promote markdown emphasis to Notes rich text. Input MUST already be
+ * HTML-escaped — this only ever ADDS tags, so escaping first is what keeps author `<` safe.
+ *
+ * Code spans are extracted first and reinstated last, so `` `a ** b` `` keeps its asterisks
+ * literal. The placeholder uses U+E000 (Private Use Area) — it carries no meaning of its own,
+ * cannot appear in real prose, and unlike a control character does not trip the linter.
+ */
+export function renderMarkup(escaped: string): string {
+	const code: string[] = [];
+	let s = escaped.replace(CODE_SPAN_RE, (_m, body: string) => {
+		code.push(body);
+		return `\uE000${code.length - 1}\uE000`;
+	});
+	s = s
+		.replace(BOLD_RE, "<b>$1</b>")
+		.replace(STRIKE_RE, "<s>$1</s>")
+		.replace(EM_STAR_RE, "$1<i>$2</i>")
+		.replace(EM_UNDERSCORE_RE, "$1<i>$2</i>");
+	return s.replace(
+		/\uE000(\d+)\uE000/g,
+		(_m, i: string) => `<tt>${code[Number(i)]}</tt>`,
+	);
+}
+
+/**
+ * ATX heading. The trailing-space requirement is load-bearing: `#600` is an issue reference,
+ * not a heading, and weekly reports are full of them.
+ */
+export const HEADING_RE = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/;
+
 /** PURE, TESTED: escape a line for Notes HTML, promoting `[label](url)` to a real anchor. */
 export function renderInline(s: string): string {
 	let out = "";
 	let last = 0;
 	for (const m of s.matchAll(INLINE_LINK_RE)) {
 		const at = m.index ?? 0;
-		out += escapeHtml(s.slice(last, at));
-		out += `<a href="${escapeHtml(m[2])}">${escapeHtml(m[1])}</a>`;
+		out += renderMarkup(escapeHtml(s.slice(last, at)));
+		out += `<a href="${escapeHtml(m[2])}">${renderMarkup(escapeHtml(m[1]))}</a>`;
 		last = at + m[0].length;
 	}
-	return out + escapeHtml(s.slice(last));
+	return out + renderMarkup(escapeHtml(s.slice(last)));
 }
 
 /**
@@ -242,6 +297,14 @@ function renderTextBlock(lines: string[]): string[] {
 				paras.push(para);
 				para = [];
 			}
+		} else if (HEADING_RE.test(l)) {
+			// A heading is its own paragraph even with no blank line around it. Without this it
+			// would be reflowJoin()ed into the prose beneath and rendered as one run-on line.
+			if (para.length) {
+				paras.push(para);
+				para = [];
+			}
+			paras.push([l]);
 		} else {
 			para.push(l);
 		}
@@ -255,6 +318,16 @@ function renderTextBlock(lines: string[]): string[] {
 		// alone classified that last shape as prose and reflowJoin()ed the markers into the
 		// lead-in, silently destroying the list — authors then had to know the undocumented
 		// "leave a blank line before a list" rule. Split at the FIRST marker instead.
+		const heading = p.length === 1 ? HEADING_RE.exec(p[0]) : null;
+		if (heading) {
+			// Notes has no reliable AppleScript path to its own heading STYLES, but bold is a
+			// real rich-text run and reads as a heading. The `#` markers are consumed either
+			// way — leaving them visible is the defect this branch exists to prevent.
+			html.push(`<div><b>${renderInline(heading[2])}</b></div>`);
+			html.push("<div><br></div>");
+			continue;
+		}
+
 		const firstMarker = p.findIndex((l) => LIST_RE.test(l));
 		if (firstMarker > 0) {
 			// lead-in prose, then the list

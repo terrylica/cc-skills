@@ -377,3 +377,90 @@ test("bodyToHtml links inside list items and prose, but NOT inside a fence", () 
 	expect(html).toContain("[#470](https://x.test/470)");
 	expect(html.match(/<a href=/g)?.length).toBe(1);
 });
+
+// ── rich text: Notes renders bold/italic/mono, so markup must never reach it literally ──
+// Regression 2026-09-09: a parked weekly report carried 274 literal `**` and 9 literal `#`
+// heading markers, because the formatter escaped every markup character. Apple Notes is a
+// rich-text target; there is no reason to make an author hand-strip markup for it.
+
+test("bold **…** becomes a real <b> run, markers consumed", () => {
+	expect(renderInline("a **bold** b")).toBe("a <b>bold</b> b");
+	expect(renderInline("**one** and **two**")).toBe(
+		"<b>one</b> and <b>two</b>",
+	);
+});
+
+test("inline code becomes <tt> and protects markup inside it", () => {
+	expect(renderInline("run `a ** b` now")).toBe("run <tt>a ** b</tt> now");
+	expect(renderInline("`**not bold**`")).toBe("<tt>**not bold**</tt>");
+});
+
+test("underscore emphasis renders, but an IDENTIFIER can neither open nor close it", () => {
+	expect(renderInline("the _headline_ result")).toBe(
+		"the <i>headline</i> result",
+	);
+	// THE regression this anchoring exists for: two unrelated identifiers on one line must
+	// not italicise the span between them.
+	expect(renderInline("analytics.model_predictions and nan_policy")).toBe(
+		"analytics.model_predictions and nan_policy",
+	);
+	expect(renderInline("gate_series feeds fillna_zero")).toBe(
+		"gate_series feeds fillna_zero",
+	);
+});
+
+test("star emphasis renders, but arithmetic and list markers stay literal", () => {
+	expect(renderInline("an *emphasis* here")).toBe("an <i>emphasis</i> here");
+	expect(renderInline("2*3*4 = 24")).toBe("2*3*4 = 24");
+	// a lone marker with a space after it is inert (this is how list lines arrive)
+	expect(renderInline("* not italic")).toBe("* not italic");
+});
+
+test("unmatched or spaced markers stay literal rather than eating the line", () => {
+	expect(renderInline("**dangling start")).toBe("**dangling start");
+	expect(renderInline("a ** b ** c")).toBe("a ** b ** c");
+});
+
+test("markup never defeats HTML escaping", () => {
+	expect(renderInline("**<script>**")).toBe("<b>&lt;script&gt;</b>");
+	expect(renderInline("a < b & **c**")).toBe("a &lt; b &amp; <b>c</b>");
+});
+
+test("bold survives inside a link label and around a link", () => {
+	expect(renderInline("**see** [#470](https://x.test/470)")).toBe(
+		'<b>see</b> <a href="https://x.test/470">#470</a>',
+	);
+});
+
+test("ATX headings become bold runs and lose their # markers", () => {
+	const html = bodyToHtml("## For everyone\n\nSome prose.");
+	expect(html).toContain("<b>For everyone</b>");
+	expect(html).not.toContain("## For everyone");
+});
+
+test("a heading with no blank line under it still separates from the prose", () => {
+	const html = bodyToHtml("### 1. What stands\nThe model wins.");
+	expect(html).toContain("<b>1. What stands</b>");
+	// must NOT have been reflowed into one run-on line with the prose beneath
+	expect(html).not.toContain("1. What stands The model wins.");
+});
+
+test("#600 is an issue reference, NOT a heading", () => {
+	const html = bodyToHtml("#600 is still open");
+	expect(html).toContain("#600 is still open");
+	expect(html).not.toContain("<b>600");
+});
+
+test("bold renders inside a list item", () => {
+	const html = bodyToHtml("- **Closed** merged 2026-09-06");
+	expect(html).toContain("<b>Closed</b>");
+	expect(html).not.toContain("**Closed**");
+});
+
+test("a fenced block keeps every markup character literal", () => {
+	const html = bodyToHtml("```\n**not bold** and _not italic_\n```");
+	expect(html).toContain("**not");
+	expect(html).toContain("_not");
+	expect(html).not.toContain("<b>");
+	expect(html).not.toContain("<i>");
+});
