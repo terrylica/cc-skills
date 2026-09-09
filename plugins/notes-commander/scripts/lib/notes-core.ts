@@ -344,7 +344,23 @@ function renderTextBlock(lines: string[]): string[] {
 	return html;
 }
 
-/** Render list lines one <div> per item; a non-marker continuation line reflows into its item. */
+/** Leading whitespace of a list line, in 2-space indent units. A tab counts as one unit. */
+export function listDepth(line: string): number {
+	const lead = /^[ \t]*/.exec(line)?.[0] ?? "";
+	return Math.floor(lead.replace(/\t/g, "  ").length / 2);
+}
+
+/**
+ * Render list lines one <div> per item; a non-marker continuation line reflows into its item.
+ *
+ * INDENTATION IS PRESERVED (2026-09-09). Before this, every marker line became a flat `<div>`
+ * regardless of leading whitespace, so a two-level outline arrived in Notes as one
+ * undifferentiated column of `-` lines — reported from a real parked report as "without the
+ * indentation, they can't be separated enough". Depth is rendered with `&nbsp;` runs rather
+ * than nested `<ul>` deliberately: the author's own marker is kept as visible text (that is
+ * the long-standing behaviour every other test pins), and `&nbsp;` is the one indent Notes
+ * cannot collapse — an ordinary leading space in HTML is whitespace and disappears.
+ */
 function renderListItems(lines: string[]): string[] {
 	const items: string[][] = [];
 	let item: string[] = [];
@@ -357,7 +373,13 @@ function renderListItems(lines: string[]): string[] {
 		}
 	}
 	if (item.length) items.push(item);
-	return items.map((it) => `<div>${renderInline(reflowJoin(it))}</div>`);
+	// Depth is taken from the MARKER line only; a continuation line's own indentation is
+	// incidental (it is wrapped prose) and must not change where its item sits.
+	const base = Math.min(...items.map((it) => listDepth(it[0])));
+	return items.map((it) => {
+		const indent = "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(listDepth(it[0]) - base);
+		return `<div>${indent}${renderInline(reflowJoin(it))}</div>`;
+	});
 }
 
 /**
