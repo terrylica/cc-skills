@@ -126,11 +126,9 @@ test("list markers each get their own line; a wrapped continuation joins its ite
 	const html = bodyToHtml(
 		"- first item\n- second item that is\n  wrapped onto two lines\n- third item",
 	);
-	expect(html).toContain("<div>- first item</div>");
-	expect(html).toContain(
-		"<div>- second item that is wrapped onto two lines</div>",
-	);
-	expect(html).toContain("<div>- third item</div>");
+	expect(html).toContain("<li>first item</li>");
+	expect(html).toContain("<li>second item that is wrapped onto two lines</li>");
+	expect(html).toContain("<li>third item</li>");
 });
 
 test("a lead-in line directly above a list does NOT absorb the list items", () => {
@@ -140,8 +138,8 @@ test("a lead-in line directly above a list does NOT absorb the list items", () =
 	// draft; the author had to know an undocumented "blank line before a list" rule.
 	const html = bodyToHtml("解决办法有两个，你倾向哪个？\n- 升级到 Heavy\n- 调高默认值");
 	expect(html).toContain("<div>解决办法有两个，你倾向哪个？</div>");
-	expect(html).toContain("<div>- 升级到 Heavy</div>");
-	expect(html).toContain("<div>- 调高默认值</div>");
+	expect(html).toContain("<li>升级到 Heavy</li>");
+	expect(html).toContain("<li>调高默认值</li>");
 });
 
 test("a lead-in above a numbered list keeps each item on its own line", () => {
@@ -156,7 +154,7 @@ test("multi-line lead-in prose above a list reflows, then the list splits", () =
 	expect(html).toContain(
 		"<div>First half second half of the same sentence:</div>",
 	);
-	expect(html).toContain("<div>- item one</div>");
+	expect(html).toContain("<li>item one</li>");
 });
 
 test("numbered and lettered list markers are recognized", () => {
@@ -463,23 +461,26 @@ test("bold renders inside a list item", () => {
 
 test("a nested list item is indented, and a flat list is not", () => {
 	const html = bodyToHtml("- top\n  - sub\n- top2");
-	expect(html).toContain("<div>- top</div>");
-	expect(html).toContain("&nbsp;&nbsp;&nbsp;&nbsp;- sub");
-	// the second top-level item must NOT inherit the sub-item's indent
-	expect(html).toContain("<div>- top2</div>");
-	// a flat list gains no indentation at all
-	expect(bodyToHtml("- a\n- b")).not.toContain("&nbsp;");
+	// a real Notes list: markers stripped, Notes draws its own glyph
+	expect(html).toContain("<li>top</li>");
+	expect(html).toContain("<li>top2</li>");
+	expect(html).not.toContain("- top");
+	// the sub-item sits inside a NESTED <ul>, not inline with its parent
+	expect(html).toContain("<ul><li>sub</li></ul>");
+	// a flat list opens exactly one level
+	expect(bodyToHtml("- a\n- b")).toContain("<ul><li>a</li><li>b</li></ul>");
 });
 
 test("depth is relative, so a wholly-indented list is not double-indented", () => {
 	const html = bodyToHtml("  - a\n  - b");
-	expect(html).not.toContain("&nbsp;");
+	expect(html).toContain("<ul><li>a</li><li>b</li></ul>");
+	expect(html).not.toContain("<ul><ul>");
 });
 
 test("a continuation line's own indentation does not move its item", () => {
 	const html = bodyToHtml("- first line\n      wrapped continuation\n- second");
-	expect(html).toContain("<div>- first line wrapped continuation</div>");
-	expect(html).toContain("<div>- second</div>");
+	expect(html).toContain("<li>first line wrapped continuation</li>");
+	expect(html).toContain("<li>second</li>");
 });
 
 test("a fenced block keeps every markup character literal", () => {

@@ -373,13 +373,57 @@ function renderListItems(lines: string[]): string[] {
 		}
 	}
 	if (item.length) items.push(item);
+
 	// Depth is taken from the MARKER line only; a continuation line's own indentation is
 	// incidental (it is wrapped prose) and must not change where its item sits.
 	const base = Math.min(...items.map((it) => listDepth(it[0])));
-	return items.map((it) => {
-		const indent = "&nbsp;&nbsp;&nbsp;&nbsp;".repeat(listDepth(it[0]) - base);
-		return `<div>${indent}${renderInline(reflowJoin(it))}</div>`;
+	const parsed = items.map((it) => {
+		const m = BULLET_RE.exec(it[0]);
+		return {
+			bullet: m !== null,
+			depth: listDepth(it[0]) - base,
+			html: renderInline(reflowJoin(m ? [m[3], ...it.slice(1)] : it)),
+		};
 	});
+
+	// A pure BULLET block becomes a real Notes list: <ul>/<li>, marker stripped, so Notes
+	// draws its own glyph and indents nested levels natively. Rendering `- ` as literal text
+	// inside a <div> (what this did until 2026-09-09) produced neither — the operator's own
+	// screenshot showed hyphens where bullets belonged and inline sub-items where indented
+	// ones belonged. NUMBERED/LETTERED blocks keep the literal-marker <div> path on purpose:
+	// Notes' <ol> renumbers from 1 and would silently rewrite an author's "2)" as "1.".
+	if (parsed.every((p) => p.bullet)) return [buildBulletList(parsed, 0, 0)[0]];
+
+	return parsed.map(
+		(p) => `<div>${"&nbsp;".repeat(4 * p.depth)}${p.html}</div>`,
+	);
+}
+
+/** Bullet marker with its indent and content. Kept separate from LIST_RE, which also matches
+ *  numbered and lettered markers that must NOT be renumbered by Notes. */
+const BULLET_RE = /^([ \t]*)([-*+•·])[ \t]+(.*)$/;
+
+type ListNode = { depth: number; html: string };
+
+/** Build nested <ul> from a flat depth-annotated list. Returns [html, nextIndex]. */
+function buildBulletList(
+	items: ListNode[],
+	start: number,
+	depth: number,
+): [string, number] {
+	let out = "";
+	let i = start;
+	while (i < items.length && items[i].depth >= depth) {
+		if (items[i].depth > depth) {
+			const [sub, next] = buildBulletList(items, i, items[i].depth);
+			out += sub;
+			i = next;
+		} else {
+			out += `<li>${items[i].html}</li>`;
+			i++;
+		}
+	}
+	return [`<ul>${out}</ul>`, i];
 }
 
 /**
