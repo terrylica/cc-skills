@@ -455,6 +455,32 @@ test("bold renders inside a list item", () => {
 	expect(html).not.toContain("**Closed**");
 });
 
+// ── the verifier must not call rendered markup "corruption" ────────────────────
+// Regression 2026-09-09, found by an end-to-end probe rather than a unit test: once the
+// formatter rendered `**bold**` as a real bold run, contentPresent() still compared the RAW
+// input against the read-back, so `draft-park new` exited 2 with ✗ CONTENT-MISMATCH on a note
+// that had saved perfectly. It hid all session because every real park passed
+// --allow-lossy-links, which relaxes this same check for an unrelated reason.
+
+test("contentPresent accepts a read-back whose markup the formatter consumed", () => {
+	expect(contentPresent("Probe line with **bold word** here.", "Probe line with bold word here.")).toBe(true);
+	expect(contentPresent("## For everyone", "For everyone")).toBe(true);
+	expect(contentPresent("- first bullet item here", "first bullet item here")).toBe(true);
+	expect(contentPresent("A `code span` inside a line", "A code span inside a line")).toBe(true);
+	expect(contentPresent("The _italic_ opener of a draft", "The italic opener of a draft")).toBe(true);
+	expect(contentPresent("See [the portal](https://x.test/p) now", "See the portal now")).toBe(true);
+});
+
+test("contentPresent still catches a genuinely missing or truncated save", () => {
+	expect(contentPresent("Probe line with **bold word** here.", "")).toBe(false);
+	expect(contentPresent("Probe line with **bold word** here.", "something else entirely")).toBe(false);
+});
+
+test("stripMarkup must not eat an identifier's underscore", () => {
+	// if it did, the needle would stop matching a read-back that legitimately kept them
+	expect(contentPresent("analytics.model_predictions and nan_policy", "analytics.model_predictions and nan_policy")).toBe(true);
+});
+
 // ── nested lists: an outline must survive as an outline ────────────────────────
 // Regression 2026-09-09: a two-level scrum outline arrived in Notes as one flat column of
 // `-` lines. Reported as "without the indentation, they can't be separated enough".
