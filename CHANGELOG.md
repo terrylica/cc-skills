@@ -1,3 +1,19 @@
+## [30.6.1](https://github.com/terrylica/cc-skills/compare/v30.6.0...v30.6.1) (2026-09-09)
+
+
+### Bug Fixes
+
+* **notes-commander:** keep list indentation in Notes ([16319c0](https://github.com/terrylica/cc-skills/commit/16319c037d9aa457de9b57dd99f53338f62cac52))
+
+Every marker line became a flat &lt;div> regardless of its leading whitespace, so a two-level outline arrived in Notes as one undifferentiated column of `-` lines. Reported from a real parked weekly report: "without the indentation, they can't be separated enough; there won't be enough separation of concerns without sub-bullet indentation."
+
+- New pure listDepth(): leading whitespace in 2-space units, a tab counting as one unit.
+- Depth is rendered with &nbsp; runs rather than nested &lt;ul>, deliberately. The author's own marker stays visible text, which is the behaviour every existing list test pins, and &nbsp; is the one indent Notes cannot collapse — an ordinary leading space is HTML whitespace and disappears.
+- Depth is taken from the MARKER line only. A continuation line's own indentation is incidental wrapped prose and must not move its item.
+- Depth is RELATIVE to the shallowest item in the block, so a wholly indented list is not double-indented.
+
+Evidence: 3 new unit tests, 51 -> 54 pass, 0 fail, both fixes mutation-proven — removing the indent kills 1 test, removing the relative base kills 1, and the restored baseline returns to 54/0. Verified against a real parked note: sub-bullets store with their leading indent where before they were flush against the margin.
+
 # [30.6.0](https://github.com/terrylica/cc-skills/compare/v30.5.0...v30.6.0) (2026-09-09)
 
 
