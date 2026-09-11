@@ -1462,10 +1462,42 @@ fi
 # value verbatim per the NATIVE-FIELDS-ONLY invariant. Starts with the model
 # token directly (no leading " | " — that separator existed only when this
 # was appended to git_changes).
+# === ccmax sub2api group (rendered immediately LEFT of the model token) =======
+#   Which pool this session SPENDS FROM. Sourced from CCMAX_WRAPPER_REQUESTED_GROUP,
+#   the ground-truth env var the ccmax wrapper injects into the child process.
+#
+#   This is the ONLY route by which the group is observable: the wrapper consumes
+#   `--group` and strips it before argv reaches claude, and does not otherwise export
+#   CCMAX_GROUP. Reading the env var honours the NATIVE-FIELDS-ONLY invariant (no
+#   subprocess, no process-tree inference).
+#
+#   Empty means "no preference -> device's first entitlement", which is a real answer
+#   and NOT an error -- so the segment is simply omitted, leaving a non-ccmax or
+#   default-pool session rendering exactly as it did before.
+#
+#   Charset-gated for the same reason the value is validated everywhere else it is
+#   consumed: it is injected into a terminal line, so a malformed value must never be
+#   able to smuggle in escape sequences.
+#   Validated with `case` rather than `printf | grep -q`: piping into an early-exiting
+#   reader under `pipefail` kills the producer with SIGPIPE (141) and inverts the
+#   boolean, and it is a race that only starts failing as data grows. `case` needs no
+#   pipe and no subprocess at all, which also keeps this off the statusline hot path.
+group_inline=""
+case "${CCMAX_WRAPPER_REQUESTED_GROUP:-}" in
+"") ;;                  # unset or empty: "no preference", render nothing
+*[!A-Za-z0-9_-]*) ;;    # illegal character anywhere: reject
+[!A-Za-z0-9]*) ;;       # must start alphanumeric: reject
+*)
+    if [ "${#CCMAX_WRAPPER_REQUESTED_GROUP}" -le 64 ]; then
+        group_inline="${BRIGHT_BLACK}${CCMAX_WRAPPER_REQUESTED_GROUP}${RESET}${BRIGHT_BLACK} · ${RESET}"
+    fi
+    ;;
+esac
+
 model_inline=""
 model_token="${model_id:-$model_raw}"
 if [ -n "$model_token" ]; then
-    model_inline="${BRIGHT_BLACK}${model_token}${RESET}"
+    model_inline="${group_inline}${BRIGHT_BLACK}${model_token}${RESET}"
     [ -n "$effort_level" ] && model_inline="${model_inline}${BRIGHT_BLACK} · ${effort_level}${RESET}"
     [ -n "$thinking_enabled" ] && model_inline="${model_inline}${BRIGHT_BLACK} · thinking:${thinking_enabled}${RESET}"
     [ "$fast_mode_flag" = "true" ] && model_inline="${model_inline}${BRIGHT_BLACK} · fast_mode${RESET}"
