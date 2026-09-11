@@ -1,3 +1,24 @@
+# [30.8.0](https://github.com/terrylica/cc-skills/compare/v30.7.1...v30.8.0) (2026-09-11)
+
+
+### Features
+
+* **statusline:** show which sub2api group the session is spending from ([f42b88f](https://github.com/terrylica/cc-skills/commit/f42b88f9ef42b269f9fafb18f7e45f0babc61c55))
+
+Renders the ccmax group immediately left of the model token:
+
+    eon · claude-opus-5[1m] · high · thinking:true | 2.1.268
+
+Until now nothing on screen said which pool a session was billing. The statusline already resolves the bearer ACCOUNT (el02-doorward-bearer-api-1), which is a different thing entirely, and no version of this file from 29.1.0 through 30.7.1 referenced the group at all.
+
+Sourced from CCMAX_WRAPPER_REQUESTED_GROUP, the ground-truth env var the ccmax wrapper injects into the child. That is the ONLY route by which the group is observable from here: the wrapper consumes `--group` and strips it before argv reaches claude, and does not otherwise export CCMAX_GROUP. Reading an env var also honours the file's NATIVE-FIELDS-ONLY invariant -- no subprocess, no process-tree inference.
+
+Empty is a real answer, not an error: it means "no preference -> the device's first entitlement". The segment is therefore omitted entirely rather than rendering a placeholder, so a non-ccmax session or a default-pool session looks exactly as it did before this change.
+
+Validated with `case` rather than `printf ... | grep -q`. Piping into an early-exiting reader under `pipefail` gets the producer killed by SIGPIPE, the pipeline takes status 141, and the boolean INVERTS -- a race that passes in testing and starts failing as data grows. `case` needs no pipe and no subprocess, which also keeps this off the statusline's hot path. It matches the file's existing POSIX-ish style, which uses no [[ =~ ]] anywhere.
+
+The charset gate (letters, digits, underscore, hyphen, max 64 -- the wrapper's own wire charset) is not decoration: the value is interpolated into a terminal line, so a malformed value must not be able to smuggle in escape sequences. Verified rejecting `a;id`, `$(id)`, `a b`, a leading dash, and a 65-char name, while accepting `pwt`, `eon` and `eon-2_x`.
+
 ## [30.7.1](https://github.com/terrylica/cc-skills/compare/v30.7.0...v30.7.1) (2026-09-09)
 
 
