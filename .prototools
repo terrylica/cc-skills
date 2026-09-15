@@ -19,7 +19,7 @@
 proto = "0.62.2"
 
 # Task orchestrator. Every entry point is a task in the root `moon.yml`.
-moon = "2.5.4"
+moon = "2.5.5"
 
 # Bun runs every script, CLI, hook and test in this marketplace.
 bun = "1.4.2"
