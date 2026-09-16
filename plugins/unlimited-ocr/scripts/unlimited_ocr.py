@@ -891,7 +891,13 @@ def render_pdf_pages_to_images(
     pdf_path: Path, output_dir: Path, dpi: int, page_range: str | None
 ) -> list[Path]:
     """Rasterise a PDF at `dpi`. See DEFAULT_PDF_RENDER_DPI for why the default is not negotiable."""
-    fitz = import_optional_backend_module("fitz")
+    # IMPORT THE MODERN MODULE NAME, NOT THE `fitz` ALIAS. PyMuPDF >= 1.28 prints
+    # `warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf`
+    # instead.` to STDOUT when the alias is imported, and this CLI's stdout is machine-readable
+    # JSON — the warning prefixes the payload and every consumer's JSON.parse fails. Measured
+    # 2026-09-14: `--format json` output begins with the warning line. The local name stays `fitz`
+    # because that is what the call sites below use; the module imported is the modern one.
+    fitz = import_optional_backend_module("pymupdf")
 
     document = fitz.open(pdf_path)
     selected = _select_page_indices(page_range, document.page_count)
