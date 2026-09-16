@@ -217,8 +217,17 @@ echo ""
 #  Step 6 — Exit policy
 # ══════════════════════════════════════════════════════════════════════════
 #
-# Iter-111: informational only. Reports findings but never blocks release.
-# Iter-112+ may promote to strict-block once:
+# This task still exits 0 on findings — but that no longer means the findings
+# are harmless. Iter-115 PROMOTED this audit to a STRICT-BLOCK at the release
+# gate: preflight Check 4t parses the "AUDIT FOUND <n>" line below out of this
+# task's log and exits 1 when n > 0 (tasks/release/preflight:1024). The exit
+# code stayed 0 only because the blocking happens in the wrapper, not here.
+#
+# Keep the "AUDIT FOUND <n>" token exactly as-is: it is the wrapper's contract,
+# asserted by test-iter115 Case 3.
+#
+# The iter-111 promotion preconditions below are now all met and are retained
+# as history:
 #   1. The registry coverage stabilizes (all currently-known markers added)
 #   2. Edge cases are documented (e.g., the audit-marker family
 #      WILDCARD-MATCHER-OK, MATCHER-NO-MULTIEDIT-OK, etc. which are
@@ -227,7 +236,7 @@ echo ""
 #   3. The exit-code-2-on-violation behavior is documented in HOOKS.md
 
 if [[ ${#UNREGISTERED_MARKER_TOKENS_FOUND_IN_PRODUCER_FILES[@]} -gt 0 ]]; then
-    echo "  ⚠ AUDIT FOUND ${#UNREGISTERED_MARKER_TOKENS_FOUND_IN_PRODUCER_FILES[@]} unregistered marker token(s) (informational; never blocks release)"
+    echo "  ⚠ AUDIT FOUND ${#UNREGISTERED_MARKER_TOKENS_FOUND_IN_PRODUCER_FILES[@]} unregistered marker token(s) — RELEASE BLOCKER (preflight Check 4t, iter-115 STRICT-BLOCK)"
     echo ""
     echo "  Resolution paths:"
     echo "    A. If the token is a typo: fix the producer file"
