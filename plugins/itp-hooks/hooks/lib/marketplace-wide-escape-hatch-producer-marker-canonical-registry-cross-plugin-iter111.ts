@@ -288,6 +288,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         `Allow skill markdown (any \`.md\` under a \`skills/\` directory) to reference \`CLAUDE_PLUGIN_ROOT\` in a shape the runtime cannot honor — the bare \`$CLAUDE_PLUGIN_ROOT\` spelling, the \`\${CLAUDE_PLUGIN_ROOT:-fallback}\` form, or the braced form on a non-manifest line. Intended for documentation ABOUT the variable (path-patterns.md, advanced-topics.md, lifecycle-reference.md, hook-templates.md) and for diagnostic blocks that probe for it deliberately. REQUIRES a ≥10-character reason after the colon (e.g., \`SKILL-PLUGIN-ROOT-OK: the canonical teaching doc for this variable\`). FILE_WIDE: one marker anywhere in the file exempts the whole file, and on Edit/MultiEdit the marker is honored from the on-disk copy too.`,
     },
     {
+      markerNameTokenIncludingSuffix: "STALE-CHECKOUT-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/gh-tools/hooks/pretooluse-stale-checkout-claim-guard.mjs",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the gh-tools PreToolUse guard that DENIES `gh issue|pr create/edit/comment` when this checkout last fetched more than 2 hours ago. The guard measures the mtime of `<git-dir>/FETCH_HEAD`, not commits-behind: commits-behind is computed against `@{u}`, a local ref only as fresh as the last fetch, so a week-stale checkout reports zero and is maximally wrong, and a true count would need a network call in the interactive path. A clone that has NEVER fetched is treated as maximally stale rather than as fine. It exists because Eon-Labs/alpha-forge#785 publicly asserted that a function existed only as copy-pasted evidence copies, from a checkout 47 commits behind; the grep was correct and the tree was old, and a reviewer found it. Add STALE-CHECKOUT-OK to the command when the text being published makes no claim about repository state — plenty of issue and PR prose does not, and the author is the only one who can tell. No reason string is required: the guard is about a factual precondition, not a judgement call, so demanding prose would train the operator to write filler.",
+    },
+    {
       markerNameTokenIncludingSuffix: "MANUAL-PAT-PAGE-OK",
       consumerHookSourceFileRelativePath:
         "plugins/gh-tools/hooks/posttooluse-manual-pat-page-nudge.sh",

@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 37 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 38 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (29; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (30; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -44,6 +44,7 @@ Jump directly to any of the 37 registered markers below. Markers are listed alph
 - [`SHELL-SAFETY-OK`](#shell-safety-ok)
 - [`SKILL-PLUGIN-ROOT-OK`](#skill-plugin-root-ok)
 - [`SSoT-OK`](#ssot-ok)
+- [`STALE-CHECKOUT-OK`](#stale-checkout-ok)
 
 **Audit-task markers** (8; consumed by `.mise/` audit tasks once per release-preflight):
 
@@ -73,7 +74,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (29 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (30 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -568,6 +569,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # SSoT-OK
+```
+
+## `STALE-CHECKOUT-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/gh-tools/hooks/pretooluse-stale-checkout-claim-guard.mjs` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Bare marker accepted (no reason required) |
+
+**What it does**: Suppress the gh-tools PreToolUse guard that DENIES `gh issue|pr create/edit/comment` when this checkout last fetched more than 2 hours ago. The guard measures the mtime of `<git-dir>/FETCH_HEAD`, not commits-behind: commits-behind is computed against `@{u}`, a local ref only as fresh as the last fetch, so a week-stale checkout reports zero and is maximally wrong, and a true count would need a network call in the interactive path. A clone that has NEVER fetched is treated as maximally stale rather than as fine. It exists because Eon-Labs/alpha-forge#785 publicly asserted that a function existed only as copy-pasted evidence copies, from a checkout 47 commits behind; the grep was correct and the tree was old, and a reviewer found it. Add STALE-CHECKOUT-OK to the command when the text being published makes no claim about repository state — plenty of issue and PR prose does not, and the author is the only one who can tell. No reason string is required: the guard is about a factual precondition, not a judgement call, so demanding prose would train the operator to write filler.
+
+**Example usage**:
+
+```
+# STALE-CHECKOUT-OK
 ```
 
 ## Audit-task marker catalog (8 registered markers consumed by .mise/ release-preflight audit tasks)
