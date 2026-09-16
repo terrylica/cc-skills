@@ -554,7 +554,9 @@ Execute approved plans from Claude Code's Plan Mode through a structured workflo
 
 > `/itp:tether` was retired in issue #127. Its installer injected itp-hooks entries into `~/.claude/settings.json`, which Claude Code now double-registers because `plugins/itp-hooks/hooks/hooks.json` already ships those hooks. `/statusline-tools:tether` survives — it installs `lychee-stop-hook.sh`, which is deliberately absent from that plugin's `hooks.json`.
 
-**Bundled Skills**: adr-code-traceability, bootstrap-monorepo, code-hardcode-audit, impl-standards, implement-plan-preflight, mise-configuration, mise-tasks, pypi-doppler
+**Bundled Skills**: adr-code-traceability, bootstrap-monorepo, code-hardcode-audit, impl-standards, implement-plan-preflight, pypi-doppler
+
+> `mise-configuration` and `mise-tasks` were retired 2026-09-16. jdx/mise is no longer used anywhere in this toolchain — proto is the only toolchain manager and moon is the only task runner (see `bootstrap-monorepo`). The skills were removed rather than merely deprecated because they remained _offered_ to agents long after mise was uninstalled, so an agent asked to repair a mise-shaped breakage could be steered into writing more mise config. That is not hypothetical: a client repo's twice-daily publisher died at exit 127 for 25 days after mise was removed, and these two skills were still on the menu while it was being diagnosed.
 
 ### plugin-dev
 
