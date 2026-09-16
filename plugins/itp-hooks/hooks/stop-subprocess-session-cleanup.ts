@@ -100,26 +100,127 @@ async function cleanupBackgroundJobs(): Promise<void> {
 }
 
 /**
- * Kill all orphaned processes that might hold TTY references
+ * Kill orphaned processes that might hold TTY references — WITHIN THIS SESSION'S
+ * OWN PROCESS TREE ONLY.
+ *
+ * ── 2026-09-12: this function used to be a machine-wide SIGKILL. ────────────
+ * It was, verbatim:
+ *
+ *   ps aux | grep -E "/dev/tty|stdin" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+ *
+ * That is `kill -9` keyed on a SUBSTRING OF THE COMMAND LINE, across every
+ * process on the machine, with no ownership check, no session check, and no
+ * check that the match had anything to do with a TTY.
+ *
+ * It was caught doing exactly what that implies. The `samson-catchup` launchd
+ * job's `ssh` carried the word "stdin" inside a shell COMMENT embedded in its
+ * remote script, so `ps aux` matched it and this hook killed it mid-install.
+ * Evidence: `launchd.err.log` recorded `99746 Killed: 9   ssh -o ConnectTimeout=…`,
+ * and joining 1,635 stop-hook runs against 60 upgrade windows gave 3/3 SIGKILLed
+ * upgrades overlapping a Stop hook versus 0/57 that did not (p ≈ 3e-5). A member's
+ * upgrade was truncated mid-flight, twice, by a hook belonging to an unrelated
+ * session.
+ *
+ * TWO defects, both addressed here:
+ *
+ *   1. SCOPE — a process this session did not start is never ours to kill. The
+ *      kill set is now the descendants of this session's own root, and if that
+ *      root cannot be identified we kill NOTHING. Refusing to act beats killing
+ *      a stranger.
+ *   2. SELECTOR — matching argv text is not evidence that a process holds a TTY
+ *      (the victim above held none; it merely quoted the word in a comment). The
+ *      heuristic is kept, but only as a filter INSIDE our own subtree, where the
+ *      false positives are ours to eat instead of the machine's.
+ *
+ * This strictly REDUCES the set of processes killed, so it cannot regress any
+ * cleanup the old code legitimately performed — it can only stop it reaching
+ * bystanders. Sibling precedent: cleanupPueueJobs() above was scoped to the
+ * session long ago; this function was simply never given the same treatment.
+ *
+ * Set ITP_ORPHAN_CLEANUP_DRY_RUN=1 to report the kill set without killing.
  */
 async function cleanupOrphanedProcesses(): Promise<void> {
   try {
     console.warn("🧹 Cleaning up orphaned processes...");
 
-    // Find and kill processes with TTY references
-    Bun.spawnSync(
-      [
-        "bash",
-        "-c",
-        'ps aux | grep -E "/dev/tty|stdin" | grep -v grep | awk \'{print $2}\' | xargs -r kill -9 2>/dev/null; true',
-      ],
-      {
-        stdout: "ignore",
-        stderr: "ignore",
-      },
-    );
+    const snapshot = Bun.spawnSync(["ps", "-eo", "pid=,ppid=,command="], {
+      stdout: "pipe",
+      stderr: "ignore",
+    });
+    if (snapshot.exitCode !== 0) {
+      console.warn("   ⚠️  ps snapshot failed — killing nothing");
+      return;
+    }
 
-    console.warn("   ✓ Orphaned processes cleared");
+    const parentOf = new Map<number, number>();
+    const childrenOf = new Map<number, number[]>();
+    const commandOf = new Map<number, string>();
+
+    for (const line of snapshot.stdout.toString().split("\n")) {
+      const m = line.match(/^\s*(\d+)\s+(\d+)\s+(.*)$/);
+      if (!m) continue;
+      const pid = Number(m[1]);
+      const ppid = Number(m[2]);
+      parentOf.set(pid, ppid);
+      commandOf.set(pid, m[3]);
+      const sibs = childrenOf.get(ppid) ?? [];
+      sibs.push(pid);
+      childrenOf.set(ppid, sibs);
+    }
+
+    // Walk our own ancestry and take the HIGHEST ancestor that is still a
+    // `claude` process — that is this session's root. Anything outside its
+    // subtree belongs to someone else.
+    let sessionRoot: number | null = null;
+    let cursor: number | undefined = process.pid;
+    const visited = new Set<number>();
+    while (cursor && cursor > 1 && !visited.has(cursor)) {
+      visited.add(cursor);
+      if (/(^|\/)claude(\s|$)/.test(commandOf.get(cursor) ?? "")) sessionRoot = cursor;
+      cursor = parentOf.get(cursor);
+    }
+
+    if (sessionRoot === null) {
+      // We could not establish which tree is ours. The old code would have
+      // killed machine-wide here. We kill nothing.
+      console.warn("   ✓ No identifiable session root — killing nothing (by design)");
+      return;
+    }
+
+    // Collect descendants of our root, excluding ourselves and our own ancestors.
+    const ours = new Set<number>();
+    const queue = [...(childrenOf.get(sessionRoot) ?? [])];
+    while (queue.length > 0) {
+      const pid = queue.pop() as number;
+      if (ours.has(pid) || visited.has(pid)) continue;
+      ours.add(pid);
+      for (const child of childrenOf.get(pid) ?? []) queue.push(child);
+    }
+
+    const victims = [...ours].filter((pid) => {
+      const c = commandOf.get(pid) ?? "";
+      return c.includes("/dev/tty") || c.includes("stdin");
+    });
+
+    if (victims.length === 0) {
+      console.warn("   ✓ No orphaned TTY holders in this session's tree");
+      return;
+    }
+
+    if (process.env.ITP_ORPHAN_CLEANUP_DRY_RUN === "1") {
+      console.warn(`   ⚠️  DRY RUN — would kill ${victims.length} pid(s) under ${sessionRoot}:`);
+      for (const pid of victims) console.warn(`        ${pid}  ${(commandOf.get(pid) ?? "").slice(0, 120)}`);
+      return;
+    }
+
+    for (const pid of victims) {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        // already gone
+      }
+    }
+    console.warn(`   ✓ ${victims.length} orphaned process(es) cleared (session ${sessionRoot} subtree)`);
   } catch (e) {
     console.warn("   ⚠️  Orphan cleanup error:", e);
   }
