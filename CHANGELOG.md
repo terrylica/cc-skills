@@ -1,3 +1,55 @@
+# [30.9.0](https://github.com/terrylica/cc-skills/compare/v30.8.0...v30.9.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **itp-hooks:** register STALE-CHECKOUT-OK in the marker registry ([2c2fad1](https://github.com/terrylica/cc-skills/commit/2c2fad1d310182874afaa0f9fc638ac4d401201a))
+
+bb676071 introduced the escape hatch STALE-CHECKOUT-OK in plugins/gh-tools/hooks/pretooluse-stale-checkout-claim-guard.mjs and never registered it in the canonical cross-plugin marker registry. The marketplace-wide producer typo audit therefore flagged it as an unregistered token, failing test-iter111 Case 4 and test-iter115 Case 4.
+
+That is a release blocker, not a warning. The audit's own output still says "informational; never blocks release" — that text is stale: iter-115 promoted preflight Check 4t and Check 4u to STRICT-BLOCK with exit-1 paths, and its own Case 1 asserts those paths exist. So v30.9.0 would have failed preflight on my commit even after the tree was clean, which is exactly what happened: two independent blockers, and clearing the other one did not clear this.
+
+Registered rather than renamed, because the token is not a typo. It follows the registry's existing &lt;THING>-OK convention (MANUAL-PAT-PAGE-OK, LEAK-TAXONOMY-OK, SECRET-SCAN-OK), and the audit's resolution path B is registration. The entry is CASE_SENSITIVE, FILE_WIDE, and requires no reason string: the guard turns on a factual precondition — when did this checkout last fetch — rather than a judgement call, and demanding prose for a fact would train the operator to write filler.
+
+The description records why the guard measures fetch age rather than commits-behind, since that is the part a future reader will want to argue with: commits-behind is computed against @{u}, a local ref only as fresh as the last fetch, so a week-stale checkout reports zero and is maximally wrong, and a true count would need a network call in the interactive path.
+
+Also regenerates docs/marketplace-escape-hatch-marker-reference.md from the registry, which is the required second step — adding an entry without regenerating leaves registry-to-docs drift that fails four more tests (iter-113, iter-114, iter-115, iter-117). 38 markers rendered.
+
+repo:test-hooks: 116/116 passing, from 112/116.
+
+Caught by cc-skills-cf running the hook gate on an unrelated commit, and independently confirmed here before fixing. Worth recording how close it came to being invisible: the audit that catches it describes itself as non-blocking, so reading the tool's own output would have told me it did not matter.
+
+* **itp-hooks:** scope orphan kill to this session's own subtree ([28786ea](https://github.com/terrylica/cc-skills/commit/28786eaa55a58bc525f69072b810a58a44a683d4))
+
+cleanupOrphanedProcesses() was a machine-wide SIGKILL keyed on a substring of the command line, with no ownership check, no session check, and no check that the match had anything to do with a TTY:
+
+  ps aux | grep -E "/dev/tty|stdin" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+
+It was caught doing exactly what that implies. The samson-catchup launchd job's ssh carried the word "stdin" inside a shell COMMENT in its remote script, so `ps aux` matched it and this hook killed it mid-install. Evidence: launchd.err.log recorded `99746 Killed: 9  ssh -o ConnectTimeout=...`, and joining 1,635 stop-hook runs against 60 upgrade windows gave 3/3 SIGKILLed upgrades overlapping a Stop hook versus 0/57 that did not (p ~ 3e-5). A member's upgrade was truncated mid-flight, twice, by a hook belonging to an unrelated session.
+
+Two defects, both addressed:
+
+  1. SCOPE — the kill set is now the descendants of this session's own root, found by walking our ancestry to the highest `claude` ancestor. If that root cannot be identified we kill NOTHING, because refusing to act beats killing a stranger.
+  2. SELECTOR — matching argv text is not evidence that a process holds a TTY. The heuristic is kept, but only as a filter INSIDE our own subtree, where the false positives are ours to eat instead of the machine's.
+
+This strictly reduces the set of processes killed, so it cannot regress any cleanup the old code legitimately performed — it can only stop it reaching bystanders. Sibling precedent: cleanupPueueJobs() was scoped to the session long ago; this function was never given the same treatment. ITP_ORPHAN_CLEANUP_DRY_RUN=1 reports the kill set without killing.
+
+* **unlimited-ocr:** import pymupdf, not the deprecated fitz alias ([66b1123](https://github.com/terrylica/cc-skills/commit/66b11232dd32dbd935748765c60343595fa91237))
+
+PyMuPDF >= 1.28 prints `warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.` to STDOUT when the legacy alias is imported. This CLI's stdout is machine-readable JSON, so the warning prefixes the payload and every consumer's JSON.parse fails on the first character. Measured 2026-09-14: `--format json` output begins with the warning line.
+
+The local binding stays `fitz` because that is what the call sites below use; only the module name passed to import_optional_backend_module changes. No behavioural change beyond the stdout cleanliness the JSON contract depends on.
+
+
+
+### Features
+
+* **gh-tools:** guard PR closing-links and stale-checkout claims ([bb67607](https://github.com/terrylica/cc-skills/commit/bb67607170b5382e3433983a315fb3680685bb64)), closes [#tools](https://github.com/terrylica/cc-skills/issues/tools) [#788](https://github.com/terrylica/cc-skills/issues/788) [#785](https://github.com/terrylica/cc-skills/issues/785)
+
+Both hooks come from one incident, and neither would have been caught by knowing the rule.
+
+posttooluse-pr-linkage-and-label-reminder.mjs reports, after `gh pr create/edit`, which issues GitHub will close on merge and whether the PR carries any labels. It asks GitHub for its OWN parse rather than regexing the body, because `Fixes #123` is normally intentional — a guard that fires on the keyword is noise if it warns and wrong if it blocks. The failure worth catching is the inverse:
+
 # [30.8.0](https://github.com/terrylica/cc-skills/compare/v30.7.1...v30.8.0) (2026-09-11)
 
 
