@@ -2,6 +2,24 @@
 
 Reverse chronological - newest on top.
 
+## 2026-09-13 — The dependent-service guard is blind to runner shims, and it broke three live services
+
+**Trigger**: Full audit on a 926 GB volume at 89 % (100 GB free). Reclaimed 87 GB to 181 GiB free / 80 %. But the Phase-2.5 exclusion list was wrong, and the cleanup killed three running launchd jobs.
+
+**Root cause**: The dependent-service guard starts at `ProgramArguments.0` and walks _up_ the filesystem looking for a manifest. This machine follows a launchd runner-shim policy — every job execs a signed, distinctly-named shim in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`, which has **no ancestor relationship to the repo it serves**. The walk-up therefore landed on `~/.claude` for 16 jobs and never named the real repos. The guard printed a confident exclusion list and the cleanup deleted `.venv`/`node_modules` from `~/eon/iterm2-scripts`, `~/eon/mql5` and `~/eon/claude-sys`, breaking `com.terryli.iterm2-autosnapshot` (crash-safety snapshots), `com.terryli.pushover-telemetry` (Bun/TS daemon) and `com.terryli.typeless-keystroker`. All three were restored in-session and verified doing real work again.
+
+**Fix**: Grep the shim binary for repo paths (`strings`, not `grep` — the shims are compiled Mach-O) and union that with the walk-up result. Also check `StandardOutPath`/`StandardErrorPath`/`WorkingDirectory`, which often point into the real repo when `ProgramArguments` does not. Added to SKILL.md as a 🔴 callout under the dependent-services guard.
+
+**Second finding — a self-healing runner can be permanently poisoned while looking healthy.** `iterm2-autosnapshot`'s shim rebuilds a missing venv but caps attempts and persists the counter at `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had read `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its very first attempt: `FATAL: venv bootstrap cap exhausted (5/5 attempts)`. **Restoring dependencies was not sufficient** — the counter had to be reset and the job kickstarted. Verify recovery from the log's real-work line (`[auto-snapshot] wrote 17 tabs`), never from `exit 0` alone, since an interval job legitimately reports `state = not running` between ticks.
+
+**Third finding — `uv cache prune`'s reclaim figure is inflated by hardlinks.** Prune reported `Removed 1538143 files (115.0GiB)` but `df` moved only 7 GiB. uv sums the apparent size of every removed entry; because `archive-v0` files are hardlinked into each `.venv`, entries whose links had already been dropped by the earlier `.venv` sweep were counted at full size a second time. The same double-count runs the other way: the `.venv` sweep measured 52 GB by `du` but yielded 25 GB in `df`. **Trust `df` deltas, not the tool's own total**, and expect `du`-based estimates across the uv cache and venvs to overstate the union badly. Real end-to-end reclaim was 60 GB for those two phases, not the ~167 GB the two tools summed to.
+
+**Also confirmed (unchanged from 2026-08-24)**: the uv lock holders were again `com.tasc.serve`'s two `uv run` children, up 5 days. The documented bootout → prune → bootstrap → verify cycle worked cleanly; wrapping it in an EXIT trap guarantees the service is restored even if prune fails. Cache went 133 G → 18 G; tasc came back with an identical 5-process tree and HTTP 200 on port 3000.
+
+**Non-finding worth recording**: `~/eon/alpha-forge/scripts/equity-ingest/node_modules` was deleted and `com.terryli.equity-ingest-runner` shows `exit=1`, but the two are unrelated — its error log is 0 bytes dated Aug 3, and the directory held no manifest, so the modules were orphaned and unreproducible. **`launchctl list` exit codes are the LAST exit, possibly weeks stale** — always corroborate with log mtimes before blaming the cleanup.
+
+**Action taken**: Added the runner-shim callout + stale-self-heal-counter corollary to SKILL.md; recorded the hardlink accounting caveat here.
+
 ## 2026-08-24 — `--force` on a locked uv cache was dangerous advice; and the uv cache was 78 % orphaned venvs
 
 **Trigger**: Full audit on terryli's MBP, 730 GB used / 81 % full. Reclaimed

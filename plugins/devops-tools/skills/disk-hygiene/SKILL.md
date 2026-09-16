@@ -141,10 +141,7 @@ CACHE_CLEAN_EOF
 
 ### ⚠️ uv cache lock — never reach for `--force` before naming the holder
 
-`uv cache clean` waits 300 s for an exclusive lock, then errors. Earlier revisions
-of this skill said "use `--force`". **That advice is wrong when the lock holder is
-a long-running service**, and it is the same class of mistake as the
-catgpt-gateway incident: mutating a cache underneath a live daemon.
+`uv cache clean` waits 300 s for an exclusive lock, then errors. Earlier revisions of this skill said "use `--force`". **That advice is wrong when the lock holder is a long-running service**, and it is the same class of mistake as the catgpt-gateway incident: mutating a cache underneath a live daemon.
 
 Measured 2026-08-24: `uv cache clean` timed out, and the holders were
 
@@ -153,9 +150,7 @@ uv 1934  uv run python ~/eon/tasc/kernel/embed.py serve  --model minishlab/potio
 uv 2652  uv run python ~/eon/tasc/kernel/embed.py rerank --serve --model Xenova/ms-marco-MiniLM-L-6-v2
 ```
 
-— both children of the **launchd job `com.tasc.serve`**, up 1 h 37 m. These are
-persistent daemons, so the lock is never released and `clean` can never succeed
-on its own. Always identify the holder before deciding:
+— both children of the **launchd job `com.tasc.serve`**, up 1 h 37 m. These are persistent daemons, so the lock is never released and `clean` can never succeed on its own. Always identify the holder before deciding:
 
 ```bash
 lsof ~/.cache/uv/.lock 2>/dev/null          # exact PIDs holding the lock
@@ -171,26 +166,18 @@ Then pick by holder:
 | **Long-running launchd/daemon**    | **Do NOT `--force`.** Either skip, or `launchctl bootout` → clean → `bootstrap` → verify |
 | Unknown / can't identify           | Skip. The cache is never worth an outage                                                 |
 
-**Prefer `uv cache prune` over `uv cache clean` in routine hygiene.** `prune`
-removes only _unused_ entries and leaves everything a live environment depends on,
-so it is the correct periodic-maintenance verb; `clean` nukes everything and forces
-a full re-download.
+**Prefer `uv cache prune` over `uv cache clean` in routine hygiene.** `prune` removes only _unused_ entries and leaves everything a live environment depends on, so it is the correct periodic-maintenance verb; `clean` nukes everything and forces a full re-download.
 
 ### uv `archive-v0` silently accumulates whole virtual environments
 
-The uv cache's headline number is misleading, so classify before you judge it.
-`archive-v0` is documented as unpacked _wheel_ bodies that get hardlinked into
-each `.venv` — that part earns its keep. But it also accretes **complete virtual
-environments** (build envs / tool envs) that are never garbage-collected, and those
-are pure dead weight. Measured 2026-08-24 on a 69 GB uv cache:
+The uv cache's headline number is misleading, so classify before you judge it. `archive-v0` is documented as unpacked _wheel_ bodies that get hardlinked into each `.venv` — that part earns its keep. But it also accretes **complete virtual environments** (build envs / tool envs) that are never garbage-collected, and those are pure dead weight. Measured 2026-08-24 on a 69 GB uv cache:
 
 | Entry shape                       | Count | Size      |
 | --------------------------------- | ----- | --------- |
 | Full venvs (contain `pyvenv.cfg`) | 210   | **39 GB** |
 | Genuine unpacked wheels           | 1,577 | 10 GB     |
 
-So 78 % of `archive-v0` was orphaned environments, not the dedup layer. Classify
-it — the split changes both the diagnosis and the remedy (`prune`, not `clean`):
+So 78 % of `archive-v0` was orphaned environments, not the dedup layer. Classify it — the split changes both the diagnosis and the remedy (`prune`, not `clean`):
 
 ```bash
 du -sk ~/.cache/uv/archive-v0/* 2>/dev/null > /tmp/uv-all.txt
@@ -199,18 +186,14 @@ while read -r kb path; do
 done < /tmp/uv-all.txt | sort -k2 -rn | head
 ```
 
-**Also check hardlink counts before promising a number.** uv hardlinks cache files
-into live `.venv`s, so deleting a cache entry with `links>1` reclaims _nothing_:
+**Also check hardlink counts before promising a number.** uv hardlinks cache files into live `.venv`s, so deleting a cache entry with `links>1` reclaims _nothing_:
 
 ```bash
 stat -f 'links=%l size=%z %N' "$(find ~/.cache/uv/archive-v0 -type f -size +20M | head -1)"
 # links=1 -> deleting truly reclaims;  links>1 -> shared with a live venv, no gain
 ```
 
-**Don't let "Python is bloated" be the conclusion.** In the same audit, Rust's
-per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python `.venv`s — 8×
-more — because `target/` is per-repo with no sharing while uv's archive is shared
-across every project. Report the measured split, not the folk wisdom.
+**Don't let "Python is bloated" be the conclusion.** In the same audit, Rust's per-repo `target/` dirs totalled **57 GB** against ~7 GB of Python `.venv`s — 8× more — because `target/` is per-repo with no sharing while uv's archive is shared across every project. Report the measured split, not the folk wisdom.
 
 ## Phase 2.5 - Project Build Artifacts (in-repo, regenerable)
 
@@ -257,12 +240,7 @@ find ~/eon ~/own -maxdepth 5 -type d -name .venv -prune -exec rm -rf {} +
 
 ### ⚠️ CHECK FOR DEPENDENT SERVICES FIRST — this is not optional
 
-`node_modules` and `.venv` are only "safe to bulk-delete" for repos nobody is
-_running_. On 2026-07-31 a bulk delete took out `catgpt-gateway/node_modules`;
-its launchd watchdog then failed 95 times and, in trying to restart the gateway,
-drove a Chrome launch that raised a macOS TCC prompt. The user reported it as a
-mysterious permission pop-up, and the disk cleanup was two steps removed from the
-symptom.
+`node_modules` and `.venv` are only "safe to bulk-delete" for repos nobody is _running_. On 2026-07-31 a bulk delete took out `catgpt-gateway/node_modules`; its launchd watchdog then failed 95 times and, in trying to restart the gateway, drove a Chrome launch that raised a macOS TCC prompt. The user reported it as a mysterious permission pop-up, and the disk cleanup was two steps removed from the symptom.
 
 Build the exclusion list BEFORE deleting anything:
 
@@ -283,19 +261,9 @@ done | sort -u
 DEPCHECK_EOF
 ```
 
-Then `SKIP` any candidate path under one of those roots, and **print the skip** so
-the operator can see the guard fired. After cleanup, re-run the same list and
-assert each repo still has the manifest-matching directory (`package.json` →
-`node_modules`, `pyproject.toml` → `.venv`).
+Then `SKIP` any candidate path under one of those roots, and **print the skip** so the operator can see the guard fired. After cleanup, re-run the same list and assert each repo still has the manifest-matching directory (`package.json` → `node_modules`, `pyproject.toml` → `.venv`).
 
-> **⚠️ Check EVERY manifest in the repo, not just the one at the root.** The
-> version above walks up from the launchd program to the first `package.json` or
-> `pyproject.toml` and stops — so for a repo whose service code lives in a
-> subdirectory it verifies the wrong thing. Measured 2026-08-03 on `~/eon/tasc`:
-> the root has `pyproject.toml` (so the check reported `.venv=ok` and
-> `node_modules=—`, i.e. "not applicable") while the service actually needs
-> **`ts/node_modules`**, which was missing. The guard reported the repo healthy
-> while its launchd job had been crash-looping 11,593 times. Enumerate instead:
+> **⚠️ Check EVERY manifest in the repo, not just the one at the root.** The version above walks up from the launchd program to the first `package.json` or `pyproject.toml` and stops — so for a repo whose service code lives in a subdirectory it verifies the wrong thing. Measured 2026-08-03 on `~/eon/tasc`: the root has `pyproject.toml` (so the check reported `.venv=ok` and `node_modules=—`, i.e. "not applicable") while the service actually needs **`ts/node_modules`**, which was missing. The guard reported the repo healthy while its launchd job had been crash-looping 11,593 times. Enumerate instead:
 >
 > ```bash
 > find "$repo" -name package.json -not -path '*/node_modules/*' -maxdepth 3 \
@@ -304,12 +272,26 @@ assert each repo still has the manifest-matching directory (`package.json` →
 >   | while read -r m; do d=$(dirname "$m"); [ -d "$d/.venv" ] || echo "MISSING $d/.venv"; done
 > ```
 >
-> Also note a Python venv can be present and still incomplete: `uv sync` installs
-> only the default dependency group. `tasc` declared its embedding deps under
-> `[dependency-groups] embed`, so the venv existed, imported `pymupdf` fine, and
-> failed on `import numpy` until `uv sync --group embed` was run. **A directory
-> existing is not the same as the dependencies being installed** — where a repo
-> documents a group/extra, restore it.
+> Also note a Python venv can be present and still incomplete: `uv sync` installs only the default dependency group. `tasc` declared its embedding deps under `[dependency-groups] embed`, so the venv existed, imported `pymupdf` fine, and failed on `import numpy` until `uv sync --group embed` was run. **A directory existing is not the same as the dependencies being installed** — where a repo documents a group/extra, restore it.
+
+> **🔴 The walk-up finds NOTHING when the job execs a runner shim outside the repo.** Both versions above start at `ProgramArguments.0` and walk _up_ the filesystem. But a launchd runner-shim policy (signed, distinctly-named shims in `~/.local/libexec/` or `~/.claude/tools/launchd-runners/libexec/`) puts the program in a directory that has no ancestor relationship to the repo at all — the walk-up terminates at `$HOME` or, worse, lands on `~/.claude` and reports _that_ as the repo. The guard then emits a confident, entirely wrong exclusion list, and the real repo is deleted.
+>
+> Measured 2026-09-13: the exclusion list named `~/.claude` for 16 jobs and never mentioned `~/eon/iterm2-scripts`, `~/eon/mql5`, `~/eon/claude-sys` — so the cleanup removed all three repos' `.venv`/`node_modules`, killing `com.terryli.iterm2-autosnapshot` (crash-safety snapshots), `com.terryli.pushover-telemetry` (a Bun/TS daemon) and `com.terryli.typeless-keystroker`. **Grep the shim for repo paths as well as walking up:**
+>
+> ```bash
+> for p in "$HOME"/Library/LaunchAgents/*.plist; do
+>   prog=$(plutil -extract ProgramArguments.0 raw "$p" 2>/dev/null) || continue
+>   [ -f "$prog" ] || continue
+>   # shims are often compiled binaries — `strings`, not `grep`, and search env-var
+>   # defaults too (e.g. ITERM2_SCRIPTS_REPO=/Users/.../eon/iterm2-scripts)
+>   strings "$prog" 2>/dev/null \
+>     | grep -oE '/Users/[^/]+/(eon|own|vj|src)/[A-Za-z0-9._-]+' | sort -u
+> done | sort -u
+> ```
+>
+> Union that with the walk-up result. Also check the plist's `StandardOutPath`/ `StandardErrorPath` and `WorkingDirectory` — those frequently point into the real repo even when `ProgramArguments` does not.
+>
+> **Corollary — a self-healing runner can be permanently poisoned while looking fine.** `iterm2-autosnapshot`'s shim rebuilds a missing venv, but caps attempts and persists the counter in `~/.local/state/<job>/venv-bootstrap-attempts.txt`. That counter had been sitting at `5/5` since Aug 21 and was never consulted, because the venv existed. Deleting the venv made the job hit the _stale_ exhausted cap on its first try and refuse to self-heal: `FATAL: venv bootstrap cap exhausted (5/5)`. Restoring deps is not enough — **reset the attempt counter and kickstart**, then confirm from the log that real work resumed (here, `[auto-snapshot] wrote 17 tabs`), not merely `exit 0`.
 
 **Caveats:**
 
@@ -353,23 +335,16 @@ STALE_EOF
 
 ### Two traps when hunting big files
 
-**1. Apparent size ≠ allocated size (sparse files).** `ls -l` and `find -size`
-report the file's _logical_ extent; `du` reports blocks actually on disk. A
-corrupted index or a database with a runaway seek produces a sparse file where
-these differ by orders of magnitude. Measured 2026-08-03 on a ChromaDB HNSW file:
+**1. Apparent size ≠ allocated size (sparse files).** `ls -l` and `find -size` report the file's _logical_ extent; `du` reports blocks actually on disk. A corrupted index or a database with a runaway seek produces a sparse file where these differ by orders of magnitude. Measured 2026-08-03 on a ChromaDB HNSW file:
 
 ```
 ls -l  link_lists.bin  ->  2831.5 GB   (apparent — impossible on a 926 GB disk)
 du -h  link_lists.bin  ->  174 GB      (actual)
 ```
 
-Always size candidates with `du`. If `ls -l` reports more than the disk holds,
-you have found a sparse file — and usually a bug worth reporting upstream, not
-just disk to reclaim. **Never `cp` such a file** (a naive copy expands the holes).
+Always size candidates with `du`. If `ls -l` reports more than the disk holds, you have found a sparse file — and usually a bug worth reporting upstream, not just disk to reclaim. **Never `cp` such a file** (a naive copy expands the holes).
 
-**2. Applications quarantine their own wreckage — look for self-labelled dirs.**
-Well-behaved data stores rename a damaged collection rather than deleting it, and
-the new name states the diagnosis. Grep the biggest directory for these markers:
+**2. Applications quarantine their own wreckage — look for self-labelled dirs.** Well-behaved data stores rename a damaged collection rather than deleting it, and the new name states the diagnosis. Grep the biggest directory for these markers:
 
 ```bash
 find "$BIG_DIR" -maxdepth 2 -name '*corrupt*' -o -name '*.drift-*' \
@@ -382,11 +357,7 @@ Before deleting one, prove it is unreferenced and superseded:
 - the app's own index/manifest does not mention its UUID;
 - a healthy replacement exists and the app has completed a run since.
 
-Real case: `~/.mempalace` had grown to **190 GB**, of which **175 GB** was one
-directory named `<uuid>.corrupt-20260802-160712.drift-20260802-160712` — the app
-had already diagnosed and set aside the damage from a 3-day crash loop, and a
-healthy 882 MB collection had replaced it. Deleting it took the volume from 82 %
-to 60 % full in one command.
+Real case: `~/.mempalace` had grown to **190 GB**, of which **175 GB** was one directory named `<uuid>.corrupt-20260802-160712.drift-20260802-160712` — the app had already diagnosed and set aside the damage from a 3-day crash loop, and a healthy 882 MB collection had replaced it. Deleting it took the volume from 82 % to 60 % full in one command.
 
 ### Common Forgotten File Types
 
