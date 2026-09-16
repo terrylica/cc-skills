@@ -8,17 +8,29 @@
 
 ### PreToolUse Hooks
 
-| Hook                         | Matcher  | Purpose                                      |
-| ---------------------------- | -------- | -------------------------------------------- |
-| `webfetch-github-guard.sh`   | WebFetch | Soft-blocks WebFetch for github.com URLs     |
-| `gh-repo-identity-guard.mjs` | Bash     | Blocks gh writes when user lacks push access |
+| Hook                                        | Matcher  | Purpose                                                                                                                                                                                                        |
+| ------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `webfetch-github-guard.sh`                  | WebFetch | Soft-blocks WebFetch for github.com URLs                                                                                                                                                                       |
+| `gh-repo-identity-guard.mjs`                | Bash     | Blocks gh writes when user lacks push access                                                                                                                                                                   |
+| `pretooluse-path-owner-guard.mjs`           | Bash     | Blocks repo creation and pushes to an owner the path registry does not map (escape: `ALLOW_OWNER_MISMATCH=1`)                                                                                                  |
+| `gh-issue-no-anchors.mjs`                   | Bash     | Blocks in-page anchor links in issue and PR bodies, which GitHub does not resolve                                                                                                                              |
+| `pretooluse-stale-checkout-claim-guard.mjs` | Bash     | Denies `gh issue\|pr create/edit/comment` when this checkout last fetched over 2 hours ago, because published claims about a repository are only as good as the tree you can see (escape: `STALE-CHECKOUT-OK`) |
 
 ### PostToolUse Hooks
 
-| Hook                                   | Matcher | Purpose                                                                                                                                |
-| -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `gh-issue-title-reminder.mjs`          | Bash    | Reminds to optimize issue title after comment                                                                                          |
-| `posttooluse-manual-pat-page-nudge.sh` | Bash    | Nudges toward the `gh-fine-grained-pat` skill when a command opens GitHub's token settings page by hand (escape: `MANUAL-PAT-PAGE-OK`) |
+| Hook                                            | Matcher | Purpose                                                                                                                                                                       |
+| ----------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gh-issue-title-reminder.mjs`                   | Bash    | Reminds to optimize issue title after comment                                                                                                                                 |
+| `posttooluse-manual-pat-page-nudge.sh`          | Bash    | Nudges toward the `gh-fine-grained-pat` skill when a command opens GitHub's token settings page by hand (escape: `MANUAL-PAT-PAGE-OK`)                                        |
+| `posttooluse-pr-linkage-and-label-reminder.mjs` | Bash    | After `gh pr create/edit`, reports which issues GitHub will close on merge (its OWN parse, not a body regex) and whether the PR has any labels. Non-blocking; always exits 0. |
+
+#### Why the linkage reminder asks GitHub instead of reading the body
+
+`Fixes #123` is normally **intentional**, so a guard that fires on the keyword is noise if it warns and wrong if it blocks. The failure worth catching is the opposite one: a closing link nobody meant to create. On Eon-Labs/alpha-forge#787 the body contained the ordinary sentence "rejected two of the three fixes #788 first proposed", GitHub parsed the last two words as the keyword, and the PR silently promised to close an unrelated P2 issue. Nothing in the diff, title or review showed it — `closingIssuesReferences` was the only place it was visible, and the same pattern recurred twice more while the first instance was being explained. Reporting GitHub's own parse after the fact has no false-positive class at all: it states what will happen and lets the author decide whether that was the intent.
+
+#### Why the stale-checkout guard measures fetch age, not commits behind
+
+"How many commits behind is HEAD" cannot work in a hook: the answer is computed against `@{u}`, a local ref only as fresh as the last fetch, so a week-stale checkout reports zero and is maximally wrong. Getting a true count means hitting the network on every publishing command. The mtime of `.git/FETCH_HEAD` needs no network and answers the question that actually matters — how old is my view of this repository — and unlike the commit count it cannot be silently wrong in the reassuring direction. A never-fetched clone is treated as maximally stale, not as fine.
 
 ### UserPromptSubmit Hooks
 
