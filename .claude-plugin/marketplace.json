@@ -452,8 +452,8 @@
         "implementation",
         "release",
         "semantic-release",
-        "mise",
-        "mise.toml",
+        "proto",
+        "moon",
         "task-runner"
       ],
       "strict": false
