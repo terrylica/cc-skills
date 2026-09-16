@@ -1,5 +1,5 @@
 {
-  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, blocks writes to non-owned repos, blocks anchor links in issues, reminds to optimize issue titles, reminds to use the gh-fine-grained-pat skill for token creation",
+  "description": "GitHub CLI enforcement - soft blocks WebFetch for github.com URLs, blocks writes to non-owned repos, blocks anchor links in issues, denies publishing repo claims from a stale checkout, reminds to optimize issue titles, reports which issues a PR will close and whether it has labels, reminds to use the gh-fine-grained-pat skill for token creation",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -40,6 +40,11 @@
             "type": "command",
             "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/gh-issue-no-anchors.mjs",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-stale-checkout-claim-guard.mjs",
+            "timeout": 5
           }
         ]
       }
@@ -57,6 +62,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-manual-pat-page-nudge.sh",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE ${CLAUDE_PLUGIN_ROOT}/hooks/posttooluse-pr-linkage-and-label-reminder.mjs",
+            "timeout": 15
           }
         ]
       }
