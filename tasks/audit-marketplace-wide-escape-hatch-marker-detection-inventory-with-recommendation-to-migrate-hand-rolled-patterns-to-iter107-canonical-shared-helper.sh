@@ -129,6 +129,11 @@ declare -a ITER110_CANONICAL_ESCAPE_HATCH_CONSUMER_COHORT_RELATIVE_PATHS=(
     # helper is called with the JSON blob. Cohort grows from 10 → 11 members. Remove this
     # member when the guard is deleted after upstream fixes claude-code#88836.
     "plugins/itp-hooks/hooks/pretooluse-askuserquestion-option-line-terminator-guard.ts"
+    # 2026-09-08 addition: the Chrome remote-debugging launch guard reads the
+    # CHROME-DEBUG-PORT-OK marker via the iter-107 canonical helper (CASE_SENSITIVE /
+    # FILE_WIDE, ≥10-char reason). Scanned content is the Bash command string.
+    # Cohort grows from 11 → 12 members.
+    "plugins/itp-hooks/hooks/pretooluse-chrome-debug-port-guard.ts"
 )
 
 declare -a MIGRATED_HOOKS_USING_SHARED_HELPER=()
