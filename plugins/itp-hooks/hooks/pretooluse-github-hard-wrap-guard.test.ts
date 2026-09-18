@@ -465,3 +465,46 @@ describe("confirmed bypasses (spelling-only variants of a denied command)", () =
     expect(await decisionOf(`gh api repos/o/r/issues/8 --jq .body`)).toBe("allow");
   });
 });
+
+// ── Heredoc bodies are data, not command tokens ───────────────────────────
+
+/**
+ * This guard's header forbids it from intercepting `git commit`: a git object is not a GFM
+ * surface, and hard wrapping a commit body at 72 columns is the CORRECT convention. On
+ * 2026-09-17 it did exactly that anyway. A `git commit -F -` whose message documented how some
+ * hard-wrapped releases had been repaired quoted a release-edit invocation verbatim, the scope
+ * matcher saw that quotation, and the guard measured the commit message and denied the commit —
+ * demanding the author unwrap prose that was correctly wrapped.
+ *
+ * The adjacent-token matcher already anticipated "committing a message that quotes it", but it
+ * only defeated the case where the words were scattered across the command. A verbatim quotation
+ * is adjacent, so it matched. The fix strips heredoc BODIES before deciding scope, because a
+ * heredoc body is data the command writes, never tokens the shell executes.
+ */
+const gitCommitQuoting = (quoted: string) =>
+  ["git commit -q -F - <<'MSG'", "fix(x): y", "", `Repaired with ${quoted}, which routes through the guard.`, "MSG"].join("\n");
+
+describe("a heredoc body never puts a command in scope", () => {
+  it("allows a git commit whose message quotes a release edit", async () => {
+    expect(await decisionOf(gitCommitQuoting("`gh release edit v1 --notes-file notes.md`"))).toBe("allow");
+  });
+
+  it("allows a git commit whose message quotes an issue comment or a pr create", async () => {
+    expect(await decisionOf(gitCommitQuoting("`gh issue comment 4 --body x`"))).toBe("allow");
+    expect(await decisionOf(gitCommitQuoting("`gh pr create --body x`"))).toBe("allow");
+  });
+
+  it("allows a git commit whose message quotes an api write", async () => {
+    expect(await decisionOf(gitCommitQuoting("`gh api /repos/o/r/releases -f body=x`"))).toBe("allow");
+  });
+
+  it("still DENIES a real release heredoc carrying hard-wrapped notes", async () => {
+    const real = `gh release create v9 --notes-file - <<'EOF'\n${REAL_V240_OPENING}\nEOF`;
+    expect(await decisionOf(real)).toBe("deny");
+  });
+
+  it("still ALLOWS a real release heredoc carrying reflowed notes", async () => {
+    const real = `gh release create v9 --notes-file - <<'EOF'\n${REFLOWED_V240_OPENING}\nEOF`;
+    expect(await decisionOf(real)).toBe("allow");
+  });
+});

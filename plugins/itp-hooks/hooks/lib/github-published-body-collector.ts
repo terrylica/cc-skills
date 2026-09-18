@@ -83,9 +83,39 @@ const GH_ISSUE = adjacent("issue", "create|edit|comment");
 /** `gh pr review` takes `-b/--body` and `-F/--body-file` and publishes to a full GFM surface. */
 const GH_PR = adjacent("pr", "create|edit|comment|review");
 
-export const isGhReleaseCommand = (command: string): boolean => GH_RELEASE.test(command);
-export const isGhIssueCommand = (command: string): boolean => GH_ISSUE.test(command);
-export const isGhPrCommand = (command: string): boolean => GH_PR.test(command);
+/**
+ * The command with every heredoc BODY removed, leaving the actual command line.
+ *
+ * A heredoc body is DATA the command is about to write, not tokens the shell will execute, so it
+ * must never decide whether a command is in scope. Without this, `git commit -F - <<'MSG'` whose
+ * message merely QUOTES a `gh release edit --notes-file` invocation is read as a `gh release`
+ * command: the guard then measures the commit message and blocks the commit — precisely the
+ * `git commit` interception this guard's header forbids, and it forces the author to unwrap a
+ * commit body, where hard wrapping at 72 columns is the CORRECT convention.
+ *
+ * Found 2026-09-17 by a commit message documenting how the hard-wrapped releases were repaired.
+ * The adjacent-token matcher above already anticipated "committing a message that quotes it", but
+ * only defeated the case where the words were scattered; a verbatim quotation is adjacent and
+ * matched anyway.
+ *
+ * The legitimate case still matches: in `gh release create v1 --notes-file - <<EOF`, the verb sits
+ * on the command line, outside the body, so stripping the body changes nothing about scope — while
+ * the body itself is still collected and measured as the published text.
+ */
+function commandLineWithoutHeredocBodies(command: string): string {
+  let stripped = command;
+  for (const heredoc of extractHeredocs(command)) {
+    if (heredoc.body !== "") stripped = stripped.split(heredoc.body).join("\n");
+  }
+  return stripped;
+}
+
+export const isGhReleaseCommand = (command: string): boolean =>
+  GH_RELEASE.test(commandLineWithoutHeredocBodies(command));
+export const isGhIssueCommand = (command: string): boolean =>
+  GH_ISSUE.test(commandLineWithoutHeredocBodies(command));
+export const isGhPrCommand = (command: string): boolean =>
+  GH_PR.test(commandLineWithoutHeredocBodies(command));
 
 const GH_API = /\bgh\s+api\b/i;
 const GH_API_WRITE_TARGET = /\/(releases|issues|pulls)\b/i;
@@ -96,6 +126,9 @@ const GH_API_MUTATING_METHOD = /(?:-X|--method)\s+(?:POST|PATCH|PUT)\b/i;
  * pattern optional if left open.
  */
 export function isGhApiWrite(command: string): boolean {
+  // Same reasoning as commandLineWithoutHeredocBodies: a quoted `gh api` inside a heredoc body is
+  // documentation, not an invocation.
+  command = commandLineWithoutHeredocBodies(command);
   if (!GH_API.test(command) || !GH_API_WRITE_TARGET.test(command)) return false;
   // An explicit mutating method, OR any field flag — `gh api` implies POST as soon as a field is
   // supplied. `--input` belongs here for the same reason: it silently becomes a POST.
