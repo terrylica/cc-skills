@@ -25,9 +25,31 @@
  *
  * Do not extend this guard to `git commit` or `git tag`. A git object is not a
  * GFM surface, and hard wrapping at 72 columns is the correct git convention.
- * The reflow belongs at the PUBLISH boundary, which is exactly what this guard
- * covers: a release built from hard-wrapped commit bodies must be reflowed on
- * its way into `--notes`/`--notes-file`, not by rewriting the commits.
+ * The reflow belongs at the PUBLISH boundary: a release built from hard-wrapped
+ * commit bodies must be reflowed on its way out, not by rewriting the commits.
+ *
+ * ⚠ THIS GUARD COVERS ONLY THE `gh` PUBLISH BOUNDARY — NOT EVERY ONE.
+ *
+ * This comment used to claim `gh` was "exactly" the publish boundary. It is not,
+ * and that word hid a real defect for months. A PreToolUse hook can only see a
+ * Bash command; anything that publishes over the GitHub REST API from inside a
+ * long-running process is invisible to it. The documented case:
+ * `@semantic-release/github` posts release notes with octokit and never shells
+ * out to `gh`, so a repo whose release notes embed hard-wrapped commit bodies
+ * publishes them with no hook firing at any point. ~/eon/claude-sys shipped
+ * twelve such releases before anyone noticed, all while this guard was enabled
+ * and passing.
+ *
+ * The fix for that class belongs in the PIPELINE, not here: reflow inside the
+ * release config, at the step that generates the notes, so every consumer
+ * (CHANGELOG file and GitHub release alike) gets the reflowed text. See
+ * ~/eon/claude-sys/scripts/semantic-release-unwrapped-notes.cjs for the
+ * reference implementation, and `hooks/lib/gfm-unwrap.ts` here for the
+ * transform itself.
+ *
+ * When adding a publisher to this guard, ask whether the new path goes through
+ * a Bash command at all. If it does not, no interception point exists and the
+ * answer is a pipeline-side reflow.
  *
  * Output: PreToolUse `deny` with a reminder listing the offending lines and the
  * single fix. Escape hatch: `GH-HARD-WRAP-OK` anywhere in the command.
