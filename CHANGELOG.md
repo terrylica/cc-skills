@@ -1,3 +1,177 @@
+# [31.0.0](https://github.com/terrylica/cc-skills/compare/v30.9.0...v31.0.0) (2026-09-20)
+
+
+* feat(itp)!: retire the mise-configuration and mise-tasks skills ([fe8f53a](https://github.com/terrylica/cc-skills/commit/fe8f53a07666a8c158def7a72018dee4ea8f5941))
+
+jdx/mise has not been installed on this workstation since 2026-08-21, and the standing doctrine is that proto is the only toolchain manager and moon the only task runner. These two skills outlived the tool they document.
+
+Leaving them installed was not neutral. They stayed *offered* to agents long after mise was gone, so an agent asked to repair a mise-shaped breakage could be steered into writing more mise config and re-arming the same failure. That is not hypothetical — it was measured on 2026-09-16 while diagnosing a client repo's twice-daily dashboard publisher that had died at exit 127 for 25 days because its launchd wrapper called `mise run`. Both skills were listed as available in the very session doing the diagnosis.
+
+Deprecating rather than deleting would not have fixed it: a skill's discovery surface is its name and description, and an agent picking a skill does not read a deprecation banner first. Removal is the only change that alters what gets chosen.
+
+Retained deliberately:
+- `bootstrap-monorepo` is the successor and already teaches moon + proto + Bun.
+- itp-hooks' `mise-hygiene-guard` is UNTOUCHED here. It is inlined in the PreToolUse Write|Edit orchestrator, and removing a link from that chain is a separate, riskier change that deserves its own commit. Note it is a mise config *quality* helper (secrets placement, hub-spoke refactor hints), not an anti-mise guard, so it remains a mise-affirming surface pending that decision.
+- CHANGELOG references are historical record and are left alone.
+
+Also updates the itp plugin keywords from mise/mise.toml to proto/moon, so marketplace search stops pointing at a retired toolchain.
+
+
+
+### Bug Fixes
+
+* **floating-clock:** attack-test the brightness guards, correct a claim ([303bd24](https://github.com/terrylica/cc-skills/commit/303bd241192ba6343f8e52bcb1cdb8f86174e6df))
+
+Three things, all of which change what the code or the docs assert.
+
+1. THE GUARDS ARE NOW TESTED. Five safety guards had been added to the brightness engine and none had been exercised against the condition it exists for. scripts/brightness-diagnostics/ now holds a harness that drives the real engine against real hardware: 12 passed, 0 failed, 1 skipped. The two that matter most —
+
+     SIGKILL a boosted child      -> ramp back to 1.0000
+     3x sleep/wake while boosted  -> 1.3000 before, 1.3000 after
+
+   The second is the compounding bug the baseline-neutrality guard was written for; unguarded it squares every wake (measured 1.2952 -> 1.6776 in an early draft). The skip is honest: reference-preset refusal cannot be forced from code.
+
+   The harness lives in scripts/, NOT tests/ — the Makefile globs tests/*.m wholesale and a second main() there breaks the test link.
+
+2. A CLAIM OF MINE WAS WRONG, IN A SELF-FLATTERING DIRECTION. The clean-room notice asserted that BrightIntosh's hardcoded referenceEDR of 2.66 for Mac15,11 "does not match this machine, which reports 2.0513 at slider maximum". Measured with the EDR grant settled, this panel reports 2.6667 — exactly 1600/600, exactly their constant. The 2.0513 reading was sampled ~1.2 s after a slider change, mid-ramp: the same sample-before-settled error the engine's own settle gate exists to prevent, committed while writing that very gate.
+
+   Runtime derivation is still the right design (no device table, adapts to unreleased hardware) but it is NOT more accurate than theirs, and the record should not pretend otherwise. Corrected in the header, in the test header, and in the fixture that used 2.0513 as its "reference headroom" operating point.
+
+3. TWO FALSE CLAIMS IN CLAUDE.md, ONE PRE-EXISTING. The Touchpoints table said the networksetup reorder was "the only system-wide change this plugin makes" — a gamma ramp is a second one, and that table exists to disclose exactly this. It also claimed sub-0.1% idle CPU, measured at 0.68-0.80% with every rail OFF, so it was already false before this feature. `ps %cpu` is a lifetime average dominated by launch cost and reports ~0.0%, which is how the stale figure survived; measure a CPU-time delta instead.
+
+   Detail moved into docs/brightness-rail.md rather than the hub: the markdown formatter pads every Touchpoints row to the widest cell, so one verbose cell taxes all twelve. The hub keeps the disclosure and points at the spoke. Also adds the two preference keys to docs/runtime-preferences.md, which declares itself their SSoT.
+
+* **itp-hooks:** heredoc bodies must not decide hard-wrap guard scope ([d60c258](https://github.com/terrylica/cc-skills/commit/d60c258696a4324c8b7223296cbadcbb76fcacde))
+
+Two defects, both found while remediating twelve hard-wrapped releases in ~/eon/claude-sys.
+
+1. FALSE POSITIVE ON `git commit`. The guard's own header forbids it from touching a git object: hard wrapping a commit body at 72 columns is the correct convention, and a commit message is not a GFM surface. It did it anyway. A `git commit -F -` whose message documented how the releases had been repaired quoted a release-edit invocation verbatim; the scope matcher saw that quotation, `-F -` was read as the release verb's notes-file, and the guard measured the commit message and denied the commit -- demanding the author unwrap prose that was correctly wrapped.
+
+The adjacent-token matcher already anticipated "committing a message that quotes it", but it only defeated the case where the words were scattered across the command. A verbatim quotation IS adjacent, so it matched.
+
+Fix: strip heredoc BODIES before deciding scope. A heredoc body is data the command writes, never tokens the shell executes. The legitimate case is unaffected -- in a real release-create with a heredoc payload the verb sits on the command line, outside the body, so scope is unchanged while the body is still collected and measured. Applied to the release/issue/pr predicates and to the api-write predicate, which had the same exposure through its field flags.
+
+Five end-to-end regression tests: a commit quoting each of the four publishing shapes is allowed, a real heredoc release carrying the v2.4.0 hard-wrapped body is still denied, and the same heredoc carrying reflowed prose is still allowed.
+
+2. THE COVERAGE CLAIM WAS FALSE, and that is what hid a real defect for months. The header stated the reflow "belongs at the PUBLISH boundary, which is exactly what this guard covers". `gh` is not the publish boundary; it is one of them. @semantic-release/github publishes release notes with octokit over the REST API and never shells out to `gh`, so a repo whose notes embed hard-wrapped commit bodies publishes them with no hook firing anywhere. claude-sys shipped twelve such releases while this guard was enabled and passing.
+
+A PreToolUse hook can only observe a Bash command, so no extension of the verb list could ever have closed that. The header now says so, names the semantic-release case, points at the reference pipeline-side fix, and states the general rule: when adding a publisher, first ask whether it goes through a Bash command at all -- if it does not, there is no interception point and the answer is a pipeline-side reflow, not a hook.
+
+A hook that cannot see a surface must SAY so. A confident coverage claim is worse than an acknowledged gap, because it stops anyone checking.
+
+* **tasks:** a hook command may be shell logic, not a path ([92800e9](https://github.com/terrylica/cc-skills/commit/92800e9de8ca84505afe1f2d0c7c522089cd1ab5))
+
+extract_hook_script_path_from_hook_command returned tokens[0] for any command whose first token was not a recognised interpreter. For a hook registered as shell logic — `if [ -z "$SOME_ENV" ]; then exit 0; fi; /path/to/hook.sh` — that token is the literal word `if`, and validate-hook-registration.sh then tested `[[ -e "if" ]]` and reported "settings.json &lt;event> references missing file: if" once per event.
+
+Measured 2026-09-20 against a settings.json carrying a third-party integration that registers a no-op-unless-my-env-is-present guard on 13 events: 13 spurious errors, every one of them wrong, and enough to fail release preflight and block an otherwise valid release.
+
+A command in that shape has no single script path to validate statically, so the parser now returns EMPTY and the caller skips it — the same contract already used for ${CLAUDE_PLUGIN_ROOT}-relative paths. Real invocations are unaffected: `bun x.ts`, `bun run x.ts`, `node --enable-source-maps x.js` and a bare `/abs/path.sh --flag` all still resolve. Verified against the existing parser test suite, and the validator now inspects 31 real paths where it previously aborted on 13 phantom ones.
+
+Implemented as a space-delimited membership test rather than a case alternation: `esac` used as a case PATTERN terminates the statement (SC1010), and `|` separators read as pipes to tooling that scans for them.
+
+* **tasks:** iter-111 audit said it never blocks release; it does ([df5a40b](https://github.com/terrylica/cc-skills/commit/df5a40bd893278bc6794397b02a10d0f6e74d2bb))
+
+The producer-marker typo audit printed "(informational; never blocks release)" alongside its findings, and its Step-6 exit-policy comment said the same. That has been false since iter-115 promoted it to a STRICT-BLOCK: preflight Check 4t greps "AUDIT FOUND &lt;n>" out of this task's log and exits 1 when n > 0 (tasks/release/preflight:1024).
+
+The wording cost real time today. bb676071 introduced STALE-CHECKOUT-OK without registering it; the audit reported it and simultaneously told the reader it did not matter. An operator who believed the tool's own output would have gone on to cut the release and been stopped by a gate the audit had just described as non-blocking.
+
+The audit still exits 0 — the blocking happens in the wrapper, not here — so the fix is to the message, not the exit code. The comment now says where the blocking actually lives, and the "AUDIT FOUND &lt;n>" token is explicitly marked as the wrapper's contract so a future reword does not break the extraction that test-iter115 Case 3 asserts.
+
+Left deliberately untouched: the identical phrase in the iter-103 and iter-121 audits and in HOOKS.md:769. Those audits really are informational; only this one was promoted.
+
+Verified: test-iter111 6/6 (Case 4 now reads "live audit run passes"), test-iter115 7/7 with Cases 2 and 3 confirming the synthetic-injection signal still reaches the wrapper, and `moon run repo:test-hooks` 116/116.
+
+
+
+### Features
+
+* **floating-clock:** 0-140% brightness rail reaching XDR headroom ([fe7d9b0](https://github.com/terrylica/cc-skills/commit/fe7d9b022d88731050168f92c12bd9a023c10776))
+
+A single continuous control over the built-in display, spanning two different mechanisms with the hand-over at 100% invisible to the user. Below 100% it writes the ordinary macOS brightness value (the one F1/F2 and Control Center share) through a dlsym'd DisplayServices SPI. Above 100% it unlocks EDR headroom that macOS exposes no GUI for at all.
+
+MECHANISM — both halves are required; neither alone does anything.
+
+1. A 1x1 borderless window hosting a CAMetalLayer with wantsExtendedDynamicRangeContent, RGBA16Float and extendedLinearSRGB, which RENDERS frames above 1.0. Measured on Mac15,11: headroom ramps 1.0 -> 6.15 over ~2s. Configuring the layer without presenting a frame leaves it pinned at exactly 1.0000 forever — that trap is what makes the feature look impossible, and it cost a contradictory pair of research findings before a direct test settled it.
+
+2. CGSetDisplayTransferByTable accepts ramp entries above 1.0 and does not clamp them (requested 1.4500, read back 1.4500). With the panel in HDR mode, 1.0 is no longer peak scanout, so the excess maps into the unlocked headroom and EVERY pixel on the desktop brightens. That is why a 1x1 trigger suffices: the trigger unlocks, the ramp spends.
+
+Confirmed visibly by a human A/B test. No instrument on the machine can verify it — screencapture samples the framebuffer BEFORE the gamma LUT, so a boosted and an unboosted screenshot are byte-identical.
+
+CLEAN-ROOM. Uses only public Apple API plus a dlopen'd DisplayServices, and contains no code, constants or response curve from BrightIntosh (GPL-3.0) — this repo is MIT. The response curve is ours and derives from measurement: BrightIntosh hardcodes referenceEDR 2.66 for Mac15,11 and this machine measures 2.0513, so deriving at runtime is both the licence-clean route and the accurate one.
+
+SAFETY. A gamma override is owned per-process and reverts automatically on process death, including SIGKILL, so a crash cannot strand a bright panel. On top of that: a settle gate (the factor is larger at lower headroom, so acting on the first crossing overshoots ~8% then sags); a baseline-neutrality guard that refuses to capture an already-boosted ramp (re-capturing squares the factor every sleep/wake, measured 1.2952 -> 1.6776, unbounded); write-verification with panic-restore; a headroom-withdrawal guard; refusal to engage in a calibrated reference preset; an unbypassable cap at the only site that writes hardware; and a 30-minute idle timeout on the boost only.
+
+Degrades silently: on a panel with no extra headroom the rail is an ordinary 0-100 slider, and with no controllable display it renders "--" and ignores input rather than pretending.
+
+COST. Steady-state CPU delta is below measurement noise (0.760% with the rail enabled vs 0.800% disabled). The first cut measured +0.32% because naturalContentWidth ran a text layout pass every tick; it now re-measures only when the rendered composite actually changed.
+
+128 tests pass (120 before). The load-bearing new fixture pins the SHAPE of the response curve, not its value at one point — a curve that degenerated to a constant would still look right at one operating point while over-driving the panel.
+
+* **itp-hooks:** guard Chrome remote-debugging launches ([#150](https://github.com/terrylica/cc-skills/issues/150)) ([159b77c](https://github.com/terrylica/cc-skills/commit/159b77c89e194d27fe82f62c2b2d07d112011d76))
+
+Blocks Bash browser launches that provably cannot work, plus one shape that is a genuine security hole. It takes no position on whether a browser should be driven at all -- that is a judgement call and is not decidable from a command string.
+
+WHY A BLOCK. Since Chrome 136, --remote-debugging-port and --remote-debugging-pipe are refused when the browser uses its DEFAULT user-data directory. That was deliberate hardening: a non-default directory gets a different encryption key, so malware attaching over CDP cannot decrypt the real profile's cookies and passwords. What earns it a hard block rather than a docs entry is the failure mode, which does not look like a flag error -- either "DevTools remote debugging requires a non-default data directory", or an automation client that connects, reports healthy, and hangs forever on a blank page waiting for a port that never opened. A confident wrong answer is this repo's standing bar for blocking, the same bar headless-claude-p-guard was built to.
+
+Three deterministic violations:
+  1. a remote-debugging launch with no --user-data-dir -- dead on Chrome >=136
+  2. one whose --user-data-dir IS the platform default profile root -- fails identically to (1) but reads as compliant, so it is harder to spot
+  3. --remote-debugging-address bound off loopback -- hands full browser control, drive any page and read every cookie, to the network
+
+A subdirectory of a default root is deliberately NOT matched: it is a genuinely different directory, so Chrome accepts it and remote debugging works.
+
+FALSE POSITIVES WERE THE DESIGN CONSTRAINT. This flag appears constantly in commands that are not launches -- `pkill -f remote-debugging-port=9222`, `ps aux | grep`, `curl http://127.0.0.1:9222/json/version`. A guard that blocked those would be switched off within a day, and a disabled guard is worse than none. So a POSITIVE browser-launch signal is required before any violation is reported, and inspector/terminator verbs veto the check outright. Six of the seventeen tests exist solely to hold that line.
+
+The tests spawn the real hook and speak the real stdin/stdout protocol rather than re-asserting the hook's own regexes against fixtures -- a test that reruns the pattern it copied from the implementation proves only that the pattern equals itself. That paid for itself immediately: the original `(?!\S)` terminator on the default-profile-root patterns never matched a QUOTED path, and those paths always contain a space ("Application Support") so they are effectively always quoted. Violation (2) could never have fired. Caught by the test, not by reading it.
+
+Conventions followed: ordinary single-signal deny (stdout JSON, exit 0, nothing on stderr -- the belt-and-suspenders stdout+stderr+exit-2 form exists only for Write|Edit where deny was reported ignored); fail-open via trackHookError; escape marker read through the iter-107 canonical helper. Registered in all three places a marker must exist at once -- the iter-111 producer registry, the iter-110 canonical cohort (11 -> 12 members), and the regenerated docs/marketplace-escape-hatch-marker-reference.md. Escape is CHROME-DEBUG-PORT-OK with a mandatory >=10-character reason; a bare marker does not suppress.
+
+Verified: 1691 tests pass across 58 files, biome clean, and all three escape-hatch audits pass (iter-110 STRICT, iter-111 typo, iter-121 stale description). Note the iter-111 audit exits 0 even when it finds unregistered tokens, so its output was grepped for "AUDIT FOUND" rather than trusted by exit code.
+
+Provenance: the mql5.com credential rotation of 2026-09-08, where the Chrome 136 restriction was hit first-hand. Operator-facing doc: plugins/itp-hooks/docs/chrome-debug-port-guard.md. Upstream: https://developer.chrome.com/blog/remote-debugging-port
+
+REBASED onto main 2026-09-17 (main had moved 26 commits). Three consequences of that rebase, none of them behavioural:
+
+  - The escape-hatch marker reference doc is now GENERATED (iter-113/iter-117 landed while this sat open), so the hand-written edit was dropped and `tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh` was run instead. Its `--check` is clean.
+  - The iter-110 canonical cohort grew 11 -> 12 because this guard imports the iter-107 shared helper, so test-iter112's hardcoded expectation was bumped. That test's NOTE said "that guard ... drops back to 10"; with a new guard appended, "that guard" resolved to the wrong one, so it now names the askuserquestion guard explicitly and says "drops by one".
+  - The two new hook files were tab-indented; every one of the ~40 sibling pretooluse hooks uses spaces, so leading tabs were converted. No string literal was touched. This also removes the whole-file 367/357 reformat of the iter-111 registry that caused the only merge conflict — the registry now carries exactly one added entry, in alphabetical position, and main's independently-added STALE-CHECKOUT-OK is preserved.
+
+An unrelated `build(proto): auto-bump pins to latest` commit (node 26.8.2 -> 26.9.0) that had ridden along on this branch was dropped, to keep this PR to one subject. The auto-bump job will re-propose it.
+
+Re-verified after the rebase: 17/17 guard tests, and the full local gate `moon run repo:check` (lint + test + test-hooks + cli-spec-check + verify-doc-counts) green at 6/6 tasks.
+
+* **macos-permissions:** audit TCC grants and persistence ([d5f6026](https://github.com/terrylica/cc-skills/commit/d5f6026a85bcf39bdbeb448a12f157ddbd5df52d))
+
+Not just tccutil — the whole Apple-native toolbox.
+
+Adds a plugin with two skills, written after a cleanup that went well and still missed most of the problem.
+
+tcc-grant-audit covers all ~40 TCC services and all three permission stores, not the two System Settings happens to display. It clears grants stranded by uninstalled applications — which Apple's tccutil cannot reach at all, because it resolves the bundle identifier through LaunchServices before touching the database and returns -10814 once the app is gone. macOS never garbage-collects those rows and System Settings hides them, so nothing else will ever clean them.
+
+persistence-audit enumerates rather than greps: launchd with Label-vs-filename mismatch detection, Background Task Management, system extensions, audio HAL plug-ins, SecurityAgentPlugins and the login chain, privileged helpers, kernel extensions, profiles, login hooks, cron, listening sockets and firewall state.
+
+Every rule in these skills was measured, usually after being wrong first:
+
+- The stub used to impersonate an orphaned identifier MUST live in /Applications. A stub in /private/tmp is provably registered (it appears in lsregister -dump) and tccutil still returns -10814, whether its executable is a 0-byte file, a real Mach-O, or ad-hoc signed. tccutil does not read the registration database; it calls an application-lookup API that only returns bundles from standard application directories. Registration is not resolvability.
+- tccutil prints "Successfully reset" and exits 0 having deleted nothing. So does a direct TCC.db writer when SIP refuses the write. Verify with SELECT COUNT(*), never an exit code.
+- Verifying immediately is not verifying. A PlistBuddy prune of the Sequoia screen-capture store verified clean, and replayd flushed its cached dictionary over the file eight minutes later, restoring every deleted entry. Stop the owning daemon first, then re-verify after a delay.
+- The SIP boundary is per-database: direct writes succeed against the user store with SIP on and are refused by the system store.
+- NSWorkspace resolves bundle identifiers in one line and handles helper bundles outside /Applications, but cannot resolve com.apple.* XPC services, which then look orphaned. Excluding them is mandatory.
+- Privilege is per-store and both directions of the mistake are silent: a user-store operation under sudo edits root's copy and reports success.
+- Name-based searching cannot find the unknown. Grepping for five vendor names missed a root LaunchDaemon that was running the whole time.
+
+Also documents that heuristic "find orphaned files" uninstallers are unsafe on a machine with hand-written launchd runners: one flagged 71 LaunchAgent plists, 59 of them live loaded jobs, plus support files for five running applications.
+
+Registered as plugin 42; doc counts, registry list and badge updated to match.
+
+
+
+### BREAKING CHANGES
+
+* the `itp:mise-configuration` and `itp:mise-tasks` skills are
+removed. Anything invoking them by name will no longer resolve. Use
+`itp:bootstrap-monorepo` for toolchain and task-runner guidance instead.
+
 # [30.9.0](https://github.com/terrylica/cc-skills/compare/v30.8.0...v30.9.0) (2026-09-16)
 
 
