@@ -63,10 +63,12 @@ void test_max_safe_factor_is_monotonic(void) {
     CHECK_CLOSE(FCMaxSafeFactorForHeadroom(0.5),  1.0, 1e-9, @"sub-unity headroom -> no boost");
     CHECK_CLOSE(FCMaxSafeFactorForHeadroom(NAN),  1.0, 1e-9, @"NaN headroom -> no boost");
 
-    // Measured operating points on the target panel (Mac15,11).
-    // headroom 2.0513 was measured at slider maximum; 6.1539 is where it
-    // settles at the default slider position.
-    double atRef  = FCMaxSafeFactorForHeadroom(2.0513);
+    // Measured operating points on the target panel (Mac15,11), both taken
+    // with the EDR grant SETTLED. 2.6667 is headroom at slider maximum —
+    // exactly 1600/600, the panel's peak-to-SDR-white ratio. 6.1539 is where
+    // it settles at a mid slider position. (An earlier draft used 2.0513 here,
+    // a value sampled mid-ramp; see the correction in FCXDRBrightness.h.)
+    double atRef  = FCMaxSafeFactorForHeadroom(2.6667);
     double atIdle = FCMaxSafeFactorForHeadroom(6.1539);
     CHECK(atRef > 1.0,  "some boost is available at the measured reference headroom");
     CHECK(atIdle > atRef, "more headroom yields a larger ceiling (monotonic increasing)");
