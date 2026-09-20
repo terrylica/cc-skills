@@ -8,7 +8,11 @@ APP := $(BUILD)/$(APP_NAME).app
 CONTENTS := $(APP)/Contents
 MACOS := $(CONTENTS)/MacOS
 
-CFLAGS := -framework Cocoa -framework QuartzCore -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -Os -dead_strip -fobjc-arc -Wall -ISources
+# Metal (2026-09-19): the brightness rail's EDR trigger renders a 1x1
+# RGBA16Float frame to make WindowServer grant the panel extra headroom.
+# QuartzCore already vends CAMetalLayer, but presenting a drawable needs the
+# Metal framework itself.
+CFLAGS := -framework Cocoa -framework QuartzCore -framework Metal -framework CoreLocation -framework CoreAudio -framework AVFoundation -framework IOBluetooth -framework CoreText -framework SystemConfiguration -framework CoreWLAN -Os -dead_strip -fobjc-arc -Wall -ISources
 ICON_CFLAGS := -framework Cocoa -framework ImageIO -framework UniformTypeIdentifiers -framework CoreServices -Os -fobjc-arc -Wall
 
 # All non-gen-icon .m sources under Sources/. New modules dropped into
@@ -42,6 +46,9 @@ TEST_EXCLUDED := Sources/clock.m \
     Sources/core/VPNStatusIndicator.m \
     Sources/core/AudioDeviceSelectionMenuController.m \
     Sources/core/BluetoothPairedAudioDeviceConnector.m \
+    Sources/core/BrightnessStatusIndicator.m \
+    Sources/core/BrightnessBarZoneView.m \
+    Sources/core/FCXDRBrightness.m \
     Sources/core/ClockChildWindowAttachment.m \
     Sources/core/LocationProvider.m \
     Sources/rendering/AttributedStringLayoutMeasurer.m \

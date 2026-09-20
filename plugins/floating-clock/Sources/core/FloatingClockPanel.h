@@ -11,6 +11,7 @@
 @class FCVPNStatusIndicator;   // generic state-file status banner (e.g. VPN/tunnel; 2026-06-07)
 @class FCAudioStatusIndicator; // always-visible audio I/O device + level bar (2026-06-11)
 @class FCNetworkStatusIndicator; // network service picker bar (default-route chooser)
+@class FCBrightnessStatusIndicator; // 0-140% display brightness rail (2026-09-19)
 @class FCSolarOutlinedTextView; // round-join outlined compact text (solar canvas, 2026-06-11)
 
 NS_ASSUME_NONNULL_BEGIN
@@ -44,8 +45,13 @@ NS_ASSUME_NONNULL_BEGIN
     FCAudioStatusIndicator *_audioStatusIndicator;
 
     // Network picker bar — which service carries the default route.
-    // Top of the indicator stack.
     FCNetworkStatusIndicator *_networkStatusIndicator;
+
+    // Brightness rail (2026-09-19): one continuous 0-140% control over the
+    // built-in display. Below 100% it drives the ordinary macOS brightness
+    // value; above it, EDR headroom the brightness slider cannot reach.
+    // Top of the indicator stack — it sums all four juniors' slots.
+    FCBrightnessStatusIndicator *_brightnessStatusIndicator;
 }
 // Menu builders + helpers → Sources/menu/FloatingClockPanel+MenuBuilder.{h,m}
 // Layout methods            → Sources/core/FloatingClockPanel+Layout.{h,m}
