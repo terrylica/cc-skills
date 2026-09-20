@@ -8,10 +8,15 @@
 //
 // The regression that matters most here is test_max_safe_factor_is_monotonic.
 // The response curve is CLEAN-ROOM — deliberately not BrightIntosh's, because
-// that project is GPL-3.0 and this repo is MIT, and because its hardcoded
-// referenceEDR of 2.66 for Mac15,11 does not match this machine's measured
-// 2.0513. A curve that silently degenerates to a constant would still "work"
-// on a casual look while over-driving the panel, so its shape is pinned.
+// that project is GPL-3.0 and this repo is MIT. A curve that silently
+// degenerated to a constant would still "work" on a casual look while
+// over-driving the panel, so its SHAPE is pinned here, not just its value at
+// one operating point.
+//
+// (An earlier version of this comment also claimed their hardcoded
+// referenceEDR of 2.66 was wrong for this machine. It was not — see the
+// correction in FCXDRBrightness.h. The licence argument stands on its own and
+// never needed that claim.)
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN

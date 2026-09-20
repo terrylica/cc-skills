@@ -18,12 +18,23 @@
 // taken from niklasr22/BrightIntosh (GPL-3.0) or any other copyleft project;
 // this repository is MIT and vendoring GPL source would relicense it. The
 // mechanism is unprotectable public API — the expression here is our own, and
-// our response curve (DisplayBrightnessHelpers.h) is derived from
-// measurements taken on the target panel. Measured here: BrightIntosh's
-// hardcoded referenceEDR of 2.66 for Mac15,11 does not match this machine,
-// which reports 2.0513 at slider maximum, so deriving at runtime is both the
-// licence-clean route and the accurate one. Credit to that project for
-// demonstrating the technique is viable.
+// our response curve (DisplayBrightnessHelpers.h) reads the panel at runtime
+// instead of consulting a per-model table at all.
+//
+// CORRECTION, 2026-09-20. An earlier draft of this notice claimed that
+// BrightIntosh's hardcoded referenceEDR of 2.66 for Mac15,11 "does not match
+// this machine, which reports 2.0513 at slider maximum". That was wrong, and
+// wrong in a self-flattering direction. The 2.0513 reading was taken ~1.2 s
+// after changing the slider, i.e. DURING the EDR ramp — the same
+// sample-before-settled mistake this file's own settle gate exists to
+// prevent. Measured properly with the grant settled, this panel reports
+// 2.6667 at slider maximum, which is exactly 1600/600 and exactly their
+// constant. Their number was right.
+//
+// Runtime derivation is still the correct design here — it needs no device
+// table, and it adapts to hardware that does not exist yet — but it is not
+// more ACCURATE than theirs, and the record should not pretend otherwise.
+// Credit to that project for demonstrating the technique is viable.
 //
 // ──────────────────── HOW THE BOOST WORKS (both halves) ───────────────────
 //  1. EDR TRIGGER. A 1x1 borderless window hosting a CAMetalLayer with
