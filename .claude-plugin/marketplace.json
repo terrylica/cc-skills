@@ -1009,6 +1009,32 @@
         "reproducibility"
       ],
       "strict": false
+    },
+    {
+      "name": "macos-permissions",
+      "description": "Audit and control what software on a Mac can see, drive and outlive a reboot. TCC privacy grants across all ~40 services and all three permission stores (system, user, and the Sequoia screen-capture plist tccutil cannot reach), including grants stranded by uninstalled apps that macOS never garbage-collects. Plus full persistence enumeration: launchd with Label-vs-filename detection, BTM, system extensions, audio HAL plug-ins, login-chain plugins, helpers, kexts, sockets and firewall state.",
+      "version": "30.9.0",
+      "source": "./plugins/macos-permissions",
+      "category": "utilities",
+      "author": {
+        "name": "Terry Li",
+        "url": "https://github.com/terrylica"
+      },
+      "keywords": [
+        "macos",
+        "tcc",
+        "privacy",
+        "permissions",
+        "accessibility",
+        "screen-recording",
+        "full-disk-access",
+        "persistence",
+        "launchd",
+        "security",
+        "uninstall",
+        "remote-access"
+      ],
+      "strict": false
     }
   ]
 }

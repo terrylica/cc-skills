@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **41 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **42 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -46,7 +46,7 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
-### Plugin CLAUDE.md Files (41/41)
+### Plugin CLAUDE.md Files (42/42)
 
 Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep it that way: a new plugin ships one in the same commit that creates it. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
@@ -91,8 +91,8 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 41 plugins)
-├── plugins/                         ← 41 marketplace plugins (each has CLAUDE.md)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 42 plugins)
+├── plugins/                         ← 42 marketplace plugins (each has CLAUDE.md)
 │   ├── claude-tts-companion/        ← Swift macOS binary (active project)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
@@ -150,7 +150,7 @@ Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never g
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 41 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
+Recurring architectural patterns across the 42 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
 
 Historical context, **not** current guidance: [docs/deduplication-analysis.md](./docs/deduplication-analysis.md) is a dated 2026-03-02 audit of a 23-plugin repo that argues the opposite of the rule below — it recommends extracting shared patterns into common modules. It was cited here as a "deeper dive", which read as endorsement. Measured 2026-09-02 and recorded so nobody re-litigates it: `md5` across all 125 files in the 14 per-plugin `lib/` and `_lib/` directories found **zero** byte-identical pairs. There is no code duplication to extract; the similarity is conventional, not literal.
 
