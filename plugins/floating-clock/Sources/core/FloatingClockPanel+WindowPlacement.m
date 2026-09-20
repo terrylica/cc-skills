@@ -8,6 +8,7 @@
 #import "VPNStatusIndicator.h"
 #import "AudioStatusIndicator.h"
 #import "NetworkStatusIndicator.h"
+#import "BrightnessStatusIndicator.h"
 
 @implementation FloatingClockPanel (WindowPlacement)
 
@@ -53,6 +54,7 @@
     [_vpnStatusIndicator syncPosition];
     [_audioStatusIndicator syncPosition];
     [_networkStatusIndicator syncPosition];
+    [_brightnessStatusIndicator syncPosition];
 }
 
 - (void)restorePosition {

@@ -4,6 +4,8 @@
 #import "../core/FloatingClockPanel+WindowPlacement.h"  // 2026-06-12 split
 #import "../core/AudioStatusIndicator.h"   // 2026-06-11: instant bar show/hide
 #import "../core/NetworkStatusIndicator.h" // network picker bar show/hide
+#import "../core/BrightnessStatusIndicator.h" // brightness rail show/hide
+#import "../core/FCXDRBrightness.h"           // release the boost when hidden
 #import "../core/ClipboardHeader.h"  // iter-160: extracted testable helper
 #import "../rendering/SegmentOpacityResolver.h"
 
@@ -315,6 +317,19 @@ static void fcCopyWithHeader(NSString *label, NSString *body) {
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
     [d setBool:![d boolForKey:@"NetworkBarEnabled"] forKey:@"NetworkBarEnabled"];
     [_networkStatusIndicator refresh];   // instant show/hide (vs <=1s tick lag)
+}
+
+// Brightness rail (2026-09-19). Hiding the bar must also RELEASE any active
+// boost: a control the user cannot see must not keep holding the panel above
+// its normal maximum. The engine's own release path restores gamma first and
+// only then drops the EDR trigger.
+- (void)toggleShowBrightnessBar:(NSMenuItem *)sender {
+    (void)sender;
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    BOOL now = ![d boolForKey:@"BrightnessBarEnabled"];
+    [d setBool:now forKey:@"BrightnessBarEnabled"];
+    if (!now) [[FCBrightnessEngine shared] setLevel:100];
+    [_brightnessStatusIndicator refresh];   // instant show/hide (vs <=1s tick lag)
 }
 
 // v4 iter-199: UI-naming-campaign toggle. Shows / hides the tiny

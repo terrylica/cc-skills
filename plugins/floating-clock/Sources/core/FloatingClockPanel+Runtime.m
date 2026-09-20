@@ -5,6 +5,7 @@
 #import "VPNStatusIndicator.h"   // generic state-file status banner sync (2026-06-07)
 #import "AudioStatusIndicator.h" // always-visible audio I/O bar sync (2026-06-11)
 #import "NetworkStatusIndicator.h" // network picker bar sync
+#import "BrightnessStatusIndicator.h" // 0-140% brightness rail sync (2026-09-19)
 #import "LocationProvider.h"     // hourly staleness re-kick (2026-06-11)
 #import "../rendering/SolarOutlinedTextRenderingView.h" // solar outlined text (2026-06-11)
 #import "../data/ThemeCatalog.h"
@@ -74,6 +75,11 @@ static uint64_t nsUntilNextSecond(void) {
     // In-process SCDynamicStore read only — never spawns a subprocess on
     // the tick (see NetworkStatusIndicator.h refresh-model note).
     [_networkStatusIndicator refresh];
+    // Brightness rail: one dlsym'd DisplayServices call plus one NSScreen
+    // property read, both in-process — comparable to the six CoreAudio reads
+    // the audio bar already does per second, so 1 Hz needs no decimation.
+    // Same hard rule as the network bar: never a subprocess on the tick.
+    [_brightnessStatusIndicator refresh];
     // Solar canvas (2026-06-11): evolve the compact modes' background with
     // the live solar elevation. Quantized internally — usually a no-op.
     [self refreshSolarCanvasForced:NO];

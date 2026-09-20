@@ -29,6 +29,7 @@
 #import "test_local_features.h"  // iter-244 extraction
 #import "test_network.h"                 // network picker bar catalog
 #import "test_overlay_width.h"           // overlay width agreement + telemetry math
+#import "test_brightness.h"              // 2026-09-19 brightness-rail arithmetic
 
 // Shared failure counter — extern-declared in test_levers.h so
 // test_levers.m can increment the same storage.
@@ -874,6 +875,20 @@ int main(void) {
         RUN_TEST(test_overlay_width_floors_at_clock_width);
         RUN_TEST(test_overlay_width_hidden_overlay_stops_widening);
         RUN_TEST(test_overlay_width_posts_change_notification);
+
+        // Brightness rail arithmetic (2026-09-19). Pure helpers only — the
+        // engine needs Metal and a live display, so it is excluded from the
+        // test link. test_max_safe_factor_is_monotonic is the regression that
+        // guards the clean-room response curve's SHAPE, not just its value at
+        // one point.
+        RUN_TEST(test_clamp_brightness);
+        RUN_TEST(test_clamp_level_percent);
+        RUN_TEST(test_apply_level_delta);
+        RUN_TEST(test_brightness_step_percent);
+        RUN_TEST(test_max_safe_factor_is_monotonic);
+        RUN_TEST(test_applied_factor_for_level);
+        RUN_TEST(test_gamma_baseline_neutrality_guard);
+        RUN_TEST(test_decompose_level);
         RUN_TEST(test_telemetry_rate_basic);
         RUN_TEST(test_telemetry_rate_survives_counter_reset);
         RUN_TEST(test_telemetry_rate_formatting);
