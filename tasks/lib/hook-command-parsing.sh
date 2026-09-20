@@ -152,6 +152,25 @@ extract_hook_script_path_from_hook_command() {
     read -r -a tokens <<<"$hook_command_without_env_prefix"
     ((${#tokens[@]} == 0)) && return 0
 
+    # A hook command can be shell LOGIC rather than a direct invocation — a
+    # third-party integration may register `if [ ... ]; then <script>; fi` so the
+    # hook no-ops unless its own env is present. There is no single script path
+    # to validate in that shape, so return EMPTY and let the caller skip it.
+    #
+    # Without this, the `*)` fallthrough below returned tokens[0] — the literal
+    # word `if` — and validate-hook-registration.sh then tested `[[ -e "if" ]]`
+    # and reported "references missing file: if" once per event. Measured
+    # 2026-09-20: 13 spurious errors, enough to block a release, against a
+    # settings.json whose hooks were all perfectly valid.
+    # Space-delimited membership test rather than a `case` alternation list:
+    # `esac` used as a case PATTERN terminates the statement (SC1010), and the
+    # `|` separators read as pipes to tooling that scans for them.
+    local shell_control_words
+    shell_control_words=" if then else elif fi for while until do done case esac function { ( [[ [ test : true false exec eval trap set unset export cd echo printf return shift local read "
+    case "$shell_control_words" in
+        *" ${tokens[0]} "*) return 0 ;;
+    esac
+
     local token_index=0
     case "${tokens[0]##*/}" in
         bun | bunx | node | deno | npx | bash | sh | zsh | python | python3 | uv | uvx | \
