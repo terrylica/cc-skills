@@ -50,6 +50,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)toggleShowMoonPhase:(NSMenuItem *)sender;
 - (void)toggleShowProgressPercent:(NSMenuItem *)sender;
 - (void)toggleShowAudioBar:(NSMenuItem *)sender;   // 2026-06-11 audio I/O bar
+// Declared here deliberately. toggleShowNetworkBar: is implemented but never
+// declared, and works only by dynamic dispatch — that omission compiles, but
+// it costs the compiler's ability to catch a selector typo in the menu
+// builder. Do not copy it.
+- (void)toggleShowNetworkBar:(NSMenuItem *)sender;      // network picker bar
+- (void)toggleShowBrightnessBar:(NSMenuItem *)sender;   // 2026-09-19 brightness rail
 - (void)copyStateToClipboard:(id)sender;
 - (void)setDensity:(NSMenuItem *)sender;
 - (void)setNextItemCount:(NSMenuItem *)sender;

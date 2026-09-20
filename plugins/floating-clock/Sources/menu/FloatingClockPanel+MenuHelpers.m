@@ -95,6 +95,8 @@
             item.state = [d boolForKey:@"AudioBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if ([item.title isEqualToString:@"Show Network Bar"]) {
             item.state = [d boolForKey:@"NetworkBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
+        } else if ([item.title isEqualToString:@"Show Brightness Bar"]) {
+            item.state = [d boolForKey:@"BrightnessBarEnabled"] ? NSControlStateValueOn : NSControlStateValueOff;
         } else if (item.submenu) {
             NSString *subTitle = item.title;
             id currentValue = nil;

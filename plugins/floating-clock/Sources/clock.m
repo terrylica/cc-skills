@@ -14,6 +14,7 @@
 #import "core/VPNStatusIndicator.h"
 #import "core/AudioStatusIndicator.h"
 #import "core/NetworkStatusIndicator.h"
+#import "core/BrightnessStatusIndicator.h"
 #import "core/FloatingClockPanel+Layout.h"
 #import "core/FloatingClockPanel+CompactLayout.h"  // 2026-06-12 split
 #import "menu/FloatingClockPanel+MenuBuilder.h"
@@ -144,6 +145,17 @@
         // matching the audio bar. Everything it displays is discovered at
         // runtime, so it ships with no machine-specific configuration.
         @"NetworkBarEnabled": @YES,
+        // Brightness rail (2026-09-19): one continuous 0-140% control over the
+        // built-in display. Below 100% it drives the ordinary macOS brightness
+        // value; above 100% it unlocks EDR headroom the slider cannot reach.
+        // On a Mac with no extra headroom the rail silently collapses to
+        // 0-100, so shipping it ON is safe everywhere. Note there is
+        // deliberately NO "BrightnessBoostEnabled" key — the level IS the
+        // control, and an inert preference promising a capability that may not
+        // exist is worse than no preference. The boost itself is never
+        // persisted: a crash-loop must not relaunch into a boosted panel.
+        @"BrightnessBarEnabled": @YES,
+        @"BrightnessBarStep": @5,
         // Optional name of a microphone whose hardware mute button should be
         // watched in addition to the current default input. Empty ships in
         // the public build; set it locally to pin a specific mic.
@@ -278,6 +290,19 @@
     _networkStatusIndicator.audioIndicator = _audioStatusIndicator;
     _networkStatusIndicator.micIndicator   = _micMuteIndicator;
     _networkStatusIndicator.vpnIndicator   = _vpnStatusIndicator;
+
+    // Brightness rail (2026-09-19) — NEW top of the indicator stack. One
+    // continuous 0-140% control: below 100% it writes the ordinary macOS
+    // brightness value (the one F1/F2 and Control Center share), above 100%
+    // it engages EDR headroom that has no first-party GUI at all. Like the
+    // network bar it sums its juniors' slots, so the existing four indicators
+    // need no edit. Constructed last, because it has to ask all four whether
+    // they are showing.
+    _brightnessStatusIndicator = [[FCBrightnessStatusIndicator alloc] initWithClockPanel:self];
+    _brightnessStatusIndicator.audioIndicator   = _audioStatusIndicator;
+    _brightnessStatusIndicator.micIndicator     = _micMuteIndicator;
+    _brightnessStatusIndicator.vpnIndicator     = _vpnStatusIndicator;
+    _brightnessStatusIndicator.networkIndicator = _networkStatusIndicator;
 
     // Install ⌘Q global handler; retain the returned observer so we can
     // remove it on terminate — otherwise leaks reports a 32-byte root leak

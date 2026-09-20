@@ -84,6 +84,12 @@ static NSMenuItem *fcTopCategory(NSString *title, NSArray<NSMenuItem *> *items) 
                                                  action:@selector(toggleShowNetworkBar:) keyEquivalent:@""];
     [displayItems addObject:snb];
 
+    // Brightness rail (BrightnessStatusIndicator). Backing key:
+    // BrightnessBarEnabled (registered YES).
+    NSMenuItem *sbb = [[NSMenuItem alloc] initWithTitle:@"Show Brightness Bar"
+                                                 action:@selector(toggleShowBrightnessBar:) keyEquivalent:@""];
+    [displayItems addObject:sbb];
+
     // v4 iter-248: "Show Debug Labels" menu item removed — canonical
     // [LOCAL]/[ACTIVE]/[NEXT] corner overlays no longer rendered per
     // user directive. Toggle action retained on the panel for
