@@ -164,11 +164,49 @@ async function scrapeTokens(pg: Page): Promise<Set<string>> {
 
 const maskToken = (token: string): string => `${token.slice(0, 4)}...${token.slice(-4)}`;
 
+/**
+ * The application-name field, which pushover.net RENAMED.
+ *
+ * Measured live 2026-09-20 on /apps/build: the field is
+ * `<input id="application_name" name="application[name]">`. This script hard-coded
+ * `#application_short_name`, so every create-app and edit-app call died with
+ * `fill: Timeout 30000ms exceeded — waiting for locator('#application_short_name')`.
+ *
+ * Both spellings are tried, newest first, because the edit and build forms have
+ * drifted apart before and a single hard-coded id is exactly what broke. If NEITHER
+ * is present the helper throws with the page URL rather than letting a later step
+ * submit a form whose name field was never filled — a create that silently posts an
+ * empty name would mint a garbage app, which is worse than a clean failure.
+ */
+const APP_NAME_FIELD_SELECTORS = ["#application_name", "#application_short_name"] as const;
+
+async function fillApplicationName(pg: Page, value: string): Promise<string> {
+  for (const selector of APP_NAME_FIELD_SELECTORS) {
+    const el = await pg.$(selector);
+    if (el) {
+      await el.fill(value);
+      return selector;
+    }
+  }
+  throw new Error(
+    `no application-name field found on ${pg.url()} — tried ${APP_NAME_FIELD_SELECTORS.join(", ")}. ` +
+      "pushover.net has changed the form again; re-probe the page's inputs before editing this list.",
+  );
+}
+
+async function readApplicationName(pg: Page): Promise<string | null> {
+  for (const selector of APP_NAME_FIELD_SELECTORS) {
+    const el = await pg.$(selector);
+    if (el) return await el.inputValue();
+  }
+  return null;
+}
+
 export async function createApp(pg: Page, opts: Options, userKey: string): Promise<Json> {
   const name = requireFlag(opts.name, "create-app requires --name");
   const out: Json = { name };
   await pg.goto(`${BASE}/apps/build`, { waitUntil: "networkidle", timeout: 30000 });
-  await pg.fill("#application_short_name", name);
+  out.name_field_used = await fillApplicationName(pg, name);
   if (opts.desc) {
     await pg.fill("#application_description", opts.desc);
   }
@@ -322,7 +360,7 @@ export async function editApp(pg: Page, opts: Options): Promise<Json> {
   const out: Json = { slug };
   await pg.goto(`${BASE}/apps/edit/${slug}`, { waitUntil: "networkidle", timeout: 30000 });
   if (opts.newName !== undefined) {
-    await pg.fill("#application_short_name", opts.newName);
+    out.name_field_used = await fillApplicationName(pg, opts.newName);
   }
   if (opts.desc) {
     await pg.fill("#application_description", opts.desc.slice(0, 500));
@@ -338,9 +376,8 @@ export async function editApp(pg: Page, opts: Options): Promise<Json> {
   const newSlug = pg.url().includes("/apps/") ? (pg.url().split("/").at(-1) ?? slug) : slug;
   out.new_slug = newSlug;
   await pg.goto(`${BASE}/apps/edit/${newSlug}`, { waitUntil: "networkidle", timeout: 30000 });
-  const nameField = await pg.$("#application_short_name");
   const descField = await pg.$("#application_description");
-  out.name = nameField ? await nameField.inputValue() : null;
+  out.name = await readApplicationName(pg);
   out.desc_len = descField ? (await descField.inputValue()).length : 0;
   return out;
 }
