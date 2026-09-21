@@ -1,3 +1,44 @@
+# [31.1.0](https://github.com/terrylica/cc-skills/compare/v31.0.0...v31.1.0) (2026-09-21)
+
+
+### Features
+
+* **itp-hooks:** gate git push on secrets and public-repo PII ([dda73de](https://github.com/terrylica/cc-skills/commit/dda73dee39f34dc7f49189ffb3475efa3dcf4acc))
+
+A push is the last reversible moment. Rewriting history does not unpublish a value that forks, caches and mirrors already hold, so the only cheap fix is the one available before the push happens.
+
+Three design decisions, each forced by a measured failure rather than chosen:
+
+Scans ADDED LINES, not files. A repository's existing content legitimately contains its owner's handle and home paths; scanning whole files produced four "hard" findings on material that was already public and that the push did not introduce. A gate that fires on what it cannot affect is one people learn to skip.
+
+Severity follows repository VISIBILITY. Identity detail is a leak in a public repo and entirely appropriate in a private sole-owner one. Applying the public policy to such a repo produced six DO-NOT-PUSH findings on exactly the content it exists to store. Secrets stay unconditional: a live credential belongs in no repository.
+
+Visibility is READ from .git/claude-pii-visibility and never fetched. Deciding it genuinely requires asking the forge, and gh inside a hook has caused process storms on sleep/wake. So the hook stays local and a deliberate out-of-hook step populates the cache. An absent cache means PUBLIC, so an unclassified repo fails loud rather than publishing in silence.
+
+Two bugs the tests caught that review had not:
+
+- the credential-value class was [A-Za-z0-9/+_-], which stops at the first symbol. `password: "Tr0ub4dor&3xKcd9uPPer"` matched only the nine characters before the ampersand and fell under the length threshold. The class is now "12+ non-space, non-quote", because generated passwords are precisely the values most likely to contain symbols.
+
+- push detection was a regex that could not skip a global option's ARGUMENT, so `git -C /repo push` read as "not a push" and passed the gate untouched. Detection is now tokenised, with -C and -c consumed together with their argument and `push` required to be the first non-option token.
+
+22 unit tests plus an end-to-end suite that builds a throwaway repo with a real upstream. The end-to-end suite exists because unit tests cannot catch a hook that is wired up wrong or that scans an empty diff and reports "allow" — and it immediately earned its keep: its first AWS fixture used a 14-character suffix instead of 16, so the secret rule never fired, yet the case still returned "deny" because the home path on the next line matched. The assertions now name which rule fired, since a pass reachable by the wrong rule is not evidence.
+
+Registered before pretooluse-pueue-wrap-guard, which is documented as needing to remain the last PreToolUse entry.
+
+* **itp-hooks:** guard TCC reset ordering and launchd Label targets ([cd7f699](https://github.com/terrylica/cc-skills/commit/cd7f699e2987cb66092384d24a8bea01c0f13bbc))
+
+Two macOS uninstall mistakes that are irreversible or destructive, and that both report success at the moment they are made.
+
+Deleting an application before resetting its TCC grants strands them forever. tccutil resolves the bundle identifier through LaunchServices BEFORE touching the database, so once the .app is gone every reset returns -10814 kLSApplicationNotFoundErr. macOS never garbage-collects those rows, and System Settings does not render a row whose bundle will not resolve, so there is no GUI path either. The grant then silently returns if the app is reinstalled with the same signing identity, because the row's csreq pins the developer rather than the install. Measured 2026-09-20: an uninstall script deleted the apps in stage 2 and attempted 98 resets in stage 9; all 98 failed, and recovery required staging a fake .app in /Applications per orphaned identifier. The correct ordering costs one command, but only beforehand — trivial before, elaborate after, invisible either way, which is this repo's bar for blocking.
+
+Addressing a launchd job by plist FILENAME is the second. launchctl addresses a job by the Label INSIDE the plist, and a vendor plist named com.vendor.vendor_service.plist can carry Label com.vendor.service. Booting out the filename returns ESRCH, prints nothing alarming, and leaves a live KeepAlive job running — usually just before its binary is deleted out from under it. Two of TeamViewer's plists had exactly that mismatch. The guard cannot read a plist from a command string, so it blocks only the provable shapes: a target carrying .plist, or one built by interpolating a basename. A bare label target is indistinguishable from a correct Label and is allowed.
+
+Deliberately not blocked: read-only inspection of any kind, and deleting anything that is not an app bundle. A positive destructive-verb signal is required first, and a command that already performs the reset passes — blocking the correct sequence would teach people to reach for the escape hatch reflexively, which is worse than no guard. Fails OPEN on internal error.
+
+Escape: TCC-ORDERING-OK: &lt;reason of at least 10 characters>.
+
+14 tests cover both violations, both allow-paths, the explanation text and empty input. Registered immediately before the pueue auto-wrap, which documents itself as needing to stay last.
+
 # [31.0.0](https://github.com/terrylica/cc-skills/compare/v30.9.0...v31.0.0) (2026-09-20)
 
 
