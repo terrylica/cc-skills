@@ -51,8 +51,7 @@ and **long** (≈29 s) before upload. Loaded so far: `po_fanfare`, `po_uplift`, 
 
 ## Verified autonomous capability (full lifecycle)
 
-- **create-app**: `application[short_name]` + terms checkbox + submit; captures the 30-char API token
-  from the app page (excludes `PO_USER`). **delete-app**: `/apps/edit/<slug>` → `/apps/destroy/<slug>`.
+- **create-app**: `application[name]` + terms checkbox + submit; captures the 30-char API token from the app page (excludes `PO_USER`). **delete-app**: `/apps/edit/<slug>` → `/apps/destroy/<slug>`. 🔴 **The name field was RENAMED upstream** — it was `application[short_name]` / `#application_short_name` and is now `application[name]` / `#application_name` (measured live on `/apps/build` 2026-09-20, after every `create-app` died with `fill: Timeout 30000ms exceeded — waiting for locator('#application_short_name')`). The script now tries both spellings, newest first, and throws naming the page URL if neither is present, rather than submitting a form whose name field was never filled.
 - **add-sound**: `/sounds/build` (`sound[name]`, `sound[description]`, file `sound[sound_data_file]`).
   **remove-sound**: `/sounds/edit/<name>` → `/sounds/destroy/<name>`. Rails `data-method=post`;
   the script auto-accepts the confirm dialog. Both verify the result by re-listing.
