@@ -1,3 +1,65 @@
+## [31.1.1](https://github.com/terrylica/cc-skills/compare/v31.1.0...v31.1.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **pushover-commander:** launch Chrome for Testing, guard CLI imports ([97252fc](https://github.com/terrylica/cc-skills/commit/97252fc04d4faefbaede349d9e9fa207886408b0))
+
+Two defects in skills/_lib/pushover_headless_web_control.ts.
+
+1. LaunchServices collision. withDashboard() launched chromium.launch({ channel: "chrome" }), i.e. a SECOND instance of the operator's own /Applications/Google Chrome.app on a throwaway profile. Both instances carry the bundle id com.google.Chrome. On 2026-09-22 that second instance collided with the operator's running Chrome in macOS LaunchServices: links stopped opening anywhere and every Chrome had to be force-quit. Playwright's "Google Chrome for Testing.app" is a different bundle (com.google.chrome.for.testing, read from both Info.plists), so the two can no longer be confused.
+
+   New --browser cft|chrome flag and PUSHOVER_WEB_BROWSER env var (flag wins). The default, cft, resolves the NUMERICALLY highest chromium-&lt;N> under ~/Library/Caches/ms-playwright (or PLAYWRIGHT_BROWSERS_PATH, as Playwright itself reads it) that actually holds chrome-mac*/Google Chrome for Testing.app, and launches it by executablePath. chromium-1243 beats chromium-999, which a string sort gets backwards. chromium_headless_shell-* and chromium-tip-of-tree-* never match. The plugin's lockfile pins playwright-core 1.61.0, whose own revision (1228) is not installed here, so resolving by revision number rather than by playwright's bundled path is what makes the default work on this machine (it picks chromium-1243).
+
+   If none is installed and nobody asked for cft, it falls back to channel "chrome" but prints a loud stderr banner naming the collision risk and the install command (bunx playwright-core install chromium, run from _lib so it uses the plugin's pinned playwright-core). It never falls back silently. An explicit cft with none installed exits 1 with the same command. The browser is resolved BEFORE credentials, so that failure needs no secrets.
+
+2. Import side effect. The module called main() unconditionally at import, so importing its exported login/createApp/editApp/withDashboard helpers ran the CLI. batch_create_pushover_apps.ts imports them, so every batch run also ran a second CLI that parsed the batch's argv (defaulting to `apps`), logged in with its own browser, and then process.exit()ed the batch from underneath it. Reproduced before the fix: importing the module with no credentials killed the importer with exit 2 ("login needs PO_EMAIL and PO_PW").
+
+   The CLI entry is now under `if (import.meta.main)`, in this module and in the three other _lib CLIs that dispatched at import: batch_create, pushover_core and pushover_inbox. Verified that import.meta.main stays true for `bun file.ts`, `bun run`, a symlinked file and a symlinked directory, which covers every caller found (the plugin's SKILL.md files, README, and ~/.local/bin/pwt-pipeline-health.sh).
+
+withDashboard() takes an optional launcher so a test can record exactly what would be launched without starting a browser.
+
+Tests: new pushover_headless_web_control.test.ts (30 tests, colocated, so `moon run repo:test` picks it up). They cover numeric ordering, headless-shell skipping, an incomplete higher revision, the Intel layout, the cache-root override, the explicit-cft failure from both the flag and the env var, the fallback warning on stderr, flag-over-env precedence, the launch options withDashboard passes, and a child-process import of each of the four _lib CLIs asserting that nothing runs. No test launches a browser or reaches the network: every child runs with PO_EMAIL/PO_PW removed. Mutation-checked with 13 reverts, each caught by at least one test. Reverting the web-control guard makes the whole `bun test` process exit 2, because importing the module into the test runner ran the CLI there.
+
+Docs: plugin CLAUDE.md, README and the manage-apps-and-sounds-headless SKILL.md no longer say "drives system Google Chrome". They document the flag, the env var, the fallback and the install command.
+
+* **pushover-commander:** pushover.net renamed the app-name field, breaking every create-app and edit-app call ([da85e15](https://github.com/terrylica/cc-skills/commit/da85e1584b6441469a9d1db1e870cfd1a5582de1)), closes [doorward-systems/ccmax-monitor#83](https://github.com/doorward-systems/ccmax-monitor/issues/83)
+
+`create-app` died with:
+
+    fill: Timeout 30000ms exceeded. Call log:
+      - waiting for locator('#application_short_name')
+
+Probed the live form rather than guessing at a replacement. On https://pushover.net/apps/build the field is now:
+
+    &lt;input type=text id="application_name" name="application[name]">
+
+So the id changed from `application_short_name` to `application_name`. Every other field on that form is unchanged (`application_description`, `application_url`, `application_icon`, `application_terms_of_service`, and the `commit` submit), which is why only the name step timed out.
+
+Fixed by resolving the field through an ordered candidate list, newest spelling first, at all three hard-coded sites (createApp, editApp's write, editApp's read-back verification). Both spellings are tried because the build and edit forms have drifted apart before, and a single hard-coded id is exactly what broke here.
+
+The helper THROWS, naming the page URL, when neither spelling is present. That matters more than the rename: the alternative is submitting a form whose name field was never filled, which would mint a garbage application rather than fail — and this flow's documented failure mode is already "minted-but-dead", so a silent half-success is the worst available outcome.
+
+Found while minting a dedicated Pushover application for the ccmax
+
+* **pushover-commander:** root-only test install, doctor browser check ([df42941](https://github.com/terrylica/cc-skills/commit/df42941f97b52d5b88dfe657b43bbefc71b8c03f))
+
+Two review findings on the Chrome for Testing change, both reproduced or read in the code before fixing.
+
+1. repo:test went red on every fresh worktree. The new import-safety test imports pushover_core.ts in a child process, and pushover_core.ts imported satori and @resvg/resvg-js at the top of the file. Those are plugin-local packages (skills/_lib/package.json), not root dependencies, and `moon run repo:test` installs nothing per plugin. Reproduced from `git archive HEAD` with only the root node_modules linked: 29 pass, 1 fail, "Cannot find module '@resvg/resvg-js'". Every branch is its own worktree, so the documented pre-push gate would have failed on every new branch for a reason unrelated to that branch.
+
+   Fix (the reviewer's option 1): renderReport() loads satori and resvg on first use through loadRenderer(). Importing pushover_core.ts now needs only node: builtins and sibling modules, so send, emergency, sounds, quota and doctor also stop depending on packages only render uses. With the packages missing, render and loop-brief exit 1 naming the install command instead of a bare module-not-found. Rejected: skipIf-when-missing (it switches the guard off on exactly the machines that never installed) and a per-plugin install inside the repo test task (widens the shared gate for one plugin).
+
+   Test: a copy of _lib with an EMPTY node_modules (which stops Bun from auto-installing from the registry) and --no-install, with a precondition that satori, resvg and playwright-core are unresolvable there. Importing pushover_core.ts must print nothing and exit 0; `render` must exit 1 and name `bun install --frozen-lockfile`. It catches the regression even where _lib/node_modules IS installed. Reviewer's scenario re-run: moon run repo:test with _lib/node_modules moved aside -> 2177 pass, 0 fail.
+
+2. `po doctor` still reported /Applications/Google Chrome.app as THE browser dependency: "chrome: MISSING" where the web-control works on Chrome for Testing, "chrome: ok" where every run falls back to the collision-prone system Chrome. deps now carries chrome_for_testing (the resolved executable, or MISSING with the install command) and chrome_system_fallback. The block is doctorDependencies(), exported and testable with no Pushover call and no credential.
+
+   The resolver moved to chrome_for_testing_resolver.ts, which imports only node: builtins. The doctor is what you run when something is broken, so it must not need playwright-core to say whether a browser is on disk, and importing the resolver from the web-control module would have made every `po send` load Playwright. The web-control imports it from there; browser selection behaviour is unchanged.
+
+Mutation-checked, each reverted then restored byte-identical: static render imports back and used by renderReport (Bun elides unused imports, so merely re-adding them proves nothing) -> 2 fail; loader without the install hint -> 1 fail; doctor ignoring the probed cache root -> 2 fail; the pre-review `chrome` key -> 3 fail; fallback ignoring the probed path -> 1 fail.
+
+Docs: plugin CLAUDE.md (file map, doctor keys, and a rule that tracked tests must pass on a root-only install) and health-check SKILL.md (deps described, the edited paragraph unwrapped).
+
 # [31.1.0](https://github.com/terrylica/cc-skills/compare/v31.0.0...v31.1.0) (2026-09-21)
 
 
