@@ -1,6 +1,6 @@
 ---
 name: health-check
-description: Diagnose the po Pushover plugin and check remaining monthly quota. Runs a full self-test (credential resolution via 1Password/Keychain, /users/validate.json, quota, expected custom sounds present, deps bun/uv/chrome, audit log) and reports message quota remaining. Use when the user asks if Pushover is working, why a notification failed, how many messages are left, or wants a health/diagnostic check. TRIGGERS - pushover health, po doctor, pushover not working, pushover quota, messages left, diagnose pushover.
+description: Diagnose the po Pushover plugin and check remaining monthly quota. Runs a full self-test (credential resolution via 1Password/Keychain, /users/validate.json, quota, expected custom sounds present, deps bun/uv/Chrome for Testing with system Chrome as the fallback, audit log) and reports message quota remaining. Use when the user asks if Pushover is working, why a notification failed, how many messages are left, or wants a health/diagnostic check. TRIGGERS - pushover health, po doctor, pushover not working, pushover quota, messages left, diagnose pushover.
 ---
 
 # health-check
@@ -14,9 +14,9 @@ env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skill
 env -u HTTPS_PROXY -u HTTP_PROXY bun "$(cc-plugin-root pushover-commander)/skills/_lib/pushover_core.ts" quota     # {limit, remaining, reset}
 ```
 
-`doctor` checks: creds (op→Keychain), `/users/validate.json`, monthly quota, the expected custom sounds
-(`po_fanfare`/`po_uplift`/`po_celebrate`), deps (bun/uv/Chrome), and the audit log size. `quota` prints
-remaining messages and warns when below `quota_warn_remaining` (see `pushover_api_limits.json`).
+`doctor` checks: creds (op→Keychain), `/users/validate.json`, monthly quota, the expected custom sounds (`po_fanfare`/`po_uplift`/`po_celebrate`), deps, and the audit log size. `quota` prints remaining messages and warns when below `quota_warn_remaining` (see `pushover_api_limits.json`).
+
+The `deps` block is `bun`, `uv`, `chrome_for_testing` and `chrome_system_fallback`. `chrome_for_testing` is the browser the headless web-control drives by default: `ok (<executable>)`, or `MISSING — install once: <command>`. `chrome_system_fallback` is `/Applications/Google Chrome.app`, which a web-control run uses only when Chrome for Testing is missing. That fallback carries a macOS LaunchServices collision risk with your running Chrome, so "fallback ok, cft MISSING" means install Chrome for Testing, not "healthy". See the plugin CLAUDE.md, "Browser selection".
 
 ## Reliability primitives (apply to every send)
 

@@ -10,10 +10,12 @@
  * Run with proxies unset so Pushover HTTPS bypasses the sandbox MITM proxy:
  *   env -u HTTPS_PROXY -u HTTP_PROXY bun pushover_core.ts <cmd> ...
  */
-import { Resvg } from "@resvg/resvg-js";
-import satori from "satori";
+// No package imports at the top of this file, only `node:` builtins and siblings: importing it
+// must work on a checkout that ran nothing but the repo-root `bun install`. satori and
+// @resvg/resvg-js are loaded on first use by loadRenderer().
 import { readFileSync, writeFileSync, appendFileSync, statSync, existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { CFT_INSTALL_COMMAND, resolveChromeForTestingExecutable } from "./chrome_for_testing_resolver.ts";
 
 const API = "https://api.pushover.net/1";
 const FONT_PATH = process.env.PUSHOVER_RENDER_FONT_PATH ?? `${process.env.HOME}/Library/Fonts/JetBrainsMonoNerdFontMono-Regular.ttf`;
@@ -121,7 +123,31 @@ function div(style: Record<string, unknown>, children: unknown): SatoriNode {
   return { type: "div", props: { style, children } };
 }
 
+/**
+ * satori + @resvg/resvg-js, loaded on first use. They are plugin-local packages
+ * (skills/_lib/package.json, not the repo root) and only `render` and `loop-brief` need
+ * them. While they were imported at the top of this file, EVERY import of it failed with
+ * "Cannot find module '@resvg/resvg-js'" unless `bun install` had been run inside
+ * skills/_lib — `po send` and `po doctor` included, and so did the repo test that proves
+ * importing this module never runs its CLI, turning `moon run repo:test` red on every
+ * fresh worktree. A missing install now fails only the commands that render, and says how
+ * to fix it.
+ */
+async function loadRenderer() {
+  try {
+    const [{ default: satori }, { Resvg }] = await Promise.all([import("satori"), import("@resvg/resvg-js")]);
+    return { satori, Resvg };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `po render needs satori and @resvg/resvg-js, installed per plugin: cd "${LIB_DIR}" && bun install --frozen-lockfile (${reason})`,
+      { cause: error },
+    );
+  }
+}
+
 async function renderReport(text: string, outPath: string, cols = 72): Promise<void> {
+  const { satori, Resvg } = await loadRenderer();
   const fontSize = 30;
   const charW = Math.round(fontSize * 0.6);
   const lineH = Math.round(fontSize * 1.42);
@@ -371,6 +397,36 @@ async function cmdQuota(a: Args): Promise<void> {
   }
 }
 
+/** Where `channel: "chrome"` finds the operator's own Google Chrome: the web-control's announced fallback, never its default. */
+const SYSTEM_CHROME_APP = "/Applications/Google Chrome.app";
+
+export interface DoctorDependencyProbe {
+  /** Where to look for Chrome for Testing. Defaults to Playwright's cache (PLAYWRIGHT_BROWSERS_PATH honoured). */
+  readonly cacheRoot?: string;
+  /** Defaults to /Applications/Google Chrome.app. */
+  readonly systemChromeApp?: string;
+}
+
+/**
+ * `doctor`'s deps block, without any Pushover call, so it is testable offline.
+ *
+ * The web-control drives Chrome for Testing by default, so that is the browser dependency
+ * that matters. The operator's own Chrome is reported separately and named as the fallback,
+ * because a run that lands on it risks the LaunchServices collision the cft default exists
+ * to avoid. Until 2026-09-22 this checked only /Applications/Google Chrome.app, which said
+ * "chrome: MISSING" on a machine where the web-control worked, and "chrome: ok" on one where
+ * every run fell back.
+ */
+export function doctorDependencies(probe: DoctorDependencyProbe = {}): Record<string, string> {
+  const cft = resolveChromeForTestingExecutable(probe.cacheRoot);
+  return {
+    bun: sh("which", ["bun"]) ? "ok" : "MISSING",
+    uv: sh("which", ["uv"]) ? "ok" : "MISSING",
+    chrome_for_testing: cft === null ? `MISSING — install once: ${CFT_INSTALL_COMMAND}` : `ok (${cft})`,
+    chrome_system_fallback: existsSync(probe.systemChromeApp ?? SYSTEM_CHROME_APP) ? "ok" : "MISSING",
+  };
+}
+
 async function cmdDoctor(a: Args): Promise<void> {
   const app = a.flags.app ?? "test";
   const report: Record<string, unknown> = {};
@@ -394,11 +450,7 @@ async function cmdDoctor(a: Args): Promise<void> {
     const sj: any = await poGet(`sounds.json?token=${token}`);
     report.custom_sounds = ["po_fanfare", "po_uplift", "po_celebrate"].map((s) => `${s}:${s in (sj.sounds ?? {}) ? "ok" : "MISSING"}`);
   } catch { report.custom_sounds = "ERROR"; }
-  report.deps = {
-    bun: sh("which", ["bun"]) ? "ok" : "MISSING",
-    uv: sh("which", ["uv"]) ? "ok" : "MISSING",
-    chrome: existsSync("/Applications/Google Chrome.app") ? "ok" : "MISSING",
-  };
+  report.deps = doctorDependencies();
   report.audit_log = existsSync(AUDIT_PATH) ? `ok (${statSync(AUDIT_PATH).size} B)` : "none yet";
   console.log(JSON.stringify(report, null, 2));
 }
