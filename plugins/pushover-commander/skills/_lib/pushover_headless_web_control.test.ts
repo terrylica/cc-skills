@@ -14,22 +14,36 @@
  *      ran the CLI: it parsed the IMPORTER's argv, and process.exit()ed the importer.
  *      batch_create_pushover_apps.ts imports it and so ran a second CLI as a side effect.
  *
+ * Two follow-ups from review, same day:
+ *
+ *   3. This suite must pass on a checkout that ran ONLY the repo-root `bun install`, because
+ *      `moon run repo:test` installs nothing per plugin and every branch is a fresh worktree.
+ *      pushover_core.ts imported satori and @resvg/resvg-js (plugin-local packages) at the
+ *      top, so importing it failed with "Cannot find module" there. They now load on first
+ *      use, and a test proves the import against a copy of _lib with no packages at all.
+ *
+ *   4. `po doctor` still reported `/Applications/Google Chrome.app` as THE browser dependency,
+ *      so it was wrong both ways once Chrome for Testing became the default.
+ *
  * No test here launches a browser or reaches the network. Every child process runs with the
  * pushover.net credentials REMOVED from its environment, so even a regression that reached
  * the login step would stop at "login needs PO_EMAIL and PO_PW" before a browser exists.
  */
 import { afterAll, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
+import {
+  CFT_INSTALL_COMMAND,
+  defaultPlaywrightCacheRoot,
+  resolveChromeForTestingExecutable,
+} from "./chrome_for_testing_resolver.ts";
+import { doctorDependencies } from "./pushover_core.ts";
 import {
   BrowserChoice,
   type BrowserLauncher,
   BrowserUnavailableError,
-  CFT_INSTALL_COMMAND,
-  defaultPlaywrightCacheRoot,
   planBrowserLaunch,
-  resolveChromeForTestingExecutable,
   withDashboard,
 } from "./pushover_headless_web_control.ts";
 
@@ -44,11 +58,19 @@ afterAll(() => {
   }
 });
 
-/** A fresh, empty stand-in for ~/Library/Caches/ms-playwright. */
-function tempCacheRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "po-cft-cache-"));
+/**
+ * A fresh, empty temp directory, removed in afterAll. Returned as its REAL path: macOS's tmpdir
+ * sits under the /var → /private/var symlink, and Bun reports import.meta.dir resolved.
+ */
+function freshTempDir(prefix: string): string {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   createdRoots.push(root);
   return root;
+}
+
+/** A fresh, empty stand-in for ~/Library/Caches/ms-playwright. */
+function tempCacheRoot(): string {
+  return freshTempDir("po-cft-cache-");
 }
 
 const CFT_TAIL = ["Google Chrome for Testing.app", "Contents", "MacOS", "Google Chrome for Testing"] as const;
@@ -287,9 +309,13 @@ function scrubbedEnv(extra: Record<string, string> = {}): Record<string, string>
   return { ...env, ...extra };
 }
 
-function runBun(args: string[], extraEnv: Record<string, string> = {}): { code: number; stdout: string; stderr: string } {
+function runBun(
+  args: string[],
+  extraEnv: Record<string, string> = {},
+  cwd: string = LIB_DIR,
+): { code: number; stdout: string; stderr: string } {
   const child = Bun.spawnSync([process.execPath, ...args], {
-    cwd: LIB_DIR,
+    cwd,
     env: scrubbedEnv(extraEnv),
     stdout: "pipe",
     stderr: "pipe",
@@ -316,6 +342,90 @@ describe("importing a _lib module never runs its CLI", () => {
       expect(code).toBe(0);
     });
   }
+});
+
+/**
+ * A copy of _lib with NO packages installed: exactly what a checkout that ran only the
+ * repo-root `bun install` offers to a plugin-local import, minus the root packages too.
+ * The EMPTY node_modules is load-bearing: with no node_modules anywhere up the tree, Bun
+ * would auto-install a missing package from the registry instead of failing. Every child
+ * also runs with --no-install, so nothing here can reach the network.
+ */
+function libCopyWithoutPackages(): string {
+  const root = freshTempDir("po-lib-nopkgs-");
+  cpSync(LIB_DIR, root, { recursive: true, filter: (source) => basename(source) !== "node_modules" });
+  mkdirSync(join(root, "node_modules"));
+  return root;
+}
+
+/** Fails the child with exit 3 unless none of the plugin-local packages can be resolved from `dir`. */
+const assertNothingResolvable = (dir: string) =>
+  `for (const s of ["satori", "@resvg/resvg-js", "playwright-core"]) {` +
+  `  let found = null; try { found = Bun.resolveSync(s, ${JSON.stringify(dir)}); } catch {}` +
+  `  if (found !== null) { console.error("PRECONDITION: " + s + " resolves to " + found); process.exit(3); }` +
+  `}`;
+
+describe("pushover_core.ts needs no plugin-local package until it renders", () => {
+  test("importing it works with NO packages installed (a root-only `bun install` is enough)", () => {
+    const copy = libCopyWithoutPackages();
+    const marker = "CORE-IMPORTED-WITHOUT-PACKAGES";
+    const script =
+      `${assertNothingResolvable(copy)}` +
+      `await import(${JSON.stringify(join(copy, "pushover_core.ts"))}); await Bun.sleep(300);` +
+      `console.log(${JSON.stringify(marker)});`;
+    const { code, stdout, stderr } = runBun(["--no-install", "-e", script], {}, copy);
+    expect(stderr).toBe("");
+    expect(stdout.trim()).toBe(marker);
+    expect(code).toBe(0);
+  });
+
+  test("`render` without the packages fails with exit 1 and names the per-plugin install", () => {
+    const copy = libCopyWithoutPackages();
+    const input = join(copy, "report.txt");
+    writeFileSync(input, "# heading\nbody\n");
+    const { code, stdout, stderr } = runBun(
+      ["--no-install", join(copy, "pushover_core.ts"), "render", "--in", input, "--out", join(copy, "report.png")],
+      {},
+      copy,
+    );
+    expect(stderr).toContain("po render needs satori and @resvg/resvg-js");
+    expect(stderr).toContain(`cd "${copy}" && bun install --frozen-lockfile`);
+    expect(stdout).toBe("");
+    expect(code).toBe(1);
+  });
+});
+
+describe("doctor reports the browser the web-control actually drives", () => {
+  /** A stand-in /Applications/Google Chrome.app path that is never created. */
+  const absent = () => join(freshTempDir("po-system-chrome-"), "Google Chrome.app");
+  /** A stand-in /Applications/Google Chrome.app that exists. */
+  function presentSystemChrome(): string {
+    const app = join(freshTempDir("po-system-chrome-"), "Google Chrome.app");
+    mkdirSync(app);
+    return app;
+  }
+
+  test("Chrome for Testing installed, no system Chrome → cft ok; the fallback is what is missing", () => {
+    const root = tempCacheRoot();
+    const exe = installFakeCft(root, "chromium-1243");
+    const deps = doctorDependencies({ cacheRoot: root, systemChromeApp: absent() });
+    // The old check said `chrome: MISSING` here, although the web-control works.
+    expect(deps.chrome_for_testing).toBe(`ok (${exe})`);
+    expect(deps.chrome_system_fallback).toBe("MISSING");
+  });
+
+  test("system Chrome only → cft MISSING with the install command; system Chrome is only the fallback", () => {
+    const deps = doctorDependencies({ cacheRoot: tempCacheRoot(), systemChromeApp: presentSystemChrome() });
+    // The old check said `chrome: ok` here, although every web-control run falls back.
+    expect(deps.chrome_for_testing).toBe(`MISSING — install once: ${CFT_INSTALL_COMMAND}`);
+    expect(deps.chrome_for_testing).toContain("bunx playwright-core install chromium");
+    expect(deps.chrome_system_fallback).toBe("ok");
+  });
+
+  test("the deps block has no bare `chrome` key any more, so nobody reads the fallback as THE browser", () => {
+    const deps = doctorDependencies({ cacheRoot: tempCacheRoot(), systemChromeApp: absent() });
+    expect(Object.keys(deps).toSorted()).toEqual(["bun", "chrome_for_testing", "chrome_system_fallback", "uv"]);
+  });
 });
 
 describe("the CLI still runs when executed directly", () => {
