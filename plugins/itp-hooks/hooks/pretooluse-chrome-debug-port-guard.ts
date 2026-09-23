@@ -32,7 +32,7 @@
  * before any violation is reported, and inspector/terminator verbs veto the whole check.
  *
  * Knowledge SSoT (this file duplicates none of it):
- *   ~/.claude/browser-automation-CLAUDE.md
+ *   ~/.claude/skills/browser-automation/references/doctrine.md
  * Upstream announcement:
  *   https://developer.chrome.com/blog/remote-debugging-port
  */
@@ -187,7 +187,7 @@ export function explainChromeDebugViolations(
 
   lines.push(
     "Rationale and the full ladder (no browser > hermetic launch > attach real Chrome): " +
-      "~/.claude/browser-automation-CLAUDE.md\n" +
+      "~/.claude/skills/browser-automation/references/doctrine.md\n" +
       "Upstream: https://developer.chrome.com/blog/remote-debugging-port\n" +
       "Override with CHROME-DEBUG-PORT-OK: <>=10-character reason>",
   );
