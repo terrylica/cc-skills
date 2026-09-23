@@ -1,3 +1,26 @@
+## [31.1.2](https://github.com/terrylica/cc-skills/compare/v31.1.1...v31.1.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **itp-hooks:** point the Chrome guard at the browser skill ([953bd1d](https://github.com/terrylica/cc-skills/commit/953bd1da1a7195b46cc02e0da432001be18b6c97))
+
+The browser-automation doctrine moved on 2026-09-23 from the ~/.claude/browser-automation-CLAUDE.md spoke into a skill (~/.claude/skills/browser-automation/, doctrine in references/doctrine.md), so its always-loaded description can advertise chrome-debug-port-control.sh and agent-chrome, which a PreToolUse guard never can. The guard's deny message, its hooks.json description, the escape-hatch registry entry and the generated reference doc all named the old path; all five now name the new one. The guard's 17 tests pass, hooks.json parses, and moon run repo:check passes.
+
+* **skills:** complete 19 descriptions cut mid-sentence in May ([27af4c6](https://github.com/terrylica/cc-skills/commit/27af4c6b18f930b95067d0590d11db294af81dc1))
+
+c4884153 (2026-05-06) trimmed 128 SKILL.md descriptions to 150 characters to relieve skill-listing budget overflow. It stopped 19 of them mid-sentence ("Use when user asks to research a topic with.", "Use whenever the."), and in the tlg and crucible skills it dropped the leading "Use when", leaving a lowercase fragment. The listing is what Claude matches a request against, so a description that ends before its subject loses exactly the trigger words it exists to carry.
+
+Each of the 19 now ends as a sentence and carries back the triggers the trim removed, at 145 to 220 characters, keeping the May budget intent. Every edited frontmatter was parsed with a YAML parser, and moon run repo:check passes.
+
+- gemini-deep-research/research, asciinema-tools/daemon-setup, gmail-commander/gmail-access, floating-clock/launch and uninstall
+- crucible/d-emergent-resurrection, devops-tools/session-recovery, agentic-process-monitor and session-debrief
+- macro-keyboard/emit-fn-key-on-macos, doc-tools/documentation-standards, statusline-tools/tether
+- tlg/draft-message, send-message and list-dialogs, productivity-tools/gdrive-access, gh-tools/issue-create
+- calcom-commander/calcom-access, rust-tools/rust-sota-arsenal
+
+Two further files matched the search (link-tools/link-validation, productivity-tools/slash-command-factory) but end in a complete sentence and are unchanged.
+
 ## [31.1.1](https://github.com/terrylica/cc-skills/compare/v31.1.0...v31.1.1) (2026-09-23)
 
 
