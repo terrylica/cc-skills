@@ -53,11 +53,7 @@ wires their own 1Password item + Pushover account. See
 
 ## Why headless web-control exists
 
-Pushover has **no API to create an application token** (verified — it's a
-deliberate, website-only step). `manage-apps-and-sounds-headless` drives system
-Chrome via Playwright to log in and create/delete apps + sounds, scraping the new
-30-char token. pushover.net login is a plain email/password form with no
-CAPTCHA/2FA, so plain Playwright suffices.
+Pushover has **no API to create an application token** (verified — it's a deliberate, website-only step). `manage-apps-and-sounds-headless` drives Playwright's Google Chrome for Testing (not your own Google Chrome, which a second instance can jam in macOS LaunchServices) to log in and create/delete apps + sounds, scraping the new 30-char token. pushover.net login is a plain email/password form with no CAPTCHA/2FA, so plain Playwright suffices. Install Chrome for Testing once with `(cd "$ROOT/skills/_lib" && bunx playwright-core install chromium)`.
 
 See [`CLAUDE.md`](CLAUDE.md) for the file map, the headless-login flow, and the
 public/private secrets pattern.
