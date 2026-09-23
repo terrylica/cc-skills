@@ -1,6 +1,6 @@
 ---
 name: draft-message
-description: an AI agent has drafted a long/sensitive Telegram message and the user wants to review it BEFORE it is sent to the intended recipient. Sends to.
+description: "Use when an AI agent has drafted a long or sensitive Telegram message and the user wants to review it before sending: posts it to Saved Messages for editing and copy-paste."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

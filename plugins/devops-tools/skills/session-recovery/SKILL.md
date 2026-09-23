@@ -1,6 +1,6 @@
 ---
 name: session-recovery
-description: Diagnose and recover Claude Code session issues including missing conversations, corrupted sessions, and session file problems. Use whenever the.
+description: "Diagnose and recover Claude Code session problems: 'No conversations found to resume', sessions in the wrong location, missing or corrupted session files."
 allowed-tools: Read, Bash
 ---
 

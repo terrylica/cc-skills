@@ -1,6 +1,6 @@
 ---
 name: session-debrief
-description: Analyze Claude Code sessions in three expert modes — Handoff Document (exhaustive context extraction for the next developer or session), Error.
+description: "Analyze a Claude Code session in three modes: handoff document, error forensics (warnings Claude ignored or deferred), and chronological summary. Use for a handoff or 'what happened'."
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion, Agent
 ---
 

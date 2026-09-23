@@ -1,6 +1,6 @@
 ---
 name: rust-sota-arsenal
-description: Reference guide for state-of-the-art Rust tooling across refactoring, profiling, benchmarking, testing, and SIMD optimization. Use whenever the.
+description: "Reference for state-of-the-art Rust tooling: ast-grep, cargo-semver-checks, samply, cargo-pgo, divan, Criterion, cargo-nextest, cargo-mutants. Use for Rust refactoring, profiling, benchmarking or testing."
 allowed-tools: Read, Grep, Bash, Edit, Write, WebSearch, WebFetch
 ---
 

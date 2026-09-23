@@ -1,6 +1,6 @@
 ---
 name: gdrive-access
-description: Access Google Drive via CLI with 1Password OAuth. Use when user wants to list files, download from Drive, sync folders, or.
+description: "Access Google Drive via CLI with 1Password OAuth: list files, download, and sync folders. TRIGGERS - google drive, gdrive, drive folder, download drive, sync drive."
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 

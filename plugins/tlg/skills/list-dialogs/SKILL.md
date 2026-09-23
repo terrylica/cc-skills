@@ -1,6 +1,6 @@
 ---
 name: list-dialogs
-description: user wants to list all Telegram chats, groups, and channels, see their contacts, find a chat ID, browse conversations, or check account info via.
+description: "Use when the user wants to list Telegram chats, groups, channels or contacts, find a chat ID, browse conversations, or check account info via whoami."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 

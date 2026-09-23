@@ -1,6 +1,6 @@
 ---
 name: daemon-setup
-description: Set up asciinema chunker daemon with interactive wizard. Guides through PAT creation, Keychain storage, Pushover setup, and.
+description: "Set up the asciinema chunker daemon with an interactive wizard: PAT creation, Keychain storage, Pushover and launchd install. TRIGGERS - daemon setup, install chunker, configure backup."
 allowed-tools: Bash, AskUserQuestion, Write, Read
 argument-hint: "[--reinstall] [--skip-pushover]"
 disable-model-invocation: false

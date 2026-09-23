@@ -1,6 +1,6 @@
 ---
 name: crucible-emergent-resurrection
-description: a hypothesis has failed and needs archiving with resurrection conditions, when reviewing dormant ideas for possible revival, when.
+description: "Use when a hypothesis has failed and needs archiving with resurrection conditions, when reviewing dormant ideas for revival, or when a killed strategy resembles the current one."
 allowed-tools: Read, Write, Edit, Grep, Glob
 ---
 
