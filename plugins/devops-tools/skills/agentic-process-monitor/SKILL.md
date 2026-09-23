@@ -1,6 +1,6 @@
 ---
 name: agentic-process-monitor
-description: Monitor background processes from Claude Code using sentinel files, heartbeat liveness, and subagent polling. Best practices and.
+description: "Monitor background processes from Claude Code with sentinel files, heartbeat liveness and subagent polling, to detect completion, failure, hang or timeout. TRIGGERS - monitor background process, sentinel file, heartbeat."
 allowed-tools: Read, Bash, Write
 ---
 

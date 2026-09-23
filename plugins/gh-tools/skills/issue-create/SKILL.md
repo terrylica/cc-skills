@@ -1,6 +1,6 @@
 ---
 name: issue-create
-description: Create well-formatted GitHub issues with intelligent AI-powered label suggestions and content type detection. Use whenever the user wants to.
+description: "Create well-formatted GitHub issues with AI label suggestions: bug reports, feature requests, questions, docs issues. TRIGGERS - file an issue, create an issue, gh issue create."
 allowed-tools: Read, Bash, Grep, Glob
 ---
 

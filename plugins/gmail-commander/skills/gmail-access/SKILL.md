@@ -1,6 +1,6 @@
 ---
 name: gmail-access
-description: Access Gmail via CLI with 1Password OAuth. Use when user wants to read emails, search inbox, export messages, create drafts, or.
+description: "Access Gmail via CLI with 1Password OAuth: read, search and export email, and create drafts. TRIGGERS - gmail, read email, search inbox, export emails, create draft, compose email."
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 

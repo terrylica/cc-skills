@@ -1,6 +1,6 @@
 ---
 name: tether
-description: Tether (install/uninstall) statusline-tools Stop hook to ~/.claude/settings.json. Renamed from 'hooks' to avoid clashing with.
+description: "Tether (install/uninstall) the statusline-tools Stop hook in ~/.claude/settings.json; renamed from 'hooks' to avoid Claude Code's /hooks. TRIGGERS - tether hooks, statusline stop hook."
 allowed-tools: Read, Bash, TodoWrite, TodoRead, AskUserQuestion
 argument-hint: "[install|uninstall|status]"
 model: haiku

@@ -1,6 +1,6 @@
 ---
 name: documentation-standards
-description: Apply markdown documentation standards optimized for both LLM consumption and Pandoc PDF generation. Use whenever the user is writing or.
+description: "Apply markdown documentation standards for both LLM consumption and Pandoc PDF export: section numbering, formatting and style. Use when writing or reviewing documentation."
 allowed-tools: Read, Glob, Grep
 ---
 

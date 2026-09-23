@@ -1,6 +1,6 @@
 ---
 name: uninstall
-description: Quit FloatingClock, remove it from /Applications, and clear its saved preferences. Use when the user wants to completely uninstall the.
+description: "Quit FloatingClock, remove it from /Applications and clear its saved preferences. Use when the user wants to completely uninstall the floating-clock app."
 allowed-tools: Bash, AskUserQuestion
 ---
 

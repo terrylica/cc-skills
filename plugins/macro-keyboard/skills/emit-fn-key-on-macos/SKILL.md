@@ -1,6 +1,6 @@
 ---
 name: emit-fn-key-on-macos
-description: Emit a real Fn key on macOS (for Typeless push-to-talk, macOS dictation, screenshot shortcuts, emoji picker, Spotlight via.
+description: "Emit a real Fn key on macOS (Typeless push-to-talk, dictation, screenshots, emoji picker) via Karabiner-Elements, the only userland path. TRIGGERS - emit Fn key, Fn globe key, macro pad Fn."
 allowed-tools: Read, Edit, Write, Bash
 ---
 

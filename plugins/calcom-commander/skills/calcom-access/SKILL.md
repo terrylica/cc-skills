@@ -1,6 +1,6 @@
 ---
 name: calcom-access
-description: Access Cal.com API via CLI with 1Password API key. Use when user wants to list bookings, create event types, manage schedules, or.
+description: "Access the Cal.com API via CLI with a 1Password API key: bookings, event types, schedules and availability. TRIGGERS - calcom, cal.com, list bookings, event types, create booking page."
 allowed-tools: Read, Bash, Grep, Glob, Write, AskUserQuestion
 ---
 

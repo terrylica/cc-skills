@@ -1,6 +1,6 @@
 ---
 name: send-message
-description: user wants to send a text message on Telegram as their personal account via MTProto, text someone, or message a contact by username, phone, or.
+description: "Use when the user wants to send a Telegram text message as their personal account via MTProto, to a contact by username, phone number or chat ID."
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
