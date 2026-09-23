@@ -404,19 +404,23 @@ async function cmdDoctor(a: Args): Promise<void> {
 }
 
 // ---------- dispatch ----------
-const argv = process.argv.slice(2);
-const cmd = argv[0];
-const a = parseArgs(argv.slice(1));
-try {
-  if (cmd === "send") await cmdSend(a, false);
-  else if (cmd === "emergency") await cmdSend(a, true);
-  else if (cmd === "sounds") await cmdSounds({ ...a, _: [cmd, ...a._] });
-  else if (cmd === "render") await cmdRender(a);
-  else if (cmd === "loop-brief") await cmdLoopBrief(a);
-  else if (cmd === "quota") await cmdQuota(a);
-  else if (cmd === "doctor") await cmdDoctor(a);
-  else { console.error("usage: po <send|emergency|sounds|render|loop-brief|quota|doctor> ..."); process.exit(2); }
-} catch (e) {
-  console.error(String(e instanceof Error ? e.message : e));
-  process.exit(1);
+// Only when this file is the program: importing it must never parse the importer's
+// argv, print usage, or process.exit() the importer.
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const cmd = argv[0];
+  const a = parseArgs(argv.slice(1));
+  try {
+    if (cmd === "send") await cmdSend(a, false);
+    else if (cmd === "emergency") await cmdSend(a, true);
+    else if (cmd === "sounds") await cmdSounds({ ...a, _: [cmd, ...a._] });
+    else if (cmd === "render") await cmdRender(a);
+    else if (cmd === "loop-brief") await cmdLoopBrief(a);
+    else if (cmd === "quota") await cmdQuota(a);
+    else if (cmd === "doctor") await cmdDoctor(a);
+    else { console.error("usage: po <send|emergency|sounds|render|loop-brief|quota|doctor> ..."); process.exit(2); }
+  } catch (e) {
+    console.error(String(e instanceof Error ? e.message : e));
+    process.exit(1);
+  }
 }

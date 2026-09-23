@@ -4,13 +4,19 @@
  * dashboard for the things the HTTP API cannot do (create/delete apps, mint API
  * tokens, add/remove custom sounds, edit app metadata/icons).
  *
- * Drives system Google Chrome via Playwright (`channel: "chrome"`, no browser
- * download). pushover.net login is a plain email/password form with no
- * anti-bot/CAPTCHA/2FA, so plain Playwright is sufficient.
+ * Drives Playwright's "Google Chrome for Testing.app" by default (`--browser cft`),
+ * NOT the operator's own Google Chrome — see planBrowserLaunch() for why. System
+ * Chrome (`channel: "chrome"`) is available with `--browser chrome`, and is used as
+ * a loudly-announced fallback only when no Chrome for Testing is installed and the
+ * caller did not explicitly ask for one. pushover.net login is a plain
+ * email/password form with no anti-bot/CAPTCHA/2FA, so plain Playwright suffices.
  *
  * Credentials come from the environment (resolve via resolve_pushover_secret.sh):
  *   PO_EMAIL, PO_PW — login. PO_USER (optional) — the user key, excluded when
  *   scraping a newly-minted 30-char app token. Tokens are masked unless --reveal.
+ *
+ * Importable: the CLI runs only under `import.meta.main`, so another script can
+ * import login/createApp/editApp/withDashboard without executing this CLI.
  *
  * Function-driven + enum-driven by design (mirrors wa-cli.ts / gmail-commander):
  * Command/ExitCode/EnvVar are enums and commands dispatch through an enum-keyed
@@ -19,6 +25,9 @@
  * Ported from pushover_headless_web_control.py (behaviour-preserving).
  */
 
+import { readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import process from "node:process";
 import { chromium, type Browser, type Page } from "playwright-core";
 
@@ -43,6 +52,18 @@ enum EnvVar {
   Email = "PO_EMAIL",
   Password = "PO_PW",
   UserKey = "PO_USER",
+  /** Browser selection when --browser is absent: "cft" or "chrome". */
+  Browser = "PUSHOVER_WEB_BROWSER",
+  /** Playwright's own cache-location override, honoured so we look where `playwright install` wrote. */
+  PlaywrightBrowsersPath = "PLAYWRIGHT_BROWSERS_PATH",
+}
+
+/** Which browser binary drives the dashboard. The string values are the --browser / env spellings. */
+export enum BrowserChoice {
+  /** Playwright's "Google Chrome for Testing.app" (bundle id com.google.chrome.for.testing). The default. */
+  ChromeForTesting = "cft",
+  /** The operator's own /Applications/Google Chrome.app (bundle id com.google.Chrome), via channel "chrome". */
+  SystemChrome = "chrome",
 }
 
 const BASE = "https://pushover.net";
@@ -67,6 +88,8 @@ export interface Options {
   readonly url: string;
   readonly reveal: boolean;
   readonly headed: boolean;
+  /** Explicit --browser choice. Absent means "PUSHOVER_WEB_BROWSER, else the cft default". */
+  readonly browser?: BrowserChoice;
 }
 
 export interface Credentials {
@@ -92,7 +115,194 @@ export function resolveCredentials(): Credentials {
   return { email, password, userKey: process.env[EnvVar.UserKey] ?? "" };
 }
 
-const trimmed = (value: string | null): string => (value ?? "").trim();
+// ---------- browser selection ----------
+//
+// Why the default is NOT the operator's own Google Chrome. `channel: "chrome"` starts a
+// SECOND instance of /Applications/Google Chrome.app on a throwaway profile, and both
+// instances carry the same bundle id (com.google.Chrome). On 2026-09-22 such a second
+// instance collided with the operator's running Chrome in macOS LaunchServices: links
+// stopped opening anywhere and every Chrome had to be force-quit. Playwright's
+// "Google Chrome for Testing.app" is a different bundle (com.google.chrome.for.testing),
+// so LaunchServices never confuses the two.
+
+/** `chromium-<N>` only. `chromium_headless_shell-<N>` and `chromium-tip-of-tree-<N>` deliberately do not match. */
+const CFT_REVISION_DIR = /^chromium-(\d+)$/;
+/** `chrome-mac` (Intel) and `chrome-mac-arm64` (Apple silicon) — whichever the install wrote. */
+const CFT_PLATFORM_DIR_PREFIX = "chrome-mac";
+const CFT_EXECUTABLE_IN_PLATFORM_DIR = [
+  "Google Chrome for Testing.app",
+  "Contents",
+  "MacOS",
+  "Google Chrome for Testing",
+] as const;
+
+/**
+ * The one-time install that makes the cft default work. Runs this plugin's OWN pinned
+ * playwright-core (bunx prefers the local node_modules/.bin), which honours
+ * PLAYWRIGHT_BROWSERS_PATH exactly as defaultPlaywrightCacheRoot() does.
+ */
+export const CFT_INSTALL_COMMAND = `cd "${import.meta.dir}" && bunx playwright-core install chromium`;
+
+/** Thrown when Chrome for Testing was explicitly requested but is not installed. Exit code 1. */
+export class BrowserUnavailableError extends Error {}
+
+type EnvLike = Readonly<Record<string, string | undefined>>;
+
+/** Where Playwright keeps downloaded browsers on macOS, honouring its own PLAYWRIGHT_BROWSERS_PATH override. */
+export function defaultPlaywrightCacheRoot(env: EnvLike = process.env): string {
+  const override = env[EnvVar.PlaywrightBrowsersPath] ?? "";
+  // "0" is Playwright's sentinel for "inside node_modules/playwright-core", not a directory name.
+  if (override !== "" && override !== "0") {
+    return resolve(override);
+  }
+  return join(homedir(), "Library", "Caches", "ms-playwright");
+}
+
+function listDirectory(path: string): string[] {
+  try {
+    return readdirSync(path);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+const isFile = (path: string): boolean => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
+
+/** Numeric revision of a `chromium-<N>` directory name, or null for anything else. */
+function chromiumRevision(name: string): number | null {
+  const digits = name.match(CFT_REVISION_DIR)?.[1];
+  return digits === undefined ? null : Number.parseInt(digits, 10);
+}
+
+/**
+ * Absolute path of the newest installed Chrome for Testing executable under `cacheRoot`,
+ * or null when none is installed.
+ *
+ * "Newest" is the NUMERICALLY highest `chromium-<N>` revision (chromium-1243 beats
+ * chromium-999, which a string sort gets backwards) that actually contains the
+ * executable, so a half-finished download in a higher revision does not hide a
+ * working lower one. Headless-shell directories never match: they hold a different
+ * binary with no .app bundle.
+ */
+export function resolveChromeForTestingExecutable(cacheRoot: string = defaultPlaywrightCacheRoot()): string | null {
+  const revisions = listDirectory(cacheRoot)
+    .map((name) => ({ dir: join(cacheRoot, name), revision: chromiumRevision(name) }))
+    .filter((entry): entry is { dir: string; revision: number } => entry.revision !== null)
+    .toSorted((a, b) => b.revision - a.revision);
+  const candidates = revisions.flatMap(({ dir }) =>
+    listDirectory(dir)
+      .filter((name) => name.startsWith(CFT_PLATFORM_DIR_PREFIX))
+      .toSorted()
+      .map((platformDir) => join(dir, platformDir, ...CFT_EXECUTABLE_IN_PLATFORM_DIR)),
+  );
+  return candidates.find(isFile) ?? null;
+}
+
+/** Parse a --browser / PUSHOVER_WEB_BROWSER value; `source` names where it came from in the error. */
+export function parseBrowserChoice(value: string, source: string): BrowserChoice {
+  const match = Object.values(BrowserChoice).find((candidate) => candidate === value);
+  if (match === undefined) {
+    throw new UsageError(`${source} must be one of: ${Object.values(BrowserChoice).join(", ")} (got "${value}")`);
+  }
+  return match;
+}
+
+export interface BrowserPlanInput {
+  /** The parsed --browser flag, when given. It beats the environment. */
+  readonly flag?: BrowserChoice | undefined;
+  /** Defaults to process.env. Read for PUSHOVER_WEB_BROWSER and PLAYWRIGHT_BROWSERS_PATH. */
+  readonly env?: EnvLike;
+  /** Defaults to defaultPlaywrightCacheRoot(env). Injected by tests. */
+  readonly cacheRoot?: string;
+  /** Where the fallback warning goes. Defaults to stderr. */
+  readonly warn?: (text: string) => void;
+}
+
+export interface BrowserLaunchPlan {
+  /** What the caller asked for, or the cft default when they asked for nothing. */
+  readonly requested: BrowserChoice;
+  /** True when the choice came from --browser or PUSHOVER_WEB_BROWSER rather than the default. */
+  readonly explicit: boolean;
+  /** What will actually be launched. Differs from `requested` only on the announced fallback. */
+  readonly launched: BrowserChoice;
+  readonly launchOptions: { readonly executablePath: string } | { readonly channel: "chrome" };
+  /** The text sent to `warn`, or null when nothing needed saying. */
+  readonly warning: string | null;
+}
+
+function fallbackWarning(cacheRoot: string): string {
+  const bar = "!".repeat(96);
+  return [
+    bar,
+    'WARNING: Chrome for Testing is NOT installed, so this run FALLS BACK to your own Google Chrome (channel "chrome").',
+    `  Looked for: ${join(cacheRoot, "chromium-<N>", `${CFT_PLATFORM_DIR_PREFIX}*`, CFT_EXECUTABLE_IN_PLATFORM_DIR[0])}`,
+    "  RISK: a second Google Chrome instance on a separate profile can collide with your running Chrome in",
+    "  macOS LaunchServices: links stop opening and every Chrome may have to be force-quit (seen 2026-09-22).",
+    `  FIX, once: ${CFT_INSTALL_COMMAND}`,
+    `  To drive system Chrome deliberately and silence this: --browser ${BrowserChoice.SystemChrome} (or ${EnvVar.Browser}=${BrowserChoice.SystemChrome}).`,
+    bar,
+    "",
+  ].join("\n");
+}
+
+/**
+ * Decide which browser to launch. Precedence: --browser, then PUSHOVER_WEB_BROWSER, then cft.
+ *
+ *   - chrome (explicit)           → channel "chrome", no warning: the caller chose it.
+ *   - cft, installed              → executablePath of the newest Chrome for Testing.
+ *   - cft EXPLICIT, not installed → BrowserUnavailableError naming the install command.
+ *   - cft DEFAULT, not installed  → channel "chrome", with a loud warning to `warn`.
+ *     Never silent: substituting a riskier browser without saying so is how the
+ *     LaunchServices collision would recur unnoticed.
+ */
+export function planBrowserLaunch(input: BrowserPlanInput = {}): BrowserLaunchPlan {
+  const env = input.env ?? process.env;
+  const cacheRoot = input.cacheRoot ?? defaultPlaywrightCacheRoot(env);
+  const warn = input.warn ?? ((text: string) => void process.stderr.write(text));
+  const envValue = env[EnvVar.Browser] ?? "";
+
+  let requested: BrowserChoice = BrowserChoice.ChromeForTesting;
+  let source: string | null = null;
+  if (input.flag !== undefined) {
+    requested = input.flag;
+    source = `--browser ${input.flag}`;
+  } else if (envValue !== "") {
+    requested = parseBrowserChoice(envValue, EnvVar.Browser);
+    source = `${EnvVar.Browser}=${envValue}`;
+  }
+  const explicit = source !== null;
+
+  if (requested === BrowserChoice.SystemChrome) {
+    return { requested, explicit, launched: requested, launchOptions: { channel: "chrome" }, warning: null };
+  }
+  const executablePath = resolveChromeForTestingExecutable(cacheRoot);
+  if (executablePath !== null) {
+    return { requested, explicit, launched: requested, launchOptions: { executablePath }, warning: null };
+  }
+  if (source !== null) {
+    throw new BrowserUnavailableError(
+      `Chrome for Testing was requested (${source}) but none is installed under ${cacheRoot} ` +
+        `(looked for chromium-<N>/${CFT_PLATFORM_DIR_PREFIX}*/${CFT_EXECUTABLE_IN_PLATFORM_DIR[0]}). ` +
+        `Install it once: ${CFT_INSTALL_COMMAND} — or pass --browser ${BrowserChoice.SystemChrome} to drive your own ` +
+        "Google Chrome, accepting the LaunchServices collision risk.",
+    );
+  }
+  const warning = fallbackWarning(cacheRoot);
+  warn(warning);
+  return {
+    requested,
+    explicit,
+    launched: BrowserChoice.SystemChrome,
+    launchOptions: { channel: "chrome" },
+    warning,
+  };
+}
+
+const trimmed =(value: string | null): string => (value ?? "").trim();
 
 export async function login(pg: Page, creds: Credentials): Promise<Json> {
   const out: Json = {};
@@ -433,12 +643,20 @@ function parseArgs(argv: readonly string[]): { command: Command; options: Option
   const collected: Record<string, string> = {};
   let reveal = false;
   let headed = false;
+  let browser: BrowserChoice | undefined;
   for (let index = 1; index < argv.length; index += 1) {
     const arg = argv[index] ?? "";
     if (arg === "--reveal") {
       reveal = true;
     } else if (arg === "--headed") {
       headed = true;
+    } else if (arg === "--browser") {
+      const value = argv[index + 1] ?? "";
+      if (value === "") {
+        throw new UsageError(`--browser needs a value: ${Object.values(BrowserChoice).join(" or ")}`);
+      }
+      browser = parseBrowserChoice(value, "--browser");
+      index += 1;
     } else if (arg in VALUE_FLAGS) {
       collected[VALUE_FLAGS[arg] as string] = argv[index + 1] ?? "";
       index += 1;
@@ -456,6 +674,7 @@ function parseArgs(argv: readonly string[]): { command: Command; options: Option
     url: collected.url ?? "",
     reveal,
     headed,
+    ...(browser === undefined ? {} : { browser }),
   };
   return { command, options };
 }
@@ -474,21 +693,34 @@ Commands:
   add-sound    --name N --file PATH [--desc D]   upload a custom sound
   remove-sound --name N                 delete a custom sound
 
-Flags: --reveal (show full token), --headed (visible browser).
-Env: PO_EMAIL, PO_PW (required), PO_USER (optional token disambiguation).
+Flags: --reveal (show full token), --headed (visible browser),
+       --browser cft|chrome (default cft = Playwright's Google Chrome for Testing;
+       chrome = your own Google Chrome, which can collide with it in macOS LaunchServices).
+Env: PO_EMAIL, PO_PW (required), PO_USER (optional token disambiguation),
+     PUSHOVER_WEB_BROWSER (cft|chrome, used when --browser is absent),
+     PLAYWRIGHT_BROWSERS_PATH (where Chrome for Testing is installed, as Playwright reads it).
+With no Chrome for Testing installed and no explicit choice, falls back to system Chrome
+with a loud stderr warning; an explicit cft with none installed exits 1.
+Install Chrome for Testing once: ${CFT_INSTALL_COMMAND}
 `;
 
+/** The one Playwright call withDashboard makes; injectable so tests can see what would launch. */
+export type BrowserLauncher = Pick<typeof chromium, "launch">;
+
 /**
- * Launch system Chrome, hand a logged-in-capable page to `fn`, and always close
- * the browser. Shared by the CLI and by programmatic callers (e.g. batch create).
+ * Launch the planned browser, hand a logged-in-capable page to `fn`, and always
+ * close the browser. Shared by the CLI and by programmatic callers (e.g. batch
+ * create). `plan` defaults to planBrowserLaunch(), i.e. PUSHOVER_WEB_BROWSER or cft.
  */
 export async function withDashboard<T>(
   headed: boolean,
   fn: (pg: Page) => Promise<T>,
+  plan: BrowserLaunchPlan = planBrowserLaunch(),
+  launcher: BrowserLauncher = chromium,
 ): Promise<T> {
   let browser: Browser | undefined;
   try {
-    browser = await chromium.launch({ channel: "chrome", headless: !headed });
+    browser = await launcher.launch({ ...plan.launchOptions, headless: !headed });
     const context = await browser.newContext({ viewport: { width: 1100, height: 1700 } });
     const pg = await context.newPage();
     pg.on("dialog", (dialog) => void dialog.accept());
@@ -499,14 +731,21 @@ export async function withDashboard<T>(
 }
 
 async function run(command: Command, options: Options): Promise<Json> {
+  // Browser first: it is local, cheap and needs no secret, so a missing Chrome for
+  // Testing fails (or is announced) before any credential is read or browser started.
+  const plan = planBrowserLaunch({ flag: options.browser });
   const creds = resolveCredentials();
-  return withDashboard(options.headed, async (pg) => {
-    const out = await login(pg, creds);
-    if (out.logged_in) {
-      Object.assign(out, await HANDLERS[command](pg, options, creds));
-    }
-    return out;
-  });
+  return withDashboard(
+    options.headed,
+    async (pg) => {
+      const out = await login(pg, creds);
+      if (out.logged_in) {
+        Object.assign(out, await HANDLERS[command](pg, options, creds));
+      }
+      return out;
+    },
+    plan,
+  );
 }
 
 async function main(): Promise<ExitCode> {
@@ -522,10 +761,16 @@ async function main(): Promise<ExitCode> {
   return ExitCode.Ok;
 }
 
-main()
-  .then((code) => process.exit(code))
-  .catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`${message}\n`);
-    process.exit(error instanceof UsageError ? ExitCode.Usage : ExitCode.Failure);
-  });
+// CLI entry ONLY when this file is the program. Without the guard, merely importing
+// the exported helpers (batch_create_pushover_apps.ts does) ran this CLI as a side
+// effect: it parsed the importer's argv, logged in, and then process.exit()ed the
+// importer from underneath it.
+if (import.meta.main) {
+  main()
+    .then((code) => process.exit(code))
+    .catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`${message}\n`);
+      process.exit(error instanceof UsageError ? ExitCode.Usage : ExitCode.Failure);
+    });
+}
