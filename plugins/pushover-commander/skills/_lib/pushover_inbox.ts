@@ -305,16 +305,20 @@ async function cmdDoctor(): Promise<void> {
 }
 
 // ---------- dispatch ----------
-const argv = process.argv.slice(2);
-const cmd = argv[0];
-const a = parseArgs(argv.slice(1));
-try {
-  if (cmd === "register") await cmdRegister(a);
-  else if (cmd === "pull") await cmdPull(a);
-  else if (cmd === "list") await cmdList(a);
-  else if (cmd === "doctor") await cmdDoctor();
-  else { console.error("usage: pushover_inbox.ts <register|pull|list|doctor> ..."); process.exit(2); }
-} catch (e) {
-  console.error(String(e instanceof Error ? e.message : e));
-  process.exit(1);
+// Only when this file is the program: importing it must never parse the importer's
+// argv, print usage, or process.exit() the importer.
+if (import.meta.main) {
+  const argv = process.argv.slice(2);
+  const cmd = argv[0];
+  const a = parseArgs(argv.slice(1));
+  try {
+    if (cmd === "register") await cmdRegister(a);
+    else if (cmd === "pull") await cmdPull(a);
+    else if (cmd === "list") await cmdList(a);
+    else if (cmd === "doctor") await cmdDoctor();
+    else { console.error("usage: pushover_inbox.ts <register|pull|list|doctor> ..."); process.exit(2); }
+  } catch (e) {
+    console.error(String(e instanceof Error ? e.message : e));
+    process.exit(1);
+  }
 }
