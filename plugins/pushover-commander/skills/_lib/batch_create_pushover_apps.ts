@@ -7,6 +7,9 @@
  * Plan path: $CREATE_PLAN (default /tmp/po_sounds/createnew.json), an array of
  *   { "new_name": string, "desc": string, "icon"?: string }.
  *
+ * Browser: PUSHOVER_WEB_BROWSER (cft|chrome) exactly as for the web-control CLI —
+ * Chrome for Testing by default, never silently the operator's own Chrome.
+ *
  * Ported from batch_create_pushover_apps.py — reuses the exported session +
  * create/edit helpers from pushover_headless_web_control.ts (single source).
  */
@@ -89,7 +92,10 @@ async function main(): Promise<void> {
   process.stdout.write(`\ncreated ${created}/${plan.length}\n`);
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exit(1);
-});
+// CLI entry only when this file is the program, so importing it never runs a batch.
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exit(1);
+  });
+}
