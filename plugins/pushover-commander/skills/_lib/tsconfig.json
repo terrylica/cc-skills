@@ -4,5 +4,5 @@
     "types": ["bun"],
     "lib": ["ESNext", "DOM"]
   },
-  "include": ["pushover_core.ts", "pushover_headless_web_control.ts", "batch_create_pushover_apps.ts"]
+  "include": ["pushover_core.ts", "pushover_headless_web_control.ts", "batch_create_pushover_apps.ts", "pushover_headless_web_control.test.ts"]
 }

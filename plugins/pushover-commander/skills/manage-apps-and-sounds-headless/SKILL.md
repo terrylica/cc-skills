@@ -1,16 +1,13 @@
 ---
 name: manage-apps-and-sounds-headless
-description: Control the pushover.net web dashboard headlessly for things the HTTP API cannot do - log in, list applications, CREATE or DELETE Pushover applications (returning the new app's API token), and ADD or REMOVE custom notification sounds (with a sourcing+loudness pipeline for free MP3 jingles). Drives system Google Chrome via Playwright. Use when the user wants to automate the Pushover website/dashboard rather than send notifications (that is send-notification). TRIGGERS - pushover dashboard, create pushover app, delete pushover app, new api token, add custom sound, upload pushover sound, remove custom sound, find jingle, pushover web automation.
+description: Control the pushover.net web dashboard headlessly for things the HTTP API cannot do - log in, list applications, CREATE or DELETE Pushover applications (returning the new app's API token), and ADD or REMOVE custom notification sounds (with a sourcing+loudness pipeline for free MP3 jingles). Drives Playwright's Google Chrome for Testing (never your own Google Chrome unless asked with --browser chrome). Use when the user wants to automate the Pushover website/dashboard rather than send notifications (that is send-notification). TRIGGERS - pushover dashboard, create pushover app, delete pushover app, new api token, add custom sound, upload pushover sound, remove custom sound, find jingle, pushover web automation.
 ---
 
 # manage-apps-and-sounds-headless
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
 
-Headless dashboard automation via `pushover_headless_web_control.ts` (function/enum-driven Bun
-TypeScript — run directly, no build; needs `bun install` in `skills/_lib/` for `playwright-core`).
-pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA** — verified
-2026-05-30), so plain Playwright + system Chrome works.
+Headless dashboard automation via `pushover_headless_web_control.ts` (function/enum-driven Bun TypeScript — run directly, no build; needs `bun install` in `skills/_lib/` for `playwright-core`). pushover.net login is a plain email/password form (**no anti-bot / CAPTCHA / 2FA** — verified 2026-05-30), so plain Playwright + Chrome for Testing works.
 
 ```bash
 export PO_EMAIL="$(bash "$(cc-plugin-root pushover-commander)/skills/_lib/resolve_pushover_secret.sh" login_email)"
@@ -26,6 +23,23 @@ WEB list-sounds                                       # list custom sound names
 WEB add-sound --name po_fanfare --file x.mp3 --desc "..."   # upload a custom sound
 WEB remove-sound --name po_fanfare                   # delete a custom sound
 ```
+
+## Browser: Chrome for Testing, not your own Chrome
+
+🔴 **The script drives Playwright's "Google Chrome for Testing.app" by default, NOT the operator's Google Chrome.** On 2026-09-22 a second Google Chrome instance (Playwright's `channel: "chrome"`, on a separate profile) collided with the operator's own Chrome in macOS LaunchServices: links stopped opening and every Chrome had to be force-quit. Chrome for Testing has its own bundle id, so the two never collide.
+
+```bash
+# once per machine — uses this plugin's own pinned playwright-core
+(cd "$(cc-plugin-root pushover-commander)/skills/_lib" && bunx playwright-core install chromium)
+
+WEB apps                     # default: --browser cft (newest chromium-<N> Chrome for Testing)
+WEB apps --browser chrome    # deliberately drive your own Google Chrome (collision risk accepted)
+PUSHOVER_WEB_BROWSER=chrome WEB apps   # same, via env; --browser wins over the env var
+```
+
+- No Chrome for Testing installed and no explicit choice → it **falls back to system Chrome with a loud stderr warning** naming the risk and the install command. It never falls back silently.
+- `--browser cft` (or `PUSHOVER_WEB_BROWSER=cft`) with none installed → **exits 1** with the install command.
+- It looks in `~/Library/Caches/ms-playwright` (or `PLAYWRIGHT_BROWSERS_PATH`) for the **numerically highest** `chromium-<N>`; `chromium_headless_shell-*` is skipped.
 
 ## Custom sounds: constraints + sourcing pipeline (verified 2026-05-30)
 
@@ -58,7 +72,8 @@ and **long** (≈29 s) before upload. Loaded so far: `po_fanfare`, `po_uplift`, 
 
 ## Tooling notes
 
-- Default: Playwright + `channel="chrome"` (no browser download). Scrapling/Obscura unnecessary here.
+- Default: Playwright + Chrome for Testing via `executablePath` (see "Browser" above); `channel: "chrome"` only with `--browser chrome` or as the announced fallback. Scrapling/Obscura unnecessary here.
+- The module is importable: its CLI runs only under `import.meta.main`, so `batch_create_pushover_apps.ts` (and any other script) can import `login`/`createApp`/`editApp`/`withDashboard` without running the CLI.
 - Network: prefix `op`/HTTP with `env -u *PROXY*` (and curl `--noproxy '*'`) to bypass the sandbox proxy.
 
 ## Post-Execution Reflection
