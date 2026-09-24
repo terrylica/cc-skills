@@ -1,3 +1,17 @@
+# [31.2.0](https://github.com/terrylica/cc-skills/compare/v31.1.5...v31.2.0) (2026-09-24)
+
+
+### Features
+
+* **itp-hooks:** gate hooks that would rewrite AskUserQuestion ([a18f4ee](https://github.com/terrylica/cc-skills/commit/a18f4ee377a4d841b4dc2c9dae2c33334f40480f))
+
+The runtime refusal in allowWithInput stops a hook from suppressing the AskUserQuestion dialog, but a hook author only learned the rule when the refusal fired, and a hook that hand-rolled the field bypassed the helper entirely. The rule now lives where authors look, and the local gate rejects a violating hook before it ships.
+
+- validate-plugins.mjs check (c): any hook whose matcher covers AskUserQuestion fails validation when its code (comments stripped) emits updatedInput or calls allowWithInput. Matchers follow Claude Code's anchored-regex semantics; empty and "*" cover every tool.
+- The detector matches allowWithInput( as well as updatedInput, because the original premise annotator (909d0625) never spelled updatedInput itself; the new regression test uses that exact file as its decisive fixture.
+- Regression test covers the original annotator (flagged), a hand-rolled wildcard hook (flagged), the fixed annotator and a Bash-only allowWithInput hook (both clean), matcher semantics, and comment stripping.
+- hooks-development SKILL.md gains a "Never rewrite AskUserQuestion" section with the measured evidence; the lifecycle reference's updatedInput line carries the exception.
+
 ## [31.1.5](https://github.com/terrylica/cc-skills/compare/v31.1.4...v31.1.5) (2026-09-24)
 
 ## [31.1.4](https://github.com/terrylica/cc-skills/compare/v31.1.3...v31.1.4) (2026-09-24)
