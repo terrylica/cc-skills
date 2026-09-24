@@ -38,10 +38,10 @@
  * ADR: /docs/adr/2025-12-14-alpha-forge-worktree-management.md (lesson learned)
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from "fs";
-import { resolve, join, dirname, relative, basename } from "path";
-import { homedir } from "os";
-import { execSync } from "child_process";
+import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { resolve, join, dirname, relative, basename } from "node:path";
+import { homedir } from "node:os";
+import { execSync } from "node:child_process";
 import { glob } from "tinyglobby";
 import Ajv from "ajv";
 
@@ -223,8 +223,7 @@ function extractSkillDependencies(filePath) {
     const skillPattern = /Skill\(([a-z0-9-]+):([a-z0-9-]+)\)/gi;
 
     lines.forEach((line, index) => {
-      let match;
-      while ((match = skillPattern.exec(line)) !== null) {
+      for (const match of line.matchAll(skillPattern)) {
         dependencies.push({
           plugin: match[1],
           skill: match[2],
@@ -431,13 +430,13 @@ function detectHookType(filename, content, hooksJsonPath) {
         for (const matcher of matchers) {
           const hookList = matcher.hooks || [];
           for (const hook of hookList) {
-            if (hook.command && hook.command.includes(filename)) {
+            if (hook.command?.includes(filename)) {
               return hookType;
             }
           }
         }
       }
-    } catch (err) {
+    } catch {
       // Fall through to heuristics
     }
   }
@@ -520,7 +519,7 @@ async function validateHookOutputFormat() {
     "stopReason",
   ]);
 
-  hookFiles.forEach(({ path, plugin, filename, language }) => {
+  hookFiles.forEach(({ path, filename, language }) => {
     try {
       const content = readFileSync(path, "utf8");
       const lines = content.split("\n");
@@ -669,10 +668,9 @@ async function validateHookOutputFormat() {
           if (jqObjectMatch) {
             const objectContent = jqObjectMatch[2];
             const fieldPattern = /["']?(\w+)["']?\s*:/g;
-            let fieldMatch;
             const foundFields = new Set();
 
-            while ((fieldMatch = fieldPattern.exec(objectContent)) !== null) {
+            for (const fieldMatch of objectContent.matchAll(fieldPattern)) {
               foundFields.add(fieldMatch[1]);
             }
 
@@ -694,10 +692,9 @@ async function validateHookOutputFormat() {
           if (echoJsonMatch) {
             const jsonContent = echoJsonMatch[1];
             const fieldPattern = /"(\w+)"\s*:/g;
-            let fieldMatch;
             const foundFields = new Set();
 
-            while ((fieldMatch = fieldPattern.exec(jsonContent)) !== null) {
+            for (const fieldMatch of jsonContent.matchAll(fieldPattern)) {
               foundFields.add(fieldMatch[1]);
             }
 
@@ -1501,7 +1498,7 @@ function validateHookEventEntry(entry, file, line, errors, warnings) {
  * Validate individual hook definition
  * Structure: { type: "command"|"prompt"|"agent", command?: string, prompt?: string, timeout?: number }
  */
-function validateHookDefinition(hook, location, errors, warnings) {
+function validateHookDefinition(hook, location, errors, _warnings) {
   const validTypes = ["command", "prompt", "agent"];
 
   // Must have type field
@@ -1675,7 +1672,7 @@ function getDeclaredDependencies() {
  * Validate declared dependencies match detected dependencies
  * Returns { errors: [...], warnings: [...] }
  */
-function validateDeclaredDependencies(declaredDeps, detectedGraph) {
+function validateDeclaredDependencies(declaredDeps, _detectedGraph) {
   const errors = [];
   const warnings = [];
   const registeredPlugins = getRegisteredPlugins();
@@ -1804,7 +1801,7 @@ function formatDependencyGraph(graph, details) {
     }
   }
 
-  lines.push("\n" + "─".repeat(50));
+  lines.push(`\n${"─".repeat(50)}`);
   lines.push(
     `   ${graph.size} plugins have dependencies on ${allDeps.size} other plugins`
   );
@@ -1934,7 +1931,7 @@ let hasWarnings = false;
 // Check for unregistered directories (CRITICAL - this catches the alpha-forge-worktree bug)
 if (unregistered.length > 0) {
   console.error(`\n❌ Unregistered plugin directories (${unregistered.length}):`);
-  unregistered.forEach(p => console.error(`   - plugins/${p}/`));
+  unregistered.forEach(p => { console.error(`   - plugins/${p}/`); });
   hasErrors = true;
 
   if (SHOW_FIX) {
@@ -1958,21 +1955,21 @@ if (unregistered.length > 0) {
 // Check for entry validation errors (missing fields, invalid paths)
 if (entryErrors.length > 0) {
   console.error(`\n❌ Marketplace entry errors (${entryErrors.length}):`);
-  entryErrors.forEach(e => console.error(`   - ${e}`));
+  entryErrors.forEach(e => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 // Check for orphaned entries
 if (orphaned.length > 0) {
   console.warn(`\n⚠️  Orphaned entries in marketplace.json (no directory):`);
-  orphaned.forEach(p => console.warn(`   - ${p}`));
+  orphaned.forEach(p => { console.warn(`   - ${p}`); });
   hasWarnings = true;
 }
 
 // Check for entry warnings (missing recommended fields)
 if (entryWarnings.length > 0) {
   console.warn(`\n⚠️  Marketplace entry warnings (${entryWarnings.length}):`);
-  entryWarnings.forEach(w => console.warn(`   - ${w}`));
+  entryWarnings.forEach(w => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2016,26 +2013,26 @@ if (cycles.length > 0) {
 // Report missing plugins/skills (from Skill() detection)
 if (depErrors.length > 0) {
   console.error(`\n❌ MISSING PLUGIN DEPENDENCIES (${depErrors.length}):`);
-  depErrors.forEach((e) => console.error(`   - ${e}`));
+  depErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (depWarnings.length > 0) {
   console.warn(`\n⚠️  Missing skill references (${depWarnings.length}):`);
-  depWarnings.forEach((w) => console.warn(`   - ${w}`));
+  depWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
 // Report declared dependency issues (from 'requires' field validation)
 if (declErrors.length > 0) {
   console.error(`\n❌ MARKETPLACE.JSON 'requires' FIELD ERRORS (${declErrors.length}):`);
-  declErrors.forEach((e) => console.error(`   - ${e}`));
+  declErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (declWarnings.length > 0) {
   console.warn(`\n⚠️  Declared dependency mismatches (${declWarnings.length}):`);
-  declWarnings.forEach((w) => console.warn(`   - ${w}`));
+  declWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2043,7 +2040,7 @@ if (declWarnings.length > 0) {
 // ADR: /docs/adr/2025-12-17-posttooluse-hook-visibility.md
 if (hookErrors.length > 0) {
   console.error(`\n❌ HOOK OUTPUT FORMAT ERRORS (${hookErrors.length}):`);
-  hookErrors.forEach((e) => console.error(`   - ${e}`));
+  hookErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
@@ -2051,7 +2048,7 @@ if (hookWarnings.length > 0) {
   console.warn(`\n⚠️  Hook output format issues (${hookWarnings.length}):`);
   console.warn(`   Claude Code only reads "decision" and "reason" fields from PostToolUse JSON.`);
   console.warn(`   Other fields are logged but NOT visible to Claude.`);
-  hookWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hookWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2059,13 +2056,13 @@ if (hookWarnings.length > 0) {
 if (skillsFrontmatterErrors.length > 0) {
   console.error(`\n❌ SKILLS FRONTMATTER ERRORS (${skillsFrontmatterErrors.length}):`);
   console.error(`   All skills/*/SKILL.md must have 'name' and 'description' in YAML frontmatter`);
-  skillsFrontmatterErrors.forEach((e) => console.error(`   - ${e}`));
+  skillsFrontmatterErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (skillsFrontmatterWarnings.length > 0) {
   console.warn(`\n⚠️  Skills frontmatter warnings (${skillsFrontmatterWarnings.length}):`);
-  skillsFrontmatterWarnings.forEach((w) => console.warn(`   - ${w}`));
+  skillsFrontmatterWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2074,13 +2071,13 @@ if (skillsFrontmatterWarnings.length > 0) {
 if (hookStructErrors.length > 0) {
   console.error(`\n❌ HOOK JSON STRUCTURE ERRORS (${hookStructErrors.length}):`);
   console.error(`   These will cause "Invalid discriminator value" errors when installing hooks.`);
-  hookStructErrors.forEach((e) => console.error(`   - ${e}`));
+  hookStructErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (hookStructWarnings.length > 0) {
   console.warn(`\n⚠️  Hook structure warnings (${hookStructWarnings.length}):`);
-  hookStructWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hookStructWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2092,13 +2089,13 @@ if (hookHygieneErrors.length > 0) {
   console.error(`   so a broken hook reports only "Failed with non-blocking status code: No stderr output".`);
   console.error(`   Measured 2026-09-02: of 2,105 such failures, only the 1,211 whose commands carried the`);
   console.error(`   prefix named their own cause; the other 894 said nothing at all.`);
-  hookHygieneErrors.forEach((e) => console.error(`   - ${e}`));
+  hookHygieneErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (hookHygieneWarnings.length > 0) {
   console.warn(`\n⚠️  Hook command hygiene warnings (${hookHygieneWarnings.length}):`);
-  hookHygieneWarnings.forEach((w) => console.warn(`   - ${w}`));
+  hookHygieneWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2107,13 +2104,13 @@ if (shadowErrors.length > 0) {
   console.error(`\n❌ SHADOW HOOK ERRORS (${shadowErrors.length}):`);
   console.error(`   Non-cc-skills hooks shadowing marketplace hooks cause double-firing.`);
   console.error(`   Remove the non-cc-skills duplicate from ~/.claude/settings.json.`);
-  shadowErrors.forEach((e) => console.error(`   - ${e}`));
+  shadowErrors.forEach((e) => { console.error(`   - ${e}`); });
   hasErrors = true;
 }
 
 if (shadowWarnings.length > 0) {
   console.warn(`\n⚠️  Shadow hook warnings (${shadowWarnings.length}):`);
-  shadowWarnings.forEach((w) => console.warn(`   - ${w}`));
+  shadowWarnings.forEach((w) => { console.warn(`   - ${w}`); });
   hasWarnings = true;
 }
 
@@ -2161,7 +2158,7 @@ if (SHOW_DEPS && declaredDeps.size > 0) {
 }
 
 // Exit with appropriate code - LOUD and EXPLICIT for Claude Code
-console.log("\n" + "═".repeat(60));
+console.log(`\n${"═".repeat(60)}`);
 console.log("VALIDATION SUMMARY");
 console.log("═".repeat(60));
 console.log(`Errors:   ${allErrors.length}`);
@@ -2180,7 +2177,7 @@ const skillCount = (getMarketplaceData().plugins || []).reduce((count, p) => {
   return count;
 }, 0);
 if (skillCount > 0) console.log(`Skills: ${skillCount} skill(s) across registered plugins`);
-console.log(`Dependencies: ${depGraph.size} plugins depend on ${[...new Set([...depGraph.values()].flatMap(s => [...s]))].length} others`);
+console.log(`Dependencies: ${depGraph.size} plugins depend on ${new Set([...depGraph.values()].flatMap(s => [...s])).size} others`);
 console.log("═".repeat(60));
 
 if (hasErrors) {
