@@ -273,33 +273,31 @@ The install script auto-detects your platform and uses the appropriate package m
 
 ## Dependencies
 
-> **Recommended**: Install [mise](https://mise.jdx.dev/) first for unified cross-platform tool management.
+> **Toolchain**: runtimes (uv, Node.js, Bun) come from [proto](https://moonrepo.dev/proto) (`proto install <tool>`); CLIs proto does not manage come from Homebrew.
 
 ### Core (Required)
 
-| Tool     | Install Command       | Notes                                                      |
-| -------- | --------------------- | ---------------------------------------------------------- |
-| uv       | `mise install uv`     | Or `brew install uv`                                       |
-| gh       | `brew install gh`     | **NEVER use mise** - causes iTerm2 issues with Claude Code |
-| prettier | `bun add -g prettier` | Bun-first policy                                           |
-
-> **Warning**: gh CLI must be installed via Homebrew, not mise. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
+| Tool     | Install Command       | Notes                                   |
+| -------- | --------------------- | --------------------------------------- |
+| uv       | `proto install uv`    | Or `brew install uv`                    |
+| gh       | `brew install gh`     | Homebrew only (iTerm2 issues otherwise) |
+| prettier | `bun add -g prettier` | Bun-first policy                        |
 
 ### Code Audit (Optional)
 
-| Tool    | mise (Preferred)       | macOS Fallback         | Ubuntu Fallback        |
-| ------- | ---------------------- | ---------------------- | ---------------------- |
-| ruff    | `mise install ruff`    | `uv tool install ruff` | `uv tool install ruff` |
-| semgrep | `mise install semgrep` | `brew install semgrep` | `pip install semgrep`  |
-| jscpd   | —                      | `npm i -g jscpd`       | `npm i -g jscpd`       |
+| Tool    | macOS                  | Ubuntu                 |
+| ------- | ---------------------- | ---------------------- |
+| ruff    | `uv tool install ruff` | `uv tool install ruff` |
+| semgrep | `brew install semgrep` | `pip install semgrep`  |
+| jscpd   | `npm i -g jscpd`       | `npm i -g jscpd`       |
 
 ### Release (Optional)
 
-| Tool             | mise (Preferred)       | macOS Fallback                 | Ubuntu Fallback                                     |
-| ---------------- | ---------------------- | ------------------------------ | --------------------------------------------------- |
-| Node.js          | `mise install node`    | `brew install node`            | via nodesource                                      |
-| semantic-release | —                      | `npm i -g semantic-release@25` | `npm i -g semantic-release@25`                      |
-| doppler          | `mise install doppler` | `brew install doppler`         | `curl -Ls https://cli.doppler.com/install.sh \| sh` |
+| Tool             | macOS                          | Ubuntu                                              |
+| ---------------- | ------------------------------ | --------------------------------------------------- |
+| Node.js          | `proto install node`           | `proto install node`                                |
+| semantic-release | `npm i -g semantic-release@25` | `npm i -g semantic-release@25`                      |
+| doppler          | `brew install doppler`         | `curl -Ls https://cli.doppler.com/install.sh \| sh` |
 
 ## Usage
 
@@ -348,8 +346,6 @@ The install script auto-detects your platform and uses the appropriate package m
 | `code-hardcode-audit`      | Magic number detection               | [jscpd](https://github.com/kucherenko/jscpd)                             |
 | `semantic-release`         | Versioning automation                | [semantic-release](https://github.com/semantic-release/semantic-release) |
 | `pypi-doppler`             | Local PyPI publishing                | [Doppler](https://www.doppler.com/)                                      |
-| `mise-configuration`       | Centralized env var configuration    | [mise](https://mise.jdx.dev/)                                            |
-| `mise-tasks`               | Task orchestration with dependencies | [mise](https://mise.jdx.dev/)                                            |
 
 ## Troubleshooting
 

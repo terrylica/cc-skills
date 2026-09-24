@@ -259,7 +259,7 @@ export function rankAllRegisteredMarkerNameTokensByLevenshteinDistanceFromOperat
 
 /**
  * Render a single forward-search hit as a multi-line human-readable
- * block for terminal display by the iter-122 mise task. Parallel to
+ * block for terminal display by the iter-122 lookup task. Parallel to
  * iter-116's `renderSingleReverseSearchHitAsHumanReadableTerminalBlock`
  * — same field layout, same example-comment-form pattern, same
  * lifecycle-tag-discrimination logic. Forward direction means the
@@ -306,7 +306,7 @@ export function renderSingleForwardSearchHitAsHumanReadableTerminalBlock(
       : `  # ${entry.markerNameTokenIncludingSuffix}: explain the deliberate exception to this release-blocking invariant in at least ${entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional} characters`;
   return [
     `  Marker:                 ${entry.markerNameTokenIncludingSuffix}`,
-    `  Lifecycle layer:        AUDIT-TASK (iter-114; consumed once per release-preflight by .mise/ audit tasks)`,
+    `  Lifecycle layer:        AUDIT-TASK (iter-114; consumed once per release-preflight by tasks/ audit scripts)`,
     `  Consumer audit task:    ${entry.consumerAuditTaskSourceFileRelativePath}`,
     `  Case sensitivity:       ${entry.caseSensitivityModeDeclaredAtConsumerCallSite}`,
     `  Reason policy:          ${reasonPolicyHumanReadable}`,

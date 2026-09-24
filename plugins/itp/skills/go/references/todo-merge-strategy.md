@@ -73,7 +73,6 @@ TodoWrite with todos (MERGED - preserving existing):
 # ITP Phase 1 - Skill tool calls marked explicitly
 - "[ITP] Phase 1: Sync ADR status proposed → accepted" | pending
 - "[ITP] Phase 1: Skill tool call → impl-standards" | pending
-- "[ITP] Phase 1: Skill tool call → mise-configuration (if new scripts)" | pending
 - "[ITP] Phase 1: Skill tool call → adr-code-traceability" | pending
 - "[ITP] Phase 1: Execute implementation tasks from spec.md" | pending
 - "[ITP] Phase 1: Skill tool call → code-hardcode-audit" | pending

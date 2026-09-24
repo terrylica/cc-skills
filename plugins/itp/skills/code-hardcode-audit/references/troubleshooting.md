@@ -34,11 +34,10 @@ brew install semgrep
 Error: npx not found
 ```
 
-**Fix**: Install Node.js via mise:
+**Fix**: Install Node.js via proto:
 
 ```bash
-mise install node
-mise use --global node
+proto install node --pin global
 ```
 
 ## Semgrep Issues
@@ -130,11 +129,10 @@ uv run --script run_jscpd.py -- src/core/
 Error: jscpd requires Node.js >= 16
 ```
 
-**Fix**: Update Node.js via mise:
+**Fix**: Update Node.js via proto:
 
 ```bash
-mise install node
-mise use --global node
+proto install node --pin global
 ```
 
 ## Ruff Issues

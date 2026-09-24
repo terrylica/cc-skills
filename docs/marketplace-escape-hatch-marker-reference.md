@@ -496,7 +496,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 | **Window-semantics mode** | `FILE_WIDE` |
 | **Reason policy** | Reason required after colon — minimum 10 characters |
 
-**What it does**: Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.
+**What it does**: Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `moon run repo:release-*` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.
 
 **Example usage**:
 

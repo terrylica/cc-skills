@@ -86,9 +86,7 @@ proto use                        # install all .prototools pins on a fresh machi
 
 ## Legacy Path
 
-Pre-2026-06 repos on **Pants + mise**: the old reference remains at
-[../mise-tasks/references/bootstrap-monorepo.md](../mise-tasks/references/bootstrap-monorepo.md).
-Migrate per-repo (parity-first, cut tasks over one at a time), never big-bang.
+Pre-2026-06 repos on **Pants + mise** (mise is retired; no mise-era reference remains): migrate them onto this stack per-repo (parity-first, cut tasks over one at a time), never big-bang. The old→new mapping is the Migration Map in [references/bootstrap-monorepo.md](references/bootstrap-monorepo.md).
 
 ## Releases (local-first)
 
@@ -104,7 +102,6 @@ Two cases (full recipes in [references/bootstrap-monorepo.md](references/bootstr
 ## Related Skills
 
 - `itp:semantic-release` - Release automation (local-first; Actions only for release/CodeQL/Dependabot/deploy)
-- `itp:mise-tasks` / `itp:mise-configuration` - legacy mise-era orchestration (still valid for unmigrated repos)
 
 ---
 

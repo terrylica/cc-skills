@@ -8,7 +8,7 @@ Usage:
     uv run --script run_jscpd.py -- <path> [--output {json,text}]
 
 Detects duplicate code blocks using jscpd via npx.
-Requires Node.js (available via mise).
+Requires Node.js (install via `proto install node`).
 """
 
 import argparse
@@ -25,7 +25,7 @@ def run_jscpd(target: Path, output_format: str = "text") -> int:
     # Check npx availability
     if not shutil.which("npx"):
         print(
-            "Error: npx not found. Install Node.js via mise: mise install node",
+            "Error: npx not found. Install Node.js via proto: proto install node",
             file=sys.stderr,
         )
         return 1

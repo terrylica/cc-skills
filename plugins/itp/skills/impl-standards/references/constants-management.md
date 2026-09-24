@@ -84,7 +84,7 @@ from importlib.metadata import version
 __version__ = version("mypackage")
 ```
 
-For version management, delegate to the repo's mise release pipeline (`mise run release:full`).
+For version management, delegate to the repo's own release task (in a moon repo, `moon run <project>:release-full`).
 
 ---
 

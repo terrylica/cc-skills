@@ -131,7 +131,7 @@ export function lookupAllCanonicalRegistryEntriesByConsumerHookOrAuditTaskSource
 /**
  * Convenience accessor: returns a sorted list of every distinct
  * consumer source file relative path that has ≥1 marker registered
- * against it, across both registries. Useful for the iter-116 mise
+ * against it, across both registries. Useful for the iter-116 lookup
  * task to print an "available consumers" hint when the operator
  * supplies a path with no matches.
  */
@@ -357,7 +357,7 @@ export function isLevenshteinDistanceCloseEnoughToConsiderItOperatorTypoUsingOne
 
 /**
  * Render a single reverse-search hit as a multi-line human-readable
- * block for terminal display by the iter-116 mise task. Encodes the
+ * block for terminal display by the iter-116 lookup task. Encodes the
  * lifecycle-layer tag explicitly so operators see which kind of
  * consumer the marker opts them out of (runtime hot path vs audit
  * task release-time cold path).
@@ -402,7 +402,7 @@ export function renderSingleReverseSearchHitAsHumanReadableTerminalBlock(
       : `  # ${entry.markerNameTokenIncludingSuffix}: explain the deliberate exception to this release-blocking invariant in at least ${entry.minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional} characters`;
   return [
     `  Marker:                 ${entry.markerNameTokenIncludingSuffix}`,
-    `  Lifecycle layer:        AUDIT-TASK (iter-114; consumed once per release-preflight by .mise/ audit tasks)`,
+    `  Lifecycle layer:        AUDIT-TASK (iter-114; consumed once per release-preflight by tasks/ audit scripts)`,
     `  Consumer audit task:    ${entry.consumerAuditTaskSourceFileRelativePath}`,
     `  Case sensitivity:       ${entry.caseSensitivityModeDeclaredAtConsumerCallSite}`,
     `  Reason policy:          ${reasonPolicyHumanReadable}`,

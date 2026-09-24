@@ -60,10 +60,10 @@ detect_platform() {
     esac
 }
 
-# Check if mise is available (preferred cross-platform tool manager)
-HAS_MISE=false
-if command -v mise &>/dev/null; then
-    HAS_MISE=true
+# Check if proto is available (the toolchain manager for runtimes: node, uv, bun)
+HAS_PROTO=false
+if command -v proto &>/dev/null; then
+    HAS_PROTO=true
 fi
 
 # ============================================================================
@@ -78,44 +78,33 @@ show_disclaimer() {
 }
 
 # Get platform-specific install command for a tool
-# Prefers mise where available for cross-platform consistency
+# Runtimes proto manages (node, uv) come from proto; everything else from the platform package manager
 get_install_cmd() {
     local tool="$1"
 
-    # Tools that work via mise on ALL platforms (verified in mise registry + asdf plugins)
-    # Priority: mise > platform package manager for cross-platform consistency
-    # CRITICAL: gh must ALWAYS use Homebrew, never mise
-    # mise-installed gh causes iTerm2 tab spawning issues with Claude Code
-    # ADR: /docs/adr/2026-01-12-mise-gh-cli-incompatibility.md
+    # CRITICAL: gh must ALWAYS use Homebrew (other installs caused iTerm2 tab
+    # spawning issues with Claude Code). ADR: /docs/adr/2026-01-12-mise-gh-cli-incompatibility.md
     if [ "$tool" = "gh" ]; then
         echo "brew install gh"
         return
     fi
 
-    if $HAS_MISE; then
+    if $HAS_PROTO; then
         case "$tool" in
-            node)      echo "mise install node && mise use --global node"; return ;;
-            doppler)   echo "mise install doppler && mise use --global doppler"; return ;;
-            ruff)      echo "mise install ruff && mise use --global ruff"; return ;;
-            uv)        echo "mise install uv && mise use --global uv"; return ;;
-            semgrep)   echo "mise install semgrep && mise use --global semgrep"; return ;;
-            gitleaks)  echo "mise install gitleaks && mise use --global gitleaks"; return ;;
-            prettier)  echo "mise use --global npm:prettier@latest"; return ;;
+            node)      echo "proto install node --pin global"; return ;;
+            uv)        echo "proto install uv --pin global"; return ;;
         esac
     fi
 
-    # Tools that only work via npm (no mise alternative)
+    # Tools installed the same way on every platform
     case "$tool" in
         jscpd)            echo "npm i -g jscpd"; return ;;
         semantic-release) echo "npm i -g semantic-release@25"; return ;;
+        prettier)         echo "npm i -g prettier"; return ;;
+        ruff)             echo "uv tool install ruff"; return ;;
     esac
 
-    # Fallbacks for tools when mise is NOT available (npm)
-    case "$tool" in
-        prettier)  echo "npm i -g prettier"; return ;;
-    esac
-
-    # Platform-specific installations (fallback when mise not available)
+    # Platform-specific installations
     case "$PM" in
         brew)
             case "$tool" in
@@ -197,21 +186,13 @@ if [ "$MODE" = "--detect-only" ]; then
     echo "Platform detected:"
     echo "  OS=$OS"
     echo "  PM=$PM"
-    echo "  HAS_MISE=$HAS_MISE"
+    echo "  HAS_PROTO=$HAS_PROTO"
     exit 0
 fi
 
 echo "=== itp plugin dependency check ==="
-echo -e "Platform: ${BLUE}$OS${NC} | Package Manager: ${BLUE}$PM${NC} | mise: ${BLUE}$($HAS_MISE && echo 'yes' || echo 'no')${NC}"
+echo -e "Platform: ${BLUE}$OS${NC} | Package Manager: ${BLUE}$PM${NC} | proto: ${BLUE}$($HAS_PROTO && echo 'yes' || echo 'no')${NC}"
 echo ""
-
-# Recommend mise if not installed (preferred cross-platform tool manager)
-if ! $HAS_MISE; then
-    echo -e "${YELLOW}💡 Recommendation: Install mise for unified cross-platform tool management${NC}"
-    echo "   curl https://mise.run | sh"
-    echo "   Then re-run this script for mise-first installations."
-    echo ""
-fi
 
 # Core Tools (Required)
 echo "## Core Tools (Required)"

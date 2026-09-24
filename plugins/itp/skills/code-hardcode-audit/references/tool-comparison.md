@@ -72,7 +72,7 @@ def process_b():  # Clone of process_a
 **Limitations**:
 
 - Slower than other tools (full AST parsing)
-- Requires Node.js (available via mise)
+- Requires Node.js (install via `proto install node`)
 - High threshold to avoid false positives
 
 ## Complementary Coverage

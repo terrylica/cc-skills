@@ -18,7 +18,7 @@
  *   2. `git tag -a/-s/-m/-F <semver>` — measure the annotated-tag message. Same
  *      bar.
  *   3. semantic-release (`semantic-release`, `npx/bunx semantic-release`, and
- *      `mise run release[:*]` wrappers) — notes are DERIVED from commit bodies,
+ *      `moon run repo:release-*` wrappers) — notes are DERIVED from commit bodies,
  *      so inspect the Conventional-Commit bodies of releasable commits since the
  *      last tag. This enforces the "rich commit bodies" source exactly when they
  *      are about to become immutable release notes.
@@ -45,7 +45,7 @@
 //      passes only when it has BOTH a narrative paragraph AND a point-form list:
 //        NARRATIVE_MIN_CHARS · NARRATIVE_MIN_SENTENCES · POINT_FORM_MIN_BULLETS
 //
-//    • COMMIT-BODY path — semantic-release / `mise run release`, where notes are
+//    • COMMIT-BODY path — semantic-release / `moon run repo:release-full`, where notes are
 //      derived from commit bodies. Passes when the releasable commits since the
 //      last tag are collectively substantial:
 //        COMMIT_AGGREGATE_MIN_CHARS · COMMIT_RICH_PARAGRAPH_MIN_CHARS · COMMIT_THIN_BODY_CHARS

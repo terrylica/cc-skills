@@ -127,4 +127,4 @@ Set by Claude Code when a hook fires — hooks read them, users do not set them.
 
 - [docs/spoke-index.md](./docs/spoke-index.md) — annotated index of all spokes in [`docs/`](./docs/)
 - [lifecycle-reference.md](skills/hooks-development/references/lifecycle-reference.md) — hook lifecycle and best practices
-- [bootstrap-monorepo.md](../itp/skills/mise-tasks/references/bootstrap-monorepo.md) — monorepo scaffolding patterns
+- [bootstrap-monorepo.md](../itp/skills/bootstrap-monorepo/references/bootstrap-monorepo.md) — monorepo scaffolding patterns

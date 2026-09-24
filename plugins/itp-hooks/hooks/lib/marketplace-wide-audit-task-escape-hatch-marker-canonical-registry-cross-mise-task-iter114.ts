@@ -1,7 +1,7 @@
 /**
  * Marketplace-wide canonical registry of every AUDIT-TASK escape-hatch
  * marker — a parallel registry to the iter-111 RUNTIME-HOOK marker
- * registry, covering markers that are consumed by `.mise/` preflight
+ * registry, covering markers that are consumed by `tasks/audit-*.sh` preflight
  * audit tasks rather than by runtime PreToolUse/PostToolUse hooks.
  *
  * # Why a SECOND registry exists (iter-114 rationale)
@@ -11,7 +11,7 @@
  * Write/Edit/Bash — they live in the hot path.
  *
  * The audit-task markers tracked here fire ONLY during release
- * preflight (or on-demand `mise run audit-...`). They opt operators out
+ * preflight (or on-demand `bash tasks/audit-....sh`). They opt operators out
  * of a release-blocking invariant check rather than a runtime guard.
  * The two layers have different:
  *
@@ -38,7 +38,7 @@
  * Every AUDIT-TASK marker is declared here with:
  *
  *   - `markerNameTokenIncludingSuffix`: exact spelling
- *   - `consumerAuditTaskSourceFileRelativePath`: which `.mise/` audit
+ *   - `consumerAuditTaskSourceFileRelativePath`: which `tasks/` audit
  *     task recognizes it as an opt-out
  *   - `caseSensitivityModeDeclaredAtConsumerCallSite`: CASE_SENSITIVE
  *     (default for audit markers — bash grep -E is case-sensitive
@@ -61,7 +61,7 @@
  *
  * 2. Future iters (115+) may extend the iter-111 producer-typo audit to
  *    also load this registry, enabling cross-layer typo detection in
- *    `.mise/` task source files.
+ *    `tasks/` audit source files.
  *
  * # When adding a new audit marker
  *
@@ -72,7 +72,7 @@
  *    `MARKETPLACE_WIDE_AUDIT_TASK_ESCAPE_HATCH_MARKER_CANONICAL_REGISTRY`
  *    below with all fields populated.
  * 3. Re-run the iter-113 doc generator
- *    (`mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry`)
+ *    (`bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh`)
  *    to regenerate the operator-facing doc.
  */
 

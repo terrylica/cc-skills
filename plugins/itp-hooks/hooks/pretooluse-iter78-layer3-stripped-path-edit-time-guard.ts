@@ -44,7 +44,7 @@
  * the moment the next release tag promotes the working tree to L3.
  *
  * Forensic source: docs/HOOKS.md "Iter-76 Cache-Populator-Filter Forensic
- * Finding". Live confirmation tool: the iter-76 drift detector mise task.
+ * Finding". Live confirmation tool: the iter-76 drift detector task under tasks/.
  *
  * Belt-and-suspenders defense per GitHub issue #37210 (PreToolUse "deny"
  * decision documented as ignored for the Edit tool on some Claude Code
