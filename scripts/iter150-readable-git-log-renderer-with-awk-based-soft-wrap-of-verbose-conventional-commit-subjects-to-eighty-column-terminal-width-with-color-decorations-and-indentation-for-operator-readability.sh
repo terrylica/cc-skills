@@ -62,10 +62,10 @@
 # OPERATOR USE-CASE EXAMPLES:
 #
 #   # Quick scan of recent releases
-#   mise run release:history
+#   moon run repo:release-history
 #
 #   # Wider view for screens > 120 cols
-#   ITER150_SOFT_WRAP_COLUMN_WIDTH=140 mise run release:history
+#   ITER150_SOFT_WRAP_COLUMN_WIDTH=140 moon run repo:release-history
 #
 #   # Investigate a specific commit's full subject
 #   scripts/iter150-...sh -- -1 <sha>

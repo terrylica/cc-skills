@@ -72,7 +72,7 @@
 # "iter-63", "iter-64", or "bun cold-start waste" surface this audit.
 #
 # Re-run cadence:
-#   - Manual: `mise run audit-pretooluse-and-posttooluse-hooks-...`
+#   - Manual: `bash tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh`
 #   - Automatic: release:preflight Check 4i (iter-65 wire-up).
 
 set -euo pipefail

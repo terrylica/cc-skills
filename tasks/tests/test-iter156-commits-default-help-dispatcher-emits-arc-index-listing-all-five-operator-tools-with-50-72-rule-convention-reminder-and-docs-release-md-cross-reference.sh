@@ -85,23 +85,23 @@ echo "GROUP B (6 assertions): dispatcher lists all 5 operator tools + iter-154 a
 
 iter156_assert_dispatcher_output_contains_substring \
     "B1: lists release:history (iter-150 readable view)" \
-    "mise run release:history"
+    "moon run repo:release-history"
 
 iter156_assert_dispatcher_output_contains_substring \
     "B2: lists commits:health (iter-152 dashboard human mode)" \
-    "mise run commits:health"
+    "moon run repo:commits-health"
 
 iter156_assert_dispatcher_output_contains_substring \
     "B3: lists commits:health --json (iter-155 AI-agent dashboard mode)" \
-    "mise run commits:health --json"
+    "bash tasks/commits/health --json"
 
 iter156_assert_dispatcher_output_contains_substring \
     "B4: lists commits:advise (iter-153 dry-run advisor human mode)" \
-    'mise run commits:advise -- "<proposed subject>"'
+    'bash tasks/commits/advise -- "<proposed subject>"'
 
 iter156_assert_dispatcher_output_contains_substring \
     "B5: lists commits:advise --json (iter-153 AI-agent advisor mode)" \
-    'mise run commits:advise --json -- "<subject>"'
+    'bash tasks/commits/advise --json -- "<subject>"'
 
 iter156_assert_dispatcher_output_contains_substring \
     "B6: documents iter-154 COMMIT_EDITMSG auto-detect path" \

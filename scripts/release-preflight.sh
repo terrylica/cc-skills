@@ -6,9 +6,6 @@ set -euo pipefail
 # Disable history expansion to avoid issues with ! character
 set +H 2>/dev/null || true
 
-# Load mise environment for GH_TOKEN and GH_ACCOUNT
-eval "$(mise hook-env -s bash 2>/dev/null)" || true
-
 # Step 1: Clear git cache to ensure accurate file status
 git update-index --refresh -q || true
 
@@ -49,7 +46,7 @@ EXPECTED_USER="${GH_ACCOUNT:-}"
 if [ -n "$EXPECTED_USER" ]; then
   echo "✓ Target account: $EXPECTED_USER (from GH_ACCOUNT env)"
 else
-  echo "⚠ GH_ACCOUNT not set - releasing with token from mise.toml"
+  echo "⚠ GH_ACCOUNT not set - releasing with the resolved GH_TOKEN"
 fi
 
 echo "✓ All preflight checks passed"

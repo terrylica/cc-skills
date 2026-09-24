@@ -223,8 +223,8 @@
 # Verbose name encodes WHAT it audits (Stop hooks — file name was
 # fixed in iter-67 before SubagentStop+SessionEnd expansion landed
 # in iter-68; renaming the file would invalidate operator muscle
-# memory and the release:preflight Check 4j invocation. The MISE
-# description field is the authoritative scope declaration; this
+# memory and the release:preflight Check 4j invocation. The line-2
+# header description is the authoritative scope declaration; this
 # header comment block contains the per-event-type details). WHICH
 # anti-pattern (additionalContext emission), WHY it matters (Claude
 # Code silently drops per schema), and the authoritative schema fact
@@ -236,7 +236,7 @@
 # audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `mise run audit-stop-hooks-for-additionalContext-emission-...`
+#   - Manual: `bash tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh`
 #   - Automatic: release:preflight Check 4j (iter-67 wire-up,
 #     iter-68 scope expansion preserved through Check 4j).
 

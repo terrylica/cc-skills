@@ -16,7 +16,7 @@
 #
 # Post-iter-116 operator workflow:
 #
-#   $ mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
+#   $ bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
 #   ✓ Found 1 escape-hatch marker for consumer:
 #       plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
 #
@@ -42,7 +42,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
 
 print_usage_and_exit_one() {
-    echo "Usage: mise run $(basename "$0" .sh) [--json] <consumer-source-file-relative-path>"
+    echo "Usage: bash tasks/$(basename "$0") [--json] <consumer-source-file-relative-path>"
     echo ""
     echo "  Reverse-search the iter-111 + iter-114 canonical escape-hatch-marker"
     echo "  registries by consumer source file relative path. Returns every"
@@ -65,10 +65,10 @@ print_usage_and_exit_one() {
     echo "           (operator query is unrelated to every registered path)."
     echo ""
     echo "Examples:"
-    echo "  mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \\"
+    echo "  bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \\"
     echo "      plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
     echo ""
-    echo "  mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \\"
+    echo "  bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \\"
     echo "      --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts | jq '.markers[0].markerNameTokenIncludingSuffix'"
     echo ""
     echo "Exit codes:"

@@ -50,7 +50,7 @@
 # audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `mise run audit-pretooluse-hooks-for-...`
+#   - Manual: `bash tasks/audit-pretooluse-hooks-for-deprecated-top-level-decision-schema-versus-modern-hookSpecificOutput-permissionDecision`
 #   - Automatic: candidate for release:preflight (gate publish on
 #     DEPRECATED-WARNING). Iter-61 work.
 

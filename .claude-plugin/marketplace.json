@@ -110,7 +110,6 @@
         "supabase",
         "agent-sdk",
         "1password",
-        "mise",
         "bun"
       ],
       "strict": false
@@ -376,7 +375,6 @@
         "agent-sdk",
         "oauth",
         "1password",
-        "mise",
         "bun"
       ],
       "strict": false
@@ -476,9 +474,7 @@
         "standards",
         "ruff",
         "python",
-        "linting",
-        "mise",
-        "mise-hygiene"
+        "linting"
       ],
       "strict": false
     },

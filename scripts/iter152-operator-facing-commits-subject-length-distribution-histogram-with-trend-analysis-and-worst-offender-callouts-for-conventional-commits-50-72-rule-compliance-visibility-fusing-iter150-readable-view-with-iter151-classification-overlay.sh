@@ -21,7 +21,7 @@
 #   iter-151 + new aggregations (histogram, worst-offender callouts,
 #   recent-vs-previous trend signal) into a single short-named command:
 #
-#     mise run commits:health
+#     moon run repo:commits-health
 #
 # WHAT IT DOES:
 #
@@ -55,13 +55,13 @@
 # USAGE:
 #
 #   # Default: last 10 commits, compare to previous 10
-#   mise run commits:health
+#   moon run repo:commits-health
 #
 #   # Custom window size
-#   ITER152_COMMIT_COUNT_TO_ANALYZE=20 mise run commits:health
+#   ITER152_COMMIT_COUNT_TO_ANALYZE=20 moon run repo:commits-health
 #
 #   # Custom hard-cap threshold (operators on stricter projects)
-#   ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 mise run commits:health
+#   ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 moon run repo:commits-health
 #
 # DESIGN NOTES:
 #
@@ -498,7 +498,7 @@ iter152_emit_dashboard_footer_with_operator_tunable_knob_hints_and_iter150_iter1
     echo "  ⧗ tune via ITER152_COMMIT_COUNT_TO_ANALYZE=N (default ${ITER152_DEFAULT_COMMIT_COUNT_TO_ANALYZE_IN_CURRENT_WINDOW})"
     echo "  ⧗ tune via ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=N (default ${ITER152_DEFAULT_SUBJECT_HARD_CAP_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
     echo "  ⧗ tune via ITER152_SUBJECT_HARD_TARGET_THRESHOLD_CHARS=N (default ${ITER152_DEFAULT_SUBJECT_HARD_TARGET_THRESHOLD_CHARS_PER_CONVENTIONAL_COMMITS_50_72_RULE})"
-    echo "  ⧗ iter-150 readable view alone:           mise run release:history"
+    echo "  ⧗ iter-150 readable view alone:           moon run repo:release-history"
     echo "  ⧗ iter-151 preflight classification:      runs automatically at release:preflight Check 4l"
     echo "  ⧗ iter-150 convention (50/72 rule):       https://www.conventionalcommits.org/"
     echo "═══════════════════════════════════════════════════════════════════════════════"

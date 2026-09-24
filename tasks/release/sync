@@ -75,7 +75,7 @@ fi
 # Step 3: Add new version to plugin cache (keeps older versions for live sessions)
 # IMPORTANT: do NOT wipe $CACHE_DIR — live Claude Code sessions pin plugin paths
 # at startup and break with "Plugin directory does not exist" if their version is
-# yanked mid-session. Older versions are pruned later by `mise run release:clean`,
+# yanked mid-session. Older versions are pruned later by `moon run repo:release-clean`,
 # which keeps the last N versions (default 3).
 echo "→ Adding v$VERSION to plugin cache..."
 CACHE_COUNT=0

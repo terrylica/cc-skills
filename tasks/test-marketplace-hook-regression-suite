@@ -8,7 +8,7 @@
 # but were INVISIBLE to anyone not grep'ing for the verbose filenames. This
 # task makes them discoverable via a single command:
 #
-#   mise run test-marketplace-hook-regression-suite
+#   moon run repo:test-hooks
 #
 # Auto-discovers via the glob `plugins/*/hooks/tests/test-*.sh`. New tests
 # added in future iters following this convention are picked up
@@ -197,9 +197,9 @@ echo ""
 #      Per-plugin hook regression tests (iter-50 original convention).
 #
 #   2. tasks/tests/test-*.sh
-#      Repo-level infrastructure tests for mise tasks themselves —
+#      Repo-level infrastructure tests for the repo tasks themselves —
 #      added iter-59 so the async-eligibility audit task (and any
-#      future load-bearing mise task) can have discoverable regression
+#      future load-bearing repo task) can have discoverable regression
 #      coverage. Plugin-scope tests don't belong here because the audit
 #      task lives outside any single plugin's scope.
 #
@@ -223,7 +223,7 @@ done < <({
 if [ "${#TEST_FILES[@]}" -eq 0 ]; then
     echo "⚠  No tests found at either discovery path:"
     echo "   - plugins/*/hooks/tests/test-*.sh   (per-plugin hook tests)"
-    echo "   - tasks/tests/test-*.sh       (infrastructure mise-task tests)"
+    echo "   - tasks/tests/test-*.sh       (infrastructure repo-task tests)"
     echo "   Add tests following these naming conventions to have them auto-discovered."
     # ITER-188 (issue #113): this used to `exit 0`. A release gate that finds
     # zero tests in a repo carrying 113 of them and reports SUCCESS is the same
@@ -263,7 +263,7 @@ echo ""
 #
 # Concurrency tool choice: GNU parallel would give the best output-
 # grouping semantics (`--group` buffers per-job stdout and emits
-# atomically), but is NOT installed by default on macOS / mise / brew
+# atomically), but is NOT installed by default on macOS / brew
 # and would add a hard install dep. POSIX `xargs -P` is ubiquitous but
 # has no output-grouping — fatal for diagnosable test logs IF tests
 # wrote to stdout. We sidestep that by giving each test its OWN
@@ -286,7 +286,7 @@ echo ""
 #
 #   Sweet spot is lanes=10:
 #     - 660 ms saved vs pre-iter-128 (~18% reduction in Check 4e)
-#     - 4-core headroom protects parent mise/IDE responsiveness during
+#     - 4-core headroom protects parent shell/IDE responsiveness during
 #       the parallel fan-out
 #     - lanes=12 shows non-monotonic regression due to bun's ~12-17ms
 #       cold-start floor (measured by iter-80) hitting process-scheduling

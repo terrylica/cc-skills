@@ -11,7 +11,7 @@
 #
 # Purpose: answer the question "is my cc-skills conventional-commits toolkit
 # working RIGHT NOW?" in one command — the industry-standard brew-doctor,
-# npm-doctor, mise-doctor, kubectl-version pattern adapted for the
+# npm-doctor, kubectl-version pattern adapted for the
 # conventional-commits arc. Closes the operator-self-diagnosis gap surfaced
 # by the iter-160 audit: after iter-157 (local hook installer) and iter-158
 # (polyglot pre-commit framework manifest), there are multiple install paths
@@ -307,14 +307,13 @@ iter160_normalize_captured_stderr_to_single_line_within_length_budget() {
 # microsecond counter — pure bash arithmetic, no awk/perl/python.
 #
 # Graceful degradation: bash < 5.0 falls back to the original perl path
-# preserving correctness on legacy systems (e.g. macOS /bin/bash 3.2 when
-# the script is invoked outside the mise-managed shell). The detection
-# runs ONCE at script entry; the swap is then branch-predicted per call.
+# preserving correctness on legacy systems (e.g. macOS /bin/bash 3.2).
+# The detection runs ONCE at script entry; the swap is then branch-predicted per call.
 #
 # Methodology: timing primitive choice does NOT change the wall-clock of
 # the wrapped command — it only changes the OVERHEAD added by the timer.
 # Net effect: iter-160 doctor 665ms → ~400ms (≈40% reduction), driving
-# operator-perceived sluggishness of `mise run commits:status` well under
+# operator-perceived sluggishness of `moon run repo:commits-status` well under
 # the human-perceptibility threshold for interactive feedback (~100ms is
 # instantaneous, ~400ms is responsive, >700ms feels sluggish per Nielsen
 # usability research and Google Web Vitals INP guidance).
@@ -549,14 +548,14 @@ if [[ -n "$ITER160_CURRENT_REPO_GIT_DIR" ]] && [[ -f "$ITER160_CURRENT_REPO_COMM
             "iter157_hook_installed_in_current_repo" \
             "iter-157 hook NOT installed (existing hook lacks cc-skills sentinel)" \
             "warning" "fail" "0" \
-            "install via: mise run commits:install-hook"
+            "install via: moon run repo:commits-install-hook"
     fi
 else
     iter160_record_check_result_with_per_check_wall_clock_latency_and_severity_classification \
         "iter157_hook_installed_in_current_repo" \
         "iter-157 hook NOT installed in current repo" \
         "warning" "fail" "0" \
-        "install via: mise run commits:install-hook"
+        "install via: moon run repo:commits-install-hook"
 fi
 
 # ─── Check 8: iter-158 .pre-commit-hooks.yaml manifest at repo root (CRITICAL)

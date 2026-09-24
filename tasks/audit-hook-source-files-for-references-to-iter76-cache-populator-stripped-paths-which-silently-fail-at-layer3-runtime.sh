@@ -307,7 +307,7 @@ if [[ "$total_unjustified_violations" -gt 0 ]]; then
     echo "       (c) See \`$0 --escape-hatch-marker\` for marker syntax"
     echo ""
     echo "  Forensic source: iter-76 docs/HOOKS.md cache-populator-filter section"
-    echo "  Live confirmation tool: mise run audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis"
+    echo "  Live confirmation tool: bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh"
     exit 1
 fi
 

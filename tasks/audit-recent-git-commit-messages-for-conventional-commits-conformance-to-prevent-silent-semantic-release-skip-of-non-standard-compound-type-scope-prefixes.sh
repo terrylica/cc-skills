@@ -325,7 +325,7 @@ if [[ "$total_long_subject_overlay_violations_exceeding_iter150_72_char_hard_cap
     echo "  benchmark names) — it does NOT mandate verbose git commit SUBJECTS."
     echo ""
     echo "  For viewing existing long-subject history readably:"
-    echo "    mise run release:history    # iter-150 awk-based soft-wrap renderer"
+    echo "    moon run repo:release-history    # iter-150 awk-based soft-wrap renderer"
 fi
 
 echo ""

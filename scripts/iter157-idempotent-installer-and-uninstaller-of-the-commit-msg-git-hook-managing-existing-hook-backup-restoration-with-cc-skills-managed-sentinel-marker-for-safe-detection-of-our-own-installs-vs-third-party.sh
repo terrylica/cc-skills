@@ -57,12 +57,12 @@ iter157_render_hook_body_with_sentinel_marker_embedded_for_safe_uninstall_detect
     printf '# %s\n' "$ITER157_CC_SKILLS_MANAGED_COMMIT_MSG_HOOK_SENTINEL_MARKER"
     printf '# Source: %s\n' "$ITER157_HOOK_SOURCE_SCRIPT_RELATIVE_PATH"
     printf '# Installed by: scripts/iter157-idempotent-installer-and-uninstaller-...sh\n'
-    printf '# Regenerate: mise run commits:install-hook\n'
-    printf '# Remove:     mise run commits:uninstall-hook\n'
+    printf '# Regenerate: moon run repo:commits-install-hook\n'
+    printf '# Remove:     moon run repo:commits-uninstall-hook\n'
     printf '#\n'
     printf '# This file is a thin shim that execs the canonical iter-157 hook from\n'
     printf '# the cc-skills repo. Editing this file directly will be lost on next\n'
-    printf "# 'mise run commits:install-hook' invocation.\n"
+    printf "# 'moon run repo:commits-install-hook' invocation.\n"
     printf 'exec %q "$@"\n' "$ITER157_HOOK_SOURCE_SCRIPT_ABSOLUTE_PATH"
 }
 

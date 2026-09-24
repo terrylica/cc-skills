@@ -20,10 +20,10 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # (no output, no measurable overhead in the common case). Uses bash 5+
 # $EPOCHREALTIME for sub-second precision — preflight's shebang pins
 # bash so this is portable to macOS (where the system /bin/bash is 3.2
-# and lacks EPOCHREALTIME, but mise's bash is 5+). Iter-73 baseline
+# and lacks EPOCHREALTIME, so a bash 5+ must come first on PATH). Iter-73 baseline
 # measurement (2026-05-20, machine: el01 / terryli MacBook Pro M2 Max):
 # preflight real time was 10.74s (4.34s user + 6.72s sys) — sys > user
-# indicates heavy fork/exec, primarily from the four mise-run audit
+# indicates heavy fork/exec, primarily from the four audit
 # subprocess invocations (Checks 4d/4f/4g/4h/4i/4j). Per-phase data
 # captured under this instrumentation steers iter-74+ targeted opt
 # work (e.g. parallel execution candidates, cached-result reuse).
@@ -92,7 +92,7 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 # Design (mirrors iter-75 marketplace-suite + iter-131 elapsed_ms sidecar):
 #
 #   Phase A (PRE-WARM, pre-Check-4f): xargs -P spawns all 17 audit-task
-#     mise-runs concurrently. Each worker writes:
+#     audit scripts concurrently. Each worker writes:
 #       /tmp/<key>.log          ← captured stdout+stderr (existing path)
 #       /tmp/<key>.exit         ← captured exit code (sidecar)
 #       /tmp/<key>.elapsed_ms   ← per-audit wall-clock (sidecar, iter-131 pattern)
@@ -100,7 +100,7 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 #
 #   Phase B (sequential, Checks 4f-4v inline): each existing check block runs
 #     UNCHANGED post-processing (defensive-grep banner extracts), but replaces
-#     the inline `if ! mise run X > /tmp/X.log 2>&1; then` with
+#     the inline per-check audit invocation with
 #     `if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file X; then`
 #     (reads /tmp/X.exit instead of re-running the audit). The per-check
 #     iter-130 timing report is preserved bit-for-bit by seeding the phase
@@ -118,7 +118,7 @@ __preflight_timing_report_phase_elapsed_milliseconds() {
 # audit-suite issues where parallelism could confuse output ordering.
 #
 # Per-audit metadata as PIPE-separated records keyed by the existing log path
-# basename (without .log extension). Format: <log_sidecar_key>|<mise_task_name>|<extra_cli_args>
+# basename (without .log extension). Format: <log_sidecar_key>|<task_name>|<extra_cli_args>
 # The third field handles Check 4u's `--check` flag (only audit with extra args).
 #
 # IMPORTANT: PIPE delimiter `|` is REQUIRED (not TAB). BSD xargs (macOS) collapses
@@ -179,7 +179,7 @@ __iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_c
 __iter134_parallel_fan_out_all_preflight_audit_subprocesses_via_xargs_p_with_per_audit_log_exit_and_elapsed_ms_sidecar_capture() {
     local lane_count
     lane_count="${ITER134_PREFLIGHT_AUDIT_PARALLEL_LANES:-$(__iter134_compute_adaptive_preflight_audit_parallel_lanes_clamped_against_host_cpu_count_with_four_cpu_headroom_for_os_and_ide_mirroring_iter128_marketplace_suite_heuristic)}"
-    # BSD-xargs hardening: -S 16384 to handle long mise task names (some
+    # BSD-xargs hardening: -S 16384 to handle long task names (some
     # exceed 200 chars + the bash worker body). Same iter-90 hardening
     # pattern as the marketplace-suite runner.
     # shellcheck disable=SC2016
@@ -528,12 +528,10 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4c: hook registratio
 # member-test failure) — the iter-50 marketplace runner aggregates and reports
 # any failure with full per-test stdout.
 #
-# Operators previously running `mise run release:test-chronicle-slicing`
-# can now invoke `bash tasks/tests/test-chronicle-slicing-*.sh` (the
-# file is auto-executable; same script content).
+# To run the chronicle test on its own: `bash tasks/tests/test-chronicle-slicing-*.sh`.
 
 # Check 4e: Marketplace-wide hook regression suite. Iter-51 wire-up of
-# the iter-50 mise task into the release gate. Auto-discovers every
+# the iter-50 suite into the release gate. Auto-discovers every
 # plugins/*/hooks/tests/test-*.sh and runs it. Catches behavioral
 # regressions in hooks BEFORE the release publishes a tag that would
 # deploy the broken behavior to operator Layer 3 caches (see iter-42
@@ -558,7 +556,7 @@ echo "  ✓ Hook regression: ${HOOK_TESTS_PASSED:-0} test files passed (${HOOK_T
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e: marketplace-wide hook regression suite"
 
 # Check 4e2: Marketplace-wide Bun UNIT suite (2026-07-19 wire-up of the
-# test-marketplace-bun-unit-suite… mise task into the release gate). Runs
+# test-marketplace-bun-unit-suite… task into the release gate). Runs
 # every git-TRACKED *.test.ts / *.test.mjs in one `bun test` pass (747+
 # tests: itp-hooks TS hooks, notes-commander engine, gmail-commander
 # drafts, …), excluding only the live browser+passkey integration test
@@ -581,7 +579,7 @@ echo "  ✓ Bun unit suite: ${BUN_UNIT_PASSED:-0} tests passed (${BUN_UNIT_FAILE
 __preflight_timing_report_phase_elapsed_milliseconds "Check 4e2: marketplace-wide bun unit suite (tracked *.test.ts/mjs)"
 
 # Iter-134: Phase A — parallel fan-out of all 17 marketplace audits (Checks
-# 4f-4v). Each audit's mise-run subprocess writes its existing /tmp/<key>.log
+# 4f-4v). Each audit subprocess writes its existing /tmp/<key>.log
 # path plus iter-134 sidecars (.exit, .elapsed_ms). The subsequent Check 4f-4v
 # inline blocks become non-blocking exit-code checks that read sidecars instead
 # of re-running the audit. Compresses ~2.6s of sequential audit work into
