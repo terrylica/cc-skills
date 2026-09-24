@@ -66,20 +66,6 @@ describe("allowWithInput", () => {
     expect(hook.updatedInput).toBeUndefined();
   });
 
-  it("still falls back to plain allow when an AskUserQuestion mutation is malformed", () => {
-    // The fallback is what makes mutating this tool safe: a shape the registry cannot express is
-    // refused and counted, never applied.
-    const lines = captureOutput(() => {
-      allowWithInput("test-hook", "AskUserQuestion", {
-        questions: [{ question: "q", header: "h", multiSelect: false, options: [{ label: "A" }] }],
-      });
-    });
-
-    const hook = parseHookOutput(lines[0]).hookSpecificOutput as Record<string, unknown>;
-    expect(hook.permissionDecision).toBe("allow");
-    expect(hook.updatedInput).toBeUndefined();
-  });
-
   it("falls back to plain allow for Bash with extra fields (.strict rejects env)", () => {
     const lines = captureOutput(() => {
       allowWithInput("test-hook", "Bash", { command: "ls", env: {} });
@@ -136,8 +122,8 @@ describe("hasToolSchema", () => {
     }
   });
 
-  it("returns true for AskUserQuestion, which gained a schema with the premise annotator", () => {
-    expect(hasToolSchema("AskUserQuestion")).toBe(true);
+  it("returns false for AskUserQuestion, whose input must never be rewritten by a hook", () => {
+    expect(hasToolSchema("AskUserQuestion")).toBe(false);
   });
 
   it("returns false for unknown tools", () => {
