@@ -1,3 +1,12 @@
+# [31.3.0](https://github.com/terrylica/cc-skills/compare/v31.2.9...v31.3.0) (2026-09-24)
+
+
+### Features
+
+* **statusline-tools:** show the ccmax group at the start of line 1 ([d4a905b](https://github.com/terrylica/cc-skills/commit/d4a905b4d668e2f6dda3eb3a53fbe79aabe1f37e))
+
+The requested sub2api group (CCMAX_WRAPPER_REQUESTED_GROUP) rendered immediately left of the model token on the model line, which was already the most crowded line. It now leads line 1 as 'cpc | M:0 D:0 …', the first thing read, because it is the one fact on screen that decides which paying stakeholder the session bills. Rendering is unchanged when the variable is empty or unset, and the existing charset gate still rejects any value that could smuggle escape sequences into the terminal.
+
 ## [31.2.9](https://github.com/terrylica/cc-skills/compare/v31.2.8...v31.2.9) (2026-09-24)
 
 
