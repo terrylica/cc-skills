@@ -25,16 +25,16 @@ Run a comprehensive 10-subsystem health check across the TTS engine, Telegram bo
 - Bun runtime (for bot process)
 - Python 3.14 with Kokoro venv at `~/.local/share/kokoro/.venv`
 - Telegram bot token in `~/.claude/.secrets/ccterrybot-telegram`
-- mise.toml configured in `~/.claude/automation/claude-telegram-sync/`
+- `.env` present in `~/.claude/automation/claude-telegram-sync/` (the launchd service's config and secrets)
 
 ## Workflow Phases
 
 ### Phase 1: Setup
 
-Load environment variables from mise to ensure `BOT_TOKEN` and other secrets are available:
+Load the bot's secrets so `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are available to the checks:
 
 ```bash
-cd ~/.claude/automation/claude-telegram-sync && eval "$(mise env)"
+cd ~/.claude/automation/claude-telegram-sync && set -a && source ~/.claude/.secrets/ccterrybot-telegram && set +a
 ```
 
 ### Phase 2: Run All 10 Health Checks
@@ -165,7 +165,7 @@ Display results as a table:
 ## TodoWrite Task Templates
 
 ```
-1. [Setup] Load environment variables from mise in bot source directory
+1. [Setup] Source ~/.claude/.secrets/ccterrybot-telegram in the bot source directory
 2. [Run] Execute all 10 health checks and collect results
 3. [Report] Display results table with [OK]/[FAIL] status for each subsystem
 4. [Summary] Show pass/fail counts (e.g., 9/10 passed)

@@ -48,7 +48,7 @@ This directory is **autonomously populated** by the `/autonomous-loop` campaign 
 | [`mandarin-cross-language.md`](./mandarin-cross-language.md)                           | Mandarin financial content + cross-language asymmetry (F10/T4.3)     | ✅ verified 2026-04-29 (quality matches/exceeds English; political content filters by language)        |
 | [`prompt-caching.md`](./prompt-caching.md)                                             | hybrid prompt caching (T4.1) — auto + explicit cache_control         | ✅ verified 2026-04-29 (hybrid OpenAI+Anthropic; 96.4% explicit hit; cost not latency benefit)         |
 | [`cache-read-semantics.md`](./cache-read-semantics.md)                                 | cache-read semantics (T4.2) — threshold + prefix-match + TTL         | ✅ verified 2026-04-29 (threshold 264-597 pt; prefix-match works; TTL ≥ 3min; cross-session)           |
-| [`model-upgrade-detection.md`](./model-upgrade-detection.md)                           | model-upgrade detection tooling (T4.4) — `mise run mm:check-upgrade` | ✅ shipped 2026-04-29 (bin/ + mise/ + locked snapshot; 5/5 tests pass; bash set-e bug captured)        |
+| [`model-upgrade-detection.md`](./model-upgrade-detection.md)                           | model-upgrade detection tooling (T4.4) — `bash scripts/minimax-check-upgrade` | ✅ shipped 2026-04-29 (script + locked snapshot; 5/5 tests pass; bash set-e bug captured)        |
 
 ## Fixtures
 

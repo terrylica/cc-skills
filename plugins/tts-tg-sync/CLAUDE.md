@@ -14,7 +14,7 @@ This plugin manages the Telegram notification bot and iTerm2 tab focus integrati
 
 - **Runtime**: Bun for TypeScript, Python 3.14 for Kokoro, Bash for shell scripts
 - **Paths**: XDG-compliant (`~/.local/share/kokoro/` for engine, `~/.local/state/launchd-logs/telegram-bot/` for launchd logs)
-- **Config SSoT**: `~/.claude/automation/claude-telegram-sync/mise.toml`
+- **Config**: `~/.claude/automation/claude-telegram-sync/moon.yml` `env:` for `moon run` tasks; the launchd service reads that directory's `.env` instead (proto shims do not inject moon env). Secrets: `~/.claude/.secrets/ccterrybot-telegram`. Toolchain: proto (`.prototools` pins bun + moon); jdx/mise is retired
 - **Lock protocol**: `/tmp/kokoro-tts.lock` with 5s heartbeat, 30s stale threshold + pgrep defense
 - **Signal sound**: `Tink.aiff` via `TTS_SIGNAL_SOUND` env var (configurable, empty to disable)
 

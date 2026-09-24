@@ -213,7 +213,7 @@ The `model` request parameter is what you ASKED for; `response.model` is what AC
 
 ### Cadence ~5-8 weeks between minor releases
 
-Worth setting up a `mise run minimax:check-upgrade` task (T4.4) to poll `/v1/models` daily and fire alerts when a new highspeed variant lands. Defer to T4.4.
+Worth scheduling `bash scripts/minimax-check-upgrade` (T4.4) to poll `/v1/models` daily and fire alerts when a new highspeed variant lands. Defer to T4.4.
 
 ---
 

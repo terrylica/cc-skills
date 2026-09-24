@@ -106,7 +106,7 @@ The previous version is not automatically backed up. If the new script fails, us
 
 ## Bun Runtime
 
-Updates the Bun version managed by mise.
+Updates the Bun version pinned by proto in the bot directory's `.prototools`.
 
 ### Upgrade Steps
 
@@ -114,9 +114,10 @@ Updates the Bun version managed by mise.
 # 1. Check current version
 bun --version
 
-# 2. Update via mise
+# 2. Update the proto pin and install it
 cd ~/.claude/automation/claude-telegram-sync
-mise use bun@latest
+proto pin bun latest --resolve
+proto install
 
 # 3. Verify
 bun --version
@@ -132,9 +133,10 @@ bun --watch run src/main.ts
 ### Rollback
 
 ```bash
-# Pin back to previous version (e.g., 1.3)
+# Pin back to previous version (e.g., 1.4.0)
 cd ~/.claude/automation/claude-telegram-sync
-mise use bun@1.3
+proto pin bun 1.4.0
+proto install
 bun install
 ```
 

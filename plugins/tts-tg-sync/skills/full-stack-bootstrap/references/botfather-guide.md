@@ -72,23 +72,16 @@ mkdir -p ~/.claude/.secrets
 chmod 700 ~/.claude/.secrets
 
 cat > ~/.claude/.secrets/ccterrybot-telegram << 'EOF'
-BOT_TOKEN=<your-bot-token>
-CHAT_ID=<your-chat-id>
+TELEGRAM_BOT_TOKEN=<your-bot-token>
+TELEGRAM_CHAT_ID=<your-chat-id>
 EOF
 
 chmod 600 ~/.claude/.secrets/ccterrybot-telegram
 ```
 
-### mise Integration
+### How the Bot Reads the Token
 
-The bot's `.mise.local.toml` (gitignored) loads the secrets file:
-
-```toml
-[env]
-_.file = "{{env.HOME}}/.claude/.secrets/ccterrybot-telegram"
-```
-
-This makes `BOT_TOKEN` and `CHAT_ID` available as environment variables when mise is activated in the bot directory.
+The hook wrapper (`src/hooks/auto-continue-wrapper.sh`) sources the secrets file with `set -a`. The launchd service reads `~/.claude/automation/claude-telegram-sync/.env` instead (gitignored; Bun auto-loads it from the runner's cwd), so the same `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` lines must be in that file too.
 
 ## Managing the Bot
 

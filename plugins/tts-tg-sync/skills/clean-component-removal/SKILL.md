@@ -54,7 +54,8 @@ These are preserved by default to allow easy reinstallation:
 | ---------------- | ------------------------------------------------------- | -------------------------- |
 | Model cache      | `~/.cache/huggingface/hub/models--hexgrad--Kokoro-82M`  | ~400MB download, reusable  |
 | Bot source code  | `~/.claude/automation/claude-telegram-sync/`            | Git-tracked, not ephemeral |
-| mise.toml config | `~/.claude/automation/claude-telegram-sync/mise.toml`   | Configuration SSoT         |
+| moon.yml config  | `~/.claude/automation/claude-telegram-sync/moon.yml`    | Config (`env:`) and tasks  |
+| `.env`           | `~/.claude/automation/claude-telegram-sync/.env`        | launchd service config     |
 | Launchd logs     | `~/.local/state/launchd-logs/telegram-bot/`             | Rotated by log-rotation    |
 | NDJSON audit     | `~/.claude/automation/claude-telegram-sync/logs/audit/` | Self-rotating 14d          |
 

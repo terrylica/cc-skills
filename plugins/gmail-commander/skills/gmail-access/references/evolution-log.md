@@ -18,9 +18,9 @@ Change history for gmail-access skill (newest first).
 **Fix**: Added Step 2.5 "Verify Account Context" that:
 
 - Shows current working directory
-- Shows where `GMAIL_OP_UUID` is defined in mise hierarchy
+- Shows where `GMAIL_OP_UUID` is defined
 - Retrieves email address from 1Password for the UUID
 - Compares against project-specific email expectations
 - Requires confirmation before proceeding
 
-**Lesson**: For any credential-based skill, always verify the credential matches the project context before use. mise's directory-based env resolution means the same env var can have different values in different projects.
+**Lesson**: For any credential-based skill, always verify the credential matches the project context before use. The same env var can hold different values in different projects.

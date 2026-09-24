@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 
 # Settings and Tuning
 
-Configure all adjustable parameters for the TTS engine, Telegram bot, and supporting infrastructure. All settings are centralized in the mise.toml SSoT.
+Configure all adjustable parameters for the TTS engine, Telegram bot, and supporting infrastructure. Defaults live in the bot's `moon.yml` `env:` block; the launchd service reads overrides from the bot directory's `.env`, because proto shims do not inject moon env (see [config-architecture.md](./references/config-architecture.md)).
 
 > **Platform**: macOS (Apple Silicon)
 
@@ -28,7 +28,7 @@ Configure all adjustable parameters for the TTS engine, Telegram bot, and suppor
 
 | Component   | Required    | Installation                                      |
 | ----------- | ----------- | ------------------------------------------------- |
-| mise        | Yes         | `brew install mise` (for env loading)             |
+| moon        | Yes         | `proto install` in the bot directory (for tasks)  |
 | Bot running | Recommended | Changes to TTS/queue settings require bot restart |
 
 ---
@@ -37,13 +37,12 @@ Configure all adjustable parameters for the TTS engine, Telegram bot, and suppor
 
 ### Phase 0: Read Current Configuration
 
-Read the current mise.toml to see all active settings:
+Read the current settings — defaults in `moon.yml` `env:`, launchd-service overrides in `.env` (print key names only; `.env` also holds secrets):
 
 ```bash
-cat ~/.claude/automation/claude-telegram-sync/mise.toml
+sed -n '/^env:/,/^tasks:/p' ~/.claude/automation/claude-telegram-sync/moon.yml
+sed -E 's/=.*/=<set>/' ~/.claude/automation/claude-telegram-sync/.env
 ```
-
-All configurable values live in the `[env]` section. The file is the single source of truth for the entire stack.
 
 ### Phase 1: Identify What to Change
 
@@ -64,7 +63,7 @@ Present the config groups to the user via AskUserQuestion. Config groups:
 
 ### Phase 2: Edit Configuration
 
-Edit the appropriate line(s) in `~/.claude/automation/claude-telegram-sync/mise.toml`. Use the Edit tool to make precise changes to specific values.
+Edit the appropriate line(s) in the `env:` block of `~/.claude/automation/claude-telegram-sync/moon.yml`, and set the same key in that directory's `.env` so the launchd service picks it up. Use the Edit tool to make precise changes to specific values.
 
 ### Phase 3: Validate and Apply
 
@@ -72,8 +71,8 @@ Edit the appropriate line(s) in `~/.claude/automation/claude-telegram-sync/mise.
 2. If TTS, queue, or rate limiting settings changed, restart the bot:
 
 ```bash
-# Option A: If using mise tasks
-cd ~/.claude/automation/claude-telegram-sync && mise run bot:restart
+# Option A: moon task
+cd ~/.claude/automation/claude-telegram-sync && moon run telegram-sync:restart
 
 # Option B: Manual restart
 pkill -f "bun.*main.ts" && cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
@@ -88,10 +87,10 @@ pkill -f "bun.*main.ts" && cd ~/.claude/automation/claude-telegram-sync && bun -
 ### Template: Settings Adjustment
 
 ```
-1. [Read] Read current mise.toml configuration
+1. [Read] Read current moon.yml env: block and .env key names
 2. [Identify] Present config groups to user via AskUserQuestion
 3. [Select] User selects setting category to modify
-4. [Edit] Update mise.toml with new values
+4. [Edit] Update moon.yml env: and .env with new values
 5. [Validate] Verify values are in valid range
 6. [Apply] Restart bot to apply changes (if TTS or queue settings changed)
 7. [Verify] Confirm new settings are active
@@ -103,7 +102,7 @@ pkill -f "bun.*main.ts" && cd ~/.claude/automation/claude-telegram-sync && bun -
 
 After modifying this skill:
 
-1. [ ] Verify all config groups in SKILL.md match current mise.toml
+1. [ ] Verify all config groups in SKILL.md match the current moon.yml `env:` block
 2. [ ] Update config-reference.md if new env vars were added
 3. [ ] Test that changed settings take effect after bot restart
 4. [ ] Update `references/evolution-log.md` with change description
@@ -112,8 +111,8 @@ After modifying this skill:
 
 | Issue                      | Cause                            | Solution                                               |
 | -------------------------- | -------------------------------- | ------------------------------------------------------ |
-| Settings not taking effect | Bot not restarted                | Restart bot after changing mise.toml                   |
-| mise.toml parse error      | Invalid TOML syntax              | Check for missing quotes or unescaped chars            |
+| Settings not taking effect | Bot not restarted, or value only in `moon.yml` | Set it in `.env` too (launchd service), then restart the bot |
+| moon.yml parse error       | Invalid YAML syntax              | Check indentation and quote every value as a string    |
 | Voice not found            | Invalid voice name               | Check voice catalog (Kokoro voices are case-sensitive) |
 | Speed too fast/slow        | Value out of range               | Use 0.5 to 2.0 range for TTS_SPEED                     |
 | Circuit breaker stuck open | Too many failures                | Wait for breaker timeout or restart bot                |
@@ -124,7 +123,7 @@ After modifying this skill:
 ## Reference Documentation
 
 - [Config Reference](./references/config-reference.md) - Full reference table with all env vars, defaults, valid ranges, and component ownership
-- [mise.toml Reference](./references/mise-toml-reference.md) - Hub/spoke mise architecture, secret loading, and task file structure
+- [Config Architecture](./references/config-architecture.md) - moon.yml `env:` vs `.env`, secret loading, moon tasks and the proto-pinned Bun
 - [Evolution Log](./references/evolution-log.md) - Change history for this skill
 
 ## Post-Execution Reflection

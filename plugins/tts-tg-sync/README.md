@@ -72,9 +72,9 @@ Shared: Lock protocol, signal sound, NDJSON telemetry
 ## Requirements
 
 - macOS with Apple Silicon (M1+) for MLX Metal acceleration
-- Bun runtime
+- Bun runtime (via proto; pinned in the bot directory's `.prototools`)
+- moon (task runner, via proto)
 - Python 3.14 via uv
-- mise (environment management)
 - Homebrew
 
 ## License

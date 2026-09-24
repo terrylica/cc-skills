@@ -64,7 +64,7 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.proto/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
     <key>ThrottleInterval</key>
     <integer>10</integer>
@@ -94,7 +94,7 @@ cat /tmp/gmail-digest.pid 2>/dev/null && echo " (digest)" || echo "No digest PID
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>{{HOME}}/.local/share/mise/shims:/usr/local/bin:/usr/bin:/bin</string>
+        <string>{{HOME}}/.proto/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
     </dict>
 </dict>
 </plist>

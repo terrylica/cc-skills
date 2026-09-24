@@ -126,14 +126,14 @@ The male voice catalog is currently weak. am_michael and am_puck are unrated and
 
 ## Configuration
 
-Voices are configured in `~/.claude/automation/claude-telegram-sync/mise.toml`:
+Voices are configured in `~/.claude/automation/claude-telegram-sync/moon.yml` `env:` (the launchd service reads overrides from that directory's `.env`):
 
-```toml
-[env]
-TTS_VOICE_EN = "af_heart"      # Kokoro English voice ID
-TTS_VOICE_ZH = "zf_xiaobei"    # Kokoro Chinese voice ID
-TTS_VOICE_SAY_EN = "Samantha"  # macOS say fallback (English)
-TTS_VOICE_SAY_ZH = "Ting-Ting" # macOS say fallback (Chinese)
+```yaml
+env:
+  TTS_VOICE_EN: "af_heart"      # Kokoro English voice ID
+  TTS_VOICE_ZH: "zf_xiaobei"    # Kokoro Chinese voice ID
+  TTS_VOICE_SAY_EN: "Samantha"  # macOS say fallback (English)
+  TTS_VOICE_SAY_ZH: "Ting-Ting" # macOS say fallback (Chinese)
 ```
 
 The shell library `tts-common.sh` also reads `EN_VOICE` and `ZH_VOICE` environment variables, defaulting to af_heart and zf_xiaobei respectively.

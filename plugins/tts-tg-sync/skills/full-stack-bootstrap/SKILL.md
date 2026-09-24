@@ -26,8 +26,8 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 
 | Component           | Required | Installation                            |
 | ------------------- | -------- | --------------------------------------- |
-| Bun                 | Yes      | `brew install oven-sh/bun/bun`          |
-| mise                | Yes      | `brew install mise`                     |
+| proto               | Yes      | `brew install proto`                    |
+| Bun + moon          | Yes      | `proto install` in the bot directory (pinned in `.prototools`) |
 | uv                  | Yes      | `brew install uv`                       |
 | Python 3.14         | Yes      | `uv python install 3.14`                |
 | Homebrew            | Yes      | Already installed on macOS dev machines |
@@ -42,13 +42,14 @@ One-time bootstrap of the entire TTS + Telegram bot stack: Kokoro TTS engine (ML
 Verify all prerequisites are installed and accessible:
 
 ```bash
+command -v proto  # Toolchain manager (installs bun + moon)
 command -v bun    # Bun runtime for TypeScript bot
-command -v mise   # Environment manager
+command -v moon   # Task runner
 command -v uv     # Python package manager
 uv python list | grep 3.14  # Python 3.14 available
 ```
 
-If any tool is missing, install via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.14`.
+If bun or moon is missing, run `proto install` in `~/.claude/automation/claude-telegram-sync/`; install proto and uv via Homebrew (`brew install <tool>`). Python 3.14 is installed via `uv python install 3.14`.
 
 ### Phase 1: Kokoro TTS Engine Install
 
@@ -88,28 +89,25 @@ Store the bot token securely:
 ```bash
 mkdir -p ~/.claude/.secrets
 chmod 700 ~/.claude/.secrets
-echo "BOT_TOKEN=<token>" > ~/.claude/.secrets/ccterrybot-telegram
-echo "CHAT_ID=<chat_id>" >> ~/.claude/.secrets/ccterrybot-telegram
+echo "TELEGRAM_BOT_TOKEN=<token>" > ~/.claude/.secrets/ccterrybot-telegram
+echo "TELEGRAM_CHAT_ID=<chat_id>" >> ~/.claude/.secrets/ccterrybot-telegram
 chmod 600 ~/.claude/.secrets/ccterrybot-telegram
 ```
 
-Create `.mise.local.toml` (gitignored) in the bot directory to load secrets:
-
-```toml
-# ~/.claude/automation/claude-telegram-sync/.mise.local.toml
-[env]
-_.file = "{{env.HOME}}/.claude/.secrets/ccterrybot-telegram"
-```
+The hook wrapper (`src/hooks/auto-continue-wrapper.sh`) sources that file. The launchd service does not: it reads `~/.claude/automation/claude-telegram-sync/.env` (gitignored; Bun auto-loads it from the runner's cwd), so put the same `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` lines, plus `SUB2API_API_KEY`, there too and `chmod 600` it.
 
 ### Phase 4: Environment Configuration
 
-Add Kokoro paths to `mise.toml`:
+Kokoro paths are set in the bot's `moon.yml` `env:` block (moon interpolates `$HOME`):
 
-```toml
-# In ~/.claude/automation/claude-telegram-sync/mise.toml [env] section
-KOKORO_VENV = "{{env.HOME}}/.local/share/kokoro/.venv"
-KOKORO_SCRIPT = "{{env.HOME}}/.local/share/kokoro/tts_generate.py"
+```yaml
+# ~/.claude/automation/claude-telegram-sync/moon.yml
+env:
+  KOKORO_VENV: "$HOME/.local/share/kokoro/.venv"
+  KOKORO_SCRIPT: "$HOME/.local/share/kokoro/tts_generate.py"
 ```
+
+The launchd service does not receive `moon.yml` `env:`; if it needs a non-default path, add the same keys (with the literal home path) to the bot's `.env`.
 
 ### Phase 5: Shell Symlinks
 
@@ -150,15 +148,15 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 
 ```
 1. [Preflight] Verify Bun installed
-2. [Preflight] Verify mise installed
+2. [Preflight] Verify proto installed; run `proto install` in the bot directory for bun + moon
 3. [Preflight] Verify uv installed
 4. [Preflight] Verify Python 3.14 available via uv
 5. [Kokoro] Run kokoro-install.sh --install
 6. [Kokoro] Verify MLX-Audio acceleration
 7. [BotFather] Guide BotFather token creation (or verify existing)
 8. [Secrets] Store token in ~/.claude/.secrets/ccterrybot-telegram
-9. [Secrets] Create .mise.local.toml with _.file reference to secrets
-10. [Environment] Add KOKORO_VENV and KOKORO_SCRIPT to mise.toml
+9. [Secrets] Copy TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / SUB2API_API_KEY into the bot's .env (mode 600)
+10. [Environment] Confirm KOKORO_VENV and KOKORO_SCRIPT in moon.yml env:
 11. [Symlinks] Create ~/.local/bin/ symlinks for all TTS shell scripts
 12. [Verify] Generate test WAV with Kokoro and play with afplay
 13. [Verify] Check bot responds to /status via Telegram API
@@ -171,7 +169,7 @@ curl -s "https://api.telegram.org/bot${BOT_TOKEN}/getMe" | jq .ok
 After modifying this skill:
 
 1. [ ] Verify `kokoro-install.sh --health` passes all 6 checks
-2. [ ] Confirm `.mise.local.toml` is gitignored
+2. [ ] Confirm the bot's `.env` is gitignored
 3. [ ] Test symlinks resolve correctly (`ls -la ~/.local/bin/tts_*.sh`)
 4. [ ] Verify bot token works via `getMe` API call
 5. [ ] Run a full TTS round-trip: clipboard text to audio playback
