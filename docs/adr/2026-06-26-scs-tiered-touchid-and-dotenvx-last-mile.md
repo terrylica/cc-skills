@@ -9,6 +9,8 @@ perspectives: [ThreatModelVsAgent, SelfCustody, Autonomy]
 
 # ADR: SCS evolution — tiered Touch-ID vault + dotenvx last-mile
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 ## Context and Problem Statement
 
 While scoping the mise→Moon/proto migration's secrets layer, we re-examined how this Mac handles secrets and **empirically proved** that Claude Code's own Bash tool can **silently read** Keychain items stored with `-T /usr/bin/security` (the exact flag the `vault` tool uses) — no prompt, no sandbox. So the existing vault gives **no protection against the agent itself**. We also wanted to lean on FOSS for the runtime "last mile" rather than hand-roll, and to defend crown-jewel keys against the agent.

@@ -8,6 +8,8 @@ last-updated: 2025-12-09
 
 # Implementation Spec: Plan File Exemption for pretooluse-guard.sh
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [Exempt Plan Files from ASCII Diagram Blocking](/docs/adr/2025-12-09-itp-hooks-plan-file-exemption.md)
 
 ## Summary

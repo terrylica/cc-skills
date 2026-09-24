@@ -216,7 +216,6 @@ claude plugin install PLUGIN@MARKETPLACE
 | Python with `shell=True`  | YES               | YES                | Via shell                       |
 | Python with `shell=False` | NO                | NO                 | Use `os.path.expanduser()`      |
 | YAML files                | DEPENDS           | DEPENDS            | Tool-specific                   |
-| TOML files (mise)         | YES               | YES                | `{{env.HOME}}` or `{{env.VAR}}` |
 
 **Rule**: Never use `$HOME`, `~`, or `${VAR}` in JSON files. Always use absolute paths.
 

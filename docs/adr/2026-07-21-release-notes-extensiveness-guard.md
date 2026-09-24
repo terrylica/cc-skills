@@ -1,5 +1,7 @@
 # ADR: Release-Notes Extensiveness Guard (2026-07-21)
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **Date**: 2026-07-21  
 **Status**: Accepted  
 **Severity**: Hard block (PreToolUse deny, reason-gated escape hatch)

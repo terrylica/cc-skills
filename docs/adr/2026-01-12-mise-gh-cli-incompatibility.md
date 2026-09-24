@@ -5,6 +5,8 @@ date: 2026-01-12
 
 # mise gh CLI Incompatibility with Claude Code
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **Date**: 2026-01-12
 **Status**: Accepted
 **Deciders**: Terry Li

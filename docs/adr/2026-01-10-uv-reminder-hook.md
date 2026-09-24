@@ -8,6 +8,8 @@ research-method: multi-perspective-subagent-analysis
 
 # ADR: UV Reminder Hook for Pip Usage
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 ## Context and Problem Statement
 
 Claude Code often forgets to use `uv` instead of `pip` for Python dependency management, despite user preferences documented in CLAUDE.md. This leads to:

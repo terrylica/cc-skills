@@ -48,7 +48,7 @@ bash tasks/release/augment --tag <tag> --notes-file <path>   # Replace a GitHub 
 
 Every phase is a plain script under `tasks/`, so `bash tasks/release/<phase>` runs it identically with no moon involved — the moon task is a thin wrapper, which is what makes the orchestrator swappable. Args after `--` and the `ITER*` env-var knobs documented below both pass through the wrapper unchanged.
 
-**Known cosmetic drift**: several task scripts still print `mise run …` strings inside their own help, cheatsheet and diagnostic output — notably `tasks/commits/_default` and the Check 4l audit's `mise run release:history` hint. Those printed strings name a runner that is not installed; use the moon commands documented here instead. Retargeting the scripts' own output is tracked separately from this document.
+**Legacy output strings**: jdx/mise is retired and not installed. If a task script's own help or diagnostic output still prints a `mise run …` string, it names a runner that does not exist; use the moon commands documented here instead (`mise run release:X` is `moon run repo:release-X`, `mise run commits:X` is `moon run repo:commits-X`).
 
 ### Extensive release notes
 
@@ -445,7 +445,7 @@ ITER152_SUBJECT_HARD_CAP_THRESHOLD_CHARS=50 moon run repo:commits-health
 
 **Tunables** (all with `ITER152_` prefix for namespace clarity): `COMMIT_COUNT_TO_ANALYZE` (default 10), `SUBJECT_HARD_CAP_THRESHOLD_CHARS` (default 72), `SUBJECT_HARD_TARGET_THRESHOLD_CHARS` (default 50), `HISTOGRAM_BAR_WIDTH` (default 20 cols), `WORST_OFFENDER_CALLOUT_COUNT` (default 3).
 
-Regression pin: `tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, mise wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
+Regression pin: `tasks/tests/test-iter152-...sh` (28 assertions across 6 groups covering structural validity, env-var tunable honor, panel-by-panel design contract, trend-verdict 4-way state machine, task wrapper delegation, and functional smoke test emitting all 5 panel headers + at least one histogram bar).
 
 ### Pre-Commit Dry-Run Advisor (iter-153)
 
@@ -899,5 +899,4 @@ The defensive pattern above reduces the blast radius if you forget — but the o
 
 ## Related Documentation
 
-- [Release workflow patterns (itp mise-tasks reference)](/plugins/itp/skills/mise-tasks/references/release-workflow-patterns.md)
 - [Version Management ADR](/docs/adr/2025-12-05-centralized-version-management.md)

@@ -173,9 +173,9 @@ PreToolUse/PostToolUse hooks run on **every** tool invocation. During rapid oper
 
 **Root cause**: Network latency (~1-2s) accumulates while new hook invocations spawn faster than they complete.
 
-**Solution**: Pre-configure authentication/validation via mise `[env]` instead of runtime validation.
+**Solution**: Pre-configure authentication/validation in static environment configuration, resolved once before hooks run, instead of validating at runtime.
 
-**Pattern**: Pre-configure auth in mise `[env]` to avoid runtime subprocess storms.
+**Pattern**: Never spawn an auth/validation subprocess per hook invocation; that is what turns latency into a subprocess storm.
 
 ## Hook Installation — there is nothing to install
 
@@ -280,7 +280,7 @@ Every edit at Layer 1 is now reflected in Layer 3 immediately. WARNING: the next
 **C. Cut a release**:
 
 ```bash
-mise run release:full   # full release pipeline, including marketplace publish
+moon run repo:release-full   # full release pipeline, including marketplace publish
 ```
 
 The canonical path. Use this when you have a stable batch of changes ready to ship.
@@ -319,7 +319,7 @@ The hand-typed recipe above probes one hook at a time and relies on operator-cho
 
 ```bash
 # Default: per-plugin summary across all plugins, filtered to cache-populator-kept paths
-mise run audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis
+bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh
 
 # Focus on a single plugin
 ... --check-plugin <plugin-name>
@@ -375,7 +375,7 @@ The iter-76 forensic finding (above) drove two complementary preventive gates:
 | Layer        | Iter | Gate                                                                                      | Trigger                      | Outcome                                                                            |
 | ------------ | ---- | ----------------------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
 | Edit-time    | 78   | `pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` (Write\|Edit\|MultiEdit)      | Operator typing now          | Hook denies the edit before the violating reference lands on disk                  |
-| Release-time | 77   | `audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths…sh` (4k) | `mise run release:preflight` | Audit blocks tag publish if any hook source file contains an unjustified reference |
+| Release-time | 77   | `audit-hook-source-files-for-references-to-iter76-cache-populator-stripped-paths…sh` (4k) | `moon run repo:release-preflight` | Audit blocks tag publish if any hook source file contains an unjustified reference |
 
 Both gates use the SAME allowlist (`{hooks, skills, commands, agents, plugin.json}`) and the SAME escape-hatch marker syntax (`LAYER3-STRIPPED-PATH-OK: <reason ≥ 10 chars>` on the same line OR within the three preceding lines).
 
@@ -1472,7 +1472,7 @@ Iter-120 closes the final operator-discoverability gap surfaced by iter-119's ad
 **Live example**
 
 ```
-$ mise run lookup-...-iter116-... file-size-guard
+$ bash tasks/lookup-*-via-iter116-*.sh file-size-guard
 ✓ No exact path match for "file-size-guard", but found 1 consumer
   whose basename contains your query (case-insensitive):
 
@@ -1514,7 +1514,7 @@ All 8 cases pass. Marketplace regression suite: **54/54** (up from 53).
 
 ### Iter-123: Unified lookup CLI — auto-detects query shape and dispatches to iter-116 reverse OR iter-122 forward, eliminating the operator's direction-choice burden
 
-Iter-123 caps the iter-107 → iter-122 escape-hatch-marker reference arc with a single operator entry point that auto-detects whether the query is a marker name or a consumer path, then dispatches to the right backend. Pre-iter-123 operators had to remember which of two >130-character mise task names corresponded to which lookup direction — the two names differ only by `reverse-search-accessor` vs `forward-search-accessor` plus noun ordering, error-prone in shell completion.
+Iter-123 caps the iter-107 → iter-122 escape-hatch-marker reference arc with a single operator entry point that auto-detects whether the query is a marker name or a consumer path, then dispatches to the right backend. Pre-iter-123 operators had to remember which of two >130-character task script names corresponded to which lookup direction — the two names differ only by `reverse-search-accessor` vs `forward-search-accessor` plus noun ordering, error-prone in shell completion.
 
 **Classification rules (top-to-bottom precedence)**
 
@@ -1530,7 +1530,7 @@ The strict UPPER-KEBAB-CASE regex stays strict (no weakening to accept `SSoT`). 
 **Live example**
 
 ```
-$ mise run lookup-...-iter123-... file-size-guard
+$ bash tasks/lookup-*-via-iter123-*.sh file-size-guard
 ⓘ Routing: auto-detect classifier: query has no '/' AND does not match strict canonical-marker shape
   → AMBIGUOUS → trying iter-122 forward-search first; falling back to iter-116 reverse-search if forward returns nothing
 
@@ -1605,7 +1605,7 @@ Iter-122 resolves the symmetric forward direction:
 
 > "I'm reading source code and saw `# CARGO-TTY-SKIP`. What does this marker do, and which consumer hook recognizes it?" → forward-search by marker-name-token
 
-Pre-iter-122 operators had three slow paths: table-scan the 385-line operator-facing reference doc, grep the iter-111/iter-114 registry source files, or read the consumer hook source to learn what the marker does. Iter-122 ships a single mise task that resolves the lookup in one command.
+Pre-iter-122 operators had three slow paths: table-scan the 385-line operator-facing reference doc, grep the iter-111/iter-114 registry source files, or read the consumer hook source to learn what the marker does. Iter-122 ships a single task script that resolves the lookup in one command.
 
 **Five-step fallback chain (mirrors iter-116's four-step chain with one addition)**
 
@@ -1622,7 +1622,7 @@ Step 2 (case-insensitive exact match) is the only addition beyond iter-116's cha
 **Live examples**
 
 ```
-$ mise run lookup-...-iter122... FILE-SIZE-OK
+$ bash tasks/lookup-*-via-iter122-*.sh FILE-SIZE-OK
 ✓ Found 1 canonical registry entry/entries for marker:
     FILE-SIZE-OK
 
@@ -1636,14 +1636,14 @@ $ mise run lookup-...-iter122... FILE-SIZE-OK
   Example:
   # FILE-SIZE-OK
 
-$ mise run lookup-...-iter122... TTY
+$ bash tasks/lookup-*-via-iter122-*.sh TTY
 ✓ No exact match for "TTY", but found 2 markers whose token contains your query (case-insensitive):
 
   CARGO-TTY-SKIP
   CARGO-TTY-WRAP
 ...
 
-$ mise run lookup-...-iter122... FIEL-SIZE-OK
+$ bash tasks/lookup-*-via-iter122-*.sh FIEL-SIZE-OK
 ✗ No canonical registry entry matches the marker token: FIEL-SIZE-OK
   Did you mean (top-3 closest matches by Levenshtein edit distance)?
     [2 edits] FILE-SIZE-OK
@@ -1773,17 +1773,17 @@ The iter-118 "plausible typo vs unrelated query" decision is encoded directly in
 
 ```bash
 # What marker opts out of file-size-guard?
-$ mise run lookup-...-iter116-... --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts \
+$ bash tasks/lookup-*-via-iter116-*.sh --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts \
     | jq -r '.markers[].markerNameTokenIncludingSuffix'
 FILE-SIZE-OK
 
 # Count markers per lifecycle layer (aggregate across all known consumers)
 $ for path in $(...listAll registered paths...); do
-    mise run lookup-...-iter116-... --json "$path" | jq -r '.markers[].lifecycleLayer'
+    bash tasks/lookup-*-via-iter116-*.sh --json "$path" | jq -r '.markers[].lifecycleLayer'
   done | sort | uniq -c
 
 # In CI: fail if any consumer has stale description (programmatic check)
-$ mise run lookup-...-iter116-... --json some/path.ts \
+$ bash tasks/lookup-*-via-iter116-*.sh --json some/path.ts \
     | jq -e '.markers[].humanReadableEscapeHatchDescriptionForOperatorDocumentation | contains("file-size-guard")'
 ```
 
@@ -1834,7 +1834,7 @@ Iter-118 enhances the iter-116 reverse-search CLI's unknown-path branch with the
 **Live example**
 
 ```
-$ mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \
+$ bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \
     plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts   # extra 's'
 ✗ No registered escape-hatch markers target this consumer path:
     plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts
@@ -1905,7 +1905,7 @@ helper on every Write/Edit/Bash invocation):
 - ...
 - [`SSoT-OK`](#ssot-ok)
 
-**Audit-task markers** (8; consumed by `.mise/` audit tasks once per
+**Audit-task markers** (8; consumed by `tasks/` audit tasks once per
 release-preflight):
 
 - [`ESCAPE-HATCH-AUDIT-OK`](#escape-hatch-audit-ok-audit-task)
@@ -1937,7 +1937,7 @@ All 7 cases pass. Marketplace regression suite: **51/51** (up from 50; iter-117 
 Iter-116 closes the operator-discoverability gap of the FORWARD direction (marker → consumer was covered by the iter-113 reference doc; consumer → marker required table-scanning until iter-116). Operators now answer the reverse question with one CLI invocation:
 
 ```
-$ mise run lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries \
+$ bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \
     plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
 ✓ Found 1 escape-hatch marker for consumer:
     plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
@@ -1992,9 +1992,9 @@ Multi-marker consumers (e.g., `pretooluse-cargo-tty-guard.ts` honors both `CARGO
 | 3    | Multi-marker reverse-lookup on cargo-tty-guard returns exactly 2 hits (SKIP + WRAP) both runtime-hook                    |
 | 4    | Audit-task reverse-lookup returns ≥1 hit with `AUDIT_TASK_ITER114` provenance                                            |
 | 5    | Unknown consumer path returns empty array AND `listAllDistinctConsumerSourceFileRelativePaths…` returns ≥15 paths sorted |
-| 6    | Operator-facing mise task exists + executable + exits 0 with marker output on known consumer                             |
-| 7    | Operator-facing mise task exits 2 with "Hint:" + "distinct consumer paths" guidance on unknown path                      |
-| 8    | Operator-facing mise task exits 1 with usage + exit-code documentation on `--help`                                       |
+| 6    | Operator-facing task script exists + executable + exits 0 with marker output on known consumer                             |
+| 7    | Operator-facing task script exits 2 with "Hint:" + "distinct consumer paths" guidance on unknown path                      |
+| 8    | Operator-facing task script exits 1 with usage + exit-code documentation on `--help`                                       |
 
 All 8 cases pass. Marketplace regression suite: **50/50** (up from 49; iter-116 test auto-discovered).
 
@@ -2038,7 +2038,7 @@ The promotion ran ONLY after confirming a clean baseline:
 Both STRICT-BLOCK stanzas emit the same operator-readable fix guidance as the informational versions did — the only behavioral delta is `exit 1` instead of "continues". Fix paths:
 
 - Check 4t unregistered token: (A) fix the typo in the producer file, OR (B) register a legitimate new marker in the appropriate canonical registry, OR (C) rename a test fixture to `FOO-` / `BAR-` / `BAZ-` / `QUX-` (audit ignores those families)
-- Check 4u doc drift: re-run `mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry` and commit the regenerated doc atomically with the registry edit
+- Check 4u doc drift: re-run `bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh` and commit the regenerated doc atomically with the registry edit
 
 **Regression test (`test-iter115-…-strict-block-now-fail-release-on-synthetic-mutation.sh`)**
 
@@ -2050,7 +2050,7 @@ Both STRICT-BLOCK stanzas emit the same operator-readable fix guidance as the in
 | 4    | The same extraction pipeline yields 0 on a clean baseline (no false-positive release blocks)                   |
 | 5    | iter-113 generator `--check` exits non-zero AND emits `DRIFT` on injected doc mutation                         |
 | 6    | iter-113 generator `--check` exits zero AND emits `no drift` on restored baseline                              |
-| 7    | Preflight references both audit task + generator task via their exact `mise run` task-name basenames           |
+| 7    | Preflight references both audit task + generator task via their exact task-script basenames           |
 
 All 7 cases pass. Marketplace regression suite: **49/49** (up from 48; iter-115 test auto-discovered).
 
@@ -2066,7 +2066,7 @@ Iter-114 closes the marker-coverage gap left by iter-111 (which covered only RUN
 | Layer        | Consumer              | When                       | Registry                | Entries (iter-114 baseline) |
 | ------------ | --------------------- | -------------------------- | ----------------------- | --------------------------- |
 | RUNTIME-HOOK | Pre/PostToolUse hooks | Every Write/Edit/Bash      | iter-111 registry       | 12                          |
-| AUDIT-TASK   | `.mise/` audit tasks  | Once per release-preflight | iter-114 registry (NEW) | 8                           |
+| AUDIT-TASK   | `tasks/` audit tasks  | Once per release-preflight | iter-114 registry (NEW) | 8                           |
 
 **Why two registries instead of one polymorphic registry**
 
@@ -2097,7 +2097,7 @@ Audit markers all require ≥10-character reason after the colon (release-blocki
 The iter-113 generator now imports BOTH registries and renders TWO distinct catalogs in `docs/marketplace-escape-hatch-marker-reference.md`:
 
 1. `## Runtime-hook marker catalog (12 registered markers consumed by iter-107 shared helper)`
-2. `## Audit-task marker catalog (8 registered markers consumed by .mise/ release-preflight audit tasks)`
+2. `## Audit-task marker catalog (8 registered markers consumed by tasks/ release-preflight audit tasks)`
 
 Operators get a single discoverable artifact (20 marker sections in alphabetical order within each catalog) covering both lifecycle layers. The doc-drift detection (preflight Check 4u) continues to work — it validates that the on-disk doc matches the registry-derived output regardless of which registry produced each section.
 
@@ -2124,7 +2124,7 @@ Operators get a single discoverable artifact (20 marker sections in alphabetical
 
 1. Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 doc-drift detector) from informational to STRICT-BLOCK now that both marker families are formally registered
 2. Add reverse-search accessor `lookupCanonicalRegistryEntryByConsumerSourceFileRelativePath` spanning both registries (operators can ask "what marker suppresses hook/audit X?" programmatically)
-3. Extend the iter-111 producer-typo audit to scan `.mise/` files for audit-task-marker typos (currently the audit excludes `.mise/`); requires careful scope to avoid false-positives on the audit-task scripts that USE their own markers as documentation
+3. Extend the iter-111 producer-typo audit to scan `tasks/` files for audit-task-marker typos (currently the audit excludes `tasks/`); requires careful scope to avoid false-positives on the audit-task scripts that USE their own markers as documentation
 
 ### Iter-113: Registry-to-docs generator emitting operator-facing `docs/marketplace-escape-hatch-marker-reference.md` from the iter-111 canonical registry as SSoT
 
@@ -2174,7 +2174,7 @@ All 7 cases pass. Marketplace regression suite: **47/47** (up from 46 in iter-11
 
 **Iter-114+ candidates documented inline**
 
-1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `.mise/` audit tasks rather than runtime hooks): `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`. Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
+1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `tasks/` audit tasks rather than runtime hooks): `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`. Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
 2. Promote Check 4t (iter-111 producer-typo audit) + Check 4u (iter-113 doc-drift detector) from informational to STRICT-BLOCK once the AUDIT-marker family is also registered.
 3. Add a search-by-suppression-target accessor to the registry (`lookupCanonicalRegistryEntryByConsumerHookSourceFileRelativePath`) so operators can ask the registry "what marker suppresses this hook?" programmatically.
 
@@ -2243,7 +2243,7 @@ This matches the UPPER-KEBAB-CASE-never-collides convention used by the other 8 
 
 **Iter-113+ candidates**
 
-1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `.mise/` audit tasks rather than runtime hooks — `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`). Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
+1. Extend iter-111 registry to cover the AUDIT-marker family (~10 markers consumed by `tasks/` audit tasks rather than runtime hooks — `WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`). Separate registry layer because audit-marker lifecycle differs from runtime-hook lifecycle.
 2. Promote iter-111 audit (preflight Check 4t) from informational to STRICT-BLOCK once the AUDIT-marker family is also registered.
 3. Build a registry-to-documentation generator that emits operator-facing `escape-hatch-marker-reference.md` from the iter-111 registry — single source of truth for "how do I opt out of hook X".
 
@@ -2282,7 +2282,7 @@ Iter-111 baseline: **12 entries** (the iter-110 cohort plus `SETPROCTITLE-OK` wh
 
 `tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh` greps the marketplace for `\b[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)\b` tokens in producer files and verifies each appears in the registry. Scope rules:
 
-- INCLUDES: every file under `plugins/<plugin>/` except `plugins/itp-hooks/hooks/` (consumers, not producers) and except `.mise/` (audit-marker family — different lifecycle layer, iter-112+ scope)
+- INCLUDES: every file under `plugins/<plugin>/` except `plugins/itp-hooks/hooks/` (consumers, not producers) and except `tasks/` (audit-marker family — different lifecycle layer, iter-112+ scope)
 - EXCLUDES: `tests/`, `docs/`, `references/`, `*.test.*`, `test-*`, `*_test.*`, `*.spec.*` (test fixtures use synthetic `FOO-OK`/`BAR-OK`/`BAZ-OK`/`QUX-OK` markers that aren't real)
 - EXCLUDES: vendor/build dirs (`.build`, `node_modules`, `.venv`, `target`, `.git`)
 
@@ -2310,7 +2310,7 @@ Iter-109 preserved the pre-migration `export const ESCAPE_HATCH = /.../i;` regex
 **Iter-112+ candidates** documented inline:
 
 1. Migrate `posttooluse-reminder.ts`'s `# SETPROCTITLE-OK` detection from raw `.includes()` to the iter-107 canonical helper for behavioral consistency with the other 11 cohort members.
-2. Extend the registry to cover the 10+ AUDIT-marker family (`WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`) — these are consumed by `.mise/` audit tasks rather than runtime hooks and represent a parallel marker registry layer.
+2. Extend the registry to cover the 10+ AUDIT-marker family (`WILDCARD-MATCHER-OK`, `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`, `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`, `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`) — these are consumed by `tasks/` audit tasks rather than runtime hooks and represent a parallel marker registry layer.
 3. Promote iter-111 audit from informational (Check 4t) to STRICT-BLOCK once the AUDIT-marker family is also registered AND the marketplace stabilizes.
 
 ### Iter-110: Close iter-107 → iter-109 escape-hatch consolidation arc with file-size-guard migration + audit STRICT-BLOCK promotion + multi-marker probe
@@ -2410,7 +2410,7 @@ Source on Bun's `.mjs` ↔ `.ts` cross-format module resolution (used by `proces
 The forensic baseline above can be reproduced (and regression-watched) via:
 
 ```bash
-mise run profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor
+bash tasks/profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-non-applicable-payload-to-surface-high-overhead-outliers-above-bun-startup-floor.sh
 ```
 
 ### Orchestration-candidacy ranker (iter-81)
@@ -2418,7 +2418,7 @@ mise run profile-edit-time-pretooluse-hook-cold-start-bun-spawn-overhead-with-no
 The companion ranking tool identifies WHICH hook groupings yield the highest savings if combined into an iter-66-style orchestrator:
 
 ```bash
-mise run audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor
+bash tasks/audit-pretooluse-hook-matcher-grouping-to-rank-orchestration-candidacy-by-bun-spawn-savings-from-iter80-cold-start-floor.sh
 ```
 
 Reads every `plugins/*/hooks/hooks.json`, groups PreToolUse entries by exact matcher signature, and ranks each group by `(group_size - 1) × 44ms` estimated savings. Live marketplace finding as of iter-81:

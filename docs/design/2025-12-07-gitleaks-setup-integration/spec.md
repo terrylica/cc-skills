@@ -8,6 +8,8 @@ last-updated: 2025-12-07
 
 # Design Spec: Add Gitleaks to ITP Setup Command
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [Add Gitleaks Secret Scanner to ITP Setup Command](/docs/adr/2025-12-07-gitleaks-setup-integration.md)
 
 ## Summary

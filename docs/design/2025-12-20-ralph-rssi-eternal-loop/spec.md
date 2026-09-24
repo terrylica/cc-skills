@@ -9,6 +9,8 @@ validated: 2025-12-26
 
 # Design Spec: Ralph Eternal Loop Architecture
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [Ralph Eternal Loop Architecture](/docs/adr/2025-12-20-ralph-rssi-eternal-loop.md)
 
 ## Overview

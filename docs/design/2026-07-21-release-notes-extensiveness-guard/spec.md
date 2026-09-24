@@ -1,5 +1,7 @@
 # Design Spec: Release-Notes Extensiveness Guard
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [/docs/adr/2026-07-21-release-notes-extensiveness-guard.md](/docs/adr/2026-07-21-release-notes-extensiveness-guard.md)
 **Plugin**: `itp-hooks` · **Event**: PreToolUse · **Matcher**: `Bash`
 **Doctrine SSoT**: `~/.claude/release-notes-doctrine-CLAUDE.md`
