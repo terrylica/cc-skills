@@ -44,7 +44,7 @@ echo "  ✓ Repo is private ($OWNER_REPO) — chronicle will be attached"
 # Resolve NEW_TAG: prefer the tag pointing at HEAD (set by semantic-release in
 # Phase 2), fall back to package.json version. Some repos use dynamic
 # placeholder versions (`0.0.0-semantic-release`) so package.json alone is unsafe.
-NEW_TAG=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+NEW_TAG=$(git describe --tags --match 'v[0-9]*' --exact-match HEAD 2>/dev/null || echo "")
 if [[ -z "$NEW_TAG" ]]; then
     if [[ -f package.json ]]; then
         VERSION=$(jq -r '.version' package.json 2>/dev/null || echo "")

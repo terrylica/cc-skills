@@ -152,7 +152,7 @@ done
 if [[ -n "$GIT_REVISION_SPEC_OVERRIDE_FOR_ARBITRARY_RANGE" ]]; then
     effective_git_revision_range="$GIT_REVISION_SPEC_OVERRIDE_FOR_ARBITRARY_RANGE"
 elif [[ "$STRICT_MODE_GATE_RELEASE_PIPELINE_ON_NONCONFORMANCE" == "1" ]]; then
-    last_release_tag_or_empty=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+    last_release_tag_or_empty=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "")
     if [[ -n "$last_release_tag_or_empty" ]]; then
         effective_git_revision_range="$last_release_tag_or_empty..HEAD"
     else

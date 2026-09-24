@@ -594,12 +594,12 @@ fi
 
 # Iter-164: detect current git tag once at advisor startup so both
 # renderers (human + JSON) can show concrete next-version preview.
-# Uses `git describe --tags --abbrev=0` — the most recent reachable
+# Uses `git describe --tags --match 'v[0-9]*' --abbrev=0` — the most recent reachable
 # annotated/lightweight tag from HEAD, matching what semantic-release
 # uses as the baseline for its release-window scan. Empty string if no
 # tag exists yet (graceful — iter-164 resolver handles missing-tag).
 # shellcheck disable=SC2034  # consumed by both renderers further down
-ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+ITER164_DETECTED_CURRENT_GIT_TAG_FROM_GIT_DESCRIBE_FOR_NEXT_VERSION_PREVIEW_RESOLUTION=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "")
 
 # Iter-162: invoke footer-token detector against the multi-line body
 # captured via --message-file (or iter-154 auto-detect, extended below).

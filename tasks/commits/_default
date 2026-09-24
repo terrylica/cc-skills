@@ -112,7 +112,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
 
   Iter-164 concrete next-version preview: resolves the iter-161 bump
   LABEL into the actual NEXT VERSION NUMBER by applying semver.org §2
-  increment rules to the current \`git describe --tags\` tag. Human
+  increment rules to the current \`git describe --tags --match v[0-9]*\` tag (archive/* tags ignored). Human
   output adds a line like \`next version: v21.71.0 → v21.72.0\` directly
   below the bump-label line. --json embeds a nested
   iter164_next_version_preview object with stable iter164_schema_version=1

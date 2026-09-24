@@ -386,7 +386,8 @@ __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking GitHub authentication..."
 if [[ -z "${GH_TOKEN:-}" ]]; then
     echo "  ✗ GH_TOKEN not set"
-    echo "    Run: eval \"\$(mise env)\" or check .mise.toml"
+    echo "    moon run repo:release-full derives it from 'gh auth token' itself; for a single phase run:"
+    echo "    GH_TOKEN=\"\$(gh auth token)\" moon run repo:<phase>"
     exit 1
 fi
 # Validate token is not empty/whitespace
@@ -395,16 +396,16 @@ if [[ -z "$(echo "$GH_TOKEN" | tr -d '[:space:]')" ]]; then
     exit 1
 fi
 # Check token format (should start with ghp_ or github_pat_)
-if [[ ! "$GH_TOKEN" =~ ^(ghp_|github_pat_) ]]; then
-    echo "  ⚠ GH_TOKEN format unusual (expected ghp_* or github_pat_*)"
+if [[ ! "$GH_TOKEN" =~ ^(ghp_|gho_|github_pat_) ]]; then
+    echo "  ⚠ GH_TOKEN format unusual (expected ghp_*, gho_* or github_pat_*)"
 fi
 echo "  ✓ GH_TOKEN present (${#GH_TOKEN} chars)"
 
-# Check 3: Expected account (from GH_ACCOUNT env, set by mise)
+# Check 3: Expected account (optional GH_ACCOUNT env override)
 if [[ -n "${GH_ACCOUNT:-}" ]]; then
     echo "  ✓ Target account: $GH_ACCOUNT (from GH_ACCOUNT env)"
 else
-    echo "  ⚠ GH_ACCOUNT not set - releasing with token from mise.toml"
+    echo "  ⚠ GH_ACCOUNT not set - releasing as whichever account GH_TOKEN belongs to"
 fi
 __preflight_timing_report_phase_elapsed_milliseconds "Check 2-3: GH_TOKEN + GH_ACCOUNT env"
 
@@ -1018,7 +1019,7 @@ if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_fil
     echo "      B. If the token is a legitimate new marker: register it in the"
     echo "         appropriate canonical registry (iter-111 for runtime-hook"
     echo "         markers, iter-114 for audit-task markers) and re-run"
-    echo "         mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+    echo "         bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
     exit 1
 fi
 ITER111_UNREGISTERED_COUNT=$( { grep -oE 'AUDIT FOUND [0-9]+' /tmp/iter111-producer-marker-typo-audit.log || true; } | grep -oE '[0-9]+' | head -1 || echo 0)
@@ -1054,7 +1055,7 @@ __iter134_seed_phase_timing_start_from_externally_captured_audit_wall_clock_elap
 echo "→ Running iter-113 registry-to-docs drift detector (iter-115 STRICT-BLOCK)..."
 if ! __iter134_audit_subprocess_completed_successfully_per_sidecar_exit_code_file iter113-doc-drift-detector; then
     echo "  ✗ ITER-113 REGISTRY-TO-DOCS DRIFT DETECTOR FAILED (iter-115 STRICT-BLOCK) — see /tmp/iter113-doc-drift-detector.log"
-    echo "    Fix: mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+    echo "    Fix: bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
     echo "    (then commit the regenerated docs/marketplace-escape-hatch-marker-reference.md alongside the registry change)"
     exit 1
 fi
@@ -1100,7 +1101,7 @@ __preflight_timing_report_phase_elapsed_milliseconds "Check 4v: stale-descriptio
 # Check 5: Releasable commits exist
 __preflight_timing_mark_phase_start_using_EPOCHREALTIME
 echo "→ Checking for releasable commits..."
-LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+LATEST_TAG=$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || echo "")
 if [[ -n "$LATEST_TAG" ]]; then
     COMMITS=$(git log "$LATEST_TAG"..HEAD --oneline 2>/dev/null | wc -l | tr -d ' ')
     if [[ "$COMMITS" -eq 0 ]]; then

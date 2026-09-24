@@ -118,7 +118,7 @@ fi
 #   - Zero modification of ~/.ssh/config. The operator's IdentityFile pin
 #     + IdentitiesOnly directives are preserved untouched.
 #
-#   - Process-tree-scoped: GIT_SSH_COMMAND is only set inside `mise run release:full`.
+#   - Process-tree-scoped: GIT_SSH_COMMAND is only set inside `moon run repo:release-full`.
 #     Spawned bash subprocesses inherit it; bash exit unsets it. Other
 #     terminal sessions, cron jobs, IDE git operations, etc. are unaffected.
 #
@@ -238,8 +238,23 @@ echo "║  cc-skills Full Release Workflow                          ║"
 echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 
+# GH_TOKEN: derived from the gh CLI's own stored credential when the caller did
+# not set one. The previous hint ("eval $(mise env)") pointed at a toolchain that
+# is retired here and a .mise.toml that no longer exists, so every release began
+# with a manual rescue. `gh auth token` reads local storage only (no API call).
+if [[ -z "${GH_TOKEN:-}" ]]; then
+    GH_TOKEN="$(gh auth token 2>/dev/null)" || GH_TOKEN=""
+    export GH_TOKEN
+fi
+
+# Tells the semantic-release successCmd's registry assertion that Phase 3 (sync),
+# which is what actually advances installed_plugins.json, has not run yet and
+# WILL run; the assertion is then made in Phase 4 (verify) instead. Without this
+# the Phase-2 assertion failed on every full release and aborted before Phase 3.
+export CC_SKILLS_RELEASE_ORCHESTRATED_BY_FULL=1
+
 # Phase 1: Preflight (explicitly invoked rather than via `depends=` so iter-139
-# instrumentation can wrap it; functionally identical to a mise dep).
+# instrumentation can wrap it).
 __iter139_wrap_release_phase_invocation_with_epochrealtime_wall_clock_capture_for_release_timing_profile_top_n_bottleneck_ranking \
     "Phase 1: preflight (sixty test files + seventeen audits parallel-pre-warm + plugin manifest validation)" \
     bash "$CC_SKILLS_RELEASE_PHASE_SCRIPT_DIR/preflight"
