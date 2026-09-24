@@ -1,3 +1,18 @@
+## [31.1.4](https://github.com/terrylica/cc-skills/compare/v31.1.3...v31.1.4) (2026-09-24)
+
+
+### Bug Fixes
+
+* **release:** full release runs unattended again ([b035976](https://github.com/terrylica/cc-skills/commit/b035976da488f049276770ac5c85956d023f0dcd))
+
+Every cc-skills release needed two manual rescues. Preflight stopped on an unset GH_TOKEN and told the operator to run mise, which is retired here and has no .mise.toml. Then the registry assertion in semantic-release's successCmd (Phase 2) failed with "RELEASE IS INERT", because the registry is only advanced by Phase 3 (sync), which runs after it; the failure aborted release-full before Phase 3 could run. Separately, the archive/pre-&lt;slug> recovery tags adopted as the cleanup safety net broke every `git describe --tags` version lookup whenever one sat on HEAD.
+
+- release-full derives GH_TOKEN from `gh auth token` when unset and marks itself as the orchestrator.
+- The successCmd registry assertion defers to Phase 4 under release-full; a standalone Phase-2 run still fails loudly.
+- Phase 4 (verify) now asserts each plugin's registry entry is AT the released version, not merely present; negative-tested against a registry rolled back to 31.1.2.
+- Every version lookup uses `git describe --tags --match 'v[0-9]*'`, so archive/* tags cannot shadow the release tag.
+- Removed tasks/release/_default (unreferenced help listing mise commands); replaced remaining operator-facing mise hints with moon or bash equivalents.
+
 ## [31.1.3](https://github.com/terrylica/cc-skills/compare/v31.1.2...v31.1.3) (2026-09-24)
 
 
