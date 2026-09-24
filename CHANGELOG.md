@@ -1,3 +1,18 @@
+## [31.1.3](https://github.com/terrylica/cc-skills/compare/v31.1.2...v31.1.3) (2026-09-24)
+
+
+### Bug Fixes
+
+* **itp-hooks:** stop the PR premise annotator from suppressing every AskUserQuestion dialog ([d6cb710](https://github.com/terrylica/cc-skills/commit/d6cb7105efb0b28be80a369c03210eb9da607e1e))
+
+The annotator rewrote AskUserQuestion options through allow + updatedInput. For that tool, updatedInput is the channel that carries the dialog's answers, so Claude Code treated the rewrite as already answered: the dialog never rendered and the tool returned "The user did not answer the questions." Measured across every session transcript: 86 of 86 rewritten calls went unanswered and unseen (2026-09-12 to 2026-09-24, Claude Code 2.1.269 to 2.1.281), against 465 of 466 plain-allow calls that rendered and were answered. The annotator also matched every bare #N, so issue numbers in ordinary menus triggered it and were tagged "could not be resolved just now".
+
+- allowWithInput now refuses AskUserQuestion outright, counts a hook error and falls back to a plain allow, so no hook can repeat this.
+- The annotator now denies with the exact one-line annotation when a resolved PR's facts are missing from the option text; the agent re-asks with it appended, and the re-ask passes (converges in one round).
+- References that do not resolve to a pull request are skipped instead of tagged.
+- The helper test that asserted AskUserQuestion mutation now asserts the refusal; the hooks.json description is corrected.
+- Verified by replaying the exact failing mql5 payload (now a plain allow) and a real-PR payload (deny, then allow on re-ask).
+
 ## [31.1.2](https://github.com/terrylica/cc-skills/compare/v31.1.1...v31.1.2) (2026-09-23)
 
 
