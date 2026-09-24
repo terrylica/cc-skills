@@ -122,9 +122,9 @@ iter142_assert_present \
     'Step 1: marketplace-clone git-fetch-tags'
 
 iter142_assert_present \
-    "C2: Step 2 (claude --print plugin update) preserved" \
+    "C2: Step 2 (headless claude --print plugin update) elimination forensic pin preserved" \
     "$ITER142_EXTRACTED_POST_RELEASE_VERIFICATION_SCRIPT_ABSOLUTE_PATH" \
-    'Step 2: claude --print /plugin update cc-skills subprocess-bootstrap'
+    'Step 2: ELIMINATED 2026-09-24'
 
 iter142_assert_present \
     "C3: Step 3 sleep-2 elimination forensic pin preserved" \

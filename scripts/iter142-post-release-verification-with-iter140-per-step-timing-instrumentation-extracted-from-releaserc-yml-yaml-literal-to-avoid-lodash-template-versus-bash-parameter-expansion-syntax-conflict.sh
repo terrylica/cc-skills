@@ -27,7 +27,7 @@
 #
 # Invariants preserved across the extraction (identical behavior to iter-140):
 #   - Step 1: marketplace-clone git-fetch-tags + git-reset-hard-to-vN
-#   - Step 2: claude --print /plugin update cc-skills subprocess-bootstrap
+#   - Step 2: ELIMINATED 2026-09-24 (was a headless `claude --print /plugin update`; a no-op)
 #   - Step 3: ELIMINATED (was hardcoded `sleep 2`, removed by iter-140)
 #   - Step 4: plugin-cache version-verification (with graceful-degrade)
 #   - Step 5: sync-hooks-to-settings.sh invocation
@@ -102,23 +102,13 @@ else
 fi
 __iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
 
-# Step 2: Trigger Claude Code plugin update
-# Iter-140 cost-watch: this step bootstraps a full claude subprocess just to fire
-# one slash command. Empirical data from iter-140 instrumentation will confirm
-# whether this is the dominant cost inside the successCmd block (suspected
-# ~10-15s); iter-143+ candidate is to replace this with a direct
-# cache-invalidation primitive if so.
-__iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_capture \
-    "Step 2: claude --print /plugin update cc-skills subprocess-bootstrap (bootstraps full Claude Code instance for one slash command)"
-echo "→ Step 2: Triggering Claude Code plugin update..."
-if command -v claude &>/dev/null; then
-  # Use claude in non-interactive mode to update plugin
-  claude --print "/plugin update cc-skills" 2>&1 | head -20 || true
-  echo "  ✓ Plugin update triggered"
-else
-  echo "  ⚠ Claude Code not found in PATH, skipping automatic update"
-fi
-__iter140_end_post_release_successcmd_step_with_epochrealtime_wall_clock_capture
+# Step 2: ELIMINATED 2026-09-24.
+# Previously: `claude --print "/plugin update cc-skills"`, which bootstrapped a full headless
+# Claude Code instance to fire one slash command. Measured on every release that day, it printed
+# "/plugin isn't available in this environment" and then "✓ Plugin update triggered" regardless:
+# slash commands are not available under --print, so the step did nothing while reporting success,
+# and each run cost a headless start (~101k prompt tokens). The registry update it was meant to
+# trigger is performed by release Phase 3 (tasks/release/sync) and asserted by Phase 4.
 
 # Step 3: ELIMINATED by iter-140.
 # Previously: `sleep 2` (hardcoded 2-second wait for cache to populate before
@@ -281,25 +271,16 @@ if [[ "${CC_SKILLS_RELEASE_ORCHESTRATED_BY_FULL:-0}" == "1" ]]; then
 elif [[ ! -f "$REGISTRY_PATH" ]]; then
   echo "  ⚠ No $REGISTRY_PATH on this machine; skipping (Claude Code not installed here)"
 else
-  # RETRIED, because Step 2 drives the registry update through a `claude --print` subprocess and a
-  # guard that fires on a slightly-late write is a guard that gets switched off. Bounded at ~10s:
-  # long enough for an in-flight update, far too short to hide a Phase-3 that never ran.
-  REGISTRY_STALE_ENTRIES=""
-  REGISTRY_ATTEMPT=0
-  while [[ $REGISTRY_ATTEMPT -lt 5 ]]; do
-    REGISTRY_STALE_ENTRIES=$(jq -r --arg v "$VERSION" '
-        .plugins // {}
-        | to_entries[]
-        | select(.key | endswith("@cc-skills"))
-        | select((.value[0].version // "missing") != $v)
-        | "\(.key) is at \(.value[0].version // "missing")"
-      ' "$REGISTRY_PATH" 2>/dev/null) || REGISTRY_STALE_ENTRIES="__JQ_FAILED__"
-    if [[ -z "$REGISTRY_STALE_ENTRIES" || "$REGISTRY_STALE_ENTRIES" == "__JQ_FAILED__" ]]; then
-      break
-    fi
-    REGISTRY_ATTEMPT=$((REGISTRY_ATTEMPT + 1))
-    [[ $REGISTRY_ATTEMPT -lt 5 ]] && sleep 2
-  done
+  # Checked ONCE. This used to retry for ~10s to allow for an in-flight write from Step 2's
+  # `claude --print` subprocess; Step 2 was a no-op and is gone (2026-09-24), so nothing can advance
+  # the registry while this step waits and a retry would only add ten seconds to every failure.
+  REGISTRY_STALE_ENTRIES=$(jq -r --arg v "$VERSION" '
+      .plugins // {}
+      | to_entries[]
+      | select(.key | endswith("@cc-skills"))
+      | select((.value[0].version // "missing") != $v)
+      | "\(.key) is at \(.value[0].version // "missing")"
+    ' "$REGISTRY_PATH" 2>/dev/null) || REGISTRY_STALE_ENTRIES="__JQ_FAILED__"
 
   if [[ "$REGISTRY_STALE_ENTRIES" == "__JQ_FAILED__" ]]; then
     echo "  ⚠ Could not parse $REGISTRY_PATH; the registry could not be verified"
@@ -344,8 +325,8 @@ echo "════════════════════════�
 # Iter-140: emit top-N slowest successCmd steps ranking when
 # RELEASE_TIMING_PROFILE=1. Mirrors iter-130/139 ranking pattern at the deepest
 # structural level (successCmd internals). Unlocks data-driven iter-143+
-# optimization of whichever step dominates (suspected: Step 2 claude --print
-# subprocess-bootstrap).
+# optimization of whichever step dominates. (The original suspect, Step 2's headless
+# claude --print bootstrap, was removed 2026-09-24 as a no-op.)
 if [[ "${RELEASE_TIMING_PROFILE:-0}" == "1" ]] && [[ "${#__iter140_per_successcmd_step_timing_record_array_for_top_n_slowest_bottleneck_ranking_summary[@]}" -gt 0 ]]; then
     __iter140_top_n_threshold_for_slowest_successcmd_step_ranking_display="${ITER140_TOP_N_SLOWEST_SUCCESSCMD_STEPS_TO_DISPLAY:-5}"
     echo ""
