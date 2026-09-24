@@ -8,7 +8,7 @@ allowed-tools: Read, Bash, Grep
 
 <!-- ADR: 2025-12-09-clickhouse-pydantic-config-skill -->
 
-Generate DBeaver database client configurations from Pydantic v2 models using mise `[env]` as Single Source of Truth (SSoT).
+Generate DBeaver database client configurations from Pydantic v2 models using environment variables as the Single Source of Truth (SSoT).
 
 **Schema documentation principle**: ClickHouse table/column COMMENTs are the SSoT for what each column means and how it's computed. See `quality-tools:clickhouse-architect` for the full COMMENT policy.
 
@@ -21,7 +21,6 @@ Use this skill when:
 - Setting up DBeaver connections for ClickHouse databases
 - Generating database client configurations from environment variables
 - Managing local vs cloud ClickHouse connection profiles
-- Integrating ClickHouse with mise-based development workflows
 - Automating DBeaver data-sources.json generation
 
 ## Critical Design Principle: Semi-Prescriptive Adaptation
@@ -43,16 +42,16 @@ Each repository has unique:
 
 ```bash
 # Generate local connection config
-mise run db-client-generate
+uv run scripts/generate_dbeaver_config.py --output .dbeaver/data-sources.json
 
 # Generate cloud connection config
-mise run db-client:cloud
+uv run scripts/generate_dbeaver_config.py --mode cloud --output .dbeaver/data-sources.json
 
 # Preview without writing
-mise run db-client:dry-run
+uv run scripts/generate_dbeaver_config.py --dry-run
 
 # Launch DBeaver
-mise run dbeaver
+open -a DBeaver
 ```
 
 ## Credential Prerequisites (Cloud Mode)
@@ -69,24 +68,23 @@ CLICKHOUSE_USER_READONLY=your_user
 CLICKHOUSE_PASSWORD_READONLY=your_password
 ```
 
-1. **Generate config**: Run `mise run db-client:cloud`
+1. **Generate config**: Run `uv run scripts/generate_dbeaver_config.py --mode cloud`
 
 **Skill chain**: `clickhouse-cloud-management` → `.env` → `clickhouse-pydantic-config`
 
-## mise `[env]` as Single Source of Truth
+## Environment Variables as Single Source of Truth
 
-All configurable values live in `.mise.toml`:
+All configurable values are environment variables; export them in your shell or keep them in the gitignored `.env`:
 
-```toml
-[env]
-CLICKHOUSE_NAME = "clickhouse-local"
-CLICKHOUSE_MODE = "local"  # "local" or "cloud"
-CLICKHOUSE_HOST = "localhost"
-CLICKHOUSE_PORT = "8123"
-CLICKHOUSE_DATABASE = "default"
+```bash
+export CLICKHOUSE_NAME=clickhouse-local
+export CLICKHOUSE_MODE=local  # "local" or "cloud"
+export CLICKHOUSE_HOST=localhost
+export CLICKHOUSE_PORT=8123
+export CLICKHOUSE_DATABASE=default
 ```
 
-Scripts read from `os.environ.get()` with backward-compatible defaults—works with or without mise installed.
+Scripts read from `os.environ.get()` with backward-compatible defaults, so every variable is optional.
 
 ## Credential Handling by Mode
 
@@ -113,7 +111,6 @@ Before writing any code, the executor MUST:
 
 ```bash
 # 1. Discover existing configuration patterns
-fd -t f ".mise.toml" .
 fd -t f ".env*" .
 fd -t d ".dbeaver" .
 
@@ -129,7 +126,7 @@ fd -t f "dataSources.xml" .
 
 | Discovery Finding                  | Adaptation Action                                      |
 | ---------------------------------- | ------------------------------------------------------ |
-| Existing `.mise.toml` at repo root | Extend existing `[env]` section, don't create new file |
+| Existing `.env` at repo root       | Extend it with `CLICKHOUSE_*` vars, don't create a new file |
 | Existing `.dbeaver/` directory     | Merge connections, preserve existing entries           |
 | Non-standard CLICKHOUSE\_\* vars   | Map to repository's naming convention                  |
 | Multiple databases (local + cloud) | Generate multiple connection entries                   |
@@ -141,7 +138,7 @@ The executor MUST verify:
 
 - [ ] Generated JSON is valid (`jq . .dbeaver/data-sources.json`)
 - [ ] DBeaver can import the config (launch and verify connection appears)
-- [ ] mise tasks execute without error (`mise run db-client-generate`)
+- [ ] The generator runs without error (`uv run scripts/generate_dbeaver_config.py --dry-run`)
 - [ ] `.dbeaver/` added to `.gitignore`
 
 ## Pydantic Model
@@ -188,7 +185,6 @@ See [references/dbeaver-format.md](./references/dbeaver-format.md) for complete 
 | ------------------------------------------ | ----------------------------------- |
 | `devops-tools:clickhouse-cloud-management` | Credential retrieval for cloud mode |
 | `quality-tools:clickhouse-architect`       | Schema design context               |
-| `itp:mise-configuration`                   | SSoT environment variable patterns  |
 
 ## Python Driver Policy
 
@@ -212,10 +208,9 @@ For Python application code connecting to ClickHouse (not DBeaver), use `clickho
 | Issue                   | Cause                        | Solution                                          |
 | ----------------------- | ---------------------------- | ------------------------------------------------- |
 | DBeaver can't connect   | Port mismatch (8123 vs 9000) | HTTP uses 8123, native uses 9000 - check config   |
-| Credentials not loading | .env not sourced             | Run `mise trust` or source .env manually          |
+| Credentials not loading | .env not sourced             | `set -a; source .env; set +a`, then re-run        |
 | JSON validation fails   | Invalid data-sources.json    | Validate with `jq . .dbeaver/data-sources.json`   |
 | Cloud SSL error         | Missing SSL on port 8443     | Cloud mode auto-enables SSL - verify port is 8443 |
-| mise task not found     | Missing task definition      | Add task to mise.toml `[tasks]` section           |
 | .dbeaver/ in git        | Missing gitignore entry      | Add `.dbeaver/` to `.gitignore`                   |
 | Connection ID conflict  | Duplicate connection names   | Each connection needs unique ID (random hex)      |
 | Config not updating     | DBeaver caching              | Restart DBeaver to reload data-sources.json       |

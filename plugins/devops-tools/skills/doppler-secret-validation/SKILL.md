@@ -125,27 +125,16 @@ export SECRET_NAME=$(doppler secrets get SECRET_NAME \
 CONFIG_EOF_2
 ```
 
-### Step 5b: mise [env] Integration (Recommended for Local Development)
+### Step 5b: Directory-Scoped Doppler Config (Local Development)
 
-For multi-account GitHub setups or per-directory credential needs, integrate Doppler secrets with mise `[env]`:
+For per-directory credentials, bind the directory to a Doppler project/config once with `doppler setup`; every later `doppler run` in that directory picks it up without `--project`/`--config`:
 
-```toml
-# .mise.toml
-[env]
-# Option A: Direct Doppler CLI fetch (slower, always fresh)
-GH_TOKEN = "{{ exec(command='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
-GITHUB_TOKEN = "{{ exec(command='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
-
-# Option B: Cache for performance (1 hour cache)
-GH_TOKEN = "{{ cache(key='gh_token', duration='1h', run='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
-GITHUB_TOKEN = "{{ cache(key='gh_token', duration='1h', run='doppler secrets get GH_TOKEN --project myproject --config prd --plain') }}"
+```bash
+cd ~/project && doppler setup --project myproject --config prd --no-interactive
+doppler run -- COMMAND
 ```
 
-**Note**: Set BOTH `GH_TOKEN` and `GITHUB_TOKEN` - different tools check different variable names (gh CLI vs npm scripts).
-
-**Why mise [env]?** Doppler `doppler run` is session-scoped; mise `[env]` provides directory-scoped credentials that persist across commands.
-
-See [`mise-configuration` skill](../../../itp/skills/mise-configuration/SKILL.md#github-token-multi-account-patterns) for complete patterns.
+**GitHub tokens are the exception**: do not inject `GH_TOKEN`/`GITHUB_TOKEN` from Doppler into a directory (ADR 2026-06-21). GitHub multi-account auth is driven by the repo's `origin` host-alias, and a token resolves fresh per-repo via `~/.claude/tools/bin/gh-token-for-repo`.
 
 ## Common Patterns
 
@@ -204,7 +193,6 @@ CONFIG_EOF_3
 | Token prefix mismatch       | Wrong token type used          | Check expected format (pypi-, ghp-, AKIA, etc.)                                             |
 | Validation script not found | Wrong directory context        | Use `cc-plugin-root devops-tools` to find the plugin root, then `cd` to the skill directory |
 | Secret retrieval empty      | Secret name typo               | List secrets: `doppler secrets ls --project X`                                              |
-| mise cache stale            | Duration expired               | Clear cache or reduce duration setting                                                      |
 | Multiple configs confusion  | Secrets differ across envs     | Use explicit --config flag for each command                                                 |
 
 ## Post-Execution Reflection

@@ -2,6 +2,12 @@
 
 Reverse chronological - newest on top.
 
+## 2026-09-24 — mise rows replaced with proto
+
+**Trigger**: mise is retired; proto is the only toolchain manager. The Cache Size Reference row, the Quick Wins row and the auto-reinstall Troubleshooting row taught `mise ls` / `mise uninstall`.
+
+**Fix**: Those rows now cover `~/.proto/tools/<tool>/<version>/` with `proto versions <tool> --installed`, `proto uninstall <tool> <version>` and `proto clean tools`, cross-checked against `.prototools` pins. The 2026-05-15 entry below records the mise-era commands and is superseded.
+
 ## 2026-09-13 — The dependent-service guard is blind to runner shims, and it broke three live services
 
 **Trigger**: Full audit on a 926 GB volume at 89 % (100 GB free). Reclaimed 87 GB to 181 GiB free / 80 %. But the Phase-2.5 exclusion list was wrong, and the cleanup killed three running launchd jobs.

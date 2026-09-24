@@ -213,7 +213,7 @@ pueue enqueue "$JOB_ID"
 
 **Constraint**: Only works on stashed/queued tasks. Cannot modify environment of running tasks.
 
-**Relationship to mise.toml `[env]`**: mise `[env]` remains the SSoT for default environment. Use `pueue env set` only for one-off overrides (e.g., hyperparameter sweeps) without modifying config files.
+**Relationship to the project `.env`**: `.env` (loaded by `python-dotenv`) remains the SSoT for default environment. Use `pueue env set` only for one-off overrides (e.g., hyperparameter sweeps) without modifying config files.
 
 ## Blocking Wait (`pueue wait`)
 
@@ -264,13 +264,13 @@ Best for one-off "notify me when this finishes" workflows. Native Telegram suppo
 
 ```bash
 # Wrap any command — sends Telegram when it finishes
-noti -g mise run kintsugi:catchup
+noti -g moon run kintsugi:catchup
 
 # With execution time in message
 noti -g -e python long_script.py
 
 # Custom title/message
-noti -g -t "Deploy done" -m "gpu-host-1 updated" mise run deploy:gpu-host-1
+noti -g -t "Deploy done" -m "gpu-host-1 updated" moon run deploy:gpu-host-1
 ```
 
 **Config**: `~/.config/noti/noti.yaml` + env vars `NOTI_TELEGRAM_TOKEN`, `NOTI_TELEGRAM_CHAT_ID`, `NOTI_DEFAULT=telegram` in `~/.bashrc`.

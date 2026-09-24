@@ -38,8 +38,9 @@ Unified read/write MLflow operations via Python API with QuantStats integration 
 MLflow uses separate environment variables for credentials (NOT embedded in URI):
 
 ```bash
-# Option 1: mise + .env.local (recommended)
-# Create .env.local in skill directory with:
+# Option 1: .env.local + uv --env-file (recommended)
+# Create .env.local (gitignored) in the skill directory with the lines below,
+# then run scripts as: uv run --env-file .env.local scripts/<script>.py
 MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000
 MLFLOW_TRACKING_USERNAME=eonlabs
 MLFLOW_TRACKING_PASSWORD=<password>
@@ -133,9 +134,7 @@ See [quantstats-metrics.md](./references/quantstats-metrics.md) for full list.
 
 ## Configuration
 
-The skill uses mise `[env]` pattern for configuration. See `.mise.toml` for defaults.
-
-Create `.env.local` (gitignored) for credentials:
+Configuration comes from `MLFLOW_*` environment variables. Create `.env.local` (gitignored) for credentials and load it per command with `uv run --env-file .env.local scripts/<script>.py`:
 
 ```bash
 MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000

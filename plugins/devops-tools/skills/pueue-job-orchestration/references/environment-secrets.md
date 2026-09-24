@@ -4,12 +4,12 @@
 
 ## Preferred Pattern: python-dotenv for Pueue Job Secrets
 
-Pueue jobs run in **clean shells** without `.bashrc`, `.zshrc`, or mise activation. This means `mise.toml [env]` variables are invisible to pueue jobs. The most portable solution is `python-dotenv`:
+Pueue jobs run in **clean shells** without `.bashrc`, `.zshrc`, or any activation hook. Variables exported by your interactive shell are invisible to pueue jobs. The most portable solution is `python-dotenv`:
 
 ### Architecture
 
 ```
-mise.toml           -> Task definitions only (no [env] for secrets)
+moon.yml            -> Task definitions only (no secrets)
 .env                -> Secrets (gitignored, loaded by python-dotenv at runtime)
 scripts/backfill.sh -> Pueue orchestrator (just `cd $PROJECT_DIR` for dotenv)
 ```
@@ -45,12 +45,12 @@ pueue add -- bash -c 'cd ~/project && uv run python my_script.py'
 
 | Approach                   | Interactive Shell | Pueue Job | Cron    | SSH Remote  | Cross-Platform |
 | -------------------------- | ----------------- | --------- | ------- | ----------- | -------------- |
-| mise `[env]`               | Yes               | **No**    | **No**  | **Fragile** | macOS+Linux    |
+| Shell activation (direnv)  | Yes               | **No**    | **No**  | **Fragile** | macOS+Linux    |
 | `pueue env set`            | N/A               | Yes       | **No**  | **No**      | N/A            |
 | Export in `.bashrc`        | Yes               | **No**    | **No**  | Depends     | Varies         |
 | **python-dotenv + `.env`** | **Yes**           | **Yes**   | **Yes** | **Yes**     | **Yes**        |
 
-**Cross-reference**: See `distributed-job-safety` skill -- [G-15](../../distributed-job-safety/references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables), [AP-16](../../distributed-job-safety/SKILL.md)
+**Cross-reference**: See `distributed-job-safety` skill -- [G-15](../../distributed-job-safety/references/environment-gotchas.md#g-15-pueue-jobs-cannot-see-shell-activated-env-variables), [AP-16](../../distributed-job-safety/SKILL.md)
 
 ---
 

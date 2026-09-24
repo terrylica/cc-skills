@@ -1,16 +1,16 @@
 ---
 name: distributed-job-safety
-description: Concurrency safety patterns for distributed pueue + mise + systemd-run job pipelines.
+description: Concurrency safety patterns for distributed pueue + moon + systemd-run job pipelines.
 allowed-tools: Read, Bash, Write
 ---
 
 # Distributed Job Safety
 
-Patterns and anti-patterns for concurrent job management with pueue + mise + systemd-run, learned from production failures in distributed data pipeline orchestration.
+Patterns and anti-patterns for concurrent job management with pueue + moon + systemd-run, learned from production failures in distributed data pipeline orchestration.
 
-**Scope**: Universal principles for any pueue + mise workflow with concurrent parameterized jobs. Examples use illustrative names but the principles apply to any domain.
+**Scope**: Universal principles for any pueue workflow with concurrent parameterized jobs. Examples use illustrative names but the principles apply to any domain.
 
-**Prerequisite skills**: `devops-tools:pueue-job-orchestration`, `itp:mise-tasks`, `itp:mise-configuration`
+**Prerequisite skills**: `devops-tools:pueue-job-orchestration`, `itp:bootstrap-monorepo` (moon tasks + proto toolchains)
 
 ---
 
@@ -89,17 +89,17 @@ rm -f "$TMPOUT"
 
 ### 5. Config File Is SSoT
 
-The `.mise.toml` `[env]` section is the single source of truth for environment defaults. Per-job `env` overrides bypass the SSoT and allow arbitrary values with no review gate.
+The project's `.env` file (loaded at runtime by `python-dotenv`, see AP-16) is the single source of truth for environment defaults. Per-job `env` overrides bypass the SSoT and allow arbitrary values with no review gate.
 
 ```bash
-# WRONG: Per-job override bypasses mise SSoT
+# WRONG: Per-job override bypasses the .env SSoT
 pueue add -- env MY_APP_MIN_THRESHOLD=50 uv run python script.py
 
-# RIGHT: Set the correct value in .mise.toml, no per-job override needed
+# RIGHT: Set the correct value in .env, no per-job override needed
 pueue add -- uv run python script.py
 ```
 
-**Controlled exception**: `pueue env set <id> KEY VALUE` is acceptable for one-off overrides on stashed/queued tasks (e.g., hyperparameter sweeps). The key distinction: mise `[env]` is SSoT for **defaults** that apply to all runs; `pueue env set` is for **one-time parameterization** of a specific task without modifying the config file. See `devops-tools:pueue-job-orchestration` Per-Task Environment Override section.
+**Controlled exception**: `pueue env set <id> KEY VALUE` is acceptable for one-off overrides on stashed/queued tasks (e.g., hyperparameter sweeps). The key distinction: `.env` is SSoT for **defaults** that apply to all runs; `pueue env set` is for **one-time parameterization** of a specific task without modifying the config file. See `devops-tools:pueue-job-orchestration` Per-Task Environment Override section.
 
 ### 6. Maximize Parallelism Within Safe Margins
 
@@ -204,18 +204,19 @@ Full specification: [references/concurrency-invariants.md](./references/concurre
 | AP-13 | SIGPIPE under `set -euo pipefail`      | Exit code 141 on harmless pipe ops             | --                |
 | AP-14 | False data loss from variable NDJSON   | `wc -l` shows 3-6% fewer lines                 | --                |
 | AP-15 | Cursor file deletion on completion     | Full re-run instead of incremental resume      | --                |
-| AP-16 | mise `[env]` for pueue/cron secrets    | Empty env vars in daemon jobs                  | INV-5             |
+| AP-16 | Shell-activated env for daemon secrets | Empty env vars in daemon jobs                  | INV-5             |
 | AP-17 | Unscoped glob across pipeline phases   | Phase A consumes Phase B's artifacts           | INV-9             |
 
 ---
 
-## The Mise + Pueue + systemd-run Stack
+## The moon + Pueue + systemd-run Stack
 
 Full architecture diagram and responsibility boundaries: [references/stack-architecture.md](./references/stack-architecture.md)
 
 | Layer           | Responsibility                                             |
 | --------------- | ---------------------------------------------------------- |
-| **mise**        | Environment variables, tool versions, task discovery       |
+| **moon/proto**  | Task discovery (moon), tool versions (proto `.prototools`) |
+| **.env**        | Environment defaults and secrets, loaded by `python-dotenv` |
 | **pueue**       | Daemon persistence, parallelism limits, restart, `--after` |
 | **systemd-run** | Per-job cgroup memory caps (Linux only, no-op on macOS)    |
 | **autoscaler**  | Dynamic parallelism tuning based on host resources         |
@@ -328,7 +329,7 @@ For structured, repeatable job pipelines, [Temporal](https://temporal.io/) provi
 - [Concurrency Invariants](./references/concurrency-invariants.md) -- Formal invariant specifications (INV-1 through INV-9)
 - [Deployment Checklist](./references/deployment-checklist.md) -- Step-by-step remote deployment protocol
 - [Environment Gotchas](./references/environment-gotchas.md) -- Host-specific pitfalls (G-1 through G-17)
-- [Stack Architecture](./references/stack-architecture.md) -- Mise + Pueue + systemd-run layer diagram
+- [Stack Architecture](./references/stack-architecture.md) -- moon + Pueue + systemd-run layer diagram
 - [Autoscaler](./references/autoscaler.md) -- Dynamic parallelism tuning patterns
 - **Cross-reference**: `devops-tools:pueue-job-orchestration` -- Pueue basics, dependency chaining, installation
 - **SOTA Alternative**: [Temporal](https://temporal.io/) -- Durable workflow orchestration with built-in dedup and retry

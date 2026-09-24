@@ -33,21 +33,9 @@ This pattern:
 - Leaks credentials in logs and stack traces
 - Doesn't work consistently across all MLflow versions
 
-## mise Configuration
+## Env File Configuration
 
-Use mise `[env]` as the Single Source of Truth:
-
-```toml
-# .mise.toml
-[env]
-MLFLOW_TRACKING_URI = "http://localhost:5000"
-MLFLOW_DEFAULT_EXPERIMENT = "default"
-
-# Load secrets from .env.local (gitignored)
-_.file = { path = ".env.local", redact = true }
-```
-
-Create `.env.local` for credentials:
+Keep all `MLFLOW_*` values in one gitignored `.env.local` and load it per command with `uv run --env-file .env.local scripts/<script>.py`:
 
 ```bash
 MLFLOW_TRACKING_URI=http://mlflow.eonlabs.com:5000

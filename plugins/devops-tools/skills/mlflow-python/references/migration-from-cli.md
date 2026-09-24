@@ -87,7 +87,7 @@ export MLFLOW_TRACKING_USERNAME="user"
 export MLFLOW_TRACKING_PASSWORD="pass"
 ```
 
-Or via mise `.env.local`:
+Or via a gitignored `.env.local`, loaded with `uv run --env-file .env.local`:
 
 ```bash
 # .env.local (gitignored)
@@ -157,4 +157,4 @@ All functionality is now available in `mlflow-python` with:
 
 - Python API (more powerful)
 - DataFrame output (easier analysis)
-- mise `[env]` for configuration (idiomatic)
+- `MLFLOW_*` env vars (or `.env.local` via `uv run --env-file`) for configuration

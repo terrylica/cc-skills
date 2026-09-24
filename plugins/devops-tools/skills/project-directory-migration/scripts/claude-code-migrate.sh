@@ -5,7 +5,7 @@
 # Safely migrates Claude Code project context when renaming a directory.
 #
 # Handles: sessions, sessions-index.json, history.jsonl, memory, subagents,
-#          mise trust, Python venv recreation, and backward-compat symlink.
+#          Python venv recreation, and backward-compat symlink.
 #
 # Usage:
 #   claude-code-migrate.sh [--dry-run] <old-path> <new-path>
@@ -83,7 +83,7 @@ WHAT GETS MIGRATED:
   - Session subdirectories (subagents/, tool-results/)
 
 WHAT GETS FIXED (Phase 8):
-  - mise trust for new directory path
+  - leftover mise config warning (mise is retired)
   - Python venv recreation (uv sync or python -m venv)
   - direnv / asdf / .tool-versions warnings
 USAGE_EOF
@@ -514,7 +514,7 @@ phase "Phase 8: Environment fixups"
 
 if [[ "${DRY_RUN}" == "true" ]]; then
     [[ -f "${OLD_DIR}/.mise.toml" || -f "${OLD_DIR}/.mise.local.toml" ]] && \
-        info "Would run: mise trust ${NEW_DIR}"
+        info "Would warn: leftover mise config (mise is retired)"
     [[ -d "${OLD_DIR}/.venv" && -f "${OLD_DIR}/uv.lock" ]] && \
         info "Would run: uv sync (recreate venv at new path)"
     [[ -d "${OLD_DIR}/.venv" && ! -f "${OLD_DIR}/uv.lock" ]] && \
@@ -524,14 +524,9 @@ if [[ "${DRY_RUN}" == "true" ]]; then
     [[ -f "${OLD_DIR}/.tool-versions" ]] && \
         info "Would warn: .tool-versions may need review"
 else
-    # mise trust
+    # Leftover mise config: mise is retired (proto + moon replace it), so warn, never run it
     if [[ -f "${NEW_DIR}/.mise.toml" || -f "${NEW_DIR}/.mise.local.toml" ]]; then
-        if command -v mise &> /dev/null; then
-            mise trust "${NEW_DIR}" 2>/dev/null || true
-            pass "mise: trusted new directory path"
-        else
-            warn "mise not found — run 'mise trust ${NEW_DIR}' manually"
-        fi
+        warn "mise config found — mise is retired; move tool pins to .prototools and tasks to moon.yml"
     fi
 
     # Python venv recreation

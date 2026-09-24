@@ -103,7 +103,7 @@ export MY_APP_MIN_THRESHOLD=250
 pueue add -- uv run python script.py --threshold 250
 pueue add -- uv run python script.py --threshold 1000  # Also uses 250 minimum!
 
-# Even worse: editing .mise.toml
+# Even worse: editing the shared .env
 ```
 
 **Enforcement**: Use `env` prefix per-job when overrides are truly needed:
@@ -114,7 +114,7 @@ pueue add -- env MY_APP_MIN_THRESHOLD=250 uv run python script.py --threshold 10
 # Each job gets its own environment scope
 ```
 
-**Preferred**: Set the correct value in `.mise.toml` so per-job overrides are unnecessary.
+**Preferred**: Set the correct value in `.env` so per-job overrides are unnecessary.
 
 ---
 

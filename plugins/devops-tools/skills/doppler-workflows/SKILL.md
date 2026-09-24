@@ -83,36 +83,18 @@ For detailed information, see:
 
 ---
 
-## Using mise [env] for Local Development (Recommended)
+## Local Development: Directory-Scoped Doppler Config
 
-For local development, mise `[env]` provides a simpler alternative to `doppler run`:
+For local development, bind the project directory to its Doppler project/config once, then scope each command with `doppler run`:
 
-```toml
-# .mise.toml
-[env]
-# Fetch from Doppler with caching for performance
-PYPI_TOKEN = "{{ cache(key='pypi_token', duration='1h', run='doppler secrets get PYPI_TOKEN --project claude-config --config prd --plain') }}"
+```bash
+cd ~/project && doppler setup --project claude-config --config prd --no-interactive
+doppler run -- COMMAND   # secrets such as PYPI_TOKEN exist for this command only
 ```
 
-> **Do NOT use mise `[env]` for GitHub tokens (ADR 2026-06-21).** GitHub
-> multi-account auth is driven by the repo's `origin` host-alias
-> (`git@github.com-<account>:…`), not mise. A token resolves fresh per-repo via
-> `~/.claude/tools/bin/gh-token-for-repo`; an ambient `GH_TOKEN` outranks the
-> isolated gh profile and 401s after a rotation. The `.secrets/gh-token-*` files are
-> deleted.
+For a value needed across several commands in one shell, export it explicitly: `export PYPI_TOKEN="$(doppler secrets get PYPI_TOKEN --plain)"`.
 
-**When to use mise [env]** (for non-GitHub secrets like `PYPI_TOKEN`):
-
-- Per-directory credential configuration
-- Credentials that persist across commands (not session-scoped)
-
-**When to use doppler run:**
-
-- CI/CD pipelines
-- Single-command credential scope
-- When you want credentials auto-cleared after command
-
-See [`mise-configuration` skill](../../../itp/skills/mise-configuration/SKILL.md) for complete patterns.
+> **Do NOT inject GitHub tokens this way (ADR 2026-06-21).** GitHub multi-account auth is driven by the repo's `origin` host-alias (`git@github.com-<account>:…`). A token resolves fresh per-repo via `~/.claude/tools/bin/gh-token-for-repo`; an ambient `GH_TOKEN` outranks the isolated gh profile and 401s after a rotation. The `.secrets/gh-token-*` files are deleted.
 
 ---
 
@@ -135,8 +117,8 @@ For PyPI publishing, see [`pypi-doppler` skill](../../../itp/skills/pypi-doppler
 | Variable expands empty     | Using `$VAR` without --command   | Always use `--command='...$VAR...'` pattern           |
 | Doppler CLI not found      | Not installed                    | `brew install dopplerhq/cli/doppler`                  |
 | Wrong config selected      | Ambiguous project/config         | Specify both `--project` and `--config` explicitly    |
-| mise [env] not loading     | Not in directory with .mise.toml | `cd` to project directory or check mise.toml path     |
-| Secret retrieval slow      | No caching configured            | Use mise `cache()` with duration for repeated access  |
+| Wrong project picked up    | Directory not bound or bound wrongly | `doppler configure` to inspect; re-run `doppler setup` |
+| Secret retrieval slow      | One `doppler secrets get` per call | Fetch once per shell with `export VAR="$(doppler secrets get VAR --plain)"` |
 | Token length mismatch      | Copied with extra whitespace     | Trim token: `echo -n 'secret' \| doppler secrets set` |
 
 ## Post-Execution Reflection

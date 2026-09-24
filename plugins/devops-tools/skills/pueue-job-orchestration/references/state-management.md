@@ -176,9 +176,9 @@ For sweeps exceeding 10K queries, the single-tier "pueue add per query" pattern 
 
 ```
 macOS (local)
-  mise run gen:generate   -> N SQL files
-  mise run gen:submit-all -> rsync + queue M pueue units
-  mise run gen:collect    -> scp + validate JSONL
+  moon run gen:generate   -> N SQL files
+  moon run gen:submit-all -> rsync + queue M pueue units
+  moon run gen:collect    -> scp + validate JSONL
 
 gpu-host-1 (remote)
   pueue group p1 (parallel=1)   <- sequential units (avoid log contention)

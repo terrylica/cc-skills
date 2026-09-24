@@ -4,6 +4,12 @@ Reverse-chronological log of skill improvements.
 
 ---
 
+## 2026-09-24: mise task wrapper replaced with a moon task
+
+mise is retired. Phase 5 now adds a `publish-site` task to `moon.yml` (`moon run <project>:publish-site`), and CFW-13 is generalised from the Tera/mise conflict to inline bash in any task-runner config. The 2026-02-18 entry below describes the mise-era wrapper.
+
+---
+
 ## 2026-02-18: Initial skill creation
 
 **Source**: Empirical discovery during rangebar-patterns static hosting setup for Bokeh equity charts (10-15MB HTML files too large for GitHub).

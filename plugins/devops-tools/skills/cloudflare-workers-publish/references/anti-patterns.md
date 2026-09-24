@@ -229,26 +229,19 @@ bash scripts/publish_findings.sh
 
 ---
 
-## CFW-13: Tera Template Conflict in mise TOML [MEDIUM]
+## CFW-13: Inline Bash in Task-Runner Config [MEDIUM]
 
-**Symptom**: `mise run publish:site` fails with "Variable not found in context."
+**Symptom**: The publish task fails or runs a mangled command even though the same bash works in a terminal.
 
-**Root cause**: mise uses the Tera templating engine which interprets `{{}}`, `{%}`, and `#}` in TOML `run` strings.
+**Root cause**: Task-runner config strings are interpolated by the runner before bash sees them. moon expands `$`-prefixed token variables (such as `$project`) in task commands; the retired mise used Tera, which choked on `{{}}`, `{%}` and `#}`. Bash syntax collides with both.
 
-**Fix**: Keep TOML task definitions simple. Move bash logic to standalone `.sh` files.
+**Fix**: Keep each task to a single script invocation. Move bash logic to standalone `.sh` files.
 
-```toml
-# WRONG — Tera will choke on bash syntax
-["publish:site"]
-run = '''
-for f in "${FILES[@]}"; do
-    echo "processing #${f}"
-done
-'''
-
-# RIGHT — mise just invokes the script
-["publish:site"]
-run = "bash scripts/publish_static.sh"
+```yaml
+# RIGHT — the task just invokes the script; the loop lives in the .sh file
+tasks:
+  publish-site:
+    command: 'bash scripts/publish_static.sh'
 ```
 
 ---

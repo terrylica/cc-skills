@@ -419,7 +419,7 @@ dotenv $HOME/eon/.env.alpha-forge
 
 **Prerequisites**:
 
-- direnv installed via mise (`mise use -g direnv@latest`)
+- direnv installed (`brew install direnv`)
 - Shell hook configured (`eval "$(direnv hook zsh)"` in `~/.zshrc`)
 - Shared secrets file at `~/eon/.env.alpha-forge`
 
