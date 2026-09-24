@@ -8,6 +8,8 @@ last-updated: 2025-12-20
 
 # Design Spec: TodoWrite-Driven Interactive Setup Workflow
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [TodoWrite-Driven Interactive Setup Workflow](/docs/adr/2025-12-05-itp-setup-todowrite-workflow.md)
 
 ## Summary

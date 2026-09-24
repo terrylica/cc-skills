@@ -10,6 +10,8 @@ perspectives: [DevSecOps, ToolchainIntegration, LocalFirst]
 
 # ADR: Add Gitleaks Secret Scanner to ITP Setup Command
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-07-gitleaks-setup-integration/spec.md)
 
 ## Context and Problem Statement

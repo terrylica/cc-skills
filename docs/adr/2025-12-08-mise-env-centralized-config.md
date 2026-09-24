@@ -10,6 +10,8 @@ perspectives: [Configuration, Backward-Compatibility, Developer-Experience]
 
 # mise Environment Variables as Centralized Configuration
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-08-mise-env-centralized-config/spec.md)
 
 ## Context and Problem Statement

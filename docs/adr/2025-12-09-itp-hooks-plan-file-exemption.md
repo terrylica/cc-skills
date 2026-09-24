@@ -14,6 +14,8 @@ perspectives: [Usability, Configuration, Backward Compatibility]
 
 # Exempt Plan Files from ASCII Diagram Blocking in pretooluse-guard.sh
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 > **Update 2025-12-12**: Broadened exemption pattern from `/.claude/plans/` to any `/plans/` directory. Removed configurable env var — now unconditional.
 
 **Design Spec**: [Implementation Spec](/docs/design/2025-12-09-itp-hooks-plan-file-exemption/spec.md)

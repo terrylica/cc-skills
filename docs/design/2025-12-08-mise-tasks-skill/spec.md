@@ -8,6 +8,8 @@ last-updated: 2025-12-20
 
 # Design Spec: Create mise-tasks Skill + Enhance mise-configuration Cross-Reference
 
+> **Note (2026-09-24):** jdx/mise has since been retired; proto manages toolchains and moon runs tasks. Any mise commands below are historical and no longer run; the decision text is unchanged.
+
 **ADR**: [Create mise-tasks Skill with Bidirectional Cross-References](/docs/adr/2025-12-08-mise-tasks-skill.md)
 
 ## Objective
