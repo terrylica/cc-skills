@@ -31,7 +31,7 @@ OP_SERVICE_ACCOUNT_TOKEN="$(cat ~/.claude/.secrets/op-service-account-token)" op
 op item get "Item" --vault "Claude Automation" --reveal
 ```
 
-**Per-project refs**: Each repo's `.mise.local.toml` stores `op://Claude Automation/...` reference paths (never raw secrets). Resolve with `op read "op://Claude Automation/ITEM_ID/field"`.
+**Per-project refs**: Each repo stores `op://Claude Automation/...` reference paths (never raw secrets) in a gitignored env file. Resolve with `op read "op://Claude Automation/ITEM_ID/field"`.
 
 **1Password vault-first rule**: When looking for API credentials, check the **Claude Automation** vault first — most project credentials (Cal.com, Supabase, Telegram, AWS, Lark CalDAV, GitHub PATs) are stored there. A PreToolUse hook auto-injects the service account token for `op` commands targeting this vault (no biometric prompt). Always use `--vault "Claude Automation"` when accessing these credentials.
 
@@ -51,7 +51,7 @@ Services run on two GPU workstations: **gpu-host-1** (RTX 4090) for primary comp
 **ClickHouse (gpu-host-1)**: Range bar data with 47 microstructure features (260M+ bars). Used by `rangebar-py` package. ClickHouse listens on localhost only — access via SSH tunnel (rangebar preflight handles automatically).
 
 ```bash
-# Env vars (set in .mise.local.toml per-project, gitignored):
+# Env vars (export per-project, e.g. from a gitignored .env):
 RANGEBAR_CH_HOSTS=gpu-host-1    # SSH alias, NOT raw IP (tunnel required)
 RANGEBAR_MODE=remote          # Skip local ClickHouse check
 

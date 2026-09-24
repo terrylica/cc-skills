@@ -6,7 +6,6 @@ Common issues after Claude Code project directory migration.
 
 | Issue                         | Auto-fixed?          | Manual Solution                        |
 | ----------------------------- | -------------------- | -------------------------------------- |
-| mise trust error after rename | **Yes** (Phase 8)    | `mise trust <new-path>`                |
 | `(old-name)` in shell prompt  | **Yes** (Phase 8)    | Restart terminal or `uv sync`          |
 | VIRTUAL_ENV path mismatch     | **Yes** (Phase 8)    | `uv sync --dev` recreates venv         |
 | "No conversations found"      | **Yes** (Phase 4)    | Re-run migration script                |
@@ -17,20 +16,13 @@ Common issues after Claude Code project directory migration.
 
 ## Detailed Solutions
 
-### mise trust error
+### Leftover mise config
 
-**Symptom**: `mise ERROR Config files are not trusted` after rename.
+**Symptom**: Phase 8 warns that `.mise.toml` or `.mise.local.toml` exists.
 
-**Cause**: mise tracks trusted config files by absolute path. Directory rename invalidates the trust fingerprint.
+**Cause**: mise is retired and no longer used. The file is dead config from before the move to proto + moon.
 
-**Auto-fix**: Phase 8 runs `mise trust <new-path>` automatically.
-
-**Manual fix**:
-
-```bash
-mise trust /path/to/new-directory
-mise trust /path/to/new-directory/.mise.local.toml  # if exists
-```
+**Fix**: Move tool pins to `.prototools` (`proto pin <tool> <version>`) and tasks to `moon.yml`, then delete the mise file. See `Skill(itp:bootstrap-monorepo)`.
 
 ### Stale venv prompt
 

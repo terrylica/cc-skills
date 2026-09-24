@@ -86,7 +86,7 @@ du -sh ~/Library/Caches ~/Library/Logs ~/Library/Application\ Support \
 echo ""
 echo "=== Developer Tool Caches ==="
 du -sh ~/.docker ~/.npm ~/.cargo ~/.rustup ~/.local ~/.cache \
-  ~/.conda ~/.pyenv ~/.local/share/mise 2>/dev/null | sort -rh
+  ~/.conda ~/.pyenv ~/.proto 2>/dev/null | sort -rh
 OVERVIEW_EOF
 ```
 
@@ -102,7 +102,7 @@ OVERVIEW_EOF
 | npm         | `~/.npm/_cacache/`                               | 0.5-2 GB      | `npm cache clean --force`                                               |
 | cargo       | `~/.cargo/registry/cache/`                       | 1-5 GB        | `cargo cache -a` (needs cargo-cache)                                    |
 | rustup      | `~/.rustup/toolchains/`                          | 2-10 GB       | `rustup toolchain uninstall <name>` (list with `rustup toolchain list`) |
-| mise        | `~/.local/share/mise/installs/<tool>/<version>/` | 0.2-2 GB each | `mise uninstall <tool>@<version>` (list with `mise ls`)                 |
+| proto       | `~/.proto/tools/<tool>/<version>/`               | 0.2-2 GB each | `proto uninstall <tool> <version>` (list with `proto versions <tool> --installed`), or `proto clean tools` |
 | Docker      | Docker.app                                       | 5-30 GB       | `docker system prune -a`                                                |
 | Playwright  | `~/Library/Caches/ms-playwright/`                | 0.5-2 GB      | `npx playwright uninstall`                                              |
 | sccache     | `~/Library/Caches/Mozilla.sccache/`              | 1-3 GB        | `rm -rf ~/Library/Caches/Mozilla.sccache`                               |
@@ -460,7 +460,7 @@ Ordered by typical space reclaimed (highest first):
 | `brew cleanup --prune=all`      | 3-10 GB         | None (re-downloads)                       | `brew cleanup --prune=all`                                       |
 | Delete movie files in Downloads | 2-10 GB         | Check first                               | Manual after AskUserQuestion                                     |
 | Prune old rustup toolchains     | 2-5 GB          | Keep current                              | `rustup toolchain list` then `rustup toolchain uninstall <name>` |
-| Prune stale mise toolchains     | 0.5-3 GB        | Cross-check `.mise.toml` pins first       | `mise ls`, then `mise uninstall <tool>@<version>`                |
+| Prune stale proto toolchains    | 0.5-3 GB        | Cross-check `.prototools` pins first      | `proto versions <tool> --installed`, then `proto uninstall <tool> <version>` |
 | `npm cache clean --force`       | 0.5-2 GB        | None (re-downloads)                       | `npm cache clean --force`                                        |
 | `pip cache purge`               | 0.5-2 GB        | None (re-downloads)                       | `pip cache purge`                                                |
 | Docker system prune             | 5-30 GB         | Removes stopped containers                | `docker system prune -a`                                         |
@@ -490,7 +490,7 @@ After modifying this skill:
 | Stale file scan is slow                                                    | Deep directory tree                                                                                                                                                                            | Limit `-maxdepth` or exclude more paths                                                                                                                                                                                                            |
 | Docker not accessible                                                      | Desktop app not running                                                                                                                                                                        | Start Docker.app or skip Docker cleanup                                                                                                                                                                                                            |
 | `parse error near TASK_ID=$(pueue add ...)` from heredoc with spaced paths | A user shell hook (e.g. pueue submission) re-parses the command string and breaks on `${var}/Path With Spaces/*` globs inside heredocs                                                         | Write multi-line scripts to `/tmp/<name>.sh` first via Write tool, then invoke as `bash /tmp/<name>.sh` — bypasses the inline heredoc → hook re-quote path entirely                                                                                |
-| Removing a mise toolchain triggers immediate auto-reinstall                | A project's `.mise.toml` pins the version you just removed; mise restores it on next invocation from that project                                                                              | Before `mise uninstall <tool>@<version>`, grep all reachable `.mise.toml` and `mise.toml` files for the version. If pinned, leave it alone or update the pin first. Same applies to rustup toolchains vs. `rust-toolchain.toml` files in projects. |
+| Removing a proto toolchain triggers immediate auto-reinstall               | A project's `.prototools` pins the version you just removed; proto reinstalls it on the next invocation from that project when `auto-install` is on, and fails the invocation when it is off | Before `proto uninstall <tool> <version>`, grep all reachable `.prototools` files for the version. If pinned, leave it alone or update the pin first. Same applies to rustup toolchains vs. `rust-toolchain.toml` files in projects. |
 
 ### Hook-safe multi-line scripts
 

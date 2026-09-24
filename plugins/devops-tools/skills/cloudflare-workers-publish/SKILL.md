@@ -65,7 +65,7 @@ Credential flow:
 4. [Execute] Store token + account ID in 1Password item fields
 5. [Execute] Create publish directory with wrangler.toml (3 fields only)
 6. [Execute] Create deploy script from skill template (parameterize 4 vars)
-7. [Execute] Create mise task wrapper in tasks/publish.toml
+7. [Execute] Add a moon task wrapper (publish-site) to moon.yml
 8. [Execute] Add .wrangler/ to .gitignore
 9. [Execute] Add LFS tracking for large HTML files in .gitattributes
 10. [Verify] Enable workers.dev subdomain in Cloudflare dashboard
@@ -89,7 +89,7 @@ Credential flow:
 2. [Execute] Create 1Password item OR reuse existing Cloudflare credentials
 3. [Execute] Create wrangler.toml with chosen name and today's date
 4. [Execute] Create parameterized deploy script from skill template
-5. [Execute] Create mise task wrapper
+5. [Execute] Add a moon task wrapper to moon.yml
 6. [Verify] Deploy and discover actual workers.dev URL via wrangler output
 ```
 
@@ -164,23 +164,18 @@ cp "$(skill-path)/scripts/publish_static.sh" scripts/publish_myproject.sh
 
 Or reference the working implementation: `rangebar-patterns/scripts/publish_findings.sh`
 
-### Phase 5: Create mise Task
+### Phase 5: Create moon Task
 
-```toml
-# tasks/publish.toml (CFW-13: bash in .sh file, not inline TOML)
-["publish:site"]
-description = "Deploy published files to Cloudflare Workers (static)"
-run = "bash scripts/publish_myproject.sh"
+```yaml
+# moon.yml (CFW-13: bash in a .sh file, not inline in the task command)
+tasks:
+  publish-site:
+    command: 'bash scripts/publish_myproject.sh'
+    options:
+      cache: false
 ```
 
-Add to `.mise.toml` `[task_config] includes`:
-
-```toml
-[task_config]
-includes = [
-    "tasks/publish.toml",
-]
-```
+If the repo has no moon workspace yet, bootstrap one with `Skill(itp:bootstrap-monorepo)`, or run the script directly with `bash scripts/publish_myproject.sh`.
 
 ### Phase 6: Git Hygiene
 
@@ -214,7 +209,7 @@ npx wrangler whoami
 ### Phase 8: Deploy and Verify
 
 ```bash
-mise run publish:site
+moon run <project>:publish-site
 ```
 
 **Verify in BROWSER, not curl** (CFW-08). macOS LibreSSL can fail TLS handshake with Cloudflare but browsers handle it fine.
@@ -239,7 +234,7 @@ Full details with code examples: [references/anti-patterns.md](./references/anti
 | CFW-10 | HIGH     | Running wrangler from wrong directory            | Always `cd` to directory with wrangler.toml                                                                                                                                                                                                                  |
 | CFW-11 | MEDIUM   | Excessive token permissions                      | Workers Scripts Edit (Account) only                                                                                                                                                                                                                          |
 | CFW-12 | HIGH     | Deploying LFS pointers instead of files          | Run `git lfs pull` before deploy                                                                                                                                                                                                                             |
-| CFW-13 | MEDIUM   | Tera template conflict in mise TOML              | Complex bash in standalone `.sh` files                                                                                                                                                                                                                       |
+| CFW-13 | MEDIUM   | Inline bash in task-runner config                | Complex bash in standalone `.sh` files                                                                                                                                                                                                                       |
 | CFW-14 | MEDIUM   | Pipe subshell data loss in while-read            | Use `< <(find ...)` process substitution                                                                                                                                                                                                                     |
 | CFW-15 | LOW      | No directory listing page                        | Auto-generate index.html before each deploy                                                                                                                                                                                                                  |
 | CFW-16 | HIGH     | Asset > 25 MiB → `Asset too large` deploy error  | Workers Static Assets hard-caps **each file at 25 MiB**. Host large ZIPs/binaries off a large-file host (R2, GitHub Release, own server); keep only ≤25 MiB files on Workers. See [large files & ZIP delivery](./references/large-files-and-zip-delivery.md) |
@@ -275,7 +270,6 @@ The working production deployment lives in `rangebar-patterns`:
 | --------------------------------- | -------------------------- |
 | `results/published/wrangler.toml` | Minimal Workers config     |
 | `scripts/publish_findings.sh`     | 3-phase deploy script      |
-| `tasks/publish.toml`        | mise task wrapper          |
 | `.gitignore` (`.wrangler/`)       | Ignore wrangler temp files |
 | `.gitattributes`                  | LFS tracking for HTML      |
 
@@ -310,7 +304,7 @@ After modifying this skill:
 | 403 on workers.dev URL         | Subdomain not enabled (CFW-07)        | Enable in Cloudflare dashboard > Workers & Pages              |
 | Deploy succeeds, files missing | LFS pointers deployed (CFW-12)        | Run `git lfs pull` before deploy                              |
 | `${var^^}` syntax error        | Bash 3 on macOS (CFW-05)              | Use `tr '[:lower:]' '[:upper:]'`                              |
-| mise TOML parse error          | Tera template conflict (CFW-13)       | Move complex bash to standalone `.sh` file                    |
+| Task command mangled/fails     | Inline bash in task config (CFW-13)   | Move complex bash to standalone `.sh` file                    |
 | Empty index.html               | No `gen*/*.html` files found          | Check file paths match `find . -path './gen*/*.html'` pattern |
 | Token permission denied        | Wrong token scope (CFW-11)            | Recreate with Account > Workers Scripts > Edit permission     |
 

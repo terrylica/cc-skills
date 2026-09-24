@@ -11,7 +11,7 @@ Step-by-step guide for creating a minimal wrangler.toml for Cloudflare Workers S
 
 ```toml
 # Cloudflare Workers Static Assets
-# Deploy: mise run publish:{task} (or bash scripts/publish_{project}.sh)
+# Deploy: moon run <project>:publish-site (or bash scripts/publish_{project}.sh)
 name = "{worker-name}"
 compatibility_date = "{YYYY-MM-DD}"
 

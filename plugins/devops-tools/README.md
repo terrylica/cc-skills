@@ -30,7 +30,7 @@ Merged: `notification-tools` (dual-channel-watchexec) moved here.
 | **project-directory-migration**   | Migrate Claude Code sessions when renaming project directories                           |
 | **cloudflare-workers-publish**    | Deploy static HTML to Cloudflare Workers with 1Password credentials                      |
 | **pueue-job-orchestration**       | Pueue job lifecycle orchestration for long-running tasks                                 |
-| **distributed-job-safety**        | Concurrency safety patterns for pueue + mise + systemd-run job pipelines                 |
+| **distributed-job-safety**        | Concurrency safety patterns for pueue + moon + systemd-run job pipelines                 |
 
 ## Installation
 
@@ -75,7 +75,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 ### ClickHouse Pydantic Config
 
 - Generate DBeaver connection configurations from Pydantic v2 models
-- mise `[env]` as Single Source of Truth (SSoT)
+- Environment variables as Single Source of Truth (SSoT)
 - Support for local and cloud connection modes
 - Semi-prescriptive patterns adaptable to each repository
 
@@ -96,7 +96,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Log backtest metrics using QuantStats (70+ trading metrics)
 - Query experiments and runs with DataFrame output
 - Create experiments and retrieve metric history
-- Idiomatic authentication with mise `[env]` pattern
+- Authentication via `MLFLOW_*` env vars or a gitignored `.env.local` (`uv run --env-file`)
 
 ### Session Recovery
 
@@ -161,7 +161,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 - Interactive AskUserQuestion workflow for safe migration
 - Automatic session count audit and dry-run preview
 - Backup, rollback, and symlink backward-compatibility
-- Environment fixups: mise trust, venv recreation, direnv/asdf warnings
+- Environment fixups: venv recreation, direnv/asdf warnings, leftover-mise-config warning
 - Universal script for any Claude Code project
 
 ### Cloudflare Workers Publish
@@ -177,7 +177,7 @@ Skills are model-invoked — Claude automatically activates them based on contex
 
 - 7 formal concurrency invariants (filename isolation, atomic writes, idempotent cleanup)
 - 7 anti-patterns learned from production failures
-- Mise + pueue + systemd-run stack with responsibility boundaries
+- moon + pueue + systemd-run stack with responsibility boundaries
 - Per-job cgroup memory caps with MemorySwapMax=0
 - Autoscaler concept with incremental scaling protocol
 - Two-layer pattern: universal skill + project-specific `*-job-safety` extension

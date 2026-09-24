@@ -160,7 +160,7 @@ print(conn.jdbc_url)  # jdbc:clickhouse:https://xyz.clickhouse.cloud:8443/defaul
 ### From Environment
 
 ```python
-# With mise [env] or exported variables
+# With exported environment variables
 conn = ClickHouseConnection.from_env()
 config = conn.to_dbeaver_config()
 ```

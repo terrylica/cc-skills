@@ -51,7 +51,7 @@ Present findings to user:
 - Number of session files found
 - Number of history.jsonl entries to rewrite
 - Whether auto-memory (MEMORY.md) exists
-- Environment tooling detected (mise, uv, direnv, asdf)
+- Environment tooling detected (uv, direnv, asdf; a leftover mise config is flagged as retired)
 
 ### Phase 3: Scope and Confirm
 
@@ -62,7 +62,7 @@ Question 3 (header: "Scope", multiSelect: true):
     - "Claude Code sessions + history (Recommended)"
     - "Auto-memory (MEMORY.md) (Recommended)"
     - "Backward-compatibility symlink (Recommended)"
-    - "Auto-fix environment: mise trust, venv recreate (Recommended)"
+    - "Auto-fix environment: venv recreate (Recommended)"
 
 Question 4 (header: "Execute"):
   "Ready to migrate? The script creates a timestamped backup first."
@@ -79,7 +79,7 @@ Question 4 (header: "Execute"):
 After migration completes, report:
 
 - Sessions migrated, history entries rewritten
-- Environment fixups applied (mise trust, venv recreated)
+- Environment fixups applied (venv recreated)
 - Remaining manual steps (git remote update, etc.)
 - Rollback command if anything goes wrong
 
@@ -145,7 +145,7 @@ bash scripts/claude-code-migrate.sh --help
 5. **Rewrite history.jsonl** — Update project field (JSON-safe, preserves Unicode)
 6. **Backward-compatibility symlink** — Old encoded path symlinks to new
 7. **Rename repo directory** — `mv /old/path /new/path`
-8. **Environment fixups** — mise trust, venv recreate, direnv/asdf warnings
+8. **Environment fixups** — venv recreate, direnv/asdf warnings, leftover-mise-config warning
 9. **Post-flight verification** — Sessions count, memory, symlink, env health
 
 ---
@@ -162,7 +162,6 @@ bash scripts/claude-code-migrate.sh --help
 
 | Issue                         | Auto-fixed?          | Manual Solution                        |
 | ----------------------------- | -------------------- | -------------------------------------- |
-| mise trust error after rename | **Yes** (Phase 8)    | `mise trust <new-path>`                |
 | `(old-name)` in shell prompt  | **Yes** (Phase 8)    | Restart terminal or `uv sync`          |
 | VIRTUAL_ENV path mismatch     | **Yes** (Phase 8)    | `uv sync --dev` recreates venv         |
 | "No conversations found"      | **Yes** (Phase 4)    | Re-run migration script                |

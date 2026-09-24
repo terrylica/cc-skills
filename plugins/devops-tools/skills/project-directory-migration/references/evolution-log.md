@@ -4,6 +4,12 @@ Reverse-chronological log of skill improvements.
 
 ---
 
+## 2026-09-24: Phase 8 no longer runs `mise trust`
+
+mise is retired. The script still detects `.mise.toml` / `.mise.local.toml`, but now only warns that the config is dead and should move to `.prototools` and `moon.yml`; it never invokes mise.
+
+---
+
 ## 2026-02-09: Initial skill creation
 
 **Source**: Empirical validation during CKVD package rename (data-source-manager → crypto-kline-vision-data)

@@ -256,21 +256,21 @@ if not has_more_data:
 
 See also: [G-17](./environment-gotchas.md#g-17-cursorcheckpoint-file-deletion-destroys-incremental-resume)
 
-## AP-16: Using mise `[env]` for Secrets Consumed by Pueue/Cron/Systemd Jobs
+## AP-16: Using Shell-Activated Env Vars for Secrets Consumed by Pueue/Cron/Systemd Jobs
 
 **Symptom**: Jobs work in interactive shell but fail in pueue/cron/systemd with empty env vars.
 
-**Root cause**: mise `[env]` variables require mise activation in the shell. Pueue jobs, cron jobs, and systemd services run in clean shells without mise. Workarounds (`eval "$(mise env)"` inside jobs) introduce trust issues, version incompatibilities, and `__MISE_DIFF` leakage over SSH. # PROCESS-STORM-OK (documentation of anti-pattern)
+**Root cause**: Variables that only exist because an interactive shell ran its profile or an activation hook (`.zshrc` exports, direnv, the retired mise `[env]`) are absent in pueue jobs, cron jobs and systemd services, which run in clean shells. Re-activating inside each job (`eval "$(<tool> env)"`) adds trust prompts, version coupling and SSH leakage.
 
-**Fix**: Use `python-dotenv` + `.env` for secrets. Use `mise.toml [tasks]` for task definitions only:
+**Fix**: Use `python-dotenv` + `.env` for secrets. Use `moon.yml` for task definitions only:
 
-```toml
-# mise.toml — tasks only, no [env] for secrets
-[tasks.backfill]
-run = "bash scripts/backfill.sh"
-
-[tasks.ingest]
-run = "bash scripts/ingest.sh"
+```yaml
+# moon.yml — tasks only, no secrets
+tasks:
+  backfill:
+    command: 'bash scripts/backfill.sh'
+  ingest:
+    command: 'bash scripts/ingest.sh'
 ```
 
 ```bash
@@ -285,7 +285,7 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")  # Works in interactive shell AND pueue jobs
 ```
 
-See also: [G-15](./environment-gotchas.md#g-15-pueue-jobs-cannot-see-mise-env-variables)
+See also: [G-15](./environment-gotchas.md#g-15-pueue-jobs-cannot-see-shell-activated-env-variables)
 
 ## AP-17: Unscoped Glob Consumes Artifacts From Other Pipeline Categories
 

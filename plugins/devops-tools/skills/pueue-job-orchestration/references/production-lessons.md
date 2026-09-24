@@ -70,18 +70,20 @@ postprocess_all() {
 }
 ```
 
-## Mise Task to Pueue Pipeline Integration
+## moon Task to Pueue Pipeline Integration
 
-Pattern for `mise run` commands that build pueue DAGs:
+Pattern for `moon run` tasks that build pueue DAGs:
 
-```toml
-# tasks/cache.toml
-["cache:postprocess-all"]
-description = "Full post-fix pipeline via pueue: repopulate -> optimize -> detect (auto-chained)"
-run = "./scripts/pueue-populate.sh postprocess-all"
+```yaml
+# moon.yml — full post-fix pipeline via pueue: repopulate -> optimize -> detect (auto-chained)
+tasks:
+  postprocess-all:
+    command: './scripts/pueue-populate.sh postprocess-all'
+    options:
+      cache: false
 ```
 
-The shell script captures pueue job IDs and chains them with `--after`. Mise provides the entry point; pueue provides the execution engine with dependency resolution.
+The shell script captures pueue job IDs and chains them with `--after`. moon provides the entry point (`moon run cache:postprocess-all`); pueue provides the execution engine with dependency resolution.
 
 ## Forensic Audit Before Deployment
 
