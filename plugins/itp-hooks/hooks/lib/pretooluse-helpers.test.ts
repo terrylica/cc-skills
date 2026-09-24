@@ -50,12 +50,11 @@ describe("allowWithInput", () => {
     expect(hook.updatedInput).toEqual({ command: "ls -la" });
   });
 
-  // DELIBERATE BEHAVIOUR CHANGE, not a broken test. AskUserQuestion gained a schema so that
-  // pretooluse-pr-premise-annotator can label an option that names a pull request with who authored
-  // it and whether a review was ever requested. Until then this tool had no schema, so every
-  // mutation of it fell back to a plain allow — which is why the assertion below used to be the
-  // opposite. The nested object / array-of-object support the schema needs landed with it.
-  it("now mutates AskUserQuestion, which has a schema", () => {
+  // REGRESSION GUARD. For AskUserQuestion, `updatedInput` is where the dialog's answers travel, so a
+  // hook that sends it is taken as having answered: the dialog never renders and the tool returns
+  // "The user did not answer the questions." (86 of 86 such calls, 2026-09-12 to 2026-09-24). A
+  // VALID schema must not be enough to mutate it.
+  it("refuses to mutate AskUserQuestion even when the input is schema-valid", () => {
     const lines = captureOutput(() => {
       allowWithInput("test-hook", "AskUserQuestion", { questions: [] });
     });
@@ -64,7 +63,7 @@ describe("allowWithInput", () => {
     const output = parseHookOutput(lines[0]);
     const hook = output.hookSpecificOutput as Record<string, unknown>;
     expect(hook.permissionDecision).toBe("allow");
-    expect(hook.updatedInput).toEqual({ questions: [] });
+    expect(hook.updatedInput).toBeUndefined();
   });
 
   it("still falls back to plain allow when an AskUserQuestion mutation is malformed", () => {
