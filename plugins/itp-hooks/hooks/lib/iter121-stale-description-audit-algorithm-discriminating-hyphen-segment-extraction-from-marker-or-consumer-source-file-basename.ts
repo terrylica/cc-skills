@@ -71,7 +71,7 @@ export const NON_DISCRIMINATING_BASENAME_PREFIX_AND_GENERIC_SEGMENTS =
     "sessionend",
     "precompact",
     "notification",
-    // Audit / mise prefixes
+    // Audit prefixes
     "audit",
     // Common generic suffixes
     "guard",

@@ -94,7 +94,7 @@ source "$PLUGIN_DIR/scripts/install-dependencies.sh" --detect-only
 SETUP_EOF
 ```
 
-Platform detection sets: `OS`, `PM` (package manager), `HAS_MISE`
+Platform detection sets: `OS`, `PM` (package manager), `HAS_PROTO`
 
 ### Todo 2: Check Core Tools
 
@@ -134,28 +134,21 @@ Record findings:
 
 ### Todo 5: Present Findings
 
-**IMPORTANT: Use mise-first commands when available**
+**Install-command source**: runtimes proto manages (`node`, `uv`) come from proto when `HAS_PROTO=true`; every other tool comes from the platform package manager (brew/apt) or its own universal installer. `scripts/install-dependencies.sh` `get_install_cmd` is the SSoT for these commands.
 
-When presenting missing tool installation commands:
+| Tool     | Command                                                  | Notes                                  |
+| -------- | -------------------------------------------------------- | -------------------------------------- |
+| uv       | `proto install uv --pin global` (else `brew install uv`) |                                        |
+| node     | `proto install node --pin global` (else brew/nodesource) |                                        |
+| gh       | `brew install gh`                                        | **Homebrew only** (iTerm2 issues)      |
+| gitleaks | `brew install gitleaks`                                  | apt: `sudo apt install -y gitleaks`    |
+| semgrep  | `brew install semgrep`                                   | apt: `python3 -m pip install --user semgrep` |
+| doppler  | `brew install dopplerhq/cli/doppler`                     | apt: Doppler's install script          |
+| ruff     | `uv tool install ruff`                                   |                                        |
+| prettier | `npm i -g prettier`                                      |                                        |
+| jscpd    | `npm i -g jscpd`                                         |                                        |
 
-- If `HAS_MISE=true` (detected in Todo 1): Show mise commands
-- If `HAS_MISE=false`: Show platform package manager commands (brew/apt)
-
-**Mise command reference (use when HAS_MISE=true):**
-
-| Tool     | mise command                     | Notes                          |
-| -------- | -------------------------------- | ------------------------------ |
-| gitleaks | `mise use --global gitleaks`     |                                |
-| ruff     | `mise use --global ruff`         |                                |
-| uv       | `mise use --global uv`           |                                |
-| gh       | `brew install gh`                | **NEVER mise** (iTerm2 issues) |
-| semgrep  | `mise use --global semgrep`      |                                |
-| node     | `mise use --global node`         |                                |
-| doppler  | `mise use --global doppler`      |                                |
-| prettier | `mise use --global npm:prettier` |                                |
-| jscpd    | `npm i -g jscpd` (npm only)      |                                |
-
-> **Warning**: gh CLI must be installed via Homebrew, not mise. mise-installed gh causes iTerm2 tab spawning issues with Claude Code. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
+> **Warning**: gh CLI must be installed via Homebrew — other installs caused iTerm2 tab spawning issues with Claude Code. [ADR](/docs/adr/2026-01-12-mise-gh-cli-incompatibility.md)
 
 **Display summary format (versions derived from actual tool output):**
 
@@ -173,15 +166,9 @@ Your existing installations:
 Note: This plugin is developed against latest tool versions.
 Your existing installations are respected.
 
-Missing tools will be installed via mise (detected):
-  gitleaks -> mise use --global gitleaks
-```
-
-**If HAS_MISE=false, show platform commands instead:**
-
-```
-Missing tools will be installed via brew:
+Missing tools will be installed via:
   gitleaks -> brew install gitleaks
+  uv       -> proto install uv --pin global
 ```
 
 **IMPORTANT**: Version numbers must be derived dynamically from running the actual tool's version command. Never hardcode version numbers.

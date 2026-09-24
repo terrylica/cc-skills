@@ -18,7 +18,7 @@ blocked. Full rationale + mandatory format live in the doctrine SSoT.
 | ----------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------- |
 | `gh release create` / `gh release edit`                                 | `--notes` / `-n` / `--notes-file` / `-F` text   | missing a narrative paragraph OR fewer than 4 bullets, or no notes at all |
 | `git tag -a/-s/-m/-F <semver>`                                          | the annotated-tag message                       | same narrative + point-form bar                                           |
-| `semantic-release`, `npx/bunx semantic-release`, `mise run release[:*]` | releasable commit **bodies** since the last tag | bodies collectively thin (see thresholds)                                 |
+| `semantic-release`, `npx/bunx semantic-release`, `moon run repo:release-*` | releasable commit **bodies** since the last tag | bodies collectively thin (see thresholds)                                 |
 
 For semantic-release, "releasable" = commits whose subject is `feat`/`fix`/`perf`
 (optional scope, optional `!`) or whose body carries a `BREAKING CHANGE:` footer.

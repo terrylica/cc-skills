@@ -10,7 +10,7 @@
  * Interception points (see release-notes-extensiveness-patterns.ts):
  *   - gh release create|edit  → measure inline --notes / --notes-file text
  *   - git tag -a/-s/-m/-F <semver>  → measure the annotated-tag message
- *   - semantic-release / mise run release[:*]  → inspect releasable commit bodies
+ *   - semantic-release / moon run repo:release-*  → inspect releasable commit bodies
  *
  * Escape hatch: add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a
  * genuinely un-narratable release (pure dependency/chore bump).

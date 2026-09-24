@@ -23,7 +23,7 @@ set -euo pipefail
 # CONFIGURATION (ADR: 2025-12-08-mise-env-centralized-config)
 # ============================================================================
 # Environment variables with defaults for backward compatibility.
-# These can be pre-set via mise [env] or exported manually.
+# These can be pre-set in the environment (e.g. a moon task's `env:`) or exported manually.
 DOPPLER_PROJECT="${DOPPLER_PROJECT:-claude-config}"
 DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
 DOPPLER_PYPI_SECRET="${DOPPLER_PYPI_SECRET:-PYPI_TOKEN}"
@@ -33,7 +33,7 @@ PYPI_VERIFY_DELAY="${PYPI_VERIFY_DELAY:-3}"
 # ENVIRONMENT DISCOVERY
 # ============================================================================
 # Discover how uv is installed before making assumptions.
-# Supports: direct install, Homebrew, cargo, mise, asdf, or already in PATH.
+# Supports: direct install, Homebrew, cargo, proto, asdf, or already in PATH.
 #
 # Non-interactive shells (like Claude Code) don't source shell configs,
 # so we need to find tools explicitly.
@@ -51,6 +51,7 @@ discover_uv() {
         "$HOME/.cargo/bin/uv"             # Cargo install
         "/opt/homebrew/bin/uv"            # macOS Homebrew (ARM)
         "/usr/local/bin/uv"               # macOS Homebrew (Intel) / Linux package manager
+        "$HOME/.proto/shims/uv"           # proto shim (proto install uv)
     )
 
     for uv_path in "${uv_locations[@]}"; do
@@ -60,26 +61,8 @@ discover_uv() {
         fi
     done
 
-    # Priority 3: Try version managers (mise, asdf) as fallback
+    # Priority 3: Try asdf as fallback
     # Only if uv not found directly - don't force any tool manager
-
-    # Try mise
-    local mise_locations=(
-        "$HOME/.local/bin/mise"
-        "/opt/homebrew/bin/mise"
-        "/usr/local/bin/mise"
-    )
-    for mise_path in "${mise_locations[@]}"; do
-        if [[ -x "$mise_path" ]]; then
-            # Check if mise has uv available
-            if "$mise_path" which uv &>/dev/null 2>&1; then
-                echo "$mise_path exec -- uv"
-                return 0
-            fi
-        fi
-    done
-
-    # Try asdf
     if [[ -f "$HOME/.asdf/asdf.sh" ]]; then
         # shellcheck source=/dev/null
         source "$HOME/.asdf/asdf.sh" 2>/dev/null || true
@@ -114,8 +97,8 @@ else
     echo "   # Cargo"
     echo "   cargo install uv"
     echo ""
-    echo "   # mise"
-    echo "   mise use uv@latest"
+    echo "   # proto"
+    echo "   proto install uv --pin global"
     echo ""
     exit 1
 fi

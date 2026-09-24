@@ -79,6 +79,6 @@ bun test plugins/itp-hooks/hooks/pretooluse-git-worktree-guard.test.ts
 
 Enabled plugins run from a versioned cache dir
 (`~/.claude/plugins/cache/cc-skills/itp-hooks/<version>/`), not this repo. A **cc-skills
-release** (`mise run release:full`) re-populates the cache and activates the hook globally.
+release** (`moon run repo:release-full`) re-populates the cache and activates the hook globally.
 A manual mirror of the new hook files + `hooks.json` into the active version dir is an
 immediate stopgap.

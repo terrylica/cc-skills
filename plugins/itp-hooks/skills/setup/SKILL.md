@@ -116,11 +116,10 @@ No hook installation step exists. `hooks/hooks.json` in this plugin is what Clau
 | Issue                | Cause                 | Solution                            |
 | -------------------- | --------------------- | ----------------------------------- |
 | jq not found         | jq not installed      | `brew install jq`                   |
-| bun/node not found   | Runtime not installed | `mise install bun`                  |
-| mise not installed   | Missing tool manager  | Install from <https://mise.jdx.dev> |
+| bun/node not found   | Runtime not installed | `proto install bun`                 |
 | ruff version error   | Outdated ruff         | `brew upgrade ruff`                 |
 | Plugin dir not found | Plugin not installed  | Re-install plugin via marketplace   |
-| PATH issues          | Shims not in PATH     | Add mise shims to ~/.zshenv         |
+| PATH issues          | Shims not in PATH     | Add proto shims to ~/.zshenv        |
 
 ## Post-Execution Reflection
 

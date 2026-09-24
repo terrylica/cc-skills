@@ -299,7 +299,7 @@ def run_gitleaks(target: Path, excludes: list[str]) -> list[Finding]:
                 pass
         return []
     except FileNotFoundError:
-        print("gitleaks not found. Install with: mise use --global gitleaks", file=sys.stderr)
+        print("gitleaks not found. Install with: brew install gitleaks", file=sys.stderr)
         return []
     except subprocess.TimeoutExpired:
         print(f"gitleaks timed out after {AUDIT_GITLEAKS_TIMEOUT} seconds", file=sys.stderr)

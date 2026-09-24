@@ -15,7 +15,7 @@ Preflight (ADR + Spec) → Phase 1 (Implement) → Phase 2 (Format) → Phase 3 
 1. **Preflight**: Creates ADR (MADR 4.0) and design spec
 2. **Phase 1**: Implement from design spec with TodoWrite tracking
 3. **Phase 2**: Format with Prettier, push to GitHub
-4. **Phase 3**: Release via the repo's mise release pipeline (main/master only)
+4. **Phase 3**: Release via the repo's own release task (main/master only)
 
 ## Plan Mode Bridge
 
@@ -34,8 +34,6 @@ Two paths from Plan Mode to `/itp:go`:
 - [go](./skills/go/SKILL.md)
 - [impl-standards](./skills/impl-standards/SKILL.md)
 - [implement-plan-preflight](./skills/implement-plan-preflight/SKILL.md)
-- [mise-configuration](./skills/mise-configuration/SKILL.md)
-- [mise-tasks](./skills/mise-tasks/SKILL.md)
 - [pypi-doppler](./skills/pypi-doppler/SKILL.md)
 - [setup](./skills/setup/SKILL.md)
 
@@ -46,7 +44,7 @@ Two paths from Plan Mode to `/itp:go`:
 | `/itp:go`    | Execute 4-phase workflow                       |
 | `/itp:setup` | Install dependencies and configure environment |
 
-For release, use the repo's mise pipeline directly: `/mise:run-full-release`.
+For release, run the repo's own release task directly — in a moon repo that is `moon run <project>:release-full` (here: `moon run repo:release-full`).
 
 **`/itp:tether` was retired (issue #127)**: it drove `scripts/manage-hooks.sh`, which injected itp-hooks entries into `~/.claude/settings.json` back when Claude Code did not load a plugin's own `hooks/hooks.json`. It does now — `plugins/itp-hooks/hooks/hooks.json` registers `posttooluse-reminder.ts` itself, so the injection would have fired the hook twice per matching event. The installer had also been inert since `posttooluse-reminder.sh` was renamed to `.ts`, and its second entry (`pretooluse-fake-data-guard.mjs`) was deliberately unregistered in `e6c665a9` for blocking legitimate writes; re-enabling that guard is a `hooks.json` edit, never a settings.json injection.
 
@@ -54,6 +52,6 @@ For release, use the repo's mise pipeline directly: `/mise:run-full-release`.
 
 | Tool     | Install               | Notes                              |
 | -------- | --------------------- | ---------------------------------- |
-| uv       | `mise install uv`     | Or `brew install uv`               |
-| gh       | `brew install gh`     | **NEVER use mise** (iTerm2 issues) |
+| uv       | `proto install uv`    | Or `brew install uv`               |
+| gh       | `brew install gh`     | Homebrew only (iTerm2 issues)      |
 | prettier | `bun add -g prettier` | Bun-first policy                   |

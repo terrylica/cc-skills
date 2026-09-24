@@ -98,7 +98,7 @@ def run_gitleaks(target: Path, output_format: str = "text") -> int:
 
     except FileNotFoundError:
         print(
-            "Error: gitleaks not found. Install with: mise use --global gitleaks",
+            "Error: gitleaks not found. Install with: brew install gitleaks",
             file=sys.stderr,
         )
         return 1

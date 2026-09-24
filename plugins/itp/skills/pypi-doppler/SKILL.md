@@ -210,7 +210,7 @@ CONFIG_EOF
 | Credential Management | [Doppler & Token Management](./references/credential-management.md) |
 | Troubleshooting       | [Troubleshooting Guide](./references/troubleshooting.md)            |
 | TestPyPI Testing      | [TestPyPI Testing](./references/testpypi-testing.md)                |
-| mise Task Integration | [mise Task Integration](./references/mise-task-integration.md)      |
+| Task Dependency       | [Task Dependency](./references/task-dependency.md)                    |
 
 ---
 
@@ -219,8 +219,6 @@ CONFIG_EOF
 - **ADR-0027**: `docs/architecture/decisions/0027-local-only-pypi-publishing.md` - Architectural decision for local-only publishing
 - **ADR-0028**: `docs/architecture/decisions/0028-skills-documentation-alignment.md` - Skills alignment with ADR-0027
 - **PUBLISHING.md**: `docs/development/PUBLISHING.md` - Complete release workflow guide
-- **mise-tasks Skill**: [`mise-tasks`](../mise-tasks/SKILL.md) - Task orchestration with dependency management
-- **Release Workflow Patterns**: [`release-workflow-patterns.md`](../mise-tasks/references/release-workflow-patterns.md) - DAG patterns and anti-patterns
 - **Bundled Script**: [`scripts/publish-to-pypi.sh`](./scripts/publish-to-pypi.sh) - Reference implementation with CI guards
 
 ---

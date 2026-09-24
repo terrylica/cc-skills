@@ -49,7 +49,7 @@
  *   `STOP-HOOK-ADDITIONAL-CONTEXT-OK`, `HOOK-OUTPUT-SIZE-CAP-OK`,
  *   `MATCHER-NO-MULTIEDIT-OK`, `POSTTOOLUSE-RAW-STDOUT-OK`,
  *   `SPAWN-SYNC-OK`, `TRUNCATION-OK`, `ORDERING-OK`,
- *   `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`): these are read by `.mise/`
+ *   `ESCAPE-HATCH-AUDIT-OK`, `FAST-PATH-OK`): these are read by `tasks/`
  *   audit tasks (not hooks) via bash/grep — they're a different lifecycle
  *   layer. Iter-112+ may extend this registry to cover them.
  * - **Test-fixture markers** (e.g., `FOO-OK`, `BAR-OK`, `BAZ-OK`,
@@ -63,7 +63,7 @@
  * `tasks/audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry.sh`
  * greps the marketplace for `[A-Z][A-Z0-9-]+-(OK|SKIP|WRAP)` tokens in
  * **producer files** (anything not in `plugins/itp-hooks/hooks/` and not
- * in `.mise/`) and verifies each appears in this registry. Unknown tokens
+ * in `tasks/`) and verifies each appears in this registry. Unknown tokens
  * are reported as potential typos — the operator can either fix the typo
  * or register a new legitimate marker here.
  *
@@ -405,7 +405,7 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
       windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
       minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
       humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `mise run release[:*]` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
+        "Allow a release/tag command that the release-notes-extensiveness-guard would otherwise block for thin notes. The guard hard-blocks `gh release create|edit`, annotated semver `git tag`, and semantic-release / `moon run repo:release-*` unless the notes carry BOTH a narrative paragraph and a ≥4-item point-form list (for semantic-release it inspects releasable commit bodies since the last tag). Add `RELEASE-NOTES-OK: <≥10-char reason>` to the command for a genuinely un-narratable release — a pure dependency bump, a chore-only release, or a re-tag. Reason-gated (≥10 chars) so the bypass is deliberate. Doctrine SSoT: ~/.claude/release-notes-doctrine-CLAUDE.md.",
     },
     {
       markerNameTokenIncludingSuffix: "SETPROCTITLE-OK",

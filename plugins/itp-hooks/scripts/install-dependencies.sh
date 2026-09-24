@@ -51,26 +51,12 @@ detect_platform() {
     esac
 }
 
-# Check for mise
-HAS_MISE=false
-if command -v mise &>/dev/null; then
-    HAS_MISE=true
-fi
-
 # ============================================================================
 # Install Commands
 # ============================================================================
 
 get_install_cmd() {
     local tool="$1"
-
-    # Mise-first installations (cross-platform)
-    if $HAS_MISE; then
-        case "$tool" in
-            ruff)       echo "mise install ruff && mise use --global ruff"; return ;;
-            shellcheck) echo "mise install shellcheck && mise use --global shellcheck"; return ;;
-        esac
-    fi
 
     # npm-based installations
     case "$tool" in
@@ -144,12 +130,12 @@ install_tool() {
 detect_platform
 
 if [ "$MODE" = "--detect-only" ]; then
-    echo "Platform: OS=$OS PM=$PM HAS_MISE=$HAS_MISE"
+    echo "Platform: OS=$OS PM=$PM"
     exit 0
 fi
 
 echo "=== itp-hooks dependency check ==="
-echo -e "Platform: ${BLUE}$OS${NC} | Package Manager: ${BLUE}$PM${NC} | mise: ${BLUE}$($HAS_MISE && echo 'yes' || echo 'no')${NC}"
+echo -e "Platform: ${BLUE}$OS${NC} | Package Manager: ${BLUE}$PM${NC}"
 echo ""
 
 # Required tools

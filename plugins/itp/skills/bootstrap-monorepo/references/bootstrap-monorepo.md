@@ -3,7 +3,7 @@
 > **Role**: You are a Principal Software Architect specializing in AI-native monorepo design.
 > **Mission**: Construct a production-grade polyglot monorepo from scratch, optimized for agentic workflows with Claude Code.
 > **Constraint**: The human will not touch any code. You execute everything autonomously, verifying at each phase.
-> **Supersedes**: the Pants + mise bootstrap (kept at `itp/skills/mise-tasks/references/bootstrap-monorepo.md` for legacy repos). This document is the canonical greenfield path as of 2026-06.
+> **Supersedes**: the retired Pants + mise bootstrap. This document is the canonical greenfield path as of 2026-06.
 
 ## Table of Contents
 
@@ -60,7 +60,7 @@ One toolchain manager, one task orchestrator, one TS runtime — wired together 
 | Dependency inference | Pants engine                       | explicit `dependsOn`/`deps` in `moon.yml` (transparent > inferred)                                                                                       |
 | Release              | mise file tasks → semantic-release | identical pattern, invoked as a moon task; multi-project repos add per-project namespaced tags via the monorepo fork (Phase 9 case B)                    |
 
-Legacy repos on mise stay on mise until proven at parity — migrate per-repo, never big-bang (the migration playbook: run both side by side, cut tasks over one at a time, delete `.mise.toml` last).
+Legacy repos still on mise migrate per-repo, never big-bang (the migration playbook: run both side by side, cut tasks over one at a time, delete `.mise.toml` last).
 
 ## Nx-Convergence Design Rules
 
@@ -589,7 +589,7 @@ module.exports = {
 > `release.config.cjs` — the full verbatim commit template, the faithful
 > body-preserving transform, and the lodash-`${nextRelease.version}`-placeholder
 > handling, pinned by `test/release-config-body-surfacing.test.ts`. For the manual /
-> per-release path (or repos that skip the JS config), `mise run release:augment --
+> per-release path (or repos that skip the JS config), cc-skills' `bash tasks/release/augment
 --tag <tag> --notes-file <path>` edits the GitHub Release through the same
 > extensiveness gate (`scripts/augment-release-notes.mjs`).
 
@@ -766,7 +766,6 @@ release:
 
 - [moonrepo docs](https://moonrepo.dev/docs) · [proto docs](https://moonrepo.dev/docs/proto) · [Bun docs](https://bun.sh/docs)
 - [Nx docs](https://nx.dev/) — the convergence target; revisit when repo > ~30 projects or remote caching/distributed execution pays
-- Legacy bootstrap (Pants + mise): `itp/skills/mise-tasks/references/bootstrap-monorepo.md`
 - `itp:semantic-release` skill — release automation deep dive (single-unit case A)
 - Per-project monorepo releases (case B): Phase 9 above — `@rimac-technology/semantic-release-monorepo` + the
   `.releaserc.cjs` dispatcher. Reference implementation: `claude-sys` (6 streams, verified).

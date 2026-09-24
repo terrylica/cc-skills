@@ -152,7 +152,7 @@ def check_jscpd() -> ToolCheck:
 
 def check_gitleaks() -> ToolCheck:
     """Check gitleaks installation."""
-    check = ToolCheck(name="gitleaks", installed=False, install_cmd="mise use --global gitleaks")
+    check = ToolCheck(name="gitleaks", installed=False, install_cmd="brew install gitleaks")
     if shutil.which("gitleaks"):
         check.installed = True
         check.version = _get_version(["gitleaks", "version"])

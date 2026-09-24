@@ -89,8 +89,8 @@ grep '^version = ' pyproject.toml
 **How the script discovers uv** (in priority order):
 
 1. Already in PATH (Homebrew, direct install, shell configured)
-2. Common direct install locations (`~/.local/bin/uv`, `~/.cargo/bin/uv`, `/opt/homebrew/bin/uv`)
-3. Version managers as fallback (mise, asdf)
+2. Common direct install locations (`~/.local/bin/uv`, `~/.cargo/bin/uv`, `/opt/homebrew/bin/uv`, the proto shim `~/.proto/shims/uv`)
+3. asdf as fallback
 
 **Fix**: Install uv using any method:
 
@@ -104,8 +104,8 @@ brew install uv
 # Cargo
 cargo install uv
 
-# mise (if you use it)
-mise use uv@latest
+# proto
+proto install uv --pin global
 ```
 
 The script doesn't force any particular installation method.
@@ -120,11 +120,11 @@ The script doesn't force any particular installation method.
 
 ```bash
 # PROCESS-STORM-OK
-/usr/bin/env bash << 'MISE_EOF'
-# CORRECT - safe for non-interactive shells
-eval "$(mise activate bash 2>/dev/null)" || true
+/usr/bin/env bash << 'SHIMS_EOF'
+# CORRECT - safe for non-interactive shells: put proto shims on PATH explicitly
+export PATH="$HOME/.proto/shims:$HOME/.proto/bin:$PATH"
 
 # WRONG - hangs in non-interactive shells
 source ~/.zshrc
-MISE_EOF
+SHIMS_EOF
 ```
