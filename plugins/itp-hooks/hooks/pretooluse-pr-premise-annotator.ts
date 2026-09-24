@@ -10,27 +10,24 @@
  * CEO's own pull request.
  *
  * Every guard written after that incident acts at the moment of the COMMAND. This one acts at the
- * moment of the DECISION, which is where the premise was actually manufactured. It does not block
- * anything and cannot produce a false positive in the usual sense: it appends queried facts and
- * gets out of the way.
+ * moment of the DECISION, which is where the premise was actually manufactured.
  *
- * WHAT IT APPENDS, and why it is one line. The sibling
+ * HOW IT SURFACES THE FACTS: DENY-AND-RE-ASK, NEVER updatedInput. The first version rewrote the
+ * options via `allow` + `updatedInput`. For AskUserQuestion that field is where the dialog's
+ * answers travel, so Claude Code took the rewrite as "already answered": the dialog never rendered
+ * and every call returned "The user did not answer the questions." That happened 86 times in 86
+ * between 2026-09-12 and 2026-09-24, with the operator never seeing a menu. It also fired on every
+ * bare `#N`, so ISSUE numbers were tagged "could not be resolved". Now: when a resolved PR's facts
+ * are missing from the option text, deny with the exact one-line annotation, and the agent re-asks
+ * with it included. Unresolved references are skipped. `allowWithInput` itself now refuses this tool.
+ *
+ * WHY THE ANNOTATION IS ONE LINE. The sibling
  * pretooluse-askuserquestion-option-line-terminator-guard DENIES any newline inside an option's
  * `label` or `description`, because Claude Code renders one as U+FFFD. So the annotation is a
  * single ` — ` separated clause, never a second paragraph.
- *
- * FAILURE IS COUNTED, NOT SILENT. `allowWithInput` validates the mutated input against
- * TOOL_SCHEMAS.AskUserQuestion; on any mismatch it calls `trackHookError` and falls back to a plain
- * `allow()`. That matters more here than anywhere else, because an annotator that quietly stops
- * annotating looks exactly like one that has nothing to say.
  */
 
-import {
-  allow,
-  allowWithInput,
-  parseStdinOrAllow,
-  trackHookError,
-} from "./pretooluse-helpers.ts";
+import { allow, deny, parseStdinOrAllow, trackHookError } from "./pretooluse-helpers.ts";
 
 const HOOK = "pretooluse-pr-premise-annotator";
 
@@ -112,9 +109,13 @@ async function factsFor(cwd: string, repo: string | null, number: string, actor:
   return { author, invited: timeline === null ? null : timeline.includes("true") };
 }
 
-/** One line, no newline, safe to append to an option description. */
-function annotation(number: string, facts: PrFacts, actor: string | null): string {
-  if (!facts.author) return `[#${number}: could not be resolved just now]`;
+/**
+ * One line, no newline, safe to append to an option description. Null when the reference did not
+ * resolve to a pull request: a bare `#N` is far more often an ISSUE (gh pr view fails on it), and
+ * tagging every issue "could not be resolved" polluted ordinary menus with noise.
+ */
+function annotation(number: string, facts: PrFacts, actor: string | null): string | null {
+  if (!facts.author) return null;
   if (actor && facts.author === actor) return `[#${number}: yours]`;
   const invitation =
     facts.invited === null
@@ -174,28 +175,34 @@ async function main(): Promise<void> {
     ),
   );
 
-  let changed = false;
-  const annotated = questions.map((question) => {
-    const typed = question as { options?: unknown[] };
-    if (!Array.isArray(typed.options)) return question;
-    return {
-      ...typed,
-      options: typed.options.map((option) => {
-        const typedOption = option as { label?: string; description?: string };
-        const text = `${typedOption.label ?? ""} ${typedOption.description ?? ""}`;
-        const notes = referencesIn(text)
-          .map((reference) => facts.get(`${reference.repo ?? ""}#${reference.number}`))
-          .filter((note): note is string => Boolean(note));
-        const unique = [...new Set(notes)];
-        if (unique.length === 0) return option;
-        changed = true;
-        return { ...typedOption, description: `${typedOption.description ?? ""} — ${unique.join(" ")}` };
-      }),
-    };
-  });
+  // Options whose text names a resolved PR but does not yet carry that PR's facts verbatim. Once the
+  // agent re-asks with the annotation included, this list is empty and the call is allowed, so the
+  // deny converges in one round rather than looping.
+  const missing: string[] = [];
+  for (const question of questions) {
+    for (const option of (question as { options?: unknown[] }).options ?? []) {
+      const typedOption = option as { label?: string; description?: string };
+      const text = `${typedOption.label ?? ""} ${typedOption.description ?? ""}`;
+      const notes = [
+        ...new Set(
+          referencesIn(text)
+            .map((reference) => facts.get(`${reference.repo ?? ""}#${reference.number}`))
+            .filter((note): note is string => Boolean(note) && !text.includes(note!)),
+        ),
+      ];
+      if (notes.length > 0) missing.push(`  - option "${typedOption.label ?? ""}": append ${notes.join(" ")}`);
+    }
+  }
 
-  if (!changed) return allow();
-  return allowWithInput(HOOK, "AskUserQuestion", { ...input.tool_input, questions: annotated });
+  if (missing.length === 0) return allow();
+  return deny(
+    [
+      `[PR-PREMISE] These options name pull requests; re-issue the same AskUserQuestion with each`,
+      `annotation appended verbatim to that option's description (as " — <annotation>", same line):`,
+      ...missing,
+      `Do not assert a review is owed unless the annotation says one was requested from you.`,
+    ].join("\n"),
+  );
 }
 
 main().catch((error: unknown) => {

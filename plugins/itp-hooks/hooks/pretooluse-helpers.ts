@@ -106,12 +106,34 @@ export function ask(reason: string): void {
  * Validates updatedInput against the tool's Zod schema (.strict()).
  * Unknown properties are rejected. Unknown tools get plain allow().
  * Fail-open: on any validation failure, falls back to allow() (no mutation).
+ *
+ * NEVER for an interactive tool. For AskUserQuestion, `updatedInput` is the channel through which
+ * the native dialog (or a hook standing in for it) delivers the user's `answers`. A hook that sends
+ * `allow` + `updatedInput` is therefore treated as having ALREADY answered: the dialog never renders
+ * and the tool returns "The user did not answer the questions." Measured 2026-09-24 over every
+ * session transcript: 86 of 86 rewritten calls went unanswered and unseen, against 465 of 466 plain
+ * `allow` calls that rendered and were answered, on every version 2.1.269–2.1.281. A plain `allow`
+ * is safe because Claude Code keeps the permission UI for `requiresUserInteraction` tools
+ * (anthropics/claude-code#29547). So this refuses, counts the error, and falls back to plain allow.
+ * To change what the user sees, `deny` with a reason that tells the agent what to re-ask.
  */
+export const TOOLS_WHOSE_UPDATED_INPUT_IS_THE_USERS_ANSWER: ReadonlySet<string> = new Set([
+  "AskUserQuestion",
+]);
+
 export function allowWithInput(
   hookName: string,
   toolName: string,
   updatedInput: Record<string, unknown>,
 ): void {
+  if (TOOLS_WHOSE_UPDATED_INPUT_IS_THE_USERS_ANSWER.has(toolName)) {
+    trackHookError(
+      hookName,
+      `refused updatedInput for ${toolName}: it would suppress the dialog and return no answers; deny with a re-ask reason instead`,
+    );
+    allow();
+    return;
+  }
   const result = validateToolInput(toolName, updatedInput);
   if (!result.valid) {
     trackHookError(hookName, result.error);
