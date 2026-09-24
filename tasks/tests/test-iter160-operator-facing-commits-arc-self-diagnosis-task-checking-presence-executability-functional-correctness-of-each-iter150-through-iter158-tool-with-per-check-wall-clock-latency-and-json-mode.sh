@@ -238,12 +238,21 @@ echo "GROUP D (1 assertion): exit code 0 when toolkit is healthy"
 
 ITER160_TOTAL_ASSERTIONS_EVALUATED=$((ITER160_TOTAL_ASSERTIONS_EVALUATED + 1))
 ITER160_EXIT_CODE_FROM_HEALTHY_RUN=0
-"$ITER160_STATUS_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1 \
+# The run's own output is KEPT, not discarded. D1 has failed intermittently under a
+# fully parallel `moon run repo:check` (2026-09-24) while passing 8/8 standalone
+# runs under lighter load, and with the output sent to /dev/null there was no way
+# to tell which check failed. The human-readable report marks each failing check
+# with ✗, so on failure those lines from THIS invocation are printed; re-running
+# the doctor afterwards might not reproduce a load-dependent failure.
+ITER160_D1_HEALTHY_RUN_OUTPUT_CAPTURE="$(NO_COLOR=1 "$ITER160_STATUS_SCRIPT_ABSOLUTE_PATH" 2>&1)" \
     || ITER160_EXIT_CODE_FROM_HEALTHY_RUN=$?
 if [[ "$ITER160_EXIT_CODE_FROM_HEALTHY_RUN" -eq 0 ]]; then
     echo "  ✓ D1: exit 0 when all CRITICAL checks pass (industry-standard severity-tier convention)"
 else
     echo "  ✗ D1: exit code is $ITER160_EXIT_CODE_FROM_HEALTHY_RUN (should be 0 in healthy mode)"
+    echo "    ↳ failing check line(s) from this same run:"
+    printf '%s\n' "$ITER160_D1_HEALTHY_RUN_OUTPUT_CAPTURE" | awk '/✗/ { print "       " $0; found=1 } END { if (!found) print "       (no ✗ line in the report; last lines follow)" }'
+    printf '%s\n' "$ITER160_D1_HEALTHY_RUN_OUTPUT_CAPTURE" | awk '/✗/ { found=1 } { buf[NR % 8] = $0 } END { if (!found) for (i = NR - 7; i <= NR; i++) if (i > 0) print "       " buf[i % 8] }'
     ITER160_TOTAL_ASSERTIONS_FAILED=$((ITER160_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
