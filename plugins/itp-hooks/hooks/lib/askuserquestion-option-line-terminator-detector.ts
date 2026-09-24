@@ -16,7 +16,7 @@
  * Claude Code replaces every line terminator inside an AskUserQuestion option's
  * `description` and `label` with U+FFFD (the replacement character), so a two-paragraph
  * description renders as `...forever.<FFFD><FFFD>II. SHORT-TERM WIN:`. Measured in the
- * shipped binary (2.1.259, and still present in 2.1.260): a one-line function replacing
+ * shipped binary (2.1.259, still present in 2.1.260 and in 2.1.281): a one-line function replacing
  * the class of LF / CR / U+2028 / U+2029 with U+FFFD, applied to `displayDescription` in
  * the option mapper and to each `option.label` in the option renderer.
  *

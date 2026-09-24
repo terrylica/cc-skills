@@ -7,7 +7,7 @@
  * before rendering — a multi-paragraph description reaches the user as
  * `...forever.<FFFD><FFFD>II. SHORT-TERM WIN:`. Upstream regression
  * https://github.com/anthropics/claude-code/issues/88836 (introduced 2.1.235, still open;
- * re-measured present in 2.1.260). The detector's docstring carries the byte-level
+ * re-measured present in 2.1.260 and again in 2.1.281 on 2026-09-24). The detector's docstring carries the byte-level
  * evidence and the explicit CONDITION FOR DELETING THIS GUARD.
  *
  * Only `label` and `description` are inspected. `question` and `preview` take
