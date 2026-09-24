@@ -1,3 +1,5 @@
+## [31.2.6](https://github.com/terrylica/cc-skills/compare/v31.2.5...v31.2.6) (2026-09-24)
+
 ## [31.2.5](https://github.com/terrylica/cc-skills/compare/v31.2.4...v31.2.5) (2026-09-24)
 
 ## [31.2.4](https://github.com/terrylica/cc-skills/compare/v31.2.3...v31.2.4) (2026-09-24)
