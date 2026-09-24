@@ -91,20 +91,14 @@ op item create --category "API Credential" --title "Cal.com API Key" \
   "api_url=<cal.com-instance-url>"
 ```
 
-### Setup Step 4: Configure mise
+### Setup Step 4: Supply the UUID
 
-After user selects an item (with UUID), use AskUserQuestion to confirm adding to `.mise.local.toml`:
+After user selects an item (with UUID), use AskUserQuestion to confirm where it goes: this shell only (`export CALCOM_OP_UUID=<selected-uuid>`), or the launchd daemons (add `export CALCOM_OP_UUID='<selected-uuid>'` to `~/own/amonic/.env.launchd`, which the launcher scripts source).
 
-```toml
-[env]
-CALCOM_OP_UUID = "<selected-uuid>"
-```
-
-### Setup Step 5: Reload and Verify
+### Setup Step 5: Verify
 
 ```bash
-mise trust 2>/dev/null || true
-cd . && echo "CALCOM_OP_UUID after reload: ${CALCOM_OP_UUID:-NOT_SET}"
+echo "CALCOM_OP_UUID: ${CALCOM_OP_UUID:-NOT_SET}"
 ```
 
 ### Setup Step 6: Test Connection
@@ -168,7 +162,7 @@ $CALCOM_CLI bookings list -n 10 --json
 ## References
 
 - [calcom-api-setup.md](./references/calcom-api-setup.md) - Cal.com API key setup guide
-- [mise-setup.md](./references/mise-setup.md) - Step-by-step mise configuration
+- [env-setup.md](./references/env-setup.md) - Where each variable comes from, per consumer
 
 ## Post-Change Checklist
 

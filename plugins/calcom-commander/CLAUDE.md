@@ -48,7 +48,7 @@ Cal.com CLI (compiled Bun binary): `scripts/calcom-cli/` — separate `package.j
 - **Hooks**: Use `$HOME`-based paths, never `$CLAUDE_PLUGIN_ROOT`
 - **Skills**: Follow Suite Pattern (Template F) with mandatory preflight
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/calcom-cli/calcom`
-- **Secrets**: `.mise.local.toml` (gitignored) in project directory
+- **Secrets**: 1Password (`op`, via `OP_SERVICE_ACCOUNT_TOKEN`); daemons read their env from `~/own/amonic/.env.launchd` (gitignored, hand-maintained), sourced by the launcher scripts; interactive use takes env from the calling shell. See [env-setup.md](./skills/calcom-access/references/env-setup.md)
 - **Deploy**: SKILL.md prescription for Cloud Run + Docker Compose (not in CLI)
 - **Dual-channel**: Telegram (HTML) + Pushover (plain text). Build in HTML, strip for Pushover.
 - **Pushover optional**: All Pushover functionality gracefully degrades if credentials not set

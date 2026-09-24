@@ -21,7 +21,7 @@ Expected output when running (production — launchd managed):
 
 ```
 91854 /Users/terryli/.claude/automation/claude-telegram-sync/telegram-bot-runner
-91870 /Users/terryli/.local/share/mise/installs/bun/1.3.5/bin/bun --watch run src/main.ts
+91870 <bun resolved by the runner, e.g. ~/.proto/shims/bun> run /Users/terryli/.claude/automation/claude-telegram-sync/src/main.ts
 ```
 
 Expected output when stopped: no output, exit code 1.
@@ -54,7 +54,7 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts >> /
 
 **Breakdown**:
 
-- `cd ~/.claude/automation/claude-telegram-sync` - Bot source directory (mise.toml loads env vars)
+- `cd ~/.claude/automation/claude-telegram-sync` - Bot source directory (Bun auto-loads `.env` from here; `moon.yml` `env:` applies only under `moon run telegram-sync:start`)
 - `bun --watch run src/main.ts` - Bun with kqueue-based file watcher
 - `>> /private/tmp/telegram-bot.log` - Append stdout to legacy log file
 - `2>&1` - Redirect stderr to same log
@@ -140,8 +140,8 @@ which bun && bun --version
 # Check bot source exists
 ls ~/.claude/automation/claude-telegram-sync/src/main.ts
 
-# Check mise.toml exists (loads env vars)
-ls ~/.claude/automation/claude-telegram-sync/mise.toml
+# Check .env exists (Bun auto-loads it; the launchd service's config and secrets)
+ls ~/.claude/automation/claude-telegram-sync/.env
 
 # Check secrets file exists
 [[ -f ~/.claude/.secrets/ccterrybot-telegram ]] && echo "Secrets OK" || echo "Secrets MISSING"

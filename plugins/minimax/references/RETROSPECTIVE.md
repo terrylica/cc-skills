@@ -27,7 +27,7 @@ For amonic services: M2.7 is a strong "qualitative judge + theory explainer + to
 | Iterations completed                      | 41                                                                                                                   |
 | Verified hands-on pattern docs            | 40 (under [`api-patterns/`](./api-patterns/))                                                                        |
 | Consolidated quirks references            | 1 ([`quirks/CLAUDE.md`](./quirks.md), v1 from iter-11)                                                        |
-| OPS tools shipped                         | 1 (`mise run minimax:check-upgrade` from iter-41)                                                                    |
+| OPS tools shipped                         | 1 (`scripts/minimax-check-upgrade` from iter-41)                                                                    |
 | Critical findings                         | 35                                                                                                                   |
 | Non-Obvious Learnings                     | ~155 (5 per iter avg × 41 iters minus dupes)                                                                         |
 | Documented failure modes                  | 11 (6 hallucination + 4 saturation + 1 cross-language asymmetry)                                                     |
@@ -176,11 +176,10 @@ For amonic services on the current plan: **chat-completion + files + (gated) emb
 | Artifact                                                                                                            | Purpose                                                        |
 | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | [`bin/minimax-check-upgrade`](../scripts/minimax-check-upgrade)                                                         | Polls `/v1/models`, diffs against locked snapshot, exits 0/1/2 |
-| [`tasks/minimax/check-upgrade`](~/own/amonic/tasks/minimax/check-upgrade)                                         | `mise run minimax:check-upgrade` (alias: `mm:check-upgrade`)   |
 | [`config/plists/com.terryli.minimax-check-upgrade.plist`](../templates/launchd-check-upgrade.plist) | launchd plist for daily 09:00 polling (manual install)         |
 | [`minimax/api-patterns/fixtures/models-list-locked.json`](./fixtures/models-list-locked.json)          | Frozen reference for diff comparison                           |
 
-This is the FIRST production OPS deliverable from the campaign. Future amonic services should add `mise run minimax:check-upgrade` to their CI gate to refuse merges when MiniMax has shipped a new model the codebase hasn't reviewed.
+This is the FIRST production OPS deliverable from the campaign. Future amonic services should add `bash scripts/minimax-check-upgrade` (in amonic: `moon run root:minimax-check-upgrade`) to their local pre-merge gate to refuse merges when MiniMax has shipped a new model the codebase hasn't reviewed.
 
 ---
 
@@ -207,7 +206,7 @@ The campaign achieved its Core Directive but left these worth-probing-later:
 1. **Quick wiring**: read this doc + [`quirks/CLAUDE.md`](./quirks.md) (5 critical findings up top). That's enough to ship Karakeep tagging.
 2. **Specific feature**: drill into [`api-patterns/`](./api-patterns/) — table-of-contents in [`api-patterns/CLAUDE.md`](./api-patterns/INDEX.md).
 3. **Edge case / failure**: search the failure-mode catalog in this doc, then drill into the source iter's pattern doc.
-4. **Model upgrade audit**: run `mise run minimax:check-upgrade`. If exit 1, re-run the relevant probes against the new model name before bumping the lock.
+4. **Model upgrade audit**: run `bash scripts/minimax-check-upgrade` from the plugin root. If exit 1, re-run the relevant probes against the new model name before bumping the lock.
 
 ---
 

@@ -100,22 +100,21 @@ cd ~/own/amonic && bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins
 6. Updates state file for next sync cycle
 7. Circuit breaker prevents cascade failures on API errors
 
-## mise Configuration (Agnostic Wiring)
+## Environment Configuration (Agnostic Wiring)
 
-Any repository can adopt these notifications by adding to `.mise.local.toml`:
+The scripts read plain environment variables. For the launchd daemons put them in `~/own/amonic/.env.launchd` (sourced by the launcher scripts); for interactive use export them in your shell:
 
-```toml
-[env]
+```bash
 # Required (Telegram)
-CALCOM_OP_UUID = "<1password-uuid>"
-TELEGRAM_BOT_TOKEN = "<bot-token>"
-TELEGRAM_CHAT_ID = "<chat-id>"
+export CALCOM_OP_UUID='<1password-uuid>'
+export TELEGRAM_BOT_TOKEN='<bot-token>'
+export TELEGRAM_CHAT_ID='<chat-id>'
 
 # Optional (Pushover dual-channel)
-PUSHOVER_APP_TOKEN = "<pushover-app-token>"
-PUSHOVER_USER_KEY = "<pushover-user-key>"
-PUSHOVER_SOUND = "dune"
-WEBHOOK_RELAY_URL = "https://calcom-pushover-webhook-XXXXX.us-central1.run.app/"
+export PUSHOVER_APP_TOKEN='<pushover-app-token>'
+export PUSHOVER_USER_KEY='<pushover-user-key>'
+export PUSHOVER_SOUND='dune'
+export WEBHOOK_RELAY_URL='https://calcom-pushover-webhook-XXXXX.us-central1.run.app/'
 ```
 
 ## References

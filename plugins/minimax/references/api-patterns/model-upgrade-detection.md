@@ -1,10 +1,10 @@
-# Model-Upgrade Detection — `mise run minimax:check-upgrade`
+# Model-Upgrade Detection — `scripts/minimax-check-upgrade`
 
 > **Aggregated copy** of `~/own/amonic/minimax/api-patterns/model-upgrade-detection.md` (source-of-truth — read-only, source iter-41). Sibling-doc refs resolve within `references/api-patterns/`; fixture refs use absolute source paths (most fixtures are not aggregated per [`../INDEX.md`](../INDEX.md)). Aggregated 2026-04-29 (iter-11).
 
 **Endpoint**: `GET /v1/models`
 **Tooling delivered**: 2026-04-29 (iter-41, T4.4)
-**Source**: [`bin/minimax-check-upgrade`](../../bin/minimax-check-upgrade) + [`tasks/minimax/check-upgrade`](../../tasks/minimax/check-upgrade)
+**Source**: [`scripts/minimax-check-upgrade`](../../scripts/minimax-check-upgrade) (ported from amonic's `bin/minimax-check-upgrade`)
 
 ## Why this exists
 
@@ -15,9 +15,10 @@ This is the OPS counterpart to the rest of this directory — most files documen
 ## TL;DR
 
 ```bash
-mise run minimax:check-upgrade            # human-readable diff
-mise run minimax:check-upgrade --json     # structured JSON
-mise run minimax:check-upgrade --update   # accept current live as new lock
+PLUGIN_ROOT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax"
+bash "$PLUGIN_ROOT/scripts/minimax-check-upgrade"            # human-readable diff
+bash "$PLUGIN_ROOT/scripts/minimax-check-upgrade" --json     # structured JSON
+bash "$PLUGIN_ROOT/scripts/minimax-check-upgrade" --update   # accept current live as new lock
 ```
 
 Exit codes: `0` = no change, `1` = upgrade detected, `2` = fetch/parse error.
@@ -27,8 +28,7 @@ Exit codes: `0` = no change, `1` = upgrade detected, `2` = fetch/parse error.
 | Artifact                                                | Role                                                                   |
 | ------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `minimax/api-patterns/fixtures/models-list-locked.json` | The frozen reference snapshot. Initialized from iter-1's catalog dump. |
-| `bin/minimax-check-upgrade`                             | The actual logic — bash + inline Python for the diff.                  |
-| `tasks/minimax/check-upgrade`                     | Thin mise wrapper. Adds `mise run minimax:check-upgrade` invocation.   |
+| `scripts/minimax-check-upgrade`                         | The actual logic — bash + inline Python for the diff.                  |
 
 The diff lives in Python (inline heredoc) for two reasons:
 
@@ -50,10 +50,10 @@ The script does NOT track ordering changes (the model array order is unstable ac
 ### One-shot manual check
 
 ```bash
-mise run minimax:check-upgrade
+bash "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade"
 ```
 
-Exit 0 ⇒ nothing to do. Exit 1 ⇒ inspect the diff, decide whether to re-run probes against the new model, and only then `mise run minimax:check-upgrade --update` to bless the new state as the lock.
+Exit 0 ⇒ nothing to do. Exit 1 ⇒ inspect the diff, decide whether to re-run probes against the new model, and only then re-run it with `--update` to bless the new state as the lock.
 
 **Don't blindly `--update`.** Whenever a new model lands, the rest of `api-patterns/` may be wrong about it. The whole point of the lock is to FORCE manual review at every catalog change.
 
@@ -115,43 +115,22 @@ For remote scheduling, a systemd timer or cron job invoking the same script work
 
 The script is idempotent and stateless apart from the lock file — no concurrency concerns.
 
-### Mise task wrapper (consuming repo pattern)
+### Wiring it into a consuming repo
 
-> **[plugin variant]** This pattern is documented (not shipped) — the amonic source-of-truth ships a one-line mise task at `~/own/amonic/tasks/minimax/check-upgrade` that hardcodes `${REPO_ROOT}/bin/minimax-check-upgrade`. That wrapper is too repo-specific to ship from this plugin; instead, copy this pattern into the consuming repo's `tasks/minimax/check-upgrade` file.
-
-Drop this script into your consuming repo at `tasks/minimax/check-upgrade` (mark executable: `chmod +x`):
+Invoke the plugin script directly; no wrapper is required. It is plain bash with `--json` / `--update` passthrough, and the env vars (`MINIMAX_API_KEY`, `MINIMAX_LOCKED_SNAPSHOT`, `MINIMAX_API_KEY_OP_PATH`, `MINIMAX_OP_ACCOUNT`) are read from the calling shell:
 
 ```bash
-#!/usr/bin/env bash
-#MISE description="Poll MiniMax /v1/models and diff against locked snapshot. Exit 0=no change, 1=upgrade detected, 2=error."
-#MISE alias=["mm:check-upgrade"]
-set -euo pipefail
-
-# Resolve plugin script — adjust path if cc-skills is installed elsewhere.
-PLUGIN_SCRIPT="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade"
-
-if [[ ! -x "$PLUGIN_SCRIPT" ]]; then
-    echo "ERROR: cc-skills minimax plugin script not found at $PLUGIN_SCRIPT" >&2
-    echo "  Install: claude plugin marketplace add terrylica/cc-skills" >&2
-    echo "  Or override path via MINIMAX_PLUGIN_SCRIPT env var" >&2
-    exit 2
-fi
-
-exec "${MINIMAX_PLUGIN_SCRIPT:-$PLUGIN_SCRIPT}" "$@"
+bash "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade" "$@"
 ```
 
-Then `mise run minimax:check-upgrade` (or the alias `mm:check-upgrade`) invokes the plugin script with full `--json` / `--update` flag passthrough. Env vars (`MINIMAX_API_KEY`, `MINIMAX_LOCKED_SNAPSHOT`, `MINIMAX_API_KEY_OP_PATH`, `MINIMAX_OP_ACCOUNT`) propagate naturally — `exec` preserves the parent shell's environment, and mise loads `.mise.local.toml` `[env]` entries before invoking the task.
-
-**Why this shape**: the consuming repo gets a stable `mise run` invocation (CI/CD-friendly, project-discoverable via `mise tasks ls`) without bundling the actual logic. When the plugin updates (new failure modes detected, lock format changes), the consuming repo gets the fix automatically — no copy-paste drift.
-
-**Alternative for repos without mise**: replace the mise wrapper with a `Makefile` target, an `npm` script, or a project-local symlink. The plugin's script is shell-only and has no mise dependency.
+A repo that wants a discoverable name wraps that line in its own task runner. amonic does this with a moon task (`moon run root:minimax-check-upgrade`, defined in `~/own/amonic/moon.yml` as `bash bin/minimax-check-upgrade`, amonic's own copy of the script). Calling the plugin script rather than copying it means a plugin update reaches every consumer without copy-paste drift.
 
 ### CI gate (forced refresh)
 
 If a release pipeline wants to refuse merges when the model catalog has changed without explicit lock update:
 
 ```bash
-mise run minimax:check-upgrade
+bash "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/minimax/scripts/minimax-check-upgrade"
 # exit 0 = no drift, proceed
 # exit 1 = catalog drifted, fail the gate; require an explicit commit bumping the lock
 ```

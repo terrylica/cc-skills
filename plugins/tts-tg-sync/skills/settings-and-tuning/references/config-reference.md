@@ -1,10 +1,10 @@
 # Configuration Reference
 
-Complete reference for all environment variables in `~/.claude/automation/claude-telegram-sync/mise.toml`.
+Complete reference for all environment variables in `~/.claude/automation/claude-telegram-sync/moon.yml` `env:`.
 
 ## Config SSoT
 
-All settings live in the `[env]` section of `mise.toml`. The bot and shell scripts read these as environment variables. All values are strings in TOML (mise convention).
+Defaults live in the `env:` block of `moon.yml`, which reaches `moon run telegram-sync:<task>`. The launchd service does not receive it (proto shims do not inject project env) and reads overrides from the bot directory's `.env` instead. The bot and shell scripts read these as environment variables, with built-in fallback defaults. Quote every value as a string in `moon.yml`. See [config-architecture.md](./config-architecture.md).
 
 ---
 

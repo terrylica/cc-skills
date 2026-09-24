@@ -44,10 +44,10 @@ echo "=== Gmail Account Context ==="
 echo "Working directory: $(pwd)"
 echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID}"
 
-# Check where GMAIL_OP_UUID is defined (mise hierarchy)
+# Check where GMAIL_OP_UUID is defined (plain env: shell startup files or the daemon env file)
 echo ""
-echo "=== mise Config Source ==="
-grep -l "GMAIL_OP_UUID" .mise.local.toml .mise.toml ~/.config/mise/config.toml 2>/dev/null || echo "Not found in standard locations"
+echo "=== GMAIL_OP_UUID Source ==="
+grep -l "GMAIL_OP_UUID" ~/.zshenv ~/.zshrc ~/own/amonic/.env.launchd 2>/dev/null || echo "Not in shell startup files or .env.launchd (set in this shell or passed inline)"
 
 # Quick connectivity test — shows the account email from a real email
 echo ""
@@ -58,7 +58,7 @@ $GMAIL_CLI list -n 1 2>&1 | head -5
 **STOP and confirm with user** before proceeding:
 
 - The `list -n 1` output shows the account's inbox — verify this matches the project's intended email
-- If the wrong account is shown, check which `.mise.local.toml` sets `GMAIL_OP_UUID` in the mise hierarchy
+- If the wrong account is shown, re-run with the right UUID passed inline (`GMAIL_OP_UUID=<uuid> $GMAIL_CLI ...`); nothing selects the account from the working directory
 - If mismatch, inform user and do NOT proceed
 
 **Multi-account disambiguation (when `GMAIL_OP_UUID` is NOT_SET but tokens exist).**
@@ -100,7 +100,7 @@ curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
 
 A probe that returns `invalid_grant` means that account's refresh token is dead
 (see "Diagnosing `invalid_grant`"). Pick the working UUID whose mailbox matches
-the project, pin it in `.mise.local.toml`, and confirm it's gitignored. A child
+the project and pass it inline as `GMAIL_OP_UUID=<uuid>` on each command. A child
 project often needs a DIFFERENT account than its parent — verify, never assume
 the parent's UUID.
 
@@ -185,47 +185,33 @@ AskUserQuestion({
 - If "I have credentials elsewhere": Guide user to add to 1Password with required fields
 - If "Skip for now": Inform user the skill won't work until configured
 
-### Setup Step 4: Confirm mise Configuration
+### Setup Step 4: Confirm Where the UUID Goes
 
 After user selects an item (with UUID), use AskUserQuestion:
 
 ```
 AskUserQuestion({
   questions: [{
-    question: "Add GMAIL_OP_UUID to .mise.local.toml in current project?",
+    question: "Where should GMAIL_OP_UUID be set?",
     header: "Configure",
     options: [
-      { label: "Yes, add to .mise.local.toml (Recommended)", description: "Creates/updates gitignored config file" },
-      { label: "Show me the config only", description: "I'll add it manually" }
+      { label: "This session only (Recommended)", description: "export GMAIL_OP_UUID in the current shell; nothing written to disk" },
+      { label: "The launchd daemons", description: "Add an export line to ~/own/amonic/.env.launchd" }
     ],
     multiSelect: false
   }]
 })
 ```
 
-**If "Yes, add to .mise.local.toml"**:
+**If "This session only"**: run `export GMAIL_OP_UUID=<selected-uuid>` (or pass it inline on each command).
 
-1. Check if `.mise.local.toml` exists
-2. If exists, append `GMAIL_OP_UUID` to `[env]` section
-3. If not exists, create with:
+**If "The launchd daemons"**: add `export GMAIL_OP_UUID='<selected-uuid>'` to `~/own/amonic/.env.launchd` (gitignored, hand-maintained; the launcher scripts source it), replacing any existing `GMAIL_OP_UUID` line.
 
-```toml
-[env]
-GMAIL_OP_UUID = "<selected-uuid>"
-```
-
-1. Verify `.mise.local.toml` is in `.gitignore`
-
-**If "Show me the config only"**: Output the TOML for user to add manually.
-
-### Setup Step 5: Reload and Verify
+### Setup Step 5: Verify
 
 ```bash
-mise trust 2>/dev/null || true
-cd . && echo "GMAIL_OP_UUID after reload: ${GMAIL_OP_UUID:-NOT_SET}"
+echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID:-NOT_SET}"
 ```
-
-**If still NOT_SET**: Inform user to restart their shell or run `source ~/.zshrc`.
 
 ### Setup Step 6: Test Connection
 
@@ -808,8 +794,7 @@ done
 
 ## References
 
-- [mise-templates.md](./references/mise-templates.md) - Complete mise configuration templates
-- [mise-setup.md](./references/mise-setup.md) - Step-by-step mise setup guide
+- [env-setup.md](./references/env-setup.md) - Where `GMAIL_OP_UUID` comes from, per consumer, and multi-account use
 - [gmail-api-setup.md](./references/gmail-api-setup.md) - Google Cloud OAuth setup guide
 
 ## Post-Change Checklist
@@ -842,7 +827,7 @@ done
   - _Trigger_: drafting client correspondence that must go out as a specific send-as alias. Step 2.5 exists precisely to stop you acting on the wrong account, and it gave a confident wrong answer.
   - _Defect 1_: the disambiguation snippet read `list -n 1 --json | jq '.[0].to'` — the **recipient of the newest message**, not the mailbox owner. The newest item was an outgoing draft, so the `wc6vl…` token reported an external correspondent's address when the mailbox is `amonic@gmail.com`. Anyone trusting it would have concluded they were authenticated as the counterparty.
   - _Fix 1_: replaced with `users/me/profile` → `.emailAddress`, which is authoritative, plus a `settings/sendAs` probe so aliases and the DEFAULT alias are known before `--from` is chosen. That default matters: on this account it is `terry@eonlabs.com`, which correspondence policy forbids for client mail — so an omitted `--from` sends as the forbidden identity.
-  - _Defect 2, NOT yet fixed_: `GMAIL_OP_UUID` is overloaded. A project's `.mise.local.toml` may set it to the 1Password item **title** (e.g. `"amonic-gmail"`), while `gmail-access-token.sh` and the token cache key off the item **UUID** (`wc6vl….json`). Passing the title fails with `no token file`. Whether the compiled `gmail` CLI resolves titles via 1Password was **not** tested, because a wrong guess triggers a fresh OAuth browser consent. **Verify before "fixing" either side.**
+  - _Defect 2, NOT yet fixed_: `GMAIL_OP_UUID` is overloaded. A project's env may set it to the 1Password item **title** (e.g. `"amonic-gmail"`), while `gmail-access-token.sh` and the token cache key off the item **UUID** (`wc6vl….json`). Passing the title fails with `no token file`. Whether the compiled `gmail` CLI resolves titles via 1Password was **not** tested, because a wrong guess triggers a fresh OAuth browser consent. **Verify before "fixing" either side.**
   - _Evidence_: `users/me/profile` → `amonic@gmail.com`; `settings/sendAs` → `rickychanbc@gmail.com` `verificationStatus=accepted`, `terry@eonlabs.com` `isDefault=true`. Draft `r6501695713107519416` created with an explicit `--from` and read back with the alias correct and no `terry` in the header.
 
 - **2026-08-18 — the body guard does NOT cover `scripts/gmail-draft.ts`, and markdown reached a real draft through that hole.**

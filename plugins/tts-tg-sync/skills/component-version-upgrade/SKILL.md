@@ -27,7 +27,7 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 ## Requirements
 
 - `uv` installed (`brew install uv`)
-- `mise` installed and configured
+- `proto` installed (pins bun and moon in the bot directory's `.prototools`)
 - Internet connectivity for package downloads
 - Existing installation (run `full-stack-bootstrap` first if not installed)
 
@@ -40,7 +40,7 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 | Kokoro TTS engine | `kokoro-install.sh --upgrade`                                | Upgrades Python deps, re-downloads model, updates version.json |
 | Bot dependencies  | `cd ~/.claude/automation/claude-telegram-sync && bun update` | Updates Bun packages per package.json                          |
 | tts_generate.py   | Re-copy from plugin `scripts/` to `~/.local/share/kokoro/`   | Updates the TTS generation script                              |
-| Bun runtime       | `mise use bun@latest`                                        | Updates the Bun version in mise.toml                           |
+| Bun runtime       | `proto pin bun latest --resolve && proto install` (bot dir)  | Updates the Bun pin in `.prototools` and installs it           |
 
 ---
 

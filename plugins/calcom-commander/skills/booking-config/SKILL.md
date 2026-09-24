@@ -159,7 +159,7 @@ curl -s -X POST "https://api.cal.com/v1/webhooks?apiKey=$CALCOM_API_KEY" \
 curl -s -X DELETE "https://api.cal.com/v1/webhooks/<webhook-id>?apiKey=$CALCOM_API_KEY"
 ```
 
-**Prerequisites**: `WEBHOOK_RELAY_URL` must be set in `.mise.local.toml`. Deploy the relay first via the `infra-deploy` skill.
+**Prerequisites**: `WEBHOOK_RELAY_URL` must be set in the environment (`~/own/amonic/.env.launchd` for the daemons, or exported in your shell). Deploy the relay first via the `infra-deploy` skill.
 
 ## Post-Change Checklist
 

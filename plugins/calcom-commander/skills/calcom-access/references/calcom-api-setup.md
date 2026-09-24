@@ -31,14 +31,13 @@ op item create --category "API Credential" \
 
 Note the UUID from the output — this becomes your `CALCOM_OP_UUID`.
 
-## Configure mise
+## Supply the Variables
 
-Add to your project's `.mise.local.toml` (gitignored):
+Export them in your shell for interactive use, or add the same lines to `~/own/amonic/.env.launchd` for the launchd daemons (see [env-setup.md](./env-setup.md)):
 
-```toml
-[env]
-CALCOM_OP_UUID = "<uuid-from-1password>"
-CALCOM_API_URL = "https://your-calcom-instance.run.app"
+```bash
+export CALCOM_OP_UUID='<uuid-from-1password>'
+export CALCOM_API_URL='https://your-calcom-instance.run.app'
 ```
 
 ## Verify

@@ -21,7 +21,7 @@ echo "CALCOM_GCP_ACCOUNT: ${CALCOM_GCP_ACCOUNT:-NOT_SET}"
 echo "CALCOM_GCP_REGION: ${CALCOM_GCP_REGION:-us-central1}"
 ```
 
-**If NOT_SET**: These must be configured in `.mise.local.toml`. Run the setup command.
+**If NOT_SET**: Export them in your shell (see [env-setup.md](../calcom-access/references/env-setup.md)), or run the setup command.
 
 ### Step 2: Verify GCP Authentication
 
@@ -198,7 +198,7 @@ gcloud run deploy calcom-pushover-webhook \
   --quiet
 ```
 
-Note the **Service URL** from the output. Store in `.mise.local.toml` as `WEBHOOK_RELAY_URL`.
+Note the **Service URL** from the output. Store it as `WEBHOOK_RELAY_URL` in `~/own/amonic/.env.launchd` (daemons) and your shell.
 
 ### Step 3: Verify Health
 

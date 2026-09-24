@@ -1,7 +1,7 @@
 /**
  * Configuration constants and environment variable handling
  *
- * Uses mise environment variables for agnostic, multi-account Gmail access.
+ * Reads plain environment variables for agnostic, multi-account Gmail access.
  * Shows self-guiding errors when configuration is missing.
  */
 
@@ -102,11 +102,11 @@ Run: /gmail-commander:setup
 1. Find your 1Password UUID:
    op item list --vault Employee | grep -i gmail
 
-2. Add to .mise.local.toml:
-   [env]
-   GMAIL_OP_UUID = "<your-uuid>"
+2. Pass it to the command, or export it in this shell:
+   GMAIL_OP_UUID=<your-uuid> gmail list -n 1
+   export GMAIL_OP_UUID=<your-uuid>
 
-3. Reload: cd . && mise trust
+3. For the launchd daemons, set it in ~/own/amonic/.env.launchd
 
 ━━━ NEED OAUTH CREDENTIALS? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

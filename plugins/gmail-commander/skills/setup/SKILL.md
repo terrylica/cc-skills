@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, configures mise.
+description: Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, writes the daemon env file.
 allowed-tools: Bash, Read, Write, AskUserQuestion, Edit
 disable-model-invocation: false
 ---
@@ -16,8 +16,8 @@ Complete setup wizard for Gmail CLI access, Telegram bot, and launchd services.
 ```bash
 # Check required tools
 command -v op && echo "OK 1Password CLI" || echo "MISSING: brew install 1password-cli"
-command -v mise && echo "OK mise" || echo "MISSING: curl https://mise.run | sh"
-command -v bun && echo "OK bun" || echo "MISSING: curl -fsSL https://bun.sh/install | bash"
+command -v proto && echo "OK proto" || echo "MISSING: brew install proto"
+command -v bun && echo "OK bun" || echo "MISSING: proto install bun"
 command -v ffmpeg && echo "OK ffmpeg" || echo "OPTIONAL: brew install ffmpeg (for voice digest)"
 ```
 
@@ -41,14 +41,13 @@ op item list --vault Employee --format json | jq -r '.[] | select(.title | test(
 
 Use AskUserQuestion with discovered items or guide new credential creation.
 
-### Step 4: Configure .mise.local.toml
+### Step 4: Write the daemon env file
+
+`~/own/amonic/.env.launchd` (gitignored, hand-maintained) is the SSoT for daemon env; the launcher scripts source it. For interactive use, `export GMAIL_OP_UUID=<selected-uuid>` in the current shell instead.
 
 ```bash
-# Add to .mise.local.toml in project directory
-cat >> .mise.local.toml << 'EOF'
-[env]
-GMAIL_OP_UUID = "<selected-uuid>"
-EOF
+# Add to ~/own/amonic/.env.launchd (replace any existing GMAIL_OP_UUID line)
+echo "export GMAIL_OP_UUID='<selected-uuid>'" >> ~/own/amonic/.env.launchd
 ```
 
 ### Step 5: Build Gmail CLI
@@ -79,13 +78,13 @@ If NOT_SET, guide user through BotFather setup:
 3. Copy the token
 4. Get chat ID: message the bot, then check `https://api.telegram.org/bot<TOKEN>/getUpdates`
 
-### Step 2: Add to .mise.local.toml
+### Step 2: Add to the daemon env file
 
 ```bash
-# Append bot config
-cat >> .mise.local.toml << 'EOF'
-TELEGRAM_BOT_TOKEN = "<bot-token>"
-TELEGRAM_CHAT_ID = "<chat-id>"
+# Append bot config to ~/own/amonic/.env.launchd
+cat >> ~/own/amonic/.env.launchd << 'EOF'
+export TELEGRAM_BOT_TOKEN='<bot-token>'
+export TELEGRAM_CHAT_ID='<chat-id>'
 EOF
 ```
 
@@ -98,21 +97,23 @@ mkdir -p ~/own/amonic/bin ~/own/amonic/logs
 
 # Bot launcher
 cat > ~/own/amonic/bin/gmail-commander-bot << 'SCRIPT'
-#!/bin/bash
+#!/bin/zsh
 set -euo pipefail
-eval "$("$HOME/.local/bin/mise" activate bash)"
+# .env.launchd is hand-maintained and is the SSoT for daemon secrets.
+source "$HOME/own/amonic/.env.launchd"
 cd "$HOME/own/amonic"
-exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/bot.ts"
+exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/bot.ts"
 SCRIPT
 chmod +x ~/own/amonic/bin/gmail-commander-bot
 
 # Digest launcher
 cat > ~/own/amonic/bin/gmail-commander-digest << 'SCRIPT'
-#!/bin/bash
+#!/bin/zsh
 set -euo pipefail
-eval "$("$HOME/.local/bin/mise" activate bash)"
+# .env.launchd is hand-maintained and is the SSoT for daemon secrets.
+source "$HOME/own/amonic/.env.launchd"
 cd "$HOME/own/amonic"
-exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/digest.ts"
+exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/digest.ts"
 SCRIPT
 chmod +x ~/own/amonic/bin/gmail-commander-digest
 ```

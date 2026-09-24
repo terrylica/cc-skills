@@ -25,8 +25,9 @@ Full-stack bootstrap: Kokoro TTS engine, Telegram bot, BotFather token, secrets,
 
 | Component   | Required | Check                                   |
 | ----------- | -------- | --------------------------------------- |
+| proto       | Yes      | `proto --version`                       |
 | Bun         | Yes      | `bun --version`                         |
-| mise        | Yes      | `mise --version`                        |
+| moon        | Yes      | `moon --version`                        |
 | uv          | Yes      | `uv --version`                          |
 | Python 3.14 | Yes      | `uv run --python 3.14 python --version` |
 | Homebrew    | Yes      | `brew --version`                        |
@@ -38,7 +39,7 @@ Full-stack bootstrap: Kokoro TTS engine, Telegram bot, BotFather token, secrets,
 ```bash
 /usr/bin/env bash << 'PREFLIGHT_EOF'
 echo "=== TTS Telegram Sync Preflight ==="
-for cmd in bun mise uv brew; do
+for cmd in proto bun moon uv brew; do
     if command -v "$cmd" &>/dev/null; then
         echo "  [OK] $cmd: $($cmd --version 2>&1 | head -1)"
     else

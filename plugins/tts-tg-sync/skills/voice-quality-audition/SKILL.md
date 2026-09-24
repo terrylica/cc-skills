@@ -49,7 +49,7 @@ Compare Kokoro TTS voice quality across all available voices. Runs `tts_kokoro_a
 | am_echo    | Echo    | D       | Male   |
 | am_puck    | Puck    | unrated | Male   |
 
-**Current defaults** (configured in `~/.claude/automation/claude-telegram-sync/mise.toml`):
+**Current defaults** (configured in `~/.claude/automation/claude-telegram-sync/moon.yml` `env:`; the launchd service reads overrides from that directory's `.env`):
 
 - English voice: `af_heart` (Grade A) via `TTS_VOICE_EN`
 - Chinese voice: `zf_xiaobei` via `TTS_VOICE_ZH`
@@ -111,16 +111,16 @@ Use `AskUserQuestion` to collect the user's preference:
 
 ### Phase 6: Apply Configuration
 
-Optionally update the default voice in mise.toml:
+Optionally update the default voice in the bot's `moon.yml` `env:` block:
 
-```toml
-# ~/.claude/automation/claude-telegram-sync/mise.toml
-[env]
-TTS_VOICE_EN = "af_heart"   # Change to preferred voice ID
-TTS_VOICE_ZH = "zf_xiaobei"
+```yaml
+# ~/.claude/automation/claude-telegram-sync/moon.yml
+env:
+  TTS_VOICE_EN: "af_heart"   # Change to preferred voice ID
+  TTS_VOICE_ZH: "zf_xiaobei"
 ```
 
-After changing mise.toml, restart the Telegram bot for the new voice to take effect.
+The launchd service does not receive `moon.yml` `env:`, so also set `TTS_VOICE_EN=<voice>` in that directory's `.env`. Restart the Telegram bot for the new voice to take effect.
 
 ---
 
@@ -132,7 +132,7 @@ After changing mise.toml, restart the Telegram bot for the new voice to take eff
 3. [Select] Ask user: full audition (all 10 voices) or specific voices
 4. [Audition] Run tts_kokoro_audition.sh and let user listen
 5. [Feedback] Ask user which voice they prefer and collect grade feedback
-6. [Apply] Optionally update TTS_VOICE_EN in mise.toml and restart bot
+6. [Apply] Optionally update TTS_VOICE_EN in moon.yml env: and .env, then restart bot
 ```
 
 ---
@@ -142,7 +142,7 @@ After changing mise.toml, restart the Telegram bot for the new voice to take eff
 - [ ] Kokoro health check passed before audition
 - [ ] All selected voices played without errors
 - [ ] User confirmed preferred voice
-- [ ] mise.toml updated with new voice ID (if changed)
+- [ ] moon.yml `env:` and `.env` updated with new voice ID (if changed)
 - [ ] Bot restarted after configuration change (if applicable)
 - [ ] Voice catalog grades updated in reference doc (if re-graded)
 

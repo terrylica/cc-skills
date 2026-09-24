@@ -121,7 +121,7 @@ on threaded drafts — the tool always creates-then-deletes (`--replace`) instea
 - **Skills**: Follow Suite Pattern (Template F) with mandatory preflight
 - **CLI paths**: `$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail`
 - **Sender alignment**: Auto-detect for replies, AskUserQuestion for new emails
-- **Secrets**: `.mise.local.toml` (gitignored) in project directory
+- **Secrets**: daemons read `~/own/amonic/.env.launchd` (gitignored, hand-maintained), sourced by the launcher scripts in `~/own/amonic/bin/`; interactive CLI use takes `GMAIL_OP_UUID` from the calling shell. OAuth client credentials come from 1Password (`op read` via `OP_SERVICE_ACCOUNT_TOKEN`)
 
 ## Skills
 

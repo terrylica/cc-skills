@@ -22,10 +22,10 @@ Start, stop, restart, and monitor the Telegram sync bot process. Provides lifecy
 
 ## Requirements
 
-- Bun runtime installed via mise
+- Bun runtime installed via proto (`proto install` in the bot directory, which pins it in `.prototools`)
 - Bot source at `~/.claude/automation/claude-telegram-sync/`
 - Secrets file at `~/.claude/.secrets/ccterrybot-telegram`
-- mise.toml configured in the bot source directory
+- `.env` in the bot source directory (the launchd service's config and secrets; Bun auto-loads it)
 
 ## Workflow Phases
 
@@ -120,10 +120,10 @@ pgrep -la 'bun.*src/main.ts'
 | Bot not running                    | Process crashed or was never started  | Check with `pgrep`, runner should auto-respawn; if runner also dead, `launchctl kickstart`           |
 | Multiple instances                 | Previous stop did not fully terminate | `pkill -f 'telegram-bot-runner'; pkill -f 'bun.*src/main.ts'`, then restart via launchd              |
 | Code changes not picked up         | Bot started without `--watch`         | Kill bun process — runner respawns with `--watch`; or recompile runner if it's outdated              |
-| `--watch` not reloading            | File outside watch scope changed      | `bun --watch` monitors the entry file's dependency tree; config-only changes (mise.toml) need a kill |
+| `--watch` not reloading            | File outside watch scope changed      | `bun --watch` monitors the entry file's dependency tree; config-only changes (`.env`, `moon.yml`) need a kill |
 | Logs not writing                   | Log directory missing or permissions  | Verify `~/.local/state/launchd-logs/telegram-bot/` exists and is writable                            |
-| bun not found                      | mise shims not in PATH                | Runner sets PATH explicitly; recompile runner if shims path changed                                  |
-| Bot starts but crashes immediately | Missing env vars or secrets           | Check `~/.claude/.secrets/ccterrybot-telegram` exists; verify mise.toml env section                  |
+| bun not found                      | No bun in the runner's candidate list | Runner tries `~/.proto/shims/bun`, `~/.proto/bin/bun`, `~/.bun/bin/bun`, `/opt/homebrew/bin/bun`; run `proto install bun` in the bot directory |
+| Bot starts but crashes immediately | Missing env vars or secrets           | Check `~/.claude/.secrets/ccterrybot-telegram` exists; verify `.env` in the bot directory (the launchd service does not receive `moon.yml` `env:`) |
 
 ## Reference Documentation
 

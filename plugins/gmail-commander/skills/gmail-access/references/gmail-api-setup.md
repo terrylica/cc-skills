@@ -65,14 +65,9 @@ How to create Google Cloud OAuth credentials for Gmail API access.
 1. Save the item
 2. Note the item's UUID (visible in URL or via `op item get "item-name" --format json | jq '.id'`)
 
-## Step 6: Configure mise
+## Step 6: Supply the UUID
 
-Add the UUID to your project's `.mise.local.toml`:
-
-```toml
-[env]
-GMAIL_OP_UUID = "<your-item-uuid>"
-```
+Pass it to the CLI inline (`GMAIL_OP_UUID=<your-item-uuid> gmail list -n 1`) or export it in your shell. For the launchd daemons, add `export GMAIL_OP_UUID='<your-item-uuid>'` to `~/own/amonic/.env.launchd`. See [env-setup.md](./env-setup.md).
 
 ## Security Notes
 

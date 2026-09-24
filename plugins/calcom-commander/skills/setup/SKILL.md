@@ -16,8 +16,8 @@ Complete setup wizard for Cal.com CLI access, Telegram bot, Supabase database, a
 ```bash
 # Check required tools
 command -v op && echo "OK 1Password CLI" || echo "MISSING: brew install 1password-cli"
-command -v mise && echo "OK mise" || echo "MISSING: curl https://mise.run | sh"
-command -v bun && echo "OK bun" || echo "MISSING: curl -fsSL https://bun.sh/install | bash"
+command -v proto && echo "OK proto" || echo "MISSING: brew install proto"
+command -v bun && echo "OK bun" || echo "MISSING: proto install bun"
 command -v gcloud && echo "OK gcloud" || echo "OPTIONAL: brew install google-cloud-sdk"
 command -v supabase && echo "OK supabase" || echo "OPTIONAL: brew install supabase/tap/supabase"
 ```
@@ -42,14 +42,13 @@ op item list --vault "Claude Automation" --format json | jq -r '.[] | select(.ti
 
 Use AskUserQuestion with discovered items or guide new API key creation.
 
-### Step 4: Configure .mise.local.toml
+### Step 4: Write the daemon env file
+
+`~/own/amonic/.env.launchd` (gitignored, hand-maintained) is the daemon env SSoT; the launcher scripts source it. For interactive use, `export CALCOM_OP_UUID=<selected-uuid>` in the current shell instead.
 
 ```bash
-# Add to .mise.local.toml in project directory
-cat >> .mise.local.toml << 'EOF'
-[env]
-CALCOM_OP_UUID = "<selected-uuid>"
-EOF
+# Add to ~/own/amonic/.env.launchd (replace any existing CALCOM_OP_UUID line)
+echo "export CALCOM_OP_UUID='<selected-uuid>'" >> ~/own/amonic/.env.launchd
 ```
 
 ### Step 5: Build Cal.com CLI
@@ -80,13 +79,13 @@ If NOT_SET, guide user through BotFather setup:
 3. Copy the token
 4. Get chat ID: message the bot, then check `https://api.telegram.org/bot<TOKEN>/getUpdates`
 
-### Step 2: Add to .mise.local.toml
+### Step 2: Add to the daemon env file
 
 ```bash
-# Append bot config
-cat >> .mise.local.toml << 'EOF'
-TELEGRAM_BOT_TOKEN = "<bot-token>"
-TELEGRAM_CHAT_ID = "<chat-id>"
+# Append bot config to ~/own/amonic/.env.launchd
+cat >> ~/own/amonic/.env.launchd << 'EOF'
+export TELEGRAM_BOT_TOKEN='<bot-token>'
+export TELEGRAM_CHAT_ID='<chat-id>'
 EOF
 ```
 
@@ -106,7 +105,7 @@ If NOT_SET, guide user through:
 2. Enable APIs: Cloud Run, Artifact Registry, Cloud Build
 3. Link billing account
 4. Supabase project creation via CLI or dashboard
-5. Store all references in `.mise.local.toml`
+5. Store all references as `export` lines in `~/own/amonic/.env.launchd` (see [env-setup.md](../calcom-access/references/env-setup.md))
 
 ### Step 2: Generate Cal.com secrets (if needed)
 
@@ -132,21 +131,23 @@ mkdir -p ~/own/amonic/bin ~/own/amonic/logs
 
 # Bot launcher
 cat > ~/own/amonic/bin/calcom-commander-bot << 'SCRIPT'
-#!/bin/bash
+#!/bin/zsh
 set -euo pipefail
-eval "$("$HOME/.local/bin/mise" activate bash)"
+# .env.launchd is hand-maintained and is the SSoT for daemon env.
+source "$HOME/own/amonic/.env.launchd"
 cd "$HOME/own/amonic"
-exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/bot.ts"
+exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/bot.ts"
 SCRIPT
 chmod +x ~/own/amonic/bin/calcom-commander-bot
 
 # Sync launcher
 cat > ~/own/amonic/bin/calcom-commander-sync << 'SCRIPT'
-#!/bin/bash
+#!/bin/zsh
 set -euo pipefail
-eval "$("$HOME/.local/bin/mise" activate bash)"
+# .env.launchd is hand-maintained and is the SSoT for daemon env.
+source "$HOME/own/amonic/.env.launchd"
 cd "$HOME/own/amonic"
-exec bun run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
+exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/calcom-commander/scripts/sync.ts"
 SCRIPT
 chmod +x ~/own/amonic/bin/calcom-commander-sync
 ```

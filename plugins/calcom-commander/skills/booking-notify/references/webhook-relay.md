@@ -110,11 +110,10 @@ gcloud run deploy calcom-pushover-webhook \
 | `BOOKING_RESCHEDULED` | 2 (Emergency)     | dune  | Yes               |
 | `BOOKING_CANCELLED`   | 0 (Normal)        | dune  | No                |
 
-## mise Configuration
+## Environment Configuration
 
-Store the relay URL in `.mise.local.toml` for other tools to reference:
+Store the relay URL where the consumers read their env — `~/own/amonic/.env.launchd` for the daemons, or your shell for interactive use:
 
-```toml
-[env]
-WEBHOOK_RELAY_URL = "https://calcom-pushover-webhook-XXXXX.us-central1.run.app/"
+```bash
+export WEBHOOK_RELAY_URL='https://calcom-pushover-webhook-XXXXX.us-central1.run.app/'
 ```

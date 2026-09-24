@@ -9,9 +9,9 @@
 #
 #     PATH=/usr/bin:/bin:/usr/sbin:/sbin
 #
-# Nothing under mise, homebrew, or ~/.local/bin is reachable. This silently
-# broke ⌥S: tts_read_clipboard.sh guards on `command -v uv`, uv lives only at
-# ~/.local/share/mise/installs/uv/..., the guard tripped, and the script exited
+# Nothing under homebrew, proto, or ~/.local/bin is reachable. This silently
+# broke ⌥S: tts_read_clipboard.sh guards on `command -v uv`, uv was not on that
+# PATH, the guard tripped, and the script exited
 # 1 before speaking. BTT's "Result:" box showed nothing because the failure
 # path writes to stderr/notification, not stdout.
 #
@@ -132,17 +132,20 @@ if [[ "$TTS_ENGINE" == "kokoro" ]] || { [[ "$TTS_ENGINE" == "auto" ]] && compani
 fi
 
 # --- Fallback: Supertonic ----------------------------------------------------
-# Needs uv, which is NOT on BTT's PATH. Resolve it through the operator's
-# stable mise entrypoint (~/.local/bin/mise) rather than hardcoding an install
-# path that moves whenever mise or homebrew reshuffles.
+# Needs uv, which is NOT on BTT's own PATH. The PATH restored at the top of this
+# file covers Homebrew (/opt/homebrew/bin/uv) and ~/.local/bin; proto's shim and
+# bin dirs are checked as a fallback. proto is the only toolchain manager here.
 log "companion down or forced — falling back to Supertonic"
 
 UV=""
-if [[ -x "${HOME}/.local/bin/mise" ]]; then
-    UV=$("${HOME}/.local/bin/mise" which uv 2>/dev/null) || UV=""
-fi
+UV=$(command -v uv 2>/dev/null) || UV=""
 if [[ -z "$UV" ]]; then
-    UV=$(command -v uv 2>/dev/null) || UV=""
+    for candidate in "${HOME}/.proto/shims/uv" "${HOME}/.proto/bin/uv"; do
+        if [[ -x "$candidate" ]]; then
+            UV="$candidate"
+            break
+        fi
+    done
 fi
 
 if [[ -z "$UV" || ! -x "$UV" ]]; then

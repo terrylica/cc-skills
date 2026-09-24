@@ -60,7 +60,7 @@ curl -s -o /dev/null -w "%{http_code}" https://api.telegram.org/
 - No process found --> Restart: `cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts &`
 - Process running but not responding --> Check logs for error loops, consider restart
 - Network unreachable --> Check internet connectivity
-- Bun not found --> `mise install` in the bot directory
+- Bun not found --> `proto install` in the bot directory (installs the bun pinned in `.prototools`)
 
 ---
 
@@ -87,7 +87,7 @@ time ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.p
 
 - Model not cached --> First run downloads from HuggingFace. Wait or run `kokoro-install.sh --install`
 - MLX-Audio not importable --> `kokoro-install.sh --upgrade` to reinstall dependencies
-- Generation works manually but times out from bot --> Increase `TTS_GENERATE_TIMEOUT_MS` in mise.toml
+- Generation works manually but times out from bot --> Increase `TTS_GENERATE_TIMEOUT_MS` in the bot's `.env` (and `moon.yml` `env:`)
 
 ---
 
@@ -103,13 +103,12 @@ grep -h 'tts.drop\|tts.enqueue\|tts.drain' \
   ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -20
 
 # Step 2: Check current queue config
-grep TTS_MAX_QUEUE_DEPTH ~/.claude/automation/claude-telegram-sync/mise.toml
-grep TTS_STALE_TTL_MS ~/.claude/automation/claude-telegram-sync/mise.toml
+grep -E 'TTS_MAX_QUEUE_DEPTH|TTS_STALE_TTL_MS' ~/.claude/automation/claude-telegram-sync/.env ~/.claude/automation/claude-telegram-sync/moon.yml
 ```
 
 **Resolution Tree**:
 
-- Frequent drops --> Increase `TTS_MAX_QUEUE_DEPTH` in mise.toml (default: 5)
+- Frequent drops --> Increase `TTS_MAX_QUEUE_DEPTH` in the bot's `.env` (and `moon.yml` `env:`)
 - Items going stale --> Decrease `TTS_STALE_TTL_MS` or investigate why generation is slow
 - Burst of notifications --> Normal during rapid prompting; queue is working as designed
 

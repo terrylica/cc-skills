@@ -38,24 +38,18 @@ op item create --category "API Credential" \
 
 Note the item UUID from the output.
 
-## Step 5: Configure mise
+## Step 5: Supply the Credentials
 
-Add to `.mise.local.toml` (gitignored):
+For interactive use, read the tokens from 1Password into your shell:
 
-```toml
-[env]
-PUSHOVER_OP_UUID = "<uuid-from-step-4>"
-PUSHOVER_SOUND = "dune"
+```bash
+export PUSHOVER_OP_UUID='<uuid-from-step-4>'
+export PUSHOVER_APP_TOKEN="$(op item get "$PUSHOVER_OP_UUID" --vault 'Claude Automation' --fields password --reveal)"
+export PUSHOVER_USER_KEY="$(op item get "$PUSHOVER_OP_UUID" --vault 'Claude Automation' --fields username --reveal)"
+export PUSHOVER_SOUND='dune'
 ```
 
-To load the actual tokens at runtime, add to your project's `.mise.local.toml`:
-
-```toml
-[env]
-PUSHOVER_APP_TOKEN = "{{ exec(command='op item get <uuid> --vault \"Claude Automation\" --fields password --reveal') }}"
-PUSHOVER_USER_KEY = "{{ exec(command='op item get <uuid> --vault \"Claude Automation\" --fields username --reveal') }}"
-PUSHOVER_SOUND = "dune"
-```
+For the launchd daemons, write the resolved values as `export KEY='value'` lines in `~/own/amonic/.env.launchd` (gitignored, hand-maintained). That file is pre-baked on purpose: resolving `op` at launch would trigger macOS Automation prompts under launchd.
 
 ## Step 6: Test
 
