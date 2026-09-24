@@ -998,6 +998,39 @@ function shebangInterpreter(scriptPath) {
  *
  * @param {string} rootDir Repository root to resolve against (injectable for tests).
  */
+/**
+ * Would Claude Code dispatch a hook with this matcher for `toolName`? A missing,
+ * empty or "*" matcher covers every tool; otherwise the matcher is an anchored
+ * regex (a plain name or a `|` alternation is the common case). An unparseable
+ * matcher is treated as covering the tool, so the check errs toward flagging.
+ */
+export function hookMatcherCoversTool(matcher, toolName) {
+  if (matcher === undefined || matcher === null || matcher === "" || matcher === "*") return true;
+  try {
+    return new RegExp(`^(?:${matcher})$`).test(toolName);
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * True when a hook script's CODE (comments stripped) emits updatedInput, either
+ * directly or through the allowWithInput helper. The helper form matters most:
+ * the 2026-09 premise annotator never spelled `updatedInput` itself.
+ */
+export function scriptEmitsUpdatedInput(scriptPath) {
+  let source;
+  try {
+    source = readFileSync(scriptPath, "utf8");
+  } catch {
+    return false;
+  }
+  const code = /\.(sh|bash|zsh|py)$/.test(scriptPath)
+    ? source.replace(/^\s*#.*$/gm, "")
+    : source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  return /\bupdatedInput\b|\ballowWithInput\s*\(/.test(code);
+}
+
 export async function validateHookCommandHygiene(rootDir = process.cwd()) {
   const errors = [];
   const warnings = [];
@@ -1128,6 +1161,29 @@ export async function validateHookCommandHygiene(rootDir = process.cwd()) {
           // The EXISTENCE check above is unrelated and still runs
           // unconditionally — a registered hook whose script is missing is a
           // permanently disarmed guard regardless of proto's version.
+
+          // ---- (c) no updatedInput on a hook that can see AskUserQuestion ----
+          //
+          // For AskUserQuestion, updatedInput is where the dialog's `answers`
+          // travel, so a hook that returns it is taken as having answered: the
+          // dialog never renders and the tool returns "The user did not answer
+          // the questions." Measured 2026-09-24: 86 of 86 rewritten calls went
+          // unseen and unanswered, against 465 of 466 plain-allow calls answered.
+          // allowWithInput refuses the tool at runtime; this catches a hook that
+          // hand-rolls the field, before it ships. Comments are stripped first,
+          // because the hooks that learned this lesson all DESCRIBE the field.
+          if (
+            existingScriptPath &&
+            hookMatcherCoversTool(entry.matcher, "AskUserQuestion") &&
+            scriptEmitsUpdatedInput(existingScriptPath)
+          ) {
+            errors.push(
+              `${relPath}: hook ${basename(existingScriptPath)} can receive AskUserQuestion ` +
+                `(matcher ${JSON.stringify(entry.matcher ?? "")}) and its code emits updatedInput. ` +
+                `For that tool updatedInput carries the user's answers, so returning it suppresses ` +
+                `the dialog and the question comes back unanswered. Deny with a re-ask reason instead.`,
+            );
+          }
         }
       }
     }

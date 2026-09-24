@@ -40,6 +40,16 @@ Guide for developing Claude Code hooks with proper output visibility patterns.
 
 ---
 
+## Never rewrite AskUserQuestion
+
+A PreToolUse hook must never return `updatedInput` for `AskUserQuestion` — not directly, and not through `allowWithInput`. For that tool `updatedInput` is the channel the dialog uses to deliver the user's `answers`, so a hook that returns it is taken as having answered: the menu never renders and the tool returns "The user did not answer the questions." Measured 2026-09-24 across every session transcript: 86 of 86 rewritten calls went unseen and unanswered, against 465 of 466 plain-`allow` calls that rendered and were answered.
+
+- A plain `allow` is safe; the dialog still shows.
+- To change what the user sees, `deny` with a reason that names exactly what the agent should re-ask, and make sure the re-ask passes unchanged so the loop settles in one round (`pretooluse-pr-premise-annotator.ts` is the worked example).
+- Enforced three ways: `allowWithInput` refuses the tool at runtime, `TOOL_SCHEMAS` has no entry for it, and `scripts/validate-plugins.mjs` fails the gate when a hook whose matcher covers `AskUserQuestion` emits `updatedInput` or calls `allowWithInput`.
+
+---
+
 ## Minimal Working Pattern
 
 ```bash
