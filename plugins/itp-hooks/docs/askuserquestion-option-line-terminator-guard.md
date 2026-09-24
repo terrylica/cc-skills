@@ -12,7 +12,7 @@
 
 Claude Code replaces every line terminator inside an AskUserQuestion option's `description` and `label` with U+FFFD before rendering, so a description written as two paragraphs reaches the user as `...forever.<FFFD><FFFD>II. SHORT-TERM WIN:`. The persisted tool input is clean — this is purely a rendering defect, and the model has no way to see the mangling it just caused.
 
-Measured in the shipped binary at `~/.local/share/claude/versions/`: a one-line function replaces the class of LF, CR, U+2028 and U+2029 with U+FFFD, and it is applied to `displayDescription` in the option mapper and to each `option.label` in the option renderer. Present in 2.1.259 and re-measured still present in 2.1.260 (same function body, renamed by the minifier), which is the evidence that upstream has not quietly fixed it.
+Measured in the shipped binary at `~/.local/share/claude/versions/`: a one-line function replaces the class of LF, CR, U+2028 and U+2029 with U+FFFD, and it is applied to `displayDescription` in the option mapper and to each `option.label` in the option renderer. Present in 2.1.259 and re-measured still present in 2.1.260 and 2.1.281 (same function body, renamed by the minifier; in 2.1.281 it is `function Rs(e){return e.replace(/[\n\r\u2028\u2029]/g,"\uFFFD")}`, applied by `aYt` to `displayDescription`). Re-measure by reading the option mapper, not by counting regex hits: 2.1.281 also ships several unrelated sanitisers that strip `\u2028\u2029` to an empty string, and a scan keyed on that character class alone returned a false "fixed" on 2026-09-24, which is the evidence that upstream has not quietly fixed it.
 
 `question` and `preview` take newline-preserving paths and are therefore **not** inspected. Flagging them would be a pure false positive.
 
