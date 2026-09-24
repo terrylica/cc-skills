@@ -238,7 +238,7 @@ cmd_status() {
         lychee_version=$(lychee --version 2>/dev/null | head -1)
         echo -e "  ${GREEN}✓${RESET} lychee: $lychee_version"
     else
-        echo -e "  ${YELLOW}○${RESET} lychee: not installed (optional, install with: mise install lychee)"
+        echo -e "  ${YELLOW}○${RESET} lychee: not installed (optional, install with: brew install lychee)"
     fi
 
     if command -v jq &>/dev/null; then
@@ -284,19 +284,19 @@ cmd_deps() {
     echo -e "${CYAN}=== statusline-tools Dependencies ===${RESET}"
     echo ""
 
-    # Check mise
-    if ! command -v mise &>/dev/null; then
-        log_error "mise is required for dependency installation"
-        echo "  Install mise: https://mise.jdx.dev/"
+    # Check Homebrew (lychee is a global CLI proto does not manage)
+    if ! command -v brew &>/dev/null; then
+        log_error "Homebrew is required for dependency installation"
+        echo "  Install Homebrew: https://brew.sh/"
         exit 1
     fi
 
-    log_info "mise detected: $(mise --version 2>/dev/null | head -1)"
+    log_info "brew detected: $(brew --version 2>/dev/null | head -1)"
     echo ""
 
-    # Install lychee via mise
-    echo -e "${CYAN}Installing lychee via mise...${RESET}"
-    if mise install lychee; then
+    # Install lychee via Homebrew
+    echo -e "${CYAN}Installing lychee via brew...${RESET}"
+    if brew install lychee; then
         log_success "lychee installed successfully"
     else
         log_error "Failed to install lychee"
@@ -312,7 +312,7 @@ cmd_deps() {
         echo -e "  ${GREEN}✓${RESET} lychee: $lychee_version"
     else
         echo -e "  ${YELLOW}⚠${RESET} lychee: installed but not in PATH"
-        echo "  You may need to restart your shell or run: eval \"\$(mise activate bash)\""
+        echo "  You may need to restart your shell or run: eval \"\$(brew shellenv)\""
     fi
 }
 
@@ -325,7 +325,7 @@ usage() {
     echo "  install    Install status line to ~/.claude/settings.json"
     echo "  uninstall  Remove status line from ~/.claude/settings.json"
     echo "  status     Show current configuration and dependencies"
-    echo "  deps       Install lychee via mise"
+    echo "  deps       Install lychee via Homebrew"
     exit 1
 }
 

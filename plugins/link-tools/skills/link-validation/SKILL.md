@@ -82,7 +82,7 @@ See [config/lychee.toml](../../config/lychee.toml) for the default configuration
 
 | Issue                | Cause                | Solution                           |
 | -------------------- | -------------------- | ---------------------------------- |
-| lychee not found     | Not installed        | Run `mise install lychee`          |
+| lychee not found     | Not installed        | Run `brew install lychee`          |
 | Too many 403 errors  | Rate limiting        | Add rate limit to .lycheerc.toml   |
 | Relative path errors | Wrong base directory | Run from repository root           |
 | False positives      | Dynamic content      | Add URL pattern to exclude list    |

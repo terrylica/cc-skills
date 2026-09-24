@@ -8,14 +8,13 @@ Scripts for detecting GitHub accounts and current repository context.
 
 ## Phase 1: GitHub Account Detection
 
-Probe 5 sources to detect GitHub accounts:
+Probe 4 sources to detect GitHub accounts:
 
 | Source     | Command                                | What it finds                                     |
 | ---------- | -------------------------------------- | ------------------------------------------------- |
 | SSH config | `grep -A5 "Host github" ~/.ssh/config` | Match directives with IdentityFile                |
 | SSH keys   | `ls ~/.ssh/id_ed25519_*`               | Account-named keys (e.g., `id_ed25519_terrylica`) |
 | gh CLI     | `gh auth status`                       | Authenticated accounts                            |
-| mise env   | `grep GH_ACCOUNT .mise.toml`           | GH_ACCOUNT variable                               |
 | git config | `git config user.name`                 | Global git username                               |
 
 ### Detection Script
@@ -68,13 +67,7 @@ if command -v gh &>/dev/null; then
   done < <(gh auth status 2>&1 | grep -oE 'Logged in to github.com account [a-zA-Z0-9_-]+' | awk '{print $NF}')
 fi
 
-# 4. mise env GH_ACCOUNT
-if [[ -f .mise.toml ]]; then
-  account=$(grep -E 'GH_ACCOUNT\s*=' .mise.toml 2>/dev/null | sed 's/.*=\s*"\([^"]*\)".*/\1/')
-  [[ -n "$account" ]] && add_account "$account" "mise-env"
-fi
-
-# 5. git config user.name
+# 4. git config user.name
 git_user=$(git config user.name 2>/dev/null)
 [[ -n "$git_user" ]] && add_account "$git_user" "git-config"
 

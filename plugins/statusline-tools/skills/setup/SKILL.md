@@ -31,7 +31,7 @@ Manage custom status line installation and dependencies.
 | `install`   | Install status line to settings.json        |
 | `uninstall` | Remove status line from settings.json       |
 | `status`    | Show current configuration and dependencies |
-| `deps`      | Install dependencies (lychee) via mise      |
+| `deps`      | Install dependencies (lychee) via Homebrew  |
 
 ## Execution
 

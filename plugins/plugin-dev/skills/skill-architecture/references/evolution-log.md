@@ -139,7 +139,6 @@ Documentation alignment requires auditing against multiple official sources simu
 1. **`$CLAUDE_PLUGIN_ROOT` (bare, no braces)**: Never substituted. Always use `${CLAUDE_PLUGIN_ROOT}` (braced) in manifests.
 2. **`${CLAUDE_PLUGIN_ROOT:-fallback}` in SKILL.md**: Never substituted (braces-close-immediately rule). The fallback always activates, silently pinning to marketplace.
 3. **`${CLAUDE_PLUGIN_ROOT}` in SKILL.md at all**: Should use `cc-plugin-root` helper instead (resolved 2026-08-05).
-4. **Empty TOML table sections**: mise rejects `[hooks.enter]` containing only comments (no key-value pairs). Either add a key or remove the section.
 
 ### Changes Made
 

@@ -74,19 +74,18 @@ op item create \
 op item list --vault Employee | grep -i drive
 ```
 
-## Step 6: Configure mise
+## Step 6: Configure the Environment
 
-Add the UUID to your project's `.mise.local.toml`:
+Export the UUID from your shell profile (e.g. `~/.zshrc`):
 
-```toml
-[env]
-GDRIVE_OP_UUID = "<uuid-from-step-5>"
+```bash
+export GDRIVE_OP_UUID="<uuid-from-step-5>"
 ```
 
 Then reload:
 
 ```bash
-mise trust && cd .
+source ~/.zshrc
 ```
 
 ## Step 7: First Run Authorization

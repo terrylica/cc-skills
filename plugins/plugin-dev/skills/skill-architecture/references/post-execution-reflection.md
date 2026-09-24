@@ -159,11 +159,11 @@ These are the kinds of discoveries that the reflection phase captures:
 
 ### Anti-Pattern Example
 
-> **Trigger**: During itp:go, the preflight step checked for `mise` availability but not for the specific mise task the skill needed. Execution failed at step 4 because `mise run check-full` wasn't defined in the project.
+> **Trigger**: During itp:go, the preflight step checked for `moon` availability but not for the specific moon task the skill needed. Execution failed at step 4 because `moon run :check-full` wasn't defined in the project.
 >
 > **Anti-Pattern**: Checking tool installation without checking task/command availability. Tools being installed doesn't mean the required commands exist.
 >
-> **Rectification**: Added `[Preflight] Verify mise task exists: mise task ls | grep check-full` to the template.
+> **Rectification**: Added `[Preflight] Verify moon task exists: moon query tasks | grep check-full` to the template.
 
 ### Script Fix Example
 

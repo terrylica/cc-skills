@@ -8,7 +8,7 @@
 | ---------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | Skill not triggering   | Missing trigger keywords       | Add trigger phrases to description field                                                                                |
 | YAML parse error       | Colon in description           | Replace colons with dashes in description                                                                               |
-| Skill not found        | Wrong location or not synced   | Standalone: place in `~/.claude/skills/` or project `.claude/skills/`. Marketplace: run `mise run release:full` to sync |
+| Skill not found        | Wrong location or not synced   | Standalone: place in `~/.claude/skills/` or project `.claude/skills/`. Marketplace: run `moon run repo:release-full` to sync |
 | validate script fails  | Invalid frontmatter            | Check name format (lowercase-hyphen only)                                                                               |
 | Resources not loading  | Wrong path in SKILL.md         | Use relative paths from skill directory                                                                                 |
 | Script execution fails | Missing shebang or permissions | Add `#!/usr/bin/env python3` and `chmod +x`                                                                             |

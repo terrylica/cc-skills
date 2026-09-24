@@ -102,8 +102,7 @@ is missing, so the very first push works even before you commit your
 `scripts/` directory — but committing the three scripts keeps the repo
 self-contained.
 
-(If you also want shorthand commands like `mise run site:push`, add a
-small `tasks/site.toml` that calls `scripts/site.sh`.)
+(If you also want shorthand commands like `moon run <project>:site-push`, add tasks to your repo's `moon.yml` that call `scripts/site.sh`.)
 
 ### The publish workflow
 

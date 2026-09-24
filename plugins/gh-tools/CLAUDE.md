@@ -71,10 +71,7 @@ The hook only shows reminders for issues you own. Account resolution (ADR 2026-0
 1. **Primary**: the repo's `origin` host-alias `git@github.com-<account>:…` names the account.
 2. **Fallback**: `curl /user` with the token from `~/.claude/tools/bin/gh-token-for-repo`.
 
-> Legacy `GH_ACCOUNT` (mise-injected) and `~/.claude/.secrets/gh-token-*` filename
-> detection are **retired** (mise no longer injects; `.secrets` is deleted). The
-> hook `.mjs` code still references these as fallbacks — tracked for a follow-up to
-> derive the account from the remote alias instead.
+> Legacy `GH_ACCOUNT` env and `~/.claude/.secrets/gh-token-*` filename detection are **retired** (mise is retired and no longer injects env; `.secrets` is deleted). The hooks derive the account from the origin host-alias only.
 
 ### Threshold
 
@@ -115,13 +112,13 @@ The `gh-repo-identity-guard.mjs` hook blocks gh CLI write operations when the au
 
 ### Why it exists
 
-A parse error in a project-level mise config silently falls back to the global `GH_TOKEN` instead of failing, so `gh` writes land under whichever account that token belongs to — with no error to notice. The guard catches the mismatch before the write, not after.
+An ambient `GH_TOKEN` belonging to the wrong account makes `gh` writes land under that account with no error to notice (incident 2026-02-09: a per-directory env config failed to parse and the global token won). The guard catches the mismatch before the write, not after.
 
 ### Guard Behavior
 
 1. **Detect write commands**: `gh issue/pr/label create|comment|edit|close|delete`, `gh api -X POST/PUT/PATCH/DELETE`
 2. **Extract target repo**: from `--repo`/`-R` flag, `gh api repos/owner/repo/...` path, or git remote
-3. **Resolve authenticated user**: `GH_ACCOUNT` env var → cache → `curl /user` API
+3. **Resolve authenticated user**: origin host-alias account (fast-path allow when it owns the target) → cache → `curl /user` API
 4. **Check permission**: owner match → allow; push permission → allow; otherwise → **DENY**
 
 ### Process Safety
@@ -139,11 +136,13 @@ Authenticated as: username (via source)
 Target repository: owner/repo
 Push permission: DENIED
 
-Fix:
-  1. Check mise config: mise env | grep GH_TOKEN
-  2. Verify GH_ACCOUNT: echo $GH_ACCOUNT
-  3. If mise parse error: mise doctor
-  4. Set correct token: export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
+Fix (ADR 2026-06-21 host-alias model):
+  1. Check the origin alias names the right account:
+       git remote get-url origin   # expect git@github.com-<account>:owner/repo
+  2. If the alias is wrong, repoint it:
+       git remote set-url origin git@github.com-<owner>:owner/repo.git
+  3. Export the matching token for this repo, then retry:
+       export GH_TOKEN=$(~/.claude/tools/bin/gh-token-for-repo)
 ```
 
 ## Discovery Provenance (Mandatory for Issue Creation)
@@ -205,7 +204,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 
 **Use gh CLI** for all GitHub operations — WebFetch to github.com is soft-blocked by `webfetch-github-guard.sh`.
 
-**Install gh via Homebrew ONLY**: `brew install gh` (mise causes iTerm2 tab spawning).
+**Install gh via Homebrew ONLY**: `brew install gh` (a version-manager-shimmed `gh` caused iTerm2 tab spawning).
 
 **GitHub Actions Policy**: NO testing or linting in GitHub Actions — local-first philosophy.
 
@@ -228,7 +227,7 @@ No individual IDs need to be listed separately — the full paths are strictly m
 | ------------------------ | --------------------------------------------- | ----------------------------------------------------------- |
 | Repo under a mapped path | Yes — as that path's registered owner         | `~/eon`→`terrylica`, `~/vj`→`vanjobbers`, `~/own`→`tainora` |
 | Your fork                | Always                                        | `terrylica/claude-code` (fork of `anthropics/claude-code`)  |
-| Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `jdx/mise`                        |
+| Upstream third-party     | NEVER (read-only)                             | `anthropics/claude-code`, `moonrepo/proto`                  |
 | Collaborative team repo  | If the prefix's `allow_orgs` lists that owner | `~/eon/collab`, `~/vj/collab` external-collaborator owners  |
 
 ### Best Practices
@@ -264,7 +263,7 @@ SSH key, commit identity (`includeIf hasconfig:remote.*.url`), and gh account. T
 neutral `gh` wrapper in `~/.zshrc` derives the account from that alias, sets
 `GH_CONFIG_DIR=~/.config/gh-<account>`, and strips any ambient `GH_TOKEN`.
 
-**Tokens are never injected by mise and never ambient.** When a token is needed
+**Tokens are never injected by an env manager and never ambient.** When a token is needed
 (e.g. release scripts), resolve it fresh:
 
 ```bash
@@ -276,7 +275,7 @@ GH_PAT="$(~/.claude/tools/bin/gh-token-for-repo)"   # account = origin alias →
 ## Environment Variables
 
 `gh` itself needs no env vars here — it resolves the account from the repo's remote
-alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in mise or the shell;
+alias via the wrapper. Do **not** set `GH_TOKEN`/`GH_ACCOUNT` in any env config or the shell;
 a stale ambient `GH_TOKEN` outranks the isolated profile and 401s after a rotation.
 For an explicit token in a script, use `gh-token-for-repo` (above).
 | `GH_ORGS` | No | Comma-separated list of orgs the current account may write to (identity guard allowlist) |

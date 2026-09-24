@@ -1,7 +1,7 @@
 /**
  * Configuration constants and environment variable handling
  *
- * Uses mise environment variables for agnostic, multi-account Google Drive access.
+ * Uses environment variables for agnostic, multi-account Google Drive access.
  * Shows self-guiding errors when configuration is missing.
  */
 
@@ -88,11 +88,10 @@ Run: /gdrive-tools:setup
 1. Find your 1Password UUID:
    op item list --vault Employee | grep -i drive
 
-2. Add to .mise.local.toml:
-   [env]
-   GDRIVE_OP_UUID = "<your-uuid>"
+2. Export it (e.g. in ~/.zshrc):
+   export GDRIVE_OP_UUID="<your-uuid>"
 
-3. Reload: cd . && mise trust
+3. Reload: source ~/.zshrc
 
 ━━━ NEED OAUTH CREDENTIALS? ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

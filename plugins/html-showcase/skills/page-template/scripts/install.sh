@@ -98,7 +98,7 @@ if command -v python3 >/dev/null 2>&1; then
   if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
     py_ver="$(python3 --version 2>&1 || echo unknown)"
     echo "✗ python3 is too old: ${py_ver}. Need Python 3.10 or newer." >&2
-    echo "  Install: brew install python@3.14  (or: mise use python@3.14)" >&2
+    echo "  Install: brew install python@3.14  (or: uv python install 3.14)" >&2
     exit 1
   fi
 else
@@ -367,8 +367,8 @@ cat <<EOF
 ✓ install complete
 
 Next steps:
-  1. (Optional) Add shorthand mise tasks: drop a tasks/site.toml that
-     wraps scripts/site.sh — see references/publishing.md for an example.
+  1. (Optional) Add shorthand moon tasks: add tasks to your moon.yml that
+     wrap scripts/site.sh — see references/publishing.md.
   2. Author HTML files in <site-dir>/ and any <site-dir>/<section-slug>/.
      Each subdir of the site root that contains *.html becomes a "section".
   3. Build the sitemap + auto-nav rail:

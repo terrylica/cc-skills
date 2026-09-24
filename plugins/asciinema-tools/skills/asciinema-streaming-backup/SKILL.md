@@ -68,7 +68,7 @@ See [Setup Scripts](./references/setup-scripts.md) for the complete `preflight-c
 
 ### Phase 1: GitHub Account Detection
 
-Detect available GitHub accounts from 5 sources (SSH config, SSH keys, gh CLI, mise env, git config) and let user choose which to use.
+Detect available GitHub accounts from 4 sources (SSH config, SSH keys, gh CLI, git config) and let user choose which to use.
 
 See [Account & Repository Detection](./references/account-detection.md) for the detection script, scoring logic, and AskUserQuestion flow.
 

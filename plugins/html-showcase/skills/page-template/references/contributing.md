@@ -136,7 +136,7 @@ git checkout -b feat/html-showcase-add-timeline-component
 $EDITOR plugins/html-showcase/assets/showcase.css
 
 # 3. Test against an existing page that uses @main (or use ?v=$(date +%s) for cache-bust)
-mise run release:cdn-purge   # forces jsDelivr to re-fetch from GitHub
+bash tasks/release/cdn-purge   # forces jsDelivr to re-fetch from GitHub
 
 # 4. Commit, push, open PR
 git add plugins/html-showcase/assets/showcase.css
@@ -173,11 +173,7 @@ gh pr create --title "feat(html-showcase): add .timeline component" \
 
 If all five are yes, the change is in the spirit of the kernel.
 
-**What semantic-release does after merge:** the next `mise run release:full`
-on `main` (typically run by the maintainer) bumps the marketplace version,
-auto-purges the jsDelivr cache for `@main`, and smoke-tests the new tagged
-URL. Pages pinned to `@main` see your component within seconds. Pages
-pinned to `@v<X.Y.Z>` see it after a manual re-pin.
+**What semantic-release does after merge:** the next `moon run repo:release-full` on `main` (typically run by the maintainer) bumps the marketplace version, auto-purges the jsDelivr cache for `@main`, and smoke-tests the new tagged URL. Pages pinned to `@main` see your component within seconds. Pages pinned to `@v<X.Y.Z>` see it after a manual re-pin.
 
 ---
 
@@ -230,7 +226,7 @@ git push origin main
 to `@v<X.Y.Z>` for production stability:
 
 ```bash
-mise run release:full        # the cc-skills release flow works in your fork unchanged
+moon run repo:release-full   # the cc-skills release flow works in your fork unchanged
 ```
 
 This will bump _your_ fork's marketplace.json and create a tag in _your_

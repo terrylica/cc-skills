@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="4-phase Rust release pipeline: fast gates (fmt/clippy/audit/machete/geiger), deep gates (deny/semver-checks/outdated), tests (nextest or cargo test), nightly-only (udeps/hack). Flags: --nightly for Phase 4, --skip-tests to skip Phase 3. Exits non-zero on blocking failures."
+# rust-release-check.sh — 4-phase Rust release pipeline: fast gates (fmt/clippy/audit/machete/geiger), deep gates (deny/semver-checks/outdated), tests (nextest or cargo test), nightly-only (udeps/hack). Flags: --nightly for Phase 4, --skip-tests to skip Phase 3. Exits non-zero on blocking failures.
 set -euo pipefail
 
 # ─── Configuration ───────────────────────────────────────────────────

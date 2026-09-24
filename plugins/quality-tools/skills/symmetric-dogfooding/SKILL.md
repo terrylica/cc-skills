@@ -51,7 +51,7 @@ Use this skill when:
 4. Pin versions explicitly (tags or SHAs, never main)
 5. Create integration/ test directory in both repos
 6. Write bidirectional validation tests (A validates with B outputs, B validates with A outputs)
-7. Add validation tasks to mise.toml or Makefile
+7. Add validation tasks to the repo's task runner (moon.yml where the repo uses moon)
 8. Document pre-release protocol in both CLAUDE.md files
 9. Run full symmetric validation to verify setup
 10. Verify against Symmetric Dogfooding Checklist below
@@ -60,7 +60,7 @@ Use this skill when:
 ### Template B: Pre-Release Validation
 
 ```
-1. Run validate:symmetric task in releasing repo
+1. Run the validate-symmetric task in releasing repo
 2. Check if other repo has pending changes affecting integration
 3. If yes, test against other repo's feature branch
 4. Document any failures in validation log
@@ -201,32 +201,30 @@ def test_a_output_consumed_by_b():
 
 ### Phase 4: Task Automation
 
-**mise.toml example:**
+**moon.yml example** (task IDs use `-` because moon reserves `:` as the project/task separator):
 
-```toml
-[tasks."validate:symmetric"]
-description = "Validate against partner repo"
-run = """
-uv sync --extra validation
-uv run pytest tests/integration/ -v
-"""
+```yaml
+tasks:
+  validate-symmetric:
+    description: "Validate against partner repo"
+    script: "uv sync --extra validation && uv run pytest tests/integration/ -v"
 
-[tasks."validate:pre-release"]
-description = "Full validation before release"
-depends = ["test:unit", "validate:symmetric"]
+  validate-pre-release:
+    description: "Full validation before release"
+    deps: ["~:test-unit", "~:validate-symmetric"]
 ```
 
 ### Phase 5: Pre-Release Protocol
 
 **Before releasing Repo A:**
 
-1. Run `validate:symmetric` in Repo A (tests against current Repo B)
+1. Run `moon run :validate-symmetric` in Repo A (tests against current Repo B)
 2. If Repo B has pending changes, test against Repo B branch too
 3. Update version pins after successful validation
 
 **Before releasing Repo B:**
 
-1. Run `validate:symmetric` in Repo B (tests against current Repo A)
+1. Run `moon run :validate-symmetric` in Repo B (tests against current Repo A)
 2. If Repo A has pending changes, test against Repo A branch too
 3. Update version pins after successful validation
 
@@ -268,7 +266,7 @@ depends = ["test:unit", "validate:symmetric"]
 | --------------------------- | ------------------------------ | ------------------------------------------------ |
 | Dependency resolution fails | Version pin outdated           | Update tag/SHA pin to latest stable version      |
 | Tests pass locally fail CI  | Different partner repo version | Pin exact same version in both environments      |
-| Breaking change not caught  | One-direction testing only     | Run validate:symmetric in BOTH repos             |
+| Breaking change not caught  | One-direction testing only     | Run validate-symmetric in BOTH repos             |
 | Integration surface unclear | Undocumented exports           | Map all imports/exports before setting up tests  |
 | Too many parts moving       | Uncoordinated releases         | Coordinate breaking changes, test branches first |
 | Mock data hiding bugs       | Using stubs instead of real    | Always import real partner repo for integration  |
