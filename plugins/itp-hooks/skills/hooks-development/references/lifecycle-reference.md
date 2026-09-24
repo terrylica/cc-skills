@@ -143,7 +143,7 @@
 
 **Hook Details:**
 
-- **PreToolUse** — CAN BLOCK. Output `permissionDecision`: `allow|deny|ask`. Can provide `updatedInput` to modify tool parameters
+- **PreToolUse** — CAN BLOCK. Output `permissionDecision`: `allow|deny|ask`. Can provide `updatedInput` to modify tool parameters — **never for `AskUserQuestion`**: there `updatedInput` carries the user's answers, so a rewrite suppresses the dialog and the question returns unanswered (see SKILL.md, "Never rewrite AskUserQuestion")
 - **PermissionRequest** — CAN BLOCK. Output `behavior`: `allow|deny`. Skipped if PreToolUse already allowed
 - **Tool Executes** — The actual tool runs (Bash, Edit, Read, Write, MCP tools)
 - **SubagentStop** — CAN BLOCK. Task tool only. Validates subagent completion
