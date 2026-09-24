@@ -5,9 +5,9 @@ committed ``cli_spec.json`` must equal a fresh regeneration (no stale spec), and
 every Python ``argparse`` CLI in the repo must be represented (no silent omission
 when a skill CLI is added/removed). Fast (<2s), stdlib-only, no network.
 
-Run via ``mise run cli-spec-check`` or
+Run via ``moon run repo:cli-spec-check`` or
 ``uv run --python 3.14 --no-project --with pytest pytest scripts/test_cli_spec.py``.
-Regenerate the spec with ``mise run cli-spec``.
+Regenerate the spec with ``moon run repo:cli-spec``.
 """
 
 from __future__ import annotations
@@ -34,14 +34,14 @@ _GEN = _load_generator()
 
 
 def test_cli_spec_json_exists() -> None:
-    assert _SPEC_PATH.exists(), "cli_spec.json missing; run `mise run cli-spec`."
+    assert _SPEC_PATH.exists(), "cli_spec.json missing; run `moon run repo:cli-spec`."
 
 
 def test_cli_spec_json_is_not_stale() -> None:
     """The committed cli_spec.json must equal a fresh in-memory regeneration."""
     expected = _GEN.serialize_spec_document(_GEN.build_cli_spec_document(_REPO_ROOT))
     actual = _SPEC_PATH.read_text(encoding="utf-8")
-    assert actual == expected, "cli_spec.json is stale; run `mise run cli-spec` and commit the diff."
+    assert actual == expected, "cli_spec.json is stale; run `moon run repo:cli-spec` and commit the diff."
 
 
 def test_every_argparse_cli_is_represented() -> None:
@@ -49,7 +49,7 @@ def test_every_argparse_cli_is_represented() -> None:
     discovered = {p.relative_to(_REPO_ROOT).as_posix() for p in _GEN.discover_argparse_files(_REPO_ROOT)}
     document = json.loads(_SPEC_PATH.read_text(encoding="utf-8"))
     assert discovered == set(document["commands"]), (
-        "Discovered argparse CLIs differ from cli_spec.json commands; run `mise run cli-spec`."
+        "Discovered argparse CLIs differ from cli_spec.json commands; run `moon run repo:cli-spec`."
     )
     assert discovered, "Expected to discover at least one argparse CLI."
 

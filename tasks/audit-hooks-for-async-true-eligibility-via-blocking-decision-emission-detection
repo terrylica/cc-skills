@@ -56,7 +56,7 @@
 #
 # Re-run cadence: after any new hook is added, after CLAUDE.md docs
 # change about hook decision semantics, and as a release:preflight gate
-# (potential iter-58 work — for now, manual `mise run` is fine).
+# (potential iter-58 work — for now, a manual `bash tasks/audit-hooks-for-async-true-eligibility-via-blocking-decision-emission-detection` run is fine).
 
 set -euo pipefail
 

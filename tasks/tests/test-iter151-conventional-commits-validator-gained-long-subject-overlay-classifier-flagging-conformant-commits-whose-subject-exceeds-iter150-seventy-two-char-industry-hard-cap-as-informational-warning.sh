@@ -131,7 +131,7 @@ iter151_assert_substring_present_in_file \
 iter151_assert_substring_present_in_file \
     "D3: validator cross-references iter-150 readable-renderer mise task for existing-history view" \
     "$ITER151_VALIDATOR_TASK_ABSOLUTE_PATH" \
-    "mise run release:history"
+    "moon run repo:release-history"
 
 iter151_assert_substring_present_in_file \
     "D4: validator clarifies the /loop verbose-self-explanatory directive enumerates IDENTIFIERS not commit subjects" \

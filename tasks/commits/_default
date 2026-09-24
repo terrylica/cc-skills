@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-156 default-when-no-subcommand dispatcher for the commits namespace (iter-170 banner refresh). Prints a compact operator-facing index of the iter-150-through-iter-169 conventional-commits arc toolkit: tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict, with iter-161 bump preview + iter-162 footer detection + iter-164 next-version), commits:pending-release (iter-165 aggregate next-release preview across all unreleased commits since most recent tag, iter-167 single-batched-git-log-fan-in 5.17x perf optimization), commits:status (iter-160 15-check brew-doctor-style self-diagnosis: 13 CRITICAL + 2 WARNING per iter-163 + iter-166 coverage extensions), commits:install-hook (iter-157 git commit-msg hook). Iter-169 release:preflight informational pending-release preview surfaces next-version prediction at top of Phase 1. Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the arc tools were scattered across release/ and commits/ mise namespaces with no single entry point, undiscoverable without spelunking 100+ entries in mise tasks output.
+# Iter-156 default-when-no-subcommand dispatcher for the commits namespace (iter-170 banner refresh). Prints a compact operator-facing index of the iter-150-through-iter-169 conventional-commits arc toolkit: tools across release:history (iter-150 readable view), commits:health (iter-152 5-panel dashboard, default + --json), commits:advise (iter-153 pre-commit dry-run advisor, default + --json + --strict, with iter-161 bump preview + iter-162 footer detection + iter-164 next-version), commits:pending-release (iter-165 aggregate next-release preview across all unreleased commits since most recent tag, iter-167 single-batched-git-log-fan-in 5.17x perf optimization), commits:status (iter-160 15-check brew-doctor-style self-diagnosis: 13 CRITICAL + 2 WARNING per iter-163 + iter-166 coverage extensions), commits:install-hook (iter-157 git commit-msg hook). Iter-169 release:preflight informational pending-release preview surfaces next-version prediction at top of Phase 1. Includes iter-150 50/72 convention reminder + cross-reference to the canonical docs/RELEASE.md Conventional-Commits Operator Toolkit Index section. Closes the discoverability gap surfaced by the iter-156 adversarial audit: the arc tools were scattered across the release/ and commits/ task directories with no single entry point, undiscoverable without spelunking 100+ task entries.
 set -euo pipefail
 
 # ANSI color codes — gracefully degrade to plain text when stdout is not a TTY.
@@ -23,19 +23,19 @@ cat <<EOF
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── ITER-185 SUMMARY INDEX (one-line operator-facing invocation guide; scroll for full sections below) ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run release:history${ITER156_ANSI_COLOR_RESET}           readable awk-soft-wrapped git log render
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health [--json]${ITER156_ANSI_COLOR_RESET}   5-panel dashboard (length, type, trend)
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise -- "<subj>"${ITER156_ANSI_COLOR_RESET}  pre-commit advisor + semver bump preview
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --json${ITER156_ANSI_COLOR_RESET}     same, AI-agent machine-readable mode
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --strict${ITER156_ANSI_COLOR_RESET}   same, exits non-zero on silent-fail risk
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:release-history${ITER156_ANSI_COLOR_RESET}        readable awk-soft-wrapped git log render
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/health [--json]${ITER156_ANSI_COLOR_RESET}   5-panel dashboard (length, type, trend)
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise -- "<subj>"${ITER156_ANSI_COLOR_RESET}  pre-commit advisor + semver bump preview
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --json${ITER156_ANSI_COLOR_RESET}     same, AI-agent machine-readable mode
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --strict${ITER156_ANSI_COLOR_RESET}   same, exits non-zero on silent-fail risk
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
                                        iter-162 body-aware footer-token reader
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release [--json]${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/pending-release [--json]${ITER156_ANSI_COLOR_RESET}
                                        aggregate next-release preview across HEAD
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status [--json]${ITER156_ANSI_COLOR_RESET}   15-check brew-doctor-style self-diagnosis
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:install-hook${ITER156_ANSI_COLOR_RESET}      install iter-153 as git commit-msg hook
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}    remove cc-skills-managed hook
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline [--json]${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/status [--json]${ITER156_ANSI_COLOR_RESET}   15-check brew-doctor-style self-diagnosis
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-install-hook${ITER156_ANSI_COLOR_RESET}   install iter-153 as git commit-msg hook
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-uninstall-hook${ITER156_ANSI_COLOR_RESET}  remove cc-skills-managed hook
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/perf-baseline [--json]${ITER156_ANSI_COLOR_RESET}
                                        iter-174 perf regression check (hyperfine +
                                        pytest-benchmark-style JSON envelope per
                                        iter-179/182/183/184)
@@ -44,14 +44,14 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── ITER-185 SUMMARY INDEX (
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — readable rendering of verbose commit subjects ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run release:history${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:release-history${ITER156_ANSI_COLOR_RESET}
       Awk-based soft-wrap renderer for verbose conventional-commit subjects.
       Tunables: ITER150_COMMIT_COUNT_TO_DISPLAY (default 10),
                 ITER150_SOFT_WRAP_COLUMN_WIDTH (default 80).
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DETECT (iter-151) — preflight long-subject overlay classifier ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run audit-recent-git-commit-messages-...${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/audit-recent-git-commit-messages-*.sh${ITER156_ANSI_COLOR_RESET}
       (Runs automatically as Check 4l during release:preflight.)
       Iter-151 extended the iter-82 validator with informational overlay
       flagging conformant commits whose subject exceeds the iter-150
@@ -59,31 +59,31 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DETECT (iter-151) — pr
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── HEALTH SUMMARY (iter-152, with iter-155 --json) — 5-panel dashboard ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-health${ITER156_ANSI_COLOR_RESET}
       5-panel operator dashboard: readable view + length-distribution
       histogram + worst-offender callouts + type distribution + trend
       signal (IMPROVING/REGRESSING/STABLE/MIXED vs previous N-commit
       window).
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:health --json${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/health --json${ITER156_ANSI_COLOR_RESET}
       Same data, machine-readable JSON for AI-agent automation. Stable
       iter155_schema_version=1. Pipe to jq:
-        \`mise run commits:health --json | jq .panel_5_recent_vs_previous_window_trend_signal.verdict\`
+        \`bash tasks/commits/health --json | jq .panel_5_recent_vs_previous_window_trend_signal.verdict\`
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PRE-COMMIT ADVISE (iter-153, with iter-154 hardening) — dry-run advisor ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise -- "<proposed subject>"${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise -- "<proposed subject>"${ITER156_ANSI_COLOR_RESET}
       Classify a proposed conventional-commit subject BEFORE committing.
       Verdict: COMMIT_READY / COMMIT_READY_WITH_READABILITY_WARNING /
       SILENT_FAIL_RISK (COMPOUND-PREFIX or MISSING-TYPE).
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --json -- "<subject>"${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --json -- "<subject>"${ITER156_ANSI_COLOR_RESET}
       Same advisor, machine-readable JSON for AI agents.
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --strict -- "<subject>"${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --strict -- "<subject>"${ITER156_ANSI_COLOR_RESET}
       Exit non-zero on silent-fail-class violations (manual gating mode).
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise${ITER156_ANSI_COLOR_RESET}    (no args, in interactive terminal)
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise${ITER156_ANSI_COLOR_RESET}    (no args, in interactive terminal)
       Iter-154 auto-detect: reads .git/COMMIT_EDITMSG when invoked
       during an editor-launched git commit flow.
 
@@ -99,7 +99,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
   --json embeds a nested iter161_semver_bump_preview object with stable
   iter161_schema_version=1 for AI-agent automation pipelines.
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/advise --message-file <path>${ITER156_ANSI_COLOR_RESET}
       Iter-162 body-aware extension: reads the FULL multi-line commit
       message (subject + body), then detects Conventional Commits §13
       BREAKING-CHANGE footer-tokens (BREAKING CHANGE:, BREAKING-CHANGE:,
@@ -124,7 +124,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── SEMVER-BUMP PREVIEW (ite
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PENDING-RELEASE PREVIEW (iter-165) — aggregate across all unreleased commits ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-pending-release${ITER156_ANSI_COLOR_RESET}
       Walks every commit between the most recent git tag and HEAD,
       classifies each via iter-161 + iter-162, takes the maximum bump
       per SemVer precedence (MAJOR > MINOR > PATCH > NONE) — exactly
@@ -137,29 +137,29 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PENDING-RELEASE PREVIEW 
       verifies push permissions, needs fetch-depth=0, takes multi-seconds
       per the 2026 sem-rel FAQ).
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:pending-release --json${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/pending-release --json${ITER156_ANSI_COLOR_RESET}
       Same data, machine-readable JSON for AI-agent automation. Stable
       iter165_schema_version=1. Includes per-commit bump breakdown
       array + bump histogram + triggering-commit short SHA + nested
       iter164_next_version_preview object. Pipe to jq:
-        \`mise run commits:pending-release --json | jq .aggregate_bump_label_per_semver_precedence\`
-        \`mise run commits:pending-release --json | jq .iter164_next_version_preview.next_version\`
+        \`bash tasks/commits/pending-release --json | jq .aggregate_bump_label_per_semver_precedence\`
+        \`bash tasks/commits/pending-release --json | jq .iter164_next_version_preview.next_version\`
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── AUTOMATE (iter-157) — install as git commit-msg hook ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:install-hook${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-install-hook${ITER156_ANSI_COLOR_RESET}
       Install the iter-153 advisor as a .git/hooks/commit-msg hook in
       the current repo. After install, every \`git commit\` automatically
       runs --strict classification and rejects silent-fail-class
       violations (COMPOUND-PREFIX, MISSING-TYPE) — no operator
       discipline required. Idempotent; backs up existing hooks.
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:uninstall-hook${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-uninstall-hook${ITER156_ANSI_COLOR_RESET}
       Remove cc-skills-managed hook + restore most recent backup.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — self-diagnosis of the entire commits toolkit ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-status${ITER156_ANSI_COLOR_RESET}
       15-check self-diagnosis across iter-150 → iter-167 tools (13
       CRITICAL + 2 WARNING per iter-163 + iter-166 coverage extensions):
       structural validity, functional correctness, hook-install state,
@@ -171,13 +171,13 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DIAGNOSE (iter-160) — 
       reporting. Industry-standard brew-doctor/npm-doctor pattern.
       Exit 0 if toolkit healthy; exit 1 if CRITICAL check fails.
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:status --json${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/status --json${ITER156_ANSI_COLOR_RESET}
       Same checks, machine-readable JSON output with stable
       iter160_schema_version=1 for AI-agent automation pipelines.
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness, iter-179 --json dual-mode) — operator-discoverable perf regression check ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}moon run repo:commits-perf-baseline${ITER156_ANSI_COLOR_RESET}
       Empirical wall-clock perf-baseline regression harness for the
       iter-150 → iter-177 toolkit. Runs N=5 trials per script, takes
       median, compares against pinned 3× headroom baseline caps. Catches
@@ -189,9 +189,9 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (i
       (matches brew bench, criterion.rs, pytest-benchmark family).
       Iter-178 closed the discoverability gap where the underlying
       iter-174 harness was invocable only via a 160-char tasks/
-      tests/ filename — undiscoverable in 'mise tasks ls' output.
+      tests/ filename — undiscoverable in 'moon query tasks' output.
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}mise run commits:perf-baseline --json${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/perf-baseline --json${ITER156_ANSI_COLOR_RESET}
       Same regression check, machine-readable JSON envelope for AI-agent
       and CI-pipeline consumption (no regex-parsing of human-readable
       text required). Stable iter174_schema_version=1 contract with
@@ -199,8 +199,8 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── PERFORMANCE BENCHMARK (i
       headroom_pct_signed, verdict} records + aggregate summary
       {total_evaluated, total_failed, total_passed, overall_verdict}.
       Pipe to jq:
-        \`mise run commits:perf-baseline --json | jq .summary.overall_verdict\`
-        \`mise run commits:perf-baseline --json | jq '.results[] | select(.verdict == "REGRESS")'\`
+        \`bash tasks/commits/perf-baseline --json | jq .summary.overall_verdict\`
+        \`bash tasks/commits/perf-baseline --json | jq '.results[] | select(.verdict == "REGRESS")'\`
       Iter-179 dual-mode addition closes the AI-agent surface gap parallel
       to what iter-155 / iter-160 --json modes filled for the dashboard +
       doctor.

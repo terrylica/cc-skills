@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-111 marketplace-wide producer-side escape-hatch-marker typo audit: enumerates every UPPER-KEBAB-CASE-(OK|SKIP|WRAP) token appearing in PRODUCER source files (anything outside the consumer hooks directory plugins/itp-hooks/hooks/ and outside the audit-tasks directory .mise/) and verifies each token appears in the iter-111 canonical producer-marker registry. Unknown tokens are reported as POTENTIAL TYPOS — the operator must either fix the typo or register a new legitimate marker. Informational by default; can be promoted to strict-block in iter-112+ once registry coverage stabilizes.
+# Iter-111 marketplace-wide producer-side escape-hatch-marker typo audit: enumerates every UPPER-KEBAB-CASE-(OK|SKIP|WRAP) token appearing in PRODUCER source files (anything outside the consumer hooks directory plugins/itp-hooks/hooks/ and outside the audit-tasks directory tasks/) and verifies each token appears in the iter-111 canonical producer-marker registry. Unknown tokens are reported as POTENTIAL TYPOS — the operator must either fix the typo or register a new legitimate marker. Informational by default; can be promoted to strict-block in iter-112+ once registry coverage stabilizes.
 
 # ────────────────────────────────────────────────────────────────────────
 # Full design rationale
@@ -231,7 +231,7 @@ echo ""
 #   1. The registry coverage stabilizes (all currently-known markers added)
 #   2. Edge cases are documented (e.g., the audit-marker family
 #      WILDCARD-MATCHER-OK, MATCHER-NO-MULTIEDIT-OK, etc. which are
-#      consumed by .mise/ audit tasks rather than runtime hooks — likely
+#      consumed by tasks/ audit scripts rather than runtime hooks — likely
 #      a separate registry layer)
 #   3. The exit-code-2-on-violation behavior is documented in HOOKS.md
 
@@ -244,7 +244,7 @@ if [[ ${#UNREGISTERED_MARKER_TOKENS_FOUND_IN_PRODUCER_FILES[@]} -gt 0 ]]; then
     echo "       $ITER111_PRODUCER_MARKER_CANONICAL_REGISTRY_TYPESCRIPT_SOURCE_FILE_RELATIVE_PATH"
     echo "    C. If the token is a test fixture: rename to start with"
     echo "       FOO-/BAR-/BAZ-/QUX- (the audit ignores those families)"
-    echo "    D. If the token is consumed by a .mise/ audit task (not a"
+    echo "    D. If the token is consumed by a tasks/ audit script (not a"
     echo "       runtime hook): wait for iter-112+ audit-marker registry"
     echo "       layer; no action needed now"
     exit 0

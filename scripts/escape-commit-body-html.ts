@@ -19,7 +19,7 @@
  * `<verify|probe|bench>` as syntax placeholders. NONE is intentional markup. There is
  * therefore no working HTML to break, and a great deal of silently-deleted content to
  * recover. If someone later wants real HTML in a release body, the path is a notes file
- * through `mise run release:augment`, not a commit message.
+ * through `moon run repo:release-augment`, not a commit message.
  *
  * WHAT IS DELIBERATELY NOT ESCAPED.
  *  - Anything inside a fenced code block or an inline code span. Those already render

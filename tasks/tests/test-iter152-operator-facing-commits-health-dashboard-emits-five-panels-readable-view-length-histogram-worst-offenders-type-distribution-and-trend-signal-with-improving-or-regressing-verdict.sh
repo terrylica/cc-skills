@@ -184,9 +184,9 @@ iter152_assert_substring_present_in_file \
     'exec "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH"'
 
 iter152_assert_substring_present_in_file \
-    "E2: mise wrapper has MISE description metadata for mise-tasks-listing discoverability" \
+    "E2: wrapper has a line-2 description header comment" \
     "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
-    "#MISE description="
+    "# Iter-152 operator-facing commits:health dashboard"
 
 iter152_assert_substring_present_in_file \
     "E3: mise wrapper description mentions all 5 panels for operator discoverability" \
@@ -229,7 +229,7 @@ fi
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=$((ITER152_TOTAL_ASSERTIONS_EVALUATED + 1))
 if [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"tune via ITER152_"* ]] \
-   && [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"mise run release:history"* ]]; then
+   && [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"moon run repo:release-history"* ]]; then
     echo "  ✓ F4: renderer emits footer with operator-tunable knob hints + iter-150 cross-reference"
 else
     echo "  ✗ F4: footer knob hints or iter-150 cross-reference missing"

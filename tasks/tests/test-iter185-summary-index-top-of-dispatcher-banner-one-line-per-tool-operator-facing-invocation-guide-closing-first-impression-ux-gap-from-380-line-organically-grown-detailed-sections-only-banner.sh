@@ -45,47 +45,47 @@ echo "GROUP B (11 assertions): every operator-facing tool invocation listed in t
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B1:  release:history (iter-150 readable git log render)" \
-    "mise run release:history"
+    "moon run repo:release-history"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B2:  commits:health [--json] (iter-152 5-panel dashboard)" \
-    "mise run commits:health [--json]"
+    "bash tasks/commits/health [--json]"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B3:  commits:advise -- <subject> (iter-153 advisor default mode)" \
-    'mise run commits:advise -- "<subj>"'
+    'bash tasks/commits/advise -- "<subj>"'
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B4:  commits:advise --json (iter-153 AI-agent mode)" \
-    "mise run commits:advise --json"
+    "bash tasks/commits/advise --json"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B5:  commits:advise --strict (iter-153 hard-gating mode)" \
-    "mise run commits:advise --strict"
+    "bash tasks/commits/advise --strict"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B6:  commits:advise --message-file <path> (iter-162 body-aware footer reader)" \
-    "mise run commits:advise --message-file"
+    "bash tasks/commits/advise --message-file"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B7:  commits:pending-release [--json] (iter-165 aggregate preview)" \
-    "mise run commits:pending-release [--json]"
+    "bash tasks/commits/pending-release [--json]"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B8:  commits:status [--json] (iter-160 brew-doctor-style self-diagnosis)" \
-    "mise run commits:status [--json]"
+    "bash tasks/commits/status [--json]"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B9:  commits:install-hook (iter-157 git commit-msg hook installer)" \
-    "mise run commits:install-hook"
+    "moon run repo:commits-install-hook"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B10: commits:uninstall-hook (iter-157 hook remover)" \
-    "mise run commits:uninstall-hook"
+    "moon run repo:commits-uninstall-hook"
 
 iter185_assert_substring_present_in_dispatcher_with_human_readable_label \
     "B11: commits:perf-baseline [--json] (iter-178 wrapper + iter-179/182/183/184 envelope)" \
-    "mise run commits:perf-baseline [--json]"
+    "bash tasks/commits/perf-baseline [--json]"
 
 # ─── Group C: ordering — INDEX appears BEFORE the VIEW section ─────────────
 echo ""

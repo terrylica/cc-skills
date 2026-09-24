@@ -44,17 +44,17 @@
 # USAGE:
 #
 #   # Pass proposed subject as a single arg:
-#   mise run commits:advise -- "feat(release): iter-153 short subject"
+#   bash tasks/commits/advise -- "feat(release): iter-153 short subject"
 #
 #   # Pass via stdin (useful when piping from clipboard or editor):
 #   echo "feat(release): iter-153 short subject" | \
-#       mise run commits:advise --
+#       bash tasks/commits/advise --
 #
 #   # JSON output for AI agents / shell automation:
-#   mise run commits:advise --json -- "feat(release): iter-153 short subject" | jq .
+#   bash tasks/commits/advise --json -- "feat(release): iter-153 short subject" | jq .
 #
 #   # Strict mode (exit non-zero on silent-fail-class violations):
-#   mise run commits:advise --strict -- "feat(scope)+docs: bad compound prefix"
+#   bash tasks/commits/advise --strict -- "feat(scope)+docs: bad compound prefix"
 #
 # DESIGN NOTES:
 #
@@ -277,7 +277,7 @@ done
 # .git/COMMIT_EDITMSG — the file git uses for the editor-launched
 # commit flow. This closes the natural workflow loop: operator opens
 # editor → types subject → saves → BEFORE closing editor, runs
-# `mise run commits:advise` in another terminal → sees verdict on the
+# `bash tasks/commits/advise` in another terminal → sees verdict on the
 # in-progress commit subject. The subject is the FIRST non-comment
 # non-empty line of the file per the git commit message convention.
 #

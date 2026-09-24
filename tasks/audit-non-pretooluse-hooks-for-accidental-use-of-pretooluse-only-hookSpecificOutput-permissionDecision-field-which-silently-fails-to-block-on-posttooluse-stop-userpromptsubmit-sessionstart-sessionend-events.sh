@@ -81,7 +81,7 @@
 # this audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `mise run audit-non-pretooluse-hooks-...`
+#   - Manual: `bash tasks/audit-non-pretooluse-hooks-for-accidental-use-of-pretooluse-only-hookSpecificOutput-permissionDecision-field-which-silently-fails-to-block-on-posttooluse-stop-userpromptsubmit-sessionstart-sessionend-events.sh`
 #   - Automatic: release:preflight Check 4h (iter-62 wire-up).
 #     Sits alongside iter-60 (Check 4f, PreToolUse direction) for
 #     symmetric schema-correctness enforcement.

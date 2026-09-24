@@ -196,9 +196,9 @@ iter150_assert_substring_present_in_file \
     'exec "$ITER150_RENDERER_SCRIPT_ABSOLUTE_PATH"'
 
 iter150_assert_substring_present_in_file \
-    "E4: mise release:history task has MISE description metadata for mise-tasks-listing discoverability" \
+    "E4: mise release:history task has a line-2 description header comment" \
     "$ITER150_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
-    "#MISE description="
+    "# Render readable cc-skills release history"
 
 # ─── Final report ─────────────────────────────────────────────────────────────
 echo ""

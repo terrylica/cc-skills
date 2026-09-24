@@ -107,14 +107,14 @@ echo "── TIER 2: integration assertions (skipped under recursion guard) ─�
 if [[ "${MARKETPLACE_HOOK_REGRESSION_SUITE_PARENT_INVOCATION_RECURSION_GUARD:-0}" == "1" ]]; then
     echo "  ⊘ Tier 2 SKIPPED — running inside parent runner invocation"
     echo "    (recursion guard active; iter-75 parity-test pattern). When invoked"
-    echo "    standalone the integration tier exercises the actual mise tools."
+    echo "    standalone the integration tier exercises the actual task scripts."
 else
     # ─── Tier 2.A: iter-131 integration — invoke suite with N=3 ──────────
     # Faster than iter-130 integration (suite is ~3s vs preflight ~7s) so we
     # do iter-131 first. Uses N=3 (not default 5) to also validate the
     # operator-tunable override path simultaneously with the basic invocation.
     iter131_integration_output="$(MARKETPLACE_HOOK_REGRESSION_SUITE_TOP_N_SLOWEST_TESTS_TO_DISPLAY=3 \
-        mise run test-marketplace-hook-regression-suite 2>&1)"
+        bash "$REPO_ROOT/tasks/test-marketplace-hook-regression-suite" 2>&1)"
 
     assert_substring_present \
         "Tier 2.B1: iter-131 emits 'Top 3 slowest tests' header section when env var set to 3" \
@@ -154,7 +154,7 @@ else
     fi
 
     # ─── Tier 2.C: iter-131 default mode — NO ranking section when unset ─
-    iter131_default_mode_output="$(mise run test-marketplace-hook-regression-suite 2>&1)"
+    iter131_default_mode_output="$(bash "$REPO_ROOT/tasks/test-marketplace-hook-regression-suite" 2>&1)"
     if [[ "$iter131_default_mode_output" == *"Top "*" slowest tests"* ]]; then
         ASSERTION_COUNT_FAILED_FOR_ITER132_BOTTLENECK_RANKING_REGRESSION_TEST=$((ASSERTION_COUNT_FAILED_FOR_ITER132_BOTTLENECK_RANKING_REGRESSION_TEST + 1))
         echo "  ✗ FAIL: Tier 2.B5: iter-131 default mode (env var unset) should NOT emit ranking section but did"
@@ -171,7 +171,7 @@ else
     if [[ "${ITER132_RUN_PREFLIGHT_INTEGRATION_TIER:-0}" == "1" ]]; then
         iter130_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
             ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=3 \
-            mise run release:preflight 2>&1)"
+            bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
 
         assert_substring_present \
             "Tier 2.A1: iter-130 emits 'Top 3 slowest preflight checks' header when env vars set" \

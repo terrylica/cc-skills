@@ -39,9 +39,6 @@ __pycache__/
 __pycache__/
 *.pyc
 
-# Mise local config
-.mise.toml
-
 # Temporary workspace files
 tmp/
 .link-check-results.md

@@ -65,10 +65,10 @@ describe("release.config.cjs reflows commit bodies before publishing", () => {
   });
 
   test("headings and code fences are left alone", () => {
-    const body = "## What changed\n\n```sh\nmise run release:full\n```\n";
+    const body = "## What changed\n\n```sh\nmoon run repo:release-full\n```\n";
     const out = realTransform()(commitWith(body), CONTEXT);
     expect(out.body).toContain("## What changed");
-    expect(out.body).toContain("```sh\nmise run release:full\n```");
+    expect(out.body).toContain("```sh\nmoon run repo:release-full\n```");
   });
 
   test("an already-flat body is passed through with its content untouched", () => {

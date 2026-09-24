@@ -52,7 +52,7 @@
 # entry" surface this audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `mise run audit-pretooluse-pueue-wrap-guard-...`
+#   - Manual: `bash tasks/audit-pretooluse-pueue-wrap-guard-is-last-pretooluse-entry-in-hooks-json-to-mitigate-github-15897-multi-hook-updatedInput-aggregation-last-writer-wins-bug.sh`
 #   - Automatic: release:preflight Check 4g (iter-61 wire-up)
 
 set -euo pipefail

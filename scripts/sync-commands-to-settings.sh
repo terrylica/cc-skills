@@ -94,7 +94,7 @@ main() {
             # on first iteration) → arithmetic context exits 1 → `set -euo
             # pipefail` (line 14) kills the script on the very first cc-skills
             # command match. Compound-assignment `+=1` always returns 0.
-            # Symptom this hid: `mise run release:sync` exited "ERROR task
+            # Symptom this hid: the release sync phase exited "ERROR task
             # failed" right after "→ Syncing plugin skills..." with no error
             # detail, leaving installed_plugins.json + cache stuck at the
             # previous version (releases v21.6.0 through v21.8.1 silently

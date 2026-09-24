@@ -132,7 +132,7 @@ function transformCommitPreservingBody(commit, context) {
     //
     // This is the only place the fix can live. The PreToolUse guard covers `gh release
     // create`, but semantic-release publishes through the GitHub API via
-    // @semantic-release/github, which the guard never sees. `mise run release:augment`
+    // @semantic-release/github, which the guard never sees. `moon run repo:release-augment`
     // reflows too, and is the manual/cross-repo companion — it is not on this path.
     body: reflowCommitBodyForGfm(commit.body),
   };
@@ -142,7 +142,7 @@ function transformCommitPreservingBody(commit, context) {
  * Reflow a commit body for GFM, reusing the ONE reflow implementation.
  *
  * Imported rather than reimplemented: a second copy of the wrap heuristics would drift
- * from `mise run release:augment`, and the two paths publishing differently-shaped notes
+ * from `moon run repo:release-augment`, and the two paths publishing differently-shaped notes
  * is the exact failure this is meant to end. `require()` of that ESM/TS module works
  * because it has no top-level await — see the comment on its CLI block, which exists to
  * keep it require-able from here.

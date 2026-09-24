@@ -240,7 +240,7 @@ else
     echo "  → Running preflight with PREFLIGHT_TIMING_PROFILE=1 (cache-warm; ~5s expected)..."
     iter135_preflight_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
         ITER130_TOP_N_SLOWEST_CHECKS_TO_DISPLAY=10 \
-        mise run release:preflight 2>&1)"
+        bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
 
     # Tier 2.A: preflight passes end-to-end
     assert_substring_present \
@@ -307,7 +307,7 @@ else
         echo "  → Running preflight with ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1..."
         iter135_serial_mode_integration_output="$(PREFLIGHT_TIMING_PROFILE=1 \
             ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1 \
-            mise run release:preflight 2>&1)"
+            bash "$REPO_ROOT/tasks/release/preflight" 2>&1)"
         assert_substring_present \
             "Tier 2.E1: preflight passes under serial-mode opt-out (ITER134_DISABLE_PREFLIGHT_AUDIT_PARALLELIZATION=1)" \
             "$iter135_serial_mode_integration_output" \

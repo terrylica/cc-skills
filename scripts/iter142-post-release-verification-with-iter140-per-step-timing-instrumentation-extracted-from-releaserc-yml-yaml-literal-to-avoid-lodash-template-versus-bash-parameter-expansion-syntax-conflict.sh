@@ -54,8 +54,8 @@ echo "════════════════════════�
 
 # Iter-140: per-successCmd-step EPOCHREALTIME timing instrumentation gated on
 # RELEASE_TIMING_PROFILE=1. Mirrors the iter-139 pipeline-level pattern at the
-# next-deeper structural level: where iter-139 measures each `mise run release:X`
-# phase, iter-140 measures each of the seven post-release successCmd steps
+# next-deeper structural level: where iter-139 measures each release phase
+# (tasks/release/*), iter-140 measures each of the seven post-release successCmd steps
 # (marketplace-update, claude-plugin-trigger, cache-verify, hooks-sync,
 # hooks-verify, jsDelivr-purge-and-smoke-test, final-summary). Unlocks
 # data-driven optimization of the post-release block which iter-139 measured

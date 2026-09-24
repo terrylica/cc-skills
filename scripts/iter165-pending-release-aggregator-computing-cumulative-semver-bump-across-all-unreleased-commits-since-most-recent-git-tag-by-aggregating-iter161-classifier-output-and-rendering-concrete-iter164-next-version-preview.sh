@@ -9,7 +9,7 @@
 #   next version does that bump label resolve to (iter-164)? Each tool
 #   takes ONE subject (or one --message-file) as input.
 #
-#   But operators who run `mise run release:full` rarely care about
+#   But operators who run `moon run repo:release-full` rarely care about
 #   ONE commit. They care about the AGGREGATE of every commit since
 #   the last tag — the actual release that will land. By the time
 #   the operator is about to run release:full they have already made
@@ -37,7 +37,7 @@
 #     4. Resolve the aggregate bump label to a concrete next version
 #        via iter-164.
 #
-#   Result: in one mise task invocation the operator learns what their
+#   Result: in one task invocation the operator learns what their
 #   pending release is, which commits drive which bumps, and the exact
 #   next version that will tag — all under one second, no network, no
 #   Node.
@@ -126,8 +126,8 @@
 #
 # USAGE:
 #
-#   mise run commits:pending-release
-#   mise run commits:pending-release --json | jq .aggregate_bump_label_per_semver_precedence
+#   moon run repo:commits-pending-release
+#   bash tasks/commits/pending-release --json | jq .aggregate_bump_label_per_semver_precedence
 #
 # PRIOR ART:
 #

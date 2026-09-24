@@ -119,9 +119,8 @@ tasks:
 
   release-dry:
     description: "Preview the version bump and changelog without tagging, pushing or publishing. Runs preflight first."
-    # #138: this dependency used to be declared as `#MISE depends=["release:preflight"]`
-    # frontmatter inside the script, which nothing has read since the mise
-    # plugin was retired in 41df0fe5 (.prototools:1 — "jdx/mise is not used").
+    # #138: this dependency used to be a `#MISE depends=["release:preflight"]`
+    # line inside the script, read by nothing once mise was retired (41df0fe5).
     # `deps` is the mechanism moon actually honours; a failing preflight now
     # aborts the run before semantic-release is reached.
     deps: ["~:release-preflight"]

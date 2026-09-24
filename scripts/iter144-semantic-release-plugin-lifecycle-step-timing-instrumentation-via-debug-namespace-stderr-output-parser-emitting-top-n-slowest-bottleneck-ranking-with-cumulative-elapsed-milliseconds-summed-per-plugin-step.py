@@ -7,7 +7,7 @@ cumulative elapsed-milliseconds summed per (plugin, lifecycle-step) tuple.
 
 Why this script exists:
     Iter-139 RELEASE_TIMING_PROFILE pipeline-level instrumentation revealed
-    Phase 2 (`mise run release:version` — semantic-release) consumes ~30s of
+    Phase 2 (`moon run repo:release-version` — semantic-release) consumes ~30s of
     the ~45-49s release wall-clock (67% of pipeline). Iter-142 / iter-143
     confirmed that the post-release successCmd block (iter-140 instrumented)
     is only ~2.3s, meaning the actual 28s lives INSIDE semantic-release
@@ -52,7 +52,7 @@ Limitations (documented honestly, not glossed over):
       appear, but only ~1-2ms of timing is captured per skipped step
       because the body isn't executed. To time the publish/success steps
       accurately, the parser must be run against a LIVE release log (e.g.
-      `DEBUG=semantic-release:* mise run release:version 2> /tmp/log;
+      `DEBUG=semantic-release:* moon run repo:release-version 2> /tmp/log;
       ./scripts/iter144-...py /tmp/log`).
     - The currently-active step before the first "options for X" marker
       is attributed to the "(unattributed-pre-plugin-pipeline-bootstrap)"

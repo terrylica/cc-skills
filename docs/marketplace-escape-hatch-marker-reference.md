@@ -6,7 +6,7 @@
 > To add or modify a marker, edit the registry source and re-run:
 >
 > ```bash
-> mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry
+> bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh
 > ```
 
 ## Quick navigation
@@ -47,7 +47,7 @@ Jump directly to any of the 39 registered markers below. Markers are listed alph
 - [`SSoT-OK`](#ssot-ok)
 - [`STALE-CHECKOUT-OK`](#stale-checkout-ok)
 
-**Audit-task markers** (8; consumed by `.mise/` audit tasks once per release-preflight):
+**Audit-task markers** (8; consumed by `tasks/` audit scripts once per release-preflight):
 
 - [`ESCAPE-HATCH-AUDIT-OK`](#escape-hatch-audit-ok-audit-task)
 - [`HOOK-OUTPUT-SIZE-CAP-OK`](#hook-output-size-cap-ok-audit-task)
@@ -60,7 +60,7 @@ Jump directly to any of the 39 registered markers below. Markers are listed alph
 
 ## Purpose
 
-The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by .mise/ release-preflight audit tasks via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.
+The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK markers (consumed by Pre/PostToolUse hooks via the iter-107 shared helper on every Write/Edit/Bash invocation) and AUDIT-TASK markers (consumed by tasks/ release-preflight audit scripts via bash grep, fired once per release). This document catalogs every legitimate marker token from BOTH families with its consumer reference, case-sensitivity policy, window-semantics policy (runtime markers only), reason policy, and operator-readable description.
 
 ## How to use this reference
 
@@ -606,9 +606,9 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 # STALE-CHECKOUT-OK
 ```
 
-## Audit-task marker catalog (8 registered markers consumed by .mise/ release-preflight audit tasks)
+## Audit-task marker catalog (8 registered markers consumed by tasks/ release-preflight audit scripts)
 
-These markers are honored by .mise/ audit tasks at release-preflight time — they opt a specific source file out of a release-blocking marketplace-wide invariant check. Detection runs ONCE per release (not on every tool invocation). Audit markers commonly require a ≥10-character reason after a colon because legitimate exceptions to release-blocking invariants demand justification.
+These markers are honored by tasks/ audit scripts at release-preflight time — they opt a specific source file out of a release-blocking marketplace-wide invariant check. Detection runs ONCE per release (not on every tool invocation). Audit markers commonly require a ≥10-character reason after a colon because legitimate exceptions to release-blocking invariants demand justification.
 
 ## `ESCAPE-HATCH-AUDIT-OK` (audit-task)
 
@@ -747,7 +747,7 @@ All markers follow the UPPER-KEBAB-CASE-OK shape (except `SSoT-OK` which is gran
 1. Implement the consumer-side detection in the hook source file using `hasFileWideEscapeHatchMarkerInContent(...)` or `detectEscapeHatchMarkerCoveringTargetSourceLine(...)` from `plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts`.
 2. Add an entry to the registry at `plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts`.
 3. Add the consumer hook to the iter-110 canonical-cohort array in `tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...`.
-4. Re-run `mise run generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry` to regenerate this document.
+4. Re-run `bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh` to regenerate this document.
 5. Commit all four changes atomically.
 
 ## Related documentation

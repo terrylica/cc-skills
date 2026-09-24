@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-178 regression test pinning the operator-discoverable commits:perf-baseline mise task wrapper that delegates via exec to the iter-174 wall-clock perf-baseline regression harness. Pre-iter-178 the iter-174 harness was invocable only via the 160-character tasks/tests/test-iter174-… filename — undiscoverable in 'mise tasks ls' output. Operators wanting to run the perf check after editing toolkit scripts had no first-class command. Iter-178 closes this usability gap by adding tasks/commits/perf-baseline as a thin dispatcher wrapper (mirroring the iter-160 commits:status dispatcher pattern) that exec-delegates to the canonical iter-174 harness — zero logic duplication, single source of truth preserved. Test asserts (a) wrapper file exists + executable + bash-syntax-clean + shellcheck-clean, (b) wrapper has #MISE description metadata for mise-tasks-ls discoverability, (c) wrapper delegates to iter-174 harness via exec (not invocation duplication), (d) wrapper has soft-fail diagnostic when iter-174 harness is missing (operator-visible error, not silent), (e) iter-156 dispatcher banner mentions the new commits:perf-baseline task in its PERFORMANCE BENCHMARK section, (f) iter-156 dispatcher arc range updated from iter-169 to iter-178, (g) end-to-end smoke test: 'mise run commits:perf-baseline' invocation surfaces the iter-174 harness banner header + GROUP A header proving exec delegation works.
+# Iter-178 regression test pinning the operator-discoverable commits:perf-baseline mise task wrapper that delegates via exec to the iter-174 wall-clock perf-baseline regression harness. Pre-iter-178 the iter-174 harness was invocable only via the 160-character tasks/tests/test-iter174-… filename — undiscoverable in 'mise tasks ls' output. Operators wanting to run the perf check after editing toolkit scripts had no first-class command. Iter-178 closes this usability gap by adding tasks/commits/perf-baseline as a thin dispatcher wrapper (mirroring the iter-160 commits:status dispatcher pattern) that exec-delegates to the canonical iter-174 harness — zero logic duplication, single source of truth preserved. Test asserts (a) wrapper file exists + executable + bash-syntax-clean + shellcheck-clean, (b) wrapper has #MISE description metadata for mise-tasks-ls discoverability, (c) wrapper delegates to iter-174 harness via exec (not invocation duplication), (d) wrapper has soft-fail diagnostic when iter-174 harness is missing (operator-visible error, not silent), (e) iter-156 dispatcher banner mentions the new commits:perf-baseline task in its PERFORMANCE BENCHMARK section, (f) iter-156 dispatcher arc range updated from iter-169 to iter-178, (g) end-to-end smoke test: 'moon run repo:commits-perf-baseline' invocation surfaces the iter-174 harness banner header + GROUP A header proving exec delegation works.
 set -euo pipefail
 
 ITER178_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -77,12 +77,12 @@ fi
 
 # ─── Group B: wrapper has MISE description metadata for discoverability ────
 echo ""
-echo "GROUP B (2 assertions): wrapper has MISE description metadata for mise-tasks-ls discoverability"
+echo "GROUP B (2 assertions): wrapper has a line-2 description header comment"
 
 iter178_assert_substring_present_in_file \
-    "B1: wrapper has #MISE description= metadata header" \
+    "B1: wrapper has a line-2 description header comment" \
     "$ITER178_PERF_BASELINE_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
-    "#MISE description="
+    "# Iter-178 operator-facing wall-clock perf-baseline"
 
 iter178_assert_substring_present_in_file \
     "B2: wrapper description cites the iter-174 harness as delegation target" \
@@ -116,16 +116,16 @@ iter178_assert_substring_present_in_file \
     "PERFORMANCE BENCHMARK (iter-178 wrapper of iter-174 harness"
 
 iter178_assert_substring_present_in_file \
-    "D2: iter-156 dispatcher includes 'mise run commits:perf-baseline' invocation line" \
+    "D2: iter-156 dispatcher includes 'moon run repo:commits-perf-baseline' invocation line" \
     "$ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH" \
-    "mise run commits:perf-baseline"
+    "moon run repo:commits-perf-baseline"
 
 iter178_assert_substring_present_in_file \
     "D3: iter-156 dispatcher arc-range banner updated from iter-169 to iter-178" \
     "$ITER178_ITER156_DISPATCHER_ABSOLUTE_PATH" \
     "(iter-150 → iter-178 arc)"
 
-# ─── Group E: end-to-end smoke test — mise run commits:perf-baseline ───────
+# ─── Group E: end-to-end smoke test — moon run repo:commits-perf-baseline ───────
 echo ""
 echo "GROUP E (1 assertion): end-to-end smoke test — wrapper delegation works through mise"
 
