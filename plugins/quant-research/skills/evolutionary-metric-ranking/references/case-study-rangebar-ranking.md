@@ -53,11 +53,11 @@ Note: `regularity_cv` has `higher_is_better=False` - lower CV means more regular
 
 ```bash
 # Default: all cutoffs at 100% (no filter)
-mise run eval:rank
+uv run python -m rangebar_patterns.eval.ranking
 
 # Custom cutoffs from optimizer output
 RBP_RANK_CUT_TAMRS=30 RBP_RANK_CUT_RACHEV=90 RBP_RANK_CUT_OMEGA=70 \
-  RBP_RANK_CUT_HEADROOM=25 RBP_RANK_CUT_KELLY=35 mise run eval:rank
+  RBP_RANK_CUT_HEADROOM=25 RBP_RANK_CUT_KELLY=35 uv run python -m rangebar_patterns.eval.ranking
 ```
 
 ### Files Created
@@ -193,23 +193,25 @@ Both provide valid but different perspectives on the same data.
 
 ## Reproduction
 
-```bash
-# In terrylica/rangebar-patterns:
+The repository has since renamed its package to `opendeviationbar_patterns` and its env prefix to `OPENDEVIATIONBAR_`, and dropped the Kelly cutoff; check its current task definitions before re-running.
 
-# 1. Run the full eval pipeline (requires ClickHouse)
-mise run eval:full
+```bash
+# In terrylica/rangebar-patterns (names as of the 2026-02-14 study):
+
+# 1. Run the full eval pipeline first (requires ClickHouse): the repo's
+#    eval:full task chain — extract, OU, compute, synthesize, screen, rank.
 
 # 2. Run ranking with default cutoffs
-mise run eval:rank
+uv run python -m rangebar_patterns.eval.ranking
 
 # 3. Run evolutionary optimizer (all 5 objectives)
 for OBJ in max_survivors_min_cutoff quality_at_target_n tightest_nonempty diversity_reward pareto_efficiency; do
-    RBP_RANK_OBJECTIVE=$OBJ RBP_RANK_N_TRIALS=10000 mise run eval:rank-optimize
+    RBP_RANK_OBJECTIVE=$OBJ RBP_RANK_N_TRIALS=10000 uv run python scripts/rank_optimize.py
 done
 
 # 4. Apply best cutoffs and inspect
 RBP_RANK_CUT_TAMRS=30 RBP_RANK_CUT_RACHEV=90 RBP_RANK_CUT_OMEGA=70 \
-  RBP_RANK_CUT_HEADROOM=25 RBP_RANK_CUT_KELLY=35 mise run eval:rank
+  RBP_RANK_CUT_HEADROOM=25 RBP_RANK_CUT_KELLY=35 uv run python -m rangebar_patterns.eval.ranking
 ```
 
 ---

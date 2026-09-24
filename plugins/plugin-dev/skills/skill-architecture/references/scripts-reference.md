@@ -156,13 +156,13 @@ bash plugins/itp/skills/pypi-doppler/scripts/publish-to-pypi.sh
 
 ### Release Pipeline
 
-For releasing plugins, delegate to the repo's mise release pipeline:
+For releasing plugins, delegate to the repo's moon release pipeline:
 
 ```bash
-mise run release:full
+moon run repo:release-full
 ```
 
-See `/mise:run-full-release` for the orchestrating skill. Repo-specific release logic lives in `tasks/release/`, not in a bundled skill.
+Repo-specific release logic lives in the `tasks/release/` phase scripts (wired as `repo:release-*` tasks in the root `moon.yml`), not in a bundled skill.
 
 ## Shared Library Pattern
 

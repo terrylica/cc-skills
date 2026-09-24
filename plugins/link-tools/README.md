@@ -69,7 +69,7 @@ See [config/lychee.toml](./config/lychee.toml) for defaults.
 
 | Issue            | Cause                      | Solution                                                        |
 | ---------------- | -------------------------- | --------------------------------------------------------------- |
-| lychee not found | Not installed              | `mise install lychee` or `brew install lychee`                  |
+| lychee not found | Not installed              | `brew install lychee`                                           |
 | False positives  | Exclude patterns missing   | Add patterns to `.lycheerc.toml` exclude list                   |
 | Timeout errors   | Network issues             | Use `--offline` flag for local-only validation                  |
 | Path violations  | Absolute paths in markdown | Convert to relative paths: `./file.md` not `/full/path/file.md` |
@@ -78,8 +78,8 @@ See [config/lychee.toml](./config/lychee.toml) for defaults.
 
 | Component | Required | Installation                                   |
 | --------- | -------- | ---------------------------------------------- |
-| lychee    | Yes      | `mise install lychee` or `brew install lychee` |
-| Python    | Yes      | 3.11+ via mise                                 |
+| lychee    | Yes      | `brew install lychee`                          |
+| Python    | Yes      | 3.11+ via `uv python install`                  |
 | uv        | Yes      | `brew install uv`                              |
 
 ## References

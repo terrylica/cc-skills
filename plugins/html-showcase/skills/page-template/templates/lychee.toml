@@ -1,5 +1,5 @@
 # Lychee link-checker config for the contractor showcase mini-site.
-# Run via:  mise run site:check
+# Run via:  scripts/site.sh check <site-dir>
 # Docs:     https://lychee.cli.rs/
 
 # Only follow http(s) and same-directory relative links

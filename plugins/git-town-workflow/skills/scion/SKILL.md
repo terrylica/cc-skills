@@ -167,9 +167,9 @@ echo "--- Git Global Config ---"
 git config --global user.name 2>/dev/null || echo "No global user.name"
 git config --global user.email 2>/dev/null || echo "No global user.email"
 
-# Method 4: mise env (if available)
-echo "--- mise env ---"
-mise env 2>/dev/null | grep -i github || echo "No GitHub vars in mise"
+# Method 4: origin remote host-alias (git@github.com-<account>:owner/repo names the account)
+echo "--- Origin Host-Alias ---"
+git remote get-url origin 2>/dev/null | sed -n 's|.*github\.com-\([A-Za-z0-9_-]*\):.*|\1|p' | grep . || echo "No host-alias on origin"
 
 DETECT_ACCOUNT_EOF
 ```

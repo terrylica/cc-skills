@@ -76,7 +76,6 @@ export const EOF_MARKER_PATTERNS: Record<string, string> = {
   detect: "DETECT_EOF",
   git: "GIT_EOF",
   doppler: "DOPPLER_EOF",
-  mise: "MISE_EOF",
   test: "TEST_EOF",
   build: "BUILD_EOF",
   deploy: "DEPLOY_EOF",

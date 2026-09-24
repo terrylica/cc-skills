@@ -64,7 +64,7 @@ make ping        # Tailscale connectivity check to the configured host
 
 ## Consumers
 
-- **flowsurface** — `mise run preflight` checks `localhost:18123` connectivity. Tunnel lifecycle is NOT managed by flowsurface (was migrated out of `tasks/infra.toml`).
+- **flowsurface** — its own `preflight` task checks `localhost:18123` connectivity (`curl -sf -m 3 http://localhost:18123/ -d 'SELECT 1'`). Tunnel lifecycle is NOT managed by flowsurface.
 - **statusline-tools** — **no longer a consumer.** `custom-statusline.sh` used to query `localhost:18095/api/status`; measured 2026-09-02 it makes no HTTP call to that endpoint at all, and `statusline-tools/CLAUDE.md` explicitly forbids reading that URL (the wrapper routes inference through a rotation pool, so the local credential's quota describes spend the user is not making). The forward it needed is gone and it does not want it back.
 - **fxview / MT5 tooling** — consumes `localhost:18082` for the forex live tick SSE stream.
 - **TigerVNC viewer** — connects to `localhost:5900` for MT5/WINE remote desktop on the tunnel host.

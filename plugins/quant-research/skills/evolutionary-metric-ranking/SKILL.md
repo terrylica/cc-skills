@@ -179,7 +179,7 @@ This enables:
 - Shell-level override without code changes
 - Copy-paste of optimizer output directly into next run
 - CI/CD integration via environment configuration
-- Mise task integration via `[env]` blocks
+- Task-runner integration via per-task env maps (e.g. a moon task's `env:`)
 
 ---
 

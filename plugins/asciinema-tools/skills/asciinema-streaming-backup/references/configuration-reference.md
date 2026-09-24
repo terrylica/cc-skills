@@ -216,7 +216,7 @@ AskUserQuestion:
 ```
 1. [Preflight] Validate all tools installed (asciinema, zstd, brotli, git, gh)
 2. [Preflight] AskUserQuestion: offer installation for missing tools
-3. [Account] Detect GitHub accounts from 5 sources
+3. [Account] Detect GitHub accounts from 4 sources
 4. [Account] AskUserQuestion: select GitHub account
 5. [Config] AskUserQuestion: repository URL
 6. [Config] AskUserQuestion: recording directory

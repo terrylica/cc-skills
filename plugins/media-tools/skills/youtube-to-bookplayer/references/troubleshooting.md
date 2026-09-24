@@ -13,7 +13,7 @@
 | Python script fails with `ConnectionFailedError`                | Device locked or USB not trusted                           | Unlock iPhone, re-plug USB, tap "Trust"                                                  |
 | `lockdown` creation fails with pairing error                    | Device has never been paired with this Mac                 | Open Finder, click the device, confirm trust on both Mac and iPhone                      |
 | Out of memory during large file push                            | File read into memory exceeds available RAM                | Rare for audio files (<1GB); if hit, close other apps or use chunked read                |
-| `uvx` not found                                                 | mise/uv not in PATH                                        | Ensure `mise` is activated in your shell profile                                         |
+| `uvx` not found                                                 | uv not installed or not in PATH                            | `brew install uv`, then confirm `command -v uvx` resolves                                |
 
 ## Diagnostic Commands
 

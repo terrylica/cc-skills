@@ -110,47 +110,40 @@ AskUserQuestion({
 - If "I have credentials elsewhere": Guide user to add to 1Password with required fields
 - If "Skip for now": Inform user the skill won't work until configured
 
-### Setup Step 4: Confirm mise Configuration
+### Setup Step 4: Confirm Environment Configuration
 
-After user selects an item (with UUID), use AskUserQuestion:
+The CLI reads `GDRIVE_OP_UUID` (and optionally `GDRIVE_OP_VAULT`) from the process environment and nothing else. After user selects an item (with UUID), use AskUserQuestion:
 
 ```
 AskUserQuestion({
   questions: [{
-    question: "Add GDRIVE_OP_UUID to .mise.local.toml in current project?",
+    question: "Export GDRIVE_OP_UUID from your shell profile (~/.zshrc)?",
     header: "Configure",
     options: [
-      { label: "Yes, add to .mise.local.toml (Recommended)", description: "Creates/updates gitignored config file" },
-      { label: "Show me the config only", description: "I'll add it manually" }
+      { label: "Yes, add to ~/.zshrc (Recommended)", description: "Appends an export line; applies to every new shell" },
+      { label: "Show me the line only", description: "I'll add it manually, or pass it inline per call" }
     ],
     multiSelect: false
   }]
 })
 ```
 
-**If "Yes, add to .mise.local.toml"**:
+**If "Yes, add to ~/.zshrc"**: check that no `GDRIVE_OP_UUID` export already exists, then append:
 
-1. Check if `.mise.local.toml` exists
-2. If exists, append `GDRIVE_OP_UUID` to `[env]` section
-3. If not exists, create with:
-
-```toml
-[env]
-GDRIVE_OP_UUID = "<selected-uuid>"
+```bash
+export GDRIVE_OP_UUID="<selected-uuid>"
+export GDRIVE_OP_VAULT="<vault-from-step-2>"   # only if not Employee
 ```
 
-1. Verify `.mise.local.toml` is in `.gitignore`
-
-**If "Show me the config only"**: Output the TOML for user to add manually.
+**If "Show me the line only"**: Output the export lines for the user to add manually. Passing the variable inline per call (`GDRIVE_OP_UUID=<uuid> gdrive ...`, as Step 6 does) also works.
 
 ### Setup Step 5: Reload and Verify
 
 ```bash
-mise trust 2>/dev/null || true
-cd . && echo "GDRIVE_OP_UUID after reload: ${GDRIVE_OP_UUID:-NOT_SET}"
+source ~/.zshrc && echo "GDRIVE_OP_UUID after reload: ${GDRIVE_OP_UUID:-NOT_SET}"
 ```
 
-**If still NOT_SET**: Inform user to restart their shell or run `source ~/.zshrc`.
+**If still NOT_SET**: Inform user to restart their shell.
 
 ### Setup Step 6: Test Connection
 

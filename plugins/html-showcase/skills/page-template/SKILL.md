@@ -362,11 +362,7 @@ to a tagged release once the kernel stabilizes:
 @<sha>     → immutable, commit-locked  → use for forensic-grade pinning
 ```
 
-The release flow auto-purges `@main` and smoke-tests `@v<X.Y.Z>` after
-each release. To force-refresh `@main` between releases (e.g., during
-heavy iteration on the kernel), run `mise run release:cdn-purge` from
-the cc-skills repo. To bypass cache entirely on a single page, append
-`?v=$(date +%s)` to the kernel link.
+The release flow auto-purges `@main` and smoke-tests `@v<X.Y.Z>` after each release. To force-refresh `@main` between releases (e.g., during heavy iteration on the kernel), run `bash tasks/release/cdn-purge` from the cc-skills repo root. To bypass cache entirely on a single page, append `?v=$(date +%s)` to the kernel link.
 
 The auto-nav assets (`auto-nav.css`, `auto-nav.js`) are generated locally
 by `build-nav.py` and live next to your HTML — they are not CDN-served.

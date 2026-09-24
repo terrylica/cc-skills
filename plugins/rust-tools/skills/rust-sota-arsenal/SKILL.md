@@ -331,10 +331,17 @@ A 4-phase release gate script is available at `plugins/rust-tools/scripts/rust-r
 ./plugins/rust-tools/scripts/rust-release-check.sh --skip-tests
 ```
 
-To use as a mise task in your project, copy the script and add to `tasks/`:
+To use as a moon task in your project, copy the script into `tasks/` and wire it in `moon.yml`:
 
 ```bash
 cp plugins/rust-tools/scripts/rust-release-check.sh tasks/release-check
+```
+
+```yaml
+tasks:
+  release-check:
+    description: "4-phase Rust release pipeline"
+    script: "bash tasks/release-check"
 ```
 
 ### Phase Overview

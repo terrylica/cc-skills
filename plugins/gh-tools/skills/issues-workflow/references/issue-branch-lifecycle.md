@@ -83,7 +83,7 @@ gh issue develop <number> --base main --checkout
 
 **No GitHub Actions for testing or linting.** All quality gates run locally:
 
-- `mise run check-full` (fmt + lint + test + deny)
+- The repo's own task runner gate, e.g. `moon run :check-all` where a `.moon/` exists
 - `cargo nextest run` (Rust tests)
 - `pytest` (Python tests)
 - `ruff check` / `clippy` (linting)

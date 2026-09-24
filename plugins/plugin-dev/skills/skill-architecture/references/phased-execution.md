@@ -26,7 +26,7 @@ Verify prerequisites exist and the system is in a valid state before starting wo
 
 ```
 [Preflight] Verify bun installed: command -v bun
-[Preflight] Verify mise installed: command -v mise
+[Preflight] Verify moon installed: command -v moon
 [Preflight] Verify config exists: test -f config.toml
 [Preflight] Check no conflicting processes: ! pgrep -f "service-name"
 ```
@@ -176,7 +176,7 @@ Remove components in the correct order, respecting dependencies between them.
 | ------------- | ------------------------------------------ | ------------------------ |
 | Model cache   | Large download, reusable across reinstalls | ~/.cache/models/         |
 | Source code   | Git-tracked, not a runtime artifact        | ~/project/src/           |
-| Configuration | SSoT for environment, needed for reinstall | ~/project/mise.toml      |
+| Configuration | SSoT for environment, needed for reinstall | ~/project/.prototools    |
 | Audit logs    | Compliance/debugging history               | ~/.local/share/app/logs/ |
 ```
 

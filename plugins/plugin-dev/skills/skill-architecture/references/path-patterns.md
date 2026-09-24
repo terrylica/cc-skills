@@ -167,7 +167,7 @@ with tempfile.TemporaryDirectory() as tmpdir:
 ~/.local/bin/uv publish
 ```
 
-**Why it fails**: Tools can be installed via different methods (mise, homebrew, apt, cargo, etc.).
+**Why it fails**: Tools can be installed via different methods (proto, homebrew, apt, cargo, etc.).
 
 ```bash
 # ✅ WORKS - uses PATH resolution
@@ -227,7 +227,6 @@ When reviewing skills/plugins for path issues:
 | **Python with `shell=True`**  | YES               | YES                | Via shell subprocess                                 |
 | **Python with `shell=False`** | **NO**            | **NO**             | Use `os.path.expanduser()` or `os.path.expandvars()` |
 | **YAML files**                | DEPENDS           | DEPENDS            | Tool-specific (some expand, some don't)              |
-| **TOML files (mise)**         | YES               | YES                | Use `{{env.HOME}}` or `{{env.VAR}}`                  |
 
 ### JSON Config Files (CRITICAL)
 

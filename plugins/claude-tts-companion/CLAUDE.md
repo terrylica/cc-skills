@@ -145,7 +145,7 @@ A unified macOS accessory app that monitors Claude Code sessions and delivers re
 - Install path: `$HOME/.local/bin/claude-tts-companion`
 - Logs: `$HOME/.local/state/launchd-logs/claude-tts-companion/stderr.log`
 - `HOME` - User home directory
-- `PATH` - Shim PATH for mise + Homebrew + system bins
+- `PATH` - proto shims + Bun + Homebrew + system bins
 - `SHERPA_ONNX_PATH` - sherpa-onnx build install directory (for .dylib discovery if not static)
 - `KOKORO_MODEL_PATH` - Model directory (default: `$HOME/.local/share/kokoro/models/kokoro-int8-multi-lang-v1_0`)
 - `TELEGRAM_BOT_TOKEN` - Bot token (empty in plist, populated via launchctl setenv)

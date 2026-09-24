@@ -2,7 +2,7 @@
 /**
  * Google Drive CLI - Access Google Drive via command line
  *
- * Configuration via mise environment variables:
+ * Configuration via environment variables:
  * - GDRIVE_OP_UUID: 1Password item UUID for OAuth credentials
  * - GDRIVE_OP_VAULT: 1Password vault (optional, default: Employee)
  */

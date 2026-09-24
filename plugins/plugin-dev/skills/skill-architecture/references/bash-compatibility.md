@@ -86,13 +86,13 @@ BASH_COMPATIBILITY_SCRIPT_EOF
 ### Portable Regex (Replacing `grep -P`)
 
 ```bash
-/usr/bin/env bash << 'MISE_EOF'
+/usr/bin/env bash << 'CONFIG_EOF'
 # ❌ WRONG: Perl regex (not available on all systems)
-account=$(grep -oP '(?<=GH_ACCOUNT=")[^"]+' .mise.toml)
+bun_version=$(grep -oP '(?<=bun = ")[^"]+' .prototools)
 
-# ✅ CORRECT: Extended regex + awk
-account=$(grep -E 'GH_ACCOUNT\s*=' .mise.toml | sed 's/.*=\s*"\([^"]*\)".*/\1/')
-MISE_EOF
+# ✅ CORRECT: Extended regex + sed
+bun_version=$(grep -E '^bun[[:space:]]*=' .prototools | sed 's/.*=[[:space:]]*"\([^"]*\)".*/\1/')
+CONFIG_EOF
 ```
 
 ## Heredoc Naming Convention

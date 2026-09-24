@@ -19,15 +19,12 @@ Your 1Password item should have these fields:
 
 ## Configuration
 
-Add to your project's `.mise.local.toml` (gitignored):
+The CLI reads these from the process environment. Export them from your shell profile (e.g. `~/.zshrc`), or pass them inline on a single call:
 
-```toml
-[env]
-GDRIVE_OP_UUID = "<your-1password-item-uuid>"
-# GDRIVE_OP_VAULT = "Employee"  # Optional, defaults to Employee
+```bash
+export GDRIVE_OP_UUID="<your-1password-item-uuid>"
+# export GDRIVE_OP_VAULT="Employee"  # Optional, defaults to Employee
 ```
-
-Or add to `~/.config/mise/config.local.toml` for global access across all projects.
 
 ## Finding Your UUID
 
