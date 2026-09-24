@@ -1,3 +1,17 @@
+## [31.2.9](https://github.com/terrylica/cc-skills/compare/v31.2.8...v31.2.9) (2026-09-24)
+
+
+### Bug Fixes
+
+* **gate:** make the flaky health test name its failure and clear lint debt ([96f2505](https://github.com/terrylica/cc-skills/commit/96f25058ba8bcf961b0b78b1f0b464715ade2e41))
+
+Two sources of noise were eroding trust in the local gate. The iter160 health test's D1 assertion failed intermittently under a fully parallel `moon run repo:check` while passing standalone, and because it discarded the health check's output there was no way to tell which check had failed, so the only available response was to rerun. Separately, every edit to scripts/validate-plugins.mjs printed about thirty older lint findings, burying any real one an edit introduced.
+
+- iter160 D1 now keeps the output of its own health-check run and, on failure, prints that run's failing check lines (or the last lines if none is marked). A retry was deliberately not added, because it would hide a load-dependent failure rather than identify it; negative-tested against a fake failing check.
+- validate-plugins.mjs: 18 forEach callbacks no longer return values, three exec-in-condition loops become for...of over matchAll, imports use the node: protocol, and unused bindings, an optional chain, two template literals and a Set size check are fixed. Biome and oxlint are both clean on the file.
+- Validator output is unchanged: 42 plugins valid, 0 errors, 0 warnings, same dependency counts.
+- Recoverable from tag archive/pre-gate-noise.
+
 ## [31.2.8](https://github.com/terrylica/cc-skills/compare/v31.2.7...v31.2.8) (2026-09-24)
 
 ## [31.2.7](https://github.com/terrylica/cc-skills/compare/v31.2.6...v31.2.7) (2026-09-24)
