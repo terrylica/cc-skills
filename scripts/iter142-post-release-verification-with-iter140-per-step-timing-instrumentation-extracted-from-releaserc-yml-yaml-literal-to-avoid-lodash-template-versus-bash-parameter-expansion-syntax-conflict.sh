@@ -272,7 +272,13 @@ __iter140_start_post_release_successcmd_step_with_epochrealtime_wall_clock_captu
     "Step 8: installed_plugins.json registry-consistency assertion (the registry actually advanced, not merely the cache)"
 echo "→ Step 7: Verifying the plugin REGISTRY advanced..."
 REGISTRY_PATH="$HOME/.claude/plugins/installed_plugins.json"
-if [[ ! -f "$REGISTRY_PATH" ]]; then
+if [[ "${CC_SKILLS_RELEASE_ORCHESTRATED_BY_FULL:-0}" == "1" ]]; then
+  # Under release-full, Phase 3 (tasks/release/sync) is what advances the registry, and it runs
+  # AFTER this successCmd. Asserting here failed every full release and aborted before Phase 3
+  # could run. The same assertion is made by Phase 4 (tasks/release/verify, Check 8a) after the
+  # sync, so it is deferred, not dropped. A standalone Phase-2 run still asserts here, loudly.
+  echo "  ↷ Deferred to Phase 4 (verify): release-full syncs the registry in Phase 3, after this step"
+elif [[ ! -f "$REGISTRY_PATH" ]]; then
   echo "  ⚠ No $REGISTRY_PATH on this machine; skipping (Claude Code not installed here)"
 else
   # RETRIED, because Step 2 drives the registry update through a `claude --print` subprocess and a

@@ -147,6 +147,15 @@ for PLUGIN in $(jq -r '.plugins[].name' "$MARKETPLACE_JSON"); do
         if [[ "$IN_INSTALLED" == "missing" ]]; then
             echo "  ✗ $KEY missing from installed_plugins.json"
             ((ERRORS+=1))
+        else
+            # Present is not enough: an entry still pinned to the previous version means every
+            # hook and skill in v$VERSION is installed but never loaded ("release is inert").
+            # This is where release-full makes that assertion, after Phase 3 has synced.
+            REGISTRY_VERSION=$(jq -r --arg k "$KEY" '.plugins[$k][0].version // "missing"' "$INSTALLED")
+            if [[ "$REGISTRY_VERSION" != "$VERSION" ]]; then
+                echo "  ✗ $KEY registry is at $REGISTRY_VERSION, not v$VERSION (release is inert until synced)"
+                ((ERRORS+=1))
+            fi
         fi
     fi
     # 8b: in enabledPlugins?
@@ -171,7 +180,7 @@ if [[ $ERRORS -gt 0 ]]; then
     echo "  ✗ Release v$VERSION verification FAILED ($ERRORS error(s))"
     echo "═══════════════════════════════════════════════════════════"
     echo ""
-    echo "Fix: run 'mise run release:sync' to bootstrap missing entries"
+    echo "Fix: run 'moon run repo:release-sync' to bootstrap missing entries"
     echo ""
     exit 1
 fi

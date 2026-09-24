@@ -228,7 +228,7 @@ else
 fi
 
 # ─── Step 1: discover current git tag (most recent reachable from HEAD) ──────
-ITER165_DETECTED_CURRENT_GIT_TAG_FROM_DESCRIBE_OR_EMPTY_WHEN_NO_TAGS_EXIST="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+ITER165_DETECTED_CURRENT_GIT_TAG_FROM_DESCRIBE_OR_EMPTY_WHEN_NO_TAGS_EXIST="$(git describe --tags --match 'v[0-9]*' --abbrev=0 2>/dev/null || true)"
 
 # ─── Step 2: collect SHAs of commits between current tag and HEAD ────────────
 # Oldest-first ordering matches the natural "what will land next" reading.
