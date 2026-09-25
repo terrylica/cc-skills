@@ -79,8 +79,13 @@ Ask Gmail who it is instead. `users/me/profile` is authoritative:
 for f in ~/.claude/tools/gmail-tokens/*.json; do
   case "$(basename "$f")" in *.app-credentials.json|*.bak|*.expired-*|*.dead-*|'*.json') continue ;; esac
   uuid=$(basename "$f" .json)
-  # Project-local helper that mints an access token from a cached refresh token.
-  tok=$(bash "${GMAIL_TOKEN_SCRIPT:?set to your project's gmail-access-token.sh}" "$uuid" 2>/dev/null | tail -1)
+  # The cached token file already holds a fresh access_token while the hourly refresher runs.
+  # A project-local minting helper (GMAIL_TOKEN_SCRIPT) is only needed when it does not.
+  if [ -n "${GMAIL_TOKEN_SCRIPT:-}" ]; then
+    tok=$(bash "$GMAIL_TOKEN_SCRIPT" "$uuid" 2>/dev/null | tail -1)
+  else
+    tok=$(jq -r '.access_token // empty' "$f")
+  fi
   if [ -z "$tok" ]; then echo "$uuid → token mint failed"; continue; fi
   who=$(curl -s --noproxy '*' -H "Authorization: Bearer $tok" \
           https://gmail.googleapis.com/gmail/v1/users/me/profile | jq -r .emailAddress)
@@ -805,6 +810,11 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-09-25 — the mailbox probe required a helper script that nothing defines, so it could not run in a fresh session.**
+  - _Trigger_: a repository's correspondence fetcher needed `GMAIL_OP_UUID`, nobody had recorded which cached token it was, and the Step 2.5 probe stopped at `${GMAIL_TOKEN_SCRIPT:?…}`. That variable is set by no shell file, no plugin and no project. The thread that fetcher archives then went unrefreshed for three weeks, and a newer message in it was missed.
+  - _Fix_: the probe now reads `.access_token` straight from the cached `<uuid>.json` when no helper is set. The hourly refresher keeps that value fresh, so no minting is needed. Measured: two cached tokens resolved to their mailboxes in one pass, each with ~59 minutes of validity left.
+  - _Lesson for consumers_: when a repository depends on one specific mailbox, record in that repository which mailbox it is, by `users/me/profile` address rather than by UUID alone. The UUID prefix is a convenience; the profile address is the proof.
 
 - **2026-08-25 — reply auto-detection resolved the ACCOUNT, not the alias, and reported success.**
   - _Trigger_: a reply drafted into a vendor thread on a client's behalf. The original was addressed to `Ricky Chan <rickychanbc@gmail.com>`; the CLI printed `From: amonic@gmail.com (auto-detected from original email)` and created the draft. The alias is `verificationStatus=accepted` on that same account, so there was no failure to detect — it detected, and chose the underlying account.
