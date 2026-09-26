@@ -1,10 +1,32 @@
 # yaml-language-server: $schema=https://moonrepo.dev/schemas/project.json
 #
-# The repo-level project. Every task here is a thin `script:` wrapper around a
+# The repo-level project. Every task here is a thin wrapper around a
 # standalone bash script in `tasks/` — the orchestrator is swappable, the
 # scripts are the truth (bootstrap-monorepo Nx-convergence rule 6). Each script
 # runs identically via `bash tasks/<path>` with no moon involved, which is what
 # makes replacing the orchestrator a config change rather than a rewrite.
+#
+# `script:` versus `command:` — the rule. moon forwards passthrough arguments
+# (`moon run repo:<task> -- ARGS`) to a `command:` task and SILENTLY DROPS them
+# for a `script:` task (moon docs, "Commands vs Scripts": "Passthrough args
+# (from CLI)" is ✅ for command, ❌ for script). Nothing errors: the script just
+# runs with no arguments. So any task whose script reads its arguments ("$@")
+# MUST be declared `command:`; `script:` is only for argument-free tasks.
+# Measured on moon 2.5.5, 2026-09-26: under `script:`,
+# `moon run repo:release-augment -- --help` exited 2 with "missing --tag", and
+# `moon run repo:release-history -- -- HEAD~2..HEAD` printed the default 10
+# commits, byte-identical to the bare run. The argument-taking tasks are
+# triage-suite-log, release-augment, release-history and the commits-* family
+# whose scripts forward "$@" (advise, health, status, pending-release,
+# perf-baseline); install-hook and uninstall-hook read no arguments.
+#
+# Every argument-taking `command:` task also sets `options.shell: false`. With
+# the default (a shell, for the system toolchain) moon re-parses the
+# passthrough arguments through bash, so `$HOME` inside a quoted commit subject
+# given to commits-advise arrived expanded to the home directory path — measured
+# on the same date. With `shell: false` moon spawns `bash tasks/<path>` with
+# the arguments as a plain argv, and `$`, backticks, quotes and doubled spaces
+# all arrive verbatim, exactly as `bash tasks/<path> ARGS` would deliver them.
 #
 # Task IDs use `-` because moon reserves `:` as the project/task separator.
 # `moon query tasks` renders this file as the machine-readable task surface.
@@ -76,10 +98,12 @@ tasks:
     # `command`, not `script`: this task TAKES ARGUMENTS (a log path, or
     # --self-test), and moon forwards `moon run repo:triage-suite-log -- ARGS`
     # only to `command`. Declared as `script` it silently receives nothing and
-    # exits 2 on usage — measured, not assumed.
+    # exits 2 on usage — measured, not assumed. `shell: false` for the reason
+    # in the header: a log path must reach the script verbatim.
     command: "bash tasks/triage-hook-regression-suite-log-classifying-known-flake-mechanisms-wall-clock-scenario-gate-versus-subprocess-exit-code-verdict-with-unknown-bucket-for-unrecognised-failures.sh"
     options:
       cache: false
+      shell: false
 
   # ── CLI spec (machine-readable docs doctrine) ──────────────────────────────
   cli-spec:
@@ -160,11 +184,15 @@ tasks:
 
   release-augment:
     description: "Reflow and enrich published release notes for GFM."
-    script: "bash tasks/release/augment"
+    command: "bash tasks/release/augment"
+    options:
+      shell: false
 
   release-history:
     description: "Soft-wrapped renderer for long-subject commit history."
-    script: "bash tasks/release/history"
+    command: "bash tasks/release/history"
+    options:
+      shell: false
 
   release-clean:
     description: "Remove release scratch state."
@@ -173,19 +201,27 @@ tasks:
   # ── Conventional-commit tooling ────────────────────────────────────────────
   commits-advise:
     description: "Dry-run advisor: classify a proposed commit subject and preview its semver bump."
-    script: "bash tasks/commits/advise"
+    command: "bash tasks/commits/advise"
+    options:
+      shell: false
 
   commits-health:
     description: "Conformance report for recent commit subjects."
-    script: "bash tasks/commits/health"
+    command: "bash tasks/commits/health"
+    options:
+      shell: false
 
   commits-status:
     description: "Commit-tooling status: hook installed, advisor reachable."
-    script: "bash tasks/commits/status"
+    command: "bash tasks/commits/status"
+    options:
+      shell: false
 
   commits-pending-release:
     description: "What the next release would contain, and which commit triggers the bump."
-    script: "bash tasks/commits/pending-release"
+    command: "bash tasks/commits/pending-release"
+    options:
+      shell: false
 
   commits-install-hook:
     description: "Install the commit-msg git hook that runs the strict-mode advisor."
@@ -197,4 +233,6 @@ tasks:
 
   commits-perf-baseline:
     description: "Wall-clock perf baseline harness for the conventional-commits tooling."
-    script: "bash tasks/commits/perf-baseline"
+    command: "bash tasks/commits/perf-baseline"
+    options:
+      shell: false
