@@ -91,7 +91,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 ITER121_AUDIT_SCRIPT_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ITER121_AUDIT_REPO_ROOT_ABSOLUTE="$(cd "$ITER121_AUDIT_SCRIPT_DIRECTORY_ABSOLUTE/.." && pwd)"
 ITER111_RUNTIME_HOOK_REGISTRY_TYPESCRIPT_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
-ITER114_AUDIT_TASK_REGISTRY_TYPESCRIPT_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-mise-task-iter114.ts"
+ITER114_AUDIT_TASK_REGISTRY_TYPESCRIPT_RELATIVE_PATH="plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts"
 
 echo "════════════════════════════════════════════════════════════════════════════════"
 echo "  Iter-121 marketplace-wide canonical-registry stale-description audit"
