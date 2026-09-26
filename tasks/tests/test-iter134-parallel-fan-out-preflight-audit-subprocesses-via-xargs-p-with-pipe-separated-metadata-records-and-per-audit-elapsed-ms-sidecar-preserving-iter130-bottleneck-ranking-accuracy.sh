@@ -112,7 +112,7 @@ assert_substring_present \
 
 # The PIPE separator invariant — this is the load-bearing invariant that
 # BSD xargs cannot collapse. The test directly grep's for a PIPE between
-# a known sidecar key and the matching mise task name.
+# a known sidecar key and the matching audit task name.
 assert_substring_present \
     "Tier 1.B2: iter-134 metadata records use PIPE separator (not TAB) — BSD xargs invariant" \
     "$preflight_script_source" \
@@ -148,7 +148,7 @@ assert_substring_present \
     'cut -d"|" -f1'
 
 assert_substring_present \
-    "Tier 1.C2: iter-134 xargs worker uses cut -d\"|\" -f2 for mise task name" \
+    "Tier 1.C2: iter-134 xargs worker uses cut -d\"|\" -f2 for audit task name" \
     "$preflight_script_source" \
     'cut -d"|" -f2'
 
