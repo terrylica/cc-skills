@@ -1,3 +1,74 @@
+# [32.0.0](https://github.com/terrylica/cc-skills/compare/v31.3.0...v32.0.0) (2026-09-26)
+
+
+* feat(tts-tg-sync)!: remove the retired Telegram bot half ([9617ccb](https://github.com/terrylica/cc-skills/commit/9617ccb3c60ab67afb0de5c63c985098f4ea5205))
+
+The plugin used to manage two things: hotkey text-to-speech, and a local Telegram sync bot (claude-telegram-sync). The bot was retired on 2026-09-24, yet two skills existed only to run it, and every other skill mixed bot steps into TTS work: setup created a BotFather token and a secrets file, health failed a correctly retired machine on the bot process, settings edited the bot's moon.yml and .env, and several skills ended with "restart the bot". An agent following any of them would try to resurrect the bot.
+
+This is a major release because two published slash-command skills go away, which is how this repository has typed every earlier skill removal (the mise skills, graph-easy, the zai plugin).
+
+- Removed the bot-process-control and tether skills (with their references), the BotFather guide, the bot config-architecture reference, and hooks/telegram-notify-stop.ts. That script's registration was already removed on 2026-09-04 at the operator's request, and the file stayed on disk only so it could be restored; it remains recoverable from git history.
+- setup and full-stack-bootstrap now install the Kokoro engine, link every hotkey script (tts_stop.sh had been missing from the list), bind the hotkey in Karabiner-Elements or BetterTouchTool, and verify by running tts_read_clipboard_wrapper.sh end to end.
+- health runs ten TTS checks: companion engine, Kokoro venv, MLX import, Apple Silicon, both lock files, audio processes, stale WAVs, links, the Karabiner binding, and the Supertonic fallback.
+- diagnostic-issue-resolver, lock-debugging.md and common-issues.md describe the two real locks (/tmp/tts_kokoro.lock and /tmp/kokoro-tts.lock) as the scripts implement them, and add silent-hotkey, wrong-engine and speed-key procedures.
+- settings-and-tuning and config-reference.md list only the knobs a script actually reads (BetterTouchTool rate, companion speed, TTS_ENGINE, Supertonic and audition variables) and name the variables that are defined but inert. A specific rate is set by running the plugin's own scripts/tts_speed_set.sh through cc-plugin-root, because that script has no ~/.local/bin link: the linked up/down/reset scripts call it from their real directory.
+- clean-component-removal previews links and removes them one by one instead of `rm -f ~/.local/bin/tts_*.sh`; component-version-upgrade drops the bot dependency and Bun upgrades; voice-quality-audition points voice changes at claude-tts-companion.
+- CLAUDE.md, README, the marketplace description and keywords, and the root README row now describe a TTS-only plugin. The plugin name stays so installs and ~/.local/bin links keep resolving.
+- Unchanged: every file in scripts/, the ~/.local/bin links that point at them, the Karabiner-bound wrapper behaviour, and hooks/hooks.json, which already registered nothing. validate-plugins --strict passes with 0 errors and 0 warnings; the skill count drops from 226 to 224.
+
+
+
+### Bug Fixes
+
+* **gmail-commander:** probe reads cached access token ([e4097ba](https://github.com/terrylica/cc-skills/commit/e4097baffe9f8de7e34df07e04d6c122f1927812))
+
+The Step 2.5 multi-account probe called ${GMAIL_TOKEN_SCRIPT:?...}, a project-local helper that no shell file, plugin or project defines, so in a fresh session the probe stopped before identifying any mailbox. The cached &lt;uuid>.json already holds a fresh access_token while the hourly refresher runs, so the probe now reads it directly and uses the helper only when one is set.
+
+Verified by running the snippet exactly as written in SKILL.md: both cached tokens resolved to their mailboxes via users/me/profile, with no helper set.
+
+The Evolution Log entry records the trigger. A consumer repository never recorded which mailbox its fetcher needed, and a correspondence thread went unrefreshed for three weeks. Lesson: record the mailbox by its profile address, not by UUID alone.
+
+* **moon:** deliver passthrough args to argument-taking tasks ([130583a](https://github.com/terrylica/cc-skills/commit/130583a5a75ca6af06d1b6d32be23afab8e10f95))
+
+moon forwards `moon run repo:<task> -- ARGS` only to `command:` tasks; a `script:` task silently runs with no arguments (moon docs, "Commands vs Scripts": passthrough args are supported for command, not script). Seven tasks whose scripts forward "$@" were declared `script:`, so every flag given through moon was dropped without an error.
+
+Measured on moon 2.5.5 before the change:
+- release-augment -- --help        -> exit 2 "missing --tag"
+- release-history -- -- HEAD~2..HEAD -> default 10 commits, identical to the bare run
+- commits-advise -- --json -- "feat: foo" -> exit 2 usage text
+- commits-health -- --json         -> human dashboard, not JSON
+- commits-pending-release -- --help -> full preview, not usage
+- commits-status -- --json          -> human report, not JSON
+- commits-perf-baseline -- --json   -> human report, not JSON
+
+After switching them (and triage-suite-log, already `command:`) to `command:` with `options.shell: false`, every probe above returns the flagged behaviour. `shell: false` is needed too: under moon's default shell a `$HOME` inside a quoted commit subject arrived expanded; without it `$`, backticks, quotes and doubled spaces arrive verbatim.
+
+docs/RELEASE.md's note that routed argument-taking rows around moon is rewritten to record the fix and the double `--` needed by advise and history.
+
+* **moon:** deliver passthrough args to repo:lint ([0da1d94](https://github.com/terrylica/cc-skills/commit/0da1d94dd5479965b55bb5dcfd1f17efc615ef9f))
+
+`lint` was still declared `script:`, so moon dropped every argument given to it, contradicting the rule this branch wrote into the moon.yml header ("any task whose script reads its arguments MUST be declared `command:`") and the docs/RELEASE.md claim that every argument-taking task is `command:`. scripts/validate-plugins.mjs reads --deps and --fix from process.argv, and its own summary tells the reader to "Run with --deps".
+
+Measured on moon 2.5.5 before the change: `moon run repo:lint -- --deps` printed the same 18 program lines as the bare run, with no dependency graph and the "Run with --deps" hint still present (only moon's task hash differed). `bun scripts/validate-plugins.mjs --strict --deps` printed the graph directly.
+
+`lint` is now `command: "bun scripts/validate-plugins.mjs --strict"` with `options.shell: false`, so passthrough flags are appended after --strict. After: `moon run repo:lint -- --deps` exits 0 and prints the "Inter-Plugin Dependency Graph" section with no hint line; the bare run is unchanged (exit 0, no graph, hint present), so `check`, which runs lint as a dependency with no arguments, gates exactly as before. The task still resolves to the system toolchain.
+
+The header now names lint among the argument-taking tasks, says the rule covers process.argv as well as "$@", and records that every other task's program reads no command-line arguments: the "$1" in tasks/release/full, tasks/release/preflight and the test-hooks runner belongs to a shell function or a nested `bash -c` body. docs/RELEASE.md lists lint with its direct form.
+
+* **tests:** read-lock the shared doc around iter114's --check ([cebbd88](https://github.com/terrylica/cc-skills/commit/cebbd88bba7227e5b3eaf42d5cb293aba1de5018))
+
+iter-114 Case 6 runs the iter-113 doc generator in --check mode, which reads the shared on-disk marker reference doc and diffs it against the registry-derived render. It was the only --check among the doc readers that ran without the iter-126 doc lock: iter-113 Case 2 and iter-117 Case 6 take LOCK_SH around theirs, and iter-114 itself takes it for Case 4 and releases it before Case 6. iter-115 mutates that doc under LOCK_EX to prove the drift detector fires, so a parallel suite could land iter-115's mutation window inside iter-114's --check.
+
+Observed once in a parallel `moon run repo:check` on this branch (115/116 test files passed; iter-114 Case 6 "generator --check reports drift (exit=1)"). Afterwards the tree held no doc or registry change, --check alone reported no drift, and the file passed on its own, so the red was the race, not the rename in the preceding commits.
+
+Case 6 now takes the same shared lock and releases it as soon as the --check output is captured. Readers still never serialise against each other; the lock order is unchanged (iter-114 takes only the doc lock), so no new deadlock is reachable.
+
+
+
+### BREAKING CHANGES
+
+* the `/tts-tg-sync:bot-process-control` and `/tts-tg-sync:tether` skills are removed, along with `hooks/telegram-notify-stop.ts`. The Telegram sync bot they controlled was retired on 2026-09-24 and nothing replaces them. A Stop hook entry added by hand to `~/.claude/settings.json` for `telegram-notify-stop.ts` now points at a deleted file and should be removed. The plugin's hotkey text-to-speech scripts, their `~/.local/bin` links and every remaining skill are unaffected.
+
 # [31.3.0](https://github.com/terrylica/cc-skills/compare/v31.2.9...v31.3.0) (2026-09-24)
 
 
