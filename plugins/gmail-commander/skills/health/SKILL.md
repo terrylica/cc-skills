@@ -15,7 +15,7 @@ Run diagnostics across all subsystems.
 
 ```bash
 echo "=== 1. Gmail CLI Binary ==="
-ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail" 2>/dev/null && echo "OK" || echo "MISSING — run: cd scripts/gmail-cli && bun install && bun run build"
+ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail" 2>/dev/null && echo "OK" || echo "MISSING — run: cd scripts/gmail-cli && bun install --frozen-lockfile && bun run build"
 
 echo ""
 echo "=== 2. Environment Variables ==="

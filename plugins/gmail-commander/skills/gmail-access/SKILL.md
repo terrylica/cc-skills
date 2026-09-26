@@ -23,7 +23,7 @@ ls -la "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scr
 **If BINARY_NOT_FOUND**: Build it first:
 
 ```bash
-cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli && bun install && bun run build
+cd ~/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli && bun install --frozen-lockfile && bun run build
 ```
 
 ### Step 2: Check GMAIL_OP_UUID Environment Variable
