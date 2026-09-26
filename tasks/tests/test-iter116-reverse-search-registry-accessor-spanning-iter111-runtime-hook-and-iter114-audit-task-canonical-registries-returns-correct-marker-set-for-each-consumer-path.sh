@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-116 regression test for the reverse-search registry accessor + operator-facing mise task. Verifies (1) accessor TypeScript file exists with all 3 documented exports (lookup function + list-all helper + render function) + the discriminated-union type alias; (2) single-marker reverse-lookup on a known runtime-hook consumer returns exactly 1 hit with RUNTIME_HOOK_ITER111 provenance tag; (3) multi-marker reverse-lookup on the cargo-tty-guard consumer returns exactly 2 hits both with RUNTIME_HOOK_ITER111 provenance tag covering both CARGO-TTY-SKIP and CARGO-TTY-WRAP; (4) reverse-lookup on a known audit-task consumer returns ≥1 hit with AUDIT_TASK_ITER114 provenance tag; (5) reverse-lookup on an unknown consumer path returns an empty array; (6) iter-116 operator-facing mise task exists + is executable + exits 0 with marker output on known consumer; (7) iter-116 operator-facing mise task exits 2 with 'Hint:' output on unknown consumer path; (8) iter-116 task exits 1 with usage message on --help.
+# Iter-116 regression test for the reverse-search registry accessor + operator-facing task. Verifies (1) accessor TypeScript file exists with all 3 documented exports (lookup function + list-all helper + render function) + the discriminated-union type alias; (2) single-marker reverse-lookup on a known runtime-hook consumer returns exactly 1 hit with RUNTIME_HOOK_ITER111 provenance tag; (3) multi-marker reverse-lookup on the cargo-tty-guard consumer returns exactly 2 hits both with RUNTIME_HOOK_ITER111 provenance tag covering both CARGO-TTY-SKIP and CARGO-TTY-WRAP; (4) reverse-lookup on a known audit-task consumer returns ≥1 hit with AUDIT_TASK_ITER114 provenance tag; (5) reverse-lookup on an unknown consumer path returns an empty array; (6) iter-116 operator-facing task exists + is executable + exits 0 with marker output on known consumer; (7) iter-116 operator-facing task exits 2 with 'Hint:' output on unknown consumer path; (8) iter-116 task exits 1 with usage message on --help.
 
 set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
@@ -7,7 +7,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER116_REVERSE_SEARCH_ACCESSOR_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-marker-reverse-search-accessor-by-consumer-source-file-relative-path-spanning-iter111-runtime-hook-and-iter114-audit-task-canonical-registries-iter116.ts"
-ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
+ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh"
 
 # Well-known consumers picked deliberately from each registry's baseline.
 # These paths MUST stay in sync with the registries — a change here is
@@ -166,26 +166,26 @@ else
     assert_fails "Case 5: unknown-path or list-all-distinct-paths probe failed (exit=$PROBE_EXIT_CODE)"
 fi
 
-# ─── Case 6: operator-facing mise task exists + works on known consumer ──
-if [[ ! -x "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" ]]; then
-    assert_fails "Case 6: iter-116 operator-facing mise task missing or not executable: $ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH"
+# ─── Case 6: operator-facing task exists + works on known consumer ──
+if [[ ! -x "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" ]]; then
+    assert_fails "Case 6: iter-116 operator-facing task missing or not executable: $ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH"
 else
     set +e
-    KNOWN_CONSUMER_TASK_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$KNOWN_SINGLE_MARKER_RUNTIME_HOOK_CONSUMER_PATH" 2>&1)
+    KNOWN_CONSUMER_TASK_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "$KNOWN_SINGLE_MARKER_RUNTIME_HOOK_CONSUMER_PATH" 2>&1)
     KNOWN_CONSUMER_TASK_EXIT_CODE=$?
     set -e
     if [[ "$KNOWN_CONSUMER_TASK_EXIT_CODE" -eq 0 ]] && \
        [[ "$KNOWN_CONSUMER_TASK_OUTPUT" == *"FILE-SIZE-OK"* ]] && \
        [[ "$KNOWN_CONSUMER_TASK_OUTPUT" == *"Found 1 escape-hatch marker"* ]]; then
-        assert_passes "Case 6: iter-116 operator-facing mise task exists + executable + exits 0 with FILE-SIZE-OK marker output on known consumer (file-size-guard)"
+        assert_passes "Case 6: iter-116 operator-facing task exists + executable + exits 0 with FILE-SIZE-OK marker output on known consumer (file-size-guard)"
     else
         assert_fails "Case 6: iter-116 task failed on known consumer (exit=$KNOWN_CONSUMER_TASK_EXIT_CODE)"
     fi
 fi
 
-# ─── Case 7: operator-facing mise task on unknown consumer path ──────────
+# ─── Case 7: operator-facing task on unknown consumer path ──────────
 set +e
-UNKNOWN_CONSUMER_TASK_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" "$UNKNOWN_CONSUMER_PATH_GUARANTEED_NEVER_TO_APPEAR_IN_EITHER_REGISTRY" 2>&1)
+UNKNOWN_CONSUMER_TASK_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" "$UNKNOWN_CONSUMER_PATH_GUARANTEED_NEVER_TO_APPEAR_IN_EITHER_REGISTRY" 2>&1)
 UNKNOWN_CONSUMER_TASK_EXIT_CODE=$?
 set -e
 # Iter-118 update: the unknown-path branch now has TWO output shapes —
@@ -214,9 +214,9 @@ else
     assert_fails "Case 7: iter-116 task on unrelated unknown path failed to emit expected fallback hint or wrong exit code (exit=$UNKNOWN_CONSUMER_TASK_EXIT_CODE)"
 fi
 
-# ─── Case 8: operator-facing mise task on --help ─────────────────────────
+# ─── Case 8: operator-facing task on --help ─────────────────────────
 set +e
-HELP_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_MISE_TASK_ABSOLUTE_PATH" --help 2>&1)
+HELP_OUTPUT=$(bash "$ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH" --help 2>&1)
 HELP_EXIT_CODE=$?
 set -e
 if [[ "$HELP_EXIT_CODE" -eq 1 ]] && \

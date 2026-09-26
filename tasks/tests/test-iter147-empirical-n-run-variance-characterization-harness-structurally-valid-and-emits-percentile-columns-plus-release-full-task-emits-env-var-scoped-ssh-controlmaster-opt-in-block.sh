@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-147 regression test pinning two dual deliverables: (a) variance-characterization harness script structurally valid + executable + python-compile-clean + correctly invokes iter-144 parser + emits p50/p95/mean/stddev/min/max/range columns + flags HIGH variance + honors REPLAY env var, (b) tasks/release/full mise task gained env-var-scoped SSH ControlMaster opt-in block guarded by RELEASE_SSH_MULTIPLEXING_ENABLED env var that idempotent-creates ~/.ssh/controlmasters with mode 0700 + exports GIT_SSH_COMMAND with ControlMaster=auto + ControlPath + ControlPersist=10m directives, (c) docs/RELEASE.md surfaces both knobs in the perf-knobs reference for operator discovery.
+# Iter-147 regression test pinning two dual deliverables: (a) variance-characterization harness script structurally valid + executable + python-compile-clean + correctly invokes iter-144 parser + emits p50/p95/mean/stddev/min/max/range columns + flags HIGH variance + honors REPLAY env var, (b) tasks/release/full task gained env-var-scoped SSH ControlMaster opt-in block guarded by RELEASE_SSH_MULTIPLEXING_ENABLED env var that idempotent-creates ~/.ssh/controlmasters with mode 0700 + exports GIT_SSH_COMMAND with ControlMaster=auto + ControlPath + ControlPersist=10m directives, (c) docs/RELEASE.md surfaces both knobs in the perf-knobs reference for operator discovery.
 set -euo pipefail
 
 ITER147_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -7,8 +7,8 @@ cd "$ITER147_REPO_ROOT"
 
 ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH="scripts/iter147-empirical-n-run-variance-characterization-harness-for-semantic-release-namespace-timings-via-iter144-parser-emitting-p50-p95-mean-stddev-min-max-range.py"
 ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_ABSOLUTE_PATH="$ITER147_REPO_ROOT/$ITER147_VARIANCE_HARNESS_PYTHON_SCRIPT_RELATIVE_PATH"
-ITER147_RELEASE_FULL_MISE_TASK_RELATIVE_PATH="tasks/release/full"
-ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH="$ITER147_REPO_ROOT/$ITER147_RELEASE_FULL_MISE_TASK_RELATIVE_PATH"
+ITER147_RELEASE_FULL_TASK_RELATIVE_PATH="tasks/release/full"
+ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH="$ITER147_REPO_ROOT/$ITER147_RELEASE_FULL_TASK_RELATIVE_PATH"
 ITER147_RELEASE_MD_DOC_RELATIVE_PATH="docs/RELEASE.md"
 
 ITER147_TOTAL_ASSERTIONS_EVALUATED=0
@@ -172,13 +172,13 @@ rm -f "$ITER147_REPLAY_FIXTURE_STDERR_LOG_PATH_FOR_HARNESS_FUNCTIONAL_VALIDATION
       /tmp/iter147-variance-profile-run-1.log \
       /tmp/iter147-variance-profile-run-2.log
 
-# ─── Group D: release/full mise task ships env-var-scoped SSH ControlMaster ──
+# ─── Group D: release/full task ships env-var-scoped SSH ControlMaster ──
 echo ""
-echo "GROUP D (5 assertions): release/full mise task gained iter-147 env-var-scoped SSH multiplexing opt-in"
+echo "GROUP D (5 assertions): release/full task gained iter-147 env-var-scoped SSH multiplexing opt-in"
 
 iter147_assert_substring_present_in_file \
     "D1: release/full guards block on RELEASE_SSH_MULTIPLEXING_ENABLED env var" \
-    "$ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH" \
+    "$ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH" \
     'RELEASE_SSH_MULTIPLEXING_ENABLED:-0'
 
 # Single-quoted literal search strings on next two assertions intentionally
@@ -188,23 +188,23 @@ iter147_assert_substring_present_in_file \
 # shellcheck disable=SC2016
 iter147_assert_substring_present_in_file \
     "D2: release/full creates ~/.ssh/controlmasters dir with mkdir -p" \
-    "$ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH" \
+    "$ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH" \
     'mkdir -p "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION"'
 
 # shellcheck disable=SC2016
 iter147_assert_substring_present_in_file \
     "D3: release/full tightens ~/.ssh/controlmasters dir perms to 0700 (chmod 700)" \
-    "$ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH" \
+    "$ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH" \
     'chmod 700 "$ITER147_SSH_CONTROLMASTERS_DIR_FOR_CACHED_SESSION_SOCKETS_PER_RELEASE_INVOCATION"'
 
 iter147_assert_substring_present_in_file \
     "D4: release/full exports GIT_SSH_COMMAND with ControlMaster=auto + ControlPersist=10m" \
-    "$ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH" \
+    "$ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH" \
     'export GIT_SSH_COMMAND="ssh -o ControlMaster=auto -o ControlPath='
 
 iter147_assert_substring_present_in_file \
     "D5: release/full sets ControlPersist=10m TTL matching iter-146 invariant" \
-    "$ITER147_RELEASE_FULL_MISE_TASK_ABSOLUTE_PATH" \
+    "$ITER147_RELEASE_FULL_TASK_ABSOLUTE_PATH" \
     'ControlPersist=10m"'
 
 # ─── Group E: docs/RELEASE.md surfaces both iter-147 knobs ───────────────────

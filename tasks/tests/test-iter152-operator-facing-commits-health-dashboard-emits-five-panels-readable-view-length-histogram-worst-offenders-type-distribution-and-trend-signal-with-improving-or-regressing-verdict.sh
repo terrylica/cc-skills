@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-152 regression test pinning the operator-facing commits:health dashboard. Asserts (a) renderer + mise wrapper exist + executable + bash-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md awk-only principle, (c) renderer honors all 5 env-var tunables (commit-count, hard-cap, hard-target, histogram-bar-width, worst-offender-count), (d) renderer delegates Panel 1 to iter-150 renderer for readable-view consistency, (e) Panel 2 histogram bin labels match conventional-commits 50/72-rule anchored thresholds, (f) Panel 3 worst-offender callouts sort by char count descending, (g) Panel 4 enumerates the 11 canonical conventional-commits types in semantic-release priority order, (h) Panel 5 trend computes median (p50) per window and emits improving/regressing/stable/mixed verdict, (i) mise wrapper delegates via exec for clean signal propagation, (j) functional smoke test against actual cc-skills repo emits all 5 panel headers + footer knob hints + at least one histogram bar.
+# Iter-152 regression test pinning the operator-facing commits:health dashboard. Asserts (a) renderer + task wrapper exist + executable + bash-clean + shellcheck-clean, (b) renderer uses awk per the cc-skills CLAUDE.md awk-only principle, (c) renderer honors all 5 env-var tunables (commit-count, hard-cap, hard-target, histogram-bar-width, worst-offender-count), (d) renderer delegates Panel 1 to iter-150 renderer for readable-view consistency, (e) Panel 2 histogram bin labels match conventional-commits 50/72-rule anchored thresholds, (f) Panel 3 worst-offender callouts sort by char count descending, (g) Panel 4 enumerates the 11 canonical conventional-commits types in semantic-release priority order, (h) Panel 5 trend computes median (p50) per window and emits improving/regressing/stable/mixed verdict, (i) task wrapper delegates via exec for clean signal propagation, (j) functional smoke test against actual cc-skills repo emits all 5 panel headers + footer knob hints + at least one histogram bar.
 set -euo pipefail
 
 ITER152_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -7,8 +7,8 @@ cd "$ITER152_REPO_ROOT"
 
 ITER152_RENDERER_SCRIPT_RELATIVE_PATH="scripts/iter152-operator-facing-commits-subject-length-distribution-histogram-with-trend-analysis-and-worst-offender-callouts-for-conventional-commits-50-72-rule-compliance-visibility-fusing-iter150-readable-view-with-iter151-classification-overlay.sh"
 ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_RENDERER_SCRIPT_RELATIVE_PATH"
-ITER152_MISE_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/health"
-ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_MISE_TASK_WRAPPER_RELATIVE_PATH"
+ITER152_TASK_WRAPPER_RELATIVE_PATH="tasks/commits/health"
+ITER152_TASK_WRAPPER_ABSOLUTE_PATH="$ITER152_REPO_ROOT/$ITER152_TASK_WRAPPER_RELATIVE_PATH"
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=0
 ITER152_TOTAL_ASSERTIONS_FAILED=0
@@ -47,7 +47,7 @@ echo "════════════════════════�
 
 # ─── Group A: Structural validity ───────────────────────────────────────────
 echo ""
-echo "GROUP A (5 assertions): renderer + mise wrapper structurally valid"
+echo "GROUP A (5 assertions): renderer + task wrapper structurally valid"
 
 iter152_assert_filesystem_predicate_holds \
     "A1: renderer exists at iter-152 verbose path" \
@@ -58,12 +58,12 @@ iter152_assert_filesystem_predicate_holds \
     "-x \"$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH\""
 
 iter152_assert_filesystem_predicate_holds \
-    "A3: mise wrapper exists at commits/health" \
-    "-f \"$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH\""
+    "A3: task wrapper exists at commits/health" \
+    "-f \"$ITER152_TASK_WRAPPER_ABSOLUTE_PATH\""
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=$((ITER152_TOTAL_ASSERTIONS_EVALUATED + 1))
-if bash -n "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" 2>/dev/null && bash -n "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" 2>/dev/null; then
-    echo "  ✓ A4: both renderer + mise wrapper pass bash -n syntax check"
+if bash -n "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" 2>/dev/null && bash -n "$ITER152_TASK_WRAPPER_ABSOLUTE_PATH" 2>/dev/null; then
+    echo "  ✓ A4: both renderer + task wrapper pass bash -n syntax check"
 else
     echo "  ✗ A4: bash -n syntax check failed"
     ITER152_TOTAL_ASSERTIONS_FAILED=$((ITER152_TOTAL_ASSERTIONS_FAILED + 1))
@@ -71,8 +71,8 @@ fi
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=$((ITER152_TOTAL_ASSERTIONS_EVALUATED + 1))
 if command -v shellcheck >/dev/null 2>&1; then
-    if shellcheck "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1 && shellcheck "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" >/dev/null 2>&1; then
-        echo "  ✓ A5: both renderer + mise wrapper pass shellcheck (zero warnings)"
+    if shellcheck "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" >/dev/null 2>&1 && shellcheck "$ITER152_TASK_WRAPPER_ABSOLUTE_PATH" >/dev/null 2>&1; then
+        echo "  ✓ A5: both renderer + task wrapper pass shellcheck (zero warnings)"
     else
         echo "  ✗ A5: shellcheck warnings detected"
         ITER152_TOTAL_ASSERTIONS_FAILED=$((ITER152_TOTAL_ASSERTIONS_FAILED + 1))
@@ -169,9 +169,9 @@ iter152_assert_substring_present_in_file \
     "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" \
     "verdict: MIXED"
 
-# ─── Group E: Mise task wrapper structurally valid ──────────────────────────
+# ─── Group E: Task wrapper structurally valid ──────────────────────────
 echo ""
-echo "GROUP E (3 assertions): mise task wrapper delegates to renderer via exec"
+echo "GROUP E (3 assertions): task wrapper delegates to renderer via exec"
 
 # Single-quoted literal search string on next assertion intentionally
 # preserves the `$VARNAME` dollar-sign as part of the substring being
@@ -179,18 +179,18 @@ echo "GROUP E (3 assertions): mise task wrapper delegates to renderer via exec"
 # behavior here (we WANT literal dollar-sign).
 # shellcheck disable=SC2016
 iter152_assert_substring_present_in_file \
-    "E1: mise wrapper delegates via exec for clean signal propagation" \
-    "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "E1: task wrapper delegates via exec for clean signal propagation" \
+    "$ITER152_TASK_WRAPPER_ABSOLUTE_PATH" \
     'exec "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH"'
 
 iter152_assert_substring_present_in_file \
     "E2: wrapper has a line-2 description header comment" \
-    "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "$ITER152_TASK_WRAPPER_ABSOLUTE_PATH" \
     "# Iter-152 operator-facing commits:health dashboard"
 
 iter152_assert_substring_present_in_file \
-    "E3: mise wrapper description mentions all 5 panels for operator discoverability" \
-    "$ITER152_MISE_TASK_WRAPPER_ABSOLUTE_PATH" \
+    "E3: task wrapper description mentions all 5 panels for operator discoverability" \
+    "$ITER152_TASK_WRAPPER_ABSOLUTE_PATH" \
     "iter-150 (VIEW) → iter-151 (DETECT) → iter-152 (HEALTH SUMMARY)"
 
 # ─── Group F: Functional smoke test ─────────────────────────────────────────

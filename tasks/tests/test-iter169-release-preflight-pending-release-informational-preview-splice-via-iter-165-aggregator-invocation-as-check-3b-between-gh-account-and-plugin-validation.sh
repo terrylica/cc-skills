@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Iter-169 regression test pinning the release:preflight pending-release informational preview splice. Pre-iter-169 the operator ran release:full blind to whether there were any release-worthy commits since the last tag — semantic-release would report 'no release' only AFTER preflight + push + dry-run cycles burned multi-second wall-clock. Iter-169 splices the iter-165 pending-release aggregator into release:preflight as a new Check 3b (between Check 2-3 GH auth and Check 4 plugin validation) so the operator sees 'next release version: vCUR → vNEXT' (or 'no pending commits' diagnostic) at the top of preflight, can Ctrl-C early if the release is empty. Deferred until post-iter-167 because pre-iter-167's 1184ms-at-N=50 aggregator latency would have meaningfully slowed preflight; post-iter-167's 228ms median is negligible. Test asserts (a) Check 3b banner present, (b) iter-165 aggregator path resolved correctly relative to preflight task home, (c) splice is INFORMATIONAL only (no exit gate, no exit 1 inside the Check 3b block), (d) FILE-SIZE-OK marker added (preflight now ~1029 lines, over the 1000 block threshold; mirrors iter-160 doctor rationale), (e) MISE description mentions iter-169 pending-release preview, (f) preflight bash -n + shellcheck still pass after splice.
+# Iter-169 regression test pinning the release:preflight pending-release informational preview splice. Pre-iter-169 the operator ran release:full blind to whether there were any release-worthy commits since the last tag — semantic-release would report 'no release' only AFTER preflight + push + dry-run cycles burned multi-second wall-clock. Iter-169 splices the iter-165 pending-release aggregator into release:preflight as a new Check 3b (between Check 2-3 GH auth and Check 4 plugin validation) so the operator sees 'next release version: vCUR → vNEXT' (or 'no pending commits' diagnostic) at the top of preflight, can Ctrl-C early if the release is empty. Deferred until post-iter-167 because pre-iter-167's 1184ms-at-N=50 aggregator latency would have meaningfully slowed preflight; post-iter-167's 228ms median is negligible. Test asserts (a) Check 3b banner present, (b) iter-165 aggregator path resolved correctly relative to preflight task home, (c) splice is INFORMATIONAL only (no exit gate, no exit 1 inside the Check 3b block), (d) FILE-SIZE-OK marker added (preflight now ~1029 lines, over the 1000 block threshold; mirrors iter-160 doctor rationale), (e) description header mentions iter-169 pending-release preview, (f) preflight bash -n + shellcheck still pass after splice.
 set -euo pipefail
 
 ITER169_REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -120,9 +120,9 @@ else
     ITER169_TOTAL_ASSERTIONS_FAILED=$((ITER169_TOTAL_ASSERTIONS_FAILED + 1))
 fi
 
-# ─── Group E: FILE-SIZE-OK marker + MISE description updates ────────────────
+# ─── Group E: FILE-SIZE-OK marker + description header updates ───────────
 echo ""
-echo "GROUP E (3 assertions): FILE-SIZE-OK marker added + MISE description mentions iter-169"
+echo "GROUP E (3 assertions): FILE-SIZE-OK marker added + description header mentions iter-169"
 
 iter169_assert_substring_present_in_preflight_with_human_readable_label \
     "E1: FILE-SIZE-OK marker added at top (preflight now over 1000-line file-size-guard block threshold; mirrors iter-160 doctor rationale)" \
@@ -133,7 +133,7 @@ iter169_assert_substring_present_in_preflight_with_human_readable_label \
     "Reviewed at iter-169"
 
 iter169_assert_substring_present_in_preflight_with_human_readable_label \
-    "E3: MISE task description mentions iter-169 pending-release informational preview (discoverable via 'mise tasks' enumeration)" \
+    "E3: task description header mentions iter-169 pending-release informational preview" \
     "iter-169 pending-release informational preview"
 
 # ─── Final report ───────────────────────────────────────────────────────────

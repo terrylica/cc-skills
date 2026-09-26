@@ -454,11 +454,11 @@ exec 9<&-
 #   - Legacy `mise run <task>` form (any remaining)
 #   - Post-iter-134 metadata-array TAB-separated record form
 
-EXPECTED_ITER111_MISE_TASK_NAME="audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry"
-EXPECTED_ITER113_MISE_TASK_NAME="generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
+EXPECTED_ITER111_TASK_NAME="audit-marketplace-wide-producer-escape-hatch-marker-typo-detection-against-canonical-iter111-registry"
+EXPECTED_ITER113_TASK_NAME="generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry"
 
-if grep -qF "$EXPECTED_ITER111_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" && \
-   grep -qF "$EXPECTED_ITER113_MISE_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH"; then
+if grep -qF "$EXPECTED_ITER111_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH" && \
+   grep -qF "$EXPECTED_ITER113_TASK_NAME" "$PREFLIGHT_SCRIPT_ABSOLUTE_PATH"; then
     assert_passes "Case 7: preflight references both iter-111 audit task + iter-113 generator task via their exact basenames (post-iter-134-aware: matches both legacy 'mise run <task>' form AND iter-134 parallel-pre-warm metadata-array record form; rename would fail this test)"
 else
     assert_fails "Case 7: preflight task-name references drift from actual task file basenames"
