@@ -1,27 +1,35 @@
-# Lock Debugging -- Two-Layer Lock Mechanism
+# Lock Debugging -- The Two TTS Locks
 
-Deep dive into the TTS lock protocol shared between shell scripts and the Telegram bot.
+Deep dive into the lock files the text-to-speech scripts use. Until 2026-09-26 this page also described a Telegram bot (`kokoro-client.ts`) sharing the lock; that bot was retired on 2026-09-24 and nothing outside the scripts below takes these locks any more.
 
 ---
 
 ## Overview
 
-The TTS system uses a shared lock file at `/tmp/kokoro-tts.lock` to prevent audio overlap between:
+Two lock files with confusingly similar names guard two different paths:
 
-- Shell scripts (tts_kokoro.sh, tts_read_clipboard.sh, etc.)
-- Telegram bot (kokoro-client.ts)
+| Lock                   | Taken by                                                                                  | Mechanism                                       | Purpose                                |
+| ---------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| `/tmp/tts_kokoro.lock` | `tts_kokoro.sh` (the Kokoro path via the companion)                                       | `shlock -f … -p $$`, released by EXIT trap      | Queue: one companion request at a time |
+| `/tmp/kokoro-tts.lock` | `tts_read_clipboard.sh` (Supertonic) and `tts-common.sh` users (`tts_kokoro_audition.sh`) | PID written to the file, heartbeat, stale check | Mutual exclusion for local playback    |
 
-Both writers and both readers use the same two-layer protocol.
+`tts_stop.sh` removes **both**. It used to clear only the first, which left a Supertonic run speaking and made the next press wait out the 30s staleness timer.
 
 ---
 
-## Two-Layer Lock Protocol
+## `/tmp/tts_kokoro.lock` — the request queue
+
+Each `tts_kokoro.sh` invocation loops on `shlock` every 0.3s until it owns the lock, then posts one `/tts/speak` request and holds the lock until the request returns. Consecutive presses therefore play in order; only `tts_stop.sh` preempts (it kills queued `tts_kokoro.sh` processes, removes the lock and posts `/tts/stop` to the companion).
+
+There is no heartbeat: the lock's mtime is its creation time, so an age over 30s during a long utterance is normal. `shlock` itself detects a lock whose PID is dead.
+
+---
+
+## `/tmp/kokoro-tts.lock` — two-layer protocol
 
 ### Layer 1: Lock File Mtime Freshness (Heartbeat)
 
-The lock holder writes its PID to the lock file and starts a background heartbeat that `touch`es the lock every 5 seconds.
-
-**Shell scripts** (via `tts-common.sh`):
+The holder writes its PID and, when it uses `tts-common.sh`, starts a background heartbeat that `touch`es the lock every 5 seconds:
 
 ```bash
 acquire_tts_lock() {
@@ -37,58 +45,27 @@ acquire_tts_lock() {
 }
 ```
 
-**Bot** (via `kokoro-client.ts`):
-
-```typescript
-function acquireTtsLock(): () => void {
-  fs.writeFileSync(TTS_LOCK_FILE, String(process.pid));
-  return () => {
-    fs.unlinkSync(TTS_LOCK_FILE);
-  };
-}
-```
-
-Note: The bot does NOT run a heartbeat because its lock duration is bounded by the `afplay` subprocess -- it acquires before `afplay` and releases immediately after.
-
 ### Layer 2: Active Audio Process Check (Defense-in-Depth)
 
-Even if the lock mtime is stale (>30s), the system checks whether an audio process (`afplay` or `say`) is actually running before removing the lock.
+Before breaking a lock whose mtime is older than 30s, `tts_read_clipboard.sh`'s `acquire_lock` checks whether `afplay` is still running. It only removes the lock when **both** hold:
 
-**Bot** (via `waitForTtsLock()` in `kokoro-client.ts`):
+1. Lock mtime is stale (no update for 30s = heartbeat died)
+2. No `afplay` process is running (no active audio)
 
-```typescript
-// Only removes lock if BOTH:
-// 1. Lock mtime is stale (no update for 30s = heartbeat died)
-// 2. No afplay/say process is running (no active audio)
-```
-
-This prevents a race where:
-
-- Script A is playing audio via `afplay`
-- Script A's heartbeat process died (orphaned lock)
-- Bot sees stale lock and removes it
-- Bot starts its own `afplay`, causing overlap
-
-With Layer 2, the bot sees `afplay` is still running and waits.
+It also force-replaces a lock held by a previous `tts_read_clipboard` instance (a double-tapped key), and force-breaks any lock after 60 polls (about 30s) of waiting. `tts_read_clipboard.sh` writes its PID but runs no heartbeat, so for its own runs Layer 2 is what prevents overlap.
 
 ---
 
 ## Stale Detection Logic
-
-A lock is considered **stale** when:
-
-1. Lock file exists
-2. Lock mtime is older than 30 seconds (no heartbeat update)
-3. No `afplay` or `say` process is running
-
-If all three conditions are met, the lock is safe to remove.
 
 ```
 Lock exists?
   |
   No --> Proceed (no contention)
   |
-  Yes --> Check mtime
+  Yes --> Held by a previous tts_read_clipboard? --> Kill it, take the lock
+           |
+           Check mtime
            |
            Fresh (<30s) --> Wait and re-check
            |
@@ -103,49 +80,24 @@ Lock exists?
 
 ## Diagnostic Commands
 
-### Check Lock State
-
 ```bash
-# Does the lock exist?
-ls -la /tmp/kokoro-tts.lock 2>/dev/null || echo "No lock file"
-
-# What PID holds it?
-cat /tmp/kokoro-tts.lock 2>/dev/null || echo "No lock"
-
-# When was it last touched (heartbeat)?
-stat -f "Last modified: %Sm" /tmp/kokoro-tts.lock 2>/dev/null
-
-# How old is it in seconds?
-if [ -f /tmp/kokoro-tts.lock ]; then
-  lock_mtime=$(stat -f %m /tmp/kokoro-tts.lock)
-  now=$(date +%s)
-  echo "Lock age: $(( now - lock_mtime )) seconds"
-fi
-```
-
-### Check Audio Processes
-
-```bash
-# Is afplay running?
-pgrep -la afplay || echo "No afplay"
-
-# Is say running?
-pgrep -la say || echo "No say"
-```
-
-### Check Lock Holder
-
-```bash
-# Is the PID in the lock file still alive?
-if [ -f /tmp/kokoro-tts.lock ]; then
-  lock_pid=$(cat /tmp/kokoro-tts.lock)
-  if kill -0 "$lock_pid" 2>/dev/null; then
-    echo "Lock holder PID $lock_pid is alive"
-    ps -p "$lock_pid" -o pid,command
+# Do the locks exist, and who holds them?
+for f in /tmp/tts_kokoro.lock /tmp/kokoro-tts.lock; do
+  if [ -f "$f" ]; then
+    pid=$(cat "$f")
+    age=$(( $(date +%s) - $(stat -f %m "$f") ))
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$f held by live PID $pid (age ${age}s): $(ps -o command= -p "$pid")"
+    else
+      echo "$f held by DEAD PID $pid (age ${age}s) — orphaned"
+    fi
   else
-    echo "Lock holder PID $lock_pid is DEAD (orphaned lock)"
+    echo "$f absent"
   fi
-fi
+done
+
+# Is audio playing?
+pgrep -la afplay || echo "No afplay"
 ```
 
 ---
@@ -155,55 +107,46 @@ fi
 ### Scenario 1: Normal Operation
 
 ```
-Shell script starts -> acquires lock -> heartbeat every 5s -> plays audio -> releases lock
+Press → tts_kokoro.sh takes /tmp/tts_kokoro.lock → companion speaks → request returns → lock released
 ```
 
-Lock mtime stays fresh. Other TTS requests wait. No intervention needed.
+A second press during playback waits in the `shlock` loop, then plays. No intervention needed.
 
 ### Scenario 2: Orphaned Lock (Heartbeat Died)
 
 ```
-Shell script crashes -> heartbeat subprocess dies -> lock mtime goes stale -> no afplay running
+Local run crashes → lock left behind (and its heartbeat, if any, dies) → mtime goes stale → no afplay running
 ```
 
-Both Layer 1 (stale mtime) and Layer 2 (no audio) confirm it is safe to remove. The bot's `waitForTtsLock()` handles this automatically after 30s.
-
-Manual fix: `rm -f /tmp/kokoro-tts.lock`
+Both layers confirm it is safe; the next press removes it after 30s. Immediate fix: `tts_stop.sh`.
 
 ### Scenario 3: Stale Lock But Audio Still Playing
 
 ```
-Shell script crashes -> heartbeat dies -> lock mtime stale -> BUT afplay is still playing the last chunk
+Script crashes → heartbeat dies → lock mtime stale → BUT afplay is still playing the last chunk
 ```
 
-Layer 1 says "stale" but Layer 2 says "audio active". The bot waits. This is correct behavior -- removing the lock would cause audio overlap.
-
-Manual: Do NOT remove the lock. Wait for `afplay` to finish, then the bot will clean up.
-
-### Scenario 4: Lock Race Between Bot and Shell
-
-```
-Bot checks: no lock -> Bot creates lock -> Shell checks: lock exists -> Shell waits
-```
-
-This is the normal mutual exclusion path. The 500ms poll interval in `waitForTtsLock()` means worst-case audio gap between bot and shell is ~500ms.
+Layer 1 says "stale" but Layer 2 says "audio active", so the next press waits. This is correct behavior — removing the lock would cause overlap. Wait for `afplay` to finish, or `tts_stop.sh` to cut it off.
 
 ---
 
 ## Configuration
 
-| Parameter          | Location                             | Default                | Purpose                                |
-| ------------------ | ------------------------------------ | ---------------------- | -------------------------------------- |
-| Lock file path     | `tts-common.sh` / `kokoro-client.ts` | `/tmp/kokoro-tts.lock` | Shared lock location                   |
-| Heartbeat interval | `tts-common.sh`                      | 5 seconds              | How often shell scripts touch the lock |
-| Stale threshold    | `kokoro-client.ts`                   | 30 seconds             | When to consider lock abandoned        |
-| Poll interval      | `kokoro-client.ts`                   | 500ms                  | How often bot re-checks the lock       |
+| Parameter          | Location                                              | Default                | Purpose                               |
+| ------------------ | ----------------------------------------------------- | ---------------------- | ------------------------------------- |
+| Local lock path    | `tts-common.sh` (`TTS_LOCK`), `tts_read_clipboard.sh` | `/tmp/kokoro-tts.lock` | Local playback lock                   |
+| Queue lock path    | `tts_kokoro.sh`                                       | `/tmp/tts_kokoro.lock` | Companion request queue               |
+| Heartbeat interval | `tts-common.sh`                                       | 5 seconds              | How often the holder touches the lock |
+| Stale threshold    | `tts_read_clipboard.sh`                               | 30 seconds             | When to consider the lock abandoned   |
+| Poll interval      | `tts_read_clipboard.sh` / `tts_kokoro.sh`             | 0.5s / 0.3s            | How often a waiter re-checks          |
 
 ---
 
 ## Key Source Files
 
-| File                                                                 | Role                                                         |
-| -------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `scripts/lib/tts-common.sh`                                          | `acquire_tts_lock()` / `release_tts_lock()` with heartbeat   |
-| `~/.claude/automation/claude-telegram-sync/src/tts/kokoro-client.ts` | `waitForTtsLock()` / `acquireTtsLock()` with two-layer check |
+| File                            | Role                                                       |
+| ------------------------------- | ---------------------------------------------------------- |
+| `scripts/lib/tts-common.sh`     | `acquire_tts_lock()` / `release_tts_lock()` with heartbeat |
+| `scripts/tts_read_clipboard.sh` | `acquire_lock()` with the two-layer stale check            |
+| `scripts/tts_kokoro.sh`         | `shlock` request queue                                     |
+| `scripts/tts_stop.sh`           | Clears both locks and cancels the companion queue          |

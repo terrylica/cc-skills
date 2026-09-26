@@ -839,7 +839,7 @@
     },
     {
       "name": "tts-tg-sync",
-      "description": "Telegram bot + iTerm2 TTS integration: bot process control, voice audition, settings, hooks (requires kokoro-tts for engine)",
+      "description": "Hotkey text-to-speech for macOS: read the clipboard aloud via Kokoro (claude-tts-companion) with a Supertonic fallback, speech-rate and stop keys, voice audition, setup, health and diagnostics (requires kokoro-tts for the engine installer)",
       "version": "31.3.0",
       "source": "./plugins/tts-tg-sync",
       "category": "devops",
@@ -852,14 +852,14 @@
       },
       "keywords": [
         "tts",
+        "text-to-speech",
         "kokoro",
-        "telegram",
-        "bot",
+        "supertonic",
         "voice-synthesis",
         "audio",
-        "notifications",
-        "iterm2",
-        "session-sync",
+        "clipboard",
+        "hotkey",
+        "karabiner",
         "health-check"
       ],
       "strict": false

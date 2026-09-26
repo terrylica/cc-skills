@@ -1,13 +1,15 @@
 ---
 name: component-version-upgrade
-description: Upgrade Kokoro model, bot dependencies, or TTS components. TRIGGERS - upgrade kokoro, update model, upgrade bot
+description: Upgrade the local Kokoro engine, its model, mlx-audio, or the bundled tts_generate.py without rebuilding everything. TRIGGERS - upgrade kokoro, update model, upgrade tts
 allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 disable-model-invocation: false
 ---
 
 # Component Version Upgrade
 
-Upgrade individual components of the TTS + Telegram bot stack without rebuilding the entire system.
+Upgrade individual components of the text-to-speech stack without rebuilding the entire system.
+
+The Telegram bot's dependencies and Bun runtime are no longer upgraded here: the bot was retired on 2026-09-24 and its upgrade paths were removed on 2026-09-26. `claude-tts-companion` upgrades through its own plugin.
 
 > **Platform**: macOS (Apple Silicon)
 
@@ -17,17 +19,15 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 
 ## When to Use This Skill
 
-- User wants to upgrade Kokoro TTS engine, Python dependencies, or the model
-- User wants to update bot dependencies (Bun packages)
+- User wants to upgrade the Kokoro TTS engine, Python dependencies, or the model
 - User wants to refresh `tts_generate.py` from the plugin bundle
-- User wants to bump the Bun runtime version
+- User pulled a new plugin version and wants the runtime copy to match
 
 ---
 
 ## Requirements
 
 - `uv` installed (`brew install uv`)
-- `proto` installed (pins bun and moon in the bot directory's `.prototools`)
 - Internet connectivity for package downloads
 - Existing installation (run `full-stack-bootstrap` first if not installed)
 
@@ -35,12 +35,12 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 
 ## Upgradeable Components
 
-| Component         | Command                                                      | What It Does                                                   |
-| ----------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| Kokoro TTS engine | `kokoro-install.sh --upgrade`                                | Upgrades Python deps, re-downloads model, updates version.json |
-| Bot dependencies  | `cd ~/.claude/automation/claude-telegram-sync && bun update` | Updates Bun packages per package.json                          |
-| tts_generate.py   | Re-copy from plugin `scripts/` to `~/.local/share/kokoro/`   | Updates the TTS generation script                              |
-| Bun runtime       | `proto pin bun latest --resolve && proto install` (bot dir)  | Updates the Bun pin in `.prototools` and installs it           |
+| Component         | Command                                                    | What It Does                                                   |
+| ----------------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Kokoro TTS engine | `kokoro-install.sh --upgrade`                              | Upgrades Python deps, re-downloads model, updates version.json |
+| tts_generate.py   | Re-copy from plugin `scripts/` to `~/.local/share/kokoro/` | Updates the TTS generation script                              |
+
+The hotkey scripts need no upgrade step: `~/.local/bin` links point into the plugin, so a plugin update takes effect on the next keypress.
 
 ---
 
@@ -48,13 +48,13 @@ Upgrade individual components of the TTS + Telegram bot stack without rebuilding
 
 ### Phase 1: Component Selection
 
-Ask the user which component to upgrade using AskUserQuestion. Present the four options above.
+Ask the user which component to upgrade using AskUserQuestion. Present the options above.
 
 ### Phase 2: Pre-Upgrade Health Check
 
 ```bash
 # Run health check to establish baseline
-~/.local/share/kokoro/../../eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
+bash "$(cc-plugin-root tts-tg-sync)/scripts/kokoro-install.sh" --health
 
 # Record current versions
 cat ~/.local/share/kokoro/version.json
@@ -68,21 +68,12 @@ Run the appropriate upgrade command for the selected component.
 
 ```bash
 # Health check again
-kokoro-install.sh --health
+bash "$(cc-plugin-root tts-tg-sync)/scripts/kokoro-install.sh" --health
 
 # Generate test audio to verify TTS still works
 ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.py \
   --text "Upgrade verification test" --voice af_heart --lang en-us --speed 1.0 \
   --output /tmp/kokoro-tts-upgrade-test.wav
-```
-
-### Phase 5: Bot Restart (if needed)
-
-If bot dependencies or Bun runtime were upgraded, restart the bot:
-
-```bash
-pkill -f 'bun.*src/main.ts' || true
-cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 ```
 
 ---
@@ -92,12 +83,11 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 ```
 1. [Identify] Present upgradeable components via AskUserQuestion
 2. [Preflight] Run health check on target component
-3. [Backup] Note current versions (version.json, package.json)
+3. [Backup] Note current versions (version.json)
 4. [Upgrade] Execute upgrade command
 5. [Verify] Run post-upgrade health check
 6. [Test] Generate test audio to verify TTS still works
-7. [Restart] Restart bot if needed
-8. [Report] Show before/after versions
+7. [Report] Show before/after versions
 ```
 
 ---
@@ -107,17 +97,15 @@ cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts
 - [ ] Health check passes (all 6 checks OK)
 - [ ] version.json updated with new versions
 - [ ] Test audio generates and plays correctly
-- [ ] Bot is running if it was restarted
 
 ## Troubleshooting
 
-| Problem                       | Likely Cause                         | Fix                                                              |
-| ----------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
-| Upgrade fails                 | No internet or PyPI issue            | Check connectivity, retry                                        |
-| Model download slow           | First-time ~400MB, subsequent cached | Wait for download to complete                                    |
-| Version mismatch              | Stale version.json                   | Re-run `kokoro-install.sh --health` to check, `--upgrade` to fix |
-| MLX-Audio import fails        | mlx-audio version incompatibility    | `kokoro-install.sh --upgrade` reinstalls mlx-audio               |
-| Bot won't start after upgrade | Dependency conflict                  | `cd ~/.claude/automation/claude-telegram-sync && bun install`    |
+| Problem                | Likely Cause                         | Fix                                                              |
+| ---------------------- | ------------------------------------ | ---------------------------------------------------------------- |
+| Upgrade fails          | No internet or PyPI issue            | Check connectivity, retry                                        |
+| Model download slow    | First-time ~400MB, subsequent cached | Wait for download to complete                                    |
+| Version mismatch       | Stale version.json                   | Re-run `kokoro-install.sh --health` to check, `--upgrade` to fix |
+| MLX-Audio import fails | mlx-audio version incompatibility    | `kokoro-install.sh --upgrade` reinstalls mlx-audio               |
 
 ---
 
@@ -137,7 +125,3 @@ After this skill completes, reflect before closing the task:
 4. **Log it.** — Every change gets an evolution-log entry with trigger, fix, and evidence.
 
 Do NOT defer. The next invocation inherits whatever you leave behind.
-
----
-
----

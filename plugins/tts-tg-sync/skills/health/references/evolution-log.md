@@ -1,5 +1,6 @@
 # health Evolution Log (formerly system-health-check)
 
-| Date       | Change           | Reason           |
-| ---------- | ---------------- | ---------------- |
-| 2026-02-13 | Initial creation | Plugin bootstrap |
+| Date       | Change                                                                                                                                                                                         | Reason                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 2026-09-26 | Replaced the bot process, Telegram API and secrets-file checks with companion, both locks, all links, the Karabiner binding and the Supertonic fallback; `health-checks.md` rewritten to match | Bot retired 2026-09-24; its process check can only fail now, and the others tested a retired bot's token |
+| 2026-02-13 | Initial creation                                                                                                                                                                               | Plugin bootstrap                                                                                         |

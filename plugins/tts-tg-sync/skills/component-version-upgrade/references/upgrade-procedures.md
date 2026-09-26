@@ -1,6 +1,6 @@
 # Upgrade Procedures
 
-Detailed upgrade steps for each component of the TTS + Telegram bot stack.
+Detailed upgrade steps for each component of the text-to-speech stack. The Telegram bot's dependency and Bun-runtime procedures were removed on 2026-09-26; the bot was retired on 2026-09-24.
 
 ---
 
@@ -11,17 +11,19 @@ The primary upgrade path. Updates Python dependencies, re-downloads the model, a
 ### Upgrade Steps
 
 ```bash
+KOKORO_INSTALL="$(cc-plugin-root tts-tg-sync)/scripts/kokoro-install.sh"
+
 # 1. Record current state
 cat ~/.local/share/kokoro/version.json
 
 # 2. Run health check (baseline)
-~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
+bash "$KOKORO_INSTALL" --health
 
 # 3. Execute upgrade
-~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --upgrade
+bash "$KOKORO_INSTALL" --upgrade
 
 # 4. Verify
-~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --health
+bash "$KOKORO_INSTALL" --health
 cat ~/.local/share/kokoro/version.json
 ```
 
@@ -36,44 +38,11 @@ cat ~/.local/share/kokoro/version.json
 
 ```bash
 # If upgrade breaks TTS, do a clean reinstall:
-~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --uninstall
-~/.claude/eon/cc-skills/plugins/tts-tg-sync/scripts/kokoro-install.sh --install
+bash "$KOKORO_INSTALL" --uninstall
+bash "$KOKORO_INSTALL" --install
 ```
 
 The model cache at `~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16` is preserved across uninstall, so reinstall reuses the cached model.
-
----
-
-## Bot Dependencies (Bun Packages)
-
-Updates the Telegram bot's npm dependencies.
-
-### Upgrade Steps
-
-```bash
-# 1. Record current state
-cd ~/.claude/automation/claude-telegram-sync
-cat package.json | grep -A 20 '"dependencies"'
-
-# 2. Update packages
-bun update
-
-# 3. Verify lock file updated
-git diff bun.lock
-
-# 4. Restart bot
-pkill -f 'bun.*src/main.ts' || true
-bun --watch run src/main.ts
-```
-
-### Rollback
-
-```bash
-# Restore previous lock file
-cd ~/.claude/automation/claude-telegram-sync
-git checkout bun.lock
-bun install
-```
 
 ---
 
@@ -84,13 +53,13 @@ Updates the TTS generation script from the plugin bundle without touching the ve
 ### Upgrade Steps
 
 ```bash
+PLUGIN_DIR="$(cc-plugin-root tts-tg-sync)"
+
 # 1. Compare current vs bundle
-diff ~/.local/share/kokoro/tts_generate.py \
-     ~/eon/cc-skills/plugins/tts-tg-sync/scripts/tts_generate.py
+diff ~/.local/share/kokoro/tts_generate.py "$PLUGIN_DIR/scripts/tts_generate.py"
 
 # 2. Copy from bundle
-cp ~/eon/cc-skills/plugins/tts-tg-sync/scripts/tts_generate.py \
-   ~/.local/share/kokoro/tts_generate.py
+cp "$PLUGIN_DIR/scripts/tts_generate.py" ~/.local/share/kokoro/tts_generate.py
 
 # 3. Verify
 ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.py \
@@ -104,41 +73,9 @@ The previous version is not automatically backed up. If the new script fails, us
 
 ---
 
-## Bun Runtime
+## Hotkey Scripts
 
-Updates the Bun version pinned by proto in the bot directory's `.prototools`.
-
-### Upgrade Steps
-
-```bash
-# 1. Check current version
-bun --version
-
-# 2. Update the proto pin and install it
-cd ~/.claude/automation/claude-telegram-sync
-proto pin bun latest --resolve
-proto install
-
-# 3. Verify
-bun --version
-
-# 4. Reinstall deps with new Bun
-bun install
-
-# 5. Restart bot
-pkill -f 'bun.*src/main.ts' || true
-bun --watch run src/main.ts
-```
-
-### Rollback
-
-```bash
-# Pin back to previous version (e.g., 1.4.0)
-cd ~/.claude/automation/claude-telegram-sync
-proto pin bun 1.4.0
-proto install
-bun install
-```
+No procedure needed. The `~/.local/bin/tts_*.sh` links point into the plugin, so updating the plugin updates what every hotkey runs. After a plugin update, run the `health` skill's link check to confirm the links still resolve.
 
 ---
 
@@ -157,5 +94,3 @@ After any upgrade, `version.json` at `~/.local/share/kokoro/` should reflect cur
   "venv_path": "~/.local/share/kokoro/.venv"
 }
 ```
-
-For bot dependencies, the source of truth is `~/.claude/automation/claude-telegram-sync/package.json` and `bun.lock`.
