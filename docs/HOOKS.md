@@ -2526,7 +2526,7 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 | `dotfiles-tools`     | PostToolUse, Stop             | Chezmoi sync reminder       |
 | `statusline-tools`   | Stop                          | Session metrics             |
 | `productivity-tools` | PreToolUse                    | Calendar event management   |
-| `gmail-commander`    | Stop                          | Bot lifecycle management    |
+| `gmail-commander`    | PreToolUse                    | Gmail draft integrity       |
 | `calcom-commander`   | Stop                          | Bot lifecycle management    |
 | `tts-tg-sync`        | Stop                          | TTS/bot process cleanup     |
 
