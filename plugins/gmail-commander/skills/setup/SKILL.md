@@ -53,7 +53,7 @@ echo "export GMAIL_OP_UUID='<selected-uuid>'" >> ~/own/amonic/.env.launchd
 ### Step 5: Build Gmail CLI
 
 ```bash
-cd "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli" && bun install && bun run build
+cd "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli" && bun install --frozen-lockfile && bun run build
 ```
 
 ### Step 6: Test Gmail access
