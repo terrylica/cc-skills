@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-09-26: Workstation setup no longer installs the bot or digest
+
+**Trigger**: Phases 2 and 3 wrote a Telegram token into a laptop env file, generated launcher scripts and loaded launchd plists for a bot and digest that now run in a private Restate deployment. The laptop jobs were retired on 2026-09-24, and a second bot poller on the same token breaks the deployed one.
+
+**Fix**: The wizard now covers only Gmail OAuth via a 1Password item, building the CLI from the committed lockfile (`bun install --frozen-lockfile && bun run build`), and proving access to the intended mailbox. It states that the deployment is provisioned through its own repository's runbook and links the plugin CLAUDE.md contract.
+
+**Files**: `SKILL.md`
+
+---
+
 ## 2026-02-26: Initial Evolution Log
 
 **Status**: Skill is in use and maintained. Track improvements here.

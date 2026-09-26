@@ -356,7 +356,7 @@
     },
     {
       "name": "gmail-commander",
-      "description": "Gmail + Telegram bot lifecycle - email triage, interactive commands, voice digest, Agent SDK routing, 1Password OAuth",
+      "description": "Gmail CLI and canonical draft builder with 1Password OAuth, plus the shared Telegram bot code (commands, on-demand triage, Agent SDK routing) that a private deployment imports",
       "version": "31.3.0",
       "source": "./plugins/gmail-commander",
       "category": "productivity",
@@ -371,7 +371,6 @@
         "bot",
         "triage",
         "digest",
-        "voice",
         "agent-sdk",
         "oauth",
         "1password",

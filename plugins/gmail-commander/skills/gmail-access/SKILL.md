@@ -44,10 +44,10 @@ echo "=== Gmail Account Context ==="
 echo "Working directory: $(pwd)"
 echo "GMAIL_OP_UUID: ${GMAIL_OP_UUID}"
 
-# Check where GMAIL_OP_UUID is defined (plain env: shell startup files or the daemon env file)
+# Check where GMAIL_OP_UUID is defined (plain env: shell startup files, this shell, or inline)
 echo ""
 echo "=== GMAIL_OP_UUID Source ==="
-grep -l "GMAIL_OP_UUID" ~/.zshenv ~/.zshrc ~/own/amonic/.env.launchd 2>/dev/null || echo "Not in shell startup files or .env.launchd (set in this shell or passed inline)"
+grep -l "GMAIL_OP_UUID" ~/.zshenv ~/.zshrc 2>/dev/null || echo "Not in shell startup files (set in this shell or passed inline)"
 
 # Quick connectivity test — shows the account email from a real email
 echo ""
@@ -201,16 +201,18 @@ AskUserQuestion({
     header: "Configure",
     options: [
       { label: "This session only (Recommended)", description: "export GMAIL_OP_UUID in the current shell; nothing written to disk" },
-      { label: "The launchd daemons", description: "Add an export line to ~/own/amonic/.env.launchd" }
+      { label: "Per command", description: "Pass GMAIL_OP_UUID=<uuid> inline on every gmail call; safest when projects use different mailboxes" }
     ],
     multiSelect: false
   }]
 })
 ```
 
-**If "This session only"**: run `export GMAIL_OP_UUID=<selected-uuid>` (or pass it inline on each command).
+**If "This session only"**: run `export GMAIL_OP_UUID=<selected-uuid>`.
 
-**If "The launchd daemons"**: add `export GMAIL_OP_UUID='<selected-uuid>'` to `~/own/amonic/.env.launchd` (gitignored, hand-maintained; the launcher scripts source it), replacing any existing `GMAIL_OP_UUID` line.
+**If "Per command"**: prefix each call, e.g. `GMAIL_OP_UUID=<selected-uuid> $GMAIL_CLI list -n 1`.
+
+Never write it into an env file for a background bot or digest on this machine: those run in a private deployment with its own secret store, and the laptop launchd jobs they replaced were retired on 2026-09-24.
 
 ### Setup Step 5: Verify
 
@@ -810,6 +812,10 @@ done
 - [ ] References exist and are linked
 
 ## Evolution Log
+
+- **2026-09-26 — setup could still configure the retired laptop bot and digest.**
+  - _Trigger_: the Telegram bot and scheduled digest moved to a private Restate deployment, and the laptop launchd jobs they replaced were retired on 2026-09-24. Setup Step 4 still offered "The launchd daemons" as a place to write `GMAIL_OP_UUID`, and the Step 2.5 preflight still grepped that daemon env file.
+  - _Fix_: Step 4 now offers "This session only" and "Per command", and says never to write the UUID into an env file for a background job on this machine. The preflight greps only shell startup files. The build step runs `bun install --frozen-lockfile` against the newly committed `scripts/gmail-cli/bun.lock`.
 
 - **2026-09-25 — the mailbox probe required a helper script that nothing defines, so it could not run in a fresh session.**
   - _Trigger_: a repository's correspondence fetcher needed `GMAIL_OP_UUID`, nobody had recorded which cached token it was, and the Step 2.5 probe stopped at `${GMAIL_TOKEN_SCRIPT:?…}`. That variable is set by no shell file, no plugin and no project. The thread that fetcher archives then went unrefreshed for three weeks, and a newer message in it was missed.

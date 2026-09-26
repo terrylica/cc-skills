@@ -1,24 +1,26 @@
 ---
 name: setup
-description: Full Gmail Commander setup wizard - Gmail OAuth, Telegram bot, launchd services. Discovers 1Password items, writes the daemon env file.
+description: Gmail Commander setup wizard - Gmail OAuth via a 1Password item, build the Gmail CLI from its lockfile, verify access. The Telegram bot and digest are deployed elsewhere and are not installed here.
 allowed-tools: Bash, Read, Write, AskUserQuestion, Edit
 disable-model-invocation: false
 ---
 
 # Gmail Commander Setup
 
-Complete setup wizard for Gmail CLI access, Telegram bot, and launchd services.
+Set up interactive Gmail access on this machine: find the OAuth credentials in 1Password, build the Gmail CLI, and prove it can read the intended mailbox.
 
 > **Self-Evolving Skill**: This skill improves through use. If instructions are wrong, parameters drifted, or a workaround was needed — fix this file immediately, don't defer. Only update for real, reproducible issues.
+
+## Scope — what this wizard does NOT do
+
+The interactive Telegram bot and the scheduled digest run unattended in a **private Restate deployment on an always-on Mac mini**, not on a workstation. This wizard installs no launchd jobs, launcher scripts or daemon env files, and it must not: the laptop jobs were retired on 2026-09-24, and a second bot poller on the same token breaks the deployed one. Provisioning the deployment (bot token, chat ID, Gmail refresh token, model settings) is done through its own repository's runbook. What the deployment needs from this plugin is listed in the [plugin CLAUDE.md](../../CLAUDE.md#the-contract-the-deployment-depends-on).
 
 ## Prerequisites Check
 
 ```bash
-# Check required tools
 command -v op && echo "OK 1Password CLI" || echo "MISSING: brew install 1password-cli"
 command -v proto && echo "OK proto" || echo "MISSING: brew install proto"
 command -v bun && echo "OK bun" || echo "MISSING: proto install bun"
-command -v ffmpeg && echo "OK ffmpeg" || echo "OPTIONAL: brew install ffmpeg (for voice digest)"
 ```
 
 ## Phase 1: Gmail OAuth Setup
@@ -41,116 +43,35 @@ op item list --vault Employee --format json | jq -r '.[] | select(.title | test(
 
 Use AskUserQuestion with discovered items or guide new credential creation.
 
-### Step 4: Write the daemon env file
+### Step 4: Supply the UUID
 
-`~/own/amonic/.env.launchd` (gitignored, hand-maintained) is the SSoT for daemon env; the launcher scripts source it. For interactive use, `export GMAIL_OP_UUID=<selected-uuid>` in the current shell instead.
+Use the item **UUID**, not its title — the token cache is keyed by UUID. Pass it per command (`GMAIL_OP_UUID=<selected-uuid> gmail list -n 1`) or `export GMAIL_OP_UUID=<selected-uuid>` in the current shell. Per-command is safest when different projects use different mailboxes. See [env-setup.md](../gmail-access/references/env-setup.md).
 
-```bash
-# Add to ~/own/amonic/.env.launchd (replace any existing GMAIL_OP_UUID line)
-echo "export GMAIL_OP_UUID='<selected-uuid>'" >> ~/own/amonic/.env.launchd
-```
+## Phase 2: Build the Gmail CLI
 
-### Step 5: Build Gmail CLI
+The binary is built from the committed lockfile so every machine resolves the same dependency tree:
 
 ```bash
 cd "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli" && bun install --frozen-lockfile && bun run build
 ```
 
-### Step 6: Test Gmail access
+If `--frozen-lockfile` fails, package.json and `bun.lock` disagree. Do not delete the lockfile to get past it; report the mismatch.
+
+## Phase 3: Verification
 
 ```bash
-"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail" list -n 1
+GMAIL_CLI="$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail"
+"$GMAIL_CLI" list -n 1 2>&1 | head -5
 ```
 
-## Phase 2: Telegram Bot Setup
-
-### Step 1: Check Telegram config
-
-```bash
-echo "TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:+SET}"
-echo "TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-NOT_SET}"
-```
-
-If NOT_SET, guide user through BotFather setup:
-
-1. Message @BotFather on Telegram
-2. Send `/newbot` and follow prompts
-3. Copy the token
-4. Get chat ID: message the bot, then check `https://api.telegram.org/bot<TOKEN>/getUpdates`
-
-### Step 2: Add to the daemon env file
-
-```bash
-# Append bot config to ~/own/amonic/.env.launchd
-cat >> ~/own/amonic/.env.launchd << 'EOF'
-export TELEGRAM_BOT_TOKEN='<bot-token>'
-export TELEGRAM_CHAT_ID='<chat-id>'
-EOF
-```
-
-## Phase 3: launchd Service Installation
-
-### Step 1: Create launcher scripts
-
-```bash
-mkdir -p ~/own/amonic/bin ~/own/amonic/logs
-
-# Bot launcher
-cat > ~/own/amonic/bin/gmail-commander-bot << 'SCRIPT'
-#!/bin/zsh
-set -euo pipefail
-# .env.launchd is hand-maintained and is the SSoT for daemon secrets.
-source "$HOME/own/amonic/.env.launchd"
-cd "$HOME/own/amonic"
-exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/bot.ts"
-SCRIPT
-chmod +x ~/own/amonic/bin/gmail-commander-bot
-
-# Digest launcher
-cat > ~/own/amonic/bin/gmail-commander-digest << 'SCRIPT'
-#!/bin/zsh
-set -euo pipefail
-# .env.launchd is hand-maintained and is the SSoT for daemon secrets.
-source "$HOME/own/amonic/.env.launchd"
-cd "$HOME/own/amonic"
-exec "$HOME/.proto/shims/bun" run "$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/digest.ts"
-SCRIPT
-chmod +x ~/own/amonic/bin/gmail-commander-digest
-```
-
-### Step 2: Install launchd plists
-
-Use AskUserQuestion to confirm before installing launchd services.
-
-```bash
-# Copy plist templates (from bot-process-control SKILL.md) to LaunchAgents
-# launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-bot.plist
-# launchctl load ~/Library/LaunchAgents/com.terryli.gmail-commander-digest.plist
-```
-
-## Phase 4: Verification
-
-```bash
-# Run health check
-echo "=== Gmail CLI ==="
-"$HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-cli/gmail" list -n 1 2>&1 | head -5
-
-echo ""
-echo "=== Bot Process ==="
-pgrep -fl gmail-commander || echo "Not running"
-
-echo ""
-echo "=== launchd ==="
-launchctl list | grep gmail-commander || echo "Not registered"
-```
+The first run opens a browser for Google OAuth consent. Sign in with the account that the chosen 1Password item belongs to, then confirm with the user that the listed message comes from the intended mailbox.
 
 ## Success Criteria
 
-1. `echo $GMAIL_OP_UUID` shows a UUID
-2. Gmail CLI returns email data
-3. `echo $TELEGRAM_BOT_TOKEN` is set
-4. Bot responds to /help in Telegram
-5. launchd jobs are loaded (optional)
+1. `GMAIL_OP_UUID` resolves to a 1Password item UUID (in the shell or on the command line)
+2. `scripts/gmail-cli/gmail` exists and was built with `--frozen-lockfile`
+3. `gmail list -n 1` returns a message from the intended mailbox
+4. No `gmail-commander` launchd job exists locally (`launchctl list | grep -F gmail-commander` prints nothing)
 
 ## No OAuth Credentials?
 

@@ -97,7 +97,7 @@ cc-skills/
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
-│   ├── gmail-commander/             ← Gmail bot + CLI (1Password OAuth)
+│   ├── gmail-commander/             ← Gmail CLI + shared bot code (1Password OAuth)
 │   ├── macro-keyboard/              ← Karabiner remap for cheap 3-key pads (skill-level CLAUDE.mds)
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
 ├── docs/

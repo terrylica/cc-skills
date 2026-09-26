@@ -67,7 +67,7 @@ How to create Google Cloud OAuth credentials for Gmail API access.
 
 ## Step 6: Supply the UUID
 
-Pass it to the CLI inline (`GMAIL_OP_UUID=<your-item-uuid> gmail list -n 1`) or export it in your shell. For the launchd daemons, add `export GMAIL_OP_UUID='<your-item-uuid>'` to `~/own/amonic/.env.launchd`. See [env-setup.md](./env-setup.md).
+Pass it to the CLI inline (`GMAIL_OP_UUID=<your-item-uuid> gmail list -n 1`) or export it in your shell. See [env-setup.md](./env-setup.md).
 
 ## Security Notes
 
