@@ -191,10 +191,27 @@ else
 fi
 
 # ─── Case 6: generator --check passes (idempotency invariant intact) ─────
+#
+# `--check` READS the shared on-disk doc too (it diffs the doc against the
+# registry-derived render), so it takes the same SHARED lock as Case 4. It was
+# the one `--check` among the doc readers running bare — iter-113 Case 2 and
+# iter-117 Case 6 both hold LOCK_SH around theirs — so iter-115's exclusive
+# doc-mutation window could land inside it and report drift that was never
+# committed. Observed once in a parallel `moon run repo:check` on 2026-09-26
+# ("generator --check reports drift (exit=1)"); afterwards the working tree
+# held no doc or registry change, `--check` alone reported no drift, and this
+# file passed when run on its own.
+exec 9<>"$ITER126_ON_DISK_DOC_MUTATION_WINDOW_SERIALIZATION_FLOCK_FILE"
+python3 -c '
+import fcntl, sys
+fcntl.flock(int(sys.argv[1]), fcntl.LOCK_SH)
+' 9 <&9
 set +e
 check_mode_output=$(bash "$ITER113_DOC_GENERATOR_ABSOLUTE_PATH" --check 2>&1)
 check_mode_exit_code=$?
 set -e
+# Done reading the shared on-disk doc — release the shared lock.
+exec 9<&-
 if [[ "$check_mode_exit_code" == "0" ]] && [[ "$check_mode_output" == *"no drift"* ]]; then
     assert_passes "Case 6: iter-113 doc-generator idempotency invariant still holds with two-registry input (on-disk doc matches registry-derived output, no drift)"
 else
