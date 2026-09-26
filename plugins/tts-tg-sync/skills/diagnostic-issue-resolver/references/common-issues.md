@@ -1,23 +1,48 @@
 # Common Issues -- Expanded Diagnostic Procedures
 
-Detailed step-by-step procedures for diagnosing and resolving each known issue.
+Detailed step-by-step procedures for diagnosing and resolving each known issue. The "Bot Not Responding" and bot queue sections that used to be here were removed on 2026-09-26 with the retired Telegram bot.
 
 ---
 
-## 1. No Audio Output
+## 1. Hotkey Does Nothing
 
-**Symptom**: TTS generates silently -- no sound is heard.
+**Symptom**: Pressing the read-aloud key produces no sound and no notification.
 
 **Diagnostic Steps**:
 
 ```bash
-# Step 1: Check if lock file is blocking playback
-ls -la /tmp/kokoro-tts.lock 2>/dev/null
-stat -f "%Sm %N" /tmp/kokoro-tts.lock 2>/dev/null
+# Step 1: Did the script run at all? Press the key, then:
+tail -5 /tmp/kokoro-tts.log
+
+# Step 2: Is the binding pointing at the stable link?
+grep -o '"[^"]*tts_read_clipboard_wrapper.sh"' ~/.config/karabiner/karabiner.json 2>/dev/null
+ls -la ~/.local/bin/tts_read_clipboard_wrapper.sh
+
+# Step 3: Run the exact same path by hand
+echo "manual test" | pbcopy && ~/.local/bin/tts_read_clipboard_wrapper.sh; echo "exit=$?"
+```
+
+**Resolution Tree**:
+
+- No new log line after a press --> the hotkey tool never ran the script: fix the binding, or grant the tool Accessibility permission
+- Binding points at a versioned plugin path --> rebind to `~/.local/bin/tts_read_clipboard_wrapper.sh`
+- Manual run works, hotkey does not --> environment difference; the wrapper restores PATH itself, so check the tool's own error output
+- Manual run fails too --> continue with sections 2 and 3
+
+---
+
+## 2. No Audio Output
+
+**Symptom**: The log shows the request, but no sound is heard.
+
+**Diagnostic Steps**:
+
+```bash
+# Step 1: Check whether a lock file is blocking playback
+ls -la /tmp/kokoro-tts.lock /tmp/tts_kokoro.lock 2>/dev/null
 
 # Step 2: Check if any audio process is active
 pgrep -la afplay
-pgrep -la say
 
 # Step 3: Check macOS audio output (is sound muted?)
 osascript -e 'output volume of (get volume settings)'
@@ -28,45 +53,53 @@ afplay /System/Library/Sounds/Tink.aiff
 
 **Resolution Tree**:
 
-- Lock file exists + stale mtime (>30s) + no audio process --> Remove lock: `rm -f /tmp/kokoro-tts.lock`
-- Lock file exists + fresh mtime --> Another TTS is in progress, wait for it to finish
-- No lock + no audio + system sound works --> Check bot logs for generation errors
+- Lock file exists + stale mtime (>30s) + no audio process --> `tts_stop.sh`
+- Lock file exists + fresh mtime --> Another utterance is in progress; wait, or `tts_stop.sh`
+- No lock + no audio + system sound works --> Check `/tmp/kokoro-tts.log` and `/tmp/tts_errors.log` for the engine error
 - System sound does not play --> macOS audio issue (check Sound preferences, output device)
 
 ---
 
-## 2. Bot Not Responding
+## 3. Wrong Engine or Slow Start
 
-**Symptom**: Telegram messages are sent but bot does not reply.
+**Symptom**: Speech starts after a noticeable delay, or subtitles do not appear.
 
 **Diagnostic Steps**:
 
 ```bash
-# Step 1: Check if bot process is running
-pgrep -la 'bun.*src/main.ts'
-
-# Step 2: Check recent log output
-tail -30 /private/tmp/telegram-bot.log 2>/dev/null
-
-# Step 3: Check if bun is available
-which bun && bun --version
-
-# Step 4: Check network (Telegram API reachable)
-curl -s -o /dev/null -w "%{http_code}" https://api.telegram.org/
+grep -E 'engine=' /tmp/kokoro-tts.log | tail -5
+curl -s --max-time 2 "http://[::1]:8780/health" || echo "companion down"
 ```
 
 **Resolution Tree**:
 
-- No process found --> Restart: `cd ~/.claude/automation/claude-telegram-sync && bun --watch run src/main.ts &`
-- Process running but not responding --> Check logs for error loops, consider restart
-- Network unreachable --> Check internet connectivity
-- Bun not found --> `proto install` in the bot directory (installs the bun pinned in `.prototools`)
+- `engine=supertonic` with the companion down --> start `claude-tts-companion` (its own plugin); the fallback is working as designed
+- `engine=supertonic` with the companion up --> `TTS_ENGINE=supertonic` is set somewhere in the hotkey's environment
+- `engine=kokoro` but slow --> the companion's Kokoro server is warming up after a restart; see the companion's own diagnostics
 
 ---
 
-## 3. Kokoro Timeout
+## 4. Speed Keys Have No Effect
 
-**Symptom**: TTS generation hangs or times out after `TTS_GENERATE_TIMEOUT_MS` (default 15s).
+**Symptom**: Faster/slower keys play the confirmation sound but speech speed does not change.
+
+**Diagnostic Steps**:
+
+```bash
+grep 'speed:' /tmp/kokoro-tts.log | tail -5
+```
+
+**Resolution Tree**:
+
+- `companion unreachable — kokoro speed NOT applied` --> the rate reached the BetterTouchTool variable (Supertonic) but not the companion; press again once the companion is up
+- No `speed:` lines --> the key is not bound to `tts_speed_up.sh` / `tts_speed_down.sh`
+- Lines present, speed unchanged --> the multiplier is clamped to [0.5, 3.0]; check you are not already at a limit
+
+---
+
+## 5. Kokoro Timeout (local engine)
+
+**Symptom**: `tts_kokoro_audition.sh` or a manual `tts_generate.py` run hangs or times out.
 
 **Diagnostic Steps**:
 
@@ -74,7 +107,7 @@ curl -s -o /dev/null -w "%{http_code}" https://api.telegram.org/
 # Step 1: Check if model is cached
 ls -la ~/.cache/huggingface/hub/models--mlx-community--Kokoro-82M-bf16/ 2>/dev/null
 
-# Step 2: Test manual generation with verbose output
+# Step 2: Test manual generation with timing
 time ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.py \
   --text "Test" --voice af_heart --lang en-us --speed 1.0 \
   --output /tmp/kokoro-tts-timeout-test.wav
@@ -87,70 +120,39 @@ time ~/.local/share/kokoro/.venv/bin/python ~/.local/share/kokoro/tts_generate.p
 
 - Model not cached --> First run downloads from HuggingFace. Wait or run `kokoro-install.sh --install`
 - MLX-Audio not importable --> `kokoro-install.sh --upgrade` to reinstall dependencies
-- Generation works manually but times out from bot --> Increase `TTS_GENERATE_TIMEOUT_MS` in the bot's `.env` (and `moon.yml` `env:`)
 
 ---
 
-## 4. Queue Full / Backed Up
+## 6. Lock Stuck Forever
 
-**Symptom**: New TTS requests are dropped with "Dropped stale item" in logs.
-
-**Diagnostic Steps**:
-
-```bash
-# Step 1: Check audit log for queue events
-grep -h 'tts.drop\|tts.enqueue\|tts.drain' \
-  ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -20
-
-# Step 2: Check current queue config
-grep -E 'TTS_MAX_QUEUE_DEPTH|TTS_STALE_TTL_MS' ~/.claude/automation/claude-telegram-sync/.env ~/.claude/automation/claude-telegram-sync/moon.yml
-```
-
-**Resolution Tree**:
-
-- Frequent drops --> Increase `TTS_MAX_QUEUE_DEPTH` in the bot's `.env` (and `moon.yml` `env:`)
-- Items going stale --> Decrease `TTS_STALE_TTL_MS` or investigate why generation is slow
-- Burst of notifications --> Normal during rapid prompting; queue is working as designed
-
----
-
-## 5. Lock Stuck Forever
-
-**Symptom**: TTS never starts; lock file never disappears.
+**Symptom**: Presses queue up and nothing ever plays; a lock file never disappears.
 
 See [Lock Debugging](./lock-debugging.md) for the full protocol. Quick resolution:
 
 ```bash
-# Check lock state
-stat -f "%Sm" /tmp/kokoro-tts.lock 2>/dev/null
+stat -f "%Sm" /tmp/kokoro-tts.lock /tmp/tts_kokoro.lock 2>/dev/null
 pgrep -x afplay
-pgrep -x say
 
-# If lock is stale (>30s) AND no audio process: safe to remove
-rm -f /tmp/kokoro-tts.lock
+# Safe reset: kills playback and queued scripts, clears both locks, cancels the companion queue
+~/.local/bin/tts_stop.sh
 ```
 
 ---
 
-## 6. Slow MLX Metal Acceleration
+## 7. Slow MLX Metal Acceleration
 
-**Symptom**: TTS generation is slow (~5-10s instead of ~1-2s).
+**Symptom**: Local Kokoro generation is slow (~5-10s instead of ~1-2s).
 
 **Diagnostic Steps**:
 
 ```bash
-# Step 1: Check MLX-Audio is working
 ~/.local/share/kokoro/.venv/bin/python -c "
 from mlx_audio.tts.utils import load_model
 from importlib.metadata import version
 print('mlx-audio version:', version('mlx-audio'))
 print('MLX OK')
 "
-
-# Step 2: Check Python version
 ~/.local/share/kokoro/.venv/bin/python --version
-
-# Step 3: Check hardware
 uname -m  # Should be arm64
 ```
 
@@ -162,27 +164,20 @@ uname -m  # Should be arm64
 
 ---
 
-## 7. Double Audio Playback
+## 8. Double Audio Playback
 
-**Symptom**: The same text plays twice, or two different TTS outputs overlap.
+**Symptom**: The same text plays twice, or two outputs overlap.
 
 **Diagnostic Steps**:
 
 ```bash
-# Step 1: Check for multiple audio processes
 pgrep -la afplay
-pgrep -la say
-
-# Step 2: Check for lock file
-ls -la /tmp/kokoro-tts.lock 2>/dev/null
-
-# Step 3: Check audit log for race conditions
-grep -h 'tts.play.start' \
-  ~/.claude/automation/claude-telegram-sync/logs/audit/*.ndjson 2>/dev/null | tail -10
+ls -la /tmp/kokoro-tts.lock /tmp/tts_kokoro.lock 2>/dev/null
+grep -E 'engine=' /tmp/kokoro-tts.log | tail -5
 ```
 
 **Resolution Tree**:
 
-- Multiple afplay processes --> Kill all: `pkill -x afplay`, then check what triggered them
-- Bot + shell script racing --> The lock protocol should prevent this. Check if both are acquiring locks properly
-- Same notification processed twice --> Check bot logs for duplicate webhook deliveries
+- Multiple afplay processes --> `tts_stop.sh`, then press once
+- Two `engine=` lines per press --> two bindings fire the wrapper (for example both Karabiner-Elements and BetterTouchTool); remove one
+- Kokoro and Supertonic both spoke --> the wrapper exits on the Kokoro path's status; check for a locally modified copy that pipes into `exec`

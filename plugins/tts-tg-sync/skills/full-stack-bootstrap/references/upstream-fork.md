@@ -39,13 +39,14 @@ The installer (`kokoro-install.sh`) copies the bundled scripts to the Kokoro dir
 
 ## Dependency Relationship
 
+The hotkey path (`tts_kokoro.sh`) does not use this chain: it posts to `claude-tts-companion`, which runs its own resident Kokoro server. The bundled CLI serves the voice audition and manual tests.
+
 ```
 PyPI mlx-audio package (upstream library)
     └── provides load_model + generate API
          └── kokoro_common.py (our synthesis SSoT)
               └── tts_generate.py (our CLI wrapper)
-                   └── tts_kokoro.sh (shell script, calls tts_generate.py)
-                        └── Bot TTS integration (TypeScript, spawns shell script)
+                   └── tts_kokoro_audition.sh (voice audition, calls tts_generate.py)
 ```
 
 ## Upgrade Considerations

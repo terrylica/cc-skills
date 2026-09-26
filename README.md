@@ -45,7 +45,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [ssh-tunnel-companion](./plugins/ssh-tunnel-companion/) | macOS launchd companion for SSH tunnels (Tailscale + CF Access) — see plugin's CLAUDE.md for the SSoT on tunnel architecture                                                                                                                                         | devops        |
 | [statusline-tools](./plugins/statusline-tools/)         | Custom Claude Code status line with git status indicators + global ignore patterns + session-info reporter                                                                                                                                                           | utilities     |
 | [tlg](./plugins/tlg/)                                   | Telegram operations toolkit: messages, channels, dialogs, members, media, search, dump, drafting, cleanup                                                                                                                                                            | productivity  |
-| [tts-tg-sync](./plugins/tts-tg-sync/)                   | TTS + Telegram sync stack: bot process control, voice quality audition, settings tuning, full-stack bootstrap, diagnostic resolver                                                                                                                                   | productivity  |
+| [tts-tg-sync](./plugins/tts-tg-sync/)                   | Hotkey text-to-speech: clipboard read-aloud via Kokoro with Supertonic fallback, speed and stop keys, voice audition, setup, health, diagnostics                                                                                                                     | productivity  |
 
 ## Installation
 
@@ -481,7 +481,7 @@ cc-skills/
 │   ├── devops-tools/             # ClickHouse, Doppler, MLflow, pueue, session recovery
 │   ├── claude-tts-companion/     # Swift macOS karaoke-subtitles companion
 │   ├── kokoro-tts/               # Kokoro TTS engine (install / server / synthesis)
-│   ├── tts-tg-sync/              # TTS + Telegram sync stack
+│   ├── tts-tg-sync/              # Hotkey text-to-speech (TTS only)
 │   ├── tlg/                      # Telegram operations toolkit
 │   ├── ssh-tunnel-companion/     # macOS launchd companion for SSH tunnels
 │   ├── floating-clock/           # macOS floating clock overlay

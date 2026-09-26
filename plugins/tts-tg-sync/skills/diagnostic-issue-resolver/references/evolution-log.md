@@ -1,5 +1,6 @@
 # diagnostic-issue-resolver Evolution Log
 
-| Date       | Change           | Reason           |
-| ---------- | ---------------- | ---------------- |
-| 2026-02-13 | Initial creation | Plugin bootstrap |
+| Date       | Change                                                                                                                                                                                                                               | Reason                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 2026-09-26 | Removed bot symptoms and `kokoro-client.ts`; added silent-hotkey, wrong-engine and speed-key procedures; `lock-debugging.md` now documents both locks (`/tmp/tts_kokoro.lock` and `/tmp/kokoro-tts.lock`) against the actual scripts | Bot retired 2026-09-24; nothing but the scripts takes the locks now |
+| 2026-02-13 | Initial creation                                                                                                                                                                                                                     | Plugin bootstrap                                                    |

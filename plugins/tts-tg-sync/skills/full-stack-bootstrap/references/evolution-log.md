@@ -1,5 +1,6 @@
 # full-stack-bootstrap Evolution Log
 
-| Date       | Change           | Reason           |
-| ---------- | ---------------- | ---------------- |
-| 2026-02-13 | Initial creation | Plugin bootstrap |
+| Date       | Change                                                                                                                                                                                                             | Reason                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| 2026-09-26 | Dropped the BotFather, secrets-file and bot `moon.yml` phases and `botfather-guide.md`; added the hotkey-binding phase, the full link list and an end-to-end wrapper test; installer resolved via `cc-plugin-root` | The Telegram sync bot was retired on 2026-09-24; the plugin is TTS only |
+| 2026-02-13 | Initial creation                                                                                                                                                                                                   | Plugin bootstrap                                                        |
