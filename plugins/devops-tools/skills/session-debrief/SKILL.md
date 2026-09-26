@@ -18,7 +18,7 @@ Use `AskUserQuestion` to present exactly these three choices:
 
 > **Which analysis mode?**
 >
-> 1. **Handoff Document** — Exhaustive context for the next developer or Claude session continuing this work. Extracts every decision, file, command, gotcha, incomplete item, and next step. Multiple MiniMax chunks if needed for full coverage.
+> 1. **Handoff Document** — Exhaustive context for the next developer or Claude session continuing this work. Extracts every decision, file, command, gotcha, incomplete item, and next step. Chunked and merged if needed for full coverage.
 > 2. **Error Forensics** — Complete inventory of every warning, error, deprecation, failed command, and anomaly that occurred — especially ones Claude acknowledged but ignored or deferred. Full verbatim detail with file paths and commands.
 > 3. **Chronological Summary** — Dense technical timeline of everything that happened: every decision, change, problem, discovery, and outcome in turn order. As concise as possible while capturing maximum events.
 
@@ -64,7 +64,7 @@ Agent(
 
 **Do NOT add `--shots` — it only applies to legacy 50-perspectives mode.**
 
-When the Agent returns, present the output directly to the user with no additional summarization — the MiniMax output IS the result.
+When the Agent returns, present the output directly to the user with no additional summarization — the debrief LLM's output IS the result.
 
 ---
 
@@ -87,7 +87,7 @@ Output structure:
 - **CRITICAL GOTCHAS & CONTEXT** — non-obvious facts, workarounds, landmines
 - **NEXT STEPS (PRIORITY ORDER)** — concrete actions to start next session with
 
-If the session history spans more than MiniMax's context window (~260K tokens), the script automatically chunks by session and produces multiple parts.
+If the extracted history is larger than the script's hard-coded budget (890K chars, about 243K tokens; see Configuration), the script splits it at turn boundaries, analyses each chunk with the debrief LLM, then merges the partial analyses in one synthesis call. It prints the parts separately only when the partials are themselves too large to merge. All three goals chunk the same way.
 
 ### Goal 2: Error Forensics
 
@@ -136,7 +136,7 @@ bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-debrief.ts \
   --goal 2 --since 168        # Error forensics: last week
   --goal 3 --since 720        # Summary: last month
 
-# Debug: show extracted payload without calling MiniMax
+# Debug: show extracted payload without calling the LLM
 bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-debrief.ts \
   --goal 1 --since 48 --dry --verbose
 
@@ -157,14 +157,15 @@ bun run $HOME/eon/cc-skills/plugins/devops-tools/scripts/session-debrief.ts \
 
 ## Configuration
 
-| Setting             | Source                                                               | Default                   |
-| ------------------- | -------------------------------------------------------------------- | ------------------------- |
-| MiniMax API key     | `~/.claude/.secrets/ccterrybot-telegram` (`MINIMAX_API_KEY=...`)     | Required                  |
-| Model               | `DEBRIEF_LLM_MODEL` env var (nothing sets it; effectively hardcoded) | `claude-sonnet-5[1m]`     |
-| Max output tokens   | Hardcoded                                                            | 16384 per call            |
-| Context budget      | Hardcoded                                                            | 890K chars (~243K tokens) |
-| Default time window | `--since`                                                            | 48 hours                  |
-| Session chaining    | `--no-chain` to disable                                              | Enabled                   |
+| Setting             | Source                                                                                                                                     | Default                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| LLM API key         | `DEBRIEF_LLM_API_KEY` (or `SUB2API_KEY`) env var; otherwise the operator's self-custody vault: `vault get cc-skills-tools-sub2api api_key` | Required                  |
+| LLM endpoint        | `DEBRIEF_LLM_API_URL` env var, or a `DEBRIEF_LLM_API_URL=` line in `${XDG_CONFIG_HOME:-~/.config}/cc-skills/debrief.env`                   | Required, no default      |
+| Model               | `DEBRIEF_LLM_MODEL` env var (nothing sets it; effectively hardcoded)                                                                       | `claude-sonnet-5[1m]`     |
+| Max output tokens   | Hardcoded                                                                                                                                  | 16384 per call            |
+| Context budget      | Hardcoded                                                                                                                                  | 890K chars (~243K tokens) |
+| Default time window | `--since`                                                                                                                                  | 48 hours                  |
+| Session chaining    | `--no-chain` to disable                                                                                                                    | Enabled                   |
 
 ---
 
@@ -182,13 +183,14 @@ ls -lt ~/.claude/projects/*/*.jsonl 2>/dev/null | head -20
 
 ## Troubleshooting
 
-| Issue                          | Cause                           | Fix                                                    |
-| ------------------------------ | ------------------------------- | ------------------------------------------------------ |
-| `Cannot determine project dir` | CWD not a known project         | Use `--project-dir ~/.claude/projects/<key>`           |
-| `No sessions found`            | No sessions in time window      | Increase `--since` (e.g., `--since 336` for 2 weeks)   |
-| `MINIMAX_API_KEY not found`    | Missing secrets file            | Check `~/.claude/.secrets/ccterrybot-telegram`         |
-| `context window exceeds`       | Single session too large        | Use `--dry --verbose` to check size; try `--no-chain`  |
-| Goal 1 produces multiple parts | Sessions exceeded single budget | Expected behavior — multiple chunks = maximum coverage |
+| Issue                                   | Cause                                                 | Fix                                                                                             |
+| --------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `Cannot determine project dir`          | CWD not a known project                               | Use `--project-dir ~/.claude/projects/<key>`                                                    |
+| `No sessions found`                     | No sessions in time window                            | Increase `--since` (e.g., `--since 336` for 2 weeks)                                            |
+| `could not resolve the debrief LLM key` | No key in the environment and the vault lookup failed | Export `DEBRIEF_LLM_API_KEY`, or store it once with `vault set cc-skills-tools-sub2api api_key` |
+| `no LLM endpoint configured` (exit 78)  | `DEBRIEF_LLM_API_URL` unset                           | Export it, or add it to `~/.config/cc-skills/debrief.env`                                       |
+| `context window exceeds`                | Single session too large                              | Use `--dry --verbose` to check size; try `--no-chain`                                           |
+| Output arrives as several PART sections | The partial analyses were too large to merge          | Expected behavior — each part covers a range of turns                                           |
 
 ## Post-Execution Reflection
 
