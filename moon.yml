@@ -10,23 +10,28 @@
 # (`moon run repo:<task> -- ARGS`) to a `command:` task and SILENTLY DROPS them
 # for a `script:` task (moon docs, "Commands vs Scripts": "Passthrough args
 # (from CLI)" is ✅ for command, ❌ for script). Nothing errors: the script just
-# runs with no arguments. So any task whose script reads its arguments ("$@")
-# MUST be declared `command:`; `script:` is only for argument-free tasks.
-# Measured on moon 2.5.5, 2026-09-26: under `script:`,
+# runs with no arguments. So any task whose program reads its arguments ("$@"
+# in bash, process.argv in bun) MUST be declared `command:`; `script:` is only
+# for argument-free tasks. Measured on moon 2.5.5, 2026-09-26: under `script:`,
 # `moon run repo:release-augment -- --help` exited 2 with "missing --tag", and
 # `moon run repo:release-history -- -- HEAD~2..HEAD` printed the default 10
-# commits, byte-identical to the bare run. The argument-taking tasks are
-# triage-suite-log, release-augment, release-history and the commits-* family
-# whose scripts forward "$@" (advise, health, status, pending-release,
-# perf-baseline); install-hook and uninstall-hook read no arguments.
+# commits, byte-identical to the bare run. The argument-taking tasks are lint
+# (validate-plugins.mjs reads --deps and --fix), triage-suite-log,
+# release-augment, release-history and the commits-* family whose scripts
+# forward "$@" (advise, health, status, pending-release, perf-baseline). Every
+# other task's program reads no command-line arguments — install-hook and
+# uninstall-hook included; every "$1" in tasks/release/full,
+# tasks/release/preflight and the test-hooks runner belongs to a shell function
+# or a nested `bash -c` worker body, not to the script's own command line.
 #
 # Every argument-taking `command:` task also sets `options.shell: false`. With
 # the default (a shell, for the system toolchain) moon re-parses the
 # passthrough arguments through bash, so `$HOME` inside a quoted commit subject
 # given to commits-advise arrived expanded to the home directory path — measured
-# on the same date. With `shell: false` moon spawns `bash tasks/<path>` with
+# on the same date. With `shell: false` moon spawns the program (`bash
+# tasks/<path>`, or `bun scripts/validate-plugins.mjs --strict` for lint) with
 # the arguments as a plain argv, and `$`, backticks, quotes and doubled spaces
-# all arrive verbatim, exactly as `bash tasks/<path> ARGS` would deliver them.
+# all arrive verbatim, exactly as a direct invocation would deliver them.
 #
 # Task IDs use `-` because moon reserves `:` as the project/task separator.
 # `moon query tasks` renders this file as the machine-readable task surface.
@@ -53,8 +58,17 @@ tasks:
     script: "bash tasks/test-marketplace-hook-regression-suite"
 
   lint:
-    description: "Validate every plugin's registration, manifest and skill frontmatter."
-    script: "bun scripts/validate-plugins.mjs --strict"
+    description: "Validate every plugin's registration, manifest and skill frontmatter. Takes --deps (inter-plugin dependency graph) and --fix (fix instructions)."
+    # `command`, not `script`: scripts/validate-plugins.mjs reads --deps and
+    # --fix from process.argv, and its own summary tells the reader to "Run
+    # with --deps". Declared `script:`, `moon run repo:lint -- --deps` printed
+    # the same 18 lines as the bare run — dependency graph absent, the "Run
+    # with --deps" hint still printed — measured on moon 2.5.5, 2026-09-26.
+    # Passthrough arguments are appended after --strict; `check` runs this
+    # task as a dependency with no arguments, so the gate is unchanged.
+    command: "bun scripts/validate-plugins.mjs --strict"
+    options:
+      shell: false
 
   check:
     description: "Full local quality gate. Local-first CI/CD: this is what runs before a push, never GitHub Actions."
