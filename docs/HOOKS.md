@@ -2528,7 +2528,6 @@ Use TypeScript/Bun as the default for new hooks. Only use bash for simple patter
 | `productivity-tools` | PreToolUse                    | Calendar event management   |
 | `gmail-commander`    | PreToolUse                    | Gmail draft integrity       |
 | `calcom-commander`   | Stop                          | Bot lifecycle management    |
-| `tts-tg-sync`        | Stop                          | TTS/bot process cleanup     |
 
 ## Related ADRs
 
