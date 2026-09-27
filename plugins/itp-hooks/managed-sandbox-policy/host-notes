@@ -8,6 +8,7 @@ the sandbox-diag-broker on 127.0.0.1 instead. It can only touch notes in "Claude
   host-notes get ID               the note's HTML body
   host-notes new    < body.html   creates a note; prints its id
   host-notes update ID < body.html  replaces that note's body; prints its id
+  host-notes html2txt < body.html   plain text via textutil, which cannot run in the sandbox
 
 There is no delete and no other folder. Used by notes-commander's draft-park when sandboxed.
 """
@@ -43,11 +44,15 @@ def call(method, path, body=None):
 def main():
     ap = argparse.ArgumentParser(prog="host-notes", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("verb", choices=["list", "get", "new", "update"])
+    ap.add_argument("verb", choices=["list", "get", "new", "update", "html2txt"])
     ap.add_argument("id", nargs="?", help="note id (get, update)")
     a = ap.parse_args()
     if a.verb in ("get", "update") and not a.id:
         ap.error(a.verb + " needs a note id")
+    if a.verb == "html2txt":
+        # Written byte-for-byte: callers compare this text, so no trailing newline is added.
+        sys.stdout.buffer.write(call("POST", "/text/html-to-txt", sys.stdin.buffer.read()))
+        return
     if a.verb == "list":
         out = call("GET", "/notes/drafts")
     elif a.verb == "get":

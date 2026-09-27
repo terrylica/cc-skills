@@ -16,6 +16,7 @@
  * notes-core.test.ts. AppleScript payloads live in the consumers (notes.ts, draft-park.ts).
  */
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 export const FOLDER_DEFAULT = "Claude Drafts";
 /** Path segment separator for nested folders, e.g. "To-Do / Done". */
@@ -44,7 +45,8 @@ export function escapeHtml(s: string): string {
  * Scheme allow-list is deliberate: an unrecognised scheme (`javascript:`, `data:`, a bare path)
  * renders as literal text rather than becoming a live link in a document a human will click.
  */
-const INLINE_LINK_RE = /\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
+const INLINE_LINK_RE =
+	/\[([^\]\n]+)\]\((https?:\/\/[^\s()<>"]+|mailto:[^\s()<>"]+)\)/g;
 
 /**
  * Inline emphasis Notes renders as RICH TEXT rather than as literal characters.
@@ -356,7 +358,9 @@ function renderTextBlock(lines: string[]): string[] {
 		const firstMarker = p.findIndex((l) => LIST_RE.test(l));
 		if (firstMarker > 0) {
 			// lead-in prose, then the list
-			html.push(`<div>${renderInline(reflowJoin(p.slice(0, firstMarker)))}</div>`);
+			html.push(
+				`<div>${renderInline(reflowJoin(p.slice(0, firstMarker)))}</div>`,
+			);
 			html.push(...renderListItems(p.slice(firstMarker)));
 		} else if (firstMarker === 0) {
 			html.push(...renderListItems(p));
@@ -563,18 +567,59 @@ export function terminateLegacyEntities(bodyHtml: string): string {
 	return bodyHtml.replace(/&(quot|amp|lt|gt|apos|nbsp)/g, "&$1;");
 }
 
-/** Decode Notes body HTML to plain text with a real HTML parser (never sed). */
-export function htmlToText(bodyHtml: string): string {
-	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
-	const r = spawnSync(
-		"textutil",
-		["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
-		{
-			input: `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`,
-			encoding: "utf8",
-		},
+/** Where the managed sandbox policy (cc-skills itp-hooks) installs the broker's Notes client. */
+export const HOST_NOTES =
+	"/usr/local/libexec/claude-code-sandbox-policy/host-notes";
+
+/** True when the HTML carries characters a reader would see (tags stripped, nbsp as space). */
+export function hasVisibleText(bodyHtml: string): boolean {
+	return (
+		bodyHtml
+			.replace(/<[^>]*>/g, "")
+			.replace(/&nbsp;?/gi, " ")
+			.trim() !== ""
 	);
-	return r.stdout ?? "";
+}
+
+export class HtmlToTextError extends Error {}
+
+/**
+ * Decode Notes body HTML to plain text with a real HTML parser (never sed).
+ *
+ * textutil cannot run inside Claude Code's macOS sandbox: its HTML import needs a helper service,
+ * so it prints "Couldn't communicate with a helper application", writes NOTHING and still exits 0
+ * (measured 2026-09-27). Returning that empty string made every sandboxed read-back look like a
+ * lost note, and would have made `get --body-only` hand a human blank text to send. So when
+ * sandboxed with host-notes installed, the same conversion runs in the broker; and an empty result
+ * for a note with visible text is now an error everywhere, never a value.
+ */
+export function htmlToText(
+	bodyHtml: string,
+	env: Record<string, string | undefined> = process.env,
+	hostNotesInstalled: boolean = existsSync(HOST_NOTES),
+): string {
+	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
+	const input = `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`;
+	const viaBroker = Boolean(env.SANDBOX_RUNTIME) && hostNotesInstalled;
+	const r = viaBroker
+		? spawnSync(HOST_NOTES, ["html2txt"], { input, encoding: "utf8" })
+		: spawnSync(
+				"textutil",
+				["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
+				{ input, encoding: "utf8" },
+			);
+	const out = r.stdout ?? "";
+	if (r.status !== 0 || (out.trim() === "" && hasVisibleText(bodyHtml))) {
+		const why = (r.stderr ?? "").trim() || `exit ${r.status}`;
+		const hint =
+			env.SANDBOX_RUNTIME && !hostNotesInstalled
+				? ` — textutil cannot run inside Claude Code's sandbox; install the managed sandbox policy (${HOST_NOTES})`
+				: "";
+		throw new HtmlToTextError(
+			`HTML-to-text conversion (${viaBroker ? "host-notes" : "textutil"}) returned nothing for a note with text: ${why}${hint}`,
+		);
+	}
+	return out;
 }
 
 /** Collapse runs of blank lines to single blanks (read-back cosmetics). */
