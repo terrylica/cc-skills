@@ -50,6 +50,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-headless-claude-p-guard.ts`                      | Bash                   | Blocks unworkable headless `claude -p` calls  | [→](./docs/headless-claude-p.md)                            |
 | `pretooluse-askuserquestion-option-line-terminator-guard.ts` | AskUserQuestion        | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md) |
 | `pretooluse-pkill-option-after-pattern-guard.ts`             | Bash                   | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)             |
+| `managed-sandbox-policy/sandbox_escape_gate.py`              | MANAGED settings, Bash | Gates the sandbox escape hatch (root-owned)   | [→](./docs/managed-sandbox-policy.md)                       |
 
 ### PostToolUse
 
