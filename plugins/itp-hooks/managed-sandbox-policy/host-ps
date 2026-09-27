@@ -1,0 +1,13 @@
+#!/bin/sh
+# host-ps: the host's full process list, for agents INSIDE Claude Code's macOS sandbox.
+# /bin/ps is denied in the sandbox and the escape flag is ignored for it, so this asks the
+# read-only sandbox-diag-broker on 127.0.0.1 (which the sandbox allows) instead.
+# Output: ps -Aww -o pid,ppid,user,lstart,stat,%cpu,rss,command. Filter it with grep/awk.
+# Arguments are not passed to ps (the broker serves one fixed, complete listing).
+set -eu
+PORT="${SANDBOX_DIAG_BROKER_PORT:-8797}"
+if [ "$#" -gt 0 ]; then
+  echo "host-ps: takes no arguments; it always prints pid,ppid,user,lstart,stat,%cpu,rss,command for every process (pipe it into grep/awk)" >&2
+  exit 64
+fi
+exec curl -fsS --noproxy '*' --max-time 60 "http://127.0.0.1:${PORT}/ps"

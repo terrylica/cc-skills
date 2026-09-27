@@ -1,0 +1,56 @@
+#!/usr/bin/python3
+"""host-log: `log show` for agents INSIDE Claude Code's macOS sandbox.
+
+/usr/bin/log refuses to run sandboxed and the escape flag is ignored for it, so this asks the
+read-only sandbox-diag-broker on 127.0.0.1 instead. Same flags as `log show`, restricted to:
+
+  host-log show (--last 5m | --start 'YYYY-MM-DD HH:MM:SS' --end 'YYYY-MM-DD HH:MM:SS')
+                [--predicate '<predicate>'] [--style compact|syslog|json|ndjson|default] [--info|--debug]
+
+Windows are capped at 60 minutes (the unified log is expensive); one query runs at a time.
+"""
+
+import argparse
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+PORT = os.environ.get("SANDBOX_DIAG_BROKER_PORT", "8797")
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="host-log", description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("verb", choices=["show"])
+    ap.add_argument("--last")
+    ap.add_argument("--start")
+    ap.add_argument("--end")
+    ap.add_argument("--predicate")
+    ap.add_argument("--style", default="compact")
+    lvl = ap.add_mutually_exclusive_group()
+    lvl.add_argument("--info", action="store_const", dest="level", const="info")
+    lvl.add_argument("--debug", action="store_const", dest="level", const="debug")
+    a = ap.parse_args()
+    q = {k: v for k, v in {"last": a.last, "start": a.start, "end": a.end, "predicate": a.predicate,
+                           "style": a.style, "level": a.level}.items() if v}
+    url = "http://127.0.0.1:" + PORT + "/log?" + urllib.parse.urlencode(q)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(url, timeout=150) as r:
+            while True:
+                chunk = r.read(65536)
+                if not chunk:
+                    break
+                sys.stdout.buffer.write(chunk)
+    except urllib.error.HTTPError as exc:
+        sys.stderr.write("host-log: " + exc.read().decode("utf-8", "replace"))
+        sys.exit(1)
+    except urllib.error.URLError as exc:
+        sys.stderr.write("host-log: broker unreachable on 127.0.0.1:" + PORT + " (" + str(exc.reason) + ")\n")
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()
