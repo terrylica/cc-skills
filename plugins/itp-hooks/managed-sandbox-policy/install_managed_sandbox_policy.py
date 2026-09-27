@@ -165,6 +165,21 @@ def install_broker_runner_and_load():
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["/bin/launchctl", "bootstrap", domain, BROKER_PLIST], check=True)
     print("loaded    " + domain + "/" + BROKER_LABEL)
+    # launchd returns before the broker listens (measured ~3-5 s on a Mac mini); wait for it so the
+    # session check below reports the real state instead of a startup race.
+    import time
+    import urllib.error
+    import urllib.request
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        try:
+            with opener.open("http://127.0.0.1:8797/healthz", timeout=2):
+                print("ready     broker answering on 127.0.0.1:8797")
+                return
+        except (urllib.error.URLError, OSError):
+            time.sleep(0.5)
+    print("WARNING   broker did not answer within 30 s; see ~/Library/Logs/sandbox-diag-broker/broker.log")
 
 
 def main():
