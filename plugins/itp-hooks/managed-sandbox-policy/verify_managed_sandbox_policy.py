@@ -60,6 +60,8 @@ GATE_VECTORS = [
     ("escaped osascript is refused (use host-notes)", "osascript -e 'tell application \"Notes\" to count folders'", True, True),
     ("escaped read-only ssh is allowed", "ssh -o BatchMode=yes host hostname", True, False),
     ("escaped git push is allowed", "git push origin main", True, False),
+    ("escaped moon outside a configured checkout is refused",
+     "cd /nonexistent-checkout && moon run repo:check --concurrency 3", True, True),
 ]
 
 
