@@ -48,7 +48,7 @@ MANAGED = {
     "Linux": "/etc/claude-code/managed-settings.json",
 }
 COMMON_FILES = ["sandbox_escape_gate.py", "sandbox_policy_session_check.py"]
-DARWIN_FILES = ["sandbox_diag_broker.py", "host-ps", "host-log"]
+DARWIN_FILES = ["sandbox_diag_broker.py", "host-ps", "host-log", "host-notes"]
 
 # (description, command, escape flag, expect_deny)
 GATE_VECTORS = [
@@ -57,6 +57,7 @@ GATE_VECTORS = [
     ("escaped pkill inside ssh is refused", "ssh host 'pkill -f node'", True, True),
     ("escaped local shell is refused", "bash -c 'echo hi'", True, True),
     ("escaped ps is refused (use host-ps)", "ps aux", True, True),
+    ("escaped osascript is refused (use host-notes)", "osascript -e 'tell application \"Notes\" to count folders'", True, True),
     ("escaped read-only ssh is allowed", "ssh -o BatchMode=yes host hostname", True, False),
     ("escaped git push is allowed", "git push origin main", True, False),
 ]
