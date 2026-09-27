@@ -8,7 +8,7 @@ Kill guard v2. Its sibling [pkill-option-after-pattern-guard](./pkill-option-aft
 
 On 2026-09-27 an agent's `pkill -f '<pattern>' -n` became a pattern of `-n` on macOS. It SIGTERMed eight Claude Code sessions, every Electron app's crash reporter (the apps then crash-looped "quit unexpectedly" dialogs until relaunched), an agent Chrome and Orca's terminals. It also wedged `synergy-core`, which left the bigblack workstation with no input and a blank display.
 
-The managed kernel sandbox ([managed-sandbox-policy](./managed-sandbox-policy.md)) now confines a sandboxed command's signals to its own subtree. That does not cover unsandboxed sessions, ssh remote commands, or hosts without the managed policy. Signalling the PID you started is always possible and never broad, so a static block costs almost nothing.
+A managed Claude Code kernel sandbox that confined each command's signals to its own subtree was installed fleet-wide the same day and retired hours later, because it blocked too much autonomous work (decision: `~/.claude/decisions-release-toolchain-CLAUDE.md`, "Claude Code kernel sandbox retired"; code at tag `archive/pre-retire-managed-sandbox-policy`). This guard and v1 are therefore the protection that remains. Signalling the PID you started is always possible and never broad, so a static block costs almost nothing.
 
 ## What it denies
 
