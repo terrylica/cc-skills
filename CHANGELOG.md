@@ -1,3 +1,22 @@
+## [32.3.1](https://github.com/terrylica/cc-skills/compare/v32.3.0...v32.3.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **notes-commander:** retire the broker path, close silent successes ([d28954e](https://github.com/terrylica/cc-skills/commit/d28954e21a1c9b3ba41d0e28f26dce57c6c6b464)), closes [#160](https://github.com/terrylica/cc-skills/issues/160)
+
+aa639eb9 retired the managed sandbox policy, deleting its broker and host-notes, which left draft-park's broker backend and its "install the managed sandbox policy" message pointing at an installer that no longer exists. draft-park is back to its single osascript path (as at bdb854c5): create-first-then-remove-older and --folder. pickBackend, DRAFT_PARK_BACKEND and the host-notes branch of htmlToText() are removed. Recoverable from tag archive/pre-retire-managed-sandbox-policy.
+
+Kept: htmlToText() throws HtmlToTextError instead of returning "" for a note with text. New: sandboxHint() adds a plain "running inside Claude Code's sandbox" reason to runOsaOrDie() and htmlToText() failures when SANDBOX_RUNTIME is set, replacing a bare -10810.
+
+Three independent reviewers of the revert found silent-success paths, most of them older than the broker. All are fixed and measured:
+
+- Self-heal deleted every other same-title note even when the new note could not be listed, so it could delete the only real copy. selfHealTargets() now deletes nothing unless the new id is listed.
+- Bun's spawnSync default buffer returned status 0 with ENOBUFS and truncated stdout past ~1 MiB (measured 1,114,112 of 1,126,400 bytes). runOsa and htmlToText both accepted that as success. Both now set SPAWN_MAX_BUFFER (256 MiB) and treat `error` as failure.
+- `notes export` had no HtmlToTextError handler, so one bad note aborted the backup before manifest.json. It now skips that note with a ⚠ line and exit 3, like an unreadable folder. doctor and the CLI exit cleanly.
+- get/sticky on a missing title printed nothing, or "(no such draft)", and exited 0. They now die with "no draft titled …" (exit 2), with --folder in the hint. "" and "missing value" bodies fail as READ-FAILED (isReadableNoteBody). get refuses to emit or copy empty sendable text.
+- new refuses an empty stdin unless --allow-empty is given. list --folder &lt;missing> exits 2. sticky dies on a failed pbcopy instead of pasting the
+
 # [32.3.0](https://github.com/terrylica/cc-skills/compare/v32.2.1...v32.3.0) (2026-09-27)
 
 
