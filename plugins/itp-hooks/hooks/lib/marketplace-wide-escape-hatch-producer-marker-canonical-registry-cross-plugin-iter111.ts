@@ -378,6 +378,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
     },
     {
+      markerNameTokenIncludingSuffix: "BROAD-PROCESS-SIGNAL-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-broad-process-signal-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit/MultiEdit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill \"$pid\"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "PKILL-OPTION-ORDER-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-pkill-option-after-pattern-guard.ts",

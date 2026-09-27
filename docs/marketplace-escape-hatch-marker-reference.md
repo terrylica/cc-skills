@@ -11,13 +11,14 @@
 
 ## Quick navigation
 
-Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 41 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (33; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
 - [`BASH-LAUNCHD-OK`](#bash-launchd-ok)
+- [`BROAD-PROCESS-SIGNAL-OK`](#broad-process-signal-ok)
 - [`CARGO-TTY-SKIP`](#cargo-tty-skip)
 - [`CARGO-TTY-WRAP`](#cargo-tty-wrap)
 - [`CHROME-DEBUG-PORT-OK`](#chrome-debug-port-ok)
@@ -76,7 +77,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (33 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -129,6 +130,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # BASH-LAUNCHD-OK
+```
+
+## `BROAD-PROCESS-SIGNAL-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-broad-process-signal-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the broad process-signal guard (pretooluse-broad-process-signal-guard.ts, kill guard v2), which DENIES a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a target, a shared runtime or host program by name (`pkill node`, `killall bun`, `kill $(pgrep claude)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters. It checks Bash commands and the text of shell scripts written with Write/Edit/MultiEdit. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `BROAD-PROCESS-SIGNAL-OK: <reason>` with at least 10 characters. You should almost never need it: signal the PID you started (`cmd & pid=$!; kill "$pid"`), or list with `pgrep -fl '<specific command line>'` and kill by PID. `kill -1 <pid>` (SIGHUP), `kill -0 <pid>` probes, `pgrep` alone and mere mentions are never flagged, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/broad-process-signal-guard.md.
+
+**Example usage**:
+
+```
+# BROAD-PROCESS-SIGNAL-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `CARGO-TTY-SKIP`
