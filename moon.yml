@@ -128,6 +128,12 @@ tasks:
     description: "Fail if cli_spec.json has drifted from the CLIs on disk."
     script: "bash tasks/cli-spec-check.sh"
 
+  sandbox-policy-verify:
+    description: "Pass/fail regression check of the installed managed Claude Code sandbox policy on this host (static tier; add --live by hand). Changes nothing."
+    script: "/usr/bin/python3 plugins/itp-hooks/managed-sandbox-policy/verify_managed_sandbox_policy.py"
+    options:
+      cache: false
+
   # ── Documentation counts ───────────────────────────────────────────────────
   verify-doc-counts:
     # Root CLAUDE.md was found asserting a design-spec coverage that was wrong by

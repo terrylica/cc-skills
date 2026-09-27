@@ -584,6 +584,53 @@
       "title": "plugins/itp-hooks/managed-sandbox-policy/sandbox_diag_broker.py",
       "type": "object"
     },
+    "plugins/itp-hooks/managed-sandbox-policy/verify_managed_sandbox_policy.py": {
+      "additionalProperties": false,
+      "properties": {
+        "--claude-cmd": {
+          "default": "claude",
+          "description": "live tier: how to invoke Claude Code",
+          "type": "string",
+          "x-option-strings": [
+            "--claude-cmd"
+          ]
+        },
+        "--json": {
+          "default": false,
+          "description": "print the result as JSON",
+          "type": "boolean",
+          "x-option-strings": [
+            "--json"
+          ]
+        },
+        "--live": {
+          "default": false,
+          "description": "also run the headless fresh-session pilot",
+          "type": "boolean",
+          "x-option-strings": [
+            "--live"
+          ]
+        },
+        "--max-turns": {
+          "default": 16,
+          "description": "live tier: turn cap for the session",
+          "type": "integer",
+          "x-option-strings": [
+            "--max-turns"
+          ]
+        },
+        "--ssh-host": {
+          "default": "",
+          "description": "live tier: host an escaped ssh must reach",
+          "type": "string",
+          "x-option-strings": [
+            "--ssh-host"
+          ]
+        }
+      },
+      "title": "plugins/itp-hooks/managed-sandbox-policy/verify_managed_sandbox_policy.py",
+      "type": "object"
+    },
     "plugins/itp/skills/code-hardcode-audit/scripts/audit_env_coverage.py": {
       "additionalProperties": false,
       "description": "Audit env-var coverage for Python constants",

@@ -21,3 +21,11 @@ reason = "Installer run under sudo on macOS and Linux; must use the same OS-owne
 [[allow]]
 path   = "test_sandbox_escape_gate.py"
 reason = "unittest suite for sandbox_escape_gate.py; runs on /usr/bin/python3 3.9 and Ubuntu python3 to prove both targets."
+
+[[allow]]
+path   = "verify_managed_sandbox_policy.py"
+reason = "Regression check for the installed policy; runs on each host OS-owned /usr/bin/python3 (3.9 on macOS) over ssh with no toolchain present, and exercises the Python gate and session check it verifies. Stdlib-only."
+
+[[allow]]
+path   = "test_verify_managed_sandbox_policy.py"
+reason = "unittest suite for verify_managed_sandbox_policy.py on the same system interpreter it targets."
