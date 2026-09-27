@@ -68,10 +68,14 @@ class DeniesTheIncidentAndItsCousins(unittest.TestCase):
         for cmd in ["/tmp/host-ps aux", "host-ps aux", HERE + "/host-log erase --all", HERE + "/host-log config"]:
             self.assertEqual(run(cmd), "deny", cmd)
 
-    def test_osascript_rules(self):
+    def test_osascript_never_escapes(self):
+        # Claude Code keeps osascript sandboxed even when escaped (-10810, measured 2026-09-27), so
+        # the gate refuses it outright and points at host-notes instead of advertising a dead end.
         for cmd in ["osascript -e 'quit app \"Synergy\"'", "osascript -e 'do shell script \"ls\"'",
                     "osascript -e 'tell application \"System Events\" to keystroke \"q\"'",
-                    "osascript script.scpt"]:
+                    "osascript script.scpt",
+                    "/usr/bin/osascript -e 'tell application \"Finder\" to get name of front window'",
+                    "osascript -e 'tell application \"Notes\" to count folders'"]:
             self.assertEqual(run(cmd), "deny", cmd)
 
     def test_ssh_local_command_options(self):
@@ -108,7 +112,6 @@ class AllowsTheEverydayEscapes(unittest.TestCase):
             HERE + "/host-log stream --predicate 'process == \"x\"'",
             "launchctl list com.terryli.iterm2-autosnapshot",
             "launchctl print gui/501/com.cpc.nas-tunnel 2>&1 | head -30",
-            "/usr/bin/osascript -e 'tell application \"Finder\" to get name of front window'",
             "git push origin main",
             "git -C /Users/terryli/eon/cc-skills fetch --dry-run origin",
             "git clone git@github.com:terrylica/cc-skills.git /tmp/x",

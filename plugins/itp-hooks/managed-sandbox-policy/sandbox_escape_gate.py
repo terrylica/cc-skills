@@ -56,7 +56,7 @@ SSH_DANGEROUS_OPTIONS = re.compile(r"(?i)(proxycommand|localcommand|permitlocalc
 LAUNCHCTL_READ_ONLY = {"list", "print", "print-disabled", "blame"}
 LOG_READ_ONLY = {"show", "stream"}
 GIT_NETWORK_ONLY = {"push", "fetch", "pull", "clone", "ls-remote"}
-OSASCRIPT_FORBIDDEN = re.compile(r"(?i)(\bquit\b|do shell script|doShellScript|keystroke|key code|\bdelete\b|System Events)")
+LIBEXEC_HINT = "/usr/local/libexec/claude-code-sandbox-policy/"
 
 
 def _basename(word):
@@ -96,9 +96,11 @@ def _deny(reason):
                 "signals to your own subtree, so a mistaken kill/pkill cannot reach the operator's apps "
                 "(2026-09-27 incident). Escapes are allowed only for: ssh (no kill-like remote command, no "
                 "ProxyCommand/LocalCommand), ps, log show|stream, launchctl list|print|print-disabled|blame, "
-                "osascript -e without quit/do shell script/System Events, git [-C dir] push|fetch|pull|clone|ls-remote, "
+                "git [-C dir] push|fetch|pull|clone|ls-remote (on macOS the flag changes nothing for git: "
+                "it stays sandboxed, so run it without the flag), "
                 "each optionally piped into grep/head/tail/cut/sort/uniq/wc/cat/tr/jq/column, with output "
-                "redirected only to /dev/null. Policy: plugins/itp-hooks/docs/managed-sandbox-policy.md"
+                "redirected only to /dev/null. Apple Notes drafts: host-notes, without the flag. "
+                "Policy: plugins/itp-hooks/docs/managed-sandbox-policy.md"
             ),
         }
     }
@@ -197,11 +199,11 @@ def classify(command):
     if prog == "launchctl":
         return None if args and args[0] in LAUNCHCTL_READ_ONLY else "only read-only launchctl subcommands may escape"
     if prog == "osascript":
-        if not args or len(args) % 2 or any(args[j] != "-e" for j in range(0, len(args), 2)):
-            return "osascript may escape only as '-e <script>' pairs"
-        if OSASCRIPT_FORBIDDEN.search(command):
-            return "osascript that quits apps, runs shell scripts or drives System Events may not escape"
-        return None
+        # It used to be allowed as '-e' pairs. Removed 2026-09-27: Claude Code keeps osascript
+        # sandboxed even with the flag (an escaped Notes call still failed -10810, Apple Events
+        # blocked), so the allowance only advertised a dead end. Drafts go through the broker.
+        return ("Claude Code keeps osascript sandboxed even with this flag (Apple Events blocked, -10810). "
+                "For the 'Claude Drafts' folder in Notes use " + LIBEXEC_HINT + "host-notes WITHOUT the flag")
     if prog == "git":
         j = 0
         while j < len(args) and args[j] == "-C":
