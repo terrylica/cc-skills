@@ -28,6 +28,8 @@ import {
 	entityLeaks,
 	escapeHtml,
 	FOLDER_DEFAULT,
+	HOST_NOTES,
+	HtmlToTextError,
 	htmlToText,
 	isNoteId,
 	matchNoteIds,
@@ -325,10 +327,6 @@ function die(msg: string): never {
 // (cc-skills itp-hooks) therefore runs a root-owned broker that serves ONE folder, "Claude Drafts",
 // through the `host-notes` client: list, read, create, replace a body. No delete, no other folder.
 
-/** Where the managed sandbox policy installs the broker's Notes client. */
-export const HOST_NOTES =
-	"/usr/local/libexec/claude-code-sandbox-policy/host-notes";
-
 export type BackendKind = "osascript" | "broker";
 
 /**
@@ -617,4 +615,12 @@ end tell`;
 }
 
 // Only run the CLI when executed directly (bun draft-park.ts …), not when imported by tests.
-if (import.meta.main) main();
+if (import.meta.main) {
+	try {
+		main();
+	} catch (e) {
+		// A failed conversion must stop the run loudly: its old silent "" read as a lost note.
+		if (e instanceof HtmlToTextError) die(`✗ ${e.message}`);
+		throw e;
+	}
+}

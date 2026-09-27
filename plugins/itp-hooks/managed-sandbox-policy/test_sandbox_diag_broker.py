@@ -83,6 +83,10 @@ class DraftsValidation(unittest.TestCase):
             self.assertNotIn("delete", script)
             self.assertNotIn("quit", script)
 
+    def test_textutil_argv_is_fixed(self):
+        self.assertEqual(broker.TEXTUTIL_ARGV[0], "/usr/bin/textutil")
+        self.assertEqual(broker.TEXTUTIL_ARGV[1:], ["-stdin", "-stdout", "-convert", "txt", "-format", "html"])
+
     def test_per_note_scripts_are_confined_to_the_drafts_folder(self):
         for script in (broker.OSA_GET, broker.OSA_UPDATE):
             self.assertIn("(id of notes of folder folderName) does not contain noteId", script)
@@ -209,6 +213,10 @@ class RequestHygiene(unittest.TestCase):
         self.assertEqual(self.call("GET", "/notes/drafts/note?id=p1"), 400)
         self.assertEqual(self.call("POST", "/notes/drafts", b"", h), 400)
         self.assertEqual(self.call("POST", "/notes/drafts", b"x" * (broker.MAX_NOTE_BYTES + 1), h), 400)
+
+    def test_html_to_txt_needs_the_header_and_a_body(self):
+        self.assertEqual(self.call("POST", "/text/html-to-txt", b"<div>x</div>"), 403)
+        self.assertEqual(self.call("POST", "/text/html-to-txt", b"", {"X-Sandbox-Broker": "1"}), 400)
 
     def test_unknown_post_path_is_404(self):
         self.assertEqual(self.call("POST", "/notes/delete", b"<div>x</div>", {"X-Sandbox-Broker": "1"}), 404)
