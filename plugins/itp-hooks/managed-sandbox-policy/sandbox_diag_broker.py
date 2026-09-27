@@ -90,13 +90,16 @@ OSA_LIST = """on run argv
   end tell
 end run"""
 
-# Every per-note script carries the same guard: the note must sit in THE drafts folder.
+# Every per-note script carries the same guard: the note must sit in THE drafts folder. Membership
+# is tested against `id of notes of folder`, the form OSA_LIST uses; `id of container of n` fails
+# -1728 in Notes (measured 2026-09-27 on the first live call).
 OSA_GET = """on run argv
   set folderName to item 1 of argv
   set noteId to item 2 of argv
   tell application "Notes"
+    if not (exists folder folderName) then error "not a draft" number 1001
+    if (id of notes of folder folderName) does not contain noteId then error "not a draft" number 1001
     set n to note id noteId
-    if (id of container of n) is not (id of folder folderName) then error "not a draft" number 1001
     return body of n
   end tell
 end run"""
@@ -116,8 +119,9 @@ OSA_UPDATE = """on run argv
   set noteId to item 2 of argv
   set bodyHTML to item 3 of argv
   tell application "Notes"
+    if not (exists folder folderName) then error "not a draft" number 1001
+    if (id of notes of folder folderName) does not contain noteId then error "not a draft" number 1001
     set n to note id noteId
-    if (id of container of n) is not (id of folder folderName) then error "not a draft" number 1001
     set body of n to bodyHTML
     return id of n
   end tell

@@ -85,7 +85,9 @@ class DraftsValidation(unittest.TestCase):
 
     def test_per_note_scripts_are_confined_to_the_drafts_folder(self):
         for script in (broker.OSA_GET, broker.OSA_UPDATE):
-            self.assertIn("(id of container of n) is not (id of folder folderName)", script)
+            self.assertIn("(id of notes of folder folderName) does not contain noteId", script)
+            self.assertNotIn("container of", script)  # fails -1728 in Notes, measured 2026-09-27
+            self.assertLess(script.index("does not contain noteId"), script.index("set n to note id"))
 
     def test_parse_index(self):
         raw = "id-1\u0001First\u0002id-2\u0001Second \u2014 draft\u0002"
