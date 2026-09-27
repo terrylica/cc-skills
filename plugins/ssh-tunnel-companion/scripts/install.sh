@@ -134,8 +134,6 @@ for i in $(seq 1 5); do
     echo "=== Install complete ==="
     echo "  localhost:18123 → $TUNNEL_HOST:8123 (ClickHouse)"
     echo "  localhost:18081 → $TUNNEL_HOST:8081 (SSE sidecar — crypto ODB)"
-    echo "  localhost:18082 → $TUNNEL_HOST:8082 (fxview-sidecar — forex ticks)"
-    echo "  localhost:5900  → $TUNNEL_HOST:5900 (VNC — MT5/WINE)"
     echo ""
     echo "  SwiftBar: look for the tunnel indicator in your menu bar"
     echo "  Logs: /tmp/ssh-tunnel-companion.log"

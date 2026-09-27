@@ -44,7 +44,6 @@ Services run on two GPU workstations: **gpu-host-1** (RTX 4090) for primary comp
 | Service    | Host       | Port | Tunnel          | Skill                                             |
 | ---------- | ---------- | ---- | --------------- | ------------------------------------------------- |
 | ClickHouse | gpu-host-1 | 8123 | localhost:18123 | `Skill(devops-tools:clickhouse-cloud-management)` |
-| VNC (MT5)  | gpu-host-1 | 5900 | localhost:5900  | x11vnc, display :99, MT5/WINE                     |
 
 > Do not add a self-hosted Firecrawl here. It ran on gpu-host-2:3002 until 2026-08-13 and was retired for the public API at `https://api.firecrawl.dev` — see `Skill(devops-tools:firecrawl-research-patterns)`.
 
