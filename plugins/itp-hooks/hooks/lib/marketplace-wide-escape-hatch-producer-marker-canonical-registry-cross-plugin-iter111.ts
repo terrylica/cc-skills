@@ -378,6 +378,16 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
     },
     {
+      markerNameTokenIncludingSuffix: "PKILL-OPTION-ORDER-OK",
+      consumerHookSourceFileRelativePath:
+        "plugins/itp-hooks/hooks/pretooluse-pkill-option-after-pattern-guard.ts",
+      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
+      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
+      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 10,
+      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
+        "Suppress the pkill/pgrep option-order guard (pretooluse-pkill-option-after-pattern-guard.ts), which DENIES a Bash command in which `pkill` or `pgrep` carries an option-looking argument AFTER its first pattern, e.g. `pkill -f 'bun server.ts' -n`. macOS/BSD getopt stops at the first non-option argument, so that trailing `-n` is a second PATTERN and pkill signals every process whose command line contains it; on 2026-09-27 exactly that line SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `PKILL-OPTION-ORDER-OK: <reason>` with at least 10 characters. You should almost never need it: the corrected order (every option before the first pattern) is equivalent on Linux and right on macOS, and a pattern that genuinely begins with '-' is written after `--` (`pkill -f -- '-n'`), which the guard already allows. Mentions of such a command (quoted text, comments, heredocs fed to cat/python/git) are not flagged either, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/pkill-option-after-pattern-guard.md.",
+    },
+    {
       markerNameTokenIncludingSuffix: "PROCESS-STORM-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/process-storm-patterns.mjs",
