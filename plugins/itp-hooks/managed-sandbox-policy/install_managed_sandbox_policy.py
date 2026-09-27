@@ -182,14 +182,59 @@ def install_broker_runner_and_load():
     print("WARNING   broker did not answer within 30 s; see ~/Library/Logs/sandbox-diag-broker/broker.log")
 
 
+def uninstall(system, apply):
+    """Exact inverse of --apply: unload and delete everything this installer puts on a host. No host
+    had managed settings before the 2026-09-27 install, so the managed file is deleted, not restored."""
+    targets = []
+    if system == "Darwin":
+        targets.append(BROKER_PLIST)
+    for name in SCRIPTS + DARWIN_SCRIPTS + [BROKER_RUNNER]:
+        targets.append(os.path.join(LIBEXEC, name))
+    targets.append(MANAGED[system])
+    if system == "Linux":
+        targets.append(APPARMOR_BWRAP)
+    present = [p for p in targets if os.path.exists(p)]
+    for p in present:
+        print("remove    " + p)
+    if os.path.isdir(LIBEXEC):
+        print("rmdir     " + LIBEXEC + " (if empty)")
+    if not apply:
+        print("\npreview only; re-run with sudo and --uninstall --apply to remove these")
+        return
+    if os.geteuid() != 0:
+        sys.exit("--apply needs root: sudo /usr/bin/python3 " + os.path.abspath(__file__) + " --uninstall --apply")
+    if system == "Darwin":
+        uid = os.environ.get("SUDO_UID")
+        if uid:
+            subprocess.run(["/bin/launchctl", "bootout", "gui/" + uid + "/" + BROKER_LABEL], check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print("unloaded  gui/" + uid + "/" + BROKER_LABEL)
+        else:
+            print("SUDO_UID unset: unload it yourself with launchctl bootout gui/$UID/" + BROKER_LABEL)
+    if system == "Linux" and os.path.exists(APPARMOR_BWRAP):
+        subprocess.run(["apparmor_parser", "-R", APPARMOR_BWRAP], check=False)
+        print("unloaded  AppArmor profile bwrap")
+    for p in present:
+        os.remove(p)
+        print("removed   " + p)
+    if os.path.isdir(LIBEXEC) and not os.listdir(LIBEXEC):
+        os.rmdir(LIBEXEC)
+        print("removed   " + LIBEXEC)
+    print("\nDone. Sessions started from now on run unsandboxed; restart any open Claude Code sessions.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--apply", action="store_true", help="make the changes (needs root); default is a preview")
+    ap.add_argument("--uninstall", action="store_true", help="remove the policy from this host (preview unless --apply)")
     args = ap.parse_args()
 
     system = platform.system()
     if system not in MANAGED:
         sys.exit("unsupported platform: " + system)
+    if args.uninstall:
+        uninstall(system, args.apply)
+        return
 
     actions = []
     for name in SCRIPTS + (DARWIN_SCRIPTS if system == "Darwin" else []):
