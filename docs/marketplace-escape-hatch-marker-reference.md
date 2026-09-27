@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 39 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (31; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -37,6 +37,7 @@ Jump directly to any of the 39 registered markers below. Markers are listed alph
 - [`MD-TABLE-OK`](#md-table-ok)
 - [`MINI-INNGEST-OK`](#mini-inngest-ok)
 - [`PII-SCAN-OK`](#pii-scan-ok)
+- [`PKILL-OPTION-ORDER-OK`](#pkill-option-order-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
 - [`PUEUE-LOCAL-OK`](#pueue-local-ok)
 - [`RELEASE-NOTES-OK`](#release-notes-ok)
@@ -75,7 +76,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (31 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -451,6 +452,23 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # PII-SCAN-OK
+```
+
+## `PKILL-OPTION-ORDER-OK`
+
+| Field | Value |
+| ----- | ----- |
+| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-pkill-option-after-pattern-guard.ts` |
+| **Case-sensitivity mode** | `CASE_SENSITIVE` |
+| **Window-semantics mode** | `FILE_WIDE` |
+| **Reason policy** | Reason required after colon — minimum 10 characters |
+
+**What it does**: Suppress the pkill/pgrep option-order guard (pretooluse-pkill-option-after-pattern-guard.ts), which DENIES a Bash command in which `pkill` or `pgrep` carries an option-looking argument AFTER its first pattern, e.g. `pkill -f 'bun server.ts' -n`. macOS/BSD getopt stops at the first non-option argument, so that trailing `-n` is a second PATTERN and pkill signals every process whose command line contains it; on 2026-09-27 exactly that line SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. A JUSTIFICATION IS MANDATORY: write `PKILL-OPTION-ORDER-OK: <reason>` with at least 10 characters. You should almost never need it: the corrected order (every option before the first pattern) is equivalent on Linux and right on macOS, and a pattern that genuinely begins with '-' is written after `--` (`pkill -f -- '-n'`), which the guard already allows. Mentions of such a command (quoted text, comments, heredocs fed to cat/python/git) are not flagged either, so if you are reaching for this marker to unblock one of those, the guard has a bug and the right fix is a test. Spoke: plugins/itp-hooks/docs/pkill-option-after-pattern-guard.md.
+
+**Example usage**:
+
+```
+# PKILL-OPTION-ORDER-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `PROCESS-STORM-OK`
