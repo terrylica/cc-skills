@@ -358,6 +358,45 @@ class MoonTasksDenied(MoonCase):
         self.assertDeny(CHECK, cwd=None, why="this hook input has none")
 
 
+class AMidWordHashIsNotAComment(MoonCase):
+    """bash and zsh start a comment only at the START of a word, so in '3#; echo x' the '3#' is an
+    argument and 'echo x' is a second command. shlex's default commenters='#' starts a comment
+    mid-word and dropped the rest, so the gate approved the line (found by adversarial review,
+    2026-09-27). Each case runs in a configured, clean checkout, so only the '#' can refuse it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.co = Checkouts()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.co.cleanup()
+
+    def test_control_the_same_lines_without_the_hash_are_approved(self):
+        self.assertPass(CHECK, cwd=self.co.root)
+        self.assertPass("cd " + self.co.root + " && " + CHECK)
+        self.assertEqual(run("git push origin main"), "pass")
+
+    def test_moon_with_a_second_command_after_a_mid_word_hash(self):
+        r = self.co.root
+        for cmd in [CHECK + "#; echo x",                                        # shape a
+                    "cd " + r + " && " + CHECK + "#; echo x",                   # shape b
+                    "moon run repo:check --concurrency=2#&& echo x",
+                    "cd " + r + " && moon run repo:check --concurrency=2#&& echo x"]:
+            self.assertDeny(cmd, cwd=r, why="nothing else on the line")
+
+    def test_the_hash_stays_in_its_word(self):
+        self.assertDeny(CHECK + "#", cwd=self.co.root, why="got '3#'")
+
+    def test_kill_words_after_a_mid_word_hash_are_seen(self):
+        self.assertDeny(CHECK + "#; pkill -f x", cwd=self.co.root, why="'pkill' may not run outside the sandbox")
+        self.assertDeny("ssh host true#; kill 1", why="'kill' may not run outside the sandbox")
+
+    def test_git_with_a_second_command_after_a_mid_word_hash(self):
+        # The same hole predates the moon rule: the git allowlist approved this line too.
+        self.assertDeny("git push origin main#; echo x", why="command chaining (';')")
+
+
 class MoonTaskConfig(MoonCase):
     @classmethod
     def setUpClass(cls):
