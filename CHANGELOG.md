@@ -1,3 +1,15 @@
+## [32.2.1](https://github.com/terrylica/cc-skills/compare/v32.2.0...v32.2.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **itp-hooks:** wait for the diagnostics broker before checking it ([c10cc02](https://github.com/terrylica/cc-skills/commit/c10cc020cb228c16612d2b960daf1eed575e8830))
+
+On the first installs (mca and nca, macOS 26.5.2), launchd returned from `bootstrap` 3-5 s before the broker was listening. So the installer's closing session check reported "diagnostics broker not answering" on two hosts that were in fact healthy seconds later, and a correct install read as a failed one.
+
+- The installer now polls `http://127.0.0.1:8797/healthz` for up to 30 s after loading the LaunchAgent and prints `ready` before running the session check, or a WARNING that names the broker log if it never answers.
+- Verified by hand on both minis afterwards: the broker answers, `host-ps` lists all host processes (730 and 688), and the session check is silent.
+
 # [32.2.0](https://github.com/terrylica/cc-skills/compare/v32.1.0...v32.2.0) (2026-09-27)
 
 
