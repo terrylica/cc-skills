@@ -34,7 +34,7 @@ LIBEXEC = "/usr/local/libexec/claude-code-sandbox-policy"
 SCRIPTS = ["sandbox_escape_gate.py", "sandbox_policy_session_check.py"]
 # macOS only: the read-only diagnostics broker and its sandbox-side clients (on Linux, ps inside
 # bubblewrap's PID namespace sees only the sandbox, and there is no unified log to bridge).
-DARWIN_SCRIPTS = ["sandbox_diag_broker.py", "host-ps", "host-log"]
+DARWIN_SCRIPTS = ["sandbox_diag_broker.py", "host-ps", "host-log", "host-notes"]
 BROKER_LABEL = "com.terryli.sandbox-diag-broker"
 BROKER_RUNNER = "sandbox-diag-broker-runner"
 BROKER_PLIST = "/Library/LaunchAgents/" + BROKER_LABEL + ".plist"
