@@ -55,13 +55,17 @@ FILTERS = {"grep", "egrep", "fgrep", "head", "tail", "cut", "sort", "uniq", "wc"
 SSH_DANGEROUS_OPTIONS = re.compile(r"(?i)(proxycommand|localcommand|permitlocalcommand|knownhostscommand|proxyuseFdpass)")
 LAUNCHCTL_READ_ONLY = {"list", "print", "print-disabled", "blame"}
 LOG_READ_ONLY = {"show", "stream"}
-# git is deliberately NOT escapable (changed 2026-09-27). Escaping it never helps: over SSH it
+GIT_NETWORK_ONLY = {"push", "fetch", "pull", "clone", "ls-remote"}
+
+# On macOS, git is deliberately NOT escapable (changed 2026-09-27). Escaping it never helps: over SSH it
 # fails whether or not the flag is set, and over HTTPS it already works inside the sandbox.
 # Measured on macOS the same day: through the hatch, `ssh -T git@github.com-<alias>` authenticated,
 # while `git ls-remote` and `git push` over the same alias did not, and still carried the sandbox's
 # shell-init symptom, so Claude Code kept git sandboxed despite the flag. The proxy itself carries
 # no SSH (SOCKS5 to :22 and :443 and HTTP CONNECT to :443 were all refused). Approving a git
 # escape only sent sessions down a dead end, so the gate refuses it and names the fix.
+# Linux (bubblewrap) was NOT measured, so there the previous rule stands: git network
+# subcommands may escape. Re-measure before extending the refusal to Linux.
 GIT_ESCAPE_REFUSAL = (
     "git cannot usefully escape: Claude Code keeps git sandboxed even with dangerouslyDisableSandbox, "
     "and the sandbox proxy carries no SSH, so git over SSH fails either way. Use HTTPS, which works "
@@ -111,7 +115,8 @@ def _deny(reason):
                 "ProxyCommand/LocalCommand), ps, log show|stream, launchctl list|print|print-disabled|blame, "
                 "osascript -e without quit/do shell script/System Events, "
                 "each optionally piped into grep/head/tail/cut/sort/uniq/wc/cat/tr/jq/column, with output "
-                "redirected only to /dev/null. git is not escapable: push over HTTPS inside the sandbox instead. "
+                "redirected only to /dev/null. git: on macOS not escapable (push over HTTPS inside the sandbox "
+                "instead); on Linux, git [-C dir] push|fetch|pull|clone|ls-remote. "
                 "Policy: plugins/itp-hooks/docs/managed-sandbox-policy.md"
             ),
         }
@@ -217,7 +222,16 @@ def classify(command):
             return "osascript that quits apps, runs shell scripts or drives System Events may not escape"
         return None
     if prog == "git":
-        return GIT_ESCAPE_REFUSAL
+        if sys.platform == "darwin":
+            return GIT_ESCAPE_REFUSAL
+        j = 0
+        while j < len(args) and args[j] == "-C":
+            j += 2
+        if j < len(args) and args[j].startswith("-"):
+            return "git options before the subcommand (e.g. -c) cannot be escaped"
+        if j < len(args) and args[j] in GIT_NETWORK_ONLY:
+            return None
+        return "only git push|fetch|pull|clone|ls-remote may escape"
     return "'" + first[0] + "' is not on the escape allowlist"
 
 
