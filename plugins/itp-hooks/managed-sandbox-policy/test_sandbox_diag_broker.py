@@ -63,6 +63,16 @@ def _free_port():
     return port
 
 
+def _ps_usable():
+    """Claude Code's macOS sandbox refuses /bin/ps (the reason the broker exists), so a run from
+    inside an agent session cannot exercise the broker's /ps round trip."""
+    try:
+        return subprocess.run(["/bin/ps", "-p", str(os.getpid())], capture_output=True, check=False).returncode == 0
+    except OSError:
+        return False
+
+
+@unittest.skipUnless(_ps_usable(), "/bin/ps is not usable here (inside the Claude Code sandbox)")
 class LiveRoundTrip(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
