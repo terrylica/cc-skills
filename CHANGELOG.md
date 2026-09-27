@@ -1,3 +1,12 @@
+# [32.2.0](https://github.com/terrylica/cc-skills/compare/v32.1.0...v32.2.0) (2026-09-27)
+
+
+### Features
+
+* **itp-hooks:** kernel-sandbox agent commands, gated escape ([70d33ed](https://github.com/terrylica/cc-skills/commit/70d33ed4887a02c1a023e443e94493292e6bf3c4)), closes [anthropics/claude-code#53012](https://github.com/anthropics/claude-code/issues/53012)
+
+The 2026-09-27 incident showed that pattern-matching guards cannot keep up with the ways an agent command can reach processes it does not own: a single `pkill -f '<pattern>' -n` SIGTERMed eight Claude Code sessions, every Electron app's crash reporter, Chrome's renderers and the Synergy server, and the wedged Synergy server left bigblack without keyboard, mouse or display. Claude Code's own sandbox runtime already contains the structural fix, which is to confine a command's signals to its own subtree, using Seatbelt `(allow signal (target same-sandbox))` on macOS and bubblewrap `--unshare-pid` on Linux. It was simply not turned on, and nothing stopped a session from turning it off or escaping it.
+
 # [32.1.0](https://github.com/terrylica/cc-skills/compare/v32.0.0...v32.1.0) (2026-09-27)
 
 
