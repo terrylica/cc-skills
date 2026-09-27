@@ -5,7 +5,7 @@ WHY. Claude Code's kernel sandbox confines an agent command's signals to its own
 (macOS Seatbelt ``(allow signal (target same-sandbox))``; Linux bubblewrap ``--unshare-pid``).
 That is what would have made the 2026-09-27 incident impossible: ``pkill -f '<pat>' -n``
 SIGTERMed every process whose argv contained "-n". But some everyday commands cannot run
-sandboxed on macOS (ssh, ps, log, osascript, git over ssh), and ``sandbox.excludedCommands``
+sandboxed on macOS (ssh, ps, log, osascript), and ``sandbox.excludedCommands``
 does not exempt them there (anthropics/claude-code#53012). So the escape hatch stays open, and
 THIS gate is the only way through it: a Bash call carrying ``dangerouslyDisableSandbox: true``
 runs unsandboxed only when every command in it is on a small allowlist, and never when any
@@ -56,6 +56,25 @@ SSH_DANGEROUS_OPTIONS = re.compile(r"(?i)(proxycommand|localcommand|permitlocalc
 LAUNCHCTL_READ_ONLY = {"list", "print", "print-disabled", "blame"}
 LOG_READ_ONLY = {"show", "stream"}
 GIT_NETWORK_ONLY = {"push", "fetch", "pull", "clone", "ls-remote"}
+
+# On macOS, git is deliberately NOT escapable (changed 2026-09-27): the escape never helps, and git
+# does not need it. Measured on macOS the same day: through the hatch, `ssh -T git@github.com-<alias>`
+# authenticated, while `git ls-remote` and `git push` over the same alias failed and still carried
+# the sandbox's shell-init symptom, so Claude Code kept git sandboxed despite the flag. Git works
+# INSIDE the sandbox instead. Over SSH, the ProxyCommand has to authenticate to the sandbox proxy:
+# the injected `nc -X 5 -x localhost:<port>` (SOCKS5, no credentials) is refused, and so is an
+# HTTP CONNECT without credentials, but an HTTP CONNECT carrying the credentials from HTTPS_PROXY
+# (http://user:pass@localhost:<port>) to ssh.github.com:443 goes through. HTTPS git works as is.
+# Approving a git escape only sent sessions down a dead end, so the gate refuses it and says why.
+# Linux (bubblewrap) was NOT measured, so there the previous rule stands: git network
+# subcommands may escape. Re-measure before extending the refusal to Linux.
+GIT_ESCAPE_REFUSAL = (
+    "git needs no escape, and on macOS the hatch does not unsandbox it anyway. Run git inside the "
+    "sandbox. Over SSH, use a ProxyCommand that sends HTTP CONNECT to the sandbox proxy with the "
+    "credentials from HTTPS_PROXY: the injected `nc -X 5` SOCKS route cannot authenticate and is "
+    "refused. Or use HTTPS, with credentials from Git Credential Manager (never gh in a credential "
+    "helper, per the process-storm rule)."
+)
 OSASCRIPT_FORBIDDEN = re.compile(r"(?i)(\bquit\b|do shell script|doShellScript|keystroke|key code|\bdelete\b|System Events)")
 
 
@@ -96,9 +115,11 @@ def _deny(reason):
                 "signals to your own subtree, so a mistaken kill/pkill cannot reach the operator's apps "
                 "(2026-09-27 incident). Escapes are allowed only for: ssh (no kill-like remote command, no "
                 "ProxyCommand/LocalCommand), ps, log show|stream, launchctl list|print|print-disabled|blame, "
-                "osascript -e without quit/do shell script/System Events, git [-C dir] push|fetch|pull|clone|ls-remote, "
+                "osascript -e without quit/do shell script/System Events, "
                 "each optionally piped into grep/head/tail/cut/sort/uniq/wc/cat/tr/jq/column, with output "
-                "redirected only to /dev/null. Policy: plugins/itp-hooks/docs/managed-sandbox-policy.md"
+                "redirected only to /dev/null. git: on macOS not escapable (push over HTTPS inside the sandbox "
+                "instead); on Linux, git [-C dir] push|fetch|pull|clone|ls-remote. "
+                "Policy: plugins/itp-hooks/docs/managed-sandbox-policy.md"
             ),
         }
     }
@@ -203,6 +224,8 @@ def classify(command):
             return "osascript that quits apps, runs shell scripts or drives System Events may not escape"
         return None
     if prog == "git":
+        if sys.platform == "darwin":
+            return GIT_ESCAPE_REFUSAL
         j = 0
         while j < len(args) and args[j] == "-C":
             j += 2
