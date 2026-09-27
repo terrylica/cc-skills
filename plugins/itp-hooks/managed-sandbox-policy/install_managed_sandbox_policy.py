@@ -15,6 +15,12 @@ What --apply does, idempotently:
   3. Linux only: installs /etc/apparmor.d/bwrap, which grants user namespaces to /usr/bin/bwrap ONLY.
      Ubuntu 24.04+ sets kernel.apparmor_restrict_unprivileged_userns=1, and without this profile bwrap
      fails ('setting up uid map: Permission denied'), so the Linux sandbox cannot start.
+  4. With --allow-moon-task ROOT=TASK[,TASK...] (repeatable): writes escape-allowed-moon-tasks.json beside
+     the gate, naming the moon tasks that may run unsandboxed in each checkout and its linked worktrees:
+         sudo /usr/bin/python3 install_managed_sandbox_policy.py --apply \\
+             --allow-moon-task /path/to/checkout=repo:check,repo:release-full
+     The flag replaces the whole list. Without it an existing list is left untouched; --clear-moon-tasks
+     removes it, after which no moon task may escape.
 
 Any file it would replace with different content is first copied to <file>.bak-<UTC stamp>.
 Policy and rationale: plugins/itp-hooks/docs/managed-sandbox-policy.md
@@ -25,7 +31,9 @@ import datetime
 import json
 import os
 import platform
+import re
 import shutil
+import stat
 import subprocess
 import sys
 
@@ -38,6 +46,10 @@ DARWIN_SCRIPTS = ["sandbox_diag_broker.py", "host-ps", "host-log", "host-notes"]
 BROKER_LABEL = "com.terryli.sandbox-diag-broker"
 BROKER_RUNNER = "sandbox-diag-broker-runner"
 BROKER_PLIST = "/Library/LaunchAgents/" + BROKER_LABEL + ".plist"
+# Read by sandbox_escape_gate.py from its own directory; honoured only while root-owned and not
+# group- or world-writable.
+MOON_CONFIG = "escape-allowed-moon-tasks.json"
+MOON_TASK = re.compile(r"[a-z0-9-]+:[a-z0-9-]+")
 
 
 def broker_plist():
@@ -115,7 +127,10 @@ def managed_settings(system):
                 "hooks": [{
                     "type": "command",
                     "command": py + " " + os.path.join(LIBEXEC, "sandbox_escape_gate.py"),
-                    "timeout": 10,
+                    # A PreToolUse command hook that times out does NOT block the call (Claude Code
+                    # hooks docs, "Timeouts"), so this must exceed the gate's worst case: its git
+                    # checks on a moon escape are bounded at 20 s in total.
+                    "timeout": 30,
                 }],
             }],
             "SessionStart": [{
@@ -138,10 +153,67 @@ def plan_write(path, content, mode, actions):
     if os.path.exists(path):
         with open(path, "rb") as fh:
             old = fh.read()
+        st = os.stat(path)
+        # Same bytes but the wrong owner or mode is rewritten too: the gate ignores a moon-task list
+        # that is not root-owned, and "unchanged" would leave that unfixable by re-running this.
+        if st.st_uid != 0 or stat.S_IMODE(st.st_mode) != mode:
+            old = None
     if old == content:
         actions.append(("unchanged", path, None, mode))
     else:
         actions.append(("write", path, content, mode))
+
+
+def _expand_home(path):
+    """Expand a leading ~ to the invoking user's home, also under sudo (where HOME may be root's)."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user and os.geteuid() == 0 and (path == "~" or path.startswith("~/")):
+        path = "~" + sudo_user + path[1:]
+    return os.path.expanduser(path)
+
+
+def moon_task_config(specs):
+    """The escape-allowed-moon-tasks.json document for the --allow-moon-task values; exits on any bad one."""
+    tasks_by_root = {}   # insertion-ordered: roots and tasks keep the order they were given in
+    for spec in specs:
+        root, sep, tasks = spec.rpartition("=")
+        if not sep or not root or not tasks:
+            sys.exit("--allow-moon-task wants ROOT=TASK[,TASK...], got " + repr(spec))
+        root = os.path.realpath(_expand_home(root))
+        if not os.path.isdir(root):
+            sys.exit("--allow-moon-task: " + root + " is not a directory")
+        if not os.path.isfile(os.path.join(root, ".moon", "workspace.yml")):
+            sys.exit("--allow-moon-task: " + root + " holds no .moon/workspace.yml, so it is not a moon workspace")
+        git_dir = os.path.join(root, ".git")
+        if os.path.islink(git_dir) or not os.path.isdir(git_dir):
+            sys.exit("--allow-moon-task: " + root + " has no .git directory of its own; name the main checkout, "
+                     "whose linked worktrees are then accepted too")
+        listed = tasks_by_root.setdefault(root, [])
+        for task in tasks.split(","):
+            if not MOON_TASK.fullmatch(task):
+                sys.exit("--allow-moon-task: task " + repr(task) + " must match ^[a-z0-9-]+:[a-z0-9-]+$ "
+                         "(for example repo:check)")
+            if task not in listed:
+                listed.append(task)
+    return {"version": 1, "repos": [{"root": r, "tasks": t} for r, t in tasks_by_root.items()]}
+
+
+def plan_moon_tasks(args, actions):
+    """Plan the moon-task list; returns (bytes to write or None, one-line note for the preview)."""
+    path = os.path.join(LIBEXEC, MOON_CONFIG)
+    exists = os.path.lexists(path)
+    if args.allow_moon_task:
+        blob = (json.dumps(moon_task_config(args.allow_moon_task), indent=2) + "\n").encode()
+        json.loads(blob)  # validate before anything is written
+        plan_write(path, blob, 0o644, actions)
+        return blob, "moon tasks: the list is replaced by the --allow-moon-task values"
+    if args.clear_moon_tasks:
+        actions.append(("remove" if exists else "absent", path, None, None))
+        return None, "moon tasks: " + ("the list is removed" if exists else "no list to remove") + "; no moon task may escape"
+    actions.append(("untouched" if exists else "absent", path, None, None))
+    if exists:
+        return None, "moon tasks: the existing list is left untouched (no --allow-moon-task given; --clear-moon-tasks removes it)"
+    return None, "moon tasks: none configured, so no moon task may escape (add some with --allow-moon-task ROOT=TASK)"
 
 
 def install_broker_runner_and_load():
@@ -185,6 +257,13 @@ def install_broker_runner_and_load():
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--apply", action="store_true", help="make the changes (needs root); default is a preview")
+    moon = ap.add_mutually_exclusive_group()
+    moon.add_argument("--allow-moon-task", action="append", metavar="ROOT=TASK[,TASK...]",
+                      help="let these moon tasks run unsandboxed in the checkout ROOT and its linked worktrees "
+                           "(repeatable; replaces the whole list; ROOT must hold .moon/workspace.yml and a .git "
+                           "directory; each TASK must match ^[a-z0-9-]+:[a-z0-9-]+$)")
+    moon.add_argument("--clear-moon-tasks", action="store_true",
+                      help="remove the moon-task list, so that no moon task may escape the sandbox")
     args = ap.parse_args()
 
     system = platform.system()
@@ -203,18 +282,30 @@ def main():
     plan_write(MANAGED[system], blob, 0o644, actions)
     if system == "Linux":
         plan_write(APPARMOR_BWRAP, APPARMOR_BWRAP_PROFILE.encode(), 0o644, actions)
+    moon_blob, moon_note = plan_moon_tasks(args, actions)
 
     for kind, path, _content, mode in actions:
-        print("%-9s %s (mode %o)" % (kind, path, mode))
+        print("%-9s %s" % (kind, path) + ("" if mode is None else " (mode %o)" % mode))
+    print(moon_note)
     if not args.apply:
         print("\npreview only; re-run with sudo and --apply to make these changes")
         print("\nmanaged settings that would be written:\n" + blob.decode())
+        if moon_blob is not None:
+            print("moon-task list that would be written to " + os.path.join(LIBEXEC, MOON_CONFIG) + ":\n"
+                  + moon_blob.decode())
         return
     if os.geteuid() != 0:
         sys.exit("--apply needs root: sudo /usr/bin/python3 " + os.path.abspath(__file__) + " --apply")
 
     ts = stamp()
     for kind, path, content, mode in actions:
+        if kind == "remove":
+            backup = path + ".bak-" + ts
+            shutil.copy2(path, backup, follow_symlinks=False)
+            print("backup    " + backup)
+            os.remove(path)
+            print("removed   " + path)
+            continue
         if kind != "write":
             continue
         os.makedirs(os.path.dirname(path), mode=0o755, exist_ok=True)

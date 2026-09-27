@@ -553,12 +553,27 @@
     "plugins/itp-hooks/managed-sandbox-policy/install_managed_sandbox_policy.py": {
       "additionalProperties": false,
       "properties": {
+        "--allow-moon-task": {
+          "description": "let these moon tasks run unsandboxed in the checkout ROOT and its linked worktrees (repeatable; replaces the whole list; ROOT must hold .moon/workspace.yml and a .git directory; each TASK must match ^[a-z0-9-]+:[a-z0-9-]+$)",
+          "type": "string",
+          "x-option-strings": [
+            "--allow-moon-task"
+          ]
+        },
         "--apply": {
           "default": false,
           "description": "make the changes (needs root); default is a preview",
           "type": "boolean",
           "x-option-strings": [
             "--apply"
+          ]
+        },
+        "--clear-moon-tasks": {
+          "default": false,
+          "description": "remove the moon-task list, so that no moon task may escape the sandbox",
+          "type": "boolean",
+          "x-option-strings": [
+            "--clear-moon-tasks"
           ]
         }
       },
