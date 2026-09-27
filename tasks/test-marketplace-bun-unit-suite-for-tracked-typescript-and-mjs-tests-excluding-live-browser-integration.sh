@@ -30,4 +30,12 @@ echo "  Marketplace Bun Unit Suite (${#FILES[@]} tracked test files)"
 echo "  excluded: 1 live browser integration test ($LIVE_INTEGRATION)"
 echo "═══════════════════════════════════════════════════════════"
 
-exec bun test "${FILES[@]}"
+# Hermetic state: the review-round store tests write fixtures under STATE_ROOT. Point it at a
+# throwaway dir so a test run never touches the live ~/.claude/state store, and so the suite also
+# runs inside Claude Code's managed sandbox, which protects ~/.claude/state (2026-09-27).
+ITP_HOOKS_REVIEW_ROUND_STATE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/itp-review-round-state.XXXXXX")"
+export ITP_HOOKS_REVIEW_ROUND_STATE_ROOT
+rc=0
+bun test "${FILES[@]}" || rc=$?
+rm -rf -- "$ITP_HOOKS_REVIEW_ROUND_STATE_ROOT"
+exit "$rc"

@@ -24,7 +24,10 @@ const GIT_TIMEOUT_MS = 3000;
  *  blocks the operator's terminal. Still well inside the hook's own 15s ceiling. */
 const GH_TIMEOUT_MS = 6000;
 
-export const STATE_ROOT = join(homedir(), ".claude", "state", "review-round-gate");
+/** Overridable so test runs never write the operator's live store (and so they still run inside Claude
+ *  Code's sandbox, which protects ~/.claude/state). Unset in real use. */
+export const STATE_ROOT =
+  process.env.ITP_HOOKS_REVIEW_ROUND_STATE_ROOT || join(homedir(), ".claude", "state", "review-round-gate");
 
 function git(args: string[], cwd: string): string {
   return execFileSync("git", args, {
