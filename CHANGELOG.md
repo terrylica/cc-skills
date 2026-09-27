@@ -1,3 +1,111 @@
+# [32.3.0](https://github.com/terrylica/cc-skills/compare/v32.2.1...v32.3.0) (2026-09-27)
+
+
+### Bug Fixes
+
+* **itp-hooks:** drafts broker folder check fails -1728 in Notes ([8d951de](https://github.com/terrylica/cc-skills/commit/8d951de86a699212e56e22fdd6766b6c97d9ac5e))
+
+The first live call to the drafts broker created a note, then failed to read it back: Notes answers `id of container of note id X` with -1728 ("Can't get id of container"). The unit tests only asserted the guard's text was present, so they could not see that Notes rejects it.
+
+GET and UPDATE now test membership in `id of notes of folder "Claude Drafts"` (the form the list script already uses successfully), and check it before resolving the note, so a foreign id is refused without touching it. The test now pins the new guard, forbids `container of`, and checks the order.
+
+* **notes-commander:** read-backs were silently empty in the sandbox ([b1abe9f](https://github.com/terrylica/cc-skills/commit/b1abe9f91c31619657b830eb555f0cc0eed21f28))
+
+The first live sandboxed park saved the note correctly and then reported CONTENT-MISMATCH. htmlToText() shells out to textutil, whose HTML import needs a helper service the sandbox blocks: textutil prints "Couldn't communicate with a helper application", writes nothing and still exits 0. htmlToText() returned that empty string as a value, so every sandboxed read-back looked like a lost note, and `get --body-only` would have handed a human blank text to send.
+
+- itp-hooks broker: POST /text/html-to-txt runs /usr/bin/textutil with fixed argv (same header and size rules as the other POSTs). host-notes gains `html2txt`, which writes the text byte-for-byte.
+- notes-core: htmlToText() uses host-notes when SANDBOX_RUNTIME is set and it is installed, and throws HtmlToTextError whenever a note with visible text converts to nothing, with the reason and an install hint. draft-park turns that into a clean `✗` exit. HOST_NOTES moves to notes-core.
+- Docs: the endpoint, and both live-park findings in the draft-park evolution log (this one and the -1728 folder guard fixed in 8d951de8).
+
+Tests: hasVisibleText and empty-note cases that hold both inside and outside the sandbox; broker checks for the fixed textutil argv and for the new endpoint's header and empty-body refusals. notes-commander 88 pass, 0 fail; broker and gate suites OK. Checked in the sandbox: both failure paths now exit loudly instead of returning "".
+
+* **ssh-tunnel-companion:** drop the dead :18082 and :5900 forwards ([db0aa28](https://github.com/terrylica/cc-skills/commit/db0aa28fa05b782aef890d189e6365fe1e63ce25))
+
+Measured 2026-09-27 on the tunnel host: nothing listens on 8082 or 5900, and no systemd unit (user or system, loaded or not) serves fxview-sidecar or x11vnc. Nothing on the Mac used the local ends either. Because -L binds the local port eagerly, both forwards sat LISTENING and answered nothing, which reads as "reachable" to any later caller: the exact failure the runner's own header warns about.
+
+- Runner (the SSoT) now forwards only 18123 (ClickHouse) and 18081 (crypto ODB SSE sidecar); its header records the removal and why.
+- The plist comment, SwiftBar menu, install.sh summary and the plugin CLAUDE.md table and consumers list are updated in the same change, so no sibling file keeps advertising a dead port (the 18095 lesson).
+- devops-tools CLAUDE.md drops its VNC (MT5) service row.
+- Takes effect on the next tunnel restart (make restart or launchctl kickstart -k).
+
+* **tasks:** read load average via uptime when sandboxed sysctl is denied ([31d0ab3](https://github.com/terrylica/cc-skills/commit/31d0ab31c2d9966b73692b38788b4fd477d992b3))
+
+Claude Code's managed kernel sandbox, installed fleet-wide on 2026-09-27, denies the sysctl binary's name lookup on macOS ("sysctl fmt -1 1024 1: Operation not permitted"), while libc getloadavg() still works. The iter-187 load sampler in the iter-174 harness tried only `sysctl -n vm.loadavg` and /proc/loadavg, so inside any sandboxed session it read null and iter-182's F2/F3 assertions failed, which blocked every release preflight run from a Claude Code session.
+
+- Adds an `uptime` fallback after sysctl and /proc/loadavg, parsing both "load averages: a b c" (macOS) and "load average: a, b, c" (Linux).
+- The sample stays in the harness, never inside a measured command, so iter-186's pinned fork count is unaffected.
+- iter-182 now passes 18/18 inside the sandbox; outside it the sysctl branch still wins, so behaviour there is unchanged.
+
+* **tests:** keep unit suites hermetic and runnable inside the sandbox ([54ae027](https://github.com/terrylica/cc-skills/commit/54ae027901a61d76c0aa1f0ebb6ce09b31940b4b))
+
+Since 2026-09-27 every agent session on the fleet runs under Claude Code's managed kernel sandbox, and release preflight from such a session failed on tests that were never hermetic. The review-round store tests wrote fixtures into the operator's live ~/.claude/state/review-round-gate (which the sandbox protects), and two tests needed /bin/ps, which the macOS sandbox refuses by design (the reason the diagnostics broker exists).
+
+- review-round-state.ts honours ITP_HOOKS_REVIEW_ROUND_STATE_ROOT (unset in real use), and the bun unit-suite runner points it at a throwaway directory it removes afterwards, so a test run no longer touches the live store; spawned hooks inherit it.
+- The bun runner no longer execs bun, so it can clean up; it propagates bun's exit code unchanged.
+- The RSS-watchdog SIGKILL test skips, with its reason, where ps cannot run: the watchdog cannot measure there, so a failure would be false.
+- The diagnostics broker's live /ps round-trip test skips the same way.
+- Result inside the sandbox: bun suite 2235 pass, 1 skip, 0 fail; the Python policy suites pass with 3 skips.
+
+
+
+### Features
+
+* **itp-hooks:** --uninstall removes the managed sandbox policy ([071418c](https://github.com/terrylica/cc-skills/commit/071418cad187f1e3c5bd75e275e5805bdf4c8908))
+
+The operator ruled on 2026-09-27 to stop the kernel sandbox directives entirely: in practice the sandbox blocked too much autonomous work (ps, log, sysctl, launchctl, osascript, git over the ssh alias, writes under ~/.claude, finishing a cc-skills release). This adds the exact inverse of --apply so every host returns to its pre-2026-09-27 state with one command.
+
+- sudo /usr/bin/python3 install_managed_sandbox_policy.py --uninstall --apply unloads the diagnostics broker (macOS) or the AppArmor bwrap profile (Linux), then deletes the broker plist, every root-owned script and runner under /usr/local/libexec/claude-code-sandbox-policy, and managed-settings.json.
+- Without --apply it previews exactly what would be removed, like the installer.
+- No host had managed settings before the 2026-09-27 install, so the file is deleted rather than restored.
+- The kill guards (pkill option-order and broad-signal) are ordinary plugin hooks and are unaffected.
+
+* **itp-hooks:** kill guard v2 blocks broad kill, pkill and killall ([f5b8d90](https://github.com/terrylica/cc-skills/commit/f5b8d90ddab9ec4c0735d2b31320e381635d53c9))
+
+The 2026-09-27 incident was one spelling of a wider family: a signal aimed by name or pattern instead of by the PID the agent started. v1 (pretooluse-pkill-option-after-pattern-guard) blocks that one spelling in Bash commands only. This release adds pretooluse-broad-process-signal-guard, which blocks the rest of the family and also inspects shell scripts written with Write/Edit/MultiEdit, closing v1's documented gap of a script written first and executed second. The managed kernel sandbox already confines sandboxed commands to their own subtree; this guard covers unsandboxed sessions, ssh remote commands and hosts without the managed policy, where one broad signal still reaches every Claude session and app the user owns.
+
+- New hook pretooluse-broad-process-signal-guard.ts (PreToolUse, Bash|Write|Edit|MultiEdit, fails open) denies: kill -1 or kill 0 as a target; pkill/killall of a shared runtime or host program by name (node, bun, python*, claude, iTerm2, tmux, Chrome, ...), including kill $(pgrep node); a user-wide -u with no process name; and pkill patterns with under five literal characters.
+- It deliberately allows kill &lt;pid>, kill -1 &lt;pid> (SIGHUP), kill -0 probes, pgrep alone, patterns held in variables, killall Dock/Finder/SystemUIServer, and every mere mention (quoted text, comments, heredocs fed to cat, non-shell files).
+- Shell scripts are recognised by extension or shebang (including the on-disk shebang of an extensionless file being edited); in them both this check and v1's option-order check run, each honouring its own escape.
+- v1's lexer is extracted into hooks/lib/shell-command-quote-aware-static-lexer.ts and hooks/lib/shell-command-invocation-walker.ts so both guards share one parser and one set of blind spots; the v1 detector drops from 677 to 180 lines with its 18 tests unchanged and passing.
+- New escape BROAD-PROCESS-SIGNAL-OK (reason of 10+ characters) is registered in the canonical marker registry and the generated marker reference.
+- 43 new tests spawn the real hook: 18 deny and 17 allow Bash cases plus the Write/Edit/MultiEdit paths, including v1's incident line written into a .sh file.
+- Spoke docs/broad-process-signal-guard.md; rows added to the itp-hooks CLAUDE.md and spoke index; v1's spoke marks its script gap closed.
+
+* **itp-hooks:** one-folder Apple Notes drafts broker for sandboxed agents ([e9b184e](https://github.com/terrylica/cc-skills/commit/e9b184e68b8de6528250094d4900ea7faa04fd5a))
+
+Claude Code's macOS sandbox blocks Apple Events, and the escape flag does not lift that for osascript: an escaped `tell application "Notes" to count folders` failed -10810 exactly as it did sandboxed (measured 2026-09-27). The operator ruled that the sandbox must not block agents from Apple Notes. Turning on sandbox.allowAppleEvents would remove code-execution isolation, so instead the root-owned diagnostics broker gains a narrow drafts surface.
+
+- sandbox_diag_broker.py: GET /notes/drafts, GET /notes/drafts/note?id=, POST /notes/drafts, POST /notes/drafts/note?id=. Confined to the "Claude Drafts" folder; no delete; fixed AppleScript with folder and content passed only as run-handler arguments; ids must fullmatch the ICNote shape; bodies 1 byte to 512 KiB of UTF-8; one Notes operation at a time.
+- Request hygiene for every endpoint: the Host header must name the broker (DNS rebinding), and POST requires X-Sandbox-Broker: 1 (cross-site POST).
+- host-notes: new sandbox-side client (list | get | new | update), installed alongside host-ps and host-log.
+- sandbox_escape_gate.py: escaped osascript is now refused, with a pointer to host-notes; the old '-e' allowance only advertised a dead end.
+- The deny text now says that on macOS the flag changes nothing for git. A peer session measured this three times on 2026-09-27. The git verdicts are unchanged until Linux is measured.
+- docs: drafts surface, the Apple Events measurement and trade-off, git staying sandboxed on macOS, and shell-init breaks under the sandbox (sysctl -n, sccache, plain ssh).
+- LAST_RE also moved to fullmatch after a test showed `$` accepted a trailing newline in a note id.
+
+Tests: gate 16 OK; broker validation and live request-hygiene suites OK; verify gains an osascript vector (eight known requests).
+
+* **itp-hooks:** regression check for the managed sandbox policy ([bdb854c](https://github.com/terrylica/cc-skills/commit/bdb854c51cbb514b42a038cd518b557282d636dd))
+
+The sandbox pilot that proved the 2026-09-27 policy was a set of throwaway /tmp scripts. This packages it as verify_managed_sandbox_policy.py, a pass/fail check that changes nothing and runs on each host's /usr/bin/python3, so any host can be re-proved after a Claude Code update or a re-install, including over ssh. It judges what actually happened rather than what a model reports.
+
+- Static tier (default, no model call): managed settings root-owned and enabling the sandbox plus both hooks; every installed file root-owned, locked and byte-identical to the repo; seven gate verdict vectors against the INSTALLED gate; a kernel probe proving a confined process cannot signal an outside one (Seatbelt same-sandbox / bwrap --unshare-pid); and the SessionStart check reporting no degradation.
+- Inside an agent session the kernel and session checks SKIP with the reason (Seatbelt cannot nest); from a terminal or over ssh they run for real.
+- Live tier (--live): one fresh headless session with no --settings against a victim process; checks sandboxed and escaped kill refusal, host-ps through the broker, escaped ssh to --ssh-host, sandboxed gh, and that the victim survived.
+- --json output, exit 1 on any failure; moon task repo:sandbox-policy-verify runs the static tier.
+- test_verify_managed_sandbox_policy.py pins the live-tier parser and judges; the spoke gains a "Regression check" section replacing the hand re-validation note.
+- cli_spec.json regenerated; root CLAUDE.md CLI count 39 -> 40.
+
+* **notes-commander:** draft-park runs in the sandbox via host-notes ([4c92882](https://github.com/terrylica/cc-skills/commit/4c9288267c46f19b25e4bdce2e7717db509aa863))
+
+When SANDBOX_RUNTIME is set and the managed sandbox policy's host-notes client is installed, draft-park reaches Notes through the one-folder broker instead of osascript, which cannot work there (-10810). DRAFT_PARK_BACKEND forces either backend. Sandboxed without host-notes, it stops with the install command rather than attempting a call that can only fail.
+
+The broker cannot delete, so re-parking a title replaces the existing note's body in place; older duplicates are reported, not removed. Only the "Claude Drafts" folder is served. Read-back verify goes by id through the same backend.
+
+Also applies Biome's formatting and import ordering to draft-park.ts and its test, which were already failing `biome check` before this change.
+
+Tests: pickBackend unit tests; draft-park suite 29 pass, 0 fail.
+
 ## [32.2.1](https://github.com/terrylica/cc-skills/compare/v32.2.0...v32.2.1) (2026-09-27)
 
 
