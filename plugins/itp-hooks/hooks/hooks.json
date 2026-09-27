@@ -273,6 +273,18 @@
         ]
       },
       {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env -u AI_AGENT -u CLAUDECODE bun ${CLAUDE_PLUGIN_ROOT}/hooks/pretooluse-broad-process-signal-guard.ts",
+            "timeout": 5,
+            "statusMessage": "Checking for broad kill/pkill/killall...",
+            "description": "Kill guard v2. Denies a kill/pkill/killall that is broad by construction: `kill -1` or `kill 0` as a TARGET (`kill -1 <pid>` is SIGHUP and passes), a shared runtime or host program by name (`pkill node`, `killall bun`, `pkill -f claude`, `kill $(pgrep python3)`), a user-wide `-u` with no process name, or a pkill pattern with under five literal characters (`pkill -f vite`, `pkill -f .`). Also inspects the text of SHELL SCRIPTS written with Write/Edit/MultiEdit (by extension or shebang, including the on-disk shebang for an Edit) and applies both this check and v1's pkill option-order check there, closing v1's documented gap of a script written first and run second. Measured 2026-09-27: one pattern-aimed pkill SIGTERMed eight Claude Code sessions and every Electron app's crash reporter on the operator's Mac. Shares v1's static lexer (hooks/lib/shell-command-quote-aware-static-lexer.ts + shell-command-invocation-walker.ts), so it sees through $(...), sudo/env/timeout/xargs, bash -c, ssh remote commands, pueue add and heredocs fed to a shell, and ignores mere mentions. The deny message says to signal the PID you started. Escape BROAD-PROCESS-SIGNAL-OK: <>=10-char reason>. Fails open. Spoke: docs/broad-process-signal-guard.md."
+          }
+        ]
+      },
+      {
         "matcher": "Bash",
         "hooks": [
           {
