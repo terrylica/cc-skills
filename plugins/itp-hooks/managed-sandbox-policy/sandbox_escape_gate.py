@@ -418,6 +418,11 @@ def classify(command, cwd=None):
     try:
         lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
         lexer.whitespace_split = True
+        # shlex starts a comment at a '#' in the MIDDLE of a word ('3#; ls') and drops the rest of the
+        # line; bash and zsh start one only at the start of a word, so to them '3#' is an argument and
+        # the ';' after it runs a second command. Every check below must see all the text the shell
+        # runs, so '#' stays an ordinary character: the gate then sees a superset of the shell's words.
+        lexer.commenters = ""
         tokens = list(lexer)
     except ValueError as exc:
         return "unparseable command (" + str(exc) + ")"
