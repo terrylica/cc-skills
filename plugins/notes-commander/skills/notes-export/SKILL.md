@@ -39,7 +39,7 @@ command -v mempalace >/dev/null && mempalace mine "<snapshot-dir>" --wing apple-
 
 Idempotent (unchanged notes are skipped). Recall then works via `mempalace search "<query>" --wing apple-notes`. Skip silently when mempalace isn't installed — the bridge is an enhancement, not a dependency.
 
-- A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). Transient `-600`/`-1712` launch races retry automatically.
+- A large library takes a few minutes (verified live: 400 notes ≈ 2.5 min) — bodies are fetched in chunks of 20 because one giant Apple Event reply blows the AE size cap (`-1741`). A failed chunk degrades to per-note fetches; a still-failing note becomes a warning + exit code 3 (partial export is LOUD, never silent). The same holds for a note whose text conversion fails (`⚠ note skipped (text conversion failed)`): it is skipped, the rest of the snapshot and `manifest.json` are still written. Transient `-600`/`-1712` launch races retry automatically.
 
 ## Post-Execution Reflection
 

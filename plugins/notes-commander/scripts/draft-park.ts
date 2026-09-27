@@ -14,13 +14,13 @@
  *     prose reflows (blank line = paragraph), lists stay per-item, ``` fences verbatim.
  *
  * Commands (unchanged surface):
- *   draft-park.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify]
+ *   draft-park.ts new "<title>" [--session UUID] [--project NAME] [--folder NAME] [--no-verify] [--allow-empty]
  *   draft-park.ts get "<title>" [--folder NAME] [--body-only]
  *   draft-park.ts list [--folder NAME]
  *   draft-park.ts sticky "<title>" [--folder NAME]
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import {
 	bodyToHtml,
 	collapseBlanks,
@@ -28,7 +28,6 @@ import {
 	entityLeaks,
 	escapeHtml,
 	FOLDER_DEFAULT,
-	HOST_NOTES,
 	HtmlToTextError,
 	htmlToText,
 	isNoteId,
@@ -321,116 +320,64 @@ function die(msg: string): never {
 	process.exit(2);
 }
 
-// ---- how draft-park reaches Notes ----
-// Inside Claude Code's macOS sandbox, Apple Events are blocked and the escape flag does not lift that
-// for osascript (an escaped Notes call still failed -10810, 2026-09-27). The managed sandbox policy
-// (cc-skills itp-hooks) therefore runs a root-owned broker that serves ONE folder, "Claude Drafts",
-// through the `host-notes` client: list, read, create, replace a body. No delete, no other folder.
+// ---- how draft-park reaches Notes: osascript, and nothing else ----
+// A one-folder broker that carried drafts into Claude Code's sandbox shipped in v32.3.0 and was
+// retired with the managed sandbox policy the same day (operator ruling 2026-09-27); it is
+// recoverable from the tag archive/pre-retire-managed-sandbox-policy. Inside a sandbox with Apple
+// Events blocked, runOsaOrDie() now says so rather than leaving a bare -10810.
 
-export type BackendKind = "osascript" | "broker";
-
-/**
- * Pick the backend. Sandboxed (SANDBOX_RUNTIME set) with host-notes installed → broker; otherwise
- * osascript. DRAFT_PARK_BACKEND forces one or the other. Sandboxed WITHOUT host-notes is an error
- * the caller reports, not a silent osascript attempt that can only fail with -10810.
- */
-export function pickBackend(
-	env: Record<string, string | undefined>,
-	hostNotesInstalled: boolean,
-): BackendKind | "sandboxed-without-broker" {
-	const forced = env.DRAFT_PARK_BACKEND;
-	if (forced === "osascript" || forced === "broker") return forced;
-	if (!env.SANDBOX_RUNTIME) return "osascript";
-	return hostNotesInstalled ? "broker" : "sandboxed-without-broker";
-}
-
-interface DraftsBackend {
-	kind: BackendKind;
-	index(folder: string): Array<{ id: string; name: string }>;
-	body(id: string): string;
-	create(folder: string, html: string): string;
-	/** Broker only: replace a draft's body in place (it has no delete, so this is how it dedups). */
-	replace?(id: string, html: string): string;
-	/** osascript only: best-effort removal of an older duplicate. */
-	remove?(id: string): void;
-}
-
-const osaBackend: DraftsBackend = {
-	kind: "osascript",
-	index: (folder) =>
-		parseRecords(runOsaOrDie(OSA_FOLDER_NOTE_INDEX, [folder])).map(
-			([id, name]) => ({ id: id ?? "", name: name ?? "" }),
-		),
-	body: (id) => runOsaOrDie(OSA_GET_BY_ID, [id]),
-	create: (folder, html) => runOsaOrDie(OSA_NEW, [folder, html]),
-	remove: (id) => {
-		runOsa(OSA_DELETE_BY_ID, [id]);
-	},
-};
-
-function hostNotes(args: string[], input?: string): string {
-	const r = spawnSync(HOST_NOTES, args, { input, encoding: "utf8" });
-	if (r.status !== 0)
-		die(
-			`✗ host-notes ${args[0]} failed: ${(r.stderr ?? "").trim() || `exit ${r.status}`}`,
-		);
-	return (r.stdout ?? "").replace(/\n$/, "");
-}
-
-function brokerBackend(): DraftsBackend {
-	const only = (folder: string) => {
-		if (folder !== FOLDER_DEFAULT)
-			die(
-				`✗ inside the sandbox draft-park can only use the "${FOLDER_DEFAULT}" folder (the broker serves no other); got "${folder}"`,
-			);
-	};
-	return {
-		kind: "broker",
-		index: (folder) => {
-			only(folder);
-			return JSON.parse(hostNotes(["list"]) || "[]") as Array<{
-				id: string;
-				name: string;
-			}>;
-		},
-		body: (id) => hostNotes(["get", id]),
-		create: (folder, html) => {
-			only(folder);
-			return JSON.parse(hostNotes(["new"], html)).id as string;
-		},
-		replace: (id, html) =>
-			JSON.parse(hostNotes(["update", id], html)).id as string,
-	};
-}
-
-function backend(): DraftsBackend {
-	const kind = pickBackend(process.env, existsSync(HOST_NOTES));
-	if (kind === "sandboxed-without-broker")
-		die(
-			`✗ running inside Claude Code's sandbox, where Apple Events are blocked, and ${HOST_NOTES} is not installed.\n` +
-				"  Install the managed sandbox policy (cc-skills itp-hooks, install_managed_sandbox_policy.py --apply),\n" +
-				"  or run this outside the sandbox.",
-		);
-	return kind === "broker" ? brokerBackend() : osaBackend;
+/** All (id, name) pairs for a folder's notes (empty if the folder is missing). */
+function folderNoteIndex(folder: string): Array<{ id: string; name: string }> {
+	return parseRecords(runOsaOrDie(OSA_FOLDER_NOTE_INDEX, [folder])).map(
+		([id, name]) => ({ id: id ?? "", name: name ?? "" }),
+	);
 }
 
 /** Resolve a title to a note id within a folder (exact-then-truncation-tolerant; first match). */
-function resolveNoteIdInFolder(
-	be: DraftsBackend,
-	folder: string,
-	title: string,
-): string | null {
-	return matchNoteIds(be.index(folder), title)[0] ?? null;
+function resolveNoteIdInFolder(folder: string, title: string): string | null {
+	return matchNoteIds(folderNoteIndex(folder), title)[0] ?? null;
 }
 
-/** Body HTML of the note whose (possibly truncated) name matches `title`, or the sentinel if none. */
-function getBodyByTitle(
-	be: DraftsBackend,
-	folder: string,
-	title: string,
-): string {
-	const id = resolveNoteIdInFolder(be, folder, title);
-	return id ? be.body(id) : "(no such draft)";
+const NO_SUCH_DRAFT = "(no such draft)"; // what OSA_GET_BY_ID returns if the note vanished mid-call
+
+/**
+ * A Notes body read that can be trusted. A Notes body is always HTML, so "" and "missing value"
+ * (the macOS 26 osascript no-op, see the header), the vanished-note sentinel, and anything with no
+ * tag at all are FAILED reads. Before 2026-09-27 each of them reached `get --body-only`, which
+ * stripped the one line as the title heading and printed nothing with exit 0.
+ */
+export function isReadableNoteBody(raw: string): boolean {
+	const t = raw.trim();
+	return (
+		t !== "" && t !== NO_SUCH_DRAFT && t !== "missing value" && t.includes("<")
+	);
+}
+
+/**
+ * The older same-title copies self-heal may delete: NONE unless the new note is itself listed.
+ * Deleting "every match except the new id" without that check removes the only real copy whenever
+ * Notes hands back an id it then cannot list — a draft orphaned by the step meant to tidy it.
+ */
+export function selfHealTargets(matches: string[], newId: string): string[] {
+	return matches.includes(newId) ? matches.filter((m) => m !== newId) : [];
+}
+
+const folderFlag = (folder: string): string =>
+	folder === FOLDER_DEFAULT ? "" : ` --folder "${folder}"`;
+
+/** Body HTML of the note whose (possibly truncated) name matches `title`; a missing or unreadable draft DIES. */
+function getBodyByTitle(folder: string, title: string): string {
+	const id = resolveNoteIdInFolder(folder, title);
+	const body = id ? runOsaOrDie(OSA_GET_BY_ID, [id]) : NO_SUCH_DRAFT;
+	if (body.trim() === NO_SUCH_DRAFT)
+		die(
+			`✗ no draft titled "${title}" in Notes -> ${folder} (check the exact title with: draft-park list${folderFlag(folder)})`,
+		);
+	if (!isReadableNoteBody(body))
+		die(
+			`✗ READ-FAILED: Notes returned no readable body for "${title}" (got: "${body.trim().slice(0, 40)}"). Open Notes once, re-grant Automation permission if asked, then retry.`,
+		);
+	return body;
 }
 
 function main(): void {
@@ -452,6 +399,7 @@ function main(): void {
 	let channel = "";
 	let copyToClipboard = false;
 	let allowLossyLinks = false;
+	let allowEmpty = false;
 	for (let i = idx; i < argv.length; i++) {
 		const a = argv[i];
 		if (a === "--session") session = argv[++i] ?? "";
@@ -461,6 +409,7 @@ function main(): void {
 		else if (a === "--for") channel = argv[++i] ?? "";
 		else if (a === "--copy") copyToClipboard = true;
 		else if (a === "--allow-lossy-links") allowLossyLinks = true;
+		else if (a === "--allow-empty") allowEmpty = true;
 		else if (a === "--no-verify") verify = false;
 	}
 
@@ -468,6 +417,12 @@ function main(): void {
 		case "new": {
 			if (!title) die("usage: draft-park.ts new <title>  (body on stdin)");
 			const raw = readFileSync(0, "utf8");
+			// An empty body is almost always an upstream failure (`cat missing | draft-park new T`
+			// without pipefail), and parking it would later copy "0 chars" to a human as a success.
+			if (raw.trim() === "" && !allowEmpty)
+				die(
+					"✗ REFUSING: the body on stdin is empty, so there is nothing to park. Pass --allow-empty to park a title-only note deliberately.",
+				);
 			const lossy = findLossyMarkdownLinks(raw);
 			if (lossy.length > 0 && !allowLossyLinks) {
 				die(
@@ -481,14 +436,7 @@ function main(): void {
 				);
 			}
 			const body = buildNoteBody(title, raw, session, project);
-			const be = backend();
-			// The broker cannot delete, so an existing draft with this title is updated in place rather
-			// than recreated; osascript keeps create-first-then-remove-older, which never orphans a draft.
-			const existing = be.replace ? matchNoteIds(be.index(folder), title) : [];
-			const id =
-				be.replace && existing[0]
-					? be.replace(existing[0], body)
-					: be.create(folder, body);
+			const id = runOsaOrDie(OSA_NEW, [folder, body]);
 			if (!isNoteId(id))
 				die(
 					`✗ SILENT-FAILURE: Notes returned no note id (got: "${id}"). The draft was NOT saved — open Notes once and re-grant Automation permission, then retry.`,
@@ -496,7 +444,12 @@ function main(): void {
 			if (verify) {
 				// Read back BY ID (not by title): macOS truncates a long note's derived NAME, so a title
 				// lookup would spuriously miss it and report a false CONTENT-MISMATCH.
-				const back = htmlToText(be.body(id));
+				const backRaw = runOsaOrDie(OSA_GET_BY_ID, [id]);
+				if (!isReadableNoteBody(backRaw))
+					die(
+						`✗ READ-BACK FAILED: Notes returned no readable body for the new note ${id}. Older copies were left untouched; check Notes -> ${folder} before trusting it.`,
+					);
+				const back = htmlToText(backRaw);
 				const leaks = entityLeaks(back);
 				if (leaks.length)
 					die(
@@ -515,16 +468,15 @@ function main(): void {
 						"✗ CONTENT-MISMATCH: the saved note does not contain the drafted text. Check the note in Notes before trusting it.",
 					);
 			}
-			// Self-heal: remove any OLDER note in this folder sharing the (possibly truncated) title.
-			// Only osascript can; under the broker, surplus older copies are reported instead.
-			const others = matchNoteIds(be.index(folder), title).filter(
-				(otherId) => otherId !== id,
-			);
-			if (be.remove) for (const otherId of others) be.remove(otherId);
-			else if (others.length)
+			// Self-heal: remove any OLDER note in this folder sharing the (possibly truncated) title —
+			// but only once the new note is itself listed there, so it can never orphan the draft.
+			const matches = matchNoteIds(folderNoteIndex(folder), title);
+			if (!matches.includes(id))
 				console.error(
-					`⚠ ${others.length} older copy(ies) of this draft remain in Notes; the sandbox broker cannot delete — remove them by hand if unwanted`,
+					`⚠ the new note ${id} is not listed under "${title}" in ${folder} yet; older copies were left in place`,
 				);
+			for (const otherId of selfHealTargets(matches, id))
+				runOsa(OSA_DELETE_BY_ID, [otherId]);
 			console.log(id);
 			break;
 		}
@@ -533,11 +485,15 @@ function main(): void {
 				die(
 					"usage: draft-park.ts get <title> [--body-only] [--for whatsapp|plain] [--copy]",
 				);
-			const full = htmlToText(getBodyByTitle(backend(), folder, title));
+			const full = htmlToText(getBodyByTitle(folder, title));
 			// --for and --copy both imply the SENDABLE text: rendering the title heading and the
 			// provenance footer for a channel, or onto the clipboard, is never what anyone wants.
 			const wantsSendable = bodyOnlyFlag || channel !== "" || copyToClipboard;
 			let text = wantsSendable ? bodyOnly(full) : collapseBlanks(full);
+			if (wantsSendable && text.trim() === "")
+				die(
+					`✗ the draft "${title}" has no sendable text below its title — nothing was printed or copied`,
+				);
 			if (channel !== "") {
 				const render = CHANNEL_RENDERERS[channel];
 				if (!render)
@@ -573,21 +529,19 @@ function main(): void {
 			break;
 		}
 		case "list": {
-			const be = backend();
-			if (be.kind === "broker")
-				console.log(
-					be
-						.index(folder)
-						.map((n) => n.name)
-						.join("\n"),
-				);
-			else console.log(runOsaOrDie(OSA_LIST, [folder]));
+			const listing = runOsaOrDie(OSA_LIST, [folder]);
+			// OSA_LIST reports a missing folder as text; to a script that read as a one-note listing.
+			if (listing.startsWith("(folder not found:")) die(`✗ ${listing}`);
+			console.log(listing);
 			break;
 		}
 		case "sticky": {
 			if (!title) die("usage: draft-park.ts sticky <title>");
-			const plain = `Draft (edit in Notes -> ${folder} -> ${title})\n\n${htmlToText(getBodyByTitle(backend(), folder, title))}`;
-			spawnSync("pbcopy", [], { input: plain });
+			const plain = `Draft (edit in Notes -> ${folder} -> ${title})\n\n${htmlToText(getBodyByTitle(folder, title))}`;
+			// Stickies is fed by pasting, so a failed pbcopy would paste whatever was already on the
+			// clipboard and label it as this draft.
+			if (spawnSync("pbcopy", [], { input: plain }).status !== 0)
+				die("✗ pbcopy failed — nothing was mirrored to Stickies");
 			const gui = `tell application "Stickies" to activate
 delay 0.6
 tell application "System Events" to tell process "Stickies"
