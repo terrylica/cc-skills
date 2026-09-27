@@ -175,6 +175,8 @@ if [[ "$microbenchmark_exit" == "0" ]] && [[ "$microbenchmark_output" == *'media
     assert_passes "Case 11: iter-94 microbenchmark task runs to completion (3 payloads × 5 replicates)"
 else
     assert_fails "Case 11: microbenchmark failed; exit=$microbenchmark_exit"
+    # Print the benchmark's own output: the exit code alone never said why (2026-09-27).
+    printf '%s\n' "$microbenchmark_output" | tail -25 | sed 's/^/      | /'
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
