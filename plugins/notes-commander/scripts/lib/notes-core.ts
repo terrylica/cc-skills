@@ -16,7 +16,6 @@
  * notes-core.test.ts. AppleScript payloads live in the consumers (notes.ts, draft-park.ts).
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 
 export const FOLDER_DEFAULT = "Claude Drafts";
 /** Path segment separator for nested folders, e.g. "To-Do / Done". */
@@ -514,11 +513,13 @@ export function runOsa(
 		const r = spawnSync("osascript", ["-", ...args], {
 			input: script,
 			encoding: "utf8",
+			maxBuffer: SPAWN_MAX_BUFFER,
 		});
 		last = {
-			ok: r.status === 0,
+			// `error` covers a spawn failure and ENOBUFS, where status can still read 0.
+			ok: r.status === 0 && !r.error,
 			stdout: (r.stdout ?? "").replace(/\n$/, ""),
-			stderr: r.stderr ?? "",
+			stderr: r.error ? `${r.error.message}\n` : (r.stderr ?? ""),
 			attempts: attempt,
 		};
 		if (last.ok) return last;
@@ -536,7 +537,10 @@ export function runOsaOrDie(
 ): string {
 	const r = runOsa(script, args, maxAttempts);
 	if (!r.ok) {
-		process.stderr.write(r.stderr || "osascript failed\n");
+		const hint = sandboxHint(process.env);
+		process.stderr.write(
+			(r.stderr || "osascript failed\n") + (hint ? `✗${hint}\n` : ""),
+		);
 		process.exit(1);
 	}
 	return r.stdout;
@@ -567,56 +571,65 @@ export function terminateLegacyEntities(bodyHtml: string): string {
 	return bodyHtml.replace(/&(quot|amp|lt|gt|apos|nbsp)/g, "&$1;");
 }
 
-/** Where the managed sandbox policy (cc-skills itp-hooks) installs the broker's Notes client. */
-export const HOST_NOTES =
-	"/usr/local/libexec/claude-code-sandbox-policy/host-notes";
+/**
+ * spawnSync output ceiling. Without it Bun's default (~1 MiB) applies, and past it Bun returns
+ * status 0 with `error: ENOBUFS` and TRUNCATED stdout (measured 2026-09-27: 1,114,112 of 1,126,400
+ * bytes) — a silent truncation unless `error` is checked, which every caller below now does.
+ */
+export const SPAWN_MAX_BUFFER = 256 * 1024 * 1024;
 
 /** True when the HTML carries characters a reader would see (tags stripped, nbsp as space). */
 export function hasVisibleText(bodyHtml: string): boolean {
 	return (
 		bodyHtml
 			.replace(/<[^>]*>/g, "")
-			.replace(/&nbsp;?/gi, " ")
+			.replace(/&(nbsp|#160|#x0*a0);?/gi, " ")
 			.trim() !== ""
 	);
 }
 
 export class HtmlToTextError extends Error {}
 
+/** The reason a Notes/textutil call fails inside Claude Code's sandbox, or "" outside one. */
+export function sandboxHint(env: Record<string, string | undefined>): string {
+	return env.SANDBOX_RUNTIME
+		? " — this is running inside Claude Code's sandbox, which blocks Apple Events and textutil's helper; run it outside the sandbox"
+		: "";
+}
+
 /**
  * Decode Notes body HTML to plain text with a real HTML parser (never sed).
  *
- * textutil cannot run inside Claude Code's macOS sandbox: its HTML import needs a helper service,
- * so it prints "Couldn't communicate with a helper application", writes NOTHING and still exits 0
- * (measured 2026-09-27). Returning that empty string made every sandboxed read-back look like a
- * lost note, and would have made `get --body-only` hand a human blank text to send. So when
- * sandboxed with host-notes installed, the same conversion runs in the broker; and an empty result
- * for a note with visible text is now an error everywhere, never a value.
+ * An empty result for a note with visible text is an ERROR, never a value (2026-09-27): textutil
+ * whose helper service is unavailable prints "Couldn't communicate with a helper application",
+ * writes nothing and still exits 0, and returning that "" made a saved note look lost and would
+ * have made `get --body-only` hand a human blank text to send. Measured inside Claude Code's
+ * sandbox; the check holds everywhere because nothing about it depends on where it runs.
  */
 export function htmlToText(
 	bodyHtml: string,
 	env: Record<string, string | undefined> = process.env,
-	hostNotesInstalled: boolean = existsSync(HOST_NOTES),
 ): string {
 	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
-	const input = `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`;
-	const viaBroker = Boolean(env.SANDBOX_RUNTIME) && hostNotesInstalled;
-	const r = viaBroker
-		? spawnSync(HOST_NOTES, ["html2txt"], { input, encoding: "utf8" })
-		: spawnSync(
-				"textutil",
-				["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
-				{ input, encoding: "utf8" },
-			);
+	const r = spawnSync(
+		"textutil",
+		["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
+		{
+			input: `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`,
+			encoding: "utf8",
+			maxBuffer: SPAWN_MAX_BUFFER,
+		},
+	);
 	const out = r.stdout ?? "";
-	if (r.status !== 0 || (out.trim() === "" && hasVisibleText(bodyHtml))) {
-		const why = (r.stderr ?? "").trim() || `exit ${r.status}`;
-		const hint =
-			env.SANDBOX_RUNTIME && !hostNotesInstalled
-				? ` — textutil cannot run inside Claude Code's sandbox; install the managed sandbox policy (${HOST_NOTES})`
-				: "";
+	if (
+		r.error ||
+		r.status !== 0 ||
+		(out.trim() === "" && hasVisibleText(bodyHtml))
+	) {
+		const why =
+			r.error?.message || (r.stderr ?? "").trim() || `exit ${r.status}`;
 		throw new HtmlToTextError(
-			`HTML-to-text conversion (${viaBroker ? "host-notes" : "textutil"}) returned nothing for a note with text: ${why}${hint}`,
+			`HTML-to-text conversion (textutil) returned nothing for a note with text: ${why}${sandboxHint(env)}`,
 		);
 	}
 	return out;

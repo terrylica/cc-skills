@@ -28,6 +28,7 @@ import {
 	collapseBlanks,
 	contentPresent,
 	entityLeaks,
+	HtmlToTextError,
 	htmlToText,
 	isNoteId,
 	matchNoteIds,
@@ -423,6 +424,7 @@ function cmdExport(flags: Flags): void {
 	};
 
 	const folderErrors: string[] = [];
+	const noteErrors: string[] = [];
 	for (const r of records) {
 		if (isTrash(r[2] ?? "")) continue; // belt-and-braces: the AppleScript already skips trash
 		if (r[0] === "E") {
@@ -445,7 +447,15 @@ function cmdExport(flags: Flags): void {
 		mkdirSync(dir, { recursive: true });
 		const idSuffix = id.split("/").at(-1) ?? "p0";
 		const file = join(dir, `${safeFilename(name, "untitled")}.${idSuffix}.md`);
-		const text = collapseBlanks(htmlToText(bodyHtml ?? ""));
+		let text: string;
+		try {
+			text = collapseBlanks(htmlToText(bodyHtml ?? ""));
+		} catch (e) {
+			// One note that cannot be converted must not void the whole backup (no manifest.json).
+			if (!(e instanceof HtmlToTextError)) throw e;
+			noteErrors.push(`${folderPath} / ${name} (${id}): ${e.message}`);
+			continue;
+		}
 		const front = `---\naccount: ${account}\nfolder: ${folderPath}\nid: ${id}\nmodified: ${modified}\n---\n\n`;
 		writeFileSync(file, front + text);
 		manifest.notes.push({
@@ -470,7 +480,9 @@ function cmdExport(flags: Flags): void {
 	console.log(`  manifest: ${join(outDir, "manifest.json")}`);
 	for (const e of folderErrors)
 		console.log(`  ⚠ folder skipped (unreadable): ${e}`);
-	if (folderErrors.length) process.exitCode = 3; // partial export — loud, not silent
+	for (const e of noteErrors)
+		console.log(`  ⚠ note skipped (text conversion failed): ${e}`);
+	if (folderErrors.length || noteErrors.length) process.exitCode = 3; // partial export — loud, not silent
 }
 
 function requireAccount(flags: Flags): string {
@@ -647,4 +659,11 @@ function main(): void {
 	}
 }
 
-if (import.meta.main) main();
+if (import.meta.main) {
+	try {
+		main();
+	} catch (e) {
+		if (e instanceof HtmlToTextError) die(`✗ ${e.message}`);
+		throw e;
+	}
+}

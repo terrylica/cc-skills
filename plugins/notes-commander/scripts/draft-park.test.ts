@@ -20,9 +20,10 @@ import {
 	FOOTER_LEAD,
 	findFooterStart,
 	findLossyMarkdownLinks,
+	isReadableNoteBody,
 	ProvenanceLeakError,
-	pickBackend,
 	renderForWhatsApp,
+	selfHealTargets,
 } from "./draft-park.ts";
 
 const REAL_FOOTER = [
@@ -211,26 +212,37 @@ describe("markdown links whose URL cannot survive read-back", () => {
 	});
 });
 
-describe("pickBackend — how draft-park reaches Notes", () => {
-	test("outside the sandbox: osascript, as always", () => {
-		expect(pickBackend({}, true)).toBe("osascript");
-		expect(pickBackend({}, false)).toBe("osascript");
+describe("isReadableNoteBody — a failed read is never a draft", () => {
+	test("a real Notes body (HTML) is readable", () => {
+		expect(isReadableNoteBody("<div><b>T</b></div><div>hi</div>")).toBe(true);
 	});
-	test("sandboxed with the broker installed: host-notes", () => {
-		expect(pickBackend({ SANDBOX_RUNTIME: "1" }, true)).toBe("broker");
+	test("the empty, missing-value and vanished-note shapes are failed reads", () => {
+		for (const bad of [
+			"",
+			"  \n",
+			"missing value",
+			"(no such draft)",
+			"(no such draft)\n",
+		])
+			expect(isReadableNoteBody(bad)).toBe(false);
 	});
-	test("sandboxed without the broker is reported, not attempted via osascript", () => {
-		expect(pickBackend({ SANDBOX_RUNTIME: "1" }, false)).toBe(
-			"sandboxed-without-broker",
-		);
+	test("plain text with no tag is not a Notes body", () => {
+		expect(isReadableNoteBody("Hello there")).toBe(false);
 	});
-	test("DRAFT_PARK_BACKEND forces either backend", () => {
-		expect(
-			pickBackend(
-				{ SANDBOX_RUNTIME: "1", DRAFT_PARK_BACKEND: "osascript" },
-				true,
-			),
-		).toBe("osascript");
-		expect(pickBackend({ DRAFT_PARK_BACKEND: "broker" }, false)).toBe("broker");
+});
+
+describe("selfHealTargets — self-heal can never orphan the draft", () => {
+	test("deletes older copies only once the new note is listed", () => {
+		expect(selfHealTargets(["old1", "new", "old2"], "new")).toEqual([
+			"old1",
+			"old2",
+		]);
+	});
+	test("deletes nothing when the new note is not listed (the only real copy survives)", () => {
+		expect(selfHealTargets(["old1"], "new")).toEqual([]);
+		expect(selfHealTargets([], "new")).toEqual([]);
+	});
+	test("a lone new note has nothing to delete", () => {
+		expect(selfHealTargets(["new"], "new")).toEqual([]);
 	});
 });

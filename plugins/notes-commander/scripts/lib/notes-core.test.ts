@@ -25,6 +25,7 @@ import {
 	RS,
 	renderInline,
 	safeFilename,
+	sandboxHint,
 	terminateLegacyEntities,
 } from "./notes-core.ts";
 
@@ -569,5 +570,36 @@ test("hasVisibleText: tags and nbsp alone are not text", () => {
 });
 
 test("htmlToText: an empty note converts to empty without error", () => {
-	expect(htmlToText("<div><br></div>", {}, false).trim()).toBe("");
+	expect(htmlToText("<div><br></div>", {}).trim()).toBe("");
 });
+
+test("sandboxHint: names the sandbox only when SANDBOX_RUNTIME is set", () => {
+	expect(sandboxHint({})).toBe("");
+	expect(sandboxHint({ SANDBOX_RUNTIME: "" })).toBe("");
+	expect(sandboxHint({ SANDBOX_RUNTIME: "1" })).toContain(
+		"inside Claude Code's sandbox",
+	);
+	// The retired broker must not be advertised as a way out.
+	expect(sandboxHint({ SANDBOX_RUNTIME: "1" })).not.toMatch(
+		/host-notes|install/,
+	);
+});
+
+test("hasVisibleText: numeric non-breaking spaces are not text", () => {
+	for (const nbsp of ["&#160;", "&#xa0;", "&#xA0;", "&#x00a0;"])
+		expect(hasVisibleText(`<div>${nbsp}</div>`)).toBe(false);
+});
+
+// Bun's spawnSync default buffer (~1 MiB) returned status 0 + ENOBUFS with TRUNCATED stdout, which
+// htmlToText used to hand back as a success (measured 2026-09-27). textutil cannot run inside Claude
+// Code's sandbox, so this one needs the real converter and skips there.
+test.skipIf(Boolean(process.env.SANDBOX_RUNTIME))(
+	"htmlToText returns the WHOLE text past the old 1 MiB spawn ceiling",
+	() => {
+		const line = "abcdefghij".repeat(10);
+		const lines = 20_000; // ~2 MB of visible text
+		const html = `<div>${Array(lines).fill(line).join("</div><div>")}</div>`;
+		const out = htmlToText(html, {});
+		expect(out.split("\n").filter((l) => l === line).length).toBe(lines);
+	},
+);
