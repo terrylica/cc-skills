@@ -39,6 +39,36 @@ All code is installed root-owned (`0755`) in `/usr/local/libexec/claude-code-san
 
 The goal is signal confinement without breaking work, so the network allows every domain (still through the sandbox proxy), and writes are allowed under `~` except `~/.ssh`, `~/.gnupg`, `~/.config/age`, `~/.claude/settings.json`, and (macOS) `~/Library/Keychains` and `~/Library/LaunchAgents`, or (Linux) `~/.config/systemd`. Tighten these once the fleet has lived with the policy.
 
-## Re-validating after a Claude Code update
+## Regression check
 
-`/tmp/sandbox-pilot/run-pilot*.sh` were the headless probes behind the measurements above. The regression task that packages them is tracked as follow-on work. Until it lands, re-run the kill probe by hand after an update: `kill -0 <pid of any app>` inside a session must fail with `operation not permitted`.
+`managed-sandbox-policy/verify_managed_sandbox_policy.py` is the pilot packaged as a pass/fail test. It changes nothing, runs on each host's `/usr/bin/python3`, and exits 1 when any check fails. Run it after every Claude Code update, after re-applying the installer, and on any host you suspect.
+
+```bash
+moon run repo:sandbox-policy-verify                                   # static tier on this host
+/usr/bin/python3 plugins/itp-hooks/managed-sandbox-policy/verify_managed_sandbox_policy.py --json
+ssh bigblack /usr/bin/python3 ~/eon/cc-skills/plugins/itp-hooks/managed-sandbox-policy/verify_managed_sandbox_policy.py
+CCMAX_GROUP=<group> /usr/bin/python3 …/verify_managed_sandbox_policy.py --live --ssh-host bigblack
+```
+
+The **static tier** needs no model call. It checks five things:
+
+1. The managed settings are root-owned and actually enable the sandbox and both hooks.
+2. Every installed file is root-owned, locked, and byte-identical to the repo copy. A mismatch means the installer was not re-applied.
+3. The installed gate returns the expected verdict for seven known escape requests.
+4. A process confined the way Claude Code confines Bash cannot signal an outside one (Seatbelt `same-sandbox` on macOS, `bwrap --unshare-pid` on Linux).
+5. The SessionStart check reports no degradation.
+
+Run from inside an agent session, checks 4 and 5 are SKIPPED with the reason, because Seatbelt cannot be nested. Run it from a plain terminal or over ssh to exercise them.
+
+The **live tier** (`--live`) starts a victim process, then runs one fresh headless session with no `--settings`, so only the installed policy applies. It judges what happened, not what the model reports:
+
+- a sandboxed `kill -0 <victim>` is refused;
+- the escaped one is refused;
+- on macOS, `host-ps` returns the process table;
+- with `--ssh-host`, an escaped ssh reaches that host;
+- `gh api user` works sandboxed;
+- the victim is still alive at the end.
+
+It costs one headless session, about 100k prompt tokens. Under the ccmax wrapper, set `CCMAX_GROUP`.
+
+Tests: `test_verify_managed_sandbox_policy.py` pins the live-tier parser and judges.
