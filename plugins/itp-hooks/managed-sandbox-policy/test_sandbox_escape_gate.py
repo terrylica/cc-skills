@@ -97,6 +97,31 @@ class DeniesTheIncidentAndItsCousins(unittest.TestCase):
         self.assertEqual(run("ssh bigblack 'bash -s' < /nonexistent/x.sh"), "deny")
 
 
+class GitIsNotEscapable(unittest.TestCase):
+    """2026-09-27: git escapes were approved but never worked. Claude Code kept git sandboxed despite
+    the flag, and the proxy carries no SSH, so the gate now refuses them and names HTTPS as the fix."""
+
+    def test_git_network_escapes_are_refused(self):
+        for cmd in [
+            "git push origin main",
+            "git -C /Users/terryli/eon/cc-skills fetch --dry-run origin",
+            "git clone git@github.com:terrylica/cc-skills.git /tmp/x",
+            "git ls-remote origin HEAD 2>/dev/null",
+        ]:
+            self.assertEqual(run(cmd), "deny", cmd)
+
+    def test_refusal_names_the_https_fix(self):
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push origin main", "dangerouslyDisableSandbox": True}})
+        p = subprocess.run([sys.executable, GATE], input=payload, capture_output=True, text=True, timeout=20, check=True)
+        reason = json.loads(p.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
+        for needle in ("HTTPS", "pushInsteadOf", "never gh in a credential"):
+            self.assertIn(needle, reason)
+
+    def test_sandboxed_git_is_untouched(self):
+        # Without the flag the gate stays silent: HTTPS git runs inside the sandbox.
+        self.assertEqual(run("git push https://github.com/terrylica/cc-skills.git main", escape=False), "pass")
+
+
 class AllowsTheEverydayEscapes(unittest.TestCase):
     def test_allowed(self):
         for cmd in [
@@ -109,10 +134,6 @@ class AllowsTheEverydayEscapes(unittest.TestCase):
             "launchctl list com.terryli.iterm2-autosnapshot",
             "launchctl print gui/501/com.cpc.nas-tunnel 2>&1 | head -30",
             "/usr/bin/osascript -e 'tell application \"Finder\" to get name of front window'",
-            "git push origin main",
-            "git -C /Users/terryli/eon/cc-skills fetch --dry-run origin",
-            "git clone git@github.com:terrylica/cc-skills.git /tmp/x",
-            "git ls-remote origin HEAD 2>/dev/null",
         ]:
             self.assertEqual(run(cmd), "pass", cmd)
 
