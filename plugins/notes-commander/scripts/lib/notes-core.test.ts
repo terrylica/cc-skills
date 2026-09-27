@@ -9,12 +9,13 @@
  */
 import { expect, test } from "bun:test";
 import {
-	renderInline,
 	bodyToHtml,
 	contentPresent,
 	entityLeaks,
 	escapeHtml,
 	FS,
+	hasVisibleText,
+	htmlToText,
 	isNoteId,
 	isTransientOsaError,
 	matchNoteIds,
@@ -22,6 +23,7 @@ import {
 	noteNameMatchesTitle,
 	parseRecords,
 	RS,
+	renderInline,
 	safeFilename,
 	terminateLegacyEntities,
 } from "./notes-core.ts";
@@ -87,7 +89,10 @@ test("matchNoteIds: falls back to a truncated match when no exact name matches",
 		"CPC Scanners — Procurement Intelligence & Deliverables (2026-07-20)";
 	const index = [
 		{ id: "pX", name: "Unrelated" },
-		{ id: "pHit", name: `CPC Scanners — Procurement Intelligence${NOTES_NAME_ELLIPSIS}` },
+		{
+			id: "pHit",
+			name: `CPC Scanners — Procurement Intelligence${NOTES_NAME_ELLIPSIS}`,
+		},
 	];
 	expect(matchNoteIds(index, title)).toEqual(["pHit"]);
 });
@@ -136,21 +141,27 @@ test("a lead-in line directly above a list does NOT absorb the list items", () =
 	// so "Pick one:\n- a\n- b" (no blank line) was treated as prose and reflowJoin()ed the
 	// markers into the lead-in — the list silently vanished. Hit twice while staging a real
 	// draft; the author had to know an undocumented "blank line before a list" rule.
-	const html = bodyToHtml("解决办法有两个，你倾向哪个？\n- 升级到 Heavy\n- 调高默认值");
+	const html = bodyToHtml(
+		"解决办法有两个，你倾向哪个？\n- 升级到 Heavy\n- 调高默认值",
+	);
 	expect(html).toContain("<div>解决办法有两个，你倾向哪个？</div>");
 	expect(html).toContain("<li>升级到 Heavy</li>");
 	expect(html).toContain("<li>调高默认值</li>");
 });
 
 test("a lead-in above a numbered list keeps each item on its own line", () => {
-	const html = bodyToHtml("Pick one:\n1. promote the devices\n2. raise the default");
+	const html = bodyToHtml(
+		"Pick one:\n1. promote the devices\n2. raise the default",
+	);
 	expect(html).toContain("<div>Pick one:</div>");
 	expect(html).toContain("<div>1. promote the devices</div>");
 	expect(html).toContain("<div>2. raise the default</div>");
 });
 
 test("multi-line lead-in prose above a list reflows, then the list splits", () => {
-	const html = bodyToHtml("First half\nsecond half of the same sentence:\n- item one");
+	const html = bodyToHtml(
+		"First half\nsecond half of the same sentence:\n- item one",
+	);
 	expect(html).toContain(
 		"<div>First half second half of the same sentence:</div>",
 	);
@@ -356,7 +367,9 @@ test("renderInline refuses non-http(s)/mailto schemes, rendering them as literal
 	expect(renderInline("[click](javascript:alert(1))")).toBe(
 		"[click](javascript:alert(1))",
 	);
-	expect(renderInline("[f](file:///etc/passwd)")).toBe("[f](file:///etc/passwd)");
+	expect(renderInline("[f](file:///etc/passwd)")).toBe(
+		"[f](file:///etc/passwd)",
+	);
 	expect(renderInline("[rel](/local/path)")).toBe("[rel](/local/path)");
 });
 
@@ -383,9 +396,7 @@ test("bodyToHtml links inside list items and prose, but NOT inside a fence", () 
 
 test("bold **…** becomes a real <b> run, markers consumed", () => {
 	expect(renderInline("a **bold** b")).toBe("a <b>bold</b> b");
-	expect(renderInline("**one** and **two**")).toBe(
-		"<b>one</b> and <b>two</b>",
-	);
+	expect(renderInline("**one** and **two**")).toBe("<b>one</b> and <b>two</b>");
 });
 
 test("inline code becomes <tt> and protects markup inside it", () => {
@@ -463,22 +474,51 @@ test("bold renders inside a list item", () => {
 // --allow-lossy-links, which relaxes this same check for an unrelated reason.
 
 test("contentPresent accepts a read-back whose markup the formatter consumed", () => {
-	expect(contentPresent("Probe line with **bold word** here.", "Probe line with bold word here.")).toBe(true);
+	expect(
+		contentPresent(
+			"Probe line with **bold word** here.",
+			"Probe line with bold word here.",
+		),
+	).toBe(true);
 	expect(contentPresent("## For everyone", "For everyone")).toBe(true);
-	expect(contentPresent("- first bullet item here", "first bullet item here")).toBe(true);
-	expect(contentPresent("A `code span` inside a line", "A code span inside a line")).toBe(true);
-	expect(contentPresent("The _italic_ opener of a draft", "The italic opener of a draft")).toBe(true);
-	expect(contentPresent("See [the portal](https://x.test/p) now", "See the portal now")).toBe(true);
+	expect(
+		contentPresent("- first bullet item here", "first bullet item here"),
+	).toBe(true);
+	expect(
+		contentPresent("A `code span` inside a line", "A code span inside a line"),
+	).toBe(true);
+	expect(
+		contentPresent(
+			"The _italic_ opener of a draft",
+			"The italic opener of a draft",
+		),
+	).toBe(true);
+	expect(
+		contentPresent(
+			"See [the portal](https://x.test/p) now",
+			"See the portal now",
+		),
+	).toBe(true);
 });
 
 test("contentPresent still catches a genuinely missing or truncated save", () => {
 	expect(contentPresent("Probe line with **bold word** here.", "")).toBe(false);
-	expect(contentPresent("Probe line with **bold word** here.", "something else entirely")).toBe(false);
+	expect(
+		contentPresent(
+			"Probe line with **bold word** here.",
+			"something else entirely",
+		),
+	).toBe(false);
 });
 
 test("stripMarkup must not eat an identifier's underscore", () => {
 	// if it did, the needle would stop matching a read-back that legitimately kept them
-	expect(contentPresent("analytics.model_predictions and nan_policy", "analytics.model_predictions and nan_policy")).toBe(true);
+	expect(
+		contentPresent(
+			"analytics.model_predictions and nan_policy",
+			"analytics.model_predictions and nan_policy",
+		),
+	).toBe(true);
 });
 
 // ── nested lists: an outline must survive as an outline ────────────────────────
@@ -515,4 +555,19 @@ test("a fenced block keeps every markup character literal", () => {
 	expect(html).toContain("_not");
 	expect(html).not.toContain("<b>");
 	expect(html).not.toContain("<i>");
+});
+
+// ---- htmlToText must never answer "" for a note that has text (2026-09-27) ----
+// Inside Claude Code's sandbox textutil writes nothing and exits 0, which read as a lost note.
+// These cases give the same answer inside and outside the sandbox.
+
+test("hasVisibleText: tags and nbsp alone are not text", () => {
+	expect(hasVisibleText("")).toBe(false);
+	expect(hasVisibleText("<div><br></div><div>&nbsp;</div>")).toBe(false);
+	expect(hasVisibleText("<div><b>Hi</b></div>")).toBe(true);
+	expect(hasVisibleText("<div>&amp;</div>")).toBe(true);
+});
+
+test("htmlToText: an empty note converts to empty without error", () => {
+	expect(htmlToText("<div><br></div>", {}, false).trim()).toBe("");
 });

@@ -76,6 +76,10 @@ NOTE_ID_RE = re.compile(r"^x-coredata://[0-9A-Fa-f-]{36}/ICNote/p[0-9]+$")
 NOTES_SLOT = threading.Semaphore(1)
 FS, RS = "\u0001", "\u0002"
 OSASCRIPT = "/usr/bin/osascript"
+# textutil's HTML import needs a helper service the sandbox blocks: inside it, textutil prints
+# "Couldn't communicate with a helper application", writes nothing and still exits 0 (measured
+# 2026-09-27). The conversion itself is harmless, so the broker runs it with fixed argv.
+TEXTUTIL_ARGV = ["/usr/bin/textutil", "-stdin", "-stdout", "-convert", "txt", "-format", "html"]
 
 # Fixed scripts. Everything variable arrives as a run-handler argument (argv), never as source.
 OSA_LIST = """on run argv
@@ -214,8 +218,8 @@ def build_log_argv(q):
     return argv
 
 
-def run_capped(argv, timeout):
-    p = subprocess.run(argv, capture_output=True, timeout=timeout, check=False)
+def run_capped(argv, timeout, stdin=None):
+    p = subprocess.run(argv, input=stdin, capture_output=True, timeout=timeout, check=False)
     out = p.stdout
     if len(out) > MAX_OUTPUT_BYTES:
         out = out[:MAX_OUTPUT_BYTES] + b"\n[sandbox-diag-broker: output truncated at 32 MiB]\n"
@@ -308,8 +312,11 @@ class Handler(BaseHTTPRequestHandler):
                 out = self._notes(notes_argv(OSA_CREATE, body))
             elif url.path == "/notes/drafts/note":
                 out = self._notes(notes_argv(OSA_UPDATE, valid_note_id(q.get("id")), body))
+            elif url.path == "/text/html-to-txt":
+                self._html_to_txt(body)
+                return
             else:
-                self._send(404, b"POST endpoints: /notes/drafts /notes/drafts/note\n")
+                self._send(404, b"POST endpoints: /notes/drafts /notes/drafts/note /text/html-to-txt\n")
                 return
             if out is not None:
                 self._send(200, json.dumps({"id": out.strip()}).encode(), "application/json")
@@ -319,6 +326,14 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, b"bad Content-Length\n")
         except subprocess.TimeoutExpired:
             self._send(504, b"Notes did not answer in time\n")
+
+    def _html_to_txt(self, html):
+        """HTML -> plain text with textutil, exactly as notes-commander runs it outside the sandbox."""
+        rc, out, err = run_capped(TEXTUTIL_ARGV, NOTES_TIMEOUT_S, stdin=html.encode("utf-8"))
+        if rc != 0 or (not out.strip() and err.strip()):
+            self._send(502, err or b"textutil failed\n")
+            return
+        self._send(200, out)
 
     def log_message(self, format: str, *args: Any) -> None:
         log.info("%s %s", self.address_string(), format % args)
