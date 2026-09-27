@@ -58,7 +58,18 @@ GATE_VECTORS = [
     ("escaped local shell is refused", "bash -c 'echo hi'", True, True),
     ("escaped ps is refused (use host-ps)", "ps aux", True, True),
     ("escaped read-only ssh is allowed", "ssh -o BatchMode=yes host hostname", True, False),
-    ("escaped git push is allowed", "git push origin main", True, False),
+    # macOS refuses git escapes since 2026-09-27: the hatch never unsandboxed git there, and git works
+    # inside the sandbox (authenticated-CONNECT ProxyCommand, or HTTPS). Linux was not measured and
+    # keeps the previous rule. Until the installed gate is refreshed, this row FAILS on macOS, which is
+    # the drift signal this verifier exists to raise.
+    (
+        "escaped git push is refused on macOS (git runs inside the sandbox)"
+        if platform.system() == "Darwin"
+        else "escaped git push is allowed (Linux keeps the previous rule)",
+        "git push origin main",
+        True,
+        platform.system() == "Darwin",
+    ),
 ]
 
 
