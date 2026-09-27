@@ -1,3 +1,24 @@
+# [32.1.0](https://github.com/terrylica/cc-skills/compare/v32.0.0...v32.1.0) (2026-09-27)
+
+
+### Features
+
+* **itp-hooks:** block pkill/pgrep options placed after the pattern ([74900c5](https://github.com/terrylica/cc-skills/commit/74900c51c68fb0163aed74fc3cecddb6f912e643))
+
+On 2026-09-27 an agent ended a Playwright run with `pkill -f 'bun server.ts --build build-preview' -n`. macOS pkill and pgrep parse options with BSD getopt, which stops at the first non-option argument, so the trailing `-n` was not "newest only" but a second pattern, and pkill SIGTERMed every process whose command line contains "-n". That was eight Claude Code sessions (`--no-chrome`), the Crashpad crash reporter of every Electron app (`--no-rate-limit`: Code, Orca, Synergy, Typeless, Discord, and Time Doctor's own handler), an agent Chrome, a headless shell and Orca's terminals. The user's own Chrome and Google Drive survived only because their reporters carry no `-n`. A read-only reproduction afterwards matched 64 live processes with the trailing `-n` and 0 with it moved first.
+
+The kill then turned into what looked like "tons of apps crashed". Each app's Crashpad client respawns its handler, and on macOS 15.8.1 every respawn dies at startup with `mach_port_request_notification: (os/kern) invalid capability (20)`. ReportCrash attributes a helper's crash to its responsible app, so the operator saw a stream of "&lt;App> quit unexpectedly" dialogs, and after ReportCrash throttled, the loop kept running silently at about 4 failed spawns a second (1,196 in five minutes, each costing a syspolicyd check and a launchd registration) until the apps were relaunched. Linux procps permutes arguments, so the same line does what it says there, which is exactly why it reads as correct. The corrected order is equivalent on Linux and right on macOS, so a hard block costs nothing.
+
+The new PreToolUse guard statically lexes each Bash command, never executing it, and denies any pkill or pgrep that has an option-looking argument after its first pattern. The deny message carries the corrected invocation, with raw quoting preserved, a value-taking option moved together with its value, and a signal moved to argv[1], the only place BSD pkill reads one.
+
+- Added `hooks/pretooluse-pkill-option-after-pattern-guard.ts`, registered on `Bash` in `hooks.json` just before `pretooluse-pueue-wrap-guard.ts` (which must stay last), so it sees the unwrapped command.
+- Added `hooks/lib/pkill-option-after-pattern-detector.ts`: a pure, dependency-free lexer covering quotes, `$(...)` and backticks (including inside double quotes), redirections, comments and heredocs. It looks through `sudo`, `env`, `timeout`, `nice`, `xargs`, `nohup`, `command`, `exec`, `caffeinate`, `bash|sh|zsh -c`, `ssh host '...'`, `pueue add`, and heredocs fed to a shell.
+- Deliberately not flagged, because a noisy guard gets disabled: mentions in quoted arguments, comments or heredocs fed to `cat`/`python3`/`git`, a pattern written after `--` (`pkill -f -- '-n'`), redirections such as `2>/dev/null`, and another command's flags (`pgrep -f x | head -n 1`).
+- Added `hooks/pretooluse-pkill-option-after-pattern-guard.test.ts` (18 tests, which spawn the real hook). The first deny case is the incident command verbatim, alongside the `pkill -f "bun server.ts" -P $$` shape a workflow agent ran earlier the same day.
+- Added the escape hatch `PKILL-OPTION-ORDER-OK: <reason>` (at least 10 characters) to the iter-111 marker registry, and regenerated `docs/marketplace-escape-hatch-marker-reference.md`.
+- Added the spoke `docs/pkill-option-after-pattern-guard.md` (incident timeline, the macOS 15.8.1 Crashpad respawn failure, how to find and relaunch looping apps, the flagged and allowed matrix, known gaps), plus rows in the itp-hooks hub table and spoke index.
+- Known gaps, documented in the spoke: a script written with Write/Edit and executed later is not inspected, and a pattern held in a variable (`pkill -f "$PAT"`) cannot be checked statically.
+
 # [32.0.0](https://github.com/terrylica/cc-skills/compare/v31.3.0...v32.0.0) (2026-09-26)
 
 
