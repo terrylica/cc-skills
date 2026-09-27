@@ -773,6 +773,17 @@ iter187_sample_host_load_average_triplet_as_json_array_or_null() {
         raw_load_average_text="${raw_load_average_text//\}/}"
     elif [[ -r /proc/loadavg ]]; then
         raw_load_average_text=$(< /proc/loadavg) # Linux; a redirect, so zero fork
+    elif raw_load_average_text=$(uptime 2>/dev/null) &&
+        [[ "$raw_load_average_text" == *"load average"* ]]; then
+        # macOS inside Claude Code's managed kernel sandbox (2026-09-27): Seatbelt
+        # denies the sysctl BINARY's name lookup ("sysctl fmt -1 1024 1: Operation
+        # not permitted") while libc getloadavg(), which uptime uses, still works.
+        # Without this branch every sandboxed release preflight read null here.
+        # "load averages: 7.33 5.90 5.80" (macOS) / "load average: 0.1, 0.2, 0.3".
+        raw_load_average_text="${raw_load_average_text##*load average}"
+        raw_load_average_text="${raw_load_average_text#s}"
+        raw_load_average_text="${raw_load_average_text#:}"
+        raw_load_average_text="${raw_load_average_text//,/}"
     else
         printf 'null'
         return 0
