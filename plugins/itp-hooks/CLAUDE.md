@@ -51,7 +51,6 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 | `pretooluse-askuserquestion-option-line-terminator-guard.ts` | AskUserQuestion              | Blocks newlines in option label/description   | [→](./docs/askuserquestion-option-line-terminator-guard.md) |
 | `pretooluse-pkill-option-after-pattern-guard.ts`             | Bash                         | Blocks pkill/pgrep options after the pattern  | [→](./docs/pkill-option-after-pattern-guard.md)             |
 | `pretooluse-broad-process-signal-guard.ts`                   | Bash, Write, Edit, MultiEdit | Blocks broad kill/pkill/killall (+ scripts)   | [→](./docs/broad-process-signal-guard.md)                   |
-| `managed-sandbox-policy/sandbox_escape_gate.py`              | MANAGED settings, Bash       | Gates the sandbox escape hatch (root-owned)   | [→](./docs/managed-sandbox-policy.md)                       |
 
 ### PostToolUse
 
