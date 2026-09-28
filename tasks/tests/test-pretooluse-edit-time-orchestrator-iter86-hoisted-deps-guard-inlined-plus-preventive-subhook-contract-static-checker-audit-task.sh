@@ -111,7 +111,11 @@ fi
 
 # ─── Case 4: subhook-contract audit task reports clean state on production code
 set +e
+# Exit status kept (2026-09-27): under parallel load this audit's output has stopped right after
+# its header with no reason shown, and a count of 0 alone cannot say whether it crashed, was
+# killed, or exited early. Passing when run alone.
 case4_stdout=$(bash "$SUBHOOK_CONTRACT_AUDIT_TASK_PATH" 2>&1)
+case4_audit_exit=$?
 set -e
 
 # Iter-87 hardening: accept ANY subhook count ≥3 (registry monotonically grows
@@ -121,7 +125,7 @@ case4_subhook_count_extracted=$(echo "$case4_stdout" | grep -oE 'Total subhook f
 if [[ "${case4_subhook_count_extracted:-0}" -ge 3 ]]; then
     assert_passes "Case 4a: audit task discovers ≥3 inlined subhooks (found ${case4_subhook_count_extracted})"
 else
-    assert_fails "Case 4a: subhook count ${case4_subhook_count_extracted} < 3; output=$case4_stdout"
+    assert_fails "Case 4a: subhook count ${case4_subhook_count_extracted} < 3; audit exit=${case4_audit_exit} (137=SIGKILL, 143=SIGTERM); output=$case4_stdout"
 fi
 if [[ "$case4_stdout" == *'subhook files conform to the PreToolUseSubhookContract'* ]]; then
     assert_passes "Case 4b: audit task reports clean state on production subhooks"
