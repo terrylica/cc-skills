@@ -1,3 +1,12 @@
+## [32.3.3](https://github.com/terrylica/cc-skills/compare/v32.3.2...v32.3.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** review-round gate measures the branch gh pr create --head names ([0264df2](https://github.com/terrylica/cc-skills/commit/0264df22a7660aa87f84149f8e6ce723c2b479ad)), closes [doorward-systems/ccmax-monitor#133](https://github.com/doorward-systems/ccmax-monitor/issues/133)
+
+The gate read the repository and HEAD from the session's cwd. A PR opened from a worktree names its branch with --head while the session stands in the main checkout, so the gate measured main (0 changed files, no record) and denied a branch whose self-review WAS recorded at its exact commit. Inside the worktree the harness's isolation can refuse git outright, so 'cd there first' was no remedy either: the documented override was the
+
 ## [32.3.2](https://github.com/terrylica/cc-skills/compare/v32.3.1...v32.3.2) (2026-09-28)
 
 
