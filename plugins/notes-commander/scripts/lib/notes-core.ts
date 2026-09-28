@@ -578,6 +578,9 @@ export function terminateLegacyEntities(bodyHtml: string): string {
  */
 export const SPAWN_MAX_BUFFER = 256 * 1024 * 1024;
 
+/** textutil attempts per conversion (see htmlToText). */
+export const HTML_TO_TEXT_ATTEMPTS = 2;
+
 /** True when the HTML carries characters a reader would see (tags stripped, nbsp as space). */
 export function hasVisibleText(bodyHtml: string): boolean {
 	return (
@@ -611,28 +614,34 @@ export function htmlToText(
 	env: Record<string, string | undefined> = process.env,
 ): string {
 	// textutil misreads UTF-8 as Latin-1 without a charset declaration → prepend one.
-	const r = spawnSync(
-		"textutil",
-		["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
-		{
-			input: `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`,
-			encoding: "utf8",
-			maxBuffer: SPAWN_MAX_BUFFER,
-		},
-	);
-	const out = r.stdout ?? "";
-	if (
-		r.error ||
-		r.status !== 0 ||
-		(out.trim() === "" && hasVisibleText(bodyHtml))
-	) {
-		const why =
-			r.error?.message || (r.stderr ?? "").trim() || `exit ${r.status}`;
-		throw new HtmlToTextError(
-			`HTML-to-text conversion (textutil) returned nothing for a note with text: ${why}${sandboxHint(env)}`,
+	const input = `<meta charset="utf-8">${terminateLegacyEntities(bodyHtml)}`;
+	let why = "";
+	// Two attempts: a real export (637 notes, 2026-09-27) had ONE textutil run killed by a signal
+	// (status null, no stderr) on a 1.7 KB note that then converted 80/80 times in isolation. A
+	// transient death must not drop a note from a backup. A buffer overflow is not transient, so it
+	// is not retried.
+	for (let attempt = 1; attempt <= HTML_TO_TEXT_ATTEMPTS; attempt++) {
+		const r = spawnSync(
+			"textutil",
+			["-stdin", "-stdout", "-convert", "txt", "-format", "html"],
+			{ input, encoding: "utf8", maxBuffer: SPAWN_MAX_BUFFER },
 		);
+		const out = r.stdout ?? "";
+		const failed =
+			Boolean(r.error) ||
+			r.status !== 0 ||
+			(out.trim() === "" && hasVisibleText(bodyHtml));
+		if (!failed) return out;
+		why =
+			r.error?.message ||
+			(r.stderr ?? "").trim() ||
+			(r.signal ? `killed by ${r.signal}` : `exit ${r.status}`);
+		if ((r.error as NodeJS.ErrnoException | undefined)?.code === "ENOBUFS")
+			break;
 	}
-	return out;
+	throw new HtmlToTextError(
+		`HTML-to-text conversion (textutil) returned nothing for a note with text: ${why}${sandboxHint(env)}`,
+	);
 }
 
 /** Collapse runs of blank lines to single blanks (read-back cosmetics). */
