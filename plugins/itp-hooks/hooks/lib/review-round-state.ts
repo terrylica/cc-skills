@@ -75,6 +75,29 @@ export function resolveHeadBranch(target: string, cwd: string): string | null {
   }
 }
 
+/**
+ * The path of the worktree of cwd's repository that has `branch` checked out, or null.
+ *
+ * Lets the gate measure the branch a `gh pr create --head <branch>` actually submits instead of
+ * whatever the session's cwd happens to be on (see `prCreateHeadBranch`). Local git only, per this
+ * file's rule. null means "no local worktree has it", and the caller keeps cwd -- which is the old
+ * behaviour, so an unresolvable head never widens what the gate allows.
+ */
+export function worktreeForBranch(branch: string, cwd: string): string | null {
+  try {
+    const listing = git(["worktree", "list", "--porcelain"], cwd);
+    let path: string | null = null;
+    for (const line of listing.split("\n")) {
+      if (line.startsWith("worktree ")) path = line.slice("worktree ".length);
+      else if (line === `branch refs/heads/${branch}` && path !== null) return path;
+      else if (line === "") path = null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /** null when cwd is not a git repository, or is in a detached/unborn state we cannot key on. */
 export function identifyRepo(cwd: string): RepoIdentity | null {
   try {
