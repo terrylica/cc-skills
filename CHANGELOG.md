@@ -1,3 +1,26 @@
+## [32.3.4](https://github.com/terrylica/cc-skills/compare/v32.3.3...v32.3.4) (2026-09-28)
+
+
+### Bug Fixes
+
+* **itp-hooks:** stdin guard prefixes exec, not a subshell wrap ([#160](https://github.com/terrylica/cc-skills/issues/160)) ([3245d65](https://github.com/terrylica/cc-skills/commit/3245d65d7c1a9d1fe06afd6627242fb223514c61)), closes [#03](https://github.com/terrylica/cc-skills/issues/03) [#08](https://github.com/terrylica/cc-skills/issues/08) [#09](https://github.com/terrylica/cc-skills/issues/09) [#01](https://github.com/terrylica/cc-skills/issues/01) [#08](https://github.com/terrylica/cc-skills/issues/08) [#09](https://github.com/terrylica/cc-skills/issues/09)
+
+The subprocess stdin-inlet guard rewrote every Bash command to `(CMD) < /dev/null`. Claude Code's worktree isolation parses the command it will actually run, after this hook's updatedInput, and cannot verify git inside a subshell with a redirect. So in any worktree-isolated session every git command was refused with "names git in a form too complex to verify that it stays inside the worktree", including a bare `git status`.
+
+Measured in a ccmax-monitor worktree session on Claude Code 2.1.283:
+
+- `git status --short` (rewritten to the subshell form): refused
+- `git status --short < /dev/null` (left alone by this hook): ran
+- `{ git status --short; git log -1; } < /dev/null`: refused
+- `exec < /dev/null; git status --short; git log -1`: ran
+- `exec < /dev/null` + newline + `git status` + newline + `git log -1 # trailing comment`: ran
+
+The hook now emits `exec < /dev/null` on its own line ahead of the command. The shell's own stdin is re-pointed first, so every later command (pipelines, compound commands, background jobs) still reads /dev/null. Each Bash tool call runs in a fresh shell, so it cannot leak into a later call. It also fixes a latent parse bug: a command ending in a `#` comment used to swallow the wrap's closing parenthesis.
+
+Test changes (the iter-63 suite, now 9 assertions over 6 inputs):
+
+- #01 inverted, not deleted: it asserted the subshell form; it now asserts the prefix form.
+
 ## [32.3.3](https://github.com/terrylica/cc-skills/compare/v32.3.2...v32.3.3) (2026-09-28)
 
 
