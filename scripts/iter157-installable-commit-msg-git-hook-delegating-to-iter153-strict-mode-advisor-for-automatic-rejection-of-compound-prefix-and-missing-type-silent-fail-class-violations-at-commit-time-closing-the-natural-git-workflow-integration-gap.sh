@@ -127,7 +127,8 @@ iter157_locate_bun_interpreter_without_trusting_path() {
     local candidate
     for candidate in \
         "$(command -v bun 2>/dev/null || true)" \
-        /opt/homebrew/bin/bun \
+        "$HOME/.proto/bin/bun" \
+    /opt/homebrew/bin/bun \
         "$HOME/.bun/bin/bun"
     do
         if [[ -n "$candidate" && -x "$candidate" ]]; then
