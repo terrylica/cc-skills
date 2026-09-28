@@ -413,14 +413,30 @@ function cmdExport(flags: Flags): void {
 		file: string;
 		chars: number;
 	}
+	// `complete` and `skipped` exist so the manifest alone can tell a full backup from a partial one:
+	// before 2026-09-27 a skipped folder or note was named only on stdout, so a caller that took an
+	// existing manifest.json as proof of a complete snapshot could not see what was missing.
 	const manifest: {
 		exportedAt: string;
+		complete: boolean;
 		folders: FolderRow[];
 		notes: ManifestNote[];
+		skipped: {
+			folders: Array<{ path: string; reason: string }>;
+			notes: Array<{
+				account: string;
+				folder: string;
+				id: string;
+				name: string;
+				reason: string;
+			}>;
+		};
 	} = {
 		exportedAt: new Date().toISOString(),
+		complete: true,
 		folders: [],
 		notes: [],
+		skipped: { folders: [], notes: [] },
 	};
 
 	const folderErrors: string[] = [];
@@ -429,6 +445,10 @@ function cmdExport(flags: Flags): void {
 		if (isTrash(r[2] ?? "")) continue; // belt-and-braces: the AppleScript already skips trash
 		if (r[0] === "E") {
 			folderErrors.push(`${r[2]}: ${r[3]}`);
+			manifest.skipped.folders.push({
+				path: r[2] ?? "",
+				reason: r[3] ?? "unreadable",
+			});
 			continue;
 		}
 		if (r[0] === "F") {
@@ -454,6 +474,13 @@ function cmdExport(flags: Flags): void {
 			// One note that cannot be converted must not void the whole backup (no manifest.json).
 			if (!(e instanceof HtmlToTextError)) throw e;
 			noteErrors.push(`${folderPath} / ${name} (${id}): ${e.message}`);
+			manifest.skipped.notes.push({
+				account,
+				folder: folderPath,
+				id,
+				name,
+				reason: e.message,
+			});
 			continue;
 		}
 		const front = `---\naccount: ${account}\nfolder: ${folderPath}\nid: ${id}\nmodified: ${modified}\n---\n\n`;
@@ -469,6 +496,7 @@ function cmdExport(flags: Flags): void {
 		});
 	}
 
+	manifest.complete = folderErrors.length === 0 && noteErrors.length === 0;
 	writeFileSync(
 		join(outDir, "manifest.json"),
 		JSON.stringify(manifest, null, 2),
