@@ -126,7 +126,7 @@ class GitEscapesPerPlatform(unittest.TestCase):
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push origin main", "dangerouslyDisableSandbox": True}})
         p = subprocess.run([sys.executable, GATE], input=payload, capture_output=True, text=True, timeout=20, check=True)
         reason = json.loads(p.stdout)["hookSpecificOutput"]["permissionDecisionReason"]
-        for needle in ("HTTPS", "pushInsteadOf", "never gh in a credential"):
+        for needle in ("CONNECT", "HTTPS_PROXY", "HTTPS", "never gh in a credential"):
             self.assertIn(needle, reason)
 
     def test_sandboxed_git_is_untouched(self):
