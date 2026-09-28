@@ -71,8 +71,28 @@ async function main() {
     return;
   }
 
+  // PREFIX, not a subshell wrap. This was `(${command}) < /dev/null` until
+  // 2026-09-28, and that shape broke two things:
+  //
+  //   1. Worktree-isolated sessions refused EVERY git command. Claude Code's
+  //      isolation check parses the command it will actually run (after this
+  //      hook's updatedInput), cannot verify git inside a subshell with a
+  //      redirect, and refuses with "names git in a form too complex to verify
+  //      that it stays inside the worktree". Measured in a ccmax-monitor
+  //      worktree session on Claude Code 2.1.283: bare `git status` refused;
+  //      `git status < /dev/null` (which this hook leaves alone) ran;
+  //      `{ …; } < /dev/null` refused; `exec < /dev/null; git …` ran.
+  //   2. A command ending in a `#` comment lost its closing parenthesis to the
+  //      comment, so the wrapped command did not parse at all.
+  //
+  // `exec < /dev/null` re-points the shell's own stdin first, so every
+  // command after it (pipelines, compound commands, backgrounded jobs) inherits
+  // /dev/null exactly as the subshell wrap gave them. Each Bash tool call runs
+  // in a fresh shell, so the redirect cannot leak into a later call, and a
+  // heredoc still supplies its own stdin. The newline, not `;`, keeps a
+  // trailing `#` comment or a leading here-string/heredoc on its own line.
   if (!command.includes("</dev/null") && !command.includes("< /dev/null")) {
-    command = `(${command}) < /dev/null`;
+    command = `exec < /dev/null\n${command}`;
   }
 
   console.warn(
