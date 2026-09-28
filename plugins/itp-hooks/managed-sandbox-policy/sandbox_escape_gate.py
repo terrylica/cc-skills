@@ -57,21 +57,23 @@ LAUNCHCTL_READ_ONLY = {"list", "print", "print-disabled", "blame"}
 LOG_READ_ONLY = {"show", "stream"}
 GIT_NETWORK_ONLY = {"push", "fetch", "pull", "clone", "ls-remote"}
 
-# On macOS, git is deliberately NOT escapable (changed 2026-09-27). Escaping it never helps: over SSH it
-# fails whether or not the flag is set, and over HTTPS it already works inside the sandbox.
-# Measured on macOS the same day: through the hatch, `ssh -T git@github.com-<alias>` authenticated,
-# while `git ls-remote` and `git push` over the same alias did not, and still carried the sandbox's
-# shell-init symptom, so Claude Code kept git sandboxed despite the flag. The proxy itself carries
-# no SSH (SOCKS5 to :22 and :443 and HTTP CONNECT to :443 were all refused). Approving a git
-# escape only sent sessions down a dead end, so the gate refuses it and names the fix.
+# On macOS, git is deliberately NOT escapable (changed 2026-09-27): the escape never helps, and git
+# does not need it. Measured on macOS the same day: through the hatch, `ssh -T git@github.com-<alias>`
+# authenticated, while `git ls-remote` and `git push` over the same alias failed and still carried
+# the sandbox's shell-init symptom, so Claude Code kept git sandboxed despite the flag. Git works
+# INSIDE the sandbox instead. Over SSH, the ProxyCommand has to authenticate to the sandbox proxy:
+# the injected `nc -X 5 -x localhost:<port>` (SOCKS5, no credentials) is refused, and so is an
+# HTTP CONNECT without credentials, but an HTTP CONNECT carrying the credentials from HTTPS_PROXY
+# (http://user:pass@localhost:<port>) to ssh.github.com:443 goes through. HTTPS git works as is.
+# Approving a git escape only sent sessions down a dead end, so the gate refuses it and says why.
 # Linux (bubblewrap) was NOT measured, so there the previous rule stands: git network
 # subcommands may escape. Re-measure before extending the refusal to Linux.
 GIT_ESCAPE_REFUSAL = (
-    "git cannot usefully escape: Claude Code keeps git sandboxed even with dangerouslyDisableSandbox, "
-    "and the sandbox proxy carries no SSH, so git over SSH fails either way. Use HTTPS, which works "
-    "inside the sandbox: `url.\"https://github.com/\".pushInsteadOf = git@github.com-<account>:` in that "
-    "account's gitconfig include, with credentials from Git Credential Manager (never gh in a credential "
-    "helper, per the process-storm rule). One-off: git push https://github.com/<owner>/<repo>.git <branch>"
+    "git needs no escape, and on macOS the hatch does not unsandbox it anyway. Run git inside the "
+    "sandbox. Over SSH, use a ProxyCommand that sends HTTP CONNECT to the sandbox proxy with the "
+    "credentials from HTTPS_PROXY: the injected `nc -X 5` SOCKS route cannot authenticate and is "
+    "refused. Or use HTTPS, with credentials from Git Credential Manager (never gh in a credential "
+    "helper, per the process-storm rule)."
 )
 OSASCRIPT_FORBIDDEN = re.compile(r"(?i)(\bquit\b|do shell script|doShellScript|keystroke|key code|\bdelete\b|System Events)")
 
