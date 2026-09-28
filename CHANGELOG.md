@@ -1,3 +1,25 @@
+## [32.3.2](https://github.com/terrylica/cc-skills/compare/v32.3.1...v32.3.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* **notes-commander:** export manifest names what it skipped; retry textutil ([7e37dcb](https://github.com/terrylica/cc-skills/commit/7e37dcbb23128048290410aee43038bf03563c11))
+
+A live export of 637 notes after v32.3.1 exited 3. One note had been skipped with "text conversion failed … exit null". That note is 1.7 KB of plain HTML and converted 80 of 80 times in isolation, so textutil had been killed by a signal once in over 600 conversions. Before v32.3.1 the same death returned "", and the note went into the backup as an empty file with no warning. v32.3.1 made the skip loud, but manifest.json listed only the notes it wrote. A caller that took an existing manifest as proof of a complete backup could not see the gap.
+
+- manifest.json gains `complete` (false when anything was skipped) and `skipped.folders` / `skipped.notes`, each with its reason. The change is additive; existing fields are unchanged.
+- htmlToText() makes two attempts (HTML_TO_TEXT_ATTEMPTS). ENOBUFS is not retried, since it is deterministic. The error now names the signal ("killed by SIGx") instead of "exit null".
+- The notes-export SKILL.md reflection checks `complete`. A new evolution log records the finding.
+
+Evidence: a second full export returned 638 notes, `complete: true`, exit 0, and the previously skipped note was exported with its text. notes-commander 93 pass, 0 fail; repo:check 2247 pass, 0 fail, no hook test file failed.
+
+* **tasks:** strict subhook audit fails on zero files; tests keep its exit ([dc17322](https://github.com/terrylica/cc-skills/commit/dc1732207520419f9c479308fe2ed6737d42a96e))
+
+In two parallel repo:check runs on 2026-09-27, iter86 Case 4a and iter88 Case 6a reported "subhook count 0". Both pass when run alone. The captured output stops right after the audit's header, so the audit never reached discovery. Neither test kept the audit's exit status, so the log could not say whether it crashed, was killed, or exited early. No memorystatus/jetsam kill appears in the unified log for that window, with 59% memory free.
+
+- iter86 Case 4 and iter88 Case 6 now record the audit's exit status and print it on failure (137 = SIGKILL, 143 = SIGTERM); iter88 also prints the audit's last 15 lines. The next occurrence will name its cause.
+- The audit's "No subhook files discovered" branch exited 0 even under --strict, so a release gate could report clean on zero files. Under --strict it now exits 1. Informational mode still exits 0. Verified: strict on an empty hooks dir -> 1, informational -> 0, strict on the real repo -> 0, so the normal preflight path is unchanged.
+
 ## [32.3.1](https://github.com/terrylica/cc-skills/compare/v32.3.0...v32.3.1) (2026-09-27)
 
 
