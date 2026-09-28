@@ -155,3 +155,61 @@ describe("gh pr ready --undo unmarks the branch it NAMES", () => {
     expect(reviewableOn(dir, "beta")).toBe(false);
   });
 });
+
+/**
+ * A branch checked out in its own worktree, with a self-review recorded there, while the "session"
+ * stands in the main checkout on `main`. Returns both paths.
+ */
+function reviewedBranchInAWorktree(prefix: string): { main: string; worktree: string } {
+  const main = mkdtempSync(join(tmpdir(), `rrg-${prefix}-main-`));
+  const worktree = `${main}-wt`;
+  created.push(main, worktree);
+  sh(["init", "-q", "-b", "main"], main);
+  sh(["config", "user.email", "t@e.st"], main);
+  sh(["config", "user.name", "t"], main);
+  writeFileSync(join(main, "a.txt"), "base\n");
+  sh(["add", "-A"], main);
+  sh(["commit", "-qm", "base"], main);
+  sh(["worktree", "add", "-q", worktree, "-b", "feature"], main);
+  writeFileSync(join(worktree, "a.txt"), "feature\n");
+  sh(["add", "-A"], worktree);
+  sh(["commit", "-qm", "feature"], worktree);
+  execFileSync(
+    "bun",
+    [join(dirname(import.meta.path), "lib", "review-round-cli.ts"), "record", "--file", "a.txt=checked the one-line change"],
+    { cwd: worktree, stdio: ["ignore", "ignore", "ignore"] },
+  );
+  return { main, worktree };
+}
+
+describe("gh pr create --head measures the named branch's worktree, not cwd", () => {
+  // 2026-09-28, doorward-systems/ccmax-monitor#133: the record existed at the pushed commit in the
+  // worktree, the session stood in the main checkout on `main`, and the gate denied because it
+  // measured `main`. Each case below has its control, because an allow alone would also pass on a
+  // gate that simply stopped checking.
+  test("a reviewed branch named by --head is allowed from the main checkout", async () => {
+    const { main } = reviewedBranchInAWorktree("head");
+    const decision = await runHook("gh pr create --head feature --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("allow");
+  });
+
+  test("control: the same command WITHOUT --head is still measured on cwd and denied", async () => {
+    const { main } = reviewedBranchInAWorktree("nohead");
+    const decision = await runHook("gh pr create --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  test("control: an UNREVIEWED branch named by --head is still denied", async () => {
+    const { main, worktree } = reviewedBranchInAWorktree("unreviewed");
+    // A change after the record invalidates it: the gate must now see the worktree's new diff.
+    writeFileSync(join(worktree, "a.txt"), "changed after review\n");
+    const decision = await runHook("gh pr create --head feature --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+
+  test("a --head with no local worktree falls back to cwd, never widening what is allowed", async () => {
+    const { main } = reviewedBranchInAWorktree("noworktree");
+    const decision = await runHook("gh pr create --head some-other-branch --title t --body-file /tmp/b.md", main);
+    expect(decision.hookSpecificOutput.permissionDecision).toBe("deny");
+  });
+});

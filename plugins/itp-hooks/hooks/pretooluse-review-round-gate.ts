@@ -20,6 +20,7 @@ import { trackHookError } from "./lib/hook-error-tracker.ts";
 import {
   classify,
   overrideReason,
+  prCreateHeadBranch,
   undraftTarget,
   validateArtifact,
   type GatedKind,
@@ -33,6 +34,7 @@ import {
   recordOverride,
   resolveHeadBranch,
   unmarkBranchReviewable,
+  worktreeForBranch,
 } from "./lib/review-round-state.ts";
 
 /**
@@ -125,7 +127,17 @@ async function main(): Promise<void> {
   const { kind, matched } = classify(command);
   if (kind === null) return allow();
 
-  const cwd = input.cwd ?? process.cwd();
+  // MEASURE THE BRANCH BEING SUBMITTED, not the session's cwd. `gh pr create --head <branch>` run
+  // from the main checkout (because the harness's worktree isolation can refuse git inside the
+  // worktree) used to be measured on `main` and denied, although the branch's self-review was
+  // recorded at its exact commit (2026-09-28, doorward-systems/ccmax-monitor#133). When a local
+  // worktree has the named branch checked out, its facts are the right ones; otherwise cwd, as before.
+  let cwd = input.cwd ?? process.cwd();
+  if (kind === "pr-create") {
+    const headBranch = prCreateHeadBranch(command);
+    const headWorktree = headBranch === null ? null : worktreeForBranch(headBranch, cwd);
+    if (headWorktree !== null) cwd = headWorktree;
+  }
   const repo = identifyRepo(cwd);
   // Not a git repo, or detached HEAD: nothing to anchor an artifact to. Fail OPEN rather than
   // block work the gate cannot reason about.
