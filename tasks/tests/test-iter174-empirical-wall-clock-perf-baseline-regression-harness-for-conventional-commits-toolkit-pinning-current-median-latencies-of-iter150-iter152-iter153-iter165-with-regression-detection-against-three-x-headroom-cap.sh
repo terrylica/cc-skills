@@ -164,7 +164,11 @@ ITER174_BASELINE_CAP_MILLISECONDS_FOR_ITER160_DOCTOR_POST_ITER177_OPTIMIZATION=1
 #
 # Re-pin deliberately: run this harness standalone, read the observed count off
 # the A6 line, and update the constant in the same commit as the doctor change.
-ITER186_CEILING_EXTERNAL_FORK_COUNT_FOR_ITER160_DOCTOR_LOAD_INVARIANT_GATE_REPLACING_WALL_CLOCK_CAP=23
+# Re-pinned 23 -> 27 on 2026-10-01: the iter-152 dashboard's four window filters changed
+# from `head -N` to `awk 'NR <= limit'` (SIGPIPE hardening). The process count is unchanged;
+# `awk` is in the shim set below and `head` is not, so four previously uncounted forks are
+# now counted. Measured standalone three times: forks=27 each time.
+ITER186_CEILING_EXTERNAL_FORK_COUNT_FOR_ITER160_DOCTOR_LOAD_INVARIANT_GATE_REPLACING_WALL_CLOCK_CAP=27
 
 # The iter-177 property, asserted exactly rather than through the ceiling: the
 # per-check timing wrapper must fork NO perl. Checked separately because a

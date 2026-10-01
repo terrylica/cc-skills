@@ -197,9 +197,10 @@ iter152_assert_substring_present_in_file \
 echo ""
 echo "GROUP F (5 assertions): functional smoke test emits all 5 panel headers + footer"
 
+ITER152_RENDERER_EXIT_CODE_FOR_SMOKE_TEST=0
 ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST=$(
-    "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" 2>&1 || true
-)
+    "$ITER152_RENDERER_SCRIPT_ABSOLUTE_PATH" 2>&1
+) || ITER152_RENDERER_EXIT_CODE_FOR_SMOKE_TEST=$?
 
 ITER152_TOTAL_ASSERTIONS_EVALUATED=$((ITER152_TOTAL_ASSERTIONS_EVALUATED + 1))
 if [[ "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" == *"Panel 1: Readable view (iter-150 renderer)"* ]]; then
@@ -254,6 +255,9 @@ if (( ITER152_TOTAL_ASSERTIONS_FAILED == 0 )); then
     exit 0
 else
     echo "  ✗ ITER-152 REGRESSION TEST: $((ITER152_TOTAL_ASSERTIONS_EVALUATED - ITER152_TOTAL_ASSERTIONS_FAILED))/${ITER152_TOTAL_ASSERTIONS_EVALUATED} assertions passed, ${ITER152_TOTAL_ASSERTIONS_FAILED} FAILED"
+    echo "  Renderer exit code (Group F run): $ITER152_RENDERER_EXIT_CODE_FOR_SMOKE_TEST"
+    echo "  Renderer output, last 15 lines:"
+    printf '%s\n' "$ITER152_RENDERER_OUTPUT_CAPTURE_FOR_SMOKE_TEST" | tail -15 | sed 's/^/    | /'
     echo "═══════════════════════════════════════════════════════════════════════════════"
     exit 1
 fi
