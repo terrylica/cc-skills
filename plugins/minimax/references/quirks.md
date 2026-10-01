@@ -1,10 +1,10 @@
 # MiniMax M-series Quirks Reference
 
-Sub-spoke of [`../CLAUDE.md`](~/own/amonic/minimax/CLAUDE.md). **Read this BEFORE wiring MiniMax into any production service.** This is a navigable index of behavioral quirks that diverge from the OpenAI-compat baseline — knowing them saves debugging cycles later.
+Sub-spoke of `../CLAUDE.md` (`~/own/amonic/minimax/CLAUDE.md`). **Read this BEFORE wiring MiniMax into any production service.** This is a navigable index of behavioral quirks that diverge from the OpenAI-compat baseline — knowing them saves debugging cycles later.
 
 > **Aggregated copy** of `~/own/amonic/minimax/quirks/CLAUDE.md` (source-of-truth — read-only). Cross-references retargeted to plugin-relative paths. Aggregated 2026-04-29 (iter-6 of cc-skills minimax aggregation campaign).
 
-Each entry is a 2-4 sentence summary; deep dives live in [`../api-patterns/`](./api-patterns/) (linked per item). Verified hands-on by the autonomous-loop campaign documented in [`../LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md). Last consolidation: 2026-04-29 after Tier 1 closure.
+Each entry is a 2-4 sentence summary; deep dives live in [`../api-patterns/`](./api-patterns/) (linked per item). Verified hands-on by the autonomous-loop campaign documented in `../LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`). Last consolidation: 2026-04-29 after Tier 1 closure.
 
 ---
 
@@ -280,9 +280,9 @@ DEFENSIVE_RESPONSE_HANDLING = """
 
 ## Pointers
 
-- Campaign log: [`../LOOP_CONTRACT.md`](~/own/amonic/minimax/LOOP_CONTRACT.md) — full revision history, queue, Non-Obvious Learnings
+- Campaign log: `../LOOP_CONTRACT.md` (`~/own/amonic/minimax/LOOP_CONTRACT.md`) — full revision history, queue, Non-Obvious Learnings
 - Endpoint patterns: [`../api-patterns/`](./api-patterns/) — one file per `/v1/<endpoint>`
-- Hub: [`../CLAUDE.md`](~/own/amonic/minimax/CLAUDE.md) — verified facts table, consumption patterns, security notes
+- Hub: `../CLAUDE.md` (`~/own/amonic/minimax/CLAUDE.md`) — verified facts table, consumption patterns, security notes
 - Official docs (re-check at upgrades): <https://platform.minimax.io/docs/api-reference/text-openai-api>
 - Billing UI: <https://platform.minimax.io/user-center/payment/billing-history>
 

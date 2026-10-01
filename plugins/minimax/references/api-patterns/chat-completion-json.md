@@ -212,9 +212,9 @@ messages = [
 
 Fixtures:
 
-- [`fixtures/chat-completion-jsonmode-J1-no-format-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J1-no-format-2026-04-28.json)
-- [`fixtures/chat-completion-jsonmode-J2-json-object-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J2-json-object-2026-04-28.json)
-- [`fixtures/chat-completion-jsonmode-J3-json-schema-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J3-json-schema-2026-04-28.json)
-- [`fixtures/chat-completion-jsonmode-J4-no-json-in-prompt-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J4-no-json-in-prompt-2026-04-28.json)
+- `fixtures/chat-completion-jsonmode-J1-no-format-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J1-no-format-2026-04-28.json`)
+- `fixtures/chat-completion-jsonmode-J2-json-object-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J2-json-object-2026-04-28.json`)
+- `fixtures/chat-completion-jsonmode-J3-json-schema-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J3-json-schema-2026-04-28.json`)
+- `fixtures/chat-completion-jsonmode-J4-no-json-in-prompt-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-jsonmode-J4-no-json-in-prompt-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-9. 4 API calls.

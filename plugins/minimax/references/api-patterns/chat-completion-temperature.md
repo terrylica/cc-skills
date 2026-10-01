@@ -134,9 +134,9 @@ Add to T3.x queue if/when these become priorities.
 
 Fixtures (max_tokens=4096 versions, the empty 512-cap responses were not saved):
 
-- [`fixtures/chat-completion-temp-0.0-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.0-2026-04-28.json)
-- [`fixtures/chat-completion-temp-0.5-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.5-2026-04-28.json)
-- [`fixtures/chat-completion-temp-1.0-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-1.0-2026-04-28.json)
-- [`fixtures/chat-completion-temp-0.0-rerun-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.0-rerun-2026-04-28.json)
+- `fixtures/chat-completion-temp-0.0-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.0-2026-04-28.json`)
+- `fixtures/chat-completion-temp-0.5-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.5-2026-04-28.json`)
+- `fixtures/chat-completion-temp-1.0-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-1.0-2026-04-28.json`)
+- `fixtures/chat-completion-temp-0.0-rerun-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-temp-0.0-rerun-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-5. Total API calls used: 8 (4 wasted at max_tokens=512, 4 productive at max_tokens=4096).

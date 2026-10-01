@@ -160,6 +160,6 @@ Don't extrapolate chat-completion's p=10 sweet spot to other endpoints. Each nee
 
 Fixture (consolidated):
 
-- [`fixtures/concurrency-iter25-parallelism-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/concurrency-iter25-parallelism-2026-04-28.json)
+- `fixtures/concurrency-iter25-parallelism-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/concurrency-iter25-parallelism-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-25. 33 API calls (3 + 10 + 20).

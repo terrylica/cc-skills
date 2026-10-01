@@ -27,7 +27,7 @@ iter-39 confirmed MiniMax supports hybrid OpenAI+Anthropic caching APIs. iter-40
 - **P2** — prefix-match: long system + 3 different user messages, sequential
 - **P3** — TTL decay: same prompt replayed at t=0/5s/35s/95s/185s
 
-Source: `/tmp/mm-iter40-cache-semantics.py`. Fixture: [`fixtures/cache-semantics-iter40-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/cache-semantics-iter40-2026-04-29.json).
+Source: `/tmp/mm-iter40-cache-semantics.py`. Fixture: `fixtures/cache-semantics-iter40-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/cache-semantics-iter40-2026-04-29.json`).
 
 ## Results
 
@@ -195,4 +195,4 @@ def cache_hit_rate(usage: dict) -> float:
 | P2.U1           | (see fixture) |
 | P3.t185s        | (see fixture) |
 
-All raw responses captured in [`fixtures/cache-semantics-iter40-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/cache-semantics-iter40-2026-04-29.json).
+All raw responses captured in `fixtures/cache-semantics-iter40-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/cache-semantics-iter40-2026-04-29.json`).

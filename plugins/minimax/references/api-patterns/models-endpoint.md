@@ -74,7 +74,7 @@ curl -sS -D /tmp/mm-models.headers -o /tmp/mm-models.json \
 }
 ```
 
-Full fixture: [`fixtures/models-list-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/models-list-2026-04-28.json).
+Full fixture: `fixtures/models-list-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/models-list-2026-04-28.json`).
 
 ## Decoded creation timestamps (release cadence)
 

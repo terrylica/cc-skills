@@ -205,6 +205,6 @@ Replace with body-level introspection (per the example above).
 
 Fixture (consolidated single fixture for the burst):
 
-- [`fixtures/rate-limits-iter22-survey-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/rate-limits-iter22-survey-2026-04-28.json)
+- `fixtures/rate-limits-iter22-survey-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/rate-limits-iter22-survey-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-22. 10 API calls (single 10-parallel burst).

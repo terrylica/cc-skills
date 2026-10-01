@@ -215,8 +215,8 @@ This will reveal whether server-side optimizations (like `<think>` stripping) ar
 
 Fixtures:
 
-- [`fixtures/chat-completion-tokens-T1-single-turn-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T1-single-turn-2026-04-28.json)
-- [`fixtures/chat-completion-tokens-T2-multiturn-with-think-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T2-multiturn-with-think-2026-04-28.json)
-- [`fixtures/chat-completion-tokens-T3-multiturn-stripped-think-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T3-multiturn-stripped-think-2026-04-28.json)
+- `fixtures/chat-completion-tokens-T1-single-turn-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T1-single-turn-2026-04-28.json`)
+- `fixtures/chat-completion-tokens-T2-multiturn-with-think-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T2-multiturn-with-think-2026-04-28.json`)
+- `fixtures/chat-completion-tokens-T3-multiturn-stripped-think-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-tokens-T3-multiturn-stripped-think-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-10 (closes Tier 1). 3 API calls.

@@ -216,6 +216,6 @@ Wall-clock for 3 parallel probes: 131.9s.
 
 Fixture:
 
-- [`fixtures/portfolio-opt-iter36-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/portfolio-opt-iter36-2026-04-29.json) — full responses + truth values + grading
+- `fixtures/portfolio-opt-iter36-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/portfolio-opt-iter36-2026-04-29.json`) — full responses + truth values + grading
 
 Verifier: autonomous-loop iter-36. 3 API calls.

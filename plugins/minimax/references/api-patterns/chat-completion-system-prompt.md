@@ -125,7 +125,7 @@ Budget HIGHER `max_tokens` for personas — Finding 2 showed reasoning ~doubles.
 
 Fixtures:
 
-- [`fixtures/chat-completion-system-prompt-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-prompt-2026-04-28.json)
-- [`fixtures/chat-completion-no-system-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-no-system-2026-04-28.json)
+- `fixtures/chat-completion-system-prompt-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-system-prompt-2026-04-28.json`)
+- `fixtures/chat-completion-no-system-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-no-system-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-3.

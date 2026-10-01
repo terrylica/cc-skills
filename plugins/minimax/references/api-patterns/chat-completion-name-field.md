@@ -151,8 +151,8 @@ def get_assistant_identity(resp: dict) -> str:
 
 Fixtures:
 
-- [`fixtures/chat-completion-name-field-N1-user-name-Alice-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N1-user-name-Alice-2026-04-28.json)
-- [`fixtures/chat-completion-name-field-N2-assistant-name-CustomBot-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N2-assistant-name-CustomBot-2026-04-28.json)
-- [`fixtures/chat-completion-name-field-N3-user-name-user_123-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N3-user-name-user_123-2026-04-28.json)
+- `fixtures/chat-completion-name-field-N1-user-name-Alice-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N1-user-name-Alice-2026-04-28.json`)
+- `fixtures/chat-completion-name-field-N2-assistant-name-CustomBot-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N2-assistant-name-CustomBot-2026-04-28.json`)
+- `fixtures/chat-completion-name-field-N3-user-name-user_123-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-name-field-N3-user-name-user_123-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-20 (closes Tier 2). 3 API calls.

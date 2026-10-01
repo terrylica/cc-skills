@@ -235,6 +235,6 @@ Wall-clock for 4 parallel probes: 6.7s (longest probe dominates).
 
 Fixture:
 
-- [`fixtures/10k-needle-iter32-2026-04-29.json`](~/own/amonic/minimax/api-patterns/fixtures/10k-needle-iter32-2026-04-29.json) — includes full answer text per probe
+- `fixtures/10k-needle-iter32-2026-04-29.json` (`~/own/amonic/minimax/api-patterns/fixtures/10k-needle-iter32-2026-04-29.json`) — includes full answer text per probe
 
 Verifier: autonomous-loop iter-32. 4 API calls.

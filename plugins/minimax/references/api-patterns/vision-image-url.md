@@ -189,7 +189,7 @@ This is a reasonable workaround for receipt/document images but NOT for general 
 
 Fixtures (image bytes elided from request_body for size; model received the same bytes):
 
-- [`fixtures/chat-completion-vision-V1-base64-red-png-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-vision-V1-base64-red-png-2026-04-28.json)
-- [`fixtures/chat-completion-vision-V2-external-url-2026-04-28.json`](~/own/amonic/minimax/api-patterns/fixtures/chat-completion-vision-V2-external-url-2026-04-28.json)
+- `fixtures/chat-completion-vision-V1-base64-red-png-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-vision-V1-base64-red-png-2026-04-28.json`)
+- `fixtures/chat-completion-vision-V2-external-url-2026-04-28.json` (`~/own/amonic/minimax/api-patterns/fixtures/chat-completion-vision-V2-external-url-2026-04-28.json`)
 
 Verifier: autonomous-loop iter-13. 2 API calls.
