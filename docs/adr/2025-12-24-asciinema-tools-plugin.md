@@ -181,5 +181,5 @@ The `/asciinema-tools:bootstrap` command generates a script that runs OUTSIDE Cl
 ## Related
 
 - [Shell Command Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
-- [Plugin Authoring Guide](/docs/plugin-authoring.md)
+- Plugin Authoring Guide (`docs/plugin-authoring.md`, deleted 2026-10-01; see git history)
 - [asciinema v3 Format Reference](https://docs.asciinema.org/manual/asciicast/v2/)

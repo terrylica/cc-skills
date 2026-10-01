@@ -184,26 +184,8 @@ const RULES: Rule[] = [
     expect: [N(truth.plugins, "plugin directories")],
   },
   {
-    label: "plugin CLAUDE.md coverage",
-    pattern: /Plugin CLAUDE\.md Files \((\d+)\/(\d+)\)/g,
-    expect: [
-      N(truth.pluginsWithClaudeMd, "plugins with a CLAUDE.md"),
-      N(truth.plugins, "plugin directories"),
-    ],
-  },
-  {
-    label: "marketplace.json registry comment",
-    pattern: /SSoT, (\d+) plugins/g,
-    expect: [N(truth.plugins, "plugin directories")],
-  },
-  {
     label: "directory-tree plugin count",
     pattern: /(\d+) marketplace plugins/g,
-    expect: [N(truth.plugins, "plugin directories")],
-  },
-  {
-    label: "reuse-registry plugin count",
-    pattern: /across the (\d+) plugins/g,
     expect: [N(truth.plugins, "plugin directories")],
   },
   // The three shapes below are README.md's, and they are the reason README.md was added to the
@@ -340,6 +322,15 @@ for (const family of CLAIM_FAMILIES) {
       }
     }
   }
+}
+
+// Every plugin ships a CLAUDE.md (root hub rule). Checked directly rather than through a prose
+// count: the "Plugin CLAUDE.md Files (N/N)" heading that used to carry it was retired 2026-10-01.
+if (truth.pluginsWithClaudeMd !== truth.plugins) {
+  drift.push(
+    `${truth.plugins - truth.pluginsWithClaudeMd} plugin(s) lack a CLAUDE.md (` +
+      `${truth.pluginsWithClaudeMd} of ${truth.plugins}); every plugin ships one`,
+  );
 }
 
 // The ground truth itself must be plausible. A zero here means the repo layout moved and every

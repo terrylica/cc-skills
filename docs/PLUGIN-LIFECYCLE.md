@@ -282,5 +282,5 @@ claude plugin install PLUGIN@MARKETPLACE
 
 - [Troubleshooting: Marketplace Installation](/docs/troubleshooting/marketplace-installation.md)
 - [Hook Development](/docs/HOOKS.md)
-- [Plugin Authoring](/docs/plugin-authoring.md)
+- [Bash compatibility for skills](/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md)
 - [ADR: Hook Settings Installer](/docs/adr/2025-12-07-itp-hooks-settings-installer.md)

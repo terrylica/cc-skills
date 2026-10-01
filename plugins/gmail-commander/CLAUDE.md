@@ -30,7 +30,7 @@ The deployment bundles this plugin's code at deploy time and ships the CLI binar
 - `scripts/lib/gmail-client.ts` shells out to the `gmail` binary. `GMAIL_CLI_BIN` points it at the shipped copy; without it the default is the marketplace path, which exists only on a workstation.
 - `scripts/gmail-cli/` is shipped as a directory. Build the binary from the committed lockfile (`bun install --frozen-lockfile && bun run build`) so every build resolves the same dependency tree.
 
-The scheduled digest does **not** use this plugin's code. The former `scripts/digest.ts` entry point, its Kokoro voice briefing (`scripts/lib/tts-client.ts`) and the laptop-only Stop hook `hooks/bot-shutdown-notify.ts` were removed on 2026-09-26 once nothing imported them.
+The scheduled digest does **not** use this plugin's code.
 
 ## Bot Commands (10 total)
 
@@ -102,13 +102,13 @@ The refresh_token has a 7-day TTL in Google OAuth Testing mode. When it expires 
 
 In the deployment these are injected from its own secret store at deploy time. None of them belongs in a workstation env file on the bot's behalf.
 
-## Canonical Gmail draft builder + guard (2026-07-23)
+## Canonical Gmail draft builder + guard
 
 **Every Gmail draft create/replace goes through `scripts/gmail-draft.ts`** — enforced by the PreToolUse(Bash) hook `hooks/gmail-draft-guard.sh`, which BLOCKS ad-hoc drafts-API writes (escape hatch: prefix the command with `GMAIL_DRAFT_ADHOC_OK=1`; read-only GET fetches pass).
 
 → **Four guards now stand between a composed message and a draft** (builder enforcement, mojibake detection, a builder test gate, and a post-write read-back). What each is _observed_ to do, how two of them were caught silently not working, and the both-directions checks to re-run after touching any of them: [`docs/draft-integrity-guards.md`](./docs/draft-integrity-guards.md).
 
-**Why (regression 2026-07-23):** Gmail re-encodes ingested `text/plain` raw messages and hard-folds long lines at ~72 columns, so ad-hoc drafts (python + MIMEText — often built from markdown a formatter hook had already re-wrapped) show forced mid-paragraph line breaks in the compose window. The builder is structurally immune: it unwraps blank-line-separated paragraphs and produces `multipart/alternative` with a `text/html` part (source newlines never render — the draft reflows exactly like one composed in Gmail's own editor).
+**Why:** Gmail hard-folds ingested `text/plain` at about 72 columns, so ad-hoc drafts show mid-paragraph breaks. The builder sends `multipart/alternative` with a `text/html` part, so the draft reflows like one composed in Gmail.
 
 ```bash
 bun $HOME/.claude/plugins/marketplaces/cc-skills/plugins/gmail-commander/scripts/gmail-draft.ts \

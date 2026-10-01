@@ -19,22 +19,22 @@ Registration lives in `hooks/hooks.json`. Each row is one clause; the spoke is t
 
 ### PreToolUse
 
-Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "iter-NN" in the Matcher column means the hook is inlined as a subhook of that orchestrator rather than registered standalone. "Bash orch." means the hook runs inside [`pretooluse-bash-guard-orchestrator.ts`](./docs/pretooluse-bash-guard-orchestrator.md) rather than as its own process.
+Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-write-edit-orchestrator.md). "Write\|Edit orch." in the Matcher column means the hook runs as a subhook of that orchestrator rather than as its own process. "Bash orch." means the hook runs inside [`pretooluse-bash-guard-orchestrator.ts`](./docs/pretooluse-bash-guard-orchestrator.md) rather than as its own process.
 
 | Hook                                                         | Matcher                             | Purpose                                       | Spoke                                                       |
 | ------------------------------------------------------------ | ----------------------------------- | --------------------------------------------- | ----------------------------------------------------------- |
-| `pretooluse-version-guard.ts`                                | iter-85                             | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                |
-| `pretooluse-process-storm-guard.mjs`                         | Bash orch. + Write\|Edit            | Write\|Edit                                   | Blocks fork-bomb patterns                                   | [→](./docs/process-storm-guard.md) |
+| `pretooluse-version-guard.ts`                                | Write\|Edit orch.                   | Hardcoded-version blocker for markdown        | [→](./docs/version-guard.md)                                |
+| `pretooluse-process-storm-guard.mjs`                         | Bash orch. + Write\|Edit            | Blocks fork-bomb patterns                     | [→](./docs/process-storm-guard.md)                          |
 | `pretooluse-cwd-deletion-guard.ts`                           | Bash orch.                          | Blocks deleting the CWD                       | [→](./docs/cwd-deletion-guard.md)                           |
 | `pretooluse-git-worktree-guard.ts`                           | Bash orch.                          | Enforces worktree-per-branch                  | [→](./docs/git-worktree-guard.md)                           |
-| `pretooluse-vale-claude-md-guard.ts`                         | iter-91                             | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                 |
-| `pretooluse-hoisted-deps-guard.ts`                           | iter-86                             | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                           |
-| `pretooluse-gpu-optimization-guard.ts`                       | iter-87                             | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                       |
-| `pretooluse-mise-hygiene-guard.ts`                           | iter-88                             | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                           |
-| `pretooluse-file-size-guard.ts`                              | iter-84                             | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                              |
+| `pretooluse-vale-claude-md-guard.ts`                         | Write\|Edit orch.                   | Rejects CLAUDE.md edits with vale findings    | [→](./docs/vale-terminology-enforcement.md)                 |
+| `pretooluse-hoisted-deps-guard.ts`                           | Write\|Edit orch.                   | pyproject.toml hoisting/path-escape policy    | [→](./docs/hoisted-deps-guard.md)                           |
+| `pretooluse-gpu-optimization-guard.ts`                       | Write\|Edit orch.                   | GPU optimization enforcement (6 checks)       | [→](./docs/gpu-optimization-guard.md)                       |
+| `pretooluse-mise-hygiene-guard.ts`                           | Write\|Edit orch.                   | mise.toml secrets + size hygiene              | [→](./docs/mise-hygiene-guard.md)                           |
+| `pretooluse-file-size-guard.ts`                              | Write\|Edit orch.                   | Per-extension file-size bloat prevention      | [→](./docs/file-size-guard.md)                              |
 | `pretooluse-edit-time-orchestrator-…-iter66-precedent.ts`    | Write\|Edit                         | Iter-84→91 orchestrator; all 8 subhooks       | [→](./docs/pretooluse-write-edit-orchestrator.md)           |
-| `pretooluse-native-binary-guard.ts`                          | iter-90                             | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
-| `pretooluse-pyi-stub-guard.ts`                               | iter-89                             | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
+| `pretooluse-native-binary-guard.ts`                          | Write\|Edit orch.                   | Launchd services must be native binaries      | [→](./docs/native-binary-guard.md)                          |
+| `pretooluse-pyi-stub-guard.ts`                               | Write\|Edit orch.                   | Blocks top-level defs in Python `__init__`    | [→](./docs/pyi-stub-guard.md)                               |
 | `pretooluse-uv-enforcement-guard.ts`                         | Bash orch.                          | Blocks non-UV Python package operations       | [→](./docs/uv-enforcement-guard.md)                         |
 | `pretooluse-pueue-local-guard.ts`                            | Bash orch.                          | Pueue commands must target the local daemon   | [→](./docs/pueue-local-guard.md)                            |
 | `pretooluse-cargo-tty-guard.ts`                              | Bash orch.                          | Redirects backgrounded cargo to PUEUE         | [→](./docs/cargo-tty-guard.md)                              |
@@ -53,7 +53,7 @@ Orchestrator arc: [pretooluse-write-edit-orchestrator.md](./docs/pretooluse-writ
 
 ### PostToolUse
 
-Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md).
+Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-write-edit-orchestrator.md). "PostToolUse orch." in the Matcher column means the hook runs inside that orchestrator.
 
 | Hook                                              | Matcher                      | Purpose                                       | Spoke                                              |
 | ------------------------------------------------- | ---------------------------- | --------------------------------------------- | -------------------------------------------------- |
@@ -61,23 +61,23 @@ Orchestrator arc: [posttooluse-write-edit-orchestrator.md](./docs/posttooluse-wr
 | `code-correctness-guard.sh`                       | Bash\|Write\|Edit            | Silent-failure detection ONLY                 | [→](./docs/code-correctness-philosophy.md)         |
 | `posttooluse-pushover-budget-reminder.ts`         | Bash\|Write\|Edit\|MultiEdit | Pushover message-budget nudge + limits SSoT   | [→](./docs/pushover-budget-reminder.md)            |
 | `posttooluse-invented-fallback-reminder.ts`       | Bash\|Write\|Edit\|MultiEdit | Official-values nudge on invented fallbacks   | [→](./docs/invented-fallback-reminder.md)          |
-| `posttooluse-vale-claude-md.ts`                   | iter-96                      | Informational vale check on CLAUDE.md edits   | [→](./docs/vale-terminology-enforcement.md)        |
+| `posttooluse-vale-claude-md.ts`                   | PostToolUse orch.            | Informational vale check on CLAUDE.md edits   | [→](./docs/vale-terminology-enforcement.md)        |
 | `posttooluse-glossary-sync.ts`                    | Write\|Edit                  | Auto-sync GLOSSARY.md to Vale vocabulary      | [→](./docs/vale-terminology-enforcement.md)        |
 | `posttooluse-terminology-sync.ts`                 | Write\|Edit                  | CLAUDE.md → GLOSSARY.md sync + dupe detection | [→](./docs/vale-terminology-enforcement.md)        |
 | `posttooluse-readme-pypi-links.ts`                | Write\|Edit\|MultiEdit       | PyPI badge/link consistency in READMEs        | [→](./docs/readme-pypi-links.md)                   |
 | `posttooluse-markdown-table-guard.ts`             | Write\|Edit\|MultiEdit       | Per-edit GFM table structural guard           | [→](./docs/markdown-table-guard.md)                |
-| `posttooluse-ssot-principles.ts`                  | iter-97                      | SSoT/DI reminder with ast-grep detection      | [→](./docs/ssot-principles.md)                     |
-| `posttooluse-memory-efficiency-reminder.ts`       | iter-98                      | Once-per-session memory-efficiency reminder   | [→](./docs/memory-efficiency-reminder.md)          |
-| `posttooluse-ty-type-check.ts`                    | iter-93                      | ty type check on .py/.pyi edits               | [→](./docs/ty-type-checker.md)                     |
+| `posttooluse-ssot-principles.ts`                  | PostToolUse orch.            | SSoT/DI reminder with ast-grep detection      | [→](./docs/ssot-principles.md)                     |
+| `posttooluse-memory-efficiency-reminder.ts`       | PostToolUse orch.            | Once-per-session memory-efficiency reminder   | [→](./docs/memory-efficiency-reminder.md)          |
+| `posttooluse-ty-type-check.ts`                    | PostToolUse orch.            | ty type check on .py/.pyi edits               | [→](./docs/ty-type-checker.md)                     |
 | `posttooluse-edit-time-orchestrator-…-iter93….ts` | Write\|Edit                  | PostToolUse multi-aggregation orchestrator    | [→](./docs/posttooluse-write-edit-orchestrator.md) |
-| `posttooluse-tsc-type-check.ts`                   | iter-126                     | tsc project-scoped check on .ts/.tsx edits    | [→](./docs/tsc-type-check.md)                      |
-| `posttooluse-oxlint-check.ts`                     | iter-95                      | oxlint correctness+suspicious on JS/TS        | [→](./docs/oxlint-check.md)                        |
-| `posttooluse-biome-lint.ts`                       | iter-95                      | biome complementary-to-oxlint JS/TS lint      | [→](./docs/biome-lint.md)                          |
-| `posttooluse-python-preference-nudge.ts`          | iter-93                      | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
+| `posttooluse-tsc-type-check.ts`                   | PostToolUse orch.            | tsc project-scoped check on .ts/.tsx edits    | [→](./docs/tsc-type-check.md)                      |
+| `posttooluse-oxlint-check.ts`                     | PostToolUse orch.            | oxlint correctness+suspicious on JS/TS        | [→](./docs/oxlint-check.md)                        |
+| `posttooluse-biome-lint.ts`                       | PostToolUse orch.            | biome complementary-to-oxlint JS/TS lint      | [→](./docs/biome-lint.md)                          |
+| `posttooluse-python-preference-nudge.ts`          | PostToolUse orch.            | Language-preference reminder on `.py` edits   | [→](./docs/python-preference-nudge.md)             |
 | `posttooluse-pii-exposure-reminder.ts`            | Write\|Edit\|MultiEdit       | Reminder on third-party email/phone on disk   | [→](./docs/secret-and-pii-exposure-guard.md)       |
-| `posttooluse-markdown-hard-wrap-reminder.ts`      | iter-93                      | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
+| `posttooluse-markdown-hard-wrap-reminder.ts`      | PostToolUse orch.            | Reminds on net-new hard-wrapped `.md` prose   | [→](./docs/markdown-hard-wrap-reminder.md)         |
 | `posttooluse-bash-markdown-hard-wrap-reminder.ts` | Bash                         | Same, for `.md` written by a shell command    | [→](./docs/markdown-hard-wrap-reminder.md)         |
-| `posttooluse-claude-md-size-budget-reminder.ts`   | iter-93                      | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
+| `posttooluse-claude-md-size-budget-reminder.ts`   | PostToolUse orch.            | CLAUDE.md character-budget reminder (see #1)  | [→](./docs/posttooluse-write-edit-orchestrator.md) |
 
 ### Stop
 
@@ -100,7 +100,7 @@ Add the token to the file or command to suppress a guard. Every token requires a
 | `ASK-OPTION-NEWLINE-OK`    | AskUserQuestion option line-terminator guard |
 | `HEADLESS-P-OK`            | Headless `claude -p` guard                   |
 | `MD-TABLE-OK`              | Markdown table guard                         |
-| `MD-HARD-WRAP-OK`          | Markdown hard-wrap reminders + commit guard  |
+| `MD-HARD-WRAP` + `-OK`     | Markdown hard-wrap reminders + commit guard  |
 | `INVENTED-FALLBACK-OK`     | Invented-fallback reminder                   |
 | `CLAUDE-MD-SIZE-OK`        | CLAUDE.md size-budget reminder               |
 | `ALLOW_BARE_BRANCH=1`      | Git worktree guard (env var, not a marker)   |

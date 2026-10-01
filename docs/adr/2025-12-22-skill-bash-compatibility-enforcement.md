@@ -1,7 +1,10 @@
 ---
-status: accepted
+status: superseded
+superseded-date: 2026-10-01
 date: 2025-12-22
 ---
+
+> ⚠️ **SUPERSEDED 2026-10-01**: the mandatory heredoc wrapper rested on zsh failures that no longer reproduce (`VAR=$(cmd) other`, `$(...)` and `[[ ]]` all work under the current Bash tool), and nothing enforces it. The measured replacement, which wraps only syntax zsh lacks or silently changes, is [bash-compatibility.md](/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md).
 
 # ADR: Skill Bash Compatibility Enforcement
 
@@ -86,5 +89,5 @@ Fixed 194 bash blocks across 62 files in all plugins, including:
 ## References
 
 - [Shell Command Portability ADR](/docs/adr/2025-12-06-shell-command-portability-zsh.md)
-- [Plugin Authoring Guide](/docs/plugin-authoring.md)
+- Plugin Authoring Guide (`docs/plugin-authoring.md`, deleted 2026-10-01; see git history)
 - [Bash Compatibility Reference](/plugins/plugin-dev/skills/skill-architecture/references/bash-compatibility.md)
