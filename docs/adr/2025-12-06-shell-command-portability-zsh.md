@@ -1,5 +1,5 @@
 ---
-status: implemented
+status: partially-reversed
 date: 2025-12-06
 decision-maker: Terry Li
 consulted: [claude-code-guide, Explore-Agent]
@@ -8,6 +8,8 @@ clarification-iterations: 3
 perspectives:
   [DeveloperExperience, CrossPlatformCompatibility, DocumentationStandard]
 ---
+
+> **Partially reversed (2026-09-30):** the blanket "wrap all command substitution" rule is retired; prefix assignment, `$(...)` and `[[ ]]` are native zsh and the parse error recorded here no longer reproduces on the Claude Code Bash tool. Wrapping is still required for genuinely bash-only syntax. Current rule: [plugins/CLAUDE.md § Shell Compatibility](/plugins/CLAUDE.md#shell-compatibility).
 
 # ADR: Shell Command Portability for Zsh Compatibility
 
