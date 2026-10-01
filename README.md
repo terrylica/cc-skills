@@ -15,7 +15,7 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [agent-reach](./plugins/agent-reach/)                   | Give your AI agent eyes to see the entire internet. Search and read 15+ platforms with auto-update preflight: Twitter/X, Reddit, YouTube, GitHub, Bilibili, XiaoHongShu, Douyin, Weibo, WeChat, Xiaoyuzhou Podcast, LinkedIn, V2EX, RSS, Exa web search.             | productivity  |
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
-| [chrome-profiles](./plugins/chrome-profiles/) | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser | productivity |
+| [chrome-profiles](./plugins/chrome-profiles/)           | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser                                                                 | productivity  |
 | [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
@@ -168,6 +168,17 @@ claude plugin install itp@cc-skills
 ```
 
 ## Troubleshooting
+
+### Windows: `marketplace add` fails with `EPERM ... rename`
+
+**Cause**: Claude Code clones a marketplace into a temporary directory and then renames it into place. On Windows, a transient lock on the freshly cloned tree (antivirus real-time scan, the search indexer, an open Explorer window) makes that rename fail, and the larger the repository, the more likely it is. It is not specific to this repository: the same `Failed to finalize marketplace cache` error is reported for Anthropic's own skills repository in [anthropics/claude-code#12174](https://github.com/anthropics/claude-code/issues/12174). Reported here in #162.
+
+**Fix**: clone it yourself and add the clone as a local-directory marketplace, which skips the clone-and-rename step. Claude Code then reads plugins straight from that directory, so update with `git pull`:
+
+```bash
+git clone https://github.com/terrylica/cc-skills.git ~/cc-skills
+claude plugin marketplace add ~/cc-skills
+```
 
 ### "Source path does not exist" Error
 
