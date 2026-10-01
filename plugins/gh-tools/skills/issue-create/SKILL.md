@@ -309,6 +309,8 @@ For images only on disk (not committed), four options:
 
 GitHub has no API for image uploads, but the browser's file-attachment flow can be automated via Playwright to get permanent `user-attachments` CDN URLs without any commit/push preflight.
 
+Browser routes in general: [`chrome-profiles`](../../../chrome-profiles/skills/browser-automation/SKILL.md).
+
 **How it works:**
 
 1. Playwright opens the issue page in Chromium with a persistent profile (`~/.claude/tools/pw-github-profile/`)
