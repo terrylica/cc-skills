@@ -125,7 +125,7 @@ export function explainBroadSignalFindings(
   return lines.join("\n\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow("BROAD-PROCESS-SIGNAL-GUARD");
   if (!input) return;
   const { tool_name, tool_input = {} } = input;

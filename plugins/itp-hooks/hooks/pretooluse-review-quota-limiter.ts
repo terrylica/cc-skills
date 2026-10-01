@@ -120,7 +120,7 @@ function denyMessage(
   ].join("\n");
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK_NAME);
   if (!input) return;
   if (input.tool_name !== "Bash") return allow();
@@ -179,7 +179,8 @@ async function main(): Promise<void> {
   return allow();
 }
 
-main().catch((error) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((error) => {
   // FAIL OPEN, but COUNTABLY. A limiter that blocks work when its own logic throws is worse than
   // the burst it prevents; one that fails open silently is indistinguishable from no limiter.
   try {

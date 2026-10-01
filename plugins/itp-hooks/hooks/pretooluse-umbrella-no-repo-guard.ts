@@ -123,7 +123,7 @@ function repoCreationTarget(seg: string, cwd: string): string | null {
   return null;
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK_NAME);
   if (!input) return;
   if (input.tool_name !== "Bash") return allow();
@@ -157,7 +157,8 @@ async function main(): Promise<void> {
   return allow();
 }
 
-main().catch((error) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((error) => {
   trackHookError(HOOK_NAME, error);
   allow(); // fail-open
 });

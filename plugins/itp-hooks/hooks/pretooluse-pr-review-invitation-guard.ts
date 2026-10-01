@@ -166,7 +166,7 @@ async function gatherFacts(
   return { actor, author, invited };
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const input = await parseStdinOrAllow(HOOK);
   if (!input) return;
   if (input.tool_name !== "Bash") return allow();
@@ -189,7 +189,8 @@ async function main(): Promise<void> {
   return deny(verdict.reason);
 }
 
-main().catch((error: unknown) => {
+// Standalone entry point. The Bash orchestrator (#111) imports `main` and runs it in-process.
+if (import.meta.main) void main().catch((error: unknown) => {
   // A crash must not become a silent permit for the one action this guard exists to meter, but it
   // also must not wedge the session. Counting it is what makes a broken guard visible instead of
   // quietly absent -- an always-throwing hook that fails open is indistinguishable from one that
