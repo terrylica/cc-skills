@@ -1,9 +1,9 @@
 # dotfiles-tools
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-2-blue.svg)]()
-[![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)]()
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)]()
+![Skills](https://img.shields.io/badge/Skills-2-blue.svg)
+![Hooks](https://img.shields.io/badge/Hooks-1-orange.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 Chezmoi dotfile backup, sync, and version control for cross-machine configuration management.
 

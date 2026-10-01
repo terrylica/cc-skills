@@ -1,9 +1,9 @@
 # gh-tools Plugin
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Skills](https://img.shields.io/badge/Skills-5-blue.svg)](<>)
-[![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)](<>)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)](<>)
+![Skills](https://img.shields.io/badge/Skills-5-blue.svg)
+![Hooks](https://img.shields.io/badge/Hooks-2-orange.svg)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
 GitHub workflow automation for Claude Code with intelligent link validation, PR management, and gh CLI enforcement.
 
