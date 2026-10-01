@@ -15,7 +15,7 @@
 | -------------------------- | ----------- | ---------------------- | ----------------------------------- |
 | `chezmoi-sync-reminder.sh` | PostToolUse | Edit\|Write\|MultiEdit | Reminder when editing tracked files |
 
-`hooks/hooks.json` is the only registration — Claude Code loads it from the plugin. The `tether` skill and `scripts/manage-hooks.sh` that used to copy this same hook into `~/.claude/settings.json` were retired in issue #127; the second registration would have fired the reminder twice per edit.
+`hooks/hooks.json` is the only registration — Claude Code loads it from the plugin.
 
 ## Conventions
 
