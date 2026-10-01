@@ -59,9 +59,9 @@ env -u HTTPS_PROXY -u HTTP_PROXY \
 
 Drives **Playwright's "Google Chrome for Testing.app" by default, never the operator's own Google Chrome**; pushover.net login is plain email/password (no CAPTCHA/2FA, verified 2026-05-30), so plain Playwright + selectors suffice.
 
-### Browser selection — why not system Chrome (2026-09-22)
+### Browser selection — why not system Chrome
 
-The script used to launch `chromium.launch({ channel: "chrome" })`, i.e. a second instance of `/Applications/Google Chrome.app` on a throwaway profile. Both instances share the bundle id `com.google.Chrome`, and on 2026-09-22 that second instance collided with the operator's running Chrome in macOS LaunchServices: links stopped opening anywhere and every Chrome had to be force-quit. Chrome for Testing is a separate bundle (`com.google.chrome.for.testing`), so LaunchServices never confuses the two.
+A second `Google Chrome.app` instance shares the bundle id `com.google.Chrome` with the operator's browser and collides with it in macOS LaunchServices (links stop opening anywhere; observed 2026-09-22). Chrome for Testing is a separate bundle (`com.google.chrome.for.testing`), so it cannot collide.
 
 - `--browser cft|chrome` (flag) beats `PUSHOVER_WEB_BROWSER=cft|chrome` (env), which beats the default `cft`. `batch_create_pushover_apps.ts` reads the env var.
 - `cft` resolves the **numerically highest** `chromium-<N>` under `~/Library/Caches/ms-playwright` (or `PLAYWRIGHT_BROWSERS_PATH`) that holds `chrome-mac*/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`, launched by `executablePath`. `chromium_headless_shell-*` and `chromium-tip-of-tree-*` are skipped. The resolver is `resolveChromeForTestingExecutable(cacheRoot)` in `chrome_for_testing_resolver.ts`, which imports only `node:` builtins so `doctor` can use it without loading Playwright; it is tested against a temp directory.
