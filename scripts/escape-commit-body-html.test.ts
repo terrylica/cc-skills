@@ -121,27 +121,32 @@ async function renderOnGitHub(text: string): Promise<string | null> {
 
 const GITHUB_REACHABLE = (await renderOnGitHub("ping")) !== null;
 
+// Each assertion is a live `gh api` round trip. bun's 5 s default per-test timeout is a unit-test
+// budget, and under repo:check's parallel load one slow response failed the whole gate (observed
+// 5001 ms). Offline is handled by skipIf above; this bounds slowness, not reachability.
+const GITHUB_RENDER_TIMEOUT_MS = 30_000;
+
 describe.skipIf(!GITHUB_REACHABLE)("verified against GitHub's own renderer", () => {
   test("unescaped `Vec<T>` really does lose its type parameter", async () => {
     // The motivating defect. If this ever stops being true, the escaping is no longer
     // needed and this suite should be revisited rather than left as cargo cult.
     const rendered = await renderOnGitHub("generic Vec<T> type");
     expect(rendered).toContain("generic Vec type");
-  });
+  }, GITHUB_RENDER_TIMEOUT_MS);
 
   test("the escaped form renders the type parameter visibly", async () => {
     const rendered = await renderOnGitHub(escapeCommitBodyHtml("generic Vec<T> type"));
     expect(rendered).toContain("Vec&lt;T&gt; type");
-  });
+  }, GITHUB_RENDER_TIMEOUT_MS);
 
   test("an escaped `<br>` shows as text instead of breaking the line", async () => {
     const rendered = await renderOnGitHub(escapeCommitBodyHtml("a literal <br> here"));
     expect(rendered).toContain("&lt;br&gt;");
     expect(rendered).not.toContain("<br>");
-  });
+  }, GITHUB_RENDER_TIMEOUT_MS);
 
   test("a preserved autolink still becomes an anchor", async () => {
     const rendered = await renderOnGitHub(escapeCommitBodyHtml("see <https://example.com> now"));
     expect(rendered).toContain('href="https://example.com"');
-  });
+  }, GITHUB_RENDER_TIMEOUT_MS);
 });

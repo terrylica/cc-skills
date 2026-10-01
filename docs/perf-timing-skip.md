@@ -6,9 +6,7 @@ verdict — the harness `test-iter180-*.sh` / `test-iter181-*.sh` invoke end-to-
 
 ## Problem
 
-> **Updated 2026-09-03.** iter-167 no longer asserts a wall-clock cap at all — its Group D now counts `git log` **forks** at runtime (1 vs the pre-iter-167 101), which is load-invariant, so the flag there controls only whether the informational benchmark is _measured_. It remains a live consumer, but as telemetry rather than as a downgraded assertion. iter-174 still carries a genuine cap and is the remaining example. Two things that change drove it: the flag was wired ONLY into `tasks/release/preflight`, never into `moon.yml`'s `test-hooks` — so `moon run repo:check`, the gate before every push, was never covered — and on the path it _did_ cover it downgraded iter-167's ONLY Group D assertion, so Group D asserted nothing while still printing full marks. A downgrade that empties a group is indistinguishable from a passing group.
-
-A few regression tests assert **absolute wall-clock caps** (e.g. iter-174's per-scenario `median ≤ cap`). Those caps are useful when a human runs the test deliberately, but they **flake under heavy load** — most visibly during a release, where `release:preflight` runs the whole hook-regression suite while semantic-release and its subprocesses compete for the CPU. A transient spike blows a cap and **spuriously blocks the release**, even though nothing regressed (the same test passes instantly when re-run standalone). Measured 2026-09-03 on the iter-167 cap before it was replaced: correct code under load ran 713 ms while the DELIBERATELY BROKEN implementation ran 816 ms on an idle machine — so the cap could not separate "busy machine" from "regression", and was additionally decaying, since the broken path had fallen from its 1184 ms baseline to 816 ms and a slightly faster machine would have passed it outright.
+A few regression tests assert **absolute wall-clock caps** (iter-174's per-scenario `median ≤ cap`; iter-167 now only measures, as telemetry). Those caps are useful when a human runs the test deliberately, but they **flake under heavy load** — most visibly during a release, where `release:preflight` runs the whole hook-regression suite while semantic-release and its subprocesses compete for the CPU. A transient spike blows a cap and **spuriously blocks the release**, even though nothing regressed (the same test passes instantly when re-run standalone). Measured 2026-09-03 on the iter-167 cap before it was replaced: correct code under load ran 713 ms while the DELIBERATELY BROKEN implementation ran 816 ms on an idle machine — so the cap could not separate "busy machine" from "regression", and was additionally decaying, since the broken path had fallen from its 1184 ms baseline to 816 ms and a slightly faster machine would have passed it outright.
 
 ## Solution
 
@@ -20,8 +18,7 @@ iter-174 harness). Every **structural / correctness** assertion still runs and
 still gates. Standalone runs (flag unset) enforce the timing fully, so perf
 regressions are still caught the moment anyone runs the test on purpose.
 
-Only the **release preflight** sets the flag, and only for its regression-suite
-invocation (`tasks/release/preflight`). Nothing else sets it.
+Two callers set the flag, both for the whole hook-regression suite: the **release preflight** (`tasks/release/preflight`) and **`moon run repo:test-hooks`** (`env:` in `moon.yml`), which makes `repo:check` and the pre-push gate no more load-sensitive than the publish gate (#142). Nothing else sets it, so running a test file directly (`bash tasks/tests/<test>.sh`) still enforces every cap.
 
 ## Authoring a new perf-timing test
 
