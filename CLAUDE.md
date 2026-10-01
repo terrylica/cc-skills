@@ -72,7 +72,6 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 | Execute workflow  | `/itp:go feature-name -b`          |
 | Setup env         | `/itp:setup`                       |
 | Add plugin        | `/plugin-dev:create plugin-name`   |
-| Autonomous loop   | `/itp:go feature-name -b`          |
 
 `moon run repo:check` is the local-first gate that must pass before a push — it fans out to `repo:lint`, `repo:test`, `repo:test-hooks`, `repo:cli-spec-check` and `repo:verify-doc-counts`. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here and jdx/mise is neither installed nor used; the former `.mise.toml` was deleted because its `[tools]` block pinned bun 1.3 against `.prototools`' 1.4.0 — two toolchain files disagreeing about the same tool, which is the exact drift that silently broke every bun-backed hook on 2026-09-03.
 

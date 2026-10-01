@@ -471,4 +471,3 @@ claude plugin marketplace add OWNER/REPO_NAME
 ### Internal Documentation
 
 - [cc-skills Installation](/README.md#installation)
-- [RU Plugin README](/plugins/ru/README.md)
