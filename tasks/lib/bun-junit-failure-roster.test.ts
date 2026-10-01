@@ -42,7 +42,13 @@ describe("bun JUnit failure roster (#143)", () => {
       mkdirSync(join(repo, "tasks", "lib"), { recursive: true });
       copyFileSync(join(TASKS, WRAPPER), join(repo, "tasks", WRAPPER));
       copyFileSync(join(TASKS, "lib", "bun-junit-failure-roster.ts"), join(repo, "tasks", "lib", "bun-junit-failure-roster.ts"));
-      writeFileSync(join(repo, "pass.test.ts"), 'import {test,expect} from "bun:test";\ntest("ok", () => expect(1).toBe(1));\n');
+      // The wrapper must hand tests an EMPTY git template dir, so fixture repos never run the
+      // developer's global hooks (2026-10-01). If it stops doing so, this "passing" test fails.
+      writeFileSync(
+        join(repo, "pass.test.ts"),
+        'import {test,expect} from "bun:test";\nimport {readdirSync} from "node:fs";\n' +
+          'test("ok", () => { const d = process.env.GIT_TEMPLATE_DIR ?? ""; expect(d.length > 0 && readdirSync(d).length === 0).toBe(true); });\n',
+      );
       writeFileSync(join(repo, "boom.test.ts"), 'import {test,expect} from "bun:test";\n\ntest("boom", () => expect(1).toBe(2));\n');
       for (const args of [["init", "-q"], ["add", "pass.test.ts", "boom.test.ts"]]) {
         expect(Bun.spawnSync(["git", ...args], { cwd: repo }).exitCode).toBe(0);
