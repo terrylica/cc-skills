@@ -56,4 +56,4 @@ Automatically skipped when Claude is in planning phase.
 
 **Matcher**: (inlined in iter-84 orchestrator)
 
-File size bloat prevention (per-extension limits). Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84 orchestrator which imports `classifyFileSizeGuardForOrchestrator` from this file. See [Iter-84 PreToolUse Orchestrator](../../../docs/HOOKS.md#iter-84-pretooluse-edit-time-orchestrator-in-process-inlining-not-subprocess).
+File size bloat prevention (per-extension limits). Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84 orchestrator which imports `classifyFileSizeGuardForOrchestrator` from this file. See [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) and [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).
