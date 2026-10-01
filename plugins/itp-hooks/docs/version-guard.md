@@ -8,4 +8,4 @@
 
 **Matcher**: (inlined in iter-85 orchestrator)
 
-Version consistency validation (hardcoded version blocker for markdown). Renamed from `.mjs` to `.ts` in iter-85 for full TypeScript type-checking when imported by the orchestrator. Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84/85 orchestrator which imports `classifyVersionGuardForOrchestrator` from this file. See [Iter-85 audit-driven hardening](../../../docs/HOOKS.md#iter-85-version-guard-migration--audit-driven-orchestrator-hardening).
+Version consistency validation (hardcoded version blocker for markdown). Renamed from `.mjs` to `.ts` in iter-85 for full TypeScript type-checking when imported by the orchestrator. Standalone hook still runnable for direct CLI invocation; the Write\|Edit hooks.json entry now points to the iter-84/85 orchestrator which imports `classifyVersionGuardForOrchestrator` from this file. See [PreToolUse Write/Edit orchestrator](./pretooluse-write-edit-orchestrator.md) and [HOOKS.md "In-Process Orchestrators"](../../../docs/HOOKS.md#in-process-orchestrators).

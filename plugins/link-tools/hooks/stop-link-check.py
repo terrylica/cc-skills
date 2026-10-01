@@ -69,9 +69,9 @@ def find_lychee_config(workspace: Path, plugin_root: Path) -> Path | None:
 
     Fix: relocate lychee.toml under the cached hooks/** subtree at
     plugins/link-tools/hooks/config/lychee.toml. Path now resolves
-    correctly at L3 runtime. See docs/HOOKS.md "Iter-76 Cache-Populator-
-    Filter Forensic Finding" + iter-77 "Hook-Source L3-Stripped-Path
-    Audit Gate (Check 4k)" sections for the full forensic chain.
+    correctly at L3 runtime. The stripping premise was disproved on
+    2026-08-05 (Layer 3 holds the whole plugin tree; see docs/HOOKS.md
+    "The 3-Layer Cache Architecture"), and the relocated path still works.
     """
     candidates = [
         workspace / ".lycheerc.toml",

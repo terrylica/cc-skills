@@ -361,7 +361,7 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "",
     "## Related documentation",
     "",
-    "- [HOOKS.md — iter-107 → iter-113 escape-hatch consolidation arc](./HOOKS.md)",
+    "- [HOOKS.md — Escape-Hatch Markers](./HOOKS.md#escape-hatch-markers)",
     "- [iter-111 canonical registry source](../plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts)",
     "- [iter-107 shared helper source](../plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts)",
     "",
