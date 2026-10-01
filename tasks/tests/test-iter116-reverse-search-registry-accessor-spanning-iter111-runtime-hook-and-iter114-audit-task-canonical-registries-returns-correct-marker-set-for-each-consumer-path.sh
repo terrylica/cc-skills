@@ -15,7 +15,7 @@ ITER116_OPERATOR_FACING_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/marker-lookup.ts"
 # or (b) a regression we want this test to surface.
 KNOWN_SINGLE_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts"
 KNOWN_MULTI_MARKER_RUNTIME_HOOK_CONSUMER_PATH="plugins/itp-hooks/hooks/pretooluse-cargo-tty-guard.ts"
-KNOWN_AUDIT_TASK_CONSUMER_PATH="tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
+KNOWN_AUDIT_TASK_CONSUMER_PATH="tasks/hook-lint/wildcard-matcher.sh"
 # Use a path with NO shared prefix with any registered consumer path so
 # the unknown-path branch deterministically lands in the full-list-dump
 # fallback (Levenshtein distance to every registered path exceeds the

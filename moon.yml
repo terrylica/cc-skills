@@ -91,14 +91,14 @@ tasks:
   # Promise.all. It ran nowhere before #142, so the rule could regress unnoticed. Exits 1 on a hit.
   audit-orchestrator-spawnsync:
     description: "Fail if a PostToolUse orchestrator subhook calls Bun.spawnSync (defeats Promise.all parallelism)."
-    script: "bash tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
+    script: "bash tasks/hook-lint/orchestrator-spawnsync.sh"
 
   # An operator diagnostic, not a gate: it compares the marketplace mirror against the installed
   # versioned cache on THIS machine, so its answer depends on local state. Registered so it is
   # discoverable via `moon query tasks`; takes --check-plugin <name>, hence command + shell:false.
   diagnose-cache-drift:
     description: "Operator diagnostic: per-plugin content-hash drift between the marketplace mirror and the installed plugin cache. Takes --check-plugin <name>."
-    command: "bash tasks/audit-marketplace-mirror-layer2-vs-versioned-operator-cache-layer3-per-plugin-content-hash-drift-detector-for-iter42-three-layer-cache-lifecycle-operator-self-diagnosis.sh"
+    command: "bash tasks/diagnose-plugin-cache-drift.sh"
     options:
       shell: false
 
