@@ -1,10 +1,13 @@
 ---
-status: implemented
+status: superseded
+superseded-date: 2026-10-01
 date: 2025-12-27
 decision-maker: Terry Li
 consulted: [claude-code-guide]
 research-method: documentation-review
 ---
+
+> ⚠️ **SUPERSEDED 2026-10-01**: the hook was unregistered on 2026-04-24 (`e6c665a9`) because it blocked legitimate writes, such as a seeded `np.random.Generator()`, and it was never re-enabled. Its source, pattern file and tests were deleted on 2026-10-01; recover them from git history (tag `v33.0.1`). The decision below is kept as the record of why it existed.
 
 # ADR: Universal Fake Data Guard PreToolUse Hook
 

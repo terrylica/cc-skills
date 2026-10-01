@@ -307,8 +307,8 @@ Every hook can output these fields:
 | **SessionEnd**         | Session terminates                                           | No      | `clear`, `logout`, `prompt_input_exit`, `bypass_permissions_disabled`, `other`     |
 | **InstructionsLoaded** | Instruction files load into context                          | No      | None                                                                               |
 | **ConfigChange**       | Settings or skill files change during session                | **Yes** | `user_settings`, `project_settings`, `local_settings`, `policy_settings`, `skills` |
-| **WorktreeCreate**     | Worktree created via `--worktree`                            | **Yes**      | None (stdout = worktree path)                                                      |
-| **WorktreeRemove**     | Worktree removed at session exit                             | **Yes**      | None (failures logged in debug mode only)                                          |
+| **WorktreeCreate**     | Worktree created via `--worktree`                            | **Yes** | None (stdout = worktree path)                                                      |
+| **WorktreeRemove**     | Worktree removed at session exit                             | **Yes** | None (failures logged in debug mode only)                                          |
 | **PostCompact**        | After context summarization completes                        | No      | `manual`, `auto`                                                                   |
 | **Elicitation**        | MCP server requests user input                               | **Yes** | MCP server name                                                                    |
 | **ElicitationResult**  | User responds to MCP elicitation                             | **Yes** | MCP server name                                                                    |
@@ -637,18 +637,18 @@ Both prevent the tool call from executing. The difference is in output channel:
 
 Exit 2 is not PreToolUse-exclusive. The official [exit-code-2 table](https://code.claude.com/docs/en/hooks#exit-code-2-behavior-per-event) is the SSoT for every event; this table adds cc-skills production evidence:
 
-| Hook Type            | Exit 2 Effect                                                                                            | Production Evidence                                        |
-| -------------------- | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **PreToolUse**       | Blocks tool call; stderr fed to Claude                                                                   | `pretooluse-guard.sh` (removed 2026-04-14; proven pattern) |
-| **UserPromptSubmit** | Blocks prompt; stderr shown to user                                                                      | Documented, no cc-skills usage                             |
-| **TeammateIdle**     | Keeps teammate working; stderr = feedback                                                                | Schema-confirmed                                           |
-| **TaskCompleted**    | Prevents task completion; stderr = feedback                                                              | Schema-confirmed                                           |
-| **ConfigChange**     | Blocks config change                                                                                     | Documented, no cc-skills usage                             |
-| **Stop**             | Prevents Claude from stopping, continues the conversation (official). cc-skills Stop hooks use `decision:block` (exit 0 + JSON) instead | No cc-skills usage of exit 2 |
-| **PostToolUse**      | Shows stderr to Claude; the tool already ran (official)                                                   | No cc-skills usage                                         |
-| **PostToolUseFailure** | Shows stderr to Claude; the tool already failed (official)                                             | No cc-skills usage                                         |
-| **WorktreeCreate**   | Any non-zero exit makes worktree creation fail (official)                                                | No cc-skills usage                                         |
-| **WorktreeRemove**   | Any non-zero exit makes removal fail if the directory still exists (official)                            | No cc-skills usage                                         |
+| Hook Type              | Exit 2 Effect                                                                                                                           | Production Evidence                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **PreToolUse**         | Blocks tool call; stderr fed to Claude                                                                                                  | `pretooluse-guard.sh` (removed 2026-04-14; proven pattern) |
+| **UserPromptSubmit**   | Blocks prompt; stderr shown to user                                                                                                     | Documented, no cc-skills usage                             |
+| **TeammateIdle**       | Keeps teammate working; stderr = feedback                                                                                               | Schema-confirmed                                           |
+| **TaskCompleted**      | Prevents task completion; stderr = feedback                                                                                             | Schema-confirmed                                           |
+| **ConfigChange**       | Blocks config change                                                                                                                    | Documented, no cc-skills usage                             |
+| **Stop**               | Prevents Claude from stopping, continues the conversation (official). cc-skills Stop hooks use `decision:block` (exit 0 + JSON) instead | No cc-skills usage of exit 2                               |
+| **PostToolUse**        | Shows stderr to Claude; the tool already ran (official)                                                                                 | No cc-skills usage                                         |
+| **PostToolUseFailure** | Shows stderr to Claude; the tool already failed (official)                                                                              | No cc-skills usage                                         |
+| **WorktreeCreate**     | Any non-zero exit makes worktree creation fail (official)                                                                               | No cc-skills usage                                         |
+| **WorktreeRemove**     | Any non-zero exit makes removal fail if the directory still exists (official)                                                           | No cc-skills usage                                         |
 
 ### Environment Variables
 
@@ -960,13 +960,13 @@ exit 0
 
 **When to use `deny` (default)**:
 
-| Scenario                                             | Why deny works                                                       |
-| ---------------------------------------------------- | -------------------------------------------------------------------- |
-| Policy violation (wrong format, missing trailer)     | Message tells Claude exactly what format is required                 |
-| Dangerous pattern detected (fork bomb, CWD deletion) | Message explains the safe alternative                                |
-| File too large / fake data detected                  | Message lists escape hatches (`# noqa: fake-data`, `# FILE-SIZE-OK`) |
-| Wrong tool usage (e.g., `rm -rf` on CWD)             | Message shows the safe alternative                                   |
-| Terminology violation (Vale)                         | Message shows which terms to fix and where the glossary is           |
+| Scenario                                             | Why deny works                                             |
+| ---------------------------------------------------- | ---------------------------------------------------------- |
+| Policy violation (wrong format, missing trailer)     | Message tells Claude exactly what format is required       |
+| Dangerous pattern detected (fork bomb, CWD deletion) | Message explains the safe alternative                      |
+| File too large                                       | Message lists the escape hatch (`# FILE-SIZE-OK`)          |
+| Wrong tool usage (e.g., `rm -rf` on CWD)             | Message shows the safe alternative                         |
+| Terminology violation (Vale)                         | Message shows which terms to fix and where the glossary is |
 
 **When to use `ask` (rare — genuine ambiguity only)**:
 
