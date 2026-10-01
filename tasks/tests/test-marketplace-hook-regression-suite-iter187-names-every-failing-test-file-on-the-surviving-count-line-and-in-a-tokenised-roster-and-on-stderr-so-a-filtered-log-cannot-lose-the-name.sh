@@ -93,6 +93,10 @@ mkdir -p "$ITER187_SANDBOX_REPO_ROOT/tasks/tests" \
          "$ITER187_SANDBOX_REPO_ROOT/plugins/iter187demo/hooks/tests"
 cp "$MARKETPLACE_HOOK_REGRESSION_SUITE_RUNNER_ABSOLUTE_PATH" \
    "$ITER187_SANDBOX_REPO_ROOT/tasks/test-marketplace-hook-regression-suite"
+# The runner sources tasks/lib/hermetic-fixture-git.sh beside it, so the sandbox needs that too.
+mkdir -p "$ITER187_SANDBOX_REPO_ROOT/tasks/lib"
+cp "$(dirname "$MARKETPLACE_HOOK_REGRESSION_SUITE_RUNNER_ABSOLUTE_PATH")/lib/hermetic-fixture-git.sh" \
+   "$ITER187_SANDBOX_REPO_ROOT/tasks/lib/hermetic-fixture-git.sh"
 
 ITER187_SANDBOX_RUNNER="$ITER187_SANDBOX_REPO_ROOT/tasks/test-marketplace-hook-regression-suite"
 ITER187_SYNTHETIC_PASSING_TEST_BASENAME="test-iter187-synthetic-always-passes.sh"
