@@ -4,7 +4,7 @@
 Unlimited-OCR transcription below was produced by actually running the model — 127 images, no
 sampling beyond "this type, and both existing transcriptions on record".**
 
-quantml stage 05 runs two independent vision models (MiniMax-M3 and GLM-4.6v) and treats their
+quantml stage 05 runs two independent hosted vision models (model A and GLM-4.6v) and treats their
 agreement as evidence. The question, never previously measured: would a third independent reader
 resolve the cases where those two deadlock?
 
@@ -79,7 +79,7 @@ The raw numbers look like FORMULA (1 of 103), but for a completely different and
 
 | Reader        | Serialization emitted           |
 | ------------- | ------------------------------- |
-| MiniMax-M3    | pipe-markdown 102, prose 1      |
+| model A       | pipe-markdown 102, prose 1      |
 | GLM-4.6v      | pipe-markdown 103               |
 | Unlimited-OCR | **HTML `<table>` 88**, prose 15 |
 
