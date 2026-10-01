@@ -106,6 +106,7 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [arxiv-source-first](./arxiv-source-first/CLAUDE.md)
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
 - [calcom-commander](./calcom-commander/CLAUDE.md)
+- [chrome-profiles](./chrome-profiles/CLAUDE.md)
 - [claude-tts-companion](./claude-tts-companion/CLAUDE.md)
 - [cli-anything](./cli-anything/CLAUDE.md)
 - [crucible](./crucible/CLAUDE.md)
