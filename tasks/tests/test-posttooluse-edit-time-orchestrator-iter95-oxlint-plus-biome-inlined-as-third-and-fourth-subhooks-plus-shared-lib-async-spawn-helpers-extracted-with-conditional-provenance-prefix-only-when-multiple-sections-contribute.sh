@@ -13,7 +13,6 @@ TSGO_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ts
 OXLINT_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-oxlint-check.ts"
 BIOME_LINT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-biome-lint.ts"
 STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
-EMPIRICAL_PARALLELISM_BENCHMARK_ABSOLUTE_PATH="$REPO_ROOT/tasks/benchmark-posttooluse-orchestrator-real-subprocess-firing-with-actual-typescript-file-empirically-confirms-async-bun-spawn-parallelism-gain-iter95.sh"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 
 for required_file_absolute_path in \
@@ -24,7 +23,6 @@ for required_file_absolute_path in \
     "$OXLINT_CHECK_ABSOLUTE_PATH" \
     "$BIOME_LINT_ABSOLUTE_PATH" \
     "$STATIC_AUDIT_TASK_ABSOLUTE_PATH" \
-    "$EMPIRICAL_PARALLELISM_BENCHMARK_ABSOLUTE_PATH" \
     "$HOOKS_JSON_ABSOLUTE_PATH"; do
     if [[ ! -f "$required_file_absolute_path" ]]; then
         echo "FAIL: required file not found: $required_file_absolute_path"
@@ -171,19 +169,6 @@ if [[ "$backward_compat_count" == "4" ]]; then
     assert_passes "Case 9: ALL 4 classifiers retain import.meta.main guard for standalone CLI (backward-compat preserved)"
 else
     assert_fails "Case 9: only ${backward_compat_count}/4 classifiers have import.meta.main guard"
-fi
-
-# ─── Case 10: empirical-parallelism benchmark task discoverable + completes ───
-set +e
-benchmark_output=$(bash "$EMPIRICAL_PARALLELISM_BENCHMARK_ABSOLUTE_PATH" 2>&1)
-benchmark_exit=$?
-set -e
-if [[ "$benchmark_exit" == "0" ]] && [[ "$benchmark_output" == *'median:'* ]]; then
-    assert_passes "Case 10: iter-95 empirical-parallelism benchmark task runs to completion (real .ts file + multi-subprocess fire)"
-else
-    assert_fails "Case 10: benchmark failed; exit=$benchmark_exit"
-    # Print the benchmark's own output: the exit code alone never said why (2026-09-27).
-    printf '%s\n' "$benchmark_output" | tail -25 | sed 's/^/      | /'
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────

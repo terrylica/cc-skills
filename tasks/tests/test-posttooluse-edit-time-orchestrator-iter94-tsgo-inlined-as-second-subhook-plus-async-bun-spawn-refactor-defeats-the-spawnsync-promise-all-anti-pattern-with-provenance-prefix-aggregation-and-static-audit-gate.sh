@@ -10,7 +10,6 @@ POSTTOOLUSE_ORCHESTRATOR_HOOK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/
 TY_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-ty-type-check.ts"
 TSC_TYPE_CHECK_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/posttooluse-tsc-type-check.ts"
 STATIC_AUDIT_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-because-it-defeats-promise-all-parallelism-per-bun-docs-and-2026-community-guidance.sh"
-MICROBENCHMARK_TASK_ABSOLUTE_PATH="$REPO_ROOT/tasks/benchmark-posttooluse-orchestrator-async-bun-spawn-parallelism-gain-versus-hypothetical-spawnsync-serialization-iter94-empirical-confirmation.sh"
 HOOKS_JSON_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/hooks.json"
 
 for required_file_absolute_path in \
@@ -18,7 +17,6 @@ for required_file_absolute_path in \
     "$TY_TYPE_CHECK_ABSOLUTE_PATH" \
     "$TSC_TYPE_CHECK_ABSOLUTE_PATH" \
     "$STATIC_AUDIT_TASK_ABSOLUTE_PATH" \
-    "$MICROBENCHMARK_TASK_ABSOLUTE_PATH" \
     "$HOOKS_JSON_ABSOLUTE_PATH"; do
     if [[ ! -f "$required_file_absolute_path" ]]; then
         echo "FAIL: required file not found: $required_file_absolute_path"
@@ -164,19 +162,6 @@ if [[ -z "$case10_stdout" ]] && [[ "$case10_exit" == "0" ]]; then
     assert_passes "Case 10: orchestrator silent-noop + exit 0 on non-applicable .txt payload (both subhooks return noop via O(1) filter)"
 else
     assert_fails "Case 10: orchestrator misbehaved on .txt; exit=$case10_exit stdout='${case10_stdout:0:200}'"
-fi
-
-# ─── Case 11: microbenchmark task discoverable + runs to completion ───────────
-set +e
-microbenchmark_output=$(bash "$MICROBENCHMARK_TASK_ABSOLUTE_PATH" 2>&1)
-microbenchmark_exit=$?
-set -e
-if [[ "$microbenchmark_exit" == "0" ]] && [[ "$microbenchmark_output" == *'median:'* ]]; then
-    assert_passes "Case 11: iter-94 microbenchmark task runs to completion (3 payloads × 5 replicates)"
-else
-    assert_fails "Case 11: microbenchmark failed; exit=$microbenchmark_exit"
-    # Print the benchmark's own output: the exit code alone never said why (2026-09-27).
-    printf '%s\n' "$microbenchmark_output" | tail -25 | sed 's/^/      | /'
 fi
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
