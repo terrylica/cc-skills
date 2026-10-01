@@ -23,7 +23,7 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 | `eon` (default) | @EonLabsOperations | 90417581   | `iqwxow2iidycaethycub7agfmm` |
 | `missterryli`   | @missterryli       | 2124832490 | `dk456cs3v2fjilppernryoro5a` |
 
-## Skills (13)
+## Skills by area
 
 ### Messaging
 
@@ -51,12 +51,15 @@ run directly with `bun` (no build). Multi-profile support for multiple accounts.
 | [create-group](./skills/create-group/SKILL.md)     | Create groups, supergroups, channels |
 | [manage-members](./skills/manage-members/SKILL.md) | Invite, kick, list members           |
 
-### Media & Setup
+### Media, Archival & Setup
 
-| Skill                                              | Purpose                            |
-| -------------------------------------------------- | ---------------------------------- |
-| [download-media](./skills/download-media/SKILL.md) | Download files from messages       |
-| [setup](./skills/setup/SKILL.md)                   | First-time auth + credential setup |
+| Skill                                                | Purpose                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| [download-media](./skills/download-media/SKILL.md)   | Download files from messages                                |
+| [setup](./skills/setup/SKILL.md)                     | First-time auth + credential setup                          |
+| [draft-message](./skills/draft-message/SKILL.md)     | Post a long or sensitive draft to Saved Messages for review |
+| [dump-channel](./skills/dump-channel/SKILL.md)       | Archive a channel or chat to NDJSON with all media          |
+| [cleanup-deleted](./skills/cleanup-deleted/SKILL.md) | Purge deleted or ghost accounts from dialogs and contacts   |
 
 ## Quick Reference
 
@@ -106,42 +109,9 @@ MTProto client library is **GramJS** (`telegram` on npm):
 - Installed as a local dep in `scripts/` (`bun install`); the old Telethon/`uv`
   toolchain was retired in the 2026-06 TypeScript port.
 
-## Migration note (2026-06-22)
+## History
 
-Ported from Telethon (Python, `uv run`) to GramJS (Bun TS). The MTProto engine
-changed, so the **session format changed**: sessions now live at
-`~/.local/share/gramjs/<profile>.session` as GramJS StringSessions — the old
-`~/.local/share/telethon/*.session` files are not reused. Each account logs in
-once more via the non-interactive flow (`send-code` → `sign-in`); see
-[setup](./skills/setup/SKILL.md). The Telegram API id/hash (1Password) are
-unchanged. `eon` was re-authenticated and verified; `missterryli` re-login pending.
-
-## Validation Results (2026-03-17)
-
-All 17 subcommands empirically tested bi-directionally between `eon` and `missterryli`:
-
-| Test                               | Status         |
-| ---------------------------------- | -------------- |
-| send (text, by ID, by username)    | ✅             |
-| send-file (document with caption)  | ✅             |
-| read (with message IDs in output)  | ✅             |
-| search (global + per-chat)         | ✅             |
-| forward (single + batch)           | ✅             |
-| edit (text replacement)            | ✅             |
-| delete (for everyone)              | ✅             |
-| pin + unpin (silent)               | ✅             |
-| mark-read                          | ✅             |
-| find-user (username → JSON)        | ✅             |
-| download (media to directory)      | ✅             |
-| create-group (supergroup + invite) | ✅             |
-| invite (to group)                  | ✅             |
-| kick (from group)                  | ✅             |
-| members (list + admin filter)      | ✅             |
-| dialogs                            | ✅             |
-| whoami                             | ✅             |
-| Error: invalid profile             | ✅ clean error |
-| Error: empty message               | ✅ clean error |
-| Error: bad recipient               | ✅ clean error |
+The 2026-06-22 migration note and the 2026-03-17 validation results: [docs/history.md](./docs/history.md).
 
 ## Skills
 

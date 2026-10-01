@@ -45,7 +45,7 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
-### Plugin CLAUDE.md Files (39/39)
+### Plugin CLAUDE.md files
 
 Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep it that way: a new plugin ships one in the same commit that creates it. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
@@ -70,23 +70,12 @@ Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hook
 
 `moon run repo:check` is the local-first gate that must pass before a push, enforced by the pre-push hook that `bash scripts/install-hooks.sh` installs (run it once per clone; it keeps the global account check, and `PREPUSH_GATE_OK="<reason>"` is the stated-reason bypass). Its fan-out is the `deps` list of `check` in `moon.yml` (`moon task repo:check` prints it), not a list kept here. Task targets are `repo:<name>` with a hyphen. `.prototools` is the only toolchain manifest here; jdx/mise is not used, and a second toolchain file must never be added (two files pinning the same tool is the drift that broke every bun-backed hook on 2026-09-03).
 
-## Plugin Discovery
-
-**SSoT**: `.claude-plugin/marketplace.json`
-
-```bash
-# Validate before commit
-bun scripts/validate-plugins.mjs
-```
-
-Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./plugins/CLAUDE.md).
-
 ## Directory Structure
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 39 plugins)
-├── plugins/                         ← 39 marketplace plugins (each has CLAUDE.md)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT)
+├── plugins/                         ← Marketplace plugins (each has CLAUDE.md)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
@@ -95,12 +84,12 @@ cc-skills/
 │   └── ...                          ← the rest (full table: plugins/CLAUDE.md)
 ├── docs/
 │   ├── adr/                         ← Architecture Decision Records
-│   ├── design/                      ← Implementation specs (33 of 59 ADRs have one)
+│   ├── design/                      ← Implementation specs
 │   ├── HOOKS.md                     ← Hook development patterns
 │   ├── RELEASE.md                   ← Release workflow
 │   ├── PLUGIN-LIFECYCLE.md          ← Plugin internals
 │   └── LESSONS.md                   ← Lessons learned
-└── tasks/                     ← Release automation (seven phases, five standalone tasks)
+└── tasks/                           ← moon task scripts (release/, commits/, hooks/, audits, tests/)
 ```
 
 ## Key Files
@@ -112,45 +101,23 @@ cc-skills/
 | `scripts/validate-plugins.mjs`             | Plugin validation                                                      |
 | `scripts/cc-plugin-root`                   | Resolve a plugin's live install path (see below)                       |
 | `scripts/commit-message-exposure-guard.ts` | Commit-msg exposure guard (blocks credentials, reminds on identifiers) |
-| `scripts/sync-hooks-to-settings.sh`        | Hook synchronization                                                   |
+| `scripts/sync-hooks-to-settings.sh`        | Prunes legacy cc-skills hook entries from `settings.json`              |
 | `scripts/sync-commands-to-settings.sh`     | Command synchronization                                                |
 
 ## Skills resolve plugin paths with `cc-plugin-root`, never `$CLAUDE_PLUGIN_ROOT`
 
-`CLAUDE_PLUGIN_ROOT` is **not** a shell variable. Claude Code substitutes the exact literal
-`${CLAUDE_PLUGIN_ROOT}` inside plugin _manifests_ (`hooks/hooks.json`, `.mcp.json`, `.lsp.json`) and
-injects it into hook/MCP _subprocess_ environments — it never reaches the Bash tool, and a SKILL.md
-body is served to the model verbatim. A skill that references it gets an empty string.
-
-```bash
-SCRIPT="$(cc-plugin-root <plugin-name>)/skills/<skill>/run.sh"   # in a SKILL.md
-"command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/handler.ts"           # in hooks.json — braced, correct
-```
-
-`scripts/cc-plugin-root` reads `~/.claude/plugins/installed_plugins.json`, so it returns the version
-Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never glob the version cache
-— it retains orphaned versions. Enforced by **skill-plugin-root-guard**; escape `SKILL-PLUGIN-ROOT-OK`.
-
-→ [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md)
-
-## Link Conventions
-
-| Context        | Format    | Example                          |
-| -------------- | --------- | -------------------------------- |
-| Skill-internal | Relative  | `[Guide](./references/guide.md)` |
-| Repo docs      | Repo-root | `[ADR](/docs/adr/file.md)`       |
-| External       | Full URL  | `[Docs](https://example.com)`    |
+`CLAUDE_PLUGIN_ROOT` is substituted only inside plugin manifests and hook/MCP subprocess environments; in a SKILL.md it is an empty string. A skill resolves its own files with `"$(cc-plugin-root <plugin>)/…"`. Enforced by **skill-plugin-root-guard** (escape `SKILL-PLUGIN-ROOT-OK`) → [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md)
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 39 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
+Recurring architectural patterns across the plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
 
-| Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md) |
-| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                                         |
-| **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
-| **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md)               |
+| Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                 |
+| **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                           |
+| **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                             |
+| **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md) |
 
 > These are **conventions to adopt, not code to extract** — per-plugin isolation (own `package.json`/`tsconfig.json`, own installer) is intentional. Only `diff`-proven byte-identical logic is real duplication.
 
@@ -165,8 +132,6 @@ bun pm ls -g                 # List
 ```
 
 **Toolchain pins auto-bump to latest, unattended.** `com.terryli.proto-toolchain-autoupdate` runs at 07:23, 13:23 and 19:23 local and rewrites `.prototools` here — and in every repo under `~/eon`, `~/own`, `~/vj` — to the latest published version of each pinned tool, committing each change. Nothing gates it: **no test suite runs against the new versions before the commit lands**, so a red gate the morning after a green night is a toolchain bump until proven otherwise. Check `git log -- .prototools` first; `git revert` the bump to confirm, then hold the pin deliberately if the newer version is genuinely broken. Log: `~/.local/state/proto-autoupdate/autoupdate.log`. It pushes a notification only when something changed or failed.
-
-Trap: `proto outdated --update --latest` reports tools as outdated, exits 0 and **writes nothing** (proto 0.61.2), so the routine drives `proto pin <tool> <version>` explicitly.
 
 ## Lessons Learned
 

@@ -43,13 +43,13 @@ bootstrapper, page-template is the authoring guide.
 
 ## Dependencies
 
-| Tool      | Required for           | Install                                           |
-| --------- | ---------------------- | ------------------------------------------------- |
-| `python3` | `build-nav.py`         | macOS ships 3.9+; this plugin works on **3.10+**  |
-| `lychee`  | link validation        | `brew install lychee` (or `cargo install lychee`) |
+| Tool      | Required for             | Install                                           |
+| --------- | ------------------------ | ------------------------------------------------- |
+| `python3` | `build-nav.py`           | macOS ships 3.9+; this plugin works on **3.10+**  |
+| `lychee`  | link validation          | `brew install lychee` (or `cargo install lychee`) |
 | `rsync`   | publishing to gpu-host-1 | preinstalled on macOS                             |
 | `ssh`     | publishing to gpu-host-1 | preinstalled on macOS                             |
-| `git`     | repo detection         | preinstalled on macOS                             |
+| `git`     | repo detection           | preinstalled on macOS                             |
 
 The scripts use **only Python stdlib** — no `pip install` step. Lychee is the
 only non-built-in tool, and the publishing path (`site.sh push`) is opt-in.
@@ -151,52 +151,6 @@ re-read the principle, not to work around it.
   land between the two visual surfaces. Pages declaring their own
   `body { padding: ... }` will be overridden — that's intentional.
 
-## Recent Changes
-
-- **2026-05-29 — within-section Prev/Next (asset version v7).** Ported the
-  firing-219 navigation pattern from the `opendeviationbar-patterns`
-  dashboard rail:
-  - **`‹ ›` buttons on the "Site" header row** (Section 1 of `render_rail()`).
-    They ride the existing header via `display: flex; justify-content:
-space-between` (`.rail-h-nav`), so they add **zero** vertical height.
-    Disabled (greyed, `pointer-events: none`) at the ends of the sequence.
-    Only rendered for pages inside a section; the home/top-level rail keeps
-    a plain "Site" header.
-  - **Chrome-safe `[` / `]` keyboard shortcut** (`AUTO_NAV_JS_BODY` keydown
-    handler). Bare `[` = previous sibling, `]` = next. The handler bails when
-    any modifier (`metaKey`/`ctrlKey`/`altKey`/`shiftKey`) is held or when
-    focus is in `INPUT`/`TEXTAREA`/`SELECT`/`contenteditable`, so it never
-    hijacks typing in the search box. Bare brackets are unreserved on macOS
-    (only `Cmd+[` / `Cmd+]` are Back/Forward).
-  - **Neighbor semantics**: prev/next are the visually-adjacent siblings in
-    the flat `section["pages"]` list — `‹` = the page above (newer, since the
-    list is newest-first), `›` = the page below (older). URLs are surfaced as
-    `data-prev-url` / `data-next-url` on `<details class="auto-nav-rail">`
-    (absent at the ends) and read by the keydown handler.
-  - New CSS: `.rail-h-nav` / `.rail-prevnext` / `.rail-pn` / `.rail-pn-disabled`
-    in `AUTO_NAV_CSS_BODY`.
-- **2026-05-26 — iter_315 PRESENTATION_REFACTOR (asset version v6).**
-  Three concurrent changes ported from a downstream user-facing edit
-  into the plugin defaults:
-  - **Body gutter (28-40px)**: rail now injects `padding-left` /
-    `padding-right` / clamped `max-width` on `<body>` so page content
-    has breathing room next to the rail.
-  - **Rail typography shrunk ~20%**: base rail font 0.9rem → 0.72rem,
-    cascading into `.rail-h` 0.7→0.58rem, `.rail-date` 0.7→0.58rem,
-    `.rail-link` 0.86→0.7rem, `.rail-toggle-icon` 1.25→1.05rem,
-    `.rail-toggle-label` 0.78→0.65rem, Pagefind UI inputs/results
-    correspondingly tightened. The rail now reads as a dense index,
-    not a billboard.
-  - **Site-map tightened**: body font 0.92rem baseline, h1 1.55rem,
-    headings 1rem, list items 0.85em, deeper background palette
-    (`#0b1120` outer / `#111c33` container) to match the dashboard
-    spokes' visual register.
-  - **Newest-first iter-N ordering**: pages within a section now sort
-    descending by iter-N (was ascending), and unpinned non-iter pages
-    sort descending by birthtime. `<!-- nav-pin -->` comment marker
-    added as an escape hatch for anchoring a canonical page to the
-    top regardless of newer iterations.
-
 ## Architecture
 
 ```
@@ -263,7 +217,7 @@ plugins/html-showcase/
 | Add a missing visual component  | `assets/showcase.css` (Stance 3 — affects every page)                                   |
 | Change rail behavior or styling | `AUTO_NAV_CSS_BODY` / `AUTO_NAV_JS_BODY` in `build-nav.py`, then bump `--asset-version` |
 | Change section ordering rules   | `walk_site()` in `build-nav.py`                                                         |
-| Change publish destination      | Env vars (`SITE_SSH_HOST`, `SITE_REMOTE_ROOT`, `SITE_BASE_URL`) — no edit needed  |
+| Change publish destination      | Env vars (`SITE_SSH_HOST`, `SITE_REMOTE_ROOT`, `SITE_BASE_URL`) — no edit needed        |
 | Update one of the principles    | `skills/page-template/references/principles.md`                                         |
 
 ## Related Documentation

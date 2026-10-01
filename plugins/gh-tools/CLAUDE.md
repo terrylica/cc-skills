@@ -103,6 +103,7 @@ The `webfetch-github-guard.sh` hook soft-blocks WebFetch for github.com URLs:
 - Suggests `gh issue view`, `gh pr view` alternatives
 - Shows specific gh commands for the URL pattern
 - User can override if needed
+- Where itp-hooks is also installed, its WebFetch fallback guard denies every WebFetch first, so this soft-block only decides on installs without itp-hooks
 
 **ADR**: [/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md](/docs/adr/2026-01-03-gh-tools-webfetch-enforcement.md)
 
@@ -198,24 +199,19 @@ No individual IDs need to be listed separately — the full paths are strictly m
 - [issues-workflow](./skills/issues-workflow/SKILL.md)
 - [pr-gfm-validator](./skills/pr-gfm-validator/SKILL.md)
 - [research-archival](./skills/research-archival/SKILL.md)
-- [gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md) — browser-automate fine-grained PAT creation from a declarative JSON spec (GitHub exposes no API for this); has its own skill-level [CLAUDE.md](./skills/gh-fine-grained-pat/CLAUDE.md) (selector map + 4 hard-won gotchas)
+- [gh-fine-grained-pat](./skills/gh-fine-grained-pat/SKILL.md) — browser-automate fine-grained PAT creation from a declarative JSON spec (GitHub exposes no API for this); has its own skill-level [CLAUDE.md](./skills/gh-fine-grained-pat/CLAUDE.md) (selector map + its hard-won gotchas)
 
 ## GitHub Operations Policy
 
-**Use gh CLI** for all GitHub operations — WebFetch to github.com is soft-blocked by `webfetch-github-guard.sh`.
+**Use gh CLI** for all GitHub operations (see WebFetch Enforcement above).
 
 **Install gh via Homebrew ONLY**: `brew install gh` (a version-manager-shimmed `gh` caused iTerm2 tab spawning).
 
-**GitHub Actions Policy**: NO testing or linting in GitHub Actions — local-first philosophy.
-
-- **Forbidden**: pytest, jest, cargo test, ruff, eslint, clippy, prettier, mypy
-- **Allowed**: semantic-release, CodeQL, Dependabot, deployment
+**GitHub Actions**: local-first — see the user hub's Local-First CI/CD rule.
 
 ## GitHub Issues as Insight Repository
 
 **CRITICAL**: NEVER post to upstream third-party repositories. Which owner you _may_ write to is **not** a fixed account — it is decided per filesystem path by this plugin's own `hooks/pretooluse-path-owner-guard.mjs` (registered on `PreToolUse`/`Bash` in [hooks.json](./hooks/hooks.json)), which resolves the expected owner via `resolveExpectedOwner()` in [`hooks/lib/path-owner-registry.mjs`](./hooks/lib/path-owner-registry.mjs) against the machine-readable SSoT `~/.claude/path-owner-registry.toml` (longest matching `path_prefix` wins, plus per-prefix `allow_orgs`). **That registry is the SSoT — read it, do not restate it here.** Escape hatch: `ALLOW_OWNER_MISMATCH=1`.
-
-> **Corrected 2026-09-05.** This line used to read "Only post to repositories owned by `terrylica`", which is both **narrower than reality** and redundant with the shipped guard. `~/vj` maps to `vanjobbers` and `~/own` to `tainora`; `~/eon` defaults to `terrylica` but allows the `Eon-Labs` / `EonLabs-Spartan` orgs, and `~/eon/collab` / `~/vj/collab` admit named external collaborator owners. Following the old prose literally would have blocked legitimate pushes under `~/vj` and `~/own`.
 
 **Philosophy**: Treat GitHub Issues as human-readable insight repository for research and findings.
 
