@@ -2,7 +2,7 @@
 
 Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revising autonomous-loop primitives for Claude Code.
 
-[![Plugins](https://img.shields.io/badge/plugins-43-green.svg)](#plugins)
+[![Plugins](https://img.shields.io/badge/plugins-39-green.svg)](#plugins)
 [![Version](https://img.shields.io/github/package-json/v/terrylica/cc-skills.svg)](./CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](./LICENSE)
 
@@ -16,10 +16,9 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [asciinema-tools](./plugins/asciinema-tools/)           | Terminal recording automation: asciinema capture, launchd daemon for background chunking, Keychain PAT storage, Pushover notifications, cast conversion, and semantic analysis                                                                                       | utilities     |
 | [calcom-commander](./plugins/calcom-commander/)         | Cal.com + Telegram bot lifecycle - booking management, interactive commands, scheduled sync, Agent SDK routing, 1Password API key                                                                                                                                    | productivity  |
 | [chrome-profiles](./plugins/chrome-profiles/)           | Drive your everyday Google Chrome on macOS: choose a profile by account email, zero-click control via Microsoft's Playwright Extension (one `setup` per account), and when not to use a real browser                                                                 | productivity  |
-| [claude-tts-companion](./plugins/claude-tts-companion/) | Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype                                                                                                                   | productivity  |
 | [cli-anything](./plugins/cli-anything/)                 | Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology. | development   |
 | [crucible](./plugins/crucible/)                         | Self-evolving research methodology: 18 universal principles for LLM-driven investigation, distilled from a 376-turn session with 1 positive + 17 null campaigns.                                                                                                     | ai            |
-| [devops-tools](./plugins/devops-tools/)                 | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis                                                                                                                 | devops        |
+| [devops-tools](./plugins/devops-tools/)                 | DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, LLM session debriefs                                                                                                                 | devops        |
 | [doc-tools](./plugins/doc-tools/)                       | Comprehensive documentation tooling: ASCII diagrams, markdown standards, LaTeX build, Pandoc PDF, glossary management, plotext financial charts                                                                                                                      | documentation |
 | [dotfiles-tools](./plugins/dotfiles-tools/)             | Chezmoi dotfile management via natural language workflows                                                                                                                                                                                                            | utilities     |
 | [floating-clock](./plugins/floating-clock/)             | macOS floating clock overlay with profile-based aesthetics, controlled via SwiftBar control center                                                                                                                                                                   | utilities     |
@@ -30,11 +29,9 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [html-showcase](./plugins/html-showcase/)               | Canonical CSS kernel + HTML skeleton for static showcase pages (provenance reports, dashboards); single design-system SSoT via jsDelivr, per-page CSS overrides                                                                                                      | documents     |
 | [itp](./plugins/itp/)                                   | Implement-The-Plan workflow: ADR-driven 4-phase development with preflight, implementation, and release                                                                                                                                                              | productivity  |
 | [itp-hooks](./plugins/itp-hooks/)                       | ITP workflow enforcement + code correctness: PreToolUse / PostToolUse / Stop hooks for SSoT principles, file-size guard, type checks, ASCII art blocking, ty/oxlint/biome lint                                                                                       | enforcement   |
-| [kokoro-tts](./plugins/kokoro-tts/)                     | Kokoro TTS engine: install, server lifecycle, synthesis, health checks, and real-time audio architecture for macOS Apple Silicon                                                                                                                                     | productivity  |
 | [link-tools](./plugins/link-tools/)                     | Link validation: portability checks, broken link detection, path policy linting                                                                                                                                                                                      | quality       |
 | [macro-keyboard](./plugins/macro-keyboard/)             | Karabiner remap for cheap 3-key USB-C/Bluetooth macro pads + HID diagnostic + Fn-key emit utilities                                                                                                                                                                  | utilities     |
 | [media-tools](./plugins/media-tools/)                   | Download YouTube audio and push to BookPlayer for offline listening                                                                                                                                                                                                  | productivity  |
-| [minimax](./plugins/minimax/)                           | MiniMax M-series production wiring patterns — API client templates verified across multi-iteration campaigns                                                                                                                                                         | ai            |
 | [mql5](./plugins/mql5/)                                 | MQL5 development: indicator patterns, mql5.com article extraction, Python workspace, MT5 tick collection ops, FXView Parquet consumer                                                                                                                                | trading       |
 | [openwolf](./plugins/openwolf/)                         | Wraps the third-party openwolf npm middleware (token-saving project memory): installs the global binary, runs `openwolf init`, surfaces status, and adds a clean removal path                                                                                        | productivity  |
 | [plugin-dev](./plugins/plugin-dev/)                     | Plugin development: skill architecture, plugin validation, silent failure auditing, TodoWrite templates                                                                                                                                                              | development   |
@@ -46,7 +43,6 @@ Claude Code Skills Marketplace: Meta-skills, foundational tools, and self-revisi
 | [ssh-tunnel-companion](./plugins/ssh-tunnel-companion/) | macOS launchd companion for SSH tunnels (Tailscale + CF Access) — see plugin's CLAUDE.md for the SSoT on tunnel architecture                                                                                                                                         | devops        |
 | [statusline-tools](./plugins/statusline-tools/)         | Custom Claude Code status line with git status indicators + global ignore patterns + session-info reporter                                                                                                                                                           | utilities     |
 | [tlg](./plugins/tlg/)                                   | Telegram operations toolkit: messages, channels, dialogs, members, media, search, dump, drafting, cleanup                                                                                                                                                            | productivity  |
-| [tts-tg-sync](./plugins/tts-tg-sync/)                   | Hotkey text-to-speech: clipboard read-aloud via Kokoro with Supertonic fallback, speed and stop keys, voice audition, setup, health, diagnostics                                                                                                                     | productivity  |
 
 ## Installation
 
@@ -64,8 +60,8 @@ Run these commands in your **terminal** (not inside Claude Code):
 # 1. Add the cc-skills marketplace
 claude plugin marketplace add terrylica/cc-skills
 
-# 2. Install all 43 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
-for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles claude-tts-companion cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks kokoro-tts link-tools macos-font-defaults macos-permissions macro-keyboard media-tools minimax mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg tts-tg-sync unlimited-ocr web-forge whatsapp-commander; do
+# 2. Install all 39 plugins (one-liner, alphabetically ordered; the set matches marketplace.json, whose own order is not alphabetical)
+for p in agent-reach arxiv-source-first asciinema-tools calcom-commander chrome-profiles cli-anything crucible devops-tools doc-tools dotfiles-tools floating-clock garch-volatility-toolkit gemini-deep-research gh-tools git-town-workflow gmail-commander html-showcase itp itp-hooks link-tools macos-font-defaults macos-permissions macro-keyboard media-tools mql5 notes-commander openwolf plugin-dev productivity-tools pushover-commander quality-tools quant-research rust-tools ssh-tunnel-companion statusline-tools tlg unlimited-ocr web-forge whatsapp-commander; do
   claude plugin install "$p@cc-skills"
 done
 
@@ -482,8 +478,8 @@ Marketplace plugin commands display with the `plugin:command` format:
 ```text
 cc-skills/
 ├── .claude-plugin/
-│   └── marketplace.json          # Plugin registry (43 plugins) — SSoT
-├── plugins/                      # 43 marketplace plugins (each with its own CLAUDE.md)
+│   └── marketplace.json          # Plugin registry (39 plugins) — SSoT
+├── plugins/                      # 39 marketplace plugins (each with its own CLAUDE.md)
 │   ├── itp/                      # ADR-driven 4-phase development workflow
 │   ├── itp-hooks/                # Workflow enforcement + code-correctness hooks
 │   ├── plugin-dev/               # Plugin / skill architecture meta-tools
@@ -491,9 +487,6 @@ cc-skills/
 │   ├── doc-tools/                # ASCII diagrams, markdown standards, LaTeX, Pandoc
 │   ├── quality-tools/            # Clone detection, E2E validation, profiling, refactor guide
 │   ├── devops-tools/             # ClickHouse, Doppler, MLflow, pueue, session recovery
-│   ├── claude-tts-companion/     # Swift macOS karaoke-subtitles companion
-│   ├── kokoro-tts/               # Kokoro TTS engine (install / server / synthesis)
-│   ├── tts-tg-sync/              # Hotkey text-to-speech (TTS only)
 │   ├── tlg/                      # Telegram operations toolkit
 │   ├── ssh-tunnel-companion/     # macOS launchd companion for SSH tunnels
 │   ├── floating-clock/           # macOS floating clock overlay

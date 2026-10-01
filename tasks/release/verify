@@ -93,7 +93,7 @@ echo "  ✓ Valid hooks.json: $HOOKS_OK plugins"
 # -type d -name 'commands'` was unbounded-depth and matched any nested
 # `commands/` directory anywhere under the marketplace tree — including
 # Swift Package Manager build caches like:
-#   plugins/claude-tts-companion/.build/checkouts/swift-syntax/
+#   plugins/<swift-plugin>/.build/checkouts/swift-syntax/
 #     SwiftSyntaxDevUtils/Sources/swift-syntax-dev-utils/commands/
 # which is vendored Swift compiler source, NOT a cc-skills legacy commands
 # dir. The release verifier flagged it as a migration gap on every release.

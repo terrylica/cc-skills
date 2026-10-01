@@ -138,28 +138,6 @@
       "strict": false
     },
     {
-      "name": "claude-tts-companion",
-      "description": "Real-time karaoke subtitles synced with TTS playback — unified macOS accessory app replacing telegram-bot + kokoro-tts-server + subtitle prototype",
-      "version": "32.6.0",
-      "source": "./plugins/claude-tts-companion",
-      "category": "productivity",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "tts",
-        "subtitles",
-        "karaoke",
-        "macos",
-        "swift",
-        "telegram",
-        "sherpa-onnx",
-        "kokoro"
-      ],
-      "strict": false
-    },
-    {
       "name": "cli-anything",
       "description": "Reference guide for CLI-Anything: auto-generate production-ready agent-controllable CLI harnesses for any GUI app via 7-phase pipeline. Covers all validated commands, per-app examples (GIMP, Blender, LibreOffice, Inkscape), testing, and HARNESS.md methodology.",
       "version": "32.6.0",
@@ -208,7 +186,7 @@
     },
     {
       "name": "devops-tools",
-      "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, MiniMax consensus analysis",
+      "description": "DevOps automation: ClickHouse, Doppler, MLflow, Cloudflare Workers, pueue orchestration, notifications, session recovery, LLM session debriefs",
       "version": "32.6.0",
       "source": "./plugins/devops-tools",
       "category": "devops",
@@ -224,7 +202,6 @@
         "session-recovery",
         "session-blind-spots",
         "consensus-analysis",
-        "minimax",
         "pushover",
         "watchexec",
         "notifications",
@@ -498,26 +475,6 @@
       "strict": false
     },
     {
-      "name": "kokoro-tts",
-      "description": "Local Kokoro TTS engine: MLX-Audio install, HTTP server, voice synthesis, health checks, diagnostics (Apple Silicon)",
-      "version": "32.6.0",
-      "source": "./plugins/kokoro-tts",
-      "category": "devops",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "tts",
-        "kokoro",
-        "voice-synthesis",
-        "mlx",
-        "text-to-speech",
-        "apple-silicon"
-      ],
-      "strict": false
-    },
-    {
       "name": "link-tools",
       "description": "Comprehensive link validation: portability checks, lychee broken link detection, path policy linting",
       "version": "32.6.0",
@@ -653,29 +610,6 @@
         "media",
         "pymobiledevice3",
         "yt-dlp"
-      ],
-      "strict": false
-    },
-    {
-      "name": "minimax",
-      "description": "MiniMax M-series production wiring: OpenAI-compat quirks, hybrid prompt caching, Tier F quant agentic stack, model-upgrade detection. Distilled from a 41-iteration M2.7-highspeed exploration campaign.",
-      "version": "32.6.0",
-      "source": "./plugins/minimax",
-      "category": "ai",
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "minimax",
-        "m2.7",
-        "openai-compatible",
-        "prompt-caching",
-        "reasoning-model",
-        "quant-llm",
-        "agentic-stack",
-        "chinese-llm-provider",
-        "hailuo"
       ],
       "strict": false
     },
@@ -958,33 +892,6 @@
         "messaging",
         "user-account",
         "1password"
-      ],
-      "strict": false
-    },
-    {
-      "name": "tts-tg-sync",
-      "description": "Hotkey text-to-speech for macOS: read the clipboard aloud via Kokoro (claude-tts-companion) with a Supertonic fallback, speech-rate and stop keys, voice audition, setup, health and diagnostics (requires kokoro-tts for the engine installer)",
-      "version": "32.6.0",
-      "source": "./plugins/tts-tg-sync",
-      "category": "devops",
-      "requires": [
-        "kokoro-tts"
-      ],
-      "author": {
-        "name": "Terry Li",
-        "url": "https://github.com/terrylica"
-      },
-      "keywords": [
-        "tts",
-        "text-to-speech",
-        "kokoro",
-        "supertonic",
-        "voice-synthesis",
-        "audio",
-        "clipboard",
-        "hotkey",
-        "karabiner",
-        "health-check"
       ],
       "strict": false
     },

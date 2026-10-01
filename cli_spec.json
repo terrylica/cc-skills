@@ -882,61 +882,6 @@
       "title": "plugins/itp/skills/code-hardcode-audit/scripts/run_whispers.py",
       "type": "object"
     },
-    "plugins/kokoro-tts/scripts/tts_generate.py": {
-      "additionalProperties": false,
-      "description": "Kokoro TTS generate WAV",
-      "properties": {
-        "--chunk": {
-          "default": false,
-          "description": "Chunked streaming: print WAV path per chunk as ready",
-          "type": "boolean",
-          "x-option-strings": [
-            "--chunk"
-          ]
-        },
-        "--lang": {
-          "description": "Language code",
-          "type": "string",
-          "x-option-strings": [
-            "--lang"
-          ]
-        },
-        "--output": {
-          "description": "Output WAV path",
-          "type": "string",
-          "x-option-strings": [
-            "--output"
-          ]
-        },
-        "--speed": {
-          "description": "Speech speed",
-          "type": "number",
-          "x-option-strings": [
-            "--speed"
-          ]
-        },
-        "--text": {
-          "description": "Text to synthesize",
-          "type": "string",
-          "x-option-strings": [
-            "--text"
-          ]
-        },
-        "--voice": {
-          "description": "Voice name",
-          "type": "string",
-          "x-option-strings": [
-            "--voice"
-          ]
-        }
-      },
-      "required": [
-        "--output",
-        "--text"
-      ],
-      "title": "plugins/kokoro-tts/scripts/tts_generate.py",
-      "type": "object"
-    },
     "plugins/productivity-tools/skills/imessage-query/scripts/decode_attributed_body.py": {
       "additionalProperties": false,
       "description": "Query macOS iMessage database with NSAttributedString decoding",
@@ -1274,61 +1219,6 @@
         }
       },
       "title": "plugins/statusline-tools/scripts/gateway-telemetry-analytics-from-statusline-jsonl-log.py",
-      "type": "object"
-    },
-    "plugins/tts-tg-sync/scripts/tts_generate.py": {
-      "additionalProperties": false,
-      "description": "Kokoro TTS generate WAV",
-      "properties": {
-        "--chunk": {
-          "default": false,
-          "description": "Chunked streaming: print WAV path per chunk as ready",
-          "type": "boolean",
-          "x-option-strings": [
-            "--chunk"
-          ]
-        },
-        "--lang": {
-          "description": "Language code",
-          "type": "string",
-          "x-option-strings": [
-            "--lang"
-          ]
-        },
-        "--output": {
-          "description": "Output WAV path",
-          "type": "string",
-          "x-option-strings": [
-            "--output"
-          ]
-        },
-        "--speed": {
-          "description": "Speech speed",
-          "type": "number",
-          "x-option-strings": [
-            "--speed"
-          ]
-        },
-        "--text": {
-          "description": "Text to synthesize",
-          "type": "string",
-          "x-option-strings": [
-            "--text"
-          ]
-        },
-        "--voice": {
-          "description": "Voice name",
-          "type": "string",
-          "x-option-strings": [
-            "--voice"
-          ]
-        }
-      },
-      "required": [
-        "--output",
-        "--text"
-      ],
-      "title": "plugins/tts-tg-sync/scripts/tts_generate.py",
       "type": "object"
     },
     "plugins/unlimited-ocr/scripts/unlimited_ocr.py": {

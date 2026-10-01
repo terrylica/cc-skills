@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Claude Code skills marketplace: **43 plugins** with skills for ADR-driven development workflows.
+Claude Code skills marketplace: **39 plugins** with skills for ADR-driven development workflows.
 
 **Architecture**: Link Farm + Hub-and-Spoke with Progressive Disclosure
 
@@ -45,17 +45,15 @@ CLAUDE.md (this file)                          ◄── Hub: Navigation + Essen
 | ADRs                      | [docs/adr/](./docs/adr/)                                                                                                     |
 | Machine-readable CLI spec | [cli_spec.json](./cli_spec.json) — gen: `scripts/cli_spec.py`; tasks `moon run repo:cli-spec` / `repo:cli-spec-check`        |
 
-### Plugin CLAUDE.md Files (43/43)
+### Plugin CLAUDE.md Files (39/39)
 
 Every plugin carries its own CLAUDE.md with Hub+Sibling navigation links. Keep it that way: a new plugin ships one in the same commit that creates it. Access via `plugins/{name}/CLAUDE.md` or browse the full table in [plugins/CLAUDE.md](./plugins/CLAUDE.md).
 
-**Active project (SSoT):** [plugins/claude-tts-companion/CLAUDE.md](./plugins/claude-tts-companion/CLAUDE.md) — project/stack/conventions/architecture for the Swift macOS companion binary. Critical invariants (e.g., _do not replace afplay with AVAudioPlayer_) live there, not here.
-
 ### Machine-readable CLI spec (`cli_spec.json`)
 
-Per the CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 37 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `moon run repo:cli-spec`; drift+completeness gate: `moon run repo:cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
+Per the CLI-first + machine-readable-docs doctrine (`~/.claude/cli-first-machine-readable-docs-CLAUDE.md`), `scripts/cli_spec.py` emits a repo-root **`cli_spec.json`** (JSON Schema 2020-12) describing every Python `argparse` skill CLI — so an agent learns a skill script's flags without scraping `--help`. AST-based (parses each file, never imports it; excludes vendored/`.build`/`node_modules`), 35 CLIs across `plugins/*/skills/*/scripts/` + `scripts/`. Regenerate: `moon run repo:cli-spec`; drift+completeness gate: `moon run repo:cli-spec-check` (+ `scripts/test_cli_spec.py`, 9 tests).
 
-Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [tts-tg-sync](./plugins/tts-tg-sync/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md) | [claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)
+Key plugin docs: [itp](./plugins/itp/CLAUDE.md) | [itp-hooks](./plugins/itp-hooks/CLAUDE.md) | [gh-tools](./plugins/gh-tools/CLAUDE.md) | [devops-tools](./plugins/devops-tools/CLAUDE.md) | [gmail-commander](./plugins/gmail-commander/CLAUDE.md) | [calcom-commander](./plugins/calcom-commander/CLAUDE.md)
 
 ## Essential Commands
 
@@ -87,9 +85,8 @@ Missing marketplace.json entry = "Plugin not found". See [plugins/CLAUDE.md](./p
 
 ```
 cc-skills/
-├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 43 plugins)
-├── plugins/                         ← 43 marketplace plugins (each has CLAUDE.md)
-│   ├── claude-tts-companion/        ← Swift macOS binary (active project)
+├── .claude-plugin/marketplace.json  ← Plugin registry (SSoT, 39 plugins)
+├── plugins/                         ← 39 marketplace plugins (each has CLAUDE.md)
 │   ├── itp/                         ← Core 4-phase workflow
 │   ├── itp-hooks/                   ← Workflow enforcement + code correctness
 │   ├── gemini-deep-research/        ← Gemini Deep Research browser automation
@@ -146,11 +143,11 @@ Claude Code actually loaded; `/itp:setup` links it into `~/.local/bin/`. Never g
 
 ## Common Plugin Patterns (reuse registry)
 
-Recurring architectural patterns across the 43 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
+Recurring architectural patterns across the 39 plugins. This is a **pointer registry** for new-plugin authors — the exemplars are the SSoT, not this table.
 
 | Pattern                    | What it is                                                                                                                                       | Exemplars to copy                                                                                                                                              |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md), [kokoro-tts](./plugins/kokoro-tts/CLAUDE.md) |
+| **setup + health skills**  | Every service-backed plugin ships a `setup` (install/verify deps) and a `health` (subsystem diagnostic) skill                                    | [calcom-commander](./plugins/calcom-commander/CLAUDE.md), [gmail-commander](./plugins/gmail-commander/CLAUDE.md) |
 | **Credential resolution**  | SCS ladder first (self-custody `vault`/Keychain); 1Password only for company-shared, never client-confidential                                   | [gmail-commander](./plugins/gmail-commander/CLAUDE.md)                                                                                                         |
 | **Per-skill CLAUDE.md**    | A skill large enough to mix "what to do when invoked" with "what to know before editing" gets its own CLAUDE.md sibling to SKILL.md              | [macro-keyboard](./plugins/macro-keyboard/CLAUDE.md) (first adopter)                                                                                           |
 | **Plugin path resolution** | A skill resolves its own scripts via `"$(cc-plugin-root <plugin>)/…"` — rule above, [spoke](./plugins/itp-hooks/docs/skill-plugin-root-guard.md) | [notes-commander draft-park](./plugins/notes-commander/skills/draft-park/SKILL.md), [pushover-commander](./plugins/pushover-commander/CLAUDE.md)               |
@@ -174,9 +171,3 @@ Trap: `proto outdated --update --latest` reports tools as outdated, exits 0 and 
 ## Lessons Learned
 
 See [docs/LESSONS.md](./docs/LESSONS.md).
-
-## Active Project
-
-**[claude-tts-companion](./plugins/claude-tts-companion/CLAUDE.md)** — the Swift macOS companion binary (Telegram bot + Kokoro TTS + subtitle overlay) has its own CLAUDE.md as the SSoT. Project description, constraints, stack, conventions, architecture, and critical invariants live there. **Do not duplicate them here** — a second copy drifts out of sync with the SSoT; the model path and the audio-playback description are the fields that rot first.
-
-Quick hand-off: read `plugins/claude-tts-companion/CLAUDE.md` when the user mentions TTS, karaoke subtitles, Telegram bot, session notifications, `tts_kokoro.sh`, or anything under `plugins/claude-tts-companion/`.
