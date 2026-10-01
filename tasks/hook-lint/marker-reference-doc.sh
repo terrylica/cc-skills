@@ -59,8 +59,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Generator lives at tasks/<this-script>.sh; repo root is two levels up.
-REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/.." && pwd)"
+# Generator lives at tasks/hook-lint/<this-script>.sh; repo root is two levels up.
+REPO_ROOT="$(cd "$SCRIPT_DIR_ABSOLUTE/../.." && pwd)"
 ITER111_CANONICAL_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts"
 # shellcheck disable=SC2034  # used by parameter expansion inside the renderer heredoc below; shellcheck does not trace through heredoc bodies.
 ITER114_AUDIT_TASK_MARKER_REGISTRY_TYPESCRIPT_ABSOLUTE_PATH="$REPO_ROOT/plugins/itp-hooks/hooks/lib/marketplace-wide-audit-task-escape-hatch-marker-canonical-registry-cross-task-script-iter114.ts"
@@ -308,7 +308,7 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "> To add or modify a marker, edit the registry source and re-run:",
     ">",
     "> \\\`\\\`\\\`bash",
-    "> bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh",
+    "> bash tasks/hook-lint/marker-reference-doc.sh",
     "> \\\`\\\`\\\`",
     "",
     ...tableOfContentsLines,
@@ -355,8 +355,8 @@ function renderCompleteOperatorFacingMarkdownReferenceDocument(): string {
     "",
     "1. Implement the consumer-side detection in the hook source file using \\\`hasFileWideEscapeHatchMarkerInContent(...)\\\` or \\\`detectEscapeHatchMarkerCoveringTargetSourceLine(...)\\\` from \\\`plugins/itp-hooks/hooks/lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts\\\`.",
     "2. Add an entry to the registry at \\\`plugins/itp-hooks/hooks/lib/marketplace-wide-escape-hatch-producer-marker-canonical-registry-cross-plugin-iter111.ts\\\`.",
-    "3. Add the consumer hook to the iter-110 canonical-cohort array in \\\`tasks/audit-marketplace-wide-escape-hatch-marker-detection-inventory-...\\\`.",
-    "4. Re-run \\\`bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh\\\` to regenerate this document.",
+    "3. Add the consumer hook to the iter-110 canonical-cohort array in \\\`tasks/hook-lint/escape-hatch-cohort.sh\\\`.",
+    "4. Re-run \\\`bash tasks/hook-lint/marker-reference-doc.sh\\\` to regenerate this document.",
     "5. Commit all four changes atomically.",
     "",
     "## Related documentation",
@@ -397,7 +397,7 @@ case "$INVOCATION_MODE" in
         if [[ ! -f "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH" ]]; then
             echo "✗ DRIFT: on-disk doc does not exist:"
             echo "    $OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH"
-            echo "  Fix: bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+            echo "  Fix: bash tasks/hook-lint/marker-reference-doc.sh"
             exit 1
         fi
         if ! diff -q "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH" "$GENERATED_DOC_TEMP_FILE_ABSOLUTE_PATH" >/dev/null 2>&1; then
@@ -405,7 +405,7 @@ case "$INVOCATION_MODE" in
             echo "  Diff (expected on-disk -- vs ++ generator output):"
             diff -u "$OPERATOR_FACING_MARKDOWN_REFERENCE_DOC_ABSOLUTE_PATH" "$GENERATED_DOC_TEMP_FILE_ABSOLUTE_PATH" | head -50
             echo ""
-            echo "  Fix: bash tasks/generate-marketplace-escape-hatch-marker-reference-documentation-from-iter111-canonical-registry.sh"
+            echo "  Fix: bash tasks/hook-lint/marker-reference-doc.sh"
             exit 1
         fi
         echo "  ✓ On-disk doc matches iter-111 canonical registry (no drift)"

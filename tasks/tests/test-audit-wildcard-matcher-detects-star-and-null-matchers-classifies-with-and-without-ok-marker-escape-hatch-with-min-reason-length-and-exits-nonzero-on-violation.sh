@@ -2,9 +2,7 @@
 # test-audit-wildcard-matcher-detects-star-and-null-matchers-classifies-with-and-without-ok-marker-escape-hatch-with-min-reason-length-and-exits-nonzero-on-violation.sh
 #
 # Regression test for the iter-65 wildcard-matcher audit at
-# tasks/audit-pretooluse-and-posttooluse-hooks-for-wildcard-
-# matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-
-# causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.
+# tasks/hook-lint/wildcard-matcher.sh.
 #
 # WHY this is load-bearing:
 #
@@ -48,7 +46,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AUDIT_TASK="$SCRIPT_DIR/../audit-pretooluse-and-posttooluse-hooks-for-wildcard-matcher-star-or-null-which-cold-starts-bun-on-every-tool-call-causing-12-17ms-cpu-or-latency-waste-per-non-meaningful-invocation.sh"
+AUDIT_TASK="$SCRIPT_DIR/../hook-lint/wildcard-matcher.sh"
 
 if [ ! -x "$AUDIT_TASK" ]; then
   echo "FATAL: audit task not executable: $AUDIT_TASK" >&2

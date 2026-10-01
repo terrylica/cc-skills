@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-AUDIT="$(ls "$REPO_ROOT"/tasks/audit-no-bun-spawnsync-in-posttooluse-orchestrator-subhooks-*.sh)"
+AUDIT="$REPO_ROOT/tasks/hook-lint/orchestrator-spawnsync.sh"
 ORCH_NAME="posttooluse-edit-time-orchestrator-aggregating-context-injecting-subhooks-into-single-bun-process-iter93-corrects-iter89-async-true-strict-dominance-claim.ts"
 FIXTURE="$(mktemp -d -t spawnsync-gate.XXXXXX)"
 trap 'rm -rf "$FIXTURE"' EXIT
@@ -23,8 +23,8 @@ pass() { printf '  ✓ %s\n' "$1"; }
 fail() { printf '  ✗ %s\n     %s\n' "$1" "$2"; failures=$((failures + 1)); }
 
 HOOKS="$FIXTURE/plugins/itp-hooks/hooks"
-mkdir -p "$FIXTURE/tasks" "$HOOKS"
-cp "$AUDIT" "$FIXTURE/tasks/audit.sh"
+mkdir -p "$FIXTURE/tasks/hook-lint" "$HOOKS"
+cp "$AUDIT" "$FIXTURE/tasks/hook-lint/audit.sh"
 
 write_orchestrator() {
     printf '%s\n' 'import { classifyFixtureForPostToolUseOrchestrator } from "./posttooluse-fixture.ts";' >"$HOOKS/$ORCH_NAME"
@@ -34,7 +34,7 @@ write_classifier() {
 }
 run_audit() {
     rc=0
-    out="$(bash "$FIXTURE/tasks/audit.sh" 2>&1)" || rc=$?
+    out="$(bash "$FIXTURE/tasks/hook-lint/audit.sh" 2>&1)" || rc=$?
 }
 
 write_orchestrator

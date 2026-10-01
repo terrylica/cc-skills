@@ -51,7 +51,7 @@ ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── VIEW (iter-150) — read
 
 ${ITER156_ANSI_COLOR_CYAN_FOR_SECTION_HEADERS}─── DETECT (iter-151) — preflight long-subject overlay classifier ───${ITER156_ANSI_COLOR_RESET}
 
-  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/audit-recent-git-commit-messages-*.sh${ITER156_ANSI_COLOR_RESET}
+  ${ITER156_ANSI_COLOR_GREEN_FOR_TOOL_INVOCATIONS}bash tasks/commits/conventional-conformance.sh${ITER156_ANSI_COLOR_RESET}
       (Runs automatically as Check 4l during release:preflight.)
       Iter-151 extended the iter-82 validator with informational overlay
       flagging conformant commits whose subject exceeds the iter-150

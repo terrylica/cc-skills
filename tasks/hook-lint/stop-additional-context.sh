@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Audit every plugins/*/hooks/hooks.json REGISTERED Stop, SubagentStop, SessionEnd, PreCompact, AND Notification hook source file for emission of the additionalContext field in stdout JSON. All five event types share the same silent-drop mechanism but with three distinct schema sub-rules: (1) Stop+SubagentStop+PreCompact read only {decision:'block', reason} per Anthropic docs (code.claude.com/docs/en/hooks); (2) SessionEnd reads NO output fields at all (per Go type definitions in CorridorSecurity/hookshot — SessionEndOK returns empty output, session is terminating); (3) Notification is purely informational with no decision/blocking capability (Anthropic docs: 'no blocking — exit 2 shows stderr only'). Any additionalContext field on any of these five event types is silently dropped by Claude Code. iter-66 fixed the itp-hooks stop-orchestrator silent-drop bug; iter-67 scaled to a Stop-only audit; iter-68 extended to SubagentStop + SessionEnd; iter-69 completes the additionalContext-silently-dropped pentad by adding PreCompact + Notification. Strips JSDoc and line comments before scanning. Escape hatch: STOP-HOOK-ADDITIONAL-CONTEXT-OK source comment with reason ≥ 10 chars applies to all five event types. Exits non-zero on any unjustified emission. Symmetric companion to iter-60 / iter-62 / iter-65 / iter-67 schema-correctness gates.
 #
-# audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json
+# tasks/hook-lint/stop-additional-context.sh
 #
 # Iter-67 self-explanatory-scaffolding audit — preventive companion to
 # iter-66 (single-hook orchestrator additionalContext silent-drop fix).
@@ -236,7 +236,7 @@
 # audit immediately.
 #
 # Re-run cadence:
-#   - Manual: `bash tasks/audit-stop-hooks-for-additionalContext-emission-which-claude-code-silently-drops-per-official-anthropic-schema-only-decision-and-reason-fields-are-read-from-stop-hook-stdout-json.sh`
+#   - Manual: `bash tasks/hook-lint/stop-additional-context.sh`
 #   - Automatic: release:preflight Check 4j (iter-67 wire-up,
 #     iter-68 scope expansion preserved through Check 4j).
 
@@ -246,14 +246,14 @@ shopt -u patsub_replacement 2>/dev/null || true
 # REPO_ROOT defaults to the cc-skills working tree (resolved from this
 # task's location). Override via AUDIT_REPO_ROOT_OVERRIDE for testing
 # the audit against a synthetic-fixture fleet.
-REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+REPO_ROOT="${AUDIT_REPO_ROOT_OVERRIDE:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 # Hook-command parsing SSoT. Resolved from THIS FILE's location, not from
 # REPO_ROOT — AUDIT_REPO_ROOT_OVERRIDE points at a synthetic fixture tree that
 # has no tasks/lib/.
 AUDIT_TASK_DIRECTORY_ABSOLUTE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=tasks/lib/hook-command-parsing.sh
-source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/lib/hook-command-parsing.sh"
+source "$AUDIT_TASK_DIRECTORY_ABSOLUTE/../lib/hook-command-parsing.sh"
 
 # Minimum length of STOP-HOOK-ADDITIONAL-CONTEXT-OK justification.
 MIN_OK_REASON_LENGTH=10
