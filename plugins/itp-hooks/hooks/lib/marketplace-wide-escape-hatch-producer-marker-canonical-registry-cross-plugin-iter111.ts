@@ -368,16 +368,6 @@ export const MARKETPLACE_WIDE_ESCAPE_HATCH_PRODUCER_MARKER_CANONICAL_REGISTRY: R
         "Suppress the net-new markdown hard-wrap reminder (posttooluse-markdown-hard-wrap-reminder.ts) for a markdown file. The reminder fires when a Write/Edit/MultiEdit INTRODUCES prose broken mid-sentence at a fixed column — fine in a repo .md, where GFM soft breaks collapse to a space, but rendered as literal <br> once that prose reaches release notes, issue/PR bodies or comments, and noisy in every diff because rewording one sentence re-flows the whole paragraph. Add a comment containing MD-HARD-WRAP-OK (any comment style, e.g. `<!-- MD-HARD-WRAP-OK -->`) when the wrapping is deliberate — a verbatim quoted email, a fixed-width sample, or prose whose line breaks are themselves the content. Pre-existing wraps never fire (net-new only), so this marker is only needed for wrapping you are adding on purpose.",
     },
     {
-      markerNameTokenIncludingSuffix: "MINI-INNGEST-OK",
-      consumerHookSourceFileRelativePath:
-        "plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts",
-      caseSensitivityModeDeclaredAtConsumerCallSite: "CASE_SENSITIVE",
-      windowSemanticsModeDeclaredAtConsumerCallSite: "FILE_WIDE",
-      minimumReasonCharacterCountRequiredAfterColonOrZeroForOptional: 0,
-      humanReadableEscapeHatchDescriptionForOperatorDocumentation:
-        "Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).",
-    },
-    {
       markerNameTokenIncludingSuffix: "BROAD-PROCESS-SIGNAL-OK",
       consumerHookSourceFileRelativePath:
         "plugins/itp-hooks/hooks/pretooluse-broad-process-signal-guard.ts",
