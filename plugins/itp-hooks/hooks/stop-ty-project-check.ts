@@ -26,9 +26,9 @@
  * being a separate unguarded path. Duration is wrong axis; memory and concurrency
  * are the layers that matter.
  *
- * CRITICAL: Python 3.14 default — repo pin wins. When the repository declares a
- * Python version, ty resolves it from project config instead of this hook forcing
- * --python-version 3.14.
+ * Python version: no --python-version is passed (see lib/stop-ty-project-check-args.ts).
+ * ty resolves ty.toml → project.requires-python → active env → its 3.14 default, which
+ * is exactly "Python 3.14 default — repo pin wins" (#157).
  * Uses --exit-zero to prevent non-zero exit codes from failing the hook.
  *
  * Output: { additionalContext: "..." } for informational, non-blocking output.
@@ -40,7 +40,7 @@ import { join } from "node:path";
 import {
   executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail,
 } from "./lib/posttooluse-subhook-async-subprocess-execution-and-once-per-session-reminder-gate-file-helpers-iter95";
-import { tyProjectCheckArgs } from "./lib/stop-ty-project-check-python-version-args";
+import { TY_PROJECT_CHECK_ARGS } from "./lib/stop-ty-project-check-args";
 
 // --- Constants ---
 
@@ -107,7 +107,7 @@ async function main(): Promise<void> {
   // Run ty check on the entire project via the guarded async spawn path
   const tyExecutionResult =
     await executeBunSubprocessAsyncWithAbortSignalCooperativeTimeoutAndConcurrentStreamDrainAndMaxBufferGuardrail(
-      tyProjectCheckArgs(cwd),
+      [...TY_PROJECT_CHECK_ARGS],
       {
         cwd,
         timeoutMs: TY_SUBPROCESS_TIMEOUT_MILLISECONDS,
