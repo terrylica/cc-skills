@@ -141,11 +141,16 @@ else
     assert_fails "Case 6b: standalone vale-claude-md-guard.ts still referenced in hooks.json ${case6_vale_standalone_remnant_count} time(s)"
 fi
 
-# ─── Case 7: orchestrator description text records arc-completion milestone ───
-if grep -q 'iter-91' "$HOOKS_JSON_PATH" && grep -q 'COMPLETE' "$HOOKS_JSON_PATH"; then
-    assert_passes "Case 7: hooks.json orchestrator description records iter-91 arc-completion milestone (8/8)"
+# ─── Case 7: hooks.json description's subhook count matches the registry ───
+# The description states "Runs N Write/Edit guards"; N must equal the number of
+# registry entries in the orchestrator source and include vale-claude-md-guard.
+case7_described_count=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-edit-time-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -oE 'Runs [0-9]+ ' | grep -oE '[0-9]+' || echo 0)
+case7_registry_count=$(grep -cE '^      name: "' "$ORCHESTRATOR_HOOK_PATH" || true)
+case7_names_vale=$(jq -r '.hooks.PreToolUse[].hooks[] | select(.command | test("pretooluse-edit-time-orchestrator")) | .description' "$HOOKS_JSON_PATH" 2>/dev/null | grep -c 'vale-claude-md' || true)
+if [[ "${case7_described_count}" -ge 8 && "${case7_described_count}" == "${case7_registry_count}" && "${case7_names_vale}" -ge 1 ]]; then
+    assert_passes "Case 7: hooks.json description names ${case7_described_count} subhooks incl. vale-claude-md, matching the registry"
 else
-    assert_fails "Case 7: arc-completion milestone not recorded in hooks.json"
+    assert_fails "Case 7: hooks.json description count ${case7_described_count} vs registry ${case7_registry_count} (vale named: ${case7_names_vale})"
 fi
 
 # ─── Case 8: vale-claude-md-guard standalone retains import.meta.main guard ───
