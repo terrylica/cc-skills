@@ -1,10 +1,12 @@
 ---
 adr: 2025-12-27-fake-data-guard-universal
 source: ~/.claude/plans/composed-booping-meadow.md
-implementation-status: completed
+implementation-status: superseded
 phase: phase-3
 last-updated: 2025-12-28
 ---
+
+> ⚠️ **SUPERSEDED 2026-10-01**: see the [ADR](/docs/adr/2025-12-27-fake-data-guard-universal.md) notice. The hook described here was deleted; this spec is kept as the record of its design.
 
 # Fake Data Guard Implementation Specification
 

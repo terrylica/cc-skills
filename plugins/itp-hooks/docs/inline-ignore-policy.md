@@ -4,9 +4,9 @@
 
 ## Inline Ignore Policy
 
-The `pretooluse-inline-ignore-guard.ts` (PreToolUse) blocks new inline ignore comments, and `code-correctness-guard.sh` (PostToolUse) warns about existing ones.
+`code-correctness-guard.sh` (PostToolUse) warns about inline ignore comments after a Write or Edit. Nothing blocks them: the PreToolUse guard that once did was unregistered on 2026-04-24 for rejecting legitimate escape hatches, and its source was deleted on 2026-10-01.
 
-### Hierarchy (Enforced)
+### Hierarchy (warned, not blocked)
 
 1. **FIX THE ERROR** (preferred) — add type annotations, casts, None checks, `__all__` for re-exports
 2. **CONFIG-LEVEL IGNORE** (only for tool/library limitations):
@@ -27,10 +27,7 @@ The `pretooluse-inline-ignore-guard.ts` (PreToolUse) blocks new inline ignore co
 
 | Hook              | Event       | Behavior                                                |
 | ----------------- | ----------- | ------------------------------------------------------- |
-| PreToolUse guard  | Write\|Edit | **DENY** if proposed content introduces new ignores     |
 | PostToolUse audit | Write\|Edit | **WARN** about existing inline ignores (full-file scan) |
-
-For Edit: only denies if `new_string` has more ignores than `old_string` (net-new detection).
 
 ### Escape Hatch
 
@@ -39,12 +36,3 @@ Add `# INLINE-IGNORE-OK` or `// INLINE-IGNORE-OK` on the same line:
 ```python
 import pysbd  # type: ignore[import]  # INLINE-IGNORE-OK
 ```
-
-
-## Original hub-table narrative (PreToolUse, moved 2026-06-11)
-
-> Moved VERBATIM from the PreToolUse hook table of the pre-refactor plugin CLAUDE.md when the full-table snapshot docs were dissolved (operator decision 2026-06-11 — snapshots drift; per-hook spokes are the living home).
-
-**Matcher**: Write\|Edit
-
-Blocks inline ignore comments (`# noqa`, `# type: ignore`, `// eslint-disable`, `// biome-ignore`, `// oxlint-ignore`) — enforces config-level suppression
