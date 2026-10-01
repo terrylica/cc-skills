@@ -86,7 +86,6 @@ PATH_PATTERNS_SCRIPT_EOF_2
 
 ```bash
 # ❌ DOES NOT WORK in SKILL.md bodies
-# LAYER3-STRIPPED-PATH-OK: demonstrating unsafe pattern for documentation
 bash "${CLAUDE_PLUGIN_ROOT}/skills/my-skill/run.sh"
 ```
 
@@ -98,7 +97,6 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/my-skill/run.sh"
 
 ```bash
 # ❌ DOES NOT WORK in SKILL.md bodies - only takes fallback
-# LAYER3-STRIPPED-PATH-OK: demonstrating unsafe pattern for documentation
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/plugins/foo}/skills"
 ```
 
@@ -110,7 +108,6 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/cc-skills/p
 
 ```bash
 # ❌ DOES NOT WORK in command/skill markdown files
-# LAYER3-STRIPPED-PATH-OK: demonstrating unsafe pattern for documentation
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}/skills"
 ```
@@ -121,7 +118,6 @@ PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname "$SCRIPT_DIR")}/skills"
 
 ```bash
 # ❌ FRAGILE - assumes specific installation location
-# LAYER3-STRIPPED-PATH-OK: demonstrating unsafe pattern for documentation
 bash ~/.claude/plugins/itp/scripts/my-script.sh
 ```
 

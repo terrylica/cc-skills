@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 39 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (31; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -31,7 +31,6 @@ Jump directly to any of the 40 registered markers below. Markers are listed alph
 - [`INIT-MONOLITH-OK`](#init-monolith-ok)
 - [`INLINE-IGNORE-OK`](#inline-ignore-ok)
 - [`INVENTED-FALLBACK-OK`](#invented-fallback-ok)
-- [`LAYER3-STRIPPED-PATH-OK`](#layer3-stripped-path-ok)
 - [`LEAK-TAXONOMY-OK`](#leak-taxonomy-ok)
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
@@ -76,7 +75,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (31 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -322,7 +321,7 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 | Field | Value |
 | ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-inline-ignore-guard.ts` |
+| **Consumer hook** | `plugins/itp-hooks/hooks/code-correctness-guard.sh` |
 | **Case-sensitivity mode** | `CASE_SENSITIVE` |
 | **Window-semantics mode** | `SAME_LINE_ONLY` |
 | **Reason policy** | Bare marker accepted (no reason required) |
@@ -350,23 +349,6 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # INVENTED-FALLBACK-OK
-```
-
-## `LAYER3-STRIPPED-PATH-OK`
-
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/pretooluse-iter78-layer3-stripped-path-edit-time-guard.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `SAME_LINE_OR_PRECEDING_N_LINES` |
-| **Reason policy** | Reason required after colon — minimum 10 characters |
-
-**What it does**: Allow a `${CLAUDE_PLUGIN_ROOT}/<segment>/` reference where `<segment>` is NOT in the iter-76 cache-populator allowlist (hooks, skills, commands, agents, plugin.json). REQUIRES a ≥10-character reason after the colon (e.g., `LAYER3-STRIPPED-PATH-OK: deliberate scratch-dir reference for migration spike`). Marker is honored on the same line OR within the preceding 3 lines.
-
-**Example usage**:
-
-```
-# LAYER3-STRIPPED-PATH-OK: explain the deliberate exception here in at least 10 characters
 ```
 
 ## `LEAK-TAXONOMY-OK`
