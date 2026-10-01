@@ -1,3 +1,12 @@
+# [32.5.0](https://github.com/terrylica/cc-skills/compare/v32.4.0...v32.5.0) (2026-10-01)
+
+
+### Features
+
+* **chrome-profiles:** API-first rung, sign-in rules, fill-secret ([45f36bd](https://github.com/terrylica/cc-skills/commit/45f36bd95bee06452b26952f9969584feb06773c))
+
+Rung 0 is now an API or OAuth token, with no browser at all. Unattended work runs in per-tool profiles; the real everyday profile is for supervised work. fill-secret.mjs refills an expired login from the Keychain or vault over a debug port with no dependencies; the value never reaches the model. Tested: fill and submit work, and it refuses truncation, ambiguous selectors and missing secrets.
+
 # [32.4.0](https://github.com/terrylica/cc-skills/compare/v32.3.4...v32.4.0) (2026-10-01)
 
 
