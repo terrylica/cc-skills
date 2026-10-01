@@ -80,14 +80,21 @@ import {
   type PostToolUseInput,
   type PostToolUseSubhookDecision,
 } from "./lib/posttooluse-subhook-contract-for-in-process-orchestrator-with-multi-aggregation-additional-context-merging-iter93.ts";
-import { computeJoinedWithNextLineMask } from "./lib/gfm-unwrap.ts";
-import { detectHardWraps, type WrapIssue } from "./lib/hard-wrap-detector.ts";
 import { trackHookError } from "./lib/hook-error-tracker.ts";
-import { hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent } from "./lib/shared-escape-hatch-marker-detection-helper-cross-pretooluse-and-posttooluse-iter107.ts";
+import {
+  contentHash,
+  detectJoinerRepairableHardWraps,
+  GFM_UNWRAP_COMMAND,
+  isMarkdownFilePath,
+  isMarkdownHardWrapCheckSuppressed,
+  MD_HARD_WRAP_OK_MARKER,
+  recordSeenMarkdownContent,
+  wrapsAddedBetween,
+  type WrapIssue,
+} from "./lib/markdown-net-new-hard-wraps.ts";
 import { isEditedFilePathInsideTemporaryScratchDirectoryWhereLintingIsWastefulForThrowawayScripts } from "./lib/shared-temporary-directory-edited-file-path-detection-to-skip-lint-on-throwaway-scripts-cross-posttooluse-iter124.ts";
 
 const HOOK_NAME = "markdown-hard-wrap-reminder";
-const MD_HARD_WRAP_OK_MARKER = "MD-HARD-WRAP-OK";
 
 /** `PostToolUseInput.tool_input` with the MultiEdit `edits[]` array named. */
 interface MultiEditCapableToolInput {
@@ -97,11 +104,6 @@ interface MultiEditCapableToolInput {
   new_string?: string;
   replace_all?: boolean;
   edits?: Array<{ old_string?: string; new_string?: string; replace_all?: boolean }>;
-}
-
-/** Match `.md` / `.markdown` (case-insensitive), mirroring the table guard. */
-function isMarkdownFilePath(filePath: string): boolean {
-  return /\.(?:md|markdown)$/i.test(filePath);
 }
 
 /**
@@ -124,37 +126,10 @@ export function isMarkdownHardWrapReminderEligibleTarget(
   return true;
 }
 
-/**
- * The wraps in `text` that the JOINER would actually repair.
- *
- * The detector and the joiner disagree on hand-aligned indented blocks — a
- * quoted price schedule, a citation footer, an aligned key/value list inside a
- * bullet. The detector reads each row as prose that breaks mid-sentence (two
- * spaces is not a code fence); the joiner recognises the alignment and refuses
- * to touch it. Reporting a wrap the recommended fix would not fix is a false
- * positive by construction, so this filters them out (issue #106 finding 3).
- *
- * PER WRAP, not per file. The issue proposed the file-level rule "if the joiner
- * would make zero joins, do not report at all" — measured across all 1,094
- * tracked `.md` files, the number with wraps > 0 AND joins == 0 is ZERO, so
- * that rule would not have changed a single report. A file that contains an
- * aligned block essentially always contains a joinable paragraph too. The
- * per-wrap form silences 28 of 5,078 wraps (0.55%), every one of them in the
- * aligned/indented class the issue described.
- *
- * Fails toward REPORTING: if the joiner scan throws, the unfiltered wraps are
- * returned. A broken joiner must never be able to silence the detector.
- */
-function detectJoinerRepairableHardWraps(text: string): WrapIssue[] {
-  const wraps = detectHardWraps(text);
-  if (wraps.length === 0) return wraps;
-  try {
-    const joinedWithNext = computeJoinedWithNextLineMask(text);
-    return wraps.filter((w) => joinedWithNext[w.line - 1] === true);
-  } catch {
-    return wraps;
-  }
-}
+// The joiner filter, the shape signature and the multiset diff live in
+// lib/markdown-net-new-hard-wraps.ts, shared with the Bash-write reminder and the commit guard so the
+// three surfaces cannot disagree about what a wrap is. The per-wrap joiner filter (issue #106 finding
+// 3) silences 28 of 5,078 measured wraps (0.55%), all in hand-aligned indented blocks.
 
 /** Wrap count of a text fragment. An empty/one-line fragment is always 0. */
 function countWraps(text: string): number {
@@ -210,30 +185,6 @@ function reconstructContentBeforeEdits(
 }
 
 /**
- * Identify a wrap by its SHAPE, not its line number. Undoing an edit shifts
- * every subsequent line, so a line-number join would report the whole tail of
- * the file as new; width + continuation text is stable across that shift.
- */
-const wrapSignature = (w: WrapIssue): string => `${w.width}\0${w.nextPreview}`;
-
-/** Multiset difference: the `after` wraps that were not already in `before`. */
-function wrapsAddedBetween(before: WrapIssue[], after: WrapIssue[]): WrapIssue[] {
-  const remaining = new Map<string, number>();
-  for (const w of before) {
-    const k = wrapSignature(w);
-    remaining.set(k, (remaining.get(k) ?? 0) + 1);
-  }
-  const added: WrapIssue[] = [];
-  for (const w of after) {
-    const k = wrapSignature(w);
-    const n = remaining.get(k) ?? 0;
-    if (n > 0) remaining.set(k, n - 1);
-    else added.push(w);
-  }
-  return added;
-}
-
-/**
  * The net-new verdict (exported for tests): the wraps this tool call ADDED, or
  * an empty array when it added none.
  *
@@ -254,10 +205,7 @@ export function detectNetNewMarkdownHardWraps(
   fileContentAfterEdit: string | null = null,
 ): WrapIssue[] {
   const ti = (input.tool_input || {}) as MultiEditCapableToolInput;
-  const suppressed = (text: string) =>
-    hasMarkdownCommentInvokedEscapeHatchMarkerInMarkdownContent(text, {
-      markerNameTokenIncludingSuffix: MD_HARD_WRAP_OK_MARKER,
-    });
+  const suppressed = isMarkdownHardWrapCheckSuppressed;
 
   if (input.tool_name === "Write") {
     const content = ti.content || "";
@@ -309,7 +257,7 @@ export function buildMarkdownHardWrapReminder(filePath: string, wraps: WrapIssue
     "only structural breaks (list items, headings, code blocks, table rows, blank lines).",
     "",
     "To reflow an existing file (resolves from ANY repo, not just cc-skills):",
-    `  bun "$(cc-plugin-root itp-hooks)/scripts/gfm-unwrap.ts" ${filePath}`,
+    `  ${GFM_UNWRAP_COMMAND} ${filePath}`,
     "It joins wrapped prose, list items and blockquotes, leaves fenced/indented code and",
     "hand-aligned blocks alone, and refuses to write at all if any content would change.",
     "",
@@ -354,6 +302,11 @@ export async function classifyMarkdownHardWrapReminderForPostToolUseOrchestrator
       contentOnDisk = null; // unreadable → fragment fallback, never a crash
     }
     const wraps = detectNetNewMarkdownHardWraps(input, contentOnDisk);
+    // Tell the Bash-write reminder this content has been judged, so a later Bash call that finds the
+    // file still dirty does not report the same wraps a second time.
+    if (contentOnDisk !== null && input.session_id) {
+      recordSeenMarkdownContent(input.session_id, { [filePath]: contentHash(contentOnDisk) });
+    }
     if (wraps.length === 0) return POSTTOOLUSE_SUBHOOK_NOOP_DECISION;
     return buildPostToolUseAdditionalContextDecision(
       buildMarkdownHardWrapReminder(filePath, wraps),
