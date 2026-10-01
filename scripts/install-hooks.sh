@@ -19,6 +19,9 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 # and the install silently targeted nothing. --git-common-dir resolves to the
 # shared main gitdir from inside a worktree and to .git from a normal checkout.
 HOOKS_DIR="$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks"
+# A repo initialized with an empty template (GIT_TEMPLATE_DIR, `git init --template=`) has no
+# hooks directory at all, so create it rather than fail on the first write.
+mkdir -p "$HOOKS_DIR"
 
 echo "Installing cc-skills git hooks..."
 
