@@ -94,8 +94,8 @@
 #       (caveat: GitHub #55889 documents v2.1.123 regression where Bash
 #       matcher silently drops all 3 context channels; that's a runtime
 #       bug, not a schema bug — out of scope for this static audit. See
-#       docs/HOOKS.md "Runtime Bash-Matcher Context-Channel Silent Drop"
-#       section for operator-facing guidance on the bug.)
+#       docs/HOOKS.md "Hook Output: What Reaches Claude" for the
+#       operator-facing note on the bug.)
 #     - UserPromptSubmit / SessionStart — hookSpecificOutput.additional-
 #       Context + plain stdout both reach Claude.
 #     - UserPromptExpansion (iter-71 verified) — joined with
