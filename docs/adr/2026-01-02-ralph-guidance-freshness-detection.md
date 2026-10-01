@@ -283,8 +283,8 @@ In addition to the three-layer freshness detection, a `--remove` flag was implem
 
 **Command Documentation**:
 
-- [/ru:encourage](/plugins/ru/commands/encourage.md) - Lines 19-20, 70-145, 189-211
-- [/ru:forbid](/plugins/ru/commands/forbid.md) - Lines 19-20, 70-145, 191-213
+- /ru:encourage (ru plugin, since removed) - Lines 19-20, 70-145, 189-211
+- /ru:forbid (ru plugin, since removed) - Lines 19-20, 70-145, 191-213
 
 ## References
 

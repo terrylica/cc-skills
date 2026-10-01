@@ -54,7 +54,7 @@ Mode-switching button combo: **not yet identified**. The manual/vendor listing d
 
 ## The Karabiner Rule (Full)
 
-Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules` → rule named `Jieli/Free3-P macro pad: ...`. Verbatim export in [`references/karabiner-rule.json`](references/karabiner-rule.json).
+Located in `~/.config/karabiner/karabiner.json` → profile 0 → `complex_modifications.rules` → rule named `Jieli/Free3-P macro pad: ...`. Verbatim export in [`references/karabiner-rule.json`](raw/karabiner-rule.json).
 
 **Structure**: one rule, twelve manipulators (all three buttons use a tap/double-tap pair per transport — 2 manipulators per button per transport × 3 buttons × 2 transports = 12). All manipulators share the same `device_if` scoping to both USB and BT identifiers:
 
@@ -109,7 +109,7 @@ To support multiple BT modes simultaneously, just add more manipulators. E.g., `
 
 The pad auto-reconnects reliably on this setup within ~6 seconds of macOS wake (verified: USB termination at 14:41:28 → Free3-P grabbed at 14:41:34). Adding sleepwatcher-based force-reconnect would be unnecessary complexity right now.
 
-If you later observe silent mid-meeting disconnects (pad stays "paired" but "disconnected" in System Settings), revisit the three options in [`07-bluetooth-toolbox.md`](07-bluetooth-toolbox.md#auto-reconnect-on-sleepwake):
+If you later observe silent mid-meeting disconnects (pad stays "paired" but "disconnected" in System Settings), revisit the three options in [`07-bluetooth-toolbox.md`](07-bluetooth-toolbox.md#sleepwatcher--blueutil--auto-reconnect-on-wake):
 
 - **Option A** — Extend the upstream `ssh-tunnel-companion` plugin's wakeup script to also call `blueutil --connect EC-BD-E4-D3-F7-97`
 - **Option B** — Use Hammerspoon's `hs.caffeinate.watcher` (Hammerspoon already installed, not currently running)

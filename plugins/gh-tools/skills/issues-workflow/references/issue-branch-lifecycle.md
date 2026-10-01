@@ -90,7 +90,7 @@ gh issue develop <number> --base main --checkout
 
 GitHub Actions are reserved for: semantic-release, CodeQL, Dependabot, deployment.
 
-See: [GitHub Actions ADR](/docs/adr/2025-11-21-github-actions-no-testing-linting.md)
+See: GitHub Actions ADR
 
 ## Complete Workflow Example
 

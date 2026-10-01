@@ -11,7 +11,7 @@ Safe and unsafe patterns for referencing bundled scripts and files in Claude Cod
 > **Known Limitation**: `${CLAUDE_PLUGIN_ROOT}` is NOT a shell environment variable and should not be used
 > in `SKILL.md` bodies. Use `cc-plugin-root <plugin>` instead to resolve the live plugin install path.
 >
-> **Reference**: [Binary Analysis (2026-08-05)](./advanced-topics.md#known-limitations) and the
+> **Reference**: [Binary Analysis (2026-08-05)](./advanced-topics.md#part-5-agent-skill-composition--limitations) and the
 > [`cc-plugin-root` resolver](https://github.com/terrylica/cc-skills/blob/main/scripts/cc-plugin-root)
 
 ---

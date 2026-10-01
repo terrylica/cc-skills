@@ -139,4 +139,4 @@ curl -s http://127.0.0.1:8083/v1/messages \
 | Cloudflare Worker proxy | Adds network hop; may strip OAuth headers       |
 | HTTPS_PROXY env var     | Cannot inspect request bodies for model routing |
 
-See the [OAuth proxy research doc](../../../../../../../.claude/automation/claude-telegram-sync/docs/oauth-proxy-research.md) for a full evaluation of 11 approaches.
+See the OAuth proxy research doc (`~/.claude/automation/claude-telegram-sync/docs/oauth-proxy-research.md`, operator-local) for a full evaluation of 11 approaches.

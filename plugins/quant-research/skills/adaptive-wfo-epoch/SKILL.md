@@ -180,16 +180,16 @@ Start
 
 ## Integration with rangebar-eval-metrics
 
-This skill extends [rangebar-eval-metrics](../rangebar-eval-metrics/SKILL.md):
+This skill extends [rangebar-eval-metrics](../opendeviation-eval-metrics/SKILL.md):
 
 | Metric Source         | Used For                                 | Reference                                                                                |
 | --------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `sharpe_tw`           | WFE numerator (OOS) and denominator (IS) | [range-bar-metrics.md](./references/range-bar-metrics.md)                                |
-| `n_bars`              | Sample size for aggregation weights      | [metrics-schema.md](../rangebar-eval-metrics/references/metrics-schema.md)               |
-| `psr`, `dsr`          | Final acceptance criteria                | [sharpe-formulas.md](../rangebar-eval-metrics/references/sharpe-formulas.md)             |
-| `prediction_autocorr` | Validate model isn't collapsed           | [ml-prediction-quality.md](../rangebar-eval-metrics/references/ml-prediction-quality.md) |
-| `is_collapsed`        | Model health check                       | [ml-prediction-quality.md](../rangebar-eval-metrics/references/ml-prediction-quality.md) |
-| Extended risk metrics | Deep risk analysis (optional)            | [risk-metrics.md](../rangebar-eval-metrics/references/risk-metrics.md)                   |
+| `n_bars`              | Sample size for aggregation weights      | [metrics-schema.md](../opendeviation-eval-metrics/references/metrics-schema.md)               |
+| `psr`, `dsr`          | Final acceptance criteria                | [sharpe-formulas.md](../opendeviation-eval-metrics/references/sharpe-formulas.md)             |
+| `prediction_autocorr` | Validate model isn't collapsed           | [ml-prediction-quality.md](../opendeviation-eval-metrics/references/ml-prediction-quality.md) |
+| `is_collapsed`        | Model health check                       | [ml-prediction-quality.md](../opendeviation-eval-metrics/references/ml-prediction-quality.md) |
+| Extended risk metrics | Deep risk analysis (optional)            | [risk-metrics.md](../opendeviation-eval-metrics/references/risk-metrics.md)                   |
 
 ### Recommended Workflow
 

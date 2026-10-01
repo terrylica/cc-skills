@@ -272,6 +272,6 @@ The original implementation focused on ADRs and Design Specs. This expansion ext
 
 ## References
 
-- [semantic-release skill](/plugins/itp/skills/semantic-release/SKILL.md)
+- semantic-release skill (skill since removed)
 - [@semantic-release/exec plugin](https://github.com/semantic-release/exec)
-- [Documentation Release Linking Reference](/plugins/itp/skills/semantic-release/references/doc-release-linking.md)
+- Documentation Release Linking Reference (since removed)

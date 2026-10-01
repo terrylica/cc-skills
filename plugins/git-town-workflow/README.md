@@ -1,6 +1,6 @@
 # Git-Town Workflow Plugin
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../LICENSE)
 ![Commands](https://img.shields.io/badge/Commands-4-green.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-purple.svg)
 
