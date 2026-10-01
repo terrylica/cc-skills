@@ -1,3 +1,53 @@
+# [33.0.0](https://github.com/terrylica/cc-skills/compare/v32.6.0...v33.0.0) (2026-10-01)
+
+
+* chore!: retire claude-tts-companion, kokoro-tts, tts-tg-sync and minimax ([2002dd3](https://github.com/terrylica/cc-skills/commit/2002dd38018af08981d9b83638e4978a2a451304))
+
+The operator's text-to-speech now runs entirely on a private, on-demand native reader (Rust + ONNX Runtime, Kokoro v1.1-zh) bound to Option+S and Control+Option+S, with nothing resident. The three cc-skills TTS plugins duplicated it: a resident Swift companion (not running), a Python MLX Kokoro v1.0 stack with an HTTP server, and a hotkey layer that routed to the companion or a Supertonic fallback. MiniMax is no longer used, and the companion's summaries depended on it.
+
+Removed (214 files): the four plugins, their marketplace.json entries and the minimax keyword, README catalog rows, install one-liner and tree rows, plugins/CLAUDE.md list rows, root CLAUDE.md's Active Project section and pointers, sibling links, a kokoro skill cross-reference, the disk-hygiene TTS-debug row, two companion-internal LESSONS entries (the general "don't duplicate project docs in root" lesson stays, de-named), and release-task comments naming the companion. cli_spec.json is regenerated (37 -> 35 Python CLIs) and every count updated (43 -> 39).
+
+
+
+### Bug Fixes
+
+* **gates:** fixture git repos no longer run the developer's global hooks ([818efa8](https://github.com/terrylica/cc-skills/commit/818efa8451051942708195a7b6ae9851c896a74e))
+
+`git init` copies hooks from init.templateDir, so every test fixture that creates a repo (20 git init calls across 15 test files) ran the operator's global pre-commit on each fixture commit. Under repo:check's parallel load a fixture `git commit -qm base` in review-round-state.test.ts exceeded bun's 5 s test budget and the gate blocked a docs-only push with 11 failures, all of which pass standalone.
+
+git-init(1): the template directory is the --template argument, then $GIT_TEMPLATE_DIR, then init.templateDir. Both suite runners now export an empty GIT_TEMPLATE_DIR next to the existing git-env clearing, so fixtures are hermetic and faster. The roster test's wrapper fixture now asserts the empty template dir; against the old wrapper it fails.
+
+* **hooks:** install-hooks creates the hooks dir when the repo has none ([d1c0c64](https://github.com/terrylica/cc-skills/commit/d1c0c6451e0544cd81f07fa6a7e7c7289fc324ae))
+
+A repo initialized with an empty template (GIT_TEMPLATE_DIR or git init --template=) has no .git/hooks, so install-hooks.sh failed on its first write. The hermetic-fixture change above exposed it in the pre-push gate regression test.
+
+* **pushover-commander:** heartbeat stops probing the retired TTS services ([fc5d49e](https://github.com/terrylica/cc-skills/commit/fc5d49ebdaaeb9b4fdb1f663b308baa093a9f999))
+
+The daily heartbeat probed claude-tts-companion (:8780) and the kokoro-tts server (:8779). Both are retired, and the companion had not been running for a long time, so every heartbeat reported it unreachable and was promoted to WARN regardless of real fleet state. The two probes, their message lines, JSON fields and the WARN condition on them are removed; WARN now means only that a com.terryli.* launchd job has a non-zero last exit. The header and SKILL.md also listed a github-notifications probe that the script never implemented; that drift is removed. Verified with --json-only and --dry-run; shellcheck clean.
+
+
+
+### Features
+
+* **itp-hooks:** hard-wrap checks for Bash-written markdown and commits ([27617f6](https://github.com/terrylica/cc-skills/commit/27617f638dbae129619978c770cd71f6ca893e59))
+
+The markdown hard-wrap reminder only ever saw Write, Edit and MultiEdit. Markdown written any other way (a heredoc, `python3 - <<EOF`, a generator script, `sed -i`) never reached it. Measured 2026-10-01: a session rewrote dozens of .md files through Bash and Python, all hard-wrapped, with the reminder enabled and silent throughout.
+
+Two new surfaces close the gap, and all three now share one net-new layer, lib/markdown-net-new-hard-wraps.ts (joiner filter, shape signature, multiset diff, escape marker, repair command), so they cannot disagree about what a new wrap is.
+
+- pretooluse-markdown-commit-hard-wrap-guard.ts DENIES a `git commit` that adds wraps to a .md file, comparing what the commit records against HEAD, whole file, net-new only. A plain commit reads the index; -a/-am and pathspec commits read the working tree. It follows `cd dir &&` and `git -C dir`, reads blobs through one `git cat-file --batch`, and fails open. The marker in the command passes a whole commit; the HTML-comment marker in a file exempts that file.
+- posttooluse-bash-markdown-hard-wrap-reminder.ts reminds after a Bash command: .md paths the command names, plus Markdown `git status` reports dirty in the repos it ran in, modified in the last 15 minutes, compared against HEAD. Each (file, content hash) is judged once per session, and the edit-time reminder writes the same cache, so nothing is reported twice. 50-80 ms per Bash call warm.
+- The edit-time reminder now imports the shared layer instead of private copies (behaviour unchanged, its 44 tests pass).
+- 31 new tests against real throwaway git repositories, in both directions: wrapped commits denied, clean and legacy-only commits allowed, staged versus working tree, first commit, subdirectory, pathspecs, the escape in both forms, and the dedupe cache.
+
+
+
+### BREAKING CHANGES
+
+* the claude-tts-companion, kokoro-tts, tts-tg-sync and
+minimax plugins are no longer in the marketplace. Installed copies keep
+working until removed; their source stays in git history.
+
 # [32.6.0](https://github.com/terrylica/cc-skills/compare/v32.5.0...v32.6.0) (2026-10-01)
 
 
