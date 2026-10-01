@@ -299,5 +299,5 @@ graph { label: "🏗️ Setup Workflow Architecture"; flow: south; }
 
 ## References
 
-- [ITP Command](/plugins/itp/commands/go.md) - Pattern source for TodoWrite workflow
+- [ITP Command](/plugins/itp/skills/go/SKILL.md) - Pattern source for TodoWrite workflow
 - Global Plan: `memoized-cooking-nygaard.md` - Original design (ephemeral, local to author's machine)

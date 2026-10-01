@@ -470,7 +470,7 @@ See the full reference for 6 documented anti-patterns: **[GFM Anti-Patterns Refe
 
 | Issue                          | Cause                       | Fix                                                                                                                          |
 | ------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `#N` auto-links in tables      | GFM auto-reference          | Use backtick code span: `` `#1` `` ([details](./references/gfm-antipatterns.md#ap-01-n-auto-links-to-issues-in-table-cells)) |
+| `#N` auto-links in tables      | GFM auto-reference          | Use backtick code span: `` `#1` `` ([details](./references/gfm-antipatterns.md#ap-01-n-auto-links-everywhere)) |
 | "Resource not accessible"      | Fine-grained PAT            | Use Classic PAT for Projects v2                                                                                              |
 | Sub-issues not linking         | Wrong body format           | Use exact "Parent: #123" syntax                                                                                              |
 | Labels not filtering correctly | Typo in label name          | `gh label list` to verify exact names                                                                                        |

@@ -47,4 +47,4 @@ Each finding gets one entry:
 ## Cross-references
 
 - Coverage matrix: [`INDEX.md`](./INDEX.md)
-- Campaign contract: [`../LOOP_CONTRACT.md`](../LOOP_CONTRACT.md)
+- Campaign contract: `../LOOP_CONTRACT.md` (in the private source repo, not shipped)

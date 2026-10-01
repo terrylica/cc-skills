@@ -19,7 +19,7 @@ Dedicated documentation for the 3-key USB-C/Bluetooth macro pad, covering hardwa
 | [`06-bluetooth-landscape-survey.md`](06-bluetooth-landscape-survey.md) | 2026 ecosystem survey: form factors, brands (Stream Deck, Loupedeck, ZMK/QMK/Vial boards, AliExpress Jieli/CH57x), BLE vs Classic HID, latency, battery, reconnect patterns, firmware options                                   |
 | [`07-bluetooth-toolbox.md`](07-bluetooth-toolbox.md)                   | Evaluated + spiked FOSS tools for BT control on this Mac: tier-ranked `blueutil` / `sleepwatcher` / `Hammerspoon` / `bleak` / `LightBlue` / `PacketLogger`, install state, caveats (CoreBluetooth HID lock), pairing-day recipe |
 | [`08-bluetooth-configuration.md`](08-bluetooth-configuration.md)       | Live BT config: Free3-P device signature (Samsung-borrowed VID 0x04E8/0x7021), 4 firmware modes (we use mode 4: page_up/page_down/equal_sign), extended Karabiner rule with USB + BT manipulators, switching between transports |
-| [`references/`](references/)                                           | Verbatim hardware dumps captured 2026-04-21: full `lsusb -v` output, `system_profiler` (USB tree + BT metadata), `ioreg` HID device entry, current Karabiner rule export with USB + BT manipulators                             |
+| [`raw/`](raw/)                                           | Verbatim hardware dumps captured 2026-04-21: full `lsusb -v` output, `system_profiler` (USB tree + BT metadata), `ioreg` HID device entry, current Karabiner rule export with USB + BT manipulators                             |
 
 ## Quick Reference
 

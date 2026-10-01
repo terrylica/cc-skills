@@ -361,4 +361,4 @@ graph { label: "🏗️ SR&ED Discovery Architecture"; flow: south; }
 - [Claude Agent SDK TypeScript Reference](https://platform.claude.com/docs/en/agent-sdk/typescript)
 - [Claude Code Hooks Reference](https://code.claude.com/docs/en/hooks)
 - [CRA SR&ED Glossary](https://www.canada.ca/en/revenue-agency/services/scientific-research-experimental-development-tax-incentive-program/glossary.html)
-- [Existing Hook: sred-commit-guard.ts](/plugins/itp-hooks/hooks/sred-commit-guard.ts)
+- Existing Hook: sred-commit-guard.ts (since removed)
