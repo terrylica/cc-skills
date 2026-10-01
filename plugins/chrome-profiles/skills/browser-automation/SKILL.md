@@ -16,13 +16,25 @@ CP="$(cc-plugin-root chrome-profiles)/scripts/chrome-profile.sh"
 
 ## 1. Pick the rung — start at the top
 
-| Rung                    | Mechanism                                                                 | Use when                                                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1. **No browser**       | `curl` / `httpx`                                                          | The page renders server-side. **Check this first, every time.**                                                               |
-| 2. **Hermetic launch**  | the `playwright` MCP server, or `chromium.launch()` — a throwaway profile | You need JavaScript, and the run must be reproducible, unattended or parallel. No logins.                                     |
-| 3. **Your real Chrome** | the servers below                                                         | The work needs **your signed-in session** (an admin console, a dashboard with no API), or the site blocks automated browsers. |
+| Rung | Mechanism | Use when |
+| --- | --- | --- |
+| 0. **An API or OAuth token** | the site's API with a scoped, short-lived token from the vault/Keychain | The site has an API for the job. **No browser at all**: the most reliable and the safest identity. |
+| 1. **No browser, plain HTTP** | `curl` / `httpx` | The page renders server-side. |
+| 2. **A browser with its own profile** | the `playwright` MCP server or `chromium.launch()` (throwaway); a per-tool, sign-in-once profile on a debug port (`chrome-debug-port-control.sh`) | You need JavaScript; and, if a login is needed, the tool signs in once in **its own** profile. The default for anything unattended. |
+| 3. **Your real Chrome** | the servers below | Supervised work that needs **your own signed-in session**, or a site that blocks automated browsers. |
 
-Rung 3 acts with your real authority on every site in that profile. Use it for authenticated, interactive work, never as a general upgrade.
+## Who signs in, and how
+
+- **Unattended work never runs in your real profile.** It uses rung 0, or a per-tool profile (rung 2) that holds only the one site it needs, so a mistake or a hostile page can reach that site and nothing else. This is how the agent platforms do it too (Browserbase *Contexts*, Steel and Kernel *Profiles*).
+- **Your real profile (rung 3) is for work you are watching or have explicitly asked for.** It acts with every session in that profile at once.
+- **When a per-tool profile's session expires, refill the login from the Keychain or vault, never by having the AI read or type the password**:
+
+  ```bash
+  node "$(cc-plugin-root chrome-profiles)/scripts/fill-secret.mjs" --port 9222 --page <url-part> \
+    --selector '#password' --keychain <service>:<account> [--submit]     # or --vault <scope>:<key>
+  ```
+
+  It reads the secret inside its own process, types it into exactly one field of exactly one tab, and prints only a character count. It refuses a field too short for the secret (which would silently save a truncated one), an ambiguous selector, or a missing secret. 2FA and passkeys still need a person.
 
 ## 2. Before any rung-3 work: run the doctor
 

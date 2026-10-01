@@ -14,4 +14,6 @@ The SSoT for driving a browser from Claude Code on macOS: the route ladder, choo
 
 ## Recent changes
 
+- 2026-09-30 — sign-in model: rung 0 (API/OAuth token) added; unattended work uses per-tool profiles, the real profile is for supervised work; `fill-secret.mjs` refills a login from the Keychain/vault without the value reaching the model.
+
 - 2026-09-30 — created. Moved from a private skill and tools, with `setup` / `setup-main` added so a fresh Mac can reach no-click automation with one command per account.

@@ -25,5 +25,6 @@ bash "$CP" doctor you@example.com
 | `skills/browser-automation/references/doctrine.md` | The mechanics and measurements behind each rule                                          |
 | `scripts/chrome-profile.sh`                        | `setup`, `setup-main`, `doctor`, `resolve`, `open`, `extension-status`, `playwright-mcp` |
 | `scripts/chrome-debug-port-control.sh`             | `up` / `status` / `down` for a separate profile on a debug port                          |
+| `scripts/fill-secret.mjs` | Types a Keychain or vault secret into one field of a page on a debug-port profile; the value never reaches the AI |
 
-Requires macOS, Google Chrome 144+, Node (for `npx`) and Python 3. Nothing personal is stored in this plugin: accounts are typed in when you run it, and tokens live in your Keychain.
+Requires macOS, Google Chrome 144+, Node 22+ (for `npx` and the built-in WebSocket that `fill-secret.mjs` uses) and Python 3. Nothing personal is stored in this plugin: accounts are typed in when you run it, and tokens live in your Keychain.
