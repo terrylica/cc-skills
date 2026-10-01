@@ -164,7 +164,6 @@ macOS aggressively kills TCP connections during sleep. An SSH tunnel that was al
 - **NSWorkspace notifications** (`didWakeNotification`, `willSleepNotification`) are first-class Swift/ObjC APIs — no IOKit low-level work needed
 - **Compile once, run forever** — Swift binary with no runtime dependencies on macOS
 - **~30 lines of code** — register for notification, kill tunnel process, exit (or stay resident)
-- **Same toolchain** as claude-tts-companion — no new build chain to maintain
 
 ### Two approaches
 

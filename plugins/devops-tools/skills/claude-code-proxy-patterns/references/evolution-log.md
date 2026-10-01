@@ -7,7 +7,7 @@ Source: Debugging plan mode failure.
 Key fixes:
 
 - **CCP-08b**: Added ANTHROPIC_API_KEY unset in `.zshenv` - auth conflict warning fixed
-- **CCP-09**: Removed `cache_control` from allowedParams - MiniMax compatibility fixed
+- **CCP-09**: Removed `cache_control` from allowedParams - third-party provider compatibility fixed
 - Added OAuth auto-refresh (`oauth_refresh.go`) - background token refresh every 30 minutes
 
 Files changed:
@@ -19,7 +19,7 @@ Files changed:
 New anti-patterns:
 
 - CCP-08b: ANTHROPIC_API_KEY set in env with OAuth token → unset it
-- CCP-09: cache_control param sent to MiniMax → remove from allowedParams
+- CCP-09: cache_control param sent to the third-party provider → remove from allowedParams
 
 ---
 
@@ -44,7 +44,7 @@ Port configuration:
 - `:8082` - Go proxy (entry point, launchd-managed)
 - `:8083` - Optional failover wrapper (deprecated)
 
-MiniMax credentials configured via launchd EnvironmentVariables.
+Provider credentials configured via launchd EnvironmentVariables.
 
 ## 2026-02-22: Initial skill creation
 
@@ -52,5 +52,5 @@ Source: Empirical discovery during proxy implementation.
 Key discoveries: OAuth Keychain storage (`"Claude Code-credentials"`), `anthropic-beta: oauth-2025-04-20` header requirement, `ANTHROPIC_API_KEY=proxy-managed` forcing pattern.
 Reference implementation: `$HOME/.claude/tools/claude-code-proxy/proxy.py`
 10 anti-patterns (CCP-01 through CCP-10) cataloged from real debugging sessions.
-Provider compatibility tested: MiniMax M2.5-highspeed, Real Anthropic.
+Provider compatibility tested: one third-party Anthropic-compatible provider, Real Anthropic.
 Binary reverse-engineering findings: `_d()` service name, `hW()` storage backend, `WL="oauth-2025-04-20"` constant.

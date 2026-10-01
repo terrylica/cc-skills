@@ -126,7 +126,7 @@ the redundancy claim: 4,662 PDFs in both locations, **matching MD5 checksums**
 sampled across 1982–2022, the repo copy gitignored by design and documented in
 its README, and extraction proven one-way (PDF → JSONL is lossy). Verdict
 CONFIRMED SAFE, deleted. The same pass **REFUTED** two other "obviously stale"
-installers — a MiniMax dmg whose version matched what was installed, and a
+installers — an app dmg whose version matched what was installed, and a
 `Claude.dmg` whose app had been modified after the download — both kept.
 
 **Measurement note worth carrying**: a `du -sh ~/.Trash` reading of 14G in Phase 1

@@ -84,7 +84,7 @@ bun scripts/validate-plugins.mjs --strict  # Fail on warnings
 
 If your plugin includes hooks, see [Hooks Development Guide](/docs/HOOKS.md).
 
-## All Plugins (43)
+## All Plugins (39)
 
 Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Listed alphabetically by directory name; follow the link for details. To verify this list matches reality: `comm -3 <(grep -oE '\[([a-z0-9-]+)\]\(\./[a-z0-9-]+/CLAUDE\.md\)' plugins/CLAUDE.md | sed -E 's/\[([a-z0-9-]+)\].*/\1/' | sort) <(ls -1 plugins/ | grep -v -e node_modules -e CLAUDE.md | sort)` (empty output = aligned).
 
@@ -93,7 +93,6 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [asciinema-tools](./asciinema-tools/CLAUDE.md)
 - [calcom-commander](./calcom-commander/CLAUDE.md)
 - [chrome-profiles](./chrome-profiles/CLAUDE.md)
-- [claude-tts-companion](./claude-tts-companion/CLAUDE.md)
 - [cli-anything](./cli-anything/CLAUDE.md)
 - [crucible](./crucible/CLAUDE.md)
 - [devops-tools](./devops-tools/CLAUDE.md)
@@ -108,13 +107,11 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [html-showcase](./html-showcase/CLAUDE.md)
 - [itp](./itp/CLAUDE.md)
 - [itp-hooks](./itp-hooks/CLAUDE.md)
-- [kokoro-tts](./kokoro-tts/CLAUDE.md)
 - [link-tools](./link-tools/CLAUDE.md)
 - [macos-font-defaults](./macos-font-defaults/CLAUDE.md)
 - [macos-permissions](./macos-permissions/CLAUDE.md)
 - [macro-keyboard](./macro-keyboard/CLAUDE.md) — also has skill-level CLAUDE.mds (first plugin to adopt the deeper layer; see [macro-keyboard/CLAUDE.md](./macro-keyboard/CLAUDE.md#skills) for the per-skill table)
 - [media-tools](./media-tools/CLAUDE.md)
-- [minimax](./minimax/CLAUDE.md)
 - [mql5](./mql5/CLAUDE.md)
 - [notes-commander](./notes-commander/CLAUDE.md) — includes the `draft-park` skill (formerly the draft-hold plugin)
 - [openwolf](./openwolf/CLAUDE.md)
@@ -127,7 +124,6 @@ Each plugin's CLAUDE.md is its own SSoT for purpose, stack, and conventions. Lis
 - [ssh-tunnel-companion](./ssh-tunnel-companion/CLAUDE.md)
 - [statusline-tools](./statusline-tools/CLAUDE.md)
 - [tlg](./tlg/CLAUDE.md)
-- [tts-tg-sync](./tts-tg-sync/CLAUDE.md)
 - [unlimited-ocr](./unlimited-ocr/CLAUDE.md)
 - [web-forge](./web-forge/CLAUDE.md)
 - [whatsapp-commander](./whatsapp-commander/CLAUDE.md)

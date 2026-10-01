@@ -210,7 +210,7 @@ Self-hosting on hardware you already own is not a fallback here; it is the prima
 
 Measured over 103 TABLE images from the quantml corpus: Unlimited-OCR emitted an HTML `<table>` for
 **88** of them and prose for the other 15. Zero pipe-markdown. The two vision models quantml already
-runs (MiniMax-M3, GLM-4.6v) emitted pipe-markdown for 205 of the same 206 readings.
+runs (two hosted vision models) emitted pipe-markdown for 205 of the same 206 readings.
 
 A `--table-format pipe` flag (the default) converts HTML `<table>` markup to pipe-markdown before
 output. Pass `--table-format html` to keep raw HTML.

@@ -45,7 +45,7 @@ The Go proxy runs as a macOS launchd daemon for auto-restart on crash and boot p
     <dict>
         <key>PORT</key><string>8082</string>
         <key>HAIKU_PROVIDER_API_KEY</key><string>REPLACE_WITH_HAIKU_PROVIDER_API_KEY</string>
-        <key>HAIKU_PROVIDER_BASE_URL</key><string>https://api.minimax.io/anthropic</string>
+        <key>HAIKU_PROVIDER_BASE_URL</key><string>https://YOUR-PROVIDER-HOST/anthropic</string>
         <key>ANTHROPIC_DEFAULT_HAIKU_MODEL</key><string>claude-haiku-4-5-20251001</string>
     </dict>
 
