@@ -1472,7 +1472,7 @@ Iter-120 closes the final operator-discoverability gap surfaced by iter-119's ad
 **Live example**
 
 ```
-$ bash tasks/lookup-*-via-iter116-*.sh file-size-guard
+$ tasks/marker-lookup.ts --direction=reverse file-size-guard
 ✓ No exact path match for "file-size-guard", but found 1 consumer
   whose basename contains your query (case-insensitive):
 
@@ -1530,7 +1530,7 @@ The strict UPPER-KEBAB-CASE regex stays strict (no weakening to accept `SSoT`). 
 **Live example**
 
 ```
-$ bash tasks/lookup-*-via-iter123-*.sh file-size-guard
+$ tasks/marker-lookup.ts file-size-guard
 ⓘ Routing: auto-detect classifier: query has no '/' AND does not match strict canonical-marker shape
   → AMBIGUOUS → trying iter-122 forward-search first; falling back to iter-116 reverse-search if forward returns nothing
 
@@ -1562,11 +1562,11 @@ The routing rationale is printed BEFORE the dispatched-backend output, making th
 }
 ```
 
-The wrapping uses `jq` (not `bun -e` cross-language interpolation, which silently dropped variables — caught by shellcheck SC2034 during mid-flight adversarial review).
+The envelope is built in TypeScript by `tasks/marker-lookup.ts`, so `--json` needs no `jq`. The envelope is emitted for every `--json` call, including `--direction=forward|reverse`; read the direction-specific payload at `.dispatchedBackendResponse`.
 
-**Backward compatibility**
+**One CLI (2026-10-01 consolidation)**
 
-The iter-116 and iter-122 CLIs remain available as explicit-direction escape hatches. Operators who want explicit direction with the unified CLI can pass `--direction=forward` or `--direction=reverse`. Bad values like `--direction=sideways` are rejected with exit 1 and the diagnostic `invalid --direction value: ... (expected forward|reverse|auto)`.
+The three original bash scripts (the iter-116 reverse CLI, the iter-122 forward CLI and this iter-123 router) were replaced by the single TypeScript CLI `tasks/marker-lookup.ts`. The scripts wrote a temporary `.ts` file with the operator's query spliced into the source, so a query containing `"` produced a bun syntax error instead of a lookup; the CLI now passes the query to the iter-116/iter-122/iter-123 library functions as a value. Explicit direction is `--direction=forward` or `--direction=reverse`. Bad values like `--direction=sideways` are rejected with exit 1 and the diagnostic `invalid --direction value: ... (expected forward|reverse|auto)`.
 
 **Regression test (`test-iter123-unified-lookup-cli-auto-detects-query-shape-...-fallback-reverse.sh`) — 10 cases**
 
@@ -1622,7 +1622,7 @@ Step 2 (case-insensitive exact match) is the only addition beyond iter-116's cha
 **Live examples**
 
 ```
-$ bash tasks/lookup-*-via-iter122-*.sh FILE-SIZE-OK
+$ tasks/marker-lookup.ts --direction=forward FILE-SIZE-OK
 ✓ Found 1 canonical registry entry/entries for marker:
     FILE-SIZE-OK
 
@@ -1636,14 +1636,14 @@ $ bash tasks/lookup-*-via-iter122-*.sh FILE-SIZE-OK
   Example:
   # FILE-SIZE-OK
 
-$ bash tasks/lookup-*-via-iter122-*.sh TTY
+$ tasks/marker-lookup.ts --direction=forward TTY
 ✓ No exact match for "TTY", but found 2 markers whose token contains your query (case-insensitive):
 
   CARGO-TTY-SKIP
   CARGO-TTY-WRAP
 ...
 
-$ bash tasks/lookup-*-via-iter122-*.sh FIEL-SIZE-OK
+$ tasks/marker-lookup.ts --direction=forward FIEL-SIZE-OK
 ✗ No canonical registry entry matches the marker token: FIEL-SIZE-OK
   Did you mean (top-3 closest matches by Levenshtein edit distance)?
     [2 edits] FILE-SIZE-OK
@@ -1773,18 +1773,18 @@ The iter-118 "plausible typo vs unrelated query" decision is encoded directly in
 
 ```bash
 # What marker opts out of file-size-guard?
-$ bash tasks/lookup-*-via-iter116-*.sh --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts \
-    | jq -r '.markers[].markerNameTokenIncludingSuffix'
+$ tasks/marker-lookup.ts --direction=reverse --json plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts \
+    | jq -r '.dispatchedBackendResponse.markers[].markerNameTokenIncludingSuffix'
 FILE-SIZE-OK
 
 # Count markers per lifecycle layer (aggregate across all known consumers)
 $ for path in $(...listAll registered paths...); do
-    bash tasks/lookup-*-via-iter116-*.sh --json "$path" | jq -r '.markers[].lifecycleLayer'
+    tasks/marker-lookup.ts --direction=reverse --json "$path" | jq -r '.dispatchedBackendResponse.markers[].lifecycleLayer'
   done | sort | uniq -c
 
 # In CI: fail if any consumer has stale description (programmatic check)
-$ bash tasks/lookup-*-via-iter116-*.sh --json some/path.ts \
-    | jq -e '.markers[].humanReadableEscapeHatchDescriptionForOperatorDocumentation | contains("file-size-guard")'
+$ tasks/marker-lookup.ts --direction=reverse --json some/path.ts \
+    | jq -e '.dispatchedBackendResponse.markers[].humanReadableEscapeHatchDescriptionForOperatorDocumentation | contains("file-size-guard")'
 ```
 
 **Routing contract**
@@ -1834,7 +1834,7 @@ Iter-118 enhances the iter-116 reverse-search CLI's unknown-path branch with the
 **Live example**
 
 ```
-$ bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \
+$ tasks/marker-lookup.ts --direction=reverse \
     plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts   # extra 's'
 ✗ No registered escape-hatch markers target this consumer path:
     plugins/itp-hooks/hooks/pretooluse-file-size-guards.ts
@@ -1937,7 +1937,7 @@ All 7 cases pass. Marketplace regression suite: **51/51** (up from 50; iter-117 
 Iter-116 closes the operator-discoverability gap of the FORWARD direction (marker → consumer was covered by the iter-113 reference doc; consumer → marker required table-scanning until iter-116). Operators now answer the reverse question with one CLI invocation:
 
 ```
-$ bash tasks/lookup-escape-hatch-marker-by-consumer-source-file-relative-path-via-iter116-reverse-search-accessor-spanning-iter111-and-iter114-canonical-registries.sh \
+$ tasks/marker-lookup.ts --direction=reverse \
     plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
 ✓ Found 1 escape-hatch marker for consumer:
     plugins/itp-hooks/hooks/pretooluse-file-size-guard.ts
