@@ -42,7 +42,7 @@
  *   research (claudefa.st March-2026 + Anthropic timing docs) revealed
  *   that async PostToolUse hooks cannot reliably inject context next-to-
  *   tool-result — the model advances before the hook finishes. The iter-92
- *   eligibility audit (`audit-posttooluse-asynctrue-eligibility-classifier-by-decision-block-vs-pure-side-effect-output-pattern-iter92-corrects-iter89-strict-dominance-claim.sh`)
+ *   eligibility audit (retired in #142; finding kept in docs/HOOKS.md)
  *   classified 15 of 17 marketplace PostToolUse hooks as
  *   `[C] CONTEXT-INJECTING / ASYNC-UNSAFE`, leaving orchestrator inlining
  *   (Path B) as the only viable consolidation strategy for the
