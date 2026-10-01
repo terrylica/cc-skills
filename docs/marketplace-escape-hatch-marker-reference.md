@@ -11,9 +11,9 @@
 
 ## Quick navigation
 
-Jump directly to any of the 41 registered markers below. Markers are listed alphabetically within each lifecycle layer.
+Jump directly to any of the 40 registered markers below. Markers are listed alphabetically within each lifecycle layer.
 
-**Runtime-hook markers** (33; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
+**Runtime-hook markers** (32; consumed by Pre/PostToolUse hooks via iter-107 helper on every Write/Edit/Bash invocation):
 
 - [`ALLOW-LEGACY-TS`](#allow-legacy-ts)
 - [`ASK-OPTION-NEWLINE-OK`](#ask-option-newline-ok)
@@ -36,7 +36,6 @@ Jump directly to any of the 41 registered markers below. Markers are listed alph
 - [`MANUAL-PAT-PAGE-OK`](#manual-pat-page-ok)
 - [`MD-HARD-WRAP-OK`](#md-hard-wrap-ok)
 - [`MD-TABLE-OK`](#md-table-ok)
-- [`MINI-INNGEST-OK`](#mini-inngest-ok)
 - [`PII-SCAN-OK`](#pii-scan-ok)
 - [`PKILL-OPTION-ORDER-OK`](#pkill-option-order-ok)
 - [`PROCESS-STORM-OK`](#process-storm-ok)
@@ -77,7 +76,7 @@ The marketplace honors two FAMILIES of escape-hatch markers — RUNTIME-HOOK mar
 - **iter-111 informational** (release preflight Check 4t): every producer-side marker token written in any marketplace file must appear in the canonical registry. Unregistered tokens are flagged as POTENTIAL TYPOS.
 - **iter-113 informational** (release preflight Check 4u): the on-disk `docs/marketplace-escape-hatch-marker-reference.md` (this file) must be in sync with the canonical registry source. Drift is reported via the iter-113 doc-drift detector.
 
-## Runtime-hook marker catalog (33 registered markers consumed by iter-107 shared helper)
+## Runtime-hook marker catalog (32 registered markers consumed by iter-107 shared helper)
 
 These markers are honored by PreToolUse/PostToolUse hooks at runtime — they suppress a specific hook's enforcement for a specific file or command. Detection runs on EVERY matching tool invocation.
 
@@ -436,23 +435,6 @@ These markers are honored by PreToolUse/PostToolUse hooks at runtime — they su
 
 ```
 # MD-TABLE-OK
-```
-
-## `MINI-INNGEST-OK`
-
-| Field | Value |
-| ----- | ----- |
-| **Consumer hook** | `plugins/itp-hooks/hooks/posttooluse-mini-inngest-doctrine.ts` |
-| **Case-sensitivity mode** | `CASE_SENSITIVE` |
-| **Window-semantics mode** | `FILE_WIDE` |
-| **Reason policy** | Bare marker accepted (no reason required) |
-
-**What it does**: Suppress the mini-inngest-doctrine PostToolUse nudge (operator directive 2026-07-06). External/web-facing services and off-web monitors normally belong on the Mac Mini as Inngest applications (the shared, durable workflow engine), deployed via the mini-deploy CLI. Add MINI-INNGEST-OK to this file when you deliberately intend to set up such a service locally or manually instead (e.g., temporary testing, local development, or a non-standard deployment).
-
-**Example usage**:
-
-```
-# MINI-INNGEST-OK
 ```
 
 ## `PII-SCAN-OK`

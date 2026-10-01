@@ -1,7 +1,7 @@
 # ADR: Mini-Inngest Doctrine Hook (2026-07-06)
 
 **Date**: 2026-07-06  
-**Status**: Accepted  
+**Status**: Superseded (2026-09-30) — the hook was never registered, Inngest was retired 2026-07-17 (Restate is the sole engine), and the hook, its tests, spoke and `MINI-INNGEST-OK` registry entry were removed. Recover from git history if needed.  
 **Severity**: Soft nudge (non-blocking reminder via PostToolUse)
 
 ---
