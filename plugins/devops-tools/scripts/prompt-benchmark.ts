@@ -5,7 +5,7 @@
  * Modes:
  *   --mode freeze    Save current session output as a frozen corpus fixture
  *   --mode matrix    Run all 3 goals against a corpus, report quantitative metrics
- *   --mode ab        A/B compare two prompt variants using MiniMax as judge
+ *   --mode ab        A/B compare two prompt variants using an LLM judge
  *   --mode variance  Run goal N three times, measure output stability (Jaccard)
  *
  * Usage:
@@ -15,7 +15,7 @@
  *   bun run prompt-benchmark.ts --mode variance --corpus baseline-8h --goal 2 --runs 3
  *
  * Corpus fixtures: ~/.claude/benchmarks/session-debrief/corpus/<name>/
- *   structured-log.txt  — frozen --dry output (session log fed to MiniMax)
+ *   structured-log.txt  — frozen --dry output (session log fed to the LLM)
  *   session-summary.txt — frozen session metadata summary
  *   output-g<N>.txt     — reference output for each goal
  */
@@ -27,10 +27,9 @@ import { spawnSync } from "child_process";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 
-// MIGRATED 2026-08-23 off MiniMax onto the fleet's own sub2api gateway (MiniMax/Z.ai
-// retirement). Already Anthropic-shaped, so only URL/model/credential moved.
+// The judge is any endpoint speaking the Anthropic Messages shape.
 //
-// ⚠ BENCHMARK CONTINUITY: any score recorded before this date was produced by MiniMax-M3.
+// ⚠ BENCHMARK CONTINUITY: scores recorded before 2026-08-23 came from a different model.
 // Comparing a new run against those numbers compares two different MODELS, not two prompts,
 // which is exactly the confound this harness exists to avoid. Re-baseline before drawing a
 // conclusion from a cross-date comparison.
@@ -80,7 +79,7 @@ function benchmarkApiUrl(): string {
   if (cachedBenchmarkApiUrl === undefined) cachedBenchmarkApiUrl = resolveDebriefApiUrl();
   return cachedBenchmarkApiUrl;
 }
-const MINIMAX_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
+const BENCH_LLM_MODEL = process.env.DEBRIEF_LLM_MODEL ?? "claude-sonnet-5[1m]";
 const CORPUS_BASE = join(homedir(), ".claude/benchmarks/session-debrief/corpus");
 
 // ── API Key ────────────────────────────────────────────────────────────────────
@@ -106,9 +105,9 @@ function getApiKey(): string {
   return key;
 }
 
-// ── MiniMax API ────────────────────────────────────────────────────────────────
+// ── LLM API ────────────────────────────────────────────────────────────────────
 
-async function callMiniMax(
+async function callLLM(
   apiKey: string,
   system: string,
   userContent: string,
@@ -122,7 +121,7 @@ async function callMiniMax(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MINIMAX_MODEL,
+      model: BENCH_LLM_MODEL,
       max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content: userContent }],
@@ -132,7 +131,7 @@ async function callMiniMax(
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`MiniMax API ${res.status}: ${body.slice(0, 300)}`);
+    throw new Error(`LLM API ${res.status}: ${body.slice(0, 300)}`);
   }
 
   const result: any = await res.json();
@@ -543,7 +542,7 @@ async function modeMatrix(args: Args): Promise<void> {
 
     const userMsg = `${corpus.sessionSummary}\n\n===BEGIN TRANSCRIPT===\n${corpus.structuredLog}\n===END TRANSCRIPT===\n\nNow produce your analysis. Be exhaustive and technically precise.`;
 
-    const output = await callMiniMax(apiKey, prompts[g], userMsg, 16384);
+    const output = await callLLM(apiKey, prompts[g], userMsg, 16384);
     saveCorpusOutput(corpusName, g, output);
 
     if (g === 1) {
@@ -584,12 +583,12 @@ async function modeAB(args: Args): Promise<void> {
 
   console.error(`[ab] Running variant A (${variantA}), goal ${goal}...`);
   // For now both variants use the current prompt; in practice you'd swap the prompt
-  const outputA = await callMiniMax(apiKey, prompts[goal], userMsg, 16384);
+  const outputA = await callLLM(apiKey, prompts[goal], userMsg, 16384);
 
   console.error(`[ab] Running variant B (${variantB}), goal ${goal}...`);
-  const outputB = await callMiniMax(apiKey, prompts[goal], userMsg, 16384);
+  const outputB = await callLLM(apiKey, prompts[goal], userMsg, 16384);
 
-  console.error(`[ab] Calling MiniMax judge...`);
+  console.error(`[ab] Calling LLM judge...`);
   const judgeMsg = `## Source Transcript (abbreviated)
 ${corpus.sessionSummary}
 ...
@@ -603,7 +602,7 @@ ${outputA.slice(0, 8000)}
 ## Output B (variant: ${variantB})
 ${outputB.slice(0, 8000)}`;
 
-  const judgeOutput = await callMiniMax(apiKey, AB_JUDGE_SYSTEM, judgeMsg, 512);
+  const judgeOutput = await callLLM(apiKey, AB_JUDGE_SYSTEM, judgeMsg, 512);
   const result = parseJudgeOutput(judgeOutput);
 
   // Quantitative metrics
@@ -655,7 +654,7 @@ async function modeVariance(args: Args): Promise<void> {
   const outputs: string[] = [];
   for (let i = 0; i < runs; i++) {
     console.error(`[variance] Run ${i + 1}/${runs}...`);
-    const output = await callMiniMax(apiKey, prompts[goal], userMsg, 16384);
+    const output = await callLLM(apiKey, prompts[goal], userMsg, 16384);
     outputs.push(output);
     console.error(`  ${output.length} chars`);
   }

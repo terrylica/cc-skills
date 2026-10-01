@@ -178,7 +178,7 @@ See the itp-hooks plugin CLAUDE.md (Process Storm Prevention section) for detail
 
 ## CCP-08: Setting ANTHROPIC_API_KEY to Real Key While Proxy Runs [MEDIUM]
 
-**Symptom**: Your real Anthropic API key appears in proxy logs for MiniMax-routed requests. Potential key leakage to third-party providers.
+**Symptom**: Your real Anthropic API key appears in proxy logs for third-party-routed requests. Potential key leakage to third-party providers.
 
 **Root cause**: Claude Code sends `x-api-key` header to `ANTHROPIC_BASE_URL`. If `ANTHROPIC_API_KEY` contains a real Anthropic key, the proxy receives it and may forward it to all providers, including third-party ones.
 
@@ -224,16 +224,16 @@ export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
 
 ---
 
-## CCP-09: cache_control Parameter Sent to MiniMax [MEDIUM]
+## CCP-09: cache_control Parameter Sent to a Provider That Lacks It [MEDIUM]
 
 **Symptom**: API error: `system.2.cache_control.ephemeral.scope: Extra inputs are not permitted` or similar cache_control validation error.
 
-**Root cause**: MiniMax (and some other Anthropic-compatible providers) does not support the `cache_control` parameter that Anthropic's API accepts. The Go proxy's `processBody` function was passing this through to MiniMax.
+**Root cause**: Some Anthropic-compatible providers do not support the `cache_control` parameter that Anthropic's API accepts. The Go proxy's `processBody` function was passing this through to the provider.
 
 **Fix**: Remove `cache_control` from the allowed parameters map in the Go proxy.
 
 ```go
-// WRONG - allows cache_control through to MiniMax
+// WRONG - allows cache_control through to the provider
 var allowedParams = map[string]bool{
     // ...
     "cache_control": true,  // Remove this
@@ -264,7 +264,7 @@ var allowedParams = map[string]bool{
 // Go proxy: handle count_tokens endpoint
 case strings.HasPrefix(r.URL.Path, "/v1/messages/count_tokens"):
     // Same auth logic as /v1/messages
-    // Return 501 for MiniMax (doesn't support it)
+    // Return 501 for providers that do not implement it
 ```
 
 ---

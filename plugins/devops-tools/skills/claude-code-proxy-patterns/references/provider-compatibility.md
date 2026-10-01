@@ -6,26 +6,6 @@ Tested Anthropic-compatible providers for use with claude-code-proxy (2026-02-22
 
 ## Tested Providers
 
-### MiniMax highspeed
-
-| Field              | Value                                          |
-| ------------------ | ---------------------------------------------- |
-| Endpoint           | `https://api.minimax.io/anthropic/v1/messages` |
-| Auth               | API key via `Authorization: Bearer`            |
-| Base URL for proxy | `https://api.minimax.io/anthropic`             |
-| Streaming          | Supported                                      |
-| Token counting     | Not supported (proxy returns 501)              |
-
-**Quirks**:
-
-1. **Model name in response**: Returns `"model": "MiniMax"` instead of the requested model name. Cosmetic only; Claude Code handles this gracefully.
-
-2. **Extra `thinking` block**: MiniMax includes a `thinking` content block with a `signature` field in responses. Claude Code ignores unknown content block types.
-
-3. **Extra `base_resp` field**: Responses include a `base_resp` metadata object not present in Anthropic responses. No functional impact.
-
-4. **API key source**: 1Password at `op://Claude Automation/MiniMax API - High-Speed Plan/password`
-
 ### Real Anthropic
 
 | Field              | Value                                                                  |
