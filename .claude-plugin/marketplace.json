@@ -353,7 +353,10 @@
         "research",
         "google"
       ],
-      "strict": false
+      "strict": false,
+      "requires": [
+        "chrome-profiles"
+      ]
     },
     {
       "name": "gh-tools",
@@ -374,7 +377,10 @@
         "webfetch",
         "enforcement"
       ],
-      "strict": false
+      "strict": false,
+      "requires": [
+        "chrome-profiles"
+      ]
     },
     {
       "name": "git-town-workflow",
@@ -1033,7 +1039,10 @@
         "sso",
         "otp"
       ],
-      "strict": false
+      "strict": false,
+      "requires": [
+        "chrome-profiles"
+      ]
     },
     {
       "name": "whatsapp-commander",
