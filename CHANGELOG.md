@@ -1,3 +1,48 @@
+# [33.1.0](https://github.com/terrylica/cc-skills/compare/v33.0.1...v33.1.0) (2026-10-01)
+
+
+### Bug Fixes
+
+* **commits-doctor:** Check 14 probe also disables config-based hooks ([0a7a298](https://github.com/terrylica/cc-skills/commit/0a7a2982457fafead91114331107f0f01b654dc4)), closes [#178](https://github.com/terrylica/cc-skills/issues/178) [#117](https://github.com/terrylica/cc-skills/issues/117)
+* **commits-doctor:** Check 14 probe repo no longer runs global git hooks ([fb7a198](https://github.com/terrylica/cc-skills/commit/fb7a198a7f6ffb8523d59bfab7a91420f0eca792)), closes [#117](https://github.com/terrylica/cc-skills/issues/117) [#173](https://github.com/terrylica/cc-skills/issues/173) [#174](https://github.com/terrylica/cc-skills/issues/174) [#117](https://github.com/terrylica/cc-skills/issues/117)
+
+The doctor's critical Check 14 builds a temp repo with git init and two commits. git init copies the developer's init.templateDir hooks, so the global pre-commit ran on each probe commit, and under load it made the
+
+* **commits:** iter-152 dashboard drains its pipes; its test explains failures ([e20403c](https://github.com/terrylica/cc-skills/commit/e20403ca4f2b0061a73ab3003a0eec4694bd8e63))
+
+The gate failed twice with iter-152 F3 (Panels 3-5 missing) and passed on rerun; 300 standalone runs did not reproduce it, and the test threw away the renderer's exit code and output, so nothing said why.
+
+- The renderer runs under set -euo pipefail and filtered its window with head -N, which exits early and can SIGPIPE its writer: a timing race that ends the script mid-dashboard. The four window filters are now awk 'NR &lt;= limit', which drains its input. Default and --json output are byte-identical before and after. This hardens a known hazard; it is not proven to be the cause.
+- The test records the renderer's exit code and, on failure, prints it with the last 15 lines of output, so the next occurrence names itself.
+
+The iter-174 harness pins the iter-160 doctor at 23 counted forks, and its shim counts awk but not head, so the swap reads as 27 with the real process count unchanged; re-pinned to 27, measured three times.
+
+* **gates:** doc-count gate checks CLAUDE.md coverage directly ([6a2f623](https://github.com/terrylica/cc-skills/commit/6a2f623806a623327e27a008f0ce7b9ab3c4b6c6))
+
+Three rules matched count claims this branch deliberately removed from the hubs (plugin CLAUDE.md N/N, the registry comment, the reuse-registry count), so the gate went INCONCLUSIVE. They are dropped. The one invariant the first of them carried, that every plugin ships a CLAUDE.md, is now compared directly against the filesystem; negative control: hiding plugins/tlg/CLAUDE.md fails with '1 plugin(s) lack a CLAUDE.md (38 of 39)'.
+
+* **tasks:** runners also disable config-based git hooks ([3b2cbdd](https://github.com/terrylica/cc-skills/commit/3b2cbdd6d3558d20a66b61dee47fae16f12c821a))
+
+The empty GIT_TEMPLATE_DIR keeps template hooks out of fixture repos, but git >= 2.54 also runs config-based hooks (hook.&lt;name>.command / .event in the global config), and neither an empty template nor core.hooksPath=/dev/null stops them. Measured on git 2.56: the operator's two eon-vocabulary-guard hooks ran bun on every fixture commit, 1.27 s per `git commit` (0.01 s with hook.&lt;name>.enabled=false), which is how fixture commits blew bun's 5 s budget under repo:check's load (the review-round-gate timeouts).
+
+- tasks/lib/hermetic-fixture-git.sh: hermetic_git_disable_config_hooks (git only, no temp files, so it is usable where forks are counted, such as the commits-doctor probe) and hermetic_fixture_git_setup (clear git's repo variables, empty template dir, disable config hooks). The override travels through GIT_CONFIG_COUNT/KEY/VALUE, so no config file is touched.
+- Both suite runners source it instead of carrying two copies of the same block.
+- Three tests that copy a runner into a sandbox now copy the helper beside it.
+
+Validated: repo:check green; a probe fixture commit takes 17 ms with both hooks reported disabled.
+
+
+
+### Features
+
+* **tasks:** run hook lints in the push gate via repo:hook-lint ([639b85e](https://github.com/terrylica/cc-skills/commit/639b85e7dc68c22810e39d217bd46ceeab61eb66))
+
+The hook-lint audits ran only in the release preflight batch, so a regression in hooks.json schema, matcher hygiene or the marker registries surfaced at release time rather than before a push.
+
+tasks/hook-lint/run executes every tasks/hook-lint/*.sh in parallel, at most 4 at once, each into its own temp log. It prints one PASS/FAIL line per audit with elapsed ms, the last 30 log lines of each failure, and exits 1 if any failed. marker-reference-doc.sh gets --check; the rest get no arguments. The directory listing is the only list, so a new lint is a new file. It needs bash >= 5 (wait -n, EPOCHREALTIME), as the release preflight already does, and says so if it lacks it.
+
+moon.yml gains a hook-lint task in check.deps. The standalone audit-orchestrator-spawnsync task and its check.deps entry are gone: orchestrator-spawnsync.sh is one of the hook lints now.
+
 ## [33.0.1](https://github.com/terrylica/cc-skills/compare/v33.0.0...v33.0.1) (2026-10-01)
 
 
